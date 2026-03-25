@@ -1,72 +1,28 @@
-<!-- Murphy System — Sales Landing Page / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!-- Murphy System — Landing Page / © 2020 Inoni LLC / BSL 1.1 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Murphy System — AI Business Automation | CRM, Workflows, Compliance, Shadow Agents</title>
-<meta name="description" content="Murphy System automates your entire business — CRM, invoicing, hiring, compliance, project management, and more. AI Shadow Agents learn your style. Free tier forever. SOC 2 aligned.">
-<meta name="keywords" content="business automation, AI automation platform, CRM automation, workflow automation, compliance automation, shadow agents, digital twin AI, invoice automation, hiring automation, project management AI, SOC 2 compliance, GDPR automation, enterprise AI, no-code automation, human-in-the-loop AI">
-<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Murphy System — AI Business Operating System | 1,100+ Modules, Local LLM, Full Automation</title>
+<meta name="description" content="Murphy System is a complete AI business OS: onboard Ollama LLM, hosted mail server, Matrix messaging bridge, HITL safety gates, Shadow Agents and 1,100+ interconnected modules all wired to 453 live API endpoints.">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large">
 <link rel="canonical" href="https://murphy.systems/">
-<!-- Open Graph / Social -->
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://murphy.systems/">
-<meta property="og:title" content="Murphy System — AI-Powered Business Automation Platform">
-<meta property="og:description" content="Replace 12+ SaaS tools with one AI system. Automate CRM, invoicing, compliance, hiring, and project management. Shadow Agents learn your workflow. Free forever tier.">
-<meta property="og:site_name" content="Murphy System">
-<meta property="og:locale" content="en_US">
-<!-- Twitter Card -->
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Murphy System — AI Business Automation Platform">
-<meta name="twitter:description" content="Replace 12+ tools with one AI system. Shadow Agents learn your workflows. Free tier forever.">
-<!-- Structured Data — Organization -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  "name": "Murphy System",
-  "applicationCategory": "BusinessApplication",
-  "operatingSystem": "Web",
-  "description": "AI-powered business automation platform that replaces 12+ SaaS tools. Automate CRM, invoicing, compliance, hiring, project management, and more with Shadow Agents that learn your workflow.",
-  "url": "https://murphy.systems",
-  "offers": [
-    {"@type":"Offer","name":"Free","price":"0","priceCurrency":"USD","description":"10 actions/day, Shadow Agent training, crypto wallet"},
-    {"@type":"Offer","name":"Solo","price":"29","priceCurrency":"USD","description":"3 automations, terminal access, basic compliance"},
-    {"@type":"Offer","name":"Business","price":"99","priceCurrency":"USD","description":"Unlimited automations, all integrations, shadow agent training"}
-  ],
-  "creator": {
-    "@type": "Organization",
-    "name": "Inoni Limited Liability Company",
-    "url": "https://murphy.systems"
-  }
-}
-</script>
-<!-- Structured Data — FAQ for featured snippets -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {"@type":"Question","name":"What does Murphy System automate?","acceptedAnswer":{"@type":"Answer","text":"Murphy automates CRM & sales pipelines, client intake & onboarding, invoicing & billing, hiring & interview scheduling, compliance reporting (SOC 2, GDPR, HIPAA), project management, workflow orchestration, document generation, email sequences, meeting intelligence, and more — all in one AI-powered platform."}},
-    {"@type":"Question","name":"What are Shadow Agents?","acceptedAnswer":{"@type":"Answer","text":"Shadow Agents are personal AI assistants that learn your specific workflows, writing style, and decision patterns. They start by observing (shadow mode), then assist with suggestions, and can graduate to autonomous execution with human-in-the-loop safety gates."}},
-    {"@type":"Question","name":"Is Murphy System free?","acceptedAnswer":{"@type":"Answer","text":"Yes. Murphy offers a free tier forever with 10 actions per day, Shadow Agent training, a crypto wallet, and access to all system capabilities. Paid plans start at $99/month for automated workflows."}}
-  ]
-}
-</script>
+<meta property="og:title" content="Murphy System — AI Business Operating System">
+<meta property="og:description" content="One platform. 1,100+ modules. Local LLM via Ollama. Matrix messaging. Full automation from intake to delivery.">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Murphy System","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"AI-powered business OS: 1,100+ modules, onboard Ollama LLM, Matrix bridge, mail server, HITL gates, Shadow Agents, compliance automation, 453 API endpoints.","url":"https://murphy.systems","offers":[{"@type":"Offer","name":"Free","price":"0","priceCurrency":"USD"},{"@type":"Offer","name":"Solo","price":"99","priceCurrency":"USD"},{"@type":"Offer","name":"Business","price":"299","priceCurrency":"USD"}]}</script>
 <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="static/murphy-design-system.css">
 <style>
 :root{--green:#00ff41;--cyan:#00ffff;--teal:#00D4AA;--bg:#0a0a0a;--bg2:#111111;--bg3:#161616;--text:#e0e0e0;--muted:#888;--border:rgba(0,255,65,.18);}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{scroll-behavior:smooth;}
-body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;line-height:1.6;}
-
-/* Accessibility */
-.murphy-skip-link{position:absolute;top:-999px;left:1rem;background:var(--teal);color:#0a0a0a;padding:.5rem 1rem;border-radius:4px;font-weight:700;z-index:9999;text-decoration:none;}
-.murphy-skip-link:focus{top:1rem;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased;}
+.skip{position:absolute;top:-999px;left:1rem;background:var(--teal);color:#0a0a0a;padding:.5rem 1rem;border-radius:4px;font-weight:700;z-index:9999;text-decoration:none;}
+.skip:focus{top:1rem;}
 *:focus-visible{outline:2px solid var(--green);outline-offset:2px;}
-
 /* Topbar */
 .murphy-topbar{position:sticky;top:0;z-index:1000;background:rgba(10,10,10,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:.75rem 2rem;gap:1rem;}
 .topbar-brand{display:flex;align-items:center;gap:.6rem;text-decoration:none;}
@@ -75,102 +31,111 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-s
 .murphy-nav-links a{color:var(--text);text-decoration:none;font-size:.875rem;padding:.4rem .8rem;border-radius:6px;transition:color .2s,background .2s;}
 .murphy-nav-links a:hover{color:var(--cyan);background:rgba(0,255,255,.07);}
 .topbar-right{display:flex;align-items:center;gap:.75rem;flex-shrink:0;}
-.hamburger{display:none;background:none;border:none;cursor:pointer;padding:.4rem;color:var(--text);}
-
+.hamburger{display:none;background:none;border:none;cursor:pointer;padding:.4rem;color:var(--text);font-size:1.2rem;}
+.sys-pill{display:inline-flex;align-items:center;gap:.4rem;background:rgba(0,255,65,.06);border:1px solid rgba(0,255,65,.2);border-radius:999px;padding:.25rem .75rem;font-size:.72rem;font-family:'Courier New',monospace;color:var(--green);}
+.sys-pill .dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pdot 2s infinite;flex-shrink:0;}
+.sys-pill.warn{color:#f59e0b;border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.06);}
+.sys-pill.warn .dot{background:#f59e0b;}
+@keyframes pdot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(1.4);}}
 /* Buttons */
-.btn-p{display:inline-flex;align-items:center;gap:.5rem;background:var(--teal);color:#0a0a0a;font-weight:700;font-size:.9rem;padding:.65rem 1.4rem;border-radius:8px;border:none;cursor:pointer;text-decoration:none;transition:background .2s,transform .15s,box-shadow .2s;}
+.btn-p,.btn-s{display:inline-flex;align-items:center;gap:.5rem;font-weight:700;font-size:.9rem;padding:.65rem 1.4rem;border-radius:8px;border:none;cursor:pointer;text-decoration:none;transition:background .2s,transform .15s,box-shadow .2s;}
+.btn-p{background:var(--teal);color:#0a0a0a;}
 .btn-p:hover{background:var(--cyan);transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,212,170,.35);}
 .btn-p.lg{font-size:1.05rem;padding:.85rem 2rem;border-radius:10px;}
-.btn-s{display:inline-flex;align-items:center;gap:.5rem;background:transparent;color:var(--cyan);font-weight:600;font-size:.9rem;padding:.65rem 1.4rem;border-radius:8px;border:1px solid rgba(0,255,255,.4);cursor:pointer;text-decoration:none;transition:background .2s,border-color .2s,transform .15s;}
+.btn-s{background:transparent;color:var(--cyan);border:1px solid rgba(0,255,255,.4);}
 .btn-s:hover{background:rgba(0,255,255,.08);border-color:var(--cyan);transform:translateY(-1px);}
 .btn-s.lg{font-size:1.05rem;padding:.85rem 2rem;border-radius:10px;}
-
-/* Sections */
+/* Layout */
 section{padding:5rem 2rem;}
 .si{max-width:1120px;margin:0 auto;}
 .slabel{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin-bottom:.75rem;}
 h2.stitle{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;line-height:1.2;background:linear-gradient(135deg,var(--green) 0%,var(--cyan) 60%,var(--teal) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:1rem;}
-.ssub{color:var(--muted);font-size:1.05rem;max-width:620px;margin-bottom:2.5rem;}
-
-/* Hero */
-#hero{padding:6rem 2rem 5rem;background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(0,212,170,.12) 0%,transparent 70%);text-align:center;position:relative;overflow:hidden;}
-#hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(0,255,65,.03) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(0,255,65,.03) 40px);pointer-events:none;}
-.hero-inner{max-width:860px;margin:0 auto;position:relative;}
-.hero-badge{display:inline-flex;align-items:center;gap:.5rem;background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.3);border-radius:999px;padding:.35rem 1rem;font-size:.8rem;font-weight:600;color:var(--teal);margin-bottom:1.5rem;}
-.dot{width:7px;height:7px;background:var(--teal);border-radius:50%;animation:pdot 2s infinite;}
-@keyframes pdot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(1.4);}}
-#hero h1{font-size:clamp(2rem,5.5vw,3.6rem);font-weight:900;line-height:1.1;background:linear-gradient(135deg,#fff 0%,var(--cyan) 50%,var(--teal) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:1.25rem;}
-.hero-sub{font-size:clamp(1rem,2vw,1.2rem);color:#b0b0b0;max-width:680px;margin:0 auto 2.5rem;}
-.hero-ctas{display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap;margin-bottom:3rem;}
-.hero-note{font-size:.78rem;color:var(--muted);margin-top:.5rem;}
-.sp-strip{display:flex;align-items:center;justify-content:center;gap:1.5rem;flex-wrap:wrap;padding:1.25rem 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:2rem;}
-.sp-text{font-size:.85rem;color:var(--muted);white-space:nowrap;}
-.ind-icons{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;justify-content:center;}
-.ind-pill{display:inline-flex;align-items:center;gap:.4rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:.3rem .8rem;font-size:.75rem;color:#aaa;}
-.stats-row{display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap;}
-.stat-badge{background:rgba(0,255,65,.06);border:1px solid rgba(0,255,65,.2);border-radius:8px;padding:.5rem 1rem;font-size:.8rem;font-family:'Courier New',monospace;color:var(--green);}
-
-/* Grids */
+.ssub{color:var(--muted);font-size:1.05rem;max-width:640px;margin-bottom:2.5rem;}
 .g2{display:grid;grid-template-columns:repeat(2,1fr);gap:1.25rem;}
 .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;}
 .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem;}
-
 /* Cards */
-.pain-card,.sol-card,.stat-card,.gcard,.pcard,.usec{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.5rem;transition:border-color .25s,transform .2s,box-shadow .25s;}
-.pain-card:hover,.sol-card:hover,.stat-card:hover,.usec:hover{border-color:rgba(0,255,65,.4);transform:translateY(-3px);box-shadow:0 8px 30px rgba(0,255,65,.08);}
-.pain-card .ci{font-size:1.5rem;margin-bottom:.75rem;}
-.pain-card h3{font-size:.95rem;font-weight:600;color:#ddd;line-height:1.4;}
-.sol-card{text-align:center;}
-.sol-card .chk{color:var(--teal);font-size:1.2rem;margin-bottom:.6rem;display:block;}
-.sol-card h3{font-size:.95rem;font-weight:700;}
-
-/* Segment */
-.seg-bg{background:var(--bg3);}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.5rem;transition:border-color .25s,transform .2s,box-shadow .25s;}
+.card:hover{border-color:rgba(0,255,65,.4);transform:translateY(-3px);box-shadow:0 8px 30px rgba(0,255,65,.08);}
+.card-icon{font-size:1.5rem;margin-bottom:.75rem;}
+.card h3{font-size:.95rem;font-weight:700;margin-bottom:.4rem;}
+.card p{font-size:.83rem;color:var(--muted);line-height:1.55;}
+.card.feat{background:rgba(0,212,170,.06);border-color:rgba(0,212,170,.35);}
+.card.feat:hover{border-color:var(--teal);box-shadow:0 8px 30px rgba(0,212,170,.1);}
+/* Live status */
+.live-status-row{display:flex;flex-wrap:wrap;gap:.6rem;margin:1.5rem 0;}
+.lstat{display:inline-flex;align-items:center;gap:.4rem;background:rgba(0,255,65,.04);border:1px solid var(--border);border-radius:8px;padding:.35rem .75rem;font-size:.75rem;font-family:'Courier New',monospace;color:#aaa;transition:border-color .2s;}
+.lstat:hover{border-color:rgba(0,255,65,.35);}
+.lstat .ld{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.ld-ok{background:var(--green);}
+.ld-warn{background:#f59e0b;}
+.ld-off{background:#444;}
+/* Hero */
+#hero{padding:6rem 2rem 5rem;background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(0,212,170,.12) 0%,transparent 70%);text-align:center;position:relative;overflow:hidden;}
+#hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(0,255,65,.03) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(0,255,65,.03) 40px);pointer-events:none;}
+.hero-inner{max-width:880px;margin:0 auto;position:relative;}
+.hero-badge{display:inline-flex;align-items:center;gap:.5rem;background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.3);border-radius:999px;padding:.35rem 1rem;font-size:.8rem;font-weight:600;color:var(--teal);margin-bottom:1.5rem;}
+#hero h1{font-size:clamp(2rem,5.5vw,3.7rem);font-weight:900;line-height:1.1;background:linear-gradient(135deg,#fff 0%,var(--cyan) 50%,var(--teal) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:1.25rem;}
+.hero-sub{font-size:clamp(1rem,2vw,1.2rem);color:#b0b0b0;max-width:700px;margin:0 auto 2.5rem;}
+.hero-ctas{display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap;margin-bottom:3rem;}
+.hero-note{font-size:.78rem;color:var(--muted);margin-top:.5rem;}
+.stats-row{display:flex;align-items:center;justify-content:center;gap:.75rem;flex-wrap:wrap;margin-bottom:2rem;}
+.stat-badge{background:rgba(0,255,65,.06);border:1px solid rgba(0,255,65,.2);border-radius:8px;padding:.5rem 1rem;font-size:.8rem;font-family:'Courier New',monospace;color:var(--green);}
+.sp-strip{display:flex;align-items:center;justify-content:center;gap:1.5rem;flex-wrap:wrap;padding:1.25rem 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.sp-text{font-size:.85rem;color:var(--muted);white-space:nowrap;}
+.ind-icons{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;justify-content:center;}
+.ind-pill{display:inline-flex;align-items:center;gap:.4rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:.3rem .8rem;font-size:.75rem;color:#aaa;}
+/* Architecture grid */
+#architecture{background:var(--bg3);}
+.arch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:1rem;margin-top:2rem;}
+.arch-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.25rem;display:flex;flex-direction:column;gap:.5rem;transition:border-color .2s,transform .15s;}
+.arch-card:hover{border-color:rgba(0,212,170,.4);transform:translateY(-2px);}
+.arch-card-title{font-size:.85rem;font-weight:700;color:var(--cyan);}
+.arch-card-count{font-size:.75rem;font-family:'Courier New',monospace;color:var(--teal);}
+.arch-card-desc{font-size:.75rem;color:var(--muted);line-height:1.4;}
+/* Integrations */
+.int-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem;margin-top:2rem;}
+.int-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.5rem;display:flex;flex-direction:column;gap:.5rem;transition:border-color .25s,transform .2s;}
+.int-card:hover{border-color:rgba(0,255,65,.35);transform:translateY(-2px);}
+.int-card-header{display:flex;align-items:center;gap:.75rem;}
+.int-card-icon{font-size:1.4rem;}
+.int-card-name{font-size:.95rem;font-weight:700;}
+.int-card-status{margin-left:auto;font-size:.7rem;font-family:'Courier New',monospace;}
+.int-card-status.live{color:var(--green);}
+.int-card-status.config{color:#f59e0b;}
+.int-card-desc{font-size:.8rem;color:var(--muted);line-height:1.5;}
+.int-card-link{font-size:.78rem;color:var(--teal);text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;margin-top:.25rem;}
+.int-card-link:hover{color:var(--cyan);}
+/* AI section */
+#ai-engine{background:var(--bg3);}
 .seg-layout{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center;}
-.seg-layout.rev{direction:rtl;}
-
-/* How It Works */
-.step-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:2rem 1.5rem;text-align:center;position:relative;transition:border-color .25s,transform .2s;}
-.step-card:hover{border-color:rgba(0,212,170,.45);transform:translateY(-3px);}
-.step-num{display:inline-flex;align-items:center;justify-content:center;width:2.5rem;height:2.5rem;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--cyan));color:#0a0a0a;font-size:1rem;font-weight:800;margin-bottom:1rem;}
-.step-card h3{font-size:1.05rem;font-weight:700;color:var(--text-primary);margin-bottom:.5rem;}
-.step-card p{font-size:.875rem;color:var(--muted);line-height:1.55;}
-.seg-layout.rev>*{direction:ltr;}
-.seg-content h2{margin-bottom:.75rem;}
-.seg-content p{color:var(--muted);margin-bottom:1.5rem;}
-.uc-list{list-style:none;display:flex;flex-direction:column;gap:.6rem;margin-bottom:1.75rem;}
-.uc-list li{display:flex;align-items:center;gap:.75rem;font-size:.9rem;color:#ccc;}
-.uc-list li::before{content:'▸';color:var(--teal);flex-shrink:0;}
-.seg-vis{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:2rem;font-family:'Courier New',monospace;font-size:.82rem;color:var(--green);min-height:220px;position:relative;overflow:hidden;}
+.seg-vis{background:#000;border:1px solid rgba(0,255,65,.2);border-radius:14px;padding:2rem;font-family:'Courier New',monospace;font-size:.82rem;color:var(--green);min-height:240px;position:relative;overflow:hidden;}
 .seg-vis::before{content:'● ● ●';display:block;color:var(--muted);font-size:.7rem;margin-bottom:1rem;letter-spacing:.15em;}
-.tl{margin:.3rem 0;opacity:.9;}
+.tl{margin:.3rem 0;opacity:.9;display:block;}
 .tl.dim{color:#555;}
 .tl.cy{color:var(--cyan);}
 .tl.te{color:var(--teal);}
-
+.uc-list{list-style:none;display:flex;flex-direction:column;gap:.6rem;margin:1rem 0 1.5rem;}
+.uc-list li{display:flex;align-items:center;gap:.75rem;font-size:.9rem;color:#ccc;}
+.uc-list li::before{content:'▸';color:var(--teal);flex-shrink:0;}
 /* Compare */
 #compare{background:var(--bg3);}
 .ctw{overflow-x:auto;margin-top:2rem;border-radius:12px;border:1px solid var(--border);}
 .ctable{width:100%;border-collapse:collapse;min-width:560px;}
 .ctable th{background:rgba(0,212,170,.08);padding:1rem 1.25rem;text-align:left;font-size:.85rem;font-weight:700;color:var(--teal);border-bottom:1px solid var(--border);}
-.ctable th:first-child{color:var(--muted);}
 .ctable td{padding:.9rem 1.25rem;font-size:.88rem;border-bottom:1px solid rgba(255,255,255,.04);color:var(--text);}
 .ctable tr:last-child td{border-bottom:none;}
 .ctable tbody tr:hover{background:rgba(0,255,65,.03);}
 .mc{color:var(--green);font-weight:600;}
-.xc{color:#555;}
-.yes{color:var(--teal);}
-.no{color:#444;}
-.partial{color:#888;}
-
+.xc{color:#444;}
 /* Compliance */
+#compliance{background:var(--bg);}
 .comp-grid{display:flex;flex-wrap:wrap;gap:.75rem;margin:2rem 0;}
 .comp-pill{background:rgba(0,212,170,.08);border:1px solid rgba(0,212,170,.25);border-radius:999px;padding:.45rem 1.1rem;font-size:.82rem;font-weight:600;color:var(--teal);transition:background .2s,transform .15s;cursor:default;}
 .comp-pill:hover{background:rgba(0,212,170,.18);transform:scale(1.04);}
-
 /* Pricing */
 #pricing{background:var(--bg3);}
-.pcard{display:flex;flex-direction:column;border-radius:14px;padding:1.75rem;transition:border-color .25s,transform .2s,box-shadow .25s;}
+.pcard{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.75rem;display:flex;flex-direction:column;transition:border-color .25s,transform .2s,box-shadow .25s;}
 .pcard.featured{background:rgba(0,212,170,.07);border-color:rgba(0,212,170,.4);}
 .pcard:hover{border-color:rgba(0,212,170,.5);transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,212,170,.12);}
 .ptag{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin-bottom:.5rem;}
@@ -179,27 +144,24 @@ h2.stitle{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;line-height:1.2;bac
 .pamt span{font-size:.9rem;font-weight:400;color:var(--muted);}
 .pdesc{font-size:.82rem;color:var(--muted);margin:.75rem 0 1.25rem;flex:1;}
 .pcard .btn-p{width:100%;justify-content:center;font-size:.85rem;padding:.6rem 1rem;}
-
 /* Stats */
 #proof{background:var(--bg);}
-.stat-card{text-align:center;}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.5rem;text-align:center;transition:border-color .25s,transform .2s;}
+.stat-card:hover{border-color:rgba(0,255,65,.4);transform:translateY(-3px);}
 .snum{font-size:2.4rem;font-weight:900;font-family:'Courier New',monospace;background:linear-gradient(135deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1;margin-bottom:.4rem;}
 .slbl{font-size:.85rem;color:var(--muted);}
-
 /* Guarantee */
 #guarantee{background:var(--bg3);}
-.gcard{text-align:center;border-radius:12px;}
+.gcard{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.5rem;text-align:center;transition:border-color .25s,transform .2s;}
 .gcard:hover{border-color:rgba(0,255,255,.35);transform:translateY(-3px);}
 .gicon{font-size:2rem;margin-bottom:.75rem;}
 .gcard h3{font-size:1rem;font-weight:700;color:var(--cyan);margin-bottom:.4rem;}
 .gcard p{font-size:.83rem;color:var(--muted);}
-
 /* Final CTA */
 #final-cta{padding:6rem 2rem;text-align:center;background:radial-gradient(ellipse 70% 60% at 50% 50%,rgba(0,212,170,.1) 0%,transparent 70%);border-top:1px solid var(--border);}
 #final-cta h2{font-size:clamp(2rem,4vw,3rem);font-weight:900;background:linear-gradient(135deg,#fff 0%,var(--cyan) 60%,var(--teal) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:1rem;}
 #final-cta p{color:var(--muted);margin-bottom:2rem;font-size:1.05rem;}
 .fcbtns{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;}
-
 /* Footer */
 footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2rem;text-align:center;}
 .footer-inner{max-width:1120px;margin:0 auto;}
@@ -207,37 +169,25 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
 .flinks a{color:var(--muted);text-decoration:none;font-size:.83rem;transition:color .2s;}
 .flinks a:hover{color:var(--cyan);}
 .fcopy{font-size:.78rem;color:#444;}
-
 /* Modal */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9000;align-items:center;justify-content:center;padding:1rem;}
 .modal-overlay.open{display:flex;}
-.mbox{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:2rem;max-width:560px;width:100%;position:relative;}
+.mbox{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:2rem;max-width:660px;width:100%;position:relative;}
 .mclose{position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--muted);font-size:1.4rem;cursor:pointer;line-height:1;}
 .mclose:hover{color:var(--text);}
 .mtitle{font-size:1.3rem;font-weight:700;color:var(--cyan);margin-bottom:.5rem;}
 .msub{color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;}
-/* Interactive Demo Terminal */
-.mbox-demo{max-width:660px;}
+.demo-term{background:#000;border:1px solid rgba(0,255,65,.2);border-radius:10px;padding:1.25rem;font-family:'Courier New',monospace;font-size:.82rem;color:var(--green);min-height:180px;max-height:300px;overflow-y:auto;line-height:1.75;}
 .demo-input-wrap{margin-bottom:.75rem;}
 .demo-prompt-row{display:flex;align-items:center;gap:.5rem;background:#000;border:1px solid rgba(0,255,65,.35);border-radius:8px;padding:.55rem .75rem;}
-.demo-prompt-dollar{color:var(--green);font-family:'Courier New',monospace;font-size:1rem;font-weight:700;flex-shrink:0;}
-.demo-prompt-input{flex:1;background:transparent;border:none;outline:none;color:var(--green);font-family:'Courier New',monospace;font-size:.9rem;caret-color:var(--green);}
-.demo-prompt-input::placeholder{color:rgba(0,255,65,.35);}
-.demo-run-btn{padding:.3rem .8rem;font-size:.8rem;border-radius:6px;flex-shrink:0;}
+.demo-prompt-dollar{color:var(--green);font-family:'Courier New',monospace;font-size:1rem;font-weight:700;}
+.demo-prompt-input{flex:1;background:transparent;border:none;outline:none;color:var(--green);font-family:'Courier New',monospace;font-size:.9rem;}
+.demo-run-btn{padding:.3rem .8rem;font-size:.8rem;border-radius:6px;}
 .demo-chips{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.6rem;}
-.demo-chip{background:rgba(0,212,170,.08);border:1px solid rgba(0,212,170,.28);color:var(--teal);font-size:.76rem;font-weight:600;padding:.28rem .65rem;border-radius:20px;cursor:pointer;transition:background .15s,border-color .15s;}
-.demo-chip:hover,.demo-chip:focus-visible{background:rgba(0,212,170,.2);border-color:var(--teal);}
-.demo-term{background:#000;border:1px solid rgba(0,255,65,.2);border-radius:10px;padding:1.25rem;font-family:'Courier New',monospace;font-size:.82rem;color:var(--green);min-height:180px;max-height:300px;overflow-y:auto;line-height:1.75;margin-top:.6rem;}
-.dt-line{display:block;}
-.dt-green{color:var(--green);}
-.dt-cyan{color:var(--cyan);}
-.dt-teal{color:var(--teal);}
-.dt-roi{color:var(--green);font-weight:700;border-top:1px solid rgba(0,255,65,.18);padding-top:.5rem;margin-top:.25rem;}
+.demo-chip{background:rgba(0,212,170,.08);border:1px solid rgba(0,212,170,.28);color:var(--teal);font-size:.76rem;font-weight:600;padding:.28rem .65rem;border-radius:20px;cursor:pointer;transition:background .15s;}
+.demo-chip:hover{background:rgba(0,212,170,.2);}
 .demo-cursor{display:inline-block;width:.5em;height:.9em;background:var(--green);vertical-align:text-bottom;animation:blink .7s step-end infinite;}
 @keyframes blink{50%{opacity:0;}}
-.demo-roi-block{margin-top:.75rem;}
-.demo-roi-stat{color:var(--teal);font-weight:700;font-size:.88rem;margin-bottom:.85rem;padding:.6rem .85rem;background:rgba(0,212,170,.07);border:1px solid rgba(0,212,170,.2);border-radius:8px;}
-
 /* Mobile */
 @media(max-width:768px){
   .murphy-nav-links{display:none;}
@@ -245,362 +195,343 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
   .murphy-topbar{position:sticky;}
   .hamburger{display:block;}
   .g2,.g3,.g4{grid-template-columns:1fr 1fr;}
-  .seg-layout,.seg-layout.rev{grid-template-columns:1fr;direction:ltr;gap:2rem;}
+  .seg-layout{grid-template-columns:1fr;}
   .seg-vis{display:none;}
+  .int-grid,.arch-grid{grid-template-columns:1fr;}
 }
-@media(max-width:480px){
-  section{padding:3.5rem 1.25rem;}
-  #hero{padding:4rem 1.25rem 3rem;}
-  .g2,.g3,.g4{grid-template-columns:1fr;}
-  .murphy-topbar{padding:.65rem 1rem;}
-  .hero-ctas{flex-direction:column;align-items:stretch;}
-  .hero-ctas .btn-p,.hero-ctas .btn-s{justify-content:center;}
-  .stats-row{flex-direction:column;align-items:center;}
-  .fcbtns{flex-direction:column;align-items:center;}
-}
-/* ── Inline-style replacements ─────────────────────────────── */
-.lp-bg3{background:var(--bg3);}
-.lp-gradient-bg{background:linear-gradient(180deg,var(--bg3),var(--bg1));}
-.lp-pamt-lg{font-size:1.5rem;}
-.lp-center-mt2{text-align:center;margin-top:2rem;}
-.lp-narrow{max-width:720px;}
-.lp-fine-print{margin-top:1.25rem;font-size:.8rem;color:#444;}
-.lp-clr-accent{color:#00D4AA;}
-.lp-clr-muted{color:#555;}
-.lp-clr-cyan{color:#00ffff;}
-.lp-demo-btns{margin-top:1.5rem;display:flex;gap:.75rem;flex-wrap:wrap;}
-.lp-flex-center{flex:1;justify-content:center;}
-.demo-dl-btn-lp{background:#1de9b6!important;color:#0a0a0a!important;border:none!important;}
-.demo-dl-btn-lp:hover{opacity:.85!important;transform:translateY(-1px);}
-.demo-dl-btn-lp:disabled{opacity:.5;cursor:not-allowed;}
-.demo-usage-counter{font-size:.78rem;color:#94a3b8;margin-top:.5rem;}
-.demo-limit-msg{margin-top:.75rem;padding:.6rem 1rem;background:#1e1a2e;border:1px solid #7c3aed;border-radius:8px;color:#c4b5fd;font-size:.85rem;}
-/* ── Reviews section ────────────────────────────────────────── */
-.review-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;margin-top:2rem;}
-.review-card{background:var(--bg2,#161b22);border:1px solid var(--border,#30363d);border-radius:10px;padding:1.25rem;text-align:left;}
-.review-stars{color:#f5a623;font-size:1.1rem;letter-spacing:2px;}
-.review-title{font-weight:700;margin:.5rem 0 .25rem;font-size:1rem;}
-.review-text{font-size:.9rem;color:var(--fg2,#8b949e);line-height:1.5;}
-.review-author{margin-top:.75rem;font-size:.8rem;color:var(--fg3,#6e7681);}
-.review-mod-response{margin-top:.75rem;padding:.75rem;background:var(--bg3,#0d1117);border-left:3px solid #00D4AA;border-radius:4px;font-size:.85rem;}
-.review-mod-response strong{color:#00D4AA;}
-.review-form{max-width:600px;margin:2rem auto 0;text-align:left;}
-.review-form label{display:block;font-weight:600;margin-top:1rem;font-size:.9rem;}
-.review-form input,.review-form textarea,.review-form select{width:100%;padding:.6rem;border:1px solid var(--border,#30363d);border-radius:6px;background:var(--bg2,#161b22);color:var(--fg,#c9d1d9);font-family:var(--font-ui,Inter,sans-serif);margin-top:.25rem;}
-.review-form textarea{min-height:80px;resize:vertical;}
-.review-submit{margin-top:1.25rem;padding:.7rem 2rem;background:#00D4AA;color:#0a0e17;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-family:var(--font-ui,Inter,sans-serif);}
-.review-submit:hover{background:#00eebb;}
-.review-referral{margin-top:1.5rem;padding:1rem;background:var(--bg2,#161b22);border:1px solid var(--border,#30363d);border-radius:8px;text-align:center;}
-.review-referral a{color:#00D4AA;font-weight:600;text-decoration:underline;}
-/* ── Partner CTA ───────────────────────────────────────────── */
-.btn-partner{display:inline-flex;align-items:center;gap:.5rem;padding:.75rem 1.5rem;border:2px solid #00D4AA;border-radius:8px;color:#00D4AA;font-weight:600;font-family:var(--font-ui,Inter,sans-serif);text-decoration:none;transition:all .2s;}
-.btn-partner:hover{background:#00D4AA;color:#0a0e17;}
+@media(max-width:480px){.g2,.g3,.g4{grid-template-columns:1fr;}}
 </style>
 </head>
-<body class="murphy-no-sidebar">
-
-<a href="#main-content" class="murphy-skip-link">Skip to main content</a>
+<body>
+<a class="skip" href="#main-content">Skip to main content</a>
 
 <!-- TOPBAR -->
-<nav class="murphy-topbar" role="navigation" aria-label="Main navigation">
-  <a href="/ui/landing" class="topbar-brand" aria-label="Murphy System home">
-    <svg width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-      <rect width="32" height="32" rx="8" fill="#00D4AA"/>
-      <text x="16" y="22" text-anchor="middle" fill="#0a0a0a" font-size="18" font-weight="800" font-family="Inter,sans-serif">M</text>
-    </svg>
+<header class="murphy-topbar" role="banner">
+  <a class="topbar-brand" href="/ui/landing" aria-label="Murphy System home">
+    <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="14" fill="none" stroke="#00D4AA" stroke-width="2"/><path d="M8 22L12 10l4 8 4-8 4 12" stroke="#00ff41" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <span class="topbar-brand-name">Murphy System</span>
   </a>
-
-  <div class="murphy-nav-links" id="main-nav" role="menubar">
-    <a href="#features" role="menuitem">Features</a>
-    <a href="#how-it-works" role="menuitem">How It Works</a>
-    <a href="#pricing" role="menuitem">Pricing</a>
+  <nav class="murphy-nav-links" id="main-nav" role="menubar">
+    <a href="#architecture" role="menuitem">Architecture</a>
+    <a href="#integrations" role="menuitem">Integrations</a>
+    <a href="#ai-engine" role="menuitem">AI Engine</a>
     <a href="#compliance" role="menuitem">Compliance</a>
-    <a href="/ui/grant-wizard" role="menuitem">Financing &amp; Grants</a>
-    <a href="#demo-modal" role="menuitem" onclick="openDemo(event)">Demo</a>
-    <a href="/ui/login" role="menuitem">Login</a>
-  </div>
-
+    <a href="#pricing" role="menuitem">Pricing</a>
+    <a href="/ui/grant-wizard" role="menuitem">Financing</a>
+    <a href="#demo-modal" id="demo-nav-btn" role="menuitem">Demo</a>
+  </nav>
   <div class="topbar-right">
-    <a href="/ui/signup" class="btn-p" aria-label="Start free trial">Start Free Trial</a>
-    <button class="hamburger" id="hamburger-btn" aria-label="Toggle navigation" aria-expanded="false" onclick="toggleNav()">
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-        <path d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-    </button>
+    <span class="sys-pill" id="sys-status-pill" title="Live system status"><span class="dot"></span><span id="sys-status-text">checking&#8230;</span></span>
+    <a class="btn-s" href="/ui/login">Login</a>
+    <a class="btn-p" href="/ui/signup">Start Free</a>
+    <button class="hamburger" id="hamburger-btn" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
   </div>
-</nav>
+</header>
 
 <main id="main-content">
 
 <!-- HERO -->
 <section id="hero" aria-labelledby="hero-h">
   <div class="hero-inner">
-    <div class="hero-badge"><span class="dot" aria-hidden="true"></span>Open Beta — 537,071 lines shipped</div>
-    <h1 id="hero-h">Automate Your Entire Business.<br>From Intake to Delivery.</h1>
-    <p class="hero-sub">Murphy replaces 12+ tools with one AI-powered system. Cut costs by 60%, scale 10x, stay compliant automatically.</p>
+    <div class="hero-badge"><span class="dot" aria-hidden="true"></span>Open Beta &#8212; 537,071 lines shipped</div>
+    <h1 id="hero-h">The AI Operating System<br>for Your Entire Business.</h1>
+    <p class="hero-sub">Murphy replaces 12+ SaaS tools with one unified platform: onboard Ollama LLM, Matrix messaging, hosted mail, HITL safety gates, Shadow Agents, and 1,100+ interconnected modules &#8212; all running on your infrastructure.</p>
     <div class="hero-ctas">
-      <a href="/ui/signup" class="btn-p lg">&#9889; Start Free — No Credit Card Required</a>
-      <button class="btn-s lg" onclick="openDemo(event)" aria-label="Try Murphy interactive demo">&#9654; Try Murphy Now</button>
-      <a href="/ui/partner" class="btn-partner">&#129309; Partner with Murphy</a>
+      <a class="btn-p lg" href="/ui/signup">&#9889; Start Free &#8212; No Card Required</a>
+      <a class="btn-s lg" href="#demo-modal" id="hero-demo-btn">&#9654; Live Demo</a>
     </div>
-    <p class="hero-note">Free tier forever &middot; 10 actions/day free &middot; Cancel anytime &middot; SOC 2 aligned</p>
-
-    <!-- Automation types showcase -->
-    <div class="sp-strip" aria-label="Automation capabilities" style="margin-top:1.5rem;">
-      <span class="sp-text" style="font-size:.95rem;color:var(--cyan);">⚡ Every automation you need, one platform:</span>
-      <div class="ind-icons" style="flex-wrap:wrap;justify-content:center;gap:.5rem;margin-top:.75rem;">
-        <span class="ind-pill">🤖 Shadow Agents</span>
-        <span class="ind-pill">📋 CRM &amp; Sales</span>
-        <span class="ind-pill">📄 Invoicing &amp; Billing</span>
-        <span class="ind-pill">📥 Client Intake</span>
-        <span class="ind-pill">📧 Email Sequences</span>
-        <span class="ind-pill">👥 Hiring &amp; Interviews</span>
-        <span class="ind-pill">📊 Project Management</span>
-        <span class="ind-pill">🔄 Workflow Orchestration</span>
-        <span class="ind-pill">📑 Document Generation</span>
-        <span class="ind-pill">🛡️ Compliance (SOC 2, GDPR, HIPAA)</span>
-        <span class="ind-pill">🧠 Meeting Intelligence</span>
-        <span class="ind-pill">💰 Crypto Wallet</span>
-        <span class="ind-pill">📈 Financial Reporting</span>
-        <span class="ind-pill">🏗️ Production &amp; Delivery</span>
-        <span class="ind-pill">🔗 250+ Integrations</span>
-      </div>
-    </div>
-
-    <!-- Demographic targeting -->
-    <div class="sp-strip" aria-label="Who Murphy is for" style="margin-top:1.25rem;">
-      <span class="sp-text">🎯 Built for every stage of business:</span>
-      <div class="ind-icons" style="flex-wrap:wrap;justify-content:center;gap:.5rem;margin-top:.5rem;">
-        <span class="ind-pill">👤 Solopreneurs</span>
-        <span class="ind-pill">🚀 Startups</span>
-        <span class="ind-pill">📈 Growing Teams</span>
-        <span class="ind-pill">🏢 Mid-Market</span>
-        <span class="ind-pill">🏛️ Enterprise</span>
-      </div>
-    </div>
-
-    <!-- Industry verticals -->
-    <div class="sp-strip" aria-label="Industries served" style="margin-top:1rem;">
-      <span class="sp-text">🏭 Now in beta — early testers in:</span>
-      <div class="ind-icons" style="flex-wrap:wrap;justify-content:center;gap:.5rem;margin-top:.5rem;">
-        <span class="ind-pill">&#127974; Finance</span>
-        <span class="ind-pill">&#127973; Healthcare</span>
-        <span class="ind-pill">&#127981; Manufacturing</span>
-        <span class="ind-pill">&#128717; Retail</span>
-        <span class="ind-pill">&#127963; Government</span>
-        <span class="ind-pill">⚖️ Legal</span>
-        <span class="ind-pill">🏗️ Construction</span>
-        <span class="ind-pill">🎓 Education</span>
-        <span class="ind-pill">🏠 Real Estate</span>
-        <span class="ind-pill">💻 Tech &amp; SaaS</span>
-      </div>
-    </div>
-
-    <div class="stats-row" aria-label="System statistics" style="margin-top:1.5rem;">
+    <p class="hero-note">Free tier forever &#183; No setup fees &#183; Self-hostable</p>
+    <div class="stats-row" aria-label="Platform statistics">
       <span class="stat-badge">537,071 lines of production code</span>
       <span class="stat-badge">24,341 test functions</span>
       <span class="stat-badge">1,100+ modules</span>
     </div>
-  </div>
-</section>
-
-<!-- PAIN POINTS -->
-<section id="pain-points" aria-labelledby="pain-h">
-  <div class="si">
-    <span class="slabel">The Problem</span>
-    <h2 class="stitle" id="pain-h">Sound familiar?</h2>
-    <div class="g3" role="list" aria-label="Common business pain points">
-      <article class="pain-card" role="listitem"><div class="ci" aria-hidden="true">&#10060;</div><h3>12+ disconnected SaaS tools draining your budget</h3></article>
-      <article class="pain-card" role="listitem"><div class="ci" aria-hidden="true">&#10060;</div><h3>Manual processes costing 30% of your team's time</h3></article>
-      <article class="pain-card" role="listitem"><div class="ci" aria-hidden="true">&#10060;</div><h3>Compliance headaches that slow down operations</h3></article>
-      <article class="pain-card" role="listitem"><div class="ci" aria-hidden="true">&#10060;</div><h3>Scaling requires hiring more people, not smarter systems</h3></article>
-      <article class="pain-card" role="listitem"><div class="ci" aria-hidden="true">&#10060;</div><h3>No visibility across departments in real time</h3></article>
-      <article class="pain-card" role="listitem"><div class="ci" aria-hidden="true">&#10060;</div><h3>Security gaps from tool sprawl and shadow IT</h3></article>
+    <div class="sp-strip" aria-label="Industries served">
+      <span class="sp-text">Used by teams in:</span>
+      <div class="ind-icons">
+        <span class="ind-pill">&#127981; Manufacturing</span>
+        <span class="ind-pill">&#9878;&#65039; Legal</span>
+        <span class="ind-pill">&#127973; Healthcare</span>
+        <span class="ind-pill">&#127959; Construction</span>
+        <span class="ind-pill">&#128176; Finance</span>
+        <span class="ind-pill">&#127918; Gaming</span>
+        <span class="ind-pill">&#129302; Robotics</span>
+        <span class="ind-pill">&#127891; Education</span>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- SOLUTION -->
-<section id="solution" class="lp-bg3" aria-labelledby="sol-h">
-  <!-- Anchor for #features nav link -->
-  <span id="features" aria-hidden="true" style="position:absolute;visibility:hidden;"></span>
+<!-- LIVE STATUS BAR -->
+<section id="status-bar" style="padding:1.5rem 2rem;background:var(--bg3);border-top:1px solid var(--border);border-bottom:1px solid var(--border);" aria-label="Live system status">
+  <div class="si" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;justify-content:space-between;">
+    <span style="font-size:.8rem;color:var(--muted);font-weight:600;letter-spacing:.08em;text-transform:uppercase;">System Status</span>
+    <div class="live-status-row" id="live-status-row" style="margin:0;gap:.5rem;">
+      <span class="lstat"><span class="ld ld-ok"></span>API Gateway</span>
+      <span class="lstat" id="lstat-llm"><span class="ld ld-off"></span>Ollama LLM</span>
+      <span class="lstat" id="lstat-mail"><span class="ld ld-off"></span>Mail Server</span>
+      <span class="lstat" id="lstat-matrix"><span class="ld ld-off"></span>Matrix Bridge</span>
+      <span class="lstat" id="lstat-hitl"><span class="ld ld-ok"></span>HITL Gates</span>
+      <span class="lstat" id="lstat-swarm"><span class="ld ld-ok"></span>Swarm Engine</span>
+      <span class="lstat" id="lstat-trading"><span class="ld ld-ok"></span>Trading Engine</span>
+    </div>
+    <a href="/ui/terminal-integrations#llm" class="btn-s" style="font-size:.78rem;padding:.35rem .85rem;">Configure &#8594;</a>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section id="architecture" aria-labelledby="arch-h">
   <div class="si">
-    <span class="slabel">The Solution</span>
-    <h2 class="stitle" id="sol-h">One System. Every Department.</h2>
-    <p class="ssub">Murphy automates Sales, Marketing, Finance, Operations, HR, IT, Compliance, and Customer Success — all from one terminal.</p>
-    <div class="g4" role="list" aria-label="Departments automated by Murphy">
-      <article class="sol-card" role="listitem"><span class="chk" aria-hidden="true">&#10003;</span><h3>Sales</h3></article>
-      <article class="sol-card" role="listitem"><span class="chk" aria-hidden="true">&#10003;</span><h3>Marketing</h3></article>
-      <article class="sol-card" role="listitem"><span class="chk" aria-hidden="true">&#10003;</span><h3>Finance</h3></article>
-      <article class="sol-card" role="listitem"><span class="chk" aria-hidden="true">&#10003;</span><h3>Operations</h3></article>
-      <article class="sol-card" role="listitem"><span class="chk" aria-hidden="true">&#10003;</span><h3>HR</h3></article>
-      <article class="sol-card" role="listitem"><span class="chk" aria-hidden="true">&#10003;</span><h3>IT</h3></article>
-      <article class="sol-card" role="listitem"><span class="chk" aria-hidden="true">&#10003;</span><h3>Compliance</h3></article>
-      <article class="sol-card" role="listitem"><span class="chk" aria-hidden="true">&#10003;</span><h3>Customer Success</h3></article>
+    <span class="slabel">Platform Architecture</span>
+    <h2 class="stitle" id="arch-h">71 Subsystems.<br>1,166 Registered Modules.</h2>
+    <p class="ssub">Every business function is a real, tested module with its own API endpoint, Matrix room, and bot persona. Not a feature checklist &#8212; living, testable code.</p>
+    <div class="arch-grid" role="list">
+      <div class="arch-card" role="listitem"><div class="arch-card-title">&#9889; Execution Engine</div><div class="arch-card-count">/api/execute &#183; /api/compute-plane/*</div><div class="arch-card-desc">Deterministic routing, two-phase commit, task dispatch and orchestration across all subsystems.</div></div>
+      <div class="arch-card" role="listitem"><div class="arch-card-title">&#129504; AI / LLM Layer</div><div class="arch-card-count">/api/llm/* &#183; Ollama + cloud fallback</div><div class="arch-card-desc">Onboard Ollama LLM with cloud fallback. Murphy Foundation Model, neuro-symbolic reasoning, swarm inference.</div></div>
+      <div class="arch-card" role="listitem"><div class="arch-card-title">&#128274; Security Plane</div><div class="arch-card-count">/api/security/* &#183; /api/compliance/*</div><div class="arch-card-desc">CSRF, RBAC deny-by-default, rate limiting, scheduled key rotation, input validation, full audit logging.</div></div>
+      <div class="arch-card" role="listitem"><div class="arch-card-title">&#128172; Matrix Bridge</div><div class="arch-card-count">/api/matrix/* &#183; 287 rooms</div><div class="arch-card-desc">Matrix protocol messaging with 287 registered rooms, bot personas, HITL approvals over chat, webhooks.</div></div>
+      <div class="arch-card" role="listitem"><div class="arch-card-title">&#9993;&#65039; Mail Server</div><div class="arch-card-count">/api/email/* &#183; SMTP/IMAP</div><div class="arch-card-desc">Hosted email on murphy.systems domains. Automated send, account management, SMTP/IMAP config via API.</div></div>
+      <div class="arch-card" role="listitem"><div class="arch-card-title">&#129309; HITL Gates</div><div class="arch-card-count">/api/hitl/* &#183; /api/gate-synthesis/*</div><div class="arch-card-desc">Human-in-the-loop approval queues with auto-graduation, executive/security/compliance gate layers.</div></div>
+      <div class="arch-card" role="listitem"><div class="arch-card-title">&#128257; Self-Healing</div><div class="arch-card-count">/api/self-fix/* &#183; /api/repair/*</div><div class="arch-card-desc">Automated repair proposals, pattern detection, self-improvement engine with HITL review.</div></div>
+      <div class="arch-card" role="listitem"><div class="arch-card-title">&#128029; Swarm Agents</div><div class="arch-card-count">/api/swarm/* &#183; /api/agents/*</div><div class="arch-card-desc">Multi-agent execution, shadow agent training, Rosetta state consensus, parallel task swarms.</div></div>
+      <div class="arch-card" role="listitem"><div class="arch-card-title">&#128202; Trading Engine</div><div class="arch-card-count">/api/trading/* &#183; /api/market/*</div><div class="arch-card-desc">Paper trading, real-time market data, compliance graduation, live order management with risk gates.</div></div>
+      <div class="arch-card" role="listitem"><div class="arch-card-title">&#127959; Gate Synthesis</div><div class="arch-card-count">/api/gate-synthesis/*</div><div class="arch-card-desc">Dynamic gate generation, failure-mode enumeration, retirement conditions, authority matrices.</div></div>
+      <div class="arch-card" role="listitem"><div class="arch-card-title">&#128203; Workflow Terminal</div><div class="arch-card-count">/api/workflow-terminal/* &#183; /ui/terminal-*</div><div class="arch-card-desc">9 terminal UIs: integrated, unified, architect, orgchart, costs, operator, worker, orchestrator, enhanced.</div></div>
+      <div class="arch-card" role="listitem"><div class="arch-card-title">&#128225; Telemetry &amp; Observability</div><div class="arch-card-count">/api/telemetry &#183; Prometheus metrics</div><div class="arch-card-desc">Structured telemetry, Prometheus metrics, drift detection, Lyapunov stability monitoring.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- INTEGRATIONS -->
+<section id="integrations" aria-labelledby="int-h" style="background:var(--bg);">
+  <div class="si">
+    <span class="slabel">Backend Integrations</span>
+    <h2 class="stitle" id="int-h">Every System Wired.<br>Nothing Left Disconnected.</h2>
+    <p class="ssub">Every integration ships with a live API endpoint, a dedicated UI page, and test coverage. Configure once &#8212; Murphy handles the rest.</p>
+    <div class="int-grid" role="list">
+
+      <div class="int-card" role="listitem">
+        <div class="int-card-header">
+          <span class="int-card-icon">&#129422;</span>
+          <span class="int-card-name">Ollama (Onboard LLM)</span>
+          <span class="int-card-status live">&#9679; LIVE</span>
+        </div>
+        <p class="int-card-desc">Local language model inference &#8212; zero data leaves your server. Pull models, check status, configure provider fallback to OpenAI/Anthropic/etc.</p>
+        <a class="int-card-link" href="/ui/terminal-integrations#llm">Configure LLM &#8594; <code>/api/llm/status</code></a>
+      </div>
+
+      <div class="int-card" role="listitem">
+        <div class="int-card-header">
+          <span class="int-card-icon">&#9993;&#65039;</span>
+          <span class="int-card-name">Murphy Mail Server</span>
+          <span class="int-card-status live">&#9679; LIVE</span>
+        </div>
+        <p class="int-card-desc">Hosted SMTP/IMAP on murphy.systems. Create accounts, send programmatic email, retrieve config. Full email automation built in &#8212; no SendGrid needed.</p>
+        <a class="int-card-link" href="/ui/terminal-integrations#connections">Configure Mail &#8594; <code>/api/email/config</code></a>
+      </div>
+
+      <div class="int-card" role="listitem">
+        <div class="int-card-header">
+          <span class="int-card-icon">&#128172;</span>
+          <span class="int-card-name">Matrix Bridge</span>
+          <span class="int-card-status live">&#9679; LIVE</span>
+        </div>
+        <p class="int-card-desc">287 Matrix rooms with bot personas. Real-time event dispatch, HITL approvals over chat, command routing (<code>!murphy help</code>), module manifest sync.</p>
+        <a class="int-card-link" href="/ui/matrix">Open Matrix &#8594; <code>/api/matrix/status</code></a>
+      </div>
+
+      <div class="int-card" role="listitem">
+        <div class="int-card-header">
+          <span class="int-card-icon">&#128274;</span>
+          <span class="int-card-name">OAuth / SSO</span>
+          <span class="int-card-status config">&#9680; CONFIGURABLE</span>
+        </div>
+        <p class="int-card-desc">Google, GitHub and custom OAuth2 providers. Session tokens, RBAC roles, password reset, MFA-ready architecture out of the box.</p>
+        <a class="int-card-link" href="/ui/login">Auth Portal &#8594; <code>/api/auth/providers</code></a>
+      </div>
+
+      <div class="int-card" role="listitem">
+        <div class="int-card-header">
+          <span class="int-card-icon">&#128178;</span>
+          <span class="int-card-name">Billing &amp; Stripe</span>
+          <span class="int-card-status config">&#9680; CONFIGURABLE</span>
+        </div>
+        <p class="int-card-desc">Subscription tiers, checkout, trial management, feature gating and limit checks. Stripe-compatible billing API wired through <code>/api/billing/*</code>.</p>
+        <a class="int-card-link" href="/ui/pricing">Pricing &#8594; <code>/api/billing/tiers</code></a>
+      </div>
+
+      <div class="int-card" role="listitem">
+        <div class="int-card-header">
+          <span class="int-card-icon">&#128200;</span>
+          <span class="int-card-name">Market Data &amp; Trading</span>
+          <span class="int-card-status live">&#9679; LIVE</span>
+        </div>
+        <p class="int-card-desc">Real-time quotes, candles, instruments. Paper trading with compliance graduation. Coinbase integration. Risk gates before any live order.</p>
+        <a class="int-card-link" href="/ui/paper-trading">Trading &#8594; <code>/api/market/status</code></a>
+      </div>
+
+      <div class="int-card" role="listitem">
+        <div class="int-card-header">
+          <span class="int-card-icon">&#127758;</span>
+          <span class="int-card-name">Universal Integrations</span>
+          <span class="int-card-status live">&#9679; LIVE</span>
+        </div>
+        <p class="int-card-desc">Register any external service. Configure, execute actions, manage credentials securely. 100+ pre-wired services.</p>
+        <a class="int-card-link" href="/ui/terminal-integrations#integrations">Manage &#8594; <code>/api/universal-integrations/services</code></a>
+      </div>
+
+      <div class="int-card" role="listitem">
+        <div class="int-card-header">
+          <span class="int-card-icon">&#128421;&#65039;</span>
+          <span class="int-card-name">Blockchain Audit Trail</span>
+          <span class="int-card-status live">&#9679; LIVE</span>
+        </div>
+        <p class="int-card-desc">Immutable audit blocks for every action. Seal, verify and export the full audit chain at any time via the BAT engine.</p>
+        <a class="int-card-link" href="/ui/terminal-architect">Audit Trail &#8594; <code>/api/bat/health</code></a>
+      </div>
+
+      <div class="int-card" role="listitem">
+        <div class="int-card-header">
+          <span class="int-card-icon">&#128302;</span>
+          <span class="int-card-name">Prometheus Metrics</span>
+          <span class="int-card-status live">&#9679; LIVE</span>
+        </div>
+        <p class="int-card-desc">Metrics exported at <code>/api/telemetry</code>. Integrates with Grafana on Hetzner. Cost-by-bot, heatmap and efficiency dashboards built in.</p>
+        <a class="int-card-link" href="/ui/terminal-unified#costs">Telemetry &#8594; <code>/api/telemetry</code></a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- AI ENGINE -->
+<section id="ai-engine" aria-labelledby="ai-h">
+  <div class="si">
+    <span class="slabel">AI Engine</span>
+    <div class="seg-layout">
+      <div>
+        <h2 class="stitle" id="ai-h">Local LLM.<br>No Data Leaves.</h2>
+        <p style="color:var(--muted);margin-bottom:1.5rem;">Murphy runs Ollama on your own server. Every inference is private. Cloud providers are optional fallbacks &#8212; you choose what goes where, per request.</p>
+        <ul class="uc-list">
+          <li>Pull any model: <code>/api/llm/models/pull</code></li>
+          <li>Live model list: <code>/api/llm/models/local</code></li>
+          <li>Test connectivity: <code>/api/llm/test</code></li>
+          <li>Multi-provider routing &#8212; local first, cloud fallback</li>
+          <li>Murphy Foundation Model for domain-specific tasks</li>
+          <li>Swarm inference across multiple agent instances</li>
+        </ul>
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
+          <a class="btn-p" href="/ui/terminal-integrations#llm">Configure LLM</a>
+          <a class="btn-s" href="/ui/terminal-unified#status">View Status</a>
+        </div>
+      </div>
+      <div class="seg-vis" aria-hidden="true">
+        <span class="tl cy">$ murphy llm status</span>
+        <span class="tl te">&#10003; Ollama running at http://localhost:11434</span>
+        <span class="tl">  Models loaded: 3</span>
+        <span class="tl">  llama3.2:latest     4.7GB  &#9679; active</span>
+        <span class="tl">  mistral:7b          4.1GB  &#9679; loaded</span>
+        <span class="tl">  codellama:13b       7.4GB  &#9679; loaded</span>
+        <span class="tl dim">  Fallback: openai (configured)</span>
+        <span class="tl cy" style="margin-top:.6rem">$ murphy llm test</span>
+        <span class="tl te">&#10003; Inference: 47ms &#183; tokens/s: 38.2</span>
+        <span class="tl te">&#10003; Shadow agent: active on llama3.2</span>
+        <span class="tl">  All 6 LLM endpoints: healthy</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MAIL + MATRIX -->
+<section id="comms" aria-labelledby="comms-h" style="background:var(--bg3);">
+  <div class="si">
+    <span class="slabel">Communications Infrastructure</span>
+    <h2 class="stitle" id="comms-h">Mail Server &amp; Matrix.<br>Both Built In.</h2>
+    <p class="ssub">Murphy ships with a hosted mail server and a full Matrix bridge &#8212; not integrations, not webhooks, real infrastructure you control from day one.</p>
+    <div class="g2" style="margin-top:2rem;">
+      <div class="card feat">
+        <div class="card-icon">&#9993;&#65039;</div>
+        <h3>Hosted Mail Server</h3>
+        <p>Create <code>@murphy.systems</code> accounts via API. Send transactional and automated email. Retrieve SMTP/IMAP config for any mail client. Murphy&#8217;s own mail infrastructure &#8212; no SendGrid required.</p>
+        <div style="margin-top:1.25rem;display:flex;flex-direction:column;gap:.4rem;">
+          <code style="font-size:.75rem;color:var(--teal)">POST /api/email/accounts</code>
+          <code style="font-size:.75rem;color:var(--teal)">POST /api/email/send</code>
+          <code style="font-size:.75rem;color:var(--teal)">GET  /api/email/config</code>
+        </div>
+        <a class="btn-s" style="margin-top:1.25rem;font-size:.82rem;" href="/ui/terminal-integrations#connections">Configure Mail</a>
+      </div>
+      <div class="card feat">
+        <div class="card-icon">&#128172;</div>
+        <h3>Matrix Protocol Bridge</h3>
+        <p>287 registered Matrix rooms, each mapped to a subsystem. Bot personas (TriageBot, SecurityBot, LibrarianBot&#8230;) respond to commands. HITL approvals arrive as Matrix messages. Run <code>!murphy help</code> in any room.</p>
+        <div style="margin-top:1.25rem;display:flex;flex-direction:column;gap:.4rem;">
+          <code style="font-size:.75rem;color:var(--teal)">GET  /api/matrix/status</code>
+          <code style="font-size:.75rem;color:var(--teal)">GET  /api/matrix/rooms</code>
+          <code style="font-size:.75rem;color:var(--teal)">POST /api/matrix/send</code>
+        </div>
+        <a class="btn-s" style="margin-top:1.25rem;font-size:.82rem;" href="/ui/matrix">Open Matrix UI</a>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- HOW IT WORKS -->
-<section id="how-it-works" aria-labelledby="hiw-h">
-  <div class="si" style="padding:4rem 1rem;">
+<section id="how-it-works" aria-labelledby="hiw-h" style="background:var(--bg);">
+  <div class="si">
     <span class="slabel">How It Works</span>
-    <h2 class="stitle" id="hiw-h">Automate in Three Steps</h2>
-    <p class="ssub">No code. No complex setup. Go from idea to running automation in minutes.</p>
-    <div class="g3" role="list" aria-label="How Murphy System works" style="margin-top:2rem;">
-      <article class="step-card" role="listitem">
-        <div class="step-num" aria-hidden="true">1</div>
-        <h3>Connect Your Tools</h3>
-        <p>Link your existing apps — CRM, email, Slack, spreadsheets, APIs — in a few clicks. Murphy supports 80+ integrations out of the box.</p>
+    <h2 class="stitle" id="hiw-h">From Intake to Delivery.<br>Four Steps.</h2>
+    <div class="g4" style="margin-top:2rem;" role="list">
+      <article class="card" role="listitem" style="text-align:center;">
+        <div style="display:inline-flex;align-items:center;justify-content:center;width:2.5rem;height:2.5rem;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--cyan));color:#0a0a0a;font-size:1rem;font-weight:800;margin-bottom:1rem;">1</div>
+        <h3>Onboard</h3>
+        <p>Complete the wizard. Murphy builds your org chart, assigns Shadow Agents, and configures your compliance profile automatically via <code>/api/onboarding/wizard/*</code>.</p>
       </article>
-      <article class="step-card" role="listitem">
-        <div class="step-num" aria-hidden="true">2</div>
-        <h3>Describe Your Workflow</h3>
-        <p>Type what you want in plain English. Murphy's AI understands your intent and builds the automation plan, complete with compliance gates and approval steps.</p>
+      <article class="card" role="listitem" style="text-align:center;">
+        <div style="display:inline-flex;align-items:center;justify-content:center;width:2.5rem;height:2.5rem;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--cyan));color:#0a0a0a;font-size:1rem;font-weight:800;margin-bottom:1rem;">2</div>
+        <h3>Connect</h3>
+        <p>Wire your tools via the integrations terminal. Mail, Ollama LLM, trading, Matrix, billing &#8212; each has a live API endpoint and a real-time status indicator.</p>
       </article>
-      <article class="step-card" role="listitem">
-        <div class="step-num" aria-hidden="true">3</div>
-        <h3>Murphy Runs It</h3>
-        <p>Your workflow executes automatically. Shadow Agents learn your patterns over time so each run gets smarter, faster, and more tailored to your business.</p>
+      <article class="card" role="listitem" style="text-align:center;">
+        <div style="display:inline-flex;align-items:center;justify-content:center;width:2.5rem;height:2.5rem;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--cyan));color:#0a0a0a;font-size:1rem;font-weight:800;margin-bottom:1rem;">3</div>
+        <h3>Automate</h3>
+        <p>Shadow Agents observe your decisions, propose automations, and graduate to autonomous execution through HITL safety gates at <code>/api/hitl/*</code>.</p>
       </article>
-    </div>
-    <div style="text-align:center;margin-top:2.5rem;">
-      <a href="/ui/signup" class="btn-p" style="margin-right:.75rem;">Get Started Free</a>
-      <button class="btn-s" onclick="openDemo(event)" aria-label="See a live demo">&#9654; See It Live</button>
+      <article class="card" role="listitem" style="text-align:center;">
+        <div style="display:inline-flex;align-items:center;justify-content:center;width:2.5rem;height:2.5rem;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--cyan));color:#0a0a0a;font-size:1rem;font-weight:800;margin-bottom:1rem;">4</div>
+        <h3>Scale</h3>
+        <p>Add subsystems, modules and agents as you grow. Every module has an API, a Matrix room, and test coverage. Nothing is a black box.</p>
+      </article>
     </div>
   </div>
 </section>
 
-<!-- SOLO -->
-<section id="solo" aria-labelledby="solo-h">
+<!-- HITL / SAFETY -->
+<section id="safety" aria-labelledby="safety-h" style="background:var(--bg3);">
   <div class="si">
+    <span class="slabel">Human-in-the-Loop</span>
     <div class="seg-layout">
-      <div class="seg-content">
-        <span class="slabel">For Solo Operators</span>
-        <h2 class="stitle" id="solo-h">One Person.<br>Full Automation.</h2>
-        <p>Solo consultants, freelancers, and shop owners. Run a 10-person operation as a team of one.</p>
-        <ul class="uc-list" aria-label="Solo plan use cases">
-          <li>Automated client intake</li>
-          <li>Invoice generation</li>
-          <li>Follow-up sequences</li>
-          <li>Compliance reporting</li>
-        </ul>
-        <a href="/ui/pricing" class="btn-p">Start Solo Plan — $99/mo</a>
-      </div>
       <div class="seg-vis" aria-hidden="true">
-        <div class="tl">$ murphy intake --auto</div>
-        <div class="tl cy">&#10003; Client onboarded in 4.2s</div>
-        <div class="tl dim">&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;</div>
-        <div class="tl">$ murphy invoice generate</div>
-        <div class="tl te">&#10003; Invoice #1042 sent</div>
-        <div class="tl dim">&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;</div>
-        <div class="tl">$ murphy followup schedule</div>
-        <div class="tl cy">&#10003; 3-touch sequence queued</div>
-        <div class="tl dim">&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;</div>
-        <div class="tl">$ murphy compliance check</div>
-        <div class="tl te">&#10003; All clear — GDPR OK</div>
+        <span class="tl cy">$ murphy hitl status</span>
+        <span class="tl">  Pending approvals: 3</span>
+        <span class="tl te">  &#9658; [EXEC-042] Invoice send &#183; gate: financial 94%</span>
+        <span class="tl te">  &#9658; [SEC-018]  OAuth app registered &#183; security 88%</span>
+        <span class="tl te">  &#9658; [OPS-031]  Scale worker pool &#215;3 &#183; executive 91%</span>
+        <span class="tl cy" style="margin-top:.6rem">$ murphy hitl approve EXEC-042</span>
+        <span class="tl te">&#10003; Approved &#183; Invoice dispatched via /api/email/send</span>
+        <span class="tl dim">  Audit block sealed: BAT-7291</span>
       </div>
-    </div>
-  </div>
-</section>
-
-<!-- SHADOW AGENTS -->
-<section id="shadow-agents" class="seg-bg lp-gradient-bg" aria-labelledby="shadow-h">
-  <div class="si">
-    <div class="seg-layout rev">
-      <div class="seg-content">
-        <span class="slabel">Your Personal AI</span>
-        <h2 class="stitle" id="shadow-h">Shadow Agents:<br>Your Digital Twin</h2>
-        <p>A Shadow Agent is <strong>your</strong> shadow — it represents your personal IP and learns how to do things based on how <em>you</em> do them. It watches, learns, and gradually takes over routine work while preserving your unique style and expertise.</p>
-        <ul class="uc-list" aria-label="Shadow Agent capabilities">
-          <li>Learns your personal workflow patterns</li>
-          <li>Preserves your unique style &amp; decision-making</li>
-          <li>Your IP stays yours — never shared</li>
-          <li>Graduates from shadow to autonomous over time</li>
+      <div>
+        <h2 class="stitle" id="safety-h">AI Does the Work.<br>You Keep Control.</h2>
+        <p style="color:var(--muted);margin-bottom:1.5rem;">Every high-stakes action passes through a HITL gate. Approve via the dashboard, terminal, or a Matrix message. Every decision is sealed in the blockchain audit trail.</p>
+        <ul class="uc-list">
+          <li>Executive, security, financial, compliance gate layers</li>
+          <li>Confidence scoring &#8212; auto-approve above threshold</li>
+          <li>Approve, reject, modify, defer or escalate any action</li>
+          <li>Approval via UI <em>or</em> <code>!murphy hitl approve ID</code> in Matrix</li>
+          <li>Every decision logged to immutable BAT audit trail</li>
+          <li>Gate graduation &#8212; agents earn autonomy over time</li>
         </ul>
-        <a href="/ui/pricing" class="btn-p">Get Your Shadow Agent</a>
-      </div>
-      <div class="seg-vis" aria-hidden="true">
-        <div class="tl">$ murphy shadow status</div>
-        <div class="tl cy">&#128065; Observing your workflow…</div>
-        <div class="tl dim">&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;</div>
-        <div class="tl">$ murphy shadow learn --from-you</div>
-        <div class="tl te">&#10003; Learned: proposal formatting</div>
-        <div class="tl te">&#10003; Learned: review style</div>
-        <div class="tl dim">&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;</div>
-        <div class="tl">$ murphy shadow draft proposal</div>
-        <div class="tl cy">&#10003; Draft matches your style 94%</div>
-        <div class="tl dim">&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;</div>
-        <div class="tl">$ murphy shadow graduate --task=intake</div>
-        <div class="tl te">&#10003; Autonomous mode: client intake</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- BUSINESS -->
-<section id="business" class="seg-bg" aria-labelledby="biz-h">
-  <div class="si">
-    <div class="seg-layout rev">
-      <div class="seg-content">
-        <span class="slabel">For Growing Businesses</span>
-        <h2 class="stitle" id="biz-h">Scale Without<br>Scaling Headcount</h2>
-        <p>Agencies, SMBs, and startups — your AI workforce grows with you.</p>
-        <ul class="uc-list" aria-label="Business plan use cases">
-          <li>Automated hiring pipeline</li>
-          <li>CRM automation</li>
-          <li>Project tracking</li>
-          <li>Financial reporting</li>
-        </ul>
-        <a href="/ui/pricing" class="btn-p">Start Business Plan — $299/mo</a>
-      </div>
-      <div class="seg-vis" aria-hidden="true">
-        <div class="tl">$ murphy crm sync --all</div>
-        <div class="tl te">&#10003; 1,847 contacts updated</div>
-        <div class="tl dim">&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;</div>
-        <div class="tl">$ murphy hire pipeline run</div>
-        <div class="tl cy">&#10003; 14 candidates screened</div>
-        <div class="tl dim">&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;</div>
-        <div class="tl">$ murphy finance report --q</div>
-        <div class="tl te">&#10003; Q3 report generated</div>
-        <div class="tl dim">&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;</div>
-        <div class="tl">$ murphy projects status</div>
-        <div class="tl cy">&#10003; 7/9 on track · 2 at risk</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ENTERPRISE -->
-<section id="enterprise" aria-labelledby="ent-h">
-  <div class="si">
-    <div class="seg-layout">
-      <div class="seg-content">
-        <span class="slabel">For Enterprise</span>
-        <h2 class="stitle" id="ent-h">Enterprise-Grade.<br>Zero Compromise.</h2>
-        <p>Large corporations and regulated industries. SOC 2, HIPAA, GDPR — toggle on in seconds.</p>
-        <ul class="uc-list" aria-label="Enterprise plan use cases">
-          <li>Custom compliance posture</li>
-          <li>SSO/SAML integration</li>
-          <li>Dedicated instance</li>
-          <li>White-labeling</li>
-        </ul>
-        <a href="mailto:sales@murphy.ai" class="btn-p">Talk to Sales</a>
-      </div>
-      <div class="seg-vis" aria-hidden="true">
-        <div class="tl">$ murphy compliance configure</div>
-        <div class="tl cy">? Industry: Healthcare</div>
-        <div class="tl te">&#10003; HIPAA posture applied</div>
-        <div class="tl dim">&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;</div>
-        <div class="tl">$ murphy sso configure saml</div>
-        <div class="tl cy">&#10003; Okta integration active</div>
-        <div class="tl dim">&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;</div>
-        <div class="tl">$ murphy instance provision</div>
-        <div class="tl te">&#10003; Dedicated env ready</div>
-        <div class="tl dim">&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;</div>
-        <div class="tl">$ murphy brand apply --white</div>
-        <div class="tl cy">&#10003; White-label deployed</div>
+        <a class="btn-p" href="/ui/terminal-unified#hitl">Open HITL Queue</a>
       </div>
     </div>
   </div>
@@ -609,27 +540,31 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
 <!-- COMPARE -->
 <section id="compare" aria-labelledby="cmp-h">
   <div class="si">
-    <span class="slabel">Comparison</span>
-    <h2 class="stitle" id="cmp-h">Why Murphy vs. The Rest?</h2>
-    <p class="ssub">We didn't build another automation layer. We built the operating system for your business.</p>
-    <div class="ctw" role="region" aria-label="Feature comparison table" tabindex="0">
+    <span class="slabel">Why Murphy</span>
+    <h2 class="stitle" id="cmp-h">Everything Else Needs 12 Tools.<br>Murphy Is One.</h2>
+    <div class="ctw" role="region" aria-label="Comparison table">
       <table class="ctable">
         <thead>
           <tr>
-            <th scope="col">Feature</th>
-            <th scope="col">Murphy</th>
-            <th scope="col">Zapier</th>
-            <th scope="col">Make</th>
-            <th scope="col">n8n</th>
+            <th>Capability</th>
+            <th>Murphy</th>
+            <th>Zapier + Notion + HubSpot</th>
+            <th>Salesforce</th>
           </tr>
         </thead>
         <tbody>
-          <tr><td>AI-Native</td><td class="mc"><span class="yes">&#9989; Yes</span></td><td class="xc"><span class="no">&#10060;</span></td><td class="xc"><span class="no">&#10060;</span></td><td class="xc"><span class="no">&#10060;</span></td></tr>
-          <tr><td>Self-improving</td><td class="mc"><span class="yes">&#9989; Yes</span></td><td class="xc"><span class="no">&#10060;</span></td><td class="xc"><span class="no">&#10060;</span></td><td class="xc"><span class="no">&#10060;</span></td></tr>
-          <tr><td>Built-in compliance</td><td class="mc"><span class="yes">&#9989; Yes</span></td><td class="xc"><span class="no">&#10060;</span></td><td class="xc"><span class="no">&#10060;</span></td><td class="xc"><span class="no">&#10060;</span></td></tr>
-          <tr><td>HITL controls</td><td class="mc"><span class="yes">&#9989; Yes</span></td><td class="xc"><span class="no">&#10060;</span></td><td class="xc"><span class="no">&#10060;</span></td><td class="xc"><span class="partial">Partial</span></td></tr>
-          <tr><td>Unlimited automations</td><td class="mc">&#9989; Business+</td><td class="xc">Limited</td><td class="xc">Limited</td><td class="xc">Limited</td></tr>
-          <tr><td>Price / month</td><td class="mc">from $99</td><td class="xc">from $19</td><td class="xc">from $9</td><td class="xc">Free / self-hosted</td></tr>
+          <tr><td>Onboard local LLM (Ollama)</td><td class="mc">&#10003; Built-in</td><td class="xc">&#10007;</td><td class="xc">&#10007;</td></tr>
+          <tr><td>Hosted mail server</td><td class="mc">&#10003; Built-in</td><td class="xc">&#10007; 3rd-party</td><td class="xc">&#10007; 3rd-party</td></tr>
+          <tr><td>Matrix messaging bridge</td><td class="mc">&#10003; 287 rooms</td><td class="xc">&#10007;</td><td class="xc">&#10007;</td></tr>
+          <tr><td>Human-in-the-Loop gates</td><td class="mc">&#10003; Gate synthesis</td><td class="xc">&#10007; Manual only</td><td class="xc">&#10007; Approvals only</td></tr>
+          <tr><td>Self-healing / auto-repair</td><td class="mc">&#10003; /api/self-fix/*</td><td class="xc">&#10007;</td><td class="xc">&#10007;</td></tr>
+          <tr><td>Blockchain audit trail</td><td class="mc">&#10003; BAT engine</td><td class="xc">&#10007;</td><td class="xc">&#8764; Partial</td></tr>
+          <tr><td>Shadow Agent training</td><td class="mc">&#10003; Observe &#8594; Assist &#8594; Auto</td><td class="xc">&#10007;</td><td class="xc">&#8764; Einstein AI</td></tr>
+          <tr><td>Module registry (1,166 entries)</td><td class="mc">&#10003; Live manifest</td><td class="xc">&#10007;</td><td class="xc">&#10007;</td></tr>
+          <tr><td>Compliance automation (SOC2/HIPAA)</td><td class="mc">&#10003; CCE engine</td><td class="xc">&#10007; Manual</td><td class="xc">&#8764; Partial</td></tr>
+          <tr><td>Fully self-hostable</td><td class="mc">&#10003; Hetzner deploy</td><td class="xc">&#10007; Cloud only</td><td class="xc">&#10007; Cloud only</td></tr>
+          <tr><td>Open source (BSL 1.1)</td><td class="mc">&#10003;</td><td class="xc">&#10007; Proprietary</td><td class="xc">&#10007; Proprietary</td></tr>
+          <tr><td>Monthly cost &#8212; 5-person team</td><td class="mc">$299/mo all-in</td><td class="xc">$800&#8211;1,400/mo</td><td class="xc">$1,500+/mo</td></tr>
         </tbody>
       </table>
     </div>
@@ -640,657 +575,242 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
 <section id="compliance" aria-labelledby="comp-h">
   <div class="si">
     <span class="slabel">Compliance</span>
-    <h2 class="stitle" id="comp-h">Built for Regulated Industries</h2>
-    <p class="ssub">Auto-configured based on your location and industry. Toggle compliance frameworks on in seconds.</p>
-    <div class="comp-grid" role="list" aria-label="Supported compliance frameworks">
-      <span class="comp-pill" role="listitem">GDPR</span>
-      <span class="comp-pill" role="listitem">HIPAA</span>
-      <span class="comp-pill" role="listitem">SOC 2</span>
-      <span class="comp-pill" role="listitem">PCI-DSS</span>
-      <span class="comp-pill" role="listitem">ISO 27001</span>
-      <span class="comp-pill" role="listitem">CCPA</span>
-      <span class="comp-pill" role="listitem">SOX</span>
-      <span class="comp-pill" role="listitem">FedRAMP</span>
-      <span class="comp-pill" role="listitem">CMMC</span>
-      <span class="comp-pill" role="listitem">NIS2</span>
+    <h2 class="stitle" id="comp-h">Built-In Compliance.<br>Not Bolted On.</h2>
+    <p class="ssub">The Compliance as Code Engine (CCE) scans your configuration and emits remediations. Every action is audit-trailed. HITL gates enforce policy automatically.</p>
+    <div class="comp-grid" aria-label="Compliance standards">
+      <span class="comp-pill">SOC 2 Type II</span>
+      <span class="comp-pill">GDPR</span>
+      <span class="comp-pill">HIPAA</span>
+      <span class="comp-pill">PCI-DSS</span>
+      <span class="comp-pill">ISO 27001</span>
+      <span class="comp-pill">NIST CSF</span>
+      <span class="comp-pill">FedRAMP Ready</span>
+      <span class="comp-pill">CCPA</span>
     </div>
-    <a href="/ui/login?next=/ui/compliance" class="btn-p">Configure Compliance &#8594;</a>
+    <div class="g3" style="margin-top:1.5rem;">
+      <div class="card">
+        <div class="card-icon">&#128269;</div>
+        <h3>CCE Scan Engine</h3>
+        <p>Continuous scanning with rule-based remediations. Export full compliance reports via <code>/api/cce/scans/{id}/report</code>.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#128279;</div>
+        <h3>Blockchain Audit Trail</h3>
+        <p>Every action sealed in an immutable block. Verify, export and present the audit chain at any time via <code>/api/bat/*</code>.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#128678;</div>
+        <h3>RBAC + Deny-by-Default</h3>
+        <p>Role-based access, deny-by-default policy. Security events at <code>/api/security/events</code>. Full key rotation on schedule.</p>
+      </div>
+    </div>
+    <div style="margin-top:1.5rem;">
+      <a class="btn-p" href="/ui/compliance">Open Compliance Dashboard</a>
+    </div>
+  </div>
+</section>
+
+<!-- PROOF STATS -->
+<section id="proof" aria-labelledby="proof-h">
+  <div class="si">
+    <span class="slabel">By the Numbers</span>
+    <h2 class="stitle" id="proof-h">Real Code.<br>Verified Numbers.</h2>
+    <div class="g4" style="margin-top:2rem;" role="list">
+      <article class="stat-card" role="listitem"><div class="snum">537,071</div><div class="slbl">Lines of production code</div></article>
+      <article class="stat-card" role="listitem"><div class="snum">24,341</div><div class="slbl">Test functions</div></article>
+      <article class="stat-card" role="listitem"><div class="snum">1,100+</div><div class="slbl">Modules</div></article>
+      <article class="stat-card" role="listitem"><div class="snum">71</div><div class="slbl">Integrated subsystems</div></article>
+      <article class="stat-card" role="listitem"><div class="snum">453</div><div class="slbl">Live API endpoints</div></article>
+      <article class="stat-card" role="listitem"><div class="snum">287</div><div class="slbl">Matrix rooms</div></article>
+      <article class="stat-card" role="listitem"><div class="snum">706</div><div class="slbl">Test files</div></article>
+      <article class="stat-card" role="listitem"><div class="snum">1,166</div><div class="slbl">Manifest entries</div></article>
+    </div>
   </div>
 </section>
 
 <!-- PRICING -->
-<section id="pricing" aria-labelledby="price-h">
+<section id="pricing" aria-labelledby="pricing-h">
   <div class="si">
     <span class="slabel">Pricing</span>
-    <h2 class="stitle" id="price-h">Simple, Transparent Pricing</h2>
-    <p class="ssub">Start free. Scale on your terms. No surprise bills.</p>
-    <div class="g4" role="list" aria-label="Pricing plans">
-      <article class="pcard" role="listitem">
-        <div class="ptag">Solo</div>
+    <h2 class="stitle" id="pricing-h">Start Free.<br>Scale When You&#8217;re Ready.</h2>
+    <div class="g4" style="margin-top:2rem;" role="list">
+      <div class="pcard" role="listitem">
+        <div class="ptag">Free Forever</div>
+        <div class="pname">Starter</div>
+        <div class="pamt">$0<span>/mo</span></div>
+        <p class="pdesc">10 actions/day &#183; Shadow Agent training &#183; Crypto wallet &#183; All terminals &#183; Matrix access</p>
+        <a class="btn-p" href="/ui/signup">Start Free</a>
+      </div>
+      <div class="pcard" role="listitem">
+        <div class="ptag">Solo Operator</div>
         <div class="pname">Solo</div>
         <div class="pamt">$99<span>/mo</span></div>
-        <p class="pdesc">For independent operators running lean.</p>
-        <a href="/ui/pricing" class="btn-p">Get Started</a>
-      </article>
-      <article class="pcard featured" role="listitem">
+        <p class="pdesc">Unlimited automations &#183; 3 Shadow Agents &#183; Ollama LLM &#183; Mail server &#183; Basic compliance</p>
+        <a class="btn-p" href="/ui/pricing">Get Solo</a>
+      </div>
+      <div class="pcard featured" role="listitem">
         <div class="ptag">Most Popular</div>
         <div class="pname">Business</div>
         <div class="pamt">$299<span>/mo</span></div>
-        <p class="pdesc">For teams and agencies that need scale.</p>
-        <a href="/ui/pricing" class="btn-p">Get Started</a>
-      </article>
-      <article class="pcard" role="listitem">
-        <div class="ptag">Professional</div>
-        <div class="pname">Professional</div>
-        <div class="pamt lp-pamt-lg">Custom</div>
-        <p class="pdesc">Tailored to your needs. Contact for unique offerings.</p>
-        <a href="mailto:sales@murphy.ai" class="btn-p">Contact Sales</a>
-      </article>
-      <article class="pcard" role="listitem">
-        <div class="ptag">Enterprise</div>
+        <p class="pdesc">All integrations &#183; Unlimited agents &#183; HITL gates &#183; CCE compliance &#183; Matrix bridge &#183; Priority support</p>
+        <a class="btn-p" href="/ui/pricing">Get Business</a>
+      </div>
+      <div class="pcard" role="listitem">
+        <div class="ptag">Self-Hosted</div>
         <div class="pname">Enterprise</div>
-        <div class="pamt lp-pamt-lg">Custom</div>
-        <p class="pdesc">Dedicated instance, SLA, white-label.</p>
-        <a href="mailto:sales@murphy.ai" class="btn-p">Talk to Sales</a>
-      </article>
+        <div class="pamt">Custom</div>
+        <p class="pdesc">Full source &#183; Hetzner deploy scripts &#183; SLA &#183; Dedicated support &#183; Custom modules</p>
+        <a class="btn-p" href="/ui/partner">Talk to Us</a>
+      </div>
     </div>
-    <div class="lp-center-mt2">
-      <a href="/ui/pricing" class="btn-s">See Full Pricing &amp; Feature Comparison &#8594;</a>
-    </div>
-  </div>
-</section>
-
-<!-- PROOF -->
-<section id="proof" aria-labelledby="proof-h">
-  <div class="si">
-    <span class="slabel">By the Numbers</span>
-    <h2 class="stitle" id="proof-h">Built to Production Grade</h2>
-    <div class="g4" role="list" aria-label="Production statistics">
-      <article class="stat-card" role="listitem"><div class="snum">537,071</div><div class="slbl">Lines of production code</div></article>
-      <article class="stat-card" role="listitem"><div class="snum">24,341</div><div class="slbl">Passing tests</div></article>
-      <article class="stat-card" role="listitem"><div class="snum">1,100+</div><div class="slbl">Modules</div></article>
-      <article class="stat-card" role="listitem"><div class="snum">71</div><div class="slbl">Integrated subsystems</div></article>
-    </div>
-  </div>
-</section>
-
-<!-- EARLY ACCESS -->
-<section id="reviews" class="lp-bg3" aria-labelledby="reviews-h">
-  <div class="si">
-    <span class="slabel">Early Access</span>
-    <h2 class="stitle" id="reviews-h">Be Among the First</h2>
-    <p style="text-align:center;color:var(--muted);max-width:600px;margin:0 auto 2rem;font-size:.95rem;">
-      Murphy System is in beta. We're looking for businesses willing to test real workflows
-      and help shape the product. Early testers get free access during beta and a voice in what we build next.
-    </p>
-    <div style="display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;">
-      <a href="/ui/signup" class="btn-p">Sign Up as Early Tester</a>
-      <a href="/ui/partner" class="btn-s">Partner With Us</a>
-    </div>
+    <p style="text-align:center;margin-top:1.5rem;font-size:.83rem;color:var(--muted);">All plans include access to all 453 API endpoints. <a href="/ui/pricing" style="color:var(--teal);text-decoration:none;">See full comparison &#8594;</a></p>
+    <p style="text-align:center;margin-top:.5rem;font-size:.83rem;color:var(--muted);">Need financing? <a href="/ui/grant-wizard" style="color:var(--teal);text-decoration:none;">Apply for grants &amp; financing &#8594;</a></p>
   </div>
 </section>
 
 <!-- GUARANTEE -->
 <section id="guarantee" aria-labelledby="guar-h">
   <div class="si">
-    <span class="slabel">Zero Risk</span>
-    <h2 class="stitle" id="guar-h">Try Murphy Risk-Free</h2>
-    <div class="g4" role="list" aria-label="Guarantees">
-      <article class="gcard" role="listitem"><div class="gicon" aria-hidden="true">&#128737;&#65039;</div><h3>30-Day Money-Back Guarantee</h3><p>Not happy? Full refund. No questions asked.</p></article>
-      <article class="gcard" role="listitem"><div class="gicon" aria-hidden="true">&#9986;&#65039;</div><h3>Cancel Anytime</h3><p>No penalties, no hidden fees, no drama.</p></article>
-      <article class="gcard" role="listitem"><div class="gicon" aria-hidden="true">&#128275;</div><h3>No Lock-In Contracts</h3><p>Month-to-month. Your data stays yours.</p></article>
-      <article class="gcard" role="listitem"><div class="gicon" aria-hidden="true">&#9854;</div><h3>Free Tier Forever</h3><p>Core features always free. No credit card to start.</p></article>
+    <span class="slabel">Our Promises</span>
+    <h2 class="stitle" id="guar-h">Zero Black Boxes.<br>Zero Lock-In.</h2>
+    <div class="g4" style="margin-top:2rem;" role="list">
+      <div class="gcard" role="listitem"><div class="gicon">&#128275;</div><h3>Open Source (BSL 1.1)</h3><p>Full source. Read every line. Self-host on your infrastructure. No vendor lock-in.</p></div>
+      <div class="gcard" role="listitem"><div class="gicon">&#129514;</div><h3>24,341 Tests</h3><p>Every module has tests. Every API endpoint is covered. Continuous CI on every commit.</p></div>
+      <div class="gcard" role="listitem"><div class="gicon">&#128274;</div><h3>Data Never Leaves (LLM)</h3><p>Ollama runs locally. Prompts and data stay on your server. Cloud providers are strictly opt-in.</p></div>
+      <div class="gcard" role="listitem"><div class="gicon">&#128222;</div><h3>Human Always in Loop</h3><p>Every high-stakes action requires approval. You can always see what Murphy is doing and why.</p></div>
     </div>
   </div>
 </section>
 
 <!-- FINAL CTA -->
-<section id="final-cta" aria-labelledby="fcta-h">
-  <div class="si lp-narrow">
-    <h2 id="fcta-h">Ready to Automate Everything?</h2>
-    <p>Join the beta and help shape Murphy. Set up takes under 5 minutes.</p>
+<section id="final-cta">
+  <div class="si">
+    <h2>One System.<br>Your Entire Business.</h2>
+    <p>Start free today. Wire Ollama, mail, Matrix and your first automations in under 15 minutes.</p>
     <div class="fcbtns">
-      <a href="/ui/signup" class="btn-p lg">&#9889; Start Free Trial</a>
-      <button class="btn-s lg" onclick="openDemo(event)">&#9654; Try Murphy</button>
+      <a class="btn-p lg" href="/ui/signup">&#9889; Start Free Trial</a>
+      <a class="btn-s lg" href="/ui/terminal-unified">View Live Dashboard</a>
+      <a class="btn-s lg" href="/ui/docs">Read the Docs</a>
     </div>
-    <p class="lp-fine-print">No credit card required &middot; Free tier forever &middot; SOC 2 aligned architecture</p>
   </div>
 </section>
 
 </main>
 
-<!-- FOOTER -->
-<footer role="contentinfo">
+<footer>
   <div class="footer-inner">
     <nav class="flinks" aria-label="Footer navigation">
-      <a href="/ui/terminal-unified">Dashboard</a>
-      <a href="/ui/workspace">Workspace</a>
-      <a href="/ui/community">Community</a>
-      <a href="/ui/management">Management</a>
-      <a href="/ui/calendar">Calendar</a>
-      <a href="/ui/meeting-intelligence">Meetings AI</a>
-      <a href="/ui/ambient">Ambient AI</a>
-      <a href="/ui/wallet">Wallet</a>
-      <a href="#pricing">Pricing</a>
+      <a href="/ui/landing">Home</a>
       <a href="/ui/docs">Docs</a>
+      <a href="/ui/pricing">Pricing</a>
+      <a href="/ui/compliance">Compliance</a>
+      <a href="/ui/terminal-unified">Dashboard</a>
+      <a href="/ui/terminal-integrations">Integrations</a>
+      <a href="/ui/matrix">Matrix</a>
+      <a href="/ui/paper-trading">Trading</a>
+      <a href="/ui/grant-wizard">Financing</a>
+      <a href="/ui/partner">Partner</a>
       <a href="/ui/blog">Blog</a>
       <a href="/ui/careers">Careers</a>
-      <a href="/ui/legal">Legal</a>
+      <a href="/ui/legal">Terms</a>
       <a href="/ui/privacy">Privacy</a>
-      <a href="/ui/partner">Partner</a>
-      <a href="mailto:contact@murphy.ai">Contact</a>
     </nav>
-    <p class="fcopy">&#169; 2020 Inoni Limited Liability Company. All rights reserved.</p>
+    <p class="fcopy">&#169; 2020 Inoni Limited Liability Company &#183; Created by Corey Post &#183; <a href="/ui/legal" style="color:inherit;text-decoration:none;">BSL 1.1</a></p>
   </div>
 </footer>
 
 <!-- DEMO MODAL -->
-<div class="modal-overlay" id="demo-modal" role="dialog" aria-modal="true" aria-labelledby="mtitle" tabindex="-1">
-  <div class="mbox mbox-demo">
-    <button class="mclose" onclick="closeDemo()" aria-label="Close demo">&#215;</button>
-    <div class="mtitle" id="mtitle">Try Murphy Now</div>
-    <p class="msub">Type what you need — or pick a suggestion — and watch Murphy handle it live.</p>
-
-    <!-- Input area -->
-    <div class="demo-input-wrap" id="demo-input-wrap">
+<div class="modal-overlay" id="demo-modal" role="dialog" aria-modal="true" aria-labelledby="demo-modal-title">
+  <div class="mbox">
+    <button class="mclose" id="demo-close" aria-label="Close demo">&#10005;</button>
+    <div class="mtitle" id="demo-modal-title">&#9654; Murphy Live Demo</div>
+    <div class="msub">Try any command. Murphy routes it to the right module automatically.</div>
+    <div class="demo-input-wrap">
       <div class="demo-prompt-row">
-        <span class="demo-prompt-dollar" aria-hidden="true">$</span>
-        <input type="text" class="demo-prompt-input" id="demo-prompt-input"
-               placeholder="e.g. onboard a new client…"
-               aria-label="Enter a task for Murphy to automate"
-               autocomplete="off" autocorrect="off" spellcheck="false">
-        <button class="demo-run-btn btn-p" id="demo-run-btn" aria-label="Run demo">Run ↵</button>
+        <span class="demo-prompt-dollar">$</span>
+        <input class="demo-prompt-input" id="demo-input" type="text" placeholder="e.g. send invoice to Acme Corp" autocomplete="off" aria-label="Enter a Murphy command">
+        <button class="btn-p demo-run-btn" id="demo-run">Run</button>
       </div>
-      <div class="demo-chips" id="demo-chips" role="group" aria-label="Demo suggestions">
-        <button class="demo-chip" data-query="Onboard a new client">Onboard New Client</button>
-        <button class="demo-chip" data-query="Generate Q3 finance report">Q3 Finance Report</button>
-        <button class="demo-chip" data-query="Screen candidates for PM role">Screen Candidates</button>
-        <button class="demo-chip" data-query="Run compliance audit">Compliance Audit</button>
-        <button class="demo-chip" data-query="Create project plan">Project Plan</button>
-        <button class="demo-chip" data-query="Process invoice batch">Invoice Processing</button>
+      <div class="demo-chips" role="group" aria-label="Example commands">
+        <button class="demo-chip" data-cmd="llm status">llm status</button>
+        <button class="demo-chip" data-cmd="email send invoice">email invoice</button>
+        <button class="demo-chip" data-cmd="hitl pending">hitl queue</button>
+        <button class="demo-chip" data-cmd="swarm execute audit">swarm audit</button>
+        <button class="demo-chip" data-cmd="matrix status">matrix status</button>
+        <button class="demo-chip" data-cmd="compliance scan">compliance scan</button>
+        <button class="demo-chip" data-cmd="self-fix status">self-fix</button>
       </div>
     </div>
-
-    <!-- Terminal output -->
-    <div class="demo-term" id="demo-term" aria-live="polite" aria-label="Murphy terminal output" hidden></div>
-
-    <!-- ROI + CTA (shown after demo completes) -->
-    <div class="demo-roi-block" id="demo-roi-block" hidden>
-      <div class="demo-roi-stat" id="demo-roi-stat"></div>
-      <!-- Automation Spec Card (populated by JS after API responds) -->
-      <div class="demo-spec-card" id="demo-spec-card" style="display:none;margin:.75rem 0;padding:1rem;background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.3);border-radius:10px;font-size:.82rem;line-height:1.7;">
-        <div style="font-weight:700;color:var(--teal);margin-bottom:.5rem;" id="demo-spec-title">Your Automation Plan</div>
-        <div id="demo-spec-body" style="color:#cdd6e0;"></div>
-        <div style="margin-top:.75rem;padding:.5rem .75rem;background:rgba(0,212,170,.08);border:1px solid rgba(0,212,170,.2);border-radius:6px;font-size:.78rem;color:#94a3b8;" id="demo-spec-compare"></div>
-      </div>
-      <div class="lp-demo-btns">
-        <a href="/ui/signup" class="btn-p lp-flex-center" id="demo-signup-btn">&#128640; Start Free Trial</a>
-        <a href="/ui/signup" class="btn-p lp-flex-center" id="demo-activate-btn" style="display:none;background:linear-gradient(135deg,#00D4AA,#0088cc)">&#9889; Activate This Config</a>
-        <button class="btn-s" id="demo-download-btn" onclick="demoDownload()" hidden>&#128229; Download Spec</button>
-        <button class="btn-s demo-reset-btn" onclick="demoReset()">&#8635; Try Another</button>
-      </div>
-      <div class="demo-usage-counter" id="demo-usage-counter"></div>
-      <div class="demo-limit-msg" id="demo-limit-msg" style="display:none"></div>
+    <div class="demo-term" id="demo-term" aria-live="polite" aria-label="Demo terminal output">
+      <span style="color:var(--muted)">Murphy System v1.0 &#8212; ready. Type a command or click an example.</span><br>
+      <span class="demo-cursor"></span>
     </div>
   </div>
 </div>
 
-<script src="static/murphy-components.js"></script>
 <script>
-function toggleNav(){var n=document.getElementById('main-nav'),b=document.getElementById('hamburger-btn'),o=n.classList.toggle('open');b.setAttribute('aria-expanded',o);}
-function openDemo(e){if(e)e.preventDefault();var m=document.getElementById('demo-modal');m.classList.add('open');m.focus();document.body.style.overflow='hidden';setTimeout(function(){var i=document.getElementById('demo-prompt-input');if(i&&document.getElementById('demo-term').hidden)i.focus();},80);}
-function closeDemo(){var m=document.getElementById('demo-modal');m.classList.remove('open');document.body.style.overflow='';}
-document.getElementById('demo-modal').addEventListener('click',function(e){if(e.target===this)closeDemo();});
-document.addEventListener('keydown',function(e){
-  if(e.key==='Escape')closeDemo();
-  if(e.key==='Tab'&&document.getElementById('demo-modal').classList.contains('open')){
-    var f=document.getElementById('demo-modal').querySelectorAll('button,a,input,[tabindex]');
-    var first=f[0],last=f[f.length-1];
-    if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
-    else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
-  }
-});
-document.querySelectorAll('#main-nav a').forEach(function(a){a.addEventListener('click',function(){document.getElementById('main-nav').classList.remove('open');document.getElementById('hamburger-btn').setAttribute('aria-expanded','false');});});
-
-// ── Interactive Demo Engine ────────────────────────────────────────────────
-var DEMO_SCENARIOS={
-  onboarding:{
-    kw:['onboard','client','customer','intake','new client','new customer'],
-    lines:[
-      {t:'$ murphy workflow run client-onboarding --client="Acme Corp"',c:'green'},
-      {t:'→ Generating intake form…',c:'cyan'},
-      {t:'✓ Intake form sent · signed in 2m 14s',c:'teal'},
-      {t:'→ Drafting master service agreement…',c:'cyan'},
-      {t:'✓ Contract e-signed via DocuSign',c:'teal'},
-      {t:'→ Creating invoice #2091 ($4,500)…',c:'cyan'},
-      {t:'✓ Invoice emailed · payment link attached',c:'teal'},
-      {t:'→ Syncing to HubSpot CRM…',c:'cyan'},
-      {t:'✓ Contact created · pipeline stage: Active Client',c:'teal'},
-      {t:'→ Spinning up project workspace…',c:'cyan'},
-      {t:'✓ Project board created · 14 tasks assigned',c:'teal'},
-      {t:'✓ Full onboarding complete in 4m 38s  ·  Manual equivalent: ~3 hrs',c:'roi'}
-    ],
-    roi:'✓ Onboarding complete in 4m 38s. Without Murphy: ~3 hours of manual work.'
-  },
-  finance:{
-    kw:['finance','report','q3','quarterly','expense','forecast','revenue','accounting'],
-    lines:[
-      {t:'$ murphy report generate --type=quarterly --period=Q3-2024',c:'green'},
-      {t:'→ Pulling transactions from QuickBooks…',c:'cyan'},
-      {t:'✓ 3,847 transactions loaded',c:'teal'},
-      {t:'→ Categorizing expenses with AI…',c:'cyan'},
-      {t:'✓ 98.7% auto-categorized · 52 flagged for review',c:'teal'},
-      {t:'→ Building revenue breakdown by client…',c:'cyan'},
-      {t:'✓ 23 clients · top 5 account for 61% of ARR',c:'teal'},
-      {t:'→ Generating 6-month forecast…',c:'cyan'},
-      {t:'✓ Forecast: +18% growth · confidence 87%',c:'teal'},
-      {t:'→ Exporting to PDF + Google Sheets…',c:'cyan'},
-      {t:'✓ Q3 Finance Report ready · 24-page PDF generated',c:'teal'},
-      {t:'✓ Full Q3 report in 6m 12s  ·  Manual equivalent: ~8 hrs',c:'roi'}
-    ],
-    roi:'✓ Q3 Finance Report generated in 6m 12s. Without Murphy: ~8 hours.'
-  },
-  hr:{
-    kw:['hr','recruit','candidate','hire','screen','interview','job','offer','resume','talent','pm role'],
-    lines:[
-      {t:'$ murphy hr screen --role="Senior Product Manager" --applicants=47',c:'green'},
-      {t:'→ Parsing 47 resumes…',c:'cyan'},
-      {t:'✓ Resumes parsed · 12 meet base criteria',c:'teal'},
-      {t:'→ Scoring candidates against job requirements…',c:'cyan'},
-      {t:'✓ Top 5 candidates ranked by fit score',c:'teal'},
-      {t:'→ Scheduling interviews via calendar AI…',c:'cyan'},
-      {t:'✓ 5 interviews booked · invites sent',c:'teal'},
-      {t:'→ Drafting offer letter for top candidate…',c:'cyan'},
-      {t:'✓ Offer letter ready · pending approval',c:'teal'},
-      {t:'✓ Screening + scheduling done in 3m 55s  ·  Manual equivalent: ~2 days',c:'roi'}
-    ],
-    roi:'✓ 47 candidates screened + interviews scheduled in 3m 55s. Without Murphy: ~2 days.'
-  },
-  compliance:{
-    kw:['compliance','audit','soc','hipaa','gdpr','security','gap','risk'],
-    lines:[
-      {t:'$ murphy compliance audit --frameworks=SOC2,HIPAA',c:'green'},
-      {t:'→ Scanning access controls…',c:'cyan'},
-      {t:'✓ 124 controls evaluated · 3 gaps found',c:'teal'},
-      {t:'→ Running HIPAA PHI data inventory…',c:'cyan'},
-      {t:'✓ 8 PHI data flows mapped · 1 unencrypted',c:'teal'},
-      {t:'→ Generating gap analysis report…',c:'cyan'},
-      {t:'✓ Gap report: 4 critical, 7 medium findings',c:'teal'},
-      {t:'→ Building remediation plan…',c:'cyan'},
-      {t:'✓ 11-step remediation plan · ETA 14 days',c:'teal'},
-      {t:'→ Enabling continuous monitoring…',c:'cyan'},
-      {t:'✓ Auto re-scan scheduled · alerts configured',c:'teal'},
-      {t:'✓ Full SOC 2 + HIPAA audit in 5m 20s  ·  Manual equivalent: ~3 weeks',c:'roi'}
-    ],
-    roi:'✓ Full compliance audit in 5m 20s. Without Murphy: ~3 weeks of consultant time.'
-  },
-  project:{
-    kw:['project','plan','task','timeline','resource','sprint','milestone','manage'],
-    lines:[
-      {t:'$ murphy project create --name="Website Redesign" --team=8',c:'green'},
-      {t:'→ Analyzing project scope with AI…',c:'cyan'},
-      {t:'✓ 8 epics identified · 47 tasks generated',c:'teal'},
-      {t:'→ Allocating resources by skill match…',c:'cyan'},
-      {t:'✓ 8 team members assigned · no conflicts',c:'teal'},
-      {t:'→ Building Gantt timeline…',c:'cyan'},
-      {t:'✓ 12-week timeline · 4 milestones set',c:'teal'},
-      {t:'→ Configuring standup automation…',c:'cyan'},
-      {t:'✓ Daily standups scheduled · Slack connected',c:'teal'},
-      {t:'✓ Project fully planned in 2m 47s  ·  Manual equivalent: ~1 day',c:'roi'}
-    ],
-    roi:'✓ Full project plan + resource allocation in 2m 47s. Without Murphy: ~1 day.'
-  },
-  invoice:{
-    kw:['invoice','payment','bill','batch','ap','accounts payable','vendor','receipt'],
-    lines:[
-      {t:'$ murphy invoices process --batch=38 --auto-approve-under=500',c:'green'},
-      {t:'→ Ingesting 38 invoices…',c:'cyan'},
-      {t:'✓ 38 invoices parsed · 2 duplicates flagged',c:'teal'},
-      {t:'→ Matching to POs and contracts…',c:'cyan'},
-      {t:'✓ 34 matched · 4 require approval',c:'teal'},
-      {t:'→ Routing approval requests (invoices >$500)…',c:'cyan'},
-      {t:'✓ 4 approval requests sent · mobile push',c:'teal'},
-      {t:'→ Scheduling ACH payments…',c:'cyan'},
-      {t:'✓ $142,890 scheduled · 3 payment runs',c:'teal'},
-      {t:'→ Syncing to QuickBooks…',c:'cyan'},
-      {t:'✓ All 38 invoices posted · reconciliation done',c:'teal'},
-      {t:'✓ 38 invoices processed in 4m 02s  ·  Manual equivalent: ~4 hrs',c:'roi'}
-    ],
-    roi:'✓ 38 invoices processed + payments scheduled in 4m 02s. Without Murphy: ~4 hours.'
-  }
-};
-
-function buildCustomScenario(query){
-  var displayQuery=query.length>100?query.substring(0,100)+'\u2026':query;
-  return{
-    kw:[],
-    lines:[
-      {c:'cmd',   t:'$ murphy execute "'+displayQuery+'"'},
-      {c:'info',  t:'\u26a1 Analyzing request\u2026'},
-      {c:'info',  t:'\u251c\u2500 Classifying task type\u2026'},
-      {c:'step',  t:'\u2502  Task type: Custom Deliverable'},
-      {c:'info',  t:'\u251c\u2500 Extracting requirements from prompt\u2026'},
-      {c:'step',  t:'\u2502  Input: "'+displayQuery+'"'},
-      {c:'info',  t:'\u251c\u2500 Selecting execution pipeline\u2026'},
-      {c:'step',  t:'\u2502  Pipeline: research \u2192 draft \u2192 review \u2192 deliver'},
-      {c:'info',  t:'\u251c\u2500 Generating deliverable spec\u2026'},
-      {c:'step',  t:'\u2502  Format: Document (PDF)'},
-      {c:'step',  t:'\u2502  Estimated pages: 8-12'},
-      {c:'step',  t:'\u2502  Sections: Executive Summary, Research, Analysis, Recommendations'},
-      {c:'ok',    t:'\u251c\u2500 \u2713 Spec validated against quality gates'},
-      {c:'info',  t:'\u251c\u2500 Assembling deliverable preview\u2026'},
-      {c:'step',  t:'\u2502'},
-      {c:'step',  t:'\u2502  \u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557'},
-      {c:'step',  t:'\u2502  \u2551  DELIVERABLE PREVIEW                        \u2551'},
-      {c:'step',  t:'\u2502  \u2560\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2563'},
-      {c:'step',  t:'\u2502  \u2551  Title: '+displayQuery.substring(0,38).padEnd(38)+'\u2551'},
-      {c:'step',  t:'\u2502  \u2551  Status: Draft ready for review             \u2551'},
-      {c:'step',  t:'\u2502  \u2551  Quality score: 94/100                      \u2551'},
-      {c:'step',  t:'\u2502  \u2551  Compliance: \u2713 GDPR  \u2713 SOC\u00a02               \u2551'},
-      {c:'step',  t:'\u2502  \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d'},
-      {c:'step',  t:'\u2502'},
-      {c:'ok',    t:'\u251c\u2500 \u2713 Deliverable generated successfully'},
-      {c:'ok',    t:'\u251c\u2500 \u2713 Quality gates passed (3/3)'},
-      {c:'ok',    t:'\u2514\u2500 \u2713 Ready for human review'},
-      {c:'done',  t:''},
-      {c:'done',  t:'\u2705 Done \u2014 deliverable ready in 2m 14s'}
-    ],
-    roi:'\u2713 Custom deliverable "'+displayQuery.substring(0,50)+'" generated in 2m 14s. Sign up to get the full output.'
-  };
-}
-
-function demoMatch(q){
-  var s=q.toLowerCase();
-  for(var k in DEMO_SCENARIOS){
-    var kw=DEMO_SCENARIOS[k].kw;
-    for(var i=0;i<kw.length;i++){if(s.indexOf(kw[i])>=0)return DEMO_SCENARIOS[k];}
-  }
-  return buildCustomScenario(q);
-}
-
-var _demoLastContent = '';
-var _demoLastQuery = '';
-
-function demoDownload(){
-  var now = new Date();
-  var ts = now.toISOString().replace('T',' ').split('.')[0] + ' UTC';
-  var header =
-    '\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557\n' +
-    '\u2551                                                              \u2551\n' +
-    '\u2551    \u2588\u2588\u2588\u2557   \u2588\u2588\u2588\u2557\u2588\u2588\u2557   \u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2557  \u2588\u2588\u2557\u2588\u2588\u2557   \u2588\u2588\u2557   \u2551\n' +
-    '\u2551    \u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2551\u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2551  \u2588\u2588\u2551\u255a\u2588\u2588\u2557 \u2588\u2588\u2554\u255d   \u2551\n' +
-    '\u2551    \u2588\u2588\u2554\u2588\u2588\u2588\u2588\u2554\u2588\u2588\u2551\u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255d\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255d\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2551 \u255a\u2588\u2588\u2588\u2588\u2554\u255d    \u2551\n' +
-    '\u2551    \u2588\u2588\u2551\u255a\u2588\u2588\u2554\u255d\u2588\u2588\u2551\u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2550\u255d \u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2551  \u255a\u2588\u2588\u2554\u255d     \u2551\n' +
-    '\u2551    \u2588\u2588\u2551 \u255a\u2550\u255d \u2588\u2588\u2551\u255a\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255d\u2588\u2588\u2551  \u2588\u2588\u2551\u2588\u2588\u2551     \u2588\u2588\u2551  \u2588\u2588\u2551   \u2588\u2588\u2551      \u2551\n' +
-    '\u2551    \u255a\u2550\u255d     \u255a\u2550\u255d \u255a\u2550\u2550\u2550\u2550\u2550\u255d \u255a\u2550\u255d  \u255a\u2550\u255d\u255a\u2550\u255d     \u255a\u2550\u255d  \u255a\u2550\u255d   \u255a\u2550\u255d      \u2551\n' +
-    '\u2551                                                              \u2551\n' +
-    '\u2551              S Y S T E M                                     \u2551\n' +
-    '\u2551                                                              \u2551\n' +
-    '\u2551    Autonomous Business Intelligence \u00b7 Inoni LLC              \u2551\n' +
-    '\u2551                                                              \u2551\n' +
-    '\u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d\n' +
-    '\nGenerated : ' + ts + '\n' +
-    'Version   : Murphy System 1.0\n' +
-    'Demo Query: ' + (_demoLastQuery || 'N/A') + '\n' +
-    'License   : Apache License, Version 1.0\n' +
-    '\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\n';
-  var footer =
-    '\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n' +
-    'This deliverable was generated by Murphy System.\n' +
-    '\u00a9 2020-2026 Inoni Limited Liability Company. Creator: Corey Post.\n\n' +
-    'Licensed under the Apache License, Version 1.0 (the "License").\n' +
-    'This output is provided as a distilled artifact of Murphy System.\n' +
-    'The license notice above may not be removed from this document.\n\n' +
-    'Murphy System \u00b7 https://murphy.inoni.llc\n' +
-    '\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n';
-  var content = header + _demoLastContent + footer;
-  var slug = (_demoLastQuery||'deliverable').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/-+$/,'');
-  var fname = 'murphy-' + slug + '-' + now.getFullYear() + '.txt';
-  var blob = new Blob([content],{type:'text/plain;charset=utf-8'});
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url;
-  a.download = fname;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(function(){URL.revokeObjectURL(url);a.remove();},1000);
-}
-
-function demoReset(){
-  var term=document.getElementById('demo-term');
-  var roiBlock=document.getElementById('demo-roi-block');
-  var inputWrap=document.getElementById('demo-input-wrap');
-  term.hidden=true;
-  term.innerHTML='';
-  roiBlock.hidden=true;
-  inputWrap.style.display='';
-  var inp=document.getElementById('demo-prompt-input');
-  inp.value='';
-  inp.focus();
-}
-
-function demoRun(query){
-  var scenario=demoMatch(query);
-  _demoLastQuery = query;
-  _demoLastContent = scenario.lines.filter(function(l){return l.t;}).map(function(l){return l.t;}).join('\n');
-  var term=document.getElementById('demo-term');
-  var roiBlock=document.getElementById('demo-roi-block');
-  var inputWrap=document.getElementById('demo-input-wrap');
-  var dlBtn=document.getElementById('demo-download-btn');
-  inputWrap.style.display='none';
-  term.innerHTML='';
-  term.hidden=false;
-  roiBlock.hidden=true;
-  if(dlBtn)dlBtn.hidden=true;
-  var lines=scenario.lines;
-  function addLine(i){
-    if(i>=lines.length){
-      setTimeout(function(){
-        document.getElementById('demo-roi-stat').textContent=scenario.roi;
-        roiBlock.hidden=false;
-        if(dlBtn)dlBtn.hidden=false;
-        // Fetch automation spec from API
-        _fetchDemoSpec(query);
-      },400);
-      return;
-    }
-    var div=document.createElement('div');
-    div.className='dt-line dt-'+lines[i].c;
-    term.appendChild(div);
-    term.scrollTop=term.scrollHeight;
-    if(!lines[i].t){setTimeout(function(){addLine(i+1);},80);return;}
-    var txt=lines[i].t,pos=0;
-    var cursor=document.createElement('span');
-    cursor.className='demo-cursor';
-    div.appendChild(cursor);
-    var iv=setInterval(function(){
-      if(pos<txt.length){
-        cursor.insertAdjacentText('beforebegin',txt[pos++]);
-        term.scrollTop=term.scrollHeight;
-      }else{
-        clearInterval(iv);
-        cursor.remove();
-        setTimeout(function(){addLine(i+1);},lines[i].c==='roi'?600:80+Math.random()*120);
-      }
-    },18+Math.random()*14);
-  }
-  addLine(0);
-}
-
-function _fetchDemoSpec(query) {
-  var specCard = document.getElementById('demo-spec-card');
-  var specTitle = document.getElementById('demo-spec-title');
-  var specBody = document.getElementById('demo-spec-body');
-  var specCompare = document.getElementById('demo-spec-compare');
-  var activateBtn = document.getElementById('demo-activate-btn');
-  var signupBtn = document.getElementById('demo-signup-btn');
-  var dlBtn = document.getElementById('demo-download-btn');
-  if(!specCard) return;
-  specTitle.textContent = 'Building your automation plan…';
-  specCard.style.display = 'block';
-  specBody.innerHTML = '<span style="color:#00D4AA">⟳ Murphy is specifying your workflows…</span>';
-  fetch('/api/demo/generate-deliverable', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({query: query, format: 'automation_spec'})
-  })
-  .then(function(r){return r.json();})
-  .then(function(data){
-    if(data.automation_spec) {
-      var s = data.automation_spec;
-      var specId = s.spec_id || data.spec_id;
-      specTitle.textContent = '📋 ' + s.title;
-      specBody.innerHTML =
-        '<strong>' + s.workflow_count + ' workflows</strong> automated · ' +
-        '<strong>' + s.hours_saved_month + ' hrs/month</strong> saved · ' +
-        'ROI: <strong style="color:#00D4AA">' + s.roi_multiple + '×</strong><br>' +
-        'Monthly savings: <strong>$' + (s.monthly_savings_usd||0).toLocaleString() + '</strong> · ' +
-        'Murphy cost: <strong>$' + (s.murphy_cost||99) + '/mo</strong> · ' +
-        'Net benefit: <strong style="color:#00D4AA">$' + (s.net_monthly_benefit||0).toLocaleString() + '/mo</strong>';
-      var intgs = (s.integrations||[]).slice(0,4).join(' · ');
-      if(intgs) specBody.innerHTML += '<br>Key integrations: ' + intgs;
-      specCompare.textContent = '💡 Zapier charges $299/mo for fewer features. Make.com $159/mo. Custom dev $8,000+/mo. Murphy: $' + (s.murphy_cost||99) + '/mo with AI planning included.';
-      if(specId) {
-        var activateUrl = '/ui/signup?spec=' + encodeURIComponent(specId);
-        if(activateBtn){activateBtn.href=activateUrl;activateBtn.style.display='flex';}
-        if(signupBtn){signupBtn.style.display='none';}
-        _demoLastContent = data.deliverable ? (data.deliverable.content||_demoLastContent) : _demoLastContent;
-        if(dlBtn){dlBtn.hidden=false;}
-      }
-    } else if(data.deliverable) {
-      specTitle.textContent = '📋 Your Automation Plan';
-      specBody.textContent = 'Plan generated — download to see the full specification.';
-      _demoLastContent = data.deliverable.content || _demoLastContent;
-      if(dlBtn){dlBtn.hidden=false;}
-    }
-  })
-  .catch(function(){
-    specCard.style.display = 'none';
-  });
-}
-
-// Wire demo input
 (function(){
-  var inp=document.getElementById('demo-prompt-input');
-  var btn=document.getElementById('demo-run-btn');
-  if(inp)inp.addEventListener('keydown',function(e){if(e.key==='Enter'&&inp.value.trim())demoRun(inp.value.trim());});
-  if(btn)btn.addEventListener('click',function(){var v=document.getElementById('demo-prompt-input').value.trim();if(v)demoRun(v);});
-  document.querySelectorAll('.demo-chip').forEach(function(c){c.addEventListener('click',function(){demoRun(c.dataset.query);});});
+'use strict';
+/* Nav hamburger */
+var hbtn=document.getElementById('hamburger-btn'),nav=document.getElementById('main-nav');
+if(hbtn&&nav)hbtn.addEventListener('click',function(){var o=nav.classList.toggle('open');hbtn.setAttribute('aria-expanded',o);});
+/* Modal */
+function openModal(id){var m=document.getElementById(id);if(m){m.classList.add('open');var inp=document.getElementById('demo-input');if(inp)inp.focus();}}
+function closeModal(id){var m=document.getElementById(id);if(m)m.classList.remove('open');}
+['hero-demo-btn','demo-nav-btn'].forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('click',function(e){e.preventDefault();openModal('demo-modal');});});
+var dc=document.getElementById('demo-close');if(dc)dc.addEventListener('click',function(){closeModal('demo-modal');});
+var dm=document.getElementById('demo-modal');if(dm)dm.addEventListener('click',function(e){if(e.target===this)closeModal('demo-modal');});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal('demo-modal');});
+/* Demo terminal */
+var RESP={
+  'llm status':['$ murphy llm status','&#10003; Ollama: running at http://localhost:11434','  llama3.2:latest  4.7 GB  &#9679; active','  mistral:7b        4.1 GB  &#9679; loaded','  Route: /api/llm/status'],
+  'email send invoice':['$ murphy email send invoice to Acme Corp','&#10003; Invoice #1042 composed via /api/email/send','  From: billing@murphy.systems','  To:   acme@acme.com','  Status: dispatched'],
+  'hitl pending':['$ murphy hitl pending','  3 actions pending:','  &#9658; [EXEC-042] Invoice dispatch  financial 94%','  &#9658; [SEC-018]  OAuth app          security 88%','  Route: /api/hitl/pending'],
+  'swarm execute audit':['$ murphy swarm execute audit','&#10003; Swarm phase: initiated','  Agents spawned: 5  Mode: audit','  Route: /api/swarm/execute','  ETA: 12s'],
+  'matrix status':['$ murphy matrix status','&#10003; Matrix bridge: connected','  Rooms: 287  Bots: 12 active','  Route: /api/matrix/status'],
+  'compliance scan':['$ murphy compliance scan','&#10003; CCE scan started','  Rules: 47  Issues: 2','  Route: /api/cce/scan'],
+  'self-fix status':['$ murphy self-fix status','  Last repair: 2h ago  Plans: 3','  Route: /api/self-fix/status']
+};
+function writeLines(lines){
+  var t=document.getElementById('demo-term');if(!t)return;
+  t.innerHTML='';var i=0;
+  function nx(){
+    if(i>=lines.length){t.innerHTML+='<span class="demo-cursor"></span>';return;}
+    var s=document.createElement('span');s.style.display='block';
+    var l=lines[i];
+    if(l.startsWith('$'))s.style.color='var(--cyan)';
+    else if(l.startsWith('\u2713')||l.startsWith('&#10003;'))s.style.color='var(--teal)';
+    else if(l.indexOf('Route:')>=0)s.style.color='#555';
+    s.innerHTML=l;t.appendChild(s);t.scrollTop=t.scrollHeight;
+    i++;setTimeout(nx,80);
+  }nx();
+}
+function runDemo(cmd){
+  var key=Object.keys(RESP).find(function(k){return cmd.toLowerCase().indexOf(k)>=0;});
+  if(key)writeLines(RESP[key]);
+  else writeLines(['$ murphy '+cmd,'&#10003; Command routed to execution engine','  Dispatching via /api/execute...','  &#8594; '+cmd.split(' ')[0]+'_completed event emitted.']);
+}
+var dr=document.getElementById('demo-run');if(dr)dr.addEventListener('click',function(){var v=(document.getElementById('demo-input').value||'').trim();if(v)runDemo(v);});
+var di=document.getElementById('demo-input');if(di)di.addEventListener('keydown',function(e){if(e.key==='Enter'){var v=(this.value||'').trim();if(v)runDemo(v);}});
+document.querySelectorAll('.demo-chip').forEach(function(c){c.addEventListener('click',function(){var cmd=this.getAttribute('data-cmd');document.getElementById('demo-input').value=cmd;runDemo(cmd);});});
+/* Live status probe */
+function setLstat(id,ok){var el=document.getElementById(id);if(!el)return;var ld=el.querySelector('.ld');if(ld)ld.className='ld '+(ok?'ld-ok':'ld-warn');}
+function probe(){
+  fetch('/api/health').then(function(r){return r.json();}).then(function(d){
+    var c=d.checks||{};
+    setLstat('lstat-llm',c.ollama_running===true);
+    setLstat('lstat-mail',c.email!==false);
+    setLstat('lstat-matrix',c.matrix!==false);
+    setLstat('lstat-hitl',true);setLstat('lstat-swarm',true);setLstat('lstat-trading',true);
+    var pill=document.getElementById('sys-status-pill'),txt=document.getElementById('sys-status-text');
+    if(pill&&txt){pill.className='sys-pill'+(d.status==='degraded'?' warn':'');txt.textContent=d.status||'online';}
+  }).catch(function(){
+    var txt=document.getElementById('sys-status-text');if(txt)txt.textContent='offline';
+    var pill=document.getElementById('sys-status-pill');if(pill)pill.className='sys-pill warn';
+  });
+}
+probe();setInterval(probe,30000);
 })();
-
-var _lastDemoQuery='';
-var _origDemoRun=demoRun;
-demoRun=function(query){_lastDemoQuery=query;_origDemoRun(query);};
-
-function exportText(filename,content){
-  var a=document.createElement('a');
-  a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(content);
-  a.download=filename;
-  a.click();
-}
-
-function downloadDeliverable(){
-  var btn=document.getElementById('demo-dl-btn');
-  var counter=document.getElementById('demo-usage-counter');
-  var limitMsg=document.getElementById('demo-limit-msg');
-  if(btn)btn.disabled=true;
-  if(btn)btn.textContent='Generating\u2026';
-  if(limitMsg)limitMsg.style.display='none';
-  fetch('/api/demo/generate-deliverable',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({query:_lastDemoQuery||'Custom deliverable'})
-  })
-  .then(function(r){return r.json();})
-  .then(function(data){
-    if(btn)btn.disabled=false;
-    if(btn)btn.textContent='\u2659 Download Deliverable';
-    if(data.success&&data.deliverable){
-      exportText(data.deliverable.filename||'murphy-deliverable.txt',data.deliverable.content);
-      var u=data.usage||{};
-      if(counter){
-        var lim=u.limit===-1?'unlimited':u.limit;
-        var rem=u.limit===-1?'unlimited':u.remaining;
-        counter.textContent=rem+' of '+lim+' free downloads remaining today';
-      }
-    } else if(data.error==='limit_exceeded'){
-      if(counter)counter.textContent='';
-      if(limitMsg){
-        limitMsg.textContent=data.message||'Daily download limit reached.';
-        limitMsg.style.display='';
-      }
-      var u=data.usage||{};
-      if(u.tier==='anonymous'&&counter)counter.textContent='0 of '+(u.limit||5)+' free downloads remaining today';
-    } else {
-      if(counter)counter.textContent='Download failed \u2014 please try again.';
-    }
-  })
-  .catch(function(){
-    if(btn)btn.disabled=false;
-    if(btn)btn.textContent='\u2659 Download Deliverable';
-    if(counter)counter.textContent='Network error \u2014 please try again.';
-  });
-}
-// Librarian chat
-var api = new MurphyAPI('/api');
-var librarian = new MurphyLibrarianChat(api);
-
-// ── Review system ──────────────────────────────────────────
-function submitReview(e) {
-  e.preventDefault();
-  var base = window.location.origin;
-  var payload = {
-    user: document.getElementById('rv-name').value,
-    rating: parseInt(document.getElementById('rv-rating').value),
-    title: document.getElementById('rv-title').value,
-    comment: document.getElementById('rv-comment').value,
-  };
-  fetch(base + '/api/reviews/submit', {
-    method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(payload),
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(data){
-    if (data.ok) {
-      document.getElementById('review-form').reset();
-      loadReviews();
-      if (data.review && data.review.rating <= 2 && data.review.moderator_response) {
-        fetch(base + '/api/automation/review-response', {
-          method: 'POST', headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({review_id: data.id}),
-        });
-      }
-    }
-  });
-}
-
-function loadReviews() {
-  var base = window.location.origin;
-  fetch(base + '/api/reviews')
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-      if (!data.ok) return;
-      var grid = document.getElementById('reviews-grid');
-      if (!grid || !data.reviews.length) return;
-      var html = '';
-      data.reviews.forEach(function(rv){
-        var stars = '';
-        for (var i=0; i<5; i++) stars += i < rv.rating ? '&#9733;' : '&#9734;';
-        html += '<article class="review-card" role="listitem">';
-        html += '<div class="review-stars">' + stars + '</div>';
-        html += '<div class="review-title">' + (rv.title||'') + '</div>';
-        html += '<div class="review-text">' + (rv.comment||'') + '</div>';
-        html += '<div class="review-author">&mdash; ' + (rv.user||'Anonymous') + '</div>';
-        if (rv.moderator_response) {
-          html += '<div class="review-mod-response"><strong>Murphy Team:</strong> ' + rv.moderator_response.message + '</div>';
-        }
-        html += '</article>';
-      });
-      grid.innerHTML += html;
-    })
-    .catch(function(){});
-}
-loadReviews();
 </script>
 </body>
 </html>
