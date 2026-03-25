@@ -324,15 +324,14 @@ if [ "$SKIP_PULL" = false ]; then
   # ── Remove stale git lock files ──────────────────────────────────────────────
   GIT_LOCK="${REPO_DIR}/.git/index.lock"
   if [ -f "${GIT_LOCK}" ]; then
-    _lock_pid=$(cat "${GIT_LOCK}" 2>/dev/null | head -c 20 | tr -d '[:space:]' || echo "")
-    if [ -z "${_lock_pid}" ] || ! kill -0 "${_lock_pid}" 2>/dev/null; then
-      warn "Removing stale .git/index.lock ..."
+    # .git/index.lock doesn't contain a PID — check if any git process is running
+    if ! pgrep -x git &>/dev/null; then
+      warn "Removing stale .git/index.lock (no git process running) ..."
       rm -f "${GIT_LOCK}"
       ok "Stale .git/index.lock removed"
     else
-      warn ".git/index.lock held by PID ${_lock_pid} — another git operation may be running"
+      warn ".git/index.lock exists and a git process is running — skipping removal"
     fi
-    unset _lock_pid
   fi
 
   # ── Detect detached HEAD or wrong branch ─────────────────────────────────────
@@ -351,9 +350,10 @@ if [ "$SKIP_PULL" = false ]; then
   # ── Stash dirty working tree ──────────────────────────────────────────────────
   if ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
     warn "Dirty working tree detected — stashing local changes ..."
-    git stash push -m "hetzner_load.sh auto-stash $(date -u +%Y%m%dT%H%M%SZ)" 2>/dev/null \
-      || warn "git stash failed — attempting hard reset ..."  \
-      && git reset --hard HEAD 2>/dev/null || true
+    if ! git stash push -m "hetzner_load.sh auto-stash $(date -u +%Y%m%dT%H%M%SZ)" 2>/dev/null; then
+      warn "git stash failed — attempting hard reset ..."
+      git reset --hard HEAD 2>/dev/null || true
+    fi
     ok "Local changes stashed (restore with: git stash pop)"
   fi
 
@@ -410,7 +410,7 @@ if [ "$SKIP_DEPS" = false ]; then
   fi
 
   if [ -d "${VENV_DIR}" ]; then
-    if "${VENV_DIR}/bin/python" -c "import sys" &>/dev/null 2>&1; then
+    if "${VENV_DIR}/bin/python" -c "import sys" &>/dev/null; then
       VENV_OK=true
       ok "venv OK: ${VENV_DIR}"
     else
@@ -853,7 +853,7 @@ else
     _jinfo=$(journalctl --disk-usage 2>/dev/null || true)
     if [ -n "${_jinfo}" ]; then
       # Warn if journals consume ≥ 2 GiB (match "2 GiB", "2.5 GiB", "10 GiB", etc.)
-      if echo "${_jinfo}" | grep -qE '[2-9][0-9]*(\.[0-9]+)?[[:space:]]+GiB|[1-9][0-9]{2,}(\.[0-9]+)?[[:space:]]+MiB'; then
+      if echo "${_jinfo}" | grep -qE '[2-9][0-9]*(\.[0-9]+)?[[:space:]]+GiB|[1-9][0-9]{1,}(\.[0-9]+)?[[:space:]]+TiB'; then
         _jusage=$(echo "${_jinfo}" | grep -oE '[0-9.]+ [KMGT]iB' | head -1 || echo "large")
         warn "Journal logs consuming ${_jusage} of disk space"
         warn "  To limit: sudo journalctl --vacuum-size=500M"
