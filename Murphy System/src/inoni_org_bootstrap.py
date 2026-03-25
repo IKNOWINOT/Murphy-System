@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-FOUNDER = {"name": "Corey Post", "title": "Founder/Admin", "email": "cpost@inoni3dp.com"}
+FOUNDER = {"name": "Corey Post", "title": "Founder/Admin", "email": "cpost@murphy.systems"}
 COMPANY = "Inoni LLC"
 REGISTRATION = {"provider": "ZenBusiness", "entity_type": "LLC", "registration_status": "registered"}
 
@@ -114,7 +114,7 @@ class InoniOrgBootstrap:
             account_type=AccountType.USER,
             metadata={
                 "role": "founder_admin",
-                "email": "cpost@inoni3dp.com",
+                "email": "cpost@murphy.systems",
                 "is_human": True,
             },
         )
@@ -404,7 +404,7 @@ class InoniOrgBootstrap:
         return {
             "company": "Inoni LLC",
             "founder": "Corey Post",
-            "founder_email": "cpost@inoni3dp.com",
+            "founder_email": "cpost@murphy.systems",
             "founder_role": "Founder/Admin",
             "registered_via": "ZenBusiness",
             "total_agents": len(self.agents),
@@ -422,7 +422,7 @@ class InoniOrgBootstrap:
             "root": {
                 "title": "Founder / Admin",
                 "holder": "Corey Post (Human)",
-                "email": "cpost@inoni3dp.com",
+                "email": "cpost@murphy.systems",
                 "type": "human",
                 "reports": [],
             }

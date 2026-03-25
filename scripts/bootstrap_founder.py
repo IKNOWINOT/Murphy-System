@@ -146,12 +146,12 @@ def main() -> None:
     )
     parser.add_argument(
         "--email",
-        default="founder@murphy.local",
+        default="cpost@murphy.systems",
         help="Founder email address",
     )
     parser.add_argument(
         "--name",
-        default="Murphy Founder",
+        default="Corey Post",
         help="Founder display name",
     )
     parser.add_argument(
