@@ -9780,7 +9780,7 @@ def create_app() -> FastAPI:
 
     _account_data: Dict[str, Any] = {
         "id": "acct_default",
-        "email": "admin@murphy.system",
+        "email": "cpost@murphy.systems",
         "name": "Murphy Admin",
         "plan": "free",
         "plan_name": "Free Tier",
