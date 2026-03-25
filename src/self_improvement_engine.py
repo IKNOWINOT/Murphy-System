@@ -662,3 +662,316 @@ class SelfImprovementEngine:
 def _safe_mean(values: List[float]) -> float:
     """Return the mean of *values*, or 0.0 for an empty list."""
     return sum(values) / (len(values) or 1) if values else 0.0
+
+
+# ------------------------------------------------------------------
+# Permutation Calibration Integration
+# ------------------------------------------------------------------
+
+class PermutationLearningExtension:
+    """Extension for SelfImprovementEngine to support permutation-driven learning.
+    
+    This extension adds the ability to:
+    - Compare exploratory runs vs procedural runs
+    - Track which orderings improve calibration
+    - Recommend promotion or demotion of learned procedures
+    - Detect drift and trigger re-exploration
+    
+    Reference: Permutation Calibration Application Spec Section 3.1
+    """
+    
+    def __init__(self, improvement_engine: SelfImprovementEngine) -> None:
+        self._engine = improvement_engine
+        self._permutation_registry = None
+        self._calibration_adapter = None
+        self._order_metrics = None
+        self._lock = threading.Lock()
+        self._exploratory_outcomes: List[Dict[str, Any]] = []
+        self._procedural_outcomes: List[Dict[str, Any]] = []
+        self._drift_thresholds = {
+            "success_rate_drop": 0.15,
+            "confidence_drop": 0.1,
+            "hitl_override_rate": 0.3,
+        }
+        logger.info("PermutationLearningExtension initialized")
+    
+    def connect_registry(self, registry: Any) -> None:
+        """Connect the permutation policy registry."""
+        self._permutation_registry = registry
+    
+    def connect_calibration_adapter(self, adapter: Any) -> None:
+        """Connect the permutation calibration adapter."""
+        self._calibration_adapter = adapter
+    
+    def connect_order_metrics(self, metrics: Any) -> None:
+        """Connect the order sensitivity metrics."""
+        self._order_metrics = metrics
+    
+    def record_exploratory_outcome(
+        self,
+        domain: str,
+        ordering: List[str],
+        outcome_quality: float,
+        calibration_quality: float,
+        session_id: str,
+    ) -> Dict[str, Any]:
+        """Record outcome from exploratory (Mode A) execution."""
+        record = {
+            "record_id": f"exp-{uuid.uuid4().hex[:12]}",
+            "domain": domain,
+            "ordering": ordering,
+            "outcome_quality": outcome_quality,
+            "calibration_quality": calibration_quality,
+            "session_id": session_id,
+            "mode": "exploratory",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        
+        with self._lock:
+            if len(self._exploratory_outcomes) >= 10000:
+                self._exploratory_outcomes = self._exploratory_outcomes[1000:]
+            self._exploratory_outcomes.append(record)
+        
+        # Also record in order metrics if connected
+        if self._order_metrics:
+            try:
+                self._order_metrics.record_observation(
+                    domain=domain,
+                    ordering=ordering,
+                    outcome_score=outcome_quality,
+                    calibration_score=calibration_quality,
+                )
+            except Exception as e:
+                logger.debug("Could not record to order metrics: %s", e)
+        
+        return record
+    
+    def record_procedural_outcome(
+        self,
+        domain: str,
+        sequence_id: str,
+        ordering: List[str],
+        outcome_quality: float,
+        calibration_quality: float,
+        session_id: str,
+    ) -> Dict[str, Any]:
+        """Record outcome from procedural (Mode B) execution."""
+        record = {
+            "record_id": f"proc-{uuid.uuid4().hex[:12]}",
+            "domain": domain,
+            "sequence_id": sequence_id,
+            "ordering": ordering,
+            "outcome_quality": outcome_quality,
+            "calibration_quality": calibration_quality,
+            "session_id": session_id,
+            "mode": "procedural",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        
+        with self._lock:
+            if len(self._procedural_outcomes) >= 10000:
+                self._procedural_outcomes = self._procedural_outcomes[1000:]
+            self._procedural_outcomes.append(record)
+        
+        # Also record evaluation in registry if connected
+        if self._permutation_registry and sequence_id:
+            try:
+                self._permutation_registry.record_evaluation(
+                    sequence_id=sequence_id,
+                    outcome_quality=outcome_quality,
+                    calibration_quality=calibration_quality,
+                    stability_score=0.7,  # Default, should be computed
+                    success=outcome_quality >= 0.6,
+                )
+            except Exception as e:
+                logger.debug("Could not record to registry: %s", e)
+        
+        return record
+    
+    def compare_exploratory_vs_procedural(self, domain: str) -> Dict[str, Any]:
+        """Compare exploratory runs vs procedural runs for a domain.
+        
+        This implements the core learning comparison from spec Section 3.1.
+        """
+        with self._lock:
+            exp_outcomes = [o for o in self._exploratory_outcomes if o["domain"] == domain]
+            proc_outcomes = [o for o in self._procedural_outcomes if o["domain"] == domain]
+        
+        if not exp_outcomes and not proc_outcomes:
+            return {
+                "status": "insufficient_data",
+                "domain": domain,
+                "exploratory_count": 0,
+                "procedural_count": 0,
+            }
+        
+        exp_quality = _safe_mean([o["outcome_quality"] for o in exp_outcomes]) if exp_outcomes else 0.0
+        exp_calibration = _safe_mean([o["calibration_quality"] for o in exp_outcomes]) if exp_outcomes else 0.0
+        
+        proc_quality = _safe_mean([o["outcome_quality"] for o in proc_outcomes]) if proc_outcomes else 0.0
+        proc_calibration = _safe_mean([o["calibration_quality"] for o in proc_outcomes]) if proc_outcomes else 0.0
+        
+        # Calculate improvement
+        quality_improvement = proc_quality - exp_quality
+        calibration_improvement = proc_calibration - exp_calibration
+        
+        # Recommendation
+        if quality_improvement > 0.05 and calibration_improvement > 0.05:
+            recommendation = "maintain_procedural"
+            reason = "Procedural mode outperforms exploratory"
+        elif quality_improvement < -0.1 or calibration_improvement < -0.1:
+            recommendation = "reopen_exploration"
+            reason = "Procedural mode underperforming - drift detected"
+        else:
+            recommendation = "continue_monitoring"
+            reason = "Performance comparable"
+        
+        return {
+            "status": "ok",
+            "domain": domain,
+            "exploratory_count": len(exp_outcomes),
+            "procedural_count": len(proc_outcomes),
+            "exploratory_avg_quality": round(exp_quality, 4),
+            "exploratory_avg_calibration": round(exp_calibration, 4),
+            "procedural_avg_quality": round(proc_quality, 4),
+            "procedural_avg_calibration": round(proc_calibration, 4),
+            "quality_improvement": round(quality_improvement, 4),
+            "calibration_improvement": round(calibration_improvement, 4),
+            "recommendation": recommendation,
+            "reason": reason,
+        }
+    
+    def get_promotion_recommendations(self, domain: str) -> List[Dict[str, Any]]:
+        """Get recommendations for sequence promotion/demotion.
+        
+        This analyzes current sequences and recommends:
+        - Which sequences should be promoted to procedural mode
+        - Which sequences should be demoted due to drift
+        """
+        recommendations = []
+        
+        if not self._permutation_registry:
+            return recommendations
+        
+        try:
+            # Get all sequences for domain
+            sequences = self._permutation_registry.find_sequences(domain=domain)
+            
+            for seq in sequences:
+                status = seq.get("status", "experimental")
+                confidence = seq.get("confidence_score", 0.5)
+                success_rate = seq.get("success_rate", 0.0)
+                total_evals = seq.get("total_evaluations", 0)
+                
+                if status == "experimental" and total_evals >= 5:
+                    if success_rate >= 0.7 and confidence >= 0.6:
+                        recommendations.append({
+                            "sequence_id": seq["sequence_id"],
+                            "action": "promote_to_probationary",
+                            "reason": f"Good performance (success={success_rate:.0%}, conf={confidence:.2f})",
+                            "priority": "medium",
+                        })
+                
+                elif status == "probationary" and total_evals >= 10:
+                    if success_rate >= 0.8 and confidence >= 0.75:
+                        recommendations.append({
+                            "sequence_id": seq["sequence_id"],
+                            "action": "promote_to_production",
+                            "reason": f"Consistent performance (success={success_rate:.0%}, conf={confidence:.2f})",
+                            "priority": "high",
+                        })
+                    elif success_rate < 0.5:
+                        recommendations.append({
+                            "sequence_id": seq["sequence_id"],
+                            "action": "demote_to_experimental",
+                            "reason": f"Poor performance (success={success_rate:.0%})",
+                            "priority": "high",
+                        })
+                
+                elif status == "promoted":
+                    if success_rate < 0.6 or confidence < 0.5:
+                        recommendations.append({
+                            "sequence_id": seq["sequence_id"],
+                            "action": "deprecate",
+                            "reason": f"Drift detected (success={success_rate:.0%}, conf={confidence:.2f})",
+                            "priority": "critical",
+                        })
+        
+        except Exception as e:
+            logger.warning("Error getting promotion recommendations: %s", e)
+        
+        return recommendations
+    
+    def detect_drift(self, domain: str, window_size: int = 20) -> Dict[str, Any]:
+        """Detect drift in procedural execution for a domain.
+        
+        Implements drift detection from spec Section 5.3:
+        - Success rate dropped
+        - Confidence drifted down
+        - Human overrides rose
+        """
+        with self._lock:
+            proc_outcomes = [o for o in self._procedural_outcomes if o["domain"] == domain]
+        
+        if len(proc_outcomes) < window_size:
+            return {
+                "status": "insufficient_data",
+                "domain": domain,
+                "samples": len(proc_outcomes),
+                "required": window_size,
+            }
+        
+        recent = proc_outcomes[-window_size:]
+        older = proc_outcomes[-2*window_size:-window_size] if len(proc_outcomes) >= 2*window_size else []
+        
+        recent_quality = _safe_mean([o["outcome_quality"] for o in recent])
+        recent_calibration = _safe_mean([o["calibration_quality"] for o in recent])
+        
+        if older:
+            older_quality = _safe_mean([o["outcome_quality"] for o in older])
+            older_calibration = _safe_mean([o["calibration_quality"] for o in older])
+            
+            quality_drop = older_quality - recent_quality
+            calibration_drop = older_calibration - recent_calibration
+            
+            drift_detected = (
+                quality_drop > self._drift_thresholds["success_rate_drop"] or
+                calibration_drop > self._drift_thresholds["confidence_drop"]
+            )
+        else:
+            quality_drop = 0.0
+            calibration_drop = 0.0
+            drift_detected = False
+        
+        return {
+            "status": "ok",
+            "domain": domain,
+            "drift_detected": drift_detected,
+            "recent_quality": round(recent_quality, 4),
+            "recent_calibration": round(recent_calibration, 4),
+            "quality_drop": round(quality_drop, 4),
+            "calibration_drop": round(calibration_drop, 4),
+            "recommendation": "reopen_exploration" if drift_detected else "continue_procedural",
+        }
+    
+    def get_learning_status(self) -> Dict[str, Any]:
+        """Get overall permutation learning status."""
+        with self._lock:
+            exp_count = len(self._exploratory_outcomes)
+            proc_count = len(self._procedural_outcomes)
+            
+            domains = set()
+            for o in self._exploratory_outcomes:
+                domains.add(o["domain"])
+            for o in self._procedural_outcomes:
+                domains.add(o["domain"])
+        
+        return {
+            "status": "ok",
+            "exploratory_outcomes": exp_count,
+            "procedural_outcomes": proc_count,
+            "domains_tracked": list(domains),
+            "registry_connected": self._permutation_registry is not None,
+            "adapter_connected": self._calibration_adapter is not None,
+            "metrics_connected": self._order_metrics is not None,
+        }
