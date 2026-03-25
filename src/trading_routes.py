@@ -33,6 +33,16 @@ Profit sweep:
   POST /api/trading/sweep/trigger  — Manually trigger sweep (dry-run default)
   GET  /api/trading/sweep/atom-balance — ATOM staking info
 
+Emergency:
+  GET  /api/trading/emergency/status  — Emergency stop system status
+  POST /api/trading/emergency/trigger — Trigger emergency stop
+
+Risk:
+  GET  /api/trading/risk/assessment   — Current risk assessment
+
+Graduation:
+  GET  /api/trading/graduation/status — Paper-trading graduation status
+
 Dashboard:
   GET  /ui/trading                 — Serve the trading dashboard HTML
   GET  /ui/trading-dashboard       — Alias
@@ -276,6 +286,90 @@ def create_trading_router() -> APIRouter:
             "staking_apy":      stats["atom_staking_apy"],
             "total_usd_swept":  stats["total_usd_swept"],
         }
+
+    # ── Emergency Stop ──────────────────────────────────────────────────
+
+    @router.get("/api/trading/emergency/status")
+    async def get_emergency_status() -> Dict[str, Any]:
+        """Return the state of the emergency stop controller."""
+        orch = _get_orchestrator()
+        try:
+            from trading_compliance_engine import get_compliance_engine
+            ce = get_compliance_engine()
+            return {
+                "emergency_stop_active": getattr(ce, "emergency_stop_active", False),
+                "stop_reason":           getattr(ce, "emergency_stop_reason", None),
+                "trading_allowed":       getattr(orch, "live_trading_enabled", False),
+            }
+        except Exception as exc:  # pragma: no cover
+            logger.warning("emergency status unavailable: %s", exc)
+            return {
+                "emergency_stop_active": False,
+                "stop_reason":           None,
+                "trading_allowed":       getattr(orch, "live_trading_enabled", False),
+            }
+
+    @router.post("/api/trading/emergency/trigger")
+    async def trigger_emergency_stop() -> Dict[str, Any]:
+        """Trigger an emergency stop of all live trading."""
+        orch = _get_orchestrator()
+        try:
+            from trading_compliance_engine import get_compliance_engine
+            ce = get_compliance_engine()
+            if hasattr(ce, "trigger_emergency_stop"):
+                ce.trigger_emergency_stop("manual-ui-trigger")
+        except Exception as exc:  # pragma: no cover
+            logger.warning("compliance engine unavailable: %s", exc)
+
+        if hasattr(orch, "emergency_stop"):
+            orch.emergency_stop()
+        elif hasattr(orch, "stop"):
+            orch.stop()
+
+        logger.warning("Emergency stop triggered via API")
+        return {"success": True, "message": "Emergency stop activated"}
+
+    # ── Risk Assessment ─────────────────────────────────────────────────
+
+    @router.get("/api/trading/risk/assessment")
+    async def get_risk_assessment() -> Dict[str, Any]:
+        """Return the current risk assessment from the compliance engine."""
+        try:
+            from trading_compliance_engine import get_compliance_engine
+            ce = get_compliance_engine()
+            if hasattr(ce, "get_risk_assessment"):
+                return ce.get_risk_assessment()
+            # Fallback: compose from available attributes
+            return {
+                "risk_level":          getattr(ce, "current_risk_level", "unknown"),
+                "daily_loss":          getattr(ce, "daily_loss_usd", 0.0),
+                "max_daily_loss":      getattr(ce, "max_daily_loss_usd", 0.0),
+                "position_count":      getattr(ce, "open_position_count", 0),
+                "circuit_breaker_open": getattr(ce, "circuit_breaker_open", False),
+            }
+        except Exception as exc:  # pragma: no cover
+            logger.warning("risk assessment unavailable: %s", exc)
+            return {"risk_level": "unavailable", "error": str(exc)}
+
+    # ── Graduation Status ───────────────────────────────────────────────
+
+    @router.get("/api/trading/graduation/status")
+    async def get_graduation_status() -> Dict[str, Any]:
+        """Return paper-trading graduation tracker summary."""
+        try:
+            from trading_compliance_engine import get_graduation_tracker
+            gt = get_graduation_tracker()
+            return {
+                "days_tracked":         len(getattr(gt, "daily_records", [])),
+                "meets_threshold":      gt.meets_graduation_threshold() if hasattr(gt, "meets_graduation_threshold") else False,
+                "win_rate":             getattr(gt, "win_rate", None),
+                "sharpe_ratio":         getattr(gt, "sharpe_ratio", None),
+                "max_drawdown":         getattr(gt, "max_drawdown_pct", None),
+                "graduated":            getattr(gt, "graduated", False),
+            }
+        except Exception as exc:  # pragma: no cover
+            logger.warning("graduation status unavailable: %s", exc)
+            return {"graduated": False, "error": str(exc)}
 
     # ── Dashboard HTML ──────────────────────────────────────────────────
 
