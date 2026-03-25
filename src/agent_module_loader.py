@@ -574,6 +574,14 @@ class MultiCursorBrowser:
             "dodeca":   _grid(4, 3),
             "hex4":     _grid(4, 4),
         }
+        # Semantic zone names for well-known 2-zone layouts
+        _SEMANTIC_NAMES: Dict[str, List[str]] = {
+            "dual_h": ["left", "right"],
+            "dual_v": ["top", "bottom"],
+        }
+        for layout_name, sem_names in _SEMANTIC_NAMES.items():
+            for zone, sem in zip(named[layout_name], sem_names):
+                zone["name"] = sem
         # Legacy aliases kept for backward-compat
         named["triple"] = named["triple_h"]
 

@@ -5,6 +5,7 @@ Adds src/ to sys.path so modules can be imported without
 manual PYTHONPATH manipulation.
 """
 
+import asyncio
 import os
 import sys
 
@@ -13,6 +14,24 @@ _src_dir = os.path.join(os.path.dirname(__file__), '..', 'src')
 _src_dir = os.path.abspath(_src_dir)
 if _src_dir not in sys.path:
     sys.path.insert(0, _src_dir)
+
+
+# ---------------------------------------------------------------------------
+# Event loop — ensure every test thread has a usable asyncio event loop
+# so that tests calling asyncio.get_event_loop().run_until_complete(...)
+# work on Python 3.10+ (which no longer auto-creates a loop for
+# non-async contexts).
+# ---------------------------------------------------------------------------
+
+def pytest_runtest_setup(item):
+    """Create a new event loop for each test that lacks one."""
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            raise RuntimeError("closed")
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
 
 # ---------------------------------------------------------------------------

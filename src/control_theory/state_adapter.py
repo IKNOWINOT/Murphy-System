@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from control_theory.canonical_state import CanonicalStateVector
+from .canonical_state import CanonicalStateVector
 
 if TYPE_CHECKING:
     # Imported only for type hints — avoids hard import errors if optional
