@@ -54,6 +54,7 @@ class MurphyScheduler:
         self._scheduler = None
         self._last_run: Optional[datetime] = None
         self._last_result: Optional[Dict[str, Any]] = None
+        self._copilot_tenant_tasks: list = []
 
     def start(self) -> bool:
         """Start the background scheduler.
@@ -217,6 +218,26 @@ class MurphyScheduler:
             "last_run": self._last_run.isoformat() if self._last_run else None,
             "last_result_status": self._last_result.get("status") if self._last_result else None,
         }
+
+    def register_copilot_tenant_tasks(self, tasks: list) -> None:
+        """Accept task proposals from the Copilot Tenant for the daily automation run.
+
+        Each element of *tasks* should be a dict with at least:
+          ``task_id``   — unique identifier
+          ``description`` — human-readable description
+          ``priority``  — float 0.0–1.0
+
+        Proposed tasks are stored and incorporated into the next
+        ``run_daily_automation()`` call.
+        """
+        if not isinstance(tasks, list):
+            logger.warning("register_copilot_tenant_tasks: expected list, got %s", type(tasks))
+            return
+        self._copilot_tenant_tasks = list(tasks)
+        logger.info(
+            "MurphyScheduler: registered %d Copilot Tenant task(s)",
+            len(self._copilot_tenant_tasks),
+        )
 
     # ------------------------------------------------------------------
     # Trading job handlers (called by APScheduler)
