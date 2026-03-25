@@ -252,21 +252,21 @@ wait_for_http() {
 # ── Banner ────────────────────────────────────────────────────────────────────
 echo ""
 echo "  ☠  ══════════════════════════════════════════════════════════════  ☠"
-echo "    💀  M U R P H Y   H E T Z N E R   F U L L - S T A C K   L O A D"
+echo "    M U R P H Y   H E T Z N E R   F U L L - S T A C K   L O A D"
 echo "  ☠  ══════════════════════════════════════════════════════════════  ☠"
 echo ""
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PREFLIGHT
 # ═══════════════════════════════════════════════════════════════════════════════
-section "Preflight"
+section "☠"
 [ -d "${REPO_DIR}/.git" ] \
   || fail "Repository not found at ${REPO_DIR}. Set MURPHY_REPO_DIR or clone first."
 command -v docker &>/dev/null \
   || fail "Docker not installed. Install Docker Engine before running this script."
 docker compose version &>/dev/null 2>&1 \
   || fail "docker compose v2 not available. Install the Compose plugin."
-ok "Preflight checks passed"
+ok "Devils in the details...."
 cd "$REPO_DIR"
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -654,7 +654,7 @@ fi
 # ═══════════════════════════════════════════════════════════════════════════════
 echo ""
 echo "  ☠  ══════════════════════════════════════════════════════════════  ☠"
-echo -e "    ${GREEN}💀  MURPHY FULL-STACK LOADED — commit ${DEPLOY_COMMIT}  💀${NC}   "
+echo -e "    ${GREEN}MURPHY FULL-STACK LOADED — commit ${DEPLOY_COMMIT}${NC}   "
 echo "  ☠  ══════════════════════════════════════════════════════════════  ☠"
 echo ""
 echo -e "  ${BLUE}Website (public):${NC}    https://<your-domain>/            (nginx)"
