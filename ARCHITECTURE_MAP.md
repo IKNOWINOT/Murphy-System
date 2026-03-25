@@ -153,7 +153,7 @@
 
 ### 2. Universal Control Plane
 
-**Component:** `universal_control_plane.py`
+**Component:** `control_plane/__init__.py` *(was: universal_control_plane.py)*
 
 **Responsibilities:**
 - Unified interface for all 6 automation types
@@ -182,7 +182,7 @@
 
 ### 3. Inoni Business Automation
 
-**Component:** `inoni_business_automation.py`
+**Component:** `runtime/app.py` *(was: inoni_business_automation.py)*
 
 **Responsibilities:**
 - Autonomous with HITL safety gates operation of Inoni LLC
@@ -234,7 +234,7 @@ This is by design — Murphy's safety-first architecture treats HITL as a featur
 
 ### 4. Two-Phase Orchestrator
 
-**Component:** `two_phase_orchestrator.py`
+**Component:** `execution_orchestrator/__init__.py` *(was: two_phase_orchestrator.py)*
 
 **Responsibilities:**
 - Coordinates execution flow
@@ -400,9 +400,9 @@ Safe if: murphy_index > threshold (default 0.5)
 - State machine management
 
 **Key Modules:**
-- `integrated_form_executor.py` - Main executor
-- `decision_engine.py` - Decision logic
-- `workflow_orchestrator.py` - Workflow management
+- `form_intake/__init__.py` *(was: integrated_form_executor.py)* - Main executor
+- `adaptive_decision_engine.py` *(was: decision_engine.py)* - Decision logic
+- `execution_orchestrator/__init__.py` *(was: workflow_orchestrator.py)* - Workflow management
 - `state_machine.py` - State transitions
 
 **Features:**
@@ -477,10 +477,10 @@ Extends the HITL system to hire external human validators on freelance
 platforms (Fiverr, Upwork, or a generic self-hosted queue).
 
 **Components:**
-- `models.py` — FreelancerTask, FreelancerResponse, ValidationCriteria, BudgetConfig, Credential, CredentialRequirement, ValidatorCredentialProfile
-- `platform_client.py` — Abstract client + Fiverr/Upwork/Generic adapters
-- `budget_manager.py` — Org-level monthly + per-task budget enforcement
-- `criteria_engine.py` — Build criteria, format instructions, score responses
+- `rosetta/rosetta_models.py` *(was: models.py)* — FreelancerTask, FreelancerResponse, ValidationCriteria, BudgetConfig, Credential, CredentialRequirement, ValidatorCredentialProfile
+- `bridge_layer/__init__.py` *(was: platform_client.py)* — Abstract client + Fiverr/Upwork/Generic adapters
+- `billing/__init__.py` *(was: budget_manager.py)* — Org-level monthly + per-task budget enforcement
+- `gate_synthesis/__init__.py` *(was: criteria_engine.py)* — Build criteria, format instructions, score responses
 - `credential_verifier.py` — Verifies validator credentials against public records (BBB, state license boards), checks for complaints/disciplinary actions
 - `hitl_bridge.py` — Orchestrates dispatch → credential gate → ingest → HITL monitor wiring
 

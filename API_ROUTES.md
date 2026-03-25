@@ -35,14 +35,14 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | POST | /api/auth/signup | No | Create new account — returns `{ session_token, account_id, … }` + sets `murphy_session` cookie |
-| POST | /api/auth/register | No | Create new account (alias for signup) |
+| POST | ~~/api/auth/register~~ *(removed)* | No | Create new account (alias for signup) |
 | POST | /api/auth/login | No | Validate credentials — returns `{ session_token, account_id, … }` + sets `murphy_session` cookie |
 | POST | /api/auth/logout | No | Invalidate session and clear `murphy_session` cookie |
 | POST | /api/auth/forgot-password | No | Initiate password-reset flow — always returns success to prevent user enumeration |
 | GET | /api/auth/session-token | Yes | Return active session token for the current user (used by `murphy_auth.js` after OAuth redirect to mirror HttpOnly cookie to localStorage) |
 | GET | /api/auth/oauth/{provider} | No | Initiate OAuth flow |
 | GET | /api/auth/callback | No | OAuth callback — sets `murphy_session` cookie and redirects to `/ui/terminal-unified?oauth_success=1&provider=<name>` |
-| GET | /api/auth/callback/{provider} | No | Provider-specific OAuth callback |
+| GET | ~~/api/auth/callback/{provider}~~ *(removed)* | No | Provider-specific OAuth callback |
 | GET | /api/auth/login | No | Login page / initiate session |
 | GET | /api/auth/providers | No | List configured OAuth providers and their enabled status |
 | GET | /api/auth/role | Yes | Get current user role |
@@ -59,7 +59,7 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 | GET | /api/profiles/{profile_id} | Yes | Get profile |
 | PUT | /api/profiles/{profile_id} | Yes | Update profile |
 | POST | /api/profiles/{profile_id}/activate | Yes | Activate profile |
-| GET | /api/profiles/me | Yes | Get current user profile |
+| GET | ~~/api/profiles/me~~ *(removed)* | Yes | Get current user profile |
 | GET | /api/profiles/me/terminal-config | Yes | Get terminal feature config |
 
 ---
@@ -313,10 +313,10 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | /api/hitl/interventions/pending | Yes | Pending HITL interventions |
-| POST | /api/hitl/interventions/{id}/respond | Yes | Respond to intervention |
+| POST | ~~/api/hitl/interventions/{id}/respond~~ *(removed)* | Yes | Respond to intervention |
 | POST | /api/hitl/qc/submit | Yes | Submit QC review |
 | POST | /api/hitl/acceptance/submit | Yes | Submit acceptance |
-| POST | /api/hitl/{id}/decide | Yes | Decide on HITL item |
+| POST | ~~/api/hitl/{id}/decide~~ *(removed)* | Yes | Decide on HITL item |
 
 ---
 
@@ -494,17 +494,17 @@ All trading is **PAPER/SIMULATED only** — no real money is moved.
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | /api/trading/paper/start | Yes | Start paper trading session with selected strategies |
-| POST | /api/trading/paper/stop | Yes | Stop paper trading session (optionally liquidate all positions) |
+| POST | ~~/api/trading/paper/start~~ *(removed)* | Yes | Start paper trading session with selected strategies |
+| POST | ~~/api/trading/paper/stop~~ *(removed)* | Yes | Stop paper trading session (optionally liquidate all positions) |
 | GET | /api/trading/paper/status | Yes | Current session state: active flag, portfolio snapshot, available strategies |
-| GET | /api/trading/paper/positions | Yes | All currently open paper positions with unrealized P&L |
-| GET | /api/trading/paper/trades | Yes | Trade journal — paginated by `limit` and optional `strategy` filter |
-| GET | /api/trading/paper/performance | Yes | Full performance metrics: Sharpe, Sortino, drawdown, win rate, profit factor, fees |
-| GET | /api/trading/paper/strategies | Yes | List all 9 strategy templates with params and description |
-| POST | /api/trading/paper/trade | Yes | Execute a manual paper buy or sell |
-| POST | /api/trading/backtest | Yes | Run a historical backtest via yfinance or supplied OHLCV JSON |
-| GET | /api/trading/calibration/costs | Yes | Hidden cost calibrator summary: observed slippage, fee, spread discrepancies |
-| GET | /api/trading/calibration/errors | Yes | Error calibrator: per-strategy bias, MAE, RMSE, recalibration history |
+| GET | ~~/api/trading/paper/positions~~ *(removed)* | Yes | All currently open paper positions with unrealized P&L |
+| GET | ~~/api/trading/paper/trades~~ *(removed)* | Yes | Trade journal — paginated by `limit` and optional `strategy` filter |
+| GET | ~~/api/trading/paper/performance~~ *(removed)* | Yes | Full performance metrics: Sharpe, Sortino, drawdown, win rate, profit factor, fees |
+| GET | ~~/api/trading/paper/strategies~~ *(removed)* | Yes | List all 9 strategy templates with params and description |
+| POST | ~~/api/trading/paper/trade~~ *(removed)* | Yes | Execute a manual paper buy or sell |
+| POST | ~~/api/trading/backtest~~ *(removed)* | Yes | Run a historical backtest via yfinance or supplied OHLCV JSON |
+| GET | ~~/api/trading/calibration/costs~~ *(removed)* | Yes | Hidden cost calibrator summary: observed slippage, fee, spread discrepancies |
+| GET | ~~/api/trading/calibration/errors~~ *(removed)* | Yes | Error calibrator: per-strategy bias, MAE, RMSE, recalibration history |
 
 ### Strategy Templates (9 available)
 
@@ -620,7 +620,7 @@ All trading is **PAPER/SIMULATED only** — no real money is moved.
 |--------|------|------|-------------|
 | GET | /api/domains | Yes | List domains |
 | POST | /api/domains/register | Yes | Register domain |
-| POST | /api/domains/{id}/verify | Yes | Verify domain |
+| POST | ~~/api/domains/{id}/verify~~ *(removed)* | Yes | Verify domain |
 | GET | /api/email/accounts | Yes | List email accounts |
 | POST | /api/email/accounts | Yes | Add email account |
 | POST | /api/email/send | Yes | Send email |
@@ -639,8 +639,8 @@ All trading is **PAPER/SIMULATED only** — no real money is moved.
 | GET | /api/ip/trade-secrets | Yes | Trade secrets |
 | GET | /api/supply/status | Yes | Supply chain status |
 | POST | /api/events/subscribe | Yes | Subscribe to events |
-| GET | /api/events/stream/{id} | Yes | SSE event stream |
-| GET | /api/events/history/{id} | Yes | Event history |
+| GET | ~~/api/events/stream/{id}~~ *(removed)* | Yes | SSE event stream |
+| GET | ~~/api/events/history/{id}~~ *(removed)* | Yes | Event history |
 | GET | /api/security/events | Yes | Security events |
 
 ---
@@ -706,9 +706,9 @@ Natural language voice/typed command processing for generative automation.
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | /api/vci/recognise | Yes | Speech-to-text recognition |
-| POST | /api/vci/parse | Yes | Parse command from transcript |
-| POST | /api/vci/process | Yes | End-to-end voice processing (recognise → parse → result) |
+| POST | ~~/api/vci/recognise~~ *(removed)* | Yes | Speech-to-text recognition |
+| POST | ~~/api/vci/parse~~ *(removed)* | Yes | Parse command from transcript |
+| POST | ~~/api/vci/process~~ *(removed)* | Yes | End-to-end voice processing (recognise → parse → result) |
 
 **Process Endpoint Request:**
 ```json
@@ -738,9 +738,9 @@ Pre-configured automation patterns that wire together subsystems via natural lan
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | /api/presets | Yes | List available automation presets |
-| GET | /api/presets/{preset_id} | Yes | Get preset details |
-| POST | /api/presets/activate | Yes | Activate preset via trigger phrase |
+| GET | ~~/api/presets~~ *(removed)* | Yes | List available automation presets |
+| GET | ~~/api/presets/{preset_id}~~ *(removed)* | Yes | Get preset details |
+| POST | ~~/api/presets/activate~~ *(removed)* | Yes | Activate preset via trigger phrase |
 | POST | /api/workflows | Yes | Create workflow from natural language description |
 | POST | /api/execute | Yes | Execute a generated workflow DAG |
 
@@ -789,46 +789,46 @@ Unified onboard communication system: IM, voice, video, email, automation rules,
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | /api/comms/im/threads | Yes | Create a new IM thread (direct or group) |
-| GET | /api/comms/im/threads | Yes | List all threads; filter by `?user=` |
-| GET | /api/comms/im/threads/{tid} | Yes | Get a specific thread |
-| POST | /api/comms/im/threads/{tid}/messages | Yes | Post a message to a thread — runs automod + automation rules |
-| GET | /api/comms/im/threads/{tid}/messages | Yes | Get messages; filter with `?limit=` |
-| POST | /api/comms/im/threads/{tid}/messages/{mid}/reactions | Yes | Add emoji reaction |
+| POST | ~~/api/comms/im/threads~~ *(removed)* | Yes | Create a new IM thread (direct or group) |
+| GET | ~~/api/comms/im/threads~~ *(removed)* | Yes | List all threads; filter by `?user=` |
+| GET | ~~/api/comms/im/threads/{tid}~~ *(removed)* | Yes | Get a specific thread |
+| POST | ~~/api/comms/im/threads/{tid}/messages~~ *(removed)* | Yes | Post a message to a thread — runs automod + automation rules |
+| GET | ~~/api/comms/im/threads/{tid}/messages~~ *(removed)* | Yes | Get messages; filter with `?limit=` |
+| POST | ~~/api/comms/im/threads/{tid}/messages/{mid}/reactions~~ *(removed)* | Yes | Add emoji reaction |
 
 ### Voice Calls
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | /api/comms/voice/sessions | Yes | Initiate a voice call (SDP offer optional) |
-| GET | /api/comms/voice/sessions | Yes | List voice sessions; filter by `?user=` `?state=` |
-| GET | /api/comms/voice/sessions/{sid} | Yes | Get voice session |
-| POST | /api/comms/voice/sessions/{sid}/answer | Yes | Answer a call (SDP answer optional) |
-| POST | /api/comms/voice/sessions/{sid}/hold | Yes | Put call on hold |
-| POST | /api/comms/voice/sessions/{sid}/end | Yes | End call (optional `voicemail_url`) |
-| POST | /api/comms/voice/sessions/{sid}/reject | Yes | Reject an incoming call |
-| POST | /api/comms/voice/sessions/{sid}/ice | Yes | Submit an ICE candidate |
+| POST | ~~/api/comms/voice/sessions~~ *(removed)* | Yes | Initiate a voice call (SDP offer optional) |
+| GET | ~~/api/comms/voice/sessions~~ *(removed)* | Yes | List voice sessions; filter by `?user=` `?state=` |
+| GET | ~~/api/comms/voice/sessions/{sid}~~ *(removed)* | Yes | Get voice session |
+| POST | ~~/api/comms/voice/sessions/{sid}/answer~~ *(removed)* | Yes | Answer a call (SDP answer optional) |
+| POST | ~~/api/comms/voice/sessions/{sid}/hold~~ *(removed)* | Yes | Put call on hold |
+| POST | ~~/api/comms/voice/sessions/{sid}/end~~ *(removed)* | Yes | End call (optional `voicemail_url`) |
+| POST | ~~/api/comms/voice/sessions/{sid}/reject~~ *(removed)* | Yes | Reject an incoming call |
+| POST | ~~/api/comms/voice/sessions/{sid}/ice~~ *(removed)* | Yes | Submit an ICE candidate |
 
 ### Video Calls
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | /api/comms/video/sessions | Yes | Initiate a video call |
-| GET | /api/comms/video/sessions | Yes | List video sessions |
-| GET | /api/comms/video/sessions/{sid} | Yes | Get video session |
-| POST | /api/comms/video/sessions/{sid}/answer | Yes | Answer a video call |
-| POST | /api/comms/video/sessions/{sid}/end | Yes | End a video call |
-| POST | /api/comms/video/sessions/{sid}/ice | Yes | Submit an ICE candidate |
+| POST | ~~/api/comms/video/sessions~~ *(removed)* | Yes | Initiate a video call |
+| GET | ~~/api/comms/video/sessions~~ *(removed)* | Yes | List video sessions |
+| GET | ~~/api/comms/video/sessions/{sid}~~ *(removed)* | Yes | Get video session |
+| POST | ~~/api/comms/video/sessions/{sid}/answer~~ *(removed)* | Yes | Answer a video call |
+| POST | ~~/api/comms/video/sessions/{sid}/end~~ *(removed)* | Yes | End a video call |
+| POST | ~~/api/comms/video/sessions/{sid}/ice~~ *(removed)* | Yes | Submit an ICE candidate |
 
 ### Email
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | /api/comms/email/send | Yes | Compose and send an email |
-| GET | /api/comms/email/inbox | Yes | Get user's inbox — `?user=` |
-| GET | /api/comms/email/outbox | Yes | Get user's outbox — `?user=` |
-| GET | /api/comms/email/{eid} | Yes | Get a specific email |
-| POST | /api/comms/email/{eid}/read | Yes | Mark email as read — body `{user}` |
+| POST | ~~/api/comms/email/send~~ *(removed)* | Yes | Compose and send an email |
+| GET | ~~/api/comms/email/inbox~~ *(removed)* | Yes | Get user's inbox — `?user=` |
+| GET | ~~/api/comms/email/outbox~~ *(removed)* | Yes | Get user's outbox — `?user=` |
+| GET | ~~/api/comms/email/{eid}~~ *(removed)* | Yes | Get a specific email |
+| POST | ~~/api/comms/email/{eid}/read~~ *(removed)* | Yes | Mark email as read — body `{user}` |
 
 ### Automation Rules
 
@@ -836,34 +836,34 @@ Unified onboard communication system: IM, voice, video, email, automation rules,
 |--------|------|------|-------------|
 | POST | /api/comms/automate/rules | Yes | Create an automation rule |
 | GET | /api/comms/automate/rules | Yes | List rules; filter by `?channel=` |
-| GET | /api/comms/automate/rules/{rid} | Yes | Get a specific rule |
-| PATCH | /api/comms/automate/rules/{rid}/toggle | Yes | Enable / disable a rule |
-| DELETE | /api/comms/automate/rules/{rid} | Yes | Delete a rule |
-| POST | /api/comms/automate/evaluate | Yes | Evaluate rules against a payload — returns matched rules |
+| GET | ~~/api/comms/automate/rules/{rid}~~ *(removed)* | Yes | Get a specific rule |
+| PATCH | ~~/api/comms/automate/rules/{rid}/toggle~~ *(removed)* | Yes | Enable / disable a rule |
+| DELETE | ~~/api/comms/automate/rules/{rid}~~ *(removed)* | Yes | Delete a rule |
+| POST | ~~/api/comms/automate/evaluate~~ *(removed)* | Yes | Evaluate rules against a payload — returns matched rules |
 
 ### Moderator Console
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | /api/moderator/users | Yes | List all moderated users |
-| POST | /api/moderator/users/{user}/role | Yes | Set user role (admin / moderator / member) |
-| POST | /api/moderator/users/{user}/warn | Yes | Issue a warning |
-| POST | /api/moderator/users/{user}/mute | Yes | Mute a user |
-| POST | /api/moderator/users/{user}/unmute | Yes | Unmute a user |
-| POST | /api/moderator/users/{user}/kick | Yes | Kick a user |
-| POST | /api/moderator/users/{user}/ban | Yes | Ban a user |
-| POST | /api/moderator/users/{user}/unban | Yes | Unban a user |
-| DELETE | /api/moderator/messages/{channel}/{mid} | Yes | Delete a message |
-| GET | /api/moderator/automod/words | Yes | List default and custom blocked words |
-| POST | /api/moderator/automod/words | Yes | Add custom blocked words |
-| DELETE | /api/moderator/automod/words/{word} | Yes | Remove a blocked word |
-| POST | /api/moderator/automod/check | Yes | Check content against automod rules |
-| GET | /api/moderator/broadcast/targets | Yes | List registered broadcast targets |
-| POST | /api/moderator/broadcast/targets | Yes | Register a broadcast target |
-| DELETE | /api/moderator/broadcast/targets/{platform}/{channel_id} | Yes | Unregister a target |
-| POST | /api/moderator/broadcast | Yes | Broadcast to multiple platforms simultaneously |
-| GET | /api/moderator/broadcast/history | Yes | Broadcast history |
-| GET | /api/moderator/audit | Yes | Moderator audit log |
+| GET | ~~/api/moderator/users~~ *(removed)* | Yes | List all moderated users |
+| POST | ~~/api/moderator/users/{user}/role~~ *(removed)* | Yes | Set user role (admin / moderator / member) |
+| POST | ~~/api/moderator/users/{user}/warn~~ *(removed)* | Yes | Issue a warning |
+| POST | ~~/api/moderator/users/{user}/mute~~ *(removed)* | Yes | Mute a user |
+| POST | ~~/api/moderator/users/{user}/unmute~~ *(removed)* | Yes | Unmute a user |
+| POST | ~~/api/moderator/users/{user}/kick~~ *(removed)* | Yes | Kick a user |
+| POST | ~~/api/moderator/users/{user}/ban~~ *(removed)* | Yes | Ban a user |
+| POST | ~~/api/moderator/users/{user}/unban~~ *(removed)* | Yes | Unban a user |
+| DELETE | ~~/api/moderator/messages/{channel}/{mid}~~ *(removed)* | Yes | Delete a message |
+| GET | ~~/api/moderator/automod/words~~ *(removed)* | Yes | List default and custom blocked words |
+| POST | ~~/api/moderator/automod/words~~ *(removed)* | Yes | Add custom blocked words |
+| DELETE | ~~/api/moderator/automod/words/{word}~~ *(removed)* | Yes | Remove a blocked word |
+| POST | ~~/api/moderator/automod/check~~ *(removed)* | Yes | Check content against automod rules |
+| GET | ~~/api/moderator/broadcast/targets~~ *(removed)* | Yes | List registered broadcast targets |
+| POST | ~~/api/moderator/broadcast/targets~~ *(removed)* | Yes | Register a broadcast target |
+| DELETE | ~~/api/moderator/broadcast/targets/{platform}/{channel_id}~~ *(removed)* | Yes | Unregister a target |
+| POST | ~~/api/moderator/broadcast~~ *(removed)* | Yes | Broadcast to multiple platforms simultaneously |
+| GET | ~~/api/moderator/broadcast/history~~ *(removed)* | Yes | Broadcast history |
+| GET | ~~/api/moderator/audit~~ *(removed)* | Yes | Moderator audit log |
 
 **UI Route:** `/ui/comms-hub` → `communication_hub.html`
 
@@ -877,51 +877,51 @@ Founder-level orchestrator (ARCH-020) exposing the `SystemUpdateRecommendationEn
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | /api/system-updates/status | Yes | Current engine status and summary |
-| GET | /api/system-updates/recommendations | Yes | List all recommendations; filter with `?category=` `?priority=` `?status=` |
-| GET | /api/system-updates/recommendations/{rec_id} | Yes | Get a specific recommendation by ID |
-| PUT | /api/system-updates/recommendations/{rec_id}/status | Yes | Approve or dismiss a recommendation — body: `{"action": "approve"|"dismiss", "reason": "…", "approved_by": "…"}` |
+| GET | ~~/api/system-updates/status~~ *(removed)* | Yes | Current engine status and summary |
+| GET | ~~/api/system-updates/recommendations~~ *(removed)* | Yes | List all recommendations; filter with `?category=` `?priority=` `?status=` |
+| GET | ~~/api/system-updates/recommendations/{rec_id}~~ *(removed)* | Yes | Get a specific recommendation by ID |
+| PUT | ~~/api/system-updates/recommendations/{rec_id}/status~~ *(removed)* | Yes | Approve or dismiss a recommendation — body: `{"action": "approve"|"dismiss", "reason": "…", "approved_by": "…"}` |
 
 ### Maintenance Domain
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | /api/system-updates/maintenance/scan | Yes | Trigger a maintenance integration scan |
-| GET | /api/system-updates/maintenance/recommendations | Yes | Get maintenance-specific recommendations; filter with `?priority=` `?status=` |
+| POST | ~~/api/system-updates/maintenance/scan~~ *(removed)* | Yes | Trigger a maintenance integration scan |
+| GET | ~~/api/system-updates/maintenance/recommendations~~ *(removed)* | Yes | Get maintenance-specific recommendations; filter with `?priority=` `?status=` |
 
 ### SDK Update Domain
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | /api/system-updates/sdk/scan | Yes | Trigger an SDK/dependency update scan |
-| GET | /api/system-updates/sdk/recommendations | Yes | Get SDK update recommendations; filter with `?priority=` `?status=` |
+| POST | ~~/api/system-updates/sdk/scan~~ *(removed)* | Yes | Trigger an SDK/dependency update scan |
+| GET | ~~/api/system-updates/sdk/recommendations~~ *(removed)* | Yes | Get SDK update recommendations; filter with `?priority=` `?status=` |
 
 ### Auto-Update Domain
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | /api/system-updates/auto-update/scan | Yes | Trigger an auto-update assessment |
-| GET | /api/system-updates/auto-update/recommendations | Yes | Get auto-update recommendations; filter with `?priority=` `?status=` |
+| POST | ~~/api/system-updates/auto-update/scan~~ *(removed)* | Yes | Trigger an auto-update assessment |
+| GET | ~~/api/system-updates/auto-update/recommendations~~ *(removed)* | Yes | Get auto-update recommendations; filter with `?priority=` `?status=` |
 
 ### Bug Report Auto-Response Domain
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | /api/system-updates/bug-responses/ingest | Yes | Ingest a bug report for automated triage — body: `{title, description, component, severity, stack_trace, reporter}` |
-| GET | /api/system-updates/bug-responses/recommendations | Yes | Get bug response recommendations; filter with `?priority=` `?status=` |
+| POST | ~~/api/system-updates/bug-responses/ingest~~ *(removed)* | Yes | Ingest a bug report for automated triage — body: `{title, description, component, severity, stack_trace, reporter}` |
+| GET | ~~/api/system-updates/bug-responses/recommendations~~ *(removed)* | Yes | Get bug response recommendations; filter with `?priority=` `?status=` |
 
 ### System Operations Domain
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | /api/system-updates/operations/analyze | Yes | Trigger a system operations analysis |
-| GET | /api/system-updates/operations/recommendations | Yes | Get operations recommendations; filter with `?priority=` `?status=` |
+| POST | ~~/api/system-updates/operations/analyze~~ *(removed)* | Yes | Trigger a system operations analysis |
+| GET | ~~/api/system-updates/operations/recommendations~~ *(removed)* | Yes | Get operations recommendations; filter with `?priority=` `?status=` |
 
 ### Full Scan
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | /api/system-updates/full-scan | Yes | Trigger a full scan across all 5 domains simultaneously |
+| POST | ~~/api/system-updates/full-scan~~ *(removed)* | Yes | Trigger a full scan across all 5 domains simultaneously |
 
 **Valid filter values:**
 - `category`: `maintenance`, `sdk_update`, `auto_update`, `bug_response`, `operations`
@@ -1166,3 +1166,87 @@ The following routes exist in `src/runtime/app.py` and were cataloged as missing
 | GET | /api/legal/privacy | No | Privacy policy |
 | POST | /api/auar/provision | Yes | Provision AUAR resource |
 | GET | /api/manifest | No | System manifest |
+
+
+---
+
+## Recently Added Routes (not in previous table)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/ambient/stats | Yes | |
+| GET | /api/artifacts | Yes | |
+| POST | /api/artifacts/create | Yes | |
+| GET | /api/artifacts/{artifact_id} | Yes | |
+| POST | /api/auth/change-password | Yes | |
+| POST | /api/auth/request-password-reset | Yes | |
+| POST | /api/auth/reset-password | Yes | |
+| GET | /api/auth/reset-password/validate | Yes | |
+| POST | /api/automations/commission | Yes | |
+| GET | /api/automations/executions | Yes | |
+| GET | /api/automations/executions/{execution_id} | Yes | |
+| POST | /api/automations/fire-trigger | Yes | |
+| GET | /api/automations/workflows/{workflow_id} | Yes | |
+| POST | /api/automations/workflows/{workflow_id}/execute | Yes | |
+| POST | /api/billing/checkout | Yes | |
+| POST | /api/billing/start-trial | Yes | |
+| GET | /api/credentials/metrics | Yes | |
+| GET | /api/credentials/profiles | Yes | |
+| POST | /api/credentials/profiles/{profile_id}/interactions | Yes | |
+| POST | /api/credentials/store | Yes | |
+| GET | /api/demo/export | Yes | |
+| POST | /api/demo/generate-deliverable | Yes | |
+| POST | /api/demo/run | Yes | |
+| GET | /api/demo/spec/{spec_id} | Yes | |
+| GET | /api/diagnostics/activation | Yes | |
+| GET | /api/diagnostics/activation/last | Yes | |
+| POST | /api/documents | Yes | |
+| GET | /api/documents/{doc_id}/blocks | Yes | |
+| POST | /api/documents/{doc_id}/gates | Yes | |
+| POST | /api/documents/{doc_id}/magnify | Yes | |
+| POST | /api/documents/{doc_id}/simplify | Yes | |
+| POST | /api/documents/{doc_id}/solidify | Yes | |
+| GET | /api/domains/{did} | Yes | |
+| POST | /api/domains/{did}/verify | Yes | |
+| GET | /api/flows/inbound | Yes | |
+| GET | /api/flows/outbound | Yes | |
+| GET | /api/flows/processing | Yes | |
+| GET | /api/flows/state | Yes | |
+| POST | /api/forms/correction | Yes | |
+| GET | /api/forms/list | Yes | |
+| POST | /api/forms/plan-generation | Yes | |
+| POST | /api/forms/plan-upload | Yes | |
+| GET | /api/forms/submission/{submission_id} | Yes | |
+| POST | /api/forms/task-execution | Yes | |
+| POST | /api/forms/validation | Yes | |
+| POST | /api/forms/{form_type} | Yes | |
+| POST | /api/game/balance/check | Yes | |
+| GET | /api/game/balance/report | Yes | |
+| GET | /api/game/eq/status | Yes | |
+| POST | /api/game/monetization/validate | Yes | |
+| GET | /api/game/pipeline/runs | Yes | |
+| POST | /api/game/pipeline/start | Yes | |
+| POST | /api/game/worlds | Yes | |
+| GET | /api/graph/health | Yes | |
+| POST | /api/graph/query | Yes | |
+| GET | /api/hitl/pending | Yes | |
+| GET | /api/hitl/queue | Yes | |
+| POST | /api/hitl/{tid}/decide | Yes | |
+| GET | /api/hitl-graduation/candidates | Yes | |
+| GET | /api/integrations/active | Yes | |
+| POST | /api/integrations/add | Yes | |
+| POST | /api/integrations/wire | Yes | |
+| POST | /api/integrations/{request_id}/approve | Yes | |
+| POST | /api/integrations/{request_id}/reject | Yes | |
+| GET | /api/org/portal/{org_id}/activity | Yes | |
+| PATCH | /api/org/portal/{org_id}/settings | Yes | |
+| GET | /api/orgchart/inoni-agents | Yes | |
+| POST | /api/sessions/create | Yes | |
+| POST | /api/setup/api-collection/enqueue | Yes | |
+| GET | /api/setup/api-collection/guide/{integration_id} | Yes | |
+| GET | /api/setup/api-collection/status | Yes | |
+| POST | /api/setup/api-collection/{request_id}/approve | Yes | |
+| POST | /api/setup/api-collection/{request_id}/fill | Yes | |
+| GET | /api/setup/checklist | Yes | |
+| POST | /api/workflows/generate | Yes | |
+| POST | /api/workflows/{workflow_id}/execute | Yes | |

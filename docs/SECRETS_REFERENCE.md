@@ -115,6 +115,25 @@ bash scripts/generate_secrets.sh
 
 ---
 
+## Additional Required Secrets (app.py — undocumented until now)
+
+The following env vars are read directly by `src/runtime/app.py` and were
+missing from the list above.  Add them to `/etc/murphy-production/environment`
+and to the GitHub Actions secrets for the deploy workflow.
+
+| Variable | Purpose | Example |
+|----------|---------|---------|
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@localhost:5432/murphy` |
+| `REDIS_URL` | Redis connection string | `redis://localhost:6379/0` |
+| `MATRIX_HOMESERVER_URL` | Matrix homeserver URL | `https://matrix.murphy.systems` |
+| `OLLAMA_HOST` | Ollama inference server URL | `http://localhost:11434` |
+| `MURPHY_API_KEYS` | Comma-separated API key list (multi-key auth) | `key1,key2` |
+| `MURPHY_FOUNDER_EMAIL` | Founder account email (seeded at startup) | `cpost@murphy.systems` |
+| `MURPHY_FOUNDER_PASSWORD` | Founder account password (change after first login) | *(generate with `scripts/generate_secrets.sh`)* |
+| `MURPHY_OAUTH_GOOGLE_SECRET` | Google OAuth client secret | *(from Google Cloud Console)* |
+
+---
+
 ## Where Secrets Are Used
 
 The deploy workflow (`.github/workflows/deploy.yml`) writes all secrets to the

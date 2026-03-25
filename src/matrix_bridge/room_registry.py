@@ -538,4 +538,11 @@ class RoomRegistry:
         }
 
 
-__all__ = ["RoomRegistry", "RoomInfo", "SUBSYSTEM_ROOMS"]
+__all__ = ["RoomRegistry", "RoomInfo", "SUBSYSTEM_ROOMS", "ROOM_COGNITIVE_ROLES"]
+
+# Re-export ROOM_COGNITIVE_ROLES so callers can do:
+#   from src.matrix_bridge.room_registry import ROOM_COGNITIVE_ROLES
+try:
+    from .room_cognitive_roles import ROOM_COGNITIVE_ROLES
+except ImportError:
+    ROOM_COGNITIVE_ROLES = {}  # type: ignore[assignment]

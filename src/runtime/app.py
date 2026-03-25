@@ -5581,8 +5581,54 @@ def create_app() -> FastAPI:
 
     @app.get("/api/credentials/list")
     async def credentials_list():
-        """List stored credential keys (no secrets exposed)."""
-        return JSONResponse({"success": True, "credentials": []})
+        """List stored credential keys — shows which integrations are configured.
+
+        Returns the integration name, env variable name, and configured status.
+        Secret values are NEVER returned.
+        """
+        _INTEGRATION_ENV_VARS = {
+            "groq":            ("Groq",             "GROQ_API_KEY"),
+            "openai":          ("OpenAI",            "OPENAI_API_KEY"),
+            "anthropic":       ("Anthropic",         "ANTHROPIC_API_KEY"),
+            "sendgrid":        ("SendGrid",          "SENDGRID_API_KEY"),
+            "slack":           ("Slack",             "SLACK_BOT_TOKEN"),
+            "stripe":          ("Stripe",            "STRIPE_SECRET_KEY"),
+            "hubspot":         ("HubSpot",           "HUBSPOT_API_KEY"),
+            "github":          ("GitHub",            "GITHUB_TOKEN"),
+            "twilio":          ("Twilio",            "TWILIO_AUTH_TOKEN"),
+            "google_calendar": ("Google Calendar",   "GOOGLE_CALENDAR_API_KEY"),
+            "google_sheets":   ("Google Sheets",     "GOOGLE_SHEETS_API_KEY"),
+            "datadog":         ("Datadog",           "DATADOG_API_KEY"),
+            "openweather":     ("OpenWeather",       "OPENWEATHER_API_KEY"),
+            "postgres":        ("PostgreSQL",        "DATABASE_URL"),
+            "redis":           ("Redis",             "REDIS_URL"),
+            "notion":          ("Notion",            "NOTION_API_KEY"),
+            "airtable":        ("Airtable",          "AIRTABLE_API_KEY"),
+            "jira":            ("Jira",              "JIRA_API_TOKEN"),
+            "salesforce":      ("Salesforce",        "SALESFORCE_CONSUMER_KEY"),
+            "pagerduty":       ("PagerDuty",         "PAGERDUTY_API_KEY"),
+            "zoom":            ("Zoom",              "ZOOM_CLIENT_SECRET"),
+            "monday":          ("Monday.com",        "MONDAY_API_KEY"),
+            "shopify":         ("Shopify",           "SHOPIFY_ACCESS_TOKEN"),
+            "twitch":          ("Twitch",            "TWITCH_CLIENT_SECRET"),
+            "discord":         ("Discord",           "DISCORD_BOT_TOKEN"),
+            "telegram":        ("Telegram",          "TELEGRAM_BOT_TOKEN"),
+            "matrix":          ("Matrix",            "MATRIX_ACCESS_TOKEN"),
+            "ollama":          ("Ollama",            "OLLAMA_HOST"),
+        }
+        credentials = []
+        for integration, (name, env_var) in _INTEGRATION_ENV_VARS.items():
+            val = os.environ.get(env_var, "").strip()
+            credentials.append({
+                "integration": integration,
+                "name":        name,
+                "env_var":     env_var,
+                "configured":  bool(val),
+                "masked":      (val[:4] + "…") if len(val) >= 8 else ("set" if val else ""),
+            })
+        # Sort: configured first, then alphabetically
+        credentials.sort(key=lambda c: (not c["configured"], c["name"].lower()))
+        return JSONResponse({"success": True, "credentials": credentials})
 
     @app.post("/api/credentials/store")
     async def credentials_store(request: Request):
@@ -9182,6 +9228,8 @@ def create_app() -> FastAPI:
             "/ui/change-password": "change_password.html",
             "/ui/reset-password": "reset_password.html",
             "/ui/game-creation": "game_creation.html",
+            "/ui/dispatch": "dispatch.html",
+            "/ui/terminal-integrated-legacy": "murphy_ui_integrated_terminal.html",
         }
 
         # ── Route classification: public vs auth-required ──────────

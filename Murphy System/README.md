@@ -2,7 +2,7 @@
 
 **Universal AI Automation System**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10+-yellow.svg)](https://www.python.org/) [![CI](https://github.com/IKNOWINOT/Murphy-System/actions/workflows/ci.yml/badge.svg)](https://github.com/IKNOWINOT/Murphy-System/actions/workflows/ci.yml) [![Tests](https://img.shields.io/badge/tests-17368%20passing-brightgreen.svg)](#-test-status)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10+-yellow.svg)](https://www.python.org/) [![CI](https://github.com/IKNOWINOT/Murphy-System/actions/workflows/ci.yml/badge.svg)](https://github.com/IKNOWINOT/Murphy-System/actions/workflows/ci.yml) [![Tests](https://img.shields.io/badge/tests-17368%20defined-brightgreen.svg)](#-test-status)
 
 ---
 
@@ -12,7 +12,7 @@
 > developed and maintained by a **single developer** ([@IKNOWINOT](https://github.com/IKNOWINOT)).
 > While the architecture is comprehensive and the test suite covers thousands of
 > functions, **not everything works as intended**. Emergent bugs are still being
-> discovered and classified across the 978-module surface area.
+> discovered and classified across the 535-module surface area.
 >
 > **What this means for you:**
 >
@@ -24,7 +24,7 @@
 >   unexpected behavior. Edge cases are actively being catalogued.
 > - 🔧 **Self-healing capabilities** — Murphy includes a self-improvement engine,
 >   bug pattern detector, and correction loop.
-> - 📊 **Test coverage is extensive** — 644 test files with comprehensive coverage.
+> - 📊 **Test coverage is extensive** — 706 test files with comprehensive coverage.
 >   CI runs automatically on push/PR via GitHub Actions.
 > - 🤝 **Contributions welcome** — see [CONTRIBUTING.md](CONTRIBUTING.md).
 >
@@ -53,6 +53,7 @@ Murphy is a **complete, operational AI automation system** that can automate any
 ✅ **Orchestrators** - Safety, efficiency, and supply chain orchestration  
 ✅ **Container Deployment** - Docker and Kubernetes configs included (security hardening required before production)
 
+> **Recently added:** Room LLM Brain (MSS-aligned MAGNIFY/SIMPLIFY/SOLIDIFY in every room), World Knowledge Calibrator (algebraic sensor anchors), Agentic Communications Router (agent-to-agent messaging), Bot Room Registry (multi-room persona mapping), Rosetta Platform State (3-layer platform/agent/combined copy system), Optimal Routing Wiring (Triage→Librarian→Causality→Rubix→GoldenPath pipeline), Room Cognitive Roles (MSS role per room)  
 > **Coming in #136:** Drawing Engine, Credential Gate, Sensor Fusion, Osmosis Engine, Autonomous Perception, Wingman Evolution, Engineering Toolbox
 
 ---
@@ -69,7 +70,7 @@ Murphy's hero flow inverts the traditional automation paradigm — you describe 
 
 **No drag-and-drop. No connector wiring. No trigger logic.** Just a plain English sentence.
 
-Murphy uses [`ai_workflow_generator.py`](<Murphy System/src/ai_workflow_generator.py>) to convert your description into a structured workflow, [`nocode_workflow_terminal.py`](<Murphy System/src/nocode_workflow_terminal.py>) as the Librarian-powered conversation interface, and [`workflow_canvas.html`](<Murphy System/workflow_canvas.html>) as the optional visual refinement layer once the plan is generated.
+Murphy uses [`ai_workflow_generator.py`](src/ai_workflow_generator.py) to convert your description into a structured workflow, [`nocode_workflow_terminal.py`](src/nocode_workflow_terminal.py) as the Librarian-powered conversation interface, and [`workflow_canvas.html`](workflow_canvas.html) as the optional visual refinement layer once the plan is generated.
 
 **📖 For comprehensive documentation on voice/typed command automation, see:**
 - [Generative Automation Presets](documentation/features/GENERATIVE_AUTOMATION_PRESETS.md) — Complete guide to natural language workflow generation, industry presets, role-based execution, and human-in-the-loop governance
@@ -120,9 +121,9 @@ The script handles the virtual environment, installs **all** dependencies (inclu
 
 **📚 Documentation:**
 - **Complete Guide:** [GETTING_STARTED.md](GETTING_STARTED.md)
-- **Quick Start:** [Murphy System/MURPHY_1.0_QUICK_START.md](Murphy%20System/MURPHY_1.0_QUICK_START.md)
-- **API Reference:** [Murphy System/API_DOCUMENTATION.md](Murphy%20System/API_DOCUMENTATION.md)
-- **Deployment Guide:** [Murphy System/DEPLOYMENT_GUIDE.md](Murphy%20System/DEPLOYMENT_GUIDE.md)
+- **Quick Start:** [Murphy System/MURPHY_1.0_QUICK_START.md](MURPHY_1.0_QUICK_START.md)
+- **API Reference:** [Murphy System/API_DOCUMENTATION.md](API_DOCUMENTATION.md)
+- **Deployment Guide:** [Murphy System/DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
 
 ---
 
@@ -173,7 +174,7 @@ See [docs/TIERED_RUNTIME.md](docs/TIERED_RUNTIME.md) for details.
 | Compliance validation | **90%** | Framework complete; formal attestation (SOC 2, ISO 27001) pending |
 | Operational automation | **85%** | Core flows working; Phases 2–8 all implemented and verified |
 | File system cleanup | **100%** | Complete |
-| Test coverage (dynamic chains) | **85%** | 644 test files, 17,368 test functions; 1,611 verified passing across 37+ suites |
+| Test coverage (dynamic chains) | **85%** | 706 test files, 17,368 test functions across 37+ suites |
 | UI + user testing | **75%** | 14 web interfaces built; UI completion PR pending |
 | Security hardening | **80%** | Auth/CORS/CSP/JWT done; E2EE stub gated for production |
 | Code quality audit (90 categories) | **90%** | Audit complete; remediation for remaining items in progress |
@@ -183,9 +184,9 @@ See [docs/TIERED_RUNTIME.md](docs/TIERED_RUNTIME.md) for details.
 | E2E Hero Flow Validation | **85%** | Describe→Generate→Execute chain validated: 49 integration tests pass; real-user validation and production load testing remain |
 | Librarian Command Coverage | **100%** | All 154 commands wired into Librarian; `generate_command()` + triage escalation tested across every category |
 | Librarian Triage Escalation | **100%** | Mode-aware (ASK/ONBOARDING/PRODUCTION/ASSISTANT); triage→execution path validated with 57 tests |
-| **Weighted overall** | **~83%** | See [Production Readiness Audit](Murphy%20System/strategic/PRODUCTION_READINESS_AUDIT.md) |
+| **Weighted overall** | **~83%** | See [Production Readiness Audit](Murphy System/strategic/PRODUCTION_READINESS_AUDIT.md) |
 
-> **Test status:** 644 test files with 17,368 test functions; 1,611 verified passing.
+> **Test status:** 706 test files with 17,368 test functions.
 > Skipped tests require optional packages (Flask, Textual, torch).
 > CI pipeline runs on every push/PR — see [Test Status](#-test-status) below.
 
@@ -212,8 +213,8 @@ Murphy-System/
 └── Murphy System/                      ← ACTIVE SYSTEM
     ├── murphy                          ← CLI tool (start/stop/status/…)
     ├── murphy_system_1.0_runtime.py    ← Single production runtime
-    ├── src/                            ← 1062 production modules
-    ├── tests/                          ← 644 test files
+    ├── src/                            ← 978 production modules
+    ├── tests/                          ← 706 test files
     ├── bots/                           ← 104 bot modules
     ├── documentation/                  ← Structured API/user docs
     ├── docs/                           ← Technical docs
@@ -687,7 +688,7 @@ The Murphy System Runtime exposes a FastAPI-based REST API. Start the server wit
 | `POST` | `/api/ucp/execute` | Yes | Universal Control Protocol execution |
 | `GET` | `/api/integrations/{status}` | Yes | List integrations filtered by status |
 
-> **Authentication:** Production mode (`MURPHY_ENV=production`) requires `Authorization: Bearer <key>` or `X-API-Key: <key>` header on all non-health endpoints. Development mode allows unauthenticated access. See [`Murphy System/documentation/api/AUTHENTICATION.md`](<Murphy System/documentation/api/AUTHENTICATION.md>) for full details.
+> **Authentication:** Production mode (`MURPHY_ENV=production`) requires `Authorization: Bearer <key>` or `X-API-Key: <key>` header on all non-health endpoints. Development mode allows unauthenticated access. See [`Murphy System/documentation/api/AUTHENTICATION.md`](Murphy System/documentation/api/AUTHENTICATION.md) for full details.
 
 ---
 
@@ -731,15 +732,15 @@ Copy `Murphy System/.env.example` to `Murphy System/.env` and fill in the values
 
 | Document | Description |
 | --- | --- |
-| [Quick Start](Murphy%20System/MURPHY_1.0_QUICK_START.md) | Get started in 5 minutes |
+| [Quick Start](MURPHY_1.0_QUICK_START.md) | Get started in 5 minutes |
 | [Roadmap](ROADMAP.md) | Public revenue-first sprint plan |
-| [Specification](<Murphy System/MURPHY_SYSTEM_1.0_SPECIFICATION.md>) | Complete system spec |
-| [API Documentation](<Murphy System/API_DOCUMENTATION.md>) | API reference |
-| [Deployment Guide](<Murphy System/DEPLOYMENT_GUIDE.md>) | Deployment instructions |
-| [User Manual](<Murphy System/USER_MANUAL.md>) | Comprehensive user manual |
-| [Launch Automation Plan](<Murphy System/docs/LAUNCH_AUTOMATION_PLAN.md>) | Self-automating launch strategy |
-| [Operations & Testing Plan](<Murphy System/docs/OPERATIONS_TESTING_PLAN.md>) | Iterative test-fix-document cycle |
-| [Gap Analysis](<Murphy System/docs/GAP_ANALYSIS.md>) | System gap analysis and status |
+| [Specification](MURPHY_SYSTEM_1.0_SPECIFICATION.md) | Complete system spec |
+| [API Documentation](API_DOCUMENTATION.md) | API reference |
+| [Deployment Guide](DEPLOYMENT_GUIDE.md) | Deployment instructions |
+| [User Manual](USER_MANUAL.md) | Comprehensive user manual |
+| [Launch Automation Plan](Murphy System/docs/LAUNCH_AUTOMATION_PLAN.md) | Self-automating launch strategy |
+| [Operations & Testing Plan](Murphy System/docs/OPERATIONS_TESTING_PLAN.md) | Iterative test-fix-document cycle |
+| [Gap Analysis](Murphy System/docs/GAP_ANALYSIS.md) | System gap analysis and status |
 | [API Docs](http://localhost:8000/docs) | Interactive API docs (requires running server) |
 | [Archive](https://github.com/IKNOWINOT/murphy-system-archive) | Legacy versions and artifacts (separate repository) |
 
@@ -766,6 +767,17 @@ We welcome contributions! Please read:
 - [CONTRIBUTING.md](CONTRIBUTING.md) — How to contribute
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — Community standards
 - [SECURITY.md](SECURITY.md) — Reporting vulnerabilities
+
+---
+
+## New in This Release
+
+- **`src/pilot_config.py`** — Canonical pilot account (`cpost@murphy.systems`) and automation routing
+- **`src/large_control_model.py`** — LCM meta-controller: NL → MSS → Rosetta → Causality → Dispatch
+- **`src/rosette_lens.py`** — Rosetta agent positions → MSS data lens bridge
+- **`src/nav_registry.py`** — All 50+ modules mapped to navigation categories
+- **`static/murphy-nav.js`** — Shared navigation component (Finance & Grants always visible)
+- **`src/demo_runner.py`** — Real demo pipeline: every scenario routes through actual Murphy components
 
 ---
 
@@ -933,7 +945,7 @@ Murphy includes built-in self-improvement infrastructure:
 - ❌ Modify source code (requires human review via code proposals)
 - ⚠️ Complex emergent bugs require manual diagnosis
 
-See [`docs/SELF_FIX_LOOP.md`](<Murphy System/docs/SELF_FIX_LOOP.md>) for full documentation on the autonomous self-fix loop.
+See [`docs/SELF_FIX_LOOP.md`](Murphy System/docs/SELF_FIX_LOOP.md) for full documentation on the autonomous self-fix loop.
 
 File an issue or submit a patch — Murphy's learning loop will incorporate the
 feedback into its operational models.
@@ -1003,10 +1015,11 @@ curl http://localhost:8000/api/status
 | Production Deployment Readiness | 65% |
 | **Weighted Overall** | **~85%** |
 
-> The overall percentage reflects the reality that while code coverage is extensive
-> (1062 modules, 922 in `src/`, 644 test files), the critical **E2E validation of the
-> hero flow** and **production deployment hardening** are the primary gaps preventing
-> a 100% readiness declaration.
+> PR 1–3 of ARCH-007 (Founder Update Engine) complete: 133 tests, 7 modules.
+> PR 4 (API routes + Founder Dashboard UI) pending.
+> The overall percentage reflects that while code coverage is extensive
+> (978+ modules, 644+ test files), **E2E validation of the hero flow** and
+> **production deployment hardening** remain the primary gaps.
 
 ---
 
