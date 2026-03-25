@@ -361,6 +361,18 @@ SUBSYSTEM_ROOMS: Dict[str, _RoomSpec] = {
     "finance":                          ("system", True),
     "monitoring":                       ("system", False),
     "admin":                            ("system", True),
+
+    # ── Additional rooms for previously unregistered packages ────────────
+    "document-export":                  ("additional", False),
+    "game-creation-pipeline":           ("misc-systems", False),
+    "management-systems":               ("misc-systems", False),
+    "matrix-bridge":                    ("misc-systems", False),
+    "multiverse-game-framework":        ("misc-systems", False),
+    "org-build-plan":                   ("org-workflow", False),
+    "platform-onboarding":              ("org-workflow", False),
+    "service-module":                   ("misc-systems", False),
+    "strategy-templates":               ("misc-systems", False),
+    "workdocs":                         ("additional", False),
 }
 
 
@@ -538,4 +550,11 @@ class RoomRegistry:
         }
 
 
-__all__ = ["RoomRegistry", "RoomInfo", "SUBSYSTEM_ROOMS"]
+__all__ = ["RoomRegistry", "RoomInfo", "SUBSYSTEM_ROOMS", "ROOM_COGNITIVE_ROLES"]
+
+# Re-export ROOM_COGNITIVE_ROLES so callers can do:
+#   from src.matrix_bridge.room_registry import ROOM_COGNITIVE_ROLES
+try:
+    from .room_cognitive_roles import ROOM_COGNITIVE_ROLES
+except ImportError:
+    ROOM_COGNITIVE_ROLES = {}  # type: ignore[assignment]

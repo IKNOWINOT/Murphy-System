@@ -2,7 +2,7 @@
 
 **Universal AI Automation System**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10+-yellow.svg)](https://www.python.org/) [![CI](https://github.com/IKNOWINOT/Murphy-System/actions/workflows/ci.yml/badge.svg)](https://github.com/IKNOWINOT/Murphy-System/actions/workflows/ci.yml) [![Tests](https://img.shields.io/badge/tests-17368%20defined-brightgreen.svg)](#-test-status)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10+-yellow.svg)](https://www.python.org/) [![CI](https://github.com/IKNOWINOT/Murphy-System/actions/workflows/ci.yml/badge.svg)](https://github.com/IKNOWINOT/Murphy-System/actions/workflows/ci.yml) [![Tests](https://img.shields.io/badge/tests-24341%20defined-brightgreen.svg)](#-test-status)
 
 ---
 
@@ -174,7 +174,7 @@ See [docs/TIERED_RUNTIME.md](docs/TIERED_RUNTIME.md) for details.
 | Compliance validation | **90%** | Framework complete; formal attestation (SOC 2, ISO 27001) pending |
 | Operational automation | **85%** | Core flows working; Phases 2–8 all implemented and verified |
 | File system cleanup | **100%** | Complete |
-| Test coverage (dynamic chains) | **85%** | 706 test files, 17,368 test functions across 37+ suites |
+| Test coverage (dynamic chains) | **85%** | 706 test files, 24,341 test functions across 37+ suites |
 | UI + user testing | **75%** | 14 web interfaces built; UI completion PR pending |
 | Security hardening | **80%** | Auth/CORS/CSP/JWT done; E2EE stub gated for production |
 | Code quality audit (90 categories) | **90%** | Audit complete; remediation for remaining items in progress |
@@ -186,7 +186,7 @@ See [docs/TIERED_RUNTIME.md](docs/TIERED_RUNTIME.md) for details.
 | Librarian Triage Escalation | **100%** | Mode-aware (ASK/ONBOARDING/PRODUCTION/ASSISTANT); triage→execution path validated with 57 tests |
 | **Weighted overall** | **~83%** | See [Production Readiness Audit](Murphy System/strategic/PRODUCTION_READINESS_AUDIT.md) |
 
-> **Test status:** 706 test files with 17,368 test functions.
+> **Test status:** 706 test files with 24,341 test functions.
 > Skipped tests require optional packages (Flask, Textual, torch).
 > CI pipeline runs on every push/PR — see [Test Status](#-test-status) below.
 
