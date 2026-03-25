@@ -56,6 +56,8 @@
 # Exit code: 0 on success, 1 on critical failure.
 
 set -euo pipefail
+export PAGER=cat
+export DOCKER_PAGER=cat
 
 # ── Help / version ────────────────────────────────────────────────────────────
 show_help() {
@@ -558,7 +560,7 @@ if [ "$SKIP_ENV_AUDIT" = false ]; then
     unset _bad_lines
 
     # ── CHANGEME placeholder detection ────────────────────────────────────────
-    _changeme_count=$(grep -cE 'CHANGEME' "${MURPHY_ENV_FILE}" 2>/dev/null || echo 0)
+    _changeme_count=$(grep -cE 'CHANGEME' "${MURPHY_ENV_FILE}" 2>/dev/null) || _changeme_count=0
     if [ "${_changeme_count}" -gt 0 ]; then
       warn "Env file still contains ${_changeme_count} CHANGEME placeholder(s) — fill in real values:"
       grep -nE 'CHANGEME' "${MURPHY_ENV_FILE}" 2>/dev/null | head -10 >&2 || true
