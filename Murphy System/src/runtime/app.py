@@ -12,9 +12,9 @@ License: BSL 1.1
 from src.runtime._deps import (
     # Standard library
     Any,
-    BackgroundTasks,
     ConceptTranslationEngine,
     CORSMiddleware,
+    BackgroundTasks,
     Depends,
     Dict,
     # Web framework
@@ -150,9 +150,8 @@ def create_app() -> FastAPI:
         _oauth_registry = None
 
     # session_token → account_id — Redis-backed with in-memory fallback
-    import secrets as _secrets
     import threading as _threading
-
+    import secrets as _secrets
     import bcrypt as _bcrypt
     _session_lock = _threading.Lock()
 
@@ -342,11 +341,11 @@ def create_app() -> FastAPI:
 
     # ── Subscription manager (shared instance) ──
     try:
-        from src.subscription_manager import BillingInterval as _BillingInterval
         from src.subscription_manager import SubscriptionManager as _SubMgr
+        from src.subscription_manager import SubscriptionTier as _SubTier
         from src.subscription_manager import SubscriptionRecord as _SubRec
         from src.subscription_manager import SubscriptionStatus as _SubStatus
-        from src.subscription_manager import SubscriptionTier as _SubTier
+        from src.subscription_manager import BillingInterval as _BillingInterval
         _sub_manager = _SubMgr()
     except Exception:  # pragma: no cover
         _sub_manager = None
@@ -1110,7 +1109,7 @@ def create_app() -> FastAPI:
         model = (data.get("model") or "").strip()
         if not model:
             return JSONResponse({"success": False, "error": "model name is required"}, status_code=400)
-        from src.local_llm_fallback import _check_ollama_available, _ollama_base_url, _ollama_pull_model
+        from src.local_llm_fallback import _ollama_base_url, _check_ollama_available, _ollama_pull_model
         base_url = _ollama_base_url()
         if not _check_ollama_available(base_url):
             return JSONResponse({"success": False, "error": "Ollama is not running"}, status_code=503)
@@ -1127,7 +1126,7 @@ def create_app() -> FastAPI:
         model = (data.get("model") or "").strip()
         if not model:
             return JSONResponse({"success": False, "error": "model name is required"}, status_code=400)
-        from src.local_llm_fallback import _check_ollama_available, _ollama_base_url, _ollama_delete_model
+        from src.local_llm_fallback import _ollama_base_url, _check_ollama_available, _ollama_delete_model
         base_url = _ollama_base_url()
         if not _check_ollama_available(base_url):
             return JSONResponse({"success": False, "error": "Ollama is not running"}, status_code=503)
@@ -1205,7 +1204,7 @@ def create_app() -> FastAPI:
                 "id": f"llm_{provider}", "category": "llm", "label": label,
                 "env_var": env_var, "configured": configured,
                 "setup_url": url, "priority": 1,
-                "description": "Needed for AI chat, workflow generation, and document assistance.",
+                "description": f"Needed for AI chat, workflow generation, and document assistance.",
                 "action": f"POST /api/credentials/store with provider={provider}",
             })
 
@@ -1362,7 +1361,7 @@ def create_app() -> FastAPI:
             req = built_in[req_name]
         else:
             # Custom requirement passed inline
-            from src.api_collection_agent import APIField, APIMethod, APIRequirement
+            from src.api_collection_agent import APIRequirement, APIField, APIMethod
             fields_raw = data.get("fields", [])
             fields = [APIField(
                 name=f.get("name", ""), required=f.get("required", False),
@@ -2015,8 +2014,7 @@ def create_app() -> FastAPI:
     }
 
     try:
-        from src.matrix_bridge import MatrixBridgeSettings
-        from src.matrix_bridge import get_settings as _get_matrix_settings
+        from src.matrix_bridge import MatrixBridgeSettings, get_settings as _get_matrix_settings
         _mx_settings = _get_matrix_settings()
         _matrix_bridge_state["homeserver"] = _mx_settings.homeserver_url
         logger.info("Matrix bridge settings loaded")
@@ -2157,8 +2155,7 @@ def create_app() -> FastAPI:
         budget = float(data.get("budget", 50.0))
         idempotency_key = data.get("idempotency_key") or None
         try:
-            import os
-            import sys
+            import sys, os
             _ms_src = os.path.join(os.path.dirname(__file__), "..", "..", "Murphy System", "src")
             if _ms_src not in sys.path:
                 sys.path.insert(0, _ms_src)
@@ -2194,8 +2191,8 @@ def create_app() -> FastAPI:
         if not task:
             return JSONResponse({"success": False, "error": "task is required"}, status_code=400)
         try:
+            from src.true_swarm_system import TrueSwarmSystem, Phase
             from src.llm_controller import LLMController
-            from src.true_swarm_system import Phase, TrueSwarmSystem
             phase = Phase[phase_name]
             system = TrueSwarmSystem(llm_controller=LLMController())
             result = system.execute_phase(phase=phase, task=task, context=data.get("context") or {})
@@ -2695,8 +2692,8 @@ def create_app() -> FastAPI:
         (e.g. ``order_fulfillment`` when the user mentions Shopify + orders, or
         ``invoice_processing`` when they mention billing + accounts payable).
         """
-        import os as _os
         import sys as _sys
+        import os as _os
         try:
             _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             from ai_workflow_generator import AIWorkflowGenerator
@@ -2899,8 +2896,8 @@ def create_app() -> FastAPI:
     async def get_workflow_definition(workflow_id: str, request: Request):
         """Return the generated workflow definition for a given workflow_id."""
         try:
-            import os as _os
             import sys as _sys
+            import os as _os
             _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             from ai_workflow_generator import AIWorkflowGenerator
             generator = AIWorkflowGenerator()
@@ -2934,8 +2931,8 @@ def create_app() -> FastAPI:
     async def execute_workflow_endpoint(workflow_id: str, request: Request):
         """Execute a workflow DAG and return commissioning results."""
         try:
-            import os as _os
             import sys as _sys
+            import os as _os
             _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             data = {}
             try:
@@ -3044,8 +3041,8 @@ def create_app() -> FastAPI:
             engine = getattr(request.app.state, "automation_engine", None)
             if engine is None:
                 return JSONResponse({"success": False, "error": "Automation engine not available"}, status_code=503)
-            import os as _os
             import sys as _sys
+            import os as _os
             _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             from automations.models import TriggerType
             try:
@@ -3071,8 +3068,8 @@ def create_app() -> FastAPI:
     async def onboarding_finalize(request: Request):
         """Convert a completed onboarding session into a registered, executable workflow + AutomationEngine rule."""
         try:
-            import os as _os
             import sys as _sys
+            import os as _os
             _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             data = await request.json()
             session_id = (data.get("session_id") or "").strip()
@@ -3112,7 +3109,7 @@ def create_app() -> FastAPI:
             rule_id = None
             try:
                 from automations.engine import AutomationEngine
-                from automations.models import ActionType, AutomationAction, TriggerType
+                from automations.models import TriggerType, AutomationAction, ActionType
                 ae = getattr(request.app.state, "automation_engine", None) or AutomationEngine()
                 template = automation_config.get("template_used") or ""
                 # Use the module-level mapping so trigger assignment is not duplicated
@@ -3147,8 +3144,8 @@ def create_app() -> FastAPI:
     async def commission_workflow_endpoint(request: Request):
         """Run commissioning on any workflow dict or workflow_id."""
         try:
-            import os as _os
             import sys as _sys
+            import os as _os
             _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             data = await request.json()
             ctx = data.get("context") or {}
@@ -4775,7 +4772,7 @@ def create_app() -> FastAPI:
                 "id": f"sched-{pid}-intake",
                 "proposal_id": pid,
                 "stage": "intake",
-                "label": "Receive & validate incoming request",
+                "label": f"Receive & validate incoming request",
                 "industry": p.get("industry", ""),
                 "scheduled_at": base_time.isoformat(),
                 "status": "ready",
@@ -5014,9 +5011,7 @@ def create_app() -> FastAPI:
                 status_code=400,
             )
 
-        from datetime import datetime as _dt
-        from datetime import timedelta as _td
-        from datetime import timezone as _tz_mod
+        from datetime import datetime as _dt, timedelta as _td, timezone as _tz_mod
         trial_end = (_dt.now(_tz_mod.utc) + _td(days=14)).isoformat()
 
         mgr = _get_sub_manager()
@@ -5611,8 +5606,7 @@ def create_app() -> FastAPI:
 
         # --- Format validation (best-effort, non-blocking) ---
         try:
-            from src.env_manager import API_KEY_FORMATS as _AKF
-            from src.env_manager import validate_api_key as _validate_api_key
+            from src.env_manager import validate_api_key as _validate_api_key, API_KEY_FORMATS as _AKF
             if integration in _AKF:
                 _valid, _msg = _validate_api_key(integration, credential)
                 if not _valid:
@@ -6065,10 +6059,8 @@ def create_app() -> FastAPI:
 
     try:
         from src.compliance_toggle_manager import (
-            COMPLIANCE_ENGINE_MAP as _COMPLIANCE_ENGINE_MAP,
-        )
-        from src.compliance_toggle_manager import (
             ComplianceToggleManager as _ComplianceToggleManager,
+            COMPLIANCE_ENGINE_MAP as _COMPLIANCE_ENGINE_MAP,
         )
         _compliance_toggle_manager = _ComplianceToggleManager()
     except ImportError:
@@ -6370,17 +6362,10 @@ def create_app() -> FastAPI:
     if _gate_wiring is not None:
         try:
             import uuid as _uuid_mod
-
             from src.gate_execution_wiring import (
                 GateDecision as _GateDecision,
-            )
-            from src.gate_execution_wiring import (
                 GateEvaluation as _GateEvaluation,
-            )
-            from src.gate_execution_wiring import (
                 GatePolicy as _GatePolicy,
-            )
-            from src.gate_execution_wiring import (
                 GateType as _GateType,
             )
 
@@ -6587,7 +6572,7 @@ def create_app() -> FastAPI:
                     with _session_lock:
                         _session_store[session_token] = _email
 
-                    redirect_url = "/ui/terminal-unified?oauth_success=1&provider=google"
+                    redirect_url = f"/ui/terminal-unified?oauth_success=1&provider=google"
                     response = RedirectResponse(url=redirect_url, status_code=302)
                     response.set_cookie(
                         key="murphy_session",
@@ -6634,9 +6619,8 @@ def create_app() -> FastAPI:
             return response
         except ValueError as exc:
             logger.warning("OAuth callback rejected: %s", exc)
-            import urllib.parse
-
             from starlette.responses import RedirectResponse
+            import urllib.parse
             error_qs = urllib.parse.urlencode({"error": str(exc)})
             return RedirectResponse(
                 url=f"/ui/login?{error_qs}",
@@ -7095,7 +7079,7 @@ def create_app() -> FastAPI:
                         account_id=account_id,
                         tier=_SubTier(tier),
                         interval=billing_interval,
-                        success_url="/ui/terminal-unified?upgraded=1",
+                        success_url=f"/ui/terminal-unified?upgraded=1",
                         cancel_url="/ui/pricing",
                     )
                     return JSONResponse({"success": True, "approval_url": url})
@@ -7136,7 +7120,6 @@ def create_app() -> FastAPI:
     async def auth_oauth_redirect(provider: str):
         """Redirect to OAuth provider for signup/login."""
         from starlette.responses import RedirectResponse
-
         from src.account_management.models import OAuthProvider
 
         _supported = {p.value for p in OAuthProvider if p != OAuthProvider.CUSTOM}
@@ -7805,8 +7788,7 @@ def create_app() -> FastAPI:
         if not name:
             return JSONResponse({"error": "name is required"}, status_code=400)
 
-        import re as _re_org
-        import uuid as _uuid_org
+        import uuid as _uuid_org, re as _re_org
         org_id = _uuid_org.uuid4().hex[:12]
         slug = _re_org.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
@@ -8138,8 +8120,7 @@ def create_app() -> FastAPI:
         if not name:
             return JSONResponse({"error": "name is required"}, status_code=400)
 
-        import re as _re
-        import uuid as _uuid
+        import uuid as _uuid, re as _re
         org_id = _uuid.uuid4().hex[:12]
         slug = _re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
         org = {
@@ -9134,8 +9115,7 @@ def create_app() -> FastAPI:
     # so that /ui/... routes advertised by /api/ui/links are actually reachable.
 
     try:
-        from starlette.responses import FileResponse as _FileResponse
-        from starlette.responses import RedirectResponse as _RedirectResponse
+        from starlette.responses import FileResponse as _FileResponse, RedirectResponse as _RedirectResponse
         from starlette.staticfiles import StaticFiles as _StaticFiles
 
         _project_root = Path(__file__).resolve().parent.parent.parent  # src/runtime/ → Murphy System/
@@ -9481,13 +9461,12 @@ def create_app() -> FastAPI:
 
     def _get_live_feed():
         try:
-            import os as _os
             import sys as _sys
+            import os as _os
             _src = _os.path.join(_os.path.dirname(__file__), "..")
             if _src not in _sys.path:
                 _sys.path.insert(0, _src)
             from live_feed_service import get_live_feed
-
             from coinbase_connector import CoinbaseConnector
             _cb = CoinbaseConnector()
             return get_live_feed(
@@ -9564,8 +9543,8 @@ def create_app() -> FastAPI:
         if not q:
             return JSONResponse({"success": False, "error": "query required", "results": []})
         try:
-            import json as _json
             import urllib.request as _req
+            import json as _json
             url = (
                 f"https://query1.finance.yahoo.com/v1/finance/search"
                 f"?q={q}&quotesCount=10&newsCount=0"
@@ -9654,8 +9633,8 @@ def create_app() -> FastAPI:
 
     def _get_compliance_engine():
         try:
-            import os as _os
             import sys as _sys
+            import os as _os
             _src = _os.path.join(_os.path.dirname(__file__), "..")
             if _src not in _sys.path:
                 _sys.path.insert(0, _src)
@@ -9705,8 +9684,8 @@ def create_app() -> FastAPI:
             body = {}
         # Also pull summary from graduation tracker if available
         try:
-            import os as _os
             import sys as _sys
+            import os as _os
             _src = _os.path.join(_os.path.dirname(__file__), "..")
             if _src not in _sys.path:
                 _sys.path.insert(0, _src)
@@ -9736,8 +9715,8 @@ def create_app() -> FastAPI:
     async def trading_compliance_graduation():
         """Return paper-trading graduation tracker summary and daily history."""
         try:
-            import os as _os
             import sys as _sys
+            import os as _os
             _src = _os.path.join(_os.path.dirname(__file__), "..")
             if _src not in _sys.path:
                 _sys.path.insert(0, _src)
@@ -9775,8 +9754,8 @@ def create_app() -> FastAPI:
           trades       : int   — number of trades executed
         """
         try:
-            import os as _os
             import sys as _sys
+            import os as _os
             _src = _os.path.join(_os.path.dirname(__file__), "..")
             if _src not in _sys.path:
                 _sys.path.insert(0, _src)
@@ -9881,8 +9860,7 @@ def create_app() -> FastAPI:
         # project layout.  This mirrors what the original standalone Flask app
         # did via sys.path.insert in its own __main__ block.
         _sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-        from module_compiler import ModuleCompiler as _ModuleCompiler
-        from module_compiler import ModuleRegistry as _ModuleRegistry
+        from module_compiler import ModuleCompiler as _ModuleCompiler, ModuleRegistry as _ModuleRegistry
 
         _mc_compiler = _ModuleCompiler()
         _mc_registry = _ModuleRegistry()
@@ -10026,8 +10004,8 @@ def create_app() -> FastAPI:
     # ── Compute Plane (was: src/compute_plane/api/endpoints.py) ────────────
 
     try:
-        from compute_plane.models.compute_request import ComputeRequest as _ComputeRequest
         from compute_plane.service import ComputeService as _ComputeService
+        from compute_plane.models.compute_request import ComputeRequest as _ComputeRequest
 
         _cp_service = _ComputeService(enable_caching=True)
 
@@ -10094,46 +10072,26 @@ def create_app() -> FastAPI:
     # ── Gate Synthesis (was: src/gate_synthesis/api_server.py) ─────────────
 
     try:
-        from confidence_engine.models import (
-            ArtifactGraph as _ArtifactGraph,
-        )
-        from confidence_engine.models import (
-            ArtifactNode as _ArtifactNode,
-        )
-        from confidence_engine.models import (
-            ArtifactSource as _ArtifactSource,
-        )
-        from confidence_engine.models import (
-            ArtifactType as _ArtifactType,
-        )
-        from confidence_engine.models import (
-            AuthorityBand as _AuthorityBand,
-        )
-        from confidence_engine.models import (
-            ConfidenceState as _ConfidenceState,
-        )
-        from confidence_engine.models import (
-            Phase as _Phase,
-        )
         from gate_synthesis.failure_mode_enumerator import FailureModeEnumerator as _FME
         from gate_synthesis.gate_generator import GateGenerator as _GateGenerator
         from gate_synthesis.gate_lifecycle_manager import GateLifecycleManager as _GLM
         from gate_synthesis.models import (
             ExposureSignal as _ExposureSignal,
-        )
-        from gate_synthesis.models import (
             FailureMode as _FailureMode,
-        )
-        from gate_synthesis.models import (
             FailureModeType as _FailureModeType,
-        )
-        from gate_synthesis.models import (
             GateCategory as _GateCategory,
-        )
-        from gate_synthesis.models import (
             GateState as _GateState,
         )
         from gate_synthesis.murphy_estimator import MurphyProbabilityEstimator as _MPE
+        from confidence_engine.models import (
+            ArtifactGraph as _ArtifactGraph,
+            ArtifactNode as _ArtifactNode,
+            ArtifactSource as _ArtifactSource,
+            ArtifactType as _ArtifactType,
+            AuthorityBand as _AuthorityBand,
+            ConfidenceState as _ConfidenceState,
+            Phase as _Phase,
+        )
 
         _gs_fme = _FME()
         _gs_mpe = _MPE()
@@ -10641,8 +10599,7 @@ def create_app() -> FastAPI:
     # ── Blockchain Audit Trail (was: src/blockchain_audit_trail.py) ─────────
 
     try:
-        from src.blockchain_audit_trail import BlockchainAuditTrail as _BATEngine
-        from src.blockchain_audit_trail import EntryType as _EntryType
+        from src.blockchain_audit_trail import BlockchainAuditTrail as _BATEngine, EntryType as _EntryType
 
         _bat = _BATEngine()
 
@@ -10746,7 +10703,7 @@ def create_app() -> FastAPI:
 
         async def dispatch(self, request: Request, call_next):
             if request.url.path.startswith("/api/") and request.url.path not in self.EXEMPT_PATHS:
-                expected_key = os.environ.get("MURPHY_API_KEY", "")
+                expected_key = os.environ.get("MURPHY_API_KEY", "") or os.environ.get("MURPHY_API_KEYS", "")
                 if expected_key:
                     # Starlette normalises header names to lowercase (RFC 7230);
                     # use lowercase "x-api-key" here to match that behaviour.
@@ -11186,6 +11143,49 @@ def create_app() -> FastAPI:
             logger.info("Repair API blueprint not created (Flask unavailable)")
     except Exception as _rep_exc:
         logger.warning("Repair API endpoints not available: %s", _rep_exc)
+
+    # DEMO RUN — real-pipeline demo execution
+    # ══════════════════════════════════════════════════════════════════════
+
+    @app.post("/api/demo/run")
+    async def demo_run(request: Request):
+        """Execute a demo scenario through the real Murphy pipeline.
+
+        Accepts JSON body: {"query": "..."}
+
+        Returns structured pipeline steps (MFGC → MSS → Workflow → Spec)
+        that the demo terminal can display as real system output.
+        """
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+
+        query = str(body.get("query", "")).strip()[:500]
+        if not query:
+            return JSONResponse(
+                {"success": False, "error": "missing_query", "message": "query is required"},
+                status_code=400,
+            )
+
+        try:
+            from src.demo_runner import DemoRunner
+            runner = DemoRunner()
+            result = runner.run_scenario(query)
+            return JSONResponse({
+                "success": True,
+                "steps": result["steps"],
+                "roi_message": result["roi_message"],
+                "scenario_key": result["scenario_key"],
+                "duration_ms": result["duration_ms"],
+                "spec": result["spec"],
+            })
+        except Exception as exc:
+            logger.warning("demo/run error: %s", exc)
+            return JSONResponse(
+                {"success": False, "error": "pipeline_error", "message": str(exc)},
+                status_code=500,
+            )
 
     # ══════════════════════════════════════════════════════════════════════
     # DEMO EXPORT — downloadable project bundle with licensing
@@ -12206,15 +12206,15 @@ def create_app() -> FastAPI:
         }
 
         try:
-            from src.auar.capability_graph import CapabilityGraph
-            from src.auar.config import AUARConfig
-            from src.auar.ml_optimization import MLOptimizer
-            from src.auar.observability import ObservabilityLayer
             from src.auar.pipeline import AUARPipeline
-            from src.auar.provider_adapter import ProviderAdapterManager
+            from src.auar.config import AUARConfig
+            from src.auar.capability_graph import CapabilityGraph
+            from src.auar.signal_interpretation import SignalInterpreter
+            from src.auar.ml_optimization import MLOptimizer
             from src.auar.routing_engine import RoutingDecisionEngine
             from src.auar.schema_translation import SchemaTranslator
-            from src.auar.signal_interpretation import SignalInterpreter
+            from src.auar.provider_adapter import ProviderAdapterManager
+            from src.auar.observability import ObservabilityLayer
 
             config = AUARConfig()
             graph = CapabilityGraph()

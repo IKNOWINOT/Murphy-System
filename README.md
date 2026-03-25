@@ -769,6 +769,17 @@ We welcome contributions! Please read:
 
 ---
 
+## New in This Release
+
+- **`src/pilot_config.py`** — Canonical pilot account (`cpost@murphy.systems`) and automation routing
+- **`src/large_control_model.py`** — LCM meta-controller: NL → MSS → Rosetta → Causality → Dispatch
+- **`src/rosette_lens.py`** — Rosetta agent positions → MSS data lens bridge
+- **`src/nav_registry.py`** — All 50+ modules mapped to navigation categories
+- **`static/murphy-nav.js`** — Shared navigation component (Finance & Grants always visible)
+- **`src/demo_runner.py`** — Real demo pipeline: every scenario routes through actual Murphy components
+
+---
+
 ## 📄 License
 
 **Business Source License 1.1 (BSL 1.1)**
