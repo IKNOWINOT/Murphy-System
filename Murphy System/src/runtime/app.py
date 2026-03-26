@@ -646,6 +646,20 @@ def create_app() -> FastAPI:
         )
     except Exception as _risk_exc:
         logger.warning("Trading Risk API not available: %s", _risk_exc)
+    # ── Founder Maintenance API ──────────────────────────────────────────
+    try:
+        from src.founder_maintenance_api import router as _founder_maint_router
+        app.include_router(_founder_maint_router)
+        logger.info("Founder Maintenance API registered at /api/founder/maintenance/*")
+    except Exception as _fm_exc:
+        logger.warning("Founder Maintenance API not available: %s", _fm_exc)
+    # ── Founder Update API ───────────────────────────────────────────────
+    try:
+        from src.founder_update_api import router as _founder_update_router
+        app.include_router(_founder_update_router)
+        logger.info("Founder Update API registered at /api/founder/*")
+    except Exception as _fu_exc:
+        logger.warning("Founder Update API not available: %s", _fu_exc)
     # ── Platform Onboarding DAG ──────────────────────────────────────────
     try:
         from src.platform_onboarding.onboarding_api import create_onboarding_router
@@ -696,8 +710,11 @@ def create_app() -> FastAPI:
     @app.post("/api/execute")
     async def execute_task(request: Request, _rbac=Depends(_perm_execute)):
         """Execute a task — routes through AionMind cognitive pipeline when available."""
-        data = await request.json()
-        task_description = data.get('task_description', '')
+        try:
+            data = await request.json()
+        except Exception:
+            data = {}
+        task_description = data.get('task_description', '') or data.get('command', '')
         task_type = data.get('task_type', 'general')
 
         # Route through AionMind cognitive pipeline if available
@@ -5581,8 +5598,54 @@ def create_app() -> FastAPI:
 
     @app.get("/api/credentials/list")
     async def credentials_list():
-        """List stored credential keys (no secrets exposed)."""
-        return JSONResponse({"success": True, "credentials": []})
+        """List stored credential keys — shows which integrations are configured.
+
+        Returns the integration name, env variable name, and configured status.
+        Secret values are NEVER returned.
+        """
+        _INTEGRATION_ENV_VARS = {
+            "groq":            ("Groq",             "GROQ_API_KEY"),
+            "openai":          ("OpenAI",            "OPENAI_API_KEY"),
+            "anthropic":       ("Anthropic",         "ANTHROPIC_API_KEY"),
+            "sendgrid":        ("SendGrid",          "SENDGRID_API_KEY"),
+            "slack":           ("Slack",             "SLACK_BOT_TOKEN"),
+            "stripe":          ("Stripe",            "STRIPE_SECRET_KEY"),
+            "hubspot":         ("HubSpot",           "HUBSPOT_API_KEY"),
+            "github":          ("GitHub",            "GITHUB_TOKEN"),
+            "twilio":          ("Twilio",            "TWILIO_AUTH_TOKEN"),
+            "google_calendar": ("Google Calendar",   "GOOGLE_CALENDAR_API_KEY"),
+            "google_sheets":   ("Google Sheets",     "GOOGLE_SHEETS_API_KEY"),
+            "datadog":         ("Datadog",           "DATADOG_API_KEY"),
+            "openweather":     ("OpenWeather",       "OPENWEATHER_API_KEY"),
+            "postgres":        ("PostgreSQL",        "DATABASE_URL"),
+            "redis":           ("Redis",             "REDIS_URL"),
+            "notion":          ("Notion",            "NOTION_API_KEY"),
+            "airtable":        ("Airtable",          "AIRTABLE_API_KEY"),
+            "jira":            ("Jira",              "JIRA_API_TOKEN"),
+            "salesforce":      ("Salesforce",        "SALESFORCE_CONSUMER_KEY"),
+            "pagerduty":       ("PagerDuty",         "PAGERDUTY_API_KEY"),
+            "zoom":            ("Zoom",              "ZOOM_CLIENT_SECRET"),
+            "monday":          ("Monday.com",        "MONDAY_API_KEY"),
+            "shopify":         ("Shopify",           "SHOPIFY_ACCESS_TOKEN"),
+            "twitch":          ("Twitch",            "TWITCH_CLIENT_SECRET"),
+            "discord":         ("Discord",           "DISCORD_BOT_TOKEN"),
+            "telegram":        ("Telegram",          "TELEGRAM_BOT_TOKEN"),
+            "matrix":          ("Matrix",            "MATRIX_ACCESS_TOKEN"),
+            "ollama":          ("Ollama",            "OLLAMA_HOST"),
+        }
+        credentials = []
+        for integration, (name, env_var) in _INTEGRATION_ENV_VARS.items():
+            val = os.environ.get(env_var, "").strip()
+            credentials.append({
+                "integration": integration,
+                "name":        name,
+                "env_var":     env_var,
+                "configured":  bool(val),
+                "masked":      (val[:4] + "…") if len(val) >= 8 else ("set" if val else ""),
+            })
+        # Sort: configured first, then alphabetically
+        credentials.sort(key=lambda c: (not c["configured"], c["name"].lower()))
+        return JSONResponse({"success": True, "credentials": credentials})
 
     @app.post("/api/credentials/store")
     async def credentials_store(request: Request):
@@ -7834,14 +7897,15 @@ def create_app() -> FastAPI:
     def _require_admin(request: "Request") -> "Optional[Dict[str, Any]]":
         """Return the account dict if the caller has admin/owner role.
 
-        Returns None if the request is not authenticated or the account does
-        not have the required role.  Callers should return HTTP 401/403.
+        Returns None  → caller is NOT authenticated       (send HTTP 401)
+        Returns False → caller IS authenticated, not admin (send HTTP 403)
+        Returns dict  → caller IS an admin/owner           (proceed)
         """
         account = _get_account_from_session(request)
         if account is None:
-            return None
+            return None           # not authenticated → 401
         if account.get("role") not in ("admin", "owner"):
-            return None
+            return False          # authenticated but wrong role → 403
         return account
 
     def _admin_log(actor_id: str, action: str, target: str, detail: "Dict[str, Any]") -> None:
@@ -7863,7 +7927,9 @@ def create_app() -> FastAPI:
         """List all platform users. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         q = (request.query_params.get("q") or "").lower()
         role_f = request.query_params.get("role", "")
@@ -7902,7 +7968,9 @@ def create_app() -> FastAPI:
         """Admin-create a user account (bypasses self-signup flow). Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         try:
             data = await request.json()
@@ -7946,7 +8014,9 @@ def create_app() -> FastAPI:
         """Get a single user's full profile. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         user = _user_store.get(user_id)
         if not user:
@@ -7960,7 +8030,9 @@ def create_app() -> FastAPI:
         """Update a user's role, tier, status, name, or email. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         user = _user_store.get(user_id)
         if not user:
@@ -7998,7 +8070,9 @@ def create_app() -> FastAPI:
         """Deactivate (soft-delete) a user account. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         user = _user_store.get(user_id)
         if not user:
@@ -8022,7 +8096,9 @@ def create_app() -> FastAPI:
         """Force-reset a user's password. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         user = _user_store.get(user_id)
         if not user:
@@ -8054,7 +8130,9 @@ def create_app() -> FastAPI:
         """Suspend a user account (blocks login). Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         user = _user_store.get(user_id)
         if not user:
@@ -8078,7 +8156,9 @@ def create_app() -> FastAPI:
         """Restore a suspended user account. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         user = _user_store.get(user_id)
         if not user:
@@ -8096,7 +8176,9 @@ def create_app() -> FastAPI:
         """List all organisations. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         q = (request.query_params.get("q") or "").lower()
         orgs = list(_org_store.values())
@@ -8109,7 +8191,9 @@ def create_app() -> FastAPI:
         """Create a new organisation. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         try:
             data = await request.json()
@@ -8144,7 +8228,9 @@ def create_app() -> FastAPI:
         """Get a single organisation. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         org = _org_store.get(org_id)
         if not org:
@@ -8156,7 +8242,9 @@ def create_app() -> FastAPI:
         """Update an organisation's name, description, plan, or status. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         org = _org_store.get(org_id)
         if not org:
@@ -8182,7 +8270,9 @@ def create_app() -> FastAPI:
         """Deactivate an organisation. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         org = _org_store.get(org_id)
         if not org:
@@ -8198,7 +8288,9 @@ def create_app() -> FastAPI:
         """List members of an organisation. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         org = _org_store.get(org_id)
         if not org:
@@ -8222,7 +8314,9 @@ def create_app() -> FastAPI:
         """Add a user to an organisation. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         org = _org_store.get(org_id)
         if not org:
@@ -8247,7 +8341,9 @@ def create_app() -> FastAPI:
         """Remove a user from an organisation. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         org = _org_store.get(org_id)
         if not org:
@@ -8265,7 +8361,9 @@ def create_app() -> FastAPI:
         """Platform-wide statistics. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         with _session_lock:
             active_sessions = len(_session_store)
@@ -8302,7 +8400,9 @@ def create_app() -> FastAPI:
         """List all active sessions (token → account summary). Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         with _session_lock:
             session_snapshot = dict(_session_store)
@@ -8323,7 +8423,9 @@ def create_app() -> FastAPI:
         """Revoke all sessions for an account. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         with _session_lock:
             dead = [t for t, uid in _session_store.items() if uid == account_id]
@@ -8338,7 +8440,9 @@ def create_app() -> FastAPI:
         """Return the admin audit log (newest first). Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         limit = min(int(request.query_params.get("limit", "100")), 500)
         offset = int(request.query_params.get("offset", "0"))
@@ -9177,11 +9281,14 @@ def create_app() -> FastAPI:
             "/ui/grant-application": "grant_application.html",
             "/ui/financing": "financing_options.html",
             "/ui/comms-hub": "communication_hub.html",
+            "/ui/communication-hub": "communication_hub.html",
             "/ui/admin": "admin_panel.html",
             "/ui/org-portal": "org_portal.html",
             "/ui/change-password": "change_password.html",
             "/ui/reset-password": "reset_password.html",
             "/ui/game-creation": "game_creation.html",
+            "/ui/dispatch": "dispatch.html",
+            "/ui/terminal-integrated-legacy": "murphy_ui_integrated_terminal.html",
         }
 
         # ── Route classification: public vs auth-required ──────────
@@ -10955,22 +11062,42 @@ def create_app() -> FastAPI:
     from starlette.middleware.base import BaseHTTPMiddleware as _BHMW
 
     class _APIKeyMiddleware(_BHMW):
-        """Unified API key enforcement for all /api/* routes."""
+        """Unified API key enforcement for all /api/* routes.
 
+        Auth, demo, and other public-facing routes are always exempt so that
+        visitors can log in / sign up / use the demo even when MURPHY_API_KEY
+        is configured for protecting internal API routes.
+        """
+
+        # Exact-path exemptions
         EXEMPT_PATHS = {"/api/health", "/api/info", "/api/manifest"}
 
+        # Prefix-based exemptions — any path that starts with one of these is
+        # treated as a public endpoint regardless of API key configuration.
+        EXEMPT_PREFIXES = (
+            "/api/auth/",    # login, signup, OAuth, password reset — must be public
+            "/api/demo/",    # demo runner and deliverable generator — no login required
+            "/api/system/",  # system status / health endpoints
+        )
+
         async def dispatch(self, request: Request, call_next):
-            if request.url.path.startswith("/api/") and request.url.path not in self.EXEMPT_PATHS:
-                expected_key = os.environ.get("MURPHY_API_KEY", "") or os.environ.get("MURPHY_API_KEYS", "")
-                if expected_key:
-                    # Starlette normalises header names to lowercase (RFC 7230);
-                    # use lowercase "x-api-key" here to match that behaviour.
-                    api_key = request.headers.get("x-api-key", "")
-                    if api_key != expected_key:
-                        return JSONResponse(
-                            {"success": False, "error": {"code": "AUTH_REQUIRED", "message": "Valid X-API-Key header required"}},
-                            status_code=401,
-                        )
+            path = request.url.path
+            if path.startswith("/api/"):
+                is_exempt = (
+                    path in self.EXEMPT_PATHS
+                    or any(path.startswith(pfx) for pfx in self.EXEMPT_PREFIXES)
+                )
+                if not is_exempt:
+                    expected_key = os.environ.get("MURPHY_API_KEY", "") or os.environ.get("MURPHY_API_KEYS", "")
+                    if expected_key:
+                        # Starlette normalises header names to lowercase (RFC 7230);
+                        # use lowercase "x-api-key" here to match that behaviour.
+                        api_key = request.headers.get("x-api-key", "")
+                        if api_key != expected_key:
+                            return JSONResponse(
+                                {"success": False, "error": {"code": "AUTH_REQUIRED", "message": "Valid X-API-Key header required"}},
+                                status_code=401,
+                            )
             return await call_next(request)
 
     app.add_middleware(_APIKeyMiddleware)
@@ -12569,12 +12696,25 @@ def create_app() -> FastAPI:
         )
 
     def _ensure_founder_account() -> None:
-        """Create or promote the founder/owner account."""
+        """Create or promote the founder/owner account.
+
+        On every startup this ensures the founder can log in with the
+        configured MURPHY_FOUNDER_PASSWORD.  If the account already exists
+        the role is promoted to owner AND the password is re-synced to
+        MURPHY_FOUNDER_PASSWORD — so changing the env var immediately takes
+        effect on the next restart without needing a manual DB edit.
+        To use a custom password permanently, set MURPHY_FOUNDER_PASSWORD
+        in your environment (do not rely on the in-memory default).
+        """
         existing_id = _email_to_account.get(_FOUNDER_EMAIL)
         if existing_id:
-            # Account already exists — promote to owner unconditionally
+            # Account already exists — promote to owner and sync password
             _user_store[existing_id]["role"] = "owner"
             _user_store[existing_id]["full_name"] = _user_store[existing_id].get("full_name") or "Corey Post"
+            # Re-apply the configured password so login always works after restart
+            _user_store[existing_id]["password_hash"] = _hash_password(_FOUNDER_PASSWORD)
+            _user_store[existing_id]["tier"] = "enterprise"
+            _user_store[existing_id]["email_validated"] = True
             return
 
         # Create the account from scratch
