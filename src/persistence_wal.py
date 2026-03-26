@@ -80,6 +80,17 @@ MIGRATIONS: List[Tuple[int, str, str]] = [
             applied_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
     """),
+    (5, "create_user_accounts", """
+        CREATE TABLE IF NOT EXISTS user_accounts (
+            account_id TEXT PRIMARY KEY,
+            email TEXT NOT NULL UNIQUE,
+            data TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_user_accounts_email
+            ON user_accounts(email);
+    """),
 ]
 
 

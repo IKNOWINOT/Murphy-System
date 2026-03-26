@@ -496,6 +496,7 @@ class MurphyAPI {
     const url = `${this._baseUrl}${path}`;
     const fetchOpts = {
       method,
+      credentials: 'same-origin',
       headers: { ...this._buildHeaders(), ...(opts.headers || {}) },
       ...opts,
     };

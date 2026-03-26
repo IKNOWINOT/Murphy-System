@@ -5,6 +5,25 @@ All notable changes to Murphy System will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — Session Persistence + Auth Hardening
+
+### Fixed
+
+#### Session Persistence — Survives `hetzner_load.sh` Restarts (Critical)
+
+- **`src/persistence_wal.py`** + mirror — Added migration #5 `create_user_accounts`
+  (columns: `account_id`, `email`, `data` JSON, `created_at`, `updated_at`).
+- **`src/runtime/app.py`** + mirror — Added `_SQLiteSessionFallback`, `_SQLiteUserStore`,
+  `_MutableUserRecord` classes for persistent session and user account storage.
+- **`src/runtime/app.py`** + mirror — Fixed `GET /api/auth/session-token` to return
+  the actual session token instead of a new random one.
+- **`src/fastapi_security.py`** + mirror — Harmonized `MURPHY_API_KEYS`/`MURPHY_API_KEY`
+  env var lookup; plural checked first, singular as fallback.
+- **`static/murphy-components.js`** + mirror — Added `credentials: 'same-origin'` to
+  `MurphyAPI._request()` so the HttpOnly cookie is included on all fetch calls.
+
+---
+
 ## [Unreleased] — Founder Update Engine (ARCH-007) + UI Navigation Overhaul
 
 ### Added
