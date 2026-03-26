@@ -1170,6 +1170,7 @@ function _showResult(deliverable,usedRealApi,forgeUsage){
       a.download=filename;
       document.body.appendChild(a);a.click();document.body.removeChild(a);
     };
+    dlBtn.textContent='\u2193 Download: '+filename+' ('+sizeKb+'KB)';
     // HTML preview button
     if(htmlBtn){
       if(isHtml){
@@ -1179,13 +1180,23 @@ function _showResult(deliverable,usedRealApi,forgeUsage){
         htmlBtn.style.display='none';
       }
     }
+    resBlock.style.display='';
+    _setStatus('&#10003; Build complete — your deliverable is ready.','phase');
   } else {
+    // API didn't return content — show a clear error and offer retry
     dlBtn.style.display='none';
-    fbCta.style.display='';
+    fbCta.style.display='none';
+    if(htmlBtn) htmlBtn.style.display='none';
+    resBlock.style.display='';
+    if(!usedRealApi){
+      titleEl.innerHTML='&#9888; Build Failed — API Unavailable';
+      _setStatus('&#9888; Could not connect to the generation API. Check your connection and try again.','phase');
+      statsEl.innerHTML='<div style="color:var(--red);font-size:.85rem;padding:.5rem 0">The deliverable generator requires an active server connection. Please refresh and retry, or <a href="/ui/onboarding" style="color:var(--teal)">set up your own Murphy instance</a> for unlimited offline builds.</div>';
+    } else {
+      titleEl.innerHTML='&#9888; Build Limit Reached';
+      _setStatus('&#9888; Build limit reached for today. Sign up free to get more builds.','phase');
+    }
   }
-
-  resBlock.style.display='';
-  _setStatus('&#10003; Build complete — your deliverable is ready.','phase');
 }
 
 /* Download via real API */
@@ -1275,13 +1286,17 @@ function forgeRun(query){
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({query:query})
   })
-  .then(function(r){return r.ok?r.json():null;})
+  .then(function(r){return r.json().catch(function(){return null;});})
   .then(function(data){
     if(data&&data.success&&data.deliverable){
       apiResult=data.deliverable;
       apiResult.llm_provider=data.llm_provider||'local';
       apiUsed=true;
       apiForgeUsage=data.forge_usage||null;
+    } else if(data&&!data.success&&data.error){
+      // API returned an error (e.g. rate limit) — pass a sentinel so _showResult shows a clear message
+      apiResult=null;
+      apiUsed=true; // We did reach the API
     }
     apiDone=true; tryMerge();
   })
