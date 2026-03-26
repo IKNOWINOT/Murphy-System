@@ -444,32 +444,32 @@ def test_forge_chips_present(page: Page, screenshot):
 def test_forge_chip_game_present(page: Page, screenshot):
     """MMORPG Game chip is present."""
     page.goto(PAGE_URL, wait_until="domcontentloaded")
-    chip = page.locator(".demo-chip", has_text="MMORPG").first
-    assert chip.count() > 0 or page.locator(".demo-chip[data-forge*='game']").count() > 0
+    chip = page.locator(".demo-chip[data-forge*='game']")
+    assert chip.count() > 0, "Expected a forge chip with data-forge containing 'game'"
     screenshot(page, "forge_chip_game")
 
 
 def test_forge_chip_app_present(page: Page, screenshot):
     """Web App MVP chip is present."""
     page.goto(PAGE_URL, wait_until="domcontentloaded")
-    chip = page.locator(".demo-chip", has_text="App MVP").first
-    assert chip.count() > 0 or page.locator(".demo-chip[data-forge*='app']").count() > 0
+    chip = page.locator(".demo-chip[data-forge*='app']")
+    assert chip.count() > 0, "Expected a forge chip with data-forge containing 'app'"
     screenshot(page, "forge_chip_app")
 
 
 def test_forge_chip_automation_present(page: Page, screenshot):
     """Automation + Payments chip is present."""
     page.goto(PAGE_URL, wait_until="domcontentloaded")
-    chip = page.locator(".demo-chip", has_text="Automation").first
-    assert chip.count() > 0 or page.locator(".demo-chip[data-forge*='automat']").count() > 0
+    chip = page.locator(".demo-chip[data-forge*='automat']")
+    assert chip.count() > 0, "Expected a forge chip with data-forge containing 'automat'"
     screenshot(page, "forge_chip_automation")
 
 
 def test_forge_chip_course_present(page: Page, screenshot):
     """Complete Course chip is present."""
     page.goto(PAGE_URL, wait_until="domcontentloaded")
-    chip = page.locator(".demo-chip", has_text="Course").first
-    assert chip.count() > 0 or page.locator(".demo-chip[data-forge*='course']").count() > 0
+    chip = page.locator(".demo-chip[data-forge*='course']")
+    assert chip.count() > 0, "Expected a forge chip with data-forge containing 'course'"
     screenshot(page, "forge_chip_course")
 
 
