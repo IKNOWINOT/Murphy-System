@@ -173,10 +173,11 @@ class LibrarianStateManager:
         with self.lock:
             export = {}
 
-            for state_key in self.state_index.keys():
-                state_value = self.get_state(state_key)
-                if state_value is not None:
-                    export[state_key] = state_value
+            for state_key, state_ids in self.state_index.items():
+                if state_ids:
+                    state_entry = self.states.get(state_ids[-1])
+                    if state_entry is not None:
+                        export[state_key] = state_entry.state_value
 
             return export
 
@@ -395,15 +396,21 @@ class LibrarianIntegration:
     - System-wide operations
     """
 
-    def __init__(self):
+    # Persistence document ID  [ARCH-003]
+    _PERSIST_DOC_ID = "librarian_integration_state"
+
+    def __init__(self, persistence_manager=None):
         self.state_manager = LibrarianStateManager()
         self.setup_manager = LibrarianSetupManager()
         self.initialized = False
+        self._persistence = persistence_manager
 
     def initialize(self) -> None:
         """Initialize the librarian integration"""
-        # Create default configurations
-        self._create_default_configurations()
+        # Try to restore previously persisted state first
+        if not self.load_state():
+            # No persisted state found; create defaults
+            self._create_default_configurations()
         self.initialized = True
 
     def _create_default_configurations(self) -> None:
@@ -447,7 +454,13 @@ class LibrarianIntegration:
 
     def set_state(self, key: str, value: Any, **kwargs) -> str:
         """Set a state value"""
-        return self.state_manager.set_state(key, value, **kwargs)
+        state_id = self.state_manager.set_state(key, value, **kwargs)
+        if self.state_manager.auto_save and self._persistence is not None:
+            try:
+                self.save_state()
+            except Exception as exc:
+                logger.debug("Suppressed auto-save exception in set_state: %s", exc)
+        return state_id
 
     def get_setup(self, category: str) -> Optional[Dict[str, Any]]:
         """Get active setup configuration for a category"""
@@ -458,7 +471,13 @@ class LibrarianIntegration:
         """Update setup configuration for a category"""
         config = self.setup_manager.get_active_configuration(category)
         if config:
-            return self.setup_manager.update_configuration(config.config_id, configuration)
+            result = self.setup_manager.update_configuration(config.config_id, configuration)
+            if result and self.state_manager.auto_save and self._persistence is not None:
+                try:
+                    self.save_state()
+                except Exception as exc:
+                    logger.debug("Suppressed auto-save exception in update_setup: %s", exc)
+            return result
         return False
 
     def query_states(self, query: Dict[str, Any]) -> List[StateEntry]:
@@ -493,3 +512,38 @@ class LibrarianIntegration:
         if 'configurations' in data:
             for config_data in data['configurations']:
                 self.setup_manager.import_configuration(config_data)
+
+    # ---- Persistence Integration  [ARCH-003] ----
+
+    def save_state(self) -> bool:
+        """Persist librarian state via PersistenceManager.
+
+        Returns True on success, False if persistence is unavailable.
+        """
+        if self._persistence is None:
+            return False
+        data = self.export_all()
+        try:
+            self._persistence.save_document(self._PERSIST_DOC_ID, data)
+            return True
+        except Exception as exc:
+            logger.debug("Suppressed exception in save_state: %s", exc)
+            return False
+
+    def load_state(self) -> bool:
+        """Restore librarian state from PersistenceManager.
+
+        Returns True on success, False if persistence is unavailable or
+        no prior state exists.
+        """
+        if self._persistence is None:
+            return False
+        try:
+            data = self._persistence.load_document(self._PERSIST_DOC_ID)
+        except Exception as exc:
+            logger.debug("Suppressed exception in load_state: %s", exc)
+            return False
+        if data is None:
+            return False
+        self.import_all(data)
+        return True
