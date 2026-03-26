@@ -660,6 +660,7 @@ function showMurphyError(msg) {
         <div class="forge-fallback-cta" id="forge-fallback-cta" style="display:none;">
           <a href="/ui/signup">Sign up free to download this deliverable →</a>
         </div>
+        <div class="forge-err-msg" id="forge-api-err" role="alert" aria-live="polite" style="display:none;"></div>
       </div>
     </div>
   </div>
@@ -1209,27 +1210,42 @@ function _showResult(deliverable,usedRealApi,forgeUsage){
     }
     resBlock.style.display='';
     _setStatus('&#10003; Build complete — your deliverable is ready.','phase');
-  } else {
-    // API didn't return inline content — show download button that fetches on demand
+  } else if(usedRealApi){
+    // API was reached but returned no content (error, rate limit, etc.)
     dlBtn.style.display='';
-    dlBtn.textContent='\u2193 Download Your Deliverable';
-    dlBtn.onclick=function(){_forgeDownload();};
+    dlBtn.textContent='\u27f3 Retry Build';
+    dlBtn.onclick=function(){forgeRun(_forgeQuery);};
     fbCta.style.display='';
     if(htmlBtn) htmlBtn.style.display='none';
     resBlock.style.display='';
-    _setStatus('&#10003; Build complete \u2014 click Download to get your deliverable.','phase');
+    _setStatus('\u26a0 Build failed \u2014 the API could not generate content. Try again or sign up for full access.','phase');
+    var errEl=document.getElementById('forge-api-err');
+    if(errEl){errEl.innerHTML='\u26a0 The build did not produce content. <a class="forge-err-link" href="/ui/signup">Sign up for reliable access &rarr;</a>';errEl.style.display='';}
+  } else {
+    // API unreachable
+    dlBtn.style.display='';
+    dlBtn.textContent='\u27f3 Retry Build';
+    dlBtn.onclick=function(){forgeRun(_forgeQuery);};
+    fbCta.style.display='';
+    if(htmlBtn) htmlBtn.style.display='none';
+    resBlock.style.display='';
+    _setStatus('\u26a0 API unavailable \u2014 could not reach the server.','phase');
+    var errEl=document.getElementById('forge-api-err');
+    if(errEl){errEl.innerHTML='\u26a0 Could not reach the API. <a class="forge-err-link" href="/ui/signup">Sign up for full access &rarr;</a>';errEl.style.display='';}
   }
 }
 
-/* Download via real API */
-function _forgeDownload(){
-  _setStatus('&#8595; Preparing download...','phase');
+/* Download via real API — retries up to 3 times with exponential backoff */
+function _forgeDownload(attempt){
+  attempt=attempt||1;
+  var maxRetries=3;
+  _setStatus('&#8595; Preparing download'+(attempt>1?' (attempt '+attempt+'/'+maxRetries+')':'')+'...','phase');
   fetch('/api/demo/generate-deliverable',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({query:_forgeQuery})
   })
-  .then(function(r){return r.ok?r.json().catch(function(){return null;}):null;})
+  .then(function(r){return r.json().catch(function(){return null;});})
   .then(function(data){
     if(data&&data.success&&data.deliverable){
       var d=data.deliverable;
@@ -1238,12 +1254,21 @@ function _forgeDownload(){
       a.download=d.filename||'murphy-deliverable.txt';
       document.body.appendChild(a);a.click();document.body.removeChild(a);
       _setStatus('&#10003; Download started.','phase');
+    } else if(attempt<maxRetries){
+      setTimeout(function(){_forgeDownload(attempt+1);},1000*attempt);
     } else {
-      _setStatus('&#9888; Download error \u2014 try again.','phase');
-      showMurphyError('Download error — please try again.');
+      _setStatus('\u26a0 Download failed after '+maxRetries+' attempts. Please sign up for reliable access.','phase');
+      showMurphyError('Download failed — please sign up for full access.');
     }
   })
-  .catch(function(){_setStatus('&#9888; Download error \u2014 try again.','phase'); showMurphyError('Download error — please try again.');});
+  .catch(function(){
+    if(attempt<maxRetries){
+      setTimeout(function(){_forgeDownload(attempt+1);},1000*attempt);
+    } else {
+      _setStatus('\u26a0 Download failed after '+maxRetries+' attempts. Please sign up for reliable access.','phase');
+      showMurphyError('Download failed — please sign up for full access.');
+    }
+  });
 }
 
 /* ── Gate check: do we have ≥85% of needed info? ── */
@@ -1292,6 +1317,8 @@ function forgeRun(query){
   var resBlock=document.getElementById('forge-result');
   gridWrap.style.display='';
   resBlock.style.display='none';
+  var errEl=document.getElementById('forge-api-err');
+  if(errEl){errEl.innerHTML='';errEl.style.display='none';}
   _buildGrid();
 
   // Show live view toggle
