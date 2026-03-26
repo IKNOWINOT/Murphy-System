@@ -57,9 +57,13 @@ class Settings(BaseSettings):
     # LLM Configuration
     # ============================================================================
 
-    groq_key_count: int = Field(
-        default=0,
-        description="Number of Groq API keys (auto-detected from encrypted storage)"
+    deepinfra_key_configured: bool = Field(
+        default=False,
+        description="Whether DEEPINFRA_API_KEY is configured"
+    )
+    together_key_configured: bool = Field(
+        default=False,
+        description="Whether TOGETHER_API_KEY is configured"
     )
 
     llm_timeout: int = Field(
