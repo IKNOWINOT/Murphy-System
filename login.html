@@ -548,7 +548,9 @@
       })
     })
     .then(function (res) {
-      return res.json().then(function (data) { return { status: res.status, data: data }; });
+      return res.json()
+        .then(function (data) { return { status: res.status, data: data }; })
+        .catch(function () { return { status: res.status, data: { error: 'Server returned an unexpected response (status ' + res.status + ').' } }; });
     })
     .then(function (result) {
       submitBtn.disabled = false;
@@ -566,7 +568,9 @@
         var next = urlParams.get('next') || '/ui/terminal-unified';
         window.location.href = next;
       } else {
-        showFormError(result.data.message || result.data.error || 'Sign in failed. Please try again.');
+        var errMsg = result.data.message || result.data.error || result.data.detail || 'Sign in failed. Please try again.';
+        if (typeof errMsg === 'object') errMsg = errMsg.msg || errMsg.message || errMsg.detail || JSON.stringify(errMsg);
+        showFormError(String(errMsg));
       }
     })
     .catch(function () {
