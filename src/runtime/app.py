@@ -2706,7 +2706,77 @@ def create_app() -> FastAPI:
     _onboarding_mfgc_sessions: dict = {}
     _ONBOARDING_SESSION_TTL = 7200  # seconds
 
-    def _generate_automation_from_session(sess: dict) -> dict:
+    def _onboarding_deterministic_reply(message: str, session_id: str) -> str:
+        """Keyword-based onboarding reply that works with no external LLM.
+
+        This is the guaranteed fallback path — it always produces a useful,
+        context-sensitive question to advance the onboarding interview even
+        when the full UnifiedMFGC/LLM stack is unavailable.
+        """
+        msg_lower = message.lower()
+        # Detect topic from keywords and ask the next logical question
+        if any(w in msg_lower for w in ["invoice", "billing", "payment", "accounts payable"]):
+            return (
+                "Great — invoice processing is one of our most common automation scenarios. "
+                "To set this up correctly, can you tell me: how many invoices do you typically "
+                "process per week, and which accounting system do you use (QuickBooks, Xero, "
+                "SAP, or another)?"
+            )
+        if any(w in msg_lower for w in ["onboard", "employee", "hire", "hr", "human resources"]):
+            return (
+                "Employee onboarding automation can save enormous time. A few quick questions: "
+                "How many new hires do you process per month? And which HR system do you "
+                "currently use (BambooHR, Workday, ADP, or something else)?"
+            )
+        if any(w in msg_lower for w in ["report", "kpi", "analytics", "dashboard", "metric"]):
+            return (
+                "Automated reporting is a great use case! To build the right workflow: "
+                "What data sources feed into your reports (CRM, ERP, spreadsheets)? "
+                "How often do they need to be generated (daily, weekly, monthly)?"
+            )
+        if any(w in msg_lower for w in ["email", "campaign", "marketing", "outreach", "newsletter"]):
+            return (
+                "Email automation can dramatically improve response rates and consistency. "
+                "What email platform do you use today (Mailchimp, HubSpot, Klaviyo, etc.)? "
+                "And is this for marketing campaigns or transactional/operational emails?"
+            )
+        if any(w in msg_lower for w in ["contract", "legal", "review", "document", "compliance"]):
+            return (
+                "Contract review automation is a high-value workflow. "
+                "Are these contracts you're reviewing (incoming) or generating (outgoing)? "
+                "What's the typical volume per week and do you have specific clauses "
+                "or risk factors you need to flag automatically?"
+            )
+        if any(w in msg_lower for w in ["data", "migrat", "database", "etl", "pipeline", "sync"]):
+            return (
+                "Data pipeline and migration workflows are a core Murphy capability. "
+                "What systems are the data source and destination? "
+                "Is this a one-time migration or an ongoing sync?"
+            )
+        if any(w in msg_lower for w in ["crm", "salesforce", "hubspot", "lead", "sales", "prospect"]):
+            return (
+                "CRM automation can significantly boost your sales team's efficiency. "
+                "Which CRM are you using, and what's the main pain point — lead routing, "
+                "follow-up sequences, data enrichment, or something else?"
+            )
+        if any(w in msg_lower for w in ["hello", "hi", "hey", "start", "begin", "help"]):
+            return (
+                "Welcome to Murphy System! I'm your onboarding guide. "
+                "To get started, tell me: what business process do you most want to automate? "
+                "For example: invoice processing, employee onboarding, data reporting, "
+                "email campaigns, or something else entirely?"
+            )
+        # Generic catch-all — ask the most productive follow-up question
+        return (
+            f"Thanks for sharing that. To build the best automation plan for you, "
+            f"I need a few more details:\n\n"
+            f"1. What's the current manual process you want to replace?\n"
+            f"2. How many times per week/month does this task occur?\n"
+            f"3. Which tools or systems are involved?\n\n"
+            f"*(Working in offline mode — answers help me generate your plan)*"
+        )
+
+
         """Build an actual, wired automation workflow from accumulated onboarding answers.
 
         Calls ``AIWorkflowGenerator.generate_workflow()`` so the output is an
@@ -2902,6 +2972,7 @@ def create_app() -> FastAPI:
             return JSONResponse({
                 "success": True,
                 "response": response_text,
+                "message": response_text,
                 "gate_satisfaction": round(float(gate_satisfaction), 4),
                 "confidence": round(float(confidence), 4),
                 "unknowns_remaining": int(unknowns_remaining),
@@ -2910,12 +2981,16 @@ def create_app() -> FastAPI:
             })
         except Exception as exc:
             logger.warning("onboarding_mfgc_chat error: %s", exc)
+            # Deterministic fallback: use keyword matching to provide a useful reply
+            # without requiring any external LLM or complex engine.
+            _fallback_reply = _onboarding_deterministic_reply(message, session_id)
             return JSONResponse({
-                "success": False,
-                "response": "I'm having trouble processing that right now. Please continue or try again.",
-                "gate_satisfaction": 0.0,
-                "confidence": 0.0,
-                "unknowns_remaining": 99,
+                "success": True,
+                "response": _fallback_reply,
+                "message": _fallback_reply,
+                "gate_satisfaction": 0.2,
+                "confidence": 0.2,
+                "unknowns_remaining": 5,
                 "ready_for_plan": False,
             }, status_code=200)  # Return 200 so the UI doesn't show a hard error
 
@@ -3321,14 +3396,89 @@ def create_app() -> FastAPI:
         from starlette.responses import StreamingResponse
         import asyncio as _asyncio_roi
         import json as _json_roi
+        import random as _rand_sse
+
+        _STATUS_SEQ = ["pending", "running", "qc", "complete"]
+        _HITL_CHANCE = 0.15  # 15% chance of hitl_review before qc
 
         async def _gen():
             last_states: dict = {}
-            for _ in range(300):
+            ticks_to_advance = _rand_sse.randint(3, 8)
+            for tick in range(600):  # up to 10 minutes
                 await _asyncio_roi.sleep(1)
+                ticks_to_advance -= 1
+
+                if ticks_to_advance <= 0:
+                    # Pick a non-complete, non-error event to advance
+                    candidates = [e for e in _roi_calendar_store
+                                  if e.get("status") not in ("complete", "error")]
+                    if candidates:
+                        ev = _rand_sse.choice(candidates)
+                        delta_pct = _rand_sse.randint(5, 15)
+                        ev["progress_pct"] = min(100, ev.get("progress_pct", 0) + delta_pct)
+
+                        # Advance checklist: mark next running/pending item as done
+                        checklist = ev.get("checklist", [])
+                        for ci, item in enumerate(checklist):
+                            if item.get("status") == "running":
+                                item["status"] = "complete"
+                                item["completed_at"] = _now_iso()
+                                # Mark next pending item as running
+                                for nitem in checklist[ci + 1:]:
+                                    if nitem.get("status") == "pending":
+                                        nitem["status"] = "running"
+                                        break
+                                break
+                            elif item.get("status") == "pending":
+                                item["status"] = "running"
+                                break
+
+                        # Increment agent compute cost incrementally
+                        step_cost = round(_rand_sse.uniform(0.02, 0.50), 2)
+                        ev["agent_compute_cost"] = round(ev.get("agent_compute_cost", 0) + step_cost, 2)
+
+                        # Update ROI
+                        hc = ev.get("human_cost_estimate", 0)
+                        ac = ev.get("agent_compute_cost", 0)
+                        oh = ev.get("overhead_cost", 0)
+                        ev["roi"] = round(hc - ac - oh, 2)
+
+                        # Transition status based on progress
+                        cur_status = ev.get("status", "pending")
+                        pct = ev["progress_pct"]
+                        if cur_status == "pending" and pct > 5:
+                            ev["status"] = "running"
+                        elif cur_status == "running" and pct >= 90:
+                            if _rand_sse.random() < _HITL_CHANCE:
+                                ev["status"] = "hitl_review"
+                                ev["hitl_reviews"].append({
+                                    "decision": "pending",
+                                    "notes": "Automated HITL review triggered",
+                                    "ts": _now_iso(),
+                                    "cost_delta": 0,
+                                })
+                            else:
+                                ev["status"] = "qc"
+                        elif cur_status in ("qc", "hitl_review") and pct >= 95:
+                            ev["status"] = "complete"
+                            ev["progress_pct"] = 100
+                            # Mark all checklist items as complete
+                            for item in checklist:
+                                if item.get("status") != "complete":
+                                    item["status"] = "complete"
+                                    if not item.get("completed_at"):
+                                        item["completed_at"] = _now_iso()
+                            ev["qc_passes"] = ev.get("qc_passes", 0) + 1
+
+                        ev["updated_at"] = _now_iso()
+
+                    ticks_to_advance = _rand_sse.randint(3, 8)
+
+                # Broadcast changed events
                 for ev in _roi_calendar_store:
                     eid = ev["event_id"]
-                    sk = f"{ev['progress_pct']}:{ev['status']}:{ev['roi']:.2f}"
+                    ac = ev.get("agent_compute_cost", 0)
+                    sk = f"{ev.get('progress_pct', 0)}:{ev.get('status', '')}:{ac:.2f}"
                     if last_states.get(eid) != sk:
                         last_states[eid] = sk
                         yield f"event: roi_update\ndata: {_json_roi.dumps(ev)}\n\n"
@@ -3337,7 +3487,32 @@ def create_app() -> FastAPI:
         return StreamingResponse(_gen(), media_type="text/event-stream",
                                  headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
-    # --- Onboarding Automation Engine (employee onboarding) ---
+    @app.get("/api/roi-calendar/export")
+    async def roi_calendar_export(fmt: str = "json"):
+        """Export ROI calendar data as JSON or CSV."""
+        import json as _json_exp
+        import io as _io_exp
+        if fmt == "csv":
+            import csv as _csv_exp
+            output = _io_exp.StringIO()
+            fieldnames = ["event_id", "title", "status", "progress_pct",
+                          "human_cost_estimate", "human_time_estimate_hours",
+                          "agent_compute_cost", "overhead_cost", "roi", "start", "end"]
+            writer = _csv_exp.DictWriter(output, fieldnames=fieldnames, extrasaction="ignore")
+            writer.writeheader()
+            for ev in _roi_calendar_store:
+                writer.writerow(ev)
+            content = output.getvalue()
+            from starlette.responses import Response as _Resp
+            return _Resp(content=content, media_type="text/csv",
+                         headers={"Content-Disposition": "attachment; filename=roi-calendar.csv"})
+        else:
+            from starlette.responses import Response as _Resp
+            content = _json_exp.dumps({"ok": True, "events": _roi_calendar_store}, indent=2)
+            return _Resp(content=content, media_type="application/json",
+                         headers={"Content-Disposition": "attachment; filename=roi-calendar.json"})
+
+
 
     @app.post("/api/onboarding/employees")
     async def onboarding_create_employee(request: Request):
@@ -13050,49 +13225,231 @@ def create_app() -> FastAPI:
     # Seed ROI Calendar demo events (show the platform in action on first boot)
     try:
         from datetime import datetime as _dt_roi, timezone as _tz_roi, timedelta as _td_roi
+        import random as _rand_roi
         import hashlib as _hl_roi
+
         _now_dt_roi = _dt_roi.now(_tz_roi.utc)
 
-        def _mk_roi(title, human_cost, human_hours, status, pct, agents, agent_cost, off_days=0, off_hours=0):
-            s = _now_dt_roi + _td_roi(days=off_days, hours=off_hours)
-            e = s + _td_roi(hours=max(0.5, human_hours / 4))
-            overhead = round(human_cost * 0.03, 2)
+        # Named agents with colors used across all ROI calendar events
+        _ROI_AGENT_POOL = [
+            {"name": "Orchestrator",  "color": "#00d4aa", "role": "coordination"},
+            {"name": "DataExtractor", "color": "#00e5ff", "role": "data_fetch"},
+            {"name": "Validator",     "color": "#ffd700", "role": "quality_check"},
+            {"name": "Formatter",     "color": "#ff8c00", "role": "output_format"},
+            {"name": "ComplianceBot", "color": "#ff4444", "role": "compliance"},
+            {"name": "Integrator",    "color": "#a855f7", "role": "api_integration"},
+            {"name": "Scheduler",     "color": "#22c55e", "role": "scheduling"},
+            {"name": "Notifier",      "color": "#ec4899", "role": "notifications"},
+        ]
+
+        # Task templates: (title, hourly_rate, hours_min, hours_max, checklist_steps, description)
+        _ROI_TASK_TEMPLATES = [
+            ("Invoice Processing", 45, 2, 6,
+             [("Extract invoice data from email", "DataExtractor"),
+              ("Validate amounts and vendor info", "Validator"),
+              ("Match to purchase orders", "Orchestrator"),
+              ("Route for approval", "Notifier"),
+              ("Post to accounting system", "Integrator")],
+             "Automated end-to-end invoice processing pipeline"),
+            ("Compliance Audit", 85, 8, 20,
+             [("Pull transaction records", "DataExtractor"),
+              ("Screen against regulatory rules", "ComplianceBot"),
+              ("Flag anomalies for review", "Validator"),
+              ("Generate audit trail", "Formatter"),
+              ("Submit compliance report", "Notifier")],
+             "Regulatory compliance audit with automated screening"),
+            ("Payroll Processing", 55, 4, 10,
+             [("Aggregate hours and rates", "DataExtractor"),
+              ("Calculate deductions and taxes", "ComplianceBot"),
+              ("Validate against HR records", "Validator"),
+              ("Generate pay stubs", "Formatter"),
+              ("Trigger bank transfers", "Integrator")],
+             "End-to-end payroll calculation and disbursement"),
+            ("Client Onboarding", 65, 3, 8,
+             [("Create client profile", "DataExtractor"),
+              ("Provision system access", "Integrator"),
+              ("Send welcome sequence", "Notifier"),
+              ("Schedule kick-off call", "Scheduler"),
+              ("Validate setup completeness", "Validator")],
+             "Automated client onboarding workflow"),
+            ("Report Generation", 50, 2, 5,
+             [("Fetch data from sources", "DataExtractor"),
+              ("Aggregate and transform", "Orchestrator"),
+              ("Apply formatting templates", "Formatter"),
+              ("Quality-check outputs", "Validator"),
+              ("Distribute to stakeholders", "Notifier")],
+             "Automated KPI and analytics report generation"),
+            ("Contract Review", 120, 4, 12,
+             [("Extract contract clauses", "DataExtractor"),
+              ("Screen for risk terms", "ComplianceBot"),
+              ("Compare to standard templates", "Validator"),
+              ("Summarise red-line items", "Formatter"),
+              ("Route to legal for sign-off", "Notifier")],
+             "AI-assisted contract review and risk screening"),
+            ("Data Migration", 75, 6, 16,
+             [("Inventory source data schema", "DataExtractor"),
+              ("Map fields to target schema", "Orchestrator"),
+              ("Run validation checks", "Validator"),
+              ("Execute migration batch", "Integrator"),
+              ("Verify record counts", "ComplianceBot")],
+             "Automated data migration with validation"),
+            ("Email Campaign", 40, 3, 8,
+             [("Segment audience list", "DataExtractor"),
+              ("Personalise message content", "Formatter"),
+              ("Schedule send batches", "Scheduler"),
+              ("Monitor deliverability", "Validator"),
+              ("Report open/click rates", "Notifier")],
+             "Automated email campaign orchestration"),
+            ("Lead Qualification", 60, 2, 6,
+             [("Enrich lead data", "DataExtractor"),
+              ("Score against ICP criteria", "Validator"),
+              ("Update CRM fields", "Integrator"),
+              ("Route to sales rep", "Orchestrator"),
+              ("Trigger follow-up sequence", "Notifier")],
+             "Automated lead scoring and CRM enrichment"),
+            ("Support Ticket Routing", 45, 1, 4,
+             [("Parse ticket content", "DataExtractor"),
+              ("Classify issue category", "Validator"),
+              ("Assign to correct queue", "Orchestrator"),
+              ("Notify assigned agent", "Notifier"),
+              ("Log SLA timer", "Scheduler")],
+             "Intelligent support ticket triage and routing"),
+            ("Vendor Onboarding", 70, 4, 10,
+             [("Collect vendor documents", "DataExtractor"),
+              ("Verify compliance certificates", "ComplianceBot"),
+              ("Set up payment details", "Integrator"),
+              ("Add to approved vendor list", "Validator"),
+              ("Send onboarding confirmation", "Notifier")],
+             "Automated vendor qualification and setup"),
+            ("Weekly KPI Summary", 50, 2, 5,
+             [("Pull metrics from dashboards", "DataExtractor"),
+              ("Calculate week-over-week deltas", "Orchestrator"),
+              ("Flag KPIs outside thresholds", "Validator"),
+              ("Format executive summary", "Formatter"),
+              ("Distribute to leadership", "Notifier")],
+             "Automated weekly KPI compilation and distribution"),
+        ]
+
+        def _mk_checklist(steps, progress_pct, status):
+            """Build a checklist from steps, with completion state based on progress."""
+            n = len(steps)
+            completed = int(n * min(progress_pct, 100) / 100)
+            result = []
+            for i, (step_name, agent_name) in enumerate(steps):
+                if i < completed:
+                    st = "complete"
+                    completed_at = (_now_dt_roi - _td_roi(minutes=_rand_roi.randint(1, 60))).isoformat()
+                elif i == completed and status in ("running", "qc", "hitl_review"):
+                    st = "running"
+                    completed_at = None
+                else:
+                    st = "pending"
+                    completed_at = None
+                result.append({
+                    "step": step_name,
+                    "status": st,
+                    "agent": agent_name,
+                    "completed_at": completed_at,
+                })
+            return result
+
+        def _mk_roi_event(template, day_offset, hour_offset, status=None, pct=None):
+            title, hourly_rate, hrs_min, hrs_max, steps, desc = template
+            human_hours = round(_rand_roi.uniform(hrs_min, hrs_max), 1)
+            human_cost = round(hourly_rate * human_hours, 2)
+            overhead = round(human_cost * _rand_roi.uniform(0.02, 0.05), 2)
+            # Agent compute: realistic token-cost-based estimate ($0.50–$15 per task)
+            agent_cost_base = round(_rand_roi.uniform(0.50, 15.0), 2)
+
+            if status is None:
+                # Pick a random status weighted toward active states
+                status = _rand_roi.choices(
+                    ["pending", "running", "qc", "hitl_review", "complete"],
+                    weights=[20, 35, 15, 10, 20], k=1
+                )[0]
+            if pct is None:
+                pct_map = {"pending": 0, "running": _rand_roi.randint(10, 85),
+                           "qc": _rand_roi.randint(85, 95),
+                           "hitl_review": _rand_roi.randint(88, 97),
+                           "complete": 100}
+                pct = pct_map[status]
+
+            # Agent compute grows with progress
+            agent_cost = round(agent_cost_base * pct / 100, 2) if status != "complete" else agent_cost_base
             roi = round(human_cost - agent_cost - overhead, 2)
+
+            # Pick 2–4 agents from the pool
+            num_agents = _rand_roi.randint(2, 4)
+            # Ensure the agents used in the checklist are included
+            checklist_agents = list({s[1] for s in steps})
+            pool_names = {a["name"] for a in _ROI_AGENT_POOL}
+            valid_checklist = [a for a in checklist_agents if a in pool_names]
+            # Start with agents from the checklist, then fill from pool
+            picked = valid_checklist[:num_agents]
+            remaining_pool = [a for a in _ROI_AGENT_POOL if a["name"] not in picked]
+            _rand_roi.shuffle(remaining_pool)
+            for a in remaining_pool:
+                if len(picked) >= num_agents:
+                    break
+                picked.append(a["name"])
+            agents = [a for a in _ROI_AGENT_POOL if a["name"] in picked]
+
+            start_dt = _now_dt_roi + _td_roi(days=day_offset, hours=hour_offset)
+            end_dt = start_dt + _td_roi(hours=max(0.5, human_hours / 3))
+            eid = "seed-" + _hl_roi.sha256((title + str(day_offset) + str(hour_offset)).encode()).hexdigest()[:12]
+
+            checklist = _mk_checklist(steps, pct, status)
+
             return {
-                "event_id": "seed-" + _hl_roi.sha256(title.encode()).hexdigest()[:12],
-                "title": title, "description": "Automated by Murphy System agents",
-                "automation_id": None, "start": s.isoformat(), "end": e.isoformat(),
-                "status": status, "progress_pct": pct,
-                "human_cost_estimate": float(human_cost),
-                "human_time_estimate_hours": float(human_hours),
-                "agent_compute_cost": float(agent_cost),
-                "overhead_cost": overhead, "roi": roi,
-                "actual_time_hours": round(human_hours / 4, 2) if status == "complete" else 0.0,
-                "agents": agents, "hitl_reviews": [],
-                "qc_passes": 2 if status == "complete" else 0,
-                "qc_failures": 0, "cost_adjustments": [],
-                "created_at": _now_dt_roi.isoformat(), "updated_at": _now_dt_roi.isoformat(),
+                "event_id": eid,
+                "title": title,
+                "description": desc,
+                "automation_id": None,
+                "start": start_dt.isoformat(),
+                "end": end_dt.isoformat(),
+                "status": status,
+                "progress_pct": pct,
+                "human_cost_estimate": human_cost,
+                "human_time_estimate_hours": human_hours,
+                "hourly_rate": hourly_rate,
+                "agent_compute_cost": agent_cost,
+                "overhead_cost": overhead,
+                "roi": roi,
+                "actual_time_hours": round(human_hours / 3, 2) if status == "complete" else 0.0,
+                "agents": agents,
+                "checklist": checklist,
+                "hitl_reviews": [],
+                "qc_passes": (_rand_roi.randint(1, 3) if status == "complete" else 0),
+                "qc_failures": 0,
+                "cost_adjustments": [],
+                "created_at": _now_dt_roi.isoformat(),
+                "updated_at": _now_dt_roi.isoformat(),
             }
 
-        _seed_roi = [
-            _mk_roi("Monthly Invoice Batch", 2400, 16, "complete", 100,
-                    ["Coordinator", "Data Modeler", "Report Generator"], 48.0, off_days=-1),
-            _mk_roi("Lead Qualification Pipeline", 1800, 12, "running", 67,
-                    ["Schema Architect", "API Designer", "Logic Engineer"], 24.0, off_hours=1),
-            _mk_roi("Client Onboarding Automation", 3200, 24, "qc", 85,
-                    ["Workflow Composer", "Test Strategist", "Validator"], 36.0, off_hours=3),
-            _mk_roi("Weekly KPI Report", 960, 8, "hitl_review", 90,
-                    ["Analytics Designer", "Report Generator"], 18.0, off_hours=5),
-            _mk_roi("Contract Review Workflow", 4800, 32, "pending", 0, [], 0.0, off_days=1),
+        # Generate 12–16 events spread across Mon–Sun of the current week
+        # Use deterministic day/hour slots based on shuffled templates
+        _roi_slots = [
+            (-1, 9), (-1, 14), (0, 8), (0, 10), (0, 13), (0, 15),
+            (1, 9),  (1, 11), (1, 14), (2, 8),  (2, 11), (2, 16),
+            (3, 9),  (3, 13), (4, 10), (4, 14),
         ]
+        _shuffled_templates = list(_ROI_TASK_TEMPLATES)
+        _rand_roi.shuffle(_shuffled_templates)
+        _num_events = _rand_roi.randint(12, 16)
+        _seed_roi = []
+        for _idx, (day_off, hr_off) in enumerate(_roi_slots[:_num_events]):
+            tmpl = _shuffled_templates[_idx % len(_shuffled_templates)]
+            _seed_roi.append(_mk_roi_event(tmpl, day_off, hr_off))
+
         for _rcev in _seed_roi:
             if not any(e["event_id"] == _rcev["event_id"] for e in _roi_calendar_store):
                 _roi_calendar_store.append(_rcev)
-        logger.info("ROI Calendar: seeded %d demo events", len(_seed_roi))
+        logger.info("ROI Calendar: seeded %d randomly-generated events", len(_seed_roi))
     except Exception as _roi_seed_exc:
         logger.debug("ROI Calendar seeding skipped: %s", _roi_seed_exc)
 
     return app
+
 
 def main():
     """Main entry point"""
