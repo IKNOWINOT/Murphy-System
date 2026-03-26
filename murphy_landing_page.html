@@ -288,9 +288,36 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
   .sol-grid,.ind-grid,.partner-grid{grid-template-columns:1fr 1fr;}
 }
 @media(max-width:480px){.g2,.g3,.g4,.sol-grid,.ind-grid,.partner-grid{grid-template-columns:1fr;}}
+/* Error banner */
+#murphy-error-banner{display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#c0392b;color:#fff;padding:10px 16px;font-size:14px;align-items:center;gap:12px;}
+#murphy-error-banner-msg{flex:1;}
+#murphy-error-banner-close{background:transparent;border:1px solid rgba(255,255,255,.6);color:#fff;cursor:pointer;padding:2px 8px;border-radius:3px;font-size:13px;}
+.forge-err-msg{color:var(--red);font-size:.85rem;padding:.5rem 0;}
+.forge-err-link{color:var(--teal);}
 </style>
 </head>
 <body>
+<!-- Murphy error banner — shown automatically on 5xx fetch errors -->
+<div id="murphy-error-banner" role="alert" aria-live="assertive">
+  <span id="murphy-error-banner-msg"></span>
+  <button id="murphy-error-banner-close" onclick="document.getElementById('murphy-error-banner').style.display='none'" aria-label="Dismiss">✕</button>
+</div>
+<script>
+function showMurphyError(msg) {
+  var b = document.getElementById('murphy-error-banner');
+  document.getElementById('murphy-error-banner-msg').textContent = msg || 'An unexpected error occurred.';
+  b.style.display = 'flex';
+}
+(function() {
+  var _origFetch = window.fetch;
+  window.fetch = function() {
+    return _origFetch.apply(this, arguments).then(function(resp) {
+      if (resp.status >= 500) showMurphyError('Server error (' + resp.status + ') — ' + resp.url.split('?')[0]);
+      return resp;
+    });
+  };
+})();
+</script>
 <a class="skip" href="#main-content">Skip to main content</a>
 
 <!-- TOPBAR -->
@@ -1191,7 +1218,7 @@ function _showResult(deliverable,usedRealApi,forgeUsage){
     if(!usedRealApi){
       titleEl.innerHTML='&#9888; Build Failed — API Unavailable';
       _setStatus('&#9888; Could not connect to the generation API. Check your connection and try again.','phase');
-      statsEl.innerHTML='<div style="color:var(--red);font-size:.85rem;padding:.5rem 0">The deliverable generator requires an active server connection. Please refresh and retry, or <a href="/ui/onboarding" style="color:var(--teal)">set up your own Murphy instance</a> for unlimited offline builds.</div>';
+      statsEl.innerHTML='<div class="forge-err-msg">The deliverable generator requires an active server connection. Please refresh and retry, or <a href="/ui/onboarding" class="forge-err-link">set up your own Murphy instance</a> for unlimited offline builds.</div>';
     } else {
       titleEl.innerHTML='&#9888; Build Limit Reached';
       _setStatus('&#9888; Build limit reached for today. Sign up free to get more builds.','phase');
@@ -1218,7 +1245,7 @@ function _forgeDownload(){
       _setStatus('&#10003; Download started.','phase');
     }
   })
-  .catch(function(){_setStatus('&#9888; Download error — try again.','phase');});
+  .catch(function(){_setStatus('&#9888; Download error — try again.','phase'); showMurphyError('Download error — please try again.');});
 }
 
 /* ── Gate check: do we have ≥85% of needed info? ── */
@@ -1358,9 +1385,19 @@ function probe(){
   }).catch(function(){
     var txt=document.getElementById('sys-status-text');if(txt)txt.textContent='offline';
     var pill=document.getElementById('sys-status-pill');if(pill)pill.className='sys-pill warn';
+    showMurphyError('Unable to reach Murphy server — check your connection.');
   });
 }
 probe();setInterval(probe,30000);
+})();
+</script>
+<script src="/static/murphy-components.js"></script>
+<script>
+/* MurphyLibrarianChat — wired to the landing page using the standard API */
+(function(){
+  var api = new MurphyAPI('/api');
+  var lc = new MurphyLibrarianChat(api);
+  window._murphyLibrarianChat = lc;
 })();
 </script>
 </body>
