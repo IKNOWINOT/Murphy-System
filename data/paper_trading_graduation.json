@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "updated_at": "2026-03-26T03:20:22.131749+00:00",
+  "results": [
+    {
+      "date": "2026-03-26",
+      "start_equity": 0.0,
+      "end_equity": 0.0,
+      "trades": 0,
+      "profitable": false
+    }
+  ]
+}

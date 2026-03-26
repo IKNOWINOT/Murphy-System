@@ -1330,6 +1330,11 @@ if _STARLETTE_AVAILABLE:
                     int(_os.environ.get("MURPHY_EXEC_RATE_LIMIT_RPM", "10")),
                     int(_os.environ.get("MURPHY_EXEC_RATE_LIMIT_BURST", "5")),
                 ),
+                (
+                    "/api/demo",
+                    int(_os.environ.get("MURPHY_FORGE_RATE_LIMIT_RPM", "10")),
+                    int(_os.environ.get("MURPHY_FORGE_RATE_LIMIT_BURST", "3")),
+                ),
             ]
 
             # Token buckets: keyed by "user_id:bucket_name"

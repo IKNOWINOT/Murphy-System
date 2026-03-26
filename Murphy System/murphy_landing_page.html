@@ -164,6 +164,24 @@ h2.stitle{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;line-height:1.2;bac
 .forge-fallback-cta{text-align:center;margin-top:1rem;font-size:.82rem;color:var(--muted);}
 .forge-fallback-cta a{color:var(--teal);text-decoration:none;}
 .forge-fallback-cta a:hover{text-decoration:underline;}
+/* Forge preview panel */
+.forge-preview{margin:1rem 0;border:1px solid rgba(0,255,65,.2);border-radius:8px;background:#0a0a0a;overflow:hidden;}
+.forge-preview-hdr{display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;background:rgba(0,255,65,.06);border-bottom:1px solid rgba(0,255,65,.15);}
+.forge-preview-hdr span{font-size:.72rem;font-weight:700;color:var(--green);letter-spacing:.06em;text-transform:uppercase;}
+.forge-preview-toggle{background:none;border:1px solid rgba(0,255,65,.3);color:var(--green);border-radius:5px;padding:.2rem .55rem;font-size:.7rem;cursor:pointer;}
+.forge-preview-body{font-family:'Courier New',monospace;font-size:.7rem;line-height:1.5;color:#b0ffb0;padding:.75rem;overflow-y:auto;max-height:260px;white-space:pre-wrap;word-break:break-all;}
+.forge-preview-body.collapsed{display:none;}
+/* Usage counter */
+.forge-usage{font-size:.75rem;color:var(--muted);margin:.5rem 0 1rem;padding:.4rem .75rem;border:1px solid rgba(0,212,170,.15);border-radius:6px;background:rgba(0,212,170,.04);}
+.forge-usage strong{color:var(--teal);}
+/* Live view toggle */
+.forge-live-wrap{display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem;font-size:.78rem;color:var(--muted);}
+.forge-live-wrap label{cursor:pointer;display:flex;align-items:center;gap:.35rem;}
+.forge-live-dot{width:8px;height:8px;border-radius:50%;background:#f00;animation:live-pulse 1s infinite;}
+@keyframes live-pulse{0%,100%{opacity:1}50%{opacity:.3}}
+/* Webmail button in status bar */
+.lstat-link{cursor:pointer;text-decoration:none;color:inherit;}
+.lstat-link:hover .ld{box-shadow:0 0 6px currentColor;}
 .demo-cursor{display:inline-block;width:.5em;height:.9em;background:var(--green);vertical-align:text-bottom;animation:blink .7s step-end infinite;}
 @keyframes blink{50%{opacity:0;}}
 /* AI section */
@@ -338,7 +356,7 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
     <div class="live-status-row" id="live-status-row" style="margin:0;gap:.5rem;">
       <span class="lstat"><span class="ld ld-ok"></span>API Gateway</span>
       <span class="lstat" id="lstat-llm"><span class="ld ld-off"></span>Ollama LLM</span>
-      <span class="lstat" id="lstat-mail"><span class="ld ld-off"></span>Mail Server</span>
+      <a class="lstat lstat-link" id="lstat-mail" href="/mail/" target="_blank" title="Open Webmail (Roundcube)"><span class="ld ld-off"></span>Mail Server</a>
       <span class="lstat" id="lstat-matrix"><span class="ld ld-off"></span>Matrix Bridge</span>
       <span class="lstat" id="lstat-hitl"><span class="ld ld-ok"></span>HITL Gates</span>
       <span class="lstat" id="lstat-swarm"><span class="ld ld-ok"></span>Swarm Engine</span>
@@ -582,6 +600,14 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
       <div class="forge-status" id="forge-status" aria-live="polite"></div>
 
       <!-- 64-pane grid -->
+      <!-- Live View toggle -->
+      <div class="forge-live-wrap" id="forge-live-wrap" style="display:none;">
+        <label>
+          <input type="checkbox" id="forge-live-chk">
+          <span class="forge-live-dot"></span>
+          Live View — stream real agent output
+        </label>
+      </div>
       <div class="forge-grid-wrap" id="forge-grid-wrap" aria-hidden="true">
         <div class="forge-grid" id="forge-grid"></div>
       </div>
@@ -591,6 +617,18 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
         <div class="forge-result-title" id="forge-result-title">&#10003; Build Complete</div>
         <div class="forge-result-stats" id="forge-result-stats"></div>
         <p class="forge-roi" id="forge-roi"></p>
+        <!-- Usage counter -->
+        <div class="forge-usage" id="forge-usage" style="display:none;"></div>
+        <!-- Content preview panel -->
+        <div class="forge-preview" id="forge-preview" style="display:none;">
+          <div class="forge-preview-hdr">
+            <span>&#128196; Deliverable Preview</span>
+            <button class="forge-preview-toggle" id="forge-preview-toggle" onclick="_forgeTogglePreview()">&#9660; Collapse</button>
+          </div>
+          <div class="forge-preview-body" id="forge-preview-body"></div>
+        </div>
+        <!-- HTML preview button (only shown for .html deliverables) -->
+        <button class="forge-dl-btn" id="forge-html-preview-btn" style="display:none;background:rgba(0,212,170,.15);color:var(--teal);border:1px solid var(--teal);margin-bottom:.5rem;" onclick="_forgePreviewInTab()">&#9654; Preview in New Tab</button>
         <button class="forge-dl-btn" id="forge-dl-btn">&#8595; Download Your Deliverable</button>
         <div class="forge-fallback-cta" id="forge-fallback-cta" style="display:none;">
           <a href="/ui/signup">Sign up free to download this deliverable →</a>
@@ -972,7 +1010,7 @@ function _buildGrid(){
 }
 
 /* Cascade-activate panes */
-function _cascadePanes(type,onDone){
+function _cascadePanesDefault(type,onDone){
   var cols=['active','cyan','teal'];
   var activated=0;
   for(var i=0;i<64;i++){
@@ -1003,6 +1041,56 @@ function _cascadePanes(type,onDone){
   }
 }
 
+function _cascadePanesSSE(type,onDone){
+  var panes=document.querySelectorAll('.forge-pane');
+  var paneCount=panes.length;
+  var src=new EventSource('/api/demo/forge-stream?query='+encodeURIComponent(_forgeQuery||''));
+  src.addEventListener('agent_start',function(e){
+    var d=JSON.parse(e.data);
+    var pane=panes[d.agent_id%paneCount];
+    if(pane){var lbl=pane.querySelector('.fp-label');if(lbl)lbl.textContent=d.agent_name;}
+  });
+  src.addEventListener('agent_progress',function(e){
+    var d=JSON.parse(e.data);
+    var pane=panes[d.agent_id%paneCount];
+    if(pane){var body=pane.querySelector('.fp-body');if(body)body.textContent=d.output_line.slice(0,60);}
+  });
+  src.addEventListener('build_complete',function(){
+    src.close();
+    if(onDone)onDone();
+  });
+  src.onerror=function(){
+    src.close();
+    _cascadePanesDefault(type,onDone);
+  };
+}
+
+function _cascadePanes(type,onDone){
+  var liveChk=document.getElementById('forge-live-chk');
+  if(liveChk&&liveChk.checked&&typeof EventSource!=='undefined'){
+    _cascadePanesSSE(type,onDone);
+  } else {
+    _cascadePanesDefault(type,onDone);
+  }
+}
+
+/* Toggle preview panel collapse/expand */
+function _forgeTogglePreview(){
+  var body=document.getElementById('forge-preview-body');
+  var btn=document.getElementById('forge-preview-toggle');
+  if(!body||!btn)return;
+  var collapsed=body.classList.toggle('collapsed');
+  btn.textContent=collapsed?'\u25ba Show full content':'\u25bc Collapse';
+}
+
+/* Open HTML deliverable in new tab via Blob URL */
+function _forgePreviewInTab(){
+  var btn=document.getElementById('forge-html-preview-btn');
+  if(!btn||!btn._content)return;
+  var blob=new Blob([btn._content],{type:'text/html'});
+  window.open(URL.createObjectURL(blob),'_blank');
+}
+
 /* Convergence: shrink all panes toward center */
 function _convergePanes(onDone){
   _setStatus('&#9889; Converging — assembling 64 artifacts...','phase');
@@ -1015,19 +1103,25 @@ function _convergePanes(onDone){
 }
 
 /* Show result block */
-function _showResult(deliverable,usedRealApi){
+function _showResult(deliverable,usedRealApi,forgeUsage){
   var resBlock=document.getElementById('forge-result');
   var titleEl=document.getElementById('forge-result-title');
   var statsEl=document.getElementById('forge-result-stats');
   var roiEl=document.getElementById('forge-roi');
   var dlBtn=document.getElementById('forge-dl-btn');
   var fbCta=document.getElementById('forge-fallback-cta');
+  var previewWrap=document.getElementById('forge-preview');
+  var previewBody=document.getElementById('forge-preview-body');
+  var usageEl=document.getElementById('forge-usage');
+  var htmlBtn=document.getElementById('forge-html-preview-btn');
 
   var title=deliverable?deliverable.title:('Deliverable: '+_forgeQuery.slice(0,50));
   var content=deliverable?deliverable.content:'';
   var wordCount=content?content.split(/\s+/).length:0;
   var lineCount=content?content.split('\n').length:0;
   var sizeKb=content?Math.round(content.length/1024):0;
+  var filename=deliverable?deliverable.filename||'murphy-deliverable.txt':'murphy-deliverable.txt';
+  var isHtml=/\.html?$/i.test(filename)||/<html/i.test((content||'').slice(0,200));
 
   titleEl.innerHTML='&#10003; '+title;
   statsEl.innerHTML=
@@ -1035,24 +1129,56 @@ function _showResult(deliverable,usedRealApi){
     '<div class="forge-stat"><span class="forge-stat-val">8s</span><span class="forge-stat-lbl">Build Time</span></div>'+
     '<div class="forge-stat"><span class="forge-stat-val">'+wordCount.toLocaleString()+'</span><span class="forge-stat-lbl">Words</span></div>'+
     '<div class="forge-stat"><span class="forge-stat-val">'+lineCount.toLocaleString()+'</span><span class="forge-stat-lbl">Lines</span></div>'+
-    '<div class="forge-stat"><span class="forge-stat-val">'+sizeKb+'KB</span><span class="forge-stat-lbl">File Size</span></div>';
+    '<div class="forge-stat"><span class="forge-stat-val">'+sizeKb+'KB</span><span class="forge-stat-lbl">Size</span></div>';
 
-  roiEl.innerHTML='<strong>64 agents × 8 seconds</strong> = what would take a team of developers <strong>days or weeks</strong> to produce manually. <strong>ROI: immediate.</strong> Everything in this deliverable is real and runnable — save the file, open it, and it works.';
+  roiEl.innerHTML='<strong>64 agents × 8 seconds</strong> = what would take a team of developers <strong>days or weeks</strong> to produce manually. <strong>ROI: immediate.</strong>';
 
-  if(deliverable&&usedRealApi){
-    dlBtn.style.display='';
-    fbCta.style.display='none';
-    dlBtn.onclick=function(){_forgeDownload();};
-  } else if(deliverable){
-    // Client-side download
+  // Show usage counter
+  if(forgeUsage&&usageEl){
+    var remaining=forgeUsage.builds_remaining_today;
+    var used=forgeUsage.builds_used_today||0;
+    var tier=forgeUsage.tier||'anonymous';
+    if(remaining===-1){
+      usageEl.innerHTML='<strong>Unlimited</strong> builds — '+tier+' tier';
+    } else {
+      var limit=used+remaining;
+      usageEl.innerHTML='<strong>'+remaining+' of '+limit+'</strong> free builds remaining today — <a href="/pricing" style="color:var(--teal);">upgrade for more &rarr;</a>';
+    }
+    usageEl.style.display='';
+  }
+
+  // Show content preview (first 100 lines)
+  if(content&&previewWrap&&previewBody){
+    var lines=content.split('\n');
+    var previewLines=lines.slice(0,100).join('\n');
+    var truncated=lines.length>100;
+    previewBody.textContent=previewLines+(truncated?'\n\n... ('+(lines.length-100)+' more lines — download to see full content)':'');
+    previewWrap.style.display='';
+    // Reset toggle state
+    previewBody.classList.remove('collapsed');
+    var toggleBtn=document.getElementById('forge-preview-toggle');
+    if(toggleBtn)toggleBtn.textContent='\u25bc Collapse';
+  }
+
+  // Always show download when content exists
+  if(content){
     dlBtn.style.display='';
     fbCta.style.display='none';
     dlBtn.onclick=function(){
-      var blob=new Blob([deliverable.content],{type:'text/plain'});
+      var blob=new Blob([content],{type:'text/plain'});
       var a=document.createElement('a');a.href=URL.createObjectURL(blob);
-      a.download=deliverable.filename||'murphy-deliverable.txt';
+      a.download=filename;
       document.body.appendChild(a);a.click();document.body.removeChild(a);
     };
+    // HTML preview button
+    if(htmlBtn){
+      if(isHtml){
+        htmlBtn.style.display='';
+        htmlBtn._content=content;
+      } else {
+        htmlBtn.style.display='none';
+      }
+    }
   } else {
     dlBtn.style.display='none';
     fbCta.style.display='';
@@ -1132,11 +1258,15 @@ function forgeRun(query){
   resBlock.style.display='none';
   _buildGrid();
 
+  // Show live view toggle
+  var liveWrap=document.getElementById('forge-live-wrap');
+  if(liveWrap)liveWrap.style.display='';
+
   // Kick off real API call in background
-  var apiDone=false,animDone=false,apiResult=null,apiUsed=false;
+  var apiDone=false,animDone=false,apiResult=null,apiUsed=false,apiForgeUsage=null;
   function tryMerge(){
     if(!apiDone||!animDone)return;
-    _convergePanes(function(){_showResult(apiResult,apiUsed);_forgeRunning=false;});
+    _convergePanes(function(){_showResult(apiResult,apiUsed,apiForgeUsage);_forgeRunning=false;});
   }
 
   // API call
@@ -1148,7 +1278,10 @@ function forgeRun(query){
   .then(function(r){return r.ok?r.json():null;})
   .then(function(data){
     if(data&&data.success&&data.deliverable){
-      apiResult=data.deliverable; apiUsed=true;
+      apiResult=data.deliverable;
+      apiResult.llm_provider=data.llm_provider||'local';
+      apiUsed=true;
+      apiForgeUsage=data.forge_usage||null;
     }
     apiDone=true; tryMerge();
   })
