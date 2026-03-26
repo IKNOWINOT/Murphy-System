@@ -11062,22 +11062,42 @@ def create_app() -> FastAPI:
     from starlette.middleware.base import BaseHTTPMiddleware as _BHMW
 
     class _APIKeyMiddleware(_BHMW):
-        """Unified API key enforcement for all /api/* routes."""
+        """Unified API key enforcement for all /api/* routes.
 
+        Auth, demo, and other public-facing routes are always exempt so that
+        visitors can log in / sign up / use the demo even when MURPHY_API_KEY
+        is configured for protecting internal API routes.
+        """
+
+        # Exact-path exemptions
         EXEMPT_PATHS = {"/api/health", "/api/info", "/api/manifest"}
 
+        # Prefix-based exemptions — any path that starts with one of these is
+        # treated as a public endpoint regardless of API key configuration.
+        EXEMPT_PREFIXES = (
+            "/api/auth/",    # login, signup, OAuth, password reset — must be public
+            "/api/demo/",    # demo runner and deliverable generator — no login required
+            "/api/system/",  # system status / health endpoints
+        )
+
         async def dispatch(self, request: Request, call_next):
-            if request.url.path.startswith("/api/") and request.url.path not in self.EXEMPT_PATHS:
-                expected_key = os.environ.get("MURPHY_API_KEY", "") or os.environ.get("MURPHY_API_KEYS", "")
-                if expected_key:
-                    # Starlette normalises header names to lowercase (RFC 7230);
-                    # use lowercase "x-api-key" here to match that behaviour.
-                    api_key = request.headers.get("x-api-key", "")
-                    if api_key != expected_key:
-                        return JSONResponse(
-                            {"success": False, "error": {"code": "AUTH_REQUIRED", "message": "Valid X-API-Key header required"}},
-                            status_code=401,
-                        )
+            path = request.url.path
+            if path.startswith("/api/"):
+                is_exempt = (
+                    path in self.EXEMPT_PATHS
+                    or any(path.startswith(pfx) for pfx in self.EXEMPT_PREFIXES)
+                )
+                if not is_exempt:
+                    expected_key = os.environ.get("MURPHY_API_KEY", "") or os.environ.get("MURPHY_API_KEYS", "")
+                    if expected_key:
+                        # Starlette normalises header names to lowercase (RFC 7230);
+                        # use lowercase "x-api-key" here to match that behaviour.
+                        api_key = request.headers.get("x-api-key", "")
+                        if api_key != expected_key:
+                            return JSONResponse(
+                                {"success": False, "error": {"code": "AUTH_REQUIRED", "message": "Valid X-API-Key header required"}},
+                                status_code=401,
+                            )
             return await call_next(request)
 
     app.add_middleware(_APIKeyMiddleware)
@@ -12676,12 +12696,25 @@ def create_app() -> FastAPI:
         )
 
     def _ensure_founder_account() -> None:
-        """Create or promote the founder/owner account."""
+        """Create or promote the founder/owner account.
+
+        On every startup this ensures the founder can log in with the
+        configured MURPHY_FOUNDER_PASSWORD.  If the account already exists
+        the role is promoted to owner AND the password is re-synced to
+        MURPHY_FOUNDER_PASSWORD — so changing the env var immediately takes
+        effect on the next restart without needing a manual DB edit.
+        To use a custom password permanently, set MURPHY_FOUNDER_PASSWORD
+        in your environment (do not rely on the in-memory default).
+        """
         existing_id = _email_to_account.get(_FOUNDER_EMAIL)
         if existing_id:
-            # Account already exists — promote to owner unconditionally
+            # Account already exists — promote to owner and sync password
             _user_store[existing_id]["role"] = "owner"
             _user_store[existing_id]["full_name"] = _user_store[existing_id].get("full_name") or "Corey Post"
+            # Re-apply the configured password so login always works after restart
+            _user_store[existing_id]["password_hash"] = _hash_password(_FOUNDER_PASSWORD)
+            _user_store[existing_id]["tier"] = "enterprise"
+            _user_store[existing_id]["email_validated"] = True
             return
 
         # Create the account from scratch
