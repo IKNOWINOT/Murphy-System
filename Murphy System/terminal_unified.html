@@ -1622,7 +1622,7 @@
               toast.show('\u2713 ' + model + ' is now the active model', 'success');
               renderLLM();
             } else {
-              toast.show((r && r.data && r.data.error) || 'Failed to load model', 'danger');
+              toast.show((r && r.error) || (r && r.data && r.data.error) || 'Failed to load model', 'danger');
               btn.disabled = false;
               btn.textContent = '\u25b6 Load';
             }
@@ -1646,7 +1646,7 @@
             if (r && r.ok !== false) {
               toast.show('\u2713 Download started for ' + model + '. Poll \u201cDownloaded Models\u201d to see when it finishes.', 'success');
             } else {
-              toast.show((r && r.data && r.data.error) || 'Failed to start download', 'danger');
+              toast.show((r && r.error) || (r && r.data && r.data.error) || 'Failed to start download', 'danger');
             }
           } catch (err) {
             toast.show('Error: ' + (err.message || err), 'danger');
@@ -1670,7 +1670,7 @@
               toast.show('\u2713 ' + model + ' deleted', 'success');
               renderLLM();
             } else {
-              toast.show((r && r.data && r.data.error) || 'Failed to delete model', 'danger');
+              toast.show((r && r.error) || (r && r.data && r.data.error) || 'Failed to delete model', 'danger');
               btn.disabled = false;
               btn.textContent = '🗑 Delete';
             }
@@ -1698,7 +1698,7 @@
               toast.show('\u2713 Download started for ' + model + '. Refresh the Downloaded Models list to check progress.', 'success');
               inpPull.value = '';
             } else {
-              toast.show((r && r.data && r.data.error) || 'Failed to start download', 'danger');
+              toast.show((r && r.error) || (r && r.data && r.data.error) || 'Failed to start download', 'danger');
             }
           } catch (err) {
             toast.show('Error: ' + (err.message || err), 'danger');
@@ -1726,7 +1726,7 @@
             btnSave.disabled    = false;
             btnSave.textContent = 'Save & Activate';
             if (!r.ok) {
-              toast.show((r.data && r.data.error) || r.error || 'Failed to save provider', 'danger');
+              toast.show(r.error || (r.data && r.data.error) || 'Failed to save provider', 'danger');
               return;
             }
             var activatedProvider = (r.data && r.data.provider) || provider;
@@ -1946,7 +1946,7 @@
             if (views[currentView]) views[currentView]();
           }, 1200);
         } else {
-          var errMsg = (r && r.data && r.data.error) || (r && r.error) || 'Failed to save credential';
+          var errMsg = (r && r.error) || (r && r.data && r.data.error) || 'Failed to save credential';
           showBanner('✗ ' + errMsg, 'error');
           saveEl.disabled    = false;
           saveEl.textContent = 'Save Secret';
