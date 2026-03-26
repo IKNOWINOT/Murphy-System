@@ -85,19 +85,19 @@ class UnifiedMFGC:
             try:
                 self.key_rotator = get_rotator()
                 self.llm_available = True
-                self.llm_mode = "groq_rotation"
-                logger.info(f"Groq key rotation enabled with {len(self.key_rotator.keys)} keys")
+                self.llm_mode = "deepinfra_rotation"
+                logger.info(f"LLM provider routing enabled with {len(self.key_rotator.keys)} keys")
             except Exception as exc:
                 logger.info(f"Key rotation failed: {exc}, falling back to single key mode")
                 self.key_rotator = None
 
         # Fallback to single key mode
         if self.key_rotator is None:
-            self.groq_api_key = groq_api_key or os.environ.get("GROQ_API_KEY")
+            self.groq_api_key = groq_api_key or os.environ.get("DEEPINFRA_API_KEY")
             if self.groq_api_key and GROQ_AVAILABLE:
                 self.groq_client = Groq(api_key=self.groq_api_key)
                 self.llm_available = True
-                self.llm_mode = "groq"
+                self.llm_mode = "deepinfra"
             else:
                 self.groq_client = None
                 self.llm_available = True

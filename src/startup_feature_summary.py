@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 # Each tuple: (feature_name, env_var_to_check, description)
 _FEATURE_PROBES: List[Tuple[str, str, str]] = [
-    ("Groq LLM", "GROQ_API_KEY", "Groq cloud inference"),
+    ("DeepInfra LLM", "DEEPINFRA_API_KEY", "DeepInfra primary LLM inference"),
     ("OpenAI LLM", "OPENAI_API_KEY", "OpenAI / compatible provider"),
     ("SendGrid Email", "SENDGRID_API_KEY", "SendGrid email delivery"),
     ("SMTP Email", "SMTP_HOST", "SMTP email relay"),
