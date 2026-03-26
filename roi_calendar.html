@@ -62,7 +62,8 @@
     .roi-progress-fill.complete{background:var(--green);}
     .roi-block-content{position:relative;padding:5px 7px 8px;z-index:1;}
     .roi-block-title{font-size:.7rem;font-weight:700;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .roi-block-agents{font-size:.6rem;color:var(--teal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .roi-block-agents{font-size:.6rem;color:var(--teal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:3px;}
+    .agent-dot{display:inline-block;width:6px;height:6px;border-radius:50%;flex-shrink:0;}
     .roi-block-costs{display:flex;gap:.4rem;margin-top:3px;flex-wrap:wrap;}
     .cost-chip{font-size:.57rem;padding:1px 4px;border-radius:3px;font-family:'Courier New',monospace;font-weight:700;}
     .cost-human{background:rgba(255,68,68,.2);color:#ff8888;text-decoration:line-through;}
@@ -72,7 +73,7 @@
     .roi-pct-badge.positive{background:rgba(0,255,65,.3);color:var(--green);}
     .roi-pct-badge.loading{background:rgba(0,212,170,.2);color:var(--teal);}
     /* Detail panel */
-    .detail-panel{position:fixed;top:0;right:0;height:100vh;width:360px;background:var(--bg2);border-left:1px solid var(--border);transform:translateX(100%);transition:transform .3s ease;z-index:100;overflow-y:auto;padding:1.5rem;}
+    .detail-panel{position:fixed;top:0;right:0;height:100vh;width:380px;background:var(--bg2);border-left:1px solid var(--border);transform:translateX(100%);transition:transform .3s ease;z-index:100;overflow-y:auto;padding:1.5rem;}
     .detail-panel.open{transform:translateX(0);}
     .detail-close{float:right;background:none;border:1px solid var(--border);color:var(--muted);border-radius:5px;padding:.3rem .6rem;cursor:pointer;}
     .detail-title{font-size:1rem;font-weight:700;color:var(--teal);margin-bottom:1rem;}
@@ -82,7 +83,17 @@
     .cost-row .label{color:var(--text2);}
     .cost-row .val{font-family:'Courier New',monospace;font-weight:700;}
     .cost-row.total{border-top:1px solid var(--border);padding-top:.4rem;margin-top:.2rem;}
-    .agent-chip{display:inline-block;background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.3);color:var(--teal);border-radius:4px;padding:2px 7px;font-size:.7rem;margin:2px;}
+    .agent-chip{display:inline-flex;align-items:center;gap:4px;background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.3);color:var(--teal);border-radius:4px;padding:2px 7px;font-size:.7rem;margin:2px;}
+    .agent-chip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+    /* Checklist */
+    .checklist-item{display:flex;align-items:flex-start;gap:.55rem;font-size:.77rem;margin-bottom:.4rem;padding:.3rem .4rem;border-radius:5px;}
+    .checklist-item.complete{background:rgba(0,255,65,.06);}
+    .checklist-item.running{background:rgba(0,212,170,.1);animation:checklist-pulse 1.8s ease-in-out infinite;}
+    .checklist-item.pending{opacity:.55;}
+    @keyframes checklist-pulse{0%,100%{background:rgba(0,212,170,.1);}50%{background:rgba(0,212,170,.2);}}
+    .checklist-icon{font-size:.8rem;flex-shrink:0;margin-top:1px;}
+    .checklist-step{color:var(--text);line-height:1.35;}
+    .checklist-agent{font-size:.63rem;color:var(--muted);margin-top:1px;display:flex;align-items:center;gap:3px;}
     .timeline-item{display:flex;gap:.6rem;align-items:flex-start;font-size:.75rem;margin-bottom:.4rem;}
     .timeline-dot{width:6px;height:6px;border-radius:50%;margin-top:4px;flex-shrink:0;}
     .timeline-text{color:var(--text2);line-height:1.4;}
@@ -109,6 +120,27 @@
   </style>
 </head>
 <body>
+<!-- Murphy error banner — shown automatically on 5xx fetch errors -->
+<div id="murphy-error-banner" role="alert" aria-live="assertive" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#c0392b;color:#fff;padding:10px 16px;font-size:14px;align-items:center;gap:12px;">
+  <span id="murphy-error-banner-msg" style="flex:1"></span>
+  <button onclick="document.getElementById('murphy-error-banner').style.display='none'" aria-label="Dismiss" style="background:transparent;border:1px solid rgba(255,255,255,0.6);color:#fff;cursor:pointer;padding:2px 8px;border-radius:3px;font-size:13px;">✕</button>
+</div>
+<script>
+function showMurphyError(msg) {
+  var b = document.getElementById('murphy-error-banner');
+  document.getElementById('murphy-error-banner-msg').textContent = msg || 'An unexpected error occurred.';
+  b.style.display = 'flex';
+}
+(function() {
+  var _origFetch = window.fetch;
+  window.fetch = function() {
+    return _origFetch.apply(this, arguments).then(function(resp) {
+      if (resp.status >= 500) showMurphyError('Server error (' + resp.status + ') — ' + resp.url.split('?')[0]);
+      return resp;
+    });
+  };
+})();
+</script>
 <nav class="nav">
   <a href="/" class="nav-brand">⚙ Murphy System</a>
   <ul class="nav-links">
@@ -119,6 +151,8 @@
   </ul>
   <div class="nav-right">
     <div class="live-badge"><span class="live-dot"></span>Live</div>
+    <button class="btn btn-s" onclick="exportData('csv')" title="Export as CSV">&#8659; CSV</button>
+    <button class="btn btn-s" onclick="exportData('json')" title="Export as JSON">&#8659; JSON</button>
     <button class="btn btn-p" onclick="openAddTask()">+ Add Task</button>
   </div>
 </nav>
@@ -214,7 +248,7 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 function loadEvents(){
   fetch('/api/roi-calendar/events').then(function(r){return r.json();}).then(function(d){
     if(d.ok){_events=d.events||[];renderCalendar();updateSummary();}
-  }).catch(function(){});
+  }).catch(function(){showMurphyError('Failed to load calendar events.');});
 }
 
 function updateSummary(){
@@ -227,7 +261,7 @@ function updateSummary(){
     sv('sum-roi-pct',d.roi_pct+'%');
     sv('sum-active',d.active_tasks);
     sv('sum-complete',d.completed_tasks);
-  }).catch(function(){});
+  }).catch(function(){showMurphyError('Failed to load ROI summary.');});
 }
 
 function connectSSE(){
@@ -283,17 +317,28 @@ function renderCalendar(){
 function renderBlock(ev){
   var hc=parseFloat(ev.human_cost_estimate||0),ac=parseFloat(ev.agent_compute_cost||0);
   var roi=parseFloat(ev.roi||0),pct=parseInt(ev.progress_pct||0);
-  var agents=(ev.agents||[]).slice(0,2);
+  var agents=(ev.agents||[]).slice(0,3);
   var blockH=Math.max(36,Math.min(160,36+hc/60));
   var savPct=hc>0?Math.min(100,Math.round(roi/hc*100)):0;
   var overlayH=Math.max(0,Math.round(blockH*savPct/100));
   var pbCls=ev.status==='complete'?'complete':ev.status==='qc'?'qc':ev.status==='hitl_review'?'hitl':'';
   var roiPct=hc>0?Math.round(roi/hc*100):0;
+  // Build agent dots (support both string agents and object agents with color)
+  var agentHtml='';
+  if(agents.length){
+    agentHtml='<div class="roi-block-agents">';
+    agents.forEach(function(a){
+      var name=typeof a==='object'?a.name:a;
+      var color=typeof a==='object'&&a.color?a.color:'var(--teal)';
+      agentHtml+='<span class="agent-dot" style="background:'+color+'" title="'+esc(name)+'"></span>';
+    });
+    agentHtml+='</div>';
+  }
   return '<div class="roi-block status-'+ev.status+'" style="height:'+blockH+'px;top:2px;" onclick="openDetail(\''+ev.event_id+'\')" >'
     +'<div class="roi-savings-overlay" style="height:'+overlayH+'px"></div>'
     +'<div class="roi-block-content">'
       +'<div class="roi-block-title">'+esc(ev.title)+'</div>'
-      +(agents.length?'<div class="roi-block-agents">&#9881; '+agents.map(esc).join(' &middot; ')+'</div>':'')
+      +agentHtml
       +'<div class="roi-block-costs">'
         +(hc>0?'<span class="cost-chip cost-human">$'+fmt(hc)+'</span>':'')
         +(ac>0?'<span class="cost-chip cost-agent">$'+fmt(ac)+'</span>':'')
@@ -319,14 +364,44 @@ function renderDetail(ev){
   html+='<div style="font-size:.72rem;color:var(--muted);margin-bottom:1rem">Status: <span style="color:'+scol(ev.status)+'">'+ev.status+'</span> &middot; '+pct+'% complete</div>';
   html+='<div class="detail-section"><h4>Cost Breakdown</h4>';
   html+='<div class="cost-row"><span class="label">Human Estimate</span><span class="val" style="color:#ff8888">$'+fmt(hc)+'</span></div>';
+  if(ev.hourly_rate)html+='<div class="cost-row"><span class="label">Hourly Rate</span><span class="val" style="color:var(--muted)">$'+ev.hourly_rate+'/hr &times; '+ev.human_time_estimate_hours+'h</span></div>';
   html+='<div class="cost-row"><span class="label">Agent Compute</span><span class="val" style="color:var(--teal)">$'+fmt(ac)+'</span></div>';
   html+='<div class="cost-row"><span class="label">Overhead</span><span class="val" style="color:var(--muted)">$'+fmt(oh)+'</span></div>';
   html+='<div class="cost-row total"><span class="label" style="font-weight:700">Net ROI</span><span class="val" style="color:'+(roi>=0?'var(--green)':'var(--red)')+'">$'+fmt(roi)+'</span></div>';
   if(hc>0)html+='<div class="cost-row"><span class="label">ROI %</span><span class="val" style="color:'+(roi>=0?'var(--green)':'var(--red)')+'">'+Math.round(roi/hc*100)+'%</span></div>';
   html+='</div>';
+  // Agents with color chips
   if(ev.agents&&ev.agents.length){
     html+='<div class="detail-section"><h4>Agents ('+ev.agents.length+')</h4>';
-    html+=ev.agents.map(function(a){return '<span class="agent-chip">&#9881; '+esc(a)+'</span>';}).join('');
+    ev.agents.forEach(function(a){
+      var name=typeof a==='object'?a.name:a;
+      var color=typeof a==='object'&&a.color?a.color:'#00d4aa';
+      var role=typeof a==='object'&&a.role?a.role:'';
+      html+='<span class="agent-chip" style="border-color:'+color+';color:'+color+';">'
+        +'<span class="agent-chip-dot" style="background:'+color+'"></span>'
+        +esc(name)+(role?' <span style="color:var(--muted);font-size:.62rem;">('+esc(role)+')</span>':'')
+        +'</span>';
+    });
+    html+='</div>';
+  }
+  // Checklist
+  if(ev.checklist&&ev.checklist.length){
+    var done=ev.checklist.filter(function(c){return c.status==='complete';}).length;
+    html+='<div class="detail-section"><h4>Checklist ('+done+'/'+ev.checklist.length+')</h4>';
+    // Build agent color lookup from ev.agents
+    var agentColorMap={};
+    (ev.agents||[]).forEach(function(a){if(typeof a==='object'&&a.name)agentColorMap[a.name]=a.color;});
+    ev.checklist.forEach(function(item){
+      var icon=item.status==='complete'?'&#10003;':item.status==='running'?'&#9881;':'&#9633;';
+      var agColor=agentColorMap[item.agent]||'#888';
+      html+='<div class="checklist-item '+item.status+'">'
+        +'<span class="checklist-icon">'+icon+'</span>'
+        +'<div>'
+          +'<div class="checklist-step">'+esc(item.step)+'</div>'
+          +(item.agent?'<div class="checklist-agent"><span class="agent-dot" style="background:'+agColor+'"></span>'+esc(item.agent)+'</div>':'')
+        +'</div>'
+        +'</div>';
+    });
     html+='</div>';
   }
   if(ev.hitl_reviews&&ev.hitl_reviews.length){
@@ -361,7 +436,7 @@ function submitAddTask(){
       if(d.ok){_events.push(d.event);renderCalendar();updateSummary();closeAddTask();showToast(d.event,'new');
         document.getElementById('task-title').value='';document.getElementById('task-desc').value='';
         document.getElementById('task-human-cost').value='';}
-    }).catch(function(){alert('Failed to create task.');});
+    }).catch(function(){showMurphyError('Failed to create task — please try again.');});
 }
 function showToast(ev,type){
   var feed=document.getElementById('requests-feed');if(!feed)return;
@@ -370,9 +445,14 @@ function showToast(ev,type){
   var icon=type==='complete'?'&#9989;':type==='hitl'?'&#128065;':type==='new'?'&#128229;':'&#9881;';
   var msg=type==='complete'?'Complete':type==='hitl'?'HITL Review':type==='new'?'New Task':'Update';
   el.innerHTML='<div class="req-title">'+icon+' '+msg+': '+esc(ev.title)+'</div>'
-    +'<div class="req-meta">'+(ev.roi>0?'ROI: $'+fmt(ev.roi):'Pending')+' &middot; '+(ev.agents||[]).slice(0,2).join(', ')+'</div>';
+    +'<div class="req-meta">'+(ev.roi>0?'ROI: $'+fmt(ev.roi):'Pending')+' &middot; '+(ev.agents||[]).slice(0,2).map(function(a){return typeof a==='object'?a.name:a;}).join(', ')+'</div>';
   feed.prepend(el);
   setTimeout(function(){el.style.transition='opacity .5s';el.style.opacity='0';setTimeout(function(){el.remove();},500);},5000);
+}
+function exportData(fmt){
+  var url='/api/roi-calendar/export?fmt='+fmt;
+  var a=document.createElement('a');a.href=url;a.download='roi-calendar.'+fmt;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 document.addEventListener('keydown',function(e){
   if(e.key==='Escape'){closeDetail();closeAddTask();}

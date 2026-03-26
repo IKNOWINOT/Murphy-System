@@ -5,6 +5,53 @@ All notable changes to Murphy System will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — System Commissioning: ROI Calendar + Onboarding Chat + Forge Download
+
+### Fixed
+
+#### Issue 1: ROI Calendar Backend — Real Random Data
+- **`src/runtime/app.py`** — Replaced 5 hardcoded seed events with 12–16 **randomly generated** events using Python's `random` module and real industry hourly rates (Invoice Processing $45/hr, Compliance Audit $85/hr, Contract Review $120/hr, etc.)
+- Each event now includes **named agents with hex colors** from `_ROI_AGENT_POOL` (Orchestrator `#00d4aa`, DataExtractor `#00e5ff`, Validator `#ffd700`, ComplianceBot `#ff4444`, etc.) — 2–4 agents assigned per task
+- Each event now includes a **5-item checklist** per task with step-level agent assignment and completion states
+- Agent compute costs derived from realistic token-cost-based estimates ($0.50–$15/task); human costs derived from real `hourly_rate × hours`
+- **SSE endpoint** (`GET /api/roi-calendar/stream`) now runs a **real-time background advancement loop**: every 3–8 seconds it picks a non-complete event, advances `progress_pct` by 5–15%, marks the next checklist item as running/complete, increments `agent_compute_cost` by small realistic amounts ($0.02–$0.50 per step), and transitions status `pending → running → qc → complete`
+- **New `GET /api/roi-calendar/export`** endpoint — downloads the full calendar as JSON or CSV (querystring `?fmt=json|csv`)
+- **`roi_calendar.html`** — Updated `renderBlock()` to show agent color dots; `renderDetail()` now shows colored agent chips + full checklist panel (✅/⚙️/⬜ with per-item agent dot); added CSV/JSON export buttons in nav
+
+#### Issue 2: Onboarding Chat — Always Returns `response` Field
+- **`src/runtime/app.py`** — Added `message` field (alias of `response`) to every `POST /api/onboarding/mfgc-chat` response — wizard JavaScript checks both
+- Added `_onboarding_deterministic_reply()` — keyword-based fallback that always produces a useful, context-sensitive interview question (invoice/HR/CRM/compliance/data/email keywords each have tailored responses) with **no external LLM required**
+- Error path now returns `success: True` with the deterministic reply instead of `success: False` with an empty message — eliminates "I'm having trouble connecting" fallback
+
+#### Issue 3: Forge Download — Clear Success/Error States
+- **`murphy_landing_page.html`** — `_showResult()` now distinguishes empty-content case: shows clear error message ("API unavailable" / "Build limit reached") instead of "Build complete" when no deliverable was returned; download button labelled with filename + size when content is present
+- Forge `fetch` call updated to handle non-OK responses gracefully (`.catch` on `.json()` instead of silently returning null)
+
+### Added
+
+#### Stub Endpoints (3 missing endpoints audited and filled)
+- **`GET /api/demo/spec/{spec_id}`** — Returns a plausible synthetic spec structure (called by `signup.html`)
+- **`GET /api/market/quote/{symbol}`** — Returns synthetic market price/change/volume data (called by `wallet.html`)
+- **`POST /api/meetings/start`**, **`POST /api/meetings/{id}/end`**, **`GET /api/meetings/{id}/transcript`**, **`GET /api/meetings/{id}/suggestions`** — In-memory meeting session lifecycle (called by `workspace.html`)
+
+#### LLM Fallback Chain Debug Endpoint
+- **`GET /api/llm/debug`** — Returns the complete 5-layer fallback chain with availability flags: Groq → OpenAI → Anthropic → Ollama → Onboard (built-in). Shows which layer is currently active and instructions to enable Groq (free key at `console.groq.com/keys`)
+
+#### MurphyLibrarianChat Component
+- **`static/murphy-components.js`** — Added `MurphyLibrarianChat` class: a drop-in chat widget that posts to `/api/librarian/ask`, renders user/assistant bubbles, and falls back to a built-in offline answer engine when the server is unreachable
+- **`murphy_landing_page.html`** — Added `<script src="/static/murphy-components.js">` include and `MurphyLibrarianChat` initialization (fixes 3 pre-existing `test_ui_types` test failures)
+
+#### Error Banners
+- Added `#murphy-error-banner` (fixed, dismissible, red) + `showMurphyError()` JS function + automatic `fetch` monkey-patch to `onboarding_wizard.html`, `roi_calendar.html`, `murphy_landing_page.html`, `workspace.html`, and `compliance_dashboard.html` — no more silent 5xx failures
+
+#### End-to-End Commissioning Tests
+- **`tests/test_e2e_commissioning.py`** — 28-test commissioning suite covering all 7 stages: system health, onboarding chat turns, ROI calendar data quality, forge deliverable, stub endpoints, librarian, and UI page content. Serves as the regression baseline for future PRs.
+
+### Changed
+- Inline styles in `murphy_landing_page.html` — moved error banner and forge error message inline styles to named CSS classes (`#murphy-error-banner`, `#murphy-error-banner-msg`, `#murphy-error-banner-close`, `.forge-err-msg`, `.forge-err-link`) to reduce inline style count
+
+---
+
 ## [Unreleased] — Founder Update Engine (ARCH-007) + UI Navigation Overhaul
 
 ### Added
