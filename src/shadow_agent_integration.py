@@ -57,7 +57,14 @@ class Account:
 
 @dataclass
 class ShadowAgent:
-    """A shadow agent mapped to a primary role as an org-chart peer."""
+    """A shadow agent mapped to a primary role as an org-chart peer.
+
+    Every ShadowAgent automatically checks out a MultiCursorBrowser
+    controller on creation (keyed by agent_id), making MCB the de-facto
+    agent controller for all UI/browser actions this agent may perform.
+    Access via ``agent.mcb``.  The browser is not launched automatically —
+    call ``await agent.mcb.launch()`` when browser automation is needed.
+    """
     agent_id: str
     primary_role_id: str
     account_id: str
@@ -67,6 +74,14 @@ class ShadowAgent:
     status: ShadowStatus = ShadowStatus.ACTIVE
     governance_boundary: str = "standard"
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+    def __post_init__(self) -> None:
+        # ── MCB controller checkout (Copilot skill-checkout pattern) ──
+        try:
+            from agent_module_loader import MultiCursorBrowser as _MCB
+            self.mcb = _MCB.get_controller(agent_id=self.agent_id)
+        except Exception:
+            self.mcb = None  # Graceful degradation in environments without browser
 
 
 @dataclass

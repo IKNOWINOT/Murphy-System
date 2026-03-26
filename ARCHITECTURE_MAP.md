@@ -14,6 +14,7 @@
 5. [System Boundaries](#system-boundaries)
 6. [Component Interactions](#component-interactions)
 7. [Processing Pipelines](#processing-pipelines)
+8. [MultiCursor Agent Controller (MCB)](#14-multicursor-browser--agent-controller-mcb)
 
 ---
 
@@ -586,7 +587,81 @@ platforms (Fiverr, Upwork, or a generic self-hosted queue).
 
 ---
 
-## Data Flows
+### 14. MultiCursor Browser — Agent Controller (MCB)
+
+**Component:** `src/agent_module_loader.py` — `MultiCursorBrowser`
+
+**Role:** De-facto agent controller for all UI/browser/desktop interactions.
+Every agent that performs any browser or desktop action **must** check out
+an MCB controller at startup via `MultiCursorBrowser.get_controller(agent_id=...)`.
+This mirrors the Copilot skill-checkout pattern: the controller is registered
+once per agent identity and reused for the agent's lifetime.
+
+**Agent startup protocol:**
+```python
+from src.agent_module_loader import MultiCursorBrowser
+
+class MyAgent:
+    def __init__(self):
+        # Checkout MCB controller — one per agent identity
+        self._mcb = MultiCursorBrowser.get_controller(agent_id="my_agent")
+        # Browser is not launched until explicitly needed:
+        # await self._mcb.launch()
+```
+
+**Capabilities (complete Playwright superset + Murphy extensions):**
+
+| Layer | Actions |
+|-------|---------|
+| **Navigation** | navigate, go_back, go_forward, reload, wait_for_url, bring_to_front |
+| **Interaction** | click, double_click, right_click, tap, fill, type, press, hover, focus, drag, scroll |
+| **Forms** | select_option, check, uncheck, set_checked, file_upload, set_input_files |
+| **Read** | get_text, text_content, get_inner_html, get_content, get_title, get_url, get_attribute, input_value, get_bounding_box |
+| **Visibility** | is_visible, is_hidden, is_enabled, is_disabled, is_checked, is_editable |
+| **Semantic Locators** | get_by_role, get_by_text, get_by_label, get_by_placeholder, get_by_alt_text, get_by_title, get_by_test_id |
+| **Query** | query_selector, query_selector_all, eval_on_selector, eval_on_selector_all |
+| **JavaScript** | evaluate, evaluate_handle, add_init_script, add_script_tag, expose_function, expose_binding, dispatch_event |
+| **Style** | add_style_tag, emulate_media, set_viewport, set_content |
+| **Network** | set_extra_headers, route_fulfill, route_abort, route_from_har, unroute, wait_for_request, wait_for_response, route_websocket |
+| **Cookies/Storage** | get_cookies, set_cookies, clear_cookies, storage_state |
+| **Permissions** | grant_permissions, clear_permissions, set_geolocation, set_offline |
+| **Dialogs** | dialog_accept, dialog_dismiss |
+| **Frames** | frame_locator, frame_navigate |
+| **Keyboard** | press, keyboard_down, keyboard_up, keyboard_insert_text |
+| **Mouse** | desktop_click, mouse_move, mouse_down, mouse_up, mouse_wheel |
+| **Touch** | tap, touchscreen_tap |
+| **Accessibility** | accessibility_snapshot |
+| **Time** | clock_install, clock_set_fixed_time, clock_fast_forward, clock_run_for |
+| **Inspection** | console_messages, page_errors, network_requests |
+| **Screenshots** | screenshot (zone-scoped), pdf |
+| **Wait** | wait_for_selector, wait_for_load_state, wait_for_function, wait_for_timeout, wait_for_navigation, wait_for_download, wait_for_popup, wait_for_event |
+| **Assertions** | assert_text, assert_visible, assert_url, assert_title, assert_count, assert_enabled, assert_disabled, assert_hidden, assert_editable, assert_value, assert_attribute, assert_class, assert_checked |
+| **Multi-Cursor** | cursor_create, cursor_warp, cursor_move, cursor_attach_zone, cursor_sync |
+| **Zone Management** | zone_create, zone_resize, zone_split, zone_capture, auto_layout (up to 64 zones) |
+| **Parallel** | parallel_start, parallel_join, parallel_all, parallel_probe |
+| **Desktop** | desktop_click, desktop_type, desktop_hotkey, desktop_ocr, desktop_ocr_click, desktop_window_focus |
+| **Agent** | agent_handoff, agent_checkpoint, agent_rollback, agent_clarify |
+| **Recording** | record_start, record_stop, playback_start, replay |
+
+**Controller Registry:**
+```python
+MultiCursorBrowser.list_controllers()   # → ["shadow_agent_xyz", "copilot_decision_learner", ...]
+MultiCursorBrowser.release_controller("shadow_agent_xyz")  # on agent shutdown
+```
+
+**Agents with MCB wired:**
+- `BaseSwarmAgent` (true_swarm_system.py) — base class for all swarm agents
+- `ShadowAgent` (shadow_agent_integration.py) — shadow learning agents
+- `DecisionLearner` (copilot_tenant/decision_learner.py) — copilot tenant
+- All subclasses inherit MCB automatically via `BaseSwarmAgent.__init__`
+
+**Commissioning Tests:** `tests/ui/commissioning/` — 69 tests covering
+the full Onboarding → Production → Grant → Compliance → Partner → Pricing chain.
+
+**Full reference:** `docs/MULTICURSOR_AGENT_CONTROLLER.md`
+
+---
+
 
 ### 1. Task Execution Flow
 
