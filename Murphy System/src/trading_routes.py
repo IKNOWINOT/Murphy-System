@@ -249,31 +249,39 @@ def create_trading_router() -> APIRouter:
     @router.post("/api/trading/sweep/trigger")
     async def trigger_sweep(body: SweepTriggerRequest) -> Dict[str, Any]:
         """Manually trigger a profit sweep (dry-run by default)."""
-        sweeper = _get_sweeper()
-        if body.dry_run:
-            # For dry-run: create a temporary sweeper with enabled=False so
-            # we never mutate shared state (avoids race conditions).
-            from profit_sweep import ProfitSweep
-            dry_sweeper = ProfitSweep(
-                coinbase_connector = getattr(sweeper, "_coinbase", None),
-                starting_capital   = sweeper._starting_capital,
-                enabled            = False,
-                min_sweep_amount   = sweeper._min_sweep,
-                cash_reserve_pct   = sweeper._cash_reserve,
-                sweep_asset        = sweeper._sweep_asset,
-            )
-            record = dry_sweeper.run_sweep(
-                portfolio_value = body.portfolio_value,
-                open_positions  = body.open_positions,
-                pending_orders  = body.pending_orders,
-            )
-        else:
-            record = sweeper.run_sweep(
-                portfolio_value = body.portfolio_value,
-                open_positions  = body.open_positions,
-                pending_orders  = body.pending_orders,
-            )
-        return {"success": True, "record": record.to_dict()}
+        try:
+            sweeper = _get_sweeper()
+        except Exception as _exc:
+            return {"success": False, "error": str(_exc), "record": None}
+        # Default portfolio_value to 0.0 when not provided (no Coinbase connector)
+        portfolio_val = body.portfolio_value if body.portfolio_value is not None else 0.0
+        try:
+            if body.dry_run:
+                # For dry-run: create a temporary sweeper with enabled=False so
+                # we never mutate shared state (avoids race conditions).
+                from profit_sweep import ProfitSweep
+                dry_sweeper = ProfitSweep(
+                    coinbase_connector = getattr(sweeper, "_coinbase", None),
+                    starting_capital   = sweeper._starting_capital,
+                    enabled            = False,
+                    min_sweep_amount   = sweeper._min_sweep,
+                    cash_reserve_pct   = sweeper._cash_reserve,
+                    sweep_asset        = sweeper._sweep_asset,
+                )
+                record = dry_sweeper.run_sweep(
+                    portfolio_value = portfolio_val,
+                    open_positions  = body.open_positions,
+                    pending_orders  = body.pending_orders,
+                )
+            else:
+                record = sweeper.run_sweep(
+                    portfolio_value = portfolio_val,
+                    open_positions  = body.open_positions,
+                    pending_orders  = body.pending_orders,
+                )
+            return {"success": True, "record": record.to_dict()}
+        except Exception as _sweep_exc:
+            return {"success": False, "error": str(_sweep_exc), "record": None}
 
     @router.get("/api/trading/sweep/atom-balance")
     async def get_atom_balance() -> Dict[str, Any]:
