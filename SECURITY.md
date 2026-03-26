@@ -53,8 +53,21 @@ Murphy System uses **session-based authentication** via HttpOnly cookies:
 **Password hashing:** bcrypt (cost factor from `bcrypt.gensalt()`) — never stored in plaintext.
 
 **Session tokens:** cryptographically-random 32-byte URL-safe base64 strings from
-`secrets.token_urlsafe(32)`. Stored in an in-memory dict (`_session_store`, guarded by
-`threading.Lock`). Replace with Redis or a database for multi-process deployments.
+`secrets.token_urlsafe(32)`. Persisted using a three-tier storage hierarchy:
+1. **Redis** — when `REDIS_URL` is configured (recommended for multi-process deployments).
+2. **SQLite WAL** — when Redis is not configured, sessions are persisted to the
+   `session_store` table in the WAL backend (`DATABASE_URL`, defaults to `murphy.db`).
+   Sessions survive process restarts.
+3. **In-memory** — last resort when both Redis and SQLite are unavailable.
+
+**User accounts:** Persisted to the `user_accounts` table in the SQLite WAL backend
+(same `DATABASE_URL` as session storage). Accounts and their credentials survive
+process restarts.  The founder account is re-seeded / role-synced on every startup
+from `MURPHY_FOUNDER_EMAIL` / `MURPHY_FOUNDER_PASSWORD`.
+
+**API key environment variable:** `MURPHY_API_KEYS` (plural, comma-separated) is the
+canonical variable.  `MURPHY_API_KEY` (singular) is also accepted as a fallback for
+backward compatibility.
 
 **Cookie flags:** `HttpOnly=True` (XSS protection), `SameSite=lax` (CSRF protection),
 `Secure=True` in staging/production, 24-hour `Max-Age`.

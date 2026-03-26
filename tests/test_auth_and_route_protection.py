@@ -34,12 +34,26 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 @pytest.fixture(scope="module")
 def client():
-    """Create a FastAPI test client."""
+    """Create a FastAPI test client with an isolated temp SQLite database."""
+    import tempfile
+    # Use a fresh temp DB so tests are isolated across runs (SQLite persistence
+    # means fixed test emails would collide without this).
+    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tf:
+        tmp_db_path = tf.name
     os.environ["MURPHY_ENV"] = "development"
-    from starlette.testclient import TestClient
-    from src.runtime.app import create_app
-    app = create_app()
-    return TestClient(app, follow_redirects=False)
+    os.environ["DATABASE_URL"] = f"sqlite:///{tmp_db_path}"
+    try:
+        from starlette.testclient import TestClient
+        from src.runtime.app import create_app
+        app = create_app()
+        yield TestClient(app, follow_redirects=False)
+    finally:
+        os.environ.pop("DATABASE_URL", None)
+        for ext in ('', '-wal', '-shm'):
+            try:
+                os.unlink(tmp_db_path + ext)
+            except Exception:
+                pass
 
 
 @pytest.fixture
@@ -689,3 +703,157 @@ class TestLandingAndDemoPages:
         assert resp.status_code == 200
         content = resp.text
         assert "Try Murphy" in content
+
+# ===========================================================================
+# Part 13: Session & User Persistence (SQLite WAL)
+# ===========================================================================
+
+class TestSessionPersistence:
+    """Verify that sessions survive a simulated server restart.
+
+    The core fix: _session_store now uses SQLite WAL as its fallback so
+    that when the process is restarted (with the same DATABASE_URL pointing
+    to the same SQLite file), existing sessions are still valid.
+    """
+
+    def test_session_token_persists_across_app_recreate(self):
+        """Sign up, capture session token, recreate the app, token still valid."""
+        import tempfile
+        import os as _os
+        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tf:
+            tmp_db = tf.name
+        _os.environ["DATABASE_URL"] = f"sqlite:///{tmp_db}"
+        try:
+            from starlette.testclient import TestClient
+            # Force fresh module state by importing inside this scope
+            import importlib
+            import src.runtime.app as _app_mod
+            importlib.reload(_app_mod)
+            app1 = _app_mod.create_app()
+            c1 = TestClient(app1, follow_redirects=False)
+
+            # Sign up a user on app instance 1
+            resp = c1.post("/api/auth/signup", json={
+                "email": "persist_test@example.com",
+                "password": "PersistPass123!",
+                "full_name": "Persist Test",
+            })
+            assert resp.status_code == 200
+            token = resp.json()["session_token"]
+            assert token
+
+            # Simulate restart: create a NEW app instance (same DB file)
+            importlib.reload(_app_mod)
+            app2 = _app_mod.create_app()
+            c2 = TestClient(app2, follow_redirects=False)
+
+            # Old session token should be valid on the new app instance
+            resp2 = c2.get(
+                "/api/auth/session-token",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            assert resp2.status_code == 200, (
+                f"Session token should still be valid after restart: {resp2.text}"
+            )
+            data = resp2.json()
+            assert data.get("session_token") == token
+
+        finally:
+            _os.environ.pop("DATABASE_URL", None)
+            for ext in ('', '-wal', '-shm'):
+                try:
+                    _os.unlink(tmp_db + ext)
+                except Exception:
+                    pass
+
+    def test_user_account_persists_across_app_recreate(self):
+        """Sign up, recreate the app, login still works with same credentials."""
+        import tempfile
+        import os as _os
+        from starlette.testclient import TestClient as _TC
+        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tf:
+            tmp_db = tf.name
+        _os.environ["DATABASE_URL"] = f"sqlite:///{tmp_db}"
+        try:
+            import importlib
+            import src.runtime.app as _app_mod
+            importlib.reload(_app_mod)
+            app1 = _app_mod.create_app()
+            c1 = _TC(app1, follow_redirects=False)
+
+            # Sign up
+            c1.post("/api/auth/signup", json={
+                "email": "user_persist@example.com",
+                "password": "UserPersist99!",
+                "full_name": "User Persist",
+            })
+
+            # Simulate restart
+            importlib.reload(_app_mod)
+            app2 = _app_mod.create_app()
+            c2 = _TC(app2, follow_redirects=False)
+
+            # Login with the same credentials on the new instance
+            resp = c2.post("/api/auth/login", json={
+                "email": "user_persist@example.com",
+                "password": "UserPersist99!",
+            })
+            assert resp.status_code == 200, (
+                f"Login should succeed after restart: {resp.text}"
+            )
+            data = resp.json()
+            assert data.get("success") is True
+            assert data.get("session_token")
+
+        finally:
+            _os.environ.pop("DATABASE_URL", None)
+            for ext in ('', '-wal', '-shm'):
+                try:
+                    _os.unlink(tmp_db + ext)
+                except Exception:
+                    pass
+
+    def test_murphy_api_keys_env_var_checked_first(self):
+        """MURPHY_API_KEYS (plural) should be checked before MURPHY_API_KEY."""
+        import os as _os
+        from src.fastapi_security import get_configured_api_keys
+        orig_keys = _os.environ.get("MURPHY_API_KEYS")
+        orig_key = _os.environ.get("MURPHY_API_KEY")
+        try:
+            _os.environ["MURPHY_API_KEYS"] = "plural_key_1,plural_key_2"
+            _os.environ.pop("MURPHY_API_KEY", None)
+            keys = get_configured_api_keys()
+            assert "plural_key_1" in keys
+            assert "plural_key_2" in keys
+
+            # Singular fallback when plural not set
+            _os.environ.pop("MURPHY_API_KEYS", None)
+            _os.environ["MURPHY_API_KEY"] = "singular_key"
+            keys2 = get_configured_api_keys()
+            assert "singular_key" in keys2
+        finally:
+            if orig_keys is not None:
+                _os.environ["MURPHY_API_KEYS"] = orig_keys
+            else:
+                _os.environ.pop("MURPHY_API_KEYS", None)
+            if orig_key is not None:
+                _os.environ["MURPHY_API_KEY"] = orig_key
+            else:
+                _os.environ.pop("MURPHY_API_KEY", None)
+
+    def test_session_token_endpoint_returns_actual_token(self, client):
+        """GET /api/auth/session-token must return the real session token."""
+        from starlette.testclient import TestClient
+        # Use an isolated client (fresh cookie jar) so the session cookie
+        # from this test doesn't interfere with the module-scoped client.
+        c = TestClient(client.app, follow_redirects=False)
+        signup_resp = c.post("/api/auth/signup", json={
+            "email": "st_endpoint_fixed@example.com",
+            "password": "StEndpoint1!",
+        })
+        assert signup_resp.status_code == 200
+        signup_token = signup_resp.json()["session_token"]
+
+        endpoint_resp = c.get("/api/auth/session-token")
+        assert endpoint_resp.status_code == 200
+        assert endpoint_resp.json().get("session_token") == signup_token
