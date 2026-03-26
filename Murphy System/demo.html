@@ -256,7 +256,8 @@ function demoRun(query){
   // Try the real backend API first
   fetch('/api/demo/run', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: _apiHeaders(),
+    credentials: 'include',
     body: JSON.stringify({query: query})
   })
   .then(function(r){ return r.json(); })
@@ -361,6 +362,13 @@ function exportText(filename,content){
   a.click();
 }
 
+function _apiHeaders(){
+  var h={'Content-Type':'application/json'};
+  var token=localStorage.getItem('murphy_session_token');
+  if(token)h['Authorization']='Bearer '+token;
+  return h;
+}
+
 function downloadDeliverable(){
   var btn=document.getElementById('demo-dl-btn');
   var counter=document.getElementById('demo-usage-counter');
@@ -370,7 +378,8 @@ function downloadDeliverable(){
   if(limitMsg)limitMsg.style.display='none';
   fetch('/api/demo/generate-deliverable',{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:_apiHeaders(),
+    credentials:'include',
     body:JSON.stringify({query:_lastDemoQuery||'Custom deliverable'})
   })
   .then(function(r){return r.json();})
