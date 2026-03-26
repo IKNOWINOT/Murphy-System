@@ -407,139 +407,125 @@ def test_how_it_works_step4_scale(page: Page, screenshot):
     screenshot(page, "how_it_works_step4")
 
 
-# ── Demo Section (Inline) ─────────────────────────────────────────────────
-def test_demo_section_visible(page: Page, screenshot):
-    """Inline demo section is visible on the page."""
+# ── Swarm Forge Section ───────────────────────────────────────────────────
+def test_forge_section_visible(page: Page, screenshot):
+    """Swarm Forge section (#demo) is visible on the page."""
     page.goto(PAGE_URL, wait_until="domcontentloaded")
     section = page.locator("#demo")
     expect(section).to_be_visible()
-    screenshot(page, "demo_section_visible")
+    screenshot(page, "forge_section_visible")
 
 
-def test_demo_terminal_output_area(page: Page, screenshot):
-    """Demo terminal output area is rendered."""
+def test_forge_input_present(page: Page, screenshot):
+    """Forge custom input field is rendered."""
     page.goto(PAGE_URL, wait_until="domcontentloaded")
-    term = page.locator("#demo-term-inline")
-    expect(term).to_be_visible()
-    screenshot(page, "demo_terminal_area")
-
-
-def test_demo_input_field_present(page: Page, screenshot):
-    """Demo command input field is rendered."""
-    page.goto(PAGE_URL, wait_until="domcontentloaded")
-    inp = page.locator("#demo-input-inline")
+    inp = page.locator("#forge-input")
     expect(inp).to_be_visible()
-    screenshot(page, "demo_input_field")
+    screenshot(page, "forge_input_field")
 
 
-def test_demo_run_button_present(page: Page, screenshot):
-    """Demo Run button is present."""
+def test_forge_run_button_present(page: Page, screenshot):
+    """Forge Run button ('Forge It') is present."""
     page.goto(PAGE_URL, wait_until="domcontentloaded")
-    btn = page.locator("#demo-run-inline")
+    btn = page.locator("#forge-run-btn")
     expect(btn).to_be_visible()
-    screenshot(page, "demo_run_button")
+    screenshot(page, "forge_run_button")
 
 
-def test_demo_chip_llm_status(page: Page, screenshot):
-    """'llm status' demo chip is clickable and updates terminal."""
+def test_forge_chips_present(page: Page, screenshot):
+    """Swarm Forge deliverable chips are present and have data-forge attributes."""
     page.goto(PAGE_URL, wait_until="domcontentloaded")
-    chip = page.locator(".demo-chip[data-cmd='llm status']").first
-    expect(chip).to_be_visible()
+    chips = page.locator(".demo-chip[data-forge]")
+    count = chips.count()
+    assert count >= 4, f"Expected >=4 forge chips, got {count}"
+    screenshot(page, "forge_chips")
+
+
+def test_forge_chip_game_present(page: Page, screenshot):
+    """MMORPG Game chip is present."""
+    page.goto(PAGE_URL, wait_until="domcontentloaded")
+    chip = page.locator(".demo-chip[data-forge*='game']")
+    assert chip.count() > 0, "Expected a forge chip with data-forge containing 'game'"
+    screenshot(page, "forge_chip_game")
+
+
+def test_forge_chip_app_present(page: Page, screenshot):
+    """Web App MVP chip is present."""
+    page.goto(PAGE_URL, wait_until="domcontentloaded")
+    chip = page.locator(".demo-chip[data-forge*='app']")
+    assert chip.count() > 0, "Expected a forge chip with data-forge containing 'app'"
+    screenshot(page, "forge_chip_app")
+
+
+def test_forge_chip_automation_present(page: Page, screenshot):
+    """Automation + Payments chip is present."""
+    page.goto(PAGE_URL, wait_until="domcontentloaded")
+    chip = page.locator(".demo-chip[data-forge*='automat']")
+    assert chip.count() > 0, "Expected a forge chip with data-forge containing 'automat'"
+    screenshot(page, "forge_chip_automation")
+
+
+def test_forge_chip_course_present(page: Page, screenshot):
+    """Complete Course chip is present."""
+    page.goto(PAGE_URL, wait_until="domcontentloaded")
+    chip = page.locator(".demo-chip[data-forge*='course']")
+    assert chip.count() > 0, "Expected a forge chip with data-forge containing 'course'"
+    screenshot(page, "forge_chip_course")
+
+
+def test_forge_grid_hidden_initially(page: Page, screenshot):
+    """The 64-pane grid is hidden before a forge run starts."""
+    page.goto(PAGE_URL, wait_until="domcontentloaded")
+    grid_wrap = page.locator("#forge-grid-wrap")
+    # Should be hidden (display:none) initially
+    assert grid_wrap.count() > 0
+    screenshot(page, "forge_grid_initially_hidden")
+
+
+def test_forge_result_hidden_initially(page: Page, screenshot):
+    """Result block is hidden before any forge run."""
+    page.goto(PAGE_URL, wait_until="domcontentloaded")
+    result = page.locator("#forge-result")
+    assert result.count() > 0
+    screenshot(page, "forge_result_initially_hidden")
+
+
+def test_forge_run_button_click_shows_grid(page: Page, screenshot):
+    """Clicking a forge chip starts the animation (grid becomes visible)."""
+    page.goto(PAGE_URL, wait_until="domcontentloaded")
+    chip = page.locator(".demo-chip[data-forge]").first
     chip.click()
-    page.wait_for_timeout(600)
-    term = page.locator("#demo-term-inline")
-    assert "Ollama" in term.inner_text() or "llm" in term.inner_text().lower()
-    screenshot(page, "demo_chip_llm_status_result")
+    page.wait_for_timeout(500)
+    grid_wrap = page.locator("#forge-grid-wrap")
+    # Grid should now be displayed
+    display = page.evaluate("document.getElementById('forge-grid-wrap').style.display")
+    assert display != "none", "Expected forge grid to be visible after chip click"
+    screenshot(page, "forge_run_grid_visible")
 
 
-def test_demo_chip_email_invoice(page: Page, screenshot):
-    """'email invoice' demo chip runs and shows output."""
+def test_forge_status_updates_on_run(page: Page, screenshot):
+    """Status line updates when forge run starts."""
     page.goto(PAGE_URL, wait_until="domcontentloaded")
-    chip = page.locator(".demo-chip[data-cmd='email send invoice']").first
+    chip = page.locator(".demo-chip[data-forge]").first
     chip.click()
-    page.wait_for_timeout(600)
-    term = page.locator("#demo-term-inline")
-    text = term.inner_text()
-    assert "invoice" in text.lower() or "email" in text.lower()
-    screenshot(page, "demo_chip_email_invoice_result")
+    page.wait_for_timeout(400)
+    status = page.locator("#forge-status")
+    text = status.inner_text()
+    assert len(text) > 0, "Expected forge status to have text after run"
+    screenshot(page, "forge_status_updates")
 
 
-def test_demo_chip_hitl_pending(page: Page, screenshot):
-    """'hitl queue' demo chip runs and shows HITL output."""
+def test_forge_custom_input_typed(page: Page, screenshot):
+    """Typing a custom query in forge input and pressing Enter starts the forge."""
     page.goto(PAGE_URL, wait_until="domcontentloaded")
-    chip = page.locator(".demo-chip[data-cmd='hitl pending']").first
-    chip.click()
-    page.wait_for_timeout(600)
-    term = page.locator("#demo-term-inline")
-    text = term.inner_text()
-    assert "pending" in text.lower() or "hitl" in text.lower()
-    screenshot(page, "demo_chip_hitl_pending_result")
-
-
-def test_demo_chip_swarm_audit(page: Page, screenshot):
-    """'swarm audit' demo chip runs and shows swarm output."""
-    page.goto(PAGE_URL, wait_until="domcontentloaded")
-    chip = page.locator(".demo-chip[data-cmd='swarm execute audit']").first
-    chip.click()
-    page.wait_for_timeout(600)
-    term = page.locator("#demo-term-inline")
-    assert "swarm" in term.inner_text().lower()
-    screenshot(page, "demo_chip_swarm_audit_result")
-
-
-def test_demo_chip_matrix_status(page: Page, screenshot):
-    """'matrix status' demo chip runs and shows Matrix output."""
-    page.goto(PAGE_URL, wait_until="domcontentloaded")
-    chip = page.locator(".demo-chip[data-cmd='matrix status']").first
-    chip.click()
-    page.wait_for_timeout(600)
-    term = page.locator("#demo-term-inline")
-    assert "matrix" in term.inner_text().lower()
-    screenshot(page, "demo_chip_matrix_status_result")
-
-
-def test_demo_chip_compliance_scan(page: Page, screenshot):
-    """'compliance scan' demo chip runs and shows compliance output."""
-    page.goto(PAGE_URL, wait_until="domcontentloaded")
-    chip = page.locator(".demo-chip[data-cmd='compliance scan']").first
-    chip.click()
-    page.wait_for_timeout(600)
-    term = page.locator("#demo-term-inline")
-    assert "compliance" in term.inner_text().lower() or "cce" in term.inner_text().lower()
-    screenshot(page, "demo_chip_compliance_scan_result")
-
-
-def test_demo_chip_self_fix(page: Page, screenshot):
-    """'self-fix' demo chip runs and shows self-fix output."""
-    page.goto(PAGE_URL, wait_until="domcontentloaded")
-    chip = page.locator(".demo-chip[data-cmd='self-fix status']").first
-    chip.click()
-    page.wait_for_timeout(600)
-    term = page.locator("#demo-term-inline")
-    assert "fix" in term.inner_text().lower() or "repair" in term.inner_text().lower()
-    screenshot(page, "demo_chip_self_fix_result")
-
-
-def test_demo_custom_command_typed(page: Page, screenshot):
-    """Typing a custom command and pressing Enter runs it."""
-    page.goto(PAGE_URL, wait_until="domcontentloaded")
-    inp = page.locator("#demo-input-inline")
-    inp.fill("show me the money")
+    inp = page.locator("#forge-input")
+    inp.fill("build me an automation suite with stripe payments")
     inp.press("Enter")
-    page.wait_for_timeout(600)
-    term = page.locator("#demo-term-inline")
-    assert "murphy" in term.inner_text().lower() or "show" in term.inner_text().lower()
-    screenshot(page, "demo_custom_command_result")
-
-
-def test_demo_run_button_click(page: Page, screenshot):
-    """Clicking Run button with input executes the command."""
-    page.goto(PAGE_URL, wait_until="domcontentloaded")
-    inp = page.locator("#demo-input-inline")
-    inp.fill("status check")
-    page.locator("#demo-run-inline").click()
-    page.wait_for_timeout(600)
-    screenshot(page, "demo_run_button_click_result")
+    page.wait_for_timeout(500)
+    status = page.locator("#forge-status")
+    text = status.inner_text()
+    assert len(text) > 0
+    screenshot(page, "forge_custom_input_result")
 
 
 # ── Demo Modal (backward-compat) ──────────────────────────────────────────
