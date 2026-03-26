@@ -3221,6 +3221,122 @@ def create_app() -> FastAPI:
         except Exception as exc:
             return _safe_error_response(exc, 500)
 
+    # ── ROI Calendar ─────────────────────────────────────────────────────────
+    # Tracks automation tasks with human vs agent cost/ROI visualisation.
+    # Each event block starts at human cost estimate and shrinks as agents
+    # complete work; QC failures/HITL reviews cause fluctuations.
+    _roi_calendar_store: list = []
+
+    @app.get("/api/roi-calendar/events")
+    async def roi_calendar_events_list(request: Request):
+        return JSONResponse({"ok": True, "events": list(_roi_calendar_store), "total": len(_roi_calendar_store)})
+
+    @app.post("/api/roi-calendar/events")
+    async def roi_calendar_event_create(request: Request):
+        body = await request.json()
+        import uuid as _uuid_roi
+        eid = "roi-" + _uuid_roi.uuid4().hex[:12]
+        now_ts = _now_iso()
+        event = {
+            "event_id": eid,
+            "title": body.get("title", "Untitled Task"),
+            "description": body.get("description", ""),
+            "automation_id": body.get("automation_id"),
+            "start": body.get("start", now_ts),
+            "end": body.get("end"),
+            "status": "pending",
+            "progress_pct": 0,
+            "human_cost_estimate": float(body.get("human_cost_estimate", 0)),
+            "human_time_estimate_hours": float(body.get("human_time_estimate_hours", 8)),
+            "agent_compute_cost": 0.0,
+            "overhead_cost": 0.0,
+            "roi": 0.0,
+            "actual_time_hours": 0.0,
+            "agents": [],
+            "hitl_reviews": [],
+            "qc_passes": 0,
+            "qc_failures": 0,
+            "cost_adjustments": [],
+            "created_at": now_ts,
+            "updated_at": now_ts,
+        }
+        _roi_calendar_store.append(event)
+        return JSONResponse({"ok": True, "event": event}, status_code=201)
+
+    @app.patch("/api/roi-calendar/events/{event_id}")
+    async def roi_calendar_event_update(event_id: str, request: Request):
+        body = await request.json()
+        event = next((e for e in _roi_calendar_store if e["event_id"] == event_id), None)
+        if not event:
+            return JSONResponse({"ok": False, "error": "Event not found"}, status_code=404)
+        for field in ["title", "description", "status", "progress_pct", "agent_compute_cost",
+                      "overhead_cost", "actual_time_hours", "agents", "end"]:
+            if field in body:
+                event[field] = body[field]
+        event["roi"] = event["human_cost_estimate"] - event["agent_compute_cost"] - event["overhead_cost"]
+        if "hitl_review" in body:
+            review = dict(body["hitl_review"])
+            review["ts"] = _now_iso()
+            event["hitl_reviews"].append(review)
+            delta = float(review.get("cost_delta", event["human_cost_estimate"] * 0.05))
+            event["cost_adjustments"].append({"reason": f"HITL review: {review.get('decision','change_requested')}", "delta": delta, "ts": review["ts"]})
+            event["agent_compute_cost"] += delta
+            event["roi"] = event["human_cost_estimate"] - event["agent_compute_cost"] - event["overhead_cost"]
+        if "qc_result" in body:
+            qc = body["qc_result"]
+            if qc.get("passed"):
+                event["qc_passes"] += 1
+            else:
+                event["qc_failures"] += 1
+                delta = float(qc.get("retry_cost", event["agent_compute_cost"] * 0.1))
+                event["cost_adjustments"].append({"reason": f"QC failure: {qc.get('reason','retry')}", "delta": delta, "ts": _now_iso()})
+                event["agent_compute_cost"] += delta
+                event["roi"] = event["human_cost_estimate"] - event["agent_compute_cost"] - event["overhead_cost"]
+        event["updated_at"] = _now_iso()
+        return JSONResponse({"ok": True, "event": event})
+
+    @app.get("/api/roi-calendar/summary")
+    async def roi_calendar_summary():
+        if not _roi_calendar_store:
+            return JSONResponse({"ok": True, "total_human_cost_estimate": 0, "total_agent_cost": 0,
+                                 "total_roi": 0, "total_overhead": 0, "active_tasks": 0,
+                                 "completed_tasks": 0, "total_tasks": 0, "roi_pct": 0})
+        total_human = sum(e["human_cost_estimate"] for e in _roi_calendar_store)
+        total_agent = sum(e["agent_compute_cost"] for e in _roi_calendar_store)
+        total_overhead = sum(e["overhead_cost"] for e in _roi_calendar_store)
+        total_roi = total_human - total_agent - total_overhead
+        roi_pct = round((total_roi / total_human * 100) if total_human > 0 else 0, 1)
+        return JSONResponse({"ok": True,
+            "total_human_cost_estimate": round(total_human, 2),
+            "total_agent_cost": round(total_agent, 2),
+            "total_roi": round(total_roi, 2),
+            "total_overhead": round(total_overhead, 2),
+            "active_tasks": sum(1 for e in _roi_calendar_store if e["status"] in ("running", "qc", "hitl_review")),
+            "completed_tasks": sum(1 for e in _roi_calendar_store if e["status"] == "complete"),
+            "total_tasks": len(_roi_calendar_store),
+            "roi_pct": roi_pct})
+
+    @app.get("/api/roi-calendar/stream")
+    async def roi_calendar_stream(request: Request):
+        from starlette.responses import StreamingResponse
+        import asyncio as _asyncio_roi
+        import json as _json_roi
+
+        async def _gen():
+            last_states: dict = {}
+            for _ in range(300):
+                await _asyncio_roi.sleep(1)
+                for ev in _roi_calendar_store:
+                    eid = ev["event_id"]
+                    sk = f"{ev['progress_pct']}:{ev['status']}:{ev['roi']:.2f}"
+                    if last_states.get(eid) != sk:
+                        last_states[eid] = sk
+                        yield f"event: roi_update\ndata: {_json_roi.dumps(ev)}\n\n"
+                yield "event: ping\ndata: {}\n\n"
+
+        return StreamingResponse(_gen(), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
     # --- Onboarding Automation Engine (employee onboarding) ---
 
     @app.post("/api/onboarding/employees")
@@ -9292,6 +9408,7 @@ def create_app() -> FastAPI:
             "/ui/grant-dashboard": "grant_dashboard.html",
             "/ui/grant-application": "grant_application.html",
             "/ui/financing": "financing_options.html",
+            "/ui/roi-calendar": "roi_calendar.html",
             "/ui/comms-hub": "communication_hub.html",
             "/ui/communication-hub": "communication_hub.html",
             "/ui/admin": "admin_panel.html",
@@ -12929,6 +13046,51 @@ def create_app() -> FastAPI:
             _ae.create_rule(_name, "founder", _trigger, _actions)
     except Exception as _ae_exc:
         logger.debug("Founder automations seeding skipped: %s", _ae_exc)
+
+    # Seed ROI Calendar demo events (show the platform in action on first boot)
+    try:
+        from datetime import datetime as _dt_roi, timezone as _tz_roi, timedelta as _td_roi
+        import hashlib as _hl_roi
+        _now_dt_roi = _dt_roi.now(_tz_roi.utc)
+
+        def _mk_roi(title, human_cost, human_hours, status, pct, agents, agent_cost, off_days=0, off_hours=0):
+            s = _now_dt_roi + _td_roi(days=off_days, hours=off_hours)
+            e = s + _td_roi(hours=max(0.5, human_hours / 4))
+            overhead = round(human_cost * 0.03, 2)
+            roi = round(human_cost - agent_cost - overhead, 2)
+            return {
+                "event_id": "seed-" + _hl_roi.sha256(title.encode()).hexdigest()[:12],
+                "title": title, "description": "Automated by Murphy System agents",
+                "automation_id": None, "start": s.isoformat(), "end": e.isoformat(),
+                "status": status, "progress_pct": pct,
+                "human_cost_estimate": float(human_cost),
+                "human_time_estimate_hours": float(human_hours),
+                "agent_compute_cost": float(agent_cost),
+                "overhead_cost": overhead, "roi": roi,
+                "actual_time_hours": round(human_hours / 4, 2) if status == "complete" else 0.0,
+                "agents": agents, "hitl_reviews": [],
+                "qc_passes": 2 if status == "complete" else 0,
+                "qc_failures": 0, "cost_adjustments": [],
+                "created_at": _now_dt_roi.isoformat(), "updated_at": _now_dt_roi.isoformat(),
+            }
+
+        _seed_roi = [
+            _mk_roi("Monthly Invoice Batch", 2400, 16, "complete", 100,
+                    ["Coordinator", "Data Modeler", "Report Generator"], 48.0, off_days=-1),
+            _mk_roi("Lead Qualification Pipeline", 1800, 12, "running", 67,
+                    ["Schema Architect", "API Designer", "Logic Engineer"], 24.0, off_hours=1),
+            _mk_roi("Client Onboarding Automation", 3200, 24, "qc", 85,
+                    ["Workflow Composer", "Test Strategist", "Validator"], 36.0, off_hours=3),
+            _mk_roi("Weekly KPI Report", 960, 8, "hitl_review", 90,
+                    ["Analytics Designer", "Report Generator"], 18.0, off_hours=5),
+            _mk_roi("Contract Review Workflow", 4800, 32, "pending", 0, [], 0.0, off_days=1),
+        ]
+        for _rcev in _seed_roi:
+            if not any(e["event_id"] == _rcev["event_id"] for e in _roi_calendar_store):
+                _roi_calendar_store.append(_rcev)
+        logger.info("ROI Calendar: seeded %d demo events", len(_seed_roi))
+    except Exception as _roi_seed_exc:
+        logger.debug("ROI Calendar seeding skipped: %s", _roi_seed_exc)
 
     return app
 

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ROI Calendar — Murphy System</title>
+  <meta name="description" content="Live ROI visualization: see automation tasks shrink before your eyes as agents replace human labor costs.">
+  <style>
+    :root{--bg:#0a0a0a;--bg2:#111;--bg3:#161616;--border:#222;--border2:#2a2a2a;
+    --green:#00ff41;--teal:#00d4aa;--cyan:#00e5ff;--yellow:#ffd700;--orange:#ff8c00;
+    --red:#ff4444;--muted:#666;--text:#e0e0e0;--text2:#b0b0b0;}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;}
+    .nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:.75rem 2rem;display:flex;align-items:center;gap:2rem;}
+    .nav-brand{font-size:1.1rem;font-weight:800;color:var(--teal);text-decoration:none;}
+    .nav-links{display:flex;gap:1.5rem;list-style:none;}
+    .nav-links a{color:var(--muted);text-decoration:none;font-size:.85rem;transition:color .2s;}
+    .nav-links a:hover,.nav-links a.active{color:var(--teal);}
+    .nav-right{margin-left:auto;display:flex;gap:.75rem;align-items:center;}
+    .btn{padding:.45rem 1rem;border-radius:7px;border:none;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .2s;}
+    .btn-p{background:var(--teal);color:#0a0a0a;}.btn-p:hover{background:var(--cyan);}
+    .btn-s{background:transparent;border:1px solid var(--border2);color:var(--text2);}
+    .btn-s:hover{border-color:var(--teal);color:var(--teal);}
+    /* Summary */
+    .summary-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;gap:2rem;flex-wrap:wrap;align-items:center;}
+    .summary-card{text-align:center;min-width:110px;}
+    .summary-val{font-size:1.55rem;font-weight:800;font-family:'Courier New',monospace;display:block;}
+    .summary-lbl{font-size:.67rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+    .summary-divider{width:1px;background:var(--border);height:40px;}
+    .live-badge{display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:var(--green);}
+    .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.2s infinite;}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+    /* Legend */
+    .legend{padding:.6rem 2rem;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;gap:1.5rem;flex-wrap:wrap;align-items:center;}
+    .legend-item{display:flex;align-items:center;gap:.35rem;font-size:.73rem;color:var(--text2);}
+    .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+    /* Calendar */
+    .calendar-wrap{padding:1.5rem 2rem;overflow-x:auto;}
+    .calendar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;}
+    .calendar-title{font-size:1.05rem;font-weight:700;color:var(--teal);}
+    .week-grid{display:grid;grid-template-columns:60px repeat(7,1fr);border:1px solid var(--border);border-radius:10px;overflow:hidden;min-width:800px;}
+    .week-hdr-cell{padding:.6rem .5rem;text-align:center;font-size:.75rem;font-weight:700;color:var(--teal);border-right:1px solid var(--border);background:var(--bg3);border-bottom:1px solid var(--border);}
+    .week-hdr-cell.time-col{color:var(--muted);font-size:.65rem;}
+    .time-slot{border-right:1px solid var(--border);border-bottom:1px solid var(--border2);height:64px;position:relative;background:var(--bg);}
+    .time-label{background:var(--bg3);border-right:1px solid var(--border);border-bottom:1px solid var(--border2);height:64px;display:flex;align-items:flex-start;justify-content:center;padding-top:5px;}
+    .time-label span{font-size:.6rem;color:var(--muted);font-family:'Courier New',monospace;}
+    /* ROI Block */
+    .roi-block{position:absolute;left:2px;right:2px;border-radius:6px;overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .15s;border:1px solid rgba(255,255,255,.12);min-height:36px;z-index:2;}
+    .roi-block:hover{transform:translateX(2px);box-shadow:0 4px 20px rgba(0,0,0,.5);z-index:10;}
+    .roi-block.status-pending{background:rgba(100,100,100,.25);border-color:rgba(100,100,100,.4);}
+    .roi-block.status-running{background:rgba(0,212,170,.15);border-color:rgba(0,212,170,.5);}
+    .roi-block.status-qc{background:rgba(255,215,0,.12);border-color:rgba(255,215,0,.4);}
+    .roi-block.status-hitl_review{background:rgba(255,140,0,.12);border-color:rgba(255,140,0,.5);animation:hitl-pulse .6s ease-in-out;}
+    .roi-block.status-complete{background:rgba(0,255,65,.1);border-color:rgba(0,255,65,.4);}
+    .roi-block.status-error{background:rgba(255,68,68,.1);border-color:rgba(255,68,68,.4);}
+    @keyframes hitl-pulse{0%{transform:scaleY(1)}30%{transform:scaleY(1.08);box-shadow:0 0 16px rgba(255,140,0,.5)}100%{transform:scaleY(1)}}
+    .roi-savings-overlay{position:absolute;top:0;left:0;right:0;background:rgba(0,255,65,.18);border-bottom:1px solid rgba(0,255,65,.4);transition:height .8s ease;pointer-events:none;}
+    .roi-progress-bar{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,.1);}
+    .roi-progress-fill{height:100%;background:var(--teal);transition:width .5s ease;}
+    .roi-progress-fill.qc{background:var(--yellow);}
+    .roi-progress-fill.hitl{background:var(--orange);}
+    .roi-progress-fill.complete{background:var(--green);}
+    .roi-block-content{position:relative;padding:5px 7px 8px;z-index:1;}
+    .roi-block-title{font-size:.7rem;font-weight:700;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .roi-block-agents{font-size:.6rem;color:var(--teal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .roi-block-costs{display:flex;gap:.4rem;margin-top:3px;flex-wrap:wrap;}
+    .cost-chip{font-size:.57rem;padding:1px 4px;border-radius:3px;font-family:'Courier New',monospace;font-weight:700;}
+    .cost-human{background:rgba(255,68,68,.2);color:#ff8888;text-decoration:line-through;}
+    .cost-agent{background:rgba(0,212,170,.2);color:var(--teal);}
+    .cost-roi{background:rgba(0,255,65,.2);color:var(--green);}
+    .roi-pct-badge{position:absolute;top:4px;right:4px;font-size:.58rem;font-weight:800;font-family:'Courier New',monospace;padding:1px 5px;border-radius:4px;}
+    .roi-pct-badge.positive{background:rgba(0,255,65,.3);color:var(--green);}
+    .roi-pct-badge.loading{background:rgba(0,212,170,.2);color:var(--teal);}
+    /* Detail panel */
+    .detail-panel{position:fixed;top:0;right:0;height:100vh;width:360px;background:var(--bg2);border-left:1px solid var(--border);transform:translateX(100%);transition:transform .3s ease;z-index:100;overflow-y:auto;padding:1.5rem;}
+    .detail-panel.open{transform:translateX(0);}
+    .detail-close{float:right;background:none;border:1px solid var(--border);color:var(--muted);border-radius:5px;padding:.3rem .6rem;cursor:pointer;}
+    .detail-title{font-size:1rem;font-weight:700;color:var(--teal);margin-bottom:1rem;}
+    .detail-section{margin-bottom:1.25rem;}
+    .detail-section h4{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.5rem;}
+    .cost-row{display:flex;justify-content:space-between;align-items:center;font-size:.82rem;margin-bottom:.35rem;}
+    .cost-row .label{color:var(--text2);}
+    .cost-row .val{font-family:'Courier New',monospace;font-weight:700;}
+    .cost-row.total{border-top:1px solid var(--border);padding-top:.4rem;margin-top:.2rem;}
+    .agent-chip{display:inline-block;background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.3);color:var(--teal);border-radius:4px;padding:2px 7px;font-size:.7rem;margin:2px;}
+    .timeline-item{display:flex;gap:.6rem;align-items:flex-start;font-size:.75rem;margin-bottom:.4rem;}
+    .timeline-dot{width:6px;height:6px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+    .timeline-text{color:var(--text2);line-height:1.4;}
+    .timeline-ts{color:var(--muted);font-size:.63rem;}
+    /* Modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:1.75rem;width:460px;max-width:95vw;}
+    .modal h3{font-size:1rem;font-weight:700;color:var(--teal);margin-bottom:1.25rem;}
+    .form-row{margin-bottom:.85rem;}
+    .form-row label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-bottom:.3rem;}
+    .form-row input,.form-row textarea{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:7px;padding:.5rem .75rem;font-size:.85rem;outline:none;}
+    .form-row input:focus,.form-row textarea:focus{border-color:var(--teal);}
+    .form-2col{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;}
+    .modal-footer{display:flex;gap:.75rem;justify-content:flex-end;margin-top:1.25rem;}
+    /* Toasts */
+    .requests-feed{position:fixed;bottom:1.5rem;right:1.5rem;width:290px;z-index:50;}
+    .request-toast{background:var(--bg2);border:1px solid var(--teal);border-radius:8px;padding:.65rem .9rem;margin-bottom:.5rem;font-size:.75rem;animation:toast-in .3s ease;}
+    @keyframes toast-in{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+    .request-toast .req-title{font-weight:700;color:var(--teal);}
+    .request-toast .req-meta{color:var(--muted);font-size:.65rem;}
+    .request-toast.complete{border-color:var(--green);}
+    .request-toast.hitl{border-color:var(--orange);}
+  </style>
+</head>
+<body>
+<nav class="nav">
+  <a href="/" class="nav-brand">⚙ Murphy System</a>
+  <ul class="nav-links">
+    <li><a href="/ui/dashboard">Dashboard</a></li>
+    <li><a href="/ui/roi-calendar" class="active">ROI Calendar</a></li>
+    <li><a href="/ui/system-visualizer">Visualizer</a></li>
+    <li><a href="/ui/terminal-unified">Terminal</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="live-badge"><span class="live-dot"></span>Live</div>
+    <button class="btn btn-p" onclick="openAddTask()">+ Add Task</button>
+  </div>
+</nav>
+
+<div class="summary-bar">
+  <div class="summary-card"><span class="summary-val" style="color:var(--yellow)" id="sum-human">$0</span><span class="summary-lbl">Human Cost Est.</span></div>
+  <div class="summary-divider"></div>
+  <div class="summary-card"><span class="summary-val" style="color:var(--teal)" id="sum-agent">$0</span><span class="summary-lbl">Agent Cost</span></div>
+  <div class="summary-divider"></div>
+  <div class="summary-card"><span class="summary-val" style="color:var(--green)" id="sum-roi">$0</span><span class="summary-lbl">Total ROI</span></div>
+  <div class="summary-divider"></div>
+  <div class="summary-card"><span class="summary-val" style="color:var(--cyan)" id="sum-roi-pct">0%</span><span class="summary-lbl">ROI %</span></div>
+  <div class="summary-divider"></div>
+  <div class="summary-card"><span class="summary-val" style="color:var(--orange)" id="sum-active">0</span><span class="summary-lbl">Active Tasks</span></div>
+  <div class="summary-divider"></div>
+  <div class="summary-card"><span class="summary-val" style="color:var(--green)" id="sum-complete">0</span><span class="summary-lbl">Completed</span></div>
+</div>
+
+<div class="legend">
+  <span style="font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Status:</span>
+  <span class="legend-item"><span class="legend-dot" style="background:#666"></span>Pending</span>
+  <span class="legend-item"><span class="legend-dot" style="background:var(--teal)"></span>Running</span>
+  <span class="legend-item"><span class="legend-dot" style="background:var(--yellow)"></span>QC Check</span>
+  <span class="legend-item"><span class="legend-dot" style="background:var(--orange)"></span>HITL Review</span>
+  <span class="legend-item"><span class="legend-dot" style="background:var(--green)"></span>Complete</span>
+  <span class="legend-item"><span class="legend-dot" style="background:var(--red)"></span>Error</span>
+  <span style="margin-left:auto;font-size:.67rem;color:var(--muted);">Block height = human cost · Green overlay = ROI savings · Progress bar = % complete</span>
+</div>
+
+<div class="calendar-wrap">
+  <div class="calendar-header">
+    <div style="display:flex;align-items:center;gap:.75rem;">
+      <span class="calendar-title">ROI Calendar</span>
+      <span style="font-size:.72rem;color:var(--muted)" id="cal-date-range"></span>
+    </div>
+    <div style="display:flex;gap:.5rem;">
+      <button class="btn btn-s" onclick="navWeek(-1)">&#8592; Prev</button>
+      <button class="btn btn-s" onclick="navWeek(0)">Today</button>
+      <button class="btn btn-s" onclick="navWeek(1)">Next &#8594;</button>
+    </div>
+  </div>
+  <div class="week-grid" id="week-grid"></div>
+</div>
+
+<div class="detail-panel" id="detail-panel">
+  <button class="detail-close" onclick="closeDetail()">&#x2715;</button>
+  <div id="detail-content"></div>
+</div>
+
+<div class="modal-overlay" id="add-task-modal">
+  <div class="modal">
+    <h3>&#128197; Add Automation Task</h3>
+    <div class="form-row"><label>Task Title</label><input type="text" id="task-title" placeholder="e.g. Monthly Invoice Generation"></div>
+    <div class="form-row"><label>Description</label><textarea id="task-desc" rows="2" placeholder="What does this automation do?"></textarea></div>
+    <div class="form-2col">
+      <div class="form-row"><label>Human Cost Estimate ($)</label><input type="number" id="task-human-cost" placeholder="2400" min="0" step="50"></div>
+      <div class="form-row"><label>Human Time (hrs)</label><input type="number" id="task-human-hours" placeholder="8" min="0.5" step="0.5"></div>
+    </div>
+    <div class="form-2col">
+      <div class="form-row"><label>Start</label><input type="datetime-local" id="task-start"></div>
+      <div class="form-row"><label>End</label><input type="datetime-local" id="task-end"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-s" onclick="closeAddTask()">Cancel</button>
+      <button class="btn btn-p" onclick="submitAddTask()">Create Task &#8594;</button>
+    </div>
+  </div>
+</div>
+
+<div class="requests-feed" id="requests-feed"></div>
+
+<script>
+'use strict';
+var _events=[],_weekOffset=0,_selectedEvent=null,_sseSource=null;
+var DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+var HOURS=[6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21];
+
+window.addEventListener('DOMContentLoaded',function(){
+  setDefaultTimes();loadEvents();connectSSE();
+  setInterval(updateSummary,8000);
+});
+
+function setDefaultTimes(){
+  var now=new Date(),s=new Date(now.getFullYear(),now.getMonth(),now.getDate(),now.getHours()+1,0);
+  var e=new Date(s.getTime()+2*3600000);
+  document.getElementById('task-start').value=toISO(s);
+  document.getElementById('task-end').value=toISO(e);
+}
+function toISO(d){var p=function(n){return n<10?'0'+n:''+n;};return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());}
+function fmt(n){return parseFloat(n||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function loadEvents(){
+  fetch('/api/roi-calendar/events').then(function(r){return r.json();}).then(function(d){
+    if(d.ok){_events=d.events||[];renderCalendar();updateSummary();}
+  }).catch(function(){});
+}
+
+function updateSummary(){
+  fetch('/api/roi-calendar/summary').then(function(r){return r.json();}).then(function(d){
+    if(!d.ok)return;
+    function sv(id,v){var el=document.getElementById(id);if(el){el.style.opacity='.5';setTimeout(function(){el.textContent=v;el.style.opacity='1';},150);}}
+    sv('sum-human','$'+fmt(d.total_human_cost_estimate));
+    sv('sum-agent','$'+fmt(d.total_agent_cost));
+    sv('sum-roi','$'+fmt(d.total_roi));
+    sv('sum-roi-pct',d.roi_pct+'%');
+    sv('sum-active',d.active_tasks);
+    sv('sum-complete',d.completed_tasks);
+  }).catch(function(){});
+}
+
+function connectSSE(){
+  if(typeof EventSource==='undefined')return;
+  if(_sseSource)_sseSource.close();
+  _sseSource=new EventSource('/api/roi-calendar/stream');
+  _sseSource.addEventListener('roi_update',function(e){
+    var u=JSON.parse(e.data),idx=_events.findIndex(function(ev){return ev.event_id===u.event_id;});
+    var was=idx>=0?_events[idx].status:null;
+    if(idx>=0)_events[idx]=u;else{_events.push(u);showToast(u,'new');}
+    if(was&&was!==u.status){if(u.status==='hitl_review')showToast(u,'hitl');if(u.status==='complete')showToast(u,'complete');}
+    renderCalendar();
+    if(_selectedEvent&&_selectedEvent.event_id===u.event_id){_selectedEvent=u;renderDetail(u);}
+  });
+  _sseSource.onerror=function(){setTimeout(connectSSE,5000);};
+}
+
+function navWeek(delta){if(delta===0)_weekOffset=0;else _weekOffset+=delta;renderCalendar();}
+
+function getWeekDates(off){
+  var now=new Date(),dow=now.getDay(),mon=new Date(now);
+  mon.setDate(now.getDate()-(dow===0?6:dow-1)+off*7);mon.setHours(0,0,0,0);
+  var days=[];for(var i=0;i<7;i++){var d=new Date(mon);d.setDate(mon.getDate()+i);days.push(d);}
+  return days;
+}
+
+function renderCalendar(){
+  var grid=document.getElementById('week-grid');if(!grid)return;
+  var days=getWeekDates(_weekOffset);
+  var p2=function(n){return n<10?'0'+n:''+n;};
+  document.getElementById('cal-date-range').textContent=(days[0].getMonth()+1)+'/'+days[0].getDate()+' – '+(days[6].getMonth()+1)+'/'+days[6].getDate();
+  var html='<div class="week-hdr-cell time-col">Time</div>';
+  days.forEach(function(d,i){
+    var today=new Date().toDateString()===d.toDateString();
+    html+='<div class="week-hdr-cell" style="'+(today?'color:var(--cyan);':'')+'">'
+      +DAYS[i]+'<br><span style="font-size:.64rem;font-weight:400;color:var(--muted)">'+(d.getMonth()+1)+'/'+d.getDate()+'</span></div>';
+  });
+  HOURS.forEach(function(h){
+    html+='<div class="time-label"><span>'+(h>12?(h-12)+'pm':(h===12?'12pm':h+'am'))+'</span></div>';
+    days.forEach(function(d){
+      var slotEvs=_events.filter(function(ev){
+        if(!ev.start)return false;
+        var s=new Date(ev.start);return s.toDateString()===d.toDateString()&&s.getHours()===h;
+      });
+      html+='<div class="time-slot">';
+      slotEvs.forEach(function(ev){html+=renderBlock(ev);});
+      html+='</div>';
+    });
+  });
+  grid.innerHTML=html;
+}
+
+function renderBlock(ev){
+  var hc=parseFloat(ev.human_cost_estimate||0),ac=parseFloat(ev.agent_compute_cost||0);
+  var roi=parseFloat(ev.roi||0),pct=parseInt(ev.progress_pct||0);
+  var agents=(ev.agents||[]).slice(0,2);
+  var blockH=Math.max(36,Math.min(160,36+hc/60));
+  var savPct=hc>0?Math.min(100,Math.round(roi/hc*100)):0;
+  var overlayH=Math.max(0,Math.round(blockH*savPct/100));
+  var pbCls=ev.status==='complete'?'complete':ev.status==='qc'?'qc':ev.status==='hitl_review'?'hitl':'';
+  var roiPct=hc>0?Math.round(roi/hc*100):0;
+  return '<div class="roi-block status-'+ev.status+'" style="height:'+blockH+'px;top:2px;" onclick="openDetail(\''+ev.event_id+'\')" >'
+    +'<div class="roi-savings-overlay" style="height:'+overlayH+'px"></div>'
+    +'<div class="roi-block-content">'
+      +'<div class="roi-block-title">'+esc(ev.title)+'</div>'
+      +(agents.length?'<div class="roi-block-agents">&#9881; '+agents.map(esc).join(' &middot; ')+'</div>':'')
+      +'<div class="roi-block-costs">'
+        +(hc>0?'<span class="cost-chip cost-human">$'+fmt(hc)+'</span>':'')
+        +(ac>0?'<span class="cost-chip cost-agent">$'+fmt(ac)+'</span>':'')
+        +(roi>0?'<span class="cost-chip cost-roi">+$'+fmt(roi)+'</span>':'')
+      +'</div></div>'
+    +(pct>0||ev.status==='complete'?'<div class="roi-pct-badge '+(roiPct>=0?'positive':'loading')+'">'+(ev.status==='complete'?'&#10003; ':'')+roiPct+'% ROI</div>':'')
+    +'<div class="roi-progress-bar"><div class="roi-progress-fill '+pbCls+'" style="width:'+pct+'%"></div></div>'
+    +'</div>';
+}
+
+function openDetail(id){
+  var ev=_events.find(function(e){return e.event_id===id;});if(!ev)return;
+  _selectedEvent=ev;renderDetail(ev);
+  document.getElementById('detail-panel').classList.add('open');
+}
+function closeDetail(){document.getElementById('detail-panel').classList.remove('open');_selectedEvent=null;}
+
+function renderDetail(ev){
+  var hc=parseFloat(ev.human_cost_estimate||0),ac=parseFloat(ev.agent_compute_cost||0);
+  var oh=parseFloat(ev.overhead_cost||0),roi=parseFloat(ev.roi||0),pct=parseInt(ev.progress_pct||0);
+  var scol=function(s){var m={pending:'#888',running:'var(--teal)',qc:'var(--yellow)',hitl_review:'var(--orange)',complete:'var(--green)',error:'var(--red)'};return m[s]||'var(--muted)';};
+  var html='<div class="detail-title">'+esc(ev.title)+'</div>';
+  html+='<div style="font-size:.72rem;color:var(--muted);margin-bottom:1rem">Status: <span style="color:'+scol(ev.status)+'">'+ev.status+'</span> &middot; '+pct+'% complete</div>';
+  html+='<div class="detail-section"><h4>Cost Breakdown</h4>';
+  html+='<div class="cost-row"><span class="label">Human Estimate</span><span class="val" style="color:#ff8888">$'+fmt(hc)+'</span></div>';
+  html+='<div class="cost-row"><span class="label">Agent Compute</span><span class="val" style="color:var(--teal)">$'+fmt(ac)+'</span></div>';
+  html+='<div class="cost-row"><span class="label">Overhead</span><span class="val" style="color:var(--muted)">$'+fmt(oh)+'</span></div>';
+  html+='<div class="cost-row total"><span class="label" style="font-weight:700">Net ROI</span><span class="val" style="color:'+(roi>=0?'var(--green)':'var(--red)')+'">$'+fmt(roi)+'</span></div>';
+  if(hc>0)html+='<div class="cost-row"><span class="label">ROI %</span><span class="val" style="color:'+(roi>=0?'var(--green)':'var(--red)')+'">'+Math.round(roi/hc*100)+'%</span></div>';
+  html+='</div>';
+  if(ev.agents&&ev.agents.length){
+    html+='<div class="detail-section"><h4>Agents ('+ev.agents.length+')</h4>';
+    html+=ev.agents.map(function(a){return '<span class="agent-chip">&#9881; '+esc(a)+'</span>';}).join('');
+    html+='</div>';
+  }
+  if(ev.hitl_reviews&&ev.hitl_reviews.length){
+    html+='<div class="detail-section"><h4>HITL Reviews</h4>';
+    ev.hitl_reviews.forEach(function(r){
+      var c=r.decision==='approved'?'green':r.decision==='rejected'?'red':'orange';
+      html+='<div class="timeline-item"><div class="timeline-dot" style="background:var(--'+c+')"></div><div><div class="timeline-text">'+esc(r.decision||'review')+(r.notes?': '+esc(r.notes):'')+'</div><div class="timeline-ts">'+(r.ts||'')+'</div></div></div>';
+    });
+    html+='</div>';
+  }
+  if(ev.cost_adjustments&&ev.cost_adjustments.length){
+    html+='<div class="detail-section"><h4>Cost Adjustments</h4>';
+    ev.cost_adjustments.forEach(function(a){
+      html+='<div class="timeline-item"><div class="timeline-dot" style="background:'+(a.delta>0?'var(--orange)':'var(--green)')+'"></div><div><div class="timeline-text">'+esc(a.reason)+': '+(a.delta>0?'+':'')+' $'+fmt(a.delta)+'</div><div class="timeline-ts">'+(a.ts||'')+'</div></div></div>';
+    });
+    html+='</div>';
+  }
+  document.getElementById('detail-content').innerHTML=html;
+}
+
+function openAddTask(){document.getElementById('add-task-modal').classList.add('open');}
+function closeAddTask(){document.getElementById('add-task-modal').classList.remove('open');}
+function submitAddTask(){
+  var title=document.getElementById('task-title').value.trim();
+  if(!title){alert('Please enter a task title');return;}
+  var body={title:title,description:document.getElementById('task-desc').value.trim(),
+    human_cost_estimate:parseFloat(document.getElementById('task-human-cost').value)||0,
+    human_time_estimate_hours:parseFloat(document.getElementById('task-human-hours').value)||8,
+    start:document.getElementById('task-start').value,end:document.getElementById('task-end').value};
+  fetch('/api/roi-calendar/events',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+    .then(function(r){return r.json();}).then(function(d){
+      if(d.ok){_events.push(d.event);renderCalendar();updateSummary();closeAddTask();showToast(d.event,'new');
+        document.getElementById('task-title').value='';document.getElementById('task-desc').value='';
+        document.getElementById('task-human-cost').value='';}
+    }).catch(function(){alert('Failed to create task.');});
+}
+function showToast(ev,type){
+  var feed=document.getElementById('requests-feed');if(!feed)return;
+  var el=document.createElement('div');
+  el.className='request-toast'+(type==='complete'?' complete':type==='hitl'?' hitl':'');
+  var icon=type==='complete'?'&#9989;':type==='hitl'?'&#128065;':type==='new'?'&#128229;':'&#9881;';
+  var msg=type==='complete'?'Complete':type==='hitl'?'HITL Review':type==='new'?'New Task':'Update';
+  el.innerHTML='<div class="req-title">'+icon+' '+msg+': '+esc(ev.title)+'</div>'
+    +'<div class="req-meta">'+(ev.roi>0?'ROI: $'+fmt(ev.roi):'Pending')+' &middot; '+(ev.agents||[]).slice(0,2).join(', ')+'</div>';
+  feed.prepend(el);
+  setTimeout(function(){el.style.transition='opacity .5s';el.style.opacity='0';setTimeout(function(){el.remove();},500);},5000);
+}
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){closeDetail();closeAddTask();}
+  if(e.key==='ArrowLeft')navWeek(-1);if(e.key==='ArrowRight')navWeek(1);
+});
+</script>
+</body>
+</html>
