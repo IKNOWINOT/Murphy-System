@@ -58,7 +58,7 @@ _SUBSYSTEM_KEYWORDS: Dict[str, List[str]] = {
     ],
     "adapter": [
         "adapter", "bridge", "mfgc_adapter", "llm_integration", "llm_controller",
-        "local_llm", "local_model", "groq", "mock_compatible",
+        "local_llm", "local_model", "deepinfra", "mock_compatible",
     ],
 }
 

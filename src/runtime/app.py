@@ -666,7 +666,7 @@ def create_app() -> FastAPI:
         )
 
     # Load .env before initialising MurphySystem so env vars like
-    # MURPHY_LLM_PROVIDER and GROQ_API_KEY are available from the start.
+    # MURPHY_LLM_PROVIDER and DEEPINFRA_API_KEY are available from the start.
     # Resolve to the project root (Murphy System/) — three levels up from
     # src/runtime/app.py — so it works regardless of CWD.
     if _load_dotenv is not None:
@@ -1326,7 +1326,7 @@ def create_app() -> FastAPI:
         end-to-end routing works.
 
         Fallback chain (in priority order):
-          1. groq        — Groq cloud (requires GROQ_API_KEY, recommended free tier)
+          1. deepinfra   — DeepInfra cloud (requires DEEPINFRA_API_KEY, primary provider)
           2. openai      — OpenAI (requires OPENAI_API_KEY)
           3. anthropic   — Anthropic Claude (requires ANTHROPIC_API_KEY)
           4. ollama      — Local Ollama server (requires OLLAMA_BASE_URL or running on :11434)
@@ -1334,7 +1334,7 @@ def create_app() -> FastAPI:
         """
         import os as _os_llm
         chain = [
-            {"layer": 1, "provider": "groq",      "env_var": "GROQ_API_KEY",      "available": bool(_os_llm.getenv("GROQ_API_KEY")),      "note": "Free tier at console.groq.com/keys — fastest recommended provider"},
+            {"layer": 1, "provider": "deepinfra", "env_var": "DEEPINFRA_API_KEY", "available": bool(_os_llm.getenv("DEEPINFRA_API_KEY")), "note": "Primary LLM: meta-llama/Meta-Llama-3.1-70B-Instruct via deepinfra.com"},
             {"layer": 2, "provider": "openai",    "env_var": "OPENAI_API_KEY",    "available": bool(_os_llm.getenv("OPENAI_API_KEY")),    "note": "OpenAI GPT-4o / GPT-4"},
             {"layer": 3, "provider": "anthropic", "env_var": "ANTHROPIC_API_KEY", "available": bool(_os_llm.getenv("ANTHROPIC_API_KEY")), "note": "Anthropic Claude"},
             {"layer": 4, "provider": "ollama",    "env_var": "OLLAMA_BASE_URL",   "available": bool(_os_llm.getenv("OLLAMA_BASE_URL") or _os_llm.getenv("OLLAMA_HOST")), "note": "Local Ollama — run: ollama serve"},
@@ -1348,7 +1348,7 @@ def create_app() -> FastAPI:
             "active_provider": active["provider"],
             "active_layer": active["layer"],
             "current_mode": llm_status.get("mode") or llm_status.get("provider", "unknown"),
-            "to_enable_llm": "Set GROQ_API_KEY=gsk_... in your environment and restart. Get a free key at https://console.groq.com/keys",
+            "to_enable_llm": "Set DEEPINFRA_API_KEY=your_key in your environment. Get a key at https://deepinfra.com",
             "llm_status": llm_status,
         })
 
@@ -1366,7 +1366,8 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": False, "error": "provider is required"}, status_code=400)
         # Map provider to its env var
         provider_env_vars = {
-            "groq": "GROQ_API_KEY",
+            "deepinfra": "DEEPINFRA_API_KEY",
+            "together": "TOGETHER_API_KEY",
             "openai": "OPENAI_API_KEY",
             "anthropic": "ANTHROPIC_API_KEY",
         }
@@ -1542,8 +1543,10 @@ def create_app() -> FastAPI:
         # Core LLM keys
         llm_items = []
         for provider, env_var, label, url in [
-            ("groq",      "GROQ_API_KEY",      "Groq (recommended, free)",
-             "https://console.groq.com/keys"),
+            ("deepinfra",  "DEEPINFRA_API_KEY",  "DeepInfra (primary, meta-llama)",
+             "https://deepinfra.com"),
+            ("together",   "TOGETHER_API_KEY",   "Together AI (overflow, meta-llama-turbo)",
+             "https://api.together.xyz"),
             ("openai",    "OPENAI_API_KEY",     "OpenAI (GPT-4)",
              "https://platform.openai.com/api-keys"),
             ("anthropic", "ANTHROPIC_API_KEY",  "Anthropic (Claude)",
@@ -1620,20 +1623,29 @@ def create_app() -> FastAPI:
             _INTEGRATION_META = {}
 
         if integration_id not in _INTEGRATION_META and integration_id not in {
-            "groq", "openai", "anthropic"
+            "deepinfra", "together", "openai", "anthropic"
         }:
             return JSONResponse({"success": False, "error": f"Unknown integration: {integration_id}"}, status_code=404)
 
         # Standard LLM providers
         _llm_guide = {
-            "groq": {
-                "name": "Groq", "env_var": "GROQ_API_KEY",
+            "deepinfra": {
+                "name": "DeepInfra", "env_var": "DEEPINFRA_API_KEY",
                 "steps": [
-                    {"step": 1, "title": "Create account", "url": "https://console.groq.com", "description": "Sign up at console.groq.com — free tier, no credit card needed."},
-                    {"step": 2, "title": "Generate API key", "url": "https://console.groq.com/keys", "description": "Click '+ Create API Key', name it 'murphy-system', copy the gsk_... value."},
-                    {"step": 3, "title": "Set key", "description": "In the Murphy terminal: set key groq <your-key>  or  POST /api/credentials/store"},
+                    {"step": 1, "title": "Create account", "url": "https://deepinfra.com", "description": "Sign up at deepinfra.com."},
+                    {"step": 2, "title": "Generate API key", "url": "https://deepinfra.com/dash/api_keys", "description": "Go to API Keys section and create a new key."},
+                    {"step": 3, "title": "Set key", "description": "In the Murphy terminal: set key deepinfra <your-key>  or  POST /api/credentials/store"},
                 ],
-                "free_tier": True, "notes": "Rate limit: 30 req/min on free tier. Upgrade at console.groq.com/billing.",
+                "free_tier": False, "notes": "Primary LLM provider. Model: meta-llama/Meta-Llama-3.1-70B-Instruct.",
+            },
+            "together": {
+                "name": "Together AI", "env_var": "TOGETHER_API_KEY",
+                "steps": [
+                    {"step": 1, "title": "Create account", "url": "https://api.together.xyz", "description": "Sign up at api.together.xyz."},
+                    {"step": 2, "title": "Generate API key", "url": "https://api.together.xyz/settings/api-keys", "description": "Go to API Keys and create a new key."},
+                    {"step": 3, "title": "Set key", "description": "In the Murphy terminal: set key together <your-key>  or  POST /api/credentials/store"},
+                ],
+                "free_tier": False, "notes": "Overflow LLM provider. Model: meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo.",
             },
             "openai": {
                 "name": "OpenAI", "env_var": "OPENAI_API_KEY",
@@ -5910,7 +5922,8 @@ def create_app() -> FastAPI:
     async def integrations_catalog():
         """Available integrations catalog."""
         catalog = [
-            {"id": "groq",        "name": "Groq",        "type": "llm",       "icon": "⚡", "description": "Ultra-fast LLM inference via Groq API"},
+            {"id": "deepinfra",   "name": "DeepInfra",   "type": "llm",       "icon": "⚡", "description": "Primary LLM inference via DeepInfra API"},
+            {"id": "together",    "name": "Together AI",  "type": "llm",       "icon": "🔀", "description": "Overflow LLM inference via Together AI API"},
             {"id": "openai",      "name": "OpenAI",      "type": "llm",       "icon": "◎", "description": "GPT-4 and OpenAI model suite"},
             {"id": "stripe",      "name": "Stripe",      "type": "payments",  "icon": "💳", "description": "Payment processing and billing"},
             {"id": "cloudflare",  "name": "Cloudflare",  "type": "network",   "icon": "☁", "description": "CDN, DNS, and security gateway"},
@@ -6232,7 +6245,8 @@ def create_app() -> FastAPI:
         Secret values are NEVER returned.
         """
         _INTEGRATION_ENV_VARS = {
-            "groq":            ("Groq",             "GROQ_API_KEY"),
+            "deepinfra":       ("DeepInfra",         "DEEPINFRA_API_KEY"),
+            "together":        ("Together AI",        "TOGETHER_API_KEY"),
             "openai":          ("OpenAI",            "OPENAI_API_KEY"),
             "anthropic":       ("Anthropic",         "ANTHROPIC_API_KEY"),
             "sendgrid":        ("SendGrid",          "SENDGRID_API_KEY"),
@@ -6307,7 +6321,8 @@ def create_app() -> FastAPI:
 
         # Map integration name to env var
         _INTEGRATION_ENV_VARS = {
-            "groq": "GROQ_API_KEY",
+            "deepinfra": "DEEPINFRA_API_KEY",
+            "together": "TOGETHER_API_KEY",
             "openai": "OPENAI_API_KEY",
             "anthropic": "ANTHROPIC_API_KEY",
             "sendgrid": "SENDGRID_API_KEY",
@@ -6375,12 +6390,20 @@ def create_app() -> FastAPI:
                 "description": "Local LLM inference via Ollama. Runs phi3 by default.",
             },
             {
-                "id": "groq",
-                "name": "Groq Cloud",
+                "id": "deepinfra",
+                "name": "DeepInfra Cloud",
                 "type": "cloud",
-                "available": bool(os.getenv("GROQ_API_KEY") or os.getenv("GROQ_API_KEYS")),
-                "default_model": "llama3-70b-8192",
-                "description": "Groq fast inference cloud API. Requires GROQ_API_KEY.",
+                "available": bool(os.getenv("DEEPINFRA_API_KEY")),
+                "default_model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
+                "description": "Primary LLM via DeepInfra. Requires DEEPINFRA_API_KEY.",
+            },
+            {
+                "id": "together",
+                "name": "Together AI Cloud",
+                "type": "cloud",
+                "available": bool(os.getenv("TOGETHER_API_KEY")),
+                "default_model": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+                "description": "Overflow LLM via Together AI. Requires TOGETHER_API_KEY.",
             },
             {
                 "id": "aristotle",
@@ -6403,8 +6426,10 @@ def create_app() -> FastAPI:
         active = None
         if ollama_up and pulled_models:
             active = "ollama"
-        elif os.getenv("GROQ_API_KEY") or os.getenv("GROQ_API_KEYS"):
-            active = "groq"
+        elif os.getenv("DEEPINFRA_API_KEY"):
+            active = "deepinfra"
+        elif os.getenv("TOGETHER_API_KEY"):
+            active = "together"
 
         return JSONResponse({
             "success": True,
@@ -6654,7 +6679,7 @@ def create_app() -> FastAPI:
         active_modules = sum([
             1,  # integration_bus
             1,  # llm_integration_layer
-            1 if bool(os.getenv("GROQ_API_KEY")) else 0,   # groq
+            1 if bool(os.getenv("DEEPINFRA_API_KEY") or os.getenv("TOGETHER_API_KEY")) else 0,   # llm_cloud
             1 if _check_ollama_available(_ollama_base_url()) else 0,  # ollama
             1,  # workflow_dag_engine
             1,  # automation_commissioner
@@ -6673,7 +6698,8 @@ def create_app() -> FastAPI:
             "modules": [
                 {"name": "integration_bus", "active": True},
                 {"name": "llm_integration_layer", "active": True},
-                {"name": "groq", "active": bool(os.getenv("GROQ_API_KEY"))},
+                {"name": "deepinfra", "active": bool(os.getenv("DEEPINFRA_API_KEY"))},
+                {"name": "together", "active": bool(os.getenv("TOGETHER_API_KEY"))},
                 {"name": "ollama", "active": _check_ollama_available(_ollama_base_url())},
                 {"name": "workflow_dag_engine", "active": True},
                 {"name": "automation_commissioner", "active": True},
@@ -12667,8 +12693,9 @@ def create_app() -> FastAPI:
             "MURPHY_SECRET_KEY=change-me-to-a-random-string",
             "",
             "# === LLM Provider (optional — system works without it) ===",
-            "# MURPHY_LLM_PROVIDER=groq",
-            "# GROQ_API_KEY=your-groq-key-here  # Free at https://console.groq.com",
+            "# MURPHY_LLM_PROVIDER=deepinfra",
+            "# DEEPINFRA_API_KEY=your-key-here  # Get at https://deepinfra.com",
+            "# TOGETHER_API_KEY=your-key-here  # Get at https://api.together.xyz (overflow)",,
             "",
             "# === MFM (Murphy Foundation Model) ===",
             "MFM_ENABLED=true",
