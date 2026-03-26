@@ -149,25 +149,302 @@ def create_app() -> FastAPI:
         _account_manager = None
         _oauth_registry = None
 
-    # session_token → account_id — Redis-backed with in-memory fallback
+    # session_token → account_id — Redis-backed with SQLite persistent fallback
     import threading as _threading
     import secrets as _secrets
     import bcrypt as _bcrypt
     _session_lock = _threading.Lock()
 
+    class _SQLiteSessionFallback:
+        """Persistent session store using SQLite WAL backend.
+
+        Replaces the in-memory fallback dict so that sessions survive
+        process restarts when Redis is not configured.  Falls back to a
+        plain in-memory dict when SQLite is also unavailable.
+        """
+
+        _SESSION_TTL = 86400  # 24 hours (matches murphy_session cookie Max-Age)
+
+        def __init__(self) -> None:
+            self._mem: "Dict[str, str]" = {}
+            self._db = None
+            try:
+                from src.persistence_wal import create_persistence, PersistenceConfig
+                _cfg = PersistenceConfig.from_env()
+                self._db = create_persistence(_cfg)
+                self._db.run_migrations()
+                logger.info("Session store: using SQLite WAL persistence")
+            except Exception as _exc:
+                logger.warning(
+                    "Session store: SQLite unavailable (%s) — using in-memory fallback", _exc
+                )
+
+        def _expires_at(self) -> str:
+            from datetime import datetime as _dt, timezone as _tz, timedelta as _td
+            return (_dt.now(_tz.utc) + _td(seconds=self._SESSION_TTL)).isoformat()
+
+        def _is_expired(self, expires_at: "Optional[str]") -> bool:
+            if not expires_at:
+                return False
+            from datetime import datetime as _dt, timezone as _tz
+            try:
+                exp = _dt.fromisoformat(expires_at)
+                if exp.tzinfo is None:
+                    exp = exp.replace(tzinfo=_tz.utc)
+                return _dt.now(_tz.utc) > exp
+            except Exception:
+                return False
+
+        def _now_iso(self) -> str:
+            from datetime import datetime as _dt, timezone as _tz
+            return _dt.now(_tz.utc).isoformat()
+
+        def __contains__(self, token: object) -> bool:
+            if self._db is not None:
+                try:
+                    conn = self._db.connect()
+                    cursor = conn.execute(
+                        "SELECT expires_at FROM session_store WHERE session_id=?", (str(token),)
+                    )
+                    row = cursor.fetchone()
+                    if row is None:
+                        return False
+                    if self._is_expired(row[0]):
+                        return False
+                    return True
+                except Exception:
+                    pass
+            return token in self._mem
+
+        def __setitem__(self, token: str, account_id: str) -> None:
+            self._mem[token] = account_id
+            if self._db is not None:
+                try:
+                    with self._db.transaction() as conn:
+                        conn.execute(
+                            """INSERT INTO session_store
+                                   (session_id, tenant_id, data, created_at, expires_at)
+                               VALUES (?, ?, '{}', ?, ?)
+                               ON CONFLICT(session_id) DO UPDATE SET
+                                   tenant_id=excluded.tenant_id,
+                                   expires_at=excluded.expires_at""",
+                            (token, account_id, self._now_iso(), self._expires_at()),
+                        )
+                except Exception as _exc:
+                    logger.warning("Session store write failed: %s", _exc)
+
+        def get(self, token: str, default: "Optional[str]" = None) -> "Optional[str]":
+            if self._db is not None:
+                try:
+                    conn = self._db.connect()
+                    cursor = conn.execute(
+                        "SELECT tenant_id, expires_at FROM session_store WHERE session_id=?",
+                        (token,),
+                    )
+                    row = cursor.fetchone()
+                    if row is None:
+                        return default
+                    if self._is_expired(row[1]):
+                        return default
+                    return row[0]
+                except Exception:
+                    pass
+            return self._mem.get(token, default)
+
+        def pop(self, token: str, *args: "Any") -> "Optional[str]":
+            val = self.get(token)
+            if val is not None:
+                self._mem.pop(token, None)
+                if self._db is not None:
+                    try:
+                        with self._db.transaction() as conn:
+                            conn.execute(
+                                "DELETE FROM session_store WHERE session_id=?", (token,)
+                            )
+                    except Exception:
+                        pass
+                return val
+            return args[0] if args else None
+
+        def __len__(self) -> int:
+            if self._db is not None:
+                try:
+                    now = self._now_iso()
+                    conn = self._db.connect()
+                    cursor = conn.execute(
+                        "SELECT COUNT(*) FROM session_store"
+                        " WHERE (expires_at IS NULL OR expires_at > ?)",
+                        (now,),
+                    )
+                    return cursor.fetchone()[0]
+                except Exception:
+                    pass
+            return len(self._mem)
+
+        def keys(self) -> "List[str]":
+            if self._db is not None:
+                try:
+                    now = self._now_iso()
+                    conn = self._db.connect()
+                    cursor = conn.execute(
+                        "SELECT session_id FROM session_store"
+                        " WHERE (expires_at IS NULL OR expires_at > ?)",
+                        (now,),
+                    )
+                    return [row[0] for row in cursor.fetchall()]
+                except Exception:
+                    pass
+            return list(self._mem.keys())
+
+        def items(self) -> "List[tuple]":
+            if self._db is not None:
+                try:
+                    now = self._now_iso()
+                    conn = self._db.connect()
+                    cursor = conn.execute(
+                        "SELECT session_id, tenant_id FROM session_store"
+                        " WHERE (expires_at IS NULL OR expires_at > ?)",
+                        (now,),
+                    )
+                    return [(row[0], row[1]) for row in cursor.fetchall()]
+                except Exception:
+                    pass
+            return list(self._mem.items())
+
+        def purge_expired(self) -> int:
+            """Delete expired sessions from the DB; returns count removed."""
+            if self._db is None:
+                return 0
+            try:
+                now = self._now_iso()
+                with self._db.transaction() as conn:
+                    cur = conn.execute(
+                        "DELETE FROM session_store WHERE expires_at IS NOT NULL AND expires_at <= ?",
+                        (now,),
+                    )
+                    return cur.rowcount
+            except Exception:
+                return 0
+
+    class _MutableUserRecord(dict):
+        """Dict subclass that writes back to SQLite when any field is mutated."""
+
+        def __init__(self, data: dict, account_id: str, save_cb: "Any") -> None:
+            super().__init__(data)
+            object.__setattr__(self, "_account_id", account_id)
+            object.__setattr__(self, "_save_cb", save_cb)
+
+        def __setitem__(self, key: str, value: "Any") -> None:
+            super().__setitem__(key, value)
+            try:
+                object.__getattribute__(self, "_save_cb")(
+                    object.__getattribute__(self, "_account_id"), dict(self)
+                )
+            except Exception:
+                pass
+
+    class _SQLiteUserStore:
+        """Persistent user store backed by SQLite WAL.
+
+        Implements a dict-like interface: account_id → user_dict.
+        Persists to SQLite on every write so user accounts survive restarts.
+        Mutations to the returned dict objects are also persisted via
+        _MutableUserRecord callbacks.
+        """
+
+        def __init__(self, db: "Any") -> None:
+            self._db = db
+            self._cache: "Dict[str, _MutableUserRecord]" = {}
+            if self._db is not None:
+                self._load()
+
+        def _now_iso(self) -> str:
+            from datetime import datetime as _dt, timezone as _tz
+            return _dt.now(_tz.utc).isoformat()
+
+        def _load(self) -> None:
+            try:
+                conn = self._db.connect()
+                cursor = conn.execute("SELECT account_id, data FROM user_accounts")
+                for row in cursor.fetchall():
+                    try:
+                        data = json.loads(row[1])
+                        self._cache[row[0]] = _MutableUserRecord(data, row[0], self._save)
+                    except Exception:
+                        pass
+                logger.info("User store: loaded %d accounts from SQLite", len(self._cache))
+            except Exception as exc:
+                logger.warning("User store: failed to load from SQLite: %s", exc)
+
+        def _save(self, account_id: str, data: dict) -> None:
+            if self._db is None:
+                return
+            try:
+                now = self._now_iso()
+                with self._db.transaction() as conn:
+                    conn.execute(
+                        """INSERT INTO user_accounts
+                               (account_id, email, data, created_at, updated_at)
+                           VALUES (?, ?, ?, ?, ?)
+                           ON CONFLICT(account_id) DO UPDATE SET
+                               email=excluded.email,
+                               data=excluded.data,
+                               updated_at=excluded.updated_at""",
+                        (account_id, data.get("email", ""), json.dumps(data), now, now),
+                    )
+            except Exception as exc:
+                logger.warning("User store: failed to save account %s: %s", account_id, exc)
+
+        def __setitem__(self, account_id: str, data: dict) -> None:
+            record = _MutableUserRecord(data, account_id, self._save)
+            self._cache[account_id] = record
+            self._save(account_id, data)
+
+        def get(self, account_id: str, default: "Any" = None) -> "Any":
+            return self._cache.get(account_id, default)
+
+        def __getitem__(self, account_id: str) -> "Any":
+            return self._cache[account_id]
+
+        def __contains__(self, account_id: object) -> bool:
+            return account_id in self._cache
+
+        def __len__(self) -> int:
+            return len(self._cache)
+
+        def values(self) -> "Any":
+            return self._cache.values()
+
+        def items(self) -> "Any":
+            return self._cache.items()
+
+        def pop(self, account_id: str, *args: "Any") -> "Any":
+            default = args[0] if args else None
+            val = self._cache.pop(account_id, default)
+            if val is not None and self._db is not None:
+                try:
+                    with self._db.transaction() as conn:
+                        conn.execute(
+                            "DELETE FROM user_accounts WHERE account_id=?", (account_id,)
+                        )
+                except Exception:
+                    pass
+            return val
+
     class _RedisSessionStore:
-        """Session store backed by Redis (with in-memory fallback).
+        """Session store backed by Redis (with SQLite/in-memory fallback).
 
         Implements a dict-like interface: session_token → account_id.
         Entries expire after 24 hours (matching the murphy_session cookie Max-Age).
-        Falls back to an in-memory dict if Redis is unavailable or not configured.
+        Falls back to SQLite persistence if Redis is unavailable or not configured,
+        so sessions survive process restarts.
         """
 
         _SESSION_PREFIX = "murphy:session:"
         _SESSION_TTL = 86400  # 24 hours
 
         def __init__(self) -> None:
-            self._fallback: "Dict[str, str]" = {}
+            self._fallback = _SQLiteSessionFallback()
             self._redis = None
             _redis_url = os.environ.get("REDIS_URL", "")
             if _redis_url:
@@ -181,7 +458,7 @@ def create_app() -> FastAPI:
                     logger.info("Session store: connected to Redis at %s", _redis_url)
                 except Exception as _exc:
                     logger.warning(
-                        "Session store: Redis unavailable (%s) — using in-memory fallback", _exc
+                        "Session store: Redis unavailable (%s) — using SQLite fallback", _exc
                     )
 
         def _k(self, token: str) -> str:
@@ -295,11 +572,23 @@ def create_app() -> FastAPI:
 
     _session_store: "_RedisSessionStore" = _RedisSessionStore()
 
-    # ── User account store (in-memory; replace with DB in production) ──
+    # ── User account store — SQLite-backed with in-memory cache ──
     # account_id → {email, password_hash, full_name, job_title, company,
     #               tier, email_validated, eula_accepted, created_at, ...}
-    _user_store: "Dict[str, Dict[str, Any]]" = {}
-    _email_to_account: "Dict[str, str]" = {}  # email → account_id (index)
+    _wal_db = None
+    try:
+        from src.persistence_wal import create_persistence, PersistenceConfig as _PConfig
+        _wal_db = create_persistence(_PConfig.from_env())
+        _wal_db.run_migrations()
+    except Exception as _wal_exc:
+        logger.warning("WAL persistence unavailable for user store: %s", _wal_exc)
+    _user_store: "_SQLiteUserStore" = _SQLiteUserStore(_wal_db)
+    # Rebuild the email → account_id index from the persisted user store
+    _email_to_account: "Dict[str, str]" = {
+        u.get("email", ""): uid
+        for uid, u in _user_store.items()
+        if u.get("email")
+    }
 
     def _hash_password(password: str) -> str:
         """Hash a password with bcrypt (mitigates CWE-916: weak password hash)."""
@@ -7209,19 +7498,27 @@ def create_app() -> FastAPI:
 
     @app.get("/api/auth/session-token")
     async def get_session_token(request: Request):
-        """Return a lightweight session validation token for the current session."""
-        account = _get_account_from_session(request)
-        if not account:
-            return JSONResponse({"success": False, "error": "not_authenticated"}, status_code=401)
-        import secrets as _secrets
-        token = _secrets.token_urlsafe(32)
-        return JSONResponse({
-            "success": True,
-            "token": token,
-            "account_id": account.get("account_id", ""),
-            "email": account.get("email", ""),
-            "tier": account.get("tier", "free"),
-        })
+        """Return the active session token for the current user.
+
+        Called by murphy_auth.js after an OAuth redirect to mirror the
+        HttpOnly murphy_session cookie into localStorage so that the
+        MurphyAPI._buildHeaders() Bearer-token path also works for OAuth
+        users.  Requires an active murphy_session cookie (set by the OAuth
+        callback or login) — returns 401 if the caller is not authenticated.
+        """
+        # Resolve token from cookie or Authorization header
+        token = request.cookies.get("murphy_session", "")
+        if not token:
+            auth_header = request.headers.get("authorization", "")
+            if auth_header.startswith("Bearer "):
+                token = auth_header[7:]
+        if not token:
+            return JSONResponse({"error": "Not authenticated"}, status_code=401)
+        with _session_lock:
+            account_id = _session_store.get(token)
+        if not account_id:
+            return JSONResponse({"error": "Not authenticated"}, status_code=401)
+        return JSONResponse({"session_token": token})
 
     @app.post("/api/auth/forgot-password")
     async def auth_forgot_password(request: Request):
@@ -7415,29 +7712,6 @@ def create_app() -> FastAPI:
         logger.info("Password reset consumed for account %s", account_id)
         return JSONResponse({"success": True, "message": "Password has been reset. You can now sign in."})
 
-
-    async def get_session_token(request: Request):
-        """Return the active session token for the current user.
-
-        Called by murphy_auth.js after an OAuth redirect to mirror the
-        HttpOnly murphy_session cookie into localStorage so that the
-        MurphyAPI._buildHeaders() Bearer-token path also works for OAuth
-        users.  Requires an active murphy_session cookie (set by the OAuth
-        callback) — returns 401 if the caller is not authenticated.
-        """
-        # Resolve token from cookie or Authorization header
-        token = request.cookies.get("murphy_session", "")
-        if not token:
-            auth_header = request.headers.get("authorization", "")
-            if auth_header.startswith("Bearer "):
-                token = auth_header[7:]
-        if not token:
-            return JSONResponse({"error": "Not authenticated"}, status_code=401)
-        with _session_lock:
-            account_id = _session_store.get(token)
-        if not account_id:
-            return JSONResponse({"error": "Not authenticated"}, status_code=401)
-        return JSONResponse({"session_token": token})
 
     @app.get("/api/profiles/me/terminal-config")
     async def get_terminal_config(request: Request):

@@ -5,6 +5,56 @@ All notable changes to Murphy System will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — Session Persistence + Auth Hardening
+
+### Fixed
+
+#### Session Persistence — Survives `hetzner_load.sh` Restarts (Critical)
+
+**Root cause:** `_session_store` and `_user_store` in `src/runtime/app.py` were
+pure in-memory structures wiped on every `systemctl restart murphy-production`.
+
+- **`src/persistence_wal.py`** + mirror — Added migration #5 `create_user_accounts`
+  (columns: `account_id`, `email`, `data` JSON, `created_at`, `updated_at`).
+
+- **`src/runtime/app.py`** + mirror — Added `_SQLiteSessionFallback` class: replaces
+  the in-memory `_fallback` dict inside `_RedisSessionStore` with a write-through
+  SQLite WAL store. Sessions now survive restarts when Redis is not configured.
+
+- **`src/runtime/app.py`** + mirror — Added `_SQLiteUserStore` + `_MutableUserRecord`
+  classes: replaces the in-memory `_user_store` dict with a write-through SQLite
+  store. User accounts now survive restarts; `_email_to_account` index is rebuilt
+  from the DB on each startup.
+
+- **`src/runtime/app.py`** + mirror — Fixed `GET /api/auth/session-token` endpoint:
+  was generating a new random token instead of returning the actual active session
+  token from the `murphy_session` cookie. Now correctly returns
+  `{"session_token": <actual_token>}` so `murphy_auth.js` can mirror it to
+  `localStorage` for OAuth users.
+
+#### Auth Header Consistency
+
+- **`src/fastapi_security.py`** + mirror — `get_configured_api_keys()` now checks
+  `MURPHY_API_KEYS` (plural, canonical) first and falls back to `MURPHY_API_KEY`
+  (singular) for backward compatibility. Previously the root file checked the
+  singular variable first, diverging from the documented `.env.example`.
+
+- **`static/murphy-components.js`** + mirror — `MurphyAPI._request()` now sets
+  `credentials: 'same-origin'` on all `fetch()` calls so the HttpOnly
+  `murphy_session` cookie is always included as a fallback when the Bearer token
+  path is not available.
+
+### Tests
+
+- **`tests/test_auth_and_route_protection.py`** — Updated `client` fixture to use a
+  per-run temp SQLite database for isolation (fixed deterministic test emails
+  colliding with persisted accounts from previous runs).  Added
+  `TestSessionPersistence` class with 4 new tests: session token survives restart,
+  user account survives restart, `MURPHY_API_KEYS` checked first, and session-token
+  endpoint returns the real token.
+
+---
+
 ## [Unreleased] — System Commissioning: ROI Calendar + Onboarding Chat + Forge Download
 
 ### Fixed
