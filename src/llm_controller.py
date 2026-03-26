@@ -1,6 +1,6 @@
 """
 Murphy LLM Controller - Master Backend Terminal
-Controls Groq API and onboard smaller LLMs
+Controls DeepInfra (primary) and Together AI (overflow) LLM calls
 Powers the neon terminal UI for system/module setup guidance
 
 Based on Recursive Language Models (RLM) pattern from 2512.24601v1.pdf
@@ -35,9 +35,9 @@ logger = logging.getLogger(__name__)
 
 class LLMModel(Enum):
     """Available LLM models"""
-    GROQ_MIXTRAL = "groq_mixtral"
-    GROQ_LLAMA = "groq_llama"
-    GROQ_GEMMA = "groq_gemma"
+    DEEPINFRA_META_LLAMA = "deepinfra_meta_llama"    # Primary — DeepInfra Meta-Llama-3.1-70B
+    DEEPINFRA_MIXTRAL = "deepinfra_mixtral"          # Secondary — DeepInfra Mixtral-8x22B (code)
+    TOGETHER_META_LLAMA = "together_meta_llama"      # Overflow — Together AI Meta-Llama-3.1-70B
     LOCAL_SMALL = "local_small"
     LOCAL_MEDIUM = "local_medium"
     MFM = "mfm"  # Murphy Foundation Model — local, self-trained
