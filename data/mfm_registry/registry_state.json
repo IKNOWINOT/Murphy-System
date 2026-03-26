@@ -1,0 +1,41 @@
+{
+  "versions": {
+    "4a1cfec06c3a4e04": {
+      "version_id": "4a1cfec06c3a4e04",
+      "version_str": "v1.0",
+      "base_model": "test",
+      "training_config": {
+        "model_name": "test"
+      },
+      "traces_used": 0,
+      "created_at": "2026-03-26T06:37:54.111773+00:00",
+      "metrics": {},
+      "status": "registered",
+      "checkpoint_path": ""
+    },
+    "f850ab1a593f4432": {
+      "version_id": "f850ab1a593f4432",
+      "version_str": "v1",
+      "base_model": "mfm-base",
+      "training_config": {},
+      "traces_used": 0,
+      "created_at": "2026-03-26T06:39:03.315795+00:00",
+      "metrics": {},
+      "status": "registered",
+      "checkpoint_path": ""
+    },
+    "9734433e7d894950": {
+      "version_id": "9734433e7d894950",
+      "version_str": "v2",
+      "base_model": "mfm-base",
+      "training_config": {},
+      "traces_used": 0,
+      "created_at": "2026-03-26T06:39:03.316070+00:00",
+      "metrics": {},
+      "status": "registered",
+      "checkpoint_path": ""
+    }
+  },
+  "promotion_history": [],
+  "previous_production_id": null
+}
