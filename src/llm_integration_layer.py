@@ -32,7 +32,8 @@ class LLMProvider(Enum):
     """LLM providers"""
     ARISTOTLE = "aristotle"  # Deterministic, math/physics
     WULFRUM = "wulfrum"  # Fuzzy match, math validation
-    GROQ = "groq"  # Generative, creative
+    DEEPINFRA = "deepinfra"  # Primary generative
+    TOGETHER = "together"    # Overflow generative
     MFM = "mfm"  # Murphy Foundation Model — local, self-trained
     AUTO = "auto"  # Automatic routing
 
@@ -42,11 +43,11 @@ class DomainType(Enum):
     MATHEMATICAL = "mathematical"  # Use Aristotle
     PHYSICS = "physics"  # Use Aristotle
     ENGINEERING = "engineering"  # Use Aristotle + Wulfrum
-    CREATIVE = "creative"  # Use Groq
-    STRATEGIC = "strategic"  # Use Groq
-    ARCHITECTURAL = "architectural"  # Use Groq + Wulfrum
+    CREATIVE = "creative"  # Use DeepInfra
+    STRATEGIC = "strategic"  # Use DeepInfra
+    ARCHITECTURAL = "architectural"  # Use DeepInfra + Wulfrum
     REGULATORY = "regulatory"  # Use Aristotle
-    GENERAL = "general"  # Use Groq
+    GENERAL = "general"  # Use DeepInfra
 
 
 class ValidationStatus(Enum):
@@ -159,13 +160,12 @@ class HumanLoopTrigger:
 
 class LLMIntegrationLayer:
     """
-    Master LLM integration layer coordinating Aristotle, Wulfrum, and Groq
+    Master LLM integration layer coordinating Aristotle, Wulfrum, DeepInfra, and Together AI
     Routes requests based on domain type and provides validation
     """
 
     def __init__(self, aristotle_api_key: Optional[str] = None,
                  wulfrum_api_key: Optional[str] = None,
-                 groq_api_key: Optional[str] = None,
                  use_local_fallback: bool = True):
         self.request_count = 0
         self.validation_count = 0
@@ -174,14 +174,8 @@ class LLMIntegrationLayer:
         # API keys (would be loaded from environment in production)
         self.aristotle_api_key = aristotle_api_key or os.getenv("ARISTOTLE_API_KEY")
         self.wulfrum_api_key = wulfrum_api_key or os.getenv("WULFRUM_API_KEY")
-        self.groq_api_key = groq_api_key or os.getenv("GROQ_API_KEY")
-
-        # Groq API keys from environment (comma-separated list)
-        env_keys = os.getenv("GROQ_API_KEYS", "")
-        self.groq_api_keys = [k.strip() for k in env_keys.split(",") if k.strip()]
-        if self.groq_api_key and self.groq_api_key not in self.groq_api_keys:
-            self.groq_api_keys.insert(0, self.groq_api_key)
-        self.current_groq_key_index = 0
+        self.deepinfra_api_key = os.getenv("DEEPINFRA_API_KEY", "")
+        self.together_api_key = os.getenv("TOGETHER_API_KEY", "")
 
         # Domain routing configuration
         self.domain_routing = self._load_domain_routing()
@@ -222,33 +216,33 @@ class LLMIntegrationLayer:
             },
             DomainType.ENGINEERING: {
                 "primary_provider": LLMProvider.ARISTOTLE,
-                "secondary_provider": LLMProvider.GROQ,
+                "secondary_provider": LLMProvider.DEEPINFRA,
                 "validation_provider": LLMProvider.WULFRUM,
                 "requires_validation": True,
                 "validation_type": "engineering"
             },
             DomainType.ARCHITECTURAL: {
-                "primary_provider": LLMProvider.GROQ,
+                "primary_provider": LLMProvider.DEEPINFRA,
                 "validation_provider": LLMProvider.WULFRUM,
                 "requires_validation": True,
                 "validation_type": "architecture"
             },
             DomainType.REGULATORY: {
                 "primary_provider": LLMProvider.ARISTOTLE,
-                "fallback_provider": LLMProvider.GROQ,
+                "fallback_provider": LLMProvider.DEEPINFRA,
                 "requires_validation": True,
                 "validation_type": "regulatory"
             },
             DomainType.CREATIVE: {
-                "primary_provider": LLMProvider.GROQ,
+                "primary_provider": LLMProvider.DEEPINFRA,
                 "requires_validation": False
             },
             DomainType.STRATEGIC: {
-                "primary_provider": LLMProvider.GROQ,
+                "primary_provider": LLMProvider.DEEPINFRA,
                 "requires_validation": False
             },
             DomainType.GENERAL: {
-                "primary_provider": LLMProvider.GROQ,
+                "primary_provider": LLMProvider.DEEPINFRA,
                 "requires_validation": False
             }
         }
@@ -314,8 +308,8 @@ class LLMIntegrationLayer:
         """Determine best provider for domain"""
         domain_config = self.domain_routing.get(domain)
         if domain_config:
-            return domain_config.get("primary_provider", LLMProvider.GROQ)
-        return LLMProvider.GROQ
+            return domain_config.get("primary_provider", LLMProvider.DEEPINFRA)
+        return LLMProvider.DEEPINFRA
 
     def _execute_request(self, request: LLMRequest) -> LLMResponse:
         """Execute LLM request with fallback support"""
@@ -325,20 +319,22 @@ class LLMIntegrationLayer:
                 return self._call_aristotle(request)
             elif request.provider == LLMProvider.WULFRUM:
                 return self._call_wulfrum(request)
-            elif request.provider == LLMProvider.GROQ:
-                return self._call_groq(request)
+            elif request.provider == LLMProvider.DEEPINFRA:
+                return self._call_deepinfra(request)
+            elif request.provider == LLMProvider.TOGETHER:
+                return self._call_together(request)
             else:
                 raise ValueError(f"Unknown provider: {request.provider}")
         except Exception as exc:
             logger.info(f"⚠️  API call failed for {request.provider.value}: {exc}")
 
-            # Fallback to Groq if primary fails
-            if request.provider != LLMProvider.GROQ:
+            # Try Together AI if DeepInfra failed
+            if request.provider != LLMProvider.TOGETHER:
                 try:
-                    logger.info("🔄 Fallback to Groq API...")
-                    return self._call_groq(request)
+                    logger.info("🔄 Fallback to Together AI...")
+                    return self._call_together(request)
                 except Exception as e2:
-                    logger.info(f"⚠️  Groq fallback also failed: {e2}")
+                    logger.info("⚠️  Together AI fallback also failed: %s", e2)
 
             # Final fallback to Enhanced Local LLM
             if self.use_local_fallback and self.local_llm:
