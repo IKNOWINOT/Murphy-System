@@ -1064,6 +1064,7 @@ def create_app() -> FastAPI:
         })
 
 
+    @app.post("/api/llm/configure")
     async def llm_configure(request: Request, _rbac=Depends(_perm_configure)):
         """Hot-reload LLM configuration from the terminal without restarting."""
         try:
