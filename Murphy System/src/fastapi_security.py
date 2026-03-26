@@ -417,6 +417,48 @@ _rate_limiter = _FastAPIRateLimiter(
     swarm_window_seconds=float(os.environ.get("MURPHY_RATE_LIMIT_SWARM_WINDOW", "2.0")),
 )
 
+# Founder rate limiter — 400 RPM (safety net for infinite-loop protection at scale)
+_founder_rate_limiter = _FastAPIRateLimiter(
+    requests_per_minute=int(os.environ.get("MURPHY_FOUNDER_RATE_LIMIT_RPM", "400")),
+    burst_size=int(os.environ.get("MURPHY_FOUNDER_RATE_LIMIT_BURST", "60")),
+    swarm_burst_size=int(os.environ.get("MURPHY_RATE_LIMIT_SWARM_BURST", "120")),
+    swarm_window_seconds=float(os.environ.get("MURPHY_RATE_LIMIT_SWARM_WINDOW", "2.0")),
+)
+
+# Enterprise rate limiter — 120 RPM
+_enterprise_rate_limiter = _FastAPIRateLimiter(
+    requests_per_minute=int(os.environ.get("MURPHY_ENTERPRISE_RATE_LIMIT_RPM", "120")),
+    burst_size=int(os.environ.get("MURPHY_ENTERPRISE_RATE_LIMIT_BURST", "40")),
+    swarm_burst_size=int(os.environ.get("MURPHY_RATE_LIMIT_SWARM_BURST", "60")),
+    swarm_window_seconds=float(os.environ.get("MURPHY_RATE_LIMIT_SWARM_WINDOW", "2.0")),
+)
+
+_FOUNDER_EMAIL = os.environ.get("MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems")
+_FOUNDER_ROLES = frozenset({"owner", "pos-founder"})
+
+
+def _get_rate_limiter_for_token(token: Optional[str]) -> "_FastAPIRateLimiter":
+    """Return the appropriate rate limiter based on the JWT role/tier in *token*.
+
+    - Founder (role ``owner`` or ``pos-founder``, or matching ``MURPHY_FOUNDER_EMAIL``): 400 RPM
+    - Enterprise tier: 120 RPM
+    - All others: 60 RPM (default)
+    """
+    if token:
+        try:
+            payload = validate_jwt_token(token)
+            if payload:
+                role = payload.get("role", "")
+                email = payload.get("email", "") or payload.get("sub", "")
+                tier = payload.get("tier", "")
+                if role in _FOUNDER_ROLES or email == _FOUNDER_EMAIL:
+                    return _founder_rate_limiter
+                if tier == "enterprise" or role in ("admin",):
+                    return _enterprise_rate_limiter
+        except Exception:
+            pass
+    return _rate_limiter
+
 
 # ── Input Sanitization ──────────────────────────────────────────────
 
@@ -686,8 +728,13 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 pass
 
         # Rate limiting — enforced before auth so unauthenticated flood requests
-        # are still throttled (CWE-770).
-        rate_result = _rate_limiter.check(client_ip)
+        # are still throttled (CWE-770). Use per-role limits when a JWT is present.
+        _bearer = None
+        _auth_hdr = request.headers.get("Authorization", "")
+        if _auth_hdr.startswith("Bearer "):
+            _bearer = _auth_hdr[7:].strip()
+        _limiter = _get_rate_limiter_for_token(_bearer)
+        rate_result = _limiter.check(client_ip)
         if not rate_result["allowed"]:
             logger.warning("[%s] Rate limit exceeded for %s", self.service_name, client_ip)
             resp = JSONResponse(

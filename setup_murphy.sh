@@ -87,11 +87,15 @@ fi
 if [ ! "$SKIP_ENV" = true ]; then
     echo ""
     echo -e "${CYAN}To use Murphy, you need at least one LLM API key.${NC}"
-    echo -e "${CYAN}Recommended: Groq (free tier available)${NC}"
+    echo -e "${CYAN}Recommended: DeepInfra (primary, ~80% of calls) or Together AI (overflow)${NC}"
     echo ""
-    echo "Get a free Groq API key at: https://console.groq.com/keys"
+    echo "Get a DeepInfra API key at: https://deepinfra.com/"
+    echo "Get a Together AI API key at: https://api.together.xyz/"
     echo ""
-    read -p "Enter your Groq API key (or press Enter to skip): " GROQ_KEY
+    read -p "Enter your DeepInfra API key (or press Enter to skip): " DEEPINFRA_KEY
+    if [ -z "$DEEPINFRA_KEY" ]; then
+        read -p "Enter your Together AI API key (or press Enter to skip): " TOGETHER_KEY
+    fi
     echo ""
     
     # Create .env file
@@ -107,13 +111,17 @@ MURPHY_PORT=8000
 # LLM API Keys
 EOF
     
-    if [ ! -z "$GROQ_KEY" ]; then
-        echo "GROQ_API_KEY=$GROQ_KEY" >> .env
-        echo -e "${GREEN}✓ Configuration file created with Groq API key${NC}"
+    if [ ! -z "$DEEPINFRA_KEY" ]; then
+        echo "DEEPINFRA_API_KEY=$DEEPINFRA_KEY" >> .env
+        echo -e "${GREEN}✓ Configuration file created with DeepInfra API key${NC}"
+    elif [ ! -z "$TOGETHER_KEY" ]; then
+        echo "TOGETHER_API_KEY=$TOGETHER_KEY" >> .env
+        echo -e "${GREEN}✓ Configuration file created with Together AI API key${NC}"
     else
-        echo "# GROQ_API_KEY=your_key_here" >> .env
+        echo "# DEEPINFRA_API_KEY=your_key_here" >> .env
+        echo "# TOGETHER_API_KEY=your_key_here" >> .env
         echo -e "${YELLOW}⚠ Configuration file created without API key${NC}"
-        echo -e "${YELLOW}  You'll need to add GROQ_API_KEY to .env before starting Murphy${NC}"
+        echo -e "${YELLOW}  You'll need to add DEEPINFRA_API_KEY to .env before starting Murphy${NC}"
     fi
     
     cat >> .env << EOF
@@ -152,11 +160,14 @@ echo "==========================================================================
 echo -e "${NC}"
 echo ""
 
-if [ -z "$GROQ_KEY" ]; then
+if [ -z "$DEEPINFRA_KEY" ] && [ -z "$TOGETHER_KEY" ]; then
     echo -e "${YELLOW}⚠ IMPORTANT: You need to add an API key to .env before starting Murphy${NC}"
     echo ""
-    echo "1. Get a free Groq API key: https://console.groq.com/keys"
-    echo "2. Edit .env and add: GROQ_API_KEY=your_key_here"
+    echo "1. Get a DeepInfra API key: https://deepinfra.com/"
+    echo "   Edit .env and add: DEEPINFRA_API_KEY=your_key_here"
+    echo "   — or —"
+    echo "2. Get a Together AI API key: https://api.together.xyz/"
+    echo "   Edit .env and add: TOGETHER_API_KEY=your_key_here"
     echo "3. Save the file"
     echo ""
     echo -e "${CYAN}Then start Murphy with:${NC}"

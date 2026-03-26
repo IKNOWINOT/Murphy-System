@@ -19,15 +19,20 @@
         {
             "check": "llm_api_key",
             "status": "MISSING",
-            "detail": "No LLM API key found (GROQ_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY).",
-            "fix": "set key groq gsk_...  \u2190 Groq is free: https://console.groq.com/keys"
+            "detail": "No LLM API key found (DEEPINFRA_API_KEY, TOGETHER_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY).",
+            "fix": "set key deepinfra <key>  \u2190 DeepInfra: https://deepinfra.com/"
         }
     ],
     "warnings": [
         {
-            "check": "groq_api_key",
+            "check": "deepinfra_api_key",
             "status": "WARNING",
-            "detail": "GROQ_API_KEY is not set"
+            "detail": "DEEPINFRA_API_KEY is not set (primary LLM provider)"
+        },
+        {
+            "check": "together_api_key",
+            "status": "WARNING",
+            "detail": "TOGETHER_API_KEY is not set (overflow LLM provider)"
         },
         {
             "check": "openai_api_key",
@@ -60,20 +65,27 @@
         "providers": [
             {
                 "rank": 1,
-                "name": "Groq (FREE)",
-                "url": "https://console.groq.com/keys",
-                "models": "Llama 3, Mixtral",
-                "note": "Best first choice. Free tier with generous rate limits, fast inference. Register 2-3 keys for round-robin rotation (use_key_rotation=true)."
+                "name": "DeepInfra (Primary, ~80% of calls)",
+                "url": "https://deepinfra.com/",
+                "models": "Meta-Llama-3.1-70B-Instruct, Mixtral-8x7B-Instruct-v0.1",
+                "note": "Best price-to-performance. $0.59/1M tokens for Llama 70B, $0.24/1M for Mixtral. Per-key rate limits. Set DEEPINFRA_API_KEY."
             },
             {
                 "rank": 2,
+                "name": "Together AI (Overflow, ~20% of calls)",
+                "url": "https://api.together.xyz/",
+                "models": "Meta-Llama-3.1-70B-Instruct-Turbo, Mixtral-8x7B-Instruct-v0.1",
+                "note": "Overflow safety net when DeepInfra is rate-limited. $0.88/1M tokens for Llama 70B. Set TOGETHER_API_KEY."
+            },
+            {
+                "rank": 3,
                 "name": "OpenAI (Pay-as-you-go)",
                 "url": "https://platform.openai.com/api-keys",
                 "models": "GPT-4o-mini (very cheap)",
                 "note": "$5 minimum credit."
             },
             {
-                "rank": 3,
+                "rank": 4,
                 "name": "Anthropic (Pay-as-you-go)",
                 "url": "https://console.anthropic.com/",
                 "models": "Claude 3 Haiku (cheap)",
@@ -81,5 +93,5 @@
             }
         ]
     },
-    "timestamp": "2026-03-11T08:18:28.924099+00:00"
+    "timestamp": "2026-03-26T20:00:00.000000+00:00"
 }

@@ -69,11 +69,15 @@ if exist ".env" (
 if not "%SKIP_ENV%"=="true" (
     echo.
     echo To use Murphy, you need at least one LLM API key.
-    echo Recommended: Groq (free tier available)
+    echo Recommended: DeepInfra (primary) or Together AI (overflow^)
     echo.
-    echo Get a free Groq API key at: https://console.groq.com/keys
+    echo Get a DeepInfra API key at: https://deepinfra.com/
+    echo Get a Together AI API key at: https://api.together.xyz/
     echo.
-    set /p GROQ_KEY="Enter your Groq API key (or press Enter to skip): "
+    set /p DEEPINFRA_KEY="Enter your DeepInfra API key (or press Enter to skip): "
+    if "%DEEPINFRA_KEY%"=="" (
+        set /p TOGETHER_KEY="Enter your Together AI API key (or press Enter to skip): "
+    )
     echo.
     
     REM Create .env file
@@ -89,13 +93,17 @@ if not "%SKIP_ENV%"=="true" (
         echo # LLM API Keys
     ) > .env
     
-    if not "%GROQ_KEY%"=="" (
-        echo GROQ_API_KEY=%GROQ_KEY% >> .env
-        echo [OK] Configuration file created with Groq API key
+    if not "%DEEPINFRA_KEY%"=="" (
+        echo DEEPINFRA_API_KEY=%DEEPINFRA_KEY% >> .env
+        echo [OK] Configuration file created with DeepInfra API key
+    ) else if not "%TOGETHER_KEY%"=="" (
+        echo TOGETHER_API_KEY=%TOGETHER_KEY% >> .env
+        echo [OK] Configuration file created with Together AI API key
     ) else (
-        echo # GROQ_API_KEY=your_key_here >> .env
+        echo # DEEPINFRA_API_KEY=your_key_here >> .env
+        echo # TOGETHER_API_KEY=your_key_here >> .env
         echo [WARNING] Configuration file created without API key
-        echo [WARNING] You'll need to add GROQ_API_KEY to .env before starting Murphy
+        echo [WARNING] You'll need to add DEEPINFRA_API_KEY to .env before starting Murphy
     )
     
     (
@@ -132,11 +140,14 @@ echo                           SETUP COMPLETE!
 echo ================================================================================
 echo.
 
-if "%GROQ_KEY%"=="" (
+if "%DEEPINFRA_KEY%"=="" if "%TOGETHER_KEY%"=="" (
     echo [WARNING] IMPORTANT: You need to add an API key to .env before starting Murphy
     echo.
-    echo 1. Get a free Groq API key: https://console.groq.com/keys
-    echo 2. Edit .env and add: GROQ_API_KEY=your_key_here
+    echo 1. Get a DeepInfra API key: https://deepinfra.com/
+    echo    Edit .env and add: DEEPINFRA_API_KEY=your_key_here
+    echo    --- or ---
+    echo 2. Get a Together AI API key: https://api.together.xyz/
+    echo    Edit .env and add: TOGETHER_API_KEY=your_key_here
     echo 3. Save the file
     echo.
     echo Then start Murphy with:

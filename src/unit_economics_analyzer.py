@@ -57,7 +57,7 @@ class ProcessingCostProfile:
     """
 
     tier: str
-    llm_inference_cost: float = 0.0     # LLM API calls (Groq / local)
+    llm_inference_cost: float = 0.0     # LLM API calls (DeepInfra primary / Together AI overflow)
     compute_cost: float = 0.0           # CPU/GPU time for pipelines
     storage_cost: float = 0.0           # Persistent storage, logs, artifacts
     bandwidth_cost: float = 0.0         # Egress, API calls, webhooks
@@ -199,8 +199,12 @@ class ScaleProjection:
 # ---------------------------------------------------------------------------
 
 # Realistic default cost profiles based on the Murphy System's LLM costs
-# (Groq Mixtral $0.00027/1k tokens, Llama $0.00059/1k, Gemma $0.0001/1k)
-# and typical SaaS infrastructure costs.
+# DeepInfra (primary, ~80% of calls):
+#   - Llama 3.1 70B: $0.00059/1k tokens
+#   - Mixtral 8x7B:  $0.00024/1k tokens
+# Together AI (overflow, ~20% of calls):
+#   - Llama 3.1 70B: $0.00088/1k tokens
+# Blended cost ≈ (0.80 × $0.00059) + (0.20 × $0.00088) = $0.000648/1k tokens
 
 _DEFAULT_COST_PROFILES: Dict[str, ProcessingCostProfile] = {
     "community": ProcessingCostProfile(
@@ -214,7 +218,7 @@ _DEFAULT_COST_PROFILES: Dict[str, ProcessingCostProfile] = {
     ),
     "pro": ProcessingCostProfile(
         tier="pro",
-        llm_inference_cost=8.50,    # ~14K 1k-token calls/mo at blended $0.0006
+        llm_inference_cost=8.50,    # ~14K 1k-token calls/mo at blended $0.000648 (DeepInfra 80% + Together 20%)
         compute_cost=12.00,         # Managed cloud compute share
         storage_cost=2.50,          # Logs, artifacts, config
         bandwidth_cost=1.50,        # API egress, webhooks

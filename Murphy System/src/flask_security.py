@@ -105,10 +105,10 @@ def get_configured_api_keys() -> List[str]:
     """
     Get configured API keys from environment.
 
-    Reads MURPHY_API_KEYS env var (comma-separated).
+    Reads MURPHY_API_KEY env var (canonical; MURPHY_API_KEYS accepted as legacy alias).
     Returns empty list if not configured (auth disabled in dev mode).
     """
-    keys_str = os.environ.get("MURPHY_API_KEYS", "")
+    keys_str = os.environ.get("MURPHY_API_KEY", "") or os.environ.get("MURPHY_API_KEYS", "")
     if not keys_str:
         return []
     return [k.strip() for k in keys_str.split(",") if k.strip()]
@@ -274,13 +274,56 @@ class _FlaskRateLimiter:
         }
 
 
-# Global rate limiter instance
+# Global rate limiter instance — default for regular users (60 RPM)
 _rate_limiter = _FlaskRateLimiter(
     requests_per_minute=int(os.environ.get("MURPHY_RATE_LIMIT_RPM", "60")),
     burst_size=int(os.environ.get("MURPHY_RATE_LIMIT_BURST", "20")),
     swarm_burst_size=int(os.environ.get("MURPHY_RATE_LIMIT_SWARM_BURST", "60")),
     swarm_window_seconds=float(os.environ.get("MURPHY_RATE_LIMIT_SWARM_WINDOW", "2.0")),
 )
+
+# Founder rate limiter — 400 RPM (safety net for infinite-loop protection at scale;
+# 400/min ≈ 6.67 req/sec, which will catch runaway automation loops)
+_founder_rate_limiter = _FlaskRateLimiter(
+    requests_per_minute=int(os.environ.get("MURPHY_FOUNDER_RATE_LIMIT_RPM", "400")),
+    burst_size=int(os.environ.get("MURPHY_FOUNDER_RATE_LIMIT_BURST", "60")),
+    swarm_burst_size=int(os.environ.get("MURPHY_RATE_LIMIT_SWARM_BURST", "120")),
+    swarm_window_seconds=float(os.environ.get("MURPHY_RATE_LIMIT_SWARM_WINDOW", "2.0")),
+)
+
+# Enterprise rate limiter — 120 RPM
+_enterprise_rate_limiter = _FlaskRateLimiter(
+    requests_per_minute=int(os.environ.get("MURPHY_ENTERPRISE_RATE_LIMIT_RPM", "120")),
+    burst_size=int(os.environ.get("MURPHY_ENTERPRISE_RATE_LIMIT_BURST", "40")),
+    swarm_burst_size=int(os.environ.get("MURPHY_RATE_LIMIT_SWARM_BURST", "60")),
+    swarm_window_seconds=float(os.environ.get("MURPHY_RATE_LIMIT_SWARM_WINDOW", "2.0")),
+)
+
+_FOUNDER_EMAIL = os.environ.get("MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems")
+_FOUNDER_ROLES = frozenset({"owner", "pos-founder"})
+
+
+def _get_flask_rate_limiter_for_token(token: Optional[str]) -> "_FlaskRateLimiter":
+    """Return the appropriate rate limiter based on the JWT role/tier in *token*.
+
+    - Founder (role ``owner`` or ``pos-founder``, or matching ``MURPHY_FOUNDER_EMAIL``): 400 RPM
+    - Enterprise tier: 120 RPM
+    - All others: 60 RPM (default)
+    """
+    if token:
+        try:
+            payload = validate_jwt_token(token)
+            if payload:
+                role = payload.get("role", "")
+                email = payload.get("email", "") or payload.get("sub", "")
+                tier = payload.get("tier", "")
+                if role in _FOUNDER_ROLES or email == _FOUNDER_EMAIL:
+                    return _founder_rate_limiter
+                if tier == "enterprise" or role in ("admin",):
+                    return _enterprise_rate_limiter
+        except Exception:
+            pass
+    return _rate_limiter
 
 
 # ── CSRF Protection ──────────────────────────────────────────────────
@@ -473,9 +516,14 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
         client_ip = request.remote_addr or "unknown"
 
         # Rate limiting by client IP (skip in testing mode)
+        # Use per-role rate limits when a JWT token is present
         rate_result = None
         if not app.config.get('TESTING'):
-            rate_result = _rate_limiter.check(client_ip)
+            _bearer = (request.headers.get("Authorization", "") or "")[7:].strip() if (
+                request.headers.get("Authorization", "").startswith("Bearer ")
+            ) else None
+            _limiter = _get_flask_rate_limiter_for_token(_bearer)
+            rate_result = _limiter.check(client_ip)
             if not rate_result["allowed"]:
                 logger.warning("[%s] Rate limit exceeded for %s", service_name, client_ip)
                 retry_after = int(rate_result.get("retry_after_seconds", 60))

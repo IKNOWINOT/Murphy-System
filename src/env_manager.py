@@ -15,11 +15,17 @@ logger = logging.getLogger(__name__)
 
 # Supported providers and their key format patterns
 API_KEY_FORMATS: Dict[str, Dict[str, str]] = {
-    "groq": {
-        "env_var": "GROQ_API_KEY",
-        "prefix": "gsk_",
-        "pattern": r"^gsk_[A-Za-z0-9]{20,}$",
-        "hint": "Groq keys start with 'gsk_'",
+    "deepinfra": {
+        "env_var": "DEEPINFRA_API_KEY",
+        "prefix": "",
+        "pattern": r"^.{20,}$",
+        "hint": "DeepInfra API key (primary LLM provider)",
+    },
+    "together": {
+        "env_var": "TOGETHER_API_KEY",
+        "prefix": "",
+        "pattern": r"^.{20,}$",
+        "hint": "Together AI API key (overflow LLM provider)",
     },
     "openai": {
         "env_var": "OPENAI_API_KEY",

@@ -11,9 +11,10 @@ UI Chat  →  POST /api/chat
          ┌────┴──────────────────────────────────────────┐
          │ Step 1: LLMIntegrationLayer.route_request()   │
          │   • _determine_provider() picks domain        │
-         │   • _call_groq()  →  tries GROQ_API_KEY       │
-         │                  →  tries Ollama (phi3 first) │
-         │                  →  falls back to template    │
+         │   • _call_deepinfra()  →  tries DEEPINFRA_API_KEY   │
+         │                       →  overflow to Together AI    │
+         │                       →  tries Ollama (phi3 first)  │
+         │                       →  falls back to template     │
          └────┬──────────────────────────────────────────┘
               │ (only if Step 1 returns None)
          ┌────┴─────────────────────────┐
@@ -48,9 +49,10 @@ When Ollama is available, models are tried in this order:
 
 ## Provider Priority
 
-1. **Groq Cloud** (`GROQ_API_KEY`) — fastest, cloud-hosted
-2. **Ollama / phi3** — local, private, no API key needed
-3. **Deterministic fallback** — template-based, always available
+1. **DeepInfra** (`DEEPINFRA_API_KEY`) — primary, handles ~80% of calls
+2. **Together AI** (`TOGETHER_API_KEY`) — overflow safety net, ~20% of calls
+3. **Ollama / phi3** — local, private, no API key needed
+4. **Deterministic fallback** — template-based, always available
 
 ## API Endpoints
 
@@ -88,7 +90,8 @@ Requires=ollama.service
 ```bash
 OLLAMA_BASE_URL=http://localhost:11434   # Default Ollama endpoint
 OLLAMA_MODEL=phi3                        # Default model
-GROQ_API_KEY=gsk_...                    # Optional: Groq cloud API key
+DEEPINFRA_API_KEY=di_...                # Primary LLM provider (DeepInfra)
+TOGETHER_API_KEY=...                    # Overflow LLM provider (Together AI)
 ```
 
 ## Agentic API Key Collection
