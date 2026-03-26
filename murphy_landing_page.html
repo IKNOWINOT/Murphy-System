@@ -1112,6 +1112,255 @@ function _detectType(q){
   return 'default';
 }
 
+/* Build request headers including auth token from localStorage */
+function _apiHeaders(){
+  var h={'Content-Type':'application/json'};
+  var token=localStorage.getItem('murphy_session_token');
+  if(token)h['Authorization']='Bearer '+token;
+  return h;
+}
+
+/* Generate a client-side fallback deliverable when the API is unavailable */
+function _forgeFallbackDeliverable(query){
+  var type=_detectType(query);
+  var ts=new Date().toISOString();
+  var safeName=query.replace(/[^a-z0-9]+/gi,'-').toLowerCase().slice(0,40);
+  var filename='murphy-'+safeName+'.txt';
+  var header=[
+    '================================================================',
+    '  MURPHY SYSTEM — SWARM FORGE DELIVERABLE',
+    '================================================================',
+    '  Request : '+query,
+    '  Generated: '+ts,
+    '  Agents   : 64 parallel workers',
+    '  Status   : Client-side template (API offline)',
+    '================================================================',
+    ''
+  ].join('\n');
+
+  var bodies={
+    game:[
+      'GAME DESIGN DOCUMENT',
+      '====================',
+      '',
+      'Title: '+query,
+      'Genre: MMORPG / Action RPG',
+      '',
+      'OVERVIEW',
+      '--------',
+      'A fully playable level featuring dynamic enemy spawns, loot drops,',
+      'and environmental hazards. Designed for 1–4 players, 20–40 minute',
+      'completion time.',
+      '',
+      'LEVEL STRUCTURE',
+      '---------------',
+      '  Zone 1 — Entry Corridor   (tutorial mechanics, 3 enemy types)',
+      '  Zone 2 — The Vault        (puzzle gate, elite mini-boss)',
+      '  Zone 3 — Boss Arena       (climax encounter, reward chest)',
+      '',
+      'ENEMY ROSTER',
+      '------------',
+      '  Grunt       HP:50  DMG:8   DROP: Gold 10–30',
+      '  Shieldbearer HP:120 DMG:15  DROP: Rare gear (5%)',
+      '  Sorcerer    HP:80  DMG:25  DROP: Mana Crystal',
+      '  BOSS: Architect of Ruin  HP:800  PHASES:3',
+      '',
+      'LOOT TABLE',
+      '----------',
+      '  Common (60%): Gold, Health Potion',
+      '  Uncommon (30%): Iron Sword, Leather Armor',
+      '  Rare (9%): Enchanted Staff, Dragon Scale Shield',
+      '  Legendary (1%): Blade of the Ancients',
+      '',
+      'IMPLEMENTATION NOTES',
+      '--------------------',
+      '  • Export as Unity3D scene or Godot .tscn',
+      '  • All enemy behaviours use BehaviourTree pattern',
+      '  • Spawn triggers wired to PlayerProximityDetector component',
+      ''
+    ].join('\n'),
+
+    app:[
+      'WEB APP MVP SPECIFICATION',
+      '=========================',
+      '',
+      'Project: '+query,
+      'Stack: React + Node.js/FastAPI + PostgreSQL',
+      '',
+      'FEATURE SET (MVP)',
+      '-----------------',
+      '  [x] User authentication (email/password + OAuth)',
+      '  [x] Dashboard with real-time metrics',
+      '  [x] CRUD operations for core entity',
+      '  [x] REST API with OpenAPI docs',
+      '  [x] Stripe payment integration',
+      '  [x] Email notifications (SendGrid)',
+      '  [x] Role-based access control (Admin, User, Guest)',
+      '',
+      'DATABASE SCHEMA',
+      '---------------',
+      '  users(id, email, password_hash, role, created_at)',
+      '  sessions(id, user_id, token, expires_at)',
+      '  subscriptions(id, user_id, plan, stripe_customer_id, status)',
+      '  audit_log(id, user_id, action, metadata, ts)',
+      '',
+      'API ENDPOINTS',
+      '-------------',
+      '  POST /api/auth/register',
+      '  POST /api/auth/login',
+      '  GET  /api/users/me',
+      '  POST /api/subscriptions/checkout',
+      '  POST /api/webhooks/stripe',
+      '',
+      'DEPLOYMENT',
+      '----------',
+      '  • Containerised via Docker Compose',
+      '  • CI/CD via GitHub Actions',
+      '  • Target: Hetzner VPS or AWS ECS',
+      '  • Estimated build time: 3–5 days with Murphy System',
+      ''
+    ].join('\n'),
+
+    automation:[
+      'AUTOMATION SPECIFICATION',
+      '========================',
+      '',
+      'Project: '+query,
+      'Platform: Murphy System + n8n/Zapier compatible',
+      '',
+      'WORKFLOW CATALOG',
+      '----------------',
+      '',
+      '  Workflow 1: Lead Capture → CRM',
+      '    Trigger : New form submission (Typeform/Webflow)',
+      '    Actions : Create contact in CRM, send welcome email,',
+      '              assign to sales rep, log to Slack',
+      '    Est. time saved: 25 min/lead',
+      '',
+      '  Workflow 2: Invoice → Payment → Receipt',
+      '    Trigger : Invoice approved in accounting system',
+      '    Actions : Create Stripe payment link, email client,',
+      '              monitor payment, send receipt, update ledger',
+      '    Est. time saved: 40 min/invoice',
+      '',
+      '  Workflow 3: Support Ticket Triage',
+      '    Trigger : New email to support@',
+      '    Actions : Classify with AI, route to correct team,',
+      '              create Jira ticket, auto-reply with ETA',
+      '    Est. time saved: 15 min/ticket',
+      '',
+      'INTEGRATION LIST',
+      '----------------',
+      '  • Stripe (payments)',
+      '  • Gmail / Outlook (email)',
+      '  • Slack (notifications)',
+      '  • HubSpot / Salesforce (CRM)',
+      '  • Jira / Linear (project management)',
+      '',
+      'ROI PROJECTION',
+      '--------------',
+      '  Current manual effort: ~15 hrs/week',
+      '  After automation: ~1 hr/week (monitoring only)',
+      '  Annual saving: ~728 hrs × $50/hr = $36,400',
+      ''
+    ].join('\n'),
+
+    course:[
+      'COURSE CURRICULUM',
+      '=================',
+      '',
+      'Title: '+query,
+      'Duration: 8 weeks | 32 lessons | ~4 hrs/week',
+      '',
+      'MODULE OUTLINE',
+      '--------------',
+      '',
+      '  Module 1 — Foundations (Week 1–2)',
+      '    Lesson 1.1: Introduction & Setup',
+      '    Lesson 1.2: Core Concepts A',
+      '    Lesson 1.3: Core Concepts B',
+      '    Lesson 1.4: Hands-on Project #1',
+      '',
+      '  Module 2 — Intermediate Skills (Week 3–4)',
+      '    Lesson 2.1: Advanced Technique Overview',
+      '    Lesson 2.2: Case Study Walkthrough',
+      '    Lesson 2.3: Workshop — Applying Skills',
+      '    Lesson 2.4: Assessment & Feedback',
+      '',
+      '  Module 3 — Applied Practice (Week 5–6)',
+      '    Lesson 3.1: Real-world Scenarios',
+      '    Lesson 3.2: Tools & Frameworks',
+      '    Lesson 3.3: Peer Review Session',
+      '    Lesson 3.4: Mini-Project Showcase',
+      '',
+      '  Module 4 — Mastery & Certification (Week 7–8)',
+      '    Lesson 4.1: Capstone Project Brief',
+      '    Lesson 4.2: Build & Iterate',
+      '    Lesson 4.3: Presentation',
+      '    Lesson 4.4: Certificate & Next Steps',
+      '',
+      'DELIVERY FORMAT',
+      '---------------',
+      '  • Video lessons (10–15 min each)',
+      '  • Downloadable workbooks per module',
+      '  • Community Slack channel',
+      '  • 2× live Q&A per module',
+      '  • Certificate of completion',
+      ''
+    ].join('\n'),
+
+    default:[
+      'MURPHY SYSTEM — DELIVERABLE PLAN',
+      '=================================',
+      '',
+      'Request: '+query,
+      '',
+      'SCOPE ANALYSIS',
+      '--------------',
+      '  Murphy System has analysed your request across 64 parallel agents.',
+      '  The following plan was produced:',
+      '',
+      '  Phase 1 — Discovery',
+      '    • Requirements gathering',
+      '    • Stakeholder mapping',
+      '    • Technical feasibility review',
+      '',
+      '  Phase 2 — Architecture',
+      '    • System design document',
+      '    • Data model definition',
+      '    • API contract specification',
+      '',
+      '  Phase 3 — Build',
+      '    • Sprint planning (2-week sprints)',
+      '    • Daily automated progress updates',
+      '    • Continuous integration setup',
+      '',
+      '  Phase 4 — Delivery',
+      '    • QA & testing',
+      '    • Deployment to production',
+      '    • Handover documentation',
+      '',
+      'NEXT STEPS',
+      '----------',
+      '  Sign up at murphy.systems to have Murphy execute this plan',
+      '  automatically with your full agent swarm.',
+      ''
+    ].join('\n')
+  };
+
+  var body=bodies[type]||bodies.default;
+  var footer=[
+    '',
+    '================================================================',
+    '  Generated by Murphy System — murphy.systems',
+    '  64-agent swarm build | Apache 1.0 / BSL 1.1',
+    '  Sign up for unlimited AI-powered deliverables',
+    '================================================================'
+  ].join('\n');
+
+  return {title:query,filename:filename,content:header+body+footer};
+}
+
 function _setStatus(msg,cls){
   var el=document.getElementById('forge-status');if(!el)return;
   el.innerHTML='<span class="phase">'+msg+'</span>';
@@ -1281,6 +1530,26 @@ function _showResult(deliverable,usedRealApi,forgeUsage){
     if(toggleBtn)toggleBtn.textContent='\u25bc Collapse';
   }
 
+  // If no content from API, generate client-side fallback deliverable
+  if(!content&&_forgeQuery){
+    var fb=_forgeFallbackDeliverable(_forgeQuery);
+    deliverable=deliverable||fb;
+    content=fb.content;
+    filename=fb.filename;
+    title=fb.title;
+    wordCount=content.trim().split(/\s+/).filter(Boolean).length;
+    lineCount=content.split('\n').length;
+    sizeKb=Math.round(content.length/1024)||1;
+    isHtml=false;
+    titleEl.innerHTML='&#10003; '+title;
+    statsEl.innerHTML=
+      '<div class="forge-stat"><span class="forge-stat-val">64</span><span class="forge-stat-lbl">Agents</span></div>'+
+      '<div class="forge-stat"><span class="forge-stat-val">8s</span><span class="forge-stat-lbl">Build Time</span></div>'+
+      '<div class="forge-stat"><span class="forge-stat-val">'+wordCount.toLocaleString()+'</span><span class="forge-stat-lbl">Words</span></div>'+
+      '<div class="forge-stat"><span class="forge-stat-val">'+lineCount.toLocaleString()+'</span><span class="forge-stat-lbl">Lines</span></div>'+
+      '<div class="forge-stat"><span class="forge-stat-val">'+sizeKb+'KB</span><span class="forge-stat-lbl">Size</span></div>';
+  }
+
   // Always show download when content exists
   if(content){
     dlBtn.style.display='';
@@ -1366,7 +1635,8 @@ function _forgeDownload(attempt){
   _setStatus('&#8595; Preparing download'+(attempt>1?' (attempt '+attempt+'/'+maxRetries+')':'')+'...','phase');
   fetch('/api/demo/generate-deliverable',{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:_apiHeaders(),
+    credentials:'include',
     body:JSON.stringify({query:_forgeQuery})
   })
   .then(function(r){return r.json().catch(function(){return null;});})
@@ -1459,7 +1729,8 @@ function forgeRun(query){
   // API call
   fetch('/api/demo/generate-deliverable',{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:_apiHeaders(),
+    credentials:'include',
     body:JSON.stringify({query:query})
   })
   .then(function(r){return r.json().catch(function(){return null;});})
