@@ -126,8 +126,8 @@ Configuration is managed via environment variables or `src/config.py` (Pydantic 
 | `MURPHY_HOST` | `127.0.0.1` | API bind address (use 0.0.0.0 to expose externally) |
 | `MURPHY_PORT` | `8000` | API port |
 | `MURPHY_DB_PATH` | `murphy.db` | SQLite database path |
-| `MURPHY_LLM_PROVIDER` | `groq` | LLM provider (groq, openai, local) |
-| `GROQ_API_KEY` | — | Groq API key |
+| `MURPHY_LLM_PROVIDER` | `deepinfra` | LLM provider (deepinfra, openai, local) |
+| `DEEPINFRA_API_KEY` | — | DeepInfra API key |
 | `OPENAI_API_KEY` | — | OpenAI API key |
 
 ---
@@ -984,7 +984,7 @@ docker build -t murphy-system:1.0 .
 docker run -d \
   --name murphy \
   -p 8000:8000 \
-  -e GROQ_API_KEY=your-key \
+  -e DEEPINFRA_API_KEY=your-key \
   -v murphy-data:/app/data \
   murphy-system:1.0
 ```
@@ -1155,7 +1155,7 @@ curl -X POST http://localhost:8000/api/execute \
 |---------|-------|----------|
 | System won't start | Port 8000 in use | `lsof -i :8000` and kill conflicting process |
 | `ModuleNotFoundError` | Missing dependencies | `pip install -r requirements_murphy_1.0.txt` |
-| LLM requests fail | Missing API key | Set `GROQ_API_KEY` or `OPENAI_API_KEY` env var |
+| LLM requests fail | Missing API key | Set `DEEPINFRA_API_KEY` or `OPENAI_API_KEY` env var |
 | Low confidence scores | Insufficient context | Provide more detailed task descriptions |
 | Slow execution | Resource constraints | Increase RAM/CPU or reduce concurrent tasks |
 | 401 errors | Invalid API key | Regenerate API key and update configuration |

@@ -66,7 +66,7 @@ nearly all automation system collapses:
    `FeedbackOscillationDetector` to catch runaway reward hacking.
 
 7. **Register cross-service dependencies in `CascadeBreaker`** — API calls from Murphy
-   to external providers (Stripe, SendGrid, Groq) should register dependency chains so a
+   to external providers (Stripe, SendGrid, DeepInfra) should register dependency chains so a
    single provider outage does not cascade through unrelated workflows.
 
 ---

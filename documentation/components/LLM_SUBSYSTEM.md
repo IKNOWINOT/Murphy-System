@@ -19,7 +19,7 @@
    - [Provider Types](#provider-types)
    - [Domain-to-Provider Routing](#domain-to-provider-routing)
    - [Validation and HITL](#validation-and-hitl)
-4. [Groq Key Rotation (`groq_key_rotator.py`)](#groq-key-rotation)
+4. [DeepInfra Key Rotation (`deepinfra_key_rotator.py`)](#deepinfra-key-rotation)
    - [Round-Robin Rotation](#round-robin-rotation)
    - [Auto-Disable on Failure](#auto-disable-on-failure)
    - [Usage Statistics](#usage-statistics)
@@ -36,7 +36,7 @@ Murphy's LLM subsystem routes natural-language workloads across three tiers:
 | Tier | Provider | Best For | Latency |
 |------|----------|----------|---------|
 | **Deterministic** | Aristotle / Wulfrum | Math, physics, engineering validation | ~10 ms |
-| **Generative** | Groq (Mixtral / Llama / Gemma) | Creative, strategic, architectural | ~600 ms |
+| **Generative** | DeepInfra (Mixtral / Llama / Gemma) | Creative, strategic, architectural | ~600 ms |
 | **Self-hosted** | MFM (Murphy Foundation Model) | Private / offline inference | ~300 ms |
 | **Onboard LLM** | Local small/medium model | Dev/test, no API key required | varies |
 
@@ -55,9 +55,9 @@ The `LLMController` is the master backend terminal that powers the neon terminal
 
 ```python
 class LLMModel(Enum):
-    GROQ_MIXTRAL = "groq_mixtral"     # Large, high-quality reasoning
-    GROQ_LLAMA   = "groq_llama"       # Balanced speed/quality
-    GROQ_GEMMA   = "groq_gemma"       # Fast, low-latency
+    DEEPINFRA_MIXTRAL = "deepinfra_mixtral"     # Large, high-quality reasoning
+    DEEPINFRA_LLAMA   = "deepinfra_llama"       # Balanced speed/quality
+    DEEPINFRA_GEMMA   = "deepinfra_gemma"       # Fast, low-latency
     LOCAL_SMALL  = "local_small"      # On-device, no API key
     LOCAL_MEDIUM = "local_medium"     # On-device, higher quality
     MFM          = "mfm"              # Murphy Foundation Model
@@ -138,7 +138,7 @@ The `LLMIntegrationLayer` provides domain-aware routing between four providers, 
 class LLMProvider(Enum):
     ARISTOTLE = "aristotle"   # Deterministic: math/physics validation
     WULFRUM   = "wulfrum"     # Fuzzy-match + math validation
-    GROQ      = "groq"        # Generative: creative/strategic
+    DEEPINFRA      = "deepinfra"        # Generative: creative/strategic
     MFM       = "mfm"         # Murphy Foundation Model (self-hosted)
     AUTO      = "auto"        # Automatic routing (default)
 ```
@@ -152,11 +152,11 @@ The integration layer maps request domains to provider combinations:
 | `MATHEMATICAL` | Aristotle | — | Never (deterministic) |
 | `PHYSICS` | Aristotle | — | Never |
 | `ENGINEERING` | Aristotle | Wulfrum | If disagreement |
-| `CREATIVE` | Groq | — | Low confidence |
-| `STRATEGIC` | Groq | — | Low confidence |
-| `ARCHITECTURAL` | Groq | Wulfrum | If disagreement |
+| `CREATIVE` | DeepInfra | — | Low confidence |
+| `STRATEGIC` | DeepInfra | — | Low confidence |
+| `ARCHITECTURAL` | DeepInfra | Wulfrum | If disagreement |
 | `REGULATORY` | Aristotle | — | Low confidence |
-| `GENERAL` | Groq | — | Low confidence |
+| `GENERAL` | DeepInfra | — | Low confidence |
 
 ```python
 class DomainType(Enum):
@@ -189,19 +189,19 @@ class ValidationStatus(Enum):
 
 ---
 
-## Groq Key Rotation
+## DeepInfra Key Rotation
 
-**Source:** `src/groq_key_rotator.py`
+**Source:** `src/deepinfra_key_rotator.py`
 
-Murphy distributes Groq API calls across multiple keys to maximize throughput and avoid rate limiting.
+Murphy distributes DeepInfra API calls across multiple keys to maximize throughput and avoid rate limiting.
 
 ### Round-Robin Rotation
 
 ```python
-rotator = GroqKeyRotator(keys=[
-    ("Primary",   "gsk_aaaa..."),
-    ("Secondary", "gsk_bbbb..."),
-    ("Tertiary",  "gsk_cccc..."),
+rotator = DeepInfraKeyRotator(keys=[
+    ("Primary",   "di_aaaa..."),
+    ("Secondary", "di_bbbb..."),
+    ("Tertiary",  "di_cccc..."),
 ])
 
 key = rotator.get_next_key()   # Thread-safe round-robin
@@ -257,7 +257,7 @@ The `OpenAICompatibleProvider` is the unified gateway that implements the OpenAI
 class ProviderType(Enum):
     OPENAI   = "openai"    # OpenAI GPT-4/3.5
     AZURE    = "azure"     # Azure OpenAI deployment
-    GROQ     = "groq"      # Groq API (Mixtral/Llama/Gemma)
+    DEEPINFRA     = "deepinfra"      # DeepInfra API (Mixtral/Llama/Gemma)
     OLLAMA   = "ollama"    # Ollama local server
     VLLM     = "vllm"      # vLLM inference server
     LITELLM  = "litellm"   # LiteLLM proxy
@@ -269,10 +269,10 @@ Configure via `ProviderConfig`:
 
 ```python
 config = ProviderConfig(
-    provider_type=ProviderType.GROQ,
-    api_key=os.getenv("GROQ_API_KEY"),
+    provider_type=ProviderType.DEEPINFRA,
+    api_key=os.getenv("DEEPINFRA_API_KEY"),
     model="mixtral-8x7b-32768",
-    base_url="https://api.groq.com/openai/v1",
+    base_url="https://api.deepinfra.com/v1/openai/v1",
 )
 provider = OpenAICompatibleProvider(config)
 response: CompletionResponse = await provider.complete(messages)
@@ -284,21 +284,21 @@ response: CompletionResponse = await provider.complete(messages)
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `GROQ_API_KEY` | — | Primary Groq API key |
-| `GROQ_API_KEY_2` | — | Secondary Groq key for rotation |
-| `GROQ_API_KEY_3` | — | Tertiary Groq key for rotation |
+| `DEEPINFRA_API_KEY` | — | Primary DeepInfra API key |
+| `DEEPINFRA_API_KEY_2` | — | Secondary DeepInfra key for rotation |
+| `DEEPINFRA_API_KEY_3` | — | Tertiary DeepInfra key for rotation |
 | `OPENAI_API_KEY` | — | OpenAI API key (optional) |
 | `OPENAI_MODEL` | `gpt-4o-mini` | Default OpenAI model |
-| `GROQ_MODEL` | `mixtral-8x7b-32768` | Default Groq model |
+| `DEEPINFRA_MODEL` | `mixtral-8x7b-32768` | Default DeepInfra model |
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama server base URL (read by all Ollama call-sites) |
 | `OLLAMA_MODEL` | `llama3` | Default Ollama model; overrides the built-in probe order |
 | `MURPHY_LLM_BUDGET_USD` | `50` | Monthly LLM spend cap |
-| `MURPHY_LLM_DEFAULT_PROVIDER` | `groq` | Default provider for AUTO routing |
+| `MURPHY_LLM_DEFAULT_PROVIDER` | `deepinfra` | Default provider for AUTO routing |
 | `MURPHY_LLM_TIMEOUT` | `30` | Request timeout in seconds |
 
 ### Onboard LLM (Ollama)
 
-When no external API key (`GROQ_API_KEY`, `OPENAI_API_KEY`, etc.) is set,
+When no external API key (`DEEPINFRA_API_KEY`, `OPENAI_API_KEY`, etc.) is set,
 Murphy automatically uses its **onboard LLM** powered by Ollama:
 
 1. **Install Ollama** (one-time, already done on the Hetzner server):
@@ -347,7 +347,7 @@ pulls `OLLAMA_MODEL` (default `llama3`) on every `git push` to `main`.
           │                │                  │
           ▼                ▼                  ▼
    ┌─────────────┐  ┌──────────────┐  ┌──────────────┐
-   │  Aristotle  │  │   Wulfrum    │  │     Groq     │
+   │  Aristotle  │  │   Wulfrum    │  │     DeepInfra     │
    │  (math/phy) │  │ (fuzzy/eng)  │  │ (generative) │
    └──────┬──────┘  └──────┬───────┘  └──────┬───────┘
           │                │                  │

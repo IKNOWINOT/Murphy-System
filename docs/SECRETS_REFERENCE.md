@@ -53,7 +53,7 @@ enable the corresponding integrations.
 
 | Secret | Description |
 |--------|-------------|
-| `GROQ_API_KEY` | Groq cloud LLM API key |
+| `DEEPINFRA_API_KEY` | DeepInfra cloud LLM API key |
 | `OPENAI_API_KEY` | OpenAI API key |
 | `ANTHROPIC_API_KEY` | Anthropic (Claude) API key |
 | `MATRIX_ACCESS_TOKEN` | Matrix homeserver access token |

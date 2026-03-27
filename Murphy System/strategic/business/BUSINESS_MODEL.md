@@ -57,7 +57,7 @@ Murphy System is a universal AI automation platform that enables organisations t
 
 ## Key Partnerships
 
-- LLM providers (Groq, OpenAI, local model hosts)
+- LLM providers (DeepInfra, OpenAI, local model hosts)
 - Cloud infrastructure providers
 - Industry-specific connector vendors
 - Compliance and audit tooling partners

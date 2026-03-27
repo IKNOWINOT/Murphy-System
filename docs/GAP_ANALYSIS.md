@@ -119,7 +119,7 @@ The `LivingDocument` confidence starts at 0.45 and increases through the staged 
 - **Solidify** → +0.05 (confidence reaches 0.60, passes Simplify Gate threshold of 0.60)
 - **Gate Synthesis** → +0.20 (confidence reaches 0.80, passes all gates)
 
-An external Groq/OpenAI API key enhances quality but is **not required** for system operation.
+An external DeepInfra/OpenAI API key enhances quality but is **not required** for system operation.
 
 ### GAP-003: Compute Plane Test Failures — ✅ RESOLVED
 

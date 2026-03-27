@@ -23,7 +23,7 @@ Optionally review `pyproject.toml` for optional dependency groups (`dev`, `secur
 Copy `.env.example` to `.env` and fill in at minimum:
 - `MURPHY_MASTER_KEY` — master encryption key (auto-generated if absent, but must be persisted)
 - `MURPHY_CORS_ORIGINS` — comma-separated allowed frontend origins (defaults to `http://localhost:3000`)
-- `LLM_API_KEY` — API key for your chosen LLM provider (Groq, OpenAI, etc.)
+- `LLM_API_KEY` — API key for your chosen LLM provider (DeepInfra, OpenAI, etc.)
 
 ### Q4: How do I start the Murphy System server?
 
@@ -43,7 +43,7 @@ setup_and_start.bat    # Windows
 
 ### Q5: Which LLM providers does Murphy System support?
 
-Murphy System supports any OpenAI-compatible API (OpenAI, Groq, Mistral, Ollama, etc.).
+Murphy System supports any OpenAI-compatible API (OpenAI, DeepInfra, Mistral, Ollama, etc.).
 Set `LLM_PROVIDER` and `LLM_API_KEY` in your `.env` file. See
 [API Reference](../../docs/API_REFERENCE.md) for the full list of supported providers and
 their environment variable names.

@@ -830,7 +830,7 @@ Result Delivery & Scheduling
 
 | Service | Integration Method | Purpose |
 |---------|-------------------|---------|
-| **Groq** | REST API + Key Rotation | Primary LLM provider |
+| **DeepInfra** | REST API + Key Rotation | Primary LLM provider |
 | **Aristotle** | REST API | Alternative LLM |
 | **Stripe** | Python SDK | Payment processing |
 | **Twilio** | REST API | SMS/Voice |
@@ -918,7 +918,7 @@ Result Delivery & Scheduling
 ### Resource Boundaries
 
 **Compute:**
-- LLM API rate limits (Groq key rotation)
+- LLM API rate limits (DeepInfra key rotation)
 - CPU/Memory limits (no explicit limits)
 - Concurrent execution (asyncio-based)
 

@@ -50,7 +50,7 @@ This final cycle addressed:
 | `murphy_system_1.0_runtime.py` | ✅ Operational | Single production runtime, all endpoints live |
 | `murphy_terminal.py` | ✅ Operational | Textual TUI, full API client |
 | `inoni_business_automation.py` | ✅ Operational | Business automation engine |
-| `src/llm_controller.py` | ✅ Operational | Groq + local LLM routing |
+| `src/llm_controller.py` | ✅ Operational | DeepInfra + local LLM routing |
 | `src/llm_integration_layer.py` | ✅ Operational | Multi-provider LLM integration |
 | `src/safe_llm_wrapper.py` | ✅ Operational | Validation + sanitisation wrapper |
 | `src/domain_engine.py` | ✅ Operational | Domain inference gating |
@@ -190,7 +190,7 @@ python -m pytest --timeout=60 -v --tb=short
 |---|---|
 | #21–#40 | Core runtime stabilisation, gap closure rounds 3–20 |
 | #41–#60 | Security hardening (auth, CORS, rate limiting, PII detection) |
-| #61–#75 | LLM integration (Groq, local fallback, validation layer) |
+| #61–#75 | LLM integration (DeepInfra, local fallback, validation layer) |
 | #76–#85 | Module integration (compiler, MSS controller, AionMind kernel) |
 | #86–#95 | CI/CD, documentation accuracy, final audit (90 categories) |
 

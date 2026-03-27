@@ -11,7 +11,7 @@ UI Chat  →  POST /api/chat
          ┌────┴──────────────────────────────────────────┐
          │ Step 1: LLMIntegrationLayer.route_request()   │
          │   • _determine_provider() picks domain        │
-         │   • _call_groq()  →  tries DEEPINFRA_API_KEY       │
+         │   • _call_deepinfra()  →  tries DEEPINFRA_API_KEY       │
          │                  →  tries Ollama (phi3 first) │
          │                  →  falls back to template    │
          └────┬──────────────────────────────────────────┘
@@ -48,7 +48,7 @@ When Ollama is available, models are tried in this order:
 
 ## Provider Priority
 
-1. **Groq Cloud** (`DEEPINFRA_API_KEY`) — fastest, cloud-hosted
+1. **DeepInfra Cloud** (`DEEPINFRA_API_KEY`) — fastest, cloud-hosted
 2. **Ollama / phi3** — local, private, no API key needed
 3. **Deterministic fallback** — template-based, always available
 
@@ -141,7 +141,7 @@ status = murphy._get_librarian_status()
 if status["mode"] == "onboard":
     # Using LocalLLMFallback (no external LLM)
 elif status["mode"] == "llm":
-    # Using external LLM API (Groq, OpenAI, Anthropic)
+    # Using external LLM API (DeepInfra, OpenAI, Anthropic)
 
 # IMPORTANT: Do NOT check llm_status["enabled"] — it is always True
 # because the onboard fallback is always available.
@@ -151,7 +151,7 @@ elif status["mode"] == "llm":
 
 | Mode | Description |
 |------|-------------|
-| `external_api` | External LLM provider configured (Groq, OpenAI, Anthropic) |
+| `external_api` | External LLM provider configured (DeepInfra, OpenAI, Anthropic) |
 | `onboard` | Using LocalLLMFallback (Ollama or pattern matcher) |
 
 ### Boot Validation

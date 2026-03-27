@@ -23,7 +23,7 @@
 | Gap | Impact | Status |
 |-----|--------|--------|
 | **E2E hero flow validation** | Full Describe→Generate→Execute chain not yet tested as a single integration flow | ⚠️ Pending — each step works in isolation |
-| **LLM key config hardening** | Groq API key management works but needs production-grade rotation/fallback | ⚠️ In progress (ref: PR #56) |
+| **LLM key config hardening** | DeepInfra API key management works but needs production-grade rotation/fallback | ⚠️ In progress (ref: PR #56) |
 | **Real channel delivery testing** | Email/webhook/Slack stubs exist; real channel testing not completed | ⚠️ Requires external credentials |
 | **Management Parity Phases 2–8** | Code exists but acceptance criteria are unvalidated | ⚠️ Manual QA required |
 | **E2EE** | Stub-only; real encryption gated for production | ⚠️ Implementation needed |
