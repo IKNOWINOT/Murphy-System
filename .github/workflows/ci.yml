@@ -11,7 +11,8 @@ env:
   MURPHY_DB_MODE: stub
   E2EE_STUB_ALLOWED: "true"
   MURPHY_POOL_MODE: simulated
-  PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+  # Both src trees are discoverable: repo root takes precedence (newer modules)
+  PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/src:${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
 
 jobs:
   lint:
@@ -19,9 +20,6 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-    defaults:
-      run:
-        working-directory: "Murphy System"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -57,9 +55,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ['3.10', '3.11', '3.12']
-    defaults:
-      run:
-        working-directory: "Murphy System"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -103,7 +98,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: "Murphy System/coverage.xml"
+          path: coverage.xml
           if-no-files-found: ignore
 
   security:
@@ -111,9 +106,6 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
-    defaults:
-      run:
-        working-directory: "Murphy System"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -127,7 +119,7 @@ jobs:
       - name: Install security tools
         run: |
           python -m pip install --upgrade pip
-          pip install bandit
+          pip install bandit pip-audit
 
       - name: Run bandit on core paths (non-blocking)
         run: |
@@ -138,6 +130,20 @@ jobs:
             || true
         continue-on-error: true
 
+      - name: Run bandit on full src/ (non-blocking, informational)
+        run: |
+          bandit -r src/ \
+            -c bandit.yaml \
+            --severity-level high \
+            -f txt \
+            || true
+        continue-on-error: true
+
+      - name: Dependency vulnerability scan (pip-audit)
+        run: |
+          pip-audit -r requirements_ci.txt --ignore-vuln GHSA-753j-mpmx-qq6g || true
+        continue-on-error: true
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -145,9 +151,6 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
-    defaults:
-      run:
-        working-directory: "Murphy System"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

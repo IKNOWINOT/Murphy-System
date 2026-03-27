@@ -323,12 +323,14 @@ class DiagnosticSupervisor:
         healing_coordinator=None,
         src_root: Optional[str] = None,
         tests_root: Optional[str] = None,
+        docs_root: Optional[str] = None,
     ) -> None:
         self._bug_detector = bug_detector
         self._engine = improvement_engine
         self._coordinator = healing_coordinator
         self._src_root = src_root
         self._tests_root = tests_root
+        self._docs_root = docs_root
         self._lock = threading.Lock()
         self._gap_history: List[CodeGap] = []
 
@@ -349,6 +351,8 @@ class DiagnosticSupervisor:
                     self._test_coverage_gaps(self._src_root, self._tests_root)
                 )
             gaps.extend(self._doc_drift_gaps(self._src_root))
+        if self._docs_root:
+            gaps.extend(self._markdown_file_ref_gaps(self._docs_root))
         gaps = self._correlate_gaps(gaps)
         with self._lock:
             for g in gaps:
@@ -616,6 +620,58 @@ class DiagnosticSupervisor:
                             line_number=node.lineno,
                             function_name=node.name,
                             context={"drift_params": list(drift)},
+                        )
+                    )
+        return gaps
+
+    def _markdown_file_ref_gaps(self, docs_root: str) -> List[CodeGap]:
+        """Parse all *.md files under *docs_root* for file path references.
+
+        Looks for markdown links ``[text](path)`` and inline backtick paths
+        like ``src/foo.py`` and checks whether each referenced path exists
+        on disk (resolved relative to *docs_root*).  Missing paths are
+        reported as ``doc_drift`` gaps.
+        """
+        gaps: List[CodeGap] = []
+        docs_path = Path(docs_root)
+        _md_link_re = re.compile(r"\[([^\]]*)\]\(([^)#?\s]+)\)")
+        _bare_path_re = re.compile(
+            r"(?:^|[\s`'\"])([a-zA-Z0-9_./-]+\.(?:py|md|yaml|yml|json|toml|sh|txt))"
+        )
+
+        for md_file in docs_path.rglob("*.md"):
+            try:
+                content = md_file.read_text(encoding="utf-8", errors="replace")
+            except Exception as exc:
+                logger.debug("Skipping %s: %s", md_file, exc)
+                continue
+
+            refs: List[str] = []
+            for _label, target in _md_link_re.findall(content):
+                if target.startswith(("http://", "https://", "#", "mailto:")):
+                    continue
+                refs.append(target)
+            for m in _bare_path_re.finditer(content):
+                candidate = m.group(1).strip("`'\" \t")
+                if "/" in candidate and not candidate.startswith("http"):
+                    refs.append(candidate)
+
+            for ref in refs:
+                resolved = docs_path / ref
+                if not resolved.exists():
+                    resolved = md_file.parent / ref
+                if not resolved.exists():
+                    gaps.append(
+                        CodeGap(
+                            gap_id=f"gap-mdr-{uuid.uuid4().hex[:8]}",
+                            description=(
+                                f"Broken file reference '{ref}' in {md_file.name}"
+                            ),
+                            source="doc_drift",
+                            severity="low",
+                            category="broken_md_ref",
+                            file_path=str(md_file),
+                            context={"missing_ref": ref, "md_file": str(md_file)},
                         )
                     )
         return gaps

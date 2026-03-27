@@ -120,3 +120,11 @@ telemetry_evidence/**/*.pid
 telemetry_evidence/**/*.xml
 telemetry_evidence/telemetry_log.jsonl
 .coverage
+
+# Fleet manifests — generated at runtime; keep examples but ignore live manifests
+fleet_manifests/**/*.active
+fleet_manifests/**/*.lock
+fleet_manifests/**/*.tmp
+
+# Secret scanning false-positive suppressions
+!*.enc.example

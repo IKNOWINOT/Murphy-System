@@ -1,0 +1,301 @@
+[
+  {
+    "id": "LAND-001",
+    "page": "murphy_landing_page",
+    "element": "h1#hero-h",
+    "expected": "Hero headline visible; reads 'Stop Patching Tools\u2026' \u2014 solution-focused",
+    "viewpoints": [
+      "founder",
+      "customer",
+      "investor"
+    ]
+  },
+  {
+    "id": "LAND-002",
+    "page": "murphy_landing_page",
+    "element": "nav a[href='#solutions']",
+    "expected": "Nav 'Solutions' link present and scrolls to #solutions",
+    "viewpoints": [
+      "customer"
+    ]
+  },
+  {
+    "id": "LAND-003",
+    "page": "murphy_landing_page",
+    "element": "#solutions .sol-card",
+    "expected": "6 solution cards rendered with problem label, outcome badge, CTA",
+    "viewpoints": [
+      "founder",
+      "customer"
+    ]
+  },
+  {
+    "id": "LAND-004",
+    "page": "murphy_landing_page",
+    "element": "#industries .ind-card",
+    "expected": "8 industry cards, each with pain point and CTA",
+    "viewpoints": [
+      "founder",
+      "customer"
+    ]
+  },
+  {
+    "id": "LAND-005",
+    "page": "murphy_landing_page",
+    "element": "#demo-term-inline",
+    "expected": "Inline demo terminal renders and executes commands without login",
+    "viewpoints": [
+      "customer"
+    ]
+  },
+  {
+    "id": "LAND-006",
+    "page": "murphy_landing_page",
+    "element": "#partner",
+    "expected": "Partner section visible with 3 benefit cards and request CTA",
+    "viewpoints": [
+      "founder",
+      "investor"
+    ]
+  },
+  {
+    "id": "LAND-007",
+    "page": "murphy_landing_page",
+    "element": "#uth-toggle-btn",
+    "expected": "'Under the Hood' toggle collapses technical architecture by default; expands on click",
+    "viewpoints": [
+      "operator"
+    ]
+  },
+  {
+    "id": "AUTH-001",
+    "page": "login",
+    "element": "input[type='email'], input#email",
+    "expected": "Email field present, editable; submit sends to /api/auth/login",
+    "viewpoints": [
+      "customer",
+      "operator"
+    ]
+  },
+  {
+    "id": "AUTH-002",
+    "page": "login",
+    "element": "input[type='password']",
+    "expected": "Password field present, masked, tab-navigable from email",
+    "viewpoints": [
+      "compliance_officer"
+    ]
+  },
+  {
+    "id": "AUTH-003",
+    "page": "login",
+    "element": "body",
+    "expected": "On API error with object body, showFormError renders readable string \u2014 NEVER '[object Object]'",
+    "viewpoints": [
+      "customer",
+      "compliance_officer"
+    ]
+  },
+  {
+    "id": "AUTH-004",
+    "page": "login",
+    "element": "body",
+    "expected": "If server returns non-JSON (e.g. 502 HTML), fetch chain catches parse failure and shows 'Server returned an unexpected response (status N)'",
+    "viewpoints": [
+      "operator"
+    ]
+  },
+  {
+    "id": "AUTH-005",
+    "page": "signup",
+    "element": "input[type='email']",
+    "expected": "Email field present; signup form POSTs to /api/auth/register",
+    "viewpoints": [
+      "customer"
+    ]
+  },
+  {
+    "id": "AUTH-006",
+    "page": "signup",
+    "element": "body",
+    "expected": "On API error with object body, no '[object Object]' rendered; JSON parse fallback present in source",
+    "viewpoints": [
+      "customer",
+      "operator"
+    ]
+  },
+  {
+    "id": "ONBOARD-001",
+    "page": "onboarding_wizard",
+    "element": "#wizard-content",
+    "expected": "Wizard renders step 1 (Conversation) by default",
+    "viewpoints": [
+      "customer",
+      "founder"
+    ]
+  },
+  {
+    "id": "ONBOARD-002",
+    "page": "onboarding_wizard",
+    "element": ".step-dot",
+    "expected": "5 step-dot indicators present (Conversation/Plan/Connections/Safety/Ready)",
+    "viewpoints": [
+      "customer"
+    ]
+  },
+  {
+    "id": "ONBOARD-003",
+    "page": "onboarding_wizard",
+    "element": "#step-container",
+    "expected": "Step container is present and populated by JS on page load",
+    "viewpoints": [
+      "operator",
+      "customer"
+    ]
+  },
+  {
+    "id": "ONBOARD-004",
+    "page": "onboarding_wizard",
+    "element": "body",
+    "expected": "After wizard completion, JS redirects to /ui/production-wizard (window.location.href = '/ui/production-wizard')",
+    "viewpoints": [
+      "customer",
+      "founder"
+    ]
+  },
+  {
+    "id": "PROD-001",
+    "page": "production_wizard",
+    "element": "#dashboard",
+    "expected": "Dashboard view renders as default; sidebar nav present",
+    "viewpoints": [
+      "operator",
+      "founder"
+    ]
+  },
+  {
+    "id": "PROD-002",
+    "page": "production_wizard",
+    "element": ".murphy-sidebar-item[data-view='proposal']",
+    "expected": "'New Proposal' sidebar link present and clickable",
+    "viewpoints": [
+      "operator"
+    ]
+  },
+  {
+    "id": "PROD-003",
+    "page": "production_wizard",
+    "element": ".murphy-sidebar-item[data-view='hitl']",
+    "expected": "'HITL Review' sidebar link present \u2014 gate between production and delivery",
+    "viewpoints": [
+      "compliance_officer",
+      "operator"
+    ]
+  },
+  {
+    "id": "PROD-004",
+    "page": "production_wizard",
+    "element": "body",
+    "expected": "Page calls /api/production/queue, /api/production/schedule, /api/deliverables on load",
+    "viewpoints": [
+      "operator"
+    ]
+  },
+  {
+    "id": "GRANT-001",
+    "page": "grant_wizard",
+    "element": "#wizard-content",
+    "expected": "Grant wizard renders step-intake section",
+    "viewpoints": [
+      "founder",
+      "customer"
+    ]
+  },
+  {
+    "id": "GRANT-002",
+    "page": "grant_wizard",
+    "element": ".murphy-btn-primary",
+    "expected": "Primary CTA buttons present for next-step navigation",
+    "viewpoints": [
+      "customer"
+    ]
+  },
+  {
+    "id": "GRANT-003",
+    "page": "grant_wizard",
+    "element": "a[href='/ui/grant-dashboard']",
+    "expected": "'My Applications' link present; navigates to dashboard",
+    "viewpoints": [
+      "customer",
+      "founder"
+    ]
+  },
+  {
+    "id": "GRANT-004",
+    "page": "grant_wizard",
+    "element": "a[href='/ui/onboarding']",
+    "expected": "'Get Started' and 'Onboarding' links present \u2014 maintains chain",
+    "viewpoints": [
+      "customer"
+    ]
+  },
+  {
+    "id": "GRANT-005",
+    "page": "grant_dashboard",
+    "element": "#dashboard-content",
+    "expected": "Grant dashboard renders; filter bar and applications grid visible",
+    "viewpoints": [
+      "founder",
+      "operator"
+    ]
+  },
+  {
+    "id": "GRANT-006",
+    "page": "grant_dashboard",
+    "element": "a[href='/ui/grant-wizard']",
+    "expected": "'+ Find New Grants' button links back to wizard \u2014 bidirectional",
+    "viewpoints": [
+      "customer"
+    ]
+  },
+  {
+    "id": "GRANT-007",
+    "page": "grant_dashboard",
+    "element": "#app-count",
+    "expected": "Application count element present with aria-live for screen readers",
+    "viewpoints": [
+      "compliance_officer"
+    ]
+  },
+  {
+    "id": "COMP-001",
+    "page": "compliance_dashboard",
+    "element": "body",
+    "expected": "Compliance dashboard page loads without JS errors",
+    "viewpoints": [
+      "compliance_officer",
+      "founder"
+    ]
+  },
+  {
+    "id": "PART-001",
+    "page": "partner_request",
+    "element": "body",
+    "expected": "Partner request form renders; links to /ui/landing navigation",
+    "viewpoints": [
+      "founder",
+      "investor"
+    ]
+  },
+  {
+    "id": "PRICE-001",
+    "page": "pricing",
+    "element": "body",
+    "expected": "Pricing page loads; 4 tiers visible; Starter $0, Business $299",
+    "viewpoints": [
+      "founder",
+      "customer",
+      "investor"
+    ]
+  }
+]

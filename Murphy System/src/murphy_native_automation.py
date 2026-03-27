@@ -2,8 +2,6 @@
 Murphy Native Automation — Murphy System
 
 The one-stop module for all browser/UI/desktop automation in Murphy System.
-Third-party browser drivers (Playwright, Selenium, etc.) are NOT used — this
-is 100% Murphy's own stack.
 
 Priority order (always use the first option that fits):
   1. Direct API call       — urllib; covers 100% of what any terminal does
@@ -14,17 +12,10 @@ Priority order (always use the first option that fits):
   4. webbrowser.open()     — Python stdlib; open a URL in the user's real browser
   5. subprocess.run()      — CLI operations, venv, package install
 
-Multi-cursor & split-screen desktop (added v2):
-  Murphy's virtual desktop supports N independent mouse cursors across
-  split-screen zones — analogous to console split-screen mode where each
-  player/agent has their own pointer stream on a shared physical screen.
-
-  ScreenZone            — rectangular region of the desktop
-  CursorContext         — independent pointer state (position, buttons, history)
-  SplitScreenLayout     — SINGLE / DUAL_H / DUAL_V / TRIPLE_H / QUAD / HEXA / CUSTOM
-  MultiCursorDesktop    — manages N cursors across N zones with parallel dispatch
-  SplitScreenManager    — high-level orchestrator: queue tasks per zone, run all
-                          zones simultaneously (true split-screen parallelism)
+Playwright is deliberately absent as a dependency.  If Playwright happens to
+be installed in the environment, the optional ``PlaywrightExporter`` at the
+bottom can serialise a task list to Playwright-compatible JSON — but the
+system never imports or requires it.
 
 Public surface:
   NativeTask / NativeStep        — task & step data model
@@ -32,12 +23,7 @@ Public surface:
   NativeTaskFactory              — builds standard Murphy System task suites
   GhostControllerExporter        — exports tasks → playback_runner JSON spec
   MurphyAPIClient                — direct API calls (urllib, no extra libs)
-  PlaywrightExporter             — JSON export shim (no Playwright required)
-  ScreenZone                     — split-screen viewport zone
-  CursorContext                  — independent cursor/pointer state
-  SplitScreenLayout              — named layout presets
-  MultiCursorDesktop             — multi-cursor virtual desktop
-  SplitScreenManager             — split-screen task orchestrator
+  PlaywrightExporter             — optional JSON export for Playwright runners
   # Backward-compatible aliases:
   BrowserTask, PlaywrightTask, BrowserTaskFactory, PlaywrightTaskFactory
 
@@ -62,7 +48,7 @@ import webbrowser
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 try:
     from thread_safe_operations import capped_append
@@ -1691,6 +1677,8 @@ class SplitScreenManager:
 
 
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
 # Backward-compatible aliases
 # (Any code that imported from playwright_task_definitions still works)
 # ---------------------------------------------------------------------------
@@ -1701,307 +1689,3 @@ BrowserTaskFactory = NativeTaskFactory
 MurphyTaskRunner = MurphyNativeRunner
 PlaywrightTask = NativeTask
 PlaywrightTaskFactory = NativeTaskFactory
-
-
-# ===========================================================================
-# Multi-Cursor Split-Screen Desktop Automation
-# ===========================================================================
-
-class SplitScreenLayout(str, Enum):
-    """Predefined split-screen topology.
-
-    Attributes:
-        SINGLE:   Single full-screen zone (no split).
-        DUAL_H:   Two zones stacked horizontally (top / bottom).
-        DUAL_V:   Two zones side by side (left / right).
-        TRIPLE_H: Three equal-height horizontal bands.
-        QUAD:     Four equal quadrant zones.
-        HEXA:     Six zones (2 × 3 grid).
-        CUSTOM:   Arbitrary zone list provided by the caller.
-    """
-
-    SINGLE = "single"
-    DUAL_H = "dual_horizontal"
-    DUAL_V = "dual_vertical"
-    TRIPLE_H = "triple_horizontal"
-    QUAD = "quad"
-    HEXA = "hexa"
-    CUSTOM = "custom"
-
-
-@dataclass
-class ScreenZone:
-    """A rectangular region on the virtual desktop.
-
-    Coordinates are in *normalised* units [0.0, 1.0] relative to the
-    full desktop dimensions, so the layout is resolution-independent.
-
-    Attributes:
-        zone_id: Unique identifier for this zone.
-        x:       Left edge (0.0 = left of screen, 1.0 = right of screen).
-        y:       Top edge  (0.0 = top of screen,  1.0 = bottom of screen).
-        width:   Width fraction of total desktop.
-        height:  Height fraction of total desktop.
-        label:   Human-readable label (e.g. ``"left"``, ``"top-right"``).
-    """
-
-    zone_id: str
-    x: float
-    y: float
-    width: float
-    height: float
-    label: str = ""
-
-    def __post_init__(self) -> None:
-        for attr in ("x", "y", "width", "height"):
-            v = getattr(self, attr)
-            if not (0.0 <= v <= 1.0):
-                raise ValueError(
-                    f"ScreenZone.{attr} must be in [0.0, 1.0], got {v!r}"
-                )
-        if self.width <= 0 or self.height <= 0:
-            raise ValueError("ScreenZone width and height must be positive")
-
-    def contains_point(self, px: float, py: float) -> bool:
-        """Return True if the normalised point *(px, py)* lies within this zone."""
-        return (
-            self.x <= px <= self.x + self.width
-            and self.y <= py <= self.y + self.height
-        )
-
-    def centre(self) -> tuple[float, float]:
-        """Return the normalised (cx, cy) centre of this zone."""
-        return (self.x + self.width / 2, self.y + self.height / 2)
-
-    def to_dict(self) -> dict:
-        return {
-            "zone_id": self.zone_id,
-            "x": self.x,
-            "y": self.y,
-            "width": self.width,
-            "height": self.height,
-            "label": self.label,
-        }
-
-
-@dataclass
-class CursorContext:
-    """Tracks the logical state of a single virtual cursor.
-
-    Each cursor is assigned to exactly one :class:`ScreenZone` at a time.
-
-    Attributes:
-        cursor_id:    Unique identifier for this cursor.
-        zone_id:      The zone this cursor is currently active in.
-        position:     Normalised *(x, y)* within the zone (default centre).
-        is_active:    Whether this cursor is currently executing an action.
-        metadata:     Arbitrary caller-supplied key/value pairs.
-    """
-
-    cursor_id: str
-    zone_id: str
-    position: tuple[float, float] = field(default_factory=lambda: (0.5, 0.5))
-    is_active: bool = True
-    metadata: dict = field(default_factory=dict)
-
-    def move_to(self, x: float, y: float) -> None:
-        """Update the cursor position (normalised coordinates within its zone)."""
-        if not (0.0 <= x <= 1.0 and 0.0 <= y <= 1.0):
-            raise ValueError(f"Cursor position must be in [0, 1], got ({x}, {y})")
-        self.position = (x, y)
-
-    def assign_zone(self, zone_id: str) -> None:
-        """Reassign this cursor to a different zone."""
-        if not zone_id:
-            raise ValueError("zone_id must be a non-empty string")
-        self.zone_id = zone_id
-
-    def to_dict(self) -> dict:
-        return {
-            "cursor_id": self.cursor_id,
-            "zone_id": self.zone_id,
-            "position": list(self.position),
-            "is_active": self.is_active,
-            "metadata": self.metadata,
-        }
-
-
-class MultiCursorDesktop:
-    """Manages a pool of named :class:`CursorContext` objects.
-
-    Cursors are keyed by their ``cursor_id``.  Thread-safe: all
-    mutating operations are serialised through an internal lock.
-    """
-
-    def __init__(self) -> None:
-        self._cursors: dict[str, CursorContext] = {}
-        self._lock = threading.Lock()
-
-    # ------------------------------------------------------------------
-    # Cursor lifecycle
-    # ------------------------------------------------------------------
-
-    def add_cursor(
-        self,
-        cursor_id: str,
-        zone_id: str,
-        *,
-        position: tuple[float, float] = (0.5, 0.5),
-        metadata: dict | None = None,
-    ) -> CursorContext:
-        """Create and register a new cursor."""
-        with self._lock:
-            if cursor_id in self._cursors:
-                raise ValueError(f"Cursor {cursor_id!r} already registered")
-            ctx = CursorContext(
-                cursor_id=cursor_id,
-                zone_id=zone_id,
-                position=position,
-                metadata=metadata or {},
-            )
-            self._cursors[cursor_id] = ctx
-            return ctx
-
-    def remove_cursor(self, cursor_id: str) -> None:
-        """Deregister a cursor."""
-        with self._lock:
-            if cursor_id not in self._cursors:
-                raise KeyError(f"Cursor {cursor_id!r} not found")
-            del self._cursors[cursor_id]
-
-    def get_cursor(self, cursor_id: str) -> CursorContext:
-        with self._lock:
-            if cursor_id not in self._cursors:
-                raise KeyError(f"Cursor {cursor_id!r} not found")
-            return self._cursors[cursor_id]
-
-    # ------------------------------------------------------------------
-    # Queries
-    # ------------------------------------------------------------------
-
-    def cursors_in_zone(self, zone_id: str) -> list[CursorContext]:
-        """Return all cursors currently assigned to *zone_id*."""
-        with self._lock:
-            return [c for c in self._cursors.values() if c.zone_id == zone_id]
-
-    def active_cursor_ids(self) -> list[str]:
-        with self._lock:
-            return [cid for cid, c in self._cursors.items() if c.is_active]
-
-    def cursor_count(self) -> int:
-        with self._lock:
-            return len(self._cursors)
-
-    def snapshot(self) -> list[dict]:
-        with self._lock:
-            return [c.to_dict() for c in self._cursors.values()]
-
-
-class SplitScreenManager:
-    """Manages the set of :class:`ScreenZone` objects for a given layout.
-
-    Supports predefined layouts and fully custom zone lists.  Thread-safe.
-    """
-
-    _LAYOUT_BUILDERS: dict[str, "Callable[[], list[ScreenZone]]"] = {}
-
-    def __init__(
-        self,
-        layout: SplitScreenLayout = SplitScreenLayout.SINGLE,
-        custom_zones: list[ScreenZone] | None = None,
-    ) -> None:
-        self._layout = layout
-        self._lock = threading.Lock()
-        if layout == SplitScreenLayout.CUSTOM:
-            if not custom_zones:
-                raise ValueError(
-                    "custom_zones must be provided for SplitScreenLayout.CUSTOM"
-                )
-            self._zones: dict[str, ScreenZone] = {z.zone_id: z for z in custom_zones}
-        else:
-            built = self._build_layout(layout)
-            self._zones = {z.zone_id: z for z in built}
-
-    # ------------------------------------------------------------------
-    # Layout builders
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _build_layout(layout: SplitScreenLayout) -> list[ScreenZone]:
-        if layout == SplitScreenLayout.SINGLE:
-            return [ScreenZone("z0", 0.0, 0.0, 1.0, 1.0, label="full")]
-        if layout == SplitScreenLayout.DUAL_H:
-            return [
-                ScreenZone("z0", 0.0, 0.0, 1.0, 0.5, label="top"),
-                ScreenZone("z1", 0.0, 0.5, 1.0, 0.5, label="bottom"),
-            ]
-        if layout == SplitScreenLayout.DUAL_V:
-            return [
-                ScreenZone("z0", 0.0, 0.0, 0.5, 1.0, label="left"),
-                ScreenZone("z1", 0.5, 0.0, 0.5, 1.0, label="right"),
-            ]
-        if layout == SplitScreenLayout.TRIPLE_H:
-            h = 1.0 / 3
-            return [
-                ScreenZone("z0", 0.0, 0.0, 1.0, h, label="top"),
-                ScreenZone("z1", 0.0, h, 1.0, h, label="middle"),
-                ScreenZone("z2", 0.0, 2 * h, 1.0, h, label="bottom"),
-            ]
-        if layout == SplitScreenLayout.QUAD:
-            return [
-                ScreenZone("z0", 0.0, 0.0, 0.5, 0.5, label="top-left"),
-                ScreenZone("z1", 0.5, 0.0, 0.5, 0.5, label="top-right"),
-                ScreenZone("z2", 0.0, 0.5, 0.5, 0.5, label="bottom-left"),
-                ScreenZone("z3", 0.5, 0.5, 0.5, 0.5, label="bottom-right"),
-            ]
-        if layout == SplitScreenLayout.HEXA:
-            w, h = 1.0 / 3, 0.5
-            zones = []
-            for row in range(2):
-                for col in range(3):
-                    idx = row * 3 + col
-                    zones.append(
-                        ScreenZone(
-                            f"z{idx}",
-                            col * w,
-                            row * h,
-                            w,
-                            h,
-                            label=f"r{row}c{col}",
-                        )
-                    )
-            return zones
-        raise ValueError(f"Unknown layout: {layout!r}")
-
-    # ------------------------------------------------------------------
-    # Zone accessors
-    # ------------------------------------------------------------------
-
-    def get_zone(self, zone_id: str) -> ScreenZone:
-        with self._lock:
-            if zone_id not in self._zones:
-                raise KeyError(f"Zone {zone_id!r} not found")
-            return self._zones[zone_id]
-
-    def zone_ids(self) -> list[str]:
-        with self._lock:
-            return list(self._zones.keys())
-
-    def zone_count(self) -> int:
-        with self._lock:
-            return len(self._zones)
-
-    def find_zone_at(self, px: float, py: float) -> ScreenZone | None:
-        """Return the first zone containing the normalised point *(px, py)*."""
-        with self._lock:
-            for zone in self._zones.values():
-                if zone.contains_point(px, py):
-                    return zone
-        return None
-
-    def layout(self) -> SplitScreenLayout:
-        return self._layout
-
-    def snapshot(self) -> list[dict]:
-        with self._lock:
-            return [z.to_dict() for z in self._zones.values()]
