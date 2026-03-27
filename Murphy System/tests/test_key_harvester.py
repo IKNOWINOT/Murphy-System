@@ -64,7 +64,7 @@ from tos_acceptance_gate import (
 # ---------------------------------------------------------------------------
 
 EXPECTED_PROVIDERS = {
-    "groq", "openai", "anthropic", "elevenlabs", "sendgrid",
+    "deepinfra", "openai", "anthropic", "elevenlabs", "sendgrid",
     "stripe", "twilio", "heygen", "tavus", "vapi",
     "hubspot", "shopify", "coinbase", "github", "slack",
 }
@@ -209,7 +209,7 @@ class TestCaptchaEnums:
 
 class TestHarvestResult:
     def test_default_fields(self):
-        r = HarvestResult(provider="groq", status=AcquisitionStatus.PENDING)
+        r = HarvestResult(provider="deepinfra", status=AcquisitionStatus.PENDING)
         assert r.key_stored is False
         assert r.tos_accepted is False
         assert r.error == ""
@@ -218,7 +218,7 @@ class TestHarvestResult:
 
     def test_completed_result(self):
         r = HarvestResult(
-            provider="groq",
+            provider="deepinfra",
             status=AcquisitionStatus.COMPLETED,
             key_stored=True,
             tos_accepted=True,
@@ -470,7 +470,7 @@ class TestAcquireSingleTOSGate:
         harvester._user_email = "test@example.com"
         harvester._user_password = "pwd123"
 
-        recipe = _RECIPE_MAP["groq"]
+        recipe = _RECIPE_MAP["deepinfra"]
         monkeypatch.delenv(recipe.env_var, raising=False)
 
         # Patch _HAS_NATIVE_AUTOMATION so we skip real automation
@@ -488,7 +488,7 @@ class TestAcquireSingleTOSGate:
         harvester._user_email = "test@example.com"
         harvester._user_password = "pwd123"
 
-        recipe = _RECIPE_MAP["groq"]
+        recipe = _RECIPE_MAP["deepinfra"]
         monkeypatch.delenv(recipe.env_var, raising=False)
 
         # We verify by checking the tos_gate's pending queue after a mocked run
@@ -504,14 +504,14 @@ class TestAcquireSingleTOSGate:
 
         with patch.object(tos_gate, "request_approval", side_effect=_capturing_request):
             # Mock MurphyNativeRunner so no real automation is needed
-            mock_runner = _make_mock_runner(key_value="gsk_testkey_abc123456789xyz")
+            mock_runner = _make_mock_runner(key_value="di_testkey_abc123456789xyz")
             with patch("key_harvester.MurphyNativeRunner", return_value=mock_runner):
                 with patch("key_harvester._HAS_NATIVE_AUTOMATION", True):
                     with patch("asyncio.sleep", new_callable=AsyncMock):
                         await harvester._acquire_single(recipe)
 
         assert len(calls) == 1, "request_approval must be called exactly once per provider"
-        assert calls[0].provider_key == "groq"
+        assert calls[0].provider_key == "deepinfra"
 
     @pytest.mark.asyncio
     async def test_tos_rejected_skips_provider(
@@ -521,7 +521,7 @@ class TestAcquireSingleTOSGate:
         harvester._user_email = "test@example.com"
         harvester._user_password = "pwd123"
 
-        recipe = _RECIPE_MAP["groq"]
+        recipe = _RECIPE_MAP["deepinfra"]
         monkeypatch.delenv(recipe.env_var, raising=False)
 
         original = tos_gate.request_approval
@@ -574,10 +574,10 @@ class TestGetStatusAndResults:
 
     def test_get_results_returns_snapshot(self, harvester):
         with harvester._lock:
-            harvester._results = [HarvestResult("groq", AcquisitionStatus.COMPLETED)]
+            harvester._results = [HarvestResult("deepinfra", AcquisitionStatus.COMPLETED)]
         results = harvester.get_results()
         assert len(results) == 1
-        assert results[0].provider == "groq"
+        assert results[0].provider == "deepinfra"
         # Mutating the snapshot should not affect internal list
         results.clear()
         assert len(harvester._results) == 1
@@ -683,7 +683,7 @@ def _provide_creds(cred_gate: UserCredentialGate, harvester: KeyHarvester) -> No
     harvester._credential_gate.request_credentials = _instant_provide  # type: ignore[method-assign]
 
 
-def _make_mock_runner(key_value: str = "gsk_test_key_abc123") -> Any:
+def _make_mock_runner(key_value: str = "di_test_key_abc123") -> Any:
     """Build a mock MurphyNativeRunner that returns successful run() results."""
     from unittest.mock import MagicMock
 
@@ -872,12 +872,12 @@ class TestKeyHarvesterRouter:
         """Create a TOS request via gate, then approve it via REST endpoint."""
         from key_harvester import get_shared_gates
         tos_gate, _ = get_shared_gates()
-        req = tos_gate.request_approval("groq", screenshot_path="/tmp/test.png")
+        req = tos_gate.request_approval("deepinfra", screenshot_path="/tmp/test.png")
 
         # Should now show up in pending-tos
         resp = test_client.get("/api/key-harvester/pending-tos")
         assert resp.json()["count"] == 1
-        assert resp.json()["requests"][0]["provider"] == "groq"
+        assert resp.json()["requests"][0]["provider"] == "deepinfra"
 
         # Approve via REST
         resp = test_client.post(
@@ -966,7 +966,7 @@ class TestSharedPageInSignupFlow:
         harvester._user_email = "test@example.com"
         harvester._user_password = "pwd123"
 
-        recipe = _RECIPE_MAP["groq"]
+        recipe = _RECIPE_MAP["deepinfra"]
         monkeypatch.delenv(recipe.env_var, raising=False)
 
         original = tos_gate.request_approval
@@ -976,7 +976,7 @@ class TestSharedPageInSignupFlow:
             tos_gate.approve(req.request_id, approved_by="tester")
             return req
 
-        mock_runner = _make_mock_runner(key_value="gsk_testkey_abc123456789xyz")
+        mock_runner = _make_mock_runner(key_value="di_testkey_abc123456789xyz")
         with patch.object(tos_gate, "request_approval", side_effect=patched_request):
             with patch("key_harvester.MurphyNativeRunner", return_value=mock_runner):
                 with patch("key_harvester._HAS_NATIVE_AUTOMATION", True):

@@ -68,7 +68,7 @@ class TestGap1_GroqIntegrationTests:
     def test_groq_integration_has_live_tier(self):
         """Should have a live API tier (even if skipped without key)."""
         content = (TESTS_DIR / "test_groq_integration.py").read_text()
-        assert "GROQ_API_KEY" in content or "live" in content.lower()
+        assert "DEEPINFRA_API_KEY" in content or "live" in content.lower()
 
 
 # ===========================================================================
@@ -235,7 +235,7 @@ class TestGap6_7_8_AuditReportUpdated:
     def test_gap6_marked_closed(self):
         text = self._report_text()
         assert "GAP-6" in text
-        # Either CLOSED marker or groq integration reference
+        # Either CLOSED marker or deepinfra integration reference
         assert "CLOSED" in text or "test_groq_integration" in text
 
     def test_gap7_marked_closed(self):

@@ -298,7 +298,7 @@ class LocalLLMFallback:
         When the prompt contains system-injected context (e.g. "Context: ...\n\n<user
         message>"), only the actual user query (after the last blank-line separator)
         is used for knowledge-base topic matching and pattern detection.  This prevents
-        system-context words such as "murphy" or "groq" from hijacking the topic lookup
+        system-context words such as "murphy" or "deepinfra" from hijacking the topic lookup
         and returning an irrelevant knowledge-base entry.
 
         Murphy-specific knowledge-base entries ("murphy", "murphy_setup",

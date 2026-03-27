@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     # LLM Configuration
     # ============================================================================
 
-    groq_key_count: int = Field(
+    deepinfra_key_count: int = Field(
         default=0,
         description="Number of Groq API keys (auto-detected from encrypted storage)"
     )

@@ -358,13 +358,13 @@ class TestLibrarianAlwaysActive:
     def test_librarian_status_mode_llm_with_key(self):
         """With LLM API key set, librarian reports mode='llm'."""
         with patch.dict(os.environ, {
-            "MURPHY_LLM_PROVIDER": "groq",
-            "GROQ_API_KEY": "test_key"
+            "MURPHY_LLM_PROVIDER": "deepinfra",
+            "DEEPINFRA_API_KEY": "test_key"
         }):
             status = self.murphy._get_librarian_status()
         assert status["enabled"] is True
         assert status["mode"] == "llm"
-        assert status["llm_provider"] == "groq"
+        assert status["llm_provider"] == "deepinfra"
 
     def test_librarian_ask_works_without_llm(self):
         """Librarian must respond in onboard mode without any LLM key."""

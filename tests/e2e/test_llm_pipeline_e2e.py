@@ -4,7 +4,7 @@ E2E tests for the Murphy System LLM pipeline.
 Tests the full flow:
   terminal client → HTTP → backend → LLM controller → response
 
-A mock Groq server (via pytest-httpserver or the mock_groq_server fixture
+A mock DeepInfra server (via pytest-httpserver or the mock_deepinfra_server fixture
 from conftest.py) is used so no real API key is required.
 """
 
@@ -32,7 +32,7 @@ class TestLLMControllerUnit:
         from llm_controller import LLMModel
 
         names = {m.name for m in LLMModel}
-        assert any("GROQ" in n for n in names), "Expected at least one GROQ model"
+        assert any("DEEPINFRA" in n for n in names), "Expected at least one DEEPINFRA model"
         assert any("LOCAL" in n for n in names), "Expected at least one LOCAL model"
 
     def test_llm_request_dataclass(self):
@@ -94,20 +94,20 @@ class TestLLMPipelineWithMockGroq:
     These tests are skipped if pytest-httpserver is not installed.
     """
 
-    def test_mock_groq_server_available(self, mock_groq_server):
+    def test_mock_deepinfra_server_available(self, mock_deepinfra_server):
         """Skip gracefully when pytest-httpserver is not installed."""
-        if mock_groq_server is None:
+        if mock_deepinfra_server is None:
             pytest.skip("pytest-httpserver not installed")
 
-    def test_mock_groq_server_responding(self, mock_groq_server):
+    def test_mock_deepinfra_server_responding(self, mock_deepinfra_server):
         """The mock Groq server must serve chat completion responses."""
-        if mock_groq_server is None:
+        if mock_deepinfra_server is None:
             pytest.skip("pytest-httpserver not installed")
 
         import json
         import urllib.request
 
-        url = f"http://{mock_groq_server.host}:{mock_groq_server.port}/openai/v1/chat/completions"
+        url = f"http://{mock_deepinfra_server.host}:{mock_deepinfra_server.port}/openai/v1/chat/completions"
         payload = json.dumps(
             {
                 "model": "mixtral-8x7b-32768",

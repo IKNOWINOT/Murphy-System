@@ -24,14 +24,8 @@ from memory_artifact_system import Artifact, ArtifactState, MemoryArtifactSystem
 # Import existing systems
 from true_swarm_system import ArtifactType, ProfessionAtom, SwarmMode, TrueSwarmSystem
 
-# Try to import LLM
-try:
-    import os
-
-    from groq import Groq
-    GROQ_AVAILABLE = True
-except ImportError:
-    GROQ_AVAILABLE = False
+# DeepInfra HTTP client available (uses requests/httpx, no SDK needed)
+DEEPINFRA_AVAILABLE = True
 
 # Import local fallback LLM
 import logging
@@ -76,12 +70,12 @@ class UnifiedMFGC:
     Not separate modes - continuous confidence-based behavior
     """
 
-    def __init__(self, groq_api_key: str = None, use_key_rotation: bool = True):
+    def __init__(self, deepinfra_api_key: str = None, use_key_rotation: bool = True):
         # Initialize key rotation system
         self.use_key_rotation = use_key_rotation
         self.key_rotator = None
 
-        if use_key_rotation and GROQ_AVAILABLE:
+        if use_key_rotation and DEEPINFRA_AVAILABLE:
             try:
                 self.key_rotator = get_rotator()
                 self.llm_available = True
@@ -93,13 +87,13 @@ class UnifiedMFGC:
 
         # Fallback to single key mode
         if self.key_rotator is None:
-            self.groq_api_key = groq_api_key or os.environ.get("DEEPINFRA_API_KEY")
-            if self.groq_api_key and GROQ_AVAILABLE:
-                self.groq_client = Groq(api_key=self.groq_api_key)
+            self.deepinfra_api_key = deepinfra_api_key or os.environ.get("DEEPINFRA_API_KEY")
+            if self.deepinfra_api_key and DEEPINFRA_AVAILABLE:
+                self.deepinfra_client = self.deepinfra_api_key  # store key for HTTP calls
                 self.llm_available = True
                 self.llm_mode = "deepinfra"
             else:
-                self.groq_client = None
+                self.deepinfra_client = None
                 self.llm_available = True
                 self.llm_mode = "offline"
 
@@ -886,63 +880,66 @@ Format as a numbered list."""
         return "\n".join(parts)
 
     def _call_llm(self, prompt: str, max_tokens: int = 500) -> str:
-        """Call LLM with safety bounds - uses Groq with key rotation or offline fallback"""
+        """Call LLM with safety bounds - uses DeepInfra with key rotation or offline fallback"""
 
-        # Try Groq with key rotation
-        if self.key_rotator and self.llm_mode == "groq_rotation":
+        # Try DeepInfra with key rotation
+        if self.key_rotator and self.llm_mode == "deepinfra_rotation":
             try:
                 # Get next key from rotator
                 key_name, api_key = self.key_rotator.get_next_key()
 
-                # Create client with rotated key
-                client = Groq(api_key=api_key)
-
-                # Make API call
-                chat_completion = client.chat.completions.create(
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": prompt,
-                        }
-                    ],
-                    model="llama-3.3-70b-versatile",
-                    temperature=0.7,
-                    max_tokens=max_tokens,
+                # Make API call via HTTP
+                import requests as _requests
+                resp = _requests.post(
+                    "https://api.deepinfra.com/v1/openai/chat/completions",
+                    json={
+                        "model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
+                        "messages": [{"role": "user", "content": prompt}],
+                        "temperature": 0.7,
+                        "max_tokens": max_tokens,
+                    },
+                    headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                    timeout=30,
                 )
+                resp.raise_for_status()
+                data = resp.json()
+                result = data.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
 
                 # Report success
                 self.key_rotator.report_success(api_key)
 
-                return chat_completion.choices[0].message.content.strip()
+                return result
 
             except Exception as exc:
                 # Report failure
                 if self.key_rotator:
                     self.key_rotator.report_failure(api_key, str(exc))
 
-                # Fall back to offline mode if Groq fails
-                logger.info(f"Groq failed (key: {key_name}), using offline fallback: {str(exc)}")
+                # Fall back to offline mode if DeepInfra fails
+                logger.info(f"DeepInfra failed (key: {key_name}), using offline fallback: {str(exc)}")
                 return self.fallback_llm.generate(prompt, max_tokens)
 
-        # Try single key Groq mode
-        elif hasattr(self, 'groq_client') and self.groq_client and self.llm_mode == "groq":
+        # Try single key DeepInfra mode
+        elif hasattr(self, 'deepinfra_client') and self.deepinfra_client and self.llm_mode == "deepinfra":
             try:
-                chat_completion = self.groq_client.chat.completions.create(
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": prompt,
-                        }
-                    ],
-                    model="llama-3.3-70b-versatile",
-                    temperature=0.7,
-                    max_tokens=max_tokens,
+                import requests as _requests
+                resp = _requests.post(
+                    "https://api.deepinfra.com/v1/openai/chat/completions",
+                    json={
+                        "model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
+                        "messages": [{"role": "user", "content": prompt}],
+                        "temperature": 0.7,
+                        "max_tokens": max_tokens,
+                    },
+                    headers={"Authorization": f"Bearer {self.deepinfra_client}", "Content-Type": "application/json"},
+                    timeout=30,
                 )
-
-                return chat_completion.choices[0].message.content.strip()
+                resp.raise_for_status()
+                data = resp.json()
+                return data.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
             except Exception as exc:
-                # Fall back to offline mode if Groq fails
-                logger.info(f"Groq failed, using offline fallback: {str(exc)}")
+                # Fall back to offline mode if DeepInfra fails
+                logger.info(f"DeepInfra failed, using offline fallback: {str(exc)}")
                 return self.fallback_llm.generate(prompt, max_tokens)
 
         # Use offline fallback

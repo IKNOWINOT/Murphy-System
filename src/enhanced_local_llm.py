@@ -61,7 +61,7 @@ class EnhancedLocalLLM:
             response = self._aristotle_response(prompt, temperature)
         elif provider == 'wulfrum':
             response = self._wulfrum_response(prompt, temperature)
-        elif provider in ('deepinfra', 'together', 'groq'):
+        elif provider in ('deepinfra', 'together'):
             response = self._generative_response(prompt, temperature)
         else:
             response = self._generative_response(prompt, temperature)

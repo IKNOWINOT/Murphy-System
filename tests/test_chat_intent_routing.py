@@ -333,7 +333,7 @@ class TestLLMStatus(unittest.TestCase):
     def test_llm_status_auto_detects_openai_without_provider_var(self):
         """Auto-detection should work for OpenAI keys too."""
         old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
-        old_groq = os.environ.pop("DEEPINFRA_API_KEY", None)
+        old_deepinfra = os.environ.pop("DEEPINFRA_API_KEY", None)
         old_openai = os.environ.get("OPENAI_API_KEY")
         os.environ["OPENAI_API_KEY"] = "sk-autodetectopenai"
         try:
@@ -345,8 +345,8 @@ class TestLLMStatus(unittest.TestCase):
                 os.environ["MURPHY_LLM_PROVIDER"] = old_provider
             else:
                 os.environ.pop("MURPHY_LLM_PROVIDER", None)
-            if old_groq is not None:
-                os.environ["DEEPINFRA_API_KEY"] = old_groq
+            if old_deepinfra is not None:
+                os.environ["DEEPINFRA_API_KEY"] = old_deepinfra
             if old_openai is not None:
                 os.environ["OPENAI_API_KEY"] = old_openai
             else:
@@ -356,7 +356,7 @@ class TestLLMStatus(unittest.TestCase):
         """When both DEEPINFRA_API_KEY and OPENAI_API_KEY are set but MURPHY_LLM_PROVIDER
         is absent, DeepInfra should be auto-selected (it's the recommended primary option)."""
         old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
-        old_groq = os.environ.get("DEEPINFRA_API_KEY")
+        old_deepinfra = os.environ.get("DEEPINFRA_API_KEY")
         old_openai = os.environ.get("OPENAI_API_KEY")
         os.environ["DEEPINFRA_API_KEY"] = "di_prioritytest"
         os.environ["OPENAI_API_KEY"] = "sk-alsoavailable"
@@ -372,8 +372,8 @@ class TestLLMStatus(unittest.TestCase):
                 os.environ["MURPHY_LLM_PROVIDER"] = old_provider
             else:
                 os.environ.pop("MURPHY_LLM_PROVIDER", None)
-            if old_groq is not None:
-                os.environ["DEEPINFRA_API_KEY"] = old_groq
+            if old_deepinfra is not None:
+                os.environ["DEEPINFRA_API_KEY"] = old_deepinfra
             else:
                 os.environ.pop("DEEPINFRA_API_KEY", None)
             if old_openai is not None:
@@ -384,7 +384,7 @@ class TestLLMStatus(unittest.TestCase):
     def test_explicit_provider_var_not_overridden_by_auto_detect(self):
         """An explicit MURPHY_LLM_PROVIDER must not be replaced by auto-detection."""
         old_provider = os.environ.get("MURPHY_LLM_PROVIDER")
-        old_groq = os.environ.get("DEEPINFRA_API_KEY")
+        old_deepinfra = os.environ.get("DEEPINFRA_API_KEY")
         old_openai = os.environ.get("OPENAI_API_KEY")
         # Explicitly set openai as provider, but also provide deepinfra key
         os.environ["MURPHY_LLM_PROVIDER"] = "openai"
@@ -403,8 +403,8 @@ class TestLLMStatus(unittest.TestCase):
                 os.environ["MURPHY_LLM_PROVIDER"] = old_provider
             else:
                 os.environ.pop("MURPHY_LLM_PROVIDER", None)
-            if old_groq is not None:
-                os.environ["DEEPINFRA_API_KEY"] = old_groq
+            if old_deepinfra is not None:
+                os.environ["DEEPINFRA_API_KEY"] = old_deepinfra
             else:
                 os.environ.pop("DEEPINFRA_API_KEY", None)
             if old_openai is not None:
@@ -597,7 +597,7 @@ class TestApiLinksReply(unittest.TestCase):
         result = self.murphy.librarian_ask("where do I get API keys?", session_id=self.sid)
         self.assertTrue(result["success"])
         self.assertIn("Signup", result["message"])
-        self.assertIn("console.groq.com", result["message"])
+        self.assertIn("console.deepinfra.com", result["message"])
 
     def test_api_key_query_suggests_api_keys_command(self):
         result = self.murphy.librarian_ask("how to get credentials?", session_id=self.sid)
@@ -705,7 +705,7 @@ class TestApiKeysIntentRouting(unittest.TestCase):
         result = self.murphy.handle_chat("api keys", session_id=self.sid, use_mfgc=False)
         self.assertTrue(result["success"])
         self.assertIn("Signup", result["message"])
-        self.assertIn("Groq", result["message"])
+        self.assertIn("DeepInfra", result["message"])
 
     def test_api_keys_after_onboarding_shows_tailored_recs(self):
         """After onboarding with context, 'api keys' should show tailored recs."""

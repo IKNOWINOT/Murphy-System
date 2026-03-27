@@ -89,9 +89,9 @@ if [ ! "$SKIP_ENV" = true ]; then
     echo -e "${CYAN}To use Murphy, you need at least one LLM API key.${NC}"
     echo -e "${CYAN}Recommended: Groq (free tier available)${NC}"
     echo ""
-    echo "Get a free Groq API key at: https://console.groq.com/keys"
+    echo "Get a free Groq API key at: https://deepinfra.com/keys"
     echo ""
-    read -p "Enter your Groq API key (or press Enter to skip): " GROQ_KEY
+    read -p "Enter your Groq API key (or press Enter to skip): " DEEPINFRA_KEY
     echo ""
     
     # Create .env file
@@ -107,13 +107,13 @@ MURPHY_PORT=8000
 # LLM API Keys
 EOF
     
-    if [ ! -z "$GROQ_KEY" ]; then
-        echo "GROQ_API_KEY=$GROQ_KEY" >> .env
+    if [ ! -z "$DEEPINFRA_KEY" ]; then
+        echo "DEEPINFRA_API_KEY=$DEEPINFRA_KEY" >> .env
         echo -e "${GREEN}✓ Configuration file created with Groq API key${NC}"
     else
-        echo "# GROQ_API_KEY=your_key_here" >> .env
+        echo "# DEEPINFRA_API_KEY=your_key_here" >> .env
         echo -e "${YELLOW}⚠ Configuration file created without API key${NC}"
-        echo -e "${YELLOW}  You'll need to add GROQ_API_KEY to .env before starting Murphy${NC}"
+        echo -e "${YELLOW}  You'll need to add DEEPINFRA_API_KEY to .env before starting Murphy${NC}"
     fi
     
     cat >> .env << EOF
@@ -152,11 +152,11 @@ echo "==========================================================================
 echo -e "${NC}"
 echo ""
 
-if [ -z "$GROQ_KEY" ]; then
+if [ -z "$DEEPINFRA_KEY" ]; then
     echo -e "${YELLOW}⚠ IMPORTANT: You need to add an API key to .env before starting Murphy${NC}"
     echo ""
-    echo "1. Get a free Groq API key: https://console.groq.com/keys"
-    echo "2. Edit .env and add: GROQ_API_KEY=your_key_here"
+    echo "1. Get a free Groq API key: https://deepinfra.com/keys"
+    echo "2. Edit .env and add: DEEPINFRA_API_KEY=your_key_here"
     echo "3. Save the file"
     echo ""
     echo -e "${CYAN}Then start Murphy with:${NC}"

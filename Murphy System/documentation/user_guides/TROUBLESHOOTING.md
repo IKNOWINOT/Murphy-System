@@ -545,7 +545,7 @@ python -c "import yaml; yaml.safe_load(open('config/murphy.yaml'))"
    ```bash
    # Legacy flat names also work
    export LOG_LEVEL=DEBUG
-   export MURPHY_LLM_PROVIDER=groq
+   export MURPHY_LLM_PROVIDER=deepinfra
    python murphy_system_1.0_runtime.py
    ```
 

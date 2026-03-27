@@ -633,7 +633,7 @@ class TestDemoExport:
         assert "MURPHY_ENV" in env
         assert "MURPHY_SECRET_KEY" in env
         assert "MFM_ENABLED" in env
-        assert "GROQ_API_KEY" in env
+        assert "DEEPINFRA_API_KEY" in env
 
     def test_demo_export_includes_workflows(self, client):
         """Export should include previously generated workflows."""

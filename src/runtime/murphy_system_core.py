@@ -12003,7 +12003,7 @@ class MurphySystem:
 
         # Always recommend an LLM provider if not already configured (external API)
         llm_status = self._get_llm_status()
-        # Recommend groq when in onboard mode (no external LLM configured)
+        # Recommend deepinfra when in onboard mode (no external LLM configured)
         is_onboard_mode = llm_status.get("mode") == "onboard"
         if is_onboard_mode and "deepinfra" not in seen:
             info = links["deepinfra"]
@@ -12032,10 +12032,10 @@ class MurphySystem:
         if not provider:
             # Auto-detect provider from available API keys so that users who
             # only set DEEPINFRA_API_KEY (without MURPHY_LLM_PROVIDER) are still served.
-            groq_key = (os.environ.get("DEEPINFRA_API_KEY", "") or os.environ.get("TOGETHER_API_KEY", "")).strip()
+            deepinfra_key = (os.environ.get("DEEPINFRA_API_KEY", "") or os.environ.get("TOGETHER_API_KEY", "")).strip()
             openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
             anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-            if groq_key:
+            if deepinfra_key:
                 provider = "deepinfra" if os.environ.get("DEEPINFRA_API_KEY") else "together"
                 os.environ["MURPHY_LLM_PROVIDER"] = provider
             elif openai_key:

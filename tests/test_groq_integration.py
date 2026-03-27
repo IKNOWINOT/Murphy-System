@@ -4,7 +4,7 @@ Groq API Integration Tests.
 Covers:
   - Tier 1: Provider configuration and detection (unit tests, no I/O)
   - Tier 2: Mocked HTTP integration tests (no external dependencies)
-  - Tier 3: Live Groq API tests (requires GROQ_API_KEY env var)
+  - Tier 3: Live Groq API tests (requires DEEPINFRA_API_KEY env var)
 
 Run:
   python -m pytest tests/test_groq_integration.py -v
@@ -32,11 +32,11 @@ if _src_dir not in sys.path:
 # Helpers
 # ---------------------------------------------------------------------------
 
-_GROQ_API_KEY_SET = bool(os.environ.get("GROQ_API_KEY"))
+_DEEPINFRA_API_KEY_SET = bool(os.environ.get("DEEPINFRA_API_KEY"))
 
 skip_without_groq_key = pytest.mark.skipif(
-    not _GROQ_API_KEY_SET,
-    reason="GROQ_API_KEY not set – skipping live API test",
+    not _DEEPINFRA_API_KEY_SET,
+    reason="DEEPINFRA_API_KEY not set – skipping live API test",
 )
 
 
@@ -49,10 +49,10 @@ class TestGroqProviderDetection:
     """Verify Groq provider is selected correctly from env vars."""
 
     def test_groq_key_selects_groq_provider(self) -> None:
-        """Setting GROQ_API_KEY should auto-detect Groq provider."""
+        """Setting DEEPINFRA_API_KEY should auto-detect Groq provider."""
         from openai_compatible_provider import OpenAICompatibleProvider, ProviderType
 
-        env = {"GROQ_API_KEY": "gsk_test_key_abc123"}
+        env = {"DEEPINFRA_API_KEY": "di_test_key_abc123"}
         with patch.dict(os.environ, env, clear=True):
             provider = OpenAICompatibleProvider.from_env()
         assert provider.provider_type == ProviderType.GROQ
@@ -61,7 +61,7 @@ class TestGroqProviderDetection:
         """Groq provider should default to mixtral-8x7b-32768."""
         from openai_compatible_provider import OpenAICompatibleProvider
 
-        env = {"GROQ_API_KEY": "gsk_test_key_abc123"}
+        env = {"DEEPINFRA_API_KEY": "di_test_key_abc123"}
         with patch.dict(os.environ, env, clear=True):
             provider = OpenAICompatibleProvider.from_env()
         assert provider.default_model == "mixtral-8x7b-32768"
@@ -71,8 +71,8 @@ class TestGroqProviderDetection:
         from openai_compatible_provider import OpenAICompatibleProvider, ProviderType
 
         env = {
-            "OPENAI_PROVIDER_TYPE": "groq",
-            "GROQ_API_KEY": "gsk_test_key_abc123",
+            "OPENAI_PROVIDER_TYPE": "deepinfra",
+            "DEEPINFRA_API_KEY": "di_test_key_abc123",
         }
         with patch.dict(os.environ, env, clear=False):
             provider = OpenAICompatibleProvider.from_env()
@@ -84,7 +84,7 @@ class TestGroqProviderDetection:
 
         env = {
             "OPENAI_API_KEY": "sk-test-openai-key",
-            "GROQ_API_KEY": "gsk_test_key_abc123",
+            "DEEPINFRA_API_KEY": "di_test_key_abc123",
         }
         with patch.dict(os.environ, env, clear=True):
             provider = OpenAICompatibleProvider.from_env()
@@ -251,7 +251,7 @@ class TestGroqMockedAPI:
         """Verify parsing of a successful Groq API response."""
         from llm_integration_layer import LLMIntegrationLayer
 
-        layer = LLMIntegrationLayer(groq_api_key="gsk_test_mock")
+        layer = LLMIntegrationLayer(deepinfra_api_key="gsk_test_mock")
 
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -275,7 +275,7 @@ class TestGroqMockedAPI:
         """API error should trigger local LLM fallback."""
         from llm_integration_layer import LLMIntegrationLayer
 
-        layer = LLMIntegrationLayer(groq_api_key="gsk_test_mock")
+        layer = LLMIntegrationLayer(deepinfra_api_key="gsk_test_mock")
 
         request = self._make_request("test-002", "Test fallback", "creative")
 
@@ -293,7 +293,7 @@ class TestGroqMockedAPI:
         import requests as req_lib
         from llm_integration_layer import LLMIntegrationLayer
 
-        layer = LLMIntegrationLayer(groq_api_key="gsk_test_mock")
+        layer = LLMIntegrationLayer(deepinfra_api_key="gsk_test_mock")
 
         request = self._make_request("test-003", "Test timeout", "general")
 
@@ -310,7 +310,7 @@ class TestGroqMockedAPI:
         from llm_integration_layer import LLMIntegrationLayer
         import requests as req_lib
 
-        layer = LLMIntegrationLayer(groq_api_key="gsk_test_mock")
+        layer = LLMIntegrationLayer(deepinfra_api_key="gsk_test_mock")
 
         mock_response = MagicMock()
         mock_response.status_code = 429
@@ -330,14 +330,14 @@ class TestGroqMockedAPI:
         from llm_integration_layer import LLMIntegrationLayer
 
         layer = LLMIntegrationLayer()
-        layer.groq_api_keys = ["gsk_key1", "gsk_key2", "gsk_key3"]
+        layer.deepinfra_api_keys = ["gsk_key1", "gsk_key2", "gsk_key3"]
         layer.current_groq_key_index = 0
 
         # Verify keys rotate (internal state)
-        assert layer.groq_api_keys[0] == "gsk_key1"
-        assert layer.groq_api_keys[1] == "gsk_key2"
-        assert layer.groq_api_keys[2] == "gsk_key3"
-        assert len(layer.groq_api_keys) == 3
+        assert layer.deepinfra_api_keys[0] == "gsk_key1"
+        assert layer.deepinfra_api_keys[1] == "gsk_key2"
+        assert layer.deepinfra_api_keys[2] == "gsk_key3"
+        assert len(layer.deepinfra_api_keys) == 3
 
 
 # ---------------------------------------------------------------------------
@@ -376,12 +376,12 @@ class TestGroqCircuitBreaker:
 
 
 # ---------------------------------------------------------------------------
-# Tier 3: Live Groq API Tests (require GROQ_API_KEY)
+# Tier 3: Live Groq API Tests (require DEEPINFRA_API_KEY)
 # ---------------------------------------------------------------------------
 
 
 class TestGroqLiveAPI:
-    """Live Groq API tests — skipped unless GROQ_API_KEY is set."""
+    """Live Groq API tests — skipped unless DEEPINFRA_API_KEY is set."""
 
     @skip_without_groq_key
     def test_live_groq_provider_available(self) -> None:
