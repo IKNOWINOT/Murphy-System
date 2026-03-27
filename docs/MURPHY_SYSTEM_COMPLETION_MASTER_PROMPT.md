@@ -226,7 +226,7 @@ When implementation choices arise, use this decision matrix:
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| LLM Provider SDK | `openai` Python package | Industry standard; works with OpenAI, Azure, Groq, Ollama, vLLM, LiteLLM — one client for all |
+| LLM Provider SDK | `openai` Python package | Industry standard; works with OpenAI, Azure, DeepInfra, Ollama, vLLM, LiteLLM — one client for all |
 | Vector Store | ChromaDB (local) → Pinecone (prod) | ChromaDB is zero-config for dev; Pinecone for production scale |
 | Task Queue | `asyncio` built-in → Celery/Redis for scale | Start with stdlib; add Celery only when needed |
 | Database | SQLite WAL mode (dev) → PostgreSQL (prod) | SQLite for zero-dependency dev; Postgres for ACID production |

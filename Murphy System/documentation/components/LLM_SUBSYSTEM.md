@@ -1,7 +1,7 @@
 # LLM Subsystem
 
 **Package:** `src/` (standalone modules)  
-**Key files:** `llm_controller.py`, `llm_integration_layer.py`, `groq_key_rotator.py`, `openai_compatible_provider.py`  
+**Key files:** `llm_controller.py`, `llm_integration_layer.py`, `deepinfra_key_rotator.py`, `openai_compatible_provider.py`  
 **Last updated:** 2026-03-16
 
 ---
@@ -10,10 +10,10 @@
 
 The Murphy System LLM Subsystem is the unified gateway between the application layer and all language model providers. It provides:
 
-- **Provider abstraction** — a single `OpenAICompatibleProvider` that speaks to OpenAI, Azure OpenAI, Groq, Ollama, vLLM, LiteLLM, custom endpoints, and the on-board Murphy Foundation Model (MFM)
+- **Provider abstraction** — a single `OpenAICompatibleProvider` that speaks to OpenAI, Azure OpenAI, DeepInfra, Ollama, vLLM, LiteLLM, custom endpoints, and the on-board Murphy Foundation Model (MFM)
 - **Intelligent routing** — `LLMController` selects the best model for each request based on capability, cost, and context requirements
-- **Domain-to-provider routing** — `LLMIntegrationLayer` routes by knowledge domain (mathematical → Aristotle, creative → Groq, etc.)
-- **API key rotation** — `GroqKeyRotator` distributes calls across multiple keys to maximize throughput and handle key failures gracefully
+- **Domain-to-provider routing** — `LLMIntegrationLayer` routes by knowledge domain (mathematical → Aristotle, creative → DeepInfra, etc.)
+- **API key rotation** — `DeepInfraKeyRotator` distributes calls across multiple keys to maximize throughput and handle key failures gracefully
 
 ---
 
@@ -34,8 +34,8 @@ LLMIntegrationLayer              OpenAICompatibleProvider
   - math/physics validation       │
        │                          │
        ▼                          ▼
-GroqKeyRotator          Provider Backends
-  - round-robin rotation   OpenAI / Azure / Groq / Ollama /
+DeepInfraKeyRotator          Provider Backends
+  - round-robin rotation   OpenAI / Azure / DeepInfra / Ollama /
   - auto-disable on error  vLLM / LiteLLM / Custom / MFM
   - usage stats
 ```
@@ -54,7 +54,7 @@ GroqKeyRotator          Provider Backends
 |----------------|-------------|
 | `OPENAI` | OpenAI API (gpt-4, gpt-3.5-turbo, etc.) |
 | `AZURE` | Azure OpenAI Service |
-| `GROQ` | Groq Cloud (Mixtral, LLaMA, Gemma) |
+| `DEEPINFRA` | DeepInfra Cloud (Mixtral, LLaMA, Gemma) |
 | `OLLAMA` | Local Ollama server |
 | `VLLM` | vLLM inference server |
 | `LITELLM` | LiteLLM unified proxy |
@@ -90,9 +90,9 @@ CompletionResponse(
 from openai_compatible_provider import OpenAICompatibleProvider, ProviderConfig, ProviderType
 
 config = ProviderConfig(
-    provider_type=ProviderType.GROQ,
-    api_key=os.environ["GROQ_API_KEY"],
-    base_url="https://api.groq.com/openai/v1",
+    provider_type=ProviderType.DEEPINFRA,
+    api_key=os.environ["DEEPINFRA_API_KEY"],
+    base_url="https://api.deepinfra.com/v1/openai/v1",
     model="mixtral-8x7b-32768",
 )
 provider = OpenAICompatibleProvider(config)
@@ -112,9 +112,9 @@ Based on the Recursive Language Models (RLM) pattern (arXiv:2512.24601).
 
 | `LLMModel` | Description | Best For |
 |------------|-------------|----------|
-| `GROQ_MIXTRAL` | Groq Mixtral-8x7B | General purpose, high quality |
-| `GROQ_LLAMA` | Groq LLaMA-3 | Fast inference, reasoning |
-| `GROQ_GEMMA` | Groq Gemma-7B | Lightweight tasks |
+| `DEEPINFRA_MIXTRAL` | DeepInfra Mixtral-8x7B | General purpose, high quality |
+| `DEEPINFRA_LLAMA` | DeepInfra LLaMA-3 | Fast inference, reasoning |
+| `DEEPINFRA_GEMMA` | DeepInfra Gemma-7B | Lightweight tasks |
 | `LOCAL_SMALL` | On-device small model | Offline, fast |
 | `LOCAL_MEDIUM` | On-device medium model | Offline, balanced |
 | `MFM` | Murphy Foundation Model | Murphy-specific domain knowledge |
@@ -163,11 +163,11 @@ response = await controller.complete(
 | `MATHEMATICAL` | Aristotle | — | On disagreement |
 | `PHYSICS` | Aristotle | — | On disagreement |
 | `ENGINEERING` | Aristotle | Wulfrum | Always validate |
-| `CREATIVE` | Groq | — | Never |
-| `STRATEGIC` | Groq | — | On low confidence |
-| `ARCHITECTURAL` | Groq | Wulfrum | On disagreement |
+| `CREATIVE` | DeepInfra | — | Never |
+| `STRATEGIC` | DeepInfra | — | On low confidence |
+| `ARCHITECTURAL` | DeepInfra | Wulfrum | On disagreement |
 | `REGULATORY` | Aristotle | — | Always |
-| `GENERAL` | Groq | — | Never |
+| `GENERAL` | DeepInfra | — | Never |
 
 #### Validation Flow
 
@@ -219,7 +219,7 @@ HumanLoopTrigger(
 from llm_integration_layer import LLMIntegrationLayer, DomainType, LLMProvider
 
 layer = LLMIntegrationLayer(
-    groq_api_key=os.environ["GROQ_API_KEY"],
+    deepinfra_api_key=os.environ["DEEPINFRA_API_KEY"],
 )
 response = layer.route_request(
     prompt="Calculate the load-bearing capacity of this beam...",
@@ -233,7 +233,7 @@ if response.human_loop_triggers:
 
 ---
 
-### `groq_key_rotator.py`
+### `deepinfra_key_rotator.py`
 
 **Round-robin API key rotation with automatic failure handling.**
 
@@ -260,16 +260,16 @@ if response.human_loop_triggers:
 #### Usage
 
 ```python
-from groq_key_rotator import GroqKeyRotator
+from deepinfra_key_rotator import DeepInfraKeyRotator
 
-rotator = GroqKeyRotator([
-    ("Primary", os.environ["GROQ_KEY_1"]),
-    ("Secondary", os.environ["GROQ_KEY_2"]),
-    ("Tertiary", os.environ["GROQ_KEY_3"]),
+rotator = DeepInfraKeyRotator([
+    ("Primary", os.environ["DEEPINFRA_KEY_1"]),
+    ("Secondary", os.environ["DEEPINFRA_KEY_2"]),
+    ("Tertiary", os.environ["DEEPINFRA_KEY_3"]),
 ])
 
 name, key = rotator.get_next_key()
-# Use key for Groq API call
+# Use key for DeepInfra API call
 rotator.record_success(name)  # or rotator.record_failure(name, "Rate limited")
 
 stats = rotator.get_statistics()
@@ -282,15 +282,15 @@ stats = rotator.get_statistics()
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `GROQ_API_KEY` | Optional | Default Groq API key |
-| `GROQ_API_KEY_2` | Optional | Secondary Groq key for rotation |
-| `GROQ_API_KEY_3` | Optional | Tertiary Groq key for rotation |
+| `DEEPINFRA_API_KEY` | Optional | Default DeepInfra API key |
+| `DEEPINFRA_API_KEY_2` | Optional | Secondary DeepInfra key for rotation |
+| `DEEPINFRA_API_KEY_3` | Optional | Tertiary DeepInfra key for rotation |
 | `OPENAI_API_KEY` | Optional | OpenAI API key |
 | `AZURE_OPENAI_API_KEY` | Optional | Azure OpenAI API key |
 | `AZURE_OPENAI_ENDPOINT` | Optional | Azure OpenAI endpoint URL |
 | `OLLAMA_BASE_URL` | Optional | Ollama server URL (default: `http://localhost:11434`) |
 | `MFM_MODEL_PATH` | Optional | Path to on-device Murphy Foundation Model |
-| `LLM_DEFAULT_PROVIDER` | Optional | Default provider (`groq`, `openai`, `mfm`, …) |
+| `LLM_DEFAULT_PROVIDER` | Optional | Default provider (`deepinfra`, `openai`, `mfm`, …) |
 | `LLM_MAX_TOKENS` | Optional | Global token limit override (default: 2048) |
 | `LLM_TEMPERATURE` | Optional | Global temperature override (default: 0.7) |
 
@@ -300,10 +300,10 @@ stats = rotator.get_statistics()
 
 ```bash
 # Unit tests
-python -m pytest tests/test_groq_key_rotator.py tests/test_llm_integration_layer.py --no-cov -q
+python -m pytest tests/test_deepinfra_key_rotator.py tests/test_llm_integration_layer.py --no-cov -q
 
-# Groq integration tests (requires GROQ_API_KEY)
-python -m pytest tests/test_groq_integration.py --no-cov -q
+# DeepInfra integration tests (requires DEEPINFRA_API_KEY)
+python -m pytest tests/test_deepinfra_integration.py --no-cov -q
 ```
 
 ---

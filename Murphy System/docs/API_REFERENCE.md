@@ -87,7 +87,7 @@ System status dashboard — includes module registry, LLM state, active gates.
   "status": "operational",
   "modules_loaded": 625,
   "llm_enabled": true,
-  "llm_provider": "groq",
+  "llm_provider": "deepinfra",
   "active_gates": ["security", "compliance", "governance"],
   "uptime_seconds": 12345,
   "version": "1.0.0"
@@ -157,10 +157,10 @@ Returns the current LLM configuration (provider, model, key mask).
 **Response 200**
 ```json
 {
-  "provider": "groq",
+  "provider": "deepinfra",
   "model": "llama3-70b-8192",
   "key_configured": true,
-  "key_mask": "gsk_...xxxx"
+  "key_mask": "di_...xxxx"
 }
 ```
 
@@ -177,24 +177,24 @@ Configure the LLM provider and API key (hot-reload, no restart needed).
 **Request Body**
 ```json
 {
-  "provider": "groq",
-  "api_key": "gsk_your_key_here"
+  "provider": "deepinfra",
+  "api_key": "di_your_key_here"
 }
 ```
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `provider` | string | ✅ | One of: `groq`, `openai`, `anthropic`, `local` |
+| `provider` | string | ✅ | One of: `deepinfra`, `openai`, `anthropic`, `local` |
 | `api_key` | string | ✅ | API key for the chosen provider |
 
 **Response 200**
 ```json
-{ "success": true, "provider": "groq", "model": "llama3-70b-8192" }
+{ "success": true, "provider": "deepinfra", "model": "llama3-70b-8192" }
 ```
 
 **Response 400** — Invalid provider or key format
 ```json
-{ "success": false, "error": "Invalid API key format for provider 'groq'" }
+{ "success": false, "error": "Invalid API key format for provider 'deepinfra'" }
 ```
 
 ---
@@ -208,7 +208,7 @@ Test LLM connectivity with the currently configured key.
 
 **Response 200 — success**
 ```json
-{ "success": true, "provider": "groq", "model": "llama3-70b-8192", "latency_ms": 312 }
+{ "success": true, "provider": "deepinfra", "model": "llama3-70b-8192", "latency_ms": 312 }
 ```
 
 **Response 200 — failure**
@@ -899,7 +899,7 @@ List items that have fallen below their reorder threshold.
 
 **Response 200**
 ```json
-{ "reorder_needed": [{ "item_id": "api-quota-groq", "current": 500, "threshold": 1000 }] }
+{ "reorder_needed": [{ "item_id": "api-quota-deepinfra", "current": 500, "threshold": 1000 }] }
 ```
 
 ---

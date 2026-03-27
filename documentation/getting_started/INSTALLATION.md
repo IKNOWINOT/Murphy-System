@@ -316,7 +316,7 @@ sudo systemctl status murphy-system
 ## Onboard LLM — Ollama Setup
 
 Murphy's onboard LLM runs through [Ollama](https://ollama.com). Without an
-external API key (Groq, OpenAI, etc.) Ollama **is** the LLM. Install it once
+external API key (DeepInfra, OpenAI, etc.) Ollama **is** the LLM. Install it once
 on the host and it will be managed by the deploy workflow automatically.
 
 ```bash

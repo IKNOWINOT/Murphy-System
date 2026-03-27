@@ -14,7 +14,7 @@ environment. Each item links to the responsible module or document.
 
 - [ ] Python 3.10+ installed (3.12 recommended)
 - [ ] `.env` file populated from `.env.example` — all required keys set
-- [ ] `GROQ_API_KEY` (or alternative LLM provider key) confirmed working
+- [ ] `DEEPINFRA_API_KEY` (or alternative LLM provider key) confirmed working
 - [ ] Database / Redis connection verified (if persistence enabled)
 - [ ] Disk space ≥ 10 GB available for logs and state files
 - [ ] `pip install -r requirements_murphy_1.0.txt` completed without errors
@@ -170,7 +170,7 @@ For the fastest path to a live selling cycle:
 ```bash
 # 1. Set environment
 export MURPHY_ENV=production
-export GROQ_API_KEY=<your_key>
+export DEEPINFRA_API_KEY=<your_key>
 
 # 2. Install
 pip install -r requirements_murphy_1.0.txt

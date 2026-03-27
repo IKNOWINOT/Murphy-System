@@ -4,7 +4,7 @@
 
 ### phi3 never responds — chat returns template text
 
-**Symptom:** Chat always returns text like `"Groq generative response for..."` instead of a real reply.
+**Symptom:** Chat always returns text like `"DeepInfra generative response for..."` instead of a real reply.
 
 **Cause:** Ollama is not running or phi3 is not pulled.
 
@@ -52,16 +52,16 @@ sudo systemctl restart murphy-production
 
 ---
 
-### GROQ_API_KEY missing — want to use Groq cloud
+### DEEPINFRA_API_KEY missing — want to use DeepInfra cloud
 
 ```bash
 # Store key (persists across restarts)
 curl -s -X POST http://localhost:8000/api/credentials/store \
   -H "Content-Type: application/json" \
-  -d '{"integration":"groq","credential":"gsk_YOUR_KEY_HERE"}'
+  -d '{"integration":"deepinfra","credential":"di_YOUR_KEY_HERE"}'
 
 # OR via terminal command inside Murphy
-set key groq gsk_YOUR_KEY_HERE
+set key deepinfra di_YOUR_KEY_HERE
 ```
 
 ---

@@ -31,7 +31,7 @@ movement attacks.
                     │                        ▼                 │
                     │  Egress allowed:                         │
                     │  • kube-system:53 (DNS)                  │
-                    │  • *:443 (HTTPS — Groq, GitHub, etc.)    │
+                    │  • *:443 (HTTPS — DeepInfra, GitHub, etc.)    │
                     │  • *:80  (HTTP redirects)                │
                     │  • murphy-system (intra-namespace)       │
                     └─────────────────────────────────────────┘

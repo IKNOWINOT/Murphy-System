@@ -83,7 +83,7 @@ PSF, MPL 2.0) that are compatible with BSL 1.1 distribution.
 |---------|---------|-----|
 | openai | Apache-2.0 | https://github.com/openai/openai-python/blob/main/LICENSE |
 | anthropic | MIT | https://github.com/anthropics/anthropic-sdk-python/blob/main/LICENSE |
-| groq | Apache-2.0 | https://github.com/groq/groq-python/blob/main/LICENSE |
+| deepinfra | Apache-2.0 | https://github.com/deepinfra/deepinfra-python/blob/main/LICENSE |
 
 ## Data Validation
 

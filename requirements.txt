@@ -40,7 +40,7 @@ authlib>=1.2.0
 # AI / LLM
 openai>=1.30.0,<2.0.0              # OpenAI GPT models
 anthropic>=0.25.0,<1.0.0           # Anthropic Claude models
-groq>=0.9.0,<1.0.0                 # Groq cloud LLM API
+deepinfra>=0.9.0,<1.0.0                 # DeepInfra cloud LLM API
 
 # Communication
 sendgrid>=6.11.0,<7.0.0            # SendGrid email delivery

@@ -1,7 +1,7 @@
 # Murphy-System: Comprehensive Testing Strategy
 
 **Date:** 2026-03-10
-**Scope:** Testing plan for all modules, Groq API integration, and system-wide validation
+**Scope:** Testing plan for all modules, DeepInfra API integration, and system-wide validation
 **Related:** [Audit and Completion Report](./AUDIT_AND_COMPLETION_REPORT.md)
 
 ---
@@ -9,7 +9,7 @@
 ## Table of Contents
 
 1. [Testing Overview](#1-testing-overview)
-2. [Groq API Integration Testing](#2-groq-api-integration-testing)
+2. [DeepInfra API Integration Testing](#2-deepinfra-api-integration-testing)
 3. [Module-Level Testing Plan](#3-module-level-testing-plan)
 4. [Cross-Module System Testing](#4-cross-module-system-testing)
 5. [Test Execution Guide](#5-test-execution-guide)
@@ -23,7 +23,7 @@
 The Murphy-System has **498 test files** with **8,843 test functions** and a **100% pass rate**.
 This testing strategy extends coverage to include:
 
-- **Groq API integration tests** — Validate LLM provider connectivity and response handling
+- **DeepInfra API integration tests** — Validate LLM provider connectivity and response handling
 - **Cross-module system tests** — Verify end-to-end workflows spanning multiple subsystems
 - **Regression protection** — Ensure new changes do not break existing functionality
 
@@ -34,7 +34,7 @@ This testing strategy extends coverage to include:
 | **Unit Tests** | Individual function/class behavior | `pytest tests/test_*.py` |
 | **Integration Tests** | Multi-module interaction | `pytest tests/ -m integration` |
 | **E2E Tests** | Full HTTP API stack | `pytest tests/e2e/` |
-| **Groq Integration** | LLM provider validation | `pytest tests/test_groq_integration.py` |
+| **DeepInfra Integration** | LLM provider validation | `pytest tests/test_deepinfra_integration.py` |
 | **System-Wide** | Cross-module workflows | `pytest tests/test_system_wide_validation.py` |
 | **Commissioning** | Import verification | `pytest tests/commissioning/` |
 
@@ -47,8 +47,8 @@ cd "Murphy System"
 # Install test dependencies
 pip install pytest pytest-asyncio pytest-cov httpx
 
-# Set up environment for Groq live tests (optional)
-export GROQ_API_KEY="your_groq_api_key_here"
+# Set up environment for DeepInfra live tests (optional)
+export DEEPINFRA_API_KEY="your_deepinfra_api_key_here"
 
 # Run all tests
 python -m pytest tests/ -v --timeout=60
@@ -56,21 +56,21 @@ python -m pytest tests/ -v --timeout=60
 
 ---
 
-## 2. Groq API Integration Testing
+## 2. DeepInfra API Integration Testing
 
 ### 2.1 Test Architecture
 
-The Groq integration tests are structured in three tiers:
+The DeepInfra integration tests are structured in three tiers:
 
 ```
 ┌─────────────────────────────────────────────────┐
-│  Tier 3: Live API Tests (requires GROQ_API_KEY) │
-│  - Real API calls to api.groq.com               │
+│  Tier 3: Live API Tests (requires DEEPINFRA_API_KEY) │
+│  - Real API calls to api.deepinfra.com               │
 │  - Validates actual response format/content      │
 │  - Skipped automatically when key not set        │
 ├─────────────────────────────────────────────────┤
 │  Tier 2: Integration Tests (mocked HTTP)         │
-│  - Mock Groq API responses                       │
+│  - Mock DeepInfra API responses                       │
 │  - Tests error handling, retries, fallbacks      │
 │  - Always runs (no external dependencies)        │
 ├─────────────────────────────────────────────────┤
@@ -82,50 +82,50 @@ The Groq integration tests are structured in three tiers:
 └─────────────────────────────────────────────────┘
 ```
 
-### 2.2 Test File: `tests/test_groq_integration.py`
+### 2.2 Test File: `tests/test_deepinfra_integration.py`
 
 **Test Classes:**
 
 | Class | Tests | Tier | Description |
 |-------|-------|------|-------------|
-| `TestGroqProviderDetection` | 5 | 1 | Environment-based provider auto-detection |
-| `TestGroqKeyRotation` | 5 | 1 | Key rotation, failure handling, statistics |
-| `TestGroqDomainRouting` | 4 | 1 | Domain-to-provider mapping for Groq |
-| `TestGroqMockedAPI` | 5 | 2 | Mocked HTTP request/response validation |
-| `TestGroqCircuitBreaker` | 3 | 2 | Circuit breaker with Groq failures |
-| `TestGroqLiveAPI` | 4 | 3 | Live API calls (requires `GROQ_API_KEY`) |
+| `TestDeepInfraProviderDetection` | 5 | 1 | Environment-based provider auto-detection |
+| `TestDeepInfraKeyRotation` | 5 | 1 | Key rotation, failure handling, statistics |
+| `TestDeepInfraDomainRouting` | 4 | 1 | Domain-to-provider mapping for DeepInfra |
+| `TestDeepInfraMockedAPI` | 5 | 2 | Mocked HTTP request/response validation |
+| `TestDeepInfraCircuitBreaker` | 3 | 2 | Circuit breaker with DeepInfra failures |
+| `TestDeepInfraLiveAPI` | 4 | 3 | Live API calls (requires `DEEPINFRA_API_KEY`) |
 
-### 2.3 Running Groq Tests
+### 2.3 Running DeepInfra Tests
 
 ```bash
-# Run all Groq tests (Tier 1 & 2 always, Tier 3 if key set)
-python -m pytest tests/test_groq_integration.py -v
+# Run all DeepInfra tests (Tier 1 & 2 always, Tier 3 if key set)
+python -m pytest tests/test_deepinfra_integration.py -v
 
 # Run only live API tests
-GROQ_API_KEY="your_key" python -m pytest tests/test_groq_integration.py -k "LiveAPI" -v
+DEEPINFRA_API_KEY="your_key" python -m pytest tests/test_deepinfra_integration.py -k "LiveAPI" -v
 
 # Run only unit/mock tests (no API key needed)
-python -m pytest tests/test_groq_integration.py -k "not LiveAPI" -v
+python -m pytest tests/test_deepinfra_integration.py -k "not LiveAPI" -v
 ```
 
-### 2.4 Groq API Test Scenarios
+### 2.4 DeepInfra API Test Scenarios
 
 #### Tier 1: Configuration Tests
-1. **Auto-detection:** Setting `GROQ_API_KEY` auto-selects Groq provider
-2. **Default model:** Groq provider defaults to `mixtral-8x7b-32768`
-3. **Base URL:** Groq base URL is `https://api.groq.com/openai/v1`
+1. **Auto-detection:** Setting `DEEPINFRA_API_KEY` auto-selects DeepInfra provider
+2. **Default model:** DeepInfra provider defaults to `mixtral-8x7b-32768`
+3. **Base URL:** DeepInfra base URL is `https://api.deepinfra.com/v1/openai/v1`
 4. **Key rotation:** Multiple keys rotate correctly via round-robin
 5. **Key disable:** Keys auto-disable after consecutive failures
 
 #### Tier 2: Mocked Integration Tests
 1. **Successful response:** Mock 200 response with valid chat completion
 2. **Error handling:** Mock 429 (rate limit), 500 (server error) responses
-3. **Fallback:** Groq failure triggers onboard LLM fallback
+3. **Fallback:** DeepInfra failure triggers onboard LLM fallback
 4. **Timeout:** Request timeout triggers fallback
 5. **Circuit breaker:** Repeated failures open circuit
 
 #### Tier 3: Live API Tests
-1. **Health check:** Verify Groq API is reachable
+1. **Health check:** Verify DeepInfra API is reachable
 2. **Chat completion:** Send simple prompt, validate response format
 3. **Model listing:** Verify available models match expectations
 4. **Rate limiting:** Validate rate limit headers in response
@@ -138,7 +138,7 @@ python -m pytest tests/test_groq_integration.py -k "not LiveAPI" -v
 
 | Module | Test File | New Tests | Focus |
 |--------|-----------|-----------|-------|
-| Groq Integration | `test_groq_integration.py` | 26 | Provider, routing, API |
+| DeepInfra Integration | `test_deepinfra_integration.py` | 26 | Provider, routing, API |
 | System-Wide | `test_system_wide_validation.py` | 18 | Cross-module workflows |
 
 ### 3.2 Existing Test Suites (Baseline Verification)
@@ -227,10 +227,10 @@ The system-wide tests validate workflows that span multiple subsystems:
 cd "Murphy System"
 
 # Run the new test suites
-python -m pytest tests/test_groq_integration.py tests/test_system_wide_validation.py -v
+python -m pytest tests/test_deepinfra_integration.py tests/test_system_wide_validation.py -v
 
 # Run with coverage
-python -m pytest tests/test_groq_integration.py tests/test_system_wide_validation.py \
+python -m pytest tests/test_deepinfra_integration.py tests/test_system_wide_validation.py \
   --cov=src --cov-report=term-missing -v
 
 # Run all tests including existing suite
@@ -243,12 +243,12 @@ The test suites are designed for CI/CD integration:
 
 ```yaml
 # In .github/workflows/ci.yml
-- name: Run Groq Integration Tests
+- name: Run DeepInfra Integration Tests
   env:
-    GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+    DEEPINFRA_API_KEY: ${{ secrets.DEEPINFRA_API_KEY }}
   run: |
     cd "Murphy System"
-    python -m pytest tests/test_groq_integration.py -v --tb=short
+    python -m pytest tests/test_deepinfra_integration.py -v --tb=short
 
 - name: Run System-Wide Tests
   run: |
@@ -256,28 +256,28 @@ The test suites are designed for CI/CD integration:
     python -m pytest tests/test_system_wide_validation.py -v --tb=short
 ```
 
-### 5.3 Groq Live Test Configuration
+### 5.3 DeepInfra Live Test Configuration
 
-To run live Groq API tests:
+To run live DeepInfra API tests:
 
-1. Obtain a Groq API key from [console.groq.com/keys](https://console.groq.com/keys)
+1. Obtain a DeepInfra API key from [deepinfra.com](https://deepinfra.com)
 2. Set the environment variable:
    ```bash
-   export GROQ_API_KEY="gsk_your_key_here"
+   export DEEPINFRA_API_KEY="di_your_key_here"
    ```
 3. Run live tests:
    ```bash
-   python -m pytest tests/test_groq_integration.py -k "LiveAPI" -v
+   python -m pytest tests/test_deepinfra_integration.py -k "LiveAPI" -v
    ```
 
-**Note:** Live API tests are automatically skipped when `GROQ_API_KEY` is not set.
-The key should be stored as a CI secret (`secrets.GROQ_API_KEY`), never committed to code.
+**Note:** Live API tests are automatically skipped when `DEEPINFRA_API_KEY` is not set.
+The key should be stored as a CI secret (`secrets.DEEPINFRA_API_KEY`), never committed to code.
 
 ### 5.4 Test Markers
 
 | Marker | Description | Command |
 |--------|-------------|---------|
-| `groq_live` | Requires live Groq API key | `-m groq_live` |
+| `deepinfra_live` | Requires live DeepInfra API key | `-m deepinfra_live` |
 | `system_wide` | Cross-module validation | `-m system_wide` |
 | `unit` | Unit tests (no I/O) | `-m unit` |
 | `integration` | Integration tests | `-m integration` |
@@ -287,7 +287,7 @@ The key should be stored as a CI secret (`secrets.GROQ_API_KEY`), never committe
 When all tests pass:
 
 ```
-tests/test_groq_integration.py    - 26 passed (4 skipped without GROQ_API_KEY)
+tests/test_deepinfra_integration.py    - 26 passed (4 skipped without DEEPINFRA_API_KEY)
 tests/test_system_wide_validation.py - 18 passed
 Total new tests: 44 (40 always-run + 4 live-only)
 ```

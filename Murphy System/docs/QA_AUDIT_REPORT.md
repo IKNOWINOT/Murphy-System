@@ -60,7 +60,7 @@ These controls were verified as functioning correctly during the audit:
 8. **AuthenticationSession expiry** — session timeout and concurrent session limits
 9. **SecureKeyManager Fernet encryption** — API key encryption at rest
 10. **InputSanitizer injection detection** — XSS, SQL injection, path traversal detection
-11. **GroqKeyRotator thread safety** — API key rotation is thread-safe
+11. **DeepInfraKeyRotator thread safety** — API key rotation is thread-safe
 12. **SensitiveDataClassifier DLP** — data leak prevention classification
 13. **TrustRecomputer decay model** — trust scores decay over time
 14. **AdapterRegistry.emergency_stop_all()** — emergency stop propagates to all adapters

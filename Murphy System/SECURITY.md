@@ -68,7 +68,7 @@ The following are **in scope** for security testing:
 
 The following are **out of scope**:
 
-- Third-party LLM provider APIs (Groq, OpenAI, Anthropic) — report those to the respective provider
+- Third-party LLM provider APIs (DeepInfra, OpenAI, Anthropic) — report those to the respective provider
 - Social engineering attacks against Inoni LLC employees
 - Physical security
 - Denial-of-service attacks against our infrastructure (rate-limit bypass testing against your own local instance is fine)

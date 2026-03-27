@@ -43,7 +43,7 @@ pip install -r requirements_murphy_1.0.txt
 
 # 4. Configure environment
 cp .env.example .env
-# Edit .env and set at minimum: GROQ_API_KEY
+# Edit .env and set at minimum: DEEPINFRA_API_KEY
 
 # 5. Start the server
 python murphy_system_1.0_runtime.py
@@ -138,8 +138,8 @@ server to refuse to start if unset.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `MURPHY_LLM_PROVIDER` | ❌ | `groq` | Active LLM provider (`groq`, `openai`, `anthropic`, `local`) |
-| `GROQ_API_KEY` | ❌ | — | Groq API key (required for LLM features) |
+| `MURPHY_LLM_PROVIDER` | ❌ | `deepinfra` | Active LLM provider (`deepinfra`, `openai`, `anthropic`, `local`) |
+| `DEEPINFRA_API_KEY` | ❌ | — | DeepInfra API key (required for LLM features) |
 | `OPENAI_API_KEY` | ❌ | — | OpenAI API key |
 | `ANTHROPIC_API_KEY` | ❌ | — | Anthropic Claude API key |
 | `LOCAL_LLM_URL` | ❌ | `http://localhost:11434` | URL for local Ollama instance |
