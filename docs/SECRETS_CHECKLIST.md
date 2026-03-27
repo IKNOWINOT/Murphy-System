@@ -48,7 +48,7 @@ These enable additional integrations but are not required for core operation.
 
 | Secret | Description | Provider |
 |---|---|---|
-| `GROQ_API_KEY` | LLM inference via Groq (faster/cheaper than OpenAI) | [console.groq.com](https://console.groq.com) |
+| `DEEPINFRA_API_KEY` | LLM inference via DeepInfra (faster/cheaper than OpenAI) | [console.deepinfra.com](https://console.deepinfra.com) |
 | `OPENAI_API_KEY` | OpenAI GPT models | [platform.openai.com](https://platform.openai.com) |
 | `STRIPE_SECRET_KEY` | Payment processing | [dashboard.stripe.com](https://dashboard.stripe.com) |
 | `SENTRY_DSN` | Error tracking | [sentry.io](https://sentry.io) |

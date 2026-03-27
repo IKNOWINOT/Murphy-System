@@ -57,7 +57,7 @@ class ProcessingCostProfile:
     """
 
     tier: str
-    llm_inference_cost: float = 0.0     # LLM API calls (Groq / local)
+    llm_inference_cost: float = 0.0     # LLM API calls (DeepInfra / local)
     compute_cost: float = 0.0           # CPU/GPU time for pipelines
     storage_cost: float = 0.0           # Persistent storage, logs, artifacts
     bandwidth_cost: float = 0.0         # Egress, API calls, webhooks
@@ -199,7 +199,7 @@ class ScaleProjection:
 # ---------------------------------------------------------------------------
 
 # Realistic default cost profiles based on the Murphy System's LLM costs
-# (Groq Mixtral $0.00027/1k tokens, Llama $0.00059/1k, Gemma $0.0001/1k)
+# (DeepInfra Mixtral $0.00027/1k tokens, Llama $0.00059/1k, Gemma $0.0001/1k)
 # and typical SaaS infrastructure costs.
 
 _DEFAULT_COST_PROFILES: Dict[str, ProcessingCostProfile] = {

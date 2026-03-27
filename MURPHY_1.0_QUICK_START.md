@@ -195,8 +195,8 @@ MURPHY_PORT=8000
 
 # LLM — defaults to onboard LLM (no key required)
 # Add an external key below for enhanced quality (optional)
-# MURPHY_LLM_PROVIDER=groq
-# GROQ_API_KEY=your_groq_key
+# MURPHY_LLM_PROVIDER=deepinfra
+# DEEPINFRA_API_KEY=your_groq_key
 # OPENAI_API_KEY=your_openai_key
 
 # Integration Keys

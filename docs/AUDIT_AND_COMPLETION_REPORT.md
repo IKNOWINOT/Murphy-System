@@ -30,7 +30,7 @@ system completion to **100%** at the functional level.
 - **Documentation freshness:** ~92% of documentation accurately reflects current code (up from 90%)
 - **Package-level READMEs:** 65 of 65 src/ packages now have README.md (up from 15) ✅ **GAP-5 CLOSED**
 - **AUAR documentation:** Appendix C added (UCB1, persistence, admin security) ✅ **GAP-4 CLOSED**
-- **Groq test suite:** 22 tests in `tests/test_groq_integration.py` covering Tiers 1-3 ✅ **GAP-6 CLOSED**
+- **DeepInfra test suite:** 22 tests in `tests/test_groq_integration.py` covering Tiers 1-3 ✅ **GAP-6 CLOSED**
 - **Environment variable docs:** All 96 vars documented in `CONFIGURATION.md` (§11-14 added) ✅ **GAP-7 CLOSED**
 - **Branch merge status:** PR #277 merge conflicts resolved (2026-03-16) — `main` merged into branch with `--allow-unrelated-histories`; root-level files reconciled, `requirements.txt` updated with email delivery deps
 
@@ -139,7 +139,7 @@ system completion to **100%** at the functional level.
 | **LLM Controller** (`src/llm_controller.py`) | 100% | 90% | 75% | 88% |
 | **LLM Integration Layer** (`src/llm_integration_layer.py`) | 100% | 90% | 70% | 87% |
 | **OpenAI Provider** (`src/openai_compatible_provider.py`) | 100% | 90% | 95% | 95% |
-| **Groq Key Rotator** (`src/groq_key_rotator.py`) | 100% | 90% | 95% | 95% |
+| **DeepInfra Key Rotator** (`src/groq_key_rotator.py`) | 100% | 90% | 95% | 95% |
 | **MFM** (`src/murphy_foundation_model/`) | 100% | 85% | 90% | 92% |
 | **AUAR** (`src/auar/`) | 100% | 95% | 95% | 97% |
 | **Compute Plane** (`src/compute_plane/`) | 100% | 85% | 80% | 88% |
@@ -217,9 +217,9 @@ system completion to **100%** at the functional level.
 - **Resolution:** Added `README.md` to all 50 remaining packages. All 65 of 65 packages now have READMEs. `src/README.md` top-level overview also added.
 - **Remaining:** None.
 
-#### ~~GAP-6: Groq Integration Test Suite~~ ✅ RESOLVED (2026-03-16)
-- **Affected:** Test coverage for Groq API integration
-- **Resolution:** `tests/test_groq_integration.py` implemented with 22 tests across 3 tiers: Tier 1 (provider detection/unit), Tier 2 (mocked HTTP integration), Tier 3 (live API, skip unless `GROQ_API_KEY` set). Covers: provider selection, key rotation, domain routing, API error fallback, timeout, rate-limit handling, circuit breaker, and live chat completion.
+#### ~~GAP-6: DeepInfra Integration Test Suite~~ ✅ RESOLVED (2026-03-16)
+- **Affected:** Test coverage for DeepInfra API integration
+- **Resolution:** `tests/test_groq_integration.py` implemented with 22 tests across 3 tiers: Tier 1 (provider detection/unit), Tier 2 (mocked HTTP integration), Tier 3 (live API, skip unless `DEEPINFRA_API_KEY` set). Covers: provider selection, key rotation, domain routing, API error fallback, timeout, rate-limit handling, circuit breaker, and live chat completion.
 
 ### 4.3 Low Gaps
 
@@ -247,12 +247,12 @@ system completion to **100%** at the functional level.
 | 1.2 | Document LLM Integration Layer domain routing | `llm_integration_layer.py` | 3h |
 | 1.3 | Add MFM endpoints to API reference | `documentation/api/ENDPOINTS.md` | 1h |
 | 1.4 | Create Security Plane documentation | `src/security_plane/` | 4h |
-| 1.5 | Document Groq key rotation system | `groq_key_rotator.py` | 2h |
+| 1.5 | Document DeepInfra key rotation system | `groq_key_rotator.py` | 2h |
 
 ### Phase 2: Testing Enhancement (Week 1-2)
 | Step | Task | Module | Effort |
 |------|------|--------|--------|
-| 2.1 | Create Groq API integration test suite | `tests/test_groq_integration.py` | 4h |
+| 2.1 | Create DeepInfra API integration test suite | `tests/test_groq_integration.py` | 4h |
 | 2.2 | Create cross-module system validation tests | `tests/test_system_wide_validation.py` | 4h |
 | 2.3 | Add LLM controller dedicated tests | `tests/test_llm_controller_dedicated.py` | 3h |
 | 2.4 | Update testing documentation | `documentation/testing/` | 2h |

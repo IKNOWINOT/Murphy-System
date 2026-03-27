@@ -666,7 +666,7 @@ def create_app() -> FastAPI:
         )
 
     # Load .env before initialising MurphySystem so env vars like
-    # MURPHY_LLM_PROVIDER and GROQ_API_KEY are available from the start.
+    # MURPHY_LLM_PROVIDER and DEEPINFRA_API_KEY are available from the start.
     # Resolve to the project root (Murphy System/) — three levels up from
     # src/runtime/app.py — so it works regardless of CWD.
     if _load_dotenv is not None:
@@ -1330,7 +1330,7 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": False, "error": "provider is required"}, status_code=400)
         # Map provider to its env var
         provider_env_vars = {
-            "groq": "GROQ_API_KEY",
+            "deepinfra": "DEEPINFRA_API_KEY",
             "openai": "OPENAI_API_KEY",
             "anthropic": "ANTHROPIC_API_KEY",
         }
@@ -1506,8 +1506,8 @@ def create_app() -> FastAPI:
         # Core LLM keys
         llm_items = []
         for provider, env_var, label, url in [
-            ("groq",      "GROQ_API_KEY",      "Groq (recommended, free)",
-             "https://console.groq.com/keys"),
+            ("deepinfra",      "DEEPINFRA_API_KEY",      "DeepInfra (recommended, free)",
+             "https://console.deepinfra.com/keys"),
             ("openai",    "OPENAI_API_KEY",     "OpenAI (GPT-4)",
              "https://platform.openai.com/api-keys"),
             ("anthropic", "ANTHROPIC_API_KEY",  "Anthropic (Claude)",
@@ -1584,20 +1584,20 @@ def create_app() -> FastAPI:
             _INTEGRATION_META = {}
 
         if integration_id not in _INTEGRATION_META and integration_id not in {
-            "groq", "openai", "anthropic"
+            "deepinfra", "openai", "anthropic"
         }:
             return JSONResponse({"success": False, "error": f"Unknown integration: {integration_id}"}, status_code=404)
 
         # Standard LLM providers
         _llm_guide = {
-            "groq": {
-                "name": "Groq", "env_var": "GROQ_API_KEY",
+            "deepinfra": {
+                "name": "DeepInfra", "env_var": "DEEPINFRA_API_KEY",
                 "steps": [
-                    {"step": 1, "title": "Create account", "url": "https://console.groq.com", "description": "Sign up at console.groq.com — free tier, no credit card needed."},
-                    {"step": 2, "title": "Generate API key", "url": "https://console.groq.com/keys", "description": "Click '+ Create API Key', name it 'murphy-system', copy the gsk_... value."},
-                    {"step": 3, "title": "Set key", "description": "In the Murphy terminal: set key groq <your-key>  or  POST /api/credentials/store"},
+                    {"step": 1, "title": "Create account", "url": "https://console.deepinfra.com", "description": "Sign up at console.deepinfra.com — free tier, no credit card needed."},
+                    {"step": 2, "title": "Generate API key", "url": "https://console.deepinfra.com/keys", "description": "Click '+ Create API Key', name it 'murphy-system', copy the gsk_... value."},
+                    {"step": 3, "title": "Set key", "description": "In the Murphy terminal: set key deepinfra <your-key>  or  POST /api/credentials/store"},
                 ],
-                "free_tier": True, "notes": "Rate limit: 30 req/min on free tier. Upgrade at console.groq.com/billing.",
+                "free_tier": True, "notes": "Rate limit: 30 req/min on free tier. Upgrade at console.deepinfra.com/billing.",
             },
             "openai": {
                 "name": "OpenAI", "env_var": "OPENAI_API_KEY",
@@ -5583,7 +5583,7 @@ def create_app() -> FastAPI:
     async def integrations_catalog():
         """Available integrations catalog."""
         catalog = [
-            {"id": "groq",        "name": "Groq",        "type": "llm",       "icon": "⚡", "description": "Ultra-fast LLM inference via Groq API"},
+            {"id": "deepinfra",        "name": "DeepInfra",        "type": "llm",       "icon": "⚡", "description": "Ultra-fast LLM inference via DeepInfra API"},
             {"id": "openai",      "name": "OpenAI",      "type": "llm",       "icon": "◎", "description": "GPT-4 and OpenAI model suite"},
             {"id": "stripe",      "name": "Stripe",      "type": "payments",  "icon": "💳", "description": "Payment processing and billing"},
             {"id": "cloudflare",  "name": "Cloudflare",  "type": "network",   "icon": "☁", "description": "CDN, DNS, and security gateway"},
@@ -5905,7 +5905,7 @@ def create_app() -> FastAPI:
         Secret values are NEVER returned.
         """
         _INTEGRATION_ENV_VARS = {
-            "groq":            ("Groq",             "GROQ_API_KEY"),
+            "deepinfra":            ("DeepInfra",             "DEEPINFRA_API_KEY"),
             "openai":          ("OpenAI",            "OPENAI_API_KEY"),
             "anthropic":       ("Anthropic",         "ANTHROPIC_API_KEY"),
             "sendgrid":        ("SendGrid",          "SENDGRID_API_KEY"),
@@ -5980,7 +5980,7 @@ def create_app() -> FastAPI:
 
         # Map integration name to env var
         _INTEGRATION_ENV_VARS = {
-            "groq": "GROQ_API_KEY",
+            "deepinfra": "DEEPINFRA_API_KEY",
             "openai": "OPENAI_API_KEY",
             "anthropic": "ANTHROPIC_API_KEY",
             "sendgrid": "SENDGRID_API_KEY",
@@ -6048,12 +6048,12 @@ def create_app() -> FastAPI:
                 "description": "Local LLM inference via Ollama. Runs phi3 by default.",
             },
             {
-                "id": "groq",
-                "name": "Groq Cloud",
+                "id": "deepinfra",
+                "name": "DeepInfra Cloud",
                 "type": "cloud",
-                "available": bool(os.getenv("GROQ_API_KEY") or os.getenv("GROQ_API_KEYS")),
-                "default_model": "llama3-70b-8192",
-                "description": "Groq fast inference cloud API. Requires GROQ_API_KEY.",
+                "available": bool(os.getenv("DEEPINFRA_API_KEY") or os.getenv("DEEPINFRA_API_KEYS")),
+                "default_model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
+                "description": "DeepInfra fast inference cloud API. Requires DEEPINFRA_API_KEY.",
             },
             {
                 "id": "aristotle",
@@ -6076,8 +6076,8 @@ def create_app() -> FastAPI:
         active = None
         if ollama_up and pulled_models:
             active = "ollama"
-        elif os.getenv("GROQ_API_KEY") or os.getenv("GROQ_API_KEYS"):
-            active = "groq"
+        elif os.getenv("DEEPINFRA_API_KEY") or os.getenv("DEEPINFRA_API_KEYS"):
+            active = "deepinfra"
 
         return JSONResponse({
             "success": True,
@@ -6327,7 +6327,7 @@ def create_app() -> FastAPI:
         active_modules = sum([
             1,  # integration_bus
             1,  # llm_integration_layer
-            1 if bool(os.getenv("GROQ_API_KEY")) else 0,   # groq
+            1 if bool(os.getenv("DEEPINFRA_API_KEY")) else 0,   # deepinfra
             1 if _check_ollama_available(_ollama_base_url()) else 0,  # ollama
             1,  # workflow_dag_engine
             1,  # automation_commissioner
@@ -6346,7 +6346,7 @@ def create_app() -> FastAPI:
             "modules": [
                 {"name": "integration_bus", "active": True},
                 {"name": "llm_integration_layer", "active": True},
-                {"name": "groq", "active": bool(os.getenv("GROQ_API_KEY"))},
+                {"name": "deepinfra", "active": bool(os.getenv("DEEPINFRA_API_KEY"))},
                 {"name": "ollama", "active": _check_ollama_available(_ollama_base_url())},
                 {"name": "workflow_dag_engine", "active": True},
                 {"name": "automation_commissioner", "active": True},
@@ -12315,8 +12315,8 @@ def create_app() -> FastAPI:
             "MURPHY_SECRET_KEY=change-me-to-a-random-string",
             "",
             "# === LLM Provider (optional — system works without it) ===",
-            "# MURPHY_LLM_PROVIDER=groq",
-            "# GROQ_API_KEY=your-groq-key-here  # Free at https://console.groq.com",
+            "# MURPHY_LLM_PROVIDER=deepinfra",
+            "# DEEPINFRA_API_KEY=your-deepinfra-key-here  # Free at https://console.deepinfra.com",
             "",
             "# === MFM (Murphy Foundation Model) ===",
             "MFM_ENABLED=true",

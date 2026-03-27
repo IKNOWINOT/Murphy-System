@@ -256,7 +256,7 @@ class MarketingAutomationEngine:
     def create_content(self, topic: str) -> Dict[str, Any]:
         """Generate content using the LLM integration layer.
         
-        Tries the real LLM integration layer first (Groq/OpenAI/Onboard LLM),
+        Tries the real LLM integration layer first (DeepInfra/OpenAI/Onboard LLM),
         then falls back to the UCP simulation.
         """
         logger.info("Creating content for: %s", topic)

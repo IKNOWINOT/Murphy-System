@@ -11,7 +11,7 @@ UI Chat  →  POST /api/chat
          ┌────┴──────────────────────────────────────────┐
          │ Step 1: LLMIntegrationLayer.route_request()   │
          │   • _determine_provider() picks domain        │
-         │   • _call_groq()  →  tries GROQ_API_KEY       │
+         │   • _call_groq()  →  tries DEEPINFRA_API_KEY       │
          │                  →  tries Ollama (phi3 first) │
          │                  →  falls back to template    │
          └────┬──────────────────────────────────────────┘
@@ -48,7 +48,7 @@ When Ollama is available, models are tried in this order:
 
 ## Provider Priority
 
-1. **Groq Cloud** (`GROQ_API_KEY`) — fastest, cloud-hosted
+1. **DeepInfra Cloud** (`DEEPINFRA_API_KEY`) — fastest, cloud-hosted
 2. **Ollama / phi3** — local, private, no API key needed
 3. **Deterministic fallback** — template-based, always available
 
@@ -88,7 +88,7 @@ Requires=ollama.service
 ```bash
 OLLAMA_BASE_URL=http://localhost:11434   # Default Ollama endpoint
 OLLAMA_MODEL=phi3                        # Default model
-GROQ_API_KEY=gsk_...                    # Optional: Groq cloud API key
+DEEPINFRA_API_KEY=gsk_...                    # Optional: DeepInfra cloud API key
 ```
 
 ## Agentic API Key Collection
@@ -125,7 +125,7 @@ GET  /api/key-harvester/audit-log            — Full audit trail
 { "integration": "sendgrid", "credential": "SG.xxxx" }
 ```
 
-Supported integrations: `groq`, `openai`, `anthropic`, `sendgrid`, `slack`, `stripe`, `hubspot`, `github`, `twilio`, `google_calendar`, `google_sheets`, `datadog`, `postgres`
+Supported integrations: `deepinfra`, `openai`, `anthropic`, `sendgrid`, `slack`, `stripe`, `hubspot`, `github`, `twilio`, `google_calendar`, `google_sheets`, `datadog`, `postgres`
 
 The key is written to `.env` (persisted across restarts) and to `os.environ` (immediate use).
 
@@ -141,7 +141,7 @@ status = murphy._get_librarian_status()
 if status["mode"] == "onboard":
     # Using LocalLLMFallback (no external LLM)
 elif status["mode"] == "llm":
-    # Using external LLM API (Groq, OpenAI, Anthropic)
+    # Using external LLM API (DeepInfra, OpenAI, Anthropic)
 
 # IMPORTANT: Do NOT check llm_status["enabled"] — it is always True
 # because the onboard fallback is always available.
@@ -151,7 +151,7 @@ elif status["mode"] == "llm":
 
 | Mode | Description |
 |------|-------------|
-| `external_api` | External LLM provider configured (Groq, OpenAI, Anthropic) |
+| `external_api` | External LLM provider configured (DeepInfra, OpenAI, Anthropic) |
 | `onboard` | Using LocalLLMFallback (Ollama or pattern matcher) |
 
 ### Boot Validation
@@ -163,6 +163,6 @@ from src.startup_validator import validate_llm_boot_status
 
 status = validate_llm_boot_status()
 print(f"Mode: {status['mode']}")      # "external_api" or "onboard"
-print(f"Provider: {status['provider']}")  # "groq", "openai", "anthropic", or "onboard"
+print(f"Provider: {status['provider']}")  # "deepinfra", "openai", "anthropic", or "onboard"
 print(f"Healthy: {status['healthy']}")    # Always True (onboard is always available)
 ```

@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 class ModelProvider(str, Enum):
     LOCAL = "local"
-    GROQ = "groq"
+    DEEPINFRA = "deepinfra"
     OPENAI = "openai"
     COPILOT = "copilot"
     OLLAMA = "ollama"
@@ -80,13 +80,13 @@ class ProviderRoutingConfig:
         default_factory=lambda: [ModelProvider.MFM, ModelProvider.LOCAL]
     )
     moderate_chain: List[ModelProvider] = field(
-        default_factory=lambda: [ModelProvider.GROQ, ModelProvider.OLLAMA, ModelProvider.MFM]
+        default_factory=lambda: [ModelProvider.DEEPINFRA, ModelProvider.OLLAMA, ModelProvider.MFM]
     )
     complex_chain: List[ModelProvider] = field(
-        default_factory=lambda: [ModelProvider.OPENAI, ModelProvider.GROQ, ModelProvider.MFM]
+        default_factory=lambda: [ModelProvider.OPENAI, ModelProvider.DEEPINFRA, ModelProvider.MFM]
     )
     critical_chain: List[ModelProvider] = field(
-        default_factory=lambda: [ModelProvider.OPENAI, ModelProvider.GROQ, ModelProvider.MFM]
+        default_factory=lambda: [ModelProvider.OPENAI, ModelProvider.DEEPINFRA, ModelProvider.MFM]
     )
 
     def chain_for(self, complexity: TaskComplexity) -> List[ModelProvider]:
@@ -134,9 +134,9 @@ _PROVIDER_MODEL_DEFAULTS: Dict[ModelProvider, ModelConfig] = {
         cost_per_token=0.0,
         priority_rank=3,
     ),
-    ModelProvider.GROQ: ModelConfig(
-        provider=ModelProvider.GROQ,
-        model_name="llama3-8b-8192",
+    ModelProvider.DEEPINFRA: ModelConfig(
+        provider=ModelProvider.DEEPINFRA,
+        model_name="meta-llama/Meta-Llama-3.1-8B-Instruct",
         max_tokens=2048,
         temperature=0.7,
         top_p=0.9,

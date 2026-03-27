@@ -25,7 +25,7 @@ Usage::
         step_description="Deploy microservice to production",
         confidence=0.92,
         risk_level=0.65,
-        model_name="groq_mixtral",       # triggers HITL
+        model_name="deepinfra_70b",       # triggers HITL
         execute_fn=my_deploy_fn,
         arg1, arg2,
     )
@@ -48,10 +48,10 @@ logger = logging.getLogger(__name__)
 # Model names / providers that are considered "superior external API" models.
 # When any of these is active, HITL approval is requested before execution.
 _EXTERNAL_API_MODELS: Set[str] = {
-    "groq_mixtral",
-    "groq_llama",
-    "groq_gemma",
-    "groq",
+    "deepinfra_70b",
+    "deepinfra_llama",
+    "deepinfra_fast",
+    "deepinfra",
     "openai",
     "anthropic",
     "gpt",
@@ -96,7 +96,7 @@ def is_external_api_model(model_name: str) -> bool:
     """Return True when *model_name* maps to a superior external-API provider.
 
     The check is case-insensitive and uses prefix/substring matching so that
-    model identifiers like ``"groq_mixtral-8x7b-32768"`` still resolve correctly.
+    model identifiers like ``"deepinfra_meta-llama/Meta-Llama-3.1-70B-Instruct"`` still resolve correctly.
     """
     name = (model_name or "").lower().strip()
     if not name:

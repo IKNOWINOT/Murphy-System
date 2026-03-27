@@ -56,7 +56,7 @@ Environment variables (set in your shell or `.env`) **always override YAML value
 
 ```bash
 # Legacy flat names (well-known shortcuts):
-export MURPHY_LLM_PROVIDER=groq
+export MURPHY_LLM_PROVIDER=deepinfra
 export LOG_LEVEL=DEBUG
 export CONFIDENCE_THRESHOLD=0.90
 
@@ -111,21 +111,21 @@ At least one LLM API key is required for tasks that use `use_llm: true`.
 
 ```bash
 # Auto-detect from whichever key is present, or explicitly set:
-MURPHY_LLM_PROVIDER=groq          # groq | openai | anthropic | local
+MURPHY_LLM_PROVIDER=deepinfra          # deepinfra | openai | anthropic | local
 ```
 
-### Groq (recommended — free tier available)
+### DeepInfra (recommended — free tier available)
 
 ```bash
-GROQ_API_KEY=gsk_your_key_here
+DEEPINFRA_API_KEY=gsk_your_key_here
 
 # Optional: key pool for load balancing / rate-limit rotation
-GROQ_API_KEYS=gsk_key1,gsk_key2,gsk_key3
+DEEPINFRA_API_KEYS=gsk_key1,gsk_key2,gsk_key3
 ```
 
-Get a free key at <https://console.groq.com/keys>. Groq is the recommended provider for getting started — it offers the lowest latency and a generous free tier.
+Get a free key at <https://console.deepinfra.com/keys>. DeepInfra is the recommended provider for getting started — it offers the lowest latency and a generous free tier.
 
-Default model: `llama3-70b-8192`
+Default model: `meta-llama/Meta-Llama-3.1-70B-Instruct`
 
 ### OpenAI
 
@@ -410,7 +410,7 @@ Use separate `.env` files per environment and pass them explicitly, or use the `
 
 ```bash
 MURPHY_ENV=development
-GROQ_API_KEY=gsk_your_key
+DEEPINFRA_API_KEY=gsk_your_key
 LOG_LEVEL=DEBUG
 DEBUG=true
 AUTO_RELOAD=true
@@ -420,7 +420,7 @@ AUTO_RELOAD=true
 
 ```bash
 MURPHY_ENV=staging
-GROQ_API_KEY=gsk_your_key
+DEEPINFRA_API_KEY=gsk_your_key
 MURPHY_API_KEYS=murphy_staging_key_abc123
 DATABASE_URL=postgresql://murphy:password@postgres:5432/murphy_staging
 REDIS_URL=redis://redis:6379/0
@@ -435,8 +435,8 @@ DEBUG=false
 
 ```bash
 MURPHY_ENV=production
-GROQ_API_KEY=gsk_prod_key
-GROQ_API_KEYS=gsk_key1,gsk_key2,gsk_key3
+DEEPINFRA_API_KEY=gsk_prod_key
+DEEPINFRA_API_KEYS=gsk_key1,gsk_key2,gsk_key3
 MURPHY_API_KEYS=murphy_prod_key_abc,murphy_prod_key_def
 DATABASE_URL=postgresql://murphy:strong_password@pg-primary:5432/murphy
 REDIS_URL=redis://:redis_password@redis-primary:6379/0

@@ -172,8 +172,8 @@ class TestStatus:
         ctrl = TestModeController()
         status = ctrl.get_status()
         rec = status.get("recommended_provider", {})
-        assert "Groq" in rec.get("name", "")
-        assert "groq.com" in rec.get("url", "")
+        assert "DeepInfra" in rec.get("name", "")
+        assert "deepinfra.com" in rec.get("url", "")
 
     def test_status_seconds_remaining_non_negative(self):
         ctrl = TestModeController(max_seconds=1)

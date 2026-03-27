@@ -96,11 +96,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Security plane modules activated: `authorization_enhancer`, `log_sanitizer`, `bot_resource_quotas`, `swarm_communication_monitor`, `bot_identity_verifier`, `bot_anomaly_detector`, `security_dashboard`
   - SEC-001 through SEC-004 resolved
 - **Stream 1: LLM Pipeline Validation** — LLM integration validated end-to-end:
-  - Groq Mixtral/Llama/Gemma integration in `src/llm_controller.py`
+  - DeepInfra Mixtral/Llama/Gemma integration in `src/llm_controller.py`
   - Local onboard LLM fallback — no API key required for basic operation
   - `src/safe_llm_wrapper.py` validation and sanitisation layer
   - GAP-002 (LLM features unavailable without API key) resolved
-  - `GROQ_API_KEY` and `MURPHY_LLM_PROVIDER` environment variables documented
+  - `DEEPINFRA_API_KEY` and `MURPHY_LLM_PROVIDER` environment variables documented
 - **Round 45 AionMind gap closure** — 5 architectural gaps closed with 43 new tests:
   - **Gap 1 (Medium):** Bot inventory → AionMind capability bridge — `bot_capability_bridge.py` auto-registers 20+ bot capabilities into CapabilityRegistry at startup
   - **Gap 2 (Medium):** Live RSC wiring — `rsc_client_adapter.py` wraps in-process RSC or HTTP client and auto-injects into StabilityIntegration

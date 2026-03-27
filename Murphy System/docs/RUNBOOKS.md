@@ -193,10 +193,10 @@ sudo systemctl restart ollama
 # Pull model if missing
 ollama pull phi3
 
-# Fall back to external API (if Groq key is set):
+# Fall back to external API (if DeepInfra key is set):
 # In /etc/murphy-production/environment:
-# MURPHY_LLM_PROVIDER=groq
-# GROQ_API_KEY=gsk_...
+# MURPHY_LLM_PROVIDER=deepinfra
+# DEEPINFRA_API_KEY=gsk_...
 sudo systemctl restart murphy-production
 ```
 
@@ -309,7 +309,7 @@ condition: rate(murphy_llm_calls_total{result="error"}[5m]) > 0.2
 2. If Ollama is down, restart: `sudo systemctl restart ollama`
 3. If the onboard LLM has GPU/memory issues, switch to external API:
    ```bash
-   # Temporarily set MURPHY_LLM_PROVIDER=groq in the environment file
+   # Temporarily set MURPHY_LLM_PROVIDER=deepinfra in the environment file
    sudo systemctl restart murphy-production
    ```
 

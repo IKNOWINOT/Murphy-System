@@ -52,8 +52,8 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _REQUIRED_ENV_VARS: List[Tuple[str, str]] = [
-    ("GROQ_API_KEY",              "set key groq gsk_..."),
-    ("OPENAI_API_KEY",            "set key openai sk_...  (optional — Groq is free)"),
+    ("DEEPINFRA_API_KEY",              "set key deepinfra gsk_..."),
+    ("OPENAI_API_KEY",            "set key openai sk_...  (optional — DeepInfra is free)"),
     ("ANTHROPIC_API_KEY",         "set key anthropic sk_... (optional)"),
 ]
 
@@ -122,8 +122,8 @@ class ReadinessScanner:
         if not has_any_llm_key:
             _block(
                 "llm_api_key",
-                "No LLM API key found (GROQ_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY).",
-                "set key groq gsk_...  ← Groq is free: https://console.groq.com/keys",
+                "No LLM API key found (DEEPINFRA_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY).",
+                "set key deepinfra gsk_...  ← DeepInfra is free: https://console.deepinfra.com/keys",
             )
         else:
             _pass("llm_api_key_present")
@@ -247,14 +247,14 @@ class ReadinessScanner:
                     f"Could not reach {base_url}/api/health — is the server running?",
                 )
 
-        # ── 10. Groq key recommendation ──────────────────────────────────
+        # ── 10. DeepInfra key recommendation ──────────────────────────────────
         api_strategy = {
             "recommendation": "Best bang-for-buck API key strategy",
             "providers": [
                 {
                     "rank": 1,
-                    "name": "Groq (FREE)",
-                    "url": "https://console.groq.com/keys",
+                    "name": "DeepInfra (FREE)",
+                    "url": "https://console.deepinfra.com/keys",
                     "models": "Llama 3, Mixtral",
                     "note": (
                         "Best first choice. Free tier with generous rate limits, fast inference. "

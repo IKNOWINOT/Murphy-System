@@ -51,15 +51,15 @@ def test_mock_similarity():
             "expected_mock_pattern": "Wulfrum fuzzy match"
         },
         {
-            "name": "Groq - Creative",
-            "provider": LLMProvider.GROQ,
+            "name": "DeepInfra - Creative",
+            "provider": LLMProvider.DEEPINFRA,
             "domain": DomainType.CREATIVE,
             "prompt": "Write something creative",
             "expected_mock_pattern": "Creative response"
         },
         {
-            "name": "Groq - General",
-            "provider": LLMProvider.GROQ,
+            "name": "DeepInfra - General",
+            "provider": LLMProvider.DEEPINFRA,
             "domain": DomainType.GENERAL,
             "prompt": "General question",
             "expected_mock_pattern": "General response"

@@ -3,7 +3,7 @@ Gap Closure Tests — Round 51.
 
 Validates three gap-closure items completed in this round:
 
-  Gap 1 (Medium): Groq Integration Test Suite (GAP-6)
+  Gap 1 (Medium): DeepInfra Integration Test Suite (GAP-6)
                   test_groq_integration.py already provides 22 passing tests
                   across 3 tiers (unit, mock HTTP, live API).  This round
                   confirms the file exists and provides adequate coverage.
@@ -26,7 +26,7 @@ Validates three gap-closure items completed in this round:
                    - PREDICTIVE_MAINTENANCE_ENGINE.md (PME-001)
 
 Gaps addressed:
- 1. GAP-6: Groq integration tests confirmed (22 pass, 4 skipped needing API key)
+ 1. GAP-6: DeepInfra integration tests confirmed (22 pass, 4 skipped needing API key)
  2. GAP-7: CONFIGURATION.md covers all .env.example env vars (16 sections)
  3. GAP-8: Specialized module docs created in documentation/modules/
 """
@@ -42,11 +42,11 @@ TESTS_DIR = BASE / "tests"
 
 
 # ===========================================================================
-# Gap 1 — Groq Integration Test Suite (GAP-6)
+# Gap 1 — DeepInfra Integration Test Suite (GAP-6)
 # ===========================================================================
 
 class TestGap1_GroqIntegrationTests:
-    """Groq integration test file must exist with meaningful test coverage."""
+    """DeepInfra integration test file must exist with meaningful test coverage."""
 
     def test_groq_integration_file_exists(self):
         assert (TESTS_DIR / "test_groq_integration.py").exists()
@@ -68,7 +68,7 @@ class TestGap1_GroqIntegrationTests:
     def test_groq_integration_has_live_tier(self):
         """Should have a live API tier (even if skipped without key)."""
         content = (TESTS_DIR / "test_groq_integration.py").read_text()
-        assert "GROQ_API_KEY" in content or "live" in content.lower()
+        assert "DEEPINFRA_API_KEY" in content or "live" in content.lower()
 
 
 # ===========================================================================
@@ -235,7 +235,7 @@ class TestGap6_7_8_AuditReportUpdated:
     def test_gap6_marked_closed(self):
         text = self._report_text()
         assert "GAP-6" in text
-        # Either CLOSED marker or groq integration reference
+        # Either CLOSED marker or deepinfra integration reference
         assert "CLOSED" in text or "test_groq_integration" in text
 
     def test_gap7_marked_closed(self):

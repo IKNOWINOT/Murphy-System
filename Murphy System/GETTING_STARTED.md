@@ -103,7 +103,7 @@ nano "Murphy System/config/engines.yaml"
 Environment variables **always override YAML values** — so you can also override individual settings without touching any file:
 
 ```bash
-export MURPHY_LLM_PROVIDER=groq   # override LLM provider
+export MURPHY_LLM_PROVIDER=deepinfra   # override LLM provider
 export LOG_LEVEL=DEBUG             # override log level
 export MURPHY_API__PORT=9000       # override API port (namespaced syntax)
 ```

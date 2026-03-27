@@ -249,7 +249,7 @@ class TestLLMStatus(unittest.TestCase):
         """Without env vars, LLM should use onboard mode."""
         # Clear relevant env vars for test
         old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
-        old_key = os.environ.pop("GROQ_API_KEY", None)
+        old_key = os.environ.pop("DEEPINFRA_API_KEY", None)
         try:
             status = self.murphy._get_llm_status()
             # LLM is always enabled - uses onboard fallback when no external API configured
@@ -260,13 +260,13 @@ class TestLLMStatus(unittest.TestCase):
             if old_provider is not None:
                 os.environ["MURPHY_LLM_PROVIDER"] = old_provider
             if old_key is not None:
-                os.environ["GROQ_API_KEY"] = old_key
+                os.environ["DEEPINFRA_API_KEY"] = old_key
 
     def test_llm_status_groq_no_key(self):
-        """Provider set to groq but no API key should fall back to onboard."""
+        """Provider set to deepinfra but no API key should fall back to onboard."""
         old_provider = os.environ.get("MURPHY_LLM_PROVIDER")
-        old_key = os.environ.pop("GROQ_API_KEY", None)
-        os.environ["MURPHY_LLM_PROVIDER"] = "groq"
+        old_key = os.environ.pop("DEEPINFRA_API_KEY", None)
+        os.environ["MURPHY_LLM_PROVIDER"] = "deepinfra"
         try:
             status = self.murphy._get_llm_status()
             # LLM is always enabled - gracefully falls back to onboard when key missing
@@ -279,19 +279,19 @@ class TestLLMStatus(unittest.TestCase):
             else:
                 os.environ.pop("MURPHY_LLM_PROVIDER", None)
             if old_key is not None:
-                os.environ["GROQ_API_KEY"] = old_key
+                os.environ["DEEPINFRA_API_KEY"] = old_key
 
     def test_llm_status_groq_with_key(self):
-        """Provider groq + API key should report healthy."""
+        """Provider deepinfra + API key should report healthy."""
         old_provider = os.environ.get("MURPHY_LLM_PROVIDER")
-        old_key = os.environ.get("GROQ_API_KEY")
-        os.environ["MURPHY_LLM_PROVIDER"] = "groq"
-        os.environ["GROQ_API_KEY"] = "test-key-123"
+        old_key = os.environ.get("DEEPINFRA_API_KEY")
+        os.environ["MURPHY_LLM_PROVIDER"] = "deepinfra"
+        os.environ["DEEPINFRA_API_KEY"] = "test-key-123"
         try:
             status = self.murphy._get_llm_status()
             self.assertTrue(status["enabled"])
             self.assertTrue(status["healthy"])
-            self.assertEqual(status["provider"], "groq")
+            self.assertEqual(status["provider"], "deepinfra")
             self.assertIsNotNone(status["model"])
         finally:
             if old_provider is not None:
@@ -299,26 +299,26 @@ class TestLLMStatus(unittest.TestCase):
             else:
                 os.environ.pop("MURPHY_LLM_PROVIDER", None)
             if old_key is not None:
-                os.environ["GROQ_API_KEY"] = old_key
+                os.environ["DEEPINFRA_API_KEY"] = old_key
             else:
-                os.environ.pop("GROQ_API_KEY", None)
+                os.environ.pop("DEEPINFRA_API_KEY", None)
 
     def test_llm_status_auto_detects_groq_without_provider_var(self):
-        """Bug-1 regression: GROQ_API_KEY alone (no MURPHY_LLM_PROVIDER) must
+        """Bug-1 regression: DEEPINFRA_API_KEY alone (no MURPHY_LLM_PROVIDER) must
         enable LLM.  Before the fix, the backend required MURPHY_LLM_PROVIDER to
-        be explicitly set — users who only added GROQ_API_KEY to .env were stuck
+        be explicitly set — users who only added DEEPINFRA_API_KEY to .env were stuck
         in deterministic mode even with a valid key."""
         old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
-        old_key = os.environ.get("GROQ_API_KEY")
-        os.environ["GROQ_API_KEY"] = "gsk_autodetecttest"
+        old_key = os.environ.get("DEEPINFRA_API_KEY")
+        os.environ["DEEPINFRA_API_KEY"] = "gsk_autodetecttest"
         try:
             status = self.murphy._get_llm_status()
             self.assertTrue(
                 status["enabled"],
-                "LLM must be enabled when GROQ_API_KEY is set, even without "
+                "LLM must be enabled when DEEPINFRA_API_KEY is set, even without "
                 "MURPHY_LLM_PROVIDER — auto-detection should kick in",
             )
-            self.assertEqual(status["provider"], "groq")
+            self.assertEqual(status["provider"], "deepinfra")
             self.assertTrue(status["healthy"])
         finally:
             if old_provider is not None:
@@ -326,14 +326,14 @@ class TestLLMStatus(unittest.TestCase):
             else:
                 os.environ.pop("MURPHY_LLM_PROVIDER", None)
             if old_key is not None:
-                os.environ["GROQ_API_KEY"] = old_key
+                os.environ["DEEPINFRA_API_KEY"] = old_key
             else:
-                os.environ.pop("GROQ_API_KEY", None)
+                os.environ.pop("DEEPINFRA_API_KEY", None)
 
     def test_llm_status_auto_detects_openai_without_provider_var(self):
         """Auto-detection should work for OpenAI keys too."""
         old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
-        old_groq = os.environ.pop("GROQ_API_KEY", None)
+        old_groq = os.environ.pop("DEEPINFRA_API_KEY", None)
         old_openai = os.environ.get("OPENAI_API_KEY")
         os.environ["OPENAI_API_KEY"] = "sk-autodetectopenai"
         try:
@@ -346,26 +346,26 @@ class TestLLMStatus(unittest.TestCase):
             else:
                 os.environ.pop("MURPHY_LLM_PROVIDER", None)
             if old_groq is not None:
-                os.environ["GROQ_API_KEY"] = old_groq
+                os.environ["DEEPINFRA_API_KEY"] = old_groq
             if old_openai is not None:
                 os.environ["OPENAI_API_KEY"] = old_openai
             else:
                 os.environ.pop("OPENAI_API_KEY", None)
 
     def test_llm_status_groq_takes_priority_over_openai_in_auto_detect(self):
-        """When both GROQ_API_KEY and OPENAI_API_KEY are set but MURPHY_LLM_PROVIDER
-        is absent, Groq should be auto-selected (it's the recommended free-tier option)."""
+        """When both DEEPINFRA_API_KEY and OPENAI_API_KEY are set but MURPHY_LLM_PROVIDER
+        is absent, DeepInfra should be auto-selected (it's the recommended free-tier option)."""
         old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
-        old_groq = os.environ.get("GROQ_API_KEY")
+        old_groq = os.environ.get("DEEPINFRA_API_KEY")
         old_openai = os.environ.get("OPENAI_API_KEY")
-        os.environ["GROQ_API_KEY"] = "gsk_prioritytest"
+        os.environ["DEEPINFRA_API_KEY"] = "gsk_prioritytest"
         os.environ["OPENAI_API_KEY"] = "sk-alsoavailable"
         try:
             status = self.murphy._get_llm_status()
             self.assertEqual(
                 status["provider"],
-                "groq",
-                "Groq should take auto-detect priority over OpenAI",
+                "deepinfra",
+                "DeepInfra should take auto-detect priority over OpenAI",
             )
         finally:
             if old_provider is not None:
@@ -373,9 +373,9 @@ class TestLLMStatus(unittest.TestCase):
             else:
                 os.environ.pop("MURPHY_LLM_PROVIDER", None)
             if old_groq is not None:
-                os.environ["GROQ_API_KEY"] = old_groq
+                os.environ["DEEPINFRA_API_KEY"] = old_groq
             else:
-                os.environ.pop("GROQ_API_KEY", None)
+                os.environ.pop("DEEPINFRA_API_KEY", None)
             if old_openai is not None:
                 os.environ["OPENAI_API_KEY"] = old_openai
             else:
@@ -384,19 +384,19 @@ class TestLLMStatus(unittest.TestCase):
     def test_explicit_provider_var_not_overridden_by_auto_detect(self):
         """An explicit MURPHY_LLM_PROVIDER must not be replaced by auto-detection."""
         old_provider = os.environ.get("MURPHY_LLM_PROVIDER")
-        old_groq = os.environ.get("GROQ_API_KEY")
+        old_groq = os.environ.get("DEEPINFRA_API_KEY")
         old_openai = os.environ.get("OPENAI_API_KEY")
-        # Explicitly set openai as provider, but also provide groq key
+        # Explicitly set openai as provider, but also provide deepinfra key
         os.environ["MURPHY_LLM_PROVIDER"] = "openai"
         os.environ["OPENAI_API_KEY"] = "sk-explicittestkey"
-        os.environ["GROQ_API_KEY"] = "gsk_shouldnotoverride"
+        os.environ["DEEPINFRA_API_KEY"] = "gsk_shouldnotoverride"
         try:
             status = self.murphy._get_llm_status()
             self.assertEqual(
                 status["provider"],
                 "openai",
                 "Explicit MURPHY_LLM_PROVIDER=openai must be respected even if "
-                "GROQ_API_KEY is also present",
+                "DEEPINFRA_API_KEY is also present",
             )
         finally:
             if old_provider is not None:
@@ -404,9 +404,9 @@ class TestLLMStatus(unittest.TestCase):
             else:
                 os.environ.pop("MURPHY_LLM_PROVIDER", None)
             if old_groq is not None:
-                os.environ["GROQ_API_KEY"] = old_groq
+                os.environ["DEEPINFRA_API_KEY"] = old_groq
             else:
-                os.environ.pop("GROQ_API_KEY", None)
+                os.environ.pop("DEEPINFRA_API_KEY", None)
             if old_openai is not None:
                 os.environ["OPENAI_API_KEY"] = old_openai
             else:
@@ -435,13 +435,13 @@ class TestDeterministicFallback(unittest.TestCase):
         self.sid = "test-fallback"
         # Ensure LLM is not configured
         self._old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
-        self._old_key = os.environ.pop("GROQ_API_KEY", None)
+        self._old_key = os.environ.pop("DEEPINFRA_API_KEY", None)
 
     def tearDown(self):
         if self._old_provider is not None:
             os.environ["MURPHY_LLM_PROVIDER"] = self._old_provider
         if self._old_key is not None:
-            os.environ["GROQ_API_KEY"] = self._old_key
+            os.environ["DEEPINFRA_API_KEY"] = self._old_key
 
     def test_fallback_includes_deterministic_message(self):
         """When LLM is off, librarian_ask should explain onboard mode."""
@@ -510,18 +510,18 @@ class TestIntegrationInference(unittest.TestCase):
         self.assertIn("stripe", names)
 
     def test_always_recommends_llm_if_not_configured(self):
-        """Without LLM env vars, groq should always be recommended."""
+        """Without LLM env vars, deepinfra should always be recommended."""
         old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
-        old_key = os.environ.pop("GROQ_API_KEY", None)
+        old_key = os.environ.pop("DEEPINFRA_API_KEY", None)
         try:
             recs = self.murphy.infer_needed_integrations({"name": "Test Co"})
             names = [r["service"] for r in recs]
-            self.assertIn("groq", names)
+            self.assertIn("deepinfra", names)
         finally:
             if old_provider is not None:
                 os.environ["MURPHY_LLM_PROVIDER"] = old_provider
             if old_key is not None:
-                os.environ["GROQ_API_KEY"] = old_key
+                os.environ["DEEPINFRA_API_KEY"] = old_key
 
     def test_recommendations_include_signup_url(self):
         recs = self.murphy.infer_needed_integrations({"platforms": "GitHub"})
@@ -538,7 +538,7 @@ class TestIntegrationInference(unittest.TestCase):
         try:
             recs = self.murphy.infer_needed_integrations({})
             names = [r["service"] for r in recs]
-            self.assertIn("groq", names)
+            self.assertIn("deepinfra", names)
         finally:
             if old_provider is not None:
                 os.environ["MURPHY_LLM_PROVIDER"] = old_provider
@@ -562,10 +562,10 @@ class TestApiSetupGuidance(unittest.TestCase):
         self.assertGreater(result["count"], 10)
 
     def test_filtered_services(self):
-        result = self.murphy.get_api_setup_guidance(["groq", "github"])
+        result = self.murphy.get_api_setup_guidance(["deepinfra", "github"])
         self.assertEqual(result["count"], 2)
         names = [s["service"] for s in result["services"]]
-        self.assertIn("groq", names)
+        self.assertIn("deepinfra", names)
         self.assertIn("github", names)
 
     def test_entries_have_required_fields(self):
@@ -585,19 +585,19 @@ class TestApiLinksReply(unittest.TestCase):
         self.murphy = MurphySystem()
         self.sid = "test-api-links"
         self._old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
-        self._old_key = os.environ.pop("GROQ_API_KEY", None)
+        self._old_key = os.environ.pop("DEEPINFRA_API_KEY", None)
 
     def tearDown(self):
         if self._old_provider is not None:
             os.environ["MURPHY_LLM_PROVIDER"] = self._old_provider
         if self._old_key is not None:
-            os.environ["GROQ_API_KEY"] = self._old_key
+            os.environ["DEEPINFRA_API_KEY"] = self._old_key
 
     def test_api_key_query_returns_links(self):
         result = self.murphy.librarian_ask("where do I get API keys?", session_id=self.sid)
         self.assertTrue(result["success"])
         self.assertIn("Signup", result["message"])
-        self.assertIn("console.groq.com", result["message"])
+        self.assertIn("console.deepinfra.com", result["message"])
 
     def test_api_key_query_suggests_api_keys_command(self):
         result = self.murphy.librarian_ask("how to get credentials?", session_id=self.sid)
@@ -705,7 +705,7 @@ class TestApiKeysIntentRouting(unittest.TestCase):
         result = self.murphy.handle_chat("api keys", session_id=self.sid, use_mfgc=False)
         self.assertTrue(result["success"])
         self.assertIn("Signup", result["message"])
-        self.assertIn("Groq", result["message"])
+        self.assertIn("DeepInfra", result["message"])
 
     def test_api_keys_after_onboarding_shows_tailored_recs(self):
         """After onboarding with context, 'api keys' should show tailored recs."""

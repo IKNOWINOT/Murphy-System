@@ -224,9 +224,9 @@ class LocalLLMFallback:
 
             "murphy": """Murphy System is an AI-powered automation assistant that helps teams automate operations, onboard new users, manage integrations, and run end-to-end workflows. Key commands include: 'start interview' for guided onboarding, 'help' for command list, 'show modules' for system modules, 'status' for system health, 'execute <task>' to run workflows, 'set key <provider> <key>' to configure API keys, and 'api keys' for integration setup links.""",
 
-            "murphy_setup": """To set up Murphy System: 1) Run the startup script (start_murphy_1.0.sh). 2) Set your Groq API key using 'set key groq gsk_yourKeyHere' in the terminal. 3) Type 'start interview' for guided onboarding. 4) Use 'status' to verify connectivity. 5) Use 'execute <task>' to start automating. For API keys, type 'api keys' to see all available integrations.""",
+            "murphy_setup": """To set up Murphy System: 1) Run the startup script (start_murphy_1.0.sh). 2) Set your DeepInfra API key using 'set key deepinfra gsk_yourKeyHere' in the terminal. 3) Type 'start interview' for guided onboarding. 4) Use 'status' to verify connectivity. 5) Use 'execute <task>' to start automating. For API keys, type 'api keys' to see all available integrations.""",
 
-            "murphy_troubleshooting": """Common Murphy troubleshooting: If LLM is not working, check 'llm status' and ensure your API key is set with 'set key groq <key>'. If the backend is unreachable, try 'reconnect' or 'set api <url>'. If you're stuck, type 'help' for available commands. For API key issues, use 'set key <provider> <key>' to set keys inline without restarting.""",
+            "murphy_troubleshooting": """Common Murphy troubleshooting: If LLM is not working, check 'llm status' and ensure your API key is set with 'set key deepinfra <key>'. If the backend is unreachable, try 'reconnect' or 'set api <url>'. If you're stuck, type 'help' for available commands. For API key issues, use 'set key <provider> <key>' to set keys inline without restarting.""",
 
             "automation": """Business automation with Murphy System lets you streamline repetitive tasks and workflows. Common automation types include: order processing (route new orders → update inventory → send confirmation), customer onboarding (welcome emails → account setup → intro sequence), reporting (gather data → format → email to stakeholders), and lead nurturing (capture → score → route to CRM). Murphy integrates with Shopify, Stripe, QuickBooks, Slack, Gmail, and 80+ other platforms. Type 'start interview' to begin setting up your first automation.""",
 
@@ -298,7 +298,7 @@ class LocalLLMFallback:
         When the prompt contains system-injected context (e.g. "Context: ...\n\n<user
         message>"), only the actual user query (after the last blank-line separator)
         is used for knowledge-base topic matching and pattern detection.  This prevents
-        system-context words such as "murphy" or "groq" from hijacking the topic lookup
+        system-context words such as "murphy" or "deepinfra" from hijacking the topic lookup
         and returning an irrelevant knowledge-base entry.
 
         Murphy-specific knowledge-base entries ("murphy", "murphy_setup",
@@ -433,7 +433,7 @@ I'm operating in offline mode, so for specific technical details and current bes
 
 **Next Steps**: Type `start interview` to describe your integration need, or type `api keys` to see all supported platforms.
 
-💡 Add a Groq API key (`set key groq gsk_...`) for AI-powered integration planning."""
+💡 Add a DeepInfra API key (`set key deepinfra gsk_...`) for AI-powered integration planning."""
 
         elif response_type == "recommendation":
             return f"""Regarding '{prompt}', here are some general recommendations:
@@ -477,7 +477,7 @@ Which platforms need to be integrated? Murphy supports Shopify, Stripe, Gmail, S
 
 **To proceed**: Type `start interview` to walk through your specific automation needs, or describe exactly what triggers and actions you want.
 
-💡 Add a Groq API key (`set key groq gsk_...`) to unlock full AI-powered planning."""
+💡 Add a DeepInfra API key (`set key deepinfra gsk_...`) to unlock full AI-powered planning."""
 
         elif response_type == "business":
             return """Thanks for sharing information about your business!
@@ -498,7 +498,7 @@ To help you automate effectively, Murphy needs a few details:
 
 Once I understand your workflow, I can build an automation blueprint for you. Type `start interview` for a guided setup, or keep describing your situation here.
 
-💡 **Pro tip**: Add a Groq API key for richer, more tailored automation planning."""
+💡 **Pro tip**: Add a DeepInfra API key for richer, more tailored automation planning."""
 
         elif response_type == "help":
             return """I'm Murphy — your AI automation assistant. Here's how I can help:
@@ -508,7 +508,7 @@ Once I understand your workflow, I can build an automation blueprint for you. Ty
 • `help` — Show all available commands
 • `status` — Check system health
 • `api keys` — See all supported integrations and how to connect them
-• `set key groq <key>` — Add a Groq API key for full AI capabilities
+• `set key deepinfra <key>` — Add a DeepInfra API key for full AI capabilities
 
 **What I Automate**:
 - Order fulfillment & e-commerce workflows
@@ -519,7 +519,7 @@ Once I understand your workflow, I can build an automation blueprint for you. Ty
 
 **To get started**: Describe your business and what you want to automate, then type `start interview`.
 
-Get a free Groq key at https://console.groq.com/keys for the best experience."""
+Get a free DeepInfra key at https://console.deepinfra.com/keys for the best experience."""
 
         else:
             return self._generate_default_response(prompt, max_tokens)
@@ -542,8 +542,8 @@ To provide the most accurate and helpful response, I would need:
 2. What you're trying to achieve
 3. Any constraints or requirements you have
 
-**💡 Tip**: Try `set key groq <your-key>` to add an API key for full AI capabilities.
-Get a free key at: https://console.groq.com/keys
+**💡 Tip**: Try `set key deepinfra <your-key>` to add an API key for full AI capabilities.
+Get a free key at: https://console.deepinfra.com/keys
 
 Would you like to:
 - Rephrase your question with more context?

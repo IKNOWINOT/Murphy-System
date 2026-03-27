@@ -4,7 +4,7 @@ E2E tests for the Murphy System LLM pipeline.
 Tests the full flow:
   terminal client → HTTP → backend → LLM controller → response
 
-A mock Groq server (via pytest-httpserver or the mock_groq_server fixture
+A mock DeepInfra server (via pytest-httpserver or the mock_groq_server fixture
 from conftest.py) is used so no real API key is required.
 """
 
@@ -28,11 +28,11 @@ class TestLLMControllerUnit:
         from llm_controller import LLMController  # noqa: F401
 
     def test_llm_model_enum_values(self):
-        """LLMModel enum must contain at least Groq and local variants."""
+        """LLMModel enum must contain at least DeepInfra and local variants."""
         from llm_controller import LLMModel
 
         names = {m.name for m in LLMModel}
-        assert any("GROQ" in n for n in names), "Expected at least one GROQ model"
+        assert any("DEEPINFRA" in n for n in names), "Expected at least one DEEPINFRA model"
         assert any("LOCAL" in n for n in names), "Expected at least one LOCAL model"
 
     def test_llm_request_dataclass(self):
@@ -90,7 +90,7 @@ class TestLocalLLMFallback:
 
 class TestLLMPipelineWithMockGroq:
     """
-    Tests that exercise the LLM controller pointing at a mock Groq server.
+    Tests that exercise the LLM controller pointing at a mock DeepInfra server.
     These tests are skipped if pytest-httpserver is not installed.
     """
 
@@ -100,7 +100,7 @@ class TestLLMPipelineWithMockGroq:
             pytest.skip("pytest-httpserver not installed")
 
     def test_mock_groq_server_responding(self, mock_groq_server):
-        """The mock Groq server must serve chat completion responses."""
+        """The mock DeepInfra server must serve chat completion responses."""
         if mock_groq_server is None:
             pytest.skip("pytest-httpserver not installed")
 
@@ -110,7 +110,7 @@ class TestLLMPipelineWithMockGroq:
         url = f"http://{mock_groq_server.host}:{mock_groq_server.port}/openai/v1/chat/completions"
         payload = json.dumps(
             {
-                "model": "mixtral-8x7b-32768",
+                "model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
                 "messages": [{"role": "user", "content": "ping"}],
             }
         ).encode()
@@ -124,7 +124,7 @@ class TestLLMPipelineWithMockGroq:
             data = json.loads(resp.read().decode())
 
         assert "choices" in data
-        assert data["choices"][0]["message"]["content"] == "Mock Groq response"
+        assert data["choices"][0]["message"]["content"] == "Mock DeepInfra response"
 
 
 class TestLLMPipelineE2E:

@@ -4,7 +4,7 @@ Shared fixtures for Murphy System E2E tests.
 Provides:
   - running_server: starts the backend in a subprocess on a free port
   - api_client:     httpx client pointed at the running server
-  - mock_groq_server: pytest-httpserver instance that pretends to be api.groq.com
+  - mock_deepinfra_server: pytest-httpserver instance that pretends to be api.deepinfra.com
 """
 
 import os
@@ -88,9 +88,9 @@ def api_client(running_server):
 
 
 @pytest.fixture(scope="session")
-def mock_groq_server():
+def mock_deepinfra_server():
     """
-    A lightweight mock for api.groq.com.
+    A lightweight mock for api.deepinfra.com.
     Uses pytest-httpserver when available; otherwise yields None so
     individual tests can skip gracefully.
     """
@@ -111,7 +111,7 @@ def mock_groq_server():
             "choices": [
                 {
                     "index": 0,
-                    "message": {"role": "assistant", "content": "Mock Groq response"},
+                    "message": {"role": "assistant", "content": "Mock DeepInfra response"},
                     "finish_reason": "stop",
                 }
             ],

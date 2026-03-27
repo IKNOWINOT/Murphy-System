@@ -37,7 +37,7 @@ _KEYRING_SERVICE = "murphy-system"
 
 # Well-known environment variable names that contain sensitive API keys
 _SENSITIVE_KEY_PATTERNS = re.compile(
-    r'^(GROQ_API_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY|STRIPE_API_KEY|'
+    r'^(DEEPINFRA_API_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY|STRIPE_API_KEY|'
     r'SENDGRID_API_KEY|HUBSPOT_API_KEY|SHOPIFY_API_KEY|GOOGLE_API_KEY|'
     r'MURPHY_MASTER_KEY)$'
 )
@@ -491,8 +491,8 @@ class ScheduledKeyRotator:
     Usage::
 
         rotator = ScheduledKeyRotator(rotation_interval_seconds=86400)
-        rotator.register_key("GROQ_API_KEY")
-        rotator.add_rotation_callback(my_groq_rotation_fn)
+        rotator.register_key("DEEPINFRA_API_KEY")
+        rotator.add_rotation_callback(my_deepinfra_rotation_fn)
         rotator.add_alert_callback(my_pagerduty_alert_fn)
         rotator.start()
     """

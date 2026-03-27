@@ -28,10 +28,10 @@ from true_swarm_system import ArtifactType, ProfessionAtom, SwarmMode, TrueSwarm
 try:
     import os
 
-    from groq import Groq
-    GROQ_AVAILABLE = True
+    # deepinfra replaced: from openai import DeepInfra
+    DEEPINFRA_AVAILABLE = True
 except ImportError:
-    GROQ_AVAILABLE = False
+    DEEPINFRA_AVAILABLE = False
 
 # Import local fallback LLM
 import logging
@@ -40,7 +40,7 @@ import logging
 from command_parser import CommandParser
 
 # Import key rotator
-from groq_key_rotator import get_rotator
+from deepinfra_key_rotator import get_rotator
 from local_llm_fallback import get_fallback_llm
 from question_manager import QuestionManager
 
@@ -76,30 +76,30 @@ class UnifiedMFGC:
     Not separate modes - continuous confidence-based behavior
     """
 
-    def __init__(self, groq_api_key: str = None, use_key_rotation: bool = True):
+    def __init__(self, deepinfra_api_key: str = None, use_key_rotation: bool = True):
         # Initialize key rotation system
         self.use_key_rotation = use_key_rotation
         self.key_rotator = None
 
-        if use_key_rotation and GROQ_AVAILABLE:
+        if use_key_rotation and DEEPINFRA_AVAILABLE:
             try:
                 self.key_rotator = get_rotator()
                 self.llm_available = True
-                self.llm_mode = "groq_rotation"
-                logger.info(f"Groq key rotation enabled with {len(self.key_rotator.keys)} keys")
+                self.llm_mode = "deepinfra_rotation"
+                logger.info(f"DeepInfra key rotation enabled with {len(self.key_rotator.keys)} keys")
             except Exception as exc:
                 logger.info(f"Key rotation failed: {exc}, falling back to single key mode")
                 self.key_rotator = None
 
         # Fallback to single key mode
         if self.key_rotator is None:
-            self.groq_api_key = groq_api_key or os.environ.get("GROQ_API_KEY")
-            if self.groq_api_key and GROQ_AVAILABLE:
-                self.groq_client = Groq(api_key=self.groq_api_key)
+            self.deepinfra_api_key = deepinfra_api_key or os.environ.get("DEEPINFRA_API_KEY")
+            if self.deepinfra_api_key and DEEPINFRA_AVAILABLE:
+                self.deepinfra_client = DeepInfra(api_key=self.deepinfra_api_key)
                 self.llm_available = True
-                self.llm_mode = "groq"
+                self.llm_mode = "deepinfra"
             else:
-                self.groq_client = None
+                self.deepinfra_client = None
                 self.llm_available = True
                 self.llm_mode = "offline"
 
@@ -886,16 +886,16 @@ Format as a numbered list."""
         return "\n".join(parts)
 
     def _call_llm(self, prompt: str, max_tokens: int = 500) -> str:
-        """Call LLM with safety bounds - uses Groq with key rotation or offline fallback"""
+        """Call LLM with safety bounds - uses DeepInfra with key rotation or offline fallback"""
 
-        # Try Groq with key rotation
-        if self.key_rotator and self.llm_mode == "groq_rotation":
+        # Try DeepInfra with key rotation
+        if self.key_rotator and self.llm_mode == "deepinfra_rotation":
             try:
                 # Get next key from rotator
                 key_name, api_key = self.key_rotator.get_next_key()
 
                 # Create client with rotated key
-                client = Groq(api_key=api_key)
+                client = DeepInfra(api_key=api_key)
 
                 # Make API call
                 chat_completion = client.chat.completions.create(
@@ -920,14 +920,14 @@ Format as a numbered list."""
                 if self.key_rotator:
                     self.key_rotator.report_failure(api_key, str(exc))
 
-                # Fall back to offline mode if Groq fails
-                logger.info(f"Groq failed (key: {key_name}), using offline fallback: {str(exc)}")
+                # Fall back to offline mode if DeepInfra fails
+                logger.info(f"DeepInfra failed (key: {key_name}), using offline fallback: {str(exc)}")
                 return self.fallback_llm.generate(prompt, max_tokens)
 
-        # Try single key Groq mode
-        elif hasattr(self, 'groq_client') and self.groq_client and self.llm_mode == "groq":
+        # Try single key DeepInfra mode
+        elif hasattr(self, 'deepinfra_client') and self.deepinfra_client and self.llm_mode == "deepinfra":
             try:
-                chat_completion = self.groq_client.chat.completions.create(
+                chat_completion = self.deepinfra_client.chat.completions.create(
                     messages=[
                         {
                             "role": "user",
@@ -941,8 +941,8 @@ Format as a numbered list."""
 
                 return chat_completion.choices[0].message.content.strip()
             except Exception as exc:
-                # Fall back to offline mode if Groq fails
-                logger.info(f"Groq failed, using offline fallback: {str(exc)}")
+                # Fall back to offline mode if DeepInfra fails
+                logger.info(f"DeepInfra failed, using offline fallback: {str(exc)}")
                 return self.fallback_llm.generate(prompt, max_tokens)
 
         # Use offline fallback

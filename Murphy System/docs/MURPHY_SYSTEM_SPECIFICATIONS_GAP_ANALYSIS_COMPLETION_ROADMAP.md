@@ -547,16 +547,16 @@ FILES: llm_controller.py, llm_integration.py, llm_integration_layer.py,
        local_llm_fallback.py, enhanced_local_llm.py, local_model_layer.py,
        local_inference_engine.py, mock_compatible_local_llm.py
 
-FINDING: Extensive abstraction exists for multiple LLM providers (Groq, local
+FINDING: Extensive abstraction exists for multiple LLM providers (DeepInfra, local
 models, etc.) with routing, fallback, and safety wrapping. However:
   • Default config uses "local" provider → mock 400-byte stub
-  • Groq key rotation exists but requires valid API keys
+  • DeepInfra key rotation exists but requires valid API keys
   • No OpenAI/Anthropic/Azure connector found
   • llm_routing_completeness.py (35KB) validates routing logic but
     the routing targets are largely theoretical without real providers
 
 RECOMMENDATION: Implement at minimum ONE working LLM provider out of the box.
-Best candidate: OpenAI-compatible API (works with OpenAI, Azure, Groq, local
+Best candidate: OpenAI-compatible API (works with OpenAI, Azure, DeepInfra, local
 Ollama servers). Add MURPHY_OPENAI_API_KEY / MURPHY_OPENAI_BASE_URL to .env.
 
 6.2 GATE SYSTEM
@@ -647,7 +647,7 @@ These are all framework/interface code. Real IoT automation would need:
 [INC-01] IMPLEMENT WORKING LLM PROVIDER
   Action: Create src/openai_compatible_provider.py that:
     • Reads MURPHY_LLM_API_KEY and MURPHY_LLM_BASE_URL from .env
-    • Supports OpenAI API format (works with OpenAI, Azure, Groq, Ollama)
+    • Supports OpenAI API format (works with OpenAI, Azure, DeepInfra, Ollama)
     • Replaces mock_compatible_local_llm.py as default when key is present
     • Falls back to deterministic routing when no key is configured
   Files to modify:

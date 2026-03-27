@@ -1,16 +1,23 @@
 """
-Groq API Key Rotation System
-Evenly distributes API calls across multiple keys to maximize throughput
+DeepInfra / Together.ai API Key Rotation System
+Evenly distributes API calls across multiple keys to maximize throughput.
+
+This module is retained for backward compatibility. The class was formerly
+called ``GroqKeyRotator``; it is now ``DeepInfraKeyRotator``. An alias
+``GroqKeyRotator = DeepInfraKeyRotator`` is preserved so existing imports
+continue to work without modification.
+
+Copyright © 2020-2026 Inoni LLC — Created by Corey Post
+License: BSL 1.1
 """
 
 import logging
 import threading
-import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import List, Optional
 
-logger = logging.getLogger("groq_key_rotator")
+logger = logging.getLogger("deepinfra_key_rotator")
 
 
 @dataclass
@@ -26,9 +33,10 @@ class KeyStats:
     is_active: bool = True
 
 
-class GroqKeyRotator:
+class DeepInfraKeyRotator:
     """
-    Rotates through multiple Groq API keys to distribute load evenly
+    Rotates through multiple DeepInfra (or Together.ai) API keys to
+    distribute load evenly.
 
     Features:
     - Round-robin rotation
@@ -39,10 +47,10 @@ class GroqKeyRotator:
 
     def __init__(self, keys: List[tuple]):
         """
-        Initialize with list of (name, key) tuples
+        Initialize with list of (name, key) tuples.
 
         Args:
-            keys: List of tuples like [("Murphy System", "gsk_..."), ...]
+            keys: List of tuples like [("Murphy DeepInfra Key 1", "dik_..."), ...]
         """
         self.keys = [KeyStats(key=key, name=name) for name, key in keys]
         self.current_index = 0
@@ -53,13 +61,12 @@ class GroqKeyRotator:
 
     def get_next_key(self) -> tuple:
         """
-        Get the next available API key in rotation
+        Get the next available API key in rotation.
 
         Returns:
             tuple: (key_name, api_key)
         """
         with self.lock:
-            # Find next active key
             attempts = 0
             max_attempts = len(self.keys)
 
@@ -67,25 +74,19 @@ class GroqKeyRotator:
                 key_stats = self.keys[self.current_index]
 
                 if key_stats.is_active:
-                    # Update usage
                     key_stats.total_calls += 1
                     key_stats.last_used = datetime.now(timezone.utc)
-
-                    # Move to next key for next call
                     self.current_index = (self.current_index + 1) % len(self.keys)
-
                     return (key_stats.name, key_stats.key)
 
-                # Try next key
                 self.current_index = (self.current_index + 1) % len(self.keys)
                 attempts += 1
 
-            # All keys are inactive - reactivate all and try again
-            logger.info("WARNING: All keys inactive, reactivating all keys")
+            # All keys inactive — reactivate all and try again
+            logger.warning("All DeepInfra keys inactive, reactivating all keys")
             for key_stats in self.keys:
                 key_stats.is_active = True
 
-            # Return first key
             key_stats = self.keys[0]
             key_stats.total_calls += 1
             key_stats.last_used = datetime.now(timezone.utc)
@@ -93,7 +94,7 @@ class GroqKeyRotator:
             return (key_stats.name, key_stats.key)
 
     def report_success(self, key: str):
-        """Report successful API call"""
+        """Report successful API call."""
         with self.lock:
             for key_stats in self.keys:
                 if key_stats.key == key:
@@ -103,24 +104,25 @@ class GroqKeyRotator:
 
     def report_failure(self, key: str, error: str):
         """
-        Report failed API call
-
-        Automatically disables key after 3 consecutive failures
+        Report failed API call.
+        Automatically disables key after 3 consecutive failures.
         """
         with self.lock:
             for key_stats in self.keys:
                 if key_stats.key == key:
                     key_stats.failed_calls += 1
                     key_stats.last_error = error
-
-                    # Disable key if too many failures
                     if key_stats.failed_calls >= 3:
                         key_stats.is_active = False
-                        logger.info(f"WARNING: Disabled key '{key_stats.name}' after {key_stats.failed_calls} failures")
+                        logger.warning(
+                            "Disabled DeepInfra key '%s' after %d failures",
+                            key_stats.name,
+                            key_stats.failed_calls,
+                        )
                     break
 
     def get_statistics(self) -> dict:
-        """Get usage statistics for all keys"""
+        """Get usage statistics for all keys."""
         with self.lock:
             stats = {
                 "total_keys": len(self.keys),
@@ -128,7 +130,7 @@ class GroqKeyRotator:
                 "total_calls": sum(k.total_calls for k in self.keys),
                 "successful_calls": sum(k.successful_calls for k in self.keys),
                 "failed_calls": sum(k.failed_calls for k in self.keys),
-                "keys": []
+                "keys": [],
             }
 
             for key_stats in self.keys:
@@ -146,58 +148,64 @@ class GroqKeyRotator:
                         if key_stats.last_used else "Never"
                     ),
                     "is_active": key_stats.is_active,
-                    "last_error": key_stats.last_error
+                    "last_error": key_stats.last_error,
                 })
 
             return stats
 
-    def reset_key(self, key_name: str):
-        """Reset a specific key (reactivate and clear error count)"""
+    def reset_key(self, key_name: str) -> bool:
+        """Reset a specific key (reactivate and clear error count)."""
         with self.lock:
             for key_stats in self.keys:
                 if key_stats.name == key_name:
                     key_stats.is_active = True
                     key_stats.failed_calls = 0
                     key_stats.last_error = None
-                    logger.info(f"Reset key '{key_name}'")
+                    logger.info("Reset DeepInfra key '%s'", key_name)
                     return True
             return False
 
     def reset_all_keys(self):
-        """Reset all keys"""
+        """Reset all keys."""
         with self.lock:
             for key_stats in self.keys:
                 key_stats.is_active = True
                 key_stats.failed_calls = 0
                 key_stats.last_error = None
-            logger.info("Reset all keys")
+            logger.info("Reset all DeepInfra keys")
 
+
+# ---------------------------------------------------------------------------
+# Backward-compatibility alias (formerly GroqKeyRotator)
+# ---------------------------------------------------------------------------
+GroqKeyRotator = DeepInfraKeyRotator
+
+
+# ---------------------------------------------------------------------------
+# Key loading helpers
+# ---------------------------------------------------------------------------
 
 def load_keys_from_file(file_path: str) -> List[tuple]:
     """
-    Load API keys from file (DEPRECATED - use secure key manager)
+    Load API keys from a plaintext file (DEPRECATED — use secure key manager).
 
     Expected format:
-    Murphy System <gsk_...>
-    Murphy System 1 <gsk_...>
+        Murphy DeepInfra Key 1 <dik_...>
+        Murphy DeepInfra Key 2 <dik_...>
 
     Returns:
         List of (name, key) tuples
     """
     keys = []
-
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line:
                 continue
-
-            # Parse format: "Name <key>"
-            if '<' in line and '>' in line:
-                name = line.split('<')[0].strip()
-                key = line.split('<')[1].split('>')[0].strip()
+            if "<" in line and ">" in line:
+                name = line.split("<")[0].strip()
+                key = line.split("<")[1].split(">")[0].strip()
                 keys.append((name, key))
-
     return keys
 
 
@@ -210,52 +218,56 @@ def load_keys_from_secure_storage() -> List[tuple]:
     """
     try:
         from secure_key_manager import get_secure_key_manager
-
         manager = get_secure_key_manager()
         keys = manager.load_keys()
-
         if not keys:
             raise ValueError("No keys found in encrypted storage")
-
         return keys
-
     except Exception as exc:
-        logger.info(f"Failed to load keys from secure storage: {exc}")
+        logger.warning("Failed to load keys from secure storage: %s", exc)
         raise
 
 
-# Global rotator instance
-_rotator_instance = None
+# ---------------------------------------------------------------------------
+# Global singleton
+# ---------------------------------------------------------------------------
+
+_rotator_instance: Optional[DeepInfraKeyRotator] = None
 _rotator_lock = threading.Lock()
 
 
-def get_rotator(use_secure_storage: bool = True, keys_file: str = None) -> GroqKeyRotator:
+def get_rotator(
+    use_secure_storage: bool = True,
+    keys_file: Optional[str] = None,
+) -> DeepInfraKeyRotator:
     """
-    Get or create the global key rotator instance.
+    Get or create the global DeepInfra key rotator instance.
 
     Args:
-        use_secure_storage: If True, load keys from encrypted storage (recommended)
-        keys_file: Path to plaintext keys file (deprecated, for backward compatibility)
+        use_secure_storage: If True, load keys from encrypted storage (recommended).
+        keys_file: Path to plaintext keys file (deprecated, for backward compatibility).
 
     Returns:
-        GroqKeyRotator instance
+        DeepInfraKeyRotator instance
     """
     global _rotator_instance
 
     with _rotator_lock:
         if _rotator_instance is None:
             if use_secure_storage:
-                # Load from encrypted storage (recommended)
                 keys = load_keys_from_secure_storage()
-                logger.info(f"✅ Loaded {len(keys)} keys from encrypted storage")
+                logger.info("✅ Loaded %d keys from encrypted storage", len(keys))
             else:
-                # Fallback to plaintext file (deprecated)
                 if keys_file is None:
                     keys_file = "/workspace/Murphy System Keys.txt"
                 keys = load_keys_from_file(keys_file)
-                logger.info(f"⚠️  Loaded {len(keys)} keys from plaintext file (DEPRECATED)")
+                logger.warning(
+                    "⚠️  Loaded %d keys from plaintext file (DEPRECATED)", len(keys)
+                )
 
-            _rotator_instance = GroqKeyRotator(keys)
-            logger.info(f"Initialized Groq key rotator with {len(keys)} keys")
+            _rotator_instance = DeepInfraKeyRotator(keys)
+            logger.info(
+                "Initialized DeepInfra key rotator with %d keys", len(keys)
+            )
 
         return _rotator_instance

@@ -2,7 +2,7 @@
 OpenAI-Compatible LLM Provider for Murphy System.
 
 Provides a unified interface to any OpenAI-compatible API endpoint,
-including OpenAI, Azure OpenAI, Groq, Ollama, vLLM, LiteLLM, and
+including OpenAI, Azure OpenAI, DeepInfra, Ollama, vLLM, LiteLLM, and
 other compatible providers. Uses the ``openai`` Python SDK as the
 single client for all providers.
 
@@ -15,7 +15,7 @@ Architecture decision (INC-01 / C-01):
     The ``openai`` Python package is the industry-standard SDK that speaks
     the OpenAI chat-completions wire format.  Every major LLM host now
     exposes an OpenAI-compatible endpoint, so a single client covers
-    OpenAI, Azure, Groq, Ollama, vLLM, LiteLLM, and more.
+    OpenAI, Azure, DeepInfra, Ollama, vLLM, LiteLLM, and more.
 
 Copyright © 2020-2026 Inoni LLC — Created by Corey Post
 License: BSL 1.1
@@ -45,7 +45,7 @@ class ProviderType(Enum):
 
     OPENAI = "openai"
     AZURE = "azure"
-    GROQ = "groq"
+    DEEPINFRA = "deepinfra"
     OLLAMA = "ollama"
     VLLM = "vllm"
     LITELLM = "litellm"
@@ -210,7 +210,7 @@ class OpenAICompatibleProvider:
         cloud_providers = {
             ProviderType.OPENAI,
             ProviderType.AZURE,
-            ProviderType.GROQ,
+            ProviderType.DEEPINFRA,
         }
         if config.provider_type in cloud_providers and not config.api_key:
             logger.info(
@@ -232,17 +232,17 @@ class OpenAICompatibleProvider:
             OPENAI_API_KEY          — API key
             OPENAI_BASE_URL         — Base URL override
             OPENAI_DEFAULT_MODEL    — Model name (default gpt-3.5-turbo)
-            OPENAI_PROVIDER_TYPE    — One of openai/groq/ollama/onboard/…
+            OPENAI_PROVIDER_TYPE    — One of openai/deepinfra/ollama/onboard/…
             OPENAI_MAX_RETRIES      — SDK retry count
             OPENAI_TIMEOUT          — Per-request timeout in seconds
             OPENAI_TEMPERATURE      — Default temperature
             OPENAI_MAX_TOKENS       — Default max tokens
 
-        For Groq-specific usage, ``GROQ_API_KEY`` is also accepted and
-        takes precedence when the provider type is ``groq``.
+        For DeepInfra-specific usage, ``DEEPINFRA_API_KEY`` is also accepted and
+        takes precedence when the provider type is ``deepinfra``.
 
         **Default behaviour (no API keys):** When neither ``OPENAI_API_KEY``
-        nor ``GROQ_API_KEY`` is set and no explicit provider type is
+        nor ``DEEPINFRA_API_KEY`` is set and no explicit provider type is
         configured, the provider automatically selects the **onboard LLM**
         (``EnhancedLocalLLM``) so Murphy works out-of-the-box with zero
         external dependencies.
@@ -251,15 +251,15 @@ class OpenAICompatibleProvider:
 
         # Resolve API key — honour provider-specific env vars
         api_key = os.getenv("OPENAI_API_KEY", "")
-        groq_key = os.getenv("GROQ_API_KEY", "")
+        deepinfra_key = os.getenv("DEEPINFRA_API_KEY", "")
 
         # Auto-detect provider type when not explicitly set
         if not provider_type_str:
             if api_key:
                 provider_type_str = "openai"
-            elif groq_key:
-                provider_type_str = "groq"
-                api_key = groq_key
+            elif deepinfra_key:
+                provider_type_str = "deepinfra"
+                api_key = deepinfra_key
             else:
                 # No API keys at all → use the onboard LLM
                 provider_type_str = "onboard"
@@ -269,20 +269,20 @@ class OpenAICompatibleProvider:
         except ValueError:
             provider_type = ProviderType.CUSTOM
 
-        if provider_type == ProviderType.GROQ:
-            api_key = groq_key or api_key
+        if provider_type == ProviderType.DEEPINFRA:
+            api_key = deepinfra_key or api_key
 
         # Resolve base URL — provider-specific defaults
         base_url = os.getenv("OPENAI_BASE_URL")
-        if base_url is None and provider_type == ProviderType.GROQ:
-            base_url = "https://api.groq.com/openai/v1"
+        if base_url is None and provider_type == ProviderType.DEEPINFRA:
+            base_url = "https://api.deepinfra.com/v1/openai"
         elif base_url is None and provider_type == ProviderType.OLLAMA:
             _ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
             base_url = f"{_ollama_host}/v1"
 
         default_model = os.getenv("OPENAI_DEFAULT_MODEL", "gpt-3.5-turbo")
-        if provider_type == ProviderType.GROQ and default_model == "gpt-3.5-turbo":
-            default_model = "mixtral-8x7b-32768"
+        if provider_type == ProviderType.DEEPINFRA and default_model == "gpt-3.5-turbo":
+            default_model = "meta-llama/Meta-Llama-3.1-70B-Instruct"
         elif provider_type == ProviderType.OLLAMA and default_model == "gpt-3.5-turbo":
             default_model = os.getenv("OLLAMA_MODEL", "llama3")
         elif provider_type == ProviderType.ONBOARD:

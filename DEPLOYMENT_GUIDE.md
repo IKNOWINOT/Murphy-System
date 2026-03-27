@@ -154,7 +154,7 @@ REDIS_URL=redis://:<password>@localhost:6379/0
 REDIS_PASSWORD=<generated>
 
 # LLM
-GROQ_API_KEY=gsk_...           # Free: https://console.groq.com/keys
+DEEPINFRA_API_KEY=gsk_...           # Free: https://console.deepinfra.com/keys
 OLLAMA_HOST=http://localhost:11434  # For onboard Ollama
 
 # Email (optional, for notifications)

@@ -156,7 +156,7 @@ system completion to **100%** at the functional level.
 | **LLM Controller** (`src/llm_controller.py`) | 100% | 40% | 75% | 72% |
 | **LLM Integration Layer** (`src/llm_integration_layer.py`) | 100% | 30% | 70% | 67% |
 | **OpenAI Provider** (`src/openai_compatible_provider.py`) | 100% | 60% | 95% | 85% |
-| **Groq Key Rotator** (`src/groq_key_rotator.py`) | 100% | 10% | 30% | 47% |
+| **DeepInfra Key Rotator** (`src/groq_key_rotator.py`) | 100% | 10% | 30% | 47% |
 | **MFM** (`src/murphy_foundation_model/`) | 100% | 80% | 90% | 90% |
 | **AUAR** (`src/auar/`) | 100% | 65% | 95% | 87% |
 | **Compute Plane** (`src/compute_plane/`) | 100% | 50% | 80% | 77% |
@@ -241,8 +241,8 @@ system completion to **100%** at the functional level.
 - **Status:** All 65 packages under `src/` now have README.md files (100% coverage)
 - **Closed:** 2026-03-16
 
-#### GAP-6: Groq Integration Test Suite ✅ CLOSED
-- **Status:** `tests/test_groq_integration.py` provides 22 passing tests (3 tiers: unit, mock HTTP, live API) with 4 skipped live tests that require `GROQ_API_KEY`
+#### GAP-6: DeepInfra Integration Test Suite ✅ CLOSED
+- **Status:** `tests/test_groq_integration.py` provides 22 passing tests (3 tiers: unit, mock HTTP, live API) with 4 skipped live tests that require `DEEPINFRA_API_KEY`
 - **Closed:** 2026-03-16
 
 ### 4.3 Low Gaps
@@ -266,12 +266,12 @@ system completion to **100%** at the functional level.
 | 1.2 | Document LLM Integration Layer domain routing | `llm_integration_layer.py` | 3h |
 | 1.3 | Add MFM endpoints to API reference | `documentation/api/ENDPOINTS.md` | 1h |
 | 1.4 | Create Security Plane documentation | `src/security_plane/` | 4h |
-| 1.5 | Document Groq key rotation system | `groq_key_rotator.py` | 2h |
+| 1.5 | Document DeepInfra key rotation system | `groq_key_rotator.py` | 2h |
 
 ### Phase 2: Testing Enhancement (Week 1-2)
 | Step | Task | Module | Effort |
 |------|------|--------|--------|
-| 2.1 | Create Groq API integration test suite | `tests/test_groq_integration.py` | 4h |
+| 2.1 | Create DeepInfra API integration test suite | `tests/test_groq_integration.py` | 4h |
 | 2.2 | Create cross-module system validation tests | `tests/test_system_wide_validation.py` | 4h |
 | 2.3 | Add LLM controller dedicated tests | `tests/test_llm_controller_dedicated.py` | 3h |
 | 2.4 | Update testing documentation | `documentation/testing/` | 2h |

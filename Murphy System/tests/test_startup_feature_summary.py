@@ -40,19 +40,19 @@ class TestGetFeatureStatus:
             assert info["status"] == "disabled", f"{name} should be disabled"
 
     def test_groq_enabled(self) -> None:
-        with patch.dict(os.environ, {"GROQ_API_KEY": "gsk_test"}, clear=False):
+        with patch.dict(os.environ, {"DEEPINFRA_API_KEY": "gsk_test"}, clear=False):
             status = get_feature_status()
-        assert status["Groq LLM"]["status"] == "enabled"
+        assert status["DeepInfra LLM"]["status"] == "enabled"
 
     def test_multiple_features_enabled(self) -> None:
         env = {
-            "GROQ_API_KEY": "gsk_test",
+            "DEEPINFRA_API_KEY": "gsk_test",
             "SENDGRID_API_KEY": "SG.test",
             "DATABASE_URL": "postgresql://localhost/murphy",
         }
         with patch.dict(os.environ, env, clear=False):
             status = get_feature_status()
-        assert status["Groq LLM"]["status"] == "enabled"
+        assert status["DeepInfra LLM"]["status"] == "enabled"
         assert status["SendGrid Email"]["status"] == "enabled"
         assert status["PostgreSQL"]["status"] == "enabled"
 
@@ -74,9 +74,9 @@ class TestPrintFeatureSummary:
         assert "Feature Availability" in result
 
     def test_shows_enabled_feature(self) -> None:
-        with patch.dict(os.environ, {"GROQ_API_KEY": "gsk_test"}, clear=False):
+        with patch.dict(os.environ, {"DEEPINFRA_API_KEY": "gsk_test"}, clear=False):
             result = print_feature_summary()
-        assert "Groq LLM" in result
+        assert "DeepInfra LLM" in result
         assert "✅" in result
 
     def test_shows_disabled_features(self) -> None:

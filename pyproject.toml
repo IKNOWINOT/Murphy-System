@@ -21,7 +21,7 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-llm = ["groq>=0.4.0", "openai>=1.0"]
+llm = ["deepinfra>=0.4.0", "openai>=1.0"]
 security = ["cryptography>=41.0", "PyJWT>=2.8"]
 terminal = ["textual>=0.40", "pywin32; sys_platform == 'win32'"]
 dev = ["pytest>=7.0", "pytest-cov", "ruff", "mypy"]

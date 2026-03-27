@@ -305,7 +305,7 @@ class FormHandler:
 LLM API calls scattered throughout codebase rather than centralized.
 
 **Locations:**
-- `inoni_business_automation.py` (direct Groq calls)
+- `inoni_business_automation.py` (direct DeepInfra calls)
 - `src/form_intake/plan_decomposer.py` (LLM for plan generation)
 - Various bots (direct LLM calls)
 
@@ -321,7 +321,7 @@ LLM API calls scattered throughout codebase rather than centralized.
 ```python
 # Centralized LLM service
 class LLMService:
-    def __init__(self, primary_provider='groq'):
+    def __init__(self, primary_provider='deepinfra'):
         self.primary = primary_provider
         self.groq_client = GroqClient()
         self.aristotle_client = AristotleClient()
@@ -540,7 +540,7 @@ Response to User
 2. **Centralize LLM Integration** (P2)
    - Create LLMService abstraction
    - Consolidate all LLM calls
-   - Implement fallback chain (Groq → Aristotle → Local)
+   - Implement fallback chain (DeepInfra → Aristotle → Local)
 
 3. **Add Health Checks** (P2)
    - Monitor all critical dependencies

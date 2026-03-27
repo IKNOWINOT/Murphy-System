@@ -377,7 +377,7 @@ Set secrets in **GitHub → Settings → Secrets and variables → Actions**:
 
 | Secret | Purpose |
 |--------|---------|
-| `GROQ_API_KEY` | Required only for `llm_live` tests |
+| `DEEPINFRA_API_KEY` | Required only for `llm_live` tests |
 | `MURPHY_API_KEYS` | Test API keys |
 
 The standard test suite runs with `MURPHY_ENV=test` and does **not** require a real LLM key — all LLM calls are mocked.

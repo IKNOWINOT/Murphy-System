@@ -302,7 +302,7 @@ DATABASE_URL=postgresql://user:pass@localhost:5432/murphy
 REDIS_URL=redis://localhost:6379
 
 # API Keys
-GROQ_API_KEY=your_groq_key
+DEEPINFRA_API_KEY=your_groq_key
 OPENAI_API_KEY=your_openai_key
 
 # Integration Keys

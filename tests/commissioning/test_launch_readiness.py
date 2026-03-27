@@ -397,10 +397,10 @@ class TestGateG5G6RuntimeBlockers:
         assert "FULL GO" in content
 
     def test_env_example_has_groq_key_placeholder(self, project_root):
-        """@arch-lead: .env.example has GROQ_API_KEY placeholder."""
+        """@arch-lead: .env.example has DEEPINFRA_API_KEY placeholder."""
         env_file = project_root / ".env.example"
         content = env_file.read_text()
-        assert "GROQ_API_KEY" in content, ".env.example should reference GROQ_API_KEY"
+        assert "DEEPINFRA_API_KEY" in content, ".env.example should reference DEEPINFRA_API_KEY"
 
     def test_subsystem_source_files_exist(self, project_root, src_dir):
         """@arch-lead: All 4 blocked subsystem source files exist (code present, init blocked)."""

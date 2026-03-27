@@ -236,15 +236,15 @@ class TestLLMControllerRefreshAvailability:
         assert callable(controller.refresh_availability)
 
     def test_refresh_availability_marks_groq_available_when_key_set(self):
-        """After setting GROQ_API_KEY, refresh_availability() enables Groq models."""
-        original = os.environ.pop("GROQ_API_KEY", None)
+        """After setting DEEPINFRA_API_KEY, refresh_availability() enables DeepInfra models."""
+        original = os.environ.pop("DEEPINFRA_API_KEY", None)
         try:
             controller = LLMController()
             assert not controller.models[LLMModel.GROQ_MIXTRAL].available
             assert not controller.models[LLMModel.GROQ_LLAMA].available
             assert not controller.models[LLMModel.GROQ_GEMMA].available
 
-            os.environ["GROQ_API_KEY"] = "gsk_test_key_for_testing_only"
+            os.environ["DEEPINFRA_API_KEY"] = "gsk_test_key_for_testing_only"
             controller.refresh_availability()
 
             assert controller.models[LLMModel.GROQ_MIXTRAL].available, \
@@ -255,32 +255,32 @@ class TestLLMControllerRefreshAvailability:
                 "GROQ_GEMMA should be available after refresh_availability()"
         finally:
             if original is not None:
-                os.environ["GROQ_API_KEY"] = original
+                os.environ["DEEPINFRA_API_KEY"] = original
             else:
-                os.environ.pop("GROQ_API_KEY", None)
+                os.environ.pop("DEEPINFRA_API_KEY", None)
 
     def test_refresh_availability_marks_groq_unavailable_when_key_removed(self):
-        """After removing GROQ_API_KEY, refresh_availability() disables Groq models."""
-        original = os.environ.get("GROQ_API_KEY")
+        """After removing DEEPINFRA_API_KEY, refresh_availability() disables DeepInfra models."""
+        original = os.environ.get("DEEPINFRA_API_KEY")
         try:
-            os.environ["GROQ_API_KEY"] = "gsk_test_key"
+            os.environ["DEEPINFRA_API_KEY"] = "gsk_test_key"
             controller = LLMController()
             assert controller.models[LLMModel.GROQ_MIXTRAL].available
 
-            del os.environ["GROQ_API_KEY"]
+            del os.environ["DEEPINFRA_API_KEY"]
             controller.refresh_availability()
 
             assert not controller.models[LLMModel.GROQ_MIXTRAL].available, \
                 "GROQ_MIXTRAL should be unavailable after key removal + refresh"
         finally:
             if original is not None:
-                os.environ["GROQ_API_KEY"] = original
+                os.environ["DEEPINFRA_API_KEY"] = original
             else:
-                os.environ.pop("GROQ_API_KEY", None)
+                os.environ.pop("DEEPINFRA_API_KEY", None)
 
     def test_local_models_always_available_after_refresh(self):
-        """Local models must stay available regardless of GROQ_API_KEY."""
-        original = os.environ.pop("GROQ_API_KEY", None)
+        """Local models must stay available regardless of DEEPINFRA_API_KEY."""
+        original = os.environ.pop("DEEPINFRA_API_KEY", None)
         try:
             controller = LLMController()
             controller.refresh_availability()
@@ -290,7 +290,7 @@ class TestLLMControllerRefreshAvailability:
                 "LOCAL_MEDIUM must always be available"
         finally:
             if original is not None:
-                os.environ["GROQ_API_KEY"] = original
+                os.environ["DEEPINFRA_API_KEY"] = original
 
     def test_reconfigure_method_exists(self):
         controller = LLMController()
@@ -299,20 +299,20 @@ class TestLLMControllerRefreshAvailability:
         assert callable(controller.reconfigure)
 
     def test_reconfigure_updates_env_and_availability(self):
-        """reconfigure() sets GROQ_API_KEY in environ and refreshes models."""
-        original = os.environ.pop("GROQ_API_KEY", None)
+        """reconfigure() sets DEEPINFRA_API_KEY in environ and refreshes models."""
+        original = os.environ.pop("DEEPINFRA_API_KEY", None)
         try:
             controller = LLMController()
             assert not controller.models[LLMModel.GROQ_MIXTRAL].available
 
             controller.reconfigure("gsk_new_test_key")
 
-            assert os.environ.get("GROQ_API_KEY") == "gsk_new_test_key", \
-                "reconfigure() should set GROQ_API_KEY in os.environ"
+            assert os.environ.get("DEEPINFRA_API_KEY") == "gsk_new_test_key", \
+                "reconfigure() should set DEEPINFRA_API_KEY in os.environ"
             assert controller.models[LLMModel.GROQ_MIXTRAL].available, \
-                "reconfigure() should enable Groq models"
+                "reconfigure() should enable DeepInfra models"
         finally:
             if original is not None:
-                os.environ["GROQ_API_KEY"] = original
+                os.environ["DEEPINFRA_API_KEY"] = original
             else:
-                os.environ.pop("GROQ_API_KEY", None)
+                os.environ.pop("DEEPINFRA_API_KEY", None)

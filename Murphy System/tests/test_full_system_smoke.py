@@ -171,13 +171,13 @@ class TestLLMConfigureSmoke:
         assert hasattr(mod, "reload_env"), "env_manager must have reload_env"
 
     def test_api_key_format_constants_defined(self) -> None:
-        """API_KEY_FORMATS must define at least groq and openai."""
+        """API_KEY_FORMATS must define at least deepinfra and openai."""
         mod = _try_import("env_manager")
         if mod is None:
             pytest.skip("env_manager not available")
         fmt = getattr(mod, "API_KEY_FORMATS", None)
         assert fmt is not None, "env_manager must define API_KEY_FORMATS"
-        assert "groq" in fmt, "API_KEY_FORMATS must include 'groq'"
+        assert "deepinfra" in fmt, "API_KEY_FORMATS must include 'deepinfra'"
         assert "openai" in fmt, "API_KEY_FORMATS must include 'openai'"
 
     def test_groq_key_format_has_env_var(self) -> None:
@@ -185,10 +185,10 @@ class TestLLMConfigureSmoke:
         if mod is None:
             pytest.skip("env_manager not available")
         fmt = getattr(mod, "API_KEY_FORMATS", {})
-        groq = fmt.get("groq", {})
-        assert "env_var" in groq, "groq entry in API_KEY_FORMATS must have 'env_var'"
-        assert groq["env_var"] == "GROQ_API_KEY", (
-            f"Expected GROQ_API_KEY, got {groq['env_var']!r}"
+        deepinfra = fmt.get("deepinfra", {})
+        assert "env_var" in deepinfra, "deepinfra entry in API_KEY_FORMATS must have 'env_var'"
+        assert deepinfra["env_var"] == "DEEPINFRA_API_KEY", (
+            f"Expected DEEPINFRA_API_KEY, got {deepinfra['env_var']!r}"
         )
 
     def test_validate_api_key_callable(self) -> None:

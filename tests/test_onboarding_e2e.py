@@ -3,7 +3,7 @@ End-to-end tests for the MFGC/5U conversational onboarding engine.
 
 Tests the complete onboarding flow through the Librarian API:
 - Onboard LLM mode (no API keys): adaptive deterministic responses
-- Groq LLM mode: when GROQ_API_KEY is set
+- DeepInfra LLM mode: when DEEPINFRA_API_KEY is set
 - MFGC/5U scoring: 0% → 85% threshold → plan generation
 - Reflection: user input amplified back (magnify x3)
 - No duplicate responses: every reply must be unique
@@ -272,7 +272,7 @@ class TestOnboardConversation(unittest.TestCase):
     def setUp(self):
         self.murphy = _get_murphy()
         # Ensure no LLM keys are set
-        for key in ("GROQ_API_KEY", "OPENAI_API_KEY", "MURPHY_LLM_PROVIDER"):
+        for key in ("DEEPINFRA_API_KEY", "OPENAI_API_KEY", "MURPHY_LLM_PROVIDER"):
             os.environ.pop(key, None)
 
     def test_first_message_gets_personalized_response(self):
@@ -411,7 +411,7 @@ class TestMagnifySolidifyFlow(unittest.TestCase):
 
     def setUp(self):
         self.murphy = _get_murphy()
-        for key in ("GROQ_API_KEY", "OPENAI_API_KEY", "MURPHY_LLM_PROVIDER"):
+        for key in ("DEEPINFRA_API_KEY", "OPENAI_API_KEY", "MURPHY_LLM_PROVIDER"):
             os.environ.pop(key, None)
 
     def test_magnify_creates_living_document(self):
@@ -542,38 +542,38 @@ class TestMagnifySolidifyFlow(unittest.TestCase):
 
 
 # ============================================================================
-# 4. Groq LLM Integration Tests
+# 4. DeepInfra LLM Integration Tests
 # ============================================================================
 
 class TestGroqIntegration(unittest.TestCase):
-    """Test with Groq API key (if available and network accessible)."""
+    """Test with DeepInfra API key (if available and network accessible)."""
 
     def setUp(self):
         self.murphy = _get_murphy()
-        self.groq_key = os.environ.get("GROQ_API_KEY", "")
+        self.groq_key = os.environ.get("DEEPINFRA_API_KEY", "")
         if not self.groq_key:
-            self.skipTest("GROQ_API_KEY not set — skipping Groq tests")
-        # Check if Groq API is reachable (sandbox may not have network)
+            self.skipTest("DEEPINFRA_API_KEY not set — skipping DeepInfra tests")
+        # Check if DeepInfra API is reachable (sandbox may not have network)
         try:
             import socket
-            socket.create_connection(("api.groq.com", 443), timeout=3)
+            socket.create_connection(("api.deepinfra.com", 443), timeout=3)
         except (OSError, socket.timeout):
-            self.skipTest("api.groq.com not reachable — no network access")
+            self.skipTest("api.deepinfra.com not reachable — no network access")
 
     def test_groq_responds_in_llm_mode(self):
-        """With Groq key, responses should be in 'llm' mode."""
-        os.environ["MURPHY_LLM_PROVIDER"] = "groq"
+        """With DeepInfra key, responses should be in 'llm' mode."""
+        os.environ["MURPHY_LLM_PROVIDER"] = "deepinfra"
         r = self.murphy.librarian_ask(
             "I run a manufacturing company called Inoni LLC",
-            session_id="groq-test-1",
+            session_id="deepinfra-test-1",
         )
         self.assertEqual(r["mode"], "llm")
         self.assertGreater(len(r["message"]), 50)
 
     def test_groq_maintains_context(self):
-        """Groq LLM should receive context about previously collected dimensions."""
-        os.environ["MURPHY_LLM_PROVIDER"] = "groq"
-        session = "groq-context"
+        """DeepInfra LLM should receive context about previously collected dimensions."""
+        os.environ["MURPHY_LLM_PROVIDER"] = "deepinfra"
+        session = "deepinfra-context"
         # First message
         self.murphy.librarian_ask(
             "I run a manufacturing company called Inoni LLC",
@@ -588,14 +588,14 @@ class TestGroqIntegration(unittest.TestCase):
         # Response should reference manufacturing or Inoni (from context)
         msg_lower = r2["message"].lower()
         has_context = "manufactur" in msg_lower or "inoni" in msg_lower or "integrat" in msg_lower
-        self.assertTrue(has_context, "Groq response lacks context from prior message")
+        self.assertTrue(has_context, "DeepInfra response lacks context from prior message")
 
     def test_groq_score_still_tracked(self):
         """MFGC/5U score should be tracked even in LLM mode."""
-        os.environ["MURPHY_LLM_PROVIDER"] = "groq"
+        os.environ["MURPHY_LLM_PROVIDER"] = "deepinfra"
         r = self.murphy.librarian_ask(
             "I run a manufacturing company called Inoni LLC with 15 people in Dallas",
-            session_id="groq-score",
+            session_id="deepinfra-score",
         )
         self.assertIn("mfgc_score", r)
         self.assertGreater(r["mfgc_score"], 0)

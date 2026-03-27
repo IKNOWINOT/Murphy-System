@@ -47,6 +47,18 @@ logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s  %(name)s  %(levelname)s  %(message)s")
 log = logging.getLogger("murphy.prod")
 
+# -- Import MurphyLLMProvider (DeepInfra primary, Together fallback) -----------
+try:
+    _llm_src = Path(__file__).resolve().parent / "src"
+    sys.path.insert(0, str(_llm_src))
+    from llm_provider import get_llm as _get_llm
+    _llm_available = True
+    log.info("MurphyLLMProvider loaded — DeepInfra primary, Together fallback")
+except Exception as _llm_e:
+    log.warning("MurphyLLMProvider not available (%s) — using pattern-match fallback", _llm_e)
+    _llm_available = False
+    _get_llm = None  # type: ignore
+
 # -- Import Murphy automation engine (with fallback) ---------------------------
 try:
     sys.path.insert(0, str(ROOT / "src"))
@@ -1172,6 +1184,7 @@ async def create_from_prompt(req: PromptRequest):
         if len(tenant_autos) >= tier_cfg["max_automations"]:
             raise HTTPException(402, f"Tier limit reached ({tier_cfg['max_automations']} automations). Upgrade to Business.")
     if _INJECTION_RE.search(req.prompt): raise HTTPException(400,"Prompt contains disallowed content")
+
     prompt_lower = req.prompt.lower()
     recurrence="daily"; trigger="schedule"
     for keywords,rec,trig in _PROMPT_PATTERNS:
@@ -1188,18 +1201,107 @@ async def create_from_prompt(req: PromptRequest):
     start_time = datetime.now(_UTC).replace(hour=start_hour,minute=0,second=0,microsecond=0).isoformat()
     auto_id = f"auto-{uuid.uuid4().hex[:8]}"
     est_min = _DURATION_MAP.get(category,10)
+
+    # ── Real LLM generation (DeepInfra primary, Together fallback) ──────────
+    auto_name = req.prompt.strip()[:60].title()  # default fallback
+    llm_description = ""
+    llm_steps: list = []
+
+    if _llm_available and _get_llm is not None:
+        try:
+            llm = _get_llm()
+            system_msg = (
+                "You are Murphy, an AI system builder and automation platform developed by Inoni LLC, "
+                "created by Corey Post. Your job is to design business automations. "
+                "Reply ONLY with valid JSON — no markdown, no explanation, no code fences."
+            )
+            user_msg = (
+                f"Design a business automation for: {req.prompt}\n\n"
+                f"Category: {category}. Estimated duration: {est_min} minutes.\n\n"
+                "Return JSON with exactly these keys:\n"
+                '{"name": "Short action title (max 60 chars)", '
+                '"description": "2-sentence description of what this automation does", '
+                '"steps": ["Step 1 name", "Step 2 name", "Step 3 name", "Step 4 name", "Step 5 name"]}'
+            )
+            result = await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: llm.complete(
+                    user_msg,
+                    system=system_msg,
+                    model_hint="fast",
+                    temperature=0.4,
+                    max_tokens=300,
+                )
+            )
+            if result and result.success and result.content:
+                raw = result.content.strip()
+                # Strip markdown fences if present
+                if raw.startswith("```"):
+                    raw = re.sub(r"^```[a-z]*\n?", "", raw)
+                    raw = re.sub(r"\n?```$", "", raw)
+                parsed = json.loads(raw)
+                auto_name = str(parsed.get("name", auto_name))[:60]
+                llm_description = str(parsed.get("description", ""))
+                llm_steps = list(parsed.get("steps", []))[:6]
+                log.info("LLM generated automation '%s' via %s", auto_name, result.provider)
+        except Exception as _llm_err:
+            log.warning("LLM generation failed (%s) — using pattern-match fallback", _llm_err)
+
+    # Build milestones from LLM steps if available, else use default generator
+    if llm_steps:
+        step_min = max(1, est_min // max(len(llm_steps), 1))
+        milestones = []
+        offset = 0
+        for i, step_name in enumerate(llm_steps):
+            ms = {
+                "id": f"ms-{auto_id}-{i}",
+                "name": step_name,
+                "status": "pending",
+                "due_offset_minutes": offset + step_min,
+                "actual_minutes": None,
+                "hitl_required": (i == 0),  # first step always needs HITL approval
+            }
+            milestones.append(ms)
+            offset += step_min
+    else:
+        milestones = _make_milestones(category, est_min)
+
     new_auto = {
-        "id":auto_id,"name":req.prompt.strip()[:60].title(),"trigger":trigger,
+        "id":auto_id,"name":auto_name,"trigger":trigger,
         "start_time":start_time,"recurrence":recurrence,"status":"active",
         "estimated_minutes":est_min,"actual_minutes":0.0,
         "labor_cost_per_hr":_COST_MAP.get(category,75),"category":category,
         "color":random.choice(_COLORS),"board_id":req.board_id,"tenant_id":req.tenant_id,
         "created_from_prompt":req.prompt,"created_at":_now_iso(),
-        "milestones": _make_milestones(category, est_min),
+        "description": llm_description,
+        "milestones": milestones,
         "progress": 0.0, "total_delay_minutes": 0.0, "effective_duration_minutes": est_min,
+        "llm_generated": _llm_available,
     }
     _automation_store.append(new_auto)
     new_auto["cost_savings"] = _cost_savings(new_auto)
+
+    # ── Auto-create HITL checkpoint for first milestone ──────────────────────
+    if milestones:
+        first_ms = milestones[0]
+        hitl_id = f"hitl-{auto_id}-init"
+        _HITL_QUEUE.append({
+            "id": hitl_id,
+            "automation_id": auto_id,
+            "automation_name": auto_name,
+            "checkpoint": first_ms["name"],
+            "context": {
+                "prompt": req.prompt,
+                "category": category,
+                "description": llm_description,
+                "llm_generated": _llm_available,
+            },
+            "status": "pending",
+            "created_at": _now_iso(),
+            "expires_at": (datetime.now(_UTC) + timedelta(hours=24)).isoformat(),
+        })
+        log.info("HITL checkpoint created for automation %s: %s", auto_id, first_ms["name"])
+
     _broadcast_sse("automation_created",new_auto)
     await _broadcast_ws("automation_created",new_auto)
     return JSONResponse(new_auto, status_code=201)

@@ -30,7 +30,7 @@ VALID_ROBOTICS_PROTOCOLS = [
     "spot", "universal_robot", "ros2", "modbus", "bacnet",
     "opcua", "fanuc", "kuka", "abb", "dji", "clearpath", "mqtt",
 ]
-VALID_LLM_PROVIDERS = ["local", "groq", "openai", "anthropic", "azure"]
+VALID_LLM_PROVIDERS = ["local", "deepinfra", "openai", "anthropic", "azure"]
 VALID_COMPLIANCE_FRAMEWORKS = [
     "SOC2", "HIPAA", "GDPR", "PCI_DSS", "ISO27001", "none",
 ]
@@ -618,7 +618,7 @@ PRESET_PROFILES: Dict[str, Dict[str, Any]] = {
             "robotics_protocols": [],
             "avatar_enabled": True,
             "avatar_connectors": [],
-            "llm_provider": "groq",
+            "llm_provider": "deepinfra",
             "monitoring_enabled": True,
             "compliance_frameworks": ["none"],
             "deployment_mode": "local",
@@ -677,7 +677,7 @@ PRESET_PROFILES: Dict[str, Dict[str, Any]] = {
             "robotics_protocols": [],
             "avatar_enabled": True,
             "avatar_connectors": [],
-            "llm_provider": "groq",
+            "llm_provider": "deepinfra",
             "monitoring_enabled": True,
             "compliance_frameworks": ["SOC2"],
             "deployment_mode": "docker",
@@ -707,7 +707,7 @@ PRESET_PROFILES: Dict[str, Dict[str, Any]] = {
             "robotics_protocols": [],
             "avatar_enabled": True,
             "avatar_connectors": [],
-            "llm_provider": "groq",
+            "llm_provider": "deepinfra",
             "monitoring_enabled": True,
             "compliance_frameworks": ["SOC2"],
             "deployment_mode": "docker",
@@ -863,7 +863,7 @@ def _fuzzy_match_choice(raw: str, options: List[str]) -> Optional[str]:
     """Try to extract a valid option from free-text input.
 
     For example, ``"local for now."`` matches ``"local"`` when
-    ``options`` is ``["local", "groq", "openai", ...]``.
+    ``options`` is ``["local", "deepinfra", "openai", ...]``.
     """
     lower = raw.strip().lower()
     # Exact match (case-insensitive)

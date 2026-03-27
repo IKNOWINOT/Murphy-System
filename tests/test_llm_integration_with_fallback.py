@@ -70,18 +70,18 @@ class TestLLMIntegrationWithFallback:
         print(f"   Confidence: {response.confidence}")
         print(f"   Response length: {len(response.response)} chars")
 
-    def test_groq_request_with_local_fallback(self, integration_layer_with_fallback):
-        """Test Groq request using local fallback"""
+    def test_deepinfra_request_with_local_fallback(self, integration_layer_with_fallback):
+        """Test DeepInfra request using local fallback"""
         response = integration_layer_with_fallback.route_request(
             prompt="Write a short poem about AI",
             domain=DomainType.CREATIVE,
-            provider=LLMProvider.GROQ
+            provider=LLMProvider.DEEPINFRA
         )
 
         assert response.response is not None
-        assert response.provider == LLMProvider.GROQ
+        assert response.provider == LLMProvider.DEEPINFRA
         assert 0.0 <= response.confidence <= 1.0
-        print(f"✅ Groq request successful")
+        print(f"✅ DeepInfra request successful")
         print(f"   Confidence: {response.confidence}")
         print(f"   Response length: {len(response.response)} chars")
         print(f"   Response preview: {response.response[:200]}...")
@@ -107,7 +107,7 @@ class TestLLMIntegrationWithFallback:
         """Test multiple sequential requests with local fallback"""
         requests = [
             ("Calculate 5 * 7", LLMProvider.ARISTOTLE, DomainType.MATHEMATICAL),
-            ("Write a poem about technology", LLMProvider.GROQ, DomainType.CREATIVE),
+            ("Write a poem about technology", LLMProvider.DEEPINFRA, DomainType.CREATIVE),
             ("Is this valid?", LLMProvider.WULFRUM, DomainType.MATHEMATICAL),
             ("What is force?", LLMProvider.ARISTOTLE, DomainType.PHYSICS),
         ]
@@ -168,7 +168,7 @@ class TestLLMIntegrationWithFallback:
         """Test token tracking works with local fallback"""
         response = integration_layer_with_fallback.route_request(
             prompt="Explain machine learning",
-            provider=LLMProvider.GROQ,
+            provider=LLMProvider.DEEPINFRA,
             domain=DomainType.GENERAL
         )
 
@@ -214,8 +214,8 @@ def run_integration_tests():
         ("Aristotle - Math", LLMProvider.ARISTOTLE, DomainType.MATHEMATICAL, "Calculate 5 * 7"),
         ("Aristotle - Physics", LLMProvider.ARISTOTLE, DomainType.PHYSICS, "What is kinetic energy?"),
         ("Wulfrum - Validation", LLMProvider.WULFRUM, DomainType.MATHEMATICAL, "Is 2+2 equal to 5?"),
-        ("Groq - Creative", LLMProvider.GROQ, DomainType.CREATIVE, "Write a poem about AI"),
-        ("Groq - General", LLMProvider.GROQ, DomainType.GENERAL, "Explain machine learning"),
+        ("DeepInfra - Creative", LLMProvider.DEEPINFRA, DomainType.CREATIVE, "Write a poem about AI"),
+        ("DeepInfra - General", LLMProvider.DEEPINFRA, DomainType.GENERAL, "Explain machine learning"),
     ]
 
     results = []

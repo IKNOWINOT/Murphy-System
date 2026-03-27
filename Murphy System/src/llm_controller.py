@@ -1,6 +1,6 @@
 """
 Murphy LLM Controller - Master Backend Terminal
-Controls Groq API and onboard smaller LLMs
+Controls DeepInfra API and onboard smaller LLMs
 Powers the neon terminal UI for system/module setup guidance
 
 Based on Recursive Language Models (RLM) pattern from 2512.24601v1.pdf
@@ -35,9 +35,9 @@ logger = logging.getLogger(__name__)
 
 class LLMModel(Enum):
     """Available LLM models"""
-    GROQ_MIXTRAL = "groq_mixtral"
-    GROQ_LLAMA = "groq_llama"
-    GROQ_GEMMA = "groq_gemma"
+    DEEPINFRA_70B = "deepinfra_70b"  # formerly GROQ_MIXTRAL
+    DEEPINFRA_LLAMA = "deepinfra_llama"  # formerly GROQ_LLAMA
+    DEEPINFRA_FAST = "deepinfra_fast"  # formerly GROQ_GEMMA
     LOCAL_SMALL = "local_small"
     LOCAL_MEDIUM = "local_medium"
     MFM = "mfm"  # Murphy Foundation Model — local, self-trained
@@ -94,7 +94,7 @@ class LLMController:
 
     Features:
     - Automatic model selection based on confidence and capabilities
-    - Groq API integration for fast inference
+    - DeepInfra API integration for fast inference
     - Local model fallback for cost efficiency
     - Context chunking for long inputs
     - Recursive query support
@@ -112,9 +112,9 @@ class LLMController:
     def _initialize_models(self) -> Dict[LLMModel, LLMModelInfo]:
         """Initialize available LLM models"""
         return {
-            LLMModel.GROQ_MIXTRAL: LLMModelInfo(
+            LLMModel.DEEPINFRA_70B: LLMModelInfo(
                 name="Mixtral-8x7B",
-                model_type=LLMModel.GROQ_MIXTRAL,
+                model_type=LLMModel.DEEPINFRA_70B,
                 capabilities=[
                     ModelCapability.CODE_GENERATION,
                     ModelCapability.REASONING,
@@ -125,11 +125,11 @@ class LLMController:
                 cost_per_1k_tokens=0.00027,
                 avg_latency=0.05,
                 confidence_threshold=0.85,
-                available=os.environ.get("GROQ_API_KEY") is not None
+                available=os.environ.get("DEEPINFRA_API_KEY") is not None
             ),
-            LLMModel.GROQ_LLAMA: LLMModelInfo(
+            LLMModel.DEEPINFRA_LLAMA: LLMModelInfo(
                 name="Llama3-70B",
-                model_type=LLMModel.GROQ_LLAMA,
+                model_type=LLMModel.DEEPINFRA_LLAMA,
                 capabilities=[
                     ModelCapability.REASONING,
                     ModelCapability.SWARM_PLANNING,
@@ -139,11 +139,11 @@ class LLMController:
                 cost_per_1k_tokens=0.00059,
                 avg_latency=0.08,
                 confidence_threshold=0.90,
-                available=os.environ.get("GROQ_API_KEY") is not None
+                available=os.environ.get("DEEPINFRA_API_KEY") is not None
             ),
-            LLMModel.GROQ_GEMMA: LLMModelInfo(
+            LLMModel.DEEPINFRA_FAST: LLMModelInfo(
                 name="Gemma-7B",
-                model_type=LLMModel.GROQ_GEMMA,
+                model_type=LLMModel.DEEPINFRA_FAST,
                 capabilities=[
                     ModelCapability.CODE_GENERATION,
                     ModelCapability.CONTEXT_PROCESSING,
@@ -152,7 +152,7 @@ class LLMController:
                 cost_per_1k_tokens=0.00010,
                 avg_latency=0.03,
                 confidence_threshold=0.75,
-                available=os.environ.get("GROQ_API_KEY") is not None
+                available=os.environ.get("DEEPINFRA_API_KEY") is not None
             ),
             LLMModel.LOCAL_SMALL: LLMModelInfo(
                 name="Phi-2 (Local)",
@@ -341,12 +341,12 @@ class LLMController:
 
         if model == LLMModel.MFM:
             response = await self._query_mfm(request)
-        elif model == LLMModel.GROQ_MIXTRAL:
-            response = await self._query_groq_mixtral(request)
-        elif model == LLMModel.GROQ_LLAMA:
-            response = await self._query_groq_llama(request)
-        elif model == LLMModel.GROQ_GEMMA:
-            response = await self._query_groq_gemma(request)
+        elif model == LLMModel.DEEPINFRA_70B:
+            response = await self._query_deepinfra_70b(request)
+        elif model == LLMModel.DEEPINFRA_LLAMA:
+            response = await self._query_deepinfra_llama(request)
+        elif model == LLMModel.DEEPINFRA_FAST:
+            response = await self._query_deepinfra_fast(request)
         elif model == LLMModel.LOCAL_SMALL:
             response = await self._query_local_small(request)
         elif model == LLMModel.LOCAL_MEDIUM:
@@ -398,12 +398,12 @@ class LLMController:
             logger.info("MFM query failed, falling back: %s", exc)
             return await self._query_fallback(request)
 
-    async def _query_groq_mixtral(self, request: LLMRequest) -> LLMResponse:
-        """Query Groq Mixtral model"""
+    async def _query_deepinfra_70b(self, request: LLMRequest) -> LLMResponse:
+        """Query DeepInfra Mixtral model"""
         try:
-            from groq import Groq
+            # deepinfra replaced: from openai import DeepInfra
 
-            client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+            client = DeepInfra(api_key=os.environ.get("DEEPINFRA_API_KEY"))
 
             messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
 
@@ -416,7 +416,7 @@ class LLMController:
             messages.append({"role": "user", "content": request.prompt})
 
             response = client.chat.completions.create(
-                model="mixtral-8x7b-32768",
+                model="meta-llama/Meta-Llama-3.1-70B-Instruct",
                 messages=messages,
                 temperature=request.temperature,
                 max_tokens=request.max_tokens
@@ -424,28 +424,28 @@ class LLMController:
 
             content = response.choices[0].message.content
             tokens_used = response.usage.total_tokens
-            cost = (tokens_used / 1000) * self.models[LLMModel.GROQ_MIXTRAL].cost_per_1k_tokens
+            cost = (tokens_used / 1000) * self.models[LLMModel.DEEPINFRA_70B].cost_per_1k_tokens
 
             return LLMResponse(
                 content=content,
-                model_used=LLMModel.GROQ_MIXTRAL,
+                model_used=LLMModel.DEEPINFRA_70B,
                 confidence=0.0,  # Will be set by caller
                 tokens_used=tokens_used,
                 cost=cost,
                 latency=0.0,  # Will be set by caller
-                metadata={"provider": "groq", "model": "mixtral-8x7b-32768"}
+                metadata={"provider": "deepinfra", "model": "meta-llama/Meta-Llama-3.1-70B-Instruct"}
             )
 
         except Exception as exc:
-            logger.info(f"Error querying Groq Mixtral: {exc}")
+            logger.info(f"Error querying DeepInfra Mixtral: {exc}")
             return await self._query_fallback(request)
 
-    async def _query_groq_llama(self, request: LLMRequest) -> LLMResponse:
-        """Query Groq Llama model"""
+    async def _query_deepinfra_llama(self, request: LLMRequest) -> LLMResponse:
+        """Query DeepInfra Llama model"""
         try:
-            from groq import Groq
+            # deepinfra replaced: from openai import DeepInfra
 
-            client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+            client = DeepInfra(api_key=os.environ.get("DEEPINFRA_API_KEY"))
 
             messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
 
@@ -458,7 +458,7 @@ class LLMController:
             messages.append({"role": "user", "content": request.prompt})
 
             response = client.chat.completions.create(
-                model="llama3-70b-8192",
+                model="meta-llama/Meta-Llama-3.1-70B-Instruct",
                 messages=messages,
                 temperature=request.temperature,
                 max_tokens=request.max_tokens
@@ -466,28 +466,28 @@ class LLMController:
 
             content = response.choices[0].message.content
             tokens_used = response.usage.total_tokens
-            cost = (tokens_used / 1000) * self.models[LLMModel.GROQ_LLAMA].cost_per_1k_tokens
+            cost = (tokens_used / 1000) * self.models[LLMModel.DEEPINFRA_LLAMA].cost_per_1k_tokens
 
             return LLMResponse(
                 content=content,
-                model_used=LLMModel.GROQ_LLAMA,
+                model_used=LLMModel.DEEPINFRA_LLAMA,
                 confidence=0.0,
                 tokens_used=tokens_used,
                 cost=cost,
                 latency=0.0,
-                metadata={"provider": "groq", "model": "llama3-70b-8192"}
+                metadata={"provider": "deepinfra", "model": "meta-llama/Meta-Llama-3.1-70B-Instruct"}
             )
 
         except Exception as exc:
-            logger.info(f"Error querying Groq Llama: {exc}")
+            logger.info(f"Error querying DeepInfra Llama: {exc}")
             return await self._query_fallback(request)
 
-    async def _query_groq_gemma(self, request: LLMRequest) -> LLMResponse:
-        """Query Groq Gemma model"""
+    async def _query_deepinfra_fast(self, request: LLMRequest) -> LLMResponse:
+        """Query DeepInfra Gemma model"""
         try:
-            from groq import Groq
+            # deepinfra replaced: from openai import DeepInfra
 
-            client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+            client = DeepInfra(api_key=os.environ.get("DEEPINFRA_API_KEY"))
 
             messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
 
@@ -508,20 +508,20 @@ class LLMController:
 
             content = response.choices[0].message.content
             tokens_used = response.usage.total_tokens
-            cost = (tokens_used / 1000) * self.models[LLMModel.GROQ_GEMMA].cost_per_1k_tokens
+            cost = (tokens_used / 1000) * self.models[LLMModel.DEEPINFRA_FAST].cost_per_1k_tokens
 
             return LLMResponse(
                 content=content,
-                model_used=LLMModel.GROQ_GEMMA,
+                model_used=LLMModel.DEEPINFRA_FAST,
                 confidence=0.0,
                 tokens_used=tokens_used,
                 cost=cost,
                 latency=0.0,
-                metadata={"provider": "groq", "model": "gemma-7b-it"}
+                metadata={"provider": "deepinfra", "model": "gemma-7b-it"}
             )
 
         except Exception as exc:
-            logger.error("Error querying Groq Gemma: %s", exc)
+            logger.error("Error querying DeepInfra Gemma: %s", exc)
             return await self._query_fallback(request)
 
     async def _query_local_small(self, request: LLMRequest) -> LLMResponse:
@@ -622,7 +622,7 @@ class LLMController:
             logger.debug("LocalLLMFallback unavailable (%s), using minimal response", exc)
             content = (
                 f"[Onboard] I can help with: {request.prompt[:120]}. "
-                "Add a Groq API key via 'set key groq <key>' for enhanced responses."
+                "Add a DeepInfra API key via 'set key deepinfra <key>' for enhanced responses."
             )
         return LLMResponse(
             content=content,
@@ -728,25 +728,25 @@ class LLMController:
         """Re-check environment variables and update model availability.
 
         Call this after a key is added or changed at runtime (e.g. via
-        ``/api/llm/configure``) so Groq models are marked available without
+        ``/api/llm/configure``) so DeepInfra models are marked available without
         requiring an application restart.
         """
-        groq_available = os.environ.get("GROQ_API_KEY") is not None
+        deepinfra_available = os.environ.get("DEEPINFRA_API_KEY") is not None
         for model_type, info in self.models.items():
-            if model_type in (LLMModel.GROQ_MIXTRAL, LLMModel.GROQ_LLAMA, LLMModel.GROQ_GEMMA):
-                info.available = groq_available
+            if model_type in (LLMModel.DEEPINFRA_70B, LLMModel.DEEPINFRA_LLAMA, LLMModel.DEEPINFRA_FAST):
+                info.available = deepinfra_available
 
     def reconfigure(self, api_key: str) -> None:
-        """Update the Groq API key in the environment and refresh availability.
+        """Update the DeepInfra API key in the environment and refresh availability.
 
         This is the single call that hot-reloads a new key without restarting
         the application.  It updates ``os.environ`` directly so that every
-        subsequent ``_query_groq_*`` call picks up the new value.
+        subsequent ``_query_deepinfra_*`` call picks up the new value.
 
         Args:
-            api_key: The new Groq API key (must start with ``gsk_``).
+            api_key: The new DeepInfra API key (must start with ``gsk_``).
         """
-        os.environ["GROQ_API_KEY"] = api_key
+        os.environ["DEEPINFRA_API_KEY"] = api_key
         self.refresh_availability()
 
     def get_statistics(self) -> Dict[str, Any]:

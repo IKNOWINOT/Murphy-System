@@ -64,7 +64,7 @@ class TestLLMControllerFallback(unittest.TestCase):
     def test_query_fallback_always_available(self):
         """G-1: fallback works with no API key set."""
         import os as _os
-        original = _os.environ.pop("GROQ_API_KEY", None)
+        original = _os.environ.pop("DEEPINFRA_API_KEY", None)
         try:
             from llm_controller import LLMRequest
             req = LLMRequest(prompt="Hello, are you there?", max_tokens=100)
@@ -72,7 +72,7 @@ class TestLLMControllerFallback(unittest.TestCase):
             self.assertTrue(len(resp.content) > 0)
         finally:
             if original is not None:
-                _os.environ["GROQ_API_KEY"] = original
+                _os.environ["DEEPINFRA_API_KEY"] = original
 
     def test_fallback_metadata_shows_onboard(self):
         """G-2: metadata must declare always_available=True."""
@@ -96,7 +96,7 @@ class TestLLMControllerFallback(unittest.TestCase):
     def test_select_model_returns_local_without_api_key(self):
         """G-1: select_model() returns a local model when no API key is set."""
         import os as _os
-        original = _os.environ.pop("GROQ_API_KEY", None)
+        original = _os.environ.pop("DEEPINFRA_API_KEY", None)
         try:
             from llm_controller import LLMRequest, LLMModel
             req = LLMRequest(prompt="test")
@@ -104,7 +104,7 @@ class TestLLMControllerFallback(unittest.TestCase):
             self.assertIn(model, (LLMModel.LOCAL_SMALL, LLMModel.LOCAL_MEDIUM))
         finally:
             if original is not None:
-                _os.environ["GROQ_API_KEY"] = original
+                _os.environ["DEEPINFRA_API_KEY"] = original
 
 
 # ===========================================================================
@@ -132,7 +132,7 @@ class TestMurphyCoreAlwaysEnabled(unittest.TestCase):
 
     def test_no_api_key_returns_enabled_onboard(self):
         import os as _os
-        for key in ("GROQ_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "MURPHY_LLM_PROVIDER"):
+        for key in ("DEEPINFRA_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "MURPHY_LLM_PROVIDER"):
             _os.environ.pop(key, None)
         murphy = self._make_murphy()
         status = murphy._get_llm_status()
@@ -142,19 +142,19 @@ class TestMurphyCoreAlwaysEnabled(unittest.TestCase):
 
     def test_groq_key_present_returns_external_api(self):
         import os as _os
-        _os.environ["GROQ_API_KEY"] = "gsk_testkey123"
+        _os.environ["DEEPINFRA_API_KEY"] = "gsk_testkey123"
         _os.environ.pop("MURPHY_LLM_PROVIDER", None)
         murphy = self._make_murphy()
         status = murphy._get_llm_status()
         self.assertTrue(status.get("enabled"))
-        self.assertEqual(status.get("provider"), "groq")
+        self.assertEqual(status.get("provider"), "deepinfra")
         self.assertEqual(status.get("mode"), "external_api")
-        _os.environ.pop("GROQ_API_KEY", None)
+        _os.environ.pop("DEEPINFRA_API_KEY", None)
 
     def test_try_llm_generate_without_key_still_returns_text(self):
         """G-1: _try_llm_generate never returns (None, None) — always returns text."""
         import os as _os
-        for key in ("GROQ_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "MURPHY_LLM_PROVIDER"):
+        for key in ("DEEPINFRA_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "MURPHY_LLM_PROVIDER"):
             _os.environ.pop(key, None)
         murphy = self._make_murphy()
         text, err = murphy._try_llm_generate("What is the Murphy system?")
@@ -653,7 +653,7 @@ class TestHITLExecutionGate(unittest.TestCase):
     def test_is_external_api_model(self):
         from hitl_execution_gate import is_external_api_model
         self.assertTrue(is_external_api_model("groq_mixtral"))
-        self.assertTrue(is_external_api_model("groq"))
+        self.assertTrue(is_external_api_model("deepinfra"))
         self.assertTrue(is_external_api_model("openai"))
         self.assertTrue(is_external_api_model("gpt-4"))
         self.assertTrue(is_external_api_model("claude-3"))

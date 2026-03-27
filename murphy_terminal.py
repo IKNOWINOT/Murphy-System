@@ -147,10 +147,10 @@ MODULE_COMMAND_MAP: dict[str, list[str]] = {
 # ---------------------------------------------------------------------------
 
 API_PROVIDER_LINKS: dict[str, dict[str, str]] = {
-    "groq": {
-        "name": "Groq",
-        "url": "https://console.groq.com/keys",
-        "env_var": "GROQ_API_KEY",
+    "deepinfra": {
+        "name": "DeepInfra",
+        "url": "https://console.deepinfra.com/keys",
+        "env_var": "DEEPINFRA_API_KEY",
         "description": "LLM provider (fast inference for Llama, Mixtral, Gemma)",
     },
     "openai": {
@@ -519,7 +519,7 @@ class DialogContext:
             msg += (
                 "\n[bold cyan]What to do next:[/bold cyan]\n"
                 "  1. Sign up for the API keys listed above (links provided)\n"
-                "  2. Set keys right here: [green]set key groq gsk_...[/green] (no restart needed)\n"
+                "  2. Set keys right here: [green]set key deepinfra gsk_...[/green] (no restart needed)\n"
                 "  3. Type [green]status[/green] to verify everything is connected\n"
                 "  4. Type [green]execute <your first task>[/green] to start automating!\n\n"
             )
@@ -627,10 +627,10 @@ class DialogContext:
                     _add(pk)
 
         # Always recommend LLM if not configured
-        if "groq" not in matched:
+        if "deepinfra" not in matched:
             llm_provider = os.environ.get("MURPHY_LLM_PROVIDER", "").strip()
             if not llm_provider:
-                matched["groq"] = API_PROVIDER_LINKS["groq"]
+                matched["deepinfra"] = API_PROVIDER_LINKS["deepinfra"]
         return matched
 
     @staticmethod
@@ -744,7 +744,7 @@ and run end-to-end workflows with minimal manual effort.
 [bold cyan]📡 Quick Commands[/bold cyan]
   • [green]health[/green] / [green]status[/green]  — check system health
   • [green]execute <task>[/green]   — run a task or workflow
-  • [green]set key groq <key>[/green] — configure your API key (no restart needed)
+  • [green]set key deepinfra <key>[/green] — configure your API key (no restart needed)
   • [green]librarian[/green]       — consult the knowledge base expert
   • [green]billing[/green]         — view billing and subscription info
   • [green]links[/green]           — show dashboard and UI links
@@ -1109,7 +1109,7 @@ class MurphyTerminalApp(App):
                     self._write_system(
                         f"[yellow]⚠️ LLM key saved but authentication failed ({error})[/yellow] — "
                         "running in deterministic mode. "
-                        "Type [green]set key groq <your-key>[/green] to update."
+                        "Type [green]set key deepinfra <your-key>[/green] to update."
                     )
             else:
                 status_bar.llm_enabled = False
@@ -1118,7 +1118,7 @@ class MurphyTerminalApp(App):
                 self._write_system(
                     f"[yellow]LLM not configured ({error})[/yellow] — "
                     "running in deterministic mode. "
-                    "Type [green]set key groq <your-key>[/green] to enable."
+                    "Type [green]set key deepinfra <your-key>[/green] to enable."
                 )
         except Exception:
             status_bar.llm_enabled = False
@@ -1132,25 +1132,25 @@ class MurphyTerminalApp(App):
         return value.strip().lower() not in _PLACEHOLDER_KEY_VALUES
 
     def _check_api_key_on_startup(self) -> None:
-        """First-run gate: prompt for Groq API key if not configured."""
+        """First-run gate: prompt for DeepInfra API key if not configured."""
         # Check environment first, then .env file
         env_path = get_env_path()
         env_vars = read_env(env_path)
         has_key = (
-            self._is_real_key(os.environ.get("GROQ_API_KEY"))
-            or self._is_real_key(env_vars.get("GROQ_API_KEY"))
+            self._is_real_key(os.environ.get("DEEPINFRA_API_KEY"))
+            or self._is_real_key(env_vars.get("DEEPINFRA_API_KEY"))
         )
         if has_key:
             return  # Key exists — skip the gate
 
         self._awaiting_api_key = True
         self._write_murphy(
-            "[bold yellow]⚠ No Groq API key detected[/bold yellow]\n\n"
-            "Murphy needs at least a Groq API key for full AI features.\n\n"
+            "[bold yellow]⚠ No DeepInfra API key detected[/bold yellow]\n\n"
+            "Murphy needs at least a DeepInfra API key for full AI features.\n\n"
             "[bold cyan]Get your free key:[/bold cyan]\n"
-            "  → [link=https://console.groq.com/keys]https://console.groq.com/keys[/link]\n\n"
+            "  → [link=https://console.deepinfra.com/keys]https://console.deepinfra.com/keys[/link]\n\n"
             "Then paste it here, or type:\n"
-            "  [green]set key groq gsk_yourKeyHere[/green]\n"
+            "  [green]set key deepinfra gsk_yourKeyHere[/green]\n"
             "  [green]skip[/green] — continue in offline mode (limited functionality)\n"
         )
         # Ensure the Input widget has focus so key presses are routed correctly
@@ -1170,7 +1170,7 @@ class MurphyTerminalApp(App):
             self._write_murphy(
                 "[yellow]Continuing in offline mode.[/yellow]\n"
                 "[dim]AI features will be limited. "
-                "Type [green]set key groq <your-key>[/green] at any time to activate full capabilities.[/dim]"
+                "Type [green]set key deepinfra <your-key>[/green] at any time to activate full capabilities.[/dim]"
             )
             return
 
@@ -1178,7 +1178,7 @@ class MurphyTerminalApp(App):
         bare = strip_key_wrapping(stripped)
         if bare.startswith("gsk_"):
             self._awaiting_api_key = False
-            self._apply_api_key("groq", bare)
+            self._apply_api_key("deepinfra", bare)
             return
 
         # Check if it's a 'set key' command
@@ -1409,7 +1409,7 @@ class MurphyTerminalApp(App):
             "  • [green]show modules[/green] — list all modules and commands\n"
             "  • [green]librarian[/green] — consult knowledge-base expert\n"
             "  • [green]api keys[/green] — get API signup links for integrations\n"
-            "  • [green]set key <provider> <key>[/green] — set an API key inline (e.g. [green]set key groq gsk_...[/green])\n"
+            "  • [green]set key <provider> <key>[/green] — set an API key inline (e.g. [green]set key deepinfra gsk_...[/green])\n"
             "  • [green]plan[/green] — two-plane planning & execution overview\n"
             "  • [green]pending / hitl[/green] — pending interventions\n"
             "  • [green]corrections[/green] — correction statistics\n\n"
@@ -1478,7 +1478,7 @@ class MurphyTerminalApp(App):
                 f"Usage: [green]set key <provider> <key>[/green]\n"
                 f"Supported providers: [green]{supported}[/green]\n\n"
                 "Examples:\n"
-                "  [green]set key groq gsk_abc123...[/green]\n"
+                "  [green]set key deepinfra gsk_abc123...[/green]\n"
                 "  [green]set key openai sk-abc123...[/green]\n"
                 "  [green]set key anthropic sk-ant-abc123...[/green]"
             )
@@ -1552,7 +1552,7 @@ class MurphyTerminalApp(App):
                 self._write_murphy(
                     f"[yellow]⚠ Key saved but authentication failed: {err}[/yellow]\n"
                     "[dim]Please verify your key at "
-                    "[link=https://console.groq.com/keys]https://console.groq.com/keys[/link][/dim]"
+                    "[link=https://console.deepinfra.com/keys]https://console.deepinfra.com/keys[/link][/dim]"
                 )
 
         # Refresh the StatusBar — only mark LLM On if the test passed
@@ -1786,8 +1786,8 @@ class MurphyTerminalApp(App):
                     f"[bold yellow]🤖 LLM Status — Not Configured[/bold yellow]\n\n"
                     f"  Error: {error}\n\n"
                     "To enable LLM, set your API key right here:\n"
-                    "  [green]set key groq gsk_your_key_here[/green]\n\n"
-                    "Get a free key: [link=https://console.groq.com/keys]https://console.groq.com/keys[/link]"
+                    "  [green]set key deepinfra gsk_your_key_here[/green]\n\n"
+                    "Get a free key: [link=https://console.deepinfra.com/keys]https://console.deepinfra.com/keys[/link]"
                 )
         except Exception as exc:
             self._write_murphy(f"[red]Could not fetch LLM status: {self._friendly_error(exc)}[/red]")
@@ -1916,9 +1916,9 @@ class MurphyTerminalApp(App):
                     f"([cyan]{secs_rem:.0f}s[/cyan] remaining)\n"
                     f"   Test keys    : [cyan]{keys}[/cyan] key(s) loaded\n\n"
                     "[dim]💡 Best free key provider:[/dim]\n"
-                    "   [bold]Groq[/bold] — Free tier, generous limits, fast inference\n"
-                    "   Signup: [link=https://console.groq.com/keys]https://console.groq.com/keys[/link]\n"
-                    "   Then: [green]set key groq gsk_your_key[/green]\n\n"
+                    "   [bold]DeepInfra[/bold] — Free tier, generous limits, fast inference\n"
+                    "   Signup: [link=https://console.deepinfra.com/keys]https://console.deepinfra.com/keys[/link]\n"
+                    "   Then: [green]set key deepinfra gsk_your_key[/green]\n\n"
                     "[dim]Session ends automatically when call or time limit is reached.\n"
                     "Run [green]test mode[/green] again to disable.[/dim]"
                 )
@@ -2015,9 +2015,9 @@ class MurphyTerminalApp(App):
             )
         lines.append(
             "\n[bold cyan]Quick Start (LLM):[/bold cyan]\n"
-            "  1. Get a free Groq key: [link=https://console.groq.com/keys]https://console.groq.com/keys[/link]\n"
+            "  1. Get a free DeepInfra key: [link=https://console.deepinfra.com/keys]https://console.deepinfra.com/keys[/link]\n"
             "  2. Set it right here in the terminal:\n"
-            "     [green]set key groq gsk_your_key_here[/green]\n"
+            "     [green]set key deepinfra gsk_your_key_here[/green]\n"
             "  That's it! No restart needed.\n\n"
             "[dim]Tip: Run [green]start interview[/green] and Murphy will recommend "
             "exactly which API keys you need based on your answers.[/dim]"
@@ -2146,8 +2146,8 @@ class MurphyTerminalApp(App):
                 self._write_murphy(
                     f"[yellow]⚠ LLM call failed: {err_msg}[/yellow]\n"
                     "[dim]Your API key may be invalid. "
-                    "Get a new key at [link=https://console.groq.com/keys]https://console.groq.com/keys[/link] "
-                    "then run [green]set key groq <your-key>[/green][/dim]"
+                    "Get a new key at [link=https://console.deepinfra.com/keys]https://console.deepinfra.com/keys[/link] "
+                    "then run [green]set key deepinfra <your-key>[/green][/dim]"
                 )
                 return
             text = self._extract_response(data)
@@ -2155,7 +2155,7 @@ class MurphyTerminalApp(App):
             if suggested:
                 text += "\n\n[dim]Suggested: " + ", ".join(f"[green]{c}[/green]" for c in suggested) + "[/dim]"
             if mode == "deterministic":
-                text += "\n[dim](deterministic mode — type [green]set key groq <your-key>[/green] to enable LLM)[/dim]"
+                text += "\n[dim](deterministic mode — type [green]set key deepinfra <your-key>[/green] to enable LLM)[/dim]"
             self._write_murphy(text)
         except Exception:
             # Fall back to /api/chat if /api/librarian/ask is unavailable

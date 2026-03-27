@@ -81,8 +81,8 @@ class TestReadinessScannerStructure:
         report = scanner.scan(base_url=None)
         providers = report["api_key_strategy"]["providers"]
         first = providers[0]
-        assert "Groq" in first["name"]
-        assert "groq.com" in first["url"]
+        assert "DeepInfra" in first["name"]
+        assert "deepinfra.com" in first["url"]
         assert first["rank"] == 1
 
 
@@ -92,7 +92,7 @@ class TestReadinessScannerStructure:
 
 class TestBlockers:
     def test_missing_llm_key_creates_blocker(self, monkeypatch):
-        monkeypatch.delenv("GROQ_API_KEY", raising=False)
+        monkeypatch.delenv("DEEPINFRA_API_KEY", raising=False)
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
 
@@ -102,14 +102,14 @@ class TestBlockers:
         assert "llm_api_key" in blocker_names
 
     def test_has_llm_key_no_blocker(self, monkeypatch):
-        monkeypatch.setenv("GROQ_API_KEY", "gsk_test_key_12345")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_test_key_12345")
         scanner = ReadinessScanner()
         report = scanner.scan(base_url=None)
         blocker_names = [b["check"] for b in report["blockers"]]
         assert "llm_api_key" not in blocker_names
 
     def test_ready_false_when_blockers_present(self, monkeypatch):
-        monkeypatch.delenv("GROQ_API_KEY", raising=False)
+        monkeypatch.delenv("DEEPINFRA_API_KEY", raising=False)
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
 
@@ -120,7 +120,7 @@ class TestBlockers:
             assert report["ready"] is False
 
     def test_ready_true_when_no_blockers(self, monkeypatch):
-        monkeypatch.setenv("GROQ_API_KEY", "gsk_test_key_12345")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_test_key_12345")
         scanner = ReadinessScanner()
         report = scanner.scan(base_url=None)
         if not report["blockers"]:

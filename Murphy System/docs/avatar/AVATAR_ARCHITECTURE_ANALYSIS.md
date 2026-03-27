@@ -207,7 +207,7 @@ The `EventType` enum in `event_backbone.py` covers system-level events (task sub
 ### Gap 4: No Real-Time Sentiment on Inbound Messages
 `IntentClassifier` in `comms/pipeline.py` uses keyword pattern matching for intent classification but **has no sentiment scoring**. For a customer engagement system, knowing whether a user is excited, frustrated, or disengaged is as important as knowing their intent.
 
-**Fix:** Add `SentimentClassifier` to the comms pipeline. Can use a lightweight model (VADER for speed, or a Groq/OpenAI call for accuracy) that runs on every inbound `MessageArtifact` before it reaches the agent.
+**Fix:** Add `SentimentClassifier` to the comms pipeline. Can use a lightweight model (VADER for speed, or a DeepInfra/OpenAI call for accuracy) that runs on every inbound `MessageArtifact` before it reaches the agent.
 
 ### Gap 5: Persona System is Task-Oriented, Not Character-Oriented
 KaiaMix (Kaia/Kiren/Vallon/Veritas weights) defines **how an agent approaches a task** (creative vs. analytical vs. strategic vs. factual). It does **not** define how an agent presents itself to a human — its warmth, humor, assertiveness, or communication style. These are orthogonal dimensions.
@@ -313,7 +313,7 @@ The conversion funnel ends at "transition to subscription platform" but **no con
 **2.5 Real-Time Sentiment Classifier**
 - Create `src/sentiment_classifier.py`
 - Fast path: VADER lexicon for sub-10ms classification
-- Accurate path: Groq API call for nuanced sentiment (routed via `groq_key_rotator.py`)
+- Accurate path: DeepInfra API call for nuanced sentiment (routed via `groq_key_rotator.py`)
 - Output: `{ valence: float, arousal: float, dominant_emotion: string, intent_signal: string }`
 - Wire into `comms/pipeline.py` `MessageIngestor` as a post-ingestion step
 
@@ -463,7 +463,7 @@ Third-Party API Call
 | Vapi Voice Call | per minute | $0.05/min | 200% | $0.15/min |
 | Bland AI Outbound | per minute | $0.09/min | 100% | $0.18/min |
 | OpenAI GPT-4o | per 1M tokens | $5.00/1M | 50% | $7.50/1M |
-| Groq (Llama) | per 1M tokens | $0.27/1M | 200% | $0.81/1M |
+| DeepInfra (Llama) | per 1M tokens | $0.27/1M | 200% | $0.81/1M |
 
 ### Implementation Notes
 - Use Stripe Billing Meters (usage-based billing) — already in `requirements_murphy_1.0.txt`

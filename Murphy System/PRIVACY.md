@@ -68,7 +68,7 @@ All logging pipelines apply PII redaction via `LogSanitizer`
 
 ## Third-Party API Data Sharing
 
-Murphy System integrates with external APIs (Groq, OpenAI, Anthropic,
+Murphy System integrates with external APIs (DeepInfra, OpenAI, Anthropic,
 HeyGen, Tavus, Vapi, Coinbase, Twilio, SendGrid, Stripe, Cloudflare).
 When using these integrations:
 

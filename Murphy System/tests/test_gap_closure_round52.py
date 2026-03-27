@@ -109,8 +109,8 @@ class TestItem2_AuditReportDiscrepanciesResolved:
 
     def test_openai_provider_8_types_resolved(self):
         text = self._report()
-        # Old text said "docs only reference OpenAI/Groq/Onboard"
-        assert "docs only reference OpenAI/Groq/Onboard" not in text
+        # Old text said "docs only reference OpenAI/DeepInfra/Onboard"
+        assert "docs only reference OpenAI/DeepInfra/Onboard" not in text
 
     def test_mfm_endpoints_resolved(self):
         text = self._report()

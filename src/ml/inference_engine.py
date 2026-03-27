@@ -4,7 +4,7 @@ Inference Engine — routes prompts to the optimal provider with full fallback c
 Priority chain (highest → lowest):
   1. Cache hit (instant)
   2. MFMInferenceService (local fine-tuned model)
-  3. Groq API (fast cloud)
+  3. DeepInfra API (fast cloud)
   4. Ollama (local LLM daemon)
   5. Deterministic template engine (always available)
 """
@@ -173,7 +173,7 @@ class InferenceEngine:
         dispatch = {
             ModelProvider.MFM: self._call_mfm,
             ModelProvider.OLLAMA: self._call_ollama,
-            ModelProvider.GROQ: self._call_groq,
+            ModelProvider.DEEPINFRA: self._call_deepinfra,
             ModelProvider.OPENAI: self._call_openai,
             ModelProvider.COPILOT: self._call_copilot,
             ModelProvider.LOCAL: self._call_deterministic,
@@ -197,20 +197,20 @@ class InferenceEngine:
         cfg = get_model_config(ModelProvider.MFM, request.task_complexity)
         return self._make_result(request.request_id, response, ModelProvider.MFM, cfg, latency)
 
-    def _call_groq(self, request: InferenceRequest) -> InferenceResult:
-        # Lazy import — graceful fallback if groq package absent.
+    def _call_deepinfra(self, request: InferenceRequest) -> InferenceResult:
+        # Lazy import — graceful fallback if deepinfra package absent.
         try:
-            import groq as _groq  # type: ignore
+            from src.llm_provider import get_llm  # DeepInfra via MurphyLLMProvider  # type: ignore
         except ImportError:
-            raise RuntimeError("groq package not installed")
+            raise RuntimeError("deepinfra package not installed")
 
         import os
-        api_key = os.environ.get("GROQ_API_KEY", "")
+        api_key = os.environ.get("DEEPINFRA_API_KEY", "")
         if not api_key:
-            raise RuntimeError("GROQ_API_KEY not set")
+            raise RuntimeError("DEEPINFRA_API_KEY not set")
 
-        cfg = get_model_config(ModelProvider.GROQ, request.task_complexity)
-        client = _groq.Groq(api_key=api_key)
+        cfg = get_model_config(ModelProvider.DEEPINFRA, request.task_complexity)
+        client = _# deepinfra replaced — use get_llm()(api_key=api_key)
         t0 = time.monotonic()
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": request.prompt}],
@@ -222,7 +222,7 @@ class InferenceEngine:
         response = chat_completion.choices[0].message.content or ""
         token_count = getattr(chat_completion.usage, "total_tokens", len(response.split()))
         return self._make_result(
-            request.request_id, response, ModelProvider.GROQ, cfg, latency,
+            request.request_id, response, ModelProvider.DEEPINFRA, cfg, latency,
             token_count=token_count,
         )
 

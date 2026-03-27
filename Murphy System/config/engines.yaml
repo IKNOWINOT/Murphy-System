@@ -60,7 +60,7 @@ control_plane:
   engine_selection_strategy: confidence  # confidence | round_robin | least_loaded
   fallback_enabled: true
   fallback_order:
-    - groq
+    - deepinfra
     - openai
     - anthropic
     - local

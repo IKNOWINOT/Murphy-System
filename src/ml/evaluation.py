@@ -270,7 +270,7 @@ class ModelEvaluator:
                 total_reqs = metrics.get("total_requests", 0)
                 provider_usage = metrics.get("provider_usage", {})
                 # Cost proxy: proportion of requests handled by paid providers.
-                paid_providers = {"openai", "groq", "copilot"}
+                paid_providers = {"openai", "deepinfra", "copilot"}
                 paid_requests = sum(
                     v for k, v in provider_usage.items() if k in paid_providers
                 )

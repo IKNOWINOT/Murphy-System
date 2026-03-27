@@ -118,7 +118,7 @@ Artifacts promote upward as confidence increases.
 |-------|-------------|
 | REST API | HTTP clients, webhooks |
 | Database tier | PostgreSQL (persistent), Redis (cache) |
-| LLM integration | Groq, OpenAI, or other providers via `MURPHY_LLM_PROVIDER` |
+| LLM integration | DeepInfra, OpenAI, or other providers via `MURPHY_LLM_PROVIDER` |
 | Connector framework | External APIs, IoT sensors, third-party services |
 | Board / CRM modules | Monday.com parity endpoints |
 

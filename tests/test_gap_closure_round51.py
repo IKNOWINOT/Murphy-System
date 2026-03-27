@@ -6,7 +6,7 @@ Verifies that GAP-4, GAP-5, GAP-6, and GAP-7 are fully resolved:
 
   GAP-4  AUAR Technical Proposal Appendix C (UCB1, persistence, admin security)
   GAP-5  Package-level READMEs — all 65 src/ packages now have README.md
-  GAP-6  Groq integration test suite (22 tests pass in test_groq_integration.py)
+  GAP-6  DeepInfra integration test suite (22 tests pass in test_groq_integration.py)
   GAP-7  CONFIGURATION.md documents all env vars (96 variables, §11-14 added)
 
 Copyright © 2020 Inoni Limited Liability Company
@@ -136,11 +136,11 @@ class TestGap5PackageReadmes:
 
 
 # ---------------------------------------------------------------------------
-# GAP-6: Groq Integration Test Suite
+# GAP-6: DeepInfra Integration Test Suite
 # ---------------------------------------------------------------------------
 
 class TestGap6GroqTestSuite:
-    """Groq integration test file must exist and contain substantive tests."""
+    """DeepInfra integration test file must exist and contain substantive tests."""
 
     _groq_tests = _REPO / "tests" / "test_groq_integration.py"
 
@@ -155,7 +155,7 @@ class TestGap6GroqTestSuite:
     def test_groq_test_covers_key_rotation(self) -> None:
         text = self._groq_tests.read_text(encoding="utf-8")
         assert "GroqKeyRotator" in text or "key_rotation" in text.lower(), (
-            "Groq key rotation not tested"
+            "DeepInfra key rotation not tested"
         )
 
     def test_groq_test_covers_fallback(self) -> None:
@@ -178,7 +178,7 @@ class TestGap6GroqTestSuite:
     def test_groq_test_has_live_api_tier(self) -> None:
         text = self._groq_tests.read_text(encoding="utf-8")
         assert "skipif" in text.lower() or "skip" in text.lower(), (
-            "No skip marker for live API tests found (GROQ_API_KEY required)"
+            "No skip marker for live API tests found (DEEPINFRA_API_KEY required)"
         )
 
 
@@ -300,8 +300,8 @@ class TestGap7EnvExampleCoverage:
         "MURPHY_ENV",
         "MURPHY_PORT",
         "MURPHY_LLM_PROVIDER",
-        "GROQ_API_KEY",
-        "GROQ_API_KEYS",
+        "DEEPINFRA_API_KEY",
+        "DEEPINFRA_API_KEYS",
         "OPENAI_API_KEY",
         "ANTHROPIC_API_KEY",
         "DATABASE_URL",

@@ -194,7 +194,7 @@ environment variable is absent:
 
 | Test file | Required env var |
 |-----------|-----------------|
-| `test_groq_integration.py` (Tier 3) | `GROQ_API_KEY` |
+| `test_groq_integration.py` (Tier 3) | `DEEPINFRA_API_KEY` |
 | `test_email_integration.py` (SendGrid path) | `SENDGRID_API_KEY` |
 
 ---

@@ -3,7 +3,7 @@ Tests for upload_content_reviewer.py
 
 Coverage:
   - Safe content passes review
-  - API keys blocked (groq, openai, slack, bearer, aws)
+  - API keys blocked (deepinfra, openai, slack, bearer, aws)
   - PII blocked (email, phone, SSN)
   - DB URLs blocked (postgres, redis, mongodb)
   - Private key blocked

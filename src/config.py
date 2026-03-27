@@ -57,9 +57,9 @@ class Settings(BaseSettings):
     # LLM Configuration
     # ============================================================================
 
-    groq_key_count: int = Field(
+    deepinfra_key_count: int = Field(
         default=0,
-        description="Number of Groq API keys (auto-detected from encrypted storage)"
+        description="Number of DeepInfra API keys (auto-detected from encrypted storage)"
     )
 
     llm_timeout: int = Field(
@@ -74,7 +74,7 @@ class Settings(BaseSettings):
 
     use_key_rotation: bool = Field(
         default=True,
-        description="Enable Groq API key rotation"
+        description="Enable DeepInfra API key rotation"
     )
 
     # ============================================================================
