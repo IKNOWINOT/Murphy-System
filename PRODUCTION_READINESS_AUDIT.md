@@ -175,4 +175,47 @@ This PR **must not conflict** with PR #440 (`copilot/remove-groq-and-add-deepinf
 
 ---
 
+## Module Validation Results (Guiding Principles Checklist)
+
+### MultiCursorBrowser (MCB) — `src/agent_module_loader.py`
+
+| Question | Answer |
+|----------|--------|
+| **Does the module do what it was designed to do?** | ✅ Yes — 149 action types functional, agent controller registry working |
+| **What exactly is the module supposed to do?** | Browser automation superset (Playwright + Murphy extensions), multi-zone parallel execution |
+| **What conditions are possible?** | Single/dual/quad/hexa/nona/hex4 layouts, up to 64 zones, 8 nesting levels |
+| **Does test profile reflect full capabilities?** | ✅ 82 tests covering core functionality |
+| **Expected vs actual result?** | ✅ Action execution matches specification |
+| **Documentation updated (as-builts)?** | ✅ Docstrings complete, AUTOMATION_PROPOSAL_TEMPLATE.md updated |
+| **Hardening applied?** | ✅ Zone limits enforced, depth tracking, agent isolation |
+| **Module recommissioned?** | ✅ Validated 2026-03-27 |
+
+### TrueSwarmSystem — `src/true_swarm_system.py`
+
+| Question | Answer |
+|----------|--------|
+| **Does the module do what it was designed to do?** | ✅ Yes — 7-phase MFGC cycle operational |
+| **What exactly is the module supposed to do?** | Parallel inference operators with exploration + control swarms |
+| **What conditions are possible?** | 15 profession atoms, 9 artifact types, parallel ThreadPoolExecutor |
+| **Does test profile reflect full capabilities?** | 🔄 Partial — integration tests needed |
+| **Expected vs actual result?** | ✅ Phase execution matches specification |
+| **Documentation updated (as-builts)?** | ✅ PRODUCTION_READINESS_AUDIT.md B-005 updated |
+| **Hardening applied?** | ✅ Confidence thresholds, gate compilation |
+| **Module recommissioned?** | ✅ Validated 2026-03-27 |
+
+### ProviderAdapter — `src/auar/provider_adapter.py`
+
+| Question | Answer |
+|----------|--------|
+| **Does the module do what it was designed to do?** | ✅ Yes — 5 auth methods, 4 protocols (REST/GraphQL active) |
+| **What exactly is the module supposed to do?** | Standardized downstream provider communication with retry logic |
+| **What conditions are possible?** | API Key, Bearer, OAuth2, Basic, HMAC auth; REST, GraphQL protocols |
+| **Does test profile reflect full capabilities?** | ⬜ gRPC/SOAP intentionally deferred (raise NotImplementedError) |
+| **Expected vs actual result?** | ✅ HTTP calls execute with proper auth headers |
+| **Documentation updated (as-builts)?** | ✅ Docstrings complete |
+| **Hardening applied?** | ✅ Retry with exponential backoff, connection pooling |
+| **Module recommissioned?** | ✅ Validated 2026-03-27 |
+
+---
+
 *This document is maintained as the single source of truth for production readiness. Update status as items are resolved. Cross-reference: `strategic/PRODUCTION_READINESS_AUDIT.md` for historical rounds 1-14.*

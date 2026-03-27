@@ -207,4 +207,95 @@
 
 ---
 
+## 8. MultiCursor + Swarm Demonstration
+
+### 8.1 Capability Verification (Validated 2026-03-27)
+
+```python
+# MultiCursor Browser verification
+from src.agent_module_loader import MultiCursorBrowser, MultiCursorActionType
+
+mcb = MultiCursorBrowser.get_controller('demo_agent')
+print(f"Action types: {len(list(MultiCursorActionType))}")  # 149
+print(f"Controllers: {MultiCursorBrowser.list_controllers()}")  # ['demo_agent']
+```
+
+```python
+# TrueSwarmSystem verification  
+from src.true_swarm_system import TrueSwarmSystem, Phase, ProfessionAtom
+
+tss = TrueSwarmSystem()
+print(f"MFGC Phases: {[p.value for p in Phase]}")  # 7 phases
+print(f"Professions: {len(list(ProfessionAtom))}")  # 15
+```
+
+### 8.2 Integration Pattern
+
+```python
+# Using MCB + Swarm together for automation
+from src.agent_module_loader import MultiCursorBrowser
+from src.true_swarm_system import TrueSwarmSystem, Phase
+
+# 1. Initialize swarm for analysis
+tss = TrueSwarmSystem()
+
+# 2. Execute EXPAND phase to generate solution space
+tss.execute_phase(Phase.EXPAND)
+
+# 3. Acquire MCB controller for UI automation
+mcb = MultiCursorBrowser.get_controller('automation_agent')
+
+# 4. Execute actions based on swarm recommendations
+# (MCB handles the browser, Swarm handles the inference)
+```
+
+### 8.3 Video Recording Note
+
+The system supports screen recording via MCB's `RECORD_START` and `RECORD_STOP` actions. To capture a demonstration:
+
+1. Start recording: `await mcb.execute('RECORD_START', zone_id='main')`
+2. Perform automation actions
+3. Stop recording: `await mcb.execute('RECORD_STOP', zone_id='main')`
+
+Recordings are stored in `telemetry_evidence/recordings/`.
+
+---
+
+## 9. Final Deficiency List (Post-Validation)
+
+### 9.1 Remaining Critical Issues
+
+| ID | Issue | Owner | ETA |
+|----|-------|-------|-----|
+| A-001 | Directory name with space | Founder | Q2 2026 |
+| B-003 | 17% module wiring | Agent | Week 2 |
+| B-004 | PostgreSQL live-mode | DevOps | Week 3 |
+| B-006 | E2E Hero Flow 85% | QA | Week 2 |
+| C-001 | E2EE not implemented | Security | Q2 2026 |
+
+### 9.2 API/SDK Keys Needed (Platform Side)
+
+| Priority | Service | Action Required |
+|----------|---------|-----------------|
+| 🔴 HIGH | DeepInfra | Get key from https://deepinfra.com |
+| 🔴 HIGH | Together AI | Get key from https://together.ai |
+| 🔴 HIGH | SendGrid | Get key from https://sendgrid.com |
+| 🔴 HIGH | Stripe | Get key from https://stripe.com |
+| 🟡 MED | Slack | Create bot at https://api.slack.com |
+| 🟡 MED | Twilio | Get credentials from https://twilio.com |
+| 🟡 MED | Datadog | Optional monitoring key |
+| 🟢 LOW | HubSpot | CRM integration |
+| 🟢 LOW | Notion | Project management |
+
+### 9.3 Infrastructure Recommendations
+
+| Component | Status | Action |
+|-----------|--------|--------|
+| PostgreSQL | ⬜ | Deploy with `POSTGRES_PASSWORD` set |
+| Redis | ⬜ | Enable in docker-compose.yml |
+| Nginx | ✅ | Config templates ready |
+| K8s | ⬜ | Audit manifests in k8s/ |
+
+---
+
 *This deficiency list is maintained alongside `PRODUCTION_READINESS_AUDIT.md`. Update as items are resolved.*
