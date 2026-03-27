@@ -89,9 +89,9 @@ class TestModuleImportIntegrity:
         from openai_compatible_provider import ProviderType
         from llm_integration_layer import LLMProvider
 
-        # Both should support Groq
-        assert hasattr(ProviderType, "GROQ")
-        assert hasattr(LLMProvider, "GROQ")
+        # Both should support DeepInfra
+        assert hasattr(ProviderType, "DEEPINFRA")
+        assert hasattr(LLMProvider, "DEEPINFRA")
 
 
 # ---------------------------------------------------------------------------
@@ -107,11 +107,11 @@ class TestLLMSubsystemIntegration:
         from openai_compatible_provider import ProviderType
         from llm_controller import LLMModel
 
-        # Groq provider should have matching models
-        assert hasattr(LLMModel, "GROQ_MIXTRAL")
-        assert hasattr(LLMModel, "GROQ_LLAMA")
-        assert hasattr(LLMModel, "GROQ_GEMMA")
-        assert hasattr(ProviderType, "GROQ")
+        # DeepInfra provider should have matching models
+        assert hasattr(LLMModel, "DEEPINFRA_MIXTRAL")
+        assert hasattr(LLMModel, "DEEPINFRA_META_LLAMA")
+        assert hasattr(LLMModel, "TOGETHER_META_LLAMA")
+        assert hasattr(ProviderType, "DEEPINFRA")
 
     def test_controller_instantiation(self) -> None:
         """LLMController should instantiate without errors."""

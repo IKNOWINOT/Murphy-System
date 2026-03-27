@@ -5,7 +5,7 @@
 Copilot Tenant — LLM Routing with Local-First Fallback
 
 Routes LLM requests through local Ollama first and falls back to cloud
-providers (Groq, OpenAI) when needed.  Wraps:
+providers (DeepInfra, OpenAI) when needed.  Wraps:
   - src/llm_controller.py
   - src/llm_integration_layer.py
   - src/local_llm_fallback.py
@@ -50,7 +50,7 @@ class TenantLLMRouter:
 
     Strategy:
         1. Try local Ollama (via LocalLLMFallback / EnhancedLocalLLM)
-        2. Fall back to Groq/cloud via LLMController / LLMIntegrationLayer
+        2. Fall back to DeepInfra/cloud via LLMController / LLMIntegrationLayer
         3. Return a synthetic stub response if all providers are unreachable
     """
 

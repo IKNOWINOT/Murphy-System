@@ -58,7 +58,7 @@ Key fields to monitor:
 |-------|--------------|---------------------|
 | `status` | `"operational"` | Check error log; restart if needed |
 | `modules_loaded` | ≥ 620 | Check startup log for import errors |
-| `llm_enabled` | `true` (if LLM required) | Verify `GROQ_API_KEY` / provider key |
+| `llm_enabled` | `true` (if LLM required) | Verify `DEEPINFRA_API_KEY` / provider key |
 | `active_gates` | includes `security`, `compliance` | Check gate configuration |
 
 ### Orchestrator queue depth
@@ -372,7 +372,7 @@ curl -s http://localhost:8000/api/llm/configure \
 ```
 
 - `key_configured: false` → set the correct API key via `POST /api/llm/configure` or `.env`.
-- `key_configured: true` but still 503 → the provider is rate-limiting you; add more keys via `GROQ_API_KEYS`.
+- `key_configured: true` but still 503 → the provider is rate-limiting you; add more keys via `DEEPINFRA_API_KEYS`.
 
 ### Rate limit errors (429)
 

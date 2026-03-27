@@ -78,10 +78,15 @@ class ProviderTOS:
 #: Registry mapping provider key → ProviderTOS.
 #: Keep URLs current with each provider's actual legal pages.
 PROVIDER_TOS_REGISTRY: Dict[str, ProviderTOS] = {
-    "groq": ProviderTOS(
-        provider_name="Groq",
-        tos_url="https://groq.com/terms-of-use/",
-        privacy_url="https://groq.com/privacy-policy/",
+    "deepinfra": ProviderTOS(
+        provider_name="DeepInfra",
+        tos_url="https://deepinfra.com/terms",
+        privacy_url="https://deepinfra.com/privacy",
+    ),
+    "together": ProviderTOS(
+        provider_name="Together AI",
+        tos_url="https://www.together.ai/terms-of-service",
+        privacy_url="https://www.together.ai/privacy",
     ),
     "openai": ProviderTOS(
         provider_name="OpenAI",
@@ -200,7 +205,7 @@ class TOSAcceptanceGate:
     Usage::
 
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq", screenshot_path="/tmp/groq.png")
+        req = gate.request_approval("deepinfra", screenshot_path="/tmp/deepinfra.png")
         # ... HITL UI shows the pending request ...
         gate.approve(req.request_id, approved_by="alice@example.com")
     """
@@ -222,7 +227,7 @@ class TOSAcceptanceGate:
         """Create a new TOS approval request and add it to the pending queue.
 
         Args:
-            provider_key: Key into PROVIDER_TOS_REGISTRY (e.g. ``"groq"``).
+            provider_key: Key into PROVIDER_TOS_REGISTRY (e.g. ``"deepinfra"``).
             screenshot_path: Optional filesystem path to a page screenshot.
 
         Returns:

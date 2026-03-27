@@ -36,7 +36,7 @@ class EnhancedLocalLLM:
 
         Args:
             prompt: User query
-            provider: Which provider to emulate (aristotle, wulfrum, groq)
+            provider: Which provider to emulate (aristotle, wulfrum, deepinfra)
             temperature: Temperature for randomness
 
         Returns:
@@ -61,11 +61,11 @@ class EnhancedLocalLLM:
             response = self._aristotle_response(prompt, temperature)
         elif provider == 'wulfrum':
             response = self._wulfrum_response(prompt, temperature)
-        elif provider == 'groq':
-            response = self._groq_response(prompt, temperature)
+        elif provider == 'deepinfra':
+            response = self._deepinfra_response(prompt, temperature)
         else:
-            response = self._groq_response(prompt, temperature)
-            provider = 'groq'
+            response = self._deepinfra_response(prompt, temperature)
+            provider = 'deepinfra'
 
         # Calculate tokens (rough estimate)
         tokens_used = len(response['response'].split()) + len(prompt.split())
@@ -126,9 +126,9 @@ class EnhancedLocalLLM:
         # Default validation response
         return self._generate_validation_response(prompt)
 
-    def _groq_response(self, prompt: str, temperature: float) -> Dict[str, Any]:
+    def _deepinfra_response(self, prompt: str, temperature: float) -> Dict[str, Any]:
         """
-        Groq-style: General domain tasks and generation
+        DeepInfra-style: General domain tasks and generation
         Uses high temperature (0.7) for creative output
         """
         # Check for creative requests

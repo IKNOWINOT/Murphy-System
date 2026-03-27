@@ -40,7 +40,7 @@ All resources below must be present in the `murphy-system` namespace before go-l
 - [ ] **Secrets populated**: All placeholder values in `secret.yaml` replaced with real secrets
   - `DATABASE_URL` — PostgreSQL connection string
   - `REDIS_URL` — Redis connection string (e.g. `redis://:password@murphy-redis:6379/0`)
-  - `GROQ_API_KEY` — Groq API key
+  - `DEEPINFRA_API_KEY` — DeepInfra API key
   - `JWT_SECRET` — generated with `openssl rand -hex 32`
   - `ENCRYPTION_KEY` — generated with `openssl rand -hex 32`
   - `GITHUB_TOKEN` — GitHub PAT with `repo` + `packages` scopes

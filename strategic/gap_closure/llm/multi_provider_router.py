@@ -340,8 +340,8 @@ def build_default_router() -> MultiProviderRouter:
             context_window=1000000,
         ),
         Provider(
-            name="Groq Mixtral",
-            endpoint="https://api.groq.com/openai/v1/chat/completions",
+            name="DeepInfra Mixtral",
+            endpoint="https://api.deepinfra.com/v1/openai/chat/completions",
             model="mixtral-8x7b-32768",
             cost_per_1k_tokens=0.00027,
             latency_ms=150,
@@ -350,8 +350,8 @@ def build_default_router() -> MultiProviderRouter:
             context_window=32768,
         ),
         Provider(
-            name="Groq LLaMA3",
-            endpoint="https://api.groq.com/openai/v1/chat/completions",
+            name="DeepInfra LLaMA3",
+            endpoint="https://api.deepinfra.com/v1/openai/chat/completions",
             model="llama3-70b-8192",
             cost_per_1k_tokens=0.00059,
             latency_ms=180,

@@ -61,7 +61,7 @@ KNOWN_INTEGRATION_SERVICES = frozenset({
     "notion", "confluence",
     "datadog", "pagerduty",
     "docker", "kubernetes",
-    "openai", "groq", "anthropic",
+    "openai", "deepinfra", "anthropic",
     "facebook", "instagram", "twitter", "linkedin",
     "shopify", "woocommerce",
     "quickbooks", "xero",

@@ -283,7 +283,7 @@ class CommandParser:
 
 **Capabilities:**
 ✓ Confidence-based routing (3 bands)
-✓ LLM-powered reasoning (Groq API)
+✓ LLM-powered reasoning (DeepInfra API)
 ✓ Swarm orchestration (14 ProfessionAtoms)
 ✓ 4-plane memory system
 ✓ Dynamic gate synthesis

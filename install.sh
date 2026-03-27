@@ -144,7 +144,7 @@ MURPHY_PORT=${MURPHY_PORT}
 
 # The onboard LLM works without any API key.
 # Add an external key below for enhanced quality (optional).
-# GROQ_API_KEY=gsk_your_key_here
+# DEEPINFRA_API_KEY=di_your_key_here
 ENVEOF
   ok "Created default .env  (onboard LLM active — no key required)"
 else

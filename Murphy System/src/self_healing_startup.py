@@ -58,7 +58,7 @@ def bootstrap_self_healing(event_backbone: Optional[Any] = None) -> Any:
             category=LLM_PROVIDER_TIMEOUT,
             description=(
                 "Retry with fallback LLM provider chain "
-                "(OpenAI → Groq → Anthropic → local) using exponential backoff"
+                "(OpenAI → DeepInfra → Anthropic → local) using exponential backoff"
             ),
             handler=handle_llm_provider_timeout,
             max_attempts=5,

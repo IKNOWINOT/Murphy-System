@@ -49,7 +49,7 @@ Murphy loads 620+ modules at start-up. Plan for **~150–300 MB** of base RSS be
 
 ### LLM proxy overhead
 
-When `use_llm=true` tasks are routed to an external provider (Groq, OpenAI, Anthropic), the bottleneck is the **external API latency**, not Murphy's CPU. A single Murphy worker can pipeline many concurrent LLM calls via asyncio. Start with 2 workers and monitor queue depth (`/api/orchestrator/status`).
+When `use_llm=true` tasks are routed to an external provider (DeepInfra, OpenAI, Anthropic), the bottleneck is the **external API latency**, not Murphy's CPU. A single Murphy worker can pipeline many concurrent LLM calls via asyncio. Start with 2 workers and monitor queue depth (`/api/orchestrator/status`).
 
 ---
 
@@ -449,7 +449,7 @@ When Redis is configured, rate limit state is **shared across all workers**. Wit
 
 | Bottleneck | Symptom | Mitigation |
 |------------|---------|------------|
-| External LLM API latency | High `execution_time_ms`, queue depth rising | Use Groq (fastest); add key rotation pool via `GROQ_API_KEYS` |
+| External LLM API latency | High `execution_time_ms`, queue depth rising | Use DeepInfra (fastest); add key rotation pool via `DEEPINFRA_API_KEYS` |
 | Module load time | Slow first request per worker | Pre-warm workers with `/api/health` before adding to LB |
 | SQLite contention | 500 errors under load | Migrate to PostgreSQL |
 | Redis memory | OOM in Redis | Set `maxmemory` + `maxmemory-policy allkeys-lru` |

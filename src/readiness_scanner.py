@@ -52,9 +52,10 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _REQUIRED_ENV_VARS: List[Tuple[str, str]] = [
-    ("GROQ_API_KEY",              "set key groq gsk_..."),
-    ("OPENAI_API_KEY",            "set key openai sk_...  (optional — Groq is free)"),
-    ("ANTHROPIC_API_KEY",         "set key anthropic sk_... (optional)"),
+    ("DEEPINFRA_API_KEY",  "set key deepinfra <your_key>  ← Primary LLM provider"),
+    ("TOGETHER_API_KEY",   "set key together <your_key>   (optional overflow)"),
+    ("OPENAI_API_KEY",     "set key openai sk_...  (optional)"),
+    ("ANTHROPIC_API_KEY",  "set key anthropic sk_... (optional)"),
 ]
 
 _OPTIONAL_OAUTH_ENV_VARS: List[str] = [
@@ -122,8 +123,8 @@ class ReadinessScanner:
         if not has_any_llm_key:
             _block(
                 "llm_api_key",
-                "No LLM API key found (GROQ_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY).",
-                "set key groq gsk_...  ← Groq is free: https://console.groq.com/keys",
+                "No LLM API key found (DEEPINFRA_API_KEY, TOGETHER_API_KEY, or OPENAI_API_KEY).",
+                "set key deepinfra <your_key>  ← get key at https://deepinfra.com",
             )
         else:
             _pass("llm_api_key_present")
@@ -247,18 +248,18 @@ class ReadinessScanner:
                     f"Could not reach {base_url}/api/health — is the server running?",
                 )
 
-        # ── 10. Groq key recommendation ──────────────────────────────────
+        # ── 10. LLM provider recommendation ──────────────────────────────────
         api_strategy = {
             "recommendation": "Best bang-for-buck API key strategy",
             "providers": [
                 {
                     "rank": 1,
-                    "name": "Groq (FREE)",
-                    "url": "https://console.groq.com/keys",
-                    "models": "Llama 3, Mixtral",
+                    "name": "DeepInfra",
+                    "url": "https://deepinfra.com",
+                    "models": "Llama 3.1, Mixtral",
                     "note": (
-                        "Best first choice. Free tier with generous rate limits, fast inference. "
-                        "Register 2-3 keys for round-robin rotation (use_key_rotation=true)."
+                        "Primary LLM provider. Competitive pricing, fast inference. "
+                        "Set DEEPINFRA_API_KEY to enable."
                     ),
                 },
                 {

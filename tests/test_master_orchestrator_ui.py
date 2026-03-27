@@ -100,7 +100,7 @@ class TestGoldenPathEngine:
             "hitl_pending":    [{"id": "h1", "workflow_id": "wf1", "description": "x"}],
             "stuck_workflows": [{"id": "w1", "name": "W1",  "step": "s1"}],
             "qc_ready":        [{"id": "q1", "name": "Q1"}],
-            "config_gaps":     [{"key": "GROQ_API_KEY", "description": "Missing key"}],
+            "config_gaps":     [{"key": "DEEPINFRA_API_KEY", "description": "Missing key"}],
             "optimisations":   [{"id": "o1", "title": "Opt", "saving": "$1"}],
         }
         recs = engine.get_recommendations("FOUNDER", state)
@@ -114,7 +114,7 @@ class TestGoldenPathEngine:
         """VIEWER role does not see config_gaps or optimisations."""
         engine = self._engine()
         state = {
-            "config_gaps":   [{"key": "GROQ_API_KEY", "description": "Missing"}],
+            "config_gaps":   [{"key": "DEEPINFRA_API_KEY", "description": "Missing"}],
             "optimisations": [{"id": "o1", "title": "Opt", "saving": "$1"}],
         }
         recs = engine.get_recommendations("VIEWER", state)

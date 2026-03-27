@@ -243,7 +243,7 @@ def validate_llm_boot_status() -> Dict[str, Any]:
     Returns:
         Dict with keys:
         - mode: "external_api" | "onboard"
-        - provider: The provider name ("groq", "openai", "anthropic", "onboard")
+        - provider: The provider name ("deepinfra", "together", "openai", "anthropic", "onboard")
         - healthy: True if LLM can respond (always True since onboard is fallback)
         - note: Human-readable status message
     """
@@ -251,8 +251,8 @@ def validate_llm_boot_status() -> Dict[str, Any]:
 
     # Auto-detect provider from available API keys
     if not provider:
-        if os.environ.get("GROQ_API_KEY", "").strip():
-            provider = "groq"
+        if os.environ.get("DEEPINFRA_API_KEY", "").strip():
+            provider = "deepinfra"
         elif os.environ.get("OPENAI_API_KEY", "").strip():
             provider = "openai"
         elif os.environ.get("ANTHROPIC_API_KEY", "").strip():
@@ -260,7 +260,7 @@ def validate_llm_boot_status() -> Dict[str, Any]:
 
     # Check if external provider has valid API key
     external_api_configured = False
-    if provider == "groq" and os.environ.get("GROQ_API_KEY", "").strip():
+    if provider in ("deepinfra", "together") and os.environ.get("DEEPINFRA_API_KEY", "").strip():
         external_api_configured = True
     elif provider == "openai" and os.environ.get("OPENAI_API_KEY", "").strip():
         external_api_configured = True

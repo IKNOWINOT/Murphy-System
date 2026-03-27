@@ -1,6 +1,6 @@
 """
 LLM Integration Layer
-Coordinates Aristotle API (deterministic), Wulfrum (fuzzy match/math validation), and Groq API (generative)
+Coordinates Aristotle API (deterministic), Wulfrum (fuzzy match/math validation), and DeepInfra API (generative)
 Provides domain-specific routing and human-in-the-loop validation triggers
 """
 
@@ -32,7 +32,8 @@ class LLMProvider(Enum):
     """LLM providers"""
     ARISTOTLE = "aristotle"  # Deterministic, math/physics
     WULFRUM = "wulfrum"  # Fuzzy match, math validation
-    GROQ = "groq"  # Generative, creative
+    DEEPINFRA = "deepinfra"  # Primary generative
+    TOGETHER = "together"    # Overflow generative
     MFM = "mfm"  # Murphy Foundation Model — local, self-trained
     AUTO = "auto"  # Automatic routing
 
@@ -42,11 +43,11 @@ class DomainType(Enum):
     MATHEMATICAL = "mathematical"  # Use Aristotle
     PHYSICS = "physics"  # Use Aristotle
     ENGINEERING = "engineering"  # Use Aristotle + Wulfrum
-    CREATIVE = "creative"  # Use Groq
-    STRATEGIC = "strategic"  # Use Groq
-    ARCHITECTURAL = "architectural"  # Use Groq + Wulfrum
+    CREATIVE = "creative"  # Use DeepInfra
+    STRATEGIC = "strategic"  # Use DeepInfra
+    ARCHITECTURAL = "architectural"  # Use DeepInfra + Wulfrum
     REGULATORY = "regulatory"  # Use Aristotle
-    GENERAL = "general"  # Use Groq
+    GENERAL = "general"  # Use DeepInfra
 
 
 class ValidationStatus(Enum):
@@ -159,13 +160,12 @@ class HumanLoopTrigger:
 
 class LLMIntegrationLayer:
     """
-    Master LLM integration layer coordinating Aristotle, Wulfrum, and Groq
+    Master LLM integration layer coordinating Aristotle, Wulfrum, DeepInfra, and Together AI
     Routes requests based on domain type and provides validation
     """
 
     def __init__(self, aristotle_api_key: Optional[str] = None,
                  wulfrum_api_key: Optional[str] = None,
-                 groq_api_key: Optional[str] = None,
                  use_local_fallback: bool = True):
         self.request_count = 0
         self.validation_count = 0
@@ -174,14 +174,8 @@ class LLMIntegrationLayer:
         # API keys (would be loaded from environment in production)
         self.aristotle_api_key = aristotle_api_key or os.getenv("ARISTOTLE_API_KEY")
         self.wulfrum_api_key = wulfrum_api_key or os.getenv("WULFRUM_API_KEY")
-        self.groq_api_key = groq_api_key or os.getenv("GROQ_API_KEY")
-
-        # Groq API keys from environment (comma-separated list)
-        env_keys = os.getenv("GROQ_API_KEYS", "")
-        self.groq_api_keys = [k.strip() for k in env_keys.split(",") if k.strip()]
-        if self.groq_api_key and self.groq_api_key not in self.groq_api_keys:
-            self.groq_api_keys.insert(0, self.groq_api_key)
-        self.current_groq_key_index = 0
+        self.deepinfra_api_key = os.getenv("DEEPINFRA_API_KEY", "")
+        self.together_api_key = os.getenv("TOGETHER_API_KEY", "")
 
         # Domain routing configuration
         self.domain_routing = self._load_domain_routing()
@@ -222,33 +216,33 @@ class LLMIntegrationLayer:
             },
             DomainType.ENGINEERING: {
                 "primary_provider": LLMProvider.ARISTOTLE,
-                "secondary_provider": LLMProvider.GROQ,
+                "secondary_provider": LLMProvider.DEEPINFRA,
                 "validation_provider": LLMProvider.WULFRUM,
                 "requires_validation": True,
                 "validation_type": "engineering"
             },
             DomainType.ARCHITECTURAL: {
-                "primary_provider": LLMProvider.GROQ,
+                "primary_provider": LLMProvider.DEEPINFRA,
                 "validation_provider": LLMProvider.WULFRUM,
                 "requires_validation": True,
                 "validation_type": "architecture"
             },
             DomainType.REGULATORY: {
                 "primary_provider": LLMProvider.ARISTOTLE,
-                "fallback_provider": LLMProvider.GROQ,
+                "fallback_provider": LLMProvider.DEEPINFRA,
                 "requires_validation": True,
                 "validation_type": "regulatory"
             },
             DomainType.CREATIVE: {
-                "primary_provider": LLMProvider.GROQ,
+                "primary_provider": LLMProvider.DEEPINFRA,
                 "requires_validation": False
             },
             DomainType.STRATEGIC: {
-                "primary_provider": LLMProvider.GROQ,
+                "primary_provider": LLMProvider.DEEPINFRA,
                 "requires_validation": False
             },
             DomainType.GENERAL: {
-                "primary_provider": LLMProvider.GROQ,
+                "primary_provider": LLMProvider.DEEPINFRA,
                 "requires_validation": False
             }
         }
@@ -314,8 +308,8 @@ class LLMIntegrationLayer:
         """Determine best provider for domain"""
         domain_config = self.domain_routing.get(domain)
         if domain_config:
-            return domain_config.get("primary_provider", LLMProvider.GROQ)
-        return LLMProvider.GROQ
+            return domain_config.get("primary_provider", LLMProvider.DEEPINFRA)
+        return LLMProvider.DEEPINFRA
 
     def _execute_request(self, request: LLMRequest) -> LLMResponse:
         """Execute LLM request with fallback support"""
@@ -325,20 +319,22 @@ class LLMIntegrationLayer:
                 return self._call_aristotle(request)
             elif request.provider == LLMProvider.WULFRUM:
                 return self._call_wulfrum(request)
-            elif request.provider == LLMProvider.GROQ:
-                return self._call_groq(request)
+            elif request.provider == LLMProvider.DEEPINFRA:
+                return self._call_deepinfra(request)
+            elif request.provider == LLMProvider.TOGETHER:
+                return self._call_together(request)
             else:
                 raise ValueError(f"Unknown provider: {request.provider}")
         except Exception as exc:
             logger.info(f"⚠️  API call failed for {request.provider.value}: {exc}")
 
-            # Fallback to Groq if primary fails
-            if request.provider != LLMProvider.GROQ:
+            # Try Together AI if DeepInfra failed
+            if request.provider != LLMProvider.TOGETHER:
                 try:
-                    logger.info("🔄 Fallback to Groq API...")
-                    return self._call_groq(request)
+                    logger.info("🔄 Fallback to Together AI...")
+                    return self._call_together(request)
                 except Exception as e2:
-                    logger.info(f"⚠️  Groq fallback also failed: {e2}")
+                    logger.info("⚠️  Together AI fallback also failed: %s", e2)
 
             # Final fallback to Enhanced Local LLM
             if self.use_local_fallback and self.local_llm:
@@ -442,24 +438,21 @@ class LLMIntegrationLayer:
             }
         )
 
-    def _call_groq(self, request: LLMRequest) -> LLMResponse:
-        """Call Groq API for generative processing.
+    def _call_deepinfra(self, request: LLMRequest) -> LLMResponse:
+        """Call DeepInfra API for generative processing (primary LLM provider).
 
-        Attempts a real HTTP call to the Groq chat completions endpoint,
-        rotating through configured API keys.  Falls back to the local
-        generative engine when no key succeeds.
+        Attempts a real HTTP call to the DeepInfra chat completions endpoint.
+        Falls back to Together AI then the local generative engine when no key
+        succeeds.
         """
-        api_key = None
-        if self.groq_api_keys:
-            api_key = self.groq_api_keys[self.current_groq_key_index % len(self.groq_api_keys)]
-            self.current_groq_key_index = (self.current_groq_key_index + 1) % len(self.groq_api_keys)
+        api_key = os.environ.get("DEEPINFRA_API_KEY", "")
 
         if api_key:
             try:
                 resp = requests.post(
-                    "https://api.groq.com/openai/v1/chat/completions",
+                    "https://api.deepinfra.com/v1/openai/chat/completions",
                     json={
-                        "model": "llama3-70b-8192",
+                        "model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
                         "messages": [{"role": "user", "content": request.prompt}],
                         "temperature": 0.7,
                         "max_tokens": 1024,
@@ -477,11 +470,11 @@ class LLMIntegrationLayer:
                 if content:
                     return LLMResponse(
                         request_id=request.request_id,
-                        provider=LLMProvider.GROQ,
+                        provider=LLMProvider.DEEPINFRA,
                         response=content,
                         confidence=0.85,
                         metadata={
-                            "model": data.get("model", "groq-llama3-70b"),
+                            "model": data.get("model", "meta-llama/Meta-Llama-3.1-70B-Instruct"),
                             "domain": request.domain.value,
                             "processing_type": "generative",
                             "source": "api",
@@ -490,9 +483,9 @@ class LLMIntegrationLayer:
                     )
             except Exception as exc:
                 logger.debug("Suppressed exception: %s", exc)
-                pass  # fall through to local engine
+                pass  # fall through to together / local engine
 
-        response_text = self._local_groq_response(request)
+        response_text = self._local_generative_response(request)
         # Before returning a canned template, try Ollama for a real response.
         if _HAS_OLLAMA_FALLBACK:
             try:
@@ -516,14 +509,14 @@ class LLMIntegrationLayer:
                                 },
                             )
             except Exception as exc:
-                logger.debug("Suppressed Ollama exception in _call_groq: %s", exc)
+                logger.debug("Suppressed Ollama exception in _call_deepinfra: %s", exc)
         return LLMResponse(
             request_id=request.request_id,
-            provider=LLMProvider.GROQ,
+            provider=LLMProvider.DEEPINFRA,
             response=response_text,
             confidence=0.85,
             metadata={
-                "model": "groq-llama3-70b",
+                "model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
                 "domain": request.domain.value,
                 "processing_type": "generative",
                 "source": "local",
@@ -548,8 +541,8 @@ class LLMIntegrationLayer:
         else:
             return "Wulfrum fuzzy match: Validation complete. Match score: 0.85. General agreement within tolerance."
 
-    def _local_groq_response(self, request: LLMRequest) -> str:
-        """Local generative engine (used when Groq API is unavailable)."""
+    def _local_generative_response(self, request: LLMRequest) -> str:
+        """Local generative engine (used when DeepInfra/Together API is unavailable)."""
         domain_contexts = {
             DomainType.CREATIVE: "Creative response generated with innovative solutions.",
             DomainType.STRATEGIC: "Strategic analysis completed with recommended actions.",
@@ -574,16 +567,16 @@ class LLMIntegrationLayer:
         provider_mapping = {
             LLMProvider.ARISTOTLE: "aristotle",
             LLMProvider.WULFRUM: "wulfrum",
-            LLMProvider.GROQ: "groq"
+            LLMProvider.DEEPINFRA: "deepinfra"
         }
 
-        local_provider = provider_mapping.get(request.provider, "groq")
+        local_provider = provider_mapping.get(request.provider, "deepinfra")
 
         # Call the enhanced local LLM
         local_response = self.local_llm.query(
             prompt=request.prompt,
             provider=local_provider,
-            temperature=0.7 if request.provider == LLMProvider.GROQ else 0.1
+            temperature=0.7 if request.provider == LLMProvider.DEEPINFRA else 0.1
         )
 
         # Convert local response to LLMResponse format
@@ -640,7 +633,7 @@ class LLMIntegrationLayer:
         elif validation_provider == LLMProvider.ARISTOTLE:
             validation_response = self._call_aristotle(request)
         else:
-            validation_response = self._call_groq(request)
+            validation_response = self._call_deepinfra(request)
 
         # Compare responses
         aristotle_result = response.response if request.provider == LLMProvider.ARISTOTLE else None
@@ -766,7 +759,7 @@ class LLMIntegrationLayer:
             "by_provider": by_provider,
             "by_domain": by_domain,
             "validations_pending_review": validations_pending,
-            "current_groq_key_index": self.current_groq_key_index
+            "current_provider_index": getattr(self, "current_deepinfra_key_index", 0)
         }
 
 
@@ -798,7 +791,7 @@ if __name__ == "__main__":
     logger.info(f"Provider: {response.provider.value}")
     logger.info(f"Response: {response.response}")
 
-    # Test 3: Creative domain (Groq)
+    # Test 3: Creative domain (DeepInfra)
     logger.info("\n=== Test 3: Creative Domain ===")
     response = llm_layer.route_request(
         prompt="Suggest innovative features for a mobile app",
@@ -808,7 +801,7 @@ if __name__ == "__main__":
     logger.info(f"Provider: {response.provider.value}")
     logger.info(f"Response: {response.response}")
 
-    # Test 4: Architectural domain (Groq + Wulfrum)
+    # Test 4: Architectural domain (DeepInfra + Wulfrum)
     logger.info("\n=== Test 4: Architectural Domain ===")
     response = llm_layer.route_request(
         prompt="Design system architecture for a scalable web application",

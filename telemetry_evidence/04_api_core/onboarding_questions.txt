@@ -109,7 +109,7 @@
             "question_type": "choice",
             "options": [
                 "local",
-                "groq",
+                "deepinfra",
                 "openai",
                 "anthropic",
                 "azure"

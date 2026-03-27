@@ -743,7 +743,7 @@ it writes to the **Rosetta state system** — the canonical document store that 
 every agentic function call, org chart lookup, and archive review in the runtime.
 
 The `LLMIntegrationLayer` is the router. Every request enters through `route_request()`,
-which consults `domain_routing` tables to decide: does this go to a cloud provider (Groq,
+which consults `domain_routing` tables to decide: does this go to a cloud provider (DeepInfra,
 Aristotle), or to the `local_llm` fallback? The layer tracks `request_count`,
 `validation_count`, and `trigger_count`. When a response triggers a follow-up action,
 `get_pending_triggers()` queues it and `resolve_trigger()` fires it. This is how one LLM

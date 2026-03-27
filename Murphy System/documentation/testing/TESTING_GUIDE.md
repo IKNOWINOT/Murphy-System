@@ -338,7 +338,7 @@ def test_execute_with_mocked_llm(test_client, auth_headers, mock_llm):
 ```python
 from unittest.mock import patch, AsyncMock
 
-@patch("src.llm_controller.call_groq", new_callable=AsyncMock)
+@patch("src.llm_controller.call_deepinfra", new_callable=AsyncMock)
 async def test_execute_mocks_llm(mock_call):
     mock_call.return_value = {"text": "mocked response", "tokens": 42}
     # ... test body
@@ -377,7 +377,7 @@ Set secrets in **GitHub → Settings → Secrets and variables → Actions**:
 
 | Secret | Purpose |
 |--------|---------|
-| `GROQ_API_KEY` | Required only for `llm_live` tests |
+| `DEEPINFRA_API_KEY` | Required only for `llm_live` tests |
 | `MURPHY_API_KEYS` | Test API keys |
 
 The standard test suite runs with `MURPHY_ENV=test` and does **not** require a real LLM key — all LLM calls are mocked.

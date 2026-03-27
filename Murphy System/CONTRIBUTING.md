@@ -106,7 +106,7 @@ pip install -r requirements_murphy_1.0.txt
 
 ```bash
 cp .env.example .env
-# Edit .env — at minimum set GROQ_API_KEY
+# Edit .env — at minimum set DEEPINFRA_API_KEY
 ```
 
 ### 5. Start the server

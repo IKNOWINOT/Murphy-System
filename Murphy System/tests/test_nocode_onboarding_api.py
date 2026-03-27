@@ -107,7 +107,7 @@ class TestSetupWizardAPIContract:
             "q6": False,
             "q7": [],
             "q8": False,
-            "q9": "groq",
+            "q9": "deepinfra",
             "q10": ["SOC2"],
             "q11": "docker",
             "q12": True,

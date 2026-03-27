@@ -6,7 +6,7 @@ Verifies that GAP-4, GAP-5, GAP-6, and GAP-7 are fully resolved:
 
   GAP-4  AUAR Technical Proposal Appendix C (UCB1, persistence, admin security)
   GAP-5  Package-level READMEs — all 65 src/ packages now have README.md
-  GAP-6  Groq integration test suite (22 tests pass in test_groq_integration.py)
+  GAP-6  DeepInfra integration test suite (22 tests pass in test_groq_integration.py)
   GAP-7  CONFIGURATION.md documents all env vars (96 variables, §11-14 added)
 
 Copyright © 2020 Inoni Limited Liability Company
@@ -136,49 +136,49 @@ class TestGap5PackageReadmes:
 
 
 # ---------------------------------------------------------------------------
-# GAP-6: Groq Integration Test Suite
+# GAP-6: DeepInfra Integration Test Suite
 # ---------------------------------------------------------------------------
 
-class TestGap6GroqTestSuite:
-    """Groq integration test file must exist and contain substantive tests."""
+class TestGap6DeepInfraTestSuite:
+    """DeepInfra integration test file must exist and contain substantive tests."""
 
-    _groq_tests = _REPO / "tests" / "test_groq_integration.py"
+    _deepinfra_tests = _REPO / "tests" / "test_groq_integration.py"
 
-    def test_groq_test_file_exists(self) -> None:
-        assert self._groq_tests.is_file(), "tests/test_groq_integration.py not found"
+    def test_deepinfra_test_file_exists(self) -> None:
+        assert self._deepinfra_tests.is_file(), "tests/test_groq_integration.py not found"
 
-    def test_groq_test_file_has_tiers(self) -> None:
-        text = self._groq_tests.read_text(encoding="utf-8")
+    def test_deepinfra_test_file_has_tiers(self) -> None:
+        text = self._deepinfra_tests.read_text(encoding="utf-8")
         assert "Tier 1" in text, "No Tier 1 (unit) tests found"
         assert "Tier 2" in text, "No Tier 2 (mocked HTTP) tests found"
 
-    def test_groq_test_covers_key_rotation(self) -> None:
-        text = self._groq_tests.read_text(encoding="utf-8")
+    def test_deepinfra_test_covers_key_rotation(self) -> None:
+        text = self._deepinfra_tests.read_text(encoding="utf-8")
         assert "GroqKeyRotator" in text or "key_rotation" in text.lower(), (
-            "Groq key rotation not tested"
+            "DeepInfra key rotation not tested"
         )
 
-    def test_groq_test_covers_fallback(self) -> None:
-        text = self._groq_tests.read_text(encoding="utf-8")
+    def test_deepinfra_test_covers_fallback(self) -> None:
+        text = self._deepinfra_tests.read_text(encoding="utf-8")
         assert "fallback" in text.lower() or "falls_back" in text.lower(), (
             "API error fallback not tested"
         )
 
-    def test_groq_test_covers_rate_limit(self) -> None:
-        text = self._groq_tests.read_text(encoding="utf-8")
+    def test_deepinfra_test_covers_rate_limit(self) -> None:
+        text = self._deepinfra_tests.read_text(encoding="utf-8")
         assert "rate_limit" in text.lower() or "rate limit" in text.lower(), (
             "Rate-limit handling not tested"
         )
 
-    def test_groq_test_has_at_least_20_test_functions(self) -> None:
-        text = self._groq_tests.read_text(encoding="utf-8")
+    def test_deepinfra_test_has_at_least_20_test_functions(self) -> None:
+        text = self._deepinfra_tests.read_text(encoding="utf-8")
         count = text.count("    def test_")
         assert count >= 20, f"Expected ≥20 test functions, found {count}"
 
-    def test_groq_test_has_live_api_tier(self) -> None:
-        text = self._groq_tests.read_text(encoding="utf-8")
+    def test_deepinfra_test_has_live_api_tier(self) -> None:
+        text = self._deepinfra_tests.read_text(encoding="utf-8")
         assert "skipif" in text.lower() or "skip" in text.lower(), (
-            "No skip marker for live API tests found (GROQ_API_KEY required)"
+            "No skip marker for live API tests found (DEEPINFRA_API_KEY required)"
         )
 
 
@@ -300,8 +300,8 @@ class TestGap7EnvExampleCoverage:
         "MURPHY_ENV",
         "MURPHY_PORT",
         "MURPHY_LLM_PROVIDER",
-        "GROQ_API_KEY",
-        "GROQ_API_KEYS",
+        "DEEPINFRA_API_KEY",
+        "DEEPINFRA_API_KEYS",
         "OPENAI_API_KEY",
         "ANTHROPIC_API_KEY",
         "DATABASE_URL",

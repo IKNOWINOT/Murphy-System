@@ -68,7 +68,7 @@ All tiers include:
 | Content Creator Platform Modulator | — | — | ✅ | ✅ |
 | Digital Asset Generator | — | — | ✅ | ✅ |
 | **AI & Governance** | | | | |
-| Multi-LLM Routing (OpenAI/Anthropic/Groq/Local) | ✅ | ✅ | ✅ | ✅ |
+| Multi-LLM Routing (OpenAI/Anthropic/DeepInfra/Local) | ✅ | ✅ | ✅ | ✅ |
 | Murphy Foundation Model (on-prem) | — | — | ✅ | ✅ |
 | Confidence-Gated Execution (G/D/H scoring) | ✅ | ✅ | ✅ | ✅ |
 | Human-in-the-Loop Gates | ✅ | ✅ | ✅ | ✅ |
@@ -115,7 +115,7 @@ over general-purpose automation tools.
 |--------|-------|-------------|
 | **Industrial OT Bundle** | +$99/mo | SCADA, BACnet, Modbus, OPC UA, EMS, BAS |
 | **Content Creator Bundle** | +$49/mo | YouTube API, TikTok, Twitch, Content Modulator |
-| **AI Credits Top-up** | Usage-based | Extra OpenAI/Anthropic/Groq tokens |
+| **AI Credits Top-up** | Usage-based | Extra OpenAI/Anthropic/DeepInfra tokens |
 | **Compliance Pack** | +$149/mo | Enhanced SOC 2 + HIPAA + PCI DSS reporting |
 | **White-Label License** | Custom | Agency/reseller rights |
 

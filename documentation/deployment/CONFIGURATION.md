@@ -51,7 +51,7 @@ The `setup_and_start.sh` (Linux/macOS) and `setup_and_start.bat` (Windows) scrip
 | `MURPHY_WORKERS` | No | auto | Number of Uvicorn/Gunicorn worker processes |
 | `MURPHY_TASK_CONCURRENCY` | No | `20` | Max concurrent async tasks per worker |
 | `MURPHY_PERSISTENCE_DIR` | No | `.murphy_persistence` | Directory for JSON state snapshots |
-| `MURPHY_LLM_PROVIDER` | No | `local` | LLM provider: `local`, `groq`, `openai`, `anthropic` |
+| `MURPHY_LLM_PROVIDER` | No | `local` | LLM provider: `local`, `deepinfra`, `openai`, `anthropic` |
 | `DEBUG` | No | `false` | Enables verbose debug logging |
 | `AUTO_RELOAD` | No | `true` | Hot-reload on source changes (development only) |
 | `ENABLE_CORS` | No | `true` | Enable CORS middleware |
@@ -80,24 +80,24 @@ At least one LLM API key is required for tasks that use `use_llm: true`.
 
 ```bash
 # Auto-detect from whichever key is present, or explicitly set:
-MURPHY_LLM_PROVIDER=groq          # groq | openai | anthropic | local
+MURPHY_LLM_PROVIDER=deepinfra          # deepinfra | openai | anthropic | local
 ```
 
-### Groq (recommended — free tier available)
+### DeepInfra (recommended — free tier available)
 
 ```bash
-GROQ_API_KEY=gsk_your_key_here
+DEEPINFRA_API_KEY=di_your_key_here
 
 # Optional: key pool for load balancing / rate-limit rotation
-GROQ_API_KEYS=gsk_key1,gsk_key2,gsk_key3
+DEEPINFRA_API_KEYS=di_key1,di_key2,di_key3
 ```
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `GROQ_API_KEY` | No | — | Primary Groq API key |
-| `GROQ_API_KEYS` | No | — | Comma-separated key pool for rotation / load balancing |
+| `DEEPINFRA_API_KEY` | No | — | Primary DeepInfra API key |
+| `DEEPINFRA_API_KEYS` | No | — | Comma-separated key pool for rotation / load balancing |
 
-Get a free key at <https://console.groq.com/keys>. Groq is the recommended provider for getting started — it offers the lowest latency and a generous free tier.
+Get a free key at <https://deepinfra.com>. DeepInfra is the recommended provider for getting started — it offers the lowest latency and a generous free tier.
 
 Default model: `llama3-70b-8192`
 
@@ -244,7 +244,8 @@ REDIS_URL=redis://redis:6379/0
 | `MURPHY_API_KEYS` | staging/prod | — | Comma-separated list of valid API keys for request auth |
 | `MURPHY_API_KEY` | No | — | Single API key alias (same as first entry in `MURPHY_API_KEYS`) |
 | `MURPHY_CREDENTIAL_MASTER_KEY` | staging/prod | ephemeral | Fernet AES-128-CBC key for encrypting credentials at rest |
-| `JWT_SECRET` | No | — | Secret for JWT session tokens — use a secrets manager |
+| `MURPHY_JWT_SECRET` | No | — | Primary JWT signing secret (preferred name in Murphy codebase) |
+| `JWT_SECRET` | No | — | Legacy alias for `MURPHY_JWT_SECRET` — both are accepted |
 | `ENCRYPTION_KEY` | No | — | 64-char hex key for encrypting sensitive data at rest |
 | `E2EE_STUB_ALLOWED` | No | `false` (prod) | Allow Matrix E2EE stub ciphertext (`true`/`false`) |
 | `GRAFANA_ADMIN_USER` | Docker only | `admin` | Grafana admin username |
@@ -507,7 +508,7 @@ Use separate `.env` files per environment and pass them explicitly, or use the `
 
 ```bash
 MURPHY_ENV=development
-GROQ_API_KEY=gsk_your_key
+DEEPINFRA_API_KEY=di_your_key
 LOG_LEVEL=DEBUG
 DEBUG=true
 AUTO_RELOAD=true
@@ -517,7 +518,7 @@ AUTO_RELOAD=true
 
 ```bash
 MURPHY_ENV=staging
-GROQ_API_KEY=gsk_your_key
+DEEPINFRA_API_KEY=di_your_key
 MURPHY_API_KEYS=murphy_staging_key_abc123
 DATABASE_URL=postgresql://murphy:password@postgres:5432/murphy_staging
 REDIS_URL=redis://redis:6379/0
@@ -532,8 +533,8 @@ DEBUG=false
 
 ```bash
 MURPHY_ENV=production
-GROQ_API_KEY=gsk_prod_key
-GROQ_API_KEYS=gsk_key1,gsk_key2,gsk_key3
+DEEPINFRA_API_KEY=di_prod_key
+DEEPINFRA_API_KEYS=di_key1,di_key2,di_key3
 MURPHY_API_KEYS=murphy_prod_key_abc,murphy_prod_key_def
 DATABASE_URL=postgresql://murphy:strong_password@pg-primary:5432/murphy
 REDIS_URL=redis://:redis_password@redis-primary:6379/0
@@ -646,8 +647,8 @@ Quick-reference table of all 96 variables. Required columns: **C** = Core, **S**
 | `GOOGLE_ANALYTICS_KEY` | O | §8 Analytics |
 | `GRAFANA_ADMIN_PASSWORD` | D | §6 Security |
 | `GRAFANA_ADMIN_USER` | D | §6 Security |
-| `GROQ_API_KEY` | O | §3 LLM |
-| `GROQ_API_KEYS` | O | §3 LLM |
+| `DEEPINFRA_API_KEY` | O | §3 LLM |
+| `DEEPINFRA_API_KEYS` | O | §3 LLM |
 | `HUBSPOT_API_KEY` | O | §8 CRM |
 | `JWT_SECRET` | S | §6 Security |
 | `LINKEDIN_CLIENT_ID` | O | §8 Social |

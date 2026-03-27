@@ -1596,14 +1596,14 @@
         '<div class="flex flex-col gap-3">' +
           '<select id="llm-uni-provider-select" class="murphy-input">' +
             '<option value="">Select provider…</option>' +
-            '<option value="groq">Groq (free — llama3-8b-8192)</option>' +
+            '<option value="deepinfra">DeepInfra (primary — meta-llama/Meta-Llama-3.1-70B-Instruct)</option>' +
             '<option value="openai">OpenAI (gpt-4o)</option>' +
             '<option value="anthropic">Anthropic (claude-3-5-sonnet)</option>' +
           '</select>' +
           '<input id="llm-uni-api-key-input" type="password" placeholder="Paste API key here…" class="murphy-input" autocomplete="off" />' +
           '<button id="btn-uni-save-llm" class="murphy-btn murphy-btn-primary">' + icon('plus') + ' Save &amp; Activate</button>' +
           '<p class="text-xs text-secondary">Get a free Groq key at ' +
-            '<a href="https://console.groq.com/keys" target="_blank" rel="noopener" class="murphy-link">console.groq.com/keys</a>' +
+            '<a href="https://deepinfra.com" target="_blank" rel="noopener" class="murphy-link">deepinfra.com</a>' +
           '</p>' +
         '</div>'
       );
@@ -1805,7 +1805,7 @@
   function openAddKeyModal(integrationId, integrationLabel) {
     // Pre-populate known integration options
     var KNOWN = [
-      {id:'groq',           label:'Groq',              hint:'gsk_…'},
+      {id:'deepinfra',      label:'DeepInfra',         hint:'di_…'},
       {id:'openai',         label:'OpenAI',             hint:'sk-…'},
       {id:'anthropic',      label:'Anthropic / Claude', hint:'sk-ant-…'},
       {id:'sendgrid',       label:'SendGrid',           hint:'SG.…'},

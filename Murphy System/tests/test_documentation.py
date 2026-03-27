@@ -111,7 +111,7 @@ class TestReadme:
         """Configuration section must document required environment variables."""
         content = _read(README_PATH)
         required_vars = [
-            "GROQ_API_KEY",
+            "DEEPINFRA_API_KEY",
             "MURPHY_ENV",
             "MURPHY_API_KEYS",
             "MURPHY_CORS_ORIGINS",
@@ -285,7 +285,7 @@ class TestEnvVarsInCode:
     @pytest.mark.parametrize(
         "env_var",
         [
-            "GROQ_API_KEY",
+            "DEEPINFRA_API_KEY",
             "MURPHY_ENV",
             "MURPHY_API_KEYS",
             "MURPHY_CORS_ORIGINS",

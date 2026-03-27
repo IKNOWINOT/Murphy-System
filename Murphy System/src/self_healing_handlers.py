@@ -114,7 +114,7 @@ def get_circuit_breaker(
 # ---------------------------------------------------------------------------
 
 # Fallback provider chain priority order
-_LLM_PROVIDER_CHAIN: List[str] = ["openai", "groq", "anthropic", "local"]
+_LLM_PROVIDER_CHAIN: List[str] = ["openai", "deepinfra", "anthropic", "local"]
 
 # Per-provider backoff attempt counters (reset on success)
 _provider_failure_counts: Dict[str, int] = {}
@@ -190,7 +190,7 @@ def _try_llm_provider(provider: str, task_payload: Dict[str, Any]) -> bool:
         from openai_compatible_provider import OpenAICompatibleProvider, ProviderConfig, ProviderType
         provider_map: Dict[str, ProviderType] = {
             "openai": ProviderType.OPENAI,
-            "groq": ProviderType.GROQ,
+            "deepinfra": ProviderType.DEEPINFRA,
             "anthropic": ProviderType.CUSTOM,
         }
         ptype = provider_map.get(provider, ProviderType.CUSTOM)

@@ -202,7 +202,7 @@ a governed, validated DAG workflow. This is backed by real implementation:
 **What was built:**
 
 1. **`llm/multi_provider_router.py`** — 12-provider router:
-   - Providers: GPT-4o, GPT-4-Turbo, Claude 3 Opus, Claude 3.5 Sonnet, Gemini 1.5 Pro, Gemini Flash, Groq Mixtral, Groq LLaMA3, Mistral Large, Cohere Command R+, Perplexity Online, Local Ollama
+   - Providers: GPT-4o, GPT-4-Turbo, Claude 3 Opus, Claude 3.5 Sonnet, Gemini 1.5 Pro, Gemini Flash, DeepInfra Mixtral, DeepInfra LLaMA3, Mistral Large, Cohere Command R+, Perplexity Online, Local Ollama
    - `RoutingStrategy` enum: CHEAPEST, FASTEST, MOST_RELIABLE, CAPABILITY_MATCH, ROUND_ROBIN, CONFIDENCE_WEIGHTED
    - Cost and latency optimization
    - `benchmark()` — simulated provider benchmarking

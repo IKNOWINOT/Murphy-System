@@ -30,7 +30,7 @@ api:
 
 # ── LLM Provider ─────────────────────────────────────────────────────────────
 llm:
-  provider: local             # local | groq | openai | anthropic
+  provider: local             # local | deepinfra | openai | anthropic
   timeout: 30                 # seconds
   max_retries: 3
   use_key_rotation: true
