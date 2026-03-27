@@ -106,7 +106,7 @@ class TestProviderConfig:
         with patch.dict(os.environ, env, clear=False):
             p = OpenAICompatibleProvider.from_env()
             assert p.provider_type == ProviderType.DEEPINFRA
-            assert p.default_model == "mixtral-8x7b-32768"
+            assert p.default_model == "meta-llama/Meta-Llama-3.1-70B-Instruct"
 
     def test_from_env_ollama_no_key_still_available(self) -> None:
         env = {"OPENAI_PROVIDER_TYPE": "ollama"}

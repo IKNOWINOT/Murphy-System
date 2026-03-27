@@ -244,7 +244,8 @@ REDIS_URL=redis://redis:6379/0
 | `MURPHY_API_KEYS` | staging/prod | — | Comma-separated list of valid API keys for request auth |
 | `MURPHY_API_KEY` | No | — | Single API key alias (same as first entry in `MURPHY_API_KEYS`) |
 | `MURPHY_CREDENTIAL_MASTER_KEY` | staging/prod | ephemeral | Fernet AES-128-CBC key for encrypting credentials at rest |
-| `JWT_SECRET` | No | — | Secret for JWT session tokens — use a secrets manager |
+| `MURPHY_JWT_SECRET` | No | — | Primary JWT signing secret (preferred name in Murphy codebase) |
+| `JWT_SECRET` | No | — | Legacy alias for `MURPHY_JWT_SECRET` — both are accepted |
 | `ENCRYPTION_KEY` | No | — | 64-char hex key for encrypting sensitive data at rest |
 | `E2EE_STUB_ALLOWED` | No | `false` (prod) | Allow Matrix E2EE stub ciphertext (`true`/`false`) |
 | `GRAFANA_ADMIN_USER` | Docker only | `admin` | Grafana admin username |
