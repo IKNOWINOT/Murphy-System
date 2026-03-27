@@ -52,14 +52,14 @@ def test_mock_similarity():
         },
         {
             "name": "Groq - Creative",
-            "provider": LLMProvider.GROQ,
+            "provider": LLMProvider.DEEPINFRA,
             "domain": DomainType.CREATIVE,
             "prompt": "Write something creative",
             "expected_mock_pattern": "Creative response"
         },
         {
             "name": "Groq - General",
-            "provider": LLMProvider.GROQ,
+            "provider": LLMProvider.DEEPINFRA,
             "domain": DomainType.GENERAL,
             "prompt": "General question",
             "expected_mock_pattern": "General response"
