@@ -1,5 +1,102 @@
 # Changelog
 
+## [3.0.0] — 2026-03-27 — Real HITL State Machine, Milestone Tracking & Closed Loops
+
+### Added
+- **Real HITL State Machine** (`_HITL_QUEUE`) — every approval gate is a blocking checkpoint
+  - `POST /api/hitl/{id}/approve` — approve with side effects per type (proposal→automation, campaign→spend, setup→next step, milestone→unblock, dag→advance, vertical→activate)
+  - `POST /api/hitl/{id}/reject` — reject with reason, broadcasts SSE
+  - HITL types: `proposal_approval`, `campaign_paid_ad`, `setup_step`, `automation_milestone`, `dag_step`, `vertical_activate`
+  - Auto-expire tick (60s) marks stale HITL items expired
+- **Automation Milestones** — each automation has 3–4 weighted milestones per category
+  - `_MILESTONE_TEMPLATES` — per-category milestone definitions with weight_pct and HITL flags
+  - `_calc_automation_progress(auto)` — weighted average across milestones drives progress bar
+  - `_calc_block_duration(auto)` — base + sum of delays drives block width on calendar
+  - `GET /api/automations/{id}/milestones` — full milestone state per automation
+  - `POST /api/automations/{id}/milestones/{ms_id}/delay` — inject delay on milestone
+- **Delay Factor** — missed milestones add time to effective duration
+  - Blocks GROW when milestones are delayed (`effective_duration_minutes = estimated + total_delay`)
+  - Blocks SHRINK as milestones complete (progress advances)
+  - `_automation_tick()` (8s) — advances milestone progress, random 8% chance to inject delay
+- **Dynamic Calendar Blocks** (`GET /api/calendar/blocks`)
+  - `width_scale = effective_duration / estimated_duration`
+  - `hitl_gates` list with time positions, status, hitl_item_id per HITL milestone
+  - `is_delayed`, `is_blocked_hitl` flags for visual overlays
+- **Closed-Loop Proposals** — full pipeline: request → AI generate → HITL approve → automation created
+  - `_proposal_intake_tick()` (45s) auto-generates proposals for pending requests → HITL item
+  - Approve HITL → marks proposal `approved_sent` → spawns new automation in `_automation_store`
+- **Closed-Loop Campaigns** — `_campaign_tick()` detects low traction → auto-creates HITL paid-ad proposal
+  - Approve HITL → campaign status `active`, spend increases
+- **Closed-Loop Self-Setup** — `_setup_tick()` advances steps, blocks at HITL gates
+  - Steps 4, 6, 7, 9, 11, 12 require HITL approval
+  - Approve HITL → step completes → next step activates
+- **Improved DAG Workflow Generator** — semantic domain detection for 10 workflow patterns
+  - Onboard, Report, Invoice, Reconcile, Campaign, Security, Deploy, CRM, Proposal, Monitor
+  - Each pattern produces 4–6 realistic named steps with a HITL gate at the right point
+- **Dashboard v3.0** (`murphy_dashboard/index.html`) — full Command Center overhaul
+  - 10-panel layout: Overview, HITL, Calendar, Automations, Verticals, Marketing, Proposals, Workflows, Comms, Setup
+  - HITL panel: full queue with approve/reject buttons, reject modal with reason, type tags, payload preview
+  - Calendar panel: dynamic timeline blocks with `width_scale`, red delay overlay, HITL diamond markers
+  - Automation blocks: milestone track (6 color-coded segments), duration bar with planned/actual/delay overlays
+  - Marketing panel: closed-loop — campaign cards, traction bars, "Propose Paid Campaign" HITL trigger
+  - Proposals panel: closed-loop — inbound requests → "Generate AI Proposal" → HITL → automation confirmed
+  - Workflows panel: NL textarea + 4 template shortcuts → DAG visualization with per-node HITL approve
+  - Setup panel: step list with HITL gate approve buttons inline, engine status cards
+  - 15+ SSE event types routed to appropriate panel updates
+- **WebSocket HTTP fallback** — `GET /ws` returns 426 instead of 404
+
+### Changed
+- Server version bumped 2.0 → 3.0
+- `_SELF_SETUP_STEPS` updated with `requires_hitl` and `hitl_label` per step
+- `_seed_automations()` builds milestones for all 15 demo automations
+- All 5 background ticks running: `_automation_tick`, `_campaign_tick`, `_setup_tick`, `_hitl_auto_expire_tick`, `_proposal_intake_tick`
+
+### Preserved
+- All original routes: `/`, `/calendar`, `/dashboard`, `/landing`, `/production-wizard`, `/onboarding`
+- All v2.0 endpoints remain functional
+
+## [2.0.0] — 2026-03-27 — Self-Automation Pipeline & Vertical Hub
+
+### Added
+- **Primary Dashboard** (`murphy_dashboard/index.html`) — full Command Center replacing legacy calendar UI as default `/` route
+  - Tenant-aware header: cycle between tenants (HQ, Industrial, Marketing Studio)
+  - 8-panel navigation: Overview, Verticals, Marketing, Proposals, Workflows, Comms, Setup, Executions, Bots
+  - Live SSE feed ticker + WebSocket multicursor
+  - Global NL prompt bar (Cmd+Enter → automation)
+  - KPI row: Active Automations, Monthly Savings, ROI, Campaigns, Pending Proposals
+- **Server v2.0** (`murphy_production_server.py`) — 40+ API endpoints
+  - `/api/tenant/*` — multi-tenant CRUD with org/connection metadata
+  - `/api/verticals/*` — 10 vertical configs with activate endpoint (seeds starter automation)
+  - `/api/marketing/*` — AdaptiveCampaignEngine (MKT-004) wired: campaign metrics, channel adjustment, HITL paid-ad proposals
+  - `/api/proposals/*` — AI proposal writer: inbound request queue → NL-generated full proposal (scope, investment, timeline, ROI)
+  - `/api/workflows/*` — AIWorkflowGenerator: NL → DAG step inference → execution graph with HITL gates
+  - `/api/comms/*` — AgenticCommsRouter (ACOM-001): 6 subsystem rooms, send/broadcast, message history
+  - `/api/pipeline/self-setup` — self-automation pipeline: Murphy automating itself (12-step progress tracker)
+  - `/api/pipeline/self-setup/run-full` — one-click full bootstrap: all verticals, campaigns, proposals, comms
+  - Tenant-aware filtering on automations, executions, labor-cost
+  - Background `_campaign_tick()` — live campaign metric drift + traction evaluation
+  - Background `_setup_tick()` — self-setup progress advances every 20s
+- **Vertical Hub** — 10 verticals fully configured:
+  - Marketing (AdaptiveCampaignEngine), Proposals (AI writer), CRM, Monitoring, Industrial/SCADA, Finance, Security, Content, Communications (ACOM-001), AI Pipeline Builder
+- **15 demo automations** seeded across 3 tenants
+
+### Changed
+- Server version bumped 1.0 → 2.0
+- Default route `/` now serves `murphy_dashboard/index.html` (Command Center)
+- `/calendar` route still serves legacy calendar UI (`murphy_ui/index.html`)
+- Automations now carry `tenant_id` for multi-tenant filtering
+- `/api/automations` now accepts `tenant_id`, `category`, `status` query filters
+- `/api/labor-cost` now accepts `tenant_id` filter
+
+### Tested
+- 19/19 API endpoints: 200 OK
+- Self-setup pipeline: 12 steps, auto-advances via background task
+- Proposal generation: req-001 (enterprise), req-002 (startup), req-003 (industrial SCADA)
+- Workflow DAG: 5-step NL→DAG from HubSpot lead pipeline description
+- Campaign engine: 5 tiers, 2 auto-adjusting (business, professional traction=low)
+- Comms router: 6 rooms × 3 agents, message delivery confirmed
+- Prompt create: "Every hour monitor SCADA anomalies" → monitoring/hourly/$110/hr
+
 All notable changes to Murphy System will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
