@@ -42,7 +42,7 @@ def test_actual_local_llm_usage():
     print()
 
     # Test Groq-style (creative)
-    result = local_llm.query("Write a poem about AI", provider='groq')
+    result = local_llm.query("Write a poem about AI", provider='deepinfra')
     print("Groq Query: 'Write a poem about AI'")
     print(f"  Response: {result['response'][:200]}...")
     print(f"  Confidence: {result['confidence']}")
@@ -59,7 +59,7 @@ def test_actual_local_llm_usage():
     mock_outputs = {
         "aristotle": "Aristotle deterministic analysis: Mathematical calculation verified. Confidence: 0.95. Result: The equation holds true under standard mathematical axioms.",
         "wulfrum": "Wulfrum fuzzy match: Mathematical validation complete. Match score: 0.88. Minor discrepancies found in rounding.",
-        "groq": "Creative response generated with innovative solutions."
+        "deepinfra": "Creative response generated with innovative solutions."
     }
 
     # Test Aristotle
@@ -83,8 +83,8 @@ def test_actual_local_llm_usage():
     print()
 
     # Test Groq
-    result = local_llm.query("Write something creative", provider='groq')
-    mock = mock_outputs["groq"]
+    result = local_llm.query("Write something creative", provider='deepinfra')
+    mock = mock_outputs["deepinfra"]
 
     print("Groq Comparison:")
     print(f"  Mock Output: {mock}")

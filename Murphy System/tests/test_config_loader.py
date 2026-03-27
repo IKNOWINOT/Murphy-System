@@ -139,7 +139,7 @@ class TestCoerce(unittest.TestCase):
 
     def test_string_passthrough(self):
         cl = self._get_loader()
-        self.assertEqual(cl._coerce("groq"), "groq")
+        self.assertEqual(cl._coerce("deepinfra"), "deepinfra")
         self.assertEqual(cl._coerce("  spaced  "), "spaced")
 
 

@@ -51,7 +51,7 @@ _REDACTED = "[REDACTED]"
 
 _CONTENT_PATTERNS: List[Dict[str, Any]] = [
     {
-        "name": "groq_api_key",
+        "name": "deepinfra_api_key",
         "pattern": r"\bgsk_[A-Za-z0-9]{20,}\b",
         "severity": "critical",
         "description": "Groq API key detected",

@@ -199,7 +199,7 @@ class ScaleProjection:
 # ---------------------------------------------------------------------------
 
 # Realistic default cost profiles based on the Murphy System's LLM costs
-# (Groq Mixtral $0.00027/1k tokens, Llama $0.00059/1k, Gemma $0.0001/1k)
+# (DeepInfra Mixtral $0.00027/1k tokens, Llama $0.00059/1k, Gemma $0.0001/1k)
 # and typical SaaS infrastructure costs.
 
 _DEFAULT_COST_PROFILES: Dict[str, ProcessingCostProfile] = {

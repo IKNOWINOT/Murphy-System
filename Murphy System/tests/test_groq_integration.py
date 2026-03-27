@@ -4,7 +4,7 @@ Groq API Integration Tests.
 Covers:
   - Tier 1: Provider configuration and detection (unit tests, no I/O)
   - Tier 2: Mocked HTTP integration tests (no external dependencies)
-  - Tier 3: Live Groq API tests (requires GROQ_API_KEY env var)
+  - Tier 3: Live Groq API tests (requires DEEPINFRA_API_KEY env var)
 
 Run:
   python -m pytest tests/test_groq_integration.py -v
@@ -29,11 +29,11 @@ _src_dir = os.path.abspath(_src_dir)
 # Helpers
 # ---------------------------------------------------------------------------
 
-_GROQ_API_KEY_SET = bool(os.environ.get("GROQ_API_KEY"))
+_DEEPINFRA_API_KEY_SET = bool(os.environ.get("DEEPINFRA_API_KEY"))
 
 skip_without_groq_key = pytest.mark.skipif(
-    not _GROQ_API_KEY_SET,
-    reason="GROQ_API_KEY not set – skipping live API test",
+    not _DEEPINFRA_API_KEY_SET,
+    reason="DEEPINFRA_API_KEY not set – skipping live API test",
 )
 
 
@@ -46,10 +46,10 @@ class TestGroqProviderDetection:
     """Verify Groq provider is selected correctly from env vars."""
 
     def test_groq_key_selects_groq_provider(self) -> None:
-        """Setting GROQ_API_KEY should auto-detect Groq provider."""
+        """Setting DEEPINFRA_API_KEY should auto-detect Groq provider."""
         from openai_compatible_provider import OpenAICompatibleProvider, ProviderType
 
-        env = {"GROQ_API_KEY": "gsk_test_key_abc123"}
+        env = {"DEEPINFRA_API_KEY": "di_test_key_abc123"}
         with patch.dict(os.environ, env, clear=True):
             provider = OpenAICompatibleProvider.from_env()
         assert provider.provider_type == ProviderType.GROQ
@@ -58,7 +58,7 @@ class TestGroqProviderDetection:
         """Groq provider should default to mixtral-8x7b-32768."""
         from openai_compatible_provider import OpenAICompatibleProvider
 
-        env = {"GROQ_API_KEY": "gsk_test_key_abc123"}
+        env = {"DEEPINFRA_API_KEY": "di_test_key_abc123"}
         with patch.dict(os.environ, env, clear=True):
             provider = OpenAICompatibleProvider.from_env()
         assert provider.default_model == "mixtral-8x7b-32768"
@@ -68,8 +68,8 @@ class TestGroqProviderDetection:
         from openai_compatible_provider import OpenAICompatibleProvider, ProviderType
 
         env = {
-            "OPENAI_PROVIDER_TYPE": "groq",
-            "GROQ_API_KEY": "gsk_test_key_abc123",
+            "OPENAI_PROVIDER_TYPE": "deepinfra",
+            "DEEPINFRA_API_KEY": "di_test_key_abc123",
         }
         with patch.dict(os.environ, env, clear=False):
             provider = OpenAICompatibleProvider.from_env()
@@ -81,7 +81,7 @@ class TestGroqProviderDetection:
 
         env = {
             "OPENAI_API_KEY": "sk-test-openai-key",
-            "GROQ_API_KEY": "gsk_test_key_abc123",
+            "DEEPINFRA_API_KEY": "di_test_key_abc123",
         }
         with patch.dict(os.environ, env, clear=True):
             provider = OpenAICompatibleProvider.from_env()
@@ -191,7 +191,7 @@ class TestGroqDomainRouting:
 
         layer = LLMIntegrationLayer()
         config = layer.domain_routing.get(DomainType.CREATIVE, {})
-        assert config.get("primary_provider") == LLMProvider.GROQ
+        assert config.get("primary_provider") == LLMProvider.DEEPINFRA
 
     def test_strategic_domain_routes_to_groq(self) -> None:
         """Strategic domain should route to Groq provider."""
@@ -199,7 +199,7 @@ class TestGroqDomainRouting:
 
         layer = LLMIntegrationLayer()
         config = layer.domain_routing.get(DomainType.STRATEGIC, {})
-        assert config.get("primary_provider") == LLMProvider.GROQ
+        assert config.get("primary_provider") == LLMProvider.DEEPINFRA
 
     def test_general_domain_routes_to_groq(self) -> None:
         """General domain should route to Groq provider."""
@@ -207,7 +207,7 @@ class TestGroqDomainRouting:
 
         layer = LLMIntegrationLayer()
         config = layer.domain_routing.get(DomainType.GENERAL, {})
-        assert config.get("primary_provider") == LLMProvider.GROQ
+        assert config.get("primary_provider") == LLMProvider.DEEPINFRA
 
     def test_mathematical_domain_routes_to_aristotle(self) -> None:
         """Mathematical domain should route to Aristotle, not Groq."""
@@ -238,7 +238,7 @@ class TestGroqMockedAPI:
         }
         return LLMRequest(
             request_id=request_id,
-            provider=LLMProvider.GROQ,
+            provider=LLMProvider.DEEPINFRA,
             domain=domain_map.get(domain, DomainType.GENERAL),
             prompt=prompt,
             context={},
@@ -248,7 +248,7 @@ class TestGroqMockedAPI:
         """Verify parsing of a successful Groq API response."""
         from llm_integration_layer import LLMIntegrationLayer
 
-        layer = LLMIntegrationLayer(groq_api_key="gsk_test_mock")
+        layer = LLMIntegrationLayer(deepinfra_api_key="di_test_mock")
 
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -265,14 +265,14 @@ class TestGroqMockedAPI:
         request = self._make_request("test-001", "Hello, Groq!", "creative")
 
         with patch("llm_integration_layer.requests.post", return_value=mock_response):
-            result = layer._call_groq(request)
+            result = layer._call_deepinfra(request)
         assert result.response == "Hello from Groq!"
 
     def test_groq_api_error_falls_back_to_local(self) -> None:
         """API error should trigger local LLM fallback."""
         from llm_integration_layer import LLMIntegrationLayer
 
-        layer = LLMIntegrationLayer(groq_api_key="gsk_test_mock")
+        layer = LLMIntegrationLayer(deepinfra_api_key="di_test_mock")
 
         request = self._make_request("test-002", "Test fallback", "creative")
 
@@ -280,7 +280,7 @@ class TestGroqMockedAPI:
             "llm_integration_layer.requests.post",
             side_effect=Exception("Connection refused"),
         ):
-            result = layer._call_groq(request)
+            result = layer._call_deepinfra(request)
         # Should get a response from the local fallback, not an exception
         assert result is not None
         assert result.response  # Non-empty fallback response
@@ -290,7 +290,7 @@ class TestGroqMockedAPI:
         import requests as req_lib
         from llm_integration_layer import LLMIntegrationLayer
 
-        layer = LLMIntegrationLayer(groq_api_key="gsk_test_mock")
+        layer = LLMIntegrationLayer(deepinfra_api_key="di_test_mock")
 
         request = self._make_request("test-003", "Test timeout", "general")
 
@@ -298,7 +298,7 @@ class TestGroqMockedAPI:
             "llm_integration_layer.requests.post",
             side_effect=req_lib.Timeout("Request timed out"),
         ):
-            result = layer._call_groq(request)
+            result = layer._call_deepinfra(request)
         assert result is not None
         assert result.response
 
@@ -307,7 +307,7 @@ class TestGroqMockedAPI:
         from llm_integration_layer import LLMIntegrationLayer
         import requests as req_lib
 
-        layer = LLMIntegrationLayer(groq_api_key="gsk_test_mock")
+        layer = LLMIntegrationLayer(deepinfra_api_key="di_test_mock")
 
         mock_response = MagicMock()
         mock_response.status_code = 429
@@ -318,7 +318,7 @@ class TestGroqMockedAPI:
         request = self._make_request("test-004", "Test rate limit", "creative")
 
         with patch("llm_integration_layer.requests.post", return_value=mock_response):
-            result = layer._call_groq(request)
+            result = layer._call_deepinfra(request)
         # Should get a local fallback response
         assert result is not None
 
@@ -327,14 +327,14 @@ class TestGroqMockedAPI:
         from llm_integration_layer import LLMIntegrationLayer
 
         layer = LLMIntegrationLayer()
-        layer.groq_api_keys = ["gsk_key1", "gsk_key2", "gsk_key3"]
-        layer.current_groq_key_index = 0
+        layer.deepinfra_api_keys = ["gsk_key1", "gsk_key2", "gsk_key3"]
+        layer.current_deepinfra_key_index = 0
 
         # Verify keys rotate (internal state)
-        assert layer.groq_api_keys[0] == "gsk_key1"
-        assert layer.groq_api_keys[1] == "gsk_key2"
-        assert layer.groq_api_keys[2] == "gsk_key3"
-        assert len(layer.groq_api_keys) == 3
+        assert layer.deepinfra_api_keys[0] == "gsk_key1"
+        assert layer.deepinfra_api_keys[1] == "gsk_key2"
+        assert layer.deepinfra_api_keys[2] == "gsk_key3"
+        assert len(layer.deepinfra_api_keys) == 3
 
 
 # ---------------------------------------------------------------------------
@@ -373,12 +373,12 @@ class TestGroqCircuitBreaker:
 
 
 # ---------------------------------------------------------------------------
-# Tier 3: Live Groq API Tests (require GROQ_API_KEY)
+# Tier 3: Live Groq API Tests (require DEEPINFRA_API_KEY)
 # ---------------------------------------------------------------------------
 
 
 class TestGroqLiveAPI:
-    """Live Groq API tests — skipped unless GROQ_API_KEY is set."""
+    """Live Groq API tests — skipped unless DEEPINFRA_API_KEY is set."""
 
     @skip_without_groq_key
     def test_live_groq_provider_available(self) -> None:
@@ -399,13 +399,13 @@ class TestGroqLiveAPI:
 
         request = LLMRequest(
             request_id="live-test-001",
-            provider=LLMProvider.GROQ,
+            provider=LLMProvider.DEEPINFRA,
             domain=DomainType.GENERAL,
             prompt="Respond with exactly: MURPHY_TEST_OK",
             context={},
         )
 
-        result = layer._call_groq(request)
+        result = layer._call_deepinfra(request)
         assert result is not None
         assert result.response  # Non-empty response
 
@@ -420,13 +420,13 @@ class TestGroqLiveAPI:
 
         request = LLMRequest(
             request_id="live-test-002",
-            provider=LLMProvider.GROQ,
+            provider=LLMProvider.DEEPINFRA,
             domain=DomainType.CREATIVE,
             prompt="Say hello in exactly 5 words.",
             context={},
         )
 
-        result = layer._call_groq(request)
+        result = layer._call_deepinfra(request)
         assert result is not None
         assert hasattr(result, "response")
         assert hasattr(result, "provider")
@@ -442,7 +442,7 @@ class TestGroqLiveAPI:
 
         request = LLMRequest(
             request_id="live-test-003",
-            provider=LLMProvider.GROQ,
+            provider=LLMProvider.DEEPINFRA,
             domain=DomainType.CREATIVE,
             prompt="Write a one-sentence creative story about an AI.",
             context={},

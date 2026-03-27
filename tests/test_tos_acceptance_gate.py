@@ -379,7 +379,7 @@ class TestFormatApprovalMessage:
         gate = TOSAcceptanceGate()
         req = gate.request_approval("deepinfra")
         msg = gate.format_approval_message(req)
-        assert "Groq" in msg
+        assert "DeepInfra" in msg
 
     def test_message_contains_tos_url(self):
         gate = TOSAcceptanceGate()
@@ -417,7 +417,7 @@ class TestFormatApprovalMessage:
         req = gate.request_approval("deepinfra")
         msg = gate.format_approval_message(req)
         # Should not crash and should still mention key info
-        assert "Groq" in msg
+        assert "DeepInfra" in msg
 
 
 # ---------------------------------------------------------------------------

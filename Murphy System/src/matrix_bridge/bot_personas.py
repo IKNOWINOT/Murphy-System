@@ -167,7 +167,7 @@ class BotPersonas:
                     "secure-key-manager",
                     "murphy-credential-gate",
                     "key-harvester",
-                    "groq-key-rotator",
+                    "deepinfra-key-rotator",
                 ],
             ),
             Persona(
@@ -253,17 +253,17 @@ class BotPersonas:
                 description=(
                     "Manages secure_key_manager, groq_key_rotator, and key_harvester."
                 ),
-                monitored_rooms=["secure-key-manager", "groq-key-rotator", "key-harvester"],
+                monitored_rooms=["secure-key-manager", "deepinfra-key-rotator", "key-harvester"],
                 commands={
                     "keys list":    "List all managed key IDs",
                     "keys rotate":  "Rotate a specific key",
                     "keys status":  "Show key manager status",
                     "keys harvest": "Run key harvester scan",
-                    "keys groq":    "Show Groq key rotation status",
+                    "keys deepinfra":    "Show DeepInfra key rotation status",
                 },
                 subsystems=[
                     "secure-key-manager",
-                    "groq-key-rotator",
+                    "deepinfra-key-rotator",
                     "key-harvester",
                     "murphy-credential-gate",
                     "credential-profile-system",

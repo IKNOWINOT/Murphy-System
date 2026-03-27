@@ -759,7 +759,7 @@ class LLMIntegrationLayer:
             "by_provider": by_provider,
             "by_domain": by_domain,
             "validations_pending_review": validations_pending,
-            "current_provider_index": getattr(self, "current_groq_key_index", 0)
+            "current_provider_index": getattr(self, "current_deepinfra_key_index", 0)
         }
 
 

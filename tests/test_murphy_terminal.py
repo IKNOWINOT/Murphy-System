@@ -1019,7 +1019,7 @@ class TestAPIProviderLinks:
     def test_links_not_empty(self):
         assert len(API_PROVIDER_LINKS) > 0
 
-    def test_groq_present(self):
+    def test_deepinfra_present(self):
         assert "deepinfra" in API_PROVIDER_LINKS
         assert "url" in API_PROVIDER_LINKS["deepinfra"]
         assert "env_var" in API_PROVIDER_LINKS["deepinfra"]
@@ -1060,7 +1060,7 @@ class TestDialogContextIntegrations:
         assert "stripe" in recs
 
     def test_always_recommends_llm(self):
-        """If LLM is not configured, groq should always be recommended."""
+        """If LLM is not configured, deepinfra should always be recommended."""
         import os
         old = os.environ.pop("MURPHY_LLM_PROVIDER", None)
         try:
@@ -1138,7 +1138,7 @@ class TestWorkflowActionInferenceTerminal:
         dc.step_index = len(dc.INTERVIEW_STEPS)
         msg = dc._complete_message()
         assert "What to do next" in msg
-        assert "set key groq" in msg
+        assert "set key deepinfra" in msg
 
     def test_completion_message_numbers_integrations(self):
         dc = DialogContext()
@@ -1388,12 +1388,12 @@ class TestBug1ClipboardPriority:
 class TestBug6NoHardcodedKeys:
     """BUG-6: No real API keys should remain in the archive directory."""
 
-    def test_no_groq_keys_in_archive(self):
+    def test_no_deepinfra_keys_in_archive(self):
         """Ensure no gsk_ prefixed keys of 20+ chars remain in the archive."""
         archive_dir = os.path.join(os.path.dirname(__file__), "..", "archive")
         if not os.path.isdir(archive_dir):
             pytest.skip("archive directory not present")
-        pattern = re.compile(r"gsk_[A-Za-z0-9]{20,}")
+        pattern = re.compile(r"di_[A-Za-z0-9]{20,}")
         hits: list[str] = []
         for root, _dirs, files in os.walk(archive_dir):
             for fname in files:

@@ -436,8 +436,8 @@ class TestSecureKeyStorage:
 
         env_file = tmp_path / ".env"
         env_file.write_text(
-            "MURPHY_LLM_PROVIDER=groq\n"
-            "GROQ_API_KEY=gsk_plaintext123456789\n"
+            "MURPHY_LLM_PROVIDER=deepinfra\n"
+            "DEEPINFRA_API_KEY=gsk_plaintext123456789\n"
             "APP_PORT=8000\n"
         )
 
@@ -452,14 +452,14 @@ class TestSecureKeyStorage:
              patch.object(skm, "_KEYRING_AVAILABLE", True):
             migrated = skm.migrate_keys(env_file)
 
-        assert "GROQ_API_KEY" in migrated, "GROQ_API_KEY must be migrated"
+        assert "DEEPINFRA_API_KEY" in migrated, "DEEPINFRA_API_KEY must be migrated"
 
         env_content = env_file.read_text()
         assert "gsk_plaintext123456789" not in env_content, (
             "Plaintext key must be removed from .env after migration"
         )
         # Non-sensitive values must remain
-        assert "MURPHY_LLM_PROVIDER=groq" in env_content
+        assert "MURPHY_LLM_PROVIDER=deepinfra" in env_content
         assert "APP_PORT=8000" in env_content
 
 

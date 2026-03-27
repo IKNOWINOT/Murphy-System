@@ -11708,10 +11708,10 @@ class MurphySystem:
     # -- API provider links (signup URLs for third-party keys) ----------------
 
     API_PROVIDER_LINKS: Dict[str, Dict[str, str]] = {
-        "groq": {
-            "name": "Groq",
-            "url": "https://console.groq.com/keys",
-            "env_var": "GROQ_API_KEY",
+        "deepinfra": {
+            "name": "DeepInfra",
+            "url": "https://deepinfra.com/keys",
+            "env_var": "DEEPINFRA_API_KEY",
             "description": "LLM provider (fast inference for Llama, Mixtral, Gemma)",
         },
         "openai": {
@@ -11830,7 +11830,7 @@ class MurphySystem:
             "count": len(entries),
             "instructions": (
                 "Set each API key as an environment variable before starting Murphy. "
-                "Example:  export GROQ_API_KEY=gsk_..."
+                "Example:  export DEEPINFRA_API_KEY=gsk_..."
             ),
         }
 
@@ -12003,12 +12003,12 @@ class MurphySystem:
 
         # Always recommend an LLM provider if not already configured (external API)
         llm_status = self._get_llm_status()
-        # Recommend groq when in onboard mode (no external LLM configured)
+        # Recommend deepinfra when in onboard mode (no external LLM configured)
         is_onboard_mode = llm_status.get("mode") == "onboard"
-        if is_onboard_mode and "groq" not in seen:
-            info = links["groq"]
+        if is_onboard_mode and "deepinfra" not in seen:
+            info = links["deepinfra"]
             recommendations.append({
-                "service": "groq",
+                "service": "deepinfra",
                 "name": info["name"],
                 "signup_url": info["url"],
                 "env_var": info["env_var"],
@@ -12031,12 +12031,12 @@ class MurphySystem:
         model = os.environ.get("MURPHY_LLM_MODEL", "").strip()
         if not provider:
             # Auto-detect provider from available API keys so that users who
-            # only set GROQ_API_KEY (without MURPHY_LLM_PROVIDER) are still served.
-            groq_key = os.environ.get("GROQ_API_KEY", "").strip()
+            # only set DEEPINFRA_API_KEY (without MURPHY_LLM_PROVIDER) are still served.
+            deepinfra_key = os.environ.get("DEEPINFRA_API_KEY", "").strip()
             openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
             anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-            if groq_key:
-                provider = "groq"
+            if deepinfra_key:
+                provider = "deepinfra"
                 os.environ["MURPHY_LLM_PROVIDER"] = provider
             elif openai_key:
                 provider = "openai"
@@ -12078,8 +12078,8 @@ class MurphySystem:
                     ),
                 }
         # Validate provider-specific keys
-        if provider == "groq":
-            api_key = os.environ.get("GROQ_API_KEY", "").strip()
+        if provider == "deepinfra":
+            api_key = os.environ.get("DEEPINFRA_API_KEY", "").strip()
             if not api_key:
                 # Key was removed at runtime — degrade gracefully to onboard
                 return {
@@ -12088,12 +12088,12 @@ class MurphySystem:
                     "model": "local_fallback",
                     "healthy": True,
                     "mode": "onboard",
-                    "note": "GROQ_API_KEY not set; using onboard LLM.",
+                    "note": "DEEPINFRA_API_KEY not set; using onboard LLM.",
                 }
             return {
                 "enabled": True,
                 "provider": provider,
-                "model": model or "llama3-8b-8192",
+                "model": model or "meta-llama/Meta-Llama-3.1-8B-Instruct",
                 "healthy": True,
                 "mode": "external_api",
             }
@@ -12172,9 +12172,9 @@ class MurphySystem:
         mode = llm_status.get("mode", "onboard")
 
         # --- External API path ---
-        if mode == "external_api" and provider == "groq":
-            model = llm_status.get("model") or "llama3-8b-8192"
-            api_key = os.environ.get("GROQ_API_KEY", "")
+        if mode == "external_api" and provider == "deepinfra":
+            model = llm_status.get("model") or "meta-llama/Meta-Llama-3.1-8B-Instruct"
+            api_key = os.environ.get("DEEPINFRA_API_KEY", "")
             if api_key:
                 try:
                     import requests as _requests
@@ -12220,7 +12220,7 @@ class MurphySystem:
                         body["messages"].append({"role": "system", "content": f"Context: {context}"})
                     body["messages"].append({"role": "user", "content": prompt})
                     resp = _requests.post(
-                        "https://api.groq.com/openai/v1/chat/completions",
+                        "https://api.deepinfra.com/v1/openai/openai/v1/chat/completions",
                         headers=headers,
                         json=body,
                         timeout=15,
@@ -12244,7 +12244,7 @@ class MurphySystem:
         # Absolute last resort — structured template response
         return (
             f"I can help with: {prompt[:100]}. "
-            "For best results, add a Groq API key via 'set key groq <key>'.",
+            "For best results, add a Groq API key via 'set key deepinfra <key>'.",
             None,
         )
 
@@ -12410,7 +12410,7 @@ class MurphySystem:
                     "\n\n_Librarian is operating in **onboard** mode using built-in "
                     "system knowledge. To upgrade to LLM-powered responses: set "
                     "MURPHY_LLM_PROVIDER and the appropriate API key "
-                    "(e.g. GROQ_API_KEY). Get a free key at https://console.groq.com/keys_"
+                    "(e.g. DEEPINFRA_API_KEY). Get a free key at https://deepinfra.com/keys_"
                 )
                 session["_llm_notice_shown"] = True
             result: Dict[str, Any] = {
@@ -12466,7 +12466,7 @@ class MurphySystem:
                 "\n\n_Librarian is operating in **onboard** mode using built-in "
                 "system knowledge. To upgrade to LLM-powered responses: set "
                 "MURPHY_LLM_PROVIDER and the appropriate API key "
-                "(e.g. GROQ_API_KEY). Get a free key at https://console.groq.com/keys_"
+                "(e.g. DEEPINFRA_API_KEY). Get a free key at https://deepinfra.com/keys_"
             )
             session["_llm_notice_shown"] = True
         result = {
@@ -13343,8 +13343,8 @@ class MurphySystem:
             )
         lines.append(
             "\n**Quick start:** Get a free Groq key (link above), then:\n"
-            "```\nexport MURPHY_LLM_PROVIDER=groq\n"
-            "export GROQ_API_KEY=gsk_your_key_here\n```"
+            "```\nexport MURPHY_LLM_PROVIDER=deepinfra\n"
+            "export DEEPINFRA_API_KEY=gsk_your_key_here\n```"
         )
         return "\n".join(lines)
 
@@ -13440,7 +13440,7 @@ class MurphySystem:
                     )
                 response += "\n**What to do next:**\n"
                 response += "1. Sign up for the API keys listed above (links provided)\n"
-                response += "2. Set each as an environment variable (e.g. `export GROQ_API_KEY=gsk_...`)\n"
+                response += "2. Set each as an environment variable (e.g. `export DEEPINFRA_API_KEY=gsk_...`)\n"
                 response += "3. Restart Murphy to pick up the new keys\n"
                 response += "4. Type **status** to verify everything is connected\n"
                 response += "5. Type **execute <your first task>** to start automating!\n\n"

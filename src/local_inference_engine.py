@@ -287,12 +287,12 @@ class LocalInferenceEngine:
         model_map = {
             "aristotle": "aristotle-deterministic",
             "wulfrum": "wulfrum-fuzzy",
-            "groq": "groq-llama3-70b",
+            "deepinfra": "deepinfra-llama3-70b",
         }
         processing_map = {
             "aristotle": "deterministic",
             "wulfrum": "fuzzy_match",
-            "groq": "generative",
+            "deepinfra": "generative",
         }
         meta: Dict[str, Any] = {
             "model": model_map.get(provider, provider),

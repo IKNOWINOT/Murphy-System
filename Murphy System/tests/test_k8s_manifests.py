@@ -146,7 +146,7 @@ class TestSecretManifest(unittest.TestCase):
     REQUIRED_KEYS = [
         "DATABASE_URL",
         "REDIS_URL",
-        "GROQ_API_KEY",
+        "DEEPINFRA_API_KEY",
         "MURPHY_JWT_SECRET",
         "ENCRYPTION_KEY",
         "GITHUB_TOKEN",
