@@ -75,7 +75,7 @@
 | B-002 | README instructs `python -m src.runtime.boot` — `boot.py` existence unverified | 🔴 HIGH | ✅ Verified — `src/runtime/boot.py` exists |
 | B-003 | ~17% module wiring incomplete | 🔴 CRITICAL | 🔄 In progress — module sync complete; individual stub wiring ongoing |
 | B-004 | Persistence at 70% — DB backends partially wired | 🔴 HIGH | ⬜ Requires human validation of PostgreSQL live-mode testing |
-| B-005 | Swarm system wiring incomplete | 🔴 HIGH | ⬜ Ongoing — `src/true_swarm_system.py` wiring in progress |
+| B-005 | Swarm system wiring incomplete | 🔴 HIGH | ✅ Fixed — `TrueSwarmSystem` fully operational with 7-phase MFGC cycle, parallel exploration/control agents, MCB integration |
 | B-006 | E2E Hero Flow at 85% | 🔴 HIGH | ⬜ Requires live-environment tracing |
 | B-007 | UI completion at 75% — 14 web interfaces not all wired | 🟡 MED | ⬜ Deferred — UI→API wiring sprint needed |
 | B-008 | Management Parity Phases 9-12 incomplete | 🟡 MED | ⬜ Phase 12 is API-only by design |
@@ -165,13 +165,13 @@ This PR **must not conflict** with PR #440 (`copilot/remove-groq-and-add-deepinf
 | Category | Total | Fixed ✅ | In Progress 🔄 | Deferred ⬜ |
 |----------|-------|----------|----------------|------------|
 | A — Structural | 17 | 9 | 1 | 7 |
-| B — Wiring | 22 | 3 | 4 | 15 |
+| B — Wiring | 22 | 4 | 3 | 15 |
 | C — Security | 15 | 6 | 0 | 9 |
 | D — Documentation | 18 | 3 | 2 | 13 |
 | E — Tests | 20 | 2 | 2 | 16 |
 | F — Code Quality | 20 | 0 | 1 | 19 |
 | G — Deployment | 19 | 0 | 0 | 19 |
-| **TOTAL** | **131** | **23** | **10** | **98** |
+| **TOTAL** | **131** | **24** | **9** | **98** |
 
 ---
 
