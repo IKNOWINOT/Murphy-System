@@ -106,8 +106,8 @@ class TestLLMSubsystemIntegration:
 
         # DeepInfra provider should have matching models
         assert hasattr(LLMModel, "DEEPINFRA_MIXTRAL")
-        assert hasattr(LLMModel, "DEEPINFRA_LLAMA")
-        assert hasattr(LLMModel, "DEEPINFRA_GEMMA")
+        assert hasattr(LLMModel, "DEEPINFRA_META_LLAMA")
+        assert hasattr(LLMModel, "TOGETHER_META_LLAMA")
         assert hasattr(ProviderType, "DEEPINFRA")
 
     def test_controller_instantiation(self) -> None:

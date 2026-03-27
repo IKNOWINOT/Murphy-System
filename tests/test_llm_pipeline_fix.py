@@ -243,18 +243,15 @@ class TestLLMControllerRefreshAvailability:
         try:
             controller = LLMController()
             assert not controller.models[LLMModel.DEEPINFRA_MIXTRAL].available
-            assert not controller.models[LLMModel.DEEPINFRA_LLAMA].available
-            assert not controller.models[LLMModel.DEEPINFRA_GEMMA].available
+            assert not controller.models[LLMModel.DEEPINFRA_META_LLAMA].available
 
             os.environ["DEEPINFRA_API_KEY"] = "di_test_key_for_testing_only"
             controller.refresh_availability()
 
             assert controller.models[LLMModel.DEEPINFRA_MIXTRAL].available, \
                 "DEEPINFRA_MIXTRAL should be available after refresh_availability()"
-            assert controller.models[LLMModel.DEEPINFRA_LLAMA].available, \
-                "DEEPINFRA_LLAMA should be available after refresh_availability()"
-            assert controller.models[LLMModel.DEEPINFRA_GEMMA].available, \
-                "DEEPINFRA_GEMMA should be available after refresh_availability()"
+            assert controller.models[LLMModel.DEEPINFRA_META_LLAMA].available, \
+                "DEEPINFRA_META_LLAMA should be available after refresh_availability()"
         finally:
             if original is not None:
                 os.environ["DEEPINFRA_API_KEY"] = original
@@ -307,9 +304,9 @@ class TestLLMControllerRefreshAvailability:
             controller = LLMController()
             assert not controller.models[LLMModel.DEEPINFRA_MIXTRAL].available
 
-            controller.reconfigure("gsk_new_test_key")
+            controller.reconfigure("deepinfra", "di_new_test_key")
 
-            assert os.environ.get("DEEPINFRA_API_KEY") == "gsk_new_test_key", \
+            assert os.environ.get("DEEPINFRA_API_KEY") == "di_new_test_key", \
                 "reconfigure() should set DEEPINFRA_API_KEY in os.environ"
             assert controller.models[LLMModel.DEEPINFRA_MIXTRAL].available, \
                 "reconfigure() should enable DeepInfra models"

@@ -314,7 +314,7 @@ Provide a JSON response with these fields:
             name="Coordinator",
             role="coordinate_swarm",
             capabilities=["coordination", "planning"],
-            model=LLMModel.DEEPINFRA_LLAMA,
+            model=LLMModel.DEEPINFRA_META_LLAMA,
             confidence_threshold=0.85,
             safety_gates=["task_validation", "output_verification"]
         )
@@ -328,7 +328,7 @@ Provide a JSON response with these fields:
                 name="Reasoning Specialist",
                 role="complex_reasoning",
                 capabilities=["reasoning", "analysis"],
-                model=LLMModel.DEEPINFRA_LLAMA,
+                model=LLMModel.DEEPINFRA_META_LLAMA,
                 confidence_threshold=0.90,
                 safety_gates=["logical_consistency"]
             )
@@ -354,7 +354,7 @@ Provide a JSON response with these fields:
                 name="Context Processor",
                 role="context_analysis",
                 capabilities=["context_processing", "summarization"],
-                model=LLMModel.DEEPINFRA_GEMMA,
+                model=LLMModel.DEEPINFRA_MIXTRAL,
                 confidence_threshold=0.80,
                 safety_gates=["information_loss"]
             )
