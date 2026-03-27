@@ -438,24 +438,21 @@ class LLMIntegrationLayer:
             }
         )
 
-    def _call_groq(self, request: LLMRequest) -> LLMResponse:
-        """Call Groq API for generative processing.
+    def _call_deepinfra(self, request: LLMRequest) -> LLMResponse:
+        """Call DeepInfra API for generative processing (primary LLM provider).
 
-        Attempts a real HTTP call to the Groq chat completions endpoint,
-        rotating through configured API keys.  Falls back to the local
-        generative engine when no key succeeds.
+        Attempts a real HTTP call to the DeepInfra chat completions endpoint.
+        Falls back to Together AI then the local generative engine when no key
+        succeeds.
         """
-        api_key = None
-        if self.groq_api_keys:
-            api_key = self.groq_api_keys[self.current_groq_key_index % len(self.groq_api_keys)]
-            self.current_groq_key_index = (self.current_groq_key_index + 1) % len(self.groq_api_keys)
+        api_key = os.environ.get("DEEPINFRA_API_KEY", "")
 
         if api_key:
             try:
                 resp = requests.post(
-                    "https://api.groq.com/openai/v1/chat/completions",
+                    "https://api.deepinfra.com/v1/openai/chat/completions",
                     json={
-                        "model": "llama3-70b-8192",
+                        "model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
                         "messages": [{"role": "user", "content": request.prompt}],
                         "temperature": 0.7,
                         "max_tokens": 1024,
@@ -473,11 +470,11 @@ class LLMIntegrationLayer:
                 if content:
                     return LLMResponse(
                         request_id=request.request_id,
-                        provider=LLMProvider.GROQ,
+                        provider=LLMProvider.DEEPINFRA,
                         response=content,
                         confidence=0.85,
                         metadata={
-                            "model": data.get("model", "groq-llama3-70b"),
+                            "model": data.get("model", "meta-llama/Meta-Llama-3.1-70B-Instruct"),
                             "domain": request.domain.value,
                             "processing_type": "generative",
                             "source": "api",
@@ -486,7 +483,7 @@ class LLMIntegrationLayer:
                     )
             except Exception as exc:
                 logger.debug("Suppressed exception: %s", exc)
-                pass  # fall through to local engine
+                pass  # fall through to together / local engine
 
         response_text = self._local_groq_response(request)
         # Before returning a canned template, try Ollama for a real response.
