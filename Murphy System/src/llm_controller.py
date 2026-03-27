@@ -397,27 +397,31 @@ class LLMController:
     async def _query_deepinfra_meta_llama(self, request: LLMRequest) -> LLMResponse:
         """Query DeepInfra Meta-Llama-3.1-70B model"""
         try:
-            client = DeepInfraClient(api_key=os.environ.get("DEEPINFRA_API_KEY"))
+            import aiohttp
+            api_key = os.environ.get("DEEPINFRA_API_KEY")
+            if not api_key:
+                return await self._query_fallback(request)
 
             messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
-
             if request.context:
-                messages.append({
-                    "role": "system",
-                    "content": f"Context: {request.context}"
-                })
-
+                messages.append({"role": "system", "content": f"Context: {request.context}"})
             messages.append({"role": "user", "content": request.prompt})
 
-            response = client.chat.completions.create(
-                model="meta-llama/Meta-Llama-3.1-70B-Instruct",
-                messages=messages,
-                temperature=request.temperature,
-                max_tokens=request.max_tokens
-            )
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "https://api.deepinfra.com/v1/openai/chat/completions",
+                    json={"model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
+                          "messages": messages,
+                          "temperature": request.temperature, "max_tokens": request.max_tokens},
+                    headers={"Authorization": f"Bearer {api_key}",
+                             "Content-Type": "application/json"},
+                    timeout=aiohttp.ClientTimeout(total=60),
+                ) as resp:
+                    resp.raise_for_status()
+                    data = await resp.json()
 
-            content = response.choices[0].message.content
-            tokens_used = response.usage.total_tokens
+            content = data["choices"][0]["message"]["content"]
+            tokens_used = data.get("usage", {}).get("total_tokens", len(content.split()))
             cost = (tokens_used / 1000) * self.models[LLMModel.DEEPINFRA_META_LLAMA].cost_per_1k_tokens
 
             return LLMResponse(
@@ -437,27 +441,31 @@ class LLMController:
     async def _query_deepinfra_mixtral(self, request: LLMRequest) -> LLMResponse:
         """Query DeepInfra Mixtral model"""
         try:
-            client = DeepInfraClient(api_key=os.environ.get("DEEPINFRA_API_KEY"))
+            import aiohttp
+            api_key = os.environ.get("DEEPINFRA_API_KEY")
+            if not api_key:
+                return await self._query_fallback(request)
 
             messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
-
             if request.context:
-                messages.append({
-                    "role": "system",
-                    "content": f"Context: {request.context}"
-                })
-
+                messages.append({"role": "system", "content": f"Context: {request.context}"})
             messages.append({"role": "user", "content": request.prompt})
 
-            response = client.chat.completions.create(
-                model="mistralai/Mixtral-8x22B-Instruct-v0.1",
-                messages=messages,
-                temperature=request.temperature,
-                max_tokens=request.max_tokens
-            )
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "https://api.deepinfra.com/v1/openai/chat/completions",
+                    json={"model": "mistralai/Mixtral-8x22B-Instruct-v0.1",
+                          "messages": messages,
+                          "temperature": request.temperature, "max_tokens": request.max_tokens},
+                    headers={"Authorization": f"Bearer {api_key}",
+                             "Content-Type": "application/json"},
+                    timeout=aiohttp.ClientTimeout(total=60),
+                ) as resp:
+                    resp.raise_for_status()
+                    data = await resp.json()
 
-            content = response.choices[0].message.content
-            tokens_used = response.usage.total_tokens
+            content = data["choices"][0]["message"]["content"]
+            tokens_used = data.get("usage", {}).get("total_tokens", len(content.split()))
             cost = (tokens_used / 1000) * self.models[LLMModel.DEEPINFRA_MIXTRAL].cost_per_1k_tokens
 
             return LLMResponse(
