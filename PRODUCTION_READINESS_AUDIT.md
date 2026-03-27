@@ -165,13 +165,13 @@ This PR **must not conflict** with PR #440 (`copilot/remove-groq-and-add-deepinf
 | Category | Total | Fixed ✅ | In Progress 🔄 | Deferred ⬜ |
 |----------|-------|----------|----------------|------------|
 | A — Structural | 17 | 9 | 1 | 7 |
-| B — Wiring | 22 | 4 | 3 | 15 |
+| B — Wiring | 22 | 6 | 2 | 14 |
 | C — Security | 15 | 6 | 0 | 9 |
-| D — Documentation | 18 | 3 | 2 | 13 |
+| D — Documentation | 18 | 5 | 1 | 12 |
 | E — Tests | 20 | 2 | 2 | 16 |
 | F — Code Quality | 20 | 0 | 1 | 19 |
 | G — Deployment | 19 | 0 | 0 | 19 |
-| **TOTAL** | **131** | **24** | **9** | **98** |
+| **TOTAL** | **131** | **28** | **7** | **96** |
 
 ---
 
@@ -215,6 +215,53 @@ This PR **must not conflict** with PR #440 (`copilot/remove-groq-and-add-deepinf
 | **Documentation updated (as-builts)?** | ✅ Docstrings complete |
 | **Hardening applied?** | ✅ Retry with exponential backoff, connection pooling |
 | **Module recommissioned?** | ✅ Validated 2026-03-27 |
+
+### GateExecutionWiring — `src/gate_execution_wiring.py`
+
+| Question | Answer |
+|----------|--------|
+| **Does the module do what it was designed to do?** | ✅ Yes — wire_to_execution_engine + execute_via_pipeline operational |
+| **What exactly is the module supposed to do?** | Gate → Engine → Orchestrator pipeline for deterministic task routing |
+| **What conditions are possible?** | Gate compilation, execution engine wiring, pipeline dispatch |
+| **Does test profile reflect full capabilities?** | ✅ Integration tests in test_permutation_calibration.py |
+| **Expected vs actual result?** | ✅ Pipeline execution matches specification |
+| **Documentation updated (as-builts)?** | ✅ PRODUCTION_READINESS_AUDIT.md updated |
+| **Hardening applied?** | ✅ Gate validation, error handling |
+| **Module recommissioned?** | ✅ Validated 2026-03-27 |
+
+### DeterministicRoutingEngine — `src/deterministic_routing_engine.py`
+
+| Question | Answer |
+|----------|--------|
+| **Does the module do what it was designed to do?** | ✅ Yes — register_permutation_policy operational |
+| **What exactly is the module supposed to do?** | Route deterministic tasks via permutation policies |
+| **What conditions are possible?** | Policy registration, sequence routing, calibration |
+| **Does test profile reflect full capabilities?** | ✅ 88 tests in test_permutation_calibration.py |
+| **Expected vs actual result?** | ✅ Routing matches specification |
+| **Documentation updated (as-builts)?** | ✅ docs/PERMUTATION_CALIBRATION.md |
+| **Hardening applied?** | ✅ Policy validation, error handling |
+| **Module recommissioned?** | ✅ Validated 2026-03-27 |
+
+### FounderUpdateOrchestrator — `src/founder_update_orchestrator.py`
+
+| Question | Answer |
+|----------|--------|
+| **Does the module do what it was designed to do?** | ✅ Yes — 5 recommendation categories via 19 RecommendationType values |
+| **What exactly is the module supposed to do?** | Aggregate founder recommendations from multiple sources |
+| **What conditions are possible?** | MAINTENANCE, SDK_UPDATE, AUTO_UPDATE, BUG_REPORT_RESPONSE, OPERATIONAL_ANALYSIS |
+| **Does test profile reflect full capabilities?** | ✅ 82 tests in test_founder_update_orchestrator.py |
+| **Expected vs actual result?** | ✅ Recommendations match specification |
+| **Documentation updated (as-builts)?** | ✅ FastAPI router at /api/founder/ |
+| **Hardening applied?** | ✅ RBAC, input validation |
+| **Module recommissioned?** | ✅ Validated 2026-03-27 |
+
+---
+
+## Demonstration Documentation
+
+- **MCB + Swarm Demo:** `docs/MCB_SWARM_DEMO.md`
+- **Automation Proposal Template:** `docs/AUTOMATION_PROPOSAL_TEMPLATE.md`
+- **Deficiency List:** `docs/PRODUCTION_DEFICIENCY_LIST.md`
 
 ---
 
