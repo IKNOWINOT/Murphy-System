@@ -1180,7 +1180,7 @@ class MurphyTerminalApp(App):
             )
             return
 
-        # Check if it looks like a bare key (starts with gsk_)
+        # Check if it looks like a bare key (starts with di_)
         bare = strip_key_wrapping(stripped)
         if bare.startswith("di_") or len(bare) >= 20:
             self._awaiting_api_key = False
