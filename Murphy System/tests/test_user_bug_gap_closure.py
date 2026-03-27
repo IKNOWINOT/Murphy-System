@@ -62,7 +62,7 @@ from textual import events
 
 class TestUserBug1_PasteWorkflow:
     """
-    Scenario: A user on Windows copies a Groq API key to the clipboard and
+    Scenario: A user on Windows copies a DeepInfra API key to the clipboard and
     presses Ctrl+V in the Murphy terminal.  Previously the Textual Input
     widget intercepted the keystroke and nothing happened.  The fix adds a
     key_ctrl_v handler at the App level and prioritises win32clipboard.
@@ -189,7 +189,7 @@ class TestUserBug2_APIEndpointContract:
     """
     Scenario: A user sets an API key in the terminal which triggers calls to
     /api/llm/configure and /api/llm/test.  Previously these endpoints didn't
-    exist or didn't reinitialize the Groq client.
+    exist or didn't reinitialize the DeepInfra client.
 
     These tests verify the full API contract from the user's perspective:
     the MurphyAPIClient methods call the correct endpoints with the correct
@@ -396,7 +396,7 @@ class TestUserBug3_EnvLoadingPath:
 
 class TestUserBug4_StatusBarAccuracy:
     """
-    Scenario: A user sets a Groq API key but it's expired or invalid.
+    Scenario: A user sets a DeepInfra API key but it's expired or invalid.
     Previously the status bar showed "LLM: On" because the env var existed.
     Now it calls /api/llm/test to verify actual authentication.
 
@@ -615,7 +615,7 @@ class TestUserBug5_ApplyApiKeyLogic:
 class TestUserBug6_NoHardcodedKeys:
     """
     Scenario: A security auditor (user) scans the archive directory for
-    hardcoded API keys.  Previously, multiple files contained real Groq
+    hardcoded API keys.  Previously, multiple files contained real DeepInfra
     keys (gsk_*) and Aristotle keys (arstl_*).  The fix replaced them
     with REDACTED placeholders.
 
@@ -630,7 +630,7 @@ class TestUserBug6_NoHardcodedKeys:
         return archive_dir
 
     def test_user_audit_no_deepinfra_keys_in_archive(self):
-        """No real Groq API keys (gsk_ + 20+ chars) in any archive file."""
+        """No real DeepInfra API keys (gsk_ + 20+ chars) in any archive file."""
         archive_dir = self._get_archive_dir()
         pattern = re.compile(r"gsk_[A-Za-z0-9]{20,}")
         hits = []
@@ -645,7 +645,7 @@ class TestUserBug6_NoHardcodedKeys:
                 except (OSError, UnicodeDecodeError):
                     pass
         assert hits == [], (
-            f"Security audit FAILED: found {len(hits)} hardcoded Groq keys in archive.\n"
+            f"Security audit FAILED: found {len(hits)} hardcoded DeepInfra keys in archive.\n"
             + "\n".join(hits[:10])
         )
 
@@ -700,7 +700,7 @@ class TestUserBug6_NoHardcodedKeys:
             content = f.read()
         pattern = re.compile(r"gsk_[A-Za-z0-9]{20,}")
         assert not pattern.search(content), (
-            ".env.example contains what looks like a real Groq API key."
+            ".env.example contains what looks like a real DeepInfra API key."
         )
 
 

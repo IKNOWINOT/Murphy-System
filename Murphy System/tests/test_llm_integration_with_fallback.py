@@ -68,7 +68,7 @@ class TestLLMIntegrationWithFallback:
         print(f"   Response length: {len(response.response)} chars")
 
     def test_deepinfra_request_with_local_fallback(self, integration_layer_with_fallback):
-        """Test Groq request using local fallback"""
+        """Test DeepInfra request using local fallback"""
         response = integration_layer_with_fallback.route_request(
             prompt="Write a short poem about AI",
             domain=DomainType.CREATIVE,
@@ -78,7 +78,7 @@ class TestLLMIntegrationWithFallback:
         assert response.response is not None
         assert response.provider == LLMProvider.DEEPINFRA
         assert 0.0 <= response.confidence <= 1.0
-        print(f"✅ Groq request successful")
+        print(f"✅ DeepInfra request successful")
         print(f"   Confidence: {response.confidence}")
         print(f"   Response length: {len(response.response)} chars")
         print(f"   Response preview: {response.response[:200]}...")

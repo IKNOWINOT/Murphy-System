@@ -270,7 +270,7 @@ MURPHY_COMMANDS: list[CommandDefinition] = [
     CommandDefinition("llm_integration_layer", "/llm route", "!murphy llm route",
         ["llm routing", "route llm", "llm provider routing"],
         CommandCategory.LLM, "LLM integration layer routing", "/llm route [status|test PROMPT]"),
-    CommandDefinition("groq_key_rotator", "/groq rotate", "!murphy groq rotate",
+    CommandDefinition("groq_key_rotator", "/deepinfra rotate", "!murphy deepinfra rotate",
         ["deepinfra rotate", "rotate deepinfra key", "key rotation"],
         CommandCategory.LLM, "Rotate DeepInfra API key", "/deepinfra rotate [--force]",
         min_role="admin"),

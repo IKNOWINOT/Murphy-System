@@ -52,8 +52,8 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _REQUIRED_ENV_VARS: List[Tuple[str, str]] = [
-    ("DEEPINFRA_API_KEY",              "set key deepinfra gsk_..."),
-    ("OPENAI_API_KEY",            "set key openai sk_...  (optional — Groq is free)"),
+    ("DEEPINFRA_API_KEY",              "set key deepinfra di_..."),
+    ("OPENAI_API_KEY",            "set key openai sk_...  (optional — DeepInfra is free)"),
     ("ANTHROPIC_API_KEY",         "set key anthropic sk_... (optional)"),
 ]
 
@@ -123,7 +123,7 @@ class ReadinessScanner:
             _block(
                 "llm_api_key",
                 "No LLM API key found (DEEPINFRA_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY).",
-                "set key deepinfra gsk_...  ← Groq is free: https://deepinfra.com/keys",
+                "set key deepinfra di_...  ← DeepInfra is free: https://deepinfra.com/keys",
             )
         else:
             _pass("llm_api_key_present")
@@ -247,13 +247,13 @@ class ReadinessScanner:
                     f"Could not reach {base_url}/api/health — is the server running?",
                 )
 
-        # ── 10. Groq key recommendation ──────────────────────────────────
+        # ── 10. DeepInfra key recommendation ──────────────────────────────────
         api_strategy = {
             "recommendation": "Best bang-for-buck API key strategy",
             "providers": [
                 {
                     "rank": 1,
-                    "name": "Groq (FREE)",
+                    "name": "DeepInfra (FREE)",
                     "url": "https://deepinfra.com/keys",
                     "models": "Llama 3, Mixtral",
                     "note": (

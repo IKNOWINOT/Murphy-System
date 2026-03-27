@@ -277,7 +277,7 @@ _DOMAINS_A: List[SubsystemDomain] = [
                "AnalysisBot", "Safety wrapper around LLM calls.",
                deps=["llm_controller"]),
             _e("groq_key_rotator", "murphy-security-audit", "murphy-security",
-               "KeyManagerBot", "Rotates Groq API keys.",
+               "KeyManagerBot", "Rotates DeepInfra API keys.",
                deps=["secure_key_manager"], cmds=["keys"]),
             _e("local_llm_fallback", "murphy-llm-requests", "murphy-ai",
                "AnalysisBot", "Local LLM fallback when cloud is unavailable.",

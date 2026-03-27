@@ -174,7 +174,7 @@ class SystemLibrarian:
             {
                 "category": "llm_integration",
                 "topic": "LLM Integration Layer",
-                "description": "Coordinates Aristotle (deterministic), Wulfrum (fuzzy), and Groq (generative) APIs with domain routing",
+                "description": "Coordinates Aristotle (deterministic), Wulfrum (fuzzy), and DeepInfra (generative) APIs with domain routing",
                 "related_modules": ["llm_integration_layer"],
                 "related_functions": ["route_request", "validate_response"],
                 "references": ["domain_routing", "validation_triggers"]
@@ -459,7 +459,7 @@ class SystemLibrarian:
             "llm_integration_layer": [
                 "Route to Aristotle for deterministic validation",
                 "Route to Wulfrum for fuzzy matching",
-                "Route to Groq for generative tasks",
+                "Route to DeepInfra for generative tasks",
                 "Handle human-in-the-loop triggers"
             ],
             "system_integrator": [

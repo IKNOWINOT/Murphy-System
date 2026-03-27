@@ -89,7 +89,7 @@ class TestModuleImportIntegrity:
         from openai_compatible_provider import ProviderType
         from llm_integration_layer import LLMProvider
 
-        # Both should support Groq
+        # Both should support DeepInfra
         assert hasattr(ProviderType, "DEEPINFRA")
         assert hasattr(LLMProvider, "DEEPINFRA")
 

@@ -1,6 +1,6 @@
 """
 Murphy LLM Controller - Master Backend Terminal
-Controls Groq API and onboard smaller LLMs
+Controls DeepInfra API and onboard smaller LLMs
 Powers the neon terminal UI for system/module setup guidance
 
 Based on Recursive Language Models (RLM) pattern from 2512.24601v1.pdf
@@ -94,7 +94,7 @@ class LLMController:
 
     Features:
     - Automatic model selection based on confidence and capabilities
-    - Groq API integration for fast inference
+    - DeepInfra API integration for fast inference
     - Local model fallback for cost efficiency
     - Context chunking for long inputs
     - Recursive query support
@@ -416,7 +416,7 @@ class LLMController:
             messages.append({"role": "user", "content": request.prompt})
 
             response = client.chat.completions.create(
-                model="mixtral-8x7b-32768",
+                model="mistralai/Mixtral-8x22B-Instruct-v0.1",
                 messages=messages,
                 temperature=request.temperature,
                 max_tokens=request.max_tokens
@@ -433,7 +433,7 @@ class LLMController:
                 tokens_used=tokens_used,
                 cost=cost,
                 latency=0.0,  # Will be set by caller
-                metadata={"provider": "deepinfra", "model": "mixtral-8x7b-32768"}
+                metadata={"provider": "deepinfra", "model": "mistralai/Mixtral-8x22B-Instruct-v0.1"}
             )
 
         except Exception as exc:
@@ -441,7 +441,7 @@ class LLMController:
             return await self._query_fallback(request)
 
     async def _query_deepinfra_llama(self, request: LLMRequest) -> LLMResponse:
-        """Query Groq Llama model"""
+        """Query DeepInfra Llama model"""
         try:
             # DeepInfra HTTP client used instead
 
@@ -479,11 +479,11 @@ class LLMController:
             )
 
         except Exception as exc:
-            logger.info(f"Error querying Groq Llama: {exc}")
+            logger.info(f"Error querying DeepInfra Llama: {exc}")
             return await self._query_fallback(request)
 
     async def _query_deepinfra_gemma(self, request: LLMRequest) -> LLMResponse:
-        """Query Groq Gemma model"""
+        """Query DeepInfra Gemma model"""
         try:
             # DeepInfra HTTP client used instead
 
@@ -521,7 +521,7 @@ class LLMController:
             )
 
         except Exception as exc:
-            logger.error("Error querying Groq Gemma: %s", exc)
+            logger.error("Error querying DeepInfra Gemma: %s", exc)
             return await self._query_fallback(request)
 
     async def _query_local_small(self, request: LLMRequest) -> LLMResponse:
@@ -622,7 +622,7 @@ class LLMController:
             logger.debug("LocalLLMFallback unavailable (%s), using minimal response", exc)
             content = (
                 f"[Onboard] I can help with: {request.prompt[:120]}. "
-                "Add a Groq API key via 'set key deepinfra <key>' for enhanced responses."
+                "Add a DeepInfra API key via 'set key deepinfra <key>' for enhanced responses."
             )
         return LLMResponse(
             content=content,
@@ -728,7 +728,7 @@ class LLMController:
         """Re-check environment variables and update model availability.
 
         Call this after a key is added or changed at runtime (e.g. via
-        ``/api/llm/configure``) so Groq models are marked available without
+        ``/api/llm/configure``) so DeepInfra models are marked available without
         requiring an application restart.
         """
         deepinfra_available = os.environ.get("DEEPINFRA_API_KEY") is not None
@@ -737,14 +737,14 @@ class LLMController:
                 info.available = deepinfra_available
 
     def reconfigure(self, api_key: str) -> None:
-        """Update the Groq API key in the environment and refresh availability.
+        """Update the DeepInfra API key in the environment and refresh availability.
 
         This is the single call that hot-reloads a new key without restarting
         the application.  It updates ``os.environ`` directly so that every
         subsequent ``_query_deepinfra_*`` call picks up the new value.
 
         Args:
-            api_key: The new Groq API key (must start with ``gsk_``).
+            api_key: The new DeepInfra API key (must start with ``gsk_``).
         """
         os.environ["DEEPINFRA_API_KEY"] = api_key
         self.refresh_availability()

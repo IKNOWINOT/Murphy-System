@@ -1081,7 +1081,7 @@ class MurphyTerminalApp(App):
         return value.strip().lower() not in _PLACEHOLDER_KEY_VALUES
 
     def _check_api_key_on_startup(self) -> None:
-        """First-run gate: prompt for Groq API key if not configured."""
+        """First-run gate: prompt for DeepInfra API key if not configured."""
         # Check environment first, then .env file
         env_path = get_env_path()
         env_vars = read_env(env_path)
@@ -1094,8 +1094,8 @@ class MurphyTerminalApp(App):
 
         self._awaiting_api_key = True
         self._write_murphy(
-            "[bold yellow]⚠ No Groq API key detected[/bold yellow]\n\n"
-            "Murphy needs at least a Groq API key for full AI features.\n\n"
+            "[bold yellow]⚠ No DeepInfra API key detected[/bold yellow]\n\n"
+            "Murphy needs at least a DeepInfra API key for full AI features.\n\n"
             "[bold cyan]Get your free key:[/bold cyan]\n"
             "  → [link=https://deepinfra.com]https://deepinfra.com[/link]\n\n"
             "Then paste it here, or type:\n"
@@ -1859,7 +1859,7 @@ class MurphyTerminalApp(App):
                     f"([cyan]{secs_rem:.0f}s[/cyan] remaining)\n"
                     f"   Test keys    : [cyan]{keys}[/cyan] key(s) loaded\n\n"
                     "[dim]💡 Best free key provider:[/dim]\n"
-                    "   [bold]Groq[/bold] — Free tier, generous limits, fast inference\n"
+                    "   [bold]DeepInfra[/bold] — Free tier, generous limits, fast inference\n"
                     "   Signup: [link=https://deepinfra.com]https://deepinfra.com[/link]\n"
                     "   Then: [green]set key deepinfra di_your_key[/green]\n\n"
                     "[dim]Session ends automatically when call or time limit is reached.\n"
@@ -1958,7 +1958,7 @@ class MurphyTerminalApp(App):
             )
         lines.append(
             "\n[bold cyan]Quick Start (LLM):[/bold cyan]\n"
-            "  1. Get a free Groq key: [link=https://deepinfra.com]https://deepinfra.com[/link]\n"
+            "  1. Get a free DeepInfra key: [link=https://deepinfra.com]https://deepinfra.com[/link]\n"
             "  2. Set it right here in the terminal:\n"
             "     [green]set key deepinfra di_your_key_here[/green]\n"
             "  That's it! No restart needed.\n\n"

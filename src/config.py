@@ -78,7 +78,7 @@ class Settings(BaseSettings):
 
     use_key_rotation: bool = Field(
         default=True,
-        description="Enable Groq API key rotation"
+        description="Enable DeepInfra API key rotation"
     )
 
     # ============================================================================

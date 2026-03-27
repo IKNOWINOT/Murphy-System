@@ -305,7 +305,7 @@ MURPHY_CAPABILITIES: Dict[str, MurphyCapability] = {
         maturity_score=10,
         relevant_vertical_ids=("technology", "professional_services"),
         differentiators=(
-            "12 providers: Groq, OpenAI, Anthropic, local models, and more",
+            "12 providers: DeepInfra, OpenAI, Anthropic, local models, and more",
             "Confidence-weighted routing — unique optimization strategy",
             "Automatic failover with zero downtime",
         ),

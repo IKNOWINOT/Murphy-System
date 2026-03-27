@@ -113,7 +113,7 @@ def mock_deepinfra_server():
             "choices": [
                 {
                     "index": 0,
-                    "message": {"role": "assistant", "content": "Mock Groq response"},
+                    "message": {"role": "assistant", "content": "Mock DeepInfra response"},
                     "finish_reason": "stop",
                 }
             ],

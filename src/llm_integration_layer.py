@@ -1,6 +1,6 @@
 """
 LLM Integration Layer
-Coordinates Aristotle API (deterministic), Wulfrum (fuzzy match/math validation), and Groq API (generative)
+Coordinates Aristotle API (deterministic), Wulfrum (fuzzy match/math validation), and DeepInfra API (generative)
 Provides domain-specific routing and human-in-the-loop validation triggers
 """
 
@@ -791,7 +791,7 @@ if __name__ == "__main__":
     logger.info(f"Provider: {response.provider.value}")
     logger.info(f"Response: {response.response}")
 
-    # Test 3: Creative domain (Groq)
+    # Test 3: Creative domain (DeepInfra)
     logger.info("\n=== Test 3: Creative Domain ===")
     response = llm_layer.route_request(
         prompt="Suggest innovative features for a mobile app",
@@ -801,7 +801,7 @@ if __name__ == "__main__":
     logger.info(f"Provider: {response.provider.value}")
     logger.info(f"Response: {response.response}")
 
-    # Test 4: Architectural domain (Groq + Wulfrum)
+    # Test 4: Architectural domain (DeepInfra + Wulfrum)
     logger.info("\n=== Test 4: Architectural Domain ===")
     response = llm_layer.route_request(
         prompt="Design system architecture for a scalable web application",

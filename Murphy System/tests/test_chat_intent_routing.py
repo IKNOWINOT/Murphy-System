@@ -354,7 +354,7 @@ class TestLLMStatus(unittest.TestCase):
 
     def test_llm_status_deepinfra_takes_priority_over_openai_in_auto_detect(self):
         """When both DEEPINFRA_API_KEY and OPENAI_API_KEY are set but MURPHY_LLM_PROVIDER
-        is absent, Groq should be auto-selected (it's the recommended free-tier option)."""
+        is absent, DeepInfra should be auto-selected (it's the recommended free-tier option)."""
         old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
         old_deepinfra = os.environ.get("DEEPINFRA_API_KEY")
         old_openai = os.environ.get("OPENAI_API_KEY")
@@ -365,7 +365,7 @@ class TestLLMStatus(unittest.TestCase):
             self.assertEqual(
                 status["provider"],
                 "deepinfra",
-                "Groq should take auto-detect priority over OpenAI",
+                "DeepInfra should take auto-detect priority over OpenAI",
             )
         finally:
             if old_provider is not None:

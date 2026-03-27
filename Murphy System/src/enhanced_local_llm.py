@@ -128,7 +128,7 @@ class EnhancedLocalLLM:
 
     def _deepinfra_response(self, prompt: str, temperature: float) -> Dict[str, Any]:
         """
-        Groq-style: General domain tasks and generation
+        DeepInfra-style: General domain tasks and generation
         Uses high temperature (0.7) for creative output
         """
         # Check for creative requests
