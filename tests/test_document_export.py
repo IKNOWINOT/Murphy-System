@@ -138,7 +138,7 @@ class TestBrandRegistry:
         brand = registry.get("default")
         assert brand is not None
         assert brand.brand_id == "default"
-        assert brand.company_name == "Murphy System"
+        assert brand.company_name == "murphy_system"
 
     def test_register_and_retrieve(self):
         registry = BrandRegistry()

@@ -234,12 +234,12 @@ class TestChapter5_6_Actuals:
                effect="All proposals reference Inoni LLC as the vendor",
                lesson="Default config anchors the 'sell itself' narrative")
         record("Chapter 5", "Default product",
-               expected="Murphy System", actual=actual_product,
+               expected="murphy_system", actual=actual_product,
                cause="SalesAutomationConfig defaults",
                effect="All proposals reference Murphy System as the product",
                lesson="Product name must be consistent across demo scripts and proposals")
         assert actual_company == "Inoni LLC"
-        assert actual_product == "Murphy System"
+        assert actual_product == "murphy_system"
 
     def test_lead_scoring_formula(self):
         """Storyline: 'enterprise=50, technology=+20, 2 interests=+10 → 80'"""
@@ -330,7 +330,7 @@ class TestChapter5_6_Actuals:
         script = engine.generate_demo_script(lead)
         has_name = "Diana" in script["greeting"]
         has_company = "MfgCorp" in script["greeting"]
-        has_product = "Murphy System" in script["greeting"]
+        has_product = "murphy_system" in script["greeting"]
         has_industry = "manufacturing" in script["greeting"]
         all_ok = has_name and has_company and has_product and has_industry
         record("Chapter 6", "Demo script personalization",
@@ -352,7 +352,7 @@ class TestChapter5_6_Actuals:
         )
         prop = engine.generate_proposal(lead)
         has_company = "FinServ" in prop["executive_summary"]
-        has_product = "Murphy System" in prop["executive_summary"]
+        has_product = "murphy_system" in prop["executive_summary"]
         correct_edition = prop["recommended_edition"] == "enterprise"
         has_timeline = prop["timeline"] == "4-8 weeks"
         has_plan = len(prop["implementation_plan"]) == 4

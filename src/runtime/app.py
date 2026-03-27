@@ -667,7 +667,7 @@ def create_app() -> FastAPI:
 
     # Load .env before initialising MurphySystem so env vars like
     # MURPHY_LLM_PROVIDER and GROQ_API_KEY are available from the start.
-    # Resolve to the project root (Murphy System/) — three levels up from
+    # Resolve to the project root (murphy_system/) — three levels up from
     # src/runtime/app.py — so it works regardless of CWD.
     if _load_dotenv is not None:
         _env_path = Path(__file__).resolve().parent.parent.parent / ".env"
@@ -2508,7 +2508,7 @@ def create_app() -> FastAPI:
         idempotency_key = data.get("idempotency_key") or None
         try:
             import sys, os
-            _ms_src = os.path.join(os.path.dirname(__file__), "..", "..", "Murphy System", "src")
+            _ms_src = os.path.join(os.path.dirname(__file__), "..", "..", "murphy_system", "src")
             if _ms_src not in sys.path:
                 sys.path.insert(0, _ms_src)
             from collaborative_task_orchestrator import CollaborativeTaskOrchestrator
@@ -8308,15 +8308,15 @@ def create_app() -> FastAPI:
 
     # Seed default community channels so the page isn't empty
     for _seed_ch in [
-        {"id": "general", "name": "general", "type": "text", "org_id": "murphy", "description": "General discussion", "created_by": "Murphy System", "members": ["Murphy System"], "created": _now_iso()},
-        {"id": "announcements", "name": "announcements", "type": "text", "org_id": "murphy", "description": "Official announcements", "created_by": "Murphy System", "members": ["Murphy System"], "created": _now_iso()},
-        {"id": "support", "name": "support", "type": "text", "org_id": "murphy", "description": "Get help from the community", "created_by": "Murphy System", "members": ["Murphy System"], "created": _now_iso()},
-        {"id": "integrations", "name": "integrations", "type": "text", "org_id": "murphy", "description": "Integration discussions", "created_by": "Murphy System", "members": ["Murphy System"], "created": _now_iso()},
-        {"id": "voice-lounge", "name": "voice-lounge", "type": "voice", "org_id": "murphy", "description": "Voice chat lounge", "created_by": "Murphy System", "members": ["Murphy System"], "created": _now_iso()},
+        {"id": "general", "name": "general", "type": "text", "org_id": "murphy", "description": "General discussion", "created_by": "murphy_system", "members": ["murphy_system"], "created": _now_iso()},
+        {"id": "announcements", "name": "announcements", "type": "text", "org_id": "murphy", "description": "Official announcements", "created_by": "murphy_system", "members": ["murphy_system"], "created": _now_iso()},
+        {"id": "support", "name": "support", "type": "text", "org_id": "murphy", "description": "Get help from the community", "created_by": "murphy_system", "members": ["murphy_system"], "created": _now_iso()},
+        {"id": "integrations", "name": "integrations", "type": "text", "org_id": "murphy", "description": "Integration discussions", "created_by": "murphy_system", "members": ["murphy_system"], "created": _now_iso()},
+        {"id": "voice-lounge", "name": "voice-lounge", "type": "voice", "org_id": "murphy", "description": "Voice chat lounge", "created_by": "murphy_system", "members": ["murphy_system"], "created": _now_iso()},
     ]:
         _community_channels[_seed_ch["id"]] = _seed_ch
         _community_messages[_seed_ch["id"]] = [
-            {"id": "welcome-" + _seed_ch["id"], "channel_id": _seed_ch["id"], "user": "Murphy System",
+            {"id": "welcome-" + _seed_ch["id"], "channel_id": _seed_ch["id"], "user": "murphy_system",
              "content": "Welcome to #" + _seed_ch["name"] + "! " + _seed_ch["description"],
              "created": _now_iso(), "reactions": {}, "thread_replies": []},
         ]
@@ -8389,7 +8389,7 @@ def create_app() -> FastAPI:
         ch = _community_channels.get(cid)
         if not ch:
             return JSONResponse({"ok": False, "error": "Channel not found"}, 404)
-        members = [{"id": m, "name": m, "role": "admin" if m == "Murphy System" else "member", "status": "online"} for m in ch.get("members", [])]
+        members = [{"id": m, "name": m, "role": "admin" if m == "murphy_system" else "member", "status": "online"} for m in ch.get("members", [])]
         return JSONResponse({"ok": True, "members": members})
 
     @app.get("/api/org/info")
@@ -8397,7 +8397,7 @@ def create_app() -> FastAPI:
         """Get org metadata."""
         return JSONResponse({
             "ok": True,
-            "name": "Murphy System",
+            "name": "murphy_system",
             "member_count": sum(len(o.get("members", [])) for o in _org_memberships.values()) or 1,
             "channel_count": len(_community_channels),
         })
@@ -9833,7 +9833,7 @@ def create_app() -> FastAPI:
         from starlette.responses import FileResponse as _FileResponse, RedirectResponse as _RedirectResponse
         from starlette.staticfiles import StaticFiles as _StaticFiles
 
-        _project_root = Path(__file__).resolve().parent.parent.parent  # src/runtime/ → Murphy System/
+        _project_root = Path(__file__).resolve().parent.parent.parent  # src/runtime/ → murphy_system/
 
         _static_dir = _project_root / "static"
         if _static_dir.is_dir():

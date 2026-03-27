@@ -13,7 +13,7 @@ Tests cover:
   - CI/CD pipeline file exists and is valid YAML
 
 Run with:
-    cd "Murphy System"
+    cd "murphy_system"
     python -m pytest tests/test_production_readiness.py -v
 """
 from __future__ import annotations

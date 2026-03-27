@@ -31,7 +31,7 @@ Murphy System ships a complete observability stack: **Prometheus** for metrics c
 Start the full stack:
 
 ```bash
-cd "Murphy System"
+cd "murphy_system"
 cp .env.example .env
 docker compose up -d
 ```
@@ -39,7 +39,7 @@ docker compose up -d
 Then start the static UI server in a second terminal:
 
 ```bash
-cd "Murphy System"
+cd "murphy_system"
 python -m http.server 8090
 ```
 

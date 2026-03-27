@@ -277,10 +277,10 @@ class TestGap7ConfigDocumentation:
         )
 
     def test_env_example_path_updated(self) -> None:
-        """The stale 'Murphy System/' path should no longer appear in CONFIGURATION.md."""
+        """The stale 'murphy_system/' path should no longer appear in CONFIGURATION.md."""
         text = self._config_text()
         # Should reference .env.example at repo root, not the old subdirectory
-        assert 'cd "Murphy System"' not in text, (
+        assert 'cd "murphy_system"' not in text, (
             "Stale 'cd Murphy System' instruction still present — path not updated after flattening"
         )
 

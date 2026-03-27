@@ -104,7 +104,7 @@ ok "Murphy System downloaded to ${INSTALL_DIR}"
 # ---- virtual-env -----------------------------------------------------------
 step 3 "Setting up Python environment"
 
-VENV_DIR="$INSTALL_DIR/Murphy System/venv"
+VENV_DIR="$INSTALL_DIR/murphy_system/venv"
 if [ ! -d "$VENV_DIR" ]; then
   $PY -m venv "$VENV_DIR"
 fi
@@ -158,7 +158,7 @@ ok "Runtime directories ready"
 # ---- CLI wrapper -----------------------------------------------------------
 step 6 "Installing 'murphy' CLI"
 
-CLI_BIN="$INSTALL_DIR/Murphy System/murphy"
+CLI_BIN="$INSTALL_DIR/murphy_system/murphy"
 cat > "$CLI_BIN" <<'CLIFEOF'
 #!/usr/bin/env bash
 # Murphy System CLI — quick commands

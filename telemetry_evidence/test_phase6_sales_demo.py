@@ -6,15 +6,15 @@ This script simulates a prospective customer's first experience.
 Murphy must demonstrate every capability that would close a sale.
 
 FILES TESTED:
-  - Murphy System/src/runtime/app.py                → API entry points
-  - Murphy System/src/runtime/murphy_system_core.py → Core business logic
-  - Murphy System/src/confidence_engine/             → G/D/H + 5D uncertainty
-  - Murphy System/src/execution_engine/              → Task execution pipeline
-  - Murphy System/src/form_intake/handlers.py        → Form intake
-  - Murphy System/src/learning_engine/               → Shadow agent training
-  - Murphy System/src/delivery_adapters.py           → Doc/email/chat/voice
-  - Murphy System/src/compliance_engine.py           → GDPR/SOC2/HIPAA/PCI
-  - Murphy System/src/analytics_dashboard.py         → Metrics dashboard
+  - murphy_system/src/runtime/app.py                → API entry points
+  - murphy_system/src/runtime/murphy_system_core.py → Core business logic
+  - murphy_system/src/confidence_engine/             → G/D/H + 5D uncertainty
+  - murphy_system/src/execution_engine/              → Task execution pipeline
+  - murphy_system/src/form_intake/handlers.py        → Form intake
+  - murphy_system/src/learning_engine/               → Shadow agent training
+  - murphy_system/src/delivery_adapters.py           → Doc/email/chat/voice
+  - murphy_system/src/compliance_engine.py           → GDPR/SOC2/HIPAA/PCI
+  - murphy_system/src/analytics_dashboard.py         → Metrics dashboard
 """
 
 import json

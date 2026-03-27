@@ -29,7 +29,7 @@ jobs:
     timeout-minutes: 60
     defaults:
       run:
-        working-directory: "Murphy System"
+        working-directory: "murphy_system"
 
     steps:
       - name: Checkout repository
@@ -55,7 +55,7 @@ jobs:
           MURPHY_RUN_EXTERNAL_BENCHMARKS: '1'
           MURPHY_BENCHMARK_MAX_TASKS: ${{ github.event.inputs.max_tasks || '5' }}
           MURPHY_BENCHMARK_RESULTS_DIR: documentation/testing
-          PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/Murphy System/src"
+          PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/murphy_system/src"
         run: |
           BENCHMARK="${{ github.event.inputs.benchmark || 'all' }}"
           bash scripts/run_benchmarks.sh ${BENCHMARK}
@@ -66,7 +66,7 @@ jobs:
         with:
           name: benchmark-results-${{ github.run_number }}
           path: |
-            Murphy System/documentation/testing/benchmark_*_results.json
-            Murphy System/documentation/testing/BENCHMARK_EXTERNAL_RESULTS.json
-            Murphy System/documentation/testing/BENCHMARK_EXTERNAL_RESULTS.md
+            murphy_system/documentation/testing/benchmark_*_results.json
+            murphy_system/documentation/testing/BENCHMARK_EXTERNAL_RESULTS.json
+            murphy_system/documentation/testing/BENCHMARK_EXTERNAL_RESULTS.md
           retention-days: 90

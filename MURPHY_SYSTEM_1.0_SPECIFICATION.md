@@ -76,7 +76,7 @@ This document specifies the complete Murphy System 1.0 runtime.
 ## Component Inventory
 
 ### 1. Original Murphy Runtime (Base System)
-**Location:** `Murphy System/src/`
+**Location:** `murphy_system/src/`
 
 **Components:**
 - 319 Python files across 67 directories
@@ -93,7 +93,7 @@ This document specifies the complete Murphy System 1.0 runtime.
 - And 50+ other subsystems
 
 ### 2. Phase 1-5 Implementations
-**Location:** `Murphy System/src/form_intake/`, `confidence_engine/`, etc.
+**Location:** `murphy_system/src/form_intake/`, `confidence_engine/`, etc.
 
 **Phase 1: Form Intake & Execution**
 - Form processing (JSON, YAML, natural language)
@@ -127,7 +127,7 @@ This document specifies the complete Murphy System 1.0 runtime.
 - Documentation and testing
 
 ### 3. Universal Control Plane
-**Location:** `Murphy System/universal_control_plane.py`
+**Location:** `murphy_system/universal_control_plane.py`
 
 **Components:**
 - 7 modular engines (sensor, actuator, database, API, content, command, agent)
@@ -137,7 +137,7 @@ This document specifies the complete Murphy System 1.0 runtime.
 - Control type detection (automatic engine selection)
 
 ### 4. Inoni Business Automation
-**Location:** `Murphy System/inoni_business_automation.py`
+**Location:** `murphy_system/inoni_business_automation.py`
 
 **5 Automation Engines:**
 - Sales Engine (lead gen, qualification, outreach, demo scheduling)
@@ -147,7 +147,7 @@ This document specifies the complete Murphy System 1.0 runtime.
 - Production Management (releases, QA, deployment, monitoring)
 
 ### 5. Integration Engine
-**Location:** `Murphy System/src/integration_engine/`
+**Location:** `murphy_system/src/integration_engine/`
 
 **Components:**
 - Unified Integration Engine (main orchestrator)
@@ -158,7 +158,7 @@ This document specifies the complete Murphy System 1.0 runtime.
 - Safety Tester (5-category testing)
 
 ### 6. Two-Phase Orchestrator
-**Location:** `Murphy System/two_phase_orchestrator.py`
+**Location:** `murphy_system/two_phase_orchestrator.py`
 
 **Components:**
 - Phase 1: Generative Setup (carving from infinity)
@@ -167,7 +167,7 @@ This document specifies the complete Murphy System 1.0 runtime.
 - Repository management (organize automation projects)
 
 ### 7. Final Runtime
-**Location:** `Murphy System/murphy_final_runtime.py`
+**Location:** `murphy_system/murphy_final_runtime.py`
 
 **Components:**
 - RuntimeOrchestrator (coordinates all systems)
@@ -322,7 +322,7 @@ GRAFANA_PORT=3000
 
 ### Configuration Files
 ```
-Murphy System/
+murphy_system/
 ├── config/
 │   ├── murphy.yaml              # Main configuration
 │   ├── engines.yaml             # Engine configuration

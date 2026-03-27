@@ -220,7 +220,7 @@ class TestCIWorkflow:
             os.path.dirname(__file__), "..", ".github", "workflows", "ci.yml"
         )
         assert os.path.isfile(ci_path) or os.path.isfile(ci_path_inner), (
-            ".github/workflows/ci.yml not found (checked root and Murphy System/)"
+            ".github/workflows/ci.yml not found (checked root and murphy_system/)"
         )
 
     def test_ci_workflow_references_pytest(self) -> None:

@@ -217,7 +217,7 @@ A selection of the highest-impact missing env vars (full list: 205 total):
 | CFG-005 | Missing Doc | src/ (multiple) | — | `MURPHY_MAX_BODY_BYTES`, `MURPHY_MAX_RESPONSE_SIZE_MB` — request/response size limits; undocumented | Medium |
 | CFG-006 | Missing Doc | src/ | — | `MURPHY_AUTH_LOCKOUT_SECONDS`, `MURPHY_AUTH_MAX_ATTEMPTS`, `MURPHY_AUTH_WINDOW_SECONDS` — brute-force protection config; undocumented | High |
 | CFG-007 | Missing Doc | src/ | — | `MURPHY_KEY_ROTATION_INTERVAL`, `MURPHY_KEY_ROTATION_OVERLAP` — automatic key rotation config; undocumented | High |
-| CFG-008 | Stale Doc | — | GETTING_STARTED.md | `Murphy System/config/murphy.yaml` is referenced as containing "sensible defaults"; file exists in `config/` at root, not `Murphy System/config/` | Low |
+| CFG-008 | Stale Doc | — | GETTING_STARTED.md | `murphy_system/config/murphy.yaml` is referenced as containing "sensible defaults"; file exists in `config/` at root, not `murphy_system/config/` | Low |
 | CFG-009 | Missing Doc | docker-compose.yml | DEPLOYMENT_GUIDE.md | `MURPHY_DB_MODE=live` is injected via docker-compose environment but not documented in DEPLOYMENT_GUIDE.md | Medium |
 | CFG-010 | Stale Doc | — | MURPHY_1.0_QUICK_START.md | References `requirements_murphy_1.0.txt` as the primary requirements file; multiple requirements files exist (`requirements.txt`, `requirements_ci.txt`, `requirements_core.txt`, `requirements_murphy_1.0.txt`) with no documentation on which to use when | Medium |
 
@@ -237,7 +237,7 @@ A selection of the highest-impact missing env vars (full list: 205 total):
 | ARCH-008 | Missing Doc | src/founder_update_orchestrator.py | — | `FounderUpdateOrchestrator` with 19 `RecommendationType` values. FastAPI router at `/api/founder/`. Not documented in ARCHITECTURE_MAP.md or API_ROUTES.md. | Medium |
 | ARCH-009 | Missing Doc | src/founder_maintenance_recommendation_engine.py | — | `FounderMaintenanceRecommendationEngine` at `/api/founder/maintenance/`. Not in ARCHITECTURE_MAP.md or API_ROUTES.md. | Medium |
 | ARCH-010 | Missing Doc | src/system_update_recommendation_engine.py | — | `SystemUpdateRecommendationEngine` (ARCH-020 in internal tracking). Not documented in ARCHITECTURE_MAP.md; API_ROUTES.md has some `/api/system-updates/*` routes (stale) that don't match the actual implementation. | High |
-| ARCH-011 | Stale Doc | — | ARCHITECTURE_MAP.md | Architecture diagram references `Murphy System/` directory as containing system modules, implying it is a first-class source directory. In practice it is a mirror of root HTML/JS/test files for a different serve context. | Low |
+| ARCH-011 | Stale Doc | — | ARCHITECTURE_MAP.md | Architecture diagram references `murphy_system/` directory as containing system modules, implying it is a first-class source directory. In practice it is a mirror of root HTML/JS/test files for a different serve context. | Low |
 
 ---
 
@@ -245,8 +245,8 @@ A selection of the highest-impact missing env vars (full list: 205 total):
 
 | Gap ID | Type | Code Location | Doc Location | Description | Severity |
 |--------|------|---------------|--------------|-------------|----------|
-| SETUP-001 | Incorrect Doc | — | GETTING_STARTED.md | `GETTING_STARTED.md` references `<Murphy System/src/nocode_workflow_terminal.py>`, `<Murphy System/src/ai_workflow_generator.py>`, `<Murphy System/src/execution_engine/workflow_orchestrator.py>`, `<Murphy System/src/gate_execution_wiring.py>`, `<Murphy System/workflow_canvas.html>` as clickable links. These paths do not resolve from the repository root — they should be `src/nocode_workflow_terminal.py` etc. | Medium |
-| SETUP-002 | Incorrect Doc | — | README.md | `README.md` links to `<Murphy System/src/ai_workflow_generator.py>`, `Murphy%20System/MURPHY_1.0_QUICK_START.md`, `Murphy%20System/API_DOCUMENTATION.md`, `Murphy%20System/DEPLOYMENT_GUIDE.md`, `Murphy%20System/strategic/PRODUCTION_READINESS_AUDIT.md`, `<Murphy System/documentation/api/AUTHENTICATION.md>` — all broken relative links (25 broken links found in root *.md files). | High |
+| SETUP-001 | Incorrect Doc | — | GETTING_STARTED.md | `GETTING_STARTED.md` references `<murphy_system/src/nocode_workflow_terminal.py>`, `<murphy_system/src/ai_workflow_generator.py>`, `<murphy_system/src/execution_engine/workflow_orchestrator.py>`, `<murphy_system/src/gate_execution_wiring.py>`, `<murphy_system/workflow_canvas.html>` as clickable links. These paths do not resolve from the repository root — they should be `src/nocode_workflow_terminal.py` etc. | Medium |
+| SETUP-002 | Incorrect Doc | — | README.md | `README.md` links to `<murphy_system/src/ai_workflow_generator.py>`, `Murphy%20System/MURPHY_1.0_QUICK_START.md`, `Murphy%20System/API_DOCUMENTATION.md`, `Murphy%20System/DEPLOYMENT_GUIDE.md`, `Murphy%20System/strategic/PRODUCTION_READINESS_AUDIT.md`, `<murphy_system/documentation/api/AUTHENTICATION.md>` — all broken relative links (25 broken links found in root *.md files). | High |
 | SETUP-003 | Incorrect Doc | — | SECURITY.md | `SECURITY.md` links to `Murphy%20System/DEPLOYMENT_GUIDE.md` — broken relative link | Low |
 | SETUP-004 | Incorrect Doc | — | USER_MANUAL.md | `USER_MANUAL.md` links to `../LICENSE` — broken relative link (LICENSE is at repo root, not in a parent directory of where USER_MANUAL.md lives) | Low |
 | SETUP-005 | Incorrect Doc | GETTING_STARTED.md | — | `GETTING_STARTED.md` step 2 says `setup_and_start.sh` "Creates a virtual environment and installs dependencies from `requirements_murphy_1.0.txt`". Multiple requirements files exist but no documentation on their purpose or when each is used. | Medium |
@@ -356,7 +356,7 @@ A selection of the highest-impact missing env vars (full list: 205 total):
 | Gap ID | Type | Code Location | Doc Location | Description | Severity |
 |--------|------|---------------|--------------|-------------|----------|
 | LINK-001 | Incorrect Doc | — | README.md | 8 broken relative links using `Murphy%20System/` path prefix | High |
-| LINK-002 | Incorrect Doc | — | README.md | 4 broken angle-bracket links (`<Murphy System/...>`) | Medium |
+| LINK-002 | Incorrect Doc | — | README.md | 4 broken angle-bracket links (`<murphy_system/...>`) | Medium |
 | LINK-003 | Incorrect Doc | — | GETTING_STARTED.md | 5 broken angle-bracket links to source files using wrong path | Medium |
 | LINK-004 | Incorrect Doc | — | SECURITY.md | 1 broken link `Murphy%20System/DEPLOYMENT_GUIDE.md` | Low |
 | LINK-005 | Incorrect Doc | — | USER_MANUAL.md | 1 broken link `../LICENSE` | Low |

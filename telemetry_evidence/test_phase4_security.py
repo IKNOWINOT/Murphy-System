@@ -3,14 +3,14 @@
 PHASE 4: Security hardening verification.
 
 FILES TESTED:
-  - Murphy System/src/security_hardening_config.py                → XSS/SQLi/path traversal
-  - Murphy System/src/security_plane/authorization_enhancer.py    → ownership verification
-  - Murphy System/src/security_plane/log_sanitizer.py             → PII redaction
-  - Murphy System/src/security_plane/bot_resource_quotas.py       → bot limits
-  - Murphy System/src/security_plane/bot_identity_verifier.py     → HMAC identity
-  - Murphy System/src/security_plane/bot_anomaly_detector.py      → anomaly detection
-  - Murphy System/src/security_plane/security_dashboard.py        → unified dashboard
-  - Murphy System/src/security_plane/swarm_communication_monitor.py → DFS cycles
+  - murphy_system/src/security_hardening_config.py                → XSS/SQLi/path traversal
+  - murphy_system/src/security_plane/authorization_enhancer.py    → ownership verification
+  - murphy_system/src/security_plane/log_sanitizer.py             → PII redaction
+  - murphy_system/src/security_plane/bot_resource_quotas.py       → bot limits
+  - murphy_system/src/security_plane/bot_identity_verifier.py     → HMAC identity
+  - murphy_system/src/security_plane/bot_anomaly_detector.py      → anomaly detection
+  - murphy_system/src/security_plane/security_dashboard.py        → unified dashboard
+  - murphy_system/src/security_plane/swarm_communication_monitor.py → DFS cycles
 """
 
 import json
@@ -25,7 +25,7 @@ LOG_FILE = os.path.join(SCRIPT_DIR, "telemetry_log.jsonl")
 
 # Add src/ to path for imports
 MURPHY_SRC = os.path.abspath(
-    os.path.join(SCRIPT_DIR, "..", "Murphy System", "src")
+    os.path.join(SCRIPT_DIR, "..", "murphy_system", "src")
 )
 if MURPHY_SRC not in sys.path:
     sys.path.insert(0, MURPHY_SRC)

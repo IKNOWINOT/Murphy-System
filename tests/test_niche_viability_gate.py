@@ -366,7 +366,7 @@ class TestInoniLLCEntity:
         entity = gate.create_inoni_entity(
             full_autonomy_niche, DeployabilityStatus.PENDING_HITL_REVIEW, None
         )
-        assert entity.powered_by == "Murphy System"
+        assert entity.powered_by == "murphy_system"
 
     def test_operator_is_inoni_llc(self, gate, full_autonomy_niche):
         entity = gate.create_inoni_entity(
@@ -834,7 +834,7 @@ class TestGeneratorIntegration:
     def test_spec_inoni_entity_powered_by(self, generator):
         niche = generator.get_niche("niche_seo_sites")
         spec = generator.generate_niche(niche)
-        assert spec.inoni_entity.powered_by == "Murphy System"
+        assert spec.inoni_entity.powered_by == "murphy_system"
 
     def test_deployment_ready_false_before_hitl(self, generator):
         niche = generator.get_niche("newsletter_businesses")

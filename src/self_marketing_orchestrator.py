@@ -1467,7 +1467,7 @@ class SelfMarketingOrchestrator:
         subject = _validate_topic(subject, param="subject")  # CWE-20
 
         title = f"Case Study: {subject}"
-        keywords = self._extract_keywords(subject) + ["automation", "ROI", "Murphy System"]
+        keywords = self._extract_keywords(subject) + ["automation", "ROI", "murphy_system"]
         keywords = [kw[:_MAX_KEYWORD_LEN] for kw in keywords[:_MAX_KEYWORDS]]  # CWE-400
         body = self._compose_case_study_body(title, subject, keywords)
 

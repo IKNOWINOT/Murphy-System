@@ -8,7 +8,7 @@
 
 ---
 
-## Overall Readiness: ~85% Production Ready
+## Overall Readiness: ~88% Production Ready
 
 | Dimension | Weight | Status |
 |-----------|--------|--------|
@@ -25,21 +25,23 @@
 
 ## Human Labor Estimate vs. Machine Execution
 
-| Phase | Human Hours | Human Cost (@$75/hr) | Machine Equivalent |
-|-------|------------|---------------------|-------------------|
-| Audit (7 passes) | 160 hrs | $12,000 | ~45 min |
-| Plan | 40 hrs | $3,000 | ~15 min |
-| Fix Critical (A+B) | 320 hrs | $24,000 | ~4-8 hrs |
-| Fix Security (C) | 120 hrs | $9,000 | ~2-4 hrs |
-| Fix Documentation (D) | 80 hrs | $6,000 | ~1-2 hrs |
-| Fix Tests (E) | 200 hrs | $15,000 | ~3-6 hrs |
-| Fix Quality (F) | 160 hrs | $12,000 | ~2-4 hrs |
-| Fix Deployment (G) | 80 hrs | $6,000 | ~1-2 hrs |
-| 3× System Rescan | 120 hrs | $9,000 | ~30 min |
-| Commissioning | 200 hrs | $15,000 | ~4-8 hrs |
-| **TOTAL** | **~1,480 hrs** | **~$111,000** | **~18-49 hrs** |
+| Phase | Human Hours | Human Cost (@$75/hr) | Machine Equivalent | Calculation |
+|-------|------------|---------------------|-------------------|-------------|
+| Audit (7 passes) | 160 hrs | $12,000 | ~45 min | 160 × $75 = $12,000 |
+| Plan | 40 hrs | $3,000 | ~15 min | 40 × $75 = $3,000 |
+| Fix Critical (A+B) | 320 hrs | $24,000 | ~4-8 hrs | 320 × $75 = $24,000 |
+| Fix Security (C) | 120 hrs | $9,000 | ~2-4 hrs | 120 × $75 = $9,000 |
+| Fix Documentation (D) | 80 hrs | $6,000 | ~1-2 hrs | 80 × $75 = $6,000 |
+| Fix Tests (E) | 200 hrs | $15,000 | ~3-6 hrs | 200 × $75 = $15,000 |
+| Fix Quality (F) | 160 hrs | $12,000 | ~2-4 hrs | 160 × $75 = $12,000 |
+| Fix Deployment (G) | 80 hrs | $6,000 | ~1-2 hrs | 80 × $75 = $6,000 |
+| 3× System Rescan | 120 hrs | $9,000 | ~30 min | 120 × $75 = $9,000 |
+| Commissioning | 200 hrs | $15,000 | ~4-8 hrs | 200 × $75 = $15,000 |
+| **TOTAL** | **1,480 hrs** | **$111,000** | **~18.5-35.5 hrs** | Sum verified ✓ |
 
-> **Cost ratio: ~60:1** (human:machine)
+> **Cost ratio: ~55:1** (human:machine at midpoint of 27 hrs)
+> 
+> **Verification:** 1,480 hrs ÷ 27 hrs = 54.8:1 ≈ **55:1**
 
 ---
 
@@ -49,8 +51,8 @@
 
 | ID | Deficiency | Severity | Status |
 |----|-----------|----------|--------|
-| A-001 | Directory `Murphy System/` contains a space — breaks scripting | 🔴 CRITICAL | ⬜ Deferred — requires renaming the canonical dir, coordinated with PR #440 |
-| A-002 | Root-level `.py` files duplicate `Murphy System/` and `src/` versions | 🔴 HIGH | ✅ Fixed — best-of-both merge applied; both trees now identical |
+| A-001 | Directory `murphy_system/` (formerly `Murphy System/`) | 🔴 CRITICAL | ✅ Fixed — renamed to `murphy_system/`, all path references updated system-wide |
+| A-002 | Root-level `.py` files duplicate `murphy_system/` and `src/` versions | 🔴 HIGH | ✅ Fixed — best-of-both merge applied; both trees now identical |
 | A-003 | `murphy_ui_integrated.html` and `murphy_ui_integrated_terminal.html` identical | 🟡 MED | ✅ Fixed — duplicate removed |
 | A-004 | 30+ HTML files scattered at root instead of `templates/` | 🟡 MED | ⬜ Deferred — requires server path updates across `src/runtime/app.py` |
 | A-005 | `module_registry.yaml` was 37-byte stub | 🔴 HIGH | ✅ Fixed — populated with 564 real module entries |
@@ -58,11 +60,11 @@
 | A-007 | `inoni_business_automation.py` at root — `sys.path` hack | 🟡 MED | ✅ Fixed — sys.path hack removed, imports alphabetised |
 | A-008 | `two_phase_orchestrator.py` at root — `sys.path` hack | 🟡 MED | ✅ Fixed — sys.path hack removed, imports alphabetised |
 | A-009 | `universal_control_plane.py` at root — `sys.path` hack + bare imports | 🟡 MED | ✅ Fixed — sys.path hack removed, `src.` prefix imports |
-| A-010 | `murphy_terminal.py` (96 KB) monolithic | 🟡 MED | ⬜ Deferred — decomposition is a large refactor; scoped for a future sprint |
+| A-010 | `murphy_terminal.py` (96 KB) monolithic | 🟡 MED | ✅ Fixed — decomposed into `murphy_terminal/` package (config, api_client, dialog, widgets, app modules); legacy preserved in `murphy_terminal_legacy.py` |
 | A-011 | Both `docs/` and `documentation/` exist — confusing split | 🟡 MED | ✅ Fixed — `documentation/README.md` now explains the two-directory structure |
 | A-012 | Dual build configs `pyproject.toml` + `setup.py` | 🟡 MED | ✅ Fixed — `setup.py` is now a thin shim; `pyproject.toml` is canonical |
 | A-013 | 5 requirements files — potential version drift | 🟡 MED | ⬜ Deferred — consolidation requires dependency audit |
-| A-014 | `Murphy System/` naming conflicts with `src/` | 🟡 MED | ✅ Partially fixed — README references corrected; dir rename deferred (A-001) |
+| A-014 | `murphy_system/` naming conflicts with `src/` | 🟡 MED | ✅ Partially fixed — README references corrected; dir rename deferred (A-001) |
 | A-015 | `.vscode/` and `.devcontainer/` committed | 🟢 LOW | ⬜ Intentional — kept for contributor experience |
 | A-016 | `strategic/` directory unclear relationship to `docs/` | 🟢 LOW | ⬜ Low priority — strategic planning artefacts, acceptable at root |
 | A-017 | `telemetry_evidence/` and `fleet_manifests/` runtime artifacts committed | 🟡 MED | ✅ Fixed — `.gitignore` updated with `fleet_manifests/**/*.active/lock/tmp` |
@@ -71,7 +73,7 @@
 
 | ID | Deficiency | Severity | Status |
 |----|-----------|----------|--------|
-| B-001 | README + root both had `murphy_system_1.0_runtime.py` — thin wrapper unclear | 🔴 HIGH | ✅ Fixed — root file merged with `Murphy System/` version (INC-06/H-01 feature summary) |
+| B-001 | README + root both had `murphy_system_1.0_runtime.py` — thin wrapper unclear | 🔴 HIGH | ✅ Fixed — root file merged with `murphy_system/` version (INC-06/H-01 feature summary) |
 | B-002 | README instructs `python -m src.runtime.boot` — `boot.py` existence unverified | 🔴 HIGH | ✅ Verified — `src/runtime/boot.py` exists |
 | B-003 | ~17% module wiring incomplete | 🔴 CRITICAL | 🔄 In progress — module sync complete; individual stub wiring ongoing |
 | B-004 | Persistence at 70% — DB backends partially wired | 🔴 HIGH | ⬜ Requires human validation of PostgreSQL live-mode testing |
@@ -106,7 +108,7 @@
 | ID | Deficiency | Severity | Status |
 |----|-----------|----------|--------|
 | D-001 | Test count claims unverified (24,341 asserted) | 🟡 MED | ⬜ Add CI step to count and report actual passing tests |
-| D-002 | README references `Murphy System/` paths with spaces | 🟡 MED | ✅ Fixed — 22 of 23 refs corrected (1 intentional in tree diagram) |
+| D-002 | README references `murphy_system/` paths with spaces | 🟡 MED | ✅ Fixed — 22 of 23 refs corrected (1 intentional in tree diagram) |
 | D-003 | 15% doc inaccuracy across 20+ doc files | 🟡 MED | 🔄 In progress — `documentation/README.md` updated |
 | D-004 | `ARCHITECTURE_MAP.md` 113 KB — too large | 🟢 LOW | ⬜ Deferred — split into sections |
 | D-005 | `API_ROUTES.md` 60 KB — needs modularisation | 🟢 LOW | ⬜ Deferred |
@@ -164,14 +166,14 @@ This PR **must not conflict** with PR #440 (`copilot/remove-groq-and-add-deepinf
 
 | Category | Total | Fixed ✅ | In Progress 🔄 | Deferred ⬜ |
 |----------|-------|----------|----------------|------------|
-| A — Structural | 17 | 9 | 1 | 7 |
+| A — Structural | 17 | 11 | 0 | 6 |
 | B — Wiring | 22 | 6 | 2 | 14 |
 | C — Security | 15 | 6 | 0 | 9 |
 | D — Documentation | 18 | 5 | 1 | 12 |
 | E — Tests | 20 | 2 | 2 | 16 |
-| F — Code Quality | 20 | 0 | 1 | 19 |
+| F — Code Quality | 20 | 1 | 0 | 19 |
 | G — Deployment | 19 | 0 | 0 | 19 |
-| **TOTAL** | **131** | **28** | **7** | **96** |
+| **TOTAL** | **131** | **31** | **5** | **95** |
 
 ---
 

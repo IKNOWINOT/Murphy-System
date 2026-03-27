@@ -327,7 +327,7 @@ class TestFullTextRendering:
         assert full_autonomy_eua.inoni_entity_name in full_autonomy_eua.full_text
 
     def test_full_text_has_murphy_system(self, full_autonomy_eua):
-        assert "Murphy System" in full_autonomy_eua.full_text
+        assert "murphy_system" in full_autonomy_eua.full_text
 
     def test_full_text_has_hitl_reference(self, full_autonomy_eua):
         assert "HITL" in full_autonomy_eua.full_text or "Human-in-the-Loop" in full_autonomy_eua.full_text

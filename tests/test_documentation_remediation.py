@@ -549,7 +549,7 @@ class TestProfessionalRepoFiles:
 
         ok = record(
             "WS1F-01",
-            "All 9 professional repo files present in Murphy System/",
+            "All 9 professional repo files present in murphy_system/",
             expected=[],
             actual=missing,
             cause="Professional repositories require these baseline files",
@@ -636,7 +636,7 @@ class TestGettingStarted:
         path = PROJECT_ROOT / "GETTING_STARTED.md"
         ok = record(
             "WS1G-01",
-            "GETTING_STARTED.md exists in Murphy System/",
+            "GETTING_STARTED.md exists in murphy_system/",
             expected=True,
             actual=path.exists(),
             cause="First-time users need a success-path walkthrough",

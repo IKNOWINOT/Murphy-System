@@ -294,7 +294,7 @@ def test_k8s_016_namespace_dataclass():
 
 def test_k8s_017_helm_chart_dataclass():
     """HelmChart creation."""
-    chart = HelmChart(name="murphy", version="1.0.0", description="Murphy System")
+    chart = HelmChart(name="murphy", version="1.0.0", description="murphy_system")
     assert record(
         "K8S-017", "HelmChart stores version",
         "1.0.0", chart.version,

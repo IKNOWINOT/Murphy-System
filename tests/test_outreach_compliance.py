@@ -1,6 +1,6 @@
 """
 Comprehensive tests for OutreachComplianceGovernor
-(Murphy System/src/self_selling_engine/_compliance.py).
+(murphy_system/src/self_selling_engine/_compliance.py).
 
 Covers:
   - 30-day cooldown enforcement for non-customers

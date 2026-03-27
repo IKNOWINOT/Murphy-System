@@ -120,7 +120,7 @@ class TestGetSetupInstructions:
     def test_contains_murphy_system_channel_name(self, tmp_path):
         bs = _make_bootstrap(tmp_path)
         instructions = bs.get_setup_instructions()
-        assert "Murphy System" in instructions
+        assert "murphy_system" in instructions
 
     def test_contains_no_channel_creation_warning(self, tmp_path):
         bs = _make_bootstrap(tmp_path)

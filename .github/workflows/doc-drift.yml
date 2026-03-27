@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 env:
-  PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+  PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/murphy_system/src"
 
 jobs:
   doc-drift:
@@ -18,7 +18,7 @@ jobs:
       contents: read
     defaults:
       run:
-        working-directory: "Murphy System"
+        working-directory: "murphy_system"
 
     steps:
       - name: Checkout repository
@@ -148,7 +148,7 @@ jobs:
       contents: write
     defaults:
       run:
-        working-directory: "Murphy System"
+        working-directory: "murphy_system"
 
     steps:
       - name: Checkout repository

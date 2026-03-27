@@ -15,7 +15,7 @@ references to the PRs or phases that resolve them.
 The repository contains two parallel copies of nearly every source file:
 
 - Root `src/` (e.g., `src/runtime/app.py`, `src/runtime/murphy_system_core.py`)
-- `Murphy System/src/` (e.g., `Murphy System/src/runtime/app.py`)
+- `murphy_system/src/` (e.g., `murphy_system/src/runtime/app.py`)
 
 Any change applied to one tree must also be applied to the other or the two
 copies diverge silently. This is a maintenance hazard and a source of subtle
@@ -88,17 +88,17 @@ requires `MURPHY_API_KEYS` to be set; without it, every API request returns
 
 ---
 
-## 6. Docker Build Missing `Murphy System/` Directory (Unresolved)
+## 6. Docker Build Missing `murphy_system/` Directory (Unresolved)
 
 **Severity:** Medium  
 **Status:** Known / Unresolved
 
-The root `Dockerfile` does not correctly copy the `Murphy System/` directory
+The root `Dockerfile` does not correctly copy the `murphy_system/` directory
 (the space in the directory name causes issues). As a result, the Docker
 image installs from a different set of requirements than the local development
 environment, leading to runtime import failures inside the container.
 
-**Workaround:** Build from the `Murphy System/` sub-directory directly or
+**Workaround:** Build from the `murphy_system/` sub-directory directly or
 rename the directory to remove the space.  
 **Long-term fix (Phase 4):** Consolidate the dual file tree to eliminate the
 space-in-path issue entirely.

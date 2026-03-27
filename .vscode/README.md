@@ -5,7 +5,7 @@
 ### 1. Open in VS Code
 
 ```bash
-code "Murphy System"
+code "murphy_system"
 ```
 
 ### 2. Install Python Extension
@@ -51,9 +51,9 @@ Lightweight API smoke-test that exercises core endpoints:
 
 - **/.vscode/launch.json** - Debug configurations
 - **/.vscode/tasks.json** - Task definitions
-- **/Murphy System/scripts/quick_demo.py** - Demo orchestrator
-- **/Murphy System/DEMO_GUIDE.md** - Complete demo guide
-- **/Murphy System/start.sh** - Server startup script
+- **/murphy_system/scripts/quick_demo.py** - Demo orchestrator
+- **/murphy_system/DEMO_GUIDE.md** - Complete demo guide
+- **/murphy_system/start.sh** - Server startup script
 
 ## Usage
 
@@ -74,7 +74,7 @@ Lightweight API smoke-test that exercises core endpoints:
 ### Method 3: Terminal
 
 1. **Ctrl+`** to open integrated terminal
-2. `cd "Murphy System"`
+2. `cd "murphy_system"`
 3. `python scripts/quick_demo.py`
 
 ## Features
@@ -112,7 +112,7 @@ Graceful handling of:
 
 ```bash
 # Install dependencies
-cd "Murphy System"
+cd "murphy_system"
 pip install -r requirements_murphy_1.0.txt
 ```
 
@@ -121,7 +121,7 @@ pip install -r requirements_murphy_1.0.txt
 For fastest demo experience, keep Murphy running in a separate terminal:
 
 ```bash
-cd "Murphy System"
+cd "murphy_system"
 ./start.sh
 ```
 

@@ -3,22 +3,22 @@
 PHASE 3: Test all web interfaces by loading them and checking HTTP 200.
 
 FILES TESTED:
-  - Murphy System/murphy_landing_page.html         → Public front door
-  - Murphy System/onboarding_wizard.html            → New user onboarding
-  - Murphy System/murphy_ui_integrated.html         → Integrated UI
-  - Murphy System/murphy_ui_integrated_terminal.html→ Integrated terminal
-  - Murphy System/terminal_unified.html             → Unified terminal
-  - Murphy System/terminal_enhanced.html            → Enhanced terminal
-  - Murphy System/terminal_integrated.html          → Integrated terminal view
-  - Murphy System/terminal_architect.html           → Architect terminal
-  - Murphy System/terminal_costs.html               → Cost terminal
-  - Murphy System/terminal_integrations.html        → Integrations terminal
-  - Murphy System/terminal_orchestrator.html        → Orchestrator terminal
-  - Murphy System/terminal_orgchart.html            → Org chart terminal
-  - Murphy System/terminal_worker.html              → Worker terminal
-  - Murphy System/workflow_canvas.html              → Workflow canvas
-  - Murphy System/system_visualizer.html            → System visualizer
-  - Murphy System/murphy-smoke-test.html            → Smoke test page
+  - murphy_system/murphy_landing_page.html         → Public front door
+  - murphy_system/onboarding_wizard.html            → New user onboarding
+  - murphy_system/murphy_ui_integrated.html         → Integrated UI
+  - murphy_system/murphy_ui_integrated_terminal.html→ Integrated terminal
+  - murphy_system/terminal_unified.html             → Unified terminal
+  - murphy_system/terminal_enhanced.html            → Enhanced terminal
+  - murphy_system/terminal_integrated.html          → Integrated terminal view
+  - murphy_system/terminal_architect.html           → Architect terminal
+  - murphy_system/terminal_costs.html               → Cost terminal
+  - murphy_system/terminal_integrations.html        → Integrations terminal
+  - murphy_system/terminal_orchestrator.html        → Orchestrator terminal
+  - murphy_system/terminal_orgchart.html            → Org chart terminal
+  - murphy_system/terminal_worker.html              → Worker terminal
+  - murphy_system/workflow_canvas.html              → Workflow canvas
+  - murphy_system/system_visualizer.html            → System visualizer
+  - murphy_system/murphy-smoke-test.html            → Smoke test page
 """
 
 import json
@@ -91,7 +91,7 @@ UI_INTERFACES = [
 def test_ui_file_exists():
     """Verify all UI HTML files exist on disk."""
     repo_root = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
-    murphy_dir = os.path.join(repo_root, "Murphy System")
+    murphy_dir = os.path.join(repo_root, "murphy_system")
     results = []
 
     for filename, label, description in UI_INTERFACES:

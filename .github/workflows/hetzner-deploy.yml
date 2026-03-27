@@ -14,7 +14,7 @@ jobs:
       MURPHY_DB_MODE: stub
       E2EE_STUB_ALLOWED: "true"
       MURPHY_POOL_MODE: simulated
-      PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+      PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/murphy_system/src"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -35,16 +35,16 @@ jobs:
         continue-on-error: true
       - name: Run tests
         run: |
-          python -m pytest "Murphy System/tests/" \
+          python -m pytest "murphy_system/tests/" \
             --timeout=120 \
             --tb=short \
             -q \
             --continue-on-collection-errors \
-            --ignore="Murphy System/tests/e2e" \
-            --ignore="Murphy System/tests/commissioning" \
-            --ignore="Murphy System/tests/integration" \
-            --ignore="Murphy System/tests/sla" \
-            --ignore="Murphy System/tests/benchmarks" \
+            --ignore="murphy_system/tests/e2e" \
+            --ignore="murphy_system/tests/commissioning" \
+            --ignore="murphy_system/tests/integration" \
+            --ignore="murphy_system/tests/sla" \
+            --ignore="murphy_system/tests/benchmarks" \
             -k "not test_actual_local_llm"
         continue-on-error: true
 

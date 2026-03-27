@@ -238,7 +238,7 @@ TieredOrchestrator.boot(team_profile)
 5. **Write tests** in
    `src/runtime/runtime_packs/tests/test_tiered_orchestrator.py`.
 
-6. **Update `Murphy System/docs/MODULE_REGISTRY.md`** (Runtime Packs
+6. **Update `murphy_system/docs/MODULE_REGISTRY.md`** (Runtime Packs
    section) so developers can find it.
 
 ---

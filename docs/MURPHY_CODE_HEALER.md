@@ -313,6 +313,6 @@ Optional integration (graceful degradation if not provided):
 ## Running Tests
 
 ```bash
-cd "Murphy System"
+cd "murphy_system"
 python -m pytest tests/test_murphy_code_healer.py -v --timeout=60
 ```

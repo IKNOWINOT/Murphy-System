@@ -678,7 +678,7 @@ class TestWorkspaceManager:
     def test_render_summary_returns_string(self):
         self.mgr.bootstrap_murphy_workspaces()
         result = self.mgr.render_workspace_summary()
-        assert "Murphy System" in result
+        assert "murphy_system" in result
         assert "workspace" in result.lower()
 
     def test_workspace_mapping_known_module(self):

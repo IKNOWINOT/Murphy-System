@@ -25,7 +25,7 @@ How to run, write, and maintain tests for the Murphy System.
 
 ```bash
 # From the repository root:
-cd "Murphy System"
+cd "murphy_system"
 source venv/bin/activate           # Linux/macOS
 # venv\Scripts\activate            # Windows
 
@@ -358,7 +358,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: "Murphy System"
+        working-directory: "murphy_system"
     env:
       MURPHY_ENV: test
       PYTHONPATH: ${{ github.workspace }}/Murphy System

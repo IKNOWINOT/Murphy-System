@@ -12,7 +12,7 @@ This document is the authoritative, phased execution plan for three interconnect
 
 | Phase group | Phases | Goal |
 |---|---|---|
-| Repo flattening | 1–4 | Move `Murphy System/*` to root, fix imports and scripts |
+| Repo flattening | 1–4 | Move `murphy_system/*` to root, fix imports and scripts |
 | Documentation consolidation | 5–8 | Merge duplicate docs, rewrite to reflect real system |
 | Librarian-driven routing | 9–12 | Wire `task_router.py`, `SystemLibrarian`, `SolutionPathRegistry` |
 | UI consolidation | 13–15 | Dark-only theme, consolidate CSS, simplify terminal HTML |
@@ -31,9 +31,9 @@ This document is the authoritative, phased execution plan for three interconnect
 **Steps:**
 1. Run `git status` and confirm the working tree is clean.
 2. Capture directory tree: `find . -type f | sort > /tmp/pre-flatten-manifest.txt`
-3. Record all Python `import` statements that reference `Murphy System/` subdirectory paths.
-4. Record all shell script invocations that `cd "Murphy System"` or reference it explicitly.
-5. Record all HTML files that `<link>` or `<script src="...">` with paths containing `Murphy System/`.
+3. Record all Python `import` statements that reference `murphy_system/` subdirectory paths.
+4. Record all shell script invocations that `cd "murphy_system"` or reference it explicitly.
+5. Record all HTML files that `<link>` or `<script src="...">` with paths containing `murphy_system/`.
 6. Commit the manifest as `docs/archive/pre-flatten-manifest.txt`.
 
 **Verification:**
@@ -47,21 +47,21 @@ This document is the authoritative, phased execution plan for three interconnect
 
 ## Phase 2 — Move Source Tree to Repository Root
 
-**Goal:** Copy everything from `Murphy System/` to the repository root, preserving directory structure.
+**Goal:** Copy everything from `murphy_system/` to the repository root, preserving directory structure.
 
 **Prerequisites:** Phase 1 complete.
 
 **Files touched:**
-- All files under `Murphy System/` (moved, not deleted — deletion is Phase 4).
-- Root-level `.gitignore` (add `Murphy System/` exclusion entry).
+- All files under `murphy_system/` (moved, not deleted — deletion is Phase 4).
+- Root-level `.gitignore` (add `murphy_system/` exclusion entry).
 
 **Steps:**
 1. From the repository root, copy the subtree:
    ```bash
-   cp -r "Murphy System/." .
+   cp -r "murphy_system/." .
    ```
 2. Resolve conflicts where a root-level file already exists (e.g., `README.md`, `GETTING_STARTED.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`):
-   - Keep the `Murphy System/` version as the canonical version (it is more detailed and current).
+   - Keep the `murphy_system/` version as the canonical version (it is more detailed and current).
    - Archive the root-level stale copy to `docs/archive/root-level-pre-flatten/`.
 3. Stage the new files: `git add .`
 4. Do **not** commit yet — verify imports first (Phase 3).
@@ -82,35 +82,35 @@ git clean -fd
 
 ## Phase 3 — Update All Import Paths and Script References
 
-**Goal:** Every Python import, shell script, HTML asset path, and documentation link that pointed inside `Murphy System/` now points to the equivalent path at the repository root.
+**Goal:** Every Python import, shell script, HTML asset path, and documentation link that pointed inside `murphy_system/` now points to the equivalent path at the repository root.
 
 **Prerequisites:** Phase 2 complete (files exist at both locations, not yet committed).
 
 **Files touched:**
 - `setup_and_start.sh`
 - `setup_and_start.bat`
-- `scripts/*.sh` (any script that `cd "Murphy System"`)
+- `scripts/*.sh` (any script that `cd "murphy_system"`)
 - `start_murphy_1.0.sh` (if present)
 - `murphy` CLI script (if present)
-- `murphy_system_1.0_runtime.py` — any internal `sys.path` manipulation that prepends `Murphy System/`
+- `murphy_system_1.0_runtime.py` — any internal `sys.path` manipulation that prepends `murphy_system/`
 - `src/**/*.py` — any module that uses `from Murphy System.src...` style imports
-- All 14 HTML terminal files — `<link href="Murphy System/static/...">` → `<link href="static/...">`
-- `Makefile` — any target that `cd "Murphy System"`
+- All 14 HTML terminal files — `<link href="murphy_system/static/...">` → `<link href="static/...">`
+- `Makefile` — any target that `cd "murphy_system"`
 - `docker-compose.yml`, `Dockerfile` — working directory or volume mounts
 
 **Steps:**
-1. Find all `cd "Murphy System"` occurrences:
+1. Find all `cd "murphy_system"` occurrences:
    ```bash
    grep -r 'Murphy System' . --include="*.sh" --include="*.bat" --include="*.py" \
         --include="*.html" --include="*.yml" --include="*.yaml" --include="Makefile" -l
    ```
-2. For each file found, replace `Murphy System/` path prefixes with the root-relative equivalent.
-3. For shell scripts: replace `cd "Murphy System"` with `cd "$(dirname "$0")"` or remove the `cd` entirely if the script is already expected to run from the root.
-4. For HTML files: replace `src="Murphy System/static/` with `src="static/` and `href="Murphy System/static/` with `href="static/`.
+2. For each file found, replace `murphy_system/` path prefixes with the root-relative equivalent.
+3. For shell scripts: replace `cd "murphy_system"` with `cd "$(dirname "$0")"` or remove the `cd` entirely if the script is already expected to run from the root.
+4. For HTML files: replace `src="murphy_system/static/` with `src="static/` and `href="murphy_system/static/` with `href="static/`.
 5. Run `python -c "import murphy_system_1.0_runtime"` equivalent import check (substitute actual module name).
 
 **Verification:**
-- `grep -r "Murphy System" . --include="*.py" --include="*.sh" --include="*.html"` returns no results (excluding `docs/archive/`).
+- `grep -r "murphy_system" . --include="*.py" --include="*.sh" --include="*.html"` returns no results (excluding `docs/archive/`).
 - `bash setup_and_start.sh --check` (dry-run mode) exits 0.
 - `python3 -c "import sys; sys.path.insert(0, '.'); import src.governance_kernel.governance_kernel"` exits 0.
 
@@ -122,28 +122,28 @@ git clean -fd
 
 ---
 
-## Phase 4 — Remove the `Murphy System/` Subdirectory
+## Phase 4 — Remove the `murphy_system/` Subdirectory
 
 **Goal:** Delete the now-redundant nested subdirectory.
 
 **Prerequisites:** Phase 3 complete and verified — imports work from root.
 
 **Files touched:**
-- `Murphy System/` directory (deleted entirely).
+- `murphy_system/` directory (deleted entirely).
 
 **Steps:**
 1. Confirm Phase 3 verification passes.
 2. Remove the directory:
    ```bash
-   git rm -r "Murphy System/"
+   git rm -r "murphy_system/"
    ```
 3. Commit:
    ```bash
-   git commit -m "chore: flatten repo — remove Murphy System/ subdirectory"
+   git commit -m "chore: flatten repo — remove murphy_system/ subdirectory"
    ```
 
 **Verification:**
-- `ls "Murphy System/"` returns "No such file or directory".
+- `ls "murphy_system/"` returns "No such file or directory".
 - `python3 murphy_system_1.0_runtime.py --dry-run` exits 0.
 - `bash setup_and_start.sh` completes successfully.
 
@@ -205,7 +205,7 @@ git commit -m "revert: restore old GETTING_STARTED.md"
 
 **Steps:**
 1. Archive the old root-level README to `docs/archive/`.
-2. Merge the best content from the `Murphy System/README.md` into the root `README.md`.
+2. Merge the best content from the `murphy_system/README.md` into the root `README.md`.
 3. Update all internal links to reflect the flat path structure.
 4. Ensure the README points to `GETTING_STARTED.md` as the entry point for new users.
 
@@ -222,7 +222,7 @@ git revert HEAD
 
 ## Phase 7 — Consolidate Remaining Duplicate Docs
 
-**Goal:** Merge all other duplicate root-level vs. `Murphy System/`-level documentation files.
+**Goal:** Merge all other duplicate root-level vs. `murphy_system/`-level documentation files.
 
 **Prerequisites:** Phase 5 and Phase 6 complete.
 
@@ -233,7 +233,7 @@ git revert HEAD
 - `SECURITY.md`
 
 **Steps:**
-1. For each duplicate pair, compare root-level vs. `Murphy System/` version.
+1. For each duplicate pair, compare root-level vs. `murphy_system/` version.
 2. Keep the more complete/recent version; archive the other to `docs/archive/`.
 3. Ensure all internal cross-references use root-relative paths.
 
@@ -249,7 +249,7 @@ git revert HEAD
 
 ## Phase 8 — Update All Internal Documentation Links
 
-**Goal:** Every `docs/`, `documentation/`, and in-code reference that points to a path inside the old `Murphy System/` structure is updated to the flat path.
+**Goal:** Every `docs/`, `documentation/`, and in-code reference that points to a path inside the old `murphy_system/` structure is updated to the flat path.
 
 **Prerequisites:** Phase 7 complete.
 
@@ -259,15 +259,15 @@ git revert HEAD
 - Any `.py` or `.sh` file with string references to docs paths.
 
 **Steps:**
-1. Find all occurrences of `Murphy System/` in markdown files:
+1. Find all occurrences of `murphy_system/` in markdown files:
    ```bash
-   grep -r "Murphy System/" docs/ documentation/ --include="*.md" -l
+   grep -r "murphy_system/" docs/ documentation/ --include="*.md" -l
    ```
 2. For each occurrence, replace with the root-relative equivalent path.
 3. Run a link checker to confirm no broken links remain.
 
 **Verification:**
-- `grep -r "Murphy System/" docs/ documentation/ --include="*.md"` returns no results.
+- `grep -r "murphy_system/" docs/ documentation/ --include="*.md"` returns no results.
 - Link checker reports zero broken internal links.
 
 **Rollback:**
@@ -486,7 +486,7 @@ git revert HEAD
 **Prerequisites:** Phases 1–15 complete.
 
 **Steps:**
-1. From the repository root (not from `Murphy System/`):
+1. From the repository root (not from `murphy_system/`):
    ```bash
    python -m pytest tests/ -v --tb=short 2>&1 | tee /tmp/phase16-test-results.txt
    ```

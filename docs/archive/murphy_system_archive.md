@@ -17,7 +17,7 @@ and the archive inventory.
 The legacy archive was intentionally transferred to a dedicated repository:
 [iknowinot/murphy-system-archive](https://github.com/IKNOWINOT/murphy-system-archive)
 
-See `Murphy System/docs/commissioning/ARCHIVE_INVENTORY.md` for transfer
+See `murphy_system/docs/commissioning/ARCHIVE_INVENTORY.md` for transfer
 details.
 
 ---
@@ -103,7 +103,7 @@ not an accidental deletion.
 
 **Finding:** The CI workflow (`.github/workflows/ci.yml`) uses
 `python -m pytest --timeout=60` but the `pytest-timeout` package was missing
-from `Murphy System/requirements_murphy_1.0.txt`.
+from `murphy_system/requirements_murphy_1.0.txt`.
 
 **Resolution:** Added `pytest-timeout>=2.2.0` to the requirements file.
 
@@ -118,7 +118,7 @@ no broken links point to the archived content.
 The main application directory is named `Murphy System` (with a space and mixed
 case). This is consistent across:
 
-- `.github/workflows/ci.yml` (`working-directory: "Murphy System"`)
+- `.github/workflows/ci.yml` (`working-directory: "murphy_system"`)
 - All documentation references
 - The file system layout
 

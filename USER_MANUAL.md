@@ -69,7 +69,7 @@ bash setup_and_start.sh
 **Manual setup:**
 
 ```bash
-cd "Murphy System"
+cd "murphy_system"
 pip install -r requirements_murphy_1.0.txt
 python murphy_system_1.0_runtime.py
 ```
@@ -77,7 +77,7 @@ python murphy_system_1.0_runtime.py
 **Windows:**
 
 ```bat
-cd "Murphy System"
+cd "murphy_system"
 setup_murphy.bat
 ```
 
@@ -955,8 +955,8 @@ All HTML interfaces are static files. Open them directly in a browser:
 
 ```bash
 # Open the onboarding wizard
-open "Murphy System/onboarding_wizard.html"       # macOS
-xdg-open "Murphy System/onboarding_wizard.html"   # Linux
+open "murphy_system/onboarding_wizard.html"       # macOS
+xdg-open "murphy_system/onboarding_wizard.html"   # Linux
 start "Murphy System\onboarding_wizard.html"       # Windows
 ```
 
@@ -975,7 +975,7 @@ Terminal interfaces provide browser-based command-line access for direct API int
 ### 16.1 Docker Deployment
 
 ```bash
-cd "Murphy System"
+cd "murphy_system"
 
 # Build the image (multi-stage build)
 docker build -t murphy-system:1.0 .

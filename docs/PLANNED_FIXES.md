@@ -15,7 +15,7 @@ Goal: Make the system runnable for a new developer on a fresh clone.
 
 - [x] Remove `asyncio>=3.4.3` from both `requirements_murphy_1.0.txt` files
 - [x] Change `.env.example` default from `staging` to `development` in both copies
-- [x] Create `requirements_core.txt` (root + `Murphy System/`) for fast minimal install
+- [x] Create `requirements_core.txt` (root + `murphy_system/`) for fast minimal install
 - [x] Document known issues in `docs/KNOWN_ISSUES.md`
 - [x] Document planned fixes in `docs/PLANNED_FIXES.md` (this file)
 - [x] Add Quick Start (Development) section to root `README.md`
@@ -60,7 +60,7 @@ that routes to tiered or monolith runtime based on environment variable.
 Goal: Modernise the codebase once the tiered runtime is proven stable in
 production. **Do NOT start Phase 4 until Phase 3 is validated.**
 
-- [ ] **Consolidate dual file tree** — merge root `src/` and `Murphy System/src/`
+- [ ] **Consolidate dual file tree** — merge root `src/` and `murphy_system/src/`
   into a single canonical source of truth; update all import paths and
   Docker configs
 - [ ] **Add CI/CD with GitHub Actions** — matrix build across Python 3.10 / 3.11
@@ -77,7 +77,7 @@ production. **Do NOT start Phase 4 until Phase 3 is validated.**
   deploy; zero-downtime migration strategy
 - [ ] **Performance benchmarks** — measure and document monolith vs tiered
   startup time and resident memory across 3 representative team profiles
-- [ ] **Fix Docker build** — copy `Murphy System/` directory correctly (space in
+- [ ] **Fix Docker build** — copy `murphy_system/` directory correctly (space in
   name); or consolidate the dual tree first
 - [ ] **Resolve Redis rate-limiting gap** — document multi-worker Redis
   requirement prominently; add health-check endpoint that warns when

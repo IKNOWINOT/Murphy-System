@@ -32,7 +32,7 @@ Murphy System can be deployed in three modes:
 ```bash
 # 1. Clone
 git clone https://github.com/IKNOWINOT/Murphy-System
-cd "Murphy System"
+cd "murphy_system"
 
 # 2. Create virtualenv
 python -m venv .venv
@@ -64,7 +64,7 @@ python murphy_terminal.py
 ### Build and run
 
 ```bash
-cd "Murphy System"
+cd "murphy_system"
 
 # Build image
 docker build -t murphy-system:1.0.0 .
@@ -101,7 +101,7 @@ docker stop murphy && docker rm murphy
 ## Docker Compose (Production)
 
 ```bash
-cd "Murphy System"
+cd "murphy_system"
 cp .env.example .env   # fill in secrets
 docker compose up -d
 ```

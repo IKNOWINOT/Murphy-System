@@ -136,12 +136,12 @@ pure in-memory structures wiped on every `systemctl restart murphy-production`.
   - `🏢 ORG PORTAL` → `/ui/org-portal` (Org Portal — under ACCOUNT)
   - `📚 DOCS` → `/ui/docs` (Documentation — under ACCOUNT)
 - **Command palette expanded**: 21 → 28 destinations; all new pages added to Ctrl+K palette
-- Both `static/murphy-components.js` and `Murphy System/static/murphy-components.js` updated in sync
+- Both `static/murphy-components.js` and `murphy_system/static/murphy-components.js` updated in sync
 
 ### Changed
 - `src/founder_update_engine/__init__.py`: Updated to export all PR 1–3 classes: `BugCategory`, `BugReport`, `BugResponse`, `BugResponseHandler`, `BugSeverity`, `DashboardSnapshot`, `OperatingAnalysisDashboard`, `SubsystemHealthSummary`
 - `tests/test_ui_wiring_improvements.py`: Sidebar expected hrefs updated from 12 → 20; command palette expected hrefs updated from 11 → 19
-- Both `tests/test_ui_wiring_improvements.py` and `Murphy System/tests/test_ui_wiring_improvements.py` updated in sync
+- Both `tests/test_ui_wiring_improvements.py` and `murphy_system/tests/test_ui_wiring_improvements.py` updated in sync
 
 
 
@@ -161,11 +161,11 @@ pure in-memory structures wiped on every `systemctl restart murphy-production`.
 - **3 default automation rules** seeded on startup: auto-reply on missed call, escalate urgent emails, auto-moderate flagged IM
 - **3 default broadcast targets** seeded: `im#general`, `email#all-staff`, `matrix#murphy-general`
 - Supported broadcast platforms: `im`, `voice`, `video`, `email`, `slack`, `discord`, `matrix`, `sms`
-- All new files mirrored to `Murphy System/` subdirectory
+- All new files mirrored to `murphy_system/` subdirectory
 - `docs/COMMS_HUB.md` — detailed system documentation
 
 ### Changed
-- `src/runtime/app.py` and `Murphy System/src/runtime/app.py`: comms hub router registered; `/ui/comms-hub` added to HTML routes
+- `src/runtime/app.py` and `murphy_system/src/runtime/app.py`: comms hub router registered; `/ui/comms-hub` added to HTML routes
 - `API_ROUTES.md`: full Communication Hub section added (38 endpoints)
 - `ARCHITECTURE_MAP.md`: Communication Hub module added
 ## [Unreleased] — Critical LLM Mode Detection Fixes
@@ -217,7 +217,7 @@ pure in-memory structures wiped on every `systemctl restart murphy-production`.
 
 ### Changed
 - `src/coinbase_connector.py`: Default `sandbox=True` (was `False`); live mode requires `COINBASE_LIVE_MODE=true` env var
-- `Murphy System/` files synced with root (`coinbase_connector.py`, `wallet.html`, requirements)
+- `murphy_system/` files synced with root (`coinbase_connector.py`, `wallet.html`, requirements)
 
 ## [Unreleased]
 
@@ -266,7 +266,7 @@ PAPER/SIMULATED — no real money is moved.
   downtrend, parabolic, and extreme-sentiment inputs.  Registry completeness test.
 
 #### Updated files
-- **`requirements_murphy_1.0.txt`** and **`Murphy System/requirements_murphy_1.0.txt`** —
+- **`requirements_murphy_1.0.txt`** and **`murphy_system/requirements_murphy_1.0.txt`** —
   uncommented/added: `coinbase-advanced-py>=1.8.2`, `ccxt>=4.5.0`, `web3>=7.0.0`,
   `yfinance>=1.2.0`, `ta>=0.11.0`, `statsmodels>=0.14.0`.
 - **`src/runtime/app.py`** — added `paper_trading_routes` router registration at
@@ -310,7 +310,7 @@ without seeing "Authentication required".
   first and sends `Authorization: Bearer <token>`.  Falls back to `murphy_api_key`
   / `X-API-Key` if no session token is present.
 
-#### Frontend: `login.html` + `Murphy System/login.html`
+#### Frontend: `login.html` + `murphy_system/login.html`
 
 - After a successful login response both files now store:
   ```js
@@ -318,11 +318,11 @@ without seeing "Authentication required".
   localStorage.setItem('murphy_user_id', result.data.account_id);
   ```
 
-#### Frontend: `signup.html` + `Murphy System/signup.html`
+#### Frontend: `signup.html` + `murphy_system/signup.html`
 
 - Same — `murphy_session_token` and `murphy_user_id` stored on successful signup.
 
-#### Frontend: `murphy_auth.js` + `Murphy System/murphy_auth.js`
+#### Frontend: `murphy_auth.js` + `murphy_system/murphy_auth.js`
 
 - **`_handleOAuthSuccess()`** rewritten to `async`.  Instead of attempting to read
   the HttpOnly `murphy_session` cookie from `document.cookie` (which always returns
@@ -349,7 +349,7 @@ without seeing "Authentication required".
 - `docs/API_REFERENCE.md` + mirror — Authentication section rewritten to describe
   the cookie + Bearer + X-API-Key precedence chain and both auth flows.
 - `SECURITY.md` — added Authentication Architecture table with session token details.
-- `Murphy System/SECURITY.md` — updated Security Architecture table.
+- `murphy_system/SECURITY.md` — updated Security Architecture table.
 - `API_ROUTES.md` + mirror — added `POST /api/auth/login`, `POST /api/auth/logout`,
   and `GET /api/auth/session-token` rows; signup description updated.
 
@@ -529,7 +529,7 @@ Three bugs prevented the Librarian terminal from working for logged-in users:
 
 #### Changes
 
-- **`src/fastapi_security.py`** + **`Murphy System/src/fastapi_security.py`**:
+- **`src/fastapi_security.py`** + **`murphy_system/src/fastapi_security.py`**:
   - Added `_is_login_endpoint(path, method)` helper that returns `True` only for
     `POST /api/auth/login`.  Brute-force failure tracking (CWE-307) is now
     scoped exclusively to this endpoint — the only one where an attacker submits
@@ -540,7 +540,7 @@ Three bugs prevented the Librarian terminal from working for logged-in users:
     chat interfaces that issue multiple parallel API calls per interaction.
     The value remains tunable via environment variable.
 
-- **`static/murphy-components.js`** + **`Murphy System/static/murphy-components.js`**:
+- **`static/murphy-components.js`** + **`murphy_system/static/murphy-components.js`**:
   - `applyMSS()`: changed error extraction from
     `result.data?.error || result.error` to `result.error || result.data?.error?.message`
     so the already-coerced string in `result.error` is used first, preventing
@@ -601,7 +601,7 @@ linked a Murphy user account.
 
 **Changes:**
 
-- **`src/oauth_oidc_provider.py`** + **`Murphy System/src/oauth_oidc_provider.py`** —
+- **`src/oauth_oidc_provider.py`** + **`murphy_system/src/oauth_oidc_provider.py`** —
   production-quality real HTTP integration added to `OAuthManager`:
   - `__init__(http_client=None)` — accepts an injectable HTTP client
     (e.g. `httpx.Client`).  When `None`, falls back to simulation mode (existing
@@ -636,7 +636,7 @@ linked a Murphy user account.
   - New Blueprint endpoint `GET /api/oauth/tokens/<token_id>/userinfo` — fetches
     and returns the OIDC user profile for a stored token.
 
-- **`src/runtime/app.py`** + **`Murphy System/src/runtime/app.py`** —
+- **`src/runtime/app.py`** + **`murphy_system/src/runtime/app.py`** —
   OAuth callback and initiation routes now use `AccountManager`:
   - `_account_manager` (`AccountManager` singleton) replaces the bare
     `_oauth_registry` as the primary OAuth orchestrator.  The inner
@@ -654,7 +654,7 @@ linked a Murphy user account.
   - `GET /api/auth/oauth/{provider}` — calls `_account_manager.begin_oauth_signup()`
     instead of `_oauth_registry.begin_auth_flow()`.
 
-- **`tests/test_oauth_oidc_provider.py`** + **`Murphy System/tests/test_oauth_oidc_provider.py`** —
+- **`tests/test_oauth_oidc_provider.py`** + **`murphy_system/tests/test_oauth_oidc_provider.py`** —
   12 new tests covering the real HTTP path (OAU-044 through OAU-055):
   - `OAU-044` — real HTTP exchange stores real `access_token` from injected mock client.
   - `OAU-045` — `fetch_userinfo()` populates `UserInfo` from userinfo endpoint.
@@ -674,7 +674,7 @@ linked a Murphy user account.
 **Problem:** The All Hands meeting system was a mock/stub.  No meeting scheduling,
 attendee management, agenda, action items, or minutes existed.
 
-**New module:** `src/all_hands.py` + `Murphy System/src/all_hands.py`
+**New module:** `src/all_hands.py` + `murphy_system/src/all_hands.py`
 
 - **Enums** — `MeetingStatus` (4), `AttendeeStatus` (5), `AgendaItemStatus` (4),
   `ActionItemStatus` (4), `MeetingType` (6), `RecurrenceFrequency` (5).
@@ -700,11 +700,11 @@ attendee management, agenda, action items, or minutes existed.
   - 20+ REST endpoints — full CRUD for meetings, attendees, agenda items,
     action items, and minutes.  Lifecycle routes: `/start`, `/end`, `/next-occurrence`.
   - Consistent `{"error": …, "code": …}` error envelope.
-- **Wired into `src/runtime/app.py`** and **`Murphy System/src/runtime/app.py`** —
+- **Wired into `src/runtime/app.py`** and **`murphy_system/src/runtime/app.py`** —
   `AllHandsManager` singleton created at startup; Flask Blueprint mounted
   via `WSGIMiddleware` at `/api/all-hands/*`.
 
-**New tests:** `tests/test_all_hands.py` + `Murphy System/tests/test_all_hands.py` —
+**New tests:** `tests/test_all_hands.py` + `murphy_system/tests/test_all_hands.py` —
 75 tests (AHM-001 – AHM-075) covering:
   - All 6 enum sizes.
   - Full meeting lifecycle (schedule → start → end → minutes).
@@ -731,7 +731,7 @@ pages. Pre-login API calls (`/api/auth/oauth/*`, `/api/reviews`, `/favicon.ico`,
 etc.) were treated as authentication failures.
 
 **Changes:**
-- **`src/fastapi_security.py`** + **`Murphy System/src/fastapi_security.py`**:
+- **`src/fastapi_security.py`** + **`murphy_system/src/fastapi_security.py`**:
   - Added `_is_public_api_route(path, method)` function — returns `True` for
     routes that are intentionally accessible without credentials
     (`/api/auth/oauth/*`, `/api/auth/callback/*`, `/api/auth/login`,
@@ -741,7 +741,7 @@ etc.) were treated as authentication failures.
     path ending in `/favicon.svg` (browsers auto-request these on every load).
   - Updated `SecurityMiddleware.dispatch()` to bypass brute-force tracking,
     rate-limiting, and auth checks for all public API routes.
-- **`Murphy System/src/security_plane/middleware.py`**:
+- **`murphy_system/src/security_plane/middleware.py`**:
   - Expanded `_PUBLIC_PATHS` tuple to include `/favicon.ico`,
     `/api/health`, `/api/manifest`, `/api/info`, `/api/ui/links`,
     `/api/auth/login`, `/api/auth/register`, `/api/auth/signup`,
@@ -763,11 +763,11 @@ etc.) were treated as authentication failures.
 
 ### Fixed — OAuth callback: redirect to dashboard with session cookie
 
-- **fix(oauth):** `src/runtime/app.py` + `Murphy System/src/runtime/app.py` — the `/api/auth/callback` OAuth handler no longer returns a raw `JSONResponse` containing the token fields. It now:
+- **fix(oauth):** `src/runtime/app.py` + `murphy_system/src/runtime/app.py` — the `/api/auth/callback` OAuth handler no longer returns a raw `JSONResponse` containing the token fields. It now:
   1. Generates a cryptographically-random session token via `secrets.token_urlsafe(32)`.
   2. Sets a `murphy_session` cookie (`httponly=True`, `secure=True`, `samesite="lax"`, `max_age=86400`) so the session survives page navigation.
   3. Issues a `302 RedirectResponse` to `/ui/terminal-unified?oauth_success=1&provider=<name>`, landing the user on the dashboard after any configured OAuth provider completes authentication.
-- **feat(auth-js):** `murphy_auth.js` + `Murphy System/murphy_auth.js` — added `_handleOAuthSuccess()` helper (called at the top of `boot()`) that:
+- **feat(auth-js):** `murphy_auth.js` + `murphy_system/murphy_auth.js` — added `_handleOAuthSuccess()` helper (called at the top of `boot()`) that:
   - Detects the `?oauth_success=1` query parameter present after an OAuth redirect.
   - Reads the `murphy_session` cookie value and mirrors it into `localStorage` as `murphy_session_token` so Bearer-token API calls work immediately.
   - Stores the provider name in `localStorage` under `murphy_oauth_provider`.
@@ -796,13 +796,13 @@ etc.) were treated as authentication failures.
     `DEMO_SCENARIOS.onboarding` to `return buildCustomScenario(q)`. Keyword-matched scenarios
     (onboarding, proposal, report, invoice, research, contract) continue to work exactly as before;
     only the fallback path changes.
-- **fix(ui):** `Murphy System/murphy_landing_page.html` — Same changes applied to the mirrored copy.
+- **fix(ui):** `murphy_system/murphy_landing_page.html` — Same changes applied to the mirrored copy.
 - **test:** `tests/test_ui_style_consistency.py` — Added `test_landing_demo_custom_fallback` and
   `test_landing_demo_build_custom_scenario` to verify the presence and correctness of
   `buildCustomScenario` and the updated `demoMatch` fallback in `murphy_landing_page.html`.
 ### Fixed — OAuth Callback: Redirect to Dashboard with Session Cookie
 
-- **fix(auth):** `src/runtime/app.py`, `Murphy System/src/runtime/app.py` — **`GET /api/auth/callback`** now properly logs users in after a social OAuth flow instead of dumping raw JSON in the browser.
+- **fix(auth):** `src/runtime/app.py`, `murphy_system/src/runtime/app.py` — **`GET /api/auth/callback`** now properly logs users in after a social OAuth flow instead of dumping raw JSON in the browser.
   - **Before**: `oauth_callback` returned a `JSONResponse` containing token details (provider, token_type, profile, etc.). Users saw a JSON blob instead of being redirected to the dashboard.
   - **After**: On successful `complete_auth_flow()`, the handler now:
     1. Generates a cryptographically secure session token via `secrets.token_urlsafe(32)`.
@@ -812,9 +812,9 @@ etc.) were treated as authentication failures.
   - Tests: `tests/test_oauth_callback_redirect.py` — 6 new tests covering redirect status, cookie presence, query-param encoding, and error responses.
 ### Changed — Round 60 — OAuthProvider enum: add Meta, LinkedIn, Apple
 
-- **fix(oauth):** `src/oauth_oidc_provider.py` + `Murphy System/src/oauth_oidc_provider.py` — expanded `OAuthProvider` enum from 4 → 7 members to match the canonical definition in `src/account_management/models.py`. Added `META = "meta"`, `LINKEDIN = "linkedin"`, `APPLE = "apple"`. Member order aligned to canonical order (MICROSOFT/GOOGLE/META/GITHUB/LINKEDIN/APPLE/CUSTOM). Fixes login flows for the Meta, LinkedIn, and Apple "Continue with…" buttons on the sign-up page.
-- **fix(test):** `tests/test_oauth_oidc_provider.py` + `Murphy System/tests/test_oauth_oidc_provider.py` — updated `test_oau_001_provider_enum` expected count from `4` → `7`.
-- **docs:** `docs/MODULE_REGISTRY.md` + `Murphy System/docs/MODULE_REGISTRY.md` — updated `oauth_oidc_provider.py` registry description to list all 7 providers (Google/GitHub/Microsoft/Meta/LinkedIn/Apple/Custom).
+- **fix(oauth):** `src/oauth_oidc_provider.py` + `murphy_system/src/oauth_oidc_provider.py` — expanded `OAuthProvider` enum from 4 → 7 members to match the canonical definition in `src/account_management/models.py`. Added `META = "meta"`, `LINKEDIN = "linkedin"`, `APPLE = "apple"`. Member order aligned to canonical order (MICROSOFT/GOOGLE/META/GITHUB/LINKEDIN/APPLE/CUSTOM). Fixes login flows for the Meta, LinkedIn, and Apple "Continue with…" buttons on the sign-up page.
+- **fix(test):** `tests/test_oauth_oidc_provider.py` + `murphy_system/tests/test_oauth_oidc_provider.py` — updated `test_oau_001_provider_enum` expected count from `4` → `7`.
+- **docs:** `docs/MODULE_REGISTRY.md` + `murphy_system/docs/MODULE_REGISTRY.md` — updated `oauth_oidc_provider.py` registry description to list all 7 providers (Google/GitHub/Microsoft/Meta/LinkedIn/Apple/Custom).
 - **docs:** `src/account_management/README.md` — updated overview to list Microsoft, Google, Meta, LinkedIn, and Apple as supported OAuth providers.
 - **docs:** `CHANGELOG.md` historical entry for `models.py` — corrected `OAuthProvider` member list to include LinkedIn and Apple.
 
@@ -946,7 +946,7 @@ etc.) were treated as authentication failures.
 
 - **docs(auar):** `docs/AUAR_TECHNICAL_PROPOSAL.md` Appendix C — documents UCB1 algorithm (vs. original epsilon-greedy), pluggable persistence layer (`FileStateBackend`/`MemoryStateBackend`), admin security controls (`AUAR_ADMIN_TOKEN`, audit logging, rate limiting, Pydantic validation), and AUAR-specific config vars table. Proposal version updated 0.1.0 → 0.2.0. **Closes GAP-4.**
 - **docs(packages):** Added `README.md` to all 50 remaining `src/` packages (was 15/65, now 65/65). Added `src/README.md` top-level overview covering all 459 files across 8 architectural layers. **Fully closes GAP-5.**
-- **docs(config):** `documentation/deployment/CONFIGURATION.md` — all 96 environment variables now documented. New §11 MFM (9 vars), §12 Matrix Integration (17 vars), §13 Backend Modes (4 vars), §14 Complete Variable Index. Added variable tables to §2-§9. Fixed stale `cd "Murphy System"` path. **Closes GAP-7.**
+- **docs(config):** `documentation/deployment/CONFIGURATION.md` — all 96 environment variables now documented. New §11 MFM (9 vars), §12 Matrix Integration (17 vars), §13 Backend Modes (4 vars), §14 Complete Variable Index. Added variable tables to §2-§9. Fixed stale `cd "murphy_system"` path. **Closes GAP-7.**
 - **docs(gaps):** GAP-6 (Groq test suite) and GAP-8 (specialized module docs) both marked ✅ resolved. All 8 documentation gaps are now closed.
 - **test:** `tests/test_gap_closure_round51.py` — 38 tests verifying GAP-4, GAP-5, GAP-6, GAP-7 are all closed; all pass.
 - **docs(audit):** `docs/AUDIT_AND_COMPLETION_REPORT.md` — all GAPs (1-8) marked ✅ RESOLVED; documentation coverage updated to ~95%.
@@ -980,9 +980,9 @@ etc.) were treated as authentication failures.
 
 ### Documentation
 - **docs:** `ROADMAP.md` — public revenue-first sprint plan with $0-budget execution strategy (Sprints 1–4, revenue-gated milestones)
-- **docs:** `Murphy System/BUSINESS_MODEL.md` — concrete pricing tiers (Solo $29/mo, Business $99/mo, Professional $299/mo, Enterprise custom); added "Murphy's UX Paradigm: Describe → Execute → Refine" section
+- **docs:** `murphy_system/BUSINESS_MODEL.md` — concrete pricing tiers (Solo $29/mo, Business $99/mo, Professional $299/mo, Enterprise custom); added "Murphy's UX Paradigm: Describe → Execute → Refine" section
 - **docs:** `README.md` — repositioned "Describe → Execute" as hero feature (first in Key Features list); added "🗣️ How It Works: Describe → Execute → Refine" section; added ROADMAP.md to Documentation table
-- **docs:** `Murphy System/README.md` — added "Primary Flow: Describe → Execute" table as the leading subsection of API Reference
+- **docs:** `murphy_system/README.md` — added "Primary Flow: Describe → Execute" table as the leading subsection of API Reference
 
 ### UI Completion (85% → 100%)
 - **ui: P0** — Design system foundation: `murphy-design-system.css` (45KB, all tokens + light theme + 24 component classes), `murphy-components.js` (64KB, 13 reusable components including MurphyAPI, MurphyLibrarianChat, MurphyTerminalPanel), `murphy-canvas.js` (65KB, canvas rendering engine with pan/zoom/nodes/edges/auto-layout), `murphy-icons.svg` (42 icons), `favicon.svg`, and `DESIGN_SYSTEM.md`
@@ -1014,12 +1014,12 @@ etc.) were treated as authentication failures.
 - **feat:** NTF-001 — Multi-channel Notification System (`src/notification_system.py`) with email/Slack/Discord/Teams/webhook channels, template engine, priority routing, rate limiting, quiet hours, and Flask Blueprint with 15 endpoints (56 tests)
 - **feat:** WHK-001 — Outbound Webhook Dispatcher (`src/webhook_dispatcher.py`) with HMAC-SHA256 signing, exponential-backoff retry, delivery-history tracking, and Flask Blueprint with 13 endpoints (59 tests)
 - **Maturity Cycle 3: 78 → 100/100** — All remaining gaps resolved:
-  - `Murphy System/docs/STALE_PR_CLEANUP.md` — Rationale and decision record for closing PRs #21, #27, #46, #56, #64, #95
-  - `Murphy System/docs/API_REFERENCE.md` — Complete API reference for all public endpoints (`/api/health`, `/api/status`, `/api/execute`, `/api/llm/*`, `/api/gates/*`, `/api/confidence/*`, `/api/orchestrator/*`, `/api/modules/*`, `/api/feedback`)
-  - `Murphy System/docs/DEPLOYMENT_GUIDE.md` — Docker/Compose/K8s deployment guide; environment variable reference; security checklist; monitoring and alerting setup; backup and recovery procedures
-  - `Murphy System/docs/MODULE_INTEGRATION_MAP.md` — Cross-module dependency map; integration test coverage per module pair; known interaction patterns and edge cases
-  - `Murphy System/tests/test_cross_module_integration.py` — 5 cross-module pipeline tests (security→api→confidence, state→feedback→llm, mss→niche→gate, self-fix→persistence→recovery, gate→governance→rbac)
-  - `Murphy System/tests/test_full_system_smoke.py` — 4 end-to-end smoke test suites (health check path, LLM configure path, task submission path, audit trail)
+  - `murphy_system/docs/STALE_PR_CLEANUP.md` — Rationale and decision record for closing PRs #21, #27, #46, #56, #64, #95
+  - `murphy_system/docs/API_REFERENCE.md` — Complete API reference for all public endpoints (`/api/health`, `/api/status`, `/api/execute`, `/api/llm/*`, `/api/gates/*`, `/api/confidence/*`, `/api/orchestrator/*`, `/api/modules/*`, `/api/feedback`)
+  - `murphy_system/docs/DEPLOYMENT_GUIDE.md` — Docker/Compose/K8s deployment guide; environment variable reference; security checklist; monitoring and alerting setup; backup and recovery procedures
+  - `murphy_system/docs/MODULE_INTEGRATION_MAP.md` — Cross-module dependency map; integration test coverage per module pair; known interaction patterns and edge cases
+  - `murphy_system/tests/test_cross_module_integration.py` — 5 cross-module pipeline tests (security→api→confidence, state→feedback→llm, mss→niche→gate, self-fix→persistence→recovery, gate→governance→rbac)
+  - `murphy_system/tests/test_full_system_smoke.py` — 4 end-to-end smoke test suites (health check path, LLM configure path, task submission path, audit trail)
 - **G-007 resolved**: `pyproject.toml` optional dependency groups added — `llm`, `security`, `terminal`, `dev`, `all`
 - **CI/CD**: Job-level `timeout-minutes: 30` added to `test` and `security` workflow jobs
 
@@ -1028,15 +1028,15 @@ etc.) were treated as authentication failures.
 - **B-005**: Test count badge — 8,843 passing tests confirmed; `full_system_assessment.md` aligned
 
 ### Changed
-- `Murphy System/full_system_assessment.md` — Maturity score updated from 78/100 to **100/100**; all categories raised to maximum; outstanding items table cleared
+- `murphy_system/full_system_assessment.md` — Maturity score updated from 78/100 to **100/100**; all categories raised to maximum; outstanding items table cleared
 - `CONTRIBUTING.md` — Branch protection recommendations and stale PR policy added
 
 ### Added
 - **Stream 5: Documentation, README, and Assessment Sync** — Full documentation audit and update:
   - Root `README.md` updated with `## API Endpoints` table and `## Configuration` environment-variable reference
-  - `Murphy System/full_system_assessment.md` created with updated maturity score (31 → 78/100), module inventory, resolved gaps, and Phase 2 recommendations
-  - `Murphy System/documentation/api/AUTHENTICATION.md` already reflects implemented auth — confirmed accurate
-  - `Murphy System/tests/test_documentation.py` added — validates README sections, CHANGELOG format, env-var documentation, and API endpoint presence
+  - `murphy_system/full_system_assessment.md` created with updated maturity score (31 → 78/100), module inventory, resolved gaps, and Phase 2 recommendations
+  - `murphy_system/documentation/api/AUTHENTICATION.md` already reflects implemented auth — confirmed accurate
+  - `murphy_system/tests/test_documentation.py` added — validates README sections, CHANGELOG format, env-var documentation, and API endpoint presence
   - `CHANGELOG.md` updated with Stream 1–5 entries
 - **Stream 4: CI/CD Hardening** — Automated test pipeline improvements:
   - GitHub Actions workflow added/updated for automated test execution on push and pull request

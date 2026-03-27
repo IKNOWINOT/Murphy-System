@@ -1,0 +1,75 @@
+# Murphy System — Gap Detector & Regression Guard
+#
+# Runs the gap_detector.py script on every push and PR to:
+#   1. Check storyline test conformance
+#   2. Detect capability drift vs baseline
+#   3. Count debt markers (fail if above threshold)
+#   4. Validate API endpoint documentation
+#   5. Audit environment variables
+#   6. Verify all markdown-referenced files exist
+#
+# The job FAILS if any hard-failure check regresses, blocking the merge.
+#
+# Copyright © 2020-2026 Inoni LLC — Created by Corey Post
+# License: BSL 1.1
+
+name: Gap Detector
+
+on:
+  push:
+    branches: ["main", "master", "develop", "copilot/**"]
+  pull_request:
+    branches: ["main", "master", "develop"]
+
+env:
+  MURPHY_ENV: test
+  MURPHY_DB_MODE: stub
+
+jobs:
+  gap-detector:
+    name: Gap Detector (regression guard)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: "murphy_system"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install \
+            fastapi uvicorn pydantic httpx \
+            flask flask-cors \
+            pytest pytest-asyncio pytest-timeout \
+            cryptography PyJWT \
+            networkx numpy \
+            pyyaml python-dotenv \
+            || true
+
+      - name: Run gap detector
+        id: gap_detector
+        run: |
+          python scripts/gap_detector.py 2>&1 | tee gap-detector-results.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload gap detector results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gap-detector-results
+          path: "murphy_system/gap-detector-results.txt"
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Fail on regressions
+        if: steps.gap_detector.outputs.exit_code != '0'
+        run: |
+          echo "::error title=Gap Detector Failed::One or more gap detector checks regressed. Merge blocked."
+          cat gap-detector-results.txt
+          exit 1

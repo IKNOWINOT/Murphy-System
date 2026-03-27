@@ -43,7 +43,7 @@ def _brand_footer(brand: Optional[Any]) -> str:
 
 def _cover_page(plan: Dict[str, Any], brand: Optional[Any]) -> str:
     """Render the cover page block."""
-    company = brand.company_name if brand else "Murphy System"
+    company = brand.company_name if brand else "murphy_system"
     site = plan.get("site", "N/A")
     system = plan.get("system", "N/A")
     today = date.today().isoformat()
@@ -275,7 +275,7 @@ def _fpt_from_meta_forms(forms: List[Dict[str, Any]], plan: Dict[str, Any], bran
     """
     site = plan.get("site", "N/A")
     system = plan.get("system", "N/A")
-    company = brand.company_name if brand else "Murphy System"
+    company = brand.company_name if brand else "murphy_system"
 
     parts: list[str] = []
     parts.append(_brand_header(brand, "Functional Performance Test Report"))
@@ -374,7 +374,7 @@ def fpt_report(plan: Dict[str, Any], brand: Optional[Any] = None) -> str:
     parts.append(_brand_header(brand, "Functional Performance Test Report"))
     site = plan.get("site", "N/A")
     system = plan.get("system", "N/A")
-    company = brand.company_name if brand else "Murphy System"
+    company = brand.company_name if brand else "murphy_system"
 
     parts.append(f"# Functional Performance Test Report\n")
     parts.append(f"**Site:** {site}  |  **System:** {system}  |  **Prepared by:** {company}\n")
@@ -427,7 +427,7 @@ def cx_punch_list(plan: Dict[str, Any], brand: Optional[Any] = None) -> str:
     parts: list[str] = []
     parts.append(_brand_header(brand, "Commissioning Punch List"))
     site = plan.get("site", "N/A")
-    company = brand.company_name if brand else "Murphy System"
+    company = brand.company_name if brand else "murphy_system"
 
     parts.append(f"# Commissioning Punch List\n")
     parts.append(f"**Site:** {site}  |  **Prepared by:** {company}  |  **Date:** {date.today().isoformat()}\n")
@@ -471,7 +471,7 @@ def cx_summary(plan: Dict[str, Any], brand: Optional[Any] = None) -> str:
     parts.append(_brand_header(brand, "Commissioning Executive Summary"))
     site = plan.get("site", "N/A")
     system = plan.get("system", "N/A")
-    company = brand.company_name if brand else "Murphy System"
+    company = brand.company_name if brand else "murphy_system"
 
     parts.append(f"# Commissioning Executive Summary\n")
     parts.append(f"**Site:** {site}  |  **System:** {system}  |  **Prepared by:** {company}\n")

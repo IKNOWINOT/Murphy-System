@@ -35,7 +35,7 @@ class TestSalesAutomationConfig(unittest.TestCase):
     def test_default_config(self):
         cfg = SalesAutomationConfig()
         self.assertEqual(cfg.company_name, "Inoni LLC")
-        self.assertEqual(cfg.product_name, "Murphy System")
+        self.assertEqual(cfg.product_name, "murphy_system")
         self.assertTrue(cfg.demo_mode_enabled)
         self.assertEqual(len(cfg.editions), 3)
         self.assertIn("website", cfg.sales_channels)

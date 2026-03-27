@@ -583,7 +583,7 @@ class TestReportGeneration:
         assert isinstance(report, str)
 
     def test_report_contains_title(self, engine):
-        assert "Murphy System" in engine.generate_report()
+        assert "murphy_system" in engine.generate_report()
 
     def test_report_contains_health_header(self, engine):
         assert "Health" in engine.generate_report()

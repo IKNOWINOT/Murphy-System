@@ -211,7 +211,7 @@ appendfsync everysec
 
 ```bash
 # 1. Pull new code
-cd "Murphy System"
+cd "murphy_system"
 git pull origin main
 
 # 2. Activate virtual environment

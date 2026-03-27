@@ -168,7 +168,7 @@ See: [pytest_smoke.txt](11_self_improvement/pytest_smoke.txt)
 bash telemetry_evidence/operate_murphy.sh
 
 # Or manually:
-cd "Murphy System"
+cd "murphy_system"
 python3 /tmp/serve_murphy.py   # starts server with UI + API on port 8000
 
 # Then visit:

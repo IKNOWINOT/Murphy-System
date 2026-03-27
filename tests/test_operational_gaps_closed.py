@@ -454,7 +454,7 @@ class TestDepsPathSetup:
     def test_deps_adds_project_root_to_path(self):
         with open(os.path.join(_PROJECT_ROOT, "src", "runtime", "_deps.py")) as fh:
             source = fh.read()
-        # Must use parent.parent.parent to get Murphy System/ from src/runtime/_deps.py
+        # Must use parent.parent.parent to get murphy_system/ from src/runtime/_deps.py
         assert "parent.parent.parent" in source
 
 
@@ -491,14 +491,14 @@ class TestReadmeModuleCounts:
             return fh.read()
 
     def test_murphy_readme_module_count_current(self):
-        """Murphy System/README.md should not reference stale module counts."""
+        """murphy_system/README.md should not reference stale module counts."""
         content = self._murphy_readme()
         # The old counts were 922 and 753 — both should be updated
         assert "922 source modules" not in content, "Stale module count 922 found"
         assert "753 modules" not in content, "Stale module count 753 found"
 
     def test_murphy_readme_package_count_current(self):
-        """Murphy System/README.md should not reference stale package counts."""
+        """murphy_system/README.md should not reference stale package counts."""
         content = self._murphy_readme()
         assert "77 packages" not in content, "Stale package count 77 found"
         assert "60 packages" not in content, "Stale package count 60 found"
@@ -524,14 +524,14 @@ class TestReadmeModuleCounts:
 # ---------------------------------------------------------------------------
 
 class TestEnvPathResolution:
-    """.env loading must resolve to the project root (Murphy System/.env),
+    """.env loading must resolve to the project root (murphy_system/.env),
     not to src/runtime/.env."""
 
     def test_deps_env_path_resolves_to_project_root(self):
         """_deps.py must load .env from three levels up (project root)."""
         with open(os.path.join(_PROJECT_ROOT, "src", "runtime", "_deps.py")) as fh:
             source = fh.read()
-        # Should use parent.parent.parent to reach Murphy System/ from src/runtime/
+        # Should use parent.parent.parent to reach murphy_system/ from src/runtime/
         assert 'parent.parent.parent / ".env"' in source, (
             "_deps.py .env path should resolve to project root via parent.parent.parent"
         )
@@ -608,7 +608,7 @@ class TestSetupPyConsistency:
     def test_description_matches_project(self):
         """setup.py description should reference 'Murphy System'."""
         setup = self._setup()
-        assert "Murphy System" in setup, (
+        assert "murphy_system" in setup, (
             "setup.py description should reference 'Murphy System'"
         )
 

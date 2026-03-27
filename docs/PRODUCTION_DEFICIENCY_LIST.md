@@ -12,7 +12,7 @@
 
 | ID | Deficiency | Impact | Recommendation |
 |----|-----------|--------|----------------|
-| A-001 | Directory `Murphy System/` contains a space | Breaks scripting, CI paths | Rename to `murphy_system/` in coordinated PR |
+| A-001 | Directory `murphy_system/` contains a space | Breaks scripting, CI paths | Rename to `murphy_system/` in coordinated PR |
 | A-010 | `murphy_terminal.py` 96 KB monolithic | Maintenance burden | Decompose into `src/terminal/` package |
 
 ### 1.2 Wiring Issues (Category B)
@@ -187,7 +187,7 @@
 
 ### Phase 4: Long-term (Quarter 1)
 1. ⬜ Decompose murphy_terminal.py (A-010)
-2. ⬜ Rename `Murphy System/` directory (A-001)
+2. ⬜ Rename `murphy_system/` directory (A-001)
 3. ⬜ Implement matrix-nio for E2EE (C-001)
 4. ⬜ Complete platform connector OAuth (B-011)
 

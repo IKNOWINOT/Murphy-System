@@ -47,8 +47,8 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "Murphy System" / "src"))
-sys.path.insert(0, str(ROOT / "Murphy System"))
+sys.path.insert(0, str(ROOT / "murphy_system" / "src"))
+sys.path.insert(0, str(ROOT / "murphy_system"))
 
 # ---------------------------------------------------------------------------
 # Env-var gate (same pattern as test_integration_speed.py)
@@ -95,7 +95,7 @@ except ImportError as _import_err:
 _RESULTS_DIR = Path(
     os.environ.get(
         "MURPHY_BENCHMARK_RESULTS_DIR",
-        ROOT / "Murphy System" / "documentation" / "testing",
+        ROOT / "murphy_system" / "documentation" / "testing",
     )
 )
 

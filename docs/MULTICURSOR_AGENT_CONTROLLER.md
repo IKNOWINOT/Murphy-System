@@ -347,6 +347,6 @@ As part of the same change set, the following UI files were updated:
 
 | File | Change |
 |------|--------|
-| `murphy_landing_page.html` + `Murphy System/` copy | Full overhaul: Solutions, Industries, inline Demo, Partner, Under the Hood, updated nav/footer/hero |
-| `login.html` + `Murphy System/` copy | Bug fix: `[object Object]` error normalisation + JSON parse fallback |
-| `signup.html` + `Murphy System/` copy | Bug fix: same error normalisation + JSON parse fallback |
+| `murphy_landing_page.html` + `murphy_system/` copy | Full overhaul: Solutions, Industries, inline Demo, Partner, Under the Hood, updated nav/footer/hero |
+| `login.html` + `murphy_system/` copy | Bug fix: `[object Object]` error normalisation + JSON parse fallback |
+| `signup.html` + `murphy_system/` copy | Bug fix: same error normalisation + JSON parse fallback |

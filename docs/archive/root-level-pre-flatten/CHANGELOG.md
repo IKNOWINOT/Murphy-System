@@ -22,9 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 - **docs:** `ROADMAP.md` — public revenue-first sprint plan with $0-budget execution strategy (Sprints 1–4, revenue-gated milestones)
-- **docs:** `Murphy System/BUSINESS_MODEL.md` — concrete pricing tiers (Solo $29/mo, Business $99/mo, Professional $299/mo, Enterprise custom); added "Murphy's UX Paradigm: Describe → Execute → Refine" section
+- **docs:** `murphy_system/BUSINESS_MODEL.md` — concrete pricing tiers (Solo $29/mo, Business $99/mo, Professional $299/mo, Enterprise custom); added "Murphy's UX Paradigm: Describe → Execute → Refine" section
 - **docs:** `README.md` — repositioned "Describe → Execute" as hero feature (first in Key Features list); added "🗣️ How It Works: Describe → Execute → Refine" section; added ROADMAP.md to Documentation table
-- **docs:** `Murphy System/README.md` — added "Primary Flow: Describe → Execute" table as the leading subsection of API Reference
+- **docs:** `murphy_system/README.md` — added "Primary Flow: Describe → Execute" table as the leading subsection of API Reference
 
 ### UI Completion (85% → 100%)
 - **ui: P0** — Design system foundation: `murphy-design-system.css` (45KB, all tokens + light theme + 24 component classes), `murphy-components.js` (64KB, 13 reusable components including MurphyAPI, MurphyLibrarianChat, MurphyTerminalPanel), `murphy-canvas.js` (65KB, canvas rendering engine with pan/zoom/nodes/edges/auto-layout), `murphy-icons.svg` (42 icons), `favicon.svg`, and `DESIGN_SYSTEM.md`
@@ -56,12 +56,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **feat:** NTF-001 — Multi-channel Notification System (`src/notification_system.py`) with email/Slack/Discord/Teams/webhook channels, template engine, priority routing, rate limiting, quiet hours, and Flask Blueprint with 15 endpoints (56 tests)
 - **feat:** WHK-001 — Outbound Webhook Dispatcher (`src/webhook_dispatcher.py`) with HMAC-SHA256 signing, exponential-backoff retry, delivery-history tracking, and Flask Blueprint with 13 endpoints (59 tests)
 - **Maturity Cycle 3: 78 → 100/100** — All remaining gaps resolved:
-  - `Murphy System/docs/STALE_PR_CLEANUP.md` — Rationale and decision record for closing PRs #21, #27, #46, #56, #64, #95
-  - `Murphy System/docs/API_REFERENCE.md` — Complete API reference for all public endpoints (`/api/health`, `/api/status`, `/api/execute`, `/api/llm/*`, `/api/gates/*`, `/api/confidence/*`, `/api/orchestrator/*`, `/api/modules/*`, `/api/feedback`)
-  - `Murphy System/docs/DEPLOYMENT_GUIDE.md` — Docker/Compose/K8s deployment guide; environment variable reference; security checklist; monitoring and alerting setup; backup and recovery procedures
-  - `Murphy System/docs/MODULE_INTEGRATION_MAP.md` — Cross-module dependency map; integration test coverage per module pair; known interaction patterns and edge cases
-  - `Murphy System/tests/test_cross_module_integration.py` — 5 cross-module pipeline tests (security→api→confidence, state→feedback→llm, mss→niche→gate, self-fix→persistence→recovery, gate→governance→rbac)
-  - `Murphy System/tests/test_full_system_smoke.py` — 4 end-to-end smoke test suites (health check path, LLM configure path, task submission path, audit trail)
+  - `murphy_system/docs/STALE_PR_CLEANUP.md` — Rationale and decision record for closing PRs #21, #27, #46, #56, #64, #95
+  - `murphy_system/docs/API_REFERENCE.md` — Complete API reference for all public endpoints (`/api/health`, `/api/status`, `/api/execute`, `/api/llm/*`, `/api/gates/*`, `/api/confidence/*`, `/api/orchestrator/*`, `/api/modules/*`, `/api/feedback`)
+  - `murphy_system/docs/DEPLOYMENT_GUIDE.md` — Docker/Compose/K8s deployment guide; environment variable reference; security checklist; monitoring and alerting setup; backup and recovery procedures
+  - `murphy_system/docs/MODULE_INTEGRATION_MAP.md` — Cross-module dependency map; integration test coverage per module pair; known interaction patterns and edge cases
+  - `murphy_system/tests/test_cross_module_integration.py` — 5 cross-module pipeline tests (security→api→confidence, state→feedback→llm, mss→niche→gate, self-fix→persistence→recovery, gate→governance→rbac)
+  - `murphy_system/tests/test_full_system_smoke.py` — 4 end-to-end smoke test suites (health check path, LLM configure path, task submission path, audit trail)
 - **G-007 resolved**: `pyproject.toml` optional dependency groups added — `llm`, `security`, `terminal`, `dev`, `all`
 - **CI/CD**: Job-level `timeout-minutes: 30` added to `test` and `security` workflow jobs
 
@@ -70,15 +70,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **B-005**: Test count badge — 8,843 passing tests confirmed; `full_system_assessment.md` aligned
 
 ### Changed
-- `Murphy System/full_system_assessment.md` — Maturity score updated from 78/100 to **100/100**; all categories raised to maximum; outstanding items table cleared
+- `murphy_system/full_system_assessment.md` — Maturity score updated from 78/100 to **100/100**; all categories raised to maximum; outstanding items table cleared
 - `CONTRIBUTING.md` — Branch protection recommendations and stale PR policy added
 
 ### Added
 - **Stream 5: Documentation, README, and Assessment Sync** — Full documentation audit and update:
   - Root `README.md` updated with `## API Endpoints` table and `## Configuration` environment-variable reference
-  - `Murphy System/full_system_assessment.md` created with updated maturity score (31 → 78/100), module inventory, resolved gaps, and Phase 2 recommendations
-  - `Murphy System/documentation/api/AUTHENTICATION.md` already reflects implemented auth — confirmed accurate
-  - `Murphy System/tests/test_documentation.py` added — validates README sections, CHANGELOG format, env-var documentation, and API endpoint presence
+  - `murphy_system/full_system_assessment.md` created with updated maturity score (31 → 78/100), module inventory, resolved gaps, and Phase 2 recommendations
+  - `murphy_system/documentation/api/AUTHENTICATION.md` already reflects implemented auth — confirmed accurate
+  - `murphy_system/tests/test_documentation.py` added — validates README sections, CHANGELOG format, env-var documentation, and API endpoint presence
   - `CHANGELOG.md` updated with Stream 1–5 entries
 - **Stream 4: CI/CD Hardening** — Automated test pipeline improvements:
   - GitHub Actions workflow added/updated for automated test execution on push and pull request

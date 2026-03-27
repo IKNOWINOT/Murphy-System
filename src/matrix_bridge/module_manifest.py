@@ -4,7 +4,7 @@
 Matrix room, available commands, responsible bot persona, and event types.
 
 This manifest is exhaustive: every ``.py`` file and every subdirectory
-package under ``Murphy System/src/`` has an entry.
+package under ``murphy_system/src/`` has an entry.
 
 Each entry is a :class:`ModuleEntry` with:
 - ``module``       — Python import path relative to ``src/``

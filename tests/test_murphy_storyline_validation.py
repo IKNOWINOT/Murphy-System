@@ -222,13 +222,13 @@ class TestChapter5_6_SalesAutomation:
         from src.sales_automation import SalesAutomationConfig
         config = SalesAutomationConfig()
         assert config.company_name == "Inoni LLC"
-        assert config.product_name == "Murphy System"
+        assert config.product_name == "murphy_system"
 
     def test_sales_engine_creates_with_defaults(self):
         from src.sales_automation import SalesAutomationEngine
         engine = SalesAutomationEngine()
         assert engine.config.company_name == "Inoni LLC"
-        assert engine.config.product_name == "Murphy System"
+        assert engine.config.product_name == "murphy_system"
 
     def test_register_and_score_lead(self):
         """LeadScorer agent equivalent: score based on size, industry, interests."""
@@ -319,7 +319,7 @@ class TestChapter5_6_SalesAutomation:
         script = engine.generate_demo_script(lead)
         assert "Diana" in script["greeting"]
         assert "MfgCorp" in script["greeting"]
-        assert "Murphy System" in script["greeting"]
+        assert "murphy_system" in script["greeting"]
         assert "manufacturing" in script["greeting"]
         assert len(script["demo_steps"]) == 4
         assert "robotics integration" in script["feature_highlights"]
@@ -339,7 +339,7 @@ class TestChapter5_6_SalesAutomation:
         )
         proposal = engine.generate_proposal(lead)
         assert "FinServ Inc" in proposal["executive_summary"]
-        assert "Murphy System" in proposal["executive_summary"]
+        assert "murphy_system" in proposal["executive_summary"]
         assert proposal["recommended_edition"] == "enterprise"
         assert "compliance monitoring" in proposal["features_included"]
         assert len(proposal["implementation_plan"]) == 4
@@ -716,7 +716,7 @@ class TestStorylineDocumentStructure:
 
     def test_storyline_goal_is_selling_murphy(self, storyline_text):
         """The business goal should be selling the Murphy System."""
-        assert "sell" in storyline_text.lower() and "Murphy System" in storyline_text
+        assert "sell" in storyline_text.lower() and "murphy_system" in storyline_text
 
     def test_storyline_has_25_chapters(self, storyline_text):
         """25 chapters covering all subsystems."""
@@ -826,7 +826,7 @@ class TestInoniLLCEndToEnd:
         # Sales engine configured for Inoni LLC
         config = SalesAutomationConfig(
             company_name="Inoni LLC",
-            product_name="Murphy System",
+            product_name="murphy_system",
         )
         engine = SalesAutomationEngine(config=config)
 
@@ -876,7 +876,7 @@ class TestInoniLLCEndToEnd:
         for lead, qual in zip(leads, results):
             if qual["qualified"]:
                 proposal = engine.generate_proposal(lead)
-                assert "Murphy System" in proposal["executive_summary"]
+                assert "murphy_system" in proposal["executive_summary"]
                 assert proposal["recommended_edition"] in ["enterprise", "professional", "community"]
 
         summary = engine.get_pipeline_summary()

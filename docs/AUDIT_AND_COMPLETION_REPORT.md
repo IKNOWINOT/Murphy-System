@@ -225,7 +225,7 @@ system completion to **100%** at the functional level.
 
 #### ~~GAP-7: Environment Variable Documentation Completeness~~ ✅ RESOLVED (2026-03-16)
 - **Affected:** `documentation/deployment/CONFIGURATION.md`
-- **Resolution:** All 96 environment variables from `.env.example` are now documented. Added §11 Murphy Foundation Model (9 MFM vars), §12 Matrix Integration (17 Matrix/webhook vars), §13 Backend Modes (4 stub-mode vars), §14 Complete Variable Index (all 96 vars). Added variable tables to existing §2-9. Fixed stale `cd "Murphy System"` path references.
+- **Resolution:** All 96 environment variables from `.env.example` are now documented. Added §11 Murphy Foundation Model (9 MFM vars), §12 Matrix Integration (17 Matrix/webhook vars), §13 Backend Modes (4 stub-mode vars), §14 Complete Variable Index (all 96 vars). Added variable tables to existing §2-9. Fixed stale `cd "murphy_system"` path references.
 
 #### ~~GAP-8: Specialized Module Documentation~~ ✅ RESOLVED (2026-03-16)
 - **Affected:** All 65 `src/` packages plus top-level standalone modules

@@ -13,7 +13,7 @@ concurrency:
 
 env:
   MURPHY_ENV: test
-  PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+  PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/murphy_system/src"
   # Configurable debt-marker threshold (override via repository/env variable)
   TODO_THRESHOLD: ${{ vars.TODO_THRESHOLD || '500' }}
 
@@ -27,7 +27,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: "Murphy System"
+        working-directory: "murphy_system"
 
     steps:
       - name: Checkout repository
@@ -74,7 +74,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: storyline-test-results
-          path: "Murphy System/storyline-results.xml"
+          path: "murphy_system/storyline-results.xml"
           if-no-files-found: ignore
           retention-days: 14
 

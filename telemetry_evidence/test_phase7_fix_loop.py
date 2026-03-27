@@ -11,7 +11,7 @@ For each failed test from Phase 2 and Phase 6:
 
 FILES USED:
   - telemetry_evidence/telemetry_log.jsonl   → streaming event log
-  - Murphy System/src/self_fix_loop.py       → autonomous fix cycle reference
+  - murphy_system/src/self_fix_loop.py       → autonomous fix cycle reference
 """
 
 import json

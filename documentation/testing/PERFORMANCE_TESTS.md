@@ -10,7 +10,7 @@ and expected baseline numbers.
 Run the in-process benchmarks from the repository root:
 
 ```bash
-cd "Murphy System"
+cd "murphy_system"
 python -m pytest tests/benchmarks/test_api_throughput.py -v
 ```
 

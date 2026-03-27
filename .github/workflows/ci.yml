@@ -12,7 +12,7 @@ env:
   E2EE_STUB_ALLOWED: "true"
   MURPHY_POOL_MODE: simulated
   # Both src trees are discoverable: repo root takes precedence (newer modules)
-  PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/src:${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+  PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/src:${{ github.workspace }}/Murphy System:${{ github.workspace }}/murphy_system/src"
 
 jobs:
   lint:

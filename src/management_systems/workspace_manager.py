@@ -27,7 +27,7 @@ Murphy subsystem domain coverage (15+ categories):
 
 Integration points:
     - Workspace IDs scope boards in ``board_engine.py``
-    - Module mappings reference actual ``Murphy System/src/`` modules
+    - Module mappings reference actual ``murphy_system/src/`` modules
     - Space manager from PR 2 (``space_manager.py``) maps rooms to workspaces
 
 Copyright 2024 Inoni LLC – BSL-1.1

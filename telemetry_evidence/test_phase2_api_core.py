@@ -3,9 +3,9 @@
 PHASE 2: Exercise every documented API endpoint as a user would.
 
 FILES TESTED:
-  - Murphy System/src/runtime/app.py              → all route handlers
-  - Murphy System/src/form_intake/handlers.py      → /api/forms/*
-  - Murphy System/src/runtime/murphy_system_core.py → core business logic
+  - murphy_system/src/runtime/app.py              → all route handlers
+  - murphy_system/src/form_intake/handlers.py      → /api/forms/*
+  - murphy_system/src/runtime/murphy_system_core.py → core business logic
 """
 
 import json

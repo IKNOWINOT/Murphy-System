@@ -1,7 +1,7 @@
 # Critical Error Scan Report
 
 **Date of Scan**: 2026-03-24  
-**Scan Scope**: Full Murphy System codebase — `src/`, root Python files, `Murphy System/` mirror  
+**Scan Scope**: Full Murphy System codebase — `src/`, root Python files, `murphy_system/` mirror  
 **Auditor**: Automated security scan (PR chain — Scan → Plan → Fix → Test → Loop → Docs → Harden)  
 **Report Version**: 1.0  
 **Prior Audit Reference**: PR #27 QA Audit (`qa/pre-launch-audit` branch)

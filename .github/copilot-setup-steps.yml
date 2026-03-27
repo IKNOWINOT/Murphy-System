@@ -17,14 +17,14 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        working-directory: "Murphy System"
+        working-directory: "murphy_system"
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-asyncio pytest-timeout httpx flake8
 
       - name: Configure environment
-        working-directory: "Murphy System"
+        working-directory: "murphy_system"
         run: |
           # Create .env for local/test LLM provider (no API key needed)
           cat > .env <<'EOF'
@@ -44,7 +44,7 @@ jobs:
         run: echo "MURPHY_ENV=test" >> "$GITHUB_ENV"
 
       - name: Verify setup
-        working-directory: "Murphy System"
+        working-directory: "murphy_system"
         run: |
           python -c "import fastapi; print(f'FastAPI {fastapi.__version__}')"
           python -c "import pydantic; print(f'Pydantic {pydantic.__version__}')"

@@ -37,14 +37,14 @@ echo -e "${CYAN}${BOLD}╚══════════════════
 echo ""
 
 # ---- locate repo root ------------------------------------------------------
-# Work whether invoked from the repo root, from "Murphy System/", or via
+# Work whether invoked from the repo root, from "murphy_system/", or via
 # an absolute path to this script.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [ -d "$SCRIPT_DIR/Murphy System" ]; then
     REPO_ROOT="$SCRIPT_DIR"
 elif [ -f "$SCRIPT_DIR/murphy_system_1.0_runtime.py" ]; then
-    # User ran the script from inside "Murphy System/"
+    # User ran the script from inside "murphy_system/"
     REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 else
     fail "Cannot locate Murphy System files. Run this script from the repository root."

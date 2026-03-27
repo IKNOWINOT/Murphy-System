@@ -20,7 +20,7 @@ Murphy System has grown to **978 source modules** across 81 packages. Key subsys
 - **Orchestrators** — `campaign_orchestrator.py`; `safety_orchestrator.py`, `efficiency_orchestrator.py`, `supply_orchestrator.py` (planned)
 - **Issue #136 subsystems** (in progress) — Drawing Engine, Credential Gate, Sensor Fusion, Osmosis Engine, Autonomous Perception, Wingman Evolution, Engineering Toolbox
 
-See [`Murphy System/docs/MODULE_REGISTRY.md`](Murphy System/docs/MODULE_REGISTRY.md) for the full module index.
+See [`murphy_system/docs/MODULE_REGISTRY.md`](murphy_system/docs/MODULE_REGISTRY.md) for the full module index.
 
 ## How to Contribute
 
@@ -48,7 +48,7 @@ Open a [GitHub Issue](https://github.com/IKNOWINOT/Murphy-System/issues) with th
 4. Add or update tests as needed
 5. Run the test suite:
    ```bash
-   cd "Murphy System"
+   cd "murphy_system"
    python -m pytest tests/ -v
    ```
 6. Commit with clear messages:
@@ -115,4 +115,4 @@ The following branch protection rules are recommended for `main`:
 - Draft PRs with no commits for **7 days** are automatically labelled `stale`.
 - Stale PRs with no activity for a further **3 days** are closed with a comment explaining why.
 - All active work must have at least one commit every **5 days** or be converted to an issue.
-- See `Murphy System/docs/STALE_PR_CLEANUP.md` for the rationale applied to PRs #21–#95.
+- See `murphy_system/docs/STALE_PR_CLEANUP.md` for the rationale applied to PRs #21–#95.

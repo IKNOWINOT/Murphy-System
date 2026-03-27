@@ -211,7 +211,7 @@ Murphy-System/
 │   └── transfer_archive.sh             ← Archive transfer tool
 ├── docs/
 │   └── screenshots/                    ← Verification screenshots
-├── Murphy System/                      ← legacy mirror (synced with src/)
+├── murphy_system/                      ← legacy mirror (synced with src/)
 └── src/                                ← ACTIVE SYSTEM (canonical)
     ├── murphy                          ← CLI tool (start/stop/status/…)
     ├── murphy_system_1.0_runtime.py    ← Single production runtime
@@ -903,7 +903,7 @@ Murphy is the **only automation platform** that covers the entire stack — from
 The test suite is the primary quality gate for Murphy. Run it with:
 
 ```bash
-cd "Murphy System"
+cd "murphy_system"
 python -m pytest tests/ -q --tb=short
 ```
 

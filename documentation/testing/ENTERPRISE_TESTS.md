@@ -11,7 +11,7 @@ frameworks, and governance policies. All tests live under `tests/` and can
 be run with pytest.
 
 ```bash
-cd "Murphy System"
+cd "murphy_system"
 python -m pytest tests/ -k "enterprise or rbac or compliance or governance or multi_tenant" -v
 ```
 
