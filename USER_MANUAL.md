@@ -1739,3 +1739,19 @@ curl http://localhost:8000/api/credentials/metrics
 
 *Murphy System 1.0 — © 2024 Inoni LLC. All rights reserved.*
 *Created by Corey Post. Licensed under MIT (Community Edition).*
+
+---
+
+## About This Manual
+
+> **Note:** This User Manual provides comprehensive documentation for Murphy System users.
+> 
+> **Related Documents:**
+> - `README.md` — Quick start guide and project overview (for new users and developers)
+> - `USER_MANUAL.md` — Comprehensive user guide (this document)
+> - `docs/` — Technical documentation and architecture details
+> - `docs/api/` — API reference documentation
+> 
+> The README is intentionally shorter and focuses on getting started quickly.
+> This User Manual provides in-depth coverage of all features.
+
