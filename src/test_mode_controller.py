@@ -18,7 +18,7 @@ Usage::
     from src.test_mode_controller import get_test_mode_controller
 
     ctrl = get_test_mode_controller()
-    ctrl.start_session(api_keys=["gsk_test_key_1"])
+    ctrl.start_session(api_keys=["deepinfra_test_key_1"])
     ok, reason = ctrl.check_limits()          # True if within limits
     ctrl.record_call()                        # count every /api/* hit
     print(ctrl.get_status())

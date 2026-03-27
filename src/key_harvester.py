@@ -331,7 +331,7 @@ PROVIDER_RECIPES: List[ProviderRecipe] = [
         tos_checkbox_selector="input[type='checkbox'][name*='terms']",
         create_key_selector="button[data-testid='create-api-key']",
         key_extract_selector="input[data-testid='api-key-value']",
-        key_format_pattern=r"^gsk_[A-Za-z0-9]{20,}$",
+        key_format_pattern=r"^[A-Za-z0-9_-]{20,}$",
         notes="Free tier; no credit card required.",
     ),
     ProviderRecipe(
