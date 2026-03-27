@@ -1,43 +1,40 @@
-# Murphy System — Groq → DeepInfra/Together Replacement ✅ COMPLETE
+# Murphy System — Production Readiness Remediation
 
-## Phase 1: Global sed replacements (env vars, URLs, strings)
-- [x] src/llm_provider.py — NEW file (DeepInfra primary, Together fallback, circuit breakers, singleton)
-- [x] src/llm_integration_layer.py — REWRITTEN (uses MurphyLLMProvider)
-- [x] Global sed pass across ALL 279 files
-  - [x] GROQ_API_KEY → DEEPINFRA_API_KEY
-  - [x] GROQ_API_KEYS → DEEPINFRA_API_KEYS
-  - [x] api.groq.com → api.deepinfra.com/v1/openai
-  - [x] mixtral-8x7b-32768 → meta-llama/Meta-Llama-3.1-70B-Instruct
-  - [x] llama3-70b-8192 → meta-llama/Meta-Llama-3.1-70B-Instruct
-  - [x] llama3-8b-8192 → meta-llama/Meta-Llama-3.1-8B-Instruct
+## Wave 1 (Blockers) — COMPLETE ✅
 
-## Phase 2: Targeted file rewrites
-- [x] src/openai_compatible_provider.py — ProviderType.GROQ removed, DEEPINFRA in place
-- [x] src/groq_key_rotator.py → DeepInfraKeyRotator (GroqKeyRotator alias kept)
-- [x] strategic/gap_closure/llm/multi_provider_router.py — 15 providers, DeepInfra + Together
-- [x] src/config.py — groq_key_count → deepinfra_key_count
-- [x] src/llm_controller.py — GROQ_MIXTRAL/LLAMA/GEMMA → DEEPINFRA_70B/LLAMA/FAST
-- [x] src/unified_mfgc.py — groq_client → deepinfra_client
-- [x] src/hitl_execution_gate.py — groq model IDs → deepinfra model IDs
-- [x] src/swarm_proposal_generator.py — LLMModel enum refs updated
-- [x] src/ml/inference_engine.py — _call_groq → _call_deepinfra
-- [x] src/enhanced_local_llm.py — _groq_response → _deepinfra_response
-- [x] src/secure_key_manager.py, src/module_registry.py — cleaned
-- [x] k8s/secret.yaml, k8s/network-policy.yaml — updated
-- [x] .env.example, config/murphy-production.environment.example — updated
-- [x] config/engines.yaml — updated
-- [x] tests/test_groq_integration.py — REWRITTEN as DeepInfra test suite
-- [x] All other test files — assertions updated
-- [x] Murphy System/ mirror directory — all same fixes applied
+- [x] DEF-020/DEF-008: Unified both FastAPI servers (production_router.py as APIRouter, 58 routes + 1066 runtime = 1124 total)
+- [x] DEF-028: Fixed Dockerfile (COPY all production files, HTML, murphy_dashboard, config, CLI)
+- [x] DEF-014/DEF-015: Auth & Security middleware (src/auth_middleware.py, wired with fallback)
+- [x] DEF-002: Resolved dual src/ trees (symlink Murphy System/src → ../src, 21 unique files copied)
+- [x] DEF-023: Wired unserved HTML files (/ui/{page_name} catch-all, /api/ui/pages listing, 51 pages)
+- [x] DEF-003: Added src/presets/__init__.py
 
-## Phase 3: Wire /api/prompt endpoint to MurphyLLMProvider ✅
-- [x] murphy_production_server.py — /api/prompt uses real LLM (DeepInfra → Together → onboard)
-  - [x] LLM generates: automation name, description, workflow steps
-  - [x] Auto-creates HITL checkpoint for first milestone
-  - [x] Graceful fallback to pattern-match if LLM unavailable
+## Wave 2 (Stabilization) — COMPLETE ✅
 
-## Phase 4: Commit & push ✅
-- [x] git add all 286 changed files
-- [x] git commit with detailed message
-- [x] git push origin feature/production-calendar-ui-wiring
-  - Commit: af2c99ac → 44971a2e..af2c99ac
+- [x] DEF-001: Populated module_registry.yaml (1175 modules, 97 categories, auto-generated)
+- [x] DEF-010: Consolidated requirements in pyproject.toml (core deps + [ml] optional group)
+- [x] DEF-040: Verified LLM integration chain (both /api/chat and /api/prompt → DeepInfra)
+- [x] DEF-047: HITL persistence (src/hitl_persistence.py, SQLite/WAL, wired into production_router)
+- [x] DEF-042: CANCELLED — Inoni LLC is parent company, branding correct
+- [x] DEF-043: Resolved — copyright headers legally correct
+
+## Wave 3 (Quality) — COMPLETE ✅
+
+- [x] DEF-004: Hardened launcher (fail-fast diagnostics, explicit critical imports, optional bulk re-export)
+- [x] DEF-017: Fixed CORS (environment-aware, dev=wildcard, prod=blocklist, unified env var names)
+- [x] DEF-019: Security startup logging (security posture banner with warnings in prod)
+- [x] DEF-031: Integration tests (test_production_router_integration.py — health, HITL, auth, persistence, OpenAPI)
+- [x] DEF-033/DEF-034: Updated LLM_SUBSYSTEM.md (DeepInfra primary, Together.ai fallback, migration history)
+- [x] DEF-041: Fixed groq comment in llm_provider.py
+
+## Wave 4 (Polish) — COMPLETE ✅
+
+- [x] DEF-006: Deduplicated murphy_ui_integrated_terminal.html (symlink to murphy_ui_integrated.html)
+- [x] DEF-009: CLI entry point (chmod +x, added to Dockerfile)
+
+## Final Steps
+
+- [x] All changes verified (create_app() = 1124 routes, all imports clean)
+- [ ] Commit all waves
+- [ ] Push to GitHub
+- [ ] Create PR

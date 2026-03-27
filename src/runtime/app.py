@@ -653,16 +653,31 @@ def create_app() -> FastAPI:
         register_session_validator(_cookie_session_validator)
     except ImportError:
         logger.warning("fastapi_security not available — falling back to env-based CORS")
-        _cors_origins = os.environ.get(
-            "MURPHY_CORS_ORIGINS",
-            "http://localhost:3000,http://localhost:8080,http://localhost:8000",
-        ).split(",")
+        # Check both env var names for backward compatibility (DEF-017)
+        _raw_cors = (
+            os.environ.get("MURPHY_CORS_ORIGINS")
+            or os.environ.get("MURPHY_ALLOWED_ORIGINS")
+            or ""
+        )
+        _murphy_env = os.environ.get("MURPHY_ENV", "development").lower()
+        if _raw_cors:
+            _cors_origins = [o.strip() for o in _raw_cors.split(",") if o.strip()]
+        elif _murphy_env in ("production", "staging"):
+            _cors_origins = []
+            logger.warning(
+                "MURPHY_CORS_ORIGINS not set — CORS blocked in %s mode", _murphy_env
+            )
+        else:
+            # Development mode: allow all origins for local dev
+            _cors_origins = ["*"]
+            logger.info("CORS: development mode — allowing all origins")
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=[o.strip() for o in _cors_origins],
+            allow_origins=_cors_origins,
             allow_credentials=True,
-            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            allow_headers=["*"],
+            allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+            allow_headers=["Authorization", "Content-Type", "X-Request-ID",
+                           "X-Tenant-ID", "X-API-Key", "*"],
         )
 
     # Load .env before initialising MurphySystem so env vars like
@@ -4552,7 +4567,7 @@ def create_app() -> FastAPI:
 
     _workflows_store: Dict[str, Any] = {}
 
-    @app.get("/api/workflows")
+    @app.get("/api/v1/workflows")
     async def list_workflows():
         """List all saved workflows."""
         return JSONResponse({
@@ -4561,7 +4576,7 @@ def create_app() -> FastAPI:
             "count": len(_workflows_store),
         })
 
-    @app.post("/api/workflows")
+    @app.post("/api/v1/workflows")
     async def save_workflow(request: Request):
         """Save a workflow."""
         data = await request.json()
@@ -4587,7 +4602,7 @@ def create_app() -> FastAPI:
         return JSONResponse({"success": True, "workflow": workflow})
 
     # ── Workflow Execution (real WorkflowOrchestrator) ─────────────────────
-    @app.post("/api/workflows/{workflow_id}/execute")
+    @app.post("/api/v1/workflows/{workflow_id}/execute")
     async def execute_workflow(workflow_id: str, request: Request):
         """Execute a saved workflow through the WorkflowOrchestrator.
 
@@ -4703,7 +4718,7 @@ def create_app() -> FastAPI:
             return _safe_error_response(exc, 500)
 
     # ── AI Workflow Generation ────────────────────────────────────────────
-    @app.post("/api/workflows/generate")
+    @app.post("/api/v1/workflows/generate")
     async def generate_workflow(request: Request):
         """Generate a DAG workflow from natural language using AIWorkflowGenerator.
 
@@ -6414,7 +6429,7 @@ def create_app() -> FastAPI:
             "phi3_ready": ollama_up and any("phi3" in m for m in pulled_models),
         })
 
-    @app.get("/api/hitl/queue")
+    @app.get("/api/v1/hitl/queue")
     async def hitl_queue():
         """Return HITL approval queue from real HumanInTheLoop state."""
         try:
@@ -13781,6 +13796,72 @@ def create_app() -> FastAPI:
         logger.info("ROI Calendar: seeded %d randomly-generated events", len(_seed_roi))
     except Exception as _roi_seed_exc:
         logger.debug("ROI Calendar seeding skipped: %s", _roi_seed_exc)
+
+    # ── Auth Middleware (DEF-014/DEF-015) ──────────────────────────────────
+    try:
+        from src.auth_middleware import APIKeyMiddleware as _AuthMW
+        from src.auth_middleware import SecurityHeadersMiddleware as _SecHdrMW
+        app.add_middleware(_AuthMW)
+        app.add_middleware(_SecHdrMW)
+        logger.info("Auth middleware loaded: APIKeyMiddleware + SecurityHeadersMiddleware")
+    except Exception as _auth_mw_exc:
+        logger.warning("Auth middleware import failed (%s) — falling back to inline middleware", _auth_mw_exc)
+        # Inline fallback for API key auth
+        import hmac as _hmac_mod
+        class _InlineAPIKeyMiddleware(BaseHTTPMiddleware):
+            async def dispatch(self, request, call_next):
+                _path = request.url.path.rstrip("/") or "/"
+                if request.method == "OPTIONS":
+                    return await call_next(request)
+                _exempt = {"/health", "/api/health", "/api/readiness", "/api/status",
+                           "/docs", "/redoc", "/openapi.json", "/favicon.ico", "/"}
+                if _path in _exempt or _path.startswith(("/static", "/ui/", "/api/ui/")):
+                    return await call_next(request)
+                _env = os.environ.get("MURPHY_ENV", "development").lower()
+                _auth_on = os.environ.get("MURPHY_AUTH_ENABLED", "").lower()
+                if _env not in ("production", "staging") and _auth_on != "true":
+                    return await call_next(request)
+                _expected = os.environ.get("MURPHY_API_KEY", "")
+                if not _expected:
+                    return await call_next(request)
+                _key = (request.headers.get("X-API-Key")
+                        or request.headers.get("x-api-key")
+                        or request.query_params.get("api_key")
+                        or "")
+                _auth_hdr = request.headers.get("Authorization", "")
+                if not _key and _auth_hdr.lower().startswith("bearer "):
+                    _key = _auth_hdr[7:].strip()
+                if not _key:
+                    return JSONResponse({"error": "Authentication required"}, status_code=401)
+                if not _hmac_mod.compare_digest(_key, _expected):
+                    return JSONResponse({"error": "Invalid API key"}, status_code=403)
+                return await call_next(request)
+        app.add_middleware(_InlineAPIKeyMiddleware)
+
+    # ── Production Router v3.0 (DEF-020/DEF-008) ─────────────────────────
+    try:
+        from src.production_router import router as _prod_router
+        from src.production_router import production_router_startup as _prod_startup
+        from src.production_router import _UI_DIR, _MURPHY_DIR
+        from starlette.staticfiles import StaticFiles as _ProdStaticFiles
+
+        app.include_router(_prod_router)
+
+        # Mount static file directories for the production UI
+        if _UI_DIR.exists():
+            app.mount("/static", _ProdStaticFiles(directory=str(_UI_DIR)), name="static_dash")
+        if (_MURPHY_DIR / "static").exists():
+            app.mount("/murphy-static", _ProdStaticFiles(directory=str(_MURPHY_DIR / "static")), name="static_legacy")
+
+        # Register production startup as an on_event handler
+        @app.on_event("startup")
+        async def _run_production_startup():
+            await _prod_startup()
+            logger.info("Production Router v3.0 startup complete")
+
+        logger.info("Production Router v3.0 loaded successfully")
+    except Exception as _prod_exc:
+        logger.warning("Production Router v3.0 not loaded: %s", _prod_exc)
 
     return app
 

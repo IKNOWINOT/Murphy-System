@@ -555,7 +555,7 @@ def reset_llm(provider: Optional[MurphyLLMProvider] = None) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Convenience shorthands matching old groq-style call patterns
+# Convenience shorthands matching OpenAI-compatible call patterns (DeepInfra / Together.ai)
 # ---------------------------------------------------------------------------
 
 def complete(

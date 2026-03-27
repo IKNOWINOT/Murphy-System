@@ -120,3 +120,7 @@ telemetry_evidence/**/*.pid
 telemetry_evidence/**/*.xml
 telemetry_evidence/telemetry_log.jsonl
 .coverage
+
+# Runtime data (SQLite DBs, persistence)
+data/
+*.db
