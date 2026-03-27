@@ -418,6 +418,72 @@ Created 84 new commissioning tests across 3 files:
 | Tests | 3 new | 84 new commissioning tests |
 | Documentation | 3 new/updated | Execution engine + K8s + audit report |
 
+### Wave 11: Demo System Commissioning
+
+Comprehensive audit and enhancement of the landing page demo feature to ensure it meets
+production requirements for any-domain deliverable generation with professional output.
+
+**6 Deficiencies Identified and Resolved:**
+
+| ID | Severity | Description | Resolution |
+|----|----------|-------------|------------|
+| D1-BUNDLE | High | No ZIP download bundle — only `.txt` | Created `demo_bundle_generator.py` + `/api/demo/download-bundle` endpoint |
+| D2-CUSTOM | Medium | Custom query fallback too thin (~30 lines) | Enhanced `_build_minimal_custom_content()` with domain-aware templates |
+| D3-PROPOSAL | Medium | Automation proposal fragmented across modules | Created unified `_build_automation_proposal()` in bundle generator |
+| D4-QUOTE | High | No explicit 100% itemized quote | Created `_build_itemized_quote()` with labor, platform, comparison |
+| D5-DEMO-RUN | High | `/api/demo/run` had no rate limiting | Added rate limiting matching generate-deliverable pattern |
+| D6-SPEC-CUSTOM | Medium | Automation content conditionally omitted | Changed to always append blueprint + quality plan |
+
+**New Files:**
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `src/demo_bundle_generator.py` | 472 | ZIP bundle with proposal, quote, spec, README, LICENSE |
+| `tests/commissioning/test_wave11_demo_system.py` | 710 | 114 commissioning tests across 8 sections |
+| `docs/WAVE11_DEMO_DEFICIENCY_REPORT.md` | — | Full deficiency register with resolution details |
+| `docs/WAVE11_API_SDK_RECOMMENDATIONS.md` | — | API keys and SDK recommendations for platform |
+
+**Modified Files:**
+
+| File | Changes | Impact |
+|------|---------|--------|
+| `src/demo_deliverable_generator.py` | +186, -14 | Domain-aware fallback, always-include automation |
+| `src/runtime/app.py` | +163 | Rate limiting on `/api/demo/run`, new `/api/demo/download-bundle` |
+| `demo.html` | +70 | Bundle download button, spec summary, usage counter |
+| `murphy_landing_page.html` | +85 | Bundle download, spec summary in forge section |
+
+**Commissioning Test Results:** 114/114 PASS (0 failures)
+
+| Section | Tests | Status |
+|---------|-------|--------|
+| Function Availability | 9 | ✅ |
+| Cross-Domain Deliverables (14 domains) | 42 | ✅ |
+| Content Quality | 4 | ✅ |
+| Minimal Custom Content | 5 | ✅ |
+| Automation Spec | 12 | ✅ |
+| Bundle Generation | 7 | ✅ |
+| Bundle Proposal Content | 5 | ✅ |
+| Bundle Quote Content | 5 | ✅ |
+| Fingerprint & Rate Limiting | 10 | ✅ |
+| API Endpoint Shapes | 8 | ✅ |
+| End-to-End Integration | 3 | ✅ |
+| Always-Include Automation | 4 | ✅ |
+| DemoRunner Commission | 1 | ✅ |
+
+### Summary of All Changes (Waves 1–11)
+
+| Category | Files Changed | Key Metric |
+|----------|--------------|------------|
+| DeepInfra Migration (Wave 1) | 286 modified | 100% Groq→DeepInfra replacement |
+| Execution Wiring (Wave 5) | 2 new, 1 modified | 14 new API routes |
+| Security Plane (Wave 6) | 0 modified (verified) | 17/17 modules commissioned |
+| .env.example (Wave 7) | 1 rewritten | 600→369 lines, 0 duplicates |
+| Docker (Wave 8) | 3 modified | 3 security fixes, 1 critical Dockerfile fix |
+| Kubernetes (Wave 8) | 6 modified, 1 new | 5 manifest fixes, README added |
+| Tests (Waves 9–11) | 6 new | 198 new commissioning tests |
+| Documentation (Waves 10–11) | 5 new/updated | Execution engine + K8s + demo report |
+| Demo System (Wave 11) | 2 new, 4 modified | 6 deficiencies resolved, ZIP bundle, rate limiting |
+
 ---
 
 *Report generated as part of Issue: Audit and Completion Plan for Code, Documentation, and Testing Across All Modules*

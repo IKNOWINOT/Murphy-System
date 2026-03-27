@@ -12272,6 +12272,43 @@ def create_app() -> FastAPI:
                 status_code=400,
             )
 
+        # ── Rate limiting (same as deliverable generation) ───────────────
+        account = _get_account_from_session(request)
+        usage_result: dict = {}
+
+        if _sub_manager is not None:
+            if account:
+                usage_result = _sub_manager.record_usage(account["account_id"])
+            else:
+                try:
+                    from src.demo_deliverable_generator import make_fingerprint
+                    ip = request.client.host if request.client else "unknown"
+                    ua = request.headers.get("user-agent", "")
+                    fp = make_fingerprint(ip, ua)
+                except Exception:
+                    import hashlib
+                    ip = request.client.host if request.client else "unknown"
+                    fp = hashlib.sha256(ip.encode()).hexdigest()[:32]
+                usage_result = _sub_manager.record_anon_usage(fp)
+        else:
+            usage_result = {"allowed": True, "used": 1, "limit": 5, "remaining": 4, "tier": "anonymous"}
+
+        if not usage_result.get("allowed", True):
+            tier = usage_result.get("tier", "anonymous")
+            limit = usage_result.get("limit", 5)
+            msg = (
+                f"You\'ve used all {limit} free demo runs today. "
+                "Sign up free for 10/day, or upgrade for unlimited."
+                if tier == "anonymous"
+                else f"You\'ve used all {limit} free demo runs today. Upgrade for unlimited."
+            )
+            return JSONResponse(
+                {"success": False, "error": "limit_exceeded", "message": msg,
+                 "usage": {"used": usage_result.get("used", limit), "limit": limit,
+                           "remaining": 0, "tier": tier}},
+                status_code=429,
+            )
+
         try:
             from src.demo_runner import DemoRunner
             runner = DemoRunner()
@@ -12283,6 +12320,12 @@ def create_app() -> FastAPI:
                 "scenario_key": result["scenario_key"],
                 "duration_ms": result["duration_ms"],
                 "spec": result["spec"],
+                "usage": {
+                    "used": usage_result.get("used", 1),
+                    "limit": usage_result.get("limit", 5),
+                    "remaining": usage_result.get("remaining", 4),
+                    "tier": usage_result.get("tier", "anonymous"),
+                },
             })
         except Exception as exc:
             logger.warning("demo/run error: %s", exc)
@@ -12629,6 +12672,126 @@ def create_app() -> FastAPI:
                 "status": "draft",
             }
         return JSONResponse({"success": True, "ok": True, "spec": spec})
+
+    # ══════════════════════════════════════════════════════════════════════
+    # DEMO BUNDLE DOWNLOAD — professional ZIP package
+    # ══════════════════════════════════════════════════════════════════════
+
+    @app.post("/api/demo/download-bundle")
+    async def demo_download_bundle(request: Request):
+        """Generate and return a downloadable ZIP bundle with professional file structure.
+
+        Accepts JSON body: {"query": "..."}
+
+        The bundle includes:
+          - deliverable.txt — the requested deliverable
+          - automation-proposal.txt — full automation proposal
+          - itemized-quote.txt — itemized quote at 100% cost
+          - automation-spec.txt — technical automation specification
+          - README.md — package overview and next steps
+          - LICENSE — license information
+
+        Usage limits are the same as /api/demo/generate-deliverable.
+        """
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+
+        query = str(body.get("query", "")).strip()[:500]
+        if not query:
+            return JSONResponse(
+                {"success": False, "error": "missing_query", "message": "query is required"},
+                status_code=400,
+            )
+
+        # ── Check usage limits (same as generate-deliverable) ────────────
+        account = _get_account_from_session(request)
+        usage_result: dict = {}
+
+        if _sub_manager is not None:
+            if account:
+                account_id = account["account_id"]
+                usage_result = _sub_manager.record_usage(account_id)
+            else:
+                try:
+                    from src.demo_deliverable_generator import make_fingerprint
+                    ip = request.client.host if request.client else "unknown"
+                    ua = request.headers.get("user-agent", "")
+                    fp = make_fingerprint(ip, ua)
+                except Exception:
+                    import hashlib
+                    ip = request.client.host if request.client else "unknown"
+                    fp = hashlib.sha256(ip.encode()).hexdigest()[:32]
+                usage_result = _sub_manager.record_anon_usage(fp)
+        else:
+            usage_result = {"allowed": True, "used": 1, "limit": 5, "remaining": 4, "tier": "anonymous"}
+
+        if not usage_result.get("allowed", True):
+            tier = usage_result.get("tier", "anonymous")
+            limit = usage_result.get("limit", 5)
+            msg = (
+                f"You've used all {limit} free downloads today. "
+                "Sign up free for 10/day, or upgrade for unlimited."
+                if tier == "anonymous"
+                else f"You've used all {limit} free downloads today. Upgrade for unlimited."
+            )
+            return JSONResponse(
+                {"success": False, "error": "limit_exceeded", "message": msg,
+                 "usage": {"used": usage_result.get("used", limit), "limit": limit, "remaining": 0, "tier": tier}},
+                status_code=429,
+            )
+
+        # ── Generate deliverable + spec + bundle ─────────────────────────
+        librarian_context: str = ""
+        try:
+            lib_result = murphy.librarian_ask(query, mode="ask")
+            librarian_context = (
+                lib_result.get("reply_text") or lib_result.get("response")
+                or lib_result.get("message") or ""
+            )
+            if librarian_context:
+                librarian_context = librarian_context[:1500]
+        except Exception:
+            pass
+
+        try:
+            from src.demo_deliverable_generator import generate_deliverable, generate_automation_spec
+            deliverable = generate_deliverable(query, librarian_context=librarian_context or None)
+            automation_spec = generate_automation_spec(query, librarian_context=librarian_context or None)
+        except Exception as exc:
+            logger.warning("Bundle generation failed: %s", exc)
+            return JSONResponse(
+                {"success": False, "error": "generation_failed", "message": str(exc)},
+                status_code=500,
+            )
+
+        try:
+            from src.demo_bundle_generator import generate_demo_bundle
+            bundle = generate_demo_bundle(query, deliverable, automation_spec)
+        except Exception as exc:
+            logger.warning("Bundle packaging failed: %s", exc)
+            return JSONResponse(
+                {"success": False, "error": "bundle_failed", "message": str(exc)},
+                status_code=500,
+            )
+
+        # Store spec for later retrieval
+        spec_id = automation_spec.get("spec_id")
+        if spec_id:
+            _demo_specs_store[spec_id] = automation_spec
+
+        # Return as downloadable ZIP
+        from starlette.responses import Response
+        return Response(
+            content=bundle["zip_bytes"],
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f'attachment; filename="{bundle["filename"]}"',
+                "X-Murphy-Spec-Id": spec_id or "",
+                "X-Murphy-File-Count": str(bundle["file_count"]),
+            },
+        )
 
     @app.get("/api/demo/forge-stream")
     async def demo_forge_stream(request: Request):

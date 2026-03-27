@@ -87,7 +87,10 @@ body{background:var(--bg);color:var(--fg);font-family:'Inter','Segoe UI',system-
     <div class="demo-btns">
       <a href="/ui/signup">Start Free Trial</a>
       <button id="demo-dl-btn" class="demo-dl-btn" onclick="downloadDeliverable()">&#8659; Download Deliverable</button>
+      <button id="demo-bundle-btn" class="demo-dl-btn" onclick="downloadBundle()" style="display:none;background:#7c3aed!important;color:#fff!important;">&#128230; Download Full Package (ZIP)</button>
       <button onclick="demoReset()">&#8635; Try Another</button>
+    </div>
+    <div id="demo-spec-summary" style="display:none;margin-top:1rem;padding:1rem;background:#0f172a;border:1px solid var(--border);border-radius:8px;text-align:left;font-size:.85rem;line-height:1.7;">
     </div>
     <div class="demo-usage-counter" id="demo-usage-counter"></div>
     <div class="demo-limit-msg" id="demo-limit-msg" style="display:none"></div>
@@ -253,6 +256,12 @@ function demoRun(query){
   connectLine.textContent = '→ Routing through Murphy System pipeline…';
   term.appendChild(connectLine);
 
+  // Hide spec summary and bundle button until demo completes
+  var specSummary = document.getElementById('demo-spec-summary');
+  var bundleBtn = document.getElementById('demo-bundle-btn');
+  if(specSummary) specSummary.style.display = 'none';
+  if(bundleBtn) bundleBtn.style.display = 'none';
+
   // Try the real backend API first
   fetch('/api/demo/run', {
     method: 'POST',
@@ -269,16 +278,31 @@ function demoRun(query){
         var roi = data.roi_message || scenario.roi;
         document.getElementById('demo-roi-stat').textContent = roi;
         roiBlock.hidden = false;
+        // Show spec summary if API returned spec data
+        if(data.spec) _showSpecSummary(data.spec);
+        // Show bundle download button
+        if(bundleBtn) bundleBtn.style.display = '';
+        // Show usage counter
+        _updateUsageCounter(data.usage);
       });
+    } else if(data.error === 'limit_exceeded'){
+      // Rate limited — show message
+      var limitLine = document.createElement('div');
+      limitLine.className = 'dt-line dt-roi';
+      limitLine.textContent = data.message || 'Daily limit reached.';
+      term.appendChild(limitLine);
+      _updateUsageCounter(data.usage);
     } else {
       // Fall back to hardcoded scenario animation
       _animateHardcoded(scenario, term, roiBlock);
+      if(bundleBtn) bundleBtn.style.display = '';
     }
   })
   .catch(function(){
     // Network/server unavailable — fall back to hardcoded animation
     term.innerHTML = '';
     _animateHardcoded(scenario, term, roiBlock);
+    if(bundleBtn) bundleBtn.style.display = '';
   });
 }
 
@@ -367,6 +391,69 @@ function _apiHeaders(){
   var token=localStorage.getItem('murphy_session_token');
   if(token)h['Authorization']='Bearer '+token;
   return h;
+}
+
+function _updateUsageCounter(usage){
+  var counter = document.getElementById('demo-usage-counter');
+  var limitMsg = document.getElementById('demo-limit-msg');
+  if(!usage || !counter) return;
+  var lim = usage.limit === -1 ? 'unlimited' : usage.limit;
+  var rem = usage.limit === -1 ? 'unlimited' : usage.remaining;
+  counter.textContent = rem + ' of ' + lim + ' free uses remaining today';
+  if(usage.remaining === 0 && limitMsg){
+    limitMsg.textContent = 'Daily limit reached. Sign up or upgrade for more.';
+    limitMsg.style.display = '';
+  }
+}
+
+function downloadBundle(){
+  var btn=document.getElementById('demo-bundle-btn');
+  if(btn)btn.disabled=true;
+  if(btn)btn.textContent='Packaging…';
+  fetch('/api/demo/download-bundle',{
+    method:'POST',
+    headers:_apiHeaders(),
+    credentials:'include',
+    body:JSON.stringify({query:_lastDemoQuery||'Custom deliverable'})
+  })
+  .then(function(r){
+    if(r.ok) return r.blob();
+    return r.json().then(function(d){throw d;});
+  })
+  .then(function(blob){
+    if(btn)btn.disabled=false;
+    if(btn)btn.textContent='\u{1F4E6} Download Full Package (ZIP)';
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='murphy-engagement-package.zip';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+  })
+  .catch(function(err){
+    if(btn)btn.disabled=false;
+    if(btn)btn.textContent='\u{1F4E6} Download Full Package (ZIP)';
+    var counter=document.getElementById('demo-usage-counter');
+    var limitMsg=document.getElementById('demo-limit-msg');
+    if(err&&err.error==='limit_exceeded'){
+      if(limitMsg){limitMsg.textContent=err.message||'Daily limit reached.';limitMsg.style.display='';}
+    } else {
+      if(counter)counter.textContent='Bundle download failed — please try again.';
+    }
+  });
+}
+
+function _showSpecSummary(specData){
+  var el=document.getElementById('demo-spec-summary');
+  if(!el||!specData)return;
+  var html='<div style="color:var(--cyan);font-weight:700;margin-bottom:.5rem;">\u26a1 Automation Proposal Summary</div>';
+  if(specData.title) html+='<div><b>Scope:</b> '+specData.title+'</div>';
+  if(specData.workflow_count) html+='<div><b>Workflows:</b> '+specData.workflow_count+' automated workflows</div>';
+  if(specData.hours_saved_month) html+='<div><b>Time Saved:</b> '+specData.hours_saved_month+' hours/month</div>';
+  if(specData.monthly_savings_usd) html+='<div><b>Monthly Savings:</b> $'+specData.monthly_savings_usd.toLocaleString()+'/mo</div>';
+  if(specData.murphy_cost) html+='<div><b>Murphy Cost:</b> $'+specData.murphy_cost+'/mo ('+specData.recommended_tier+')</div>';
+  if(specData.roi_multiple) html+='<div style="color:#fbbf24;font-weight:700;margin-top:.3rem;"><b>ROI:</b> '+specData.roi_multiple+'\u00d7 return on investment</div>';
+  if(specData.signup_url) html+='<div style="margin-top:.5rem;"><a href="'+specData.signup_url+'" style="color:var(--teal);">Activate this automation \u2192</a></div>';
+  el.innerHTML=html;
+  el.style.display='';
 }
 
 function downloadDeliverable(){

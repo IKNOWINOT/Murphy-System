@@ -657,6 +657,9 @@ function showMurphyError(msg) {
         <!-- HTML preview button (only shown for .html deliverables) -->
         <button class="forge-dl-btn" id="forge-html-preview-btn" style="display:none;background:rgba(0,212,170,.15);color:var(--teal);border:1px solid var(--teal);margin-bottom:.5rem;" onclick="_forgePreviewInTab()">&#9654; Preview in New Tab</button>
         <button class="forge-dl-btn" id="forge-dl-btn">&#8595; Download Your Deliverable</button>
+        <button class="forge-dl-btn" id="forge-bundle-btn" style="display:none;background:rgba(124,58,237,.2);color:#c4b5fd;border:1px solid #7c3aed;margin-top:.5rem;" onclick="_forgeDownloadBundle()">&#128230; Download Full Package (ZIP)</button>
+        <!-- Automation Proposal Spec Summary -->
+        <div id="forge-spec-summary" style="display:none;margin-top:1rem;padding:1rem;background:#0a0a0a;border:1px solid rgba(0,255,65,.2);border-radius:8px;text-align:left;font-size:.82rem;line-height:1.7;color:var(--muted);"></div>
         <div class="forge-fallback-cta" id="forge-fallback-cta" style="display:none;">
           <a href="/ui/signup">Sign up free to download this deliverable →</a>
         </div>
@@ -1572,6 +1575,21 @@ function _showResult(deliverable,usedRealApi,forgeUsage){
     }
     resBlock.style.display='';
     _setStatus('&#10003; Build complete — your deliverable is ready.','phase');
+    // Show bundle download button
+    var bundleBtn=document.getElementById('forge-bundle-btn');
+    if(bundleBtn) bundleBtn.style.display='';
+    // Fetch and show spec summary
+    if(usedRealApi && _forgeQuery){
+      fetch('/api/demo/run',{
+        method:'POST',
+        headers:_apiHeaders(),
+        credentials:'include',
+        body:JSON.stringify({query:_forgeQuery})
+      })
+      .then(function(r){return r.json();})
+      .then(function(d){if(d.success&&d.spec) _forgeShowSpecSummary(d.spec);})
+      .catch(function(){});
+    }
   } else {
     // API unavailable or returned no content -- use client-side fallback
     var _fb = _forgeFallback(_forgeQuery);
@@ -1680,6 +1698,52 @@ function _gateCheck(query){
   if(q.split(' ').length>=4) score+=35; else questions.push('Can you describe it in a few more words?');
   // Score ≥85 → proceed, else ask
   return {score:score,questions:questions,pass:score>=85};
+}
+
+/* ── Bundle download for forge section ── */
+function _forgeDownloadBundle(){
+  var btn=document.getElementById('forge-bundle-btn');
+  if(btn){btn.disabled=true;btn.textContent='Packaging…';}
+  fetch('/api/demo/download-bundle',{
+    method:'POST',
+    headers:_apiHeaders(),
+    credentials:'include',
+    body:JSON.stringify({query:_forgeQuery||'Custom deliverable'})
+  })
+  .then(function(r){
+    if(r.ok) return r.blob();
+    return r.json().then(function(d){throw d;});
+  })
+  .then(function(blob){
+    if(btn){btn.disabled=false;btn.textContent='\\u{1F4E6} Download Full Package (ZIP)';}
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='murphy-engagement-package.zip';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+  })
+  .catch(function(err){
+    if(btn){btn.disabled=false;btn.textContent='\\u{1F4E6} Download Full Package (ZIP)';}
+    if(err&&err.error==='limit_exceeded'){
+      var errEl=document.getElementById('forge-api-err');
+      if(errEl){errEl.textContent=err.message||'Daily limit reached.';errEl.style.display='';}
+    }
+  });
+}
+
+/* ── Show spec summary in forge result ── */
+function _forgeShowSpecSummary(specData){
+  var el=document.getElementById('forge-spec-summary');
+  if(!el||!specData)return;
+  var html='<div style="color:var(--green);font-weight:700;margin-bottom:.5rem;">⚡ Automation Proposal Summary</div>';
+  if(specData.title) html+='<div><b>Scope:</b> '+specData.title+'</div>';
+  if(specData.workflow_count) html+='<div><b>Workflows:</b> '+specData.workflow_count+' automated workflows</div>';
+  if(specData.hours_saved_month) html+='<div><b>Time Saved:</b> '+specData.hours_saved_month+' hours/month</div>';
+  if(specData.monthly_savings_usd) html+='<div><b>Monthly Savings:</b> $'+specData.monthly_savings_usd.toLocaleString()+'/mo</div>';
+  if(specData.murphy_cost) html+='<div><b>Murphy Cost:</b> $'+specData.murphy_cost+'/mo ('+specData.recommended_tier+')</div>';
+  if(specData.roi_multiple) html+='<div style="color:#fbbf24;font-weight:700;margin-top:.3rem;"><b>ROI:</b> '+specData.roi_multiple+'× return on investment</div>';
+  if(specData.signup_url) html+='<div style="margin-top:.5rem;"><a href="'+specData.signup_url+'" style="color:var(--teal);">Activate this automation →</a></div>';
+  el.innerHTML=html;
+  el.style.display='';
 }
 
 /* Main forge run */
