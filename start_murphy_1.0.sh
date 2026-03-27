@@ -4,8 +4,18 @@
 # Copyright © 2020 Inoni Limited Liability Company
 # Creator: Corey Post
 # License: BSL 1.1 (Business Source License)
+#
+# DEPRECATED: Use start.sh instead.
+# This script is preserved for backward compatibility and will be removed
+# in a future release.  Run:
+#   bash start.sh
+#
 
-set -e
+echo "⚠️  DEPRECATED: start_murphy_1.0.sh is superseded by start.sh"
+echo "   Redirecting to: bash start.sh"
+echo ""
+exec bash "$(dirname "$0")/start.sh" "$@"
+
 
 echo ""
 # Use pyfiglet banner if available, otherwise fall back to simple banner

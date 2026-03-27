@@ -1,5 +1,11 @@
 # Murphy System Runtime - Complete Documentation
 
+> **Directory guide:** Two documentation roots exist in this repository:
+> - **`docs/`** — canonical reference docs (technical specs, runbooks, gap analyses, commissioning guides). Start here for current information.
+> - **`documentation/`** *(this directory)* — legacy full-coverage documentation package (architecture overviews, getting-started guides, enterprise docs, API reference). Content here is accurate but may lag `docs/` on the latest module changes.
+>
+> Both are maintained. When in doubt, prefer `docs/` for operational/technical detail and `documentation/` for architectural overview and user guides.
+
 **Copyright © 2025 Corey Post InonI LLC**  
 **License:** BSL 1.1 (converts to Apache 2.0 after 4 years)  
 **Contact:** corey.gfc@gmail.com

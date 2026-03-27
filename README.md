@@ -122,9 +122,9 @@ The script handles the virtual environment, installs **all** dependencies (inclu
 
 **📚 Documentation:**
 - **Complete Guide:** [GETTING_STARTED.md](GETTING_STARTED.md)
-- **Quick Start:** [Murphy System/MURPHY_1.0_QUICK_START.md](MURPHY_1.0_QUICK_START.md)
-- **API Reference:** [Murphy System/API_DOCUMENTATION.md](API_DOCUMENTATION.md)
-- **Deployment Guide:** [Murphy System/DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
+- **Quick Start:** [MURPHY_1.0_QUICK_START.md](MURPHY_1.0_QUICK_START.md)
+- **API Reference:** [API_DOCUMENTATION.md](API_DOCUMENTATION.md)
+- **Deployment Guide:** [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
 
 ---
 
@@ -185,7 +185,7 @@ See [docs/TIERED_RUNTIME.md](docs/TIERED_RUNTIME.md) for details.
 | E2E Hero Flow Validation | **85%** | Describe→Generate→Execute chain validated: 49 integration tests pass; real-user validation and production load testing remain |
 | Librarian Command Coverage | **100%** | All 154 commands wired into Librarian; `generate_command()` + triage escalation tested across every category |
 | Librarian Triage Escalation | **100%** | Mode-aware (ASK/ONBOARDING/PRODUCTION/ASSISTANT); triage→execution path validated with 57 tests |
-| **Weighted overall** | **~83%** | See [Production Readiness Audit](Murphy System/strategic/PRODUCTION_READINESS_AUDIT.md) |
+| **Weighted overall** | **~83%** | See [Production Readiness Audit](strategic/PRODUCTION_READINESS_AUDIT.md) |
 
 > **Test status:** 706 test files with 24,341 test functions.
 > Skipped tests require optional packages (Flask, Textual, torch).
@@ -211,7 +211,8 @@ Murphy-System/
 │   └── transfer_archive.sh             ← Archive transfer tool
 ├── docs/
 │   └── screenshots/                    ← Verification screenshots
-└── Murphy System/                      ← ACTIVE SYSTEM
+├── Murphy System/                      ← legacy mirror (synced with src/)
+└── src/                                ← ACTIVE SYSTEM (canonical)
     ├── murphy                          ← CLI tool (start/stop/status/…)
     ├── murphy_system_1.0_runtime.py    ← Single production runtime
     ├── src/                            ← 1,122 named modules across 71 packages (1,223 .py files total)
@@ -267,7 +268,7 @@ bash setup_and_start.sh
 - 42 integrated modules, 8,843 tests passing
 - Neon terminal UI across 14 web interfaces with consistent theme
 
-**Architect UI:** serve `Murphy System/terminal_architect.html` with `python -m http.server 8090` and open `http://localhost:8090/Murphy%20System/terminal_architect.html?apiPort=8000`
+**Architect UI:** serve `terminal_architect.html` with `python -m http.server 8090` and open `http://localhost:8090/Murphy%20System/terminal_architect.html?apiPort=8000`
 
 ---
 
@@ -277,12 +278,12 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 
 | Domain | Location | Purpose | Entry Points |
 | --- | --- | --- | --- |
-| **Runtime API** | `Murphy System/murphy_system_1.0_runtime.py` | Runtime 1.0 API server | `bash setup_and_start.sh`, `GET /api/status` |
-| **Role-based UIs** | `Murphy System/terminal_architect.html` | Architect planning + gate review UI | `python -m http.server 8090`, `?apiPort=8000` |
-| **Operations UI** | `Murphy System/terminal_integrated.html` | Operations execution UI | `python -m http.server 8090`, `?apiPort=8000` |
-| **Worker UI** | `Murphy System/terminal_worker.html` | Delivery worker UI | `python -m http.server 8090`, `?apiPort=8000` |
-| **Legacy UI Assets** | `Murphy System/murphy_ui_integrated.html` | Legacy UI assets (scheduled for archive) | Open directly for reference |
-| **Tests** | `Murphy System/tests/` | Dynamic chain, gate, and capability tests | `python -m pytest` |
+| **Runtime API** | `murphy_system_1.0_runtime.py` | Runtime 1.0 API server | `bash setup_and_start.sh`, `GET /api/status` |
+| **Role-based UIs** | `terminal_architect.html` | Architect planning + gate review UI | `python -m http.server 8090`, `?apiPort=8000` |
+| **Operations UI** | `terminal_integrated.html` | Operations execution UI | `python -m http.server 8090`, `?apiPort=8000` |
+| **Worker UI** | `terminal_worker.html` | Delivery worker UI | `python -m http.server 8090`, `?apiPort=8000` |
+| **Legacy UI Assets** | `murphy_ui_integrated.html` | Legacy UI assets (scheduled for archive) | Open directly for reference |
+| **Tests** | `tests/` | Dynamic chain, gate, and capability tests | `python -m pytest` |
 
 ### Subsystem Lookup
 
@@ -651,10 +652,10 @@ bash setup_and_start.sh
 
 ### Containers & Kubernetes
 
-`Dockerfile`, `docker-compose.yml`, and `k8s/` manifests are included in `Murphy System/` as active deployment options. Security hardening is required before production use.
+`Dockerfile`, `docker-compose.yml`, and `k8s/` manifests are active deployment options at the repo root. Security hardening is required before production use.
 
 ```bash
-# From the Murphy System/ directory
+# From the repo root
 docker build -t murphy-system .
 docker compose up -d
 
@@ -689,7 +690,7 @@ The Murphy System Runtime exposes a FastAPI-based REST API. Start the server wit
 | `POST` | `/api/ucp/execute` | Yes | Universal Control Protocol execution |
 | `GET` | `/api/integrations/{status}` | Yes | List integrations filtered by status |
 
-> **Authentication:** Production mode (`MURPHY_ENV=production`) requires `Authorization: Bearer <key>` or `X-API-Key: <key>` header on all non-health endpoints. Development mode allows unauthenticated access. See [`Murphy System/documentation/api/AUTHENTICATION.md`](Murphy System/documentation/api/AUTHENTICATION.md) for full details.
+> **Authentication:** Production mode (`MURPHY_ENV=production`) requires `Authorization: Bearer <key>` or `X-API-Key: <key>` header on all non-health endpoints. Development mode allows unauthenticated access. See [`documentation/api/AUTHENTICATION.md`](documentation/api/AUTHENTICATION.md) for full details.
 
 ---
 
@@ -701,17 +702,17 @@ Murphy System supports two complementary configuration mechanisms. **Environment
 
 ```bash
 # Edit main settings (LLM provider, thresholds, safety levels, logging):
-nano "Murphy System/config/murphy.yaml"
+nano config/murphy.yaml
 
 # Edit engine settings (swarm, gates, orchestrator, self-healing):
-nano "Murphy System/config/engines.yaml"
+nano config/engines.yaml
 ```
 
-See `Murphy System/config/murphy.yaml.example` and `Murphy System/config/engines.yaml.example` for fully-annotated documentation of every setting.
+See `config/murphy.yaml.example` and `config/engines.yaml.example` for fully-annotated documentation of every setting.
 
 ### Environment Variables
 
-Copy `Murphy System/.env.example` to `Murphy System/.env` and fill in the values. Environment variables override YAML defaults.
+Copy `.env.example` to `.env` and fill in the values. Environment variables override YAML defaults.
 
 | Variable | Default | Description |
 | --- | --- | --- |
@@ -739,9 +740,9 @@ Copy `Murphy System/.env.example` to `Murphy System/.env` and fill in the values
 | [API Documentation](API_DOCUMENTATION.md) | API reference |
 | [Deployment Guide](DEPLOYMENT_GUIDE.md) | Deployment instructions |
 | [User Manual](USER_MANUAL.md) | Comprehensive user manual |
-| [Launch Automation Plan](Murphy System/docs/LAUNCH_AUTOMATION_PLAN.md) | Self-automating launch strategy |
-| [Operations & Testing Plan](Murphy System/docs/OPERATIONS_TESTING_PLAN.md) | Iterative test-fix-document cycle |
-| [Gap Analysis](Murphy System/docs/GAP_ANALYSIS.md) | System gap analysis and status |
+| [Launch Automation Plan](docs/LAUNCH_AUTOMATION_PLAN.md) | Self-automating launch strategy |
+| [Operations & Testing Plan](docs/OPERATIONS_TESTING_PLAN.md) | Iterative test-fix-document cycle |
+| [Gap Analysis](docs/GAP_ANALYSIS.md) | System gap analysis and status |
 | [API Docs](http://localhost:8000/docs) | Interactive API docs (requires running server) |
 | [Archive](https://github.com/IKNOWINOT/murphy-system-archive) | Legacy versions and artifacts (separate repository) |
 
@@ -946,7 +947,7 @@ Murphy includes built-in self-improvement infrastructure:
 - ❌ Modify source code (requires human review via code proposals)
 - ⚠️ Complex emergent bugs require manual diagnosis
 
-See [`docs/SELF_FIX_LOOP.md`](Murphy System/docs/SELF_FIX_LOOP.md) for full documentation on the autonomous self-fix loop.
+See [`docs/SELF_FIX_LOOP.md`](docs/SELF_FIX_LOOP.md) for full documentation on the autonomous self-fix loop.
 
 File an issue or submit a patch — Murphy's learning loop will incorporate the
 feedback into its operational models.
