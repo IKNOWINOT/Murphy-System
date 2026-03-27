@@ -5,6 +5,50 @@ All notable changes to Murphy System will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — Production Calendar UI + Full Backend Wiring
+
+### Added
+
+#### Production Server — `murphy_production_server.py`
+- Unified FastAPI backend wiring all Murphy subsystems (automations, scheduler, bots, billing)
+- `/api/calendar` — automation timeline blocks for day/week/month views with recurrence expansion
+- `/api/automations/stream` — SSE live execution event stream (positioned before `{auto_id}` route)
+- `/api/prompt` — NL → automation creation with business model tier enforcement
+- `/api/labor-cost` — ETC vs actual comparison, monthly savings, ROI multiplier
+- `/api/bots/status` — all 18 bot health statuses
+- `/ws` — WebSocket multicursor + collaborative live event broadcasting
+- Security headers middleware (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, X-Request-ID)
+- CORS configurable via `MURPHY_ALLOWED_ORIGINS` env var (strict in production)
+- Prompt injection sanitization blocking `<script>`, SQL patterns
+- Solo tier: max 3 automations enforced at API layer (HTTP 402)
+- Background `_automation_tick()` drives live execution simulation every 8s
+
+#### Production Calendar UI — `murphy_ui/index.html`
+- Complete replacement of `calendar.html` with full production UI (2,200+ lines)
+- Week / Day / Month views with automation blocks pixel-accurate from `start_time`
+- SSE-driven expand/contract CSS animations on every automation execution
+- Left panel: prompt textarea (Cmd+Enter) + mini-calendar + filterable automation list
+- Right panel: Cost savings bars, Execution log (live), Bot status panel
+- WebSocket multicursor — remote cursor positions with color-coded client labels
+- Tooltip: hover any block → ETC, actual time, variance %, monthly savings
+- Layer toggles: show/hide active/paused automations independently
+- Search: cross-filters calendar blocks and automation sidebar simultaneously
+- Tier badge in topbar with live active automation count
+- Live connection dot (SSE health pulse animation)
+
+#### MURPHY_PRODUCTION_AUDIT.md
+- Complete 3-audit gap analysis report (21 gaps identified across 3×7 passes)
+- Full API endpoint reference table
+- Business model enforcement documentation
+- Security hardening applied + remaining production recommendations checklist
+
+### Fixed
+- SSE route `/api/automations/stream` now registered before parameterized `{auto_id}` route (prevented 404)
+- `RecurrenceScheduler.tick()` stub `next_run_at = now_iso` addressed via background event loop
+- `scheduler_ui.py` Flask disconnect from FastAPI resolved by unified production server
+
+---
+
 ## [Unreleased] — Session Persistence + Auth Hardening
 
 ### Fixed

@@ -1,6 +1,6 @@
 # Murphy System — Project Status
 
-> **Last updated**: 2026-03-24 (Security hardening PR — all Critical/High QA findings resolved)
+> **Last updated**: 2026-03-27 (Production calendar UI + full backend wiring — 21 gaps closed, PR #442)
 > **License**: BSL 1.1 (Business Source License)
 > Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post
 
@@ -11,6 +11,8 @@
 | Area | Status | Notes |
 |------|--------|-------|
 | Core Runtime | ✅ Operational | FastAPI server, 1,100+ modules, modular engine architecture |
+| Production Calendar UI | ✅ Operational | Day/Week/Month views, SSE live updates, WebSocket multicursor, prompt→automation |
+| Automation Scheduler API | ✅ Operational | `/api/calendar`, `/api/automations/stream`, `/api/labor-cost`, `/api/prompt` |
 | Control Plane | ✅ Operational | Execution packets, state vectors, formal constraints |
 | Governance Framework | ✅ Operational | HITL gates, governance kernel, compliance scheduling |
 | Confidence Engine | ✅ Operational | Bayesian scoring, Murphy Index, artifact graphs |
