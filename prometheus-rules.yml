@@ -1,0 +1,138 @@
+# Murphy System Prometheus Alerting Rules
+# Addresses: G-004 (Prometheus rules audit)
+# Date: 2026-03-27
+
+groups:
+  - name: murphy-system-alerts
+    rules:
+      # ══════════════════════════════════════════════════════════════════════════
+      # AVAILABILITY ALERTS
+      # ══════════════════════════════════════════════════════════════════════════
+      
+      - alert: MurphyAPIDown
+        expr: up{job="murphy-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Murphy API is down"
+          description: "Murphy API has been down for more than 1 minute."
+      
+      - alert: MurphyHealthCheckFailing
+        expr: murphy_health_check_success == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Murphy health check failing"
+          description: "Health check endpoint returning unhealthy status."
+      
+      # ══════════════════════════════════════════════════════════════════════════
+      # PERFORMANCE ALERTS
+      # ══════════════════════════════════════════════════════════════════════════
+      
+      - alert: HighRequestLatency
+        expr: histogram_quantile(0.95, rate(murphy_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High request latency"
+          description: "95th percentile latency is above 1 second."
+      
+      - alert: HighErrorRate
+        expr: rate(murphy_request_errors_total[5m]) / rate(murphy_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate"
+          description: "Error rate is above 5%."
+      
+      # ══════════════════════════════════════════════════════════════════════════
+      # RESOURCE ALERTS
+      # ══════════════════════════════════════════════════════════════════════════
+      
+      - alert: HighMemoryUsage
+        expr: container_memory_usage_bytes{container="murphy-api"} / container_spec_memory_limit_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is above 90% of limit."
+      
+      - alert: HighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total{container="murphy-api"}[5m]) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is above 90%."
+      
+      # ══════════════════════════════════════════════════════════════════════════
+      # DATABASE ALERTS
+      # ══════════════════════════════════════════════════════════════════════════
+      
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database is not responding."
+      
+      - alert: PostgresConnectionsHigh
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High PostgreSQL connections"
+          description: "Connection count is above 80."
+      
+      # ══════════════════════════════════════════════════════════════════════════
+      # LLM/AI ALERTS
+      # ══════════════════════════════════════════════════════════════════════════
+      
+      - alert: LLMProviderDown
+        expr: murphy_llm_provider_available == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "LLM provider unavailable"
+          description: "Primary LLM provider is not responding."
+      
+      - alert: HighLLMLatency
+        expr: histogram_quantile(0.95, rate(murphy_llm_request_duration_seconds_bucket[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High LLM latency"
+          description: "LLM requests taking longer than 10 seconds."
+      
+      # ══════════════════════════════════════════════════════════════════════════
+      # SECURITY ALERTS
+      # ══════════════════════════════════════════════════════════════════════════
+      
+      - alert: HighAuthFailureRate
+        expr: rate(murphy_auth_failures_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High authentication failure rate"
+          description: "More than 10 auth failures per 5 minutes - possible brute force."
+      
+      - alert: RateLimitTriggered
+        expr: rate(murphy_rate_limit_exceeded_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Rate limiting triggered frequently"
+          description: "Many requests being rate limited - possible abuse."

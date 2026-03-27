@@ -9939,8 +9939,14 @@ def create_app() -> FastAPI:
                 return _FileResponse(_fp, media_type="text/html")
             return _handler
 
+        # HTML templates directory (A-004: moved from root to templates/)
+        _templates_dir = _project_root / "templates"
+        
         for _route_path, _filename in _html_routes.items():
-            _filepath = _project_root / _filename
+            # Try templates/ first, fall back to project root for backwards compatibility
+            _filepath = _templates_dir / _filename
+            if not _filepath.is_file():
+                _filepath = _project_root / _filename
             if _filepath.is_file():
                 if _route_path in _PUBLIC_HTML_ROUTES:
                     app.add_api_route(
