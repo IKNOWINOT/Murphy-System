@@ -96,7 +96,11 @@ spec:
               protocol: TCP
           env:
             - name: GF_SECURITY_ADMIN_USER
-              value: "admin"
+              valueFrom:
+                secretKeyRef:
+                  name: murphy-secrets
+                  key: GRAFANA_ADMIN_USER
+                  optional: true  # falls back to Grafana default "admin"
             - name: GF_SECURITY_ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:

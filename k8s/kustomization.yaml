@@ -22,7 +22,15 @@ resources:
   - redis.yaml
   - postgres.yaml
   - resource-quota.yaml
+  - limit-range.yaml
   - backup-cronjob.yaml
+  # Monitoring stack
+  - monitoring/prometheus-config.yaml
+  - monitoring/prometheus-deployment.yaml
+  - monitoring/grafana-deployment.yaml
+  # NOTE: monitoring/service-monitor.yaml requires Prometheus Operator —
+  #       uncomment only if the Prometheus Operator CRDs are installed.
+  # - monitoring/service-monitor.yaml
 
 commonLabels:
   managed-by: kustomize

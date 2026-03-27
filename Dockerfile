@@ -58,6 +58,9 @@ COPY *.html ./
 # Root-level JS (auth, overlay) and CLI entry point
 COPY murphy_auth.js murphy_overlay.js murphy ./
 
+# Root-level orchestrator modules (imported by src/execution_router.py)
+COPY two_phase_orchestrator.py universal_control_plane.py ./
+
 # Murphy System legacy directory (HTML pages, static assets, config)
 # NOTE: Space in directory name requires careful quoting
 COPY "Murphy System/" "./Murphy System/"

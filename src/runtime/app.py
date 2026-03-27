@@ -13863,6 +13863,22 @@ def create_app() -> FastAPI:
     except Exception as _prod_exc:
         logger.warning("Production Router v3.0 not loaded: %s", _prod_exc)
 
+    # ── Execution Engine Router (DEF-045/046) ────────────────────────
+    try:
+        from src.execution_router import router as _exec_router
+        from src.execution_router import execution_router_startup as _exec_startup
+
+        app.include_router(_exec_router)
+
+        @app.on_event("startup")
+        async def _run_execution_startup():
+            await _exec_startup()
+            logger.info("Execution Engine Router startup complete")
+
+        logger.info("Execution Engine Router loaded successfully")
+    except Exception as _exec_exc:
+        logger.warning("Execution Engine Router not loaded: %s", _exec_exc)
+
     return app
 
 

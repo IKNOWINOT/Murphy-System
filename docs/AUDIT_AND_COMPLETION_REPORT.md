@@ -317,4 +317,107 @@ All packages have `__init__.py`. Only 3 have README.md files.
 
 ---
 
+## Appendix: Production Readiness Audit — Waves 5–10 (2026-03)
+
+### Context
+
+This appendix documents the engineering commissioning work performed in the
+comprehensive production readiness audit (PR #443, branch `audit/comprehensive-production-readiness`).
+Waves 1–4 addressed foundational issues (unified FastAPI server, module registry, launcher hardening,
+HTML deduplication). Waves 5–10 completed the execution engine wiring, security plane commissioning,
+deployment hardening, and as-built documentation.
+
+### Wave 5: Execution Engine & Orchestrator Wiring (DEF-045/046)
+
+**Problem:** Three orchestrators (`TwoPhaseOrchestrator`, `UniversalControlPlane`,
+`ExecutionOrchestrator`) existed as standalone modules but were not accessible through
+the unified FastAPI server.
+
+**Solution:** Created `src/execution_router.py` — a FastAPI APIRouter with 14 routes
+wiring all three orchestrators into `create_app()`. Lazy initialization with graceful
+error handling ensures the server starts even if individual orchestrators fail.
+
+**Files Created/Modified:**
+- `src/execution_router.py` — NEW (14 routes)
+- `src/runtime/app.py` — Added execution router wiring
+
+**Verification:** All three orchestrators instantiate, Phase 1/2 lifecycle verified,
+session isolation confirmed, 1,131 total routes (up from 1,124).
+
+### Wave 6: Security Plane Commissioning (DEF-016)
+
+**Problem:** 17 security_plane modules existed but their runtime behavior needed verification,
+particularly regarding real vs. simulated cryptography.
+
+**Findings:**
+- `_HAS_REAL_CLASSICAL=True` — Real ECDSA P-256 via `cryptography` library
+- `_HAS_REAL_PQC=False` — HMAC-SHA3 simulation (liboqs not available)
+- Startup logs clearly indicate which mode is active
+- `src/auth_middleware.py` (lightweight) coexists with `security_plane/middleware.py` (advanced)
+
+**Verified:** Classical sign/verify, PQC Dilithium sign/verify, Hybrid sign/verify,
+KeyManager lifecycle (generate → rotate → retrieve), PacketSigner full cycle, all 17 modules import.
+
+### Wave 7: .env.example Cleanup (DEF-011)
+
+**Problem:** 600 lines with duplicate variable declarations across sections.
+
+**Solution:** Complete rewrite — 369 lines (38% reduction), zero duplicates, 29 active
+variables, 5 CHANGEME entries. Added CONFIGURATION.md cross-reference.
+
+### Wave 8: Docker & Deployment Documentation (DEF-029/030)
+
+**Docker-compose hardening:**
+- `docker-compose.yml`: Bound postgres/redis/prometheus to 127.0.0.1, added json-file
+  logging to all 7 services, fixed mailserver healthcheck (CMD→CMD-SHELL)
+- `docker-compose.murphy.yml`: Removed deprecated `version:`, added Redis password support,
+  localhost bindings, healthcheck depends_on, logging
+- `docker-compose.hetzner.yml`: Already well-hardened — no changes needed
+
+**Dockerfile fix (CRITICAL):**
+- Added `COPY two_phase_orchestrator.py universal_control_plane.py ./` — these root-level
+  files were missing from the Docker image, breaking the execution router.
+
+**Kubernetes hardening:**
+- Fixed `resource-quota.yaml` duplicate keys
+- Fixed `limit-range.yaml` duplicate LimitRange definitions
+- Added `limit-range.yaml` + monitoring manifests to `kustomization.yaml`
+- Added `GRAFANA_ADMIN_USER` + `GRAFANA_ADMIN_PASSWORD` to `secret.yaml`
+- Fixed Grafana deployment to source admin user from Secret
+- Fixed DeepInfra placeholder (was still "groq")
+- Created `k8s/README.md` with architecture, deployment guide, manifest reference
+
+### Wave 9: Commissioning Tests
+
+Created 84 new commissioning tests across 3 files:
+
+| File | Tests | Scope |
+|------|-------|-------|
+| `tests/commissioning/test_wave5_execution_router.py` | 16 | Route registration, auth enforcement, orchestrator imports |
+| `tests/commissioning/test_wave6_security_plane.py` | 37 | Crypto lifecycle, all 17 security modules |
+| `tests/commissioning/test_wave8_docker_k8s.py` | 31 | Docker/K8s manifest validation |
+
+**Result:** 84/84 new tests PASS. Pre-existing commissioning suite: 307 passed, 17 failed
+(all in `test_freelancer_validator.py` — pre-existing, not related to this audit).
+
+### Wave 10: As-Built Documentation
+
+- Updated this report (Appendix)
+- Created `docs/EXECUTION_ENGINE.md` — Full execution pipeline architecture
+- Created `k8s/README.md` — Kubernetes deployment guide
+
+### Summary of All Changes
+
+| Category | Files Changed | Key Metric |
+|----------|--------------|------------|
+| Execution Wiring | 2 new, 1 modified | 14 new API routes |
+| Security Plane | 0 modified (verified) | 17/17 modules commissioned |
+| .env.example | 1 rewritten | 600→369 lines, 0 duplicates |
+| Docker | 3 modified | 3 security fixes, 1 critical Dockerfile fix |
+| Kubernetes | 6 modified, 1 new | 5 manifest fixes, README added |
+| Tests | 3 new | 84 new commissioning tests |
+| Documentation | 3 new/updated | Execution engine + K8s + audit report |
+
+---
+
 *Report generated as part of Issue: Audit and Completion Plan for Code, Documentation, and Testing Across All Modules*

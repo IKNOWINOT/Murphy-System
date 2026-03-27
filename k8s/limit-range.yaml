@@ -1,18 +1,35 @@
+# Murphy System — Kubernetes LimitRange
+# Copyright © 2020 Inoni Limited Liability Company
+# License: BSL-1.1
+#
+# Sets default resource requests/limits for containers and pods in the
+# murphy-system namespace. Prevents unbounded resource consumption.
+---
 apiVersion: v1
 kind: LimitRange
 metadata:
-  name: murphy-default-limits
+  name: murphy-system-limits
   namespace: murphy-system
   labels:
     app: murphy-system
-    component: resource-management
+    component: governance
     environment: production
 spec:
   limits:
-    - default:
+    - type: Container
+      default:
         cpu: "500m"
         memory: "512Mi"
       defaultRequest:
         cpu: "100m"
         memory: "128Mi"
-      type: Container
+      max:
+        cpu: "2"
+        memory: "4Gi"
+      min:
+        cpu: "50m"
+        memory: "64Mi"
+    - type: Pod
+      max:
+        cpu: "4"
+        memory: "8Gi"

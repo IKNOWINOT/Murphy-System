@@ -1,4 +1,14 @@
-version: "3.9"
+# Murphy System 1.0 — Docker Compose (murphy development/CI)
+#
+# Lightweight compose for local development with Murphy API + Web frontend.
+# Uses the same Dockerfile as production but with source-mounted volumes.
+#
+# Usage:
+#   cp .env.example .env   # edit with your keys
+#   docker compose -f docker-compose.murphy.yml up -d
+#
+# Copyright © 2020 Inoni Limited Liability Company
+# License: BSL-1.1
 
 networks:
   murphy_net:
@@ -14,16 +24,22 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: production
     ports:
-      - "8000:8000"
+      - "${MURPHY_PORT:-8000}:8000"
     volumes:
       - ./src:/app/src
     env_file:
       - .env
     environment:
-      - MURPHY_ENV=${MURPHY_ENV:-production}
+      MURPHY_ENV: ${MURPHY_ENV:-development}
+      MURPHY_PORT: "8000"
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
     networks:
       - murphy_net
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
@@ -31,23 +47,43 @@ services:
       retries: 3
       start_period: 15s
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
 
   murphy-web:
     build:
       context: web/
       dockerfile: Dockerfile
     ports:
-      - "5173:5173"
+      - "${MURPHY_WEB_PORT:-5173}:5173"
     networks:
       - murphy_net
     depends_on:
       - murphy-api
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   redis:
     image: redis:7.2-alpine
+    command: >
+      sh -c '
+      if [ -n "$$REDIS_PASSWORD" ]; then
+        redis-server --requirepass "$$REDIS_PASSWORD"
+      else
+        redis-server
+      fi
+      '
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     ports:
-      - "6379:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -58,11 +94,16 @@ services:
       timeout: 5s
       retries: 3
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   prometheus:
     image: prom/prometheus:v2.53.0
     ports:
-      - "9090:9090"
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./prometheus-rules:/etc/prometheus/rules:ro
@@ -70,18 +111,29 @@ services:
     networks:
       - murphy_net
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   grafana:
     image: grafana/grafana:11.1.0
     ports:
-      - "3000:3000"
+      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
     volumes:
       - grafana_data:/var/lib/grafana
     environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER must be set}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
+      GF_USERS_ALLOW_SIGN_UP: "false"
     networks:
       - murphy_net
     depends_on:
       - prometheus
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
