@@ -12093,7 +12093,7 @@ class MurphySystem:
             return {
                 "enabled": True,
                 "provider": provider,
-                "model": model or "llama3-8b-8192",
+                "model": model or "meta-llama/Meta-Llama-3.1-70B-Instruct",
                 "healthy": True,
                 "mode": "external_api",
             }
@@ -12110,7 +12110,7 @@ class MurphySystem:
         """Return librarian subsystem health.
 
         The librarian is always active.  When an external LLM API key is
-        configured (e.g. Groq) it operates in ``llm`` mode; otherwise it
+        configured (e.g. DeepInfra) it operates in ``llm`` mode; otherwise it
         runs in ``onboard`` (deterministic) mode using built-in system
         knowledge.
         """

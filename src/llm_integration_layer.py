@@ -485,7 +485,7 @@ class LLMIntegrationLayer:
                 logger.debug("Suppressed exception: %s", exc)
                 pass  # fall through to together / local engine
 
-        response_text = self._local_groq_response(request)
+        response_text = self._local_generative_response(request)
         # Before returning a canned template, try Ollama for a real response.
         if _HAS_OLLAMA_FALLBACK:
             try:
@@ -509,14 +509,14 @@ class LLMIntegrationLayer:
                                 },
                             )
             except Exception as exc:
-                logger.debug("Suppressed Ollama exception in _call_groq: %s", exc)
+                logger.debug("Suppressed Ollama exception in _call_deepinfra: %s", exc)
         return LLMResponse(
             request_id=request.request_id,
-            provider=LLMProvider.GROQ,
+            provider=LLMProvider.DEEPINFRA,
             response=response_text,
             confidence=0.85,
             metadata={
-                "model": "groq-llama3-70b",
+                "model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
                 "domain": request.domain.value,
                 "processing_type": "generative",
                 "source": "local",
@@ -541,8 +541,8 @@ class LLMIntegrationLayer:
         else:
             return "Wulfrum fuzzy match: Validation complete. Match score: 0.85. General agreement within tolerance."
 
-    def _local_groq_response(self, request: LLMRequest) -> str:
-        """Local generative engine (used when Groq API is unavailable)."""
+    def _local_generative_response(self, request: LLMRequest) -> str:
+        """Local generative engine (used when DeepInfra/Together API is unavailable)."""
         domain_contexts = {
             DomainType.CREATIVE: "Creative response generated with innovative solutions.",
             DomainType.STRATEGIC: "Strategic analysis completed with recommended actions.",
@@ -567,16 +567,16 @@ class LLMIntegrationLayer:
         provider_mapping = {
             LLMProvider.ARISTOTLE: "aristotle",
             LLMProvider.WULFRUM: "wulfrum",
-            LLMProvider.GROQ: "groq"
+            LLMProvider.DEEPINFRA: "deepinfra"
         }
 
-        local_provider = provider_mapping.get(request.provider, "groq")
+        local_provider = provider_mapping.get(request.provider, "deepinfra")
 
         # Call the enhanced local LLM
         local_response = self.local_llm.query(
             prompt=request.prompt,
             provider=local_provider,
-            temperature=0.7 if request.provider == LLMProvider.GROQ else 0.1
+            temperature=0.7 if request.provider == LLMProvider.DEEPINFRA else 0.1
         )
 
         # Convert local response to LLMResponse format
@@ -633,7 +633,7 @@ class LLMIntegrationLayer:
         elif validation_provider == LLMProvider.ARISTOTLE:
             validation_response = self._call_aristotle(request)
         else:
-            validation_response = self._call_groq(request)
+            validation_response = self._call_deepinfra(request)
 
         # Compare responses
         aristotle_result = response.response if request.provider == LLMProvider.ARISTOTLE else None
@@ -759,7 +759,7 @@ class LLMIntegrationLayer:
             "by_provider": by_provider,
             "by_domain": by_domain,
             "validations_pending_review": validations_pending,
-            "current_groq_key_index": self.current_groq_key_index
+            "current_provider_index": getattr(self, "current_groq_key_index", 0)
         }
 
 

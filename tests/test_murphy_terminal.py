@@ -330,8 +330,8 @@ class TestMurphyAPIClient:
         mock_resp = MagicMock()
         mock_resp.json.return_value = {
             "enabled": True,
-            "provider": "groq",
-            "model": "llama3-8b-8192",
+            "provider": "deepinfra",
+            "model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
             "healthy": True,
         }
         mock_resp.raise_for_status = MagicMock()
@@ -341,7 +341,7 @@ class TestMurphyAPIClient:
         result = client.llm_status()
 
         assert result["enabled"] is True
-        assert result["provider"] == "groq"
+        assert result["provider"] == "deepinfra"
         mock_get.assert_called_once_with(
             "http://localhost:8000/api/llm/status", timeout=5
         )
@@ -1020,9 +1020,9 @@ class TestAPIProviderLinks:
         assert len(API_PROVIDER_LINKS) > 0
 
     def test_groq_present(self):
-        assert "groq" in API_PROVIDER_LINKS
-        assert "url" in API_PROVIDER_LINKS["groq"]
-        assert "env_var" in API_PROVIDER_LINKS["groq"]
+        assert "deepinfra" in API_PROVIDER_LINKS
+        assert "url" in API_PROVIDER_LINKS["deepinfra"]
+        assert "env_var" in API_PROVIDER_LINKS["deepinfra"]
 
     def test_all_entries_have_required_fields(self):
         for key, info in API_PROVIDER_LINKS.items():
@@ -1067,7 +1067,7 @@ class TestDialogContextIntegrations:
             dc = DialogContext()
             dc.collected = {"name": "Test Co"}
             recs = dc._infer_integrations()
-            assert "groq" in recs
+            assert "deepinfra" in recs
         finally:
             if old is not None:
                 os.environ["MURPHY_LLM_PROVIDER"] = old
@@ -1290,7 +1290,7 @@ class TestBug5DefaultSuccessFalse:
         mock_post.return_value = mock_resp
 
         client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
-        result = client.configure_llm("groq", "gsk_test_key_value")
+        result = client.configure_llm("deepinfra", "di_test_key_value")
         # With the old default of True, `not result.get("success", True)` would be
         # False (i.e. treated as success).  With the fix, `not result.get("success", False)`
         # is True (i.e. treated as failure).
@@ -1299,12 +1299,12 @@ class TestBug5DefaultSuccessFalse:
     @patch("murphy_terminal.requests.post")
     def test_configure_llm_explicit_success_true(self, mock_post):
         mock_resp = MagicMock()
-        mock_resp.json.return_value = {"success": True, "provider": "groq"}
+        mock_resp.json.return_value = {"success": True, "provider": "deepinfra"}
         mock_resp.raise_for_status = MagicMock()
         mock_post.return_value = mock_resp
 
         client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
-        result = client.configure_llm("groq", "gsk_test_key_value")
+        result = client.configure_llm("deepinfra", "di_test_key_value")
         assert result.get("success", False) is True
 
     @patch("murphy_terminal.requests.post")
@@ -1315,7 +1315,7 @@ class TestBug5DefaultSuccessFalse:
         mock_post.return_value = mock_resp
 
         client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
-        result = client.configure_llm("groq", "gsk_bad")
+        result = client.configure_llm("deepinfra", "di_bad")
         assert result.get("success", False) is False
 
 
@@ -1328,7 +1328,7 @@ class TestBug4StatusBarAuth:
         """Status says enabled but auth test fails → client should reflect failure."""
         # Mock llm_status → enabled
         get_resp = MagicMock()
-        get_resp.json.return_value = {"enabled": True, "provider": "groq", "model": "llama3-8b-8192"}
+        get_resp.json.return_value = {"enabled": True, "provider": "deepinfra", "model": "meta-llama/Meta-Llama-3.1-70B-Instruct"}
         get_resp.raise_for_status = MagicMock()
         mock_get.return_value = get_resp
 
@@ -1350,12 +1350,12 @@ class TestBug4StatusBarAuth:
     def test_llm_status_enabled_and_test_passes(self, mock_get, mock_post):
         """Status enabled and auth test passes → should report success."""
         get_resp = MagicMock()
-        get_resp.json.return_value = {"enabled": True, "provider": "groq", "model": "llama3-8b-8192"}
+        get_resp.json.return_value = {"enabled": True, "provider": "deepinfra", "model": "meta-llama/Meta-Llama-3.1-70B-Instruct"}
         get_resp.raise_for_status = MagicMock()
         mock_get.return_value = get_resp
 
         post_resp = MagicMock()
-        post_resp.json.return_value = {"success": True, "provider": "groq"}
+        post_resp.json.return_value = {"success": True, "provider": "deepinfra"}
         post_resp.raise_for_status = MagicMock()
         mock_post.return_value = post_resp
 
