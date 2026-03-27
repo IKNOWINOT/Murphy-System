@@ -21,14 +21,14 @@ def test_forced_offline_mode():
     # Simulate API failure by breaking ALL provider methods
     print("Simulating API failure...")
     original_call_aristotle = llm._call_aristotle
-    original_call_groq = llm._call_groq
+    original_call_deepinfra = llm._call_deepinfra
 
     def broken_api(request):
         raise Exception("Simulated API failure")
 
     llm._call_aristotle = broken_api
-    llm._call_groq = broken_api
-    print("✅ API failure simulated (Aristotle + Groq)")
+    llm._call_deepinfra = broken_api
+    print("✅ API failure simulated (Aristotle + DeepInfra)")
     print()
 
     # Test request - should fall back to local LLM
@@ -60,7 +60,7 @@ def test_forced_offline_mode():
 
     # Restore original methods
     llm._call_aristotle = original_call_aristotle
-    llm._call_groq = original_call_groq
+    llm._call_deepinfra = original_call_deepinfra
 
     # Verify it matches mock format
     print("Verification:")

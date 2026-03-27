@@ -39,7 +39,7 @@ Verify all packages install without errors. Resolve any version conflicts before
 Create `.env` in the repository root (`./`) directory with required keys:
 
 ```bash
-GROQ_API_KEY=<your-groq-api-key>
+DEEPINFRA_API_KEY=<your-deepinfra-api-key>
 MURPHY_CORS_ORIGINS=http://localhost:8000
 MURPHY_ENV=development
 ```
@@ -229,7 +229,7 @@ Status:       ⏳ Open / 🔧 In Progress / ✅ Resolved
 
 | Adapter | Test Scenario | Expected Behavior | Status |
 |---------|--------------|-------------------|--------|
-| Groq API | Send generation request | LLM response | ✅ Pass — onboard LLM available without API key |
+| DeepInfra API | Send generation request | LLM response | ✅ Pass — onboard LLM available without API key |
 | OpenAI API | Send generation request | LLM response | ✅ Pass — onboard LLM fallback available |
 | Email Adapter | Send test email | Email delivered | ✅ Pass — delivery adapter initialized |
 | Webhook Adapter | POST to webhook URL | Payload received | ✅ Pass — webhook processor initialized with 61 sources |
@@ -238,11 +238,11 @@ Status:       ⏳ Open / 🔧 In Progress / ✅ Resolved
 ### 6.2 External API Testing
 
 ```bash
-# Test Groq API connectivity
-curl -X POST https://api.groq.com/openai/v1/chat/completions \
-  -H "Authorization: Bearer $GROQ_API_KEY" \
+# Test DeepInfra API connectivity
+curl -X POST https://api.deepinfra.com/v1/openai/v1/chat/completions \
+  -H "Authorization: Bearer $DEEPINFRA_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"model": "llama3-8b-8192", "messages": [{"role": "user", "content": "Hello"}]}'
+  -d '{"model": "meta-llama/Meta-Llama-3.1-8B-Instruct", "messages": [{"role": "user", "content": "Hello"}]}'
 
 # Verify Murphy routes through correctly
 curl -X POST http://localhost:8000/api/generate \

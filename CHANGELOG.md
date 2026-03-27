@@ -85,7 +85,7 @@ pure in-memory structures wiped on every `systemctl restart murphy-production`.
 - **`POST /api/meetings/start`**, **`POST /api/meetings/{id}/end`**, **`GET /api/meetings/{id}/transcript`**, **`GET /api/meetings/{id}/suggestions`** — In-memory meeting session lifecycle (called by `workspace.html`)
 
 #### LLM Fallback Chain Debug Endpoint
-- **`GET /api/llm/debug`** — Returns the complete 5-layer fallback chain with availability flags: Groq → OpenAI → Anthropic → Ollama → Onboard (built-in). Shows which layer is currently active and instructions to enable Groq (free key at `console.groq.com/keys`)
+- **`GET /api/llm/debug`** — Returns the complete 5-layer fallback chain with availability flags: DeepInfra → OpenAI → Anthropic → Ollama → Onboard (built-in). Shows which layer is currently active and instructions to enable DeepInfra (free key at `deepinfra.com`)
 
 #### MurphyLibrarianChat Component
 - **`static/murphy-components.js`** — Added `MurphyLibrarianChat` class: a drop-in chat widget that posts to `/api/librarian/ask`, renders user/assistant bubbles, and falls back to a built-in offline answer engine when the server is unreachable
@@ -174,7 +174,7 @@ pure in-memory structures wiped on every `systemctl restart murphy-production`.
 - **LLM Mode Detection** (`_get_librarian_status`): Fixed bug where mode was always reported as "llm" even when no external LLM was configured. Now correctly distinguishes between `external_api` and `onboard` modes.
 - **Librarian Ask Response Mode**: `librarian_ask()` now correctly reports `mode="onboard"` when using LocalLLMFallback instead of incorrectly reporting `mode="llm"`.
 - **Onboard Notice Display**: Fixed the onboard mode notice not appearing when no external LLM is configured. Users now see helpful guidance about how to configure external LLM.
-- **Integration Recommendations**: `infer_needed_integrations()` now correctly recommends groq when in onboard mode (checks `mode` field instead of `enabled` field).
+- **Integration Recommendations**: `infer_needed_integrations()` now correctly recommends deepinfra when in onboard mode (checks `mode` field instead of `enabled` field).
 - **Clarifying Questions**: `_try_llm_clarifying_questions()` now correctly returns empty list when in onboard mode, allowing proper fallback to onboard clarifying questions.
 - **API Setup Intent**: `librarian_ask()` now handles `api_setup` intent directly without going through LLM, ensuring users always get API signup links when asking about credentials.
 - **Grant Module Syntax**: Fixed syntax errors in `src/billing/grants/__init__.py` caused by corrupted merge content.
@@ -947,13 +947,13 @@ etc.) were treated as authentication failures.
 - **docs(auar):** `docs/AUAR_TECHNICAL_PROPOSAL.md` Appendix C — documents UCB1 algorithm (vs. original epsilon-greedy), pluggable persistence layer (`FileStateBackend`/`MemoryStateBackend`), admin security controls (`AUAR_ADMIN_TOKEN`, audit logging, rate limiting, Pydantic validation), and AUAR-specific config vars table. Proposal version updated 0.1.0 → 0.2.0. **Closes GAP-4.**
 - **docs(packages):** Added `README.md` to all 50 remaining `src/` packages (was 15/65, now 65/65). Added `src/README.md` top-level overview covering all 459 files across 8 architectural layers. **Fully closes GAP-5.**
 - **docs(config):** `documentation/deployment/CONFIGURATION.md` — all 96 environment variables now documented. New §11 MFM (9 vars), §12 Matrix Integration (17 vars), §13 Backend Modes (4 vars), §14 Complete Variable Index. Added variable tables to §2-§9. Fixed stale `cd "Murphy System"` path. **Closes GAP-7.**
-- **docs(gaps):** GAP-6 (Groq test suite) and GAP-8 (specialized module docs) both marked ✅ resolved. All 8 documentation gaps are now closed.
+- **docs(gaps):** GAP-6 (DeepInfra test suite) and GAP-8 (specialized module docs) both marked ✅ resolved. All 8 documentation gaps are now closed.
 - **test:** `tests/test_gap_closure_round51.py` — 38 tests verifying GAP-4, GAP-5, GAP-6, GAP-7 are all closed; all pass.
 - **docs(audit):** `docs/AUDIT_AND_COMPLETION_REPORT.md` — all GAPs (1-8) marked ✅ RESOLVED; documentation coverage updated to ~95%.
 
 ### Added — PR #277: Real Email Delivery, Rosetta P3 Wiring, Doc Gap Closure (GAP-1/2/3/5)
 
-- **docs(llm):** `documentation/components/LLM_SUBSYSTEM.md` — full LLM subsystem reference covering `LLMController` model inventory + capability routing, `LLMIntegrationLayer` domain-to-provider routing matrix (8 domains × 4 providers), `GroqKeyRotator` round-robin + auto-disable + statistics, `OpenAICompatibleProvider` all 8 provider types, and environment variable table. **Closes GAP-1.**
+- **docs(llm):** `documentation/components/LLM_SUBSYSTEM.md` — full LLM subsystem reference covering `LLMController` model inventory + capability routing, `LLMIntegrationLayer` domain-to-provider routing matrix (8 domains × 4 providers), `DeepInfraKeyRotator` round-robin + auto-disable + statistics, `OpenAICompatibleProvider` all 8 provider types, and environment variable table. **Closes GAP-1.**
 - **docs(api):** `documentation/api/ENDPOINTS.md` — added 7 MFM endpoints: `GET /api/mfm/status`, `GET /api/mfm/metrics`, `GET /api/mfm/traces/stats`, `POST /api/mfm/retrain`, `POST /api/mfm/promote`, `POST /api/mfm/rollback`, `GET /api/mfm/versions`. Each includes request/response JSON examples. **Closes GAP-2.**
 - **docs(security):** `documentation/architecture/SECURITY_PLANE.md` — consolidated security architecture reference: all 6 security principles, FIDO2/mTLS authentication, zero-trust RBAC, post-quantum hybrid cryptography, DLP scanning, ASGI middleware stack (4 classes), adaptive defense, anti-surveillance, packet protection, environment variables, and ASCII architecture diagram. **Closes GAP-3.**
 - **docs(packages):** Added `README.md` to 12 packages (`security_plane`, `aionmind`, `confidence_engine`, `auar`, `governance_framework`, `rosetta`, `gate_synthesis`, `learning_engine`, `execution_engine`, `integration_engine`, `dashboards`, `runtime`). Packages with READMEs: 15/83 (up from 3). **Partially closes GAP-5.**
@@ -1054,11 +1054,11 @@ etc.) were treated as authentication failures.
   - Security plane modules activated: `authorization_enhancer`, `log_sanitizer`, `bot_resource_quotas`, `swarm_communication_monitor`, `bot_identity_verifier`, `bot_anomaly_detector`, `security_dashboard`
   - SEC-001 through SEC-004 resolved
 - **Stream 1: LLM Pipeline Validation** — LLM integration validated end-to-end:
-  - Groq Mixtral/Llama/Gemma integration in `src/llm_controller.py`
+  - DeepInfra Mixtral/Llama/Gemma integration in `src/llm_controller.py`
   - Local onboard LLM fallback — no API key required for basic operation
   - `src/safe_llm_wrapper.py` validation and sanitisation layer
   - GAP-002 (LLM features unavailable without API key) resolved
-  - `GROQ_API_KEY` and `MURPHY_LLM_PROVIDER` environment variables documented
+  - `DEEPINFRA_API_KEY` and `MURPHY_LLM_PROVIDER` environment variables documented
 - **Round 45 AionMind gap closure** — 5 architectural gaps closed with 43 new tests:
   - **Gap 1 (Medium):** Bot inventory → AionMind capability bridge — `bot_capability_bridge.py` auto-registers 20+ bot capabilities into CapabilityRegistry at startup
   - **Gap 2 (Medium):** Live RSC wiring — `rsc_client_adapter.py` wraps in-process RSC or HTTP client and auto-injects into StabilityIntegration

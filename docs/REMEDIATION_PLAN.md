@@ -39,7 +39,7 @@ REM-001 through REM-008 are **RESOLVED**.
 - `EnhancedLocalLLM` — deterministic reasoning
 - `LLMController` — `LOCAL_SMALL` (0.65) and `LOCAL_MEDIUM` (0.80), always available
 
-An external Groq/OpenAI API key is **optional** — it enhances response quality but is not required for operation.
+An external DeepInfra/OpenAI API key is **optional** — it enhances response quality but is not required for operation.
 
 ---
 

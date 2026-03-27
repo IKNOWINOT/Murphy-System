@@ -170,7 +170,7 @@ class TestUnifiedMFGCOfflineStructuredQuestions:
         NOT the generic Murphy System description."""
         from unified_mfgc import UnifiedMFGC
         mfgc = UnifiedMFGC()
-        assert mfgc.llm_mode == "offline", "Test requires offline mode (no Groq key set)"
+        assert mfgc.llm_mode == "offline", "Test requires offline mode (no DeepInfra key set)"
         result = mfgc._process_with_context(
             message="I run a small e-commerce business selling handmade crafts.",
             answers={"initial_request": "I run a small e-commerce business selling handmade crafts."},

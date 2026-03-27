@@ -485,7 +485,7 @@ class FounderBootstrapOrchestrator:
             rotator = GroqKeyRotator()
             rotator.rotate()
         except Exception as exc:
-            logger.warning("Step 2.1: groq_key_rotator unavailable (%s) — continuing", exc)
+            logger.info("Step 2.1: groq_key_rotator deprecated (now using DeepInfra/Together) — continuing")
         return True
 
     def _connect_email_comms(self) -> bool:

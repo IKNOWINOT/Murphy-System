@@ -1,6 +1,6 @@
 """
 Murphy LLM Controller - Master Backend Terminal
-Controls Groq API and onboard smaller LLMs
+Controls DeepInfra API and onboard smaller LLMs
 Powers the neon terminal UI for system/module setup guidance
 
 Based on Recursive Language Models (RLM) pattern from 2512.24601v1.pdf
@@ -35,9 +35,9 @@ logger = logging.getLogger(__name__)
 
 class LLMModel(Enum):
     """Available LLM models"""
-    GROQ_MIXTRAL = "groq_mixtral"
-    GROQ_LLAMA = "groq_llama"
-    GROQ_GEMMA = "groq_gemma"
+    DEEPINFRA_META_LLAMA = "deepinfra_meta_llama"    # Primary — DeepInfra Meta-Llama-3.1-70B
+    DEEPINFRA_MIXTRAL = "deepinfra_mixtral"          # Secondary — DeepInfra Mixtral-8x22B (code)
+    TOGETHER_META_LLAMA = "together_meta_llama"      # Overflow — Together AI Meta-Llama-3.1-70B
     LOCAL_SMALL = "local_small"
     LOCAL_MEDIUM = "local_medium"
     MFM = "mfm"  # Murphy Foundation Model — local, self-trained
@@ -94,7 +94,7 @@ class LLMController:
 
     Features:
     - Automatic model selection based on confidence and capabilities
-    - Groq API integration for fast inference
+    - DeepInfra API integration for fast inference
     - Local model fallback for cost efficiency
     - Context chunking for long inputs
     - Recursive query support
@@ -112,47 +112,43 @@ class LLMController:
     def _initialize_models(self) -> Dict[LLMModel, LLMModelInfo]:
         """Initialize available LLM models"""
         return {
-            LLMModel.GROQ_MIXTRAL: LLMModelInfo(
-                name="Mixtral-8x7B",
-                model_type=LLMModel.GROQ_MIXTRAL,
-                capabilities=[
-                    ModelCapability.CODE_GENERATION,
-                    ModelCapability.REASONING,
-                    ModelCapability.CONTEXT_PROCESSING,
-                    ModelCapability.SWARM_PLANNING,
-                ],
-                max_context=32000,
-                cost_per_1k_tokens=0.00027,
-                avg_latency=0.05,
-                confidence_threshold=0.85,
-                available=os.environ.get("GROQ_API_KEY") is not None
-            ),
-            LLMModel.GROQ_LLAMA: LLMModelInfo(
-                name="Llama3-70B",
-                model_type=LLMModel.GROQ_LLAMA,
-                capabilities=[
-                    ModelCapability.REASONING,
-                    ModelCapability.SWARM_PLANNING,
-                    ModelCapability.SAFETY_ANALYSIS,
-                ],
-                max_context=8192,
-                cost_per_1k_tokens=0.00059,
+            LLMModel.DEEPINFRA_META_LLAMA: LLMModelInfo(
+                name="Meta-Llama-3.1-70B (DeepInfra)",
+                model_type=LLMModel.DEEPINFRA_META_LLAMA,
+                capabilities=[ModelCapability.REASONING, ModelCapability.SWARM_PLANNING,
+                              ModelCapability.SAFETY_ANALYSIS, ModelCapability.CODE_GENERATION,
+                              ModelCapability.CONTEXT_PROCESSING],
+                max_context=128000,
+                cost_per_1k_tokens=0.00052,
                 avg_latency=0.08,
                 confidence_threshold=0.90,
-                available=os.environ.get("GROQ_API_KEY") is not None
+                available=os.environ.get("DEEPINFRA_API_KEY") is not None
             ),
-            LLMModel.GROQ_GEMMA: LLMModelInfo(
-                name="Gemma-7B",
-                model_type=LLMModel.GROQ_GEMMA,
+            LLMModel.DEEPINFRA_MIXTRAL: LLMModelInfo(
+                name="Mixtral-8x22B (DeepInfra)",
+                model_type=LLMModel.DEEPINFRA_MIXTRAL,
                 capabilities=[
                     ModelCapability.CODE_GENERATION,
+                    ModelCapability.REASONING,
                     ModelCapability.CONTEXT_PROCESSING,
+                    ModelCapability.SWARM_PLANNING,
                 ],
-                max_context=8192,
-                cost_per_1k_tokens=0.00010,
-                avg_latency=0.03,
-                confidence_threshold=0.75,
-                available=os.environ.get("GROQ_API_KEY") is not None
+                max_context=65536,
+                cost_per_1k_tokens=0.00065,
+                avg_latency=0.10,
+                confidence_threshold=0.88,
+                available=os.environ.get("DEEPINFRA_API_KEY") is not None
+            ),
+            LLMModel.TOGETHER_META_LLAMA: LLMModelInfo(
+                name="Meta-Llama-3.1-70B-Turbo (Together AI)",
+                model_type=LLMModel.TOGETHER_META_LLAMA,
+                capabilities=[ModelCapability.REASONING, ModelCapability.SWARM_PLANNING,
+                              ModelCapability.SAFETY_ANALYSIS],
+                max_context=128000,
+                cost_per_1k_tokens=0.00088,
+                avg_latency=0.12,
+                confidence_threshold=0.88,
+                available=os.environ.get("TOGETHER_API_KEY") is not None
             ),
             LLMModel.LOCAL_SMALL: LLMModelInfo(
                 name="Phi-2 (Local)",
@@ -341,12 +337,12 @@ class LLMController:
 
         if model == LLMModel.MFM:
             response = await self._query_mfm(request)
-        elif model == LLMModel.GROQ_MIXTRAL:
-            response = await self._query_groq_mixtral(request)
-        elif model == LLMModel.GROQ_LLAMA:
-            response = await self._query_groq_llama(request)
-        elif model == LLMModel.GROQ_GEMMA:
-            response = await self._query_groq_gemma(request)
+        elif model == LLMModel.DEEPINFRA_META_LLAMA:
+            response = await self._query_deepinfra_meta_llama(request)
+        elif model == LLMModel.DEEPINFRA_MIXTRAL:
+            response = await self._query_deepinfra_mixtral(request)
+        elif model == LLMModel.TOGETHER_META_LLAMA:
+            response = await self._query_together(request)
         elif model == LLMModel.LOCAL_SMALL:
             response = await self._query_local_small(request)
         elif model == LLMModel.LOCAL_MEDIUM:
@@ -398,130 +394,131 @@ class LLMController:
             logger.info("MFM query failed, falling back: %s", exc)
             return await self._query_fallback(request)
 
-    async def _query_groq_mixtral(self, request: LLMRequest) -> LLMResponse:
-        """Query Groq Mixtral model"""
+    async def _query_deepinfra_meta_llama(self, request: LLMRequest) -> LLMResponse:
+        """Query DeepInfra Meta-Llama-3.1-70B model"""
         try:
-            from groq import Groq
-
-            client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+            import aiohttp
+            api_key = os.environ.get("DEEPINFRA_API_KEY")
+            if not api_key:
+                return await self._query_fallback(request)
 
             messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
-
             if request.context:
-                messages.append({
-                    "role": "system",
-                    "content": f"Context: {request.context}"
-                })
-
+                messages.append({"role": "system", "content": f"Context: {request.context}"})
             messages.append({"role": "user", "content": request.prompt})
 
-            response = client.chat.completions.create(
-                model="mixtral-8x7b-32768",
-                messages=messages,
-                temperature=request.temperature,
-                max_tokens=request.max_tokens
-            )
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "https://api.deepinfra.com/v1/openai/chat/completions",
+                    json={"model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
+                          "messages": messages,
+                          "temperature": request.temperature, "max_tokens": request.max_tokens},
+                    headers={"Authorization": f"Bearer {api_key}",
+                             "Content-Type": "application/json"},
+                    timeout=aiohttp.ClientTimeout(total=60),
+                ) as resp:
+                    resp.raise_for_status()
+                    data = await resp.json()
 
-            content = response.choices[0].message.content
-            tokens_used = response.usage.total_tokens
-            cost = (tokens_used / 1000) * self.models[LLMModel.GROQ_MIXTRAL].cost_per_1k_tokens
+            content = data["choices"][0]["message"]["content"]
+            tokens_used = data.get("usage", {}).get("total_tokens", len(content.split()))
+            cost = (tokens_used / 1000) * self.models[LLMModel.DEEPINFRA_META_LLAMA].cost_per_1k_tokens
 
             return LLMResponse(
                 content=content,
-                model_used=LLMModel.GROQ_MIXTRAL,
+                model_used=LLMModel.DEEPINFRA_META_LLAMA,
+                confidence=0.0,
+                tokens_used=tokens_used,
+                cost=cost,
+                latency=0.0,
+                metadata={"provider": "deepinfra", "model": "meta-llama/Meta-Llama-3.1-70B-Instruct"}
+            )
+
+        except Exception as exc:
+            logger.info(f"Error querying DeepInfra Meta-Llama: {exc}")
+            return await self._query_fallback(request)
+
+    async def _query_deepinfra_mixtral(self, request: LLMRequest) -> LLMResponse:
+        """Query DeepInfra Mixtral model"""
+        try:
+            import aiohttp
+            api_key = os.environ.get("DEEPINFRA_API_KEY")
+            if not api_key:
+                return await self._query_fallback(request)
+
+            messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
+            if request.context:
+                messages.append({"role": "system", "content": f"Context: {request.context}"})
+            messages.append({"role": "user", "content": request.prompt})
+
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "https://api.deepinfra.com/v1/openai/chat/completions",
+                    json={"model": "mistralai/Mixtral-8x22B-Instruct-v0.1",
+                          "messages": messages,
+                          "temperature": request.temperature, "max_tokens": request.max_tokens},
+                    headers={"Authorization": f"Bearer {api_key}",
+                             "Content-Type": "application/json"},
+                    timeout=aiohttp.ClientTimeout(total=60),
+                ) as resp:
+                    resp.raise_for_status()
+                    data = await resp.json()
+
+            content = data["choices"][0]["message"]["content"]
+            tokens_used = data.get("usage", {}).get("total_tokens", len(content.split()))
+            cost = (tokens_used / 1000) * self.models[LLMModel.DEEPINFRA_MIXTRAL].cost_per_1k_tokens
+
+            return LLMResponse(
+                content=content,
+                model_used=LLMModel.DEEPINFRA_MIXTRAL,
                 confidence=0.0,  # Will be set by caller
                 tokens_used=tokens_used,
                 cost=cost,
                 latency=0.0,  # Will be set by caller
-                metadata={"provider": "groq", "model": "mixtral-8x7b-32768"}
+                metadata={"provider": "deepinfra", "model": "mistralai/Mixtral-8x22B-Instruct-v0.1"}
             )
 
         except Exception as exc:
-            logger.info(f"Error querying Groq Mixtral: {exc}")
+            logger.info(f"Error querying DeepInfra Mixtral: {exc}")
             return await self._query_fallback(request)
 
-    async def _query_groq_llama(self, request: LLMRequest) -> LLMResponse:
-        """Query Groq Llama model"""
+    async def _query_together(self, request: LLMRequest) -> LLMResponse:
+        """Query Together AI Meta-Llama-3.1-70B-Turbo model"""
         try:
-            from groq import Groq
-
-            client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+            import aiohttp
+            api_key = os.environ.get("TOGETHER_API_KEY")
+            if not api_key:
+                return await self._query_fallback(request)
 
             messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
-
             if request.context:
-                messages.append({
-                    "role": "system",
-                    "content": f"Context: {request.context}"
-                })
-
+                messages.append({"role": "system", "content": f"Context: {request.context}"})
             messages.append({"role": "user", "content": request.prompt})
 
-            response = client.chat.completions.create(
-                model="llama3-70b-8192",
-                messages=messages,
-                temperature=request.temperature,
-                max_tokens=request.max_tokens
-            )
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "https://api.together.xyz/v1/chat/completions",
+                    json={"model": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+                          "messages": messages,
+                          "temperature": request.temperature, "max_tokens": request.max_tokens},
+                    headers={"Authorization": f"Bearer {api_key}",
+                             "Content-Type": "application/json"},
+                    timeout=aiohttp.ClientTimeout(total=60),
+                ) as resp:
+                    resp.raise_for_status()
+                    data = await resp.json()
 
-            content = response.choices[0].message.content
-            tokens_used = response.usage.total_tokens
-            cost = (tokens_used / 1000) * self.models[LLMModel.GROQ_LLAMA].cost_per_1k_tokens
-
+            content = data["choices"][0]["message"]["content"]
+            tokens_used = data.get("usage", {}).get("total_tokens", len(content.split()))
+            cost = (tokens_used / 1000) * self.models[LLMModel.TOGETHER_META_LLAMA].cost_per_1k_tokens
             return LLMResponse(
-                content=content,
-                model_used=LLMModel.GROQ_LLAMA,
-                confidence=0.0,
-                tokens_used=tokens_used,
-                cost=cost,
-                latency=0.0,
-                metadata={"provider": "groq", "model": "llama3-70b-8192"}
+                content=content, model_used=LLMModel.TOGETHER_META_LLAMA, confidence=0.0,
+                tokens_used=tokens_used, cost=cost, latency=0.0,
+                metadata={"provider": "together", "model": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"},
             )
 
         except Exception as exc:
-            logger.info(f"Error querying Groq Llama: {exc}")
-            return await self._query_fallback(request)
-
-    async def _query_groq_gemma(self, request: LLMRequest) -> LLMResponse:
-        """Query Groq Gemma model"""
-        try:
-            from groq import Groq
-
-            client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-
-            messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
-
-            if request.context:
-                messages.append({
-                    "role": "system",
-                    "content": f"Context: {request.context}"
-                })
-
-            messages.append({"role": "user", "content": request.prompt})
-
-            response = client.chat.completions.create(
-                model="gemma-7b-it",
-                messages=messages,
-                temperature=request.temperature,
-                max_tokens=request.max_tokens
-            )
-
-            content = response.choices[0].message.content
-            tokens_used = response.usage.total_tokens
-            cost = (tokens_used / 1000) * self.models[LLMModel.GROQ_GEMMA].cost_per_1k_tokens
-
-            return LLMResponse(
-                content=content,
-                model_used=LLMModel.GROQ_GEMMA,
-                confidence=0.0,
-                tokens_used=tokens_used,
-                cost=cost,
-                latency=0.0,
-                metadata={"provider": "groq", "model": "gemma-7b-it"}
-            )
-
-        except Exception as exc:
-            logger.error("Error querying Groq Gemma: %s", exc)
+            logger.info(f"Together AI query failed ({exc}), falling back")
             return await self._query_fallback(request)
 
     async def _query_local_small(self, request: LLMRequest) -> LLMResponse:
@@ -622,7 +619,7 @@ class LLMController:
             logger.debug("LocalLLMFallback unavailable (%s), using minimal response", exc)
             content = (
                 f"[Onboard] I can help with: {request.prompt[:120]}. "
-                "Add a Groq API key via 'set key groq <key>' for enhanced responses."
+                "Add a DeepInfra API key via 'set key deepinfra <key>' for enhanced responses."
             )
         return LLMResponse(
             content=content,
@@ -728,25 +725,32 @@ class LLMController:
         """Re-check environment variables and update model availability.
 
         Call this after a key is added or changed at runtime (e.g. via
-        ``/api/llm/configure``) so Groq models are marked available without
+        ``/api/llm/configure``) so DeepInfra models are marked available without
         requiring an application restart.
         """
-        groq_available = os.environ.get("GROQ_API_KEY") is not None
+        deepinfra_available = os.environ.get("DEEPINFRA_API_KEY") is not None
+        together_available = os.environ.get("TOGETHER_API_KEY") is not None
         for model_type, info in self.models.items():
-            if model_type in (LLMModel.GROQ_MIXTRAL, LLMModel.GROQ_LLAMA, LLMModel.GROQ_GEMMA):
-                info.available = groq_available
+            if model_type in (LLMModel.DEEPINFRA_MIXTRAL, LLMModel.DEEPINFRA_META_LLAMA):
+                info.available = deepinfra_available
+            elif model_type == LLMModel.TOGETHER_META_LLAMA:
+                info.available = together_available
 
-    def reconfigure(self, api_key: str) -> None:
-        """Update the Groq API key in the environment and refresh availability.
+    def reconfigure(self, provider: str, api_key: str) -> None:
+        """Update an LLM provider API key in the environment and refresh availability.
 
         This is the single call that hot-reloads a new key without restarting
         the application.  It updates ``os.environ`` directly so that every
-        subsequent ``_query_groq_*`` call picks up the new value.
+        subsequent query call picks up the new value.
 
         Args:
-            api_key: The new Groq API key (must start with ``gsk_``).
+            provider: "deepinfra" or "together"
+            api_key: The new API key for that provider.
         """
-        os.environ["GROQ_API_KEY"] = api_key
+        if provider == "deepinfra":
+            os.environ["DEEPINFRA_API_KEY"] = api_key
+        elif provider == "together":
+            os.environ["TOGETHER_API_KEY"] = api_key
         self.refresh_availability()
 
     def get_statistics(self) -> Dict[str, Any]:

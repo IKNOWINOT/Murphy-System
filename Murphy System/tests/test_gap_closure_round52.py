@@ -109,8 +109,8 @@ class TestItem2_AuditReportDiscrepanciesResolved:
 
     def test_openai_provider_8_types_resolved(self):
         text = self._report()
-        # Old text said "docs only reference OpenAI/Groq/Onboard"
-        assert "docs only reference OpenAI/Groq/Onboard" not in text
+        # Old text said "docs only reference OpenAI/DeepInfra/Onboard"
+        assert "docs only reference OpenAI/DeepInfra/Onboard" not in text
 
     def test_mfm_endpoints_resolved(self):
         text = self._report()
@@ -185,7 +185,7 @@ class TestSanityPreviousGapsStillClosed:
         for gap in range(1, 9):
             assert f"GAP-{gap}" in text
 
-    def test_groq_integration_test_still_present(self):
+    def test_deepinfra_integration_test_still_present(self):
         assert (TESTS_DIR / "test_groq_integration.py").exists()
 
     def test_configuration_doc_has_16_sections(self):

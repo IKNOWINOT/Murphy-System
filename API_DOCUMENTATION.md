@@ -37,7 +37,7 @@
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | /api/credentials/list | Yes | List all integration credentials and their configured status (secrets never returned) |
-| POST | /api/credentials/store | Yes | Store an integration credential as a platform secret · Body: `{"integration":"groq","credential":"gsk_…"}` |
+| POST | /api/credentials/store | Yes | Store an integration credential as a platform secret · Body: `{"integration":"deepinfra","credential":"di_…"}` |
 | GET | /api/credentials/profiles | Yes | List credential profiles |
 | POST | /api/credentials/profiles | Yes | Create a credential profile |
 | GET | /api/credentials/metrics | Yes | Credential usage metrics |
@@ -47,7 +47,7 @@
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | /api/llm/status | Yes | LLM provider configuration and health |
-| POST | /api/llm/configure | Yes | Set active LLM provider · Body: `{"provider":"groq","api_key":"…"}` |
+| POST | /api/llm/configure | Yes | Set active LLM provider · Body: `{"provider":"deepinfra","api_key":"…"}` |
 | POST | /api/llm/test | Yes | Make a test call to verify the configured provider |
 | GET | /api/llm/providers | Yes | List all available LLM providers with status |
 

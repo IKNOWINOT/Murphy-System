@@ -743,7 +743,7 @@ it writes to the **Rosetta state system** — the canonical document store that 
 every agentic function call, org chart lookup, and archive review in the runtime.
 
 The `LLMIntegrationLayer` is the router. Every request enters through `route_request()`,
-which consults `domain_routing` tables to decide: does this go to a cloud provider (Groq,
+which consults `domain_routing` tables to decide: does this go to a cloud provider (DeepInfra,
 Aristotle), or to the `local_llm` fallback? The layer tracks `request_count`,
 `validation_count`, and `trigger_count`. When a response triggers a follow-up action,
 `get_pending_triggers()` queues it and `resolve_trigger()` fires it. This is how one LLM
@@ -1287,10 +1287,10 @@ API key. It supports three internal providers:
 |---|---|---|
 | `aristotle` | Deterministic, low-temperature | Math, science, logic |
 | `wulfrum` | Fuzzy-matching, medium-temperature | Validation, comparisons |
-| `groq` | High-temperature, general domain | Onboarding conversations, creative tasks |
+| `deepinfra` | High-temperature, general domain | Onboarding conversations, creative tasks |
 
 During the MFGC/5U onboarding interview, the `librarian_ask()` method routes through the
-onboard LLM's `groq` provider, embedding the collected profile context in the prompt. This
+onboard LLM's `deepinfra` provider, embedding the collected profile context in the prompt. This
 ensures each response is unique and personalized as more dimensions are collected.
 
 The onboard LLM is always listed in the `/api/llm/status` and `/api/llm/providers`
@@ -1301,7 +1301,7 @@ responses — even when no cloud API key is set.
 To upgrade to a faster cloud LLM, navigate to **Sidebar → LLM Config** in any terminal
 view. A configuration form lets you select a provider and enter your API key:
 
-1. **Groq** (recommended — free tier available): Get a key at https://console.groq.com/keys
+1. **DeepInfra** (recommended — free tier available): Get a key at https://deepinfra.com
 2. **OpenAI**: Get a key at https://platform.openai.com/api-keys
 3. **Anthropic**: Get a key at https://console.anthropic.com/
 
@@ -1311,8 +1311,8 @@ system hot-reloads the configuration without restart.
 Alternatively, set environment variables directly:
 
 ```bash
-export GROQ_API_KEY="gsk_..."
-export MURPHY_LLM_PROVIDER="groq"
+export DEEPINFRA_API_KEY="di_..."
+export MURPHY_LLM_PROVIDER="deepinfra"
 ```
 
 ### Pricing Page and SaaS Subscription Flow

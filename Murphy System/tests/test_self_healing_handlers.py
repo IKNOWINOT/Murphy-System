@@ -105,7 +105,7 @@ class TestLLMProviderTimeoutHandler:
 
         def mock_try(provider, payload):
             tried.append(provider)
-            return provider == "groq"
+            return provider == "deepinfra"
 
         with patch("self_healing_handlers._try_llm_provider", side_effect=mock_try):
             result = handle_llm_provider_timeout({
@@ -113,7 +113,7 @@ class TestLLMProviderTimeoutHandler:
                 "max_retries": 1,
             })
         assert result is True
-        assert tried[0] == "groq"
+        assert tried[0] == "deepinfra"
 
     def test_unknown_failed_provider_starts_from_beginning(self):
         """Unknown provider name should start chain from index 0."""

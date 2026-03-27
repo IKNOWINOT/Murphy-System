@@ -115,7 +115,7 @@ Each entry is a plain Python dict with exactly these keys:
 | `security` | confidence, security, rbac, oauth, credentials, fastapi_security |
 | `execution` | exec, execution, orchestrat |
 | `automation` | automation, full_automation, self_automation, nocode, rpa, playwright |
-| `llm` | llm, local_llm, local_model, groq, openai, enhanced_local, safe_llm |
+| `llm` | llm, local_llm, local_model, deepinfra, openai, enhanced_local, safe_llm |
 | `compliance` | compliance, outreach_compliance, contact_compliance |
 | `governance` | governance, authority, bypass, base_governance |
 | `hitl` | hitl, freelancer_validator, resolution_scoring, trading_hitl |

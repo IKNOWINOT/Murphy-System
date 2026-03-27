@@ -227,7 +227,7 @@ The architecture correctly implements control-plane / execution-plane separation
 
 | Setting | Required | Default | Production Notes |
 |---------|----------|---------|-----------------|
-| `GROQ_API_KEY` | **Optional** | Onboard LLM fallback | Enhances quality; not required for operation |
+| `DEEPINFRA_API_KEY` | **Optional** | Onboard LLM fallback | Enhances quality; not required for operation |
 | `POSTGRES_URL` | Recommended | SQLite fallback | Use managed Postgres |
 | `REDIS_URL` | Recommended | In-memory fallback | Use managed Redis |
 | `JWT_SECRET` | Auto-generated | Random | Set stable value for production |

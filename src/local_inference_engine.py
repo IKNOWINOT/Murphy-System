@@ -86,7 +86,7 @@ _TEMPLATES: Dict[str, Dict[str, str]] = {
             "Match score: {confidence:.2f}. Minor discrepancies may exist "
             "in floating-point rounding."
         ),
-        "groq": (
+        "deepinfra": (
             "Analytical reasoning applied to mathematical query. "
             "Result generated with confidence {confidence:.2f}."
         ),
@@ -102,7 +102,7 @@ _TEMPLATES: Dict[str, Dict[str, str]] = {
             "Wulfrum fuzzy match: Physics validation complete. "
             "Match score: {confidence:.2f}. Principles align within tolerance."
         ),
-        "groq": (
+        "deepinfra": (
             "Physics-aware reasoning applied. "
             "Result generated with confidence {confidence:.2f}."
         ),
@@ -117,7 +117,7 @@ _TEMPLATES: Dict[str, Dict[str, str]] = {
             "Wulfrum fuzzy match: Strategy alignment validated. "
             "Match score: {confidence:.2f}."
         ),
-        "groq": (
+        "deepinfra": (
             "Strategic analysis completed with recommended actions. "
             "Confidence: {confidence:.2f}."
         ),
@@ -131,7 +131,7 @@ _TEMPLATES: Dict[str, Dict[str, str]] = {
             "Wulfrum fuzzy match: Creative output evaluated. "
             "Coherence score: {confidence:.2f}."
         ),
-        "groq": (
+        "deepinfra": (
             "Creative response generated with innovative solutions. "
             "Confidence: {confidence:.2f}."
         ),
@@ -146,7 +146,7 @@ _TEMPLATES: Dict[str, Dict[str, str]] = {
             "Wulfrum fuzzy match: Architecture validation complete. "
             "Pattern adherence score: {confidence:.2f}."
         ),
-        "groq": (
+        "deepinfra": (
             "Architectural design generated with best practices. "
             "Confidence: {confidence:.2f}."
         ),
@@ -160,7 +160,7 @@ _TEMPLATES: Dict[str, Dict[str, str]] = {
             "Wulfrum fuzzy match: Validation complete. "
             "Match score: {confidence:.2f}. General agreement within tolerance."
         ),
-        "groq": (
+        "deepinfra": (
             "General response generated based on context. "
             "Confidence: {confidence:.2f}."
         ),
@@ -171,7 +171,7 @@ _TEMPLATES: Dict[str, Dict[str, str]] = {
 _BASE_CONFIDENCE: Dict[str, float] = {
     "aristotle": 0.92,
     "wulfrum": 0.85,
-    "groq": 0.82,
+    "deepinfra": 0.82,
 }
 
 
@@ -210,7 +210,7 @@ class LocalInferenceEngine:
             The user query.
         provider : str
             Routing hint — ``aristotle`` (deterministic), ``wulfrum``
-            (fuzzy), or ``groq`` (generative).
+            (fuzzy), or ``deepinfra``/``together`` (generative).
         temperature : float
             Ignored in deterministic mode; kept for API compatibility.
         validation_type : str
@@ -224,7 +224,7 @@ class LocalInferenceEngine:
         self.request_count += 1
 
         # Normalise provider
-        provider = provider if provider in _BASE_CONFIDENCE else "groq"
+        provider = provider if provider in _BASE_CONFIDENCE else "deepinfra"
 
         # Classify domain
         domain = self._classify_domain(prompt, validation_type)
@@ -244,7 +244,7 @@ class LocalInferenceEngine:
 
         # Render response
         template = _TEMPLATES.get(domain, _TEMPLATES["general"]).get(
-            provider, _TEMPLATES["general"]["groq"]
+            provider, _TEMPLATES["general"]["deepinfra"]
         )
         response = template.format(confidence=confidence)
 
@@ -287,12 +287,12 @@ class LocalInferenceEngine:
         model_map = {
             "aristotle": "aristotle-deterministic",
             "wulfrum": "wulfrum-fuzzy",
-            "groq": "groq-llama3-70b",
+            "deepinfra": "deepinfra-llama3-70b",
         }
         processing_map = {
             "aristotle": "deterministic",
             "wulfrum": "fuzzy_match",
-            "groq": "generative",
+            "deepinfra": "generative",
         }
         meta: Dict[str, Any] = {
             "model": model_map.get(provider, provider),

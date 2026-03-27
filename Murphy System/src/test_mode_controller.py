@@ -9,7 +9,7 @@ Thread-safe controller that manages disposable test API key sessions with
 hard call-count and time limits.  When either limit is reached, the session
 is automatically ended and all further API calls receive a 429 response.
 
-Recommended free-tier key provider: Groq (https://console.groq.com/keys)
+Recommended free-tier key provider: DeepInfra (https://deepinfra.com/keys)
   - Generous rate limits, fast inference, zero cost
   - Register 2-3 keys for round-robin via the key-rotation system
 
@@ -18,7 +18,7 @@ Usage::
     from src.test_mode_controller import get_test_mode_controller
 
     ctrl = get_test_mode_controller()
-    ctrl.start_session(api_keys=["gsk_test_key_1"])
+    ctrl.start_session(api_keys=["di_test_key_1"])
     ok, reason = ctrl.check_limits()          # True if within limits
     ctrl.record_call()                        # count every /api/* hit
     print(ctrl.get_status())
@@ -192,8 +192,8 @@ class TestModeController:
                 "keys_count": len(self._test_api_keys),
                 "skipped_calls": self._skipped_calls,
                 "recommended_provider": {
-                    "name": "Groq (Free Tier)",
-                    "url": "https://console.groq.com/keys",
+                    "name": "DeepInfra",
+                    "url": "https://deepinfra.com/keys",
                     "note": (
                         "Generous free rate limits + fast inference. "
                         "Register 2-3 keys for round-robin key rotation."

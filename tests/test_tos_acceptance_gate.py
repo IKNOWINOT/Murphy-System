@@ -40,7 +40,7 @@ from tos_acceptance_gate import (
 # ---------------------------------------------------------------------------
 
 EXPECTED_PROVIDERS = {
-    "groq",
+    "deepinfra",
     "openai",
     "anthropic",
     "elevenlabs",
@@ -105,7 +105,7 @@ class TestProviderTOSRegistry:
 class TestRequestApproval:
     def test_creates_pending_request(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         assert req.status == TOSAcceptanceStatus.PENDING
 
     def test_request_has_correct_provider_key(self):
@@ -130,13 +130,13 @@ class TestRequestApproval:
 
     def test_request_has_unique_id(self):
         gate = TOSAcceptanceGate()
-        req1 = gate.request_approval("groq")
-        req2 = gate.request_approval("groq")
+        req1 = gate.request_approval("deepinfra")
+        req2 = gate.request_approval("deepinfra")
         assert req1.request_id != req2.request_id
 
     def test_request_stored_in_gate(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         pending = gate.get_pending()
         assert any(r.request_id == req.request_id for r in pending)
 
@@ -147,12 +147,12 @@ class TestRequestApproval:
 
     def test_screenshot_path_stored(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq", screenshot_path="/tmp/test.png")
+        req = gate.request_approval("deepinfra", screenshot_path="/tmp/test.png")
         assert req.screenshot_path == "/tmp/test.png"
 
     def test_default_liability_note_present(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         assert req.liability_note == _DEFAULT_LIABILITY_NOTE
         assert len(req.liability_note) > 50
 
@@ -164,27 +164,27 @@ class TestRequestApproval:
 class TestApprove:
     def test_approve_transitions_to_accepted(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         result = gate.approve(req.request_id, approved_by="alice@example.com")
         assert result is True
         assert req.status == TOSAcceptanceStatus.ACCEPTED
 
     def test_approve_records_accepted_by(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         gate.approve(req.request_id, approved_by="bob@example.com")
         assert req.accepted_by == "bob@example.com"
 
     def test_approve_records_timestamp(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         gate.approve(req.request_id, approved_by="alice@example.com")
         assert req.accepted_at is not None
         assert "T" in req.accepted_at  # ISO 8601
 
     def test_approve_logs_audit_entry(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         gate.approve(req.request_id, approved_by="alice@example.com")
         log = gate.get_audit_log()
         assert len(log) == 1
@@ -197,7 +197,7 @@ class TestApprove:
 
     def test_approve_already_approved_returns_false(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         gate.approve(req.request_id, approved_by="alice@example.com")
         result = gate.approve(req.request_id, approved_by="alice@example.com")
         assert result is False
@@ -225,7 +225,7 @@ class TestApprove:
 
     def test_approve_audit_entry_contains_liability_note(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         gate.approve(req.request_id, approved_by="alice@example.com")
         log = gate.get_audit_log()
         assert "liability_note" in log[0]
@@ -233,7 +233,7 @@ class TestApprove:
 
     def test_approve_audit_entry_contains_timestamp(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         gate.approve(req.request_id, approved_by="alice@example.com")
         log = gate.get_audit_log()
         assert "timestamp" in log[0]
@@ -246,14 +246,14 @@ class TestApprove:
 class TestReject:
     def test_reject_transitions_to_rejected(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         result = gate.reject(req.request_id, rejected_by="alice@example.com")
         assert result is True
         assert req.status == TOSAcceptanceStatus.REJECTED
 
     def test_reject_records_reason_in_audit(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         gate.reject(req.request_id, rejected_by="alice@example.com", reason="Not trusted")
         log = gate.get_audit_log()
         assert log[0]["reason"] == "Not trusted"
@@ -265,7 +265,7 @@ class TestReject:
 
     def test_reject_logs_audit_entry(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         gate.reject(req.request_id, rejected_by="alice@example.com")
         log = gate.get_audit_log()
         assert len(log) == 1
@@ -273,7 +273,7 @@ class TestReject:
 
     def test_reject_removes_from_pending(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         gate.reject(req.request_id, rejected_by="alice@example.com")
         pending = gate.get_pending()
         assert not any(r.request_id == req.request_id for r in pending)
@@ -286,7 +286,7 @@ class TestReject:
 class TestSkip:
     def test_skip_transitions_to_skipped(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         result = gate.skip(req.request_id)
         assert result is True
         assert req.status == TOSAcceptanceStatus.SKIPPED
@@ -298,7 +298,7 @@ class TestSkip:
 
     def test_skip_removes_from_pending(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         gate.skip(req.request_id)
         pending = gate.get_pending()
         assert not any(r.request_id == req.request_id for r in pending)
@@ -311,7 +311,7 @@ class TestSkip:
 class TestGetPending:
     def test_get_pending_only_returns_pending(self):
         gate = TOSAcceptanceGate()
-        req1 = gate.request_approval("groq")
+        req1 = gate.request_approval("deepinfra")
         req2 = gate.request_approval("openai")
         gate.approve(req1.request_id, approved_by="alice@example.com")
         pending = gate.get_pending()
@@ -325,7 +325,7 @@ class TestGetPending:
 
     def test_get_pending_multiple_requests(self):
         gate = TOSAcceptanceGate()
-        for provider in ["groq", "openai", "anthropic"]:
+        for provider in ["deepinfra", "openai", "anthropic"]:
             gate.request_approval(provider)
         assert len(gate.get_pending()) == 3
 
@@ -341,7 +341,7 @@ class TestGetAuditLog:
 
     def test_audit_log_grows_with_approvals(self):
         gate = TOSAcceptanceGate()
-        for provider in ["groq", "openai"]:
+        for provider in ["deepinfra", "openai"]:
             req = gate.request_approval(provider)
             gate.approve(req.request_id, approved_by="alice@example.com")
         log = gate.get_audit_log()
@@ -349,13 +349,13 @@ class TestGetAuditLog:
 
     def test_audit_log_grows_with_rejection(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         gate.reject(req.request_id, rejected_by="alice@example.com")
         assert len(gate.get_audit_log()) == 1
 
     def test_get_audit_log_returns_copy(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         gate.approve(req.request_id, approved_by="alice@example.com")
         log1 = gate.get_audit_log()
         log1.clear()
@@ -370,26 +370,26 @@ class TestGetAuditLog:
 class TestFormatApprovalMessage:
     def test_returns_nonempty_string(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         msg = gate.format_approval_message(req)
         assert isinstance(msg, str)
         assert len(msg) > 50
 
     def test_message_contains_provider_name(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         msg = gate.format_approval_message(req)
-        assert "Groq" in msg
+        assert "DeepInfra" in msg
 
     def test_message_contains_tos_url(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         msg = gate.format_approval_message(req)
         assert req.tos_url in msg
 
     def test_message_contains_privacy_url(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         msg = gate.format_approval_message(req)
         assert req.privacy_url in msg
 
@@ -401,23 +401,23 @@ class TestFormatApprovalMessage:
 
     def test_message_contains_liability_note_excerpt(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         msg = gate.format_approval_message(req)
         # The liability note is long; check a distinctive fragment
         assert "legal" in msg.lower() or "liability" in msg.lower()
 
     def test_message_contains_screenshot_path_when_set(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq", screenshot_path="/tmp/test.png")
+        req = gate.request_approval("deepinfra", screenshot_path="/tmp/test.png")
         msg = gate.format_approval_message(req)
         assert "/tmp/test.png" in msg
 
     def test_message_no_screenshot_path_when_none(self):
         gate = TOSAcceptanceGate()
-        req = gate.request_approval("groq")
+        req = gate.request_approval("deepinfra")
         msg = gate.format_approval_message(req)
         # Should not crash and should still mention key info
-        assert "Groq" in msg
+        assert "DeepInfra" in msg
 
 
 # ---------------------------------------------------------------------------
@@ -461,7 +461,7 @@ class TestThreadSafety:
 
         def requester():
             try:
-                req = gate.request_approval("groq")
+                req = gate.request_approval("deepinfra")
                 with lock:
                     req_ids.append(req.request_id)
             except Exception as exc:  # noqa: BLE001

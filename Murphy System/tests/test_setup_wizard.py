@@ -40,7 +40,7 @@ def _make_full_profile(**overrides) -> SetupProfile:
         robotics_protocols=["ros2", "modbus"],
         avatar_enabled=False,
         avatar_connectors=[],
-        llm_provider="groq",
+        llm_provider="deepinfra",
         monitoring_enabled=True,
         compliance_frameworks=["SOC2"],
         deployment_mode="docker",
@@ -326,7 +326,7 @@ class TestSummary:
         assert "Acme Corp" in summary
         assert "manufacturing" in summary
         assert "medium" in summary
-        assert "groq" in summary
+        assert "deepinfra" in summary
 
     def test_summary_shows_protocols_when_robotics_enabled(self):
         wiz = SetupWizard()
@@ -379,7 +379,7 @@ class TestFuzzyMatchChoice:
         assert _fuzzy_match_choice("local for now.", VALID_LLM_PROVIDERS) == "local"
 
     def test_option_as_standalone_word(self):
-        assert _fuzzy_match_choice("I'd pick groq please", VALID_LLM_PROVIDERS) == "groq"
+        assert _fuzzy_match_choice("I'd pick deepinfra please", VALID_LLM_PROVIDERS) == "deepinfra"
 
     def test_no_match_returns_none(self):
         assert _fuzzy_match_choice("something random", VALID_LLM_PROVIDERS) is None

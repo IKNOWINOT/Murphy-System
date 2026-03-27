@@ -338,10 +338,10 @@ class TestTrademarkNaming:
 
     def test_no_trademark_class_names(self) -> None:
         """No classes named directly after trademarked services."""
-        # Allowed: GroqConnector, OpenAIAdapter, etc. (service + suffix)
-        # Not allowed: class Groq, class OpenAI, class Stripe (as Murphy's own)
+        # Allowed: DeepInfraConnector, OpenAIAdapter, etc. (service + suffix)
+        # Not allowed: class DeepInfra, class OpenAI, class Stripe (as Murphy's own)
         trademark_class_pattern = re.compile(
-            r'class\s+(Groq|OpenAI|Anthropic|Stripe|Coinbase|HeyGen|Tavus|Twilio|SendGrid)\s*[\(:]',
+            r'class\s+(DeepInfra|OpenAI|Anthropic|Stripe|Coinbase|HeyGen|Tavus|Twilio|SendGrid)\s*[\(:]',
         )
         findings: List[str] = []
         for py_file in _get_python_files():

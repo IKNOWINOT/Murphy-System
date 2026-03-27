@@ -261,10 +261,10 @@ curl -s http://localhost:8000/api/llm/configure \
 **Response 200**
 ```json
 {
-  "provider": "groq",
+  "provider": "deepinfra",
   "model": "llama3-70b-8192",
   "key_configured": true,
-  "key_mask": "gsk_...xxxx"
+  "key_mask": "di_...xxxx"
 }
 ```
 
@@ -294,7 +294,7 @@ curl -s -X POST http://localhost:8000/api/llm/configure \
 ```python
 resp = session.post(
     f"{BASE_URL}/api/llm/configure",
-    json={"provider": "groq", "api_key": "gsk_your_key"},
+    json={"provider": "deepinfra", "api_key": "di_your_key"},
 )
 resp.raise_for_status()
 print(resp.json())
@@ -315,7 +315,7 @@ curl -s http://localhost:8000/api/status \
   "status": "operational",
   "modules_loaded": 625,
   "llm_enabled": true,
-  "llm_provider": "groq",
+  "llm_provider": "deepinfra",
   "active_gates": ["security", "compliance", "governance"],
   "uptime_seconds": 86400,
   "version": "1.0.0"
