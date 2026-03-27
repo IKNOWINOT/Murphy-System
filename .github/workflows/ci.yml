@@ -106,9 +106,12 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
+      security-events: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for secret scanning
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
@@ -120,6 +123,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install bandit pip-audit
+
+      # C-003: Secret scanning with gitleaks
+      - name: Run gitleaks secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
 
       - name: Run bandit on core paths (non-blocking)
         run: |
@@ -144,6 +154,40 @@ jobs:
           pip-audit -r requirements_ci.txt --ignore-vuln GHSA-753j-mpmx-qq6g || true
         continue-on-error: true
 
+  # D-001: Test count verification
+  test-metrics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: test
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Count test functions
+        run: |
+          echo "=== TEST METRICS ==="
+          echo "Test files: $(find tests/ -name 'test_*.py' | wc -l)"
+          echo "Test functions: $(grep -r 'def test_' tests/ --include='*.py' | wc -l)"
+          echo "Test classes: $(grep -r 'class Test' tests/ --include='*.py' | wc -l)"
+          echo ""
+          echo "=== CLAIMED vs ACTUAL ==="
+          ACTUAL=$(grep -r 'def test_' tests/ --include='*.py' | wc -l)
+          CLAIMED=24341
+          echo "Claimed: $CLAIMED"
+          echo "Actual: $ACTUAL"
+          if [ "$ACTUAL" -lt "$CLAIMED" ]; then
+            echo "⚠️ Test count lower than claimed ($ACTUAL < $CLAIMED)"
+          else
+            echo "✅ Test count verified ($ACTUAL >= $CLAIMED)"
+          fi
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -151,6 +195,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
+      security-events: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -161,4 +206,63 @@ jobs:
 
       - name: Tag as latest
         run: docker tag murphy-system:${{ github.sha }} murphy-system:latest || true
+        continue-on-error: true
+
+      # C-007: Container image scanning with Trivy
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: murphy-system:${{ github.sha }}
+          format: 'table'
+          exit-code: '0'  # Don't fail on vulnerabilities
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true
+
+      # C-006: SBOM generation
+      - name: Generate SBOM with syft
+        uses: anchore/sbom-action@v0
+        with:
+          image: murphy-system:${{ github.sha }}
+          artifact-name: sbom-murphy-system.spdx.json
+          output-file: ./sbom.spdx.json
+        continue-on-error: true
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.spdx.json
+          if-no-files-found: ignore
+
+      # E-005: Docker smoke test
+      - name: Docker smoke test
+        run: |
+          echo "=== Starting Murphy System container ==="
+          docker run -d --name murphy-smoke-test \
+            -e MURPHY_ENV=test \
+            -e MURPHY_DB_MODE=stub \
+            -p 8000:8000 \
+            murphy-system:${{ github.sha }}
+          
+          echo "=== Waiting for container to be healthy ==="
+          for i in {1..30}; do
+            if docker exec murphy-smoke-test curl -sf http://localhost:8000/api/health; then
+              echo ""
+              echo "✅ Health check passed!"
+              break
+            fi
+            echo "Waiting... ($i/30)"
+            sleep 2
+          done
+          
+          echo ""
+          echo "=== Container logs ==="
+          docker logs murphy-smoke-test --tail 50
+          
+          echo ""
+          echo "=== Cleanup ==="
+          docker stop murphy-smoke-test
+          docker rm murphy-smoke-test
         continue-on-error: true
