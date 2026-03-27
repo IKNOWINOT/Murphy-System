@@ -12695,7 +12695,7 @@ def create_app() -> FastAPI:
             "# === LLM Provider (optional — system works without it) ===",
             "# MURPHY_LLM_PROVIDER=deepinfra",
             "# DEEPINFRA_API_KEY=your-key-here  # Get at https://deepinfra.com",
-            "# TOGETHER_API_KEY=your-key-here  # Get at https://api.together.xyz (overflow)",,
+            "# TOGETHER_API_KEY=your-key-here  # Get at https://api.together.xyz (overflow)",
             "",
             "# === MFM (Murphy Foundation Model) ===",
             "MFM_ENABLED=true",

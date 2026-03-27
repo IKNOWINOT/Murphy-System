@@ -35,9 +35,9 @@ logger = logging.getLogger(__name__)
 
 class LLMModel(Enum):
     """Available LLM models"""
-    DEEPINFRA_MIXTRAL = "deepinfra_mixtral"
-    DEEPINFRA_LLAMA = "deepinfra_llama"
-    DEEPINFRA_GEMMA = "deepinfra_gemma"
+    DEEPINFRA_META_LLAMA = "deepinfra_meta_llama"    # Primary — DeepInfra Meta-Llama-3.1-70B
+    DEEPINFRA_MIXTRAL = "deepinfra_mixtral"          # Secondary — DeepInfra Mixtral-8x22B (code)
+    TOGETHER_META_LLAMA = "together_meta_llama"      # Overflow — Together AI Meta-Llama-3.1-70B
     LOCAL_SMALL = "local_small"
     LOCAL_MEDIUM = "local_medium"
     MFM = "mfm"  # Murphy Foundation Model — local, self-trained
@@ -112,8 +112,20 @@ class LLMController:
     def _initialize_models(self) -> Dict[LLMModel, LLMModelInfo]:
         """Initialize available LLM models"""
         return {
+            LLMModel.DEEPINFRA_META_LLAMA: LLMModelInfo(
+                name="Meta-Llama-3.1-70B (DeepInfra)",
+                model_type=LLMModel.DEEPINFRA_META_LLAMA,
+                capabilities=[ModelCapability.REASONING, ModelCapability.SWARM_PLANNING,
+                              ModelCapability.SAFETY_ANALYSIS, ModelCapability.CODE_GENERATION,
+                              ModelCapability.CONTEXT_PROCESSING],
+                max_context=128000,
+                cost_per_1k_tokens=0.00052,
+                avg_latency=0.08,
+                confidence_threshold=0.90,
+                available=os.environ.get("DEEPINFRA_API_KEY") is not None
+            ),
             LLMModel.DEEPINFRA_MIXTRAL: LLMModelInfo(
-                name="Mixtral-8x7B",
+                name="Mixtral-8x22B (DeepInfra)",
                 model_type=LLMModel.DEEPINFRA_MIXTRAL,
                 capabilities=[
                     ModelCapability.CODE_GENERATION,
@@ -121,38 +133,22 @@ class LLMController:
                     ModelCapability.CONTEXT_PROCESSING,
                     ModelCapability.SWARM_PLANNING,
                 ],
-                max_context=32000,
-                cost_per_1k_tokens=0.00027,
-                avg_latency=0.05,
-                confidence_threshold=0.85,
+                max_context=65536,
+                cost_per_1k_tokens=0.00065,
+                avg_latency=0.10,
+                confidence_threshold=0.88,
                 available=os.environ.get("DEEPINFRA_API_KEY") is not None
             ),
-            LLMModel.DEEPINFRA_LLAMA: LLMModelInfo(
-                name="Llama3-70B",
-                model_type=LLMModel.DEEPINFRA_LLAMA,
-                capabilities=[
-                    ModelCapability.REASONING,
-                    ModelCapability.SWARM_PLANNING,
-                    ModelCapability.SAFETY_ANALYSIS,
-                ],
-                max_context=8192,
-                cost_per_1k_tokens=0.00059,
-                avg_latency=0.08,
-                confidence_threshold=0.90,
-                available=os.environ.get("DEEPINFRA_API_KEY") is not None
-            ),
-            LLMModel.DEEPINFRA_GEMMA: LLMModelInfo(
-                name="Gemma-7B",
-                model_type=LLMModel.DEEPINFRA_GEMMA,
-                capabilities=[
-                    ModelCapability.CODE_GENERATION,
-                    ModelCapability.CONTEXT_PROCESSING,
-                ],
-                max_context=8192,
-                cost_per_1k_tokens=0.00010,
-                avg_latency=0.03,
-                confidence_threshold=0.75,
-                available=os.environ.get("DEEPINFRA_API_KEY") is not None
+            LLMModel.TOGETHER_META_LLAMA: LLMModelInfo(
+                name="Meta-Llama-3.1-70B-Turbo (Together AI)",
+                model_type=LLMModel.TOGETHER_META_LLAMA,
+                capabilities=[ModelCapability.REASONING, ModelCapability.SWARM_PLANNING,
+                              ModelCapability.SAFETY_ANALYSIS],
+                max_context=128000,
+                cost_per_1k_tokens=0.00088,
+                avg_latency=0.12,
+                confidence_threshold=0.88,
+                available=os.environ.get("TOGETHER_API_KEY") is not None
             ),
             LLMModel.LOCAL_SMALL: LLMModelInfo(
                 name="Phi-2 (Local)",
@@ -341,12 +337,12 @@ class LLMController:
 
         if model == LLMModel.MFM:
             response = await self._query_mfm(request)
+        elif model == LLMModel.DEEPINFRA_META_LLAMA:
+            response = await self._query_deepinfra_meta_llama(request)
         elif model == LLMModel.DEEPINFRA_MIXTRAL:
             response = await self._query_deepinfra_mixtral(request)
-        elif model == LLMModel.DEEPINFRA_LLAMA:
-            response = await self._query_deepinfra_llama(request)
-        elif model == LLMModel.DEEPINFRA_GEMMA:
-            response = await self._query_deepinfra_gemma(request)
+        elif model == LLMModel.TOGETHER_META_LLAMA:
+            response = await self._query_together(request)
         elif model == LLMModel.LOCAL_SMALL:
             response = await self._query_local_small(request)
         elif model == LLMModel.LOCAL_MEDIUM:
@@ -398,11 +394,49 @@ class LLMController:
             logger.info("MFM query failed, falling back: %s", exc)
             return await self._query_fallback(request)
 
+    async def _query_deepinfra_meta_llama(self, request: LLMRequest) -> LLMResponse:
+        """Query DeepInfra Meta-Llama-3.1-70B model"""
+        try:
+            client = DeepInfraClient(api_key=os.environ.get("DEEPINFRA_API_KEY"))
+
+            messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
+
+            if request.context:
+                messages.append({
+                    "role": "system",
+                    "content": f"Context: {request.context}"
+                })
+
+            messages.append({"role": "user", "content": request.prompt})
+
+            response = client.chat.completions.create(
+                model="meta-llama/Meta-Llama-3.1-70B-Instruct",
+                messages=messages,
+                temperature=request.temperature,
+                max_tokens=request.max_tokens
+            )
+
+            content = response.choices[0].message.content
+            tokens_used = response.usage.total_tokens
+            cost = (tokens_used / 1000) * self.models[LLMModel.DEEPINFRA_META_LLAMA].cost_per_1k_tokens
+
+            return LLMResponse(
+                content=content,
+                model_used=LLMModel.DEEPINFRA_META_LLAMA,
+                confidence=0.0,
+                tokens_used=tokens_used,
+                cost=cost,
+                latency=0.0,
+                metadata={"provider": "deepinfra", "model": "meta-llama/Meta-Llama-3.1-70B-Instruct"}
+            )
+
+        except Exception as exc:
+            logger.info(f"Error querying DeepInfra Meta-Llama: {exc}")
+            return await self._query_fallback(request)
+
     async def _query_deepinfra_mixtral(self, request: LLMRequest) -> LLMResponse:
         """Query DeepInfra Mixtral model"""
         try:
-            # DeepInfra HTTP client used instead
-
             client = DeepInfraClient(api_key=os.environ.get("DEEPINFRA_API_KEY"))
 
             messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
@@ -440,88 +474,43 @@ class LLMController:
             logger.info(f"Error querying DeepInfra Mixtral: {exc}")
             return await self._query_fallback(request)
 
-    async def _query_deepinfra_llama(self, request: LLMRequest) -> LLMResponse:
-        """Query DeepInfra Llama model"""
+    async def _query_together(self, request: LLMRequest) -> LLMResponse:
+        """Query Together AI Meta-Llama-3.1-70B-Turbo model"""
         try:
-            # DeepInfra HTTP client used instead
-
-            client = DeepInfraClient(api_key=os.environ.get("DEEPINFRA_API_KEY"))
+            import aiohttp
+            api_key = os.environ.get("TOGETHER_API_KEY")
+            if not api_key:
+                return await self._query_fallback(request)
 
             messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
-
             if request.context:
-                messages.append({
-                    "role": "system",
-                    "content": f"Context: {request.context}"
-                })
-
+                messages.append({"role": "system", "content": f"Context: {request.context}"})
             messages.append({"role": "user", "content": request.prompt})
 
-            response = client.chat.completions.create(
-                model="llama3-70b-8192",
-                messages=messages,
-                temperature=request.temperature,
-                max_tokens=request.max_tokens
-            )
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "https://api.together.xyz/v1/chat/completions",
+                    json={"model": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+                          "messages": messages,
+                          "temperature": request.temperature, "max_tokens": request.max_tokens},
+                    headers={"Authorization": f"Bearer {api_key}",
+                             "Content-Type": "application/json"},
+                    timeout=aiohttp.ClientTimeout(total=60),
+                ) as resp:
+                    resp.raise_for_status()
+                    data = await resp.json()
 
-            content = response.choices[0].message.content
-            tokens_used = response.usage.total_tokens
-            cost = (tokens_used / 1000) * self.models[LLMModel.DEEPINFRA_LLAMA].cost_per_1k_tokens
-
+            content = data["choices"][0]["message"]["content"]
+            tokens_used = data.get("usage", {}).get("total_tokens", len(content.split()))
+            cost = (tokens_used / 1000) * self.models[LLMModel.TOGETHER_META_LLAMA].cost_per_1k_tokens
             return LLMResponse(
-                content=content,
-                model_used=LLMModel.DEEPINFRA_LLAMA,
-                confidence=0.0,
-                tokens_used=tokens_used,
-                cost=cost,
-                latency=0.0,
-                metadata={"provider": "deepinfra", "model": "llama3-70b-8192"}
+                content=content, model_used=LLMModel.TOGETHER_META_LLAMA, confidence=0.0,
+                tokens_used=tokens_used, cost=cost, latency=0.0,
+                metadata={"provider": "together", "model": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"},
             )
 
         except Exception as exc:
-            logger.info(f"Error querying DeepInfra Llama: {exc}")
-            return await self._query_fallback(request)
-
-    async def _query_deepinfra_gemma(self, request: LLMRequest) -> LLMResponse:
-        """Query DeepInfra Gemma model"""
-        try:
-            # DeepInfra HTTP client used instead
-
-            client = DeepInfraClient(api_key=os.environ.get("DEEPINFRA_API_KEY"))
-
-            messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
-
-            if request.context:
-                messages.append({
-                    "role": "system",
-                    "content": f"Context: {request.context}"
-                })
-
-            messages.append({"role": "user", "content": request.prompt})
-
-            response = client.chat.completions.create(
-                model="gemma-7b-it",
-                messages=messages,
-                temperature=request.temperature,
-                max_tokens=request.max_tokens
-            )
-
-            content = response.choices[0].message.content
-            tokens_used = response.usage.total_tokens
-            cost = (tokens_used / 1000) * self.models[LLMModel.DEEPINFRA_GEMMA].cost_per_1k_tokens
-
-            return LLMResponse(
-                content=content,
-                model_used=LLMModel.DEEPINFRA_GEMMA,
-                confidence=0.0,
-                tokens_used=tokens_used,
-                cost=cost,
-                latency=0.0,
-                metadata={"provider": "deepinfra", "model": "gemma-7b-it"}
-            )
-
-        except Exception as exc:
-            logger.error("Error querying DeepInfra Gemma: %s", exc)
+            logger.info(f"Together AI query failed ({exc}), falling back")
             return await self._query_fallback(request)
 
     async def _query_local_small(self, request: LLMRequest) -> LLMResponse:
@@ -732,21 +721,28 @@ class LLMController:
         requiring an application restart.
         """
         deepinfra_available = os.environ.get("DEEPINFRA_API_KEY") is not None
+        together_available = os.environ.get("TOGETHER_API_KEY") is not None
         for model_type, info in self.models.items():
-            if model_type in (LLMModel.DEEPINFRA_MIXTRAL, LLMModel.DEEPINFRA_LLAMA, LLMModel.DEEPINFRA_GEMMA):
+            if model_type in (LLMModel.DEEPINFRA_MIXTRAL, LLMModel.DEEPINFRA_META_LLAMA):
                 info.available = deepinfra_available
+            elif model_type == LLMModel.TOGETHER_META_LLAMA:
+                info.available = together_available
 
-    def reconfigure(self, api_key: str) -> None:
-        """Update the DeepInfra API key in the environment and refresh availability.
+    def reconfigure(self, provider: str, api_key: str) -> None:
+        """Update an LLM provider API key in the environment and refresh availability.
 
         This is the single call that hot-reloads a new key without restarting
         the application.  It updates ``os.environ`` directly so that every
-        subsequent ``_query_deepinfra_*`` call picks up the new value.
+        subsequent query call picks up the new value.
 
         Args:
-            api_key: The new DeepInfra API key (must start with ``di_``).
+            provider: "deepinfra" or "together"
+            api_key: The new API key for that provider.
         """
-        os.environ["DEEPINFRA_API_KEY"] = api_key
+        if provider == "deepinfra":
+            os.environ["DEEPINFRA_API_KEY"] = api_key
+        elif provider == "together":
+            os.environ["TOGETHER_API_KEY"] = api_key
         self.refresh_availability()
 
     def get_statistics(self) -> Dict[str, Any]:
