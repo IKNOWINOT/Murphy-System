@@ -71,7 +71,7 @@ if not "%SKIP_ENV%"=="true" (
     echo To use Murphy, you need at least one LLM API key.
     echo Recommended: DeepInfra (free tier available)
     echo.
-    echo Get a free DeepInfra API key at: https://deepinfra.com/dashboard
+    echo Get a free DeepInfra API key at: https://deepinfra.com/keys
     echo.
     set /p DEEPINFRA_KEY="Enter your DeepInfra API key (or press Enter to skip): "
     echo.
@@ -135,7 +135,7 @@ echo.
 if "%DEEPINFRA_KEY%"=="" (
     echo [WARNING] IMPORTANT: You need to add an API key to .env before starting Murphy
     echo.
-    echo 1. Get a free DeepInfra API key: https://deepinfra.com/dashboard
+    echo 1. Get a free DeepInfra API key: https://deepinfra.com/keys
     echo 2. Edit .env and add: DEEPINFRA_API_KEY=your_key_here
     echo 3. Save the file
     echo.

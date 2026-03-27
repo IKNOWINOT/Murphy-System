@@ -125,7 +125,7 @@ class TestValidateApiKey:
     def test_invalid_deepinfra_key_prefix(self):
         ok, msg = validate_api_key("deepinfra", "sk-invalid_prefix_key_value")
         assert ok is False
-        assert "gsk_" in msg
+        assert "di_" in msg
 
     def test_valid_openai_key(self):
         ok, msg = validate_api_key("openai", "sk-abcdefghijklmnopqrstuvwx")

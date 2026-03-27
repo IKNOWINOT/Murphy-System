@@ -17,9 +17,9 @@ logger = logging.getLogger(__name__)
 API_KEY_FORMATS: Dict[str, Dict[str, str]] = {
     "deepinfra": {
         "env_var": "DEEPINFRA_API_KEY",
-        "prefix": "gsk_",
-        "pattern": r"^gsk_[A-Za-z0-9]{20,}$",
-        "hint": "DeepInfra keys start with 'gsk_'",
+        "prefix": "di_",
+        "pattern": r"^di_[A-Za-z0-9_-]{20,}$",
+        "hint": "DeepInfra keys start with 'di_'",
     },
     "openai": {
         "env_var": "OPENAI_API_KEY",

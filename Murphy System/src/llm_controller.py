@@ -744,7 +744,7 @@ class LLMController:
         subsequent ``_query_deepinfra_*`` call picks up the new value.
 
         Args:
-            api_key: The new DeepInfra API key (must start with ``gsk_``).
+            api_key: The new DeepInfra API key (must start with ``di_``).
         """
         os.environ["DEEPINFRA_API_KEY"] = api_key
         self.refresh_availability()
