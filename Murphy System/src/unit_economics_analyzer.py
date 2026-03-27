@@ -57,7 +57,7 @@ class ProcessingCostProfile:
     """
 
     tier: str
-    llm_inference_cost: float = 0.0     # LLM API calls (Groq / local)
+    llm_inference_cost: float = 0.0     # LLM API calls (DeepInfra / local)
     compute_cost: float = 0.0           # CPU/GPU time for pipelines
     storage_cost: float = 0.0           # Persistent storage, logs, artifacts
     bandwidth_cost: float = 0.0         # Egress, API calls, webhooks

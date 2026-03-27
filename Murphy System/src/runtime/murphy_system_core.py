@@ -11830,7 +11830,7 @@ class MurphySystem:
             "count": len(entries),
             "instructions": (
                 "Set each API key as an environment variable before starting Murphy. "
-                "Example:  export DEEPINFRA_API_KEY=gsk_..."
+                "Example:  export DEEPINFRA_API_KEY=di_..."
             ),
         }
 
@@ -12024,7 +12024,7 @@ class MurphySystem:
         """Return current LLM provider configuration and health.
 
         The onboard LocalLLMFallback is **always** available.  External API
-        providers (Groq, OpenAI, Anthropic) are layered on top when keys are
+        providers (DeepInfra, OpenAI, Anthropic) are layered on top when keys are
         present — they upgrade quality but are never required for operation.
         """
         provider = os.environ.get("MURPHY_LLM_PROVIDER", "").strip().lower()
@@ -12110,7 +12110,7 @@ class MurphySystem:
         """Return librarian subsystem health.
 
         The librarian is always active.  When an external LLM API key is
-        configured (e.g. Groq) it operates in ``llm`` mode; otherwise it
+        configured (e.g. DeepInfra) it operates in ``llm`` mode; otherwise it
         runs in ``onboard`` (deterministic) mode using built-in system
         knowledge.
         """
@@ -12229,7 +12229,7 @@ class MurphySystem:
                     data = resp.json()
                     return data["choices"][0]["message"]["content"], None
                 except Exception as exc:
-                    logger.warning("Groq LLM call failed (%s) — falling back to onboard", exc)
+                    logger.warning("DeepInfra LLM call failed (%s) — falling back to onboard", exc)
                     # Fall through to onboard fallback below
 
         # --- Onboard fallback — always available ---
@@ -12244,7 +12244,7 @@ class MurphySystem:
         # Absolute last resort — structured template response
         return (
             f"I can help with: {prompt[:100]}. "
-            "For best results, add a Groq API key via 'set key deepinfra <key>'.",
+            "For best results, add a DeepInfra API key via 'set key deepinfra <key>'.",
             None,
         )
 
@@ -13342,9 +13342,9 @@ class MurphySystem:
                 f"  Env var: `{svc['env_var']}`"
             )
         lines.append(
-            "\n**Quick start:** Get a free Groq key (link above), then:\n"
+            "\n**Quick start:** Get a free DeepInfra key (link above), then:\n"
             "```\nexport MURPHY_LLM_PROVIDER=deepinfra\n"
-            "export DEEPINFRA_API_KEY=gsk_your_key_here\n```"
+            "export DEEPINFRA_API_KEY=your_deepinfra_api_key\n```"
         )
         return "\n".join(lines)
 
@@ -13440,7 +13440,7 @@ class MurphySystem:
                     )
                 response += "\n**What to do next:**\n"
                 response += "1. Sign up for the API keys listed above (links provided)\n"
-                response += "2. Set each as an environment variable (e.g. `export DEEPINFRA_API_KEY=gsk_...`)\n"
+                response += "2. Set each as an environment variable (e.g. `export DEEPINFRA_API_KEY=di_...`)\n"
                 response += "3. Restart Murphy to pick up the new keys\n"
                 response += "4. Type **status** to verify everything is connected\n"
                 response += "5. Type **execute <your first task>** to start automating!\n\n"

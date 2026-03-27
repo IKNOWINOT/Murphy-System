@@ -1506,7 +1506,7 @@ def create_app() -> FastAPI:
         # Core LLM keys
         llm_items = []
         for provider, env_var, label, url in [
-            ("deepinfra",      "DEEPINFRA_API_KEY",      "Groq (recommended, free)",
+            ("deepinfra",      "DEEPINFRA_API_KEY",      "DeepInfra (recommended)",
              "https://deepinfra.com/keys"),
             ("openai",    "OPENAI_API_KEY",     "OpenAI (GPT-4)",
              "https://platform.openai.com/api-keys"),
@@ -1594,7 +1594,7 @@ def create_app() -> FastAPI:
                 "name": "DeepInfra", "env_var": "DEEPINFRA_API_KEY",
                 "steps": [
                     {"step": 1, "title": "Create account", "url": "https://deepinfra.com", "description": "Sign up at deepinfra.com — free tier, no credit card needed."},
-                    {"step": 2, "title": "Generate API key", "url": "https://deepinfra.com/keys", "description": "Click '+ Create API Key', name it 'murphy-system', copy the gsk_... value."},
+                    {"step": 2, "title": "Generate API key", "url": "https://deepinfra.com/keys", "description": "Click '+ Create API Key', name it 'murphy-system', copy the di_... value."},
                     {"step": 3, "title": "Set key", "description": "In the Murphy terminal: set key deepinfra <your-key>  or  POST /api/credentials/store"},
                 ],
                 "free_tier": True, "notes": "Rate limit: 30 req/min on free tier. Upgrade at deepinfra.com/billing.",
@@ -5583,7 +5583,7 @@ def create_app() -> FastAPI:
     async def integrations_catalog():
         """Available integrations catalog."""
         catalog = [
-            {"id": "deepinfra",        "name": "DeepInfra",        "type": "llm",       "icon": "⚡", "description": "Ultra-fast LLM inference via Groq API"},
+            {"id": "deepinfra",        "name": "DeepInfra",        "type": "llm",       "icon": "⚡", "description": "Ultra-fast LLM inference via DeepInfra API"},
             {"id": "openai",      "name": "OpenAI",      "type": "llm",       "icon": "◎", "description": "GPT-4 and OpenAI model suite"},
             {"id": "stripe",      "name": "Stripe",      "type": "payments",  "icon": "💳", "description": "Payment processing and billing"},
             {"id": "cloudflare",  "name": "Cloudflare",  "type": "network",   "icon": "☁", "description": "CDN, DNS, and security gateway"},
@@ -6049,11 +6049,11 @@ def create_app() -> FastAPI:
             },
             {
                 "id": "deepinfra",
-                "name": "Groq Cloud",
+                "name": "DeepInfra Cloud",
                 "type": "cloud",
                 "available": bool(os.getenv("DEEPINFRA_API_KEY") or os.getenv("DEEPINFRA_API_KEYS")),
                 "default_model": "llama3-70b-8192",
-                "description": "Groq fast inference cloud API. Requires DEEPINFRA_API_KEY.",
+                "description": "DeepInfra fast inference cloud API. Requires DEEPINFRA_API_KEY.",
             },
             {
                 "id": "aristotle",

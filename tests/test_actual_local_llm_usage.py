@@ -41,9 +41,9 @@ def test_actual_local_llm_usage():
     print(f"  Metadata: {result['metadata']}")
     print()
 
-    # Test Groq-style (creative)
+    # Test DeepInfra-style (creative)
     result = local_llm.query("Write a poem about AI", provider='deepinfra')
-    print("Groq Query: 'Write a poem about AI'")
+    print("DeepInfra Query: 'Write a poem about AI'")
     print(f"  Response: {result['response'][:200]}...")
     print(f"  Confidence: {result['confidence']}")
     print(f"  Provider: {result['provider']}")
@@ -82,11 +82,11 @@ def test_actual_local_llm_usage():
     print(f"  Similar pattern: {mock.split(':')[0] in result['response']}")
     print()
 
-    # Test Groq
+    # Test DeepInfra
     result = local_llm.query("Write something creative", provider='deepinfra')
     mock = mock_outputs["deepinfra"]
 
-    print("Groq Comparison:")
+    print("DeepInfra Comparison:")
     print(f"  Mock Output: {mock}")
     print(f"  Local LLM: {result['response'][:150]}...")
     print(f"  Similar pattern: {'creative' in result['response'].lower()}")

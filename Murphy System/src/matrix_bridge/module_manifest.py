@@ -508,7 +508,7 @@ MODULE_MANIFEST: List[ModuleEntry] = [
         persona="KeyManagerBot",
         emits=["audit_logged"],
         consumes=[],
-        description="Groq key rotator",
+        description="DeepInfra key rotator",
     ),
     ModuleEntry(
         module="inference_gate_engine",

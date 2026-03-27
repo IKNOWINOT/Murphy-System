@@ -42,7 +42,7 @@ class TestGetFeatureStatus:
     def test_deepinfra_enabled(self) -> None:
         with patch.dict(os.environ, {"DEEPINFRA_API_KEY": "di_test"}, clear=False):
             status = get_feature_status()
-        assert status["Groq LLM"]["status"] == "enabled"
+        assert status["DeepInfra LLM"]["status"] == "enabled"
 
     def test_multiple_features_enabled(self) -> None:
         env = {
@@ -52,7 +52,7 @@ class TestGetFeatureStatus:
         }
         with patch.dict(os.environ, env, clear=False):
             status = get_feature_status()
-        assert status["Groq LLM"]["status"] == "enabled"
+        assert status["DeepInfra LLM"]["status"] == "enabled"
         assert status["SendGrid Email"]["status"] == "enabled"
         assert status["PostgreSQL"]["status"] == "enabled"
 
@@ -76,7 +76,7 @@ class TestPrintFeatureSummary:
     def test_shows_enabled_feature(self) -> None:
         with patch.dict(os.environ, {"DEEPINFRA_API_KEY": "di_test"}, clear=False):
             result = print_feature_summary()
-        assert "Groq LLM" in result
+        assert "DeepInfra LLM" in result
         assert "✅" in result
 
     def test_shows_disabled_features(self) -> None:

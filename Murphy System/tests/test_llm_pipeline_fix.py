@@ -236,7 +236,7 @@ class TestLLMControllerRefreshAvailability:
         assert callable(controller.refresh_availability)
 
     def test_refresh_availability_marks_deepinfra_available_when_key_set(self):
-        """After setting DEEPINFRA_API_KEY, refresh_availability() enables Groq models."""
+        """After setting DEEPINFRA_API_KEY, refresh_availability() enables DeepInfra models."""
         original = os.environ.pop("DEEPINFRA_API_KEY", None)
         try:
             controller = LLMController()
@@ -260,7 +260,7 @@ class TestLLMControllerRefreshAvailability:
                 os.environ.pop("DEEPINFRA_API_KEY", None)
 
     def test_refresh_availability_marks_deepinfra_unavailable_when_key_removed(self):
-        """After removing DEEPINFRA_API_KEY, refresh_availability() disables Groq models."""
+        """After removing DEEPINFRA_API_KEY, refresh_availability() disables DeepInfra models."""
         original = os.environ.get("DEEPINFRA_API_KEY")
         try:
             os.environ["DEEPINFRA_API_KEY"] = "di_test_key"
@@ -310,7 +310,7 @@ class TestLLMControllerRefreshAvailability:
             assert os.environ.get("DEEPINFRA_API_KEY") == "gsk_new_test_key", \
                 "reconfigure() should set DEEPINFRA_API_KEY in os.environ"
             assert controller.models[LLMModel.DEEPINFRA_MIXTRAL].available, \
-                "reconfigure() should enable Groq models"
+                "reconfigure() should enable DeepInfra models"
         finally:
             if original is not None:
                 os.environ["DEEPINFRA_API_KEY"] = original

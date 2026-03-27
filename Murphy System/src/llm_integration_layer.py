@@ -1,6 +1,6 @@
 """
 LLM Integration Layer
-Coordinates Aristotle API (deterministic), Wulfrum (fuzzy match/math validation), and Groq API (generative)
+Coordinates Aristotle API (deterministic), Wulfrum (fuzzy match/math validation), and DeepInfra API (generative)
 Provides domain-specific routing and human-in-the-loop validation triggers
 """
 
@@ -42,11 +42,11 @@ class DomainType(Enum):
     MATHEMATICAL = "mathematical"  # Use Aristotle
     PHYSICS = "physics"  # Use Aristotle
     ENGINEERING = "engineering"  # Use Aristotle + Wulfrum
-    CREATIVE = "creative"  # Use Groq
-    STRATEGIC = "strategic"  # Use Groq
-    ARCHITECTURAL = "architectural"  # Use Groq + Wulfrum
+    CREATIVE = "creative"  # Use DeepInfra
+    STRATEGIC = "strategic"  # Use DeepInfra
+    ARCHITECTURAL = "architectural"  # Use DeepInfra + Wulfrum
     REGULATORY = "regulatory"  # Use Aristotle
-    GENERAL = "general"  # Use Groq
+    GENERAL = "general"  # Use DeepInfra
 
 
 class ValidationStatus(Enum):
@@ -159,7 +159,7 @@ class HumanLoopTrigger:
 
 class LLMIntegrationLayer:
     """
-    Master LLM integration layer coordinating Aristotle, Wulfrum, and Groq
+    Master LLM integration layer coordinating Aristotle, Wulfrum, and DeepInfra
     Routes requests based on domain type and provides validation
     """
 
@@ -176,7 +176,7 @@ class LLMIntegrationLayer:
         self.wulfrum_api_key = wulfrum_api_key or os.getenv("WULFRUM_API_KEY")
         self.deepinfra_api_key = deepinfra_api_key or os.getenv("DEEPINFRA_API_KEY")
 
-        # Groq API keys from environment (comma-separated list)
+        # DeepInfra API keys from environment (comma-separated list)
         env_keys = os.getenv("DEEPINFRA_API_KEYS", "")
         self.deepinfra_api_keys = [k.strip() for k in env_keys.split(",") if k.strip()]
         if self.deepinfra_api_key and self.deepinfra_api_key not in self.deepinfra_api_keys:
@@ -332,13 +332,13 @@ class LLMIntegrationLayer:
         except Exception as exc:
             logger.info(f"⚠️  API call failed for {request.provider.value}: {exc}")
 
-            # Fallback to Groq if primary fails
+            # Fallback to DeepInfra if primary fails
             if request.provider != LLMProvider.DEEPINFRA:
                 try:
-                    logger.info("🔄 Fallback to Groq API...")
+                    logger.info("🔄 Fallback to DeepInfra API...")
                     return self._call_deepinfra(request)
                 except Exception as e2:
-                    logger.info(f"⚠️  Groq fallback also failed: {e2}")
+                    logger.info(f"⚠️  DeepInfra fallback also failed: {e2}")
 
             # Final fallback to Enhanced Local LLM
             if self.use_local_fallback and self.local_llm:
@@ -443,9 +443,9 @@ class LLMIntegrationLayer:
         )
 
     def _call_deepinfra(self, request: LLMRequest) -> LLMResponse:
-        """Call Groq API for generative processing.
+        """Call DeepInfra API for generative processing.
 
-        Attempts a real HTTP call to the Groq chat completions endpoint,
+        Attempts a real HTTP call to the DeepInfra chat completions endpoint,
         rotating through configured API keys.  Falls back to the local
         generative engine when no key succeeds.
         """
@@ -549,7 +549,7 @@ class LLMIntegrationLayer:
             return "Wulfrum fuzzy match: Validation complete. Match score: 0.85. General agreement within tolerance."
 
     def _local_deepinfra_response(self, request: LLMRequest) -> str:
-        """Local generative engine (used when Groq API is unavailable)."""
+        """Local generative engine (used when DeepInfra API is unavailable)."""
         domain_contexts = {
             DomainType.CREATIVE: "Creative response generated with innovative solutions.",
             DomainType.STRATEGIC: "Strategic analysis completed with recommended actions.",
@@ -798,7 +798,7 @@ if __name__ == "__main__":
     logger.info(f"Provider: {response.provider.value}")
     logger.info(f"Response: {response.response}")
 
-    # Test 3: Creative domain (Groq)
+    # Test 3: Creative domain (DeepInfra)
     logger.info("\n=== Test 3: Creative Domain ===")
     response = llm_layer.route_request(
         prompt="Suggest innovative features for a mobile app",
@@ -808,7 +808,7 @@ if __name__ == "__main__":
     logger.info(f"Provider: {response.provider.value}")
     logger.info(f"Response: {response.response}")
 
-    # Test 4: Architectural domain (Groq + Wulfrum)
+    # Test 4: Architectural domain (DeepInfra + Wulfrum)
     logger.info("\n=== Test 4: Architectural Domain ===")
     response = llm_layer.route_request(
         prompt="Design system architecture for a scalable web application",

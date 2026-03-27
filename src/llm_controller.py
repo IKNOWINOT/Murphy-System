@@ -94,7 +94,7 @@ class LLMController:
 
     Features:
     - Automatic model selection based on confidence and capabilities
-    - Groq API integration for fast inference
+    - DeepInfra API integration for fast inference
     - Local model fallback for cost efficiency
     - Context chunking for long inputs
     - Recursive query support

@@ -49,7 +49,7 @@ spec:
           protocol: UDP
         - port: 53
           protocol: TCP
-    # Allow all outbound HTTPS (Groq, GitHub, PayPal, Coinbase, external APIs)
+    # Allow all outbound HTTPS (DeepInfra, GitHub, PayPal, Coinbase, external APIs)
     - ports:
         - port: 443
           protocol: TCP

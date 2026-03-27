@@ -2,7 +2,7 @@
 OpenAI-Compatible LLM Provider for Murphy System.
 
 Provides a unified interface to any OpenAI-compatible API endpoint,
-including OpenAI, Azure OpenAI, Groq, Ollama, vLLM, LiteLLM, and
+including OpenAI, Azure OpenAI, DeepInfra, Ollama, vLLM, LiteLLM, and
 other compatible providers. Uses the ``openai`` Python SDK as the
 single client for all providers.
 
@@ -15,7 +15,7 @@ Architecture decision (INC-01 / C-01):
     The ``openai`` Python package is the industry-standard SDK that speaks
     the OpenAI chat-completions wire format.  Every major LLM host now
     exposes an OpenAI-compatible endpoint, so a single client covers
-    OpenAI, Azure, Groq, Ollama, vLLM, LiteLLM, and more.
+    OpenAI, Azure, DeepInfra, Ollama, vLLM, LiteLLM, and more.
 
 Copyright © 2020-2026 Inoni LLC — Created by Corey Post
 License: BSL 1.1
@@ -238,7 +238,7 @@ class OpenAICompatibleProvider:
             OPENAI_TEMPERATURE      — Default temperature
             OPENAI_MAX_TOKENS       — Default max tokens
 
-        For Groq-specific usage, ``DEEPINFRA_API_KEY`` is also accepted and
+        For DeepInfra-specific usage, ``DEEPINFRA_API_KEY`` is also accepted and
         takes precedence when the provider type is ``deepinfra``.
 
         **Default behaviour (no API keys):** When neither ``OPENAI_API_KEY``
@@ -282,7 +282,7 @@ class OpenAICompatibleProvider:
 
         default_model = os.getenv("OPENAI_DEFAULT_MODEL", "gpt-3.5-turbo")
         if provider_type == ProviderType.DEEPINFRA and default_model == "gpt-3.5-turbo":
-            default_model = "mixtral-8x7b-32768"
+            default_model = "mistralai/Mixtral-8x22B-Instruct-v0.1"
         elif provider_type == ProviderType.OLLAMA and default_model == "gpt-3.5-turbo":
             default_model = os.getenv("OLLAMA_MODEL", "llama3")
         elif provider_type == ProviderType.ONBOARD:

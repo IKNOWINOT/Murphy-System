@@ -1403,4 +1403,4 @@ class TestBug6NoHardcodedKeys:
                                 hits.append(f"{fpath}:{lineno}")
                 except (OSError, UnicodeDecodeError):
                     pass
-        assert hits == [], f"Found hardcoded Groq keys:\n" + "\n".join(hits[:10])
+        assert hits == [], f"Found hardcoded DeepInfra keys:\n" + "\n".join(hits[:10])

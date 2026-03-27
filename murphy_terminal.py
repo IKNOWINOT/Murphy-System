@@ -1922,7 +1922,7 @@ class MurphyTerminalApp(App):
                     f"([cyan]{secs_rem:.0f}s[/cyan] remaining)\n"
                     f"   Test keys    : [cyan]{keys}[/cyan] key(s) loaded\n\n"
                     "[dim]💡 Best free key provider:[/dim]\n"
-                    "   [bold]Groq[/bold] — Free tier, generous limits, fast inference\n"
+                    "   [bold]DeepInfra[/bold] — Free tier, generous limits, fast inference\n"
                     "   Signup: [link=https://deepinfra.com/dash/api_keys]https://deepinfra.com/dash/api_keys[/link]\n"
                     "   Then: [green]set key deepinfra <your-key>[/green]\n\n"
                     "[dim]Session ends automatically when call or time limit is reached.\n"

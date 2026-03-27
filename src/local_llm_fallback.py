@@ -498,7 +498,7 @@ To help you automate effectively, Murphy needs a few details:
 
 Once I understand your workflow, I can build an automation blueprint for you. Type `start interview` for a guided setup, or keep describing your situation here.
 
-💡 **Pro tip**: Add a Groq API key for richer, more tailored automation planning."""
+💡 **Pro tip**: Add a DeepInfra API key for richer, more tailored automation planning."""
 
         elif response_type == "help":
             return f"""I'm Murphy — your AI automation assistant. Here's how I can help:

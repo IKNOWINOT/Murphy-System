@@ -28,7 +28,7 @@ def test_forced_offline_mode():
 
     llm._call_aristotle = broken_api
     llm._call_deepinfra = broken_api
-    print("✅ API failure simulated (Aristotle + Groq)")
+    print("✅ API failure simulated (Aristotle + DeepInfra)")
     print()
 
     # Test request - should fall back to local LLM
