@@ -11,7 +11,9 @@ env:
   MURPHY_DB_MODE: stub
   E2EE_STUB_ALLOWED: "true"
   MURPHY_POOL_MODE: simulated
-  PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+  # PYTHONPATH is intentionally NOT set here.
+  # pytest discovers src/ via pyproject.toml [tool.pytest.ini_options] pythonpath.
+  # Runtime code uses `pip install -e .` (editable install).
 
 jobs:
   lint:
@@ -19,9 +21,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-    defaults:
-      run:
-        working-directory: "Murphy System"
+    # Run from repo root — canonical source is root src/
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -47,6 +47,106 @@ jobs:
           python -m py_compile src/runtime/murphy_system_core.py
         continue-on-error: true
 
+  smoke-imports:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install minimal runtime dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            fastapi uvicorn pydantic pydantic-settings httpx \
+            flask flask-cors \
+            pytest pytest-asyncio \
+            cryptography PyJWT \
+            networkx numpy \
+            pyyaml python-dotenv \
+            aiohttp
+
+      - name: Smoke-test key module imports
+        # Fails fast if a core module has a broken import.
+        # PYTHONPATH set inline so this step is self-contained.
+        run: |
+          PYTHONPATH="${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}/src" python - <<'EOF'
+          import sys, importlib
+          failures = []
+          modules = [
+              "src.runtime.app",
+              "src.runtime.murphy_system_core",
+              "src.rosetta.archive_classifier",
+              "src.rosetta.global_aggregator",
+              "src.rosetta_subsystem_wiring",
+              "src.modular_runtime",
+          ]
+          for mod in modules:
+              try:
+                  importlib.import_module(mod)
+                  print(f"  OK  {mod}")
+              except Exception as exc:
+                  failures.append((mod, exc))
+                  print(f"  FAIL {mod}: {exc}")
+          if failures:
+              print(f"\n{len(failures)} import(s) failed — see above.")
+              sys.exit(1)
+          print(f"\nAll {len(modules)} smoke imports passed.")
+          EOF
+        continue-on-error: true
+
+  tree-divergence-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for new divergence between src/ trees
+        # Warns when files exist ONLY in Murphy System/src/ but not root src/.
+        # This prevents silent drift — the legacy mirror must not gain new
+        # modules that haven't been promoted to canonical root src/.
+        run: |
+          python - <<'EOF'
+          import sys
+          from pathlib import Path
+
+          root_src = Path("src")
+          mirror_src = Path("Murphy System/src")
+
+          if not mirror_src.exists():
+              print("Mirror tree Murphy System/src/ not found — nothing to check.")
+              sys.exit(0)
+
+          root_py = {p.relative_to(root_src) for p in root_src.rglob("*.py")}
+          mirror_py = {p.relative_to(mirror_src) for p in mirror_src.rglob("*.py")}
+
+          only_in_mirror = mirror_py - root_py
+          if only_in_mirror:
+              print("WARNING: The following .py files exist ONLY in the legacy")
+              print("  Murphy System/src/ mirror and have NOT been promoted to")
+              print("  the canonical root src/.  Please review and promote or")
+              print("  document why they should not be in root src/:")
+              for f in sorted(only_in_mirror):
+                  print(f"  {f}")
+              # Non-blocking: exits 0 so CI does not fail on legacy debt.
+              # Change to sys.exit(1) once the mirror is fully reconciled.
+              sys.exit(0)
+          else:
+              print("OK: No new divergence detected between src/ trees.")
+          EOF
+        continue-on-error: true
+
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -57,9 +157,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ['3.10', '3.11', '3.12']
-    defaults:
-      run:
-        working-directory: "Murphy System"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -103,17 +200,36 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: "Murphy System/coverage.xml"
+          path: coverage.xml
           if-no-files-found: ignore
+
+  registry-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install pyyaml
+        run: pip install pyyaml
+
+      - name: Validate module_registry.yaml is up to date
+        run: python scripts/generate_module_registry.py --check
+        continue-on-error: true
 
   security:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: read
-    defaults:
-      run:
-        working-directory: "Murphy System"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -145,9 +261,6 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
-    defaults:
-      run:
-        working-directory: "Murphy System"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
