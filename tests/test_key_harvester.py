@@ -31,12 +31,13 @@ import threading
 import uuid
 from dataclasses import asdict
 from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+import webbrowser
 
 import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
+import key_harvester as kh
 from key_harvester import (
     AcquisitionStatus,
     CaptchaHandler,
@@ -73,6 +74,9 @@ EXPECTED_PROVIDERS = {
 
 PAYMENT_REQUIRED = {"heygen", "tavus"}
 EMAIL_FIRST = "sendgrid"  # Must be the very first recipe
+
+# All env-var keys referenced by PROVIDER_RECIPES
+_ALL_RECIPE_ENV_KEYS = frozenset(r.env_var for r in PROVIDER_RECIPES)
 
 
 # ---------------------------------------------------------------------------
@@ -301,14 +305,11 @@ class TestHumanSimulator:
 
     @pytest.mark.asyncio
     async def test_pause_between_actions_completes(self):
-        # Should complete without error (patch sleep for speed)
-        with patch("asyncio.sleep", new_callable=AsyncMock):
-            await HumanSimulator.pause_between_actions()
+        await HumanSimulator.pause_between_actions()
 
     @pytest.mark.asyncio
     async def test_pause_after_page_load_completes(self):
-        with patch("asyncio.sleep", new_callable=AsyncMock):
-            await HumanSimulator.pause_after_page_load()
+        await HumanSimulator.pause_after_page_load()
 
     @pytest.mark.asyncio
     async def test_scroll_page_with_none_page_is_noop(self):
@@ -328,42 +329,39 @@ class TestCaptchaHandler:
     @pytest.mark.asyncio
     async def test_cloudflare_returns_cloudflare_wait_strategy(self, tos_gate):
         handler = CaptchaHandler(tos_gate)
-        with patch("asyncio.sleep", new_callable=AsyncMock):
-            resolved, strategy = await handler.handle(
-                page=None,
-                runner=None,
-                captcha_type=CaptchaType.CLOUDFLARE_TURNSTILE,
-                provider_name="test",
-                attempt=0,
-            )
+        resolved, strategy = await handler.handle(
+            page=None,
+            runner=None,
+            captcha_type=CaptchaType.CLOUDFLARE_TURNSTILE,
+            provider_name="test",
+            attempt=0,
+        )
         assert resolved is True
         assert strategy == CaptchaStrategy.CLOUDFLARE_WAIT
 
     @pytest.mark.asyncio
     async def test_retry_backoff_strategy_on_first_attempt(self, tos_gate):
         handler = CaptchaHandler(tos_gate)
-        with patch("asyncio.sleep", new_callable=AsyncMock):
-            resolved, strategy = await handler.handle(
-                page=None,
-                runner=None,
-                captcha_type=CaptchaType.GENERIC,
-                provider_name="test",
-                attempt=0,
-            )
+        resolved, strategy = await handler.handle(
+            page=None,
+            runner=None,
+            captcha_type=CaptchaType.GENERIC,
+            provider_name="test",
+            attempt=0,
+        )
         assert resolved is False
         assert strategy == CaptchaStrategy.RETRY_BACKOFF
 
     @pytest.mark.asyncio
     async def test_hitl_escalate_after_max_retries(self, tos_gate):
         handler = CaptchaHandler(tos_gate)
-        with patch("asyncio.sleep", new_callable=AsyncMock):
-            resolved, strategy = await handler.handle(
-                page=None,
-                runner=None,
-                captcha_type=CaptchaType.GENERIC,
-                provider_name="test",
-                attempt=3,  # >= _CAPTCHA_MAX_RETRIES
-            )
+        resolved, strategy = await handler.handle(
+            page=None,
+            runner=None,
+            captcha_type=CaptchaType.GENERIC,
+            provider_name="test",
+            attempt=3,  # >= _CAPTCHA_MAX_RETRIES
+        )
         assert resolved is False
         assert strategy == CaptchaStrategy.HITL_ESCALATE
 
@@ -371,14 +369,13 @@ class TestCaptchaHandler:
     async def test_recaptcha_v2_attempts_audio_then_backoff(self, tos_gate):
         """reCAPTCHA v2 tries audio (fails with None page) then falls to backoff."""
         handler = CaptchaHandler(tos_gate)
-        with patch("asyncio.sleep", new_callable=AsyncMock):
-            resolved, strategy = await handler.handle(
-                page=None,
-                runner=None,
-                captcha_type=CaptchaType.RECAPTCHA_V2,
-                provider_name="test",
-                attempt=0,
-            )
+        resolved, strategy = await handler.handle(
+            page=None,
+            runner=None,
+            captcha_type=CaptchaType.RECAPTCHA_V2,
+            provider_name="test",
+            attempt=0,
+        )
         # Audio fails with None page, falls to backoff on attempt 0
         assert strategy in (CaptchaStrategy.RETRY_BACKOFF, CaptchaStrategy.AUDIO_FALLBACK)
 
@@ -391,7 +388,6 @@ class TestHarvestAllCredentialGate:
     @pytest.mark.asyncio
     async def test_harvest_aborted_when_credentials_declined(self, harvester, cred_gate):
         """If the user declines to provide credentials, harvest_all returns empty."""
-        # Pre-decline the pending request by intercepting request_credentials
         original_rc = cred_gate.request_credentials
 
         def _decline_immediately(purpose, suggested_email=""):
@@ -399,17 +395,22 @@ class TestHarvestAllCredentialGate:
             cred_gate.decline(req.request_id)
             return req
 
-        with patch.object(cred_gate, "request_credentials", side_effect=_decline_immediately):
-            with patch("asyncio.sleep", new_callable=AsyncMock):
-                results = await harvester.harvest_all()
+        cred_gate.request_credentials = _decline_immediately
+        try:
+            results = await harvester.harvest_all()
+        finally:
+            cred_gate.request_credentials = original_rc
         assert results == []
 
     @pytest.mark.asyncio
     async def test_harvest_aborted_when_credentials_timeout(self, harvester):
         """If no credential response arrives, harvest_all returns empty."""
-        with patch("key_harvester._CRED_POLL_TIMEOUT", 0.01):
-            with patch("asyncio.sleep", new_callable=AsyncMock):
-                results = await harvester.harvest_all()
+        original_timeout = kh._CRED_POLL_TIMEOUT
+        kh._CRED_POLL_TIMEOUT = 0.01
+        try:
+            results = await harvester.harvest_all()
+        finally:
+            kh._CRED_POLL_TIMEOUT = original_timeout
         assert results == []
 
 
@@ -418,41 +419,45 @@ class TestHarvestAllCredentialGate:
 # ---------------------------------------------------------------------------
 
 class TestHarvestAllSkipLogic:
+    def setup_method(self):
+        self._saved_env = {k: os.environ.get(k) for k in _ALL_RECIPE_ENV_KEYS}
+
+    def teardown_method(self):
+        for k, v in self._saved_env.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
     @pytest.mark.asyncio
     async def test_skips_providers_with_existing_env_vars(
-        self, harvester, cred_gate, monkeypatch
+        self, harvester, cred_gate
     ):
         """Providers whose env var is already set must be skipped."""
-        # Provide credentials so harvest proceeds past gate
         _provide_creds(cred_gate, harvester)
 
-        # Set env vars for ALL providers
         for recipe in PROVIDER_RECIPES:
-            monkeypatch.setenv(recipe.env_var, "dummy_existing_key")
+            os.environ[recipe.env_var] = "dummy_existing_key"
 
-        with patch("asyncio.sleep", new_callable=AsyncMock):
-            results = await harvester.harvest_all()
+        results = await harvester.harvest_all()
 
         for r in results:
             assert r.status == AcquisitionStatus.SKIPPED
 
     @pytest.mark.asyncio
     async def test_marks_payment_required_as_blocked(
-        self, harvester, cred_gate, monkeypatch
+        self, harvester, cred_gate
     ):
         """Providers with requires_payment=True must be BLOCKED_PAYMENT."""
         _provide_creds(cred_gate, harvester)
 
-        # Clear env vars for paid-only providers
         for name in PAYMENT_REQUIRED:
-            monkeypatch.delenv(_RECIPE_MAP[name].env_var, raising=False)
-        # Block all free providers by setting their env vars
+            os.environ.pop(_RECIPE_MAP[name].env_var, None)
         for recipe in PROVIDER_RECIPES:
             if recipe.name not in PAYMENT_REQUIRED:
-                monkeypatch.setenv(recipe.env_var, "dummy")
+                os.environ[recipe.env_var] = "dummy"
 
-        with patch("asyncio.sleep", new_callable=AsyncMock):
-            results = await harvester.harvest_all()
+        results = await harvester.harvest_all()
 
         blocked_results = {r.provider: r for r in results if r.provider in PAYMENT_REQUIRED}
         for name in PAYMENT_REQUIRED:
@@ -464,83 +469,104 @@ class TestHarvestAllSkipLogic:
 # ---------------------------------------------------------------------------
 
 class TestAcquireSingleTOSGate:
+    _MANAGED_KEYS = frozenset([_RECIPE_MAP["deepinfra"].env_var])
+
+    def setup_method(self):
+        self._saved_env = {k: os.environ.get(k) for k in self._MANAGED_KEYS}
+
+    def teardown_method(self):
+        for k, v in self._saved_env.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
     @pytest.mark.asyncio
-    async def test_tos_rejected_returns_skipped(
-        self, harvester, tos_gate, monkeypatch
-    ):
+    async def test_tos_rejected_returns_skipped(self, harvester, tos_gate):
         """If native automation is unavailable, the provider should be FAILED."""
         harvester._user_email = "test@example.com"
         harvester._user_password = "pwd123"
 
         recipe = _RECIPE_MAP["deepinfra"]
-        monkeypatch.delenv(recipe.env_var, raising=False)
+        os.environ.pop(recipe.env_var, None)
 
-        # Patch _HAS_NATIVE_AUTOMATION so we skip real automation
-        with patch("key_harvester._HAS_NATIVE_AUTOMATION", False):
+        original_has_native = kh._HAS_NATIVE_AUTOMATION
+        kh._HAS_NATIVE_AUTOMATION = False
+        try:
             result = await harvester._acquire_single(recipe)
+        finally:
+            kh._HAS_NATIVE_AUTOMATION = original_has_native
 
         assert result.status == AcquisitionStatus.FAILED
         assert "native_automation" in result.error.lower() or "murphy" in result.error.lower()
 
     @pytest.mark.asyncio
-    async def test_tos_gate_request_approval_called(
-        self, harvester, tos_gate, monkeypatch
-    ):
+    async def test_tos_gate_request_approval_called(self, harvester, tos_gate):
         """request_approval must be called (in real flow after filling fields)."""
         harvester._user_email = "test@example.com"
         harvester._user_password = "pwd123"
 
         recipe = _RECIPE_MAP["deepinfra"]
-        monkeypatch.delenv(recipe.env_var, raising=False)
+        os.environ.pop(recipe.env_var, None)
 
-        # We verify by checking the tos_gate's pending queue after a mocked run
-        original_request = tos_gate.request_approval
+        original_ra = tos_gate.request_approval
         calls = []
 
         def _capturing_request(provider_key, screenshot_path=None):
-            req = original_request(provider_key, screenshot_path)
+            req = original_ra(provider_key, screenshot_path)
             calls.append(req)
-            # Immediately approve so flow continues
             tos_gate.approve(req.request_id, approved_by="test_approver")
             return req
 
-        with patch.object(tos_gate, "request_approval", side_effect=_capturing_request):
-            # Mock MurphyNativeRunner so no real automation is needed
-            mock_runner = _make_mock_runner(key_value="gsk_testkey_abc123456789xyz")
-            with patch("key_harvester.MurphyNativeRunner", return_value=mock_runner):
-                with patch("key_harvester._HAS_NATIVE_AUTOMATION", True):
-                    with patch("asyncio.sleep", new_callable=AsyncMock):
-                        await harvester._acquire_single(recipe)
+        stub_runner = _StubRunner(key_value="gsk_testkey_abc123456789xyz")
+        original_mnr = kh.MurphyNativeRunner
+        original_has_native = kh._HAS_NATIVE_AUTOMATION
+
+        tos_gate.request_approval = _capturing_request
+        kh.MurphyNativeRunner = lambda *a, **kw: stub_runner
+        kh._HAS_NATIVE_AUTOMATION = True
+        try:
+            await harvester._acquire_single(recipe)
+        finally:
+            tos_gate.request_approval = original_ra
+            kh.MurphyNativeRunner = original_mnr
+            kh._HAS_NATIVE_AUTOMATION = original_has_native
 
         assert len(calls) == 1, "request_approval must be called exactly once per provider"
         assert calls[0].provider_key == "deepinfra"
 
     @pytest.mark.asyncio
-    async def test_tos_rejected_skips_provider(
-        self, harvester, tos_gate, monkeypatch
-    ):
+    async def test_tos_rejected_skips_provider(self, harvester, tos_gate):
         """Provider is SKIPPED when TOS is rejected."""
         harvester._user_email = "test@example.com"
         harvester._user_password = "pwd123"
 
         recipe = _RECIPE_MAP["deepinfra"]
-        monkeypatch.delenv(recipe.env_var, raising=False)
+        os.environ.pop(recipe.env_var, None)
 
-        original = tos_gate.request_approval
+        original_ra = tos_gate.request_approval
 
         def patched_request(provider_key, screenshot_path=None):
-            req = original(provider_key, screenshot_path)
-            # Immediately reject so _wait_for_tos_decision returns False
+            req = original_ra(provider_key, screenshot_path)
             tos_gate.reject(req.request_id, rejected_by="rejector")
             return req
 
-        mock_runner = _make_mock_runner(key_value="")
-        with patch.object(tos_gate, "request_approval", side_effect=patched_request):
-            with patch("key_harvester.MurphyNativeRunner", return_value=mock_runner):
-                with patch("key_harvester._HAS_NATIVE_AUTOMATION", True):
-                    with patch("key_harvester._TOS_POLL_TIMEOUT", 0.1):
-                        with patch("asyncio.sleep", new_callable=AsyncMock):
-                            result = await harvester._acquire_single(recipe)
+        stub_runner = _StubRunner(key_value="")
+        original_mnr = kh.MurphyNativeRunner
+        original_has_native = kh._HAS_NATIVE_AUTOMATION
+        original_tos_timeout = kh._TOS_POLL_TIMEOUT
+
+        tos_gate.request_approval = patched_request
+        kh.MurphyNativeRunner = lambda *a, **kw: stub_runner
+        kh._HAS_NATIVE_AUTOMATION = True
+        kh._TOS_POLL_TIMEOUT = 0.1
+        try:
+            result = await harvester._acquire_single(recipe)
+        finally:
+            tos_gate.request_approval = original_ra
+            kh.MurphyNativeRunner = original_mnr
+            kh._HAS_NATIVE_AUTOMATION = original_has_native
+            kh._TOS_POLL_TIMEOUT = original_tos_timeout
 
         assert result.status == AcquisitionStatus.SKIPPED
         assert result.tos_accepted is False
@@ -685,21 +711,27 @@ def _provide_creds(cred_gate: UserCredentialGate, harvester: KeyHarvester) -> No
     harvester._credential_gate.request_credentials = _instant_provide  # type: ignore[method-assign]
 
 
-def _make_mock_runner(key_value: str = "di_test_key_abc123") -> Any:
-    """Build a mock MurphyNativeRunner that returns successful run() results."""
-    from unittest.mock import MagicMock
+class _StubRunner:
+    """Real stub replacing MagicMock-based _make_mock_runner."""
 
-    mock_runner = MagicMock()
-    # run() returns a result dict (synchronous, not async)
-    mock_runner.run = MagicMock(return_value={
-        "status": "passed",
-        "step_results": [{"status": "ok", "text": key_value, "value": key_value}],
-    })
-    mock_runner.run_suite = MagicMock(return_value=[{
-        "status": "passed",
-        "step_results": [{"status": "ok", "text": key_value, "value": key_value}],
-    }])
-    return mock_runner
+    def __init__(self, key_value: str = "di_test_key_abc123"):
+        self._key_value = key_value
+        self.run_calls: list = []
+        self.run_suite_calls: list = []
+
+    def run(self, task):
+        self.run_calls.append(task)
+        return {
+            "status": "passed",
+            "step_results": [{"status": "ok", "text": self._key_value, "value": self._key_value}],
+        }
+
+    def run_suite(self, tasks):
+        self.run_suite_calls.append(tasks)
+        return [{
+            "status": "passed",
+            "step_results": [{"status": "ok", "text": self._key_value, "value": self._key_value}],
+        }]
 
 
 # ---------------------------------------------------------------------------
@@ -708,13 +740,13 @@ def _make_mock_runner(key_value: str = "di_test_key_abc123") -> Any:
 
 class TestHarvestAllHITLUIOpening:
     @pytest.mark.asyncio
-    async def test_hitl_ui_opened_when_interactive(self, harvester, cred_gate, monkeypatch):
+    async def test_hitl_ui_opened_when_interactive(self, harvester, cred_gate):
         """harvest_all() opens the Murphy HITL terminal URL in system browser."""
         harvester._interactive = True
         opened_urls: list = []
-        monkeypatch.setattr("webbrowser.open", lambda url: opened_urls.append(url) or True)
+        original_open = webbrowser.open
+        webbrowser.open = lambda url: opened_urls.append(url) or True
 
-        # Abort immediately after credential decline so the test stays fast
         original_rc = cred_gate.request_credentials
 
         def _decline(purpose, suggested_email=""):
@@ -722,9 +754,12 @@ class TestHarvestAllHITLUIOpening:
             cred_gate.decline(req.request_id)
             return req
 
-        with patch.object(cred_gate, "request_credentials", side_effect=_decline):
-            with patch("asyncio.sleep", new_callable=AsyncMock):
-                await harvester.harvest_all()
+        cred_gate.request_credentials = _decline
+        try:
+            await harvester.harvest_all()
+        finally:
+            webbrowser.open = original_open
+            cred_gate.request_credentials = original_rc
 
         murphy_ui_opened = any("localhost" in u and "terminal" in u for u in opened_urls)
         assert murphy_ui_opened, (
@@ -732,11 +767,12 @@ class TestHarvestAllHITLUIOpening:
         )
 
     @pytest.mark.asyncio
-    async def test_hitl_ui_not_opened_when_non_interactive(self, harvester, cred_gate, monkeypatch):
+    async def test_hitl_ui_not_opened_when_non_interactive(self, harvester, cred_gate):
         """harvest_all() does NOT open browser UIs when interactive=False."""
         harvester._interactive = False
         opened_urls: list = []
-        monkeypatch.setattr("webbrowser.open", lambda url: opened_urls.append(url) or True)
+        original_open = webbrowser.open
+        webbrowser.open = lambda url: opened_urls.append(url) or True
 
         original_rc = cred_gate.request_credentials
 
@@ -745,25 +781,25 @@ class TestHarvestAllHITLUIOpening:
             cred_gate.decline(req.request_id)
             return req
 
-        with patch.object(cred_gate, "request_credentials", side_effect=_decline):
-            with patch("asyncio.sleep", new_callable=AsyncMock):
-                await harvester.harvest_all()
+        cred_gate.request_credentials = _decline
+        try:
+            await harvester.harvest_all()
+        finally:
+            webbrowser.open = original_open
+            cred_gate.request_credentials = original_rc
 
         assert opened_urls == [], (
             f"Browser should not open in non-interactive mode. Got: {opened_urls}"
         )
 
     @pytest.mark.asyncio
-    async def test_hitl_ui_opens_before_credential_gate(
-        self, harvester, cred_gate, monkeypatch
-    ):
+    async def test_hitl_ui_opens_before_credential_gate(self, harvester, cred_gate):
         """The Murphy UI must open BEFORE the credential collection gate fires."""
         harvester._interactive = True
         event_log: list = []
-        monkeypatch.setattr(
-            "webbrowser.open",
-            lambda url: event_log.append(("browser_open", url)) or True,
-        )
+        original_open = webbrowser.open
+        webbrowser.open = lambda url: event_log.append(("browser_open", url)) or True
+
         original_rc = cred_gate.request_credentials
 
         def _track_and_decline(purpose, suggested_email=""):
@@ -772,9 +808,12 @@ class TestHarvestAllHITLUIOpening:
             cred_gate.decline(req.request_id)
             return req
 
-        with patch.object(cred_gate, "request_credentials", side_effect=_track_and_decline):
-            with patch("asyncio.sleep", new_callable=AsyncMock):
-                await harvester.harvest_all()
+        cred_gate.request_credentials = _track_and_decline
+        try:
+            await harvester.harvest_all()
+        finally:
+            webbrowser.open = original_open
+            cred_gate.request_credentials = original_rc
 
         # Browser open must appear before credential_request in the log
         types = [e[0] for e in event_log]
@@ -960,35 +999,54 @@ class TestGetSharedGates:
 # ---------------------------------------------------------------------------
 
 class TestSharedPageInSignupFlow:
+    _MANAGED_KEYS = frozenset([_RECIPE_MAP["deepinfra"].env_var])
+
+    def setup_method(self):
+        self._saved_env = {k: os.environ.get(k) for k in self._MANAGED_KEYS}
+
+    def teardown_method(self):
+        for k, v in self._saved_env.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
     @pytest.mark.asyncio
     async def test_shared_page_called_when_playwright_available(
-        self, harvester, tos_gate, monkeypatch
+        self, harvester, tos_gate
     ):
         """When native automation is available, _run_signup_flow uses runner.run()."""
         harvester._user_email = "test@example.com"
         harvester._user_password = "pwd123"
 
         recipe = _RECIPE_MAP["deepinfra"]
-        monkeypatch.delenv(recipe.env_var, raising=False)
+        os.environ.pop(recipe.env_var, None)
 
-        original = tos_gate.request_approval
+        original_ra = tos_gate.request_approval
 
         def patched_request(provider_key, screenshot_path=None):
-            req = original(provider_key, screenshot_path)
+            req = original_ra(provider_key, screenshot_path)
             tos_gate.approve(req.request_id, approved_by="tester")
             return req
 
-        mock_runner = _make_mock_runner(key_value="gsk_testkey_abc123456789xyz")
-        with patch.object(tos_gate, "request_approval", side_effect=patched_request):
-            with patch("key_harvester.MurphyNativeRunner", return_value=mock_runner):
-                with patch("key_harvester._HAS_NATIVE_AUTOMATION", True):
-                    with patch("asyncio.sleep", new_callable=AsyncMock):
-                        await harvester._acquire_single(recipe)
+        stub_runner = _StubRunner(key_value="gsk_testkey_abc123456789xyz")
+        original_mnr = kh.MurphyNativeRunner
+        original_has_native = kh._HAS_NATIVE_AUTOMATION
+
+        tos_gate.request_approval = patched_request
+        kh.MurphyNativeRunner = lambda *a, **kw: stub_runner
+        kh._HAS_NATIVE_AUTOMATION = True
+        try:
+            await harvester._acquire_single(recipe)
+        finally:
+            tos_gate.request_approval = original_ra
+            kh.MurphyNativeRunner = original_mnr
+            kh._HAS_NATIVE_AUTOMATION = original_has_native
 
         # runner.run() was called (navigate + form fill + TOS + key extract ...)
-        mock_runner.run.assert_called()
+        assert len(stub_runner.run_calls) > 0
         # First call should be the form-fill NativeTask with OPEN_URL + GHOST_TYPE
-        first_call_task = mock_runner.run.call_args_list[0][0][0]
+        first_call_task = stub_runner.run_calls[0]
         assert isinstance(first_call_task, NativeTask)
         step_actions = [step.action for step in first_call_task.steps]
         assert ActionType.OPEN_URL in step_actions
