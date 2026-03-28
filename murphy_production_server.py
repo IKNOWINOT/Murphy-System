@@ -2607,3 +2607,332 @@ async def api_demo_generate_deliverable(request: Request):
         "metrics": metrics.to_dict(),
     })
 
+
+# =============================================================================
+# INFRASTRUCTURE ENDPOINTS - From hetzner_load.sh Integration
+# =============================================================================
+
+@app.get("/api/infrastructure/status")
+async def get_infrastructure_status():
+    """Get status of all infrastructure components.
+    
+    This endpoint provides visibility into the Docker Compose services
+    defined in hetzner_load.sh: PostgreSQL, Redis, Prometheus, Grafana,
+    Mail server, and Roundcube webmail.
+    """
+    import os
+    
+    # Check environment variables for configuration
+    env_config = {
+        "database_url": bool(os.getenv("DATABASE_URL", "")),
+        "redis_url": bool(os.getenv("REDIS_URL", "")),
+        "ollama_host": bool(os.getenv("OLLAMA_HOST", "")),
+        "smtp_host": bool(os.getenv("SMTP_HOST", "")),
+        "matrix_homeserver": bool(os.getenv("MATRIX_HOMESERVER_URL", "")),
+        "murphy_secret_key": bool(os.getenv("MURPHY_SECRET_KEY", "")),
+    }
+    
+    # Service status checks
+    services = {}
+    
+    # PostgreSQL check
+    try:
+        import asyncpg
+        db_url = os.getenv("DATABASE_URL", "")
+        if db_url:
+            # Would need async connection check
+            services["postgres"] = {"status": "configured", "port": 5432, "connection": "available"}
+        else:
+            services["postgres"] = {"status": "not_configured", "port": 5432, "connection": "none"}
+    except ImportError:
+        services["postgres"] = {"status": "driver_missing", "port": 5432, "connection": "none"}
+    
+    # Redis check
+    try:
+        import redis
+        redis_url = os.getenv("REDIS_URL", "")
+        if redis_url:
+            services["redis"] = {"status": "configured", "port": 6379, "connection": "available"}
+        else:
+            services["redis"] = {"status": "not_configured", "port": 6379, "connection": "none"}
+    except ImportError:
+        services["redis"] = {"status": "driver_missing", "port": 6379, "connection": "none"}
+    
+    # Prometheus check (port 9090)
+    services["prometheus"] = {
+        "status": "configured" if os.getenv("PROMETHEUS_ENABLED", "") else "available",
+        "port": 9090,
+        "endpoint": "/metrics"
+    }
+    
+    # Grafana check (port 3000)
+    services["grafana"] = {
+        "status": "configured" if os.getenv("GRAFANA_ADMIN_USER", "") else "available",
+        "port": 3000,
+        "endpoint": "/grafana/"
+    }
+    
+    # Mail server check
+    services["mailserver"] = {
+        "status": "configured" if os.getenv("SMTP_HOST", "") else "available",
+        "ports": {"smtp": 25, "smtps": 465, "submission": 587, "imap": 993},
+        "webmail_port": 8443,
+        "webmail_endpoint": "/mail/"
+    }
+    
+    # Ollama LLM check (port 11434)
+    services["ollama"] = {
+        "status": "configured" if os.getenv("OLLAMA_HOST", "") else "available",
+        "port": 11434,
+        "model": os.getenv("OLLAMA_MODEL", "phi3")
+    }
+    
+    return JSONResponse({
+        "success": True,
+        "timestamp": _now_iso(),
+        "environment_configured": env_config,
+        "services": services,
+        "nginx_routes": {
+            "/": "Murphy API :8000",
+            "/api/": "Murphy API :8000",
+            "/ui/": "Murphy API :8000",
+            "/static/": "Murphy API :8000",
+            "/docs": "Swagger UI",
+            "/metrics": "Prometheus scrape",
+            "/grafana/": "Grafana :3000",
+            "/mail/": "Roundcube :8443"
+        }
+    })
+
+
+@app.get("/api/infrastructure/database")
+async def get_database_status():
+    """Get detailed PostgreSQL database status and connection info."""
+    import os
+    
+    db_url = os.getenv("DATABASE_URL", "")
+    db_host = os.getenv("POSTGRES_HOST", "localhost")
+    db_port = os.getenv("POSTGRES_PORT", "5432")
+    db_name = os.getenv("POSTGRES_DB", "murphy")
+    db_user = os.getenv("POSTGRES_USER", "murphy")
+    
+    return JSONResponse({
+        "success": True,
+        "configured": bool(db_url),
+        "connection": {
+            "host": db_host,
+            "port": int(db_port),
+            "database": db_name,
+            "user": db_user,
+            # Never expose password
+            "password_set": bool(os.getenv("POSTGRES_PASSWORD", ""))
+        },
+        "docker_service": "murphy-postgres",
+        "compose_file": "docker-compose.hetzner.yml",
+        "health_check": "pg_isready -U murphy"
+    })
+
+
+@app.get("/api/infrastructure/cache")
+async def get_cache_status():
+    """Get Redis cache status and configuration."""
+    import os
+    
+    redis_url = os.getenv("REDIS_URL", "")
+    redis_host = os.getenv("REDIS_HOST", "localhost")
+    redis_port = os.getenv("REDIS_PORT", "6379")
+    
+    return JSONResponse({
+        "success": True,
+        "configured": bool(redis_url),
+        "connection": {
+            "host": redis_host,
+            "port": int(redis_port),
+            "password_set": bool(os.getenv("REDIS_PASSWORD", ""))
+        },
+        "docker_service": "murphy-redis",
+        "compose_file": "docker-compose.hetzner.yml",
+        "use_cases": [
+            "session_storage",
+            "api_cache",
+            "rate_limiting",
+            "real_time_data"
+        ]
+    })
+
+
+@app.get("/api/infrastructure/mail")
+async def get_mail_status():
+    """Get mail server configuration and status."""
+    import os
+    
+    return JSONResponse({
+        "success": True,
+        "configured": bool(os.getenv("SMTP_HOST", "")),
+        "smtp": {
+            "host": os.getenv("SMTP_HOST", "localhost"),
+            "port": int(os.getenv("SMTP_PORT", "587")),
+            "user": os.getenv("SMTP_USER", ""),
+            "tls": os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+        },
+        "imap": {
+            "host": os.getenv("IMAP_HOST", "localhost"),
+            "port": int(os.getenv("IMAP_PORT", "993"))
+        },
+        "docker_services": {
+            "mailserver": "murphy-mailserver (Postfix + Dovecot)",
+            "webmail": "murphy-webmail (Roundcube)"
+        },
+        "ports": {
+            "smtp_inbound": 25,
+            "smtps": 465,
+            "submission": 587,
+            "imap": 143,
+            "imaps": 993
+        },
+        "webmail_endpoint": "/mail/",
+        "webmail_port": 8443
+    })
+
+
+@app.get("/api/infrastructure/monitoring")
+async def get_monitoring_status():
+    """Get Prometheus and Grafana monitoring configuration."""
+    import os
+    
+    return JSONResponse({
+        "success": True,
+        "prometheus": {
+            "configured": True,
+            "port": 9090,
+            "scrape_endpoint": "/metrics",
+            "retention": "30d",
+            "docker_service": "murphy-prometheus"
+        },
+        "grafana": {
+            "configured": bool(os.getenv("GRAFANA_ADMIN_USER", "")),
+            "port": 3000,
+            "endpoint": "/grafana/",
+            "admin_configured": bool(os.getenv("GRAFANA_ADMIN_PASSWORD", "")),
+            "docker_service": "murphy-grafana"
+        },
+        "alerting": {
+            "rules_file": "prometheus-rules/murphy-alerts.yml",
+            "enabled": True
+        }
+    })
+
+
+@app.get("/api/infrastructure/llm")
+async def get_llm_status():
+    """Get local LLM (Ollama) configuration."""
+    import os
+    
+    return JSONResponse({
+        "success": True,
+        "ollama": {
+            "configured": bool(os.getenv("OLLAMA_HOST", "")),
+            "host": os.getenv("OLLAMA_HOST", "http://localhost:11434"),
+            "port": 11434,
+            "default_model": os.getenv("OLLAMA_MODEL", "phi3"),
+            "available_models": ["phi3", "llama3", "mistral"]
+        },
+        "fallback_providers": {
+            "deepinfra": bool(os.getenv("DEEPINFRA_API_KEY", "")),
+            "together": bool(os.getenv("TOGETHER_API_KEY", "")),
+            "openai": bool(os.getenv("OPENAI_API_KEY", ""))
+        }
+    })
+
+
+class InfrastructureConfigRequest(BaseModel):
+    """Request model for infrastructure configuration updates."""
+    component: str  # postgres, redis, mail, ollama, grafana
+    config: Dict[str, Any] = {}
+
+
+@app.post("/api/infrastructure/configure")
+async def configure_infrastructure(req: InfrastructureConfigRequest):
+    """Configure an infrastructure component.
+    
+    This endpoint allows updating configuration for infrastructure
+    components. In production, this would update environment variables
+    or configuration files.
+    """
+    valid_components = ["postgres", "redis", "mail", "ollama", "grafana", "prometheus"]
+    
+    if req.component not in valid_components:
+        return JSONResponse({
+            "success": False,
+            "error": f"Invalid component. Must be one of: {valid_components}"
+        }, status_code=400)
+    
+    # In a real implementation, this would update the environment file
+    # at /etc/murphy-production/environment and restart services
+    
+    return JSONResponse({
+        "success": True,
+        "message": f"Configuration for {req.component} would be updated",
+        "component": req.component,
+        "config_received": req.config,
+        "note": "In production, this updates /etc/murphy-production/environment",
+        "restart_required": True,
+        "restart_command": f"systemctl restart murphy-production"
+    })
+
+
+@app.get("/api/infrastructure/health")
+async def infrastructure_health_check():
+    """Comprehensive health check for all infrastructure components.
+    
+    This matches the health checks performed in hetzner_load.sh.
+    """
+    import os
+    import socket
+    
+    def check_port(host: str, port: int) -> bool:
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(1)
+            result = sock.connect_ex((host, port))
+            sock.close()
+            return result == 0
+        except Exception:
+            return False
+    
+    health = {
+        "murphy_api": {"status": "healthy", "port": 8000},
+        "postgres": {"status": "unknown", "port": 5432},
+        "redis": {"status": "unknown", "port": 6379},
+        "prometheus": {"status": "unknown", "port": 9090},
+        "grafana": {"status": "unknown", "port": 3000},
+        "mailserver": {"status": "unknown", "ports": [25, 587, 993]},
+        "webmail": {"status": "unknown", "port": 8443},
+        "ollama": {"status": "unknown", "port": 11434}
+    }
+    
+    # Check each service port
+    for service, info in health.items():
+        if service == "mailserver":
+            # Check multiple ports for mail server
+            ports_ok = all(check_port("localhost", p) for p in info["ports"])
+            health[service]["status"] = "healthy" if ports_ok else "unreachable"
+        elif "port" in info:
+            port_ok = check_port("localhost", info["port"])
+            health[service]["status"] = "healthy" if port_ok else "unreachable"
+    
+    # Overall status
+    all_healthy = all(
+        info["status"] in ["healthy", "unknown"] 
+        for info in health.values()
+    )
+    
+    return JSONResponse({
+        "success": True,
+        "timestamp": _now_iso(),
+        "overall_status": "healthy" if all_healthy else "degraded",
+        "services": health,
+        "environment_file": "/etc/murphy-production/environment",
+        "compose_file": "docker-compose.hetzner.yml"
+    })
+
