@@ -647,6 +647,34 @@ class ModuleInstanceManager:
                 matches.append(inst)
             return matches
 
+    # -- public viability facade -------------------------------------------
+
+    def check_viability(
+        self,
+        module_type: str,
+        resource_profile: Optional[ResourceProfile] = None,
+        parent_depth: int = 0,
+    ) -> ViabilityResult:
+        """Public facade for pre-spawn viability checking.
+
+        Delegates to the internal :class:`ViabilityChecker` with the
+        current instance count for *module_type*.
+        """
+        with self._lock:
+            current_count = sum(
+                1
+                for inst in self._instances.values()
+                if inst.module_type == module_type
+                and inst.state not in (InstanceState.DESPAWNED, InstanceState.DESPAWNING)
+            )
+        profile = resource_profile or ResourceProfile()
+        return self._viability_checker.check_viability(
+            module_type=module_type,
+            current_instances=current_count,
+            resource_profile=profile,
+            parent_depth=parent_depth,
+        )
+
     # -- private helpers ----------------------------------------------------
 
     def _record_audit(

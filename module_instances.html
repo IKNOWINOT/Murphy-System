@@ -396,7 +396,11 @@
       window.despawnInstance = async function (id) {
         if (!confirm('Despawn instance ' + id + '?')) return;
         try {
-          const res = await fetch('/module-instances/' + encodeURIComponent(id) + '/despawn', { method: 'POST' });
+          const res = await fetch('/module-instances/' + encodeURIComponent(id) + '/despawn', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({actor: 'dashboard_user'})
+          });
           if (!res.ok) throw new Error(res.statusText);
           toast('Instance ' + id.substring(0, 8) + ' despawned', 'success');
           refresh();
