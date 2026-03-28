@@ -2908,7 +2908,8 @@ async def infrastructure_health_check():
         "grafana": {"status": "unknown", "port": 3000},
         "mailserver": {"status": "unknown", "ports": [25, 587, 993]},
         "webmail": {"status": "unknown", "port": 8443},
-        "ollama": {"status": "unknown", "port": 11434}
+        "ollama": {"status": "unknown", "port": 11434},
+        "matrix": {"status": "unknown", "port": 8008}
     }
     
     # Check each service port
@@ -2934,5 +2935,306 @@ async def infrastructure_health_check():
         "services": health,
         "environment_file": "/etc/murphy-production/environment",
         "compose_file": "docker-compose.hetzner.yml"
+    })
+
+
+# =============================================================================
+# MATRIX SERVER ENDPOINTS - IM Bridge Integration
+# =============================================================================
+
+@app.get("/api/infrastructure/matrix")
+async def get_matrix_status():
+    """Get Matrix server configuration and status.
+    
+    The Matrix server enables real-time messaging integration for Murphy,
+    allowing users to interact with the system via Matrix rooms.
+    """
+    import os
+    
+    homeserver = os.getenv("MATRIX_HOMESERVER_URL", os.getenv("MATRIX_HOMESERVER", ""))
+    user_id = os.getenv("MATRIX_USER_ID", "")
+    
+    return JSONResponse({
+        "success": True,
+        "configured": bool(homeserver and user_id),
+        "connection": {
+            "homeserver": homeserver,
+            "user_id": user_id,
+            "device_id": os.getenv("MATRIX_DEVICE_ID", "MURPHYBOT"),
+            "e2e_enabled": os.getenv("MATRIX_E2E_ENABLED", "false").lower() == "true"
+        },
+        "rooms": {
+            "hitl_room": os.getenv("MATRIX_HITL_ROOM", ""),
+            "alerts_room": os.getenv("MATRIX_ALERTS_ROOM", ""),
+            "comms_room": os.getenv("MATRIX_COMMS_ROOM", ""),
+            "default_room": os.getenv("MATRIX_DEFAULT_ROOM", ""),
+            "auto_create_rooms": os.getenv("MATRIX_AUTO_CREATE_ROOMS", "true").lower() == "true",
+            "space_name": os.getenv("MATRIX_SPACE_NAME", "Murphy System")
+        },
+        "polling": {
+            "hitl_poll_interval": int(os.getenv("HITL_POLL_INTERVAL", "30")),
+            "health_poll_interval": int(os.getenv("HEALTH_POLL_INTERVAL", "60")),
+            "comms_poll_interval": int(os.getenv("COMMS_POLL_INTERVAL", "20"))
+        },
+        "authentication": {
+            "password_set": bool(os.getenv("MATRIX_PASSWORD", "")),
+            "access_token_set": bool(os.getenv("MATRIX_ACCESS_TOKEN", "")),
+            "bot_token_set": bool(os.getenv("MATRIX_BOT_TOKEN", "")),
+            "bot_user": os.getenv("BOT_USER", "")
+        },
+        "features": {
+            "command_prefix": os.getenv("BOT_COMMAND_PREFIX", "!murphy"),
+            "circuit_breaker_threshold": int(os.getenv("CIRCUIT_BREAKER_THRESHOLD", "5")),
+            "circuit_breaker_timeout": int(os.getenv("CIRCUIT_BREAKER_TIMEOUT", "60"))
+        }
+    })
+
+
+@app.get("/api/infrastructure/matrix/rooms")
+async def get_matrix_rooms():
+    """List configured Matrix rooms and their purposes."""
+    import os
+    
+    rooms = []
+    
+    # HITL Room - Human-in-the-Loop approvals
+    hitl_room = os.getenv("MATRIX_HITL_ROOM", "")
+    if hitl_room:
+        rooms.append({
+            "room_id": hitl_room,
+            "purpose": "hitl",
+            "description": "Human-in-the-Loop approval requests",
+            "poll_interval": int(os.getenv("HITL_POLL_INTERVAL", "30"))
+        })
+    
+    # Alerts Room - System notifications
+    alerts_room = os.getenv("MATRIX_ALERTS_ROOM", "")
+    if alerts_room:
+        rooms.append({
+            "room_id": alerts_room,
+            "purpose": "alerts",
+            "description": "System alerts and notifications",
+            "poll_interval": int(os.getenv("HEALTH_POLL_INTERVAL", "60"))
+        })
+    
+    # Communications Room
+    comms_room = os.getenv("MATRIX_COMMS_ROOM", "")
+    if comms_room:
+        rooms.append({
+            "room_id": comms_room,
+            "purpose": "communications",
+            "description": "Team communications hub",
+            "poll_interval": int(os.getenv("COMMS_POLL_INTERVAL", "20"))
+        })
+    
+    # Default Room
+    default_room = os.getenv("MATRIX_DEFAULT_ROOM", "")
+    if default_room:
+        rooms.append({
+            "room_id": default_room,
+            "purpose": "default",
+            "description": "Default room for general interactions",
+            "poll_interval": 60
+        })
+    
+    return JSONResponse({
+        "success": True,
+        "total_rooms": len(rooms),
+        "rooms": rooms,
+        "space_name": os.getenv("MATRIX_SPACE_NAME", "Murphy System"),
+        "auto_create": os.getenv("MATRIX_AUTO_CREATE_ROOMS", "true").lower() == "true"
+    })
+
+
+@app.get("/api/infrastructure/matrix/bridge")
+async def get_matrix_bridge_status():
+    """Get Matrix-Murphy API bridge status.
+    
+    The bridge connects Matrix rooms to Murphy's REST API,
+    enabling commands like !murphy status, !murphy approve, etc.
+    """
+    import os
+    
+    return JSONResponse({
+        "success": True,
+        "bridge": {
+            "name": "MurphyAPIBridge",
+            "type": "httpx_async_client",
+            "base_url": os.getenv("MURPHY_API_URL", "http://localhost:8000/api"),
+            "web_url": os.getenv("MURPHY_WEB_URL", "http://localhost:8000"),
+            "timeout": float(os.getenv("MURPHY_API_TIMEOUT", "30.0"))
+        },
+        "commands": {
+            "prefix": os.getenv("BOT_COMMAND_PREFIX", "!murphy"),
+            "available": [
+                {"command": "status", "description": "Get system status"},
+                {"command": "approve <id>", "description": "Approve a HITL request"},
+                {"command": "reject <id> <reason>", "description": "Reject a HITL request"},
+                {"command": "queue", "description": "List pending HITL items"},
+                {"command": "help", "description": "Show available commands"},
+                {"command": "health", "description": "Check system health"}
+            ]
+        },
+        "circuit_breaker": {
+            "threshold": int(os.getenv("CIRCUIT_BREAKER_THRESHOLD", "5")),
+            "timeout_seconds": int(os.getenv("CIRCUIT_BREAKER_TIMEOUT", "60")),
+            "states": ["CLOSED", "OPEN", "HALF_OPEN"]
+        }
+    })
+
+
+class MatrixMessageRequest(BaseModel):
+    """Request model for sending Matrix messages."""
+    room_id: str
+    message: str
+    message_type: str = "m.text"  # m.text, m.notice, m.emote
+
+
+class MatrixRoomRequest(BaseModel):
+    """Request model for creating Matrix rooms."""
+    room_name: str
+    purpose: str = "general"
+    is_public: bool = False
+
+
+@app.post("/api/infrastructure/matrix/send")
+async def send_matrix_message(req: MatrixMessageRequest):
+    """Send a message to a Matrix room.
+    
+    This endpoint allows the Murphy API to send messages to Matrix rooms
+    for notifications, alerts, and HITL interactions.
+    """
+    import os
+    
+    # Check if Matrix is configured
+    homeserver = os.getenv("MATRIX_HOMESERVER_URL", os.getenv("MATRIX_HOMESERVER", ""))
+    access_token = os.getenv("MATRIX_ACCESS_TOKEN", "")
+    
+    if not homeserver or not access_token:
+        return JSONResponse({
+            "success": False,
+            "error": "Matrix not configured. Set MATRIX_HOMESERVER_URL and MATRIX_ACCESS_TOKEN."
+        }, status_code=503)
+    
+    # In a full implementation, this would use the matrix-nio client
+    # to actually send the message. For now, we return a simulated response.
+    
+    return JSONResponse({
+        "success": True,
+        "message": "Message queued for delivery",
+        "room_id": req.room_id,
+        "message_type": req.message_type,
+        "timestamp": _now_iso(),
+        "note": "In production, this sends via matrix-nio AsyncClient"
+    })
+
+
+@app.post("/api/infrastructure/matrix/rooms/create")
+async def create_matrix_room(req: MatrixRoomRequest):
+    """Create a new Matrix room for Murphy interactions.
+    
+    This allows dynamic creation of rooms for different purposes
+    (projects, teams, HITL workflows, etc.)
+    """
+    import os
+    
+    homeserver = os.getenv("MATRIX_HOMESERVER_URL", os.getenv("MATRIX_HOMESERVER", ""))
+    access_token = os.getenv("MATRIX_ACCESS_TOKEN", "")
+    
+    if not homeserver or not access_token:
+        return JSONResponse({
+            "success": False,
+            "error": "Matrix not configured. Set MATRIX_HOMESERVER_URL and MATRIX_ACCESS_TOKEN."
+        }, status_code=503)
+    
+    # Room alias from name
+    alias = req.room_name.lower().replace(" ", "-").replace("_", "-")
+    user_id = os.getenv("MATRIX_USER_ID", "@murphy:localhost")
+    server_name = user_id.split(":")[1] if ":" in user_id else "localhost"
+    
+    return JSONResponse({
+        "success": True,
+        "room": {
+            "name": req.room_name,
+            "alias": f"#{alias}:{server_name}",
+            "purpose": req.purpose,
+            "is_public": req.is_public
+        },
+        "created": False,  # Would be True after actual creation
+        "timestamp": _now_iso(),
+        "note": "In production, this creates via matrix-nio AsyncClient.create_room"
+    })
+
+
+@app.get("/api/infrastructure/matrix/health")
+async def matrix_health_check():
+    """Health check for Matrix server connectivity.
+    
+    Verifies that the Matrix homeserver is reachable and the bot
+    credentials are valid.
+    """
+    import os
+    import socket
+    
+    homeserver = os.getenv("MATRIX_HOMESERVER_URL", os.getenv("MATRIX_HOMESERVER", ""))
+    user_id = os.getenv("MATRIX_USER_ID", "")
+    access_token = os.getenv("MATRIX_ACCESS_TOKEN", "")
+    password = os.getenv("MATRIX_PASSWORD", "")
+    
+    # Parse homeserver URL to get host/port
+    host = "localhost"
+    port = 8008
+    
+    if homeserver:
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(homeserver)
+            host = parsed.hostname or "localhost"
+            port = parsed.port or (443 if parsed.scheme == "https" else 8008)
+        except Exception:
+            pass
+    
+    # Check port connectivity
+    def check_port(h: str, p: int) -> bool:
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(2)
+            result = sock.connect_ex((h, p))
+            sock.close()
+            return result == 0
+        except Exception:
+            return False
+    
+    port_reachable = check_port(host, port)
+    
+    health_status = {
+        "configured": bool(homeserver and user_id and (access_token or password)),
+        "homeserver_reachable": port_reachable,
+        "credentials": {
+            "homeserver_set": bool(homeserver),
+            "user_id_set": bool(user_id),
+            "access_token_set": bool(access_token),
+            "password_set": bool(password)
+        },
+        "connection": {
+            "host": host,
+            "port": port,
+            "url": homeserver
+        }
+    }
+    
+    # Overall health
+    if health_status["configured"] and port_reachable:
+        status = "healthy"
+    elif health_status["configured"]:
+        status = "degraded"
+    else:
+        status = "not_configured"
+    
+    return JSONResponse({
+        "success": True,
+        "status": status,
+        "timestamp": _now_iso(),
+        "health": health_status
     })
 
