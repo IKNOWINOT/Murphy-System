@@ -94,12 +94,14 @@ if not _engine_available:
 # -- Module Instance Manager (dynamic spawn/despawn) ---------------------------
 try:
     from src.module_instance_api import register_module_instance_routes as _register_mim_routes
+    from src.module_instance_api import set_event_callbacks as _set_mim_callbacks
     _mim_available = True
     log.info("ModuleInstanceManager API loaded")
 except Exception as _mim_e:
     log.warning("ModuleInstanceManager API not available (%s)", _mim_e)
     _mim_available = False
     _register_mim_routes = None  # type: ignore
+    _set_mim_callbacks = None  # type: ignore
 
 # -- Business Model Tiers ------------------------------------------------------
 TIERS = {
@@ -659,6 +661,22 @@ app.add_middleware(SecurityHeadersMiddleware)
 # -- Module Instance Manager routes --------------------------------------------
 if _mim_available and _register_mim_routes is not None:
     _register_mim_routes(app)
+
+    # Wire spawn/despawn events → SSE + WebSocket broadcasts
+    def _on_instance_spawned(data):
+        _broadcast_sse("module_instance_spawned", data)
+        return _broadcast_ws("module_instance_spawned", data)
+
+    def _on_instance_despawned(data):
+        _broadcast_sse("module_instance_despawned", data)
+        return _broadcast_ws("module_instance_despawned", data)
+
+    if _set_mim_callbacks is not None:
+        _set_mim_callbacks(
+            on_spawn=_on_instance_spawned,
+            on_despawn=_on_instance_despawned,
+        )
+
     log.info("Module Instance Manager endpoints registered at /module-instances/*")
 
 # -- Pydantic models -----------------------------------------------------------
