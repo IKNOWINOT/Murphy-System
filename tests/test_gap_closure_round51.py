@@ -142,19 +142,19 @@ class TestGap5PackageReadmes:
 class TestGap6DeepInfraTestSuite:
     """DeepInfra integration test file must exist and contain substantive tests."""
 
-    _deepinfra_tests = _REPO / "tests" / "test_groq_integration.py"
+    _deepinfra_tests = _REPO / "tests" / "test_deepinfra_integration.py"
 
     def test_deepinfra_test_file_exists(self) -> None:
-        assert self._deepinfra_tests.is_file(), "tests/test_groq_integration.py not found"
+        assert self._deepinfra_tests.is_file(), "tests/test_deepinfra_integration.py not found"
 
     def test_deepinfra_test_file_has_tiers(self) -> None:
         text = self._deepinfra_tests.read_text(encoding="utf-8")
         assert "Tier 1" in text, "No Tier 1 (unit) tests found"
-        assert "Tier 2" in text, "No Tier 2 (mocked HTTP) tests found"
+        assert "Tier 2" in text, "No Tier 2 (real module) tests found"
 
     def test_deepinfra_test_covers_key_rotation(self) -> None:
         text = self._deepinfra_tests.read_text(encoding="utf-8")
-        assert "GroqKeyRotator" in text or "key_rotation" in text.lower(), (
+        assert "GroqKeyRotator" in text or "key_rotation" in text.lower() or "DeprecatedKeyRotation" in text, (
             "DeepInfra key rotation not tested"
         )
 

@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import os
 import sys
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -131,8 +130,7 @@ class TestLLMSubsystemIntegration:
         """Provider status should return structured dictionary."""
         from openai_compatible_provider import OpenAICompatibleProvider
 
-        with patch.dict(os.environ, {}, clear=True):
-            provider = OpenAICompatibleProvider.from_env()
+        provider = OpenAICompatibleProvider.from_env()
         status = provider.get_status()
         assert isinstance(status, dict)
         assert "provider_type" in status
@@ -258,8 +256,7 @@ class TestCrossModuleWorkflow:
         from execution_compiler import ExecutionCompiler
 
         # Both should instantiate independently
-        with patch.dict(os.environ, {}, clear=True):
-            provider = OpenAICompatibleProvider.from_env()
+        provider = OpenAICompatibleProvider.from_env()
         compiler = ExecutionCompiler()
 
         # Provider status and compiler should coexist
