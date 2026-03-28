@@ -436,12 +436,12 @@ Every feature in Murphy follows a consistent pipeline:
 
 ## Implementation Sprint Plan
 
-### Sprint 1 (Immediate) — Critical Pages
-- [ ] Create `boards.html` — Board System UI (Phase 1 parity)
-- [ ] Create `workdocs.html` — Workdocs UI (Phase 5 parity)
-- [ ] Create `time_tracking.html` — Time Tracking UI (Phase 6 parity)
-- [ ] Register all three in `_html_routes` and sidebar navigation
-- [ ] Add wiring commissioning test
+### Sprint 1 (Immediate) — Critical Pages ✅ COMPLETE
+- [x] Create `boards.html` — Board System UI (Phase 1 parity)
+- [x] Create `workdocs.html` — Workdocs UI (Phase 5 parity)
+- [x] Create `time_tracking.html` — Time Tracking UI (Phase 6 parity)
+- [x] Register all three in `_html_routes` and sidebar navigation
+- [x] Add wiring commissioning test
 
 ### Sprint 2 (Next) — High-Priority Pages ✅ COMPLETE
 - [x] Create `dashboards.html` — Dashboard builder
@@ -457,24 +457,25 @@ Every feature in Murphy follows a consistent pipeline:
 - [x] Embed collaboration features in boards/workdocs
 - [x] Embed founder updates in management.html
 
-### Sprint 4 (Hardening) — Production Commissioning
-- [ ] MCB automated commissioning for all new pages
-- [ ] Permutation calibration for UI operation sequences
-- [ ] Security pen-test on new endpoints
+### Sprint 4 (Hardening) — Production Commissioning ✅ COMPLETE
+- [x] MCB automated commissioning for all new pages — 33 CommissionSpecs added (3 per page × 11 pages)
+- [x] Permutation calibration for UI operation sequences — readiness verified, registry/adapter/distiller/metrics functional
+- [x] Security pen-test on new endpoints — CSRF, rate-limit, input validation tested on all 13 endpoints (zero mocking)
 - [x] Full E2E wiring test suite — 141 tests
 - [x] Documentation as-built update
-- [ ] Production deployment validation
+- [x] Production deployment validation — route resolution, HTML structure, sidebar consistency (145 hardening tests)
 
 ---
 
 ## Metrics
 
-| Metric | Current | After Sprint 1 | After Sprint 3 | After Sprint 3+ |
-|--------|---------|-----------------|-----------------|------------------|
+| Metric | Current | After Sprint 1 | After Sprint 3 | After Sprint 4 |
+|--------|---------|-----------------|-----------------|-----------------|
 | Pages with API wiring | 24/54 (44%) | 27/57 (47%) | 35/65 (54%) | 35/65 (54%) |
 | Backend modules with UI | 1/15 (7%) | 4/15 (27%) | 11/15 (73%) | 13/15 (87%) |
 | Endpoint coverage (UI calls / total) | ~120/700 (17%) | ~170/700 (24%) | ~290/700 (41%) | ~320/700 (46%) |
-| Commissioning tests | 222 | 245 | 131 wiring | 141 wiring |
+| Commissioning tests | 222 | 245 | 131 wiring | 286 (141 wiring + 145 hardening) |
+| CommissionSpecs (MCB) | 31 | 31 | 31 | 64 (31 + 33 new) |
 
 ---
 
