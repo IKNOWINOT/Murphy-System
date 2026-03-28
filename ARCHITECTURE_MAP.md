@@ -2230,3 +2230,49 @@ unknown (initial state for auto-discovered subsystems)
 | `SubsystemRegistry` (ARCH-007) | `UpdateCoordinator`, `OperatingAnalysisDashboard` iterate registered subsystems |
 | `PersistenceManager` | All modules persist state via `save_document` / `load_document` |
 | `EventBackbone` | Publishes `LEARNING_FEEDBACK` and `SYSTEM_HEALTH` events on key actions |
+
+## Module Instance Manager (MIM-001)
+
+### Purpose
+Dynamic module instantiation with unique instance IDs, spawn/despawn lifecycle, 
+configuration backtracking for auditing, viability checking, and resource-efficient 
+lazy loading.
+
+### Core Components
+| Component | File | Purpose |
+|-----------|------|---------|
+| ModuleInstanceManager | src/module_instance_manager.py | Lifecycle management, circuit breaker, audit trail |
+| Module Instance API | src/module_instance_api.py | 13 REST endpoints at /module-instances/* |
+| Production Wiring | murphy_production_server.py | Route registration + SSE/WebSocket event callbacks |
+
+### Instance Lifecycle
+```
+spawning → active → idle/busy → despawning → despawned
+                  ↘ error ↗
+```
+
+### Viability Gates (pre-spawn)
+1. **Blacklist check** — module type not blacklisted
+2. **Instance limit** — max 10 instances per type  
+3. **Depth limit** — max spawn depth 5
+4. **Resource check** — CPU ≤ 16 cores, memory ≤ 8192 MB
+5. **Circuit breaker** — opens after 5 failures, recovers in 30s
+
+### Data Structures
+- **InstanceState** enum: spawning, active, idle, busy, error, despawning, despawned
+- **ViabilityResult** enum: viable, not_viable, insufficient_resources, dependency_missing, already_spawned, blacklisted
+- **SpawnDecision** enum: approved, denied_budget, denied_depth, denied_circuit, denied_blacklist, denied_dependency
+- **ResourceProfile** dataclass: cpu_cores, memory_mb, max_concurrent, timeout_seconds, priority
+- **ModuleInstance** dataclass: instance_id, module_type, state, config, capabilities, audit info
+
+### Integration Points
+- **TriageRollcallAdapter** — registers known candidates as module types
+- **ModuleRegistry** — registers loaded modules as spawnable types  
+- **SSE/WebSocket** — real-time spawn/despawn event broadcasts
+- **Audit Trail** — bounded to 1000 entries (CWE-770 protection)
+
+### Safety Invariants
+- Thread-safe: all mutable state guarded by `threading.Lock`
+- Circuit breaker: prevents cascading failures from repeated spawn attempts
+- Bounded audit: max 1000 entries to prevent memory exhaustion
+- Input validation: Pydantic Field constraints on all API payloads

@@ -91,6 +91,18 @@ if not _engine_available:
             self.column_id = column_id; self.operator = operator; self.value = value
         def to_dict(self): return {"column_id": self.column_id, "operator": self.operator, "value": self.value}
 
+# -- Module Instance Manager (dynamic spawn/despawn) ---------------------------
+try:
+    from src.module_instance_api import register_module_instance_routes as _register_mim_routes
+    from src.module_instance_api import set_event_callbacks as _set_mim_callbacks
+    _mim_available = True
+    log.info("ModuleInstanceManager API loaded")
+except Exception as _mim_e:
+    log.warning("ModuleInstanceManager API not available (%s)", _mim_e)
+    _mim_available = False
+    _register_mim_routes = None  # type: ignore
+    _set_mim_callbacks = None  # type: ignore
+
 # -- Business Model Tiers ------------------------------------------------------
 TIERS = {
     "solo":         {"max_automations": 3,   "price_mo": 99,  "price_yr": 79},
@@ -645,6 +657,27 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 app.add_middleware(SecurityHeadersMiddleware)
+
+# -- Module Instance Manager routes --------------------------------------------
+if _mim_available and _register_mim_routes is not None:
+    _register_mim_routes(app)
+
+    # Wire spawn/despawn events → SSE + WebSocket broadcasts
+    async def _on_instance_spawned(data):
+        _broadcast_sse("module_instance_spawned", data)
+        await _broadcast_ws("module_instance_spawned", data)
+
+    async def _on_instance_despawned(data):
+        _broadcast_sse("module_instance_despawned", data)
+        await _broadcast_ws("module_instance_despawned", data)
+
+    if _set_mim_callbacks is not None:
+        _set_mim_callbacks(
+            on_spawn=_on_instance_spawned,
+            on_despawn=_on_instance_despawned,
+        )
+
+    log.info("Module Instance Manager endpoints registered at /module-instances/*")
 
 # -- Pydantic models -----------------------------------------------------------
 class PromptRequest(BaseModel):
@@ -3238,3 +3271,148 @@ async def matrix_health_check():
         "health": health_status
     })
 
+
+# =============================================================================
+# INFRASTRUCTURE COMPARE — Detailed hetzner_load.sh Comparison
+# =============================================================================
+
+@app.post("/api/infrastructure/compare")
+async def compare_infrastructure(request: Request):
+    """Compare current production environment against hetzner_load.sh requirements.
+
+    Returns a service-by-service comparison showing what hetzner_load.sh
+    expects versus what the running environment has configured.
+    """
+    import os
+    from pathlib import Path as _Path
+
+    hetzner_path = _Path(__file__).resolve().parent / "scripts" / "hetzner_load.sh"
+    hetzner_exists = hetzner_path.exists()
+
+    # Expected services from hetzner_load.sh
+    hetzner_requirements = {
+        "postgres": {"port": 5432, "image": "postgres:16-alpine", "required": True},
+        "redis": {"port": 6379, "image": "redis:7-alpine", "required": True},
+        "prometheus": {"port": 9090, "image": "prom/prometheus", "required": True},
+        "grafana": {"port": 3000, "image": "grafana/grafana", "required": True},
+        "mailserver": {"ports": [25, 465, 587, 993], "required": False},
+        "webmail": {"port": 8443, "image": "roundcube/roundcubemail", "required": False},
+        "ollama": {"port": 11434, "required": True},
+        "nginx": {"ports": [80, 443], "required": True},
+    }
+
+    comparisons = {}
+    for svc, req in hetzner_requirements.items():
+        env_key_map = {
+            "postgres": "DATABASE_URL",
+            "redis": "REDIS_URL",
+            "ollama": "OLLAMA_HOST",
+            "mailserver": "SMTP_HOST",
+            "grafana": "GRAFANA_ADMIN_USER",
+            "prometheus": "PROMETHEUS_ENABLED",
+        }
+        env_key = env_key_map.get(svc)
+        configured = bool(os.getenv(env_key, "")) if env_key else None
+
+        comparisons[svc] = {
+            "required_by_hetzner": req.get("required", False),
+            "expected_port": req.get("port") or req.get("ports"),
+            "environment_configured": configured,
+            "status": "configured" if configured else ("unchecked" if configured is None else "missing"),
+        }
+
+    overall = all(
+        c["environment_configured"]
+        for c in comparisons.values()
+        if c["required_by_hetzner"] and c["environment_configured"] is not None
+    )
+
+    return JSONResponse({
+        "success": True,
+        "timestamp": _now_iso(),
+        "hetzner_script_found": hetzner_exists,
+        "comparisons": comparisons,
+        "overall_ready": overall,
+    })
+
+
+# =============================================================================
+# MATRIX NOTIFY — Real-time Matrix Messages for HITL Events
+# =============================================================================
+
+class MatrixNotifyRequest(BaseModel):
+    """Request body for sending a Matrix notification."""
+    event_type: str = Field(..., min_length=1, max_length=100,
+                            description="HITL event type: hitl_pending, hitl_approved, hitl_rejected")
+    hitl_id: Optional[str] = Field(default=None)
+    room_id: Optional[str] = Field(default=None, description="Override room; uses default if omitted")
+    message: Optional[str] = Field(default=None, description="Custom message; auto-generated if omitted")
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+@app.post("/api/matrix/notify")
+async def matrix_notify(req: MatrixNotifyRequest):
+    """Send a real-time Matrix message for HITL events.
+
+    Constructs a notification from the event type and optional metadata,
+    then sends it to the configured Matrix room.
+    """
+    import os
+
+    homeserver = os.getenv("MATRIX_HOMESERVER_URL", "")
+    access_token = os.getenv("MATRIX_ACCESS_TOKEN", "")
+    default_room = os.getenv("MATRIX_DEFAULT_ROOM_ID", "")
+
+    if not homeserver or not access_token:
+        return JSONResponse({
+            "success": False,
+            "error": "Matrix server not configured (MATRIX_HOMESERVER_URL / MATRIX_ACCESS_TOKEN missing)",
+        }, status_code=503)
+
+    room_id = req.room_id or default_room
+    if not room_id:
+        return JSONResponse({
+            "success": False,
+            "error": "No room_id provided and MATRIX_DEFAULT_ROOM_ID not set",
+        }, status_code=400)
+
+    # Build message from templates
+    templates = {
+        "hitl_pending": "🔔 **HITL Pending** — Item `{hitl_id}` requires approval.",
+        "hitl_approved": "✅ **HITL Approved** — Item `{hitl_id}` has been approved.",
+        "hitl_rejected": "❌ **HITL Rejected** — Item `{hitl_id}` was rejected.",
+    }
+    body = req.message or templates.get(
+        req.event_type,
+        f"ℹ️ **{req.event_type}** — HITL event for `{req.hitl_id or 'N/A'}`.",
+    ).format(hitl_id=req.hitl_id or "N/A")
+
+    # Attempt Matrix send via nio or HTTP fallback
+    sent = False
+    send_error = None
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=10) as client:
+            url = f"{homeserver.rstrip('/')}/_matrix/client/r0/rooms/{room_id}/send/m.room.message"
+            resp = await client.put(
+                f"{url}/{uuid.uuid4().hex}",
+                headers={"Authorization": f"Bearer {access_token}"},
+                json={"msgtype": "m.text", "body": body},
+            )
+            sent = resp.status_code in (200, 201)
+            if not sent:
+                send_error = f"Matrix returned {resp.status_code}"
+    except ImportError:
+        send_error = "httpx not installed — Matrix send skipped"
+    except Exception as exc:
+        send_error = str(exc)
+
+    return JSONResponse({
+        "success": sent,
+        "event_type": req.event_type,
+        "room_id": room_id,
+        "message_body": body,
+        "sent": sent,
+        "error": send_error,
+        "timestamp": _now_iso(),
+    })
