@@ -337,10 +337,10 @@ class ModuleInstanceManager:
                 )
                 return SpawnDecision.DENIED_CIRCUIT, None
 
-            # Resolve parent depth
-            parent_depth = 0
+            # Resolve the depth at which the new child will sit
+            child_depth = 0
             if parent_instance_id and parent_instance_id in self._instances:
-                parent_depth = self._instances[parent_instance_id].spawn_depth + 1
+                child_depth = self._instances[parent_instance_id].spawn_depth + 1
 
             # Count active instances of this type
             current_count = sum(
@@ -351,7 +351,7 @@ class ModuleInstanceManager:
 
             # Viability
             viability = self._viability_checker.check_viability(
-                module_type, current_count, resource_profile, parent_depth,
+                module_type, current_count, resource_profile, child_depth,
             )
             if viability != ViabilityResult.VIABLE:
                 decision = _VIABILITY_TO_DECISION.get(
@@ -386,7 +386,7 @@ class ModuleInstanceManager:
                 resource_profile=resource_profile,
                 capabilities=list(capabilities),
                 parent_instance_id=parent_instance_id,
-                spawn_depth=parent_depth,
+                spawn_depth=child_depth,
                 actor=actor,
                 correlation_id=correlation_id,
             )
@@ -414,7 +414,7 @@ class ModuleInstanceManager:
             )
             logger.info(
                 "Spawned instance %s of type %s (depth=%d)",
-                instance_id, module_type, parent_depth,
+                instance_id, module_type, child_depth,
             )
             return SpawnDecision.APPROVED, instance
 
@@ -435,6 +435,8 @@ class ModuleInstanceManager:
                 logger.debug("Instance %s is already despawned", instance_id)
                 return False
 
+            # Transition through DESPAWNING (observable marker for hooks)
+            # before settling on DESPAWNED.
             instance.state = InstanceState.DESPAWNING
             instance.despawned_at = _utcnow()
             instance.state = InstanceState.DESPAWNED
@@ -702,7 +704,9 @@ def integrate_with_triage_rollcall(
     try:
         candidates = adapter.list_candidates()
         for candidate in candidates:
-            name = getattr(candidate, "name", None) or getattr(candidate, "candidate_id", None)
+            name = getattr(candidate, "name", None)
+            if name is None:
+                name = getattr(candidate, "candidate_id", None)
             if name:
                 caps = getattr(candidate, "capabilities", [])
                 manager.register_module_type(name, metadata={"capabilities": caps, "source": "triage_rollcall"})
