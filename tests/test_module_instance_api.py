@@ -270,3 +270,94 @@ class TestBulkDespawn:
         assert body["success"] is True
         assert body["results"][id1] is True
         assert body["results"][id2] is True
+
+
+# ── Audit export ─────────────────────────────────────────────────────────
+
+
+class TestAuditExport:
+    def test_export_returns_report(self, client):
+        _spawn(client, "audit_worker")
+        resp = client.get("/module-instances/audit/export")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["success"] is True
+        assert "generated_at" in body
+        assert "summary" in body
+        assert body["summary"]["total_instances"] >= 1
+        assert "instances" in body
+        assert "audit_log" in body
+        assert "config_snapshots" in body
+
+
+# ── Unblacklist ──────────────────────────────────────────────────────────
+
+
+class TestUnblacklist:
+    def test_unblacklist_type(self, client):
+        # Blacklist first
+        client.post(
+            "/module-instances/types/removeme/blacklist",
+            json={"actor": "admin"},
+        )
+        # Unblacklist
+        resp = client.delete("/module-instances/types/removeme/blacklist")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["success"] is True
+        assert body["unblacklisted"] is True
+
+    def test_unblacklist_not_blacklisted(self, client):
+        resp = client.delete("/module-instances/types/never_blocked/blacklist")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["success"] is False
+
+
+# ── Unregister type ──────────────────────────────────────────────────────
+
+
+class TestUnregisterType:
+    def test_unregister_existing_type(self, client):
+        client.post(
+            "/module-instances/types/register",
+            json={"module_type": "temp_svc"},
+        )
+        resp = client.delete("/module-instances/types/temp_svc")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["success"] is True
+        assert body["unregistered"] is True
+
+    def test_unregister_nonexistent_returns_404(self, client):
+        resp = client.delete("/module-instances/types/ghost")
+        assert resp.status_code == 404
+
+
+# ── List types ───────────────────────────────────────────────────────────
+
+
+class TestListTypes:
+    def test_list_types_returns_registered_and_blacklisted(self, client):
+        client.post(
+            "/module-instances/types/register",
+            json={"module_type": "svc_a"},
+        )
+        client.post(
+            "/module-instances/types/blocked/blacklist",
+            json={"actor": "admin"},
+        )
+        resp = client.get("/module-instances/types")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["success"] is True
+        assert "svc_a" in body["registered"]
+        assert "blocked" in body["blacklisted"]
+
+    def test_list_types_empty(self, client):
+        resp = client.get("/module-instances/types")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["success"] is True
+        assert body["registered"] == {}
+        assert body["blacklisted"] == []
