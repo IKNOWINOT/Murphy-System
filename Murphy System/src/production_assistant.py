@@ -613,6 +613,8 @@ class ProductionAssistantEngine:
             from strategic.murphy_confidence.gates import SafetyGate
             from strategic.murphy_confidence.types import (
                 ConfidenceResult as ConfRes,
+            )
+            from strategic.murphy_confidence.types import (
                 GateAction,
                 GateType,
                 Phase,

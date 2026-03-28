@@ -1,29 +1,26 @@
-# `src/telemetry_system` — Telemetry System
+# Telemetry System
 
-Lightweight telemetry collection facade providing `TelemetryCollector` for system-wide metrics and event capture.
+The `telemetry_system` package is the central observability backbone for
+the Murphy System.  It receives structured events from all subsystems,
+buffers them, forwards to configured sinks (Prometheus, Loki, file), and
+drives the learning-feedback loop.
 
-![License: BSL 1.1](https://img.shields.io/badge/License-BSL%201.1-blue.svg)
-
-## Overview
-
-The telemetry system package provides the primary entry point for emitting telemetry events from any Murphy subsystem. `TelemetryCollector` is a thin, import-safe façade that buffers metrics and events before forwarding them to the configured backend (Prometheus, Datadog, or the `telemetry_learning` bus). It is designed to be imported with zero overhead even when the full observability stack is not configured, making it safe to use in every package without creating hard dependencies.
-
-## Key Components
+## Key Module
 
 | Module | Purpose |
 |--------|---------|
-| `telemetry.py` | `TelemetryCollector` — event emission, counter increments, and latency recording |
+| `telemetry.py` | `TelemetrySystem` — singleton event bus, metric registry, log forwarder |
+
+## Key Concepts
+
+- **Events** are emitted via `telemetry.emit(event_type, payload)`.
+- **Metrics** are incremented via `telemetry.increment(metric_name, labels)`.
+- **Sinks** are registered at startup; multiple sinks can be active.
 
 ## Usage
 
 ```python
-from telemetry_system import TelemetryCollector
-
-collector = TelemetryCollector(service="execution_orchestrator")
-collector.increment("steps_executed")
-collector.record_latency("step_duration_ms", value=42)
-collector.emit_event("execution_completed", metadata={"packet_id": "pkt-001"})
+from telemetry_system.telemetry import TelemetrySystem
+tel = TelemetrySystem.instance()
+tel.emit("TASK_COMPLETED", {"task_id": "t-123", "duration_ms": 450})
 ```
-
----
-*Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post · License: BSL 1.1*

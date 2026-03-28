@@ -163,8 +163,9 @@ class SQLiteWALBackend:
         # Enable WAL mode for concurrent access
         if self._config.wal_mode:
             conn.execute("PRAGMA journal_mode=WAL")
-            journal_limit = int(self._config.journal_size_limit)
-            conn.execute(f"PRAGMA journal_size_limit={journal_limit}")
+            conn.execute(
+                f"PRAGMA journal_size_limit={self._config.journal_size_limit}"
+            )
             logger.info(
                 "SQLite WAL mode enabled",
                 extra={"path": self._db_path},
@@ -173,8 +174,7 @@ class SQLiteWALBackend:
         # Performance pragmas
         conn.execute("PRAGMA synchronous=NORMAL")
         conn.execute("PRAGMA foreign_keys=ON")
-        busy_timeout = int(self._config.busy_timeout_ms)
-        conn.execute(f"PRAGMA busy_timeout={busy_timeout}")
+        conn.execute(f"PRAGMA busy_timeout={self._config.busy_timeout_ms}")
 
         self._connection = conn
         return conn
@@ -222,7 +222,7 @@ class SQLiteWALBackend:
                 "Applying migration %d: %s",
                 version,
                 name,
-                extra={"version": version, "name": name},
+                extra={"version": version, "migration_name": name},
             )
             with self._lock:
                 try:

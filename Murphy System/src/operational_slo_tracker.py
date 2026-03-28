@@ -9,9 +9,6 @@ automation system, including:
 - SLO target registration with threshold checks
 - Sliding-window SLO compliance evaluation
 - Thread-safe operation for concurrent use
-
-Dependencies:
-  - AlertRulesEngine (optional, for firing alerts on SLO violations)
 """
 
 import logging
@@ -65,17 +62,12 @@ class OperationalSLOTracker:
     Records task executions, computes per-task-type metrics including success
     rates, latency percentiles, failure cause breakdowns, and approval ratios.
     Evaluates registered SLO targets over sliding time windows.
-
-    Dependencies:
-      - AlertRulesEngine (optional): fires alerts for non-compliant SLOs.
     """
 
-    def __init__(self, alert_rules_engine=None) -> None:
+    def __init__(self) -> None:
         self._lock = threading.Lock()
         self._records: List[ExecutionRecord] = []
         self._slo_targets: Dict[str, SLOTarget] = {}
-        self._alert_rules_engine = alert_rules_engine
-        self._fired_alerts: List[Dict[str, Any]] = []
 
     # ------------------------------------------------------------------
     # Execution recording
@@ -130,21 +122,8 @@ class OperationalSLOTracker:
                 "window_seconds": target.window_seconds,
                 "sample_size": len(windowed),
             }
-            if not compliant and self._alert_rules_engine is not None:
-                try:
-                    fired = self._alert_rules_engine.evaluate({target.metric: actual})
-                    with self._lock:
-                        for alert in fired:
-                            capped_append(self._fired_alerts, alert.to_dict())
-                except Exception as exc:
-                    logger.debug("AlertRulesEngine evaluate failed: %s", exc)
 
         return results
-
-    def get_fired_alerts(self, limit: int = 50) -> List[Dict[str, Any]]:
-        """Return recently fired alerts from SLO violations."""
-        with self._lock:
-            return list(self._fired_alerts[-limit:])
 
     # ------------------------------------------------------------------
     # Metrics
@@ -218,7 +197,6 @@ class OperationalSLOTracker:
             "total_slo_targets": total_targets,
             "task_types_tracked": sorted(task_types),
             "tracking_active": total_records > 0,
-            "alert_rules_engine_attached": self._alert_rules_engine is not None,
         }
 
 

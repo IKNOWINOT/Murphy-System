@@ -19,6 +19,7 @@ from self_selling_engine._compliance import (
     OutreachComplianceGovernor,
 )
 from self_selling_engine._constraints import BUSINESS_TYPE_CONSTRAINTS
+
 try:
     from thread_safe_operations import capped_append
 except ImportError:

@@ -118,6 +118,7 @@ from market_positioning_engine import (
     MarketPositioningEngine,
     get_default_positioning_engine,
 )
+
 try:
     from thread_safe_operations import capped_append
 except ImportError:
@@ -343,14 +344,14 @@ def _sanitize_error(exc: BaseException) -> str:
     to _MAX_ERROR_MSG_LEN characters so that error lists cannot grow unbounded
     and never expose sensitive contact information.
     """
-    detail = str(exc)
+    msg = str(exc)
     # Mask anything that looks like an email address
-    detail = re.sub(
+    msg = re.sub(
         r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}",
         "<redacted>",
-        detail,
+        msg,
     )
-    combined = f"{type(exc).__name__}: {detail}"
+    combined = f"{type(exc).__name__}: {msg}"
     return combined[:_MAX_ERROR_MSG_LEN]
 
 
@@ -3052,10 +3053,14 @@ class SelfMarketingOrchestrator:
 
     def _publish_event(self, event_type: str, payload: Dict[str, Any]) -> None:
         """Publish an event to EventBackbone if wired."""
-        if self._backbone is None:
-            return
         try:
-            self._backbone.publish(event_type=event_type, payload=payload)
+            from event_backbone_client import publish as _bb_publish  # noqa: PLC0415
+            _bb_publish(
+                event_type,
+                payload,
+                source="self_marketing_orchestrator",
+                backbone=self._backbone,
+            )
         except Exception as exc:  # noqa: BLE001
             logger.debug("Event publish skipped: %s", exc)
 

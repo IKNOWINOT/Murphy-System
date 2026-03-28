@@ -1017,7 +1017,7 @@ class TestAPIProviderLinks:
     def test_links_not_empty(self):
         assert len(API_PROVIDER_LINKS) > 0
 
-    def test_groq_present(self):
+    def test_deepinfra_present(self):
         assert "deepinfra" in API_PROVIDER_LINKS
         assert "url" in API_PROVIDER_LINKS["deepinfra"]
         assert "env_var" in API_PROVIDER_LINKS["deepinfra"]
@@ -1288,7 +1288,7 @@ class TestBug5DefaultSuccessFalse:
         mock_post.return_value = mock_resp
 
         client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
-        result = client.configure_llm("deepinfra", "gsk_test_key_value")
+        result = client.configure_llm("deepinfra", "di_test_key_value")
         # With the old default of True, `not result.get("success", True)` would be
         # False (i.e. treated as success).  With the fix, `not result.get("success", False)`
         # is True (i.e. treated as failure).
@@ -1302,7 +1302,7 @@ class TestBug5DefaultSuccessFalse:
         mock_post.return_value = mock_resp
 
         client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
-        result = client.configure_llm("deepinfra", "gsk_test_key_value")
+        result = client.configure_llm("deepinfra", "di_test_key_value")
         assert result.get("success", False) is True
 
     @patch("murphy_terminal.requests.post")
@@ -1386,7 +1386,7 @@ class TestBug1ClipboardPriority:
 class TestBug6NoHardcodedKeys:
     """BUG-6: No real API keys should remain in the archive directory."""
 
-    def test_no_groq_keys_in_archive(self):
+    def test_no_deepinfra_keys_in_archive(self):
         """Ensure no gsk_ prefixed keys of 20+ chars remain in the archive."""
         archive_dir = os.path.join(os.path.dirname(__file__), "..", "archive")
         if not os.path.isdir(archive_dir):

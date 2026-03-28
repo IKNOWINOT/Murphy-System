@@ -262,7 +262,7 @@ class TestLLMStatus(unittest.TestCase):
             if old_key is not None:
                 os.environ["DEEPINFRA_API_KEY"] = old_key
 
-    def test_llm_status_groq_no_key(self):
+    def test_llm_status_deepinfra_no_key(self):
         """Provider set to deepinfra but no API key should fall back to onboard."""
         old_provider = os.environ.get("MURPHY_LLM_PROVIDER")
         old_key = os.environ.pop("DEEPINFRA_API_KEY", None)
@@ -281,7 +281,7 @@ class TestLLMStatus(unittest.TestCase):
             if old_key is not None:
                 os.environ["DEEPINFRA_API_KEY"] = old_key
 
-    def test_llm_status_groq_with_key(self):
+    def test_llm_status_deepinfra_with_key(self):
         """Provider deepinfra + API key should report healthy."""
         old_provider = os.environ.get("MURPHY_LLM_PROVIDER")
         old_key = os.environ.get("DEEPINFRA_API_KEY")
@@ -303,14 +303,14 @@ class TestLLMStatus(unittest.TestCase):
             else:
                 os.environ.pop("DEEPINFRA_API_KEY", None)
 
-    def test_llm_status_auto_detects_groq_without_provider_var(self):
+    def test_llm_status_auto_detects_deepinfra_without_provider_var(self):
         """Bug-1 regression: DEEPINFRA_API_KEY alone (no MURPHY_LLM_PROVIDER) must
         enable LLM.  Before the fix, the backend required MURPHY_LLM_PROVIDER to
         be explicitly set — users who only added DEEPINFRA_API_KEY to .env were stuck
         in deterministic mode even with a valid key."""
         old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
         old_key = os.environ.get("DEEPINFRA_API_KEY")
-        os.environ["DEEPINFRA_API_KEY"] = "gsk_autodetecttest"
+        os.environ["DEEPINFRA_API_KEY"] = "di_autodetecttest"
         try:
             status = self.murphy._get_llm_status()
             self.assertTrue(
@@ -333,7 +333,7 @@ class TestLLMStatus(unittest.TestCase):
     def test_llm_status_auto_detects_openai_without_provider_var(self):
         """Auto-detection should work for OpenAI keys too."""
         old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
-        old_groq = os.environ.pop("DEEPINFRA_API_KEY", None)
+        old_deepinfra = os.environ.pop("DEEPINFRA_API_KEY", None)
         old_openai = os.environ.get("OPENAI_API_KEY")
         os.environ["OPENAI_API_KEY"] = "sk-autodetectopenai"
         try:
@@ -345,20 +345,20 @@ class TestLLMStatus(unittest.TestCase):
                 os.environ["MURPHY_LLM_PROVIDER"] = old_provider
             else:
                 os.environ.pop("MURPHY_LLM_PROVIDER", None)
-            if old_groq is not None:
-                os.environ["DEEPINFRA_API_KEY"] = old_groq
+            if old_deepinfra is not None:
+                os.environ["DEEPINFRA_API_KEY"] = old_deepinfra
             if old_openai is not None:
                 os.environ["OPENAI_API_KEY"] = old_openai
             else:
                 os.environ.pop("OPENAI_API_KEY", None)
 
-    def test_llm_status_groq_takes_priority_over_openai_in_auto_detect(self):
+    def test_llm_status_deepinfra_takes_priority_over_openai_in_auto_detect(self):
         """When both DEEPINFRA_API_KEY and OPENAI_API_KEY are set but MURPHY_LLM_PROVIDER
         is absent, DeepInfra should be auto-selected (it's the recommended free-tier option)."""
         old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
-        old_groq = os.environ.get("DEEPINFRA_API_KEY")
+        old_deepinfra = os.environ.get("DEEPINFRA_API_KEY")
         old_openai = os.environ.get("OPENAI_API_KEY")
-        os.environ["DEEPINFRA_API_KEY"] = "gsk_prioritytest"
+        os.environ["DEEPINFRA_API_KEY"] = "di_prioritytest"
         os.environ["OPENAI_API_KEY"] = "sk-alsoavailable"
         try:
             status = self.murphy._get_llm_status()
@@ -372,8 +372,8 @@ class TestLLMStatus(unittest.TestCase):
                 os.environ["MURPHY_LLM_PROVIDER"] = old_provider
             else:
                 os.environ.pop("MURPHY_LLM_PROVIDER", None)
-            if old_groq is not None:
-                os.environ["DEEPINFRA_API_KEY"] = old_groq
+            if old_deepinfra is not None:
+                os.environ["DEEPINFRA_API_KEY"] = old_deepinfra
             else:
                 os.environ.pop("DEEPINFRA_API_KEY", None)
             if old_openai is not None:
@@ -384,12 +384,12 @@ class TestLLMStatus(unittest.TestCase):
     def test_explicit_provider_var_not_overridden_by_auto_detect(self):
         """An explicit MURPHY_LLM_PROVIDER must not be replaced by auto-detection."""
         old_provider = os.environ.get("MURPHY_LLM_PROVIDER")
-        old_groq = os.environ.get("DEEPINFRA_API_KEY")
+        old_deepinfra = os.environ.get("DEEPINFRA_API_KEY")
         old_openai = os.environ.get("OPENAI_API_KEY")
         # Explicitly set openai as provider, but also provide deepinfra key
         os.environ["MURPHY_LLM_PROVIDER"] = "openai"
         os.environ["OPENAI_API_KEY"] = "sk-explicittestkey"
-        os.environ["DEEPINFRA_API_KEY"] = "gsk_shouldnotoverride"
+        os.environ["DEEPINFRA_API_KEY"] = "di_shouldnotoverride"
         try:
             status = self.murphy._get_llm_status()
             self.assertEqual(
@@ -403,8 +403,8 @@ class TestLLMStatus(unittest.TestCase):
                 os.environ["MURPHY_LLM_PROVIDER"] = old_provider
             else:
                 os.environ.pop("MURPHY_LLM_PROVIDER", None)
-            if old_groq is not None:
-                os.environ["DEEPINFRA_API_KEY"] = old_groq
+            if old_deepinfra is not None:
+                os.environ["DEEPINFRA_API_KEY"] = old_deepinfra
             else:
                 os.environ.pop("DEEPINFRA_API_KEY", None)
             if old_openai is not None:
@@ -597,7 +597,7 @@ class TestApiLinksReply(unittest.TestCase):
         result = self.murphy.librarian_ask("where do I get API keys?", session_id=self.sid)
         self.assertTrue(result["success"])
         self.assertIn("Signup", result["message"])
-        self.assertIn("console.deepinfra.com", result["message"])
+        self.assertIn("deepinfra.com", result["message"])
 
     def test_api_key_query_suggests_api_keys_command(self):
         result = self.murphy.librarian_ask("how to get credentials?", session_id=self.sid)

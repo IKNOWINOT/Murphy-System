@@ -3,10 +3,8 @@ Task Execution Engine - Core task scheduling and execution
 """
 
 import logging
-import os
 
 # Import thread-safe utilities
-import sys
 import threading
 import time
 import uuid
@@ -15,9 +13,8 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 try:
-    from thread_safe_operations import CircuitBreaker, ThreadSafeCounter, ThreadSafeDict
+    from src.thread_safe_operations import CircuitBreaker, ThreadSafeCounter, ThreadSafeDict
 except ImportError:
     import threading as _fb_threading
     class CircuitBreaker:
@@ -273,12 +270,14 @@ class TaskExecutor:
                     if not self._running:
                         break
 
-                    # Submit task to thread pool
-                    future = self.scheduler.form_executor.submit(self._execute_task, task)
-
-                    # Update task state
+                    # Mark as RUNNING before submitting to the thread pool so that
+                    # fast-completing tasks cannot have their COMPLETED state
+                    # overwritten back to RUNNING by this loop (race condition fix).
                     self.scheduler.update_task_state(task.task_id, TaskState.RUNNING)
                     self.active_tasks.increment()
+
+                    # Submit task to thread pool
+                    self.scheduler.form_executor.submit(self._execute_task, task)
 
                 # Sleep briefly to avoid busy waiting
                 time.sleep(0.1)

@@ -159,7 +159,7 @@ LLM LAYER:
   - local_inference_engine.py       Local inference
   - local_model_layer.py            Local model abstraction
   - safe_llm_wrapper.py             Safe LLM wrapper
-  - groq_key_rotator.py             API key rotation
+  - deepinfra_key_rotator.py             API key rotation
 
 DOMAIN ENGINES:
   - domain_engine.py                Domain classification
@@ -543,7 +543,7 @@ L-03  DOCUMENTATION SPRAWL
 6.1 LLM INTEGRATION LAYER
 ──────────────────────────
 FILES: llm_controller.py, llm_integration.py, llm_integration_layer.py,
-       llm_routing_completeness.py, safe_llm_wrapper.py, groq_key_rotator.py,
+       llm_routing_completeness.py, safe_llm_wrapper.py, deepinfra_key_rotator.py,
        local_llm_fallback.py, enhanced_local_llm.py, local_model_layer.py,
        local_inference_engine.py, mock_compatible_local_llm.py
 

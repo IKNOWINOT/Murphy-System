@@ -34,7 +34,7 @@ This testing strategy extends coverage to include:
 | **Unit Tests** | Individual function/class behavior | `pytest tests/test_*.py` |
 | **Integration Tests** | Multi-module interaction | `pytest tests/ -m integration` |
 | **E2E Tests** | Full HTTP API stack | `pytest tests/e2e/` |
-| **DeepInfra Integration** | LLM provider validation | `pytest tests/test_groq_integration.py` |
+| **DeepInfra Integration** | LLM provider validation | `pytest tests/test_deepinfra_integration.py` |
 | **System-Wide** | Cross-module workflows | `pytest tests/test_system_wide_validation.py` |
 | **Commissioning** | Import verification | `pytest tests/commissioning/` |
 
@@ -48,7 +48,7 @@ cd "Murphy System"
 pip install pytest pytest-asyncio pytest-cov httpx
 
 # Set up environment for DeepInfra live tests (optional)
-export DEEPINFRA_API_KEY="your_groq_api_key_here"
+export DEEPINFRA_API_KEY="your_deepinfra_api_key_here"
 
 # Run all tests
 python -m pytest tests/ -v --timeout=60
@@ -82,38 +82,38 @@ The DeepInfra integration tests are structured in three tiers:
 └─────────────────────────────────────────────────┘
 ```
 
-### 2.2 Test File: `tests/test_groq_integration.py`
+### 2.2 Test File: `tests/test_deepinfra_integration.py`
 
 **Test Classes:**
 
 | Class | Tests | Tier | Description |
 |-------|-------|------|-------------|
-| `TestGroqProviderDetection` | 5 | 1 | Environment-based provider auto-detection |
-| `TestGroqKeyRotation` | 5 | 1 | Key rotation, failure handling, statistics |
-| `TestGroqDomainRouting` | 4 | 1 | Domain-to-provider mapping for DeepInfra |
-| `TestGroqMockedAPI` | 5 | 2 | Mocked HTTP request/response validation |
-| `TestGroqCircuitBreaker` | 3 | 2 | Circuit breaker with DeepInfra failures |
-| `TestGroqLiveAPI` | 4 | 3 | Live API calls (requires `DEEPINFRA_API_KEY`) |
+| `TestDeepInfraProviderDetection` | 5 | 1 | Environment-based provider auto-detection |
+| `TestDeepInfraKeyRotation` | 5 | 1 | Key rotation, failure handling, statistics |
+| `TestDeepInfraDomainRouting` | 4 | 1 | Domain-to-provider mapping for DeepInfra |
+| `TestDeepInfraMockedAPI` | 5 | 2 | Mocked HTTP request/response validation |
+| `TestDeepInfraCircuitBreaker` | 3 | 2 | Circuit breaker with DeepInfra failures |
+| `TestDeepInfraLiveAPI` | 4 | 3 | Live API calls (requires `DEEPINFRA_API_KEY`) |
 
 ### 2.3 Running DeepInfra Tests
 
 ```bash
 # Run all DeepInfra tests (Tier 1 & 2 always, Tier 3 if key set)
-python -m pytest tests/test_groq_integration.py -v
+python -m pytest tests/test_deepinfra_integration.py -v
 
 # Run only live API tests
-DEEPINFRA_API_KEY="your_key" python -m pytest tests/test_groq_integration.py -k "LiveAPI" -v
+DEEPINFRA_API_KEY="your_key" python -m pytest tests/test_deepinfra_integration.py -k "LiveAPI" -v
 
 # Run only unit/mock tests (no API key needed)
-python -m pytest tests/test_groq_integration.py -k "not LiveAPI" -v
+python -m pytest tests/test_deepinfra_integration.py -k "not LiveAPI" -v
 ```
 
 ### 2.4 DeepInfra API Test Scenarios
 
 #### Tier 1: Configuration Tests
 1. **Auto-detection:** Setting `DEEPINFRA_API_KEY` auto-selects DeepInfra provider
-2. **Default model:** DeepInfra provider defaults to `meta-llama/Meta-Llama-3.1-70B-Instruct`
-3. **Base URL:** DeepInfra base URL is `https://api.deepinfra.com/v1/openai`
+2. **Default model:** DeepInfra provider defaults to `mixtral-8x7b-32768`
+3. **Base URL:** DeepInfra base URL is `https://api.deepinfra.com/v1/openai/v1`
 4. **Key rotation:** Multiple keys rotate correctly via round-robin
 5. **Key disable:** Keys auto-disable after consecutive failures
 
@@ -138,7 +138,7 @@ python -m pytest tests/test_groq_integration.py -k "not LiveAPI" -v
 
 | Module | Test File | New Tests | Focus |
 |--------|-----------|-----------|-------|
-| DeepInfra Integration | `test_groq_integration.py` | 26 | Provider, routing, API |
+| DeepInfra Integration | `test_deepinfra_integration.py` | 26 | Provider, routing, API |
 | System-Wide | `test_system_wide_validation.py` | 18 | Cross-module workflows |
 
 ### 3.2 Existing Test Suites (Baseline Verification)
@@ -227,10 +227,10 @@ The system-wide tests validate workflows that span multiple subsystems:
 cd "Murphy System"
 
 # Run the new test suites
-python -m pytest tests/test_groq_integration.py tests/test_system_wide_validation.py -v
+python -m pytest tests/test_deepinfra_integration.py tests/test_system_wide_validation.py -v
 
 # Run with coverage
-python -m pytest tests/test_groq_integration.py tests/test_system_wide_validation.py \
+python -m pytest tests/test_deepinfra_integration.py tests/test_system_wide_validation.py \
   --cov=src --cov-report=term-missing -v
 
 # Run all tests including existing suite
@@ -248,7 +248,7 @@ The test suites are designed for CI/CD integration:
     DEEPINFRA_API_KEY: ${{ secrets.DEEPINFRA_API_KEY }}
   run: |
     cd "Murphy System"
-    python -m pytest tests/test_groq_integration.py -v --tb=short
+    python -m pytest tests/test_deepinfra_integration.py -v --tb=short
 
 - name: Run System-Wide Tests
   run: |
@@ -260,14 +260,14 @@ The test suites are designed for CI/CD integration:
 
 To run live DeepInfra API tests:
 
-1. Obtain a DeepInfra API key from [console.deepinfra.com/keys](https://console.deepinfra.com/keys)
+1. Obtain a DeepInfra API key from [deepinfra.com](https://deepinfra.com)
 2. Set the environment variable:
    ```bash
-   export DEEPINFRA_API_KEY="gsk_your_key_here"
+   export DEEPINFRA_API_KEY="di_your_key_here"
    ```
 3. Run live tests:
    ```bash
-   python -m pytest tests/test_groq_integration.py -k "LiveAPI" -v
+   python -m pytest tests/test_deepinfra_integration.py -k "LiveAPI" -v
    ```
 
 **Note:** Live API tests are automatically skipped when `DEEPINFRA_API_KEY` is not set.
@@ -277,7 +277,7 @@ The key should be stored as a CI secret (`secrets.DEEPINFRA_API_KEY`), never com
 
 | Marker | Description | Command |
 |--------|-------------|---------|
-| `groq_live` | Requires live DeepInfra API key | `-m groq_live` |
+| `deepinfra_live` | Requires live DeepInfra API key | `-m deepinfra_live` |
 | `system_wide` | Cross-module validation | `-m system_wide` |
 | `unit` | Unit tests (no I/O) | `-m unit` |
 | `integration` | Integration tests | `-m integration` |
@@ -287,7 +287,7 @@ The key should be stored as a CI secret (`secrets.DEEPINFRA_API_KEY`), never com
 When all tests pass:
 
 ```
-tests/test_groq_integration.py    - 26 passed (4 skipped without DEEPINFRA_API_KEY)
+tests/test_deepinfra_integration.py    - 26 passed (4 skipped without DEEPINFRA_API_KEY)
 tests/test_system_wide_validation.py - 18 passed
 Total new tests: 44 (40 always-run + 4 live-only)
 ```

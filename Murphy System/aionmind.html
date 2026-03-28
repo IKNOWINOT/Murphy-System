@@ -1,0 +1,1197 @@
+<!-- Murphy System — AionMind / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AionMind — Murphy System</title>
+  <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="static/murphy-design-system.css">
+  <style>
+    :root {
+      --bg-base: #0C1017; --bg-surface: #131A24; --bg-elevated: #1A2332;
+      --bg-input: #0F1620; --border-subtle: #1E2A3A; --border-default: #2A3A4E;
+      --border-focus: #00D4AA; --text-primary: #E6ECF2; --text-secondary: #8899AA;
+      --text-muted: #566778; --teal: #00D4AA; --teal-glow: rgba(0,212,170,0.12);
+      --success: #22C55E; --warning: #FFA63E; --danger: #EF4444; --info: #3B9EFF;
+      --font-ui: Inter, system-ui, -apple-system, sans-serif;
+      --font-code: 'JetBrains Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Topbar ──────────────────────────────────────────────── */
+    .topbar {
+      position: sticky; top: 0; z-index: 1000;
+      background: rgba(12,16,23,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-default);
+      padding: 0 2rem;
+      height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar-brand {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; color: var(--text-primary); font-weight: 700; font-size: 1rem;
+    }
+    .topbar-brand svg { flex-shrink: 0; }
+    .topbar-title {
+      font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;
+      padding-left: 12px; border-left: 1px solid var(--border-subtle);
+    }
+    .topbar-right { display: flex; align-items: center; gap: 8px; }
+    .topbar-status { font-size: 0.75rem; color: var(--text-muted); }
+
+    /* ── Layout ──────────────────────────────────────────────── */
+    .app-layout { display: flex; height: calc(100vh - 56px); }
+    .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .main-content { flex: 1; overflow-y: auto; padding: 24px 32px; }
+
+    /* ── Buttons ─────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 6px;
+      font-family: var(--font-ui); font-size: 0.8rem; font-weight: 500;
+      cursor: pointer; border: 1px solid transparent;
+      transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--teal); color: #0C1017; border-color: var(--teal); }
+    .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+    .btn-ghost { background: transparent; color: var(--text-secondary); border-color: var(--border-default); }
+    .btn-ghost:hover:not(:disabled) { background: var(--bg-elevated); color: var(--text-primary); }
+    .btn-danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+    .btn-danger:hover:not(:disabled) { background: rgba(239,68,68,0.1); }
+    .btn-success { background: transparent; color: var(--success); border-color: var(--success); }
+    .btn-success:hover:not(:disabled) { background: rgba(34,197,94,0.1); }
+    .btn-sm { padding: 5px 10px; font-size: 0.75rem; }
+    .btn-icon {
+      padding: 6px; background: transparent; color: var(--text-muted);
+      border: none; border-radius: 4px; cursor: pointer;
+    }
+    .btn-icon:hover { color: var(--text-primary); background: var(--bg-elevated); }
+
+    /* ── Tabs ────────────────────────────────────────────────── */
+    .tab-bar {
+      display: flex; gap: 2px; background: var(--bg-elevated);
+      border-radius: 8px; padding: 3px; margin-bottom: 24px; width: fit-content;
+    }
+    .tab-btn {
+      padding: 7px 16px; border-radius: 6px; border: none;
+      background: none; color: var(--text-secondary); font-size: 0.82rem;
+      cursor: pointer; font-family: var(--font-ui); font-weight: 500;
+      transition: background 0.15s, color 0.15s;
+    }
+    .tab-btn:hover { color: var(--text-primary); }
+    .tab-btn.active { background: var(--bg-surface); color: var(--text-primary); font-weight: 600; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Cards ───────────────────────────────────────────────── */
+    .card {
+      background: var(--bg-surface); border: 1px solid var(--border-subtle);
+      border-radius: 10px; padding: 20px; margin-bottom: 16px;
+    }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+    }
+    .card-title { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); }
+    .card-subtitle { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── Status pills ────────────────────────────────────────── */
+    .status-pill {
+      display: inline-block; padding: 3px 10px; border-radius: 10px;
+      font-size: 0.72rem; font-weight: 600; text-align: center; min-width: 72px;
+    }
+    .status-healthy  { background: rgba(34,197,94,0.15); color: var(--success); }
+    .status-degraded { background: rgba(255,166,62,0.15); color: var(--warning); }
+    .status-down     { background: rgba(239,68,68,0.15); color: var(--danger); }
+    .status-pending  { background: rgba(59,158,255,0.15); color: var(--info); }
+    .status-approved { background: rgba(34,197,94,0.15); color: var(--success); }
+    .status-rejected { background: rgba(239,68,68,0.15); color: var(--danger); }
+    .status-running  { background: rgba(0,212,170,0.12); color: var(--teal); }
+    .status-completed { background: rgba(34,197,94,0.15); color: var(--success); }
+    .status-failed   { background: rgba(239,68,68,0.15); color: var(--danger); }
+    .status-waiting  { background: rgba(255,166,62,0.15); color: var(--warning); }
+
+    /* ── Data table ─────────────────────────────────────────── */
+    .data-table {
+      width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.82rem;
+    }
+    .data-table th {
+      text-align: left; padding: 8px 12px; font-size: 0.72rem;
+      color: var(--text-muted); font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.04em; border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-surface); position: sticky; top: 0; z-index: 1;
+    }
+    .data-table td {
+      padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle;
+    }
+    .data-table tr:hover td { background: var(--bg-elevated); }
+    .data-table .actions-cell { white-space: nowrap; }
+
+    /* ── Form elements ──────────────────────────────────────── */
+    .form-group { margin-bottom: 14px; }
+    .form-label {
+      display: block; font-size: 0.78rem; font-weight: 600;
+      color: var(--text-secondary); margin-bottom: 6px;
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%; background: var(--bg-input); color: var(--text-primary);
+      border: 1px solid var(--border-subtle); padding: 9px 12px;
+      border-radius: 6px; font-family: var(--font-ui); font-size: 0.85rem;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none; border-color: var(--border-focus);
+    }
+    .form-select {
+      appearance: none; cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238899AA' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 5.5l6.5 6 6.5-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;
+    }
+    .form-textarea {
+      resize: vertical; min-height: 80px; font-family: var(--font-code); font-size: 0.8rem;
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* ── Chips ───────────────────────────────────────────────── */
+    .chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; border-radius: 14px; font-size: 0.72rem; font-weight: 500;
+      background: var(--bg-elevated); color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+    }
+    .chip-active { background: var(--teal-glow); color: var(--teal); border-color: rgba(0,212,170,0.25); }
+
+    /* ── KPI row ─────────────────────────────────────────────── */
+    .kpi-row {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px; margin-bottom: 20px;
+    }
+    .kpi-card {
+      background: var(--bg-surface); border: 1px solid var(--border-subtle);
+      border-radius: 8px; padding: 14px 16px; text-align: center;
+    }
+    .kpi-value { font-size: 1.4rem; font-weight: 700; color: var(--teal); font-family: var(--font-code); }
+    .kpi-label {
+      font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+
+    /* ── Graph display ──────────────────────────────────────── */
+    .graph-container {
+      background: var(--bg-input); border: 1px solid var(--border-subtle);
+      border-radius: 8px; padding: 16px; min-height: 200px;
+      font-family: var(--font-code); font-size: 0.78rem;
+      color: var(--text-secondary); overflow-x: auto;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .graph-node {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: 6px; margin: 4px;
+      background: var(--bg-elevated); border: 1px solid var(--border-default);
+      font-size: 0.78rem; font-weight: 500;
+    }
+    .graph-node.node-pending { border-color: var(--info); }
+    .graph-node.node-running { border-color: var(--teal); background: var(--teal-glow); }
+    .graph-node.node-completed { border-color: var(--success); }
+    .graph-node.node-failed { border-color: var(--danger); }
+    .graph-node.node-hitl { border-color: var(--warning); background: rgba(255,166,62,0.08); }
+    .graph-arrow { color: var(--text-muted); margin: 0 4px; }
+
+    /* ── HITL queue ──────────────────────────────────────────── */
+    .hitl-queue { margin-top: 16px; }
+    .hitl-item {
+      background: var(--bg-elevated); border: 1px solid var(--warning);
+      border-radius: 8px; padding: 12px 16px; margin-bottom: 8px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .hitl-info { flex: 1; }
+    .hitl-label { font-size: 0.78rem; font-weight: 600; color: var(--warning); margin-bottom: 4px; }
+    .hitl-desc { font-size: 0.75rem; color: var(--text-secondary); }
+
+    /* ── Memory stats ───────────────────────────────────────── */
+    .mem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .mem-panel {
+      background: var(--bg-surface); border: 1px solid var(--border-subtle);
+      border-radius: 10px; padding: 20px;
+    }
+    .mem-panel h3 {
+      font-size: 0.85rem; font-weight: 700; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .mem-stat-row {
+      display: flex; justify-content: space-between; padding: 6px 0;
+      border-bottom: 1px solid var(--border-subtle); font-size: 0.8rem;
+    }
+    .mem-stat-row:last-child { border-bottom: none; }
+    .mem-stat-key { color: var(--text-secondary); }
+    .mem-stat-val { color: var(--text-primary); font-weight: 600; font-family: var(--font-code); }
+
+    /* ── Lookup ──────────────────────────────────────────────── */
+    .lookup-row { display: flex; gap: 8px; align-items: flex-end; }
+    .lookup-row .form-group { flex: 1; margin-bottom: 0; }
+    .lookup-result {
+      margin-top: 12px; background: var(--bg-input); border: 1px solid var(--border-subtle);
+      border-radius: 8px; padding: 16px; font-family: var(--font-code);
+      font-size: 0.78rem; color: var(--text-secondary); white-space: pre-wrap;
+      word-break: break-word; max-height: 300px; overflow-y: auto; display: none;
+    }
+    .lookup-result.visible { display: block; }
+
+    /* ── Error banner ───────────────────────────────────────── */
+    .error-banner {
+      padding: 10px 24px; background: rgba(239,68,68,0.1);
+      border-bottom: 1px solid var(--danger); color: var(--danger);
+      font-size: 0.82rem; display: none; align-items: center; gap: 8px;
+    }
+    .error-banner.visible { display: flex; }
+    .error-banner button {
+      margin-left: auto; background: none; border: none;
+      color: var(--danger); cursor: pointer; font-size: 1rem; padding: 0 4px;
+    }
+
+    /* ── Modal ───────────────────────────────────────────────── */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      z-index: 500; display: none;
+    }
+    .modal-backdrop.open { display: flex; align-items: center; justify-content: center; }
+    .modal {
+      background: var(--bg-surface); border: 1px solid var(--border-default);
+      border-radius: 12px; width: 540px; max-width: 90vw;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    }
+    .modal-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border-subtle);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-header h3 { font-size: 0.95rem; font-weight: 700; }
+    .modal-body { padding: 20px; }
+    .modal-footer {
+      padding: 12px 20px; border-top: 1px solid var(--border-subtle);
+      display: flex; justify-content: flex-end; gap: 8px;
+    }
+
+    /* ── Empty / loading ─────────────────────────────────────── */
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 48px 24px; text-align: center; color: var(--text-muted);
+    }
+    .empty-state-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.5; }
+    .empty-state h3 { font-size: 1rem; color: var(--text-secondary); margin-bottom: 6px; }
+    .empty-state p { font-size: 0.82rem; margin-bottom: 16px; max-width: 320px; }
+    .spinner {
+      display: inline-block; width: 18px; height: 18px;
+      border: 2px solid var(--border-subtle); border-top-color: var(--teal);
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-overlay {
+      display: flex; align-items: center; justify-content: center;
+      padding: 48px; color: var(--text-muted); gap: 10px; font-size: 0.82rem;
+    }
+    .confirm-text { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+
+    /* ── Scrollbar ────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-default); }
+  </style>
+</head>
+<body>
+
+  <!-- ── Topbar ──────────────────────────────────────────────── -->
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <a href="/" class="topbar-brand">
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <rect width="32" height="32" rx="8" fill="var(--teal)"/>
+          <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700">M</text>
+        </svg>
+        <span>Murphy System</span>
+      </a>
+      <span class="topbar-title">AionMind Cognitive Pipeline</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-status" id="refresh-status"></span>
+    </div>
+  </div>
+
+  <!-- ── Error banner ────────────────────────────────────────── -->
+  <div class="error-banner" id="error-banner" role="alert">
+    <span id="error-message"></span>
+    <button onclick="dismissError()" title="Dismiss" aria-label="Dismiss error">&times;</button>
+  </div>
+
+  <!-- ── App layout ──────────────────────────────────────────── -->
+  <div class="app-layout">
+    <murphy-sidebar active="AIONMIND"></murphy-sidebar>
+
+    <div class="main-area">
+      <div class="main-content">
+
+        <!-- Tab bar -->
+        <div class="tab-bar" role="tablist">
+          <button class="tab-btn active" role="tab" data-tab="status" onclick="switchTab('status')">&#x1F9E0; Status</button>
+          <button class="tab-btn" role="tab" data-tab="pipeline" onclick="switchTab('pipeline')">&#x2699;&#xFE0F; Pipeline</button>
+          <button class="tab-btn" role="tab" data-tab="proposals" onclick="switchTab('proposals')">&#x1F4CB; Proposals</button>
+          <button class="tab-btn" role="tab" data-tab="memory" onclick="switchTab('memory')">&#x1F4BE; Memory</button>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- STATUS TAB                                              -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div class="tab-panel active" id="tab-status" role="tabpanel" aria-label="Kernel status">
+          <div id="status-loading" class="loading-overlay">
+            <span class="spinner"></span> Loading kernel status&#x2026;
+          </div>
+          <div id="status-content" style="display:none;">
+            <div class="kpi-row" id="status-kpis"></div>
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Kernel Health</div>
+                  <div class="card-subtitle">Real-time status of the AionMind cognitive kernel</div>
+                </div>
+                <button class="btn btn-ghost btn-sm" onclick="loadStatus()">&#x21BB; Refresh</button>
+              </div>
+              <div id="kernel-info"></div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Capabilities</div>
+                  <div class="card-subtitle">Active cognitive modules and subsystems</div>
+                </div>
+              </div>
+              <div class="chip-list" id="capabilities-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- PIPELINE TAB                                            -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div class="tab-panel" id="tab-pipeline" role="tabpanel" aria-label="Cognitive pipeline">
+
+          <!-- Step 1: Context builder -->
+          <div class="card" id="ctx-builder-card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">&#x2460; Build Context</div>
+                <div class="card-subtitle">Define the cognitive context from raw inputs</div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="ctx-source">Source</label>
+                <input class="form-input" id="ctx-source" placeholder="e.g. user-request, webhook, scheduler">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="ctx-intent">Intent</label>
+                <input class="form-input" id="ctx-intent" placeholder="e.g. optimize-pipeline, run-analysis">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ctx-raw-input">Raw Input</label>
+              <textarea class="form-textarea" id="ctx-raw-input" placeholder="Describe the task or paste raw data&#x2026;"></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="ctx-priority">Priority</label>
+                <select class="form-select" id="ctx-priority">
+                  <option value="low">Low</option>
+                  <option value="medium" selected>Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="ctx-risk">Risk Level</label>
+                <select class="form-select" id="ctx-risk">
+                  <option value="low" selected>Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+            </div>
+            <details style="margin-bottom:14px;">
+              <summary style="font-size:0.78rem;color:var(--text-muted);cursor:pointer;margin-bottom:8px;">Advanced fields</summary>
+              <div class="form-group">
+                <label class="form-label" for="ctx-related-tasks">Related Tasks (JSON array)</label>
+                <input class="form-input" id="ctx-related-tasks" placeholder='["task-1","task-2"]'>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="ctx-workflow-refs">Workflow Refs (JSON)</label>
+                  <input class="form-input" id="ctx-workflow-refs" placeholder='["wf-001"]'>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="ctx-memory-refs">Memory Refs (JSON)</label>
+                  <input class="form-input" id="ctx-memory-refs" placeholder='["mem-001"]'>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="ctx-constraints">Constraints (JSON)</label>
+                <textarea class="form-textarea" id="ctx-constraints" style="min-height:50px;" placeholder='{"max_time":"30s","budget":100}'></textarea>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="ctx-evidence-refs">Evidence Refs (JSON)</label>
+                  <input class="form-input" id="ctx-evidence-refs" placeholder='["ev-001"]'>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="ctx-assumptions">Assumptions (JSON)</label>
+                  <input class="form-input" id="ctx-assumptions" placeholder='["data is fresh"]'>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="ctx-risks">Risks (JSON)</label>
+                  <input class="form-input" id="ctx-risks" placeholder='["timeout risk"]'>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="ctx-metadata">Metadata (JSON)</label>
+                  <input class="form-input" id="ctx-metadata" placeholder='{"env":"prod"}'>
+                </div>
+              </div>
+            </details>
+            <button class="btn btn-primary" id="btn-build-context" onclick="buildContext()">Build Context &#x2192;</button>
+          </div>
+
+          <!-- Step 2: Orchestrate -->
+          <div class="card" id="orchestrate-card" style="display:none;">
+            <div class="card-header">
+              <div>
+                <div class="card-title">&#x2461; Orchestrate Execution Graph</div>
+                <div class="card-subtitle">Generate candidate execution graphs from the built context</div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <label class="form-label" style="margin:0;" for="max-candidates">Max candidates</label>
+                <input class="form-input" id="max-candidates" type="number" value="3" min="1" max="10" style="width:64px;">
+              </div>
+            </div>
+            <div class="graph-container" id="context-preview" style="margin-bottom:12px;"></div>
+            <button class="btn btn-primary" id="btn-orchestrate" onclick="orchestrate()">Generate Graphs</button>
+          </div>
+
+          <!-- Step 3: Select & execute -->
+          <div class="card" id="execute-card" style="display:none;">
+            <div class="card-header">
+              <div>
+                <div class="card-title">&#x2462; Execute Graph</div>
+                <div class="card-subtitle">Select a candidate graph and execute it</div>
+              </div>
+            </div>
+            <div id="candidate-graphs"></div>
+            <button class="btn btn-primary" id="btn-execute" onclick="executeGraph()" disabled>Execute Selected Graph</button>
+          </div>
+
+          <!-- Execution result & HITL queue -->
+          <div class="card" id="execution-result-card" style="display:none;">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Execution Status</div>
+                <div class="card-subtitle" id="exec-status-text">&#x2014;</div>
+              </div>
+              <span class="status-pill" id="exec-status-pill">&#x2014;</span>
+            </div>
+            <div class="graph-container" id="execution-graph-display"></div>
+            <div class="hitl-queue" id="hitl-queue" style="display:none;">
+              <h4 style="font-size:0.82rem;font-weight:700;margin-bottom:8px;color:var(--warning);">&#x1F512; HITL Approval Queue</h4>
+              <div id="hitl-items"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- PROPOSALS TAB                                           -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div class="tab-panel" id="tab-proposals" role="tabpanel" aria-label="Optimization proposals">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Optimization Proposals</div>
+                <div class="card-subtitle">AI-generated recommendations for system improvements</div>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <select class="form-select" id="proposal-status-filter" style="width:140px;" onchange="loadProposals()">
+                  <option value="">All Statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" onclick="loadProposals()">&#x21BB; Refresh</button>
+              </div>
+            </div>
+            <div id="proposals-loading" class="loading-overlay">
+              <span class="spinner"></span> Loading proposals&#x2026;
+            </div>
+            <div id="proposals-content" style="display:none;">
+              <table class="data-table" id="proposals-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Impact</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="proposals-tbody"></tbody>
+              </table>
+              <div class="empty-state" id="proposals-empty" style="display:none;">
+                <div class="empty-state-icon" aria-hidden="true">&#x1F4CB;</div>
+                <h3>No proposals found</h3>
+                <p>The AionMind kernel has not generated any optimization proposals matching the current filter.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- MEMORY TAB                                              -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div class="tab-panel" id="tab-memory" role="tabpanel" aria-label="Memory subsystem">
+          <div id="memory-loading" class="loading-overlay">
+            <span class="spinner"></span> Loading memory statistics&#x2026;
+          </div>
+          <div id="memory-content" style="display:none;">
+            <div class="kpi-row" id="memory-kpis"></div>
+            <div class="mem-grid">
+              <div class="mem-panel">
+                <h3>&#x1F9E0; Short-Term Memory (STM)</h3>
+                <div id="stm-stats"></div>
+              </div>
+              <div class="mem-panel">
+                <h3>&#x1F4DA; Long-Term Memory (LTM)</h3>
+                <div id="ltm-stats"></div>
+              </div>
+            </div>
+
+            <!-- STM Lookup -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">STM Key Lookup</div>
+                  <div class="card-subtitle">Retrieve a specific short-term memory entry by key</div>
+                </div>
+              </div>
+              <div class="lookup-row">
+                <div class="form-group">
+                  <label class="form-label" for="stm-key">STM Key</label>
+                  <input class="form-input" id="stm-key" placeholder="Enter STM key&#x2026;">
+                </div>
+                <button class="btn btn-primary" onclick="lookupSTM()" style="height:38px;">Lookup</button>
+              </div>
+              <div class="lookup-result" id="stm-result"></div>
+            </div>
+
+            <!-- LTM Lookup -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">LTM Key Lookup</div>
+                  <div class="card-subtitle">Retrieve a specific long-term memory entry by key</div>
+                </div>
+              </div>
+              <div class="lookup-row">
+                <div class="form-group">
+                  <label class="form-label" for="ltm-key">LTM Key</label>
+                  <input class="form-input" id="ltm-key" placeholder="Enter LTM key&#x2026;">
+                </div>
+                <button class="btn btn-primary" onclick="lookupLTM()" style="height:38px;">Lookup</button>
+              </div>
+              <div class="lookup-result" id="ltm-result"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal backdrop ──────────────────────────────────────── -->
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal" id="modal" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h3 id="modal-title"></h3>
+        <button class="btn-icon" onclick="closeModal()" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer" id="modal-footer"></div>
+    </div>
+  </div>
+
+  <script src="static/murphy-components.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    /* ── API helper ────────────────────────────────────────────── */
+    var API = function (path, opts) {
+      opts = opts || {};
+      return fetch(path, {
+        method: opts.method || 'GET',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: opts.body ? (typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body)) : undefined,
+      }).then(function (r) {
+        if (!r.ok) {
+          return r.json().then(function (d) {
+            throw new Error(d.detail || d.error || 'Request failed (' + r.status + ')');
+          }).catch(function (e) {
+            if (e.message) throw e;
+            throw new Error('Request failed (' + r.status + ')');
+          });
+        }
+        return r.json();
+      }).catch(function (e) {
+        showError(e.message);
+        throw e;
+      });
+    };
+
+    /* ── State ─────────────────────────────────────────────────── */
+    var currentTab = 'status';
+    var builtContext = null;
+    var candidateGraphs = [];
+    var selectedGraphIdx = -1;
+    var currentExecutionId = null;
+
+    /* ── DOM refs ──────────────────────────────────────────────── */
+    var $errorBanner     = document.getElementById('error-banner');
+    var $errorMessage    = document.getElementById('error-message');
+    var $refreshStatus   = document.getElementById('refresh-status');
+    var $modalBackdrop   = document.getElementById('modal-backdrop');
+    var $modalTitle      = document.getElementById('modal-title');
+    var $modalBody       = document.getElementById('modal-body');
+    var $modalFooter     = document.getElementById('modal-footer');
+
+    var $statusLoading   = document.getElementById('status-loading');
+    var $statusContent   = document.getElementById('status-content');
+    var $statusKpis      = document.getElementById('status-kpis');
+    var $kernelInfo      = document.getElementById('kernel-info');
+    var $capsList        = document.getElementById('capabilities-list');
+
+    var $ctxPreview      = document.getElementById('context-preview');
+    var $orchestrateCard = document.getElementById('orchestrate-card');
+    var $executeCard     = document.getElementById('execute-card');
+    var $candidateGraphs = document.getElementById('candidate-graphs');
+    var $btnExecute      = document.getElementById('btn-execute');
+    var $execResultCard  = document.getElementById('execution-result-card');
+    var $execStatusText  = document.getElementById('exec-status-text');
+    var $execStatusPill  = document.getElementById('exec-status-pill');
+    var $execGraphDisp   = document.getElementById('execution-graph-display');
+    var $hitlQueue       = document.getElementById('hitl-queue');
+    var $hitlItems       = document.getElementById('hitl-items');
+
+    var $proposalsLoading = document.getElementById('proposals-loading');
+    var $proposalsContent = document.getElementById('proposals-content');
+    var $proposalsTbody   = document.getElementById('proposals-tbody');
+    var $proposalsEmpty   = document.getElementById('proposals-empty');
+    var $proposalFilter   = document.getElementById('proposal-status-filter');
+
+    var $memLoading       = document.getElementById('memory-loading');
+    var $memContent       = document.getElementById('memory-content');
+    var $memKpis          = document.getElementById('memory-kpis');
+    var $stmStats         = document.getElementById('stm-stats');
+    var $ltmStats         = document.getElementById('ltm-stats');
+    var $stmResult        = document.getElementById('stm-result');
+    var $ltmResult        = document.getElementById('ltm-result');
+
+    /* ── Utility ───────────────────────────────────────────────── */
+    function esc(s) {
+      var d = document.createElement('div');
+      d.textContent = s || '';
+      return d.innerHTML;
+    }
+
+    function escAttr(s) {
+      return (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '\u2014';
+      var d = new Date(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function tryParseJSON(s) {
+      if (!s || !s.trim()) return undefined;
+      try { return JSON.parse(s); } catch (e) { return undefined; }
+    }
+
+    function statusPillClass(status) {
+      var s = (status || '').toLowerCase();
+      if (s === 'healthy' || s === 'online' || s === 'ok') return 'status-healthy';
+      if (s === 'degraded') return 'status-degraded';
+      if (s === 'down' || s === 'offline') return 'status-down';
+      if (s === 'pending') return 'status-pending';
+      if (s === 'approved') return 'status-approved';
+      if (s === 'rejected') return 'status-rejected';
+      if (s === 'running' || s === 'active') return 'status-running';
+      if (s === 'completed' || s === 'done') return 'status-completed';
+      if (s === 'failed' || s === 'error') return 'status-failed';
+      if (s === 'waiting' || s === 'hitl') return 'status-waiting';
+      return 'status-pending';
+    }
+
+    /* ── Error / Modal ─────────────────────────────────────────── */
+    function showError(msg) {
+      $errorMessage.textContent = msg;
+      $errorBanner.classList.add('visible');
+    }
+
+    window.dismissError = function () {
+      $errorBanner.classList.remove('visible');
+    };
+
+    function openModal(title, bodyHtml, footerHtml) {
+      $modalTitle.textContent = title;
+      $modalBody.innerHTML = bodyHtml;
+      $modalFooter.innerHTML = footerHtml || '';
+      $modalBackdrop.classList.add('open');
+    }
+
+    window.closeModal = function () {
+      $modalBackdrop.classList.remove('open');
+    };
+
+    $modalBackdrop.addEventListener('click', function (e) {
+      if (e.target === $modalBackdrop) closeModal();
+    });
+
+    /* ── Tab navigation ────────────────────────────────────────── */
+    window.switchTab = function (tab) {
+      currentTab = tab;
+      document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
+      document.querySelectorAll('.tab-btn').forEach(function (t) { t.classList.remove('active'); });
+      document.getElementById('tab-' + tab).classList.add('active');
+      document.querySelector('[data-tab="' + tab + '"]').classList.add('active');
+
+      if (tab === 'status') loadStatus();
+      if (tab === 'proposals') loadProposals();
+      if (tab === 'memory') loadMemoryStats();
+    };
+
+    /* ═══════════════════════════════════════════════════════════ */
+    /* STATUS TAB                                                  */
+    /* ═══════════════════════════════════════════════════════════ */
+    window.loadStatus = function () {
+      $statusLoading.style.display = 'flex';
+      $statusContent.style.display = 'none';
+      $refreshStatus.textContent = 'Refreshing\u2026';
+
+      API('/api/aionmind/status').then(function (data) {
+        $statusLoading.style.display = 'none';
+        $statusContent.style.display = 'block';
+        renderStatus(data);
+        $refreshStatus.textContent = 'Updated ' + new Date().toLocaleTimeString();
+      }).catch(function () {
+        $statusLoading.style.display = 'none';
+        $statusContent.style.display = 'block';
+        $refreshStatus.textContent = 'Update failed';
+      });
+    };
+
+    function renderStatus(data) {
+      var status = data.status || data.health || 'unknown';
+      var version = data.version || '\u2014';
+      var uptime = data.uptime || data.uptime_seconds || '\u2014';
+      var tasks = data.active_tasks || data.tasks || 0;
+
+      $statusKpis.innerHTML =
+        '<div class="kpi-card"><div class="kpi-value"><span class="status-pill ' + statusPillClass(status) + '">' + esc(status) + '</span></div><div class="kpi-label">Kernel Status</div></div>' +
+        '<div class="kpi-card"><div class="kpi-value">' + esc(String(version)) + '</div><div class="kpi-label">Version</div></div>' +
+        '<div class="kpi-card"><div class="kpi-value">' + esc(String(uptime)) + '</div><div class="kpi-label">Uptime</div></div>' +
+        '<div class="kpi-card"><div class="kpi-value">' + esc(String(tasks)) + '</div><div class="kpi-label">Active Tasks</div></div>';
+
+      var infoHtml = '';
+      var skip = { status: 1, health: 1, version: 1, uptime: 1, uptime_seconds: 1, active_tasks: 1, tasks: 1, capabilities: 1 };
+      Object.keys(data).forEach(function (k) {
+        if (skip[k]) return;
+        var val = typeof data[k] === 'object' ? JSON.stringify(data[k]) : String(data[k]);
+        infoHtml += '<div class="mem-stat-row"><span class="mem-stat-key">' + esc(k) + '</span><span class="mem-stat-val">' + esc(val) + '</span></div>';
+      });
+      $kernelInfo.innerHTML = infoHtml || '<div style="color:var(--text-muted);font-size:0.82rem;">No additional kernel details available.</div>';
+
+      var caps = data.capabilities || [];
+      if (!Array.isArray(caps)) caps = Object.keys(caps);
+      $capsList.innerHTML = caps.length
+        ? caps.map(function (c) { return '<span class="chip chip-active">' + esc(String(c)) + '</span>'; }).join('')
+        : '<span style="color:var(--text-muted);font-size:0.82rem;">No capabilities reported.</span>';
+    }
+
+    /* ═══════════════════════════════════════════════════════════ */
+    /* PIPELINE TAB                                                */
+    /* ═══════════════════════════════════════════════════════════ */
+    window.buildContext = function () {
+      var source = document.getElementById('ctx-source').value.trim();
+      var rawInput = document.getElementById('ctx-raw-input').value.trim();
+      var intent = document.getElementById('ctx-intent').value.trim();
+      var priority = document.getElementById('ctx-priority').value;
+      var riskLevel = document.getElementById('ctx-risk').value;
+
+      if (!rawInput) { showError('Raw input is required.'); return; }
+
+      var body = {
+        source: source || 'ui',
+        raw_input: rawInput,
+        intent: intent || undefined,
+        priority: priority,
+        risk_level: riskLevel,
+        related_tasks: tryParseJSON(document.getElementById('ctx-related-tasks').value),
+        workflow_refs: tryParseJSON(document.getElementById('ctx-workflow-refs').value),
+        memory_refs: tryParseJSON(document.getElementById('ctx-memory-refs').value),
+        constraints: tryParseJSON(document.getElementById('ctx-constraints').value),
+        evidence_refs: tryParseJSON(document.getElementById('ctx-evidence-refs').value),
+        assumptions: tryParseJSON(document.getElementById('ctx-assumptions').value),
+        risks: tryParseJSON(document.getElementById('ctx-risks').value),
+        metadata: tryParseJSON(document.getElementById('ctx-metadata').value)
+      };
+
+      var btn = document.getElementById('btn-build-context');
+      btn.disabled = true;
+      btn.textContent = 'Building\u2026';
+
+      API('/api/aionmind/context', { method: 'POST', body: body }).then(function (data) {
+        builtContext = data;
+        $ctxPreview.textContent = JSON.stringify(data, null, 2);
+        $orchestrateCard.style.display = 'block';
+        $executeCard.style.display = 'none';
+        $execResultCard.style.display = 'none';
+        btn.disabled = false;
+        btn.textContent = 'Build Context \u2192';
+      }).catch(function () {
+        btn.disabled = false;
+        btn.textContent = 'Build Context \u2192';
+      });
+    };
+
+    window.orchestrate = function () {
+      if (!builtContext) { showError('Build a context first.'); return; }
+      var maxCandidates = parseInt(document.getElementById('max-candidates').value, 10) || 3;
+      var btn = document.getElementById('btn-orchestrate');
+      btn.disabled = true;
+      btn.textContent = 'Generating\u2026';
+
+      API('/api/aionmind/orchestrate', {
+        method: 'POST',
+        body: { context: builtContext, max_candidates: maxCandidates }
+      }).then(function (data) {
+        candidateGraphs = data.graphs || data.candidates || (Array.isArray(data) ? data : [data]);
+        selectedGraphIdx = -1;
+        renderCandidates();
+        $executeCard.style.display = 'block';
+        $execResultCard.style.display = 'none';
+        btn.disabled = false;
+        btn.textContent = 'Generate Graphs';
+      }).catch(function () {
+        btn.disabled = false;
+        btn.textContent = 'Generate Graphs';
+      });
+    };
+
+    function renderCandidates() {
+      if (!candidateGraphs.length) {
+        $candidateGraphs.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#x1F4CA;</div><h3>No candidate graphs</h3><p>The orchestrator returned no candidates.</p></div>';
+        $btnExecute.disabled = true;
+        return;
+      }
+      var html = '';
+      candidateGraphs.forEach(function (g, i) {
+        var isSelected = i === selectedGraphIdx;
+        var score = g.score || g.confidence || '\u2014';
+        var nodeCount = (g.nodes || []).length || '?';
+        html += '<div class="graph-node' + (isSelected ? ' node-running' : '') + '" style="cursor:pointer;display:block;margin-bottom:8px;padding:12px;" onclick="selectGraph(' + i + ')">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
+        html += '<span style="font-weight:600;">Candidate #' + (i + 1) + '</span>';
+        html += '<span style="font-size:0.72rem;color:var(--text-muted);">Score: ' + esc(String(score)) + ' \u00B7 Nodes: ' + esc(String(nodeCount)) + '</span>';
+        html += '</div>';
+        if (g.nodes && g.nodes.length) {
+          html += '<div style="margin-top:8px;display:flex;flex-wrap:wrap;align-items:center;">';
+          g.nodes.forEach(function (n, ni) {
+            var nStatus = (n.status || 'pending').toLowerCase();
+            var cls = 'node-pending';
+            if (nStatus === 'hitl' || nStatus === 'approval') cls = 'node-hitl';
+            html += '<span class="graph-node ' + cls + '">' + esc(n.name || n.id || 'node-' + ni) + '</span>';
+            if (ni < g.nodes.length - 1) html += '<span class="graph-arrow">\u2192</span>';
+          });
+          html += '</div>';
+        } else {
+          html += '<div class="graph-container" style="margin-top:8px;padding:8px;min-height:auto;">' + esc(JSON.stringify(g, null, 2)) + '</div>';
+        }
+        html += '</div>';
+      });
+      $candidateGraphs.innerHTML = html;
+    }
+
+    window.selectGraph = function (idx) {
+      selectedGraphIdx = idx;
+      $btnExecute.disabled = false;
+      renderCandidates();
+    };
+
+    window.executeGraph = function () {
+      if (selectedGraphIdx < 0 || !candidateGraphs[selectedGraphIdx]) {
+        showError('Select a candidate graph first.');
+        return;
+      }
+      $btnExecute.disabled = true;
+      $btnExecute.textContent = 'Executing\u2026';
+
+      API('/api/aionmind/execute', {
+        method: 'POST',
+        body: { graph: candidateGraphs[selectedGraphIdx] }
+      }).then(function (data) {
+        currentExecutionId = data.execution_id || data.id || null;
+        renderExecutionResult(data);
+        $execResultCard.style.display = 'block';
+        $btnExecute.disabled = false;
+        $btnExecute.textContent = 'Execute Selected Graph';
+      }).catch(function () {
+        $btnExecute.disabled = false;
+        $btnExecute.textContent = 'Execute Selected Graph';
+      });
+    };
+
+    function renderExecutionResult(data) {
+      var status = data.status || 'running';
+      $execStatusPill.className = 'status-pill ' + statusPillClass(status);
+      $execStatusPill.textContent = status;
+      $execStatusText.textContent = 'Execution ID: ' + (data.execution_id || data.id || '\u2014');
+      $execGraphDisp.textContent = JSON.stringify(data, null, 2);
+
+      var hitlNodes = (data.hitl_pending || data.pending_approvals || []);
+      if (hitlNodes.length) {
+        $hitlQueue.style.display = 'block';
+        var html = '';
+        hitlNodes.forEach(function (h) {
+          var nodeId = h.node_id || h.id || '\u2014';
+          var desc = h.description || h.reason || 'Requires human approval';
+          html += '<div class="hitl-item">';
+          html += '<div class="hitl-info">';
+          html += '<div class="hitl-label">\uD83D\uDD12 Node: ' + esc(nodeId) + '</div>';
+          html += '<div class="hitl-desc">' + esc(desc) + '</div>';
+          html += '</div>';
+          html += '<button class="btn btn-success btn-sm" onclick="approveNode(\'' + escAttr(nodeId) + '\')">\u2713 Approve</button>';
+          html += '</div>';
+        });
+        $hitlItems.innerHTML = html;
+      } else {
+        $hitlQueue.style.display = 'none';
+      }
+    }
+
+    window.approveNode = function (nodeId) {
+      if (!currentExecutionId) { showError('No active execution.'); return; }
+      openModal('Approve HITL Checkpoint',
+        '<div class="form-group"><label class="form-label" for="hitl-approver">Approver Name</label><input class="form-input" id="hitl-approver" placeholder="Your name or ID"></div>' +
+        '<p class="confirm-text">Approve node <strong>' + esc(nodeId) + '</strong> in execution <strong>' + esc(currentExecutionId) + '</strong>?</p>',
+        '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="confirmApproveNode(\'' + escAttr(nodeId) + '\')">Approve</button>'
+      );
+    };
+
+    window.confirmApproveNode = function (nodeId) {
+      var approver = document.getElementById('hitl-approver').value.trim() || 'ui-user';
+      closeModal();
+
+      API('/api/aionmind/execute/' + encodeURIComponent(currentExecutionId) + '/approve-node', {
+        method: 'POST',
+        body: { execution_id: currentExecutionId, node_id: nodeId, approver: approver }
+      }).then(function (data) {
+        renderExecutionResult(data);
+      });
+    };
+
+    /* ═══════════════════════════════════════════════════════════ */
+    /* PROPOSALS TAB                                               */
+    /* ═══════════════════════════════════════════════════════════ */
+    window.loadProposals = function () {
+      $proposalsLoading.style.display = 'flex';
+      $proposalsContent.style.display = 'none';
+
+      var statusFilter = $proposalFilter.value;
+      var url = '/api/aionmind/proposals';
+      if (statusFilter) url += '?status=' + encodeURIComponent(statusFilter);
+
+      API(url).then(function (data) {
+        var proposals = data.proposals || data.items || (Array.isArray(data) ? data : []);
+        $proposalsLoading.style.display = 'none';
+        $proposalsContent.style.display = 'block';
+        renderProposals(proposals);
+      }).catch(function () {
+        $proposalsLoading.style.display = 'none';
+        $proposalsContent.style.display = 'block';
+        renderProposals([]);
+      });
+    };
+
+    function renderProposals(proposals) {
+      if (!proposals.length) {
+        $proposalsTbody.innerHTML = '';
+        document.getElementById('proposals-table').style.display = 'none';
+        $proposalsEmpty.style.display = 'flex';
+        return;
+      }
+      document.getElementById('proposals-table').style.display = 'table';
+      $proposalsEmpty.style.display = 'none';
+
+      var html = '';
+      proposals.forEach(function (p) {
+        var pid = p.id || p.proposal_id || '\u2014';
+        var title = p.title || p.name || p.description || '\u2014';
+        var impact = p.impact || p.severity || '\u2014';
+        var status = p.status || 'pending';
+        var created = formatDate(p.created_at || p.created);
+        html += '<tr>';
+        html += '<td><code style="font-size:0.75rem;color:var(--teal);">' + esc(String(pid)) + '</code></td>';
+        html += '<td>' + esc(title) + '</td>';
+        html += '<td>' + esc(String(impact)) + '</td>';
+        html += '<td><span class="status-pill ' + statusPillClass(status) + '">' + esc(status) + '</span></td>';
+        html += '<td style="font-size:0.78rem;color:var(--text-muted);">' + esc(created) + '</td>';
+        html += '<td class="actions-cell">';
+        if (status === 'pending') {
+          html += '<button class="btn btn-success btn-sm" onclick="approveProposal(\'' + escAttr(String(pid)) + '\')">\u2713</button> ';
+          html += '<button class="btn btn-danger btn-sm" onclick="rejectProposal(\'' + escAttr(String(pid)) + '\')">\u2717</button>';
+        } else {
+          html += '<span style="font-size:0.75rem;color:var(--text-muted);">\u2014</span>';
+        }
+        html += '</td>';
+        html += '</tr>';
+      });
+      $proposalsTbody.innerHTML = html;
+    }
+
+    window.approveProposal = function (pid) {
+      openModal('Approve Proposal',
+        '<div class="form-group"><label class="form-label" for="proposal-approver">Approver</label><input class="form-input" id="proposal-approver" placeholder="Your name or ID"></div>' +
+        '<p class="confirm-text">Approve proposal <strong>' + esc(pid) + '</strong>?</p>',
+        '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="confirmApproveProposal(\'' + escAttr(pid) + '\')">Approve</button>'
+      );
+    };
+
+    window.confirmApproveProposal = function (pid) {
+      var approver = document.getElementById('proposal-approver').value.trim() || 'ui-user';
+      closeModal();
+
+      API('/api/aionmind/proposals/' + encodeURIComponent(pid) + '/approve', {
+        method: 'POST',
+        body: { approver: approver }
+      }).then(function () {
+        loadProposals();
+      });
+    };
+
+    window.rejectProposal = function (pid) {
+      openModal('Reject Proposal',
+        '<div class="form-group"><label class="form-label" for="reject-reason">Reason for rejection</label><textarea class="form-textarea" id="reject-reason" placeholder="Explain why this proposal is rejected\u2026" style="min-height:60px;"></textarea></div>',
+        '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-danger" onclick="confirmRejectProposal(\'' + escAttr(pid) + '\')">Reject</button>'
+      );
+    };
+
+    window.confirmRejectProposal = function (pid) {
+      var reason = document.getElementById('reject-reason').value.trim() || 'Rejected via UI';
+      closeModal();
+
+      API('/api/aionmind/proposals/' + encodeURIComponent(pid) + '/reject', {
+        method: 'POST',
+        body: { reason: reason }
+      }).then(function () {
+        loadProposals();
+      });
+    };
+
+    /* ═══════════════════════════════════════════════════════════ */
+    /* MEMORY TAB                                                  */
+    /* ═══════════════════════════════════════════════════════════ */
+    function loadMemoryStats() {
+      $memLoading.style.display = 'flex';
+      $memContent.style.display = 'none';
+
+      API('/api/aionmind/memory/stats').then(function (data) {
+        $memLoading.style.display = 'none';
+        $memContent.style.display = 'block';
+        renderMemoryStats(data);
+      }).catch(function () {
+        $memLoading.style.display = 'none';
+        $memContent.style.display = 'block';
+      });
+    }
+
+    function renderMemoryStats(data) {
+      var stm = data.stm || data.short_term || {};
+      var ltm = data.ltm || data.long_term || {};
+      var totalStm = stm.count || stm.entries || stm.size || 0;
+      var totalLtm = ltm.count || ltm.entries || ltm.size || 0;
+      var stmHit = stm.hit_rate || stm.hitRate || '\u2014';
+      var ltmHit = ltm.hit_rate || ltm.hitRate || '\u2014';
+
+      $memKpis.innerHTML =
+        '<div class="kpi-card"><div class="kpi-value">' + esc(String(totalStm)) + '</div><div class="kpi-label">STM Entries</div></div>' +
+        '<div class="kpi-card"><div class="kpi-value">' + esc(String(totalLtm)) + '</div><div class="kpi-label">LTM Entries</div></div>' +
+        '<div class="kpi-card"><div class="kpi-value">' + esc(String(stmHit)) + '</div><div class="kpi-label">STM Hit Rate</div></div>' +
+        '<div class="kpi-card"><div class="kpi-value">' + esc(String(ltmHit)) + '</div><div class="kpi-label">LTM Hit Rate</div></div>';
+
+      $stmStats.innerHTML = renderMemPanel(stm);
+      $ltmStats.innerHTML = renderMemPanel(ltm);
+    }
+
+    function renderMemPanel(obj) {
+      var html = '';
+      Object.keys(obj).forEach(function (k) {
+        var val = typeof obj[k] === 'object' ? JSON.stringify(obj[k]) : String(obj[k]);
+        html += '<div class="mem-stat-row"><span class="mem-stat-key">' + esc(k) + '</span><span class="mem-stat-val">' + esc(val) + '</span></div>';
+      });
+      return html || '<div style="color:var(--text-muted);font-size:0.82rem;">No statistics available.</div>';
+    }
+
+    window.lookupSTM = function () {
+      var key = document.getElementById('stm-key').value.trim();
+      if (!key) { showError('Enter an STM key.'); return; }
+      $stmResult.classList.remove('visible');
+      API('/api/aionmind/memory/stm/' + encodeURIComponent(key)).then(function (data) {
+        $stmResult.textContent = JSON.stringify(data, null, 2);
+        $stmResult.classList.add('visible');
+      });
+    };
+
+    window.lookupLTM = function () {
+      var key = document.getElementById('ltm-key').value.trim();
+      if (!key) { showError('Enter an LTM key.'); return; }
+      $ltmResult.classList.remove('visible');
+      API('/api/aionmind/memory/ltm/' + encodeURIComponent(key)).then(function (data) {
+        $ltmResult.textContent = JSON.stringify(data, null, 2);
+        $ltmResult.classList.add('visible');
+      });
+    };
+
+    /* ── Init ────────────────────────────────────────────────── */
+    function init() {
+      loadStatus();
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+
+  }());
+  </script>
+</body>
+</html>

@@ -128,13 +128,13 @@ if not exist "%MURPHY_DIR%\.env" (
         echo MURPHY_ENV=development
         echo MURPHY_PORT=%MURPHY_PORT%
         echo.
-        echo # LLM provider - set to groq, openai, or anthropic once you add a key below
+        echo # LLM provider - set to deepinfra, openai, or anthropic once you add a key below
         echo # Defaults to local ^(onboard LLM, no API key required^)
         echo MURPHY_LLM_PROVIDER=local
         echo.
         echo # The onboard LLM works without any API key.
         echo # Add an external key below for enhanced quality ^(optional^).
-        echo # GROQ_API_KEY=gsk_your_key_here
+        echo # DEEPINFRA_API_KEY=your_deepinfra_api_key
     ) > "%MURPHY_DIR%\.env"
     echo [OK] Created default .env (onboard LLM active - no key required)
 ) else (

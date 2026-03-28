@@ -25,7 +25,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock, call
+import requests as _requests_lib
 
 import pytest
 
@@ -57,6 +57,16 @@ from textual.widgets import Input
 from textual import events
 
 
+def _make_response(status_code=200, json_data=None):
+    """Build a real requests.Response for test HTTP stubs."""
+    resp = _requests_lib.Response()
+    resp.status_code = status_code
+    if json_data is not None:
+        resp._content = json.dumps(json_data).encode("utf-8")
+        resp.headers["Content-Type"] = "application/json"
+    return resp
+
+
 # ============================================================================
 # BUG-1: User Paste Workflow — Ctrl+V works end-to-end
 # ============================================================================
@@ -78,8 +88,8 @@ class TestUserBug1_PasteWorkflow:
 
     @pytest.mark.asyncio
     async def test_user_pastes_api_key_via_ctrl_v(self, monkeypatch):
-        """User copies 'gsk_real_key_12345678901234' and presses Ctrl+V."""
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_skip_gate_value")
+        """User copies 'di_real_key_12345678901234' and presses Ctrl+V."""
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_skip_gate_value")
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause()
@@ -87,12 +97,12 @@ class TestUserBug1_PasteWorkflow:
             # Simulate clipboard containing an API key
             monkeypatch.setattr(
                 MurphyTerminalApp, "_read_clipboard",
-                staticmethod(lambda: "gsk_real_key_12345678901234"),
+                staticmethod(lambda: "di_real_key_12345678901234"),
             )
             await pilot.press("ctrl+v")
             await pilot.pause()
             input_widget = app.query_one("#user-input", Input)
-            assert input_widget.value == "gsk_real_key_12345678901234", (
+            assert input_widget.value == "di_real_key_12345678901234", (
                 "User pressed Ctrl+V but the key did not appear in the input widget. "
                 "The paste interceptor at the App level is not working."
             )
@@ -100,7 +110,7 @@ class TestUserBug1_PasteWorkflow:
     @pytest.mark.asyncio
     async def test_user_pastes_then_submits_set_key_command(self, monkeypatch, tmp_path):
         """User pastes a full 'set key deepinfra <key>' command via Ctrl+V and submits."""
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_skip_gate_value")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_skip_gate_value")
         monkeypatch.setattr("murphy_terminal.get_env_path", lambda: str(tmp_path / ".env"))
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
@@ -108,7 +118,7 @@ class TestUserBug1_PasteWorkflow:
             await pilot.pause()
             monkeypatch.setattr(
                 MurphyTerminalApp, "_read_clipboard",
-                staticmethod(lambda: "set key deepinfra gsk_abcdefghijklmnopqrstuvwx"),
+                staticmethod(lambda: "set key deepinfra di_abcdefghijklmnopqrstuvwx"),
             )
             await pilot.press("ctrl+v")
             await pilot.pause()
@@ -118,21 +128,21 @@ class TestUserBug1_PasteWorkflow:
             await pilot.press("enter")
             await pilot.pause()
             # The key should be persisted in the environment
-            assert os.environ.get("DEEPINFRA_API_KEY") == "gsk_abcdefghijklmnopqrstuvwx"
+            assert os.environ.get("DEEPINFRA_API_KEY") == "di_abcdefghijklmnopqrstuvwx"
 
     @pytest.mark.asyncio
     async def test_user_paste_via_bracketed_paste_event(self, monkeypatch):
         """User right-clicks → Paste in Windows Terminal (bracketed paste event)."""
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_skip_gate_value")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_skip_gate_value")
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause()
             await pilot.pause()
-            paste_event = events.Paste("gsk_bracketed_paste_test")
+            paste_event = events.Paste("di_bracketed_paste_test")
             app.post_message(paste_event)
             await pilot.pause()
             input_widget = app.query_one("#user-input", Input)
-            assert "gsk_bracketed_paste_test" in input_widget.value, (
+            assert "di_bracketed_paste_test" in input_widget.value, (
                 "Bracketed paste (right-click in Windows Terminal) did not "
                 "insert text into the input widget."
             )
@@ -140,16 +150,16 @@ class TestUserBug1_PasteWorkflow:
     @pytest.mark.asyncio
     async def test_user_paste_multiline_uses_first_line_only(self, monkeypatch):
         """User pastes multi-line text — only the first line is inserted (safety)."""
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_skip_gate_value")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_skip_gate_value")
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause()
             await pilot.pause()
-            paste_event = events.Paste("gsk_first_line\nsecret_second_line")
+            paste_event = events.Paste("di_first_line\nsecret_second_line")
             app.post_message(paste_event)
             await pilot.pause()
             input_widget = app.query_one("#user-input", Input)
-            assert "gsk_first_line" in input_widget.value
+            assert "di_first_line" in input_widget.value
             assert "secret_second_line" not in input_widget.value, (
                 "Multi-line paste should only use first line — "
                 "second line leaked into input widget."
@@ -209,12 +219,12 @@ class TestUserBug2_APIEndpointContract:
 
         client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
         client._post = mock_post
-        result = client.configure_llm("deepinfra", "gsk_user_provided_key_here")
+        result = client.configure_llm("deepinfra", "di_user_provided_key_here")
 
         assert captured["path"] == "/api/llm/configure"
         assert captured["payload"] == {
             "provider": "deepinfra",
-            "api_key": "gsk_user_provided_key_here",
+            "api_key": "di_user_provided_key_here",
         }
         assert result["success"] is True
 
@@ -253,7 +263,7 @@ class TestUserBug2_APIEndpointContract:
     def test_user_configure_llm_handles_backend_down_gracefully(self):
         """When backend is unreachable, configure_llm returns failure, no crash."""
         client = MurphyAPIClient(base_url="http://localhost:19999", timeout=1)
-        result = client.configure_llm("deepinfra", "gsk_any_key")
+        result = client.configure_llm("deepinfra", "di_any_key")
         assert result.get("success") is False
         assert "error" in result
 
@@ -300,7 +310,7 @@ class TestUserBug2_APIEndpointContract:
         client._get = mock_get
 
         # Step 1: User configures
-        configure_result = client.configure_llm("deepinfra", "gsk_user_key")
+        configure_result = client.configure_llm("deepinfra", "di_user_key")
         assert configure_result["success"] is True
 
         # Step 2: User tests
@@ -312,7 +322,7 @@ class TestUserBug2_APIEndpointContract:
         assert status["enabled"] is True
 
         # Verify the call sequence
-        assert call_log[0] == ("POST", "/api/llm/configure", {"provider": "deepinfra", "api_key": "gsk_user_key"})
+        assert call_log[0] == ("POST", "/api/llm/configure", {"provider": "deepinfra", "api_key": "di_user_key"})
         assert call_log[1] == ("POST", "/api/llm/test", {})
         assert call_log[2] == ("GET", "/api/llm/status", None)
 
@@ -372,23 +382,23 @@ class TestUserBug3_EnvLoadingPath:
         """User creates .env in project dir — read_env reads it correctly."""
         env_file = tmp_path / ".env"
         env_file.write_text(
-            "DEEPINFRA_API_KEY=gsk_user_configured_key\n"
+            "DEEPINFRA_API_KEY=di_user_configured_key\n"
             "MURPHY_LLM_PROVIDER=deepinfra\n"
         )
         result = read_env(str(env_file))
-        assert result["DEEPINFRA_API_KEY"] == "gsk_user_configured_key"
+        assert result["DEEPINFRA_API_KEY"] == "di_user_configured_key"
         assert result["MURPHY_LLM_PROVIDER"] == "deepinfra"
 
     def test_user_env_file_with_bom_loads_correctly(self, tmp_path):
         """User edits .env in Windows Notepad (adds BOM) — key still loads."""
         env_file = tmp_path / ".env"
         env_file.write_bytes(
-            b"\xef\xbb\xbfDEEPINFRA_API_KEY=gsk_bom_key_value\n"
+            b"\xef\xbb\xbfDEEPINFRA_API_KEY=di_bom_key_value\n"
             b"MURPHY_LLM_PROVIDER=deepinfra\n"
         )
         result = read_env(str(env_file))
         assert "DEEPINFRA_API_KEY" in result, "BOM-encoded .env file key not parsed"
-        assert result["DEEPINFRA_API_KEY"] == "gsk_bom_key_value"
+        assert result["DEEPINFRA_API_KEY"] == "di_bom_key_value"
 
 
 # ============================================================================
@@ -411,7 +421,7 @@ class TestUserBug4_StatusBarAccuracy:
     @pytest.mark.asyncio
     async def test_user_sees_llm_off_when_auth_fails(self, monkeypatch):
         """User has key in env but it's invalid → status bar should show Off."""
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_expired_invalid_key_xxxx")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_expired_invalid_key_xxxx")
 
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
@@ -438,7 +448,7 @@ class TestUserBug4_StatusBarAccuracy:
     @pytest.mark.asyncio
     async def test_user_sees_llm_on_when_auth_succeeds(self, monkeypatch):
         """User has a valid key → status bar should show On."""
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_valid_working_key_xxxx")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_valid_working_key_xxxx")
 
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
@@ -484,7 +494,7 @@ class TestUserBug4_StatusBarAccuracy:
     @pytest.mark.asyncio
     async def test_user_sees_llm_off_when_backend_unreachable(self, monkeypatch):
         """User's backend is down → status bar should show Off, no crash."""
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_any_key_value")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_any_key_value")
 
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
@@ -532,7 +542,7 @@ class TestUserBug5_ApplyApiKeyLogic:
         """Backend returns {} — user should see error, not success."""
         env_file = tmp_path / ".env"
         monkeypatch.setattr("murphy_terminal.get_env_path", lambda: str(env_file))
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_skip_gate_value_for_test")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_skip_gate_value_for_test")
 
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
@@ -545,7 +555,7 @@ class TestUserBug5_ApplyApiKeyLogic:
                 lambda provider, key: {},  # no 'success' field
             )
 
-            cmd = "set key deepinfra gsk_abcdefghijklmnopqrstuvwx"
+            cmd = "set key deepinfra di_abcdefghijklmnopqrstuvwx"
             for ch in cmd:
                 await pilot.press(ch)
             await pilot.press("enter")
@@ -568,45 +578,49 @@ class TestUserBug5_ApplyApiKeyLogic:
             "responses as failure."
         )
 
-    @patch("murphy_terminal.requests.post")
-    def test_user_configure_empty_response_treated_as_failure(self, mock_post):
+    def test_user_configure_empty_response_treated_as_failure(self):
         """MurphyAPIClient.configure_llm returns {} → treated as not-success."""
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {}
-        mock_resp.raise_for_status = MagicMock()
-        mock_post.return_value = mock_resp
+        import murphy_terminal
+        _orig = murphy_terminal.requests.post
+        murphy_terminal.requests.post = lambda *a, **kw: _make_response(200, {})
+        try:
+            client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
+            result = client.configure_llm("deepinfra", "di_test_key")
+            # The _apply_api_key code does: if not result.get("success", False)
+            # With {} → not False = True → error path taken
+            assert result.get("success", False) is False, (
+                "Empty dict should be treated as failure when 'success' defaults to False"
+            )
+        finally:
+            murphy_terminal.requests.post = _orig
 
-        client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
-        result = client.configure_llm("deepinfra", "gsk_test_key")
-        # The _apply_api_key code does: if not result.get("success", False)
-        # With {} → not False = True → error path taken
-        assert result.get("success", False) is False, (
-            "Empty dict should be treated as failure when 'success' defaults to False"
-        )
-
-    @patch("murphy_terminal.requests.post")
-    def test_user_configure_success_true_treated_as_success(self, mock_post):
+    def test_user_configure_success_true_treated_as_success(self):
         """Backend returns success=True → treated as success."""
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"success": True, "provider": "deepinfra"}
-        mock_resp.raise_for_status = MagicMock()
-        mock_post.return_value = mock_resp
+        import murphy_terminal
+        _orig = murphy_terminal.requests.post
+        murphy_terminal.requests.post = lambda *a, **kw: _make_response(
+            200, {"success": True, "provider": "deepinfra"}
+        )
+        try:
+            client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
+            result = client.configure_llm("deepinfra", "di_test_key")
+            assert result.get("success", False) is True
+        finally:
+            murphy_terminal.requests.post = _orig
 
-        client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
-        result = client.configure_llm("deepinfra", "gsk_test_key")
-        assert result.get("success", False) is True
-
-    @patch("murphy_terminal.requests.post")
-    def test_user_configure_success_false_treated_as_failure(self, mock_post):
+    def test_user_configure_success_false_treated_as_failure(self):
         """Backend returns success=False → treated as failure."""
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"success": False, "error": "invalid key"}
-        mock_resp.raise_for_status = MagicMock()
-        mock_post.return_value = mock_resp
-
-        client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
-        result = client.configure_llm("deepinfra", "gsk_test_key")
-        assert result.get("success", False) is False
+        import murphy_terminal
+        _orig = murphy_terminal.requests.post
+        murphy_terminal.requests.post = lambda *a, **kw: _make_response(
+            200, {"success": False, "error": "invalid key"}
+        )
+        try:
+            client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
+            result = client.configure_llm("deepinfra", "di_test_key")
+            assert result.get("success", False) is False
+        finally:
+            murphy_terminal.requests.post = _orig
 
 
 # ============================================================================
@@ -621,7 +635,7 @@ class TestUserBug6_NoHardcodedKeys:
     keys (gsk_*) and Aristotle keys (arstl_*).  The fix replaced them
     with REDACTED placeholders.
 
-    The user expects: `grep -r 'gsk_[A-Za-z0-9]{20,}' archive/` returns
+    The user expects: `grep -r 'di_[A-Za-z0-9]{20,}' archive/` returns
     no results.
     """
 
@@ -631,10 +645,10 @@ class TestUserBug6_NoHardcodedKeys:
             pytest.skip("archive directory not present")
         return archive_dir
 
-    def test_user_audit_no_groq_keys_in_archive(self):
+    def test_user_audit_no_deepinfra_keys_in_archive(self):
         """No real DeepInfra API keys (gsk_ + 20+ chars) in any archive file."""
         archive_dir = self._get_archive_dir()
-        pattern = re.compile(r"gsk_[A-Za-z0-9]{20,}")
+        pattern = re.compile(r"di_[A-Za-z0-9]{20,}")
         hits = []
         for root, _dirs, files in os.walk(archive_dir):
             for fname in files:
@@ -681,7 +695,7 @@ class TestUserBug6_NoHardcodedKeys:
                 try:
                     with open(fpath, encoding="utf-8", errors="ignore") as fh:
                         content = fh.read()
-                        if "REDACTED_GROQ_KEY_PLACEHOLDER" in content:
+                        if "REDACTED_DEEPINFRA_KEY_PLACEHOLDER" in content:
                             found_placeholder = True
                             break
                 except (OSError, UnicodeDecodeError):
@@ -689,7 +703,7 @@ class TestUserBug6_NoHardcodedKeys:
             if found_placeholder:
                 break
         assert found_placeholder, (
-            "No REDACTED_GROQ_KEY_PLACEHOLDER found in archive. "
+            "No REDACTED_DEEPINFRA_KEY_PLACEHOLDER found in archive. "
             "Keys should be replaced with placeholders, not deleted."
         )
 
@@ -700,7 +714,7 @@ class TestUserBug6_NoHardcodedKeys:
             pytest.skip(".env.example not found")
         with open(env_example, encoding="utf-8") as f:
             content = f.read()
-        pattern = re.compile(r"gsk_[A-Za-z0-9]{20,}")
+        pattern = re.compile(r"di_[A-Za-z0-9]{20,}")
         assert not pattern.search(content), (
             ".env.example contains what looks like a real DeepInfra API key."
         )
@@ -727,7 +741,7 @@ class TestUserFullJourney:
         """Happy path: user sets a valid key → everything works."""
         env_file = tmp_path / ".env"
         monkeypatch.setattr("murphy_terminal.get_env_path", lambda: str(env_file))
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_skip_gate_for_journey")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_skip_gate_for_journey")
 
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
@@ -749,7 +763,7 @@ class TestUserFullJourney:
             )
 
             # User types set key command
-            cmd = "set key deepinfra gsk_abcdefghijklmnopqrstuvwx"
+            cmd = "set key deepinfra di_abcdefghijklmnopqrstuvwx"
             for ch in cmd:
                 await pilot.press(ch)
             await pilot.press("enter")
@@ -757,7 +771,7 @@ class TestUserFullJourney:
             await pilot.pause()
 
             # Key should be persisted
-            assert os.environ.get("DEEPINFRA_API_KEY") == "gsk_abcdefghijklmnopqrstuvwx"
+            assert os.environ.get("DEEPINFRA_API_KEY") == "di_abcdefghijklmnopqrstuvwx"
 
             # Status bar should show LLM: On
             status_bar = app.query_one(StatusBar)
@@ -770,7 +784,7 @@ class TestUserFullJourney:
         """Sad path: user sets a key but auth fails → status bar stays Off."""
         env_file = tmp_path / ".env"
         monkeypatch.setattr("murphy_terminal.get_env_path", lambda: str(env_file))
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_skip_gate_for_journey")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_skip_gate_for_journey")
 
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
@@ -791,7 +805,7 @@ class TestUserFullJourney:
                 lambda: {"enabled": True, "provider": "deepinfra", "model": "meta-llama/Meta-Llama-3.1-8B-Instruct"},
             )
 
-            cmd = "set key deepinfra gsk_abcdefghijklmnopqrstuvwx"
+            cmd = "set key deepinfra di_abcdefghijklmnopqrstuvwx"
             for ch in cmd:
                 await pilot.press(ch)
             await pilot.press("enter")
@@ -809,7 +823,7 @@ class TestUserFullJourney:
         """Backend is unreachable → user sees error, no crash."""
         env_file = tmp_path / ".env"
         monkeypatch.setattr("murphy_terminal.get_env_path", lambda: str(env_file))
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_skip_gate_for_journey")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_skip_gate_for_journey")
 
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
@@ -822,14 +836,14 @@ class TestUserFullJourney:
                 lambda provider, key: {"success": False, "error": "backend not reachable"},
             )
 
-            cmd = "set key deepinfra gsk_abcdefghijklmnopqrstuvwx"
+            cmd = "set key deepinfra di_abcdefghijklmnopqrstuvwx"
             for ch in cmd:
                 await pilot.press(ch)
             await pilot.press("enter")
             await pilot.pause()
 
             # Key should still be saved locally
-            assert os.environ.get("DEEPINFRA_API_KEY") == "gsk_abcdefghijklmnopqrstuvwx"
+            assert os.environ.get("DEEPINFRA_API_KEY") == "di_abcdefghijklmnopqrstuvwx"
             # No crash means the error was handled gracefully
 
 
@@ -979,7 +993,7 @@ class TestUserTypeUILinks_GapClosure:
     @pytest.mark.asyncio
     async def test_user_types_ui_command_no_crash(self, monkeypatch):
         """User types 'ui' in the terminal → command executes without crash."""
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_skip_gate_for_ui_test")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_skip_gate_for_ui_test")
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause()
@@ -996,7 +1010,7 @@ class TestUserTypeUILinks_GapClosure:
     @pytest.mark.asyncio
     async def test_user_types_ui_links_command_no_crash(self, monkeypatch):
         """User types 'ui links' in the terminal → command executes without crash."""
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_skip_gate_for_ui_test")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_skip_gate_for_ui_test")
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause()
@@ -1011,7 +1025,7 @@ class TestUserTypeUILinks_GapClosure:
     @pytest.mark.asyncio
     async def test_ui_command_shows_role_names(self, monkeypatch):
         """'ui' output should mention all four role names."""
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_skip_gate_for_ui_test")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_skip_gate_for_ui_test")
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause()
@@ -1263,7 +1277,7 @@ class TestAccountLifecycleFlow_GapClosure:
     @pytest.mark.asyncio
     async def test_user_types_account_command_no_crash(self, monkeypatch):
         """User types 'account' in the terminal → shows lifecycle, no crash."""
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_skip_gate_for_account_test")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_skip_gate_for_account_test")
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause()
@@ -1280,7 +1294,7 @@ class TestAccountLifecycleFlow_GapClosure:
     @pytest.mark.asyncio
     async def test_user_types_get_started_command_no_crash(self, monkeypatch):
         """User types 'get started' in the terminal → shows lifecycle, no crash."""
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_skip_gate_for_account_test")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_skip_gate_for_account_test")
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause()
@@ -1422,7 +1436,7 @@ class TestFullAccountJourney_GapClosure:
     @pytest.mark.asyncio
     async def test_user_discovers_account_flow_from_terminal(self, monkeypatch):
         """A new user can type 'account' to discover the full lifecycle."""
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_skip_gate_for_journey_test")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_skip_gate_for_journey_test")
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause()

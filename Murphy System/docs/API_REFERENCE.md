@@ -158,9 +158,9 @@ Returns the current LLM configuration (provider, model, key mask).
 ```json
 {
   "provider": "deepinfra",
-  "model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
+  "model": "llama3-70b-8192",
   "key_configured": true,
-  "key_mask": "gsk_...xxxx"
+  "key_mask": "di_...xxxx"
 }
 ```
 
@@ -178,7 +178,7 @@ Configure the LLM provider and API key (hot-reload, no restart needed).
 ```json
 {
   "provider": "deepinfra",
-  "api_key": "gsk_your_key_here"
+  "api_key": "di_your_key_here"
 }
 ```
 
@@ -189,7 +189,7 @@ Configure the LLM provider and API key (hot-reload, no restart needed).
 
 **Response 200**
 ```json
-{ "success": true, "provider": "deepinfra", "model": "meta-llama/Meta-Llama-3.1-70B-Instruct" }
+{ "success": true, "provider": "deepinfra", "model": "llama3-70b-8192" }
 ```
 
 **Response 400** — Invalid provider or key format
@@ -208,7 +208,7 @@ Test LLM connectivity with the currently configured key.
 
 **Response 200 — success**
 ```json
-{ "success": true, "provider": "deepinfra", "model": "meta-llama/Meta-Llama-3.1-70B-Instruct", "latency_ms": 312 }
+{ "success": true, "provider": "deepinfra", "model": "llama3-70b-8192", "latency_ms": 312 }
 ```
 
 **Response 200 — failure**

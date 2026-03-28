@@ -102,7 +102,7 @@ class TestBlockers:
         assert "llm_api_key" in blocker_names
 
     def test_has_llm_key_no_blocker(self, monkeypatch):
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_test_key_12345")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_test_key_12345")
         scanner = ReadinessScanner()
         report = scanner.scan(base_url=None)
         blocker_names = [b["check"] for b in report["blockers"]]
@@ -120,7 +120,7 @@ class TestBlockers:
             assert report["ready"] is False
 
     def test_ready_true_when_no_blockers(self, monkeypatch):
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_test_key_12345")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_test_key_12345")
         scanner = ReadinessScanner()
         report = scanner.scan(base_url=None)
         if not report["blockers"]:

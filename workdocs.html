@@ -1,0 +1,928 @@
+<!-- Murphy System — Workdocs / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workdocs — Murphy System</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  :root {
+    --bg-base: #0C1017;
+    --bg-surface: #131A24;
+    --bg-elevated: #1A2332;
+    --bg-input: #0F1620;
+    --border-subtle: #1E2A3A;
+    --border-default: #2A3A4E;
+    --border-focus: #00D4AA;
+    --text-primary: #E6ECF2;
+    --text-secondary: #8899AA;
+    --text-muted: #566778;
+    --teal: #00D4AA;
+    --teal-glow: rgba(0,212,170,0.12);
+    --success: #22C55E;
+    --warning: #FFA63E;
+    --danger: #EF4444;
+    --info: #3B9EFF;
+    --font-ui: Inter, system-ui, -apple-system, sans-serif;
+    --font-code: 'JetBrains Mono', monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-ui); background: var(--bg-base); color: var(--text-primary); min-height: 100vh; }
+
+  /* ── Error Banner ────────────────────────────────────── */
+  .error-banner {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+    background: var(--danger); color: #fff; padding: 10px 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 14px; transform: translateY(-100%); transition: transform .25s ease;
+  }
+  .error-banner.visible { transform: translateY(0); }
+  .error-banner button {
+    background: none; border: none; color: #fff; font-size: 18px; cursor: pointer; padding: 0 4px;
+  }
+
+  /* ── Topbar ──────────────────────────────────────────── */
+  .topbar {
+    position: sticky; top: 0; z-index: 1000;
+    background: rgba(12,16,23,0.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-default);
+    padding: 0 2rem; height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .topbar-brand {
+    display: flex; align-items: center; gap: 10px;
+    text-decoration: none; color: var(--text-primary); font-weight: 700; font-size: 15px;
+  }
+  .topbar-brand-icon { font-size: 20px; }
+  .topbar-title { color: var(--text-secondary); font-weight: 500; font-size: 14px; }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .topbar-status { font-size: 12px; color: var(--text-muted); }
+
+  /* ── Layout ──────────────────────────────────────────── */
+  .layout { display: flex; height: calc(100vh - 56px); }
+  .doc-sidebar {
+    width: 280px; min-width: 280px; background: var(--bg-surface);
+    border-right: 1px solid var(--border-subtle); display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .doc-sidebar-header {
+    padding: 16px; border-bottom: 1px solid var(--border-subtle);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .doc-sidebar-header h2 {
+    font-size: 11px; font-weight: 600; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+  .doc-sidebar-list { flex: 1; overflow-y: auto; padding: 8px; }
+  .doc-item {
+    padding: 10px 12px; border-radius: 6px; cursor: pointer;
+    border: 1px solid transparent; transition: all .15s ease; margin-bottom: 2px;
+  }
+  .doc-item:hover { background: var(--bg-elevated); border-color: var(--border-subtle); }
+  .doc-item.active { background: var(--teal-glow); border-color: var(--teal); }
+  .doc-item-title {
+    font-size: 13px; font-weight: 600; color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .doc-item-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* ── Main Editor ─────────────────────────────────────── */
+  .editor-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .editor-toolbar {
+    padding: 12px 24px; border-bottom: 1px solid var(--border-subtle);
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .editor-content { flex: 1; overflow-y: auto; padding: 24px; }
+
+  /* ── Blocks ──────────────────────────────────────────── */
+  .block {
+    position: relative; padding: 8px 12px; border-radius: 6px; margin-bottom: 4px;
+    border: 1px solid transparent; transition: border-color .15s;
+    display: flex; align-items: flex-start; gap: 8px; group: block;
+  }
+  .block:hover { border-color: var(--border-subtle); }
+  .block:focus-within { border-color: var(--border-focus); }
+  .block-grip {
+    cursor: grab; color: var(--text-muted); font-size: 14px; padding: 2px;
+    opacity: 0; transition: opacity .15s; user-select: none; flex-shrink: 0;
+  }
+  .block:hover .block-grip { opacity: 1; }
+  .block-body { flex: 1; min-width: 0; }
+  .block-actions {
+    display: flex; gap: 4px; opacity: 0; transition: opacity .15s; flex-shrink: 0;
+  }
+  .block:hover .block-actions { opacity: 1; }
+  .block-content {
+    outline: none; min-height: 1.4em; line-height: 1.6; word-break: break-word;
+  }
+  .block-content[contenteditable="true"]:empty::before {
+    content: attr(data-placeholder); color: var(--text-muted);
+  }
+  .block[data-type="heading"] .block-content { font-size: 20px; font-weight: 700; }
+  .block[data-type="code"] .block-content {
+    font-family: var(--font-code); font-size: 13px; background: var(--bg-input);
+    padding: 10px 12px; border-radius: 4px; white-space: pre-wrap;
+  }
+  .block[data-type="list"] .block-content::before {
+    content: '•'; margin-right: 8px; color: var(--teal);
+  }
+  .block[data-type="divider"] { pointer-events: none; padding: 12px 0; }
+  .block[data-type="divider"] .block-body {
+    height: 1px; background: var(--border-default); border-radius: 1px;
+  }
+
+  /* ── Buttons ─────────────────────────────────────────── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border-default);
+    background: var(--bg-elevated); color: var(--text-primary);
+    font-size: 13px; font-family: var(--font-ui); cursor: pointer;
+    transition: all .15s ease; white-space: nowrap;
+  }
+  .btn:hover { border-color: var(--teal); background: var(--teal-glow); }
+  .btn-sm { padding: 4px 8px; font-size: 12px; }
+  .btn-icon {
+    background: none; border: none; color: var(--text-muted);
+    cursor: pointer; padding: 4px; border-radius: 4px; font-size: 14px;
+    transition: color .15s, background .15s;
+  }
+  .btn-icon:hover { color: var(--text-primary); background: var(--bg-elevated); }
+  .btn-icon.danger:hover { color: var(--danger); }
+  .btn-teal {
+    background: var(--teal); color: #0C1017; border-color: var(--teal); font-weight: 600;
+  }
+  .btn-teal:hover { background: #00e6b8; border-color: #00e6b8; }
+  .btn-danger { border-color: var(--danger); color: var(--danger); }
+  .btn-danger:hover { background: rgba(239,68,68,0.12); }
+
+  /* ── Dropdown ────────────────────────────────────────── */
+  .dropdown { position: relative; display: inline-block; }
+  .dropdown-menu {
+    position: absolute; bottom: 100%; left: 0; margin-bottom: 4px;
+    background: var(--bg-elevated); border: 1px solid var(--border-default);
+    border-radius: 8px; padding: 4px; min-width: 160px; z-index: 500;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4); display: none;
+  }
+  .dropdown-menu.open { display: block; }
+  .dropdown-item {
+    display: block; width: 100%; padding: 8px 12px; border: none; background: none;
+    color: var(--text-primary); font-size: 13px; text-align: left;
+    border-radius: 4px; cursor: pointer; font-family: var(--font-ui);
+  }
+  .dropdown-item:hover { background: var(--teal-glow); color: var(--teal); }
+  .dropdown-item span { margin-right: 8px; }
+
+  /* ── Side Panels ─────────────────────────────────────── */
+  .side-panel {
+    width: 300px; min-width: 300px; background: var(--bg-surface);
+    border-left: 1px solid var(--border-subtle);
+    display: none; flex-direction: column; overflow: hidden;
+  }
+  .side-panel.open { display: flex; }
+  .side-panel-header {
+    padding: 16px; border-bottom: 1px solid var(--border-subtle);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .side-panel-header h3 {
+    font-size: 13px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--text-secondary);
+  }
+  .side-panel-body { flex: 1; overflow-y: auto; padding: 12px 16px; }
+
+  /* ── Version / Collaborator items ────────────────────── */
+  .ver-item, .collab-item {
+    padding: 10px 0; border-bottom: 1px solid var(--border-subtle);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .ver-item:last-child, .collab-item:last-child { border-bottom: none; }
+  .ver-label { font-size: 13px; color: var(--text-primary); }
+  .ver-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* ── Modal ───────────────────────────────────────────── */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+    display: none; align-items: center; justify-content: center;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--bg-elevated); border: 1px solid var(--border-default);
+    border-radius: 12px; padding: 24px; min-width: 380px; max-width: 480px; width: 90%;
+    box-shadow: 0 12px 40px rgba(0,0,0,.5);
+  }
+  .modal h3 { font-size: 16px; margin-bottom: 16px; }
+  .modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+  /* ── Inputs ──────────────────────────────────────────── */
+  .input {
+    width: 100%; padding: 8px 12px; border-radius: 6px; font-size: 13px;
+    font-family: var(--font-ui); background: var(--bg-input); color: var(--text-primary);
+    border: 1px solid var(--border-default); outline: none; transition: border-color .15s;
+  }
+  .input:focus { border-color: var(--border-focus); }
+  .input-group { margin-bottom: 12px; }
+  .input-group label {
+    display: block; font-size: 12px; color: var(--text-secondary);
+    margin-bottom: 4px; font-weight: 500;
+  }
+
+  /* ── Empty / Loading ─────────────────────────────────── */
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 48px 24px; text-align: center; flex: 1;
+  }
+  .empty-state-icon { font-size: 40px; margin-bottom: 12px; opacity: .5; }
+  .empty-state p { color: var(--text-muted); font-size: 14px; margin-bottom: 12px; }
+  .loading {
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px; color: var(--text-muted); font-size: 13px; gap: 8px;
+  }
+  .spinner {
+    width: 16px; height: 16px; border: 2px solid var(--border-default);
+    border-top-color: var(--teal); border-radius: 50%;
+    animation: spin .6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Scrollbar ───────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-focus); }
+</style>
+</head>
+<body>
+
+<!-- Error Banner -->
+<div class="error-banner" id="error-banner">
+  <span id="error-message"></span>
+  <button onclick="dismissError()" title="Dismiss">✕</button>
+</div>
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <span class="topbar-brand-icon">☠</span>
+    <span>Murphy System</span>
+    <span class="topbar-title">/ Workdocs</span>
+  </div>
+  <div class="topbar-right">
+    <span class="topbar-status" id="refresh-status"></span>
+  </div>
+</div>
+
+<murphy-sidebar active="WORKDOCS"></murphy-sidebar>
+
+<!-- Layout -->
+<div class="layout">
+
+  <!-- Document Sidebar -->
+  <div class="doc-sidebar">
+    <div class="doc-sidebar-header">
+      <h2>Documents</h2>
+      <button class="btn btn-sm btn-teal" id="btn-new-doc" title="Create document">+ New</button>
+    </div>
+    <div class="doc-sidebar-list" id="doc-list">
+      <div class="loading" id="doc-list-loading"><div class="spinner"></div> Loading…</div>
+    </div>
+  </div>
+
+  <!-- Editor Area -->
+  <div class="editor-area" id="editor-area">
+    <div class="empty-state" id="editor-empty">
+      <div class="empty-state-icon">📝</div>
+      <p>Select a document or create a new one to get started</p>
+      <button class="btn btn-teal" onclick="openNewDocModal()">+ Create Document</button>
+    </div>
+
+    <!-- Editor (hidden until doc selected) -->
+    <div id="editor-main" style="display:none; flex:1; flex-direction:column; overflow:hidden;">
+      <div class="editor-toolbar">
+        <input class="input" id="doc-title-input" style="flex:1; max-width:400px; font-weight:600;"
+               placeholder="Document title" spellcheck="false">
+        <button class="btn btn-sm" id="btn-versions" title="Version history">🕒 Versions</button>
+        <button class="btn btn-sm" id="btn-collabs" title="Collaborators">👥 Collaborators</button>
+        <button class="btn btn-sm" id="btn-comments" title="Comments">💬 Comments</button>
+        <button class="btn btn-sm" id="btn-notifications" title="Notifications">🔔 <span id="notif-count" style="font-size:0.7rem;"></span></button>
+        <button class="btn btn-sm btn-danger" id="btn-delete-doc" title="Delete document">🗑 Delete</button>
+      </div>
+      <div class="editor-content" id="block-list">
+        <div class="loading" id="block-loading"><div class="spinner"></div> Loading blocks…</div>
+      </div>
+      <div style="padding:12px 24px; border-top:1px solid var(--border-subtle);">
+        <div class="dropdown">
+          <button class="btn btn-sm" id="btn-add-block">+ Add Block</button>
+          <div class="dropdown-menu" id="block-type-menu">
+            <button class="dropdown-item" data-type="text"><span>📝</span> Text</button>
+            <button class="dropdown-item" data-type="heading"><span>📰</span> Heading</button>
+            <button class="dropdown-item" data-type="list"><span>📋</span> List</button>
+            <button class="dropdown-item" data-type="code"><span>💻</span> Code</button>
+            <button class="dropdown-item" data-type="divider"><span>➖</span> Divider</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Version History Panel -->
+  <div class="side-panel" id="panel-versions">
+    <div class="side-panel-header">
+      <h3>Version History</h3>
+      <button class="btn-icon" onclick="closePanel('versions')" title="Close">✕</button>
+    </div>
+    <div style="padding:12px 16px; border-bottom:1px solid var(--border-subtle);">
+      <div class="input-group" style="margin-bottom:8px;">
+        <label>Summary (optional)</label>
+        <input class="input" id="version-summary" placeholder="e.g. Final draft">
+      </div>
+      <button class="btn btn-sm btn-teal" id="btn-create-version" style="width:100%;">📸 Create Snapshot</button>
+    </div>
+    <div class="side-panel-body" id="version-list"></div>
+  </div>
+
+  <!-- Collaborator Panel -->
+  <div class="side-panel" id="panel-collabs">
+    <div class="side-panel-header">
+      <h3>Collaborators</h3>
+      <button class="btn-icon" onclick="closePanel('collabs')" title="Close">✕</button>
+    </div>
+    <div style="padding:12px 16px; border-bottom:1px solid var(--border-subtle);">
+      <div class="input-group" style="margin-bottom:8px;">
+        <label>User ID</label>
+        <input class="input" id="collab-user-id" placeholder="Enter user ID">
+      </div>
+      <button class="btn btn-sm btn-teal" id="btn-add-collab" style="width:100%;">+ Add Collaborator</button>
+    </div>
+    <div class="side-panel-body" id="collab-list"></div>
+  </div>
+
+  <!-- Collaboration: Comments Panel -->
+  <div class="side-panel" id="panel-comments">
+    <div class="side-panel-header">
+      <h3>Comments</h3>
+      <button class="btn-icon" onclick="closePanel('comments')" title="Close">✕</button>
+    </div>
+    <div style="padding:12px 16px; border-bottom:1px solid var(--border-subtle);">
+      <div class="input-group" style="margin-bottom:8px;">
+        <input class="input" id="comment-input" placeholder="Add a comment…">
+      </div>
+      <button class="btn btn-sm btn-teal" id="btn-post-comment" style="width:100%;">💬 Post Comment</button>
+    </div>
+    <div class="side-panel-body" id="comment-list"></div>
+  </div>
+
+  <!-- Collaboration: Notifications Panel -->
+  <div class="side-panel" id="panel-notifications">
+    <div class="side-panel-header">
+      <h3>Notifications <span id="notif-badge" style="background:var(--teal);color:#000;font-size:0.7rem;padding:1px 6px;border-radius:10px;display:none;">0</span></h3>
+      <button class="btn-icon" onclick="closePanel('notifications')" title="Close">✕</button>
+    </div>
+    <div class="side-panel-body" id="notification-list"></div>
+  </div>
+
+</div>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal">
+    <h3 id="modal-title"></h3>
+    <div id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<script src="static/murphy-components.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ── API helper ────────────────────────────────────── */
+  var API = function (path, opts) {
+    opts = opts || {};
+    return fetch(path, {
+      method: opts.method || 'GET',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+      body: opts.body ? (typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body)) : undefined,
+    }).then(function (r) {
+      if (!r.ok) {
+        return r.json().then(function (d) {
+          throw new Error(d.detail || d.error || 'Request failed (' + r.status + ')');
+        }).catch(function (e) {
+          if (e.message) throw e;
+          throw new Error('Request failed (' + r.status + ')');
+        });
+      }
+      return r.json();
+    }).catch(function (e) {
+      showError(e.message);
+      throw e;
+    });
+  };
+
+  /* ── DOM refs ──────────────────────────────────────── */
+  var $errorBanner   = document.getElementById('error-banner');
+  var $errorMessage  = document.getElementById('error-message');
+  var $refreshStatus = document.getElementById('refresh-status');
+  var $docList       = document.getElementById('doc-list');
+  var $docListLoad   = document.getElementById('doc-list-loading');
+  var $editorEmpty   = document.getElementById('editor-empty');
+  var $editorMain    = document.getElementById('editor-main');
+  var $docTitle      = document.getElementById('doc-title-input');
+  var $blockList     = document.getElementById('block-list');
+  var $blockLoading  = document.getElementById('block-loading');
+  var $blockTypeMenu = document.getElementById('block-type-menu');
+  var $modalBackdrop = document.getElementById('modal-backdrop');
+  var $modalTitle    = document.getElementById('modal-title');
+  var $modalBody     = document.getElementById('modal-body');
+  var $modalFooter   = document.getElementById('modal-footer');
+  var $versionList   = document.getElementById('version-list');
+  var $collabList    = document.getElementById('collab-list');
+
+  /* ── State ─────────────────────────────────────────── */
+  var documents = [];
+  var activeDocId = null;
+  var activeDoc = null;
+
+  /* ── Error handling ────────────────────────────────── */
+  function showError(msg) {
+    $errorMessage.textContent = msg;
+    $errorBanner.classList.add('visible');
+  }
+  window.dismissError = function () {
+    $errorBanner.classList.remove('visible');
+  };
+
+  function updateStatus(msg) {
+    $refreshStatus.textContent = msg || 'Updated ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  /* ── Modal helpers ─────────────────────────────────── */
+  function openModal(title, bodyHtml, footerHtml) {
+    $modalTitle.textContent = title;
+    $modalBody.innerHTML = bodyHtml;
+    $modalFooter.innerHTML = footerHtml;
+    $modalBackdrop.classList.add('open');
+  }
+  window.closeModal = function () {
+    $modalBackdrop.classList.remove('open');
+  };
+  $modalBackdrop.addEventListener('click', function (e) {
+    if (e.target === $modalBackdrop) window.closeModal();
+  });
+
+  /* ── Panel toggles ─────────────────────────────────── */
+  function togglePanel(name) {
+    var panel = document.getElementById('panel-' + name);
+    var isOpen = panel.classList.contains('open');
+    document.querySelectorAll('.side-panel').forEach(function (p) { p.classList.remove('open'); });
+    if (!isOpen) {
+      panel.classList.add('open');
+      if (name === 'versions') loadVersions();
+      if (name === 'collabs') renderCollaborators();
+      if (name === 'comments') loadComments();
+      if (name === 'notifications') loadNotifications();
+    }
+  }
+  window.closePanel = function (name) {
+    document.getElementById('panel-' + name).classList.remove('open');
+  };
+  document.getElementById('btn-versions').addEventListener('click', function () { togglePanel('versions'); });
+  document.getElementById('btn-collabs').addEventListener('click', function () { togglePanel('collabs'); });
+
+  /* ── Format date ───────────────────────────────────── */
+  function fmtDate(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
+           d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  /* ────────────────────────────────────────────────────
+     DOCUMENTS
+  ──────────────────────────────────────────────────── */
+  function loadDocuments(silent) {
+    if (!silent) $docListLoad.style.display = 'flex';
+    updateStatus('Refreshing…');
+    API('/api/workdocs').then(function (data) {
+      documents = Array.isArray(data) ? data : [];
+      renderDocList();
+      updateStatus();
+    }).catch(function () {
+      updateStatus('Error');
+    }).finally(function () {
+      $docListLoad.style.display = 'none';
+    });
+  }
+
+  function renderDocList() {
+    var html = '';
+    if (documents.length === 0) {
+      html = '<div class="empty-state" style="padding:24px 12px;">' +
+             '<div class="empty-state-icon" style="font-size:28px;">📄</div>' +
+             '<p style="font-size:12px;">No documents yet</p></div>';
+    } else {
+      documents.forEach(function (doc) {
+        var active = doc.id === activeDocId ? ' active' : '';
+        html += '<div class="doc-item' + active + '" data-id="' + doc.id + '">' +
+                '<div class="doc-item-title">' + escHtml(doc.title || 'Untitled') + '</div>' +
+                '<div class="doc-item-meta">' + fmtDate(doc.updated_at || doc.created_at) + '</div>' +
+                '</div>';
+      });
+    }
+    $docList.innerHTML = html;
+    $docList.querySelectorAll('.doc-item').forEach(function (el) {
+      el.addEventListener('click', function () { selectDoc(el.getAttribute('data-id')); });
+    });
+  }
+
+  function selectDoc(docId) {
+    activeDocId = docId;
+    renderDocList();
+    loadDoc(docId);
+  }
+
+  function loadDoc(docId) {
+    $editorEmpty.style.display = 'none';
+    $editorMain.style.display = 'flex';
+    $blockLoading.style.display = 'flex';
+    API('/api/workdocs/' + docId).then(function (doc) {
+      activeDoc = doc;
+      $docTitle.value = doc.title || '';
+      renderBlocks(doc.blocks || []);
+    }).catch(function () {
+      $editorMain.style.display = 'none';
+      $editorEmpty.style.display = 'flex';
+    }).finally(function () {
+      $blockLoading.style.display = 'none';
+    });
+  }
+
+  /* ── Create document ───────────────────────────────── */
+  window.openNewDocModal = function () {
+    openModal('Create Document',
+      '<div class="input-group"><label>Title</label>' +
+      '<input class="input" id="new-doc-title" placeholder="Document title" autofocus></div>',
+      '<button class="btn" onclick="closeModal()">Cancel</button>' +
+      '<button class="btn btn-teal" id="modal-create-btn">Create</button>'
+    );
+    setTimeout(function () {
+      var inp = document.getElementById('new-doc-title');
+      if (inp) inp.focus();
+      var btn = document.getElementById('modal-create-btn');
+      if (btn) btn.addEventListener('click', doCreateDoc);
+      if (inp) inp.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') doCreateDoc();
+      });
+    }, 50);
+  };
+
+  function doCreateDoc() {
+    var inp = document.getElementById('new-doc-title');
+    var title = (inp ? inp.value : '').trim();
+    if (!title) { inp && inp.focus(); return; }
+    window.closeModal();
+    API('/api/workdocs', { method: 'POST', body: { title: title } }).then(function (doc) {
+      loadDocuments();
+      if (doc && doc.id) selectDoc(doc.id);
+    });
+  }
+  document.getElementById('btn-new-doc').addEventListener('click', window.openNewDocModal);
+
+  /* ── Rename document ───────────────────────────────── */
+  var titleTimer = null;
+  $docTitle.addEventListener('input', function () {
+    clearTimeout(titleTimer);
+    titleTimer = setTimeout(function () {
+      if (!activeDocId) return;
+      API('/api/workdocs/' + activeDocId, { method: 'PATCH', body: { title: $docTitle.value.trim() } }).then(function () {
+        loadDocuments(true);
+      });
+    }, 600);
+  });
+
+  /* ── Delete document ───────────────────────────────── */
+  document.getElementById('btn-delete-doc').addEventListener('click', function () {
+    if (!activeDocId) return;
+    openModal('Delete Document',
+      '<p style="color:var(--text-secondary);font-size:14px;">Are you sure you want to delete <strong>' +
+      escHtml(activeDoc ? activeDoc.title : '') + '</strong>? This cannot be undone.</p>',
+      '<button class="btn" onclick="closeModal()">Cancel</button>' +
+      '<button class="btn btn-danger" id="modal-confirm-delete">Delete</button>'
+    );
+    setTimeout(function () {
+      var btn = document.getElementById('modal-confirm-delete');
+      if (btn) btn.addEventListener('click', function () {
+        window.closeModal();
+        API('/api/workdocs/' + activeDocId, { method: 'DELETE' }).then(function () {
+          activeDocId = null;
+          activeDoc = null;
+          $editorMain.style.display = 'none';
+          $editorEmpty.style.display = 'flex';
+          document.querySelectorAll('.side-panel').forEach(function (p) { p.classList.remove('open'); });
+          loadDocuments();
+        });
+      });
+    }, 50);
+  });
+
+  /* ────────────────────────────────────────────────────
+     BLOCKS
+  ──────────────────────────────────────────────────── */
+  function renderBlocks(blocks) {
+    if (!blocks || blocks.length === 0) {
+      $blockList.innerHTML = '<div class="empty-state" id="blocks-empty">' +
+        '<div class="empty-state-icon">📑</div>' +
+        '<p>This document is empty. Add a block to get started.</p></div>';
+      return;
+    }
+    var html = '';
+    blocks.forEach(function (b) {
+      html += blockHtml(b);
+    });
+    $blockList.innerHTML = html;
+    bindBlockEvents();
+  }
+
+  function blockHtml(b) {
+    var type = b.block_type || b.type || 'text';
+    var content = escHtml(b.content || '');
+    if (type === 'divider') {
+      return '<div class="block" data-type="divider" data-id="' + b.id + '">' +
+             '<span class="block-grip">⠿</span><div class="block-body"></div>' +
+             '<div class="block-actions"><button class="btn-icon danger" data-action="delete-block" title="Delete">🗑</button></div></div>';
+    }
+    var placeholder = type === 'heading' ? 'Heading' : type === 'code' ? 'Code' : type === 'list' ? 'List item' : 'Type something…';
+    return '<div class="block" data-type="' + type + '" data-id="' + b.id + '">' +
+           '<span class="block-grip">⠿</span>' +
+           '<div class="block-body"><div class="block-content" contenteditable="true" data-placeholder="' + placeholder + '">' +
+           content + '</div></div>' +
+           '<div class="block-actions">' +
+           '<button class="btn-icon danger" data-action="delete-block" title="Delete block">🗑</button>' +
+           '</div></div>';
+  }
+
+  function bindBlockEvents() {
+    $blockList.querySelectorAll('.block-content[contenteditable]').forEach(function (el) {
+      el.addEventListener('blur', function () { saveBlock(el); });
+      el.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey && el.closest('.block').getAttribute('data-type') !== 'code') {
+          e.preventDefault();
+          el.blur();
+        }
+      });
+    });
+    $blockList.querySelectorAll('[data-action="delete-block"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var block = btn.closest('.block');
+        var blockId = block.getAttribute('data-id');
+        confirmDeleteBlock(blockId);
+      });
+    });
+  }
+
+  function saveBlock(el) {
+    var block = el.closest('.block');
+    var blockId = block.getAttribute('data-id');
+    var content = el.textContent;
+    if (!activeDocId || !blockId) return;
+    API('/api/workdocs/' + activeDocId + '/blocks/' + blockId, {
+      method: 'PATCH', body: { content: content }
+    });
+  }
+
+  function confirmDeleteBlock(blockId) {
+    openModal('Delete Block',
+      '<p style="color:var(--text-secondary);font-size:14px;">Delete this block? This cannot be undone.</p>',
+      '<button class="btn" onclick="closeModal()">Cancel</button>' +
+      '<button class="btn btn-danger" id="modal-confirm-del-block">Delete</button>'
+    );
+    setTimeout(function () {
+      var btn = document.getElementById('modal-confirm-del-block');
+      if (btn) btn.addEventListener('click', function () {
+        window.closeModal();
+        API('/api/workdocs/' + activeDocId + '/blocks/' + blockId, { method: 'DELETE' }).then(function () {
+          loadDoc(activeDocId);
+        });
+      });
+    }, 50);
+  }
+
+  /* ── Add block dropdown ────────────────────────────── */
+  document.getElementById('btn-add-block').addEventListener('click', function (e) {
+    e.stopPropagation();
+    $blockTypeMenu.classList.toggle('open');
+  });
+  document.addEventListener('click', function () { $blockTypeMenu.classList.remove('open'); });
+  $blockTypeMenu.addEventListener('click', function (e) { e.stopPropagation(); });
+
+  $blockTypeMenu.querySelectorAll('.dropdown-item').forEach(function (item) {
+    item.addEventListener('click', function () {
+      var type = item.getAttribute('data-type');
+      $blockTypeMenu.classList.remove('open');
+      if (!activeDocId) return;
+      API('/api/workdocs/' + activeDocId + '/blocks', {
+        method: 'POST', body: { block_type: type, content: type === 'divider' ? '' : '' }
+      }).then(function () {
+        loadDoc(activeDocId);
+      });
+    });
+  });
+
+  /* ────────────────────────────────────────────────────
+     VERSIONS
+  ──────────────────────────────────────────────────── */
+  function loadVersions() {
+    if (!activeDocId) return;
+    $versionList.innerHTML = '<div class="loading"><div class="spinner"></div> Loading…</div>';
+    API('/api/workdocs/' + activeDocId + '/versions').then(function (data) {
+      var versions = Array.isArray(data) ? data : [];
+      if (versions.length === 0) {
+        $versionList.innerHTML = '<div class="empty-state" style="padding:24px 0;"><p style="font-size:12px;">No versions yet</p></div>';
+        return;
+      }
+      var html = '';
+      versions.forEach(function (v) {
+        html += '<div class="ver-item"><div>' +
+                '<div class="ver-label">' + escHtml(v.summary || 'Snapshot') + '</div>' +
+                '<div class="ver-meta">' + fmtDate(v.created_at) + (v.editor_id ? ' · ' + escHtml(v.editor_id) : '') + '</div>' +
+                '</div></div>';
+      });
+      $versionList.innerHTML = html;
+    }).catch(function () {
+      $versionList.innerHTML = '<div class="empty-state" style="padding:24px 0;"><p style="font-size:12px;color:var(--danger);">Failed to load versions</p></div>';
+    });
+  }
+
+  document.getElementById('btn-create-version').addEventListener('click', function () {
+    if (!activeDocId) return;
+    var summary = document.getElementById('version-summary').value.trim();
+    API('/api/workdocs/' + activeDocId + '/versions', {
+      method: 'POST', body: { editor_id: 'current_user', summary: summary || undefined }
+    }).then(function () {
+      document.getElementById('version-summary').value = '';
+      loadVersions();
+    });
+  });
+
+  /* ────────────────────────────────────────────────────
+     COLLABORATORS
+  ──────────────────────────────────────────────────── */
+  function renderCollaborators() {
+    if (!activeDoc) { $collabList.innerHTML = ''; return; }
+    var ids = activeDoc.collaborator_ids || [];
+    if (ids.length === 0) {
+      $collabList.innerHTML = '<div class="empty-state" style="padding:24px 0;"><p style="font-size:12px;">No collaborators</p></div>';
+      return;
+    }
+    var html = '';
+    ids.forEach(function (uid) {
+      html += '<div class="collab-item">' +
+              '<span style="font-size:13px;">' + escHtml(uid) + '</span>' +
+              '<button class="btn-icon danger" title="Remove" data-remove-collab="' + escHtml(uid) + '">✕</button>' +
+              '</div>';
+    });
+    $collabList.innerHTML = html;
+    $collabList.querySelectorAll('[data-remove-collab]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var uid = btn.getAttribute('data-remove-collab');
+        removeCollaborator(uid);
+      });
+    });
+  }
+
+  document.getElementById('btn-add-collab').addEventListener('click', function () {
+    var inp = document.getElementById('collab-user-id');
+    var uid = inp.value.trim();
+    if (!uid || !activeDocId) return;
+    API('/api/workdocs/' + activeDocId + '/collaborators', {
+      method: 'POST', body: { user_id: uid }
+    }).then(function (data) {
+      inp.value = '';
+      if (data && data.collaborator_ids) {
+        activeDoc.collaborator_ids = data.collaborator_ids;
+      }
+      renderCollaborators();
+    });
+  });
+
+  function removeCollaborator(uid) {
+    if (!activeDocId) return;
+    API('/api/workdocs/' + activeDocId + '/collaborators/' + encodeURIComponent(uid), { method: 'DELETE' }).then(function () {
+      if (activeDoc && activeDoc.collaborator_ids) {
+        activeDoc.collaborator_ids = activeDoc.collaborator_ids.filter(function (id) { return id !== uid; });
+      }
+      renderCollaborators();
+    });
+  }
+
+  /* ── HTML escape ───────────────────────────────────── */
+  function escHtml(str) {
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(str));
+    return d.innerHTML;
+  }
+
+  /* ── Collaboration: Comments ──────────────────────────── */
+  var $commentList = document.getElementById('comment-list');
+  var $commentInput = document.getElementById('comment-input');
+
+  function loadComments() {
+    if (!activeDocId) return;
+    API('/api/collaboration/comments/' + encodeURIComponent(activeDocId)).then(function (data) {
+      var comments = data.comments || data || [];
+      if (!comments.length) {
+        $commentList.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:0.82rem;">No comments yet.</div>';
+        return;
+      }
+      var html = '';
+      comments.forEach(function (c) {
+        html += '<div style="padding:8px 0;border-bottom:1px solid var(--border-subtle);font-size:0.82rem;">';
+        html += '<strong style="color:var(--teal);">' + escHtml(c.author_name || c.author_id || 'anon') + '</strong> ';
+        html += '<span style="color:var(--text-secondary);">' + escHtml(c.body || '') + '</span>';
+        html += '</div>';
+      });
+      $commentList.innerHTML = html;
+    }).catch(function () {
+      $commentList.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:0.82rem;">Failed to load comments.</div>';
+    });
+  }
+
+  document.getElementById('btn-post-comment').addEventListener('click', function () {
+    var body = ($commentInput.value || '').trim();
+    if (!body || !activeDocId) return;
+    API('/api/collaboration/comments', {
+      method: 'POST',
+      body: { entity_type: 'workdoc', entity_id: activeDocId, body: body }
+    }).then(function () {
+      $commentInput.value = '';
+      loadComments();
+    });
+  });
+
+  if (document.getElementById('btn-comments')) {
+    document.getElementById('btn-comments').addEventListener('click', function () {
+      togglePanel('comments');
+    });
+  }
+
+  /* ── Collaboration: Notifications ─────────────────────── */
+  var $notifList = document.getElementById('notification-list');
+  var $notifBadge = document.getElementById('notif-badge');
+  var $notifCount = document.getElementById('notif-count');
+
+  function loadNotifications() {
+    API('/api/collaboration/notifications/current-user/count').then(function (data) {
+      var count = data.unread || data.count || 0;
+      if ($notifBadge) {
+        $notifBadge.textContent = count;
+        $notifBadge.style.display = count > 0 ? 'inline' : 'none';
+      }
+      if ($notifCount) {
+        $notifCount.textContent = count > 0 ? '(' + count + ')' : '';
+      }
+    }).catch(function () {});
+
+    API('/api/collaboration/notifications/current-user').then(function (data) {
+      var notifs = data.notifications || data || [];
+      if (!notifs.length) {
+        $notifList.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:0.82rem;">No notifications.</div>';
+        return;
+      }
+      var html = '';
+      notifs.slice(0, 20).forEach(function (n) {
+        html += '<div style="padding:8px 0;border-bottom:1px solid var(--border-subtle);font-size:0.82rem;">';
+        html += '<strong style="color:var(--info);">' + escHtml(n.type || '') + '</strong> ';
+        html += '<span>' + escHtml(n.message || n.body || '') + '</span>';
+        html += '</div>';
+      });
+      $notifList.innerHTML = html;
+    }).catch(function () {
+      $notifList.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:0.82rem;">Failed to load.</div>';
+    });
+  }
+
+  if (document.getElementById('btn-notifications')) {
+    document.getElementById('btn-notifications').addEventListener('click', function () {
+      togglePanel('notifications');
+    });
+  }
+
+  /* ── Collaboration: Activity Feed ─────────────────────── */
+  function loadCollabFeed() {
+    if (!activeDocId) return;
+    API('/api/collaboration/feed/item/' + encodeURIComponent(activeDocId)).then(function () {
+      // Feed data loaded for collaboration awareness
+    }).catch(function () {});
+  }
+
+  /* ── Init ──────────────────────────────────────────── */
+  loadDocuments();
+  loadNotifications();
+
+}());
+</script>
+</body>
+</html>

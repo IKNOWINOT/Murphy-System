@@ -66,9 +66,9 @@ except ImportError:
 
 # Placeholder strings that appear in template .env files but are not real keys.
 _PLACEHOLDER_KEY_VALUES = frozenset({
-    "your_groq_key_here", "your_openai_key_here",
+    "your_deepinfra_key_here", "your_openai_key_here",
     # Placeholders used in .env.example
-    "your_groq_api_key_here", "sk-your_openai_key_here",
+    "your_deepinfra_api_key_here", "sk-your_openai_key_here",
     "sk-ant-your_anthropic_key_here",
     "your_key_here", "your-key-here", "change_me",
     "changeme", "xxx", "none",
@@ -116,7 +116,7 @@ MODULE_COMMAND_MAP: dict[str, list[str]] = {
 API_PROVIDER_LINKS: dict[str, dict[str, str]] = {
     "deepinfra": {
         "name": "DeepInfra",
-        "url": "https://console.deepinfra.com/keys",
+        "url": "https://deepinfra.com",
         "env_var": "DEEPINFRA_API_KEY",
         "description": "LLM provider (fast inference for Llama, Mixtral, Gemma)",
     },
@@ -486,7 +486,7 @@ class DialogContext:
             msg += (
                 "\n[bold cyan]What to do next:[/bold cyan]\n"
                 "  1. Sign up for the API keys listed above (links provided)\n"
-                "  2. Set keys right here: [green]set key deepinfra gsk_...[/green] (no restart needed)\n"
+                "  2. Set keys right here: [green]set key deepinfra di_...[/green] (no restart needed)\n"
                 "  3. Type [green]status[/green] to verify everything is connected\n"
                 "  4. Type [green]execute <your first task>[/green] to start automating!\n\n"
             )
@@ -1097,9 +1097,9 @@ class MurphyTerminalApp(App):
             "[bold yellow]⚠ No DeepInfra API key detected[/bold yellow]\n\n"
             "Murphy needs at least a DeepInfra API key for full AI features.\n\n"
             "[bold cyan]Get your free key:[/bold cyan]\n"
-            "  → [link=https://console.deepinfra.com/keys]https://console.deepinfra.com/keys[/link]\n\n"
+            "  → [link=https://deepinfra.com]https://deepinfra.com[/link]\n\n"
             "Then paste it here, or type:\n"
-            "  [green]set key deepinfra gsk_yourKeyHere[/green]\n"
+            "  [green]set key deepinfra di_yourKeyHere[/green]\n"
             "  [green]skip[/green] — continue in offline mode (limited functionality)\n"
         )
 
@@ -1118,9 +1118,9 @@ class MurphyTerminalApp(App):
             )
             return
 
-        # Check if it looks like a bare key (starts with gsk_)
+        # Check if it looks like a bare key (starts with di_)
         bare = strip_key_wrapping(stripped)
-        if bare.startswith("gsk_"):
+        if bare.startswith("di_"):
             self._awaiting_api_key = False
             self._apply_api_key("deepinfra", bare)
             return
@@ -1353,7 +1353,7 @@ class MurphyTerminalApp(App):
             "  • [green]show modules[/green] — list all modules and commands\n"
             "  • [green]librarian[/green] — consult knowledge-base expert\n"
             "  • [green]api keys[/green] — get API signup links for integrations\n"
-            "  • [green]set key <provider> <key>[/green] — set an API key inline (e.g. [green]set key deepinfra gsk_...[/green])\n"
+            "  • [green]set key <provider> <key>[/green] — set an API key inline (e.g. [green]set key deepinfra di_...[/green])\n"
             "  • [green]plan[/green] — two-plane planning & execution overview\n"
             "  • [green]pending / hitl[/green] — pending interventions\n"
             "  • [green]corrections[/green] — correction statistics\n\n"
@@ -1422,7 +1422,7 @@ class MurphyTerminalApp(App):
                 f"Usage: [green]set key <provider> <key>[/green]\n"
                 f"Supported providers: [green]{supported}[/green]\n\n"
                 "Examples:\n"
-                "  [green]set key deepinfra gsk_abc123...[/green]\n"
+                "  [green]set key deepinfra di_abc123...[/green]\n"
                 "  [green]set key openai sk-abc123...[/green]\n"
                 "  [green]set key anthropic sk-ant-abc123...[/green]"
             )
@@ -1495,7 +1495,7 @@ class MurphyTerminalApp(App):
             self._write_murphy(
                 f"[yellow]⚠ Key saved but authentication failed: {err}[/yellow]\n"
                 "[dim]Please verify your key at "
-                "[link=https://console.deepinfra.com/keys]https://console.deepinfra.com/keys[/link][/dim]"
+                "[link=https://deepinfra.com]https://deepinfra.com[/link][/dim]"
             )
 
         # Refresh the StatusBar — only mark LLM On if the test passed
@@ -1729,8 +1729,8 @@ class MurphyTerminalApp(App):
                     f"[bold yellow]🤖 LLM Status — Not Configured[/bold yellow]\n\n"
                     f"  Error: {error}\n\n"
                     "To enable LLM, set your API key right here:\n"
-                    "  [green]set key deepinfra gsk_your_key_here[/green]\n\n"
-                    "Get a free key: [link=https://console.deepinfra.com/keys]https://console.deepinfra.com/keys[/link]"
+                    "  [green]set key deepinfra di_your_key_here[/green]\n\n"
+                    "Get a free key: [link=https://deepinfra.com]https://deepinfra.com[/link]"
                 )
         except Exception as exc:
             self._write_murphy(f"[red]Could not fetch LLM status: {self._friendly_error(exc)}[/red]")
@@ -1860,8 +1860,8 @@ class MurphyTerminalApp(App):
                     f"   Test keys    : [cyan]{keys}[/cyan] key(s) loaded\n\n"
                     "[dim]💡 Best free key provider:[/dim]\n"
                     "   [bold]DeepInfra[/bold] — Free tier, generous limits, fast inference\n"
-                    "   Signup: [link=https://console.deepinfra.com/keys]https://console.deepinfra.com/keys[/link]\n"
-                    "   Then: [green]set key deepinfra gsk_your_key[/green]\n\n"
+                    "   Signup: [link=https://deepinfra.com]https://deepinfra.com[/link]\n"
+                    "   Then: [green]set key deepinfra di_your_key[/green]\n\n"
                     "[dim]Session ends automatically when call or time limit is reached.\n"
                     "Run [green]test mode[/green] again to disable.[/dim]"
                 )
@@ -1958,9 +1958,9 @@ class MurphyTerminalApp(App):
             )
         lines.append(
             "\n[bold cyan]Quick Start (LLM):[/bold cyan]\n"
-            "  1. Get a free DeepInfra key: [link=https://console.deepinfra.com/keys]https://console.deepinfra.com/keys[/link]\n"
+            "  1. Get a free DeepInfra key: [link=https://deepinfra.com]https://deepinfra.com[/link]\n"
             "  2. Set it right here in the terminal:\n"
-            "     [green]set key deepinfra gsk_your_key_here[/green]\n"
+            "     [green]set key deepinfra di_your_key_here[/green]\n"
             "  That's it! No restart needed.\n\n"
             "[dim]Tip: Run [green]start interview[/green] and Murphy will recommend "
             "exactly which API keys you need based on your answers.[/dim]"
@@ -2089,7 +2089,7 @@ class MurphyTerminalApp(App):
                 self._write_murphy(
                     f"[yellow]⚠ LLM call failed: {err_msg}[/yellow]\n"
                     "[dim]Your API key may be invalid. "
-                    "Get a new key at [link=https://console.deepinfra.com/keys]https://console.deepinfra.com/keys[/link] "
+                    "Get a new key at [link=https://deepinfra.com]https://deepinfra.com[/link] "
                     "then run [green]set key deepinfra <your-key>[/green][/dim]"
                 )
                 return

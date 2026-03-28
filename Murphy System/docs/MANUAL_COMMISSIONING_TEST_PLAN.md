@@ -65,7 +65,7 @@ pip install -r requirements_murphy_1.0.txt
    DEEPINFRA_API_KEY=<your-deepinfra-api-key>
    MURPHY_ENV=development
    ```
-   > If you do not have a DeepInfra API key, the system will still start but LLM-dependent features will return low-confidence results. Get a free key at https://console.deepinfra.com.
+   > If you do not have a DeepInfra API key, the system will still start but LLM-dependent features will return low-confidence results. Get a free key at https://deepinfra.com.
 
 **Expected Result:** `.env` file exists in the `Murphy System/` directory with at least the fields above.
 

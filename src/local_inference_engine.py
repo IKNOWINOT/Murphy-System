@@ -210,7 +210,7 @@ class LocalInferenceEngine:
             The user query.
         provider : str
             Routing hint — ``aristotle`` (deterministic), ``wulfrum``
-            (fuzzy), or ``deepinfra`` (generative).
+            (fuzzy), or ``deepinfra``/``together`` (generative).
         temperature : float
             Ignored in deterministic mode; kept for API compatibility.
         validation_type : str

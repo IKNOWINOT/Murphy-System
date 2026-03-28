@@ -275,14 +275,14 @@ class OpenAICompatibleProvider:
         # Resolve base URL — provider-specific defaults
         base_url = os.getenv("OPENAI_BASE_URL")
         if base_url is None and provider_type == ProviderType.DEEPINFRA:
-            base_url = "https://api.deepinfra.com/v1/openai"
+            base_url = "https://api.deepinfra.com/v1/openai/openai/v1"
         elif base_url is None and provider_type == ProviderType.OLLAMA:
             _ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
             base_url = f"{_ollama_host}/v1"
 
         default_model = os.getenv("OPENAI_DEFAULT_MODEL", "gpt-3.5-turbo")
         if provider_type == ProviderType.DEEPINFRA and default_model == "gpt-3.5-turbo":
-            default_model = "meta-llama/Meta-Llama-3.1-70B-Instruct"
+            default_model = "mistralai/Mixtral-8x22B-Instruct-v0.1"
         elif provider_type == ProviderType.OLLAMA and default_model == "gpt-3.5-turbo":
             default_model = os.getenv("OLLAMA_MODEL", "llama3")
         elif provider_type == ProviderType.ONBOARD:

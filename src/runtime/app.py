@@ -653,31 +653,16 @@ def create_app() -> FastAPI:
         register_session_validator(_cookie_session_validator)
     except ImportError:
         logger.warning("fastapi_security not available — falling back to env-based CORS")
-        # Check both env var names for backward compatibility (DEF-017)
-        _raw_cors = (
-            os.environ.get("MURPHY_CORS_ORIGINS")
-            or os.environ.get("MURPHY_ALLOWED_ORIGINS")
-            or ""
-        )
-        _murphy_env = os.environ.get("MURPHY_ENV", "development").lower()
-        if _raw_cors:
-            _cors_origins = [o.strip() for o in _raw_cors.split(",") if o.strip()]
-        elif _murphy_env in ("production", "staging"):
-            _cors_origins = []
-            logger.warning(
-                "MURPHY_CORS_ORIGINS not set — CORS blocked in %s mode", _murphy_env
-            )
-        else:
-            # Development mode: allow all origins for local dev
-            _cors_origins = ["*"]
-            logger.info("CORS: development mode — allowing all origins")
+        _cors_origins = os.environ.get(
+            "MURPHY_CORS_ORIGINS",
+            "http://localhost:3000,http://localhost:8080,http://localhost:8000",
+        ).split(",")
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=_cors_origins,
+            allow_origins=[o.strip() for o in _cors_origins],
             allow_credentials=True,
-            allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-            allow_headers=["Authorization", "Content-Type", "X-Request-ID",
-                           "X-Tenant-ID", "X-API-Key", "*"],
+            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            allow_headers=["*"],
         )
 
     # Load .env before initialising MurphySystem so env vars like
@@ -1341,7 +1326,7 @@ def create_app() -> FastAPI:
         end-to-end routing works.
 
         Fallback chain (in priority order):
-          1. deepinfra        — DeepInfra cloud (requires DEEPINFRA_API_KEY, recommended free tier)
+          1. deepinfra   — DeepInfra cloud (requires DEEPINFRA_API_KEY, primary provider)
           2. openai      — OpenAI (requires OPENAI_API_KEY)
           3. anthropic   — Anthropic Claude (requires ANTHROPIC_API_KEY)
           4. ollama      — Local Ollama server (requires OLLAMA_BASE_URL or running on :11434)
@@ -1349,7 +1334,7 @@ def create_app() -> FastAPI:
         """
         import os as _os_llm
         chain = [
-            {"layer": 1, "provider": "deepinfra",      "env_var": "DEEPINFRA_API_KEY",      "available": bool(_os_llm.getenv("DEEPINFRA_API_KEY")),      "note": "Free tier at console.deepinfra.com/keys — fastest recommended provider"},
+            {"layer": 1, "provider": "deepinfra", "env_var": "DEEPINFRA_API_KEY", "available": bool(_os_llm.getenv("DEEPINFRA_API_KEY")), "note": "Primary LLM: meta-llama/Meta-Llama-3.1-70B-Instruct via deepinfra.com"},
             {"layer": 2, "provider": "openai",    "env_var": "OPENAI_API_KEY",    "available": bool(_os_llm.getenv("OPENAI_API_KEY")),    "note": "OpenAI GPT-4o / GPT-4"},
             {"layer": 3, "provider": "anthropic", "env_var": "ANTHROPIC_API_KEY", "available": bool(_os_llm.getenv("ANTHROPIC_API_KEY")), "note": "Anthropic Claude"},
             {"layer": 4, "provider": "ollama",    "env_var": "OLLAMA_BASE_URL",   "available": bool(_os_llm.getenv("OLLAMA_BASE_URL") or _os_llm.getenv("OLLAMA_HOST")), "note": "Local Ollama — run: ollama serve"},
@@ -1363,7 +1348,7 @@ def create_app() -> FastAPI:
             "active_provider": active["provider"],
             "active_layer": active["layer"],
             "current_mode": llm_status.get("mode") or llm_status.get("provider", "unknown"),
-            "to_enable_llm": "Set DEEPINFRA_API_KEY=gsk_... in your environment and restart. Get a free key at https://console.deepinfra.com/keys",
+            "to_enable_llm": "Set DEEPINFRA_API_KEY=your_key in your environment. Get a key at https://deepinfra.com",
             "llm_status": llm_status,
         })
 
@@ -1382,6 +1367,7 @@ def create_app() -> FastAPI:
         # Map provider to its env var
         provider_env_vars = {
             "deepinfra": "DEEPINFRA_API_KEY",
+            "together": "TOGETHER_API_KEY",
             "openai": "OPENAI_API_KEY",
             "anthropic": "ANTHROPIC_API_KEY",
         }
@@ -1557,8 +1543,10 @@ def create_app() -> FastAPI:
         # Core LLM keys
         llm_items = []
         for provider, env_var, label, url in [
-            ("deepinfra",      "DEEPINFRA_API_KEY",      "DeepInfra (recommended, free)",
-             "https://console.deepinfra.com/keys"),
+            ("deepinfra",  "DEEPINFRA_API_KEY",  "DeepInfra (primary, meta-llama)",
+             "https://deepinfra.com"),
+            ("together",   "TOGETHER_API_KEY",   "Together AI (overflow, meta-llama-turbo)",
+             "https://api.together.xyz"),
             ("openai",    "OPENAI_API_KEY",     "OpenAI (GPT-4)",
              "https://platform.openai.com/api-keys"),
             ("anthropic", "ANTHROPIC_API_KEY",  "Anthropic (Claude)",
@@ -1635,7 +1623,7 @@ def create_app() -> FastAPI:
             _INTEGRATION_META = {}
 
         if integration_id not in _INTEGRATION_META and integration_id not in {
-            "deepinfra", "openai", "anthropic"
+            "deepinfra", "together", "openai", "anthropic"
         }:
             return JSONResponse({"success": False, "error": f"Unknown integration: {integration_id}"}, status_code=404)
 
@@ -1644,11 +1632,20 @@ def create_app() -> FastAPI:
             "deepinfra": {
                 "name": "DeepInfra", "env_var": "DEEPINFRA_API_KEY",
                 "steps": [
-                    {"step": 1, "title": "Create account", "url": "https://console.deepinfra.com", "description": "Sign up at console.deepinfra.com — free tier, no credit card needed."},
-                    {"step": 2, "title": "Generate API key", "url": "https://console.deepinfra.com/keys", "description": "Click '+ Create API Key', name it 'murphy-system', copy the gsk_... value."},
+                    {"step": 1, "title": "Create account", "url": "https://deepinfra.com", "description": "Sign up at deepinfra.com."},
+                    {"step": 2, "title": "Generate API key", "url": "https://deepinfra.com/dash/api_keys", "description": "Go to API Keys section and create a new key."},
                     {"step": 3, "title": "Set key", "description": "In the Murphy terminal: set key deepinfra <your-key>  or  POST /api/credentials/store"},
                 ],
-                "free_tier": True, "notes": "Rate limit: 30 req/min on free tier. Upgrade at console.deepinfra.com/billing.",
+                "free_tier": False, "notes": "Primary LLM provider. Model: meta-llama/Meta-Llama-3.1-70B-Instruct.",
+            },
+            "together": {
+                "name": "Together AI", "env_var": "TOGETHER_API_KEY",
+                "steps": [
+                    {"step": 1, "title": "Create account", "url": "https://api.together.xyz", "description": "Sign up at api.together.xyz."},
+                    {"step": 2, "title": "Generate API key", "url": "https://api.together.xyz/settings/api-keys", "description": "Go to API Keys and create a new key."},
+                    {"step": 3, "title": "Set key", "description": "In the Murphy terminal: set key together <your-key>  or  POST /api/credentials/store"},
+                ],
+                "free_tier": False, "notes": "Overflow LLM provider. Model: meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo.",
             },
             "openai": {
                 "name": "OpenAI", "env_var": "OPENAI_API_KEY",
@@ -4567,7 +4564,7 @@ def create_app() -> FastAPI:
 
     _workflows_store: Dict[str, Any] = {}
 
-    @app.get("/api/v1/workflows")
+    @app.get("/api/workflows")
     async def list_workflows():
         """List all saved workflows."""
         return JSONResponse({
@@ -4576,7 +4573,7 @@ def create_app() -> FastAPI:
             "count": len(_workflows_store),
         })
 
-    @app.post("/api/v1/workflows")
+    @app.post("/api/workflows")
     async def save_workflow(request: Request):
         """Save a workflow."""
         data = await request.json()
@@ -4602,7 +4599,7 @@ def create_app() -> FastAPI:
         return JSONResponse({"success": True, "workflow": workflow})
 
     # ── Workflow Execution (real WorkflowOrchestrator) ─────────────────────
-    @app.post("/api/v1/workflows/{workflow_id}/execute")
+    @app.post("/api/workflows/{workflow_id}/execute")
     async def execute_workflow(workflow_id: str, request: Request):
         """Execute a saved workflow through the WorkflowOrchestrator.
 
@@ -4718,7 +4715,7 @@ def create_app() -> FastAPI:
             return _safe_error_response(exc, 500)
 
     # ── AI Workflow Generation ────────────────────────────────────────────
-    @app.post("/api/v1/workflows/generate")
+    @app.post("/api/workflows/generate")
     async def generate_workflow(request: Request):
         """Generate a DAG workflow from natural language using AIWorkflowGenerator.
 
@@ -5925,7 +5922,8 @@ def create_app() -> FastAPI:
     async def integrations_catalog():
         """Available integrations catalog."""
         catalog = [
-            {"id": "deepinfra",        "name": "DeepInfra",        "type": "llm",       "icon": "⚡", "description": "Ultra-fast LLM inference via DeepInfra API"},
+            {"id": "deepinfra",   "name": "DeepInfra",   "type": "llm",       "icon": "⚡", "description": "Primary LLM inference via DeepInfra API"},
+            {"id": "together",    "name": "Together AI",  "type": "llm",       "icon": "🔀", "description": "Overflow LLM inference via Together AI API"},
             {"id": "openai",      "name": "OpenAI",      "type": "llm",       "icon": "◎", "description": "GPT-4 and OpenAI model suite"},
             {"id": "stripe",      "name": "Stripe",      "type": "payments",  "icon": "💳", "description": "Payment processing and billing"},
             {"id": "cloudflare",  "name": "Cloudflare",  "type": "network",   "icon": "☁", "description": "CDN, DNS, and security gateway"},
@@ -6247,7 +6245,8 @@ def create_app() -> FastAPI:
         Secret values are NEVER returned.
         """
         _INTEGRATION_ENV_VARS = {
-            "deepinfra":            ("DeepInfra",             "DEEPINFRA_API_KEY"),
+            "deepinfra":       ("DeepInfra",         "DEEPINFRA_API_KEY"),
+            "together":        ("Together AI",        "TOGETHER_API_KEY"),
             "openai":          ("OpenAI",            "OPENAI_API_KEY"),
             "anthropic":       ("Anthropic",         "ANTHROPIC_API_KEY"),
             "sendgrid":        ("SendGrid",          "SENDGRID_API_KEY"),
@@ -6323,6 +6322,7 @@ def create_app() -> FastAPI:
         # Map integration name to env var
         _INTEGRATION_ENV_VARS = {
             "deepinfra": "DEEPINFRA_API_KEY",
+            "together": "TOGETHER_API_KEY",
             "openai": "OPENAI_API_KEY",
             "anthropic": "ANTHROPIC_API_KEY",
             "sendgrid": "SENDGRID_API_KEY",
@@ -6393,9 +6393,17 @@ def create_app() -> FastAPI:
                 "id": "deepinfra",
                 "name": "DeepInfra Cloud",
                 "type": "cloud",
-                "available": bool(os.getenv("DEEPINFRA_API_KEY") or os.getenv("DEEPINFRA_API_KEYS")),
+                "available": bool(os.getenv("DEEPINFRA_API_KEY")),
                 "default_model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
-                "description": "DeepInfra fast inference cloud API. Requires DEEPINFRA_API_KEY.",
+                "description": "Primary LLM via DeepInfra. Requires DEEPINFRA_API_KEY.",
+            },
+            {
+                "id": "together",
+                "name": "Together AI Cloud",
+                "type": "cloud",
+                "available": bool(os.getenv("TOGETHER_API_KEY")),
+                "default_model": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+                "description": "Overflow LLM via Together AI. Requires TOGETHER_API_KEY.",
             },
             {
                 "id": "aristotle",
@@ -6418,8 +6426,10 @@ def create_app() -> FastAPI:
         active = None
         if ollama_up and pulled_models:
             active = "ollama"
-        elif os.getenv("DEEPINFRA_API_KEY") or os.getenv("DEEPINFRA_API_KEYS"):
+        elif os.getenv("DEEPINFRA_API_KEY"):
             active = "deepinfra"
+        elif os.getenv("TOGETHER_API_KEY"):
+            active = "together"
 
         return JSONResponse({
             "success": True,
@@ -6429,7 +6439,7 @@ def create_app() -> FastAPI:
             "phi3_ready": ollama_up and any("phi3" in m for m in pulled_models),
         })
 
-    @app.get("/api/v1/hitl/queue")
+    @app.get("/api/hitl/queue")
     async def hitl_queue():
         """Return HITL approval queue from real HumanInTheLoop state."""
         try:
@@ -6669,7 +6679,7 @@ def create_app() -> FastAPI:
         active_modules = sum([
             1,  # integration_bus
             1,  # llm_integration_layer
-            1 if bool(os.getenv("DEEPINFRA_API_KEY")) else 0,   # deepinfra
+            1 if bool(os.getenv("DEEPINFRA_API_KEY") or os.getenv("TOGETHER_API_KEY")) else 0,   # llm_cloud
             1 if _check_ollama_available(_ollama_base_url()) else 0,  # ollama
             1,  # workflow_dag_engine
             1,  # automation_commissioner
@@ -6689,6 +6699,7 @@ def create_app() -> FastAPI:
                 {"name": "integration_bus", "active": True},
                 {"name": "llm_integration_layer", "active": True},
                 {"name": "deepinfra", "active": bool(os.getenv("DEEPINFRA_API_KEY"))},
+                {"name": "together", "active": bool(os.getenv("TOGETHER_API_KEY"))},
                 {"name": "ollama", "active": _check_ollama_available(_ollama_base_url())},
                 {"name": "workflow_dag_engine", "active": True},
                 {"name": "automation_commissioner", "active": True},
@@ -9916,6 +9927,17 @@ def create_app() -> FastAPI:
             "/ui/game-creation": "game_creation.html",
             "/ui/dispatch": "dispatch.html",
             "/ui/terminal-integrated-legacy": "murphy_ui_integrated_terminal.html",
+            "/ui/boards": "boards.html",
+            "/ui/workdocs": "workdocs.html",
+            "/ui/time-tracking": "time_tracking.html",
+            "/ui/dashboards": "dashboards.html",
+            "/ui/crm": "crm.html",
+            "/ui/portfolio": "portfolio.html",
+            "/ui/aionmind": "aionmind.html",
+            "/ui/automations": "automations.html",
+            "/ui/dev-module": "dev_module.html",
+            "/ui/service-module": "service_module.html",
+            "/ui/guest-portal": "guest_portal.html",
         }
 
         # ── Route classification: public vs auth-required ──────────
@@ -12272,43 +12294,6 @@ def create_app() -> FastAPI:
                 status_code=400,
             )
 
-        # ── Rate limiting (same as deliverable generation) ───────────────
-        account = _get_account_from_session(request)
-        usage_result: dict = {}
-
-        if _sub_manager is not None:
-            if account:
-                usage_result = _sub_manager.record_usage(account["account_id"])
-            else:
-                try:
-                    from src.demo_deliverable_generator import make_fingerprint
-                    ip = request.client.host if request.client else "unknown"
-                    ua = request.headers.get("user-agent", "")
-                    fp = make_fingerprint(ip, ua)
-                except Exception:
-                    import hashlib
-                    ip = request.client.host if request.client else "unknown"
-                    fp = hashlib.sha256(ip.encode()).hexdigest()[:32]
-                usage_result = _sub_manager.record_anon_usage(fp)
-        else:
-            usage_result = {"allowed": True, "used": 1, "limit": 5, "remaining": 4, "tier": "anonymous"}
-
-        if not usage_result.get("allowed", True):
-            tier = usage_result.get("tier", "anonymous")
-            limit = usage_result.get("limit", 5)
-            msg = (
-                f"You\'ve used all {limit} free demo runs today. "
-                "Sign up free for 10/day, or upgrade for unlimited."
-                if tier == "anonymous"
-                else f"You\'ve used all {limit} free demo runs today. Upgrade for unlimited."
-            )
-            return JSONResponse(
-                {"success": False, "error": "limit_exceeded", "message": msg,
-                 "usage": {"used": usage_result.get("used", limit), "limit": limit,
-                           "remaining": 0, "tier": tier}},
-                status_code=429,
-            )
-
         try:
             from src.demo_runner import DemoRunner
             runner = DemoRunner()
@@ -12320,12 +12305,6 @@ def create_app() -> FastAPI:
                 "scenario_key": result["scenario_key"],
                 "duration_ms": result["duration_ms"],
                 "spec": result["spec"],
-                "usage": {
-                    "used": usage_result.get("used", 1),
-                    "limit": usage_result.get("limit", 5),
-                    "remaining": usage_result.get("remaining", 4),
-                    "tier": usage_result.get("tier", "anonymous"),
-                },
             })
         except Exception as exc:
             logger.warning("demo/run error: %s", exc)
@@ -12673,126 +12652,6 @@ def create_app() -> FastAPI:
             }
         return JSONResponse({"success": True, "ok": True, "spec": spec})
 
-    # ══════════════════════════════════════════════════════════════════════
-    # DEMO BUNDLE DOWNLOAD — professional ZIP package
-    # ══════════════════════════════════════════════════════════════════════
-
-    @app.post("/api/demo/download-bundle")
-    async def demo_download_bundle(request: Request):
-        """Generate and return a downloadable ZIP bundle with professional file structure.
-
-        Accepts JSON body: {"query": "..."}
-
-        The bundle includes:
-          - deliverable.txt — the requested deliverable
-          - automation-proposal.txt — full automation proposal
-          - itemized-quote.txt — itemized quote at 100% cost
-          - automation-spec.txt — technical automation specification
-          - README.md — package overview and next steps
-          - LICENSE — license information
-
-        Usage limits are the same as /api/demo/generate-deliverable.
-        """
-        try:
-            body = await request.json()
-        except Exception:
-            body = {}
-
-        query = str(body.get("query", "")).strip()[:500]
-        if not query:
-            return JSONResponse(
-                {"success": False, "error": "missing_query", "message": "query is required"},
-                status_code=400,
-            )
-
-        # ── Check usage limits (same as generate-deliverable) ────────────
-        account = _get_account_from_session(request)
-        usage_result: dict = {}
-
-        if _sub_manager is not None:
-            if account:
-                account_id = account["account_id"]
-                usage_result = _sub_manager.record_usage(account_id)
-            else:
-                try:
-                    from src.demo_deliverable_generator import make_fingerprint
-                    ip = request.client.host if request.client else "unknown"
-                    ua = request.headers.get("user-agent", "")
-                    fp = make_fingerprint(ip, ua)
-                except Exception:
-                    import hashlib
-                    ip = request.client.host if request.client else "unknown"
-                    fp = hashlib.sha256(ip.encode()).hexdigest()[:32]
-                usage_result = _sub_manager.record_anon_usage(fp)
-        else:
-            usage_result = {"allowed": True, "used": 1, "limit": 5, "remaining": 4, "tier": "anonymous"}
-
-        if not usage_result.get("allowed", True):
-            tier = usage_result.get("tier", "anonymous")
-            limit = usage_result.get("limit", 5)
-            msg = (
-                f"You've used all {limit} free downloads today. "
-                "Sign up free for 10/day, or upgrade for unlimited."
-                if tier == "anonymous"
-                else f"You've used all {limit} free downloads today. Upgrade for unlimited."
-            )
-            return JSONResponse(
-                {"success": False, "error": "limit_exceeded", "message": msg,
-                 "usage": {"used": usage_result.get("used", limit), "limit": limit, "remaining": 0, "tier": tier}},
-                status_code=429,
-            )
-
-        # ── Generate deliverable + spec + bundle ─────────────────────────
-        librarian_context: str = ""
-        try:
-            lib_result = murphy.librarian_ask(query, mode="ask")
-            librarian_context = (
-                lib_result.get("reply_text") or lib_result.get("response")
-                or lib_result.get("message") or ""
-            )
-            if librarian_context:
-                librarian_context = librarian_context[:1500]
-        except Exception:
-            pass
-
-        try:
-            from src.demo_deliverable_generator import generate_deliverable, generate_automation_spec
-            deliverable = generate_deliverable(query, librarian_context=librarian_context or None)
-            automation_spec = generate_automation_spec(query, librarian_context=librarian_context or None)
-        except Exception as exc:
-            logger.warning("Bundle generation failed: %s", exc)
-            return JSONResponse(
-                {"success": False, "error": "generation_failed", "message": str(exc)},
-                status_code=500,
-            )
-
-        try:
-            from src.demo_bundle_generator import generate_demo_bundle
-            bundle = generate_demo_bundle(query, deliverable, automation_spec)
-        except Exception as exc:
-            logger.warning("Bundle packaging failed: %s", exc)
-            return JSONResponse(
-                {"success": False, "error": "bundle_failed", "message": str(exc)},
-                status_code=500,
-            )
-
-        # Store spec for later retrieval
-        spec_id = automation_spec.get("spec_id")
-        if spec_id:
-            _demo_specs_store[spec_id] = automation_spec
-
-        # Return as downloadable ZIP
-        from starlette.responses import Response
-        return Response(
-            content=bundle["zip_bytes"],
-            media_type="application/zip",
-            headers={
-                "Content-Disposition": f'attachment; filename="{bundle["filename"]}"',
-                "X-Murphy-Spec-Id": spec_id or "",
-                "X-Murphy-File-Count": str(bundle["file_count"]),
-            },
-        )
-
     @app.get("/api/demo/forge-stream")
     async def demo_forge_stream(request: Request):
         """SSE stream of 64-agent build progress for the Swarm Forge UI."""
@@ -12846,7 +12705,8 @@ def create_app() -> FastAPI:
             "",
             "# === LLM Provider (optional — system works without it) ===",
             "# MURPHY_LLM_PROVIDER=deepinfra",
-            "# DEEPINFRA_API_KEY=your-deepinfra-key-here  # Free at https://console.deepinfra.com",
+            "# DEEPINFRA_API_KEY=your-key-here  # Get at https://deepinfra.com",
+            "# TOGETHER_API_KEY=your-key-here  # Get at https://api.together.xyz (overflow)",
             "",
             "# === MFM (Murphy Foundation Model) ===",
             "MFM_ENABLED=true",
@@ -13959,88 +13819,6 @@ def create_app() -> FastAPI:
         logger.info("ROI Calendar: seeded %d randomly-generated events", len(_seed_roi))
     except Exception as _roi_seed_exc:
         logger.debug("ROI Calendar seeding skipped: %s", _roi_seed_exc)
-
-    # ── Auth Middleware (DEF-014/DEF-015) ──────────────────────────────────
-    try:
-        from src.auth_middleware import APIKeyMiddleware as _AuthMW
-        from src.auth_middleware import SecurityHeadersMiddleware as _SecHdrMW
-        app.add_middleware(_AuthMW)
-        app.add_middleware(_SecHdrMW)
-        logger.info("Auth middleware loaded: APIKeyMiddleware + SecurityHeadersMiddleware")
-    except Exception as _auth_mw_exc:
-        logger.warning("Auth middleware import failed (%s) — falling back to inline middleware", _auth_mw_exc)
-        # Inline fallback for API key auth
-        import hmac as _hmac_mod
-        class _InlineAPIKeyMiddleware(BaseHTTPMiddleware):
-            async def dispatch(self, request, call_next):
-                _path = request.url.path.rstrip("/") or "/"
-                if request.method == "OPTIONS":
-                    return await call_next(request)
-                _exempt = {"/health", "/api/health", "/api/readiness", "/api/status",
-                           "/docs", "/redoc", "/openapi.json", "/favicon.ico", "/"}
-                if _path in _exempt or _path.startswith(("/static", "/ui/", "/api/ui/")):
-                    return await call_next(request)
-                _env = os.environ.get("MURPHY_ENV", "development").lower()
-                _auth_on = os.environ.get("MURPHY_AUTH_ENABLED", "").lower()
-                if _env not in ("production", "staging") and _auth_on != "true":
-                    return await call_next(request)
-                _expected = os.environ.get("MURPHY_API_KEY", "")
-                if not _expected:
-                    return await call_next(request)
-                _key = (request.headers.get("X-API-Key")
-                        or request.headers.get("x-api-key")
-                        or request.query_params.get("api_key")
-                        or "")
-                _auth_hdr = request.headers.get("Authorization", "")
-                if not _key and _auth_hdr.lower().startswith("bearer "):
-                    _key = _auth_hdr[7:].strip()
-                if not _key:
-                    return JSONResponse({"error": "Authentication required"}, status_code=401)
-                if not _hmac_mod.compare_digest(_key, _expected):
-                    return JSONResponse({"error": "Invalid API key"}, status_code=403)
-                return await call_next(request)
-        app.add_middleware(_InlineAPIKeyMiddleware)
-
-    # ── Production Router v3.0 (DEF-020/DEF-008) ─────────────────────────
-    try:
-        from src.production_router import router as _prod_router
-        from src.production_router import production_router_startup as _prod_startup
-        from src.production_router import _UI_DIR, _MURPHY_DIR
-        from starlette.staticfiles import StaticFiles as _ProdStaticFiles
-
-        app.include_router(_prod_router)
-
-        # Mount static file directories for the production UI
-        if _UI_DIR.exists():
-            app.mount("/static", _ProdStaticFiles(directory=str(_UI_DIR)), name="static_dash")
-        if (_MURPHY_DIR / "static").exists():
-            app.mount("/murphy-static", _ProdStaticFiles(directory=str(_MURPHY_DIR / "static")), name="static_legacy")
-
-        # Register production startup as an on_event handler
-        @app.on_event("startup")
-        async def _run_production_startup():
-            await _prod_startup()
-            logger.info("Production Router v3.0 startup complete")
-
-        logger.info("Production Router v3.0 loaded successfully")
-    except Exception as _prod_exc:
-        logger.warning("Production Router v3.0 not loaded: %s", _prod_exc)
-
-    # ── Execution Engine Router (DEF-045/046) ────────────────────────
-    try:
-        from src.execution_router import router as _exec_router
-        from src.execution_router import execution_router_startup as _exec_startup
-
-        app.include_router(_exec_router)
-
-        @app.on_event("startup")
-        async def _run_execution_startup():
-            await _exec_startup()
-            logger.info("Execution Engine Router startup complete")
-
-        logger.info("Execution Engine Router loaded successfully")
-    except Exception as _exec_exc:
-        logger.warning("Execution Engine Router not loaded: %s", _exec_exc)
 
     return app
 

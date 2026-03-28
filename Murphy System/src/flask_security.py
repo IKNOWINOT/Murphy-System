@@ -105,10 +105,10 @@ def get_configured_api_keys() -> List[str]:
     """
     Get configured API keys from environment.
 
-    Reads MURPHY_API_KEY env var (canonical; MURPHY_API_KEYS accepted as legacy alias).
+    Reads MURPHY_API_KEYS env var (comma-separated).
     Returns empty list if not configured (auth disabled in dev mode).
     """
-    keys_str = os.environ.get("MURPHY_API_KEY", "") or os.environ.get("MURPHY_API_KEYS", "")
+    keys_str = os.environ.get("MURPHY_API_KEYS", "")
     if not keys_str:
         return []
     return [k.strip() for k in keys_str.split(",") if k.strip()]

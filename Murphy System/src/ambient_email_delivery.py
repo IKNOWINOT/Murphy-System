@@ -313,9 +313,6 @@ def deliver(
 
         sendgrid_key = os.environ.get("SENDGRID_API_KEY", "").strip()
         smtp_host = os.environ.get("SMTP_HOST", "").strip()
-        # Auto-detect internal docker-mailserver
-        if not smtp_host and os.environ.get("MURPHY_MAIL_INTERNAL", "").lower() == "true":
-            smtp_host = "murphy-mailserver"
 
         if sendgrid_key:
             results = [_send_sendgrid(insight, addr, sendgrid_key) for addr in recipients]
@@ -360,7 +357,5 @@ def email_backend_mode() -> str:
     if os.environ.get("SENDGRID_API_KEY", "").strip():
         return "sendgrid"
     if os.environ.get("SMTP_HOST", "").strip():
-        return "smtp"
-    if os.environ.get("MURPHY_MAIL_INTERNAL", "").lower() == "true":
         return "smtp"
     return "mock"

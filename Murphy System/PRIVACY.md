@@ -41,7 +41,7 @@ it is retained.
 
 **Security:** All API keys are stored encrypted via `SecureKeyManager` using
 Fernet symmetric encryption. Keys are never logged in plaintext. Log output
-redacts keys to the format `gsk_...XXXX` or `sk-...XXXX`.
+redacts keys to the format `di_...XXXX` or `sk-...XXXX`.
 
 ## Data We Do NOT Collect
 

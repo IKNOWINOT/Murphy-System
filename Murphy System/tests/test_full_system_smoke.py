@@ -180,7 +180,7 @@ class TestLLMConfigureSmoke:
         assert "deepinfra" in fmt, "API_KEY_FORMATS must include 'deepinfra'"
         assert "openai" in fmt, "API_KEY_FORMATS must include 'openai'"
 
-    def test_groq_key_format_has_env_var(self) -> None:
+    def test_deepinfra_key_format_has_env_var(self) -> None:
         mod = _try_import("env_manager")
         if mod is None:
             pytest.skip("env_manager not available")

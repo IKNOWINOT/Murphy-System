@@ -323,7 +323,7 @@ LLM API calls scattered throughout codebase rather than centralized.
 class LLMService:
     def __init__(self, primary_provider='deepinfra'):
         self.primary = primary_provider
-        self.groq_client = GroqClient()
+        self.deepinfra_client = DeepInfraClient()
         self.aristotle_client = AristotleClient()
         self.local_llm = LocalLLM()
     

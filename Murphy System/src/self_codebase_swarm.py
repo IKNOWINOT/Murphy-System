@@ -64,12 +64,12 @@ logger = logging.getLogger(__name__)
 # Lazy import so the swarm still loads if cutsheet_engine is unavailable
 try:
     from cutsheet_engine import (
+        ControlDiagram,
         CutSheetEngine,
         CutSheetSpec,
         DeviceConfig,
-        ControlDiagram,
-        WiringDiagram,
         VerificationResult,
+        WiringDiagram,
     )
     _CUTSHEET_AVAILABLE = True
 except ImportError:  # pragma: no cover
@@ -916,7 +916,7 @@ class SelfCodebaseSwarm:
                         "total_functions": graph.total_functions,
                     }
             except Exception:
-                logger.debug("Introspection graph unavailable for architect vote")
+                pass
 
         arch_confidence = 0.85 if graph_summary else 0.70
         proposal.agent_votes["agent-architect-001"] = (
@@ -1007,7 +1007,7 @@ class SelfCodebaseSwarm:
                     confidence=proposal.confidence_score,
                 )
             except Exception:
-                logger.debug("HITL record_action failed for execute_change")
+                pass
 
         with self._lock:
             proposal.status = ProposalStatus.COMPLETE
@@ -1072,7 +1072,7 @@ class SelfCodebaseSwarm:
                         confidence=0.80,
                     ))
             except Exception:
-                logger.debug("Complexity report unavailable for recommendations")
+                pass
 
         # Generic best-practice recommendations
         recs.append(Recommendation(

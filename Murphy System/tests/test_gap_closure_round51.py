@@ -45,27 +45,27 @@ TESTS_DIR = BASE / "tests"
 # Gap 1 — DeepInfra Integration Test Suite (GAP-6)
 # ===========================================================================
 
-class TestGap1_GroqIntegrationTests:
+class TestGap1_DeepInfraIntegrationTests:
     """DeepInfra integration test file must exist with meaningful test coverage."""
 
-    def test_groq_integration_file_exists(self):
+    def test_deepinfra_integration_file_exists(self):
         assert (TESTS_DIR / "test_groq_integration.py").exists()
 
-    def test_groq_integration_not_empty(self):
+    def test_deepinfra_integration_not_empty(self):
         content = (TESTS_DIR / "test_groq_integration.py").read_text()
         assert len(content) > 500
 
-    def test_groq_integration_has_tier1_tests(self):
+    def test_deepinfra_integration_has_tier1_tests(self):
         """Should have provider config / unit tests."""
         content = (TESTS_DIR / "test_groq_integration.py").read_text()
         assert "Tier 1" in content or "unit" in content.lower() or "class Test" in content
 
-    def test_groq_integration_has_mock_tests(self):
+    def test_deepinfra_integration_has_mock_tests(self):
         """Should have mock HTTP tests."""
         content = (TESTS_DIR / "test_groq_integration.py").read_text()
         assert "mock" in content.lower() or "Mock" in content or "patch" in content
 
-    def test_groq_integration_has_live_tier(self):
+    def test_deepinfra_integration_has_live_tier(self):
         """Should have a live API tier (even if skipped without key)."""
         content = (TESTS_DIR / "test_groq_integration.py").read_text()
         assert "DEEPINFRA_API_KEY" in content or "live" in content.lower()

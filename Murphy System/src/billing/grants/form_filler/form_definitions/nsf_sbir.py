@@ -7,15 +7,15 @@ from __future__ import annotations
 from src.billing.grants.form_filler.form_definitions.base import BaseFormDefinition
 from src.billing.grants.form_filler.form_definitions.sbir_phase1 import (
     _budget_fields,
+    _budget_section,
     _cert_fields,
+    _cert_section,
     _company_fields,
     _company_section,
     _personnel_fields,
+    _personnel_section,
     _project_fields,
     _project_section,
-    _budget_section,
-    _personnel_section,
-    _cert_section,
 )
 from src.billing.grants.form_filler.review_session import (
     FormDefinition,

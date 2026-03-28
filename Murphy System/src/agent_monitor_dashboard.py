@@ -15,14 +15,6 @@ from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
-try:
-    from prometheus_metrics_exporter import CollectorRegistry, MetricType
-    _PROMETHEUS_AVAILABLE = True
-except Exception:
-    CollectorRegistry = None  # type: ignore[assignment,misc]
-    MetricType = None  # type: ignore[assignment]
-    _PROMETHEUS_AVAILABLE = False
-
 
 class AgentState(Enum):
     """Possible states of a monitored agent."""
@@ -141,11 +133,10 @@ class AgentMonitorDashboard:
     Provides overview, drill-down, and activity tracking.
     """
 
-    def __init__(self, prometheus_registry=None):
+    def __init__(self):
         self.agents: dict[str, MonitoredAgent] = {}
         self.max_agents = 500
         self.max_activity_per_agent = 1000
-        self._prometheus_registry = prometheus_registry
 
     def register_agent(
         self,
@@ -218,7 +209,6 @@ class AgentMonitorDashboard:
         agent.alert_count += 1
         agent.state = AgentState.ALERTING
         self._record_activity(agent_id, "alert", alert_target, alert_details)
-        self._publish_prometheus_metrics()
         return True
 
     def get_agent_detail(self, agent_id: str) -> Optional[dict]:
@@ -255,44 +245,7 @@ class AgentMonitorDashboard:
             total_alerts=total_alerts,
             agent_summaries=[a.to_summary() for a in self.agents.values()],
         )
-        self._publish_prometheus_metrics()
         return snapshot
-
-    def _publish_prometheus_metrics(self) -> None:
-        """Publish agent metrics to Prometheus registry if attached."""
-        if self._prometheus_registry is None or not _PROMETHEUS_AVAILABLE:
-            return
-        try:
-            total_agents = len(self.agents)
-            active_agents = sum(
-                1 for a in self.agents.values() if a.state != AgentState.TERMINATED
-            )
-            alerting_agents = sum(
-                1 for a in self.agents.values() if a.state == AgentState.ALERTING
-            )
-            total_alert_count = sum(a.alert_count for a in self.agents.values())
-
-            mf_total = self._prometheus_registry.register(
-                "murphy_agents_total", "Total agents registered", MetricType.GAUGE
-            )
-            mf_total.set_value(float(total_agents))
-
-            mf_active = self._prometheus_registry.register(
-                "murphy_agents_active", "Agents not in TERMINATED state", MetricType.GAUGE
-            )
-            mf_active.set_value(float(active_agents))
-
-            mf_alerting = self._prometheus_registry.register(
-                "murphy_agents_alerting", "Agents in ALERTING state", MetricType.GAUGE
-            )
-            mf_alerting.set_value(float(alerting_agents))
-
-            mf_alerts = self._prometheus_registry.register(
-                "murphy_agent_alerts_total", "Total alert_count across all agents", MetricType.GAUGE
-            )
-            mf_alerts.set_value(float(total_alert_count))
-        except Exception as exc:
-            logger.debug("Prometheus publish skipped: %s", exc)
 
     def list_agents(self, state_filter: Optional[str] = None, role_filter: Optional[str] = None) -> list[dict]:
         """List agents with optional filtering."""

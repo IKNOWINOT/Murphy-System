@@ -342,7 +342,7 @@ def build_default_router() -> MultiProviderRouter:
         Provider(
             name="DeepInfra Mixtral",
             endpoint="https://api.deepinfra.com/v1/openai/chat/completions",
-            model="meta-llama/Meta-Llama-3.1-70B-Instruct",
+            model="mixtral-8x7b-32768",
             cost_per_1k_tokens=0.00027,
             latency_ms=150,
             reliability_score=0.985,
@@ -352,7 +352,7 @@ def build_default_router() -> MultiProviderRouter:
         Provider(
             name="DeepInfra LLaMA3",
             endpoint="https://api.deepinfra.com/v1/openai/chat/completions",
-            model="meta-llama/Meta-Llama-3.1-70B-Instruct",
+            model="llama3-70b-8192",
             cost_per_1k_tokens=0.00059,
             latency_ms=180,
             reliability_score=0.983,

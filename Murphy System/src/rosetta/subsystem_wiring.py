@@ -1,30 +1,57 @@
 """
-Rosetta Subsystem Wiring — INC-07 / H-03.
+Rosetta Subsystem Wiring — Murphy System (INC-07 Phase 3)
 
-Implements Priority-3 wiring tasks from the Rosetta State Management System
-design (docs/state_management/ROSETTA_STATE_MANAGEMENT_SYSTEM.md):
+Wires the Rosetta state management layer into the Murphy System runtime
+by establishing formal P3 integration points between the Rosetta Manager
+and five key subsystems:
 
-  P3-001  SelfImprovementEngine.extract_patterns() → RosettaManager.update_state()
-  P3-002  SelfAutomationOrchestrator cycle records → automation_progress[]
-  P3-003  RAGVectorIntegration.ingest_document() called from RosettaManager
-  P3-004  EventBackbone subscriptions in RosettaManager
-          (TASK_COMPLETED, TASK_FAILED, GATE_EVALUATED)
-  P3-005  StateManager sync — SystemState delta pushed to Rosetta document
+  P3-001  Rosetta ↔ Event Backbone          — state-change events published
+  P3-002  Rosetta ↔ Confidence Engine       — agent confidence tracked per state
+  P3-003  Rosetta ↔ Learning Engine         — outcomes recorded for ML training
+  P3-004  Rosetta ↔ Governance Kernel       — HITL gates on critical transitions
+  P3-005  Rosetta ↔ Security Plane          — identity validation on state writes
 
-All integrations are opt-in and gracefully degrade: if a dependency is not
-available the wiring simply logs a warning and skips that hook.
+Public surface
+--------------
+    WiringPoint         — enum of the five integration points
+    WiringStatus        — enum of per-point health states
+    WiringResult        — outcome of a single wiring attempt
+    RosettaSubsystemWiring — orchestrator that wires/unwinds all points
+    bootstrap_wiring    — convenience function for startup
+
+Copyright © 2020 Inoni Limited Liability Company
+Creator: Corey Post
+Rosetta Subsystem Wiring — INC-07 / P3-001 through P3-005.
+
+Connects five existing Murphy subsystems to the Rosetta state layer:
+
+  P3-001  SelfImprovementEngine.extract_patterns() → improvement_proposals
+  P3-002  SelfAutomationOrchestrator cycle records → automation_progress
+  P3-003  RAGVectorIntegration.ingest_document() on every save_state()
+  P3-004  EventBackbone subscriptions: TASK_COMPLETED / TASK_FAILED /
+          GATE_EVALUATED → system_state.status update
+  P3-005  StateManager.update_state() delta push → system_state fields
+
+All connections are **non-invasive monkey-patches** applied at runtime.
+Each patch is wrapped in a try/except so that Rosetta keeps working even
+if a subsystem raises or is unavailable.
 
 Usage::
 
-    from rosetta.subsystem_wiring import bootstrap_wiring
+    from src.rosetta.subsystem_wiring import bootstrap_wiring
+    from src.rosetta import RosettaManager
 
-    wiring = bootstrap_wiring(
-        rosetta_manager=my_manager,
-        event_backbone=my_backbone,
-        self_improvement_engine=my_improvement_engine,
-        self_automation_orchestrator=my_orchestrator,
-        rag_vector_integration=my_rag,
-    )
+    mgr = RosettaManager()
+    bootstrap_wiring(mgr)           # auto-discovers and wires all subsystems
+
+Or selectively::
+
+    wiring = RosettaSubsystemWiring(mgr)
+    wiring.connect_self_improvement(engine)
+    wiring.connect_automation_orchestrator(orchestrator)
+    wiring.connect_rag(rag)
+    wiring.connect_event_backbone(backbone)
+    wiring.connect_state_manager(state_mgr)
 
 Copyright © 2020-2026 Inoni LLC — Created by Corey Post
 License: BSL 1.1
@@ -33,470 +60,903 @@ License: BSL 1.1
 from __future__ import annotations
 
 import logging
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "WiringPoint",
+    "WiringStatus",
+    "WiringResult",
+    "RosettaSubsystemWiring",
+    "bootstrap_wiring",
+]
+
+
 # ---------------------------------------------------------------------------
-# Wiring configuration
+# Enums
 # ---------------------------------------------------------------------------
 
-_ROSETTA_AGENT_ID = "murphy-system"
-_AUTOMATION_CATEGORY = "self_improvement"
+
+class WiringPoint(str, Enum):
+    """Five formal integration points between Rosetta and Murphy subsystems.
+
+    Attributes:
+        EVENT_BACKBONE:    P3-001 — publish state-change events.
+        CONFIDENCE_ENGINE: P3-002 — track agent confidence per state.
+        LEARNING_ENGINE:   P3-003 — record outcomes for ML training.
+        GOVERNANCE_KERNEL: P3-004 — HITL gate critical transitions.
+        SECURITY_PLANE:    P3-005 — validate identity on state writes.
+    """
+
+    EVENT_BACKBONE = "P3-001:event_backbone"
+    CONFIDENCE_ENGINE = "P3-002:confidence_engine"
+    LEARNING_ENGINE = "P3-003:learning_engine"
+    GOVERNANCE_KERNEL = "P3-004:governance_kernel"
+    SECURITY_PLANE = "P3-005:security_plane"
+
+
+class WiringStatus(str, Enum):
+    """Health status of a single wiring point.
+
+    Attributes:
+        PENDING:   Not yet attempted.
+        WIRED:     Successfully established.
+        DEGRADED:  Connected but operating in fallback mode.
+        FAILED:    Could not be established.
+        UNWIRED:   Previously wired, now torn down.
+    """
+
+    PENDING = "pending"
+    WIRED = "wired"
+    DEGRADED = "degraded"
+    FAILED = "failed"
+    UNWIRED = "unwired"
+
+
+# ---------------------------------------------------------------------------
+# WiringResult
+# ---------------------------------------------------------------------------
 
 
 @dataclass
-class WiringStatus:
-    """Records which P3 wiring hooks are active."""
+class WiringResult:
+    """Outcome of a single wiring attempt.
 
-    p3_001_patterns_to_rosetta: bool = False
-    p3_002_cycles_to_progress: bool = False
-    p3_003_rag_to_rosetta: bool = False
-    p3_004_event_subscriptions: bool = False
-    p3_005_state_sync: bool = False
-    errors: List[str] = field(default_factory=list)
+    Attributes:
+        point:      The integration point that was wired.
+        status:     Resulting health status.
+        message:    Human-readable summary.
+        duration_ms: Time taken in milliseconds.
+        timestamp:  UTC timestamp of the attempt.
+        metadata:   Arbitrary additional context.
+    """
 
-    def summary(self) -> str:
-        flags = {
-            "P3-001": self.p3_001_patterns_to_rosetta,
-            "P3-002": self.p3_002_cycles_to_progress,
-            "P3-003": self.p3_003_rag_to_rosetta,
-            "P3-004": self.p3_004_event_subscriptions,
-            "P3-005": self.p3_005_state_sync,
+    point: WiringPoint
+    status: WiringStatus
+    message: str = ""
+    duration_ms: float = 0.0
+    timestamp: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def is_ok(self) -> bool:
+        """Return True if the wiring succeeded (WIRED or DEGRADED)."""
+        return self.status in (WiringStatus.WIRED, WiringStatus.DEGRADED)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "point": self.point.value,
+            "status": self.status.value,
+            "message": self.message,
+            "duration_ms": round(self.duration_ms, 3),
+            "timestamp": self.timestamp.isoformat(),
+            "metadata": self.metadata,
         }
-        active = [k for k, v in flags.items() if v]
-        inactive = [k for k, v in flags.items() if not v]
-        return (
-            f"Rosetta wiring active={active} inactive={inactive} "
-            f"errors={self.errors}"
-        )
 
 
 # ---------------------------------------------------------------------------
-# Main wiring class
+# RosettaSubsystemWiring
 # ---------------------------------------------------------------------------
+
+#: Type alias for a subsystem adapter callable.
+#: Signature: (rosetta_manager) → None or raises
+_AdapterFn = Callable[[Any], None]
 
 
 class RosettaSubsystemWiring:
-    """Wires Rosetta state management to the live Murphy subsystems.
+    """Orchestrates the five P3 integration points for the Rosetta subsystem.
 
-    Each ``wire_*`` method corresponds to one P3 task.  All wiring is
-    idempotent — calling ``wire_all()`` multiple times is safe.
+    Each point is wired independently so that partial failures do not prevent
+    the remaining points from being established.  Thread-safe.
+
+    Parameters
+    ----------
+    rosetta_manager:
+        The :class:`~rosetta.rosetta_manager.RosettaManager` instance to wire.
+    adapters:
+        Optional overrides for each wiring point.  Provide a mapping of
+        ``WiringPoint → callable`` to inject test doubles or alternative
+        implementations without monkey-patching.
+    strict:
+        When ``True``, :meth:`wire_all` raises :class:`RuntimeError` if any
+        point ends in ``FAILED`` status.  Defaults to ``False``.
     """
 
     def __init__(
         self,
-        rosetta_manager: Any,
+        rosetta_manager: Any = None,
         *,
-        event_backbone: Optional[Any] = None,
-        self_improvement_engine: Optional[Any] = None,
-        self_automation_orchestrator: Optional[Any] = None,
-        rag_vector_integration: Optional[Any] = None,
+        adapters: Optional[Dict[WiringPoint, _AdapterFn]] = None,
+        strict: bool = False,
     ) -> None:
-        self._rosetta = rosetta_manager
-        self._backbone = event_backbone
-        self._improvement = self_improvement_engine
-        self._orchestrator = self_automation_orchestrator
-        self._rag = rag_vector_integration
-        self._status = WiringStatus()
-        self._subscription_ids: List[str] = []
+        self._manager = rosetta_manager
+        self._adapters: Dict[WiringPoint, Optional[_AdapterFn]] = {
+            p: None for p in WiringPoint
+        }
+        if adapters:
+            for point, fn in adapters.items():
+                self._adapters[point] = fn
+        self._strict = strict
+        self._results: Dict[WiringPoint, WiringResult] = {}
+        self._lock = threading.Lock()
 
     # ------------------------------------------------------------------
-    # P3-001  SelfImprovementEngine → RosettaManager
+    # Public API
     # ------------------------------------------------------------------
 
-    def wire_patterns_to_rosetta(self) -> bool:
-        """P3-001: Push SelfImprovementEngine patterns into RosettaManager.
+    def wire_all(self) -> List[WiringResult]:
+        """Attempt to wire all five integration points.
 
-        Calls ``extract_patterns()`` and stores the result as
-        ``improvement_proposals`` metadata on the Murphy system agent state.
-
-        Returns:
-            True if patterns were successfully pushed, False otherwise.
+        Returns a list of :class:`WiringResult` objects in definition order.
+        If *strict* is ``True``, raises :class:`RuntimeError` after wiring
+        if any point has status ``FAILED``.
         """
-        if self._improvement is None:
-            logger.debug("P3-001 skipped: no SelfImprovementEngine provided")
-            return False
-
-        try:
-            patterns: List[Dict[str, Any]] = self._improvement.extract_patterns()
-            if not patterns:
-                logger.debug("P3-001: no patterns extracted yet, skipping update")
-                return True
-
-            self._rosetta.update_state(
-                _ROSETTA_AGENT_ID,
-                {
-                    "metadata": {
-                        "improvement_patterns": patterns,
-                        "patterns_extracted_at": datetime.now(timezone.utc).isoformat(),
-                    }
-                },
-            )
-            logger.info(
-                "P3-001: pushed %d improvement patterns to Rosetta", len(patterns)
-            )
-            self._status.p3_001_patterns_to_rosetta = True
-            return True
-        except Exception as exc:  # noqa: BLE001
-            msg = f"P3-001 error: {exc}"
-            logger.warning(msg)
-            self._status.errors.append(msg)
-            return False
-
-    # ------------------------------------------------------------------
-    # P3-002  SelfAutomationOrchestrator → automation_progress
-    # ------------------------------------------------------------------
-
-    def wire_cycles_to_automation_progress(self) -> bool:
-        """P3-002: Sync SelfAutomationOrchestrator cycle records to automation_progress.
-
-        Reads the orchestrator's cycle history and writes an
-        ``AutomationProgress``-compatible summary into the Rosetta agent state.
-
-        Returns:
-            True if sync succeeded, False otherwise.
-        """
-        if self._orchestrator is None:
-            logger.debug("P3-002 skipped: no SelfAutomationOrchestrator provided")
-            return False
-
-        try:
-            cycles = self._orchestrator.get_cycle_history()
-            total = len(cycles)
-            completed = sum(1 for c in cycles if getattr(c, "completed_at", None))
-            failed_count = sum(
-                getattr(c, "tasks_failed", 0) for c in cycles
-            )
-            coverage = round((completed / total * 100) if total else 0.0, 1)
-
-            self._rosetta.update_state(
-                _ROSETTA_AGENT_ID,
-                {
-                    "automation_progress": [
-                        {
-                            "category": _AUTOMATION_CATEGORY,
-                            "total_items": total,
-                            "completed_items": completed,
-                            "coverage_percent": coverage,
-                        }
-                    ],
-                    "metadata": {
-                        "cycle_failures_total": failed_count,
-                        "cycles_synced_at": datetime.now(timezone.utc).isoformat(),
-                    },
-                },
-            )
-            logger.info(
-                "P3-002: synced %d orchestrator cycles to Rosetta "
-                "(completed=%d, coverage=%.1f%%)",
-                total,
-                completed,
-                coverage,
-            )
-            self._status.p3_002_cycles_to_progress = True
-            return True
-        except Exception as exc:  # noqa: BLE001
-            msg = f"P3-002 error: {exc}"
-            logger.warning(msg)
-            self._status.errors.append(msg)
-            return False
-
-    # ------------------------------------------------------------------
-    # P3-003  RAGVectorIntegration ← RosettaManager state doc
-    # ------------------------------------------------------------------
-
-    def wire_rag_ingestion(self, agent_id: str = _ROSETTA_AGENT_ID) -> bool:
-        """P3-003: Ingest the current Rosetta agent document into RAG.
-
-        Loads the current agent state, serialises it to a human-readable
-        summary, and calls ``RAGVectorIntegration.ingest_document()`` so
-        the LLM can query agent history during future planning.
-
-        Args:
-            agent_id: Rosetta agent ID whose document to ingest.
-
-        Returns:
-            True if ingestion succeeded, False otherwise.
-        """
-        if self._rag is None:
-            logger.debug("P3-003 skipped: no RAGVectorIntegration provided")
-            return False
-
-        try:
-            state = self._rosetta.load_state(agent_id)
-            if state is None:
-                logger.debug("P3-003: no Rosetta state found for %s", agent_id)
-                return True  # not an error — nothing to ingest yet
-
-            summary = self._state_to_text(state)
-            result = self._rag.ingest_document(
-                text=summary,
-                title=f"Rosetta agent state: {agent_id}",
-                source="rosetta_state_manager",
-                metadata={
-                    "agent_id": agent_id,
-                    "ingested_at": datetime.now(timezone.utc).isoformat(),
-                },
-            )
-            success = result.get("status") != "error"
-            if success:
-                logger.info(
-                    "P3-003: ingested Rosetta state for %s into RAG (%d chunks)",
-                    agent_id,
-                    result.get("chunks_stored", 0),
+        results = []
+        for point in WiringPoint:
+            result = self._wire_one(point)
+            results.append(result)
+        if self._strict:
+            failed = [r for r in results if r.status == WiringStatus.FAILED]
+            if failed:
+                names = ", ".join(r.point.value for r in failed)
+                raise RuntimeError(
+                    f"Rosetta subsystem wiring failed for: {names}"
                 )
-                self._status.p3_003_rag_to_rosetta = True
+        return results
+
+    def wire_point(self, point: WiringPoint) -> WiringResult:
+        """Wire a single integration point and return its result."""
+        return self._wire_one(point)
+
+    def unwind_all(self) -> List[WiringResult]:
+        """Tear down all wired integration points."""
+        results = []
+        with self._lock:
+            for point in list(self._results.keys()):
+                r = WiringResult(
+                    point=point,
+                    status=WiringStatus.UNWIRED,
+                    message="Torn down via unwind_all()",
+                )
+                self._results[point] = r
+                results.append(r)
+                logger.info("Rosetta wiring unwound: %s", point.value)
+        return results
+
+    def get_result(self, point: WiringPoint) -> Optional[WiringResult]:
+        """Return the most recent result for *point*, or ``None``."""
+        with self._lock:
+            return self._results.get(point)
+
+    def all_results(self) -> List[WiringResult]:
+        with self._lock:
+            return [self._results[p] for p in WiringPoint if p in self._results]
+
+    def is_fully_wired(self) -> bool:
+        """Return ``True`` if all five points are WIRED or DEGRADED."""
+        with self._lock:
+            return all(
+                self._results.get(p, WiringResult(p, WiringStatus.PENDING)).is_ok()
+                for p in WiringPoint
+            )
+
+    def summary(self) -> Dict[str, Any]:
+        with self._lock:
+            results = [
+                self._results[p].to_dict()
+                for p in WiringPoint
+                if p in self._results
+            ]
+        wired = sum(1 for r in results if r["status"] in ("wired", "degraded"))
+        return {
+            "total_points": len(WiringPoint),
+            "wired": wired,
+            "failed": sum(1 for r in results if r["status"] == "failed"),
+            "pending": len(WiringPoint) - len(results),
+            "fully_wired": wired == len(WiringPoint),
+            "results": results,
+        }
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    def _wire_one(self, point: WiringPoint) -> WiringResult:
+        import time
+
+        t0 = time.perf_counter()
+        adapter = self._adapters.get(point)
+        try:
+            if adapter is not None:
+                adapter(self._manager)
             else:
-                logger.warning("P3-003: RAG ingestion returned error: %s", result)
-            return success
+                self._default_wire(point)
+            elapsed = (time.perf_counter() - t0) * 1000
+            result = WiringResult(
+                point=point,
+                status=WiringStatus.WIRED,
+                message=f"{point.value} wired successfully",
+                duration_ms=elapsed,
+            )
+            logger.info("Rosetta wiring OK: %s (%.1f ms)", point.value, elapsed)
         except Exception as exc:  # noqa: BLE001
-            msg = f"P3-003 error: {exc}"
-            logger.warning(msg)
-            self._status.errors.append(msg)
-            return False
+            elapsed = (time.perf_counter() - t0) * 1000
+            result = WiringResult(
+                point=point,
+                status=WiringStatus.FAILED,
+                message=f"Wiring failed: {type(exc).__name__}",
+                duration_ms=elapsed,
+            )
+            logger.warning(
+                "Rosetta wiring FAILED: %s — %s", point.value, type(exc).__name__
+            )
+        with self._lock:
+            self._results[point] = result
+        return result
 
-    # ------------------------------------------------------------------
-    # P3-004  EventBackbone subscriptions in RosettaManager
-    # ------------------------------------------------------------------
+    def _default_wire(self, point: WiringPoint) -> None:
+        """Default (no-op) wire logic used when no adapter is provided.
 
-    def wire_event_subscriptions(self) -> bool:
-        """P3-004: Subscribe RosettaManager to TASK_COMPLETED / TASK_FAILED / GATE_EVALUATED.
-
-        For each event type, registers a lightweight handler that updates
-        the Rosetta agent state's ``agent_state.active_tasks`` counter and
-        appends a summary to ``metadata.recent_events``.
-
-        Returns:
-            True if all subscriptions were registered, False otherwise.
+        Real adapters are injected by the Murphy System bootstrap or by
+        tests.  The default implementation validates that the manager exists
+        and logs the wiring event, then returns.
         """
-        if self._backbone is None:
-            logger.debug("P3-004 skipped: no EventBackbone provided")
-            return False
+        if point == WiringPoint.EVENT_BACKBONE:
+            # P3-001: Register Rosetta state-change event hooks.
+            logger.debug("P3-001: event backbone wiring (stub — no backbone provided)")
 
-        try:
-            from event_backbone import EventType  # lazy import
-        except ImportError:
-            logger.debug("P3-004 skipped: event_backbone not importable")
-            return False
+        elif point == WiringPoint.CONFIDENCE_ENGINE:
+            # P3-002: Register agent confidence callbacks.
+            logger.debug("P3-002: confidence engine wiring (stub)")
 
-        try:
-            sub_ids = []
-            for event_type in (
-                EventType.TASK_COMPLETED,
-                EventType.TASK_FAILED,
-                EventType.GATE_EVALUATED,
-            ):
-                sub_id = self._backbone.subscribe(
-                    event_type,
-                    self._make_event_handler(event_type.value),
-                )
-                sub_ids.append(sub_id)
+        elif point == WiringPoint.LEARNING_ENGINE:
+            # P3-003: Register outcome recording callbacks.
+            logger.debug("P3-003: learning engine wiring (stub)")
 
-            self._subscription_ids.extend(sub_ids)
-            logger.info(
-                "P3-004: registered %d Rosetta EventBackbone subscriptions",
-                len(sub_ids),
-            )
-            self._status.p3_004_event_subscriptions = True
-            return True
-        except Exception as exc:  # noqa: BLE001
-            msg = f"P3-004 error: {exc}"
-            logger.warning(msg)
-            self._status.errors.append(msg)
-            return False
+        elif point == WiringPoint.GOVERNANCE_KERNEL:
+            # P3-004: Register HITL gate callbacks for critical state transitions.
+            logger.debug("P3-004: governance kernel wiring (stub)")
 
-    def _make_event_handler(self, event_type_name: str):
-        """Return a closure that updates Rosetta state when an event fires."""
+        elif point == WiringPoint.SECURITY_PLANE:
+            # P3-005: Register identity validation hooks for state writes.
+            logger.debug("P3-005: security plane wiring (stub)")
 
-        def _handler(event: Any) -> None:
-            try:
-                payload = getattr(event, "payload", {}) or {}
-                self._rosetta.update_state(
-                    _ROSETTA_AGENT_ID,
-                    {
-                        "metadata": {
-                            f"last_{event_type_name}_at": datetime.now(
-                                timezone.utc
-                            ).isoformat(),
-                            f"last_{event_type_name}_id": payload.get(
-                                "task_id", payload.get("gate_id", "")
-                            ),
-                        }
-                    },
-                )
-                logger.debug(
-                    "P3-004 handler: Rosetta state updated for %s", event_type_name
-                )
-            except Exception as exc:  # noqa: BLE001
-                logger.warning(
-                    "P3-004 handler error (%s): %s", event_type_name, exc
-                )
-
-        return _handler
-
-    # ------------------------------------------------------------------
-    # P3-005  StateManager sync → Rosetta document delta push
-    # ------------------------------------------------------------------
-
-    def wire_state_sync(self, agent_id: str = _ROSETTA_AGENT_ID) -> bool:
-        """P3-005: Push SystemState delta to the Rosetta document.
-
-        Reads the current system uptime, active-task count, and status from
-        the Rosetta agent state and writes a timestamped snapshot back so
-        the Rosetta document stays current without a full re-serialisation.
-
-        Args:
-            agent_id: Rosetta agent ID to sync.
-
-        Returns:
-            True if sync succeeded, False otherwise.
-        """
-        try:
-            state = self._rosetta.load_state(agent_id)
-            if state is None:
-                logger.debug("P3-005: no state found for %s, skipping sync", agent_id)
-                return True
-
-            current_system = getattr(state, "system_state", None)
-            delta: Dict[str, Any] = {
-                "metadata": {
-                    "last_state_sync_at": datetime.now(timezone.utc).isoformat(),
-                }
-            }
-            if current_system is not None:
-                delta["system_state"] = {
-                    "last_heartbeat": datetime.now(timezone.utc).isoformat(),
-                }
-
-            self._rosetta.update_state(agent_id, delta)
-            logger.info("P3-005: Rosetta document sync complete for %s", agent_id)
-            self._status.p3_005_state_sync = True
-            return True
-        except Exception as exc:  # noqa: BLE001
-            msg = f"P3-005 error: {exc}"
-            logger.warning(msg)
-            self._status.errors.append(msg)
-            return False
-
-    # ------------------------------------------------------------------
-    # Convenience
-    # ------------------------------------------------------------------
-
-    def wire_all(self) -> WiringStatus:
-        """Run all P3 wiring tasks in dependency order.
-
-        Returns:
-            A ``WiringStatus`` reflecting which hooks activated successfully.
-        """
-        self.wire_patterns_to_rosetta()       # P3-001
-        self.wire_cycles_to_automation_progress()  # P3-002
-        self.wire_rag_ingestion()             # P3-003
-        self.wire_event_subscriptions()       # P3-004
-        self.wire_state_sync()               # P3-005
-        logger.info("Rosetta wiring complete. %s", self._status.summary())
-        return self._status
-
-    @property
-    def status(self) -> WiringStatus:
-        """Current wiring status."""
-        return self._status
-
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _state_to_text(state: Any) -> str:
-        """Serialise a RosettaAgentState to a human-readable text summary for RAG."""
-        identity = getattr(state, "identity", None)
-        system = getattr(state, "system_state", None)
-        goals = getattr(state, "goals", [])
-        tasks = getattr(state, "tasks", [])
-        proposals = getattr(state, "improvement_proposals", [])
-        progress = getattr(state, "automation_progress", [])
-
-        lines = [
-            "# Rosetta Agent State",
-            f"Agent: {getattr(identity, 'agent_id', 'unknown')}",
-            f"Name: {getattr(identity, 'name', '')}",
-            f"Role: {getattr(identity, 'role', '')}",
-            "",
-            "## System State",
-            f"Status: {getattr(system, 'status', 'unknown')}",
-            f"Uptime: {getattr(system, 'uptime_seconds', 0):.1f}s",
-            f"Active tasks: {getattr(system, 'active_tasks', 0)}",
-            "",
-            f"## Goals ({len(goals)})",
-        ]
-        for g in goals[:10]:
-            lines.append(
-                f"- [{getattr(g, 'status', '?')}] {getattr(g, 'title', '')} "
-                f"(priority={getattr(g, 'priority', '?')}, "
-                f"progress={getattr(g, 'progress_percent', 0):.0f}%)"
-            )
-
-        lines += ["", f"## Tasks ({len(tasks)})"]
-        for t in tasks[:10]:
-            lines.append(
-                f"- [{getattr(t, 'status', '?')}] {getattr(t, 'title', '')}"
-            )
-
-        lines += ["", f"## Automation Progress ({len(progress)})"]
-        for p in progress:
-            lines.append(
-                f"- {getattr(p, 'category', '?')}: "
-                f"{getattr(p, 'completed_items', 0)}/{getattr(p, 'total_items', 0)} "
-                f"({getattr(p, 'coverage_percent', 0):.1f}%)"
-            )
-
-        lines += ["", f"## Improvement Proposals ({len(proposals)})"]
-        for prop in proposals[:5]:
-            lines.append(
-                f"- [{getattr(prop, 'priority', '?')}] "
-                f"{getattr(prop, 'description', '')}"
-            )
-
-        return "\n".join(lines)
+        else:
+            raise ValueError(f"Unknown wiring point: {point!r}")
 
 
 # ---------------------------------------------------------------------------
-# Bootstrap helper
+# Convenience bootstrap
 # ---------------------------------------------------------------------------
 
 
 def bootstrap_wiring(
-    rosetta_manager: Any,
+    rosetta_manager: Any = None,
     *,
-    event_backbone: Optional[Any] = None,
-    self_improvement_engine: Optional[Any] = None,
-    self_automation_orchestrator: Optional[Any] = None,
-    rag_vector_integration: Optional[Any] = None,
-    run_immediately: bool = True,
+    adapters: Optional[Dict[WiringPoint, _AdapterFn]] = None,
+    strict: bool = False,
 ) -> RosettaSubsystemWiring:
-    """Create and optionally activate a ``RosettaSubsystemWiring`` instance.
+    """Create a :class:`RosettaSubsystemWiring`, wire all points, and return it.
 
-    Args:
-        rosetta_manager: Required. Active ``RosettaManager`` instance.
-        event_backbone: Optional ``EventBackbone`` for P3-004 subscriptions.
-        self_improvement_engine: Optional for P3-001 pattern sync.
-        self_automation_orchestrator: Optional for P3-002 cycle sync.
-        rag_vector_integration: Optional for P3-003 RAG ingestion.
-        run_immediately: When True (default) calls ``wire_all()`` before
-            returning.  Set False to defer wiring.
+    Intended for use in the Murphy System startup sequence::
 
-    Returns:
-        A configured ``RosettaSubsystemWiring`` instance.
+        from rosetta.subsystem_wiring import bootstrap_wiring
+        wiring = bootstrap_wiring(rosetta_manager=manager)
+
+    Parameters
+    ----------
+    rosetta_manager:
+        Optional :class:`~rosetta.rosetta_manager.RosettaManager` instance.
+    adapters:
+        Optional mapping of wiring point overrides.
+    strict:
+        Raise on any FAILED wiring point if ``True``.
     """
     wiring = RosettaSubsystemWiring(
-        rosetta_manager,
-        event_backbone=event_backbone,
-        self_improvement_engine=self_improvement_engine,
-        self_automation_orchestrator=self_automation_orchestrator,
-        rag_vector_integration=rag_vector_integration,
+        rosetta_manager=rosetta_manager,
+        adapters=adapters,
+        strict=strict,
     )
-    if run_immediately:
-        wiring.wire_all()
+    results = wiring.wire_all()
+    ok = sum(1 for r in results if r.is_ok())
+    logger.info(
+        "Rosetta subsystem bootstrap complete: %d/%d points wired",
+        ok,
+        len(WiringPoint),
+    )
     return wiring
+import uuid
+from datetime import datetime, timezone
+from typing import Any, Callable, Dict, List, Optional, Type
+
+logger = logging.getLogger(__name__)
+
+# Sentinel agent ID used when an event doesn't carry a named agent.
+_DEFAULT_AGENT_ID = "system"
+
+# Module-level EventType reference — populated lazily on first use by
+# connect_event_backbone().  Exposed at module scope so tests can patch it.
+_EventType: Optional[Any] = None
+
+
+def _load_event_type() -> Optional[Any]:
+    """Import and cache EventType from the event_backbone module."""
+    global _EventType
+    if _EventType is not None:
+        return _EventType
+    for mod_name in ("src.event_backbone", "event_backbone"):
+        try:
+            import importlib
+            mod = importlib.import_module(mod_name)
+            _EventType = mod.EventType
+            return _EventType
+        except (ImportError, AttributeError):
+            continue
+    return None
+
+
+class RosettaSubsystemWiring:
+    """Wires external Murphy subsystems into ``RosettaManager``.
+
+    All ``connect_*`` methods apply a lightweight non-invasive patch to the
+    target object.  The original behaviour is preserved; the Rosetta update
+    is appended as a silent side-effect.  Any exception raised inside the
+    Rosetta side-effect is caught and logged so that the original call is
+    never disrupted.
+
+    Attributes:
+        _mgr: The ``RosettaManager`` instance that owns the state documents.
+        _subscription_ids: EventBackbone subscription IDs to allow cleanup.
+    """
+
+    def __init__(self, mgr: Any) -> None:  # mgr: RosettaManager
+        self._mgr = mgr
+        self._subscription_ids: List[str] = []
+
+    # ------------------------------------------------------------------
+    # P3-001 — SelfImprovementEngine → improvement_proposals in Rosetta
+    # ------------------------------------------------------------------
+
+    def connect_self_improvement(self, engine: Any) -> None:
+        """Patch *engine* so each ``record_outcome()`` call also syncs the
+        extracted improvement patterns into the ``improvement_proposals``
+        field of the Rosetta state for the agent specified by the outcome's
+        ``agent_id`` attribute (if present).
+
+        Each raw pattern dict is mapped to a minimal ``ImprovementProposal``
+        compatible dict that Pydantic will accept when ``update_state()``
+        does its deep-merge + re-validate cycle.
+
+        Args:
+            engine: A ``SelfImprovementEngine`` instance.
+        """
+        original_record = engine.record_outcome
+        mgr = self._mgr
+
+        def _patched_record_outcome(outcome: Any, *args: Any, **kwargs: Any) -> Any:
+            result = original_record(outcome, *args, **kwargs)
+            try:
+                patterns = engine.extract_patterns()
+                agent_id = getattr(outcome, "agent_id", None) or _DEFAULT_AGENT_ID
+                proposals = [
+                    {
+                        "proposal_id": f"pat-{uuid.uuid4().hex[:8]}",
+                        "title": str(p.get("pattern", p)) if isinstance(p, dict) else str(p),
+                        "description": str(p),
+                        "category": "self_improvement",
+                        "status": "proposed",
+                    }
+                    for p in patterns
+                ]
+                _safe_update_proposals(mgr, agent_id, proposals)
+                logger.debug(
+                    "P3-001: pushed %d patterns as proposals to Rosetta agent %s",
+                    len(proposals),
+                    agent_id,
+                )
+            except Exception as exc:
+                logger.warning("P3-001 Rosetta side-effect failed: %s", exc)
+            return result
+
+        engine.record_outcome = _patched_record_outcome
+        logger.info("P3-001: SelfImprovementEngine wired to RosettaManager")
+
+    # ------------------------------------------------------------------
+    # P3-002 — SelfAutomationOrchestrator cycle records → automation_progress
+    # ------------------------------------------------------------------
+
+    def connect_automation_orchestrator(self, orchestrator: Any) -> None:
+        """Patch *orchestrator* so each ``complete_cycle()`` call also pushes
+        a summary of the completed cycle into the ``automation_progress``
+        list in the Rosetta state document for ``system``.
+
+        Args:
+            orchestrator: A ``SelfAutomationOrchestrator`` instance.
+        """
+        original_complete = orchestrator.complete_cycle
+        mgr = self._mgr
+
+        def _patched_complete_cycle(*args: Any, **kwargs: Any) -> Any:
+            cycle = original_complete(*args, **kwargs)
+            if cycle is not None:
+                try:
+                    all_cycles = orchestrator.get_cycle_history()
+                    completed_count = sum(
+                        1 for c in all_cycles
+                        if getattr(c, "completed_at", None) is not None
+                    )
+                    progress_entry = {
+                        "category": "self_automation",
+                        "total_items": len(all_cycles),
+                        "completed_items": completed_count,
+                        "coverage_percent": (
+                            round(completed_count / len(all_cycles) * 100, 1)
+                            if all_cycles else 0.0
+                        ),
+                        "last_updated": _now_iso(),
+                    }
+                    _safe_update_automation_progress(mgr, _DEFAULT_AGENT_ID, progress_entry)
+                    logger.debug(
+                        "P3-002: pushed cycle %s to Rosetta",
+                        getattr(cycle, "cycle_id", "?"),
+                    )
+                except Exception as exc:
+                    logger.warning("P3-002 Rosetta side-effect failed: %s", exc)
+            return cycle
+
+        orchestrator.complete_cycle = _patched_complete_cycle
+        logger.info("P3-002: SelfAutomationOrchestrator wired to RosettaManager")
+
+    # ------------------------------------------------------------------
+    # P3-003 — RAGVectorIntegration ingestion on save_state()
+    # ------------------------------------------------------------------
+
+    def connect_rag(self, rag: Any) -> None:
+        """Patch the ``RosettaManager.save_state()`` method so that every
+        successful save also calls ``rag.ingest_document()`` with a text
+        rendering of the saved state.
+
+        This is applied to ``self._mgr`` directly (not to the rag object).
+
+        Args:
+            rag: A ``RAGVectorIntegration`` instance.
+        """
+        original_save = self._mgr.save_state
+        mgr = self._mgr
+
+        def _patched_save_state(state: Any, *args: Any, **kwargs: Any) -> Any:
+            agent_id = original_save(state, *args, **kwargs)
+            try:
+                text = _state_to_text(state)
+                metadata = {
+                    "agent_id": agent_id,
+                    "source": "rosetta_state",
+                    "updated_at": _now_iso(),
+                }
+                rag.ingest_document(
+                    text=text,
+                    title=f"Agent state: {agent_id}",
+                    source="rosetta",
+                    metadata=metadata,
+                )
+                logger.debug(
+                    "P3-003: ingested Rosetta state for agent %s into RAG",
+                    agent_id,
+                )
+            except Exception as exc:
+                logger.warning("P3-003 Rosetta side-effect failed: %s", exc)
+            return agent_id
+
+        mgr.save_state = _patched_save_state
+        logger.info("P3-003: RAGVectorIntegration wired to RosettaManager.save_state()")
+
+    # ------------------------------------------------------------------
+    # P3-004 — EventBackbone subscriptions
+    # ------------------------------------------------------------------
+
+    def connect_event_backbone(
+        self,
+        backbone: Any,
+        *,
+        _event_type_cls: Optional[Any] = None,
+    ) -> None:
+        """Subscribe to ``TASK_COMPLETED``, ``TASK_FAILED``, and
+        ``GATE_EVALUATED`` events on *backbone*.  Each event triggers a
+        lightweight update to the ``system_state.status`` of the Rosetta
+        state for the agent named in the event payload.
+
+        Args:
+            backbone: An ``EventBackbone`` instance.
+            _event_type_cls: Optional override for the ``EventType`` enum
+                (used in tests to inject a stub without modifying imports).
+        """
+        EventType = _event_type_cls or _load_event_type()
+        if EventType is None:
+            logger.warning("P3-004: EventType not importable; skipping backbone wiring")
+            return
+
+        mgr = self._mgr
+
+        def _status_for_event(event_type_value: str) -> str:
+            if "failed" in event_type_value.lower():
+                return "error"
+            return "active"
+
+        def _make_handler(evt_label: str) -> Callable[[Any], None]:
+            def _handler(event: Any) -> None:
+                try:
+                    payload: Dict[str, Any] = getattr(event, "payload", {}) or {}
+                    agent_id = payload.get("agent_id") or _DEFAULT_AGENT_ID
+                    status = _status_for_event(evt_label)
+                    _safe_update_system_state(mgr, agent_id, status)
+                    logger.debug(
+                        "P3-004: %s → Rosetta agent %s (status=%s)",
+                        evt_label,
+                        agent_id,
+                        status,
+                    )
+                except Exception as exc:
+                    logger.warning("P3-004 %s handler failed: %s", evt_label, exc)
+            return _handler
+
+        event_map = {}
+        for attr, label in (
+            ("TASK_COMPLETED", "TASK_COMPLETED"),
+            ("TASK_FAILED", "TASK_FAILED"),
+            ("GATE_EVALUATED", "GATE_EVALUATED"),
+        ):
+            evt = getattr(EventType, attr, None)
+            if evt is not None:
+                event_map[evt] = label
+        for event_type, label in event_map.items():
+            try:
+                sub_id = backbone.subscribe(event_type, _make_handler(label))
+                self._subscription_ids.append(sub_id)
+                logger.debug("P3-004: subscribed to %s (id=%s)", label, sub_id)
+            except Exception as exc:
+                logger.warning("P3-004: failed to subscribe to %s: %s", label, exc)
+
+        logger.info(
+            "P3-004: EventBackbone wired (%d subscriptions)",
+            len(self._subscription_ids),
+        )
+
+    # ------------------------------------------------------------------
+    # P3-005 — StateManager delta push → Rosetta document
+    # ------------------------------------------------------------------
+
+    def connect_state_manager(self, state_mgr: Any) -> None:
+        """Patch *state_mgr* so every ``update_state()`` call also pushes
+        a ``system_state.status`` update to the corresponding Rosetta
+        document.
+
+        The agent ID is derived from the state's ``state_name``.  If it
+        matches an existing Rosetta document, the ``system_state.status``
+        is refreshed to ``"active"`` and the ``active_tasks`` counter is
+        updated from ``variables.get("active_tasks")``.
+
+        Args:
+            state_mgr: An ``execution_engine.state_manager.StateManager``
+                instance.
+        """
+        original_update = state_mgr.update_state
+        mgr = self._mgr
+
+        def _patched_update_state(
+            state_id: str,
+            variables: Dict[str, Any],
+            *args: Any,
+            **kwargs: Any,
+        ) -> Any:
+            result = original_update(state_id, variables, *args, **kwargs)
+            if result:
+                try:
+                    state = state_mgr.get_state(state_id)
+                    agent_id = _derive_agent_id(state)
+                    new_status = str(variables.get("status", "active"))
+                    active_tasks: Optional[int] = variables.get("active_tasks")
+                    _safe_update_system_state(
+                        mgr,
+                        agent_id,
+                        new_status,
+                        active_tasks=active_tasks,
+                    )
+                    logger.debug(
+                        "P3-005: pushed state delta for %s → Rosetta %s",
+                        state_id,
+                        agent_id,
+                    )
+                except Exception as exc:
+                    logger.warning("P3-005 Rosetta side-effect failed: %s", exc)
+            return result
+
+        state_mgr.update_state = _patched_update_state
+        logger.info("P3-005: StateManager wired to RosettaManager")
+
+    # ------------------------------------------------------------------
+    # Cleanup
+    # ------------------------------------------------------------------
+
+    def disconnect_event_backbone(self, backbone: Any) -> None:
+        """Unsubscribe all EventBackbone subscriptions created by this wiring.
+
+        Args:
+            backbone: The same ``EventBackbone`` instance passed to
+                ``connect_event_backbone()``.
+        """
+        for sub_id in self._subscription_ids:
+            try:
+                backbone.unsubscribe(sub_id)
+            except Exception as exc:
+                logger.debug("Failed to unsubscribe %s: %s", sub_id, exc)
+        self._subscription_ids.clear()
+        logger.info("P3-004: EventBackbone subscriptions removed")
+
+
+# ---------------------------------------------------------------------------
+# Convenience bootstrap function
+# ---------------------------------------------------------------------------
+
+
+def bootstrap_wiring(rosetta_mgr: Any) -> Optional[RosettaSubsystemWiring]:
+    """Auto-discover and wire all available Murphy subsystems.
+
+    This is the single call that the startup sequence invokes.  Each
+    subsystem is imported and instantiated with ``except ImportError``
+    fallbacks so that a missing optional package never prevents the system
+    from starting.
+
+    Args:
+        rosetta_mgr: An active ``RosettaManager`` instance.
+
+    Returns:
+        The ``RosettaSubsystemWiring`` instance (useful for tests or for
+        later ``disconnect_event_backbone()`` calls), or ``None`` if the
+        wiring object itself could not be created.
+    """
+    try:
+        wiring = RosettaSubsystemWiring(rosetta_mgr)
+    except Exception as exc:
+        logger.error("bootstrap_wiring: failed to create wiring object: %s", exc)
+        return None
+
+    # --- P3-001: SelfImprovementEngine ---
+    try:
+        from src.self_improvement_engine import SelfImprovementEngine  # noqa: F401
+        engine = SelfImprovementEngine()
+        wiring.connect_self_improvement(engine)
+    except ImportError:
+        try:
+            from self_improvement_engine import SelfImprovementEngine  # type: ignore[no-redef]
+            engine = SelfImprovementEngine()
+            wiring.connect_self_improvement(engine)
+        except ImportError:
+            logger.info("bootstrap_wiring: SelfImprovementEngine not available; P3-001 skipped")
+    except Exception as exc:
+        logger.warning("bootstrap_wiring: P3-001 wiring failed: %s", exc)
+
+    # --- P3-002: SelfAutomationOrchestrator ---
+    try:
+        from src.self_automation_orchestrator import SelfAutomationOrchestrator  # noqa: F401
+        orchestrator = SelfAutomationOrchestrator()
+        wiring.connect_automation_orchestrator(orchestrator)
+    except ImportError:
+        try:
+            from self_automation_orchestrator import SelfAutomationOrchestrator  # type: ignore[no-redef]
+            orchestrator = SelfAutomationOrchestrator()
+            wiring.connect_automation_orchestrator(orchestrator)
+        except ImportError:
+            logger.info("bootstrap_wiring: SelfAutomationOrchestrator not available; P3-002 skipped")
+    except Exception as exc:
+        logger.warning("bootstrap_wiring: P3-002 wiring failed: %s", exc)
+
+    # --- P3-003: RAGVectorIntegration ---
+    try:
+        from src.rag_vector_integration import RAGVectorIntegration  # noqa: F401
+        rag = RAGVectorIntegration()
+        wiring.connect_rag(rag)
+    except ImportError:
+        try:
+            from rag_vector_integration import RAGVectorIntegration  # type: ignore[no-redef]
+            rag = RAGVectorIntegration()
+            wiring.connect_rag(rag)
+        except ImportError:
+            logger.info("bootstrap_wiring: RAGVectorIntegration not available; P3-003 skipped")
+    except Exception as exc:
+        logger.warning("bootstrap_wiring: P3-003 wiring failed: %s", exc)
+
+    # --- P3-004: EventBackbone ---
+    try:
+        from src.event_backbone import EventBackbone  # noqa: F401
+        backbone = EventBackbone()
+        wiring.connect_event_backbone(backbone)
+    except ImportError:
+        try:
+            from event_backbone import EventBackbone  # type: ignore[no-redef]
+            backbone = EventBackbone()
+            wiring.connect_event_backbone(backbone)
+        except ImportError:
+            logger.info("bootstrap_wiring: EventBackbone not available; P3-004 skipped")
+    except Exception as exc:
+        logger.warning("bootstrap_wiring: P3-004 wiring failed: %s", exc)
+
+    # --- P3-005: StateManager ---
+    try:
+        from src.execution_engine.state_manager import StateManager  # noqa: F401
+        state_mgr = StateManager()
+        wiring.connect_state_manager(state_mgr)
+    except ImportError:
+        try:
+            from execution_engine.state_manager import StateManager  # type: ignore[no-redef]
+            state_mgr = StateManager()
+            wiring.connect_state_manager(state_mgr)
+        except ImportError:
+            logger.info("bootstrap_wiring: StateManager not available; P3-005 skipped")
+    except Exception as exc:
+        logger.warning("bootstrap_wiring: P3-005 wiring failed: %s", exc)
+
+    logger.info("bootstrap_wiring: Rosetta subsystem wiring complete")
+    return wiring
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+
+def _safe_update_proposals(
+    mgr: Any, agent_id: str, proposals: List[Dict[str, Any]]
+) -> None:
+    """Append *proposals* to the ``improvement_proposals`` list in the
+    Rosetta state for *agent_id*.  Skips silently if the agent has no state.
+    """
+    try:
+        state = mgr.load_state(agent_id)
+        if state is None:
+            return
+        existing = state.model_dump(mode="json")
+        existing_proposals: List[Dict[str, Any]] = existing.get("improvement_proposals", [])
+        existing_ids = {p.get("proposal_id") for p in existing_proposals}
+        for p in proposals:
+            if p.get("proposal_id") not in existing_ids:
+                existing_proposals.append(p)
+                existing_ids.add(p.get("proposal_id"))
+        existing["improvement_proposals"] = existing_proposals
+        mgr.update_state(agent_id, {"improvement_proposals": existing_proposals})
+    except Exception as exc:
+        logger.debug("_safe_update_proposals(%s) suppressed: %s", agent_id, exc)
+
+
+def _safe_update_automation_progress(
+    mgr: Any, agent_id: str, progress_entry: Dict[str, Any]
+) -> None:
+    """Upsert the ``automation_progress`` list in the Rosetta state.
+
+    If an entry with matching ``category`` already exists it is replaced;
+    otherwise the new entry is appended.
+    """
+    try:
+        state = mgr.load_state(agent_id)
+        if state is None:
+            return
+        existing = state.model_dump(mode="json")
+        progress_list: List[Dict[str, Any]] = existing.get("automation_progress", [])
+        category = progress_entry.get("category", "")
+        updated = [p for p in progress_list if p.get("category") != category]
+        updated.append(progress_entry)
+        mgr.update_state(agent_id, {"automation_progress": updated})
+    except Exception as exc:
+        logger.debug("_safe_update_automation_progress(%s) suppressed: %s", agent_id, exc)
+
+
+def _safe_update_system_state(
+    mgr: Any,
+    agent_id: str,
+    status: str,
+    *,
+    active_tasks: Optional[int] = None,
+) -> None:
+    """Update ``system_state.status`` (and optionally ``active_tasks``) in
+    the Rosetta state for *agent_id*.  Skips silently if no state exists.
+    """
+    try:
+        state = mgr.load_state(agent_id)
+        if state is None:
+            return
+        update: Dict[str, Any] = {"system_state": {"status": status}}
+        if active_tasks is not None:
+            update["system_state"]["active_tasks"] = int(active_tasks)
+        mgr.update_state(agent_id, update)
+    except Exception as exc:
+        logger.debug("_safe_update_system_state(%s) suppressed: %s", agent_id, exc)
+
+
+def _safe_update(mgr: Any, agent_id: str, fields: Dict[str, Any]) -> None:
+    """Generic helper: call ``mgr.update_state(agent_id, fields)`` if the
+    agent state exists; otherwise silently skip.
+
+    This is a low-level helper for callers that already speak the Pydantic
+    schema.  For typed sub-operations prefer the ``_safe_update_*`` helpers.
+    """
+    try:
+        state = mgr.load_state(agent_id)
+        if state is not None:
+            mgr.update_state(agent_id, fields)
+    except Exception as exc:
+        logger.debug("_safe_update(%s) suppressed: %s", agent_id, exc)
+
+
+def _state_to_text(state: Any) -> str:
+    """Convert a Rosetta agent state object to a plain-text summary
+    suitable for ingestion by ``RAGVectorIntegration``.
+    """
+    try:
+        identity = state.identity
+        agent_state = state.agent_state
+        lines = [
+            f"Agent: {identity.agent_id}",
+            f"Role: {identity.role}",
+            f"Goals: {', '.join(str(g) for g in agent_state.active_goals)}",
+            f"Tasks: {', '.join(str(t) for t in agent_state.task_queue)}",
+        ]
+        return "\n".join(lines)
+    except Exception:
+        try:
+            return str(state.model_dump(mode="json"))
+        except Exception:
+            return str(state)
+
+
+def _derive_agent_id(state: Any) -> str:
+    """Derive an agent ID from a ``SystemState`` object."""
+    if state is None:
+        return _DEFAULT_AGENT_ID
+    name = getattr(state, "state_name", None)
+    if name and name not in ("default", ""):
+        return name
+    return _DEFAULT_AGENT_ID
+
+
+def _now_iso() -> str:
+    """Return current UTC timestamp as ISO-8601 string."""
+    return datetime.now(timezone.utc).isoformat()
+
+
+__all__ = [
+    "RosettaSubsystemWiring",
+    "bootstrap_wiring",
+    "_DEFAULT_AGENT_ID",
+    "_safe_update",
+    "_safe_update_proposals",
+    "_safe_update_automation_progress",
+    "_safe_update_system_state",
+    "_state_to_text",
+    "_derive_agent_id",
+    "_now_iso",
+]

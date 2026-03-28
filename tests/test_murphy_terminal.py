@@ -9,7 +9,7 @@ import json
 import os
 import sys
 import re
-from unittest.mock import patch, MagicMock
+import requests as _requests_lib
 
 import requests
 import pytest
@@ -36,6 +36,18 @@ from murphy_terminal import (
     API_PROVIDER_LINKS,
 )
 from textual.widgets import Input
+
+
+def _make_response(status_code=200, json_data=None, text=""):
+    """Build a real requests.Response for test HTTP stubs."""
+    resp = _requests_lib.Response()
+    resp.status_code = status_code
+    if json_data is not None:
+        resp._content = json.dumps(json_data).encode("utf-8")
+        resp.headers["Content-Type"] = "application/json"
+    elif text:
+        resp._content = text.encode("utf-8")
+    return resp
 
 
 # ---------------------------------------------------------------------------
@@ -122,247 +134,270 @@ class TestMurphyAPIClient:
     def _make_client(self, base_url: str = "http://localhost:8000") -> MurphyAPIClient:
         return MurphyAPIClient(base_url=base_url, timeout=5)
 
-    @patch("murphy_terminal.requests.get")
-    def test_health(self, mock_get):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"status": "healthy", "version": "1.0"}
-        mock_resp.raise_for_status = MagicMock()
-        mock_get.return_value = mock_resp
+    def test_health(self):
+        import murphy_terminal
+        _orig = murphy_terminal.requests.get
+        _calls = []
+        def _tracked_get(*a, **kw):
+            _calls.append((a, kw))
+            return _make_response(200, {"status": "healthy", "version": "1.0"})
+        murphy_terminal.requests.get = _tracked_get
+        try:
+            client = self._make_client()
+            result = client.health()
+            assert result == {"status": "healthy", "version": "1.0"}
+            assert len(_calls) == 1
+            assert _calls[0] == (("http://localhost:8000/api/health",), {"timeout": 5})
+        finally:
+            murphy_terminal.requests.get = _orig
 
-        client = self._make_client()
-        result = client.health()
+    def test_status(self):
+        import murphy_terminal
+        _orig = murphy_terminal.requests.get
+        _calls = []
+        def _tracked_get(*a, **kw):
+            _calls.append((a, kw))
+            return _make_response(200, {"state": "running"})
+        murphy_terminal.requests.get = _tracked_get
+        try:
+            client = self._make_client()
+            result = client.status()
+            assert result["state"] == "running"
+            assert len(_calls) == 1
+            assert _calls[0] == (("http://localhost:8000/api/status",), {"timeout": 5})
+        finally:
+            murphy_terminal.requests.get = _orig
 
-        assert result == {"status": "healthy", "version": "1.0"}
-        mock_get.assert_called_once_with(
-            "http://localhost:8000/api/health", timeout=5
-        )
+    def test_info(self):
+        import murphy_terminal
+        _orig = murphy_terminal.requests.get
+        murphy_terminal.requests.get = lambda *a, **kw: _make_response(200, {"version": "1.0", "name": "Murphy"})
+        try:
+            client = self._make_client()
+            result = client.info()
+            assert result["name"] == "Murphy"
+        finally:
+            murphy_terminal.requests.get = _orig
 
-    @patch("murphy_terminal.requests.get")
-    def test_status(self, mock_get):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"state": "running"}
-        mock_resp.raise_for_status = MagicMock()
-        mock_get.return_value = mock_resp
+    def test_create_session(self):
+        import murphy_terminal
+        _orig = murphy_terminal.requests.post
+        murphy_terminal.requests.post = lambda *a, **kw: _make_response(200, {"session_id": "sess-123"})
+        try:
+            client = self._make_client()
+            result = client.create_session("test")
+            assert result["session_id"] == "sess-123"
+            assert client.session_id == "sess-123"
+        finally:
+            murphy_terminal.requests.post = _orig
 
-        client = self._make_client()
-        result = client.status()
+    def test_chat(self):
+        import murphy_terminal
+        _orig = murphy_terminal.requests.post
+        _calls = []
+        def _tracked_post(*a, **kw):
+            _calls.append((a, kw))
+            return _make_response(200, {"response": "Hello!"})
+        murphy_terminal.requests.post = _tracked_post
+        try:
+            client = self._make_client()
+            client.session_id = "sess-1"
+            result = client.chat("hi")
+            assert result["response"] == "Hello!"
+            assert len(_calls) == 1
+            assert _calls[0] == (
+                ("http://localhost:8000/api/chat",),
+                {"json": {"message": "hi", "session_id": "sess-1"}, "timeout": 5},
+            )
+        finally:
+            murphy_terminal.requests.post = _orig
 
-        assert result["state"] == "running"
-        mock_get.assert_called_once_with(
-            "http://localhost:8000/api/status", timeout=5
-        )
+    def test_chat_without_session(self):
+        import murphy_terminal
+        _orig = murphy_terminal.requests.post
+        _calls = []
+        def _tracked_post(*a, **kw):
+            _calls.append((a, kw))
+            return _make_response(200, {"response": "Hello!"})
+        murphy_terminal.requests.post = _tracked_post
+        try:
+            client = self._make_client()
+            result = client.chat("hello")
+            assert len(_calls) == 1
+            assert _calls[0] == (
+                ("http://localhost:8000/api/chat",),
+                {"json": {"message": "hello"}, "timeout": 5},
+            )
+        finally:
+            murphy_terminal.requests.post = _orig
 
-    @patch("murphy_terminal.requests.get")
-    def test_info(self, mock_get):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"version": "1.0", "name": "Murphy"}
-        mock_resp.raise_for_status = MagicMock()
-        mock_get.return_value = mock_resp
+    def test_execute(self):
+        import murphy_terminal
+        _orig = murphy_terminal.requests.post
+        _calls = []
+        def _tracked_post(*a, **kw):
+            _calls.append((a, kw))
+            return _make_response(200, {"success": True, "result": "done"})
+        murphy_terminal.requests.post = _tracked_post
+        try:
+            client = self._make_client()
+            result = client.execute("onboard site foo")
+            assert result["success"] is True
+            assert len(_calls) == 1
+            assert _calls[0] == (
+                ("http://localhost:8000/api/execute",),
+                {"json": {"task_description": "onboard site foo", "task_type": "general"}, "timeout": 5},
+            )
+        finally:
+            murphy_terminal.requests.post = _orig
 
-        client = self._make_client()
-        result = client.info()
+    def test_execute_with_session_and_params(self):
+        import murphy_terminal
+        _orig = murphy_terminal.requests.post
+        _calls = []
+        def _tracked_post(*a, **kw):
+            _calls.append((a, kw))
+            return _make_response(200, {"success": True})
+        murphy_terminal.requests.post = _tracked_post
+        try:
+            client = self._make_client()
+            client.session_id = "s-1"
+            result = client.execute("deploy", parameters={"env": "prod"})
+            assert len(_calls) == 1
+            assert _calls[0] == (
+                ("http://localhost:8000/api/execute",),
+                {
+                    "json": {
+                        "task_description": "deploy",
+                        "task_type": "general",
+                        "parameters": {"env": "prod"},
+                        "session_id": "s-1",
+                    },
+                    "timeout": 5,
+                },
+            )
+        finally:
+            murphy_terminal.requests.post = _orig
 
-        assert result["name"] == "Murphy"
+    def test_corrections_stats(self):
+        import murphy_terminal
+        _orig = murphy_terminal.requests.get
+        murphy_terminal.requests.get = lambda *a, **kw: _make_response(200, {"total": 42})
+        try:
+            client = self._make_client()
+            result = client.corrections_stats()
+            assert result["total"] == 42
+        finally:
+            murphy_terminal.requests.get = _orig
 
-    @patch("murphy_terminal.requests.post")
-    def test_create_session(self, mock_post):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"session_id": "sess-123"}
-        mock_resp.raise_for_status = MagicMock()
-        mock_post.return_value = mock_resp
+    def test_hitl_pending(self):
+        import murphy_terminal
+        _orig = murphy_terminal.requests.get
+        murphy_terminal.requests.get = lambda *a, **kw: _make_response(200, {"pending": []})
+        try:
+            client = self._make_client()
+            result = client.hitl_pending()
+            assert result["pending"] == []
+        finally:
+            murphy_terminal.requests.get = _orig
 
-        client = self._make_client()
-        result = client.create_session("test")
-
-        assert result["session_id"] == "sess-123"
-        assert client.session_id == "sess-123"
-
-    @patch("murphy_terminal.requests.post")
-    def test_chat(self, mock_post):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"response": "Hello!"}
-        mock_resp.raise_for_status = MagicMock()
-        mock_post.return_value = mock_resp
-
-        client = self._make_client()
-        client.session_id = "sess-1"
-        result = client.chat("hi")
-
-        assert result["response"] == "Hello!"
-        mock_post.assert_called_once_with(
-            "http://localhost:8000/api/chat",
-            json={"message": "hi", "session_id": "sess-1"},
-            timeout=5,
-        )
-
-    @patch("murphy_terminal.requests.post")
-    def test_chat_without_session(self, mock_post):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"response": "Hello!"}
-        mock_resp.raise_for_status = MagicMock()
-        mock_post.return_value = mock_resp
-
-        client = self._make_client()
-        result = client.chat("hello")
-
-        mock_post.assert_called_once_with(
-            "http://localhost:8000/api/chat",
-            json={"message": "hello"},
-            timeout=5,
-        )
-
-    @patch("murphy_terminal.requests.post")
-    def test_execute(self, mock_post):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"success": True, "result": "done"}
-        mock_resp.raise_for_status = MagicMock()
-        mock_post.return_value = mock_resp
-
-        client = self._make_client()
-        result = client.execute("onboard site foo")
-
-        assert result["success"] is True
-        mock_post.assert_called_once_with(
-            "http://localhost:8000/api/execute",
-            json={
-                "task_description": "onboard site foo",
-                "task_type": "general",
-            },
-            timeout=5,
-        )
-
-    @patch("murphy_terminal.requests.post")
-    def test_execute_with_session_and_params(self, mock_post):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"success": True}
-        mock_resp.raise_for_status = MagicMock()
-        mock_post.return_value = mock_resp
-
-        client = self._make_client()
-        client.session_id = "s-1"
-        result = client.execute("deploy", parameters={"env": "prod"})
-
-        mock_post.assert_called_once_with(
-            "http://localhost:8000/api/execute",
-            json={
-                "task_description": "deploy",
-                "task_type": "general",
-                "parameters": {"env": "prod"},
-                "session_id": "s-1",
-            },
-            timeout=5,
-        )
-
-    @patch("murphy_terminal.requests.get")
-    def test_corrections_stats(self, mock_get):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"total": 42}
-        mock_resp.raise_for_status = MagicMock()
-        mock_get.return_value = mock_resp
-
-        client = self._make_client()
-        result = client.corrections_stats()
-
-        assert result["total"] == 42
-
-    @patch("murphy_terminal.requests.get")
-    def test_hitl_pending(self, mock_get):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"pending": []}
-        mock_resp.raise_for_status = MagicMock()
-        mock_get.return_value = mock_resp
-
-        client = self._make_client()
-        result = client.hitl_pending()
-
-        assert result["pending"] == []
-
-    @patch("murphy_terminal.requests.get")
-    def test_hitl_stats(self, mock_get):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"total_interventions": 5}
-        mock_resp.raise_for_status = MagicMock()
-        mock_get.return_value = mock_resp
-
-        client = self._make_client()
-        result = client.hitl_stats()
-
-        assert result["total_interventions"] == 5
+    def test_hitl_stats(self):
+        import murphy_terminal
+        _orig = murphy_terminal.requests.get
+        murphy_terminal.requests.get = lambda *a, **kw: _make_response(200, {"total_interventions": 5})
+        try:
+            client = self._make_client()
+            result = client.hitl_stats()
+            assert result["total_interventions"] == 5
+        finally:
+            murphy_terminal.requests.get = _orig
 
     def test_url_trailing_slash_stripped(self):
         client = MurphyAPIClient(base_url="http://host:9000/")
         assert client.base_url == "http://host:9000"
 
-    @patch("murphy_terminal.requests.get")
-    def test_connection_error_propagates(self, mock_get):
-        mock_get.side_effect = requests.ConnectionError("refused")
-        client = self._make_client()
-        with pytest.raises(requests.ConnectionError):
-            client.health()
+    def test_connection_error_propagates(self):
+        import murphy_terminal
+        _orig = murphy_terminal.requests.get
+        def _raise_error(*a, **kw):
+            raise requests.ConnectionError("refused")
+        murphy_terminal.requests.get = _raise_error
+        try:
+            client = self._make_client()
+            with pytest.raises(requests.ConnectionError):
+                client.health()
+        finally:
+            murphy_terminal.requests.get = _orig
 
-    @patch("murphy_terminal.requests.post")
-    def test_librarian_ask(self, mock_post):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {
+    def test_librarian_ask(self):
+        import murphy_terminal
+        _orig = murphy_terminal.requests.post
+        _calls = []
+        _json = {
             "success": True,
             "reply_text": "I can help with that!",
             "intent": "general",
             "mode": "deterministic",
             "suggested_commands": ["help"],
         }
-        mock_resp.raise_for_status = MagicMock()
-        mock_post.return_value = mock_resp
+        def _tracked_post(*a, **kw):
+            _calls.append((a, kw))
+            return _make_response(200, _json)
+        murphy_terminal.requests.post = _tracked_post
+        try:
+            client = self._make_client()
+            client.session_id = "s-1"
+            result = client.librarian_ask("hello")
+            assert result["success"] is True
+            assert result["reply_text"] == "I can help with that!"
+            assert len(_calls) == 1
+            assert _calls[0] == (
+                ("http://localhost:8000/api/librarian/ask",),
+                {"json": {"message": "hello", "session_id": "s-1"}, "timeout": 5},
+            )
+        finally:
+            murphy_terminal.requests.post = _orig
 
-        client = self._make_client()
-        client.session_id = "s-1"
-        result = client.librarian_ask("hello")
-
-        assert result["success"] is True
-        assert result["reply_text"] == "I can help with that!"
-        mock_post.assert_called_once_with(
-            "http://localhost:8000/api/librarian/ask",
-            json={"message": "hello", "session_id": "s-1"},
-            timeout=5,
-        )
-
-    @patch("murphy_terminal.requests.get")
-    def test_llm_status(self, mock_get):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {
+    def test_llm_status(self):
+        import murphy_terminal
+        _orig = murphy_terminal.requests.get
+        _calls = []
+        _json = {
             "enabled": True,
             "provider": "deepinfra",
-            "model": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+            "model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
             "healthy": True,
         }
-        mock_resp.raise_for_status = MagicMock()
-        mock_get.return_value = mock_resp
+        def _tracked_get(*a, **kw):
+            _calls.append((a, kw))
+            return _make_response(200, _json)
+        murphy_terminal.requests.get = _tracked_get
+        try:
+            client = self._make_client()
+            result = client.llm_status()
+            assert result["enabled"] is True
+            assert result["provider"] == "deepinfra"
+            assert len(_calls) == 1
+            assert _calls[0] == (("http://localhost:8000/api/llm/status",), {"timeout": 5})
+        finally:
+            murphy_terminal.requests.get = _orig
 
-        client = self._make_client()
-        result = client.llm_status()
-
-        assert result["enabled"] is True
-        assert result["provider"] == "deepinfra"
-        mock_get.assert_called_once_with(
-            "http://localhost:8000/api/llm/status", timeout=5
-        )
-
-    @patch("murphy_terminal.requests.get")
-    def test_librarian_status(self, mock_get):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {
-            "enabled": True,
-            "healthy": True,
-        }
-        mock_resp.raise_for_status = MagicMock()
-        mock_get.return_value = mock_resp
-
-        client = self._make_client()
-        result = client.librarian_status()
-
-        assert result["enabled"] is True
-        mock_get.assert_called_once_with(
-            "http://localhost:8000/api/librarian/status", timeout=5
-        )
+    def test_librarian_status(self):
+        import murphy_terminal
+        _orig = murphy_terminal.requests.get
+        _calls = []
+        def _tracked_get(*a, **kw):
+            _calls.append((a, kw))
+            return _make_response(200, {"enabled": True, "healthy": True})
+        murphy_terminal.requests.get = _tracked_get
+        try:
+            client = self._make_client()
+            result = client.librarian_status()
+            assert result["enabled"] is True
+            assert len(_calls) == 1
+            assert _calls[0] == (("http://localhost:8000/api/librarian/status",), {"timeout": 5})
+        finally:
+            murphy_terminal.requests.get = _orig
 
 
 # ---------------------------------------------------------------------------
@@ -435,35 +470,47 @@ class TestMurphyAPIClientNew:
         assert client.session_id is None
         assert client.last_error is None
 
-    @patch("murphy_terminal.requests.get")
-    def test_test_connection_success(self, mock_get):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"status": "healthy", "version": "2.0"}
-        mock_resp.raise_for_status = MagicMock()
-        mock_get.return_value = mock_resp
+    def test_test_connection_success(self):
+        import murphy_terminal
+        _orig = murphy_terminal.requests.get
+        murphy_terminal.requests.get = lambda *a, **kw: _make_response(200, {"status": "healthy", "version": "2.0"})
+        try:
+            client = MurphyAPIClient(base_url="http://localhost:8000")
+            ok, detail = client.test_connection()
+            assert ok is True
+            assert "Healthy" in detail
+            assert client.last_error is None
+        finally:
+            murphy_terminal.requests.get = _orig
 
-        client = MurphyAPIClient(base_url="http://localhost:8000")
-        ok, detail = client.test_connection()
-        assert ok is True
-        assert "Healthy" in detail
-        assert client.last_error is None
+    def test_test_connection_refused(self):
+        import murphy_terminal
+        _orig = murphy_terminal.requests.get
+        def _raise_error(*a, **kw):
+            raise requests.ConnectionError("refused")
+        murphy_terminal.requests.get = _raise_error
+        try:
+            client = MurphyAPIClient(base_url="http://localhost:8000")
+            ok, detail = client.test_connection()
+            assert ok is False
+            assert "refused" in detail.lower() or "connection" in detail.lower()
+            assert client.last_error is not None
+        finally:
+            murphy_terminal.requests.get = _orig
 
-    @patch("murphy_terminal.requests.get")
-    def test_test_connection_refused(self, mock_get):
-        mock_get.side_effect = requests.ConnectionError("refused")
-        client = MurphyAPIClient(base_url="http://localhost:8000")
-        ok, detail = client.test_connection()
-        assert ok is False
-        assert "refused" in detail.lower() or "connection" in detail.lower()
-        assert client.last_error is not None
-
-    @patch("murphy_terminal.requests.get")
-    def test_test_connection_timeout(self, mock_get):
-        mock_get.side_effect = requests.Timeout("timed out")
-        client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
-        ok, detail = client.test_connection()
-        assert ok is False
-        assert "timeout" in detail.lower() or "Timeout" in detail
+    def test_test_connection_timeout(self):
+        import murphy_terminal
+        _orig = murphy_terminal.requests.get
+        def _raise_error(*a, **kw):
+            raise requests.Timeout("timed out")
+        murphy_terminal.requests.get = _raise_error
+        try:
+            client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
+            ok, detail = client.test_connection()
+            assert ok is False
+            assert "timeout" in detail.lower() or "Timeout" in detail
+        finally:
+            murphy_terminal.requests.get = _orig
 
 
 # ---------------------------------------------------------------------------
@@ -685,25 +732,24 @@ class TestMurphyTerminalAppNew:
 
     def test_friendly_error_http_error(self):
         app = MurphyTerminalApp(api_url="http://localhost:9999")
-        mock_resp = MagicMock()
-        mock_resp.status_code = 503
-        exc = requests.HTTPError(response=mock_resp)
+        resp = _make_response(503)
+        exc = requests.HTTPError(response=resp)
         msg = app._friendly_error(exc)
         assert "503" in msg
         assert "HTTP" in msg
 
-    @patch("murphy_terminal.requests.get")
-    def test_test_connection_http_error(self, mock_get):
-        mock_resp = MagicMock()
-        mock_resp.status_code = 500
-        mock_resp.raise_for_status.side_effect = requests.HTTPError(response=mock_resp)
-        mock_get.return_value = mock_resp
-
-        client = MurphyAPIClient(base_url="http://localhost:8000")
-        ok, detail = client.test_connection()
-        assert ok is False
-        assert "500" in detail
-        assert client.last_error is not None
+    def test_test_connection_http_error(self):
+        import murphy_terminal
+        _orig = murphy_terminal.requests.get
+        murphy_terminal.requests.get = lambda *a, **kw: _make_response(500)
+        try:
+            client = MurphyAPIClient(base_url="http://localhost:8000")
+            ok, detail = client.test_connection()
+            assert ok is False
+            assert "500" in detail
+            assert client.last_error is not None
+        finally:
+            murphy_terminal.requests.get = _orig
 
 
 # ---------------------------------------------------------------------------
@@ -1019,7 +1065,7 @@ class TestAPIProviderLinks:
     def test_links_not_empty(self):
         assert len(API_PROVIDER_LINKS) > 0
 
-    def test_groq_present(self):
+    def test_deepinfra_present(self):
         assert "deepinfra" in API_PROVIDER_LINKS
         assert "url" in API_PROVIDER_LINKS["deepinfra"]
         assert "env_var" in API_PROVIDER_LINKS["deepinfra"]
@@ -1281,90 +1327,88 @@ class TestTUINewFeatures:
 class TestBug5DefaultSuccessFalse:
     """BUG-5: _apply_api_key should default 'success' to False, not True."""
 
-    @patch("murphy_terminal.requests.post")
-    def test_configure_llm_returns_empty_dict_treated_as_failure(self, mock_post):
+    def test_configure_llm_returns_empty_dict_treated_as_failure(self):
         """If backend returns {} (no 'success' key), it should be treated as failure."""
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {}
-        mock_resp.raise_for_status = MagicMock()
-        mock_post.return_value = mock_resp
+        import murphy_terminal
+        _orig = murphy_terminal.requests.post
+        murphy_terminal.requests.post = lambda *a, **kw: _make_response(200, {})
+        try:
+            client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
+            result = client.configure_llm("deepinfra", "di_test_key_value")
+            # With the old default of True, `not result.get("success", True)` would be
+            # False (i.e. treated as success).  With the fix, `not result.get("success", False)`
+            # is True (i.e. treated as failure).
+            assert result.get("success", False) is False
+        finally:
+            murphy_terminal.requests.post = _orig
 
-        client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
-        result = client.configure_llm("deepinfra", "gsk_test_key_value")
-        # With the old default of True, `not result.get("success", True)` would be
-        # False (i.e. treated as success).  With the fix, `not result.get("success", False)`
-        # is True (i.e. treated as failure).
-        assert result.get("success", False) is False
+    def test_configure_llm_explicit_success_true(self):
+        import murphy_terminal
+        _orig = murphy_terminal.requests.post
+        murphy_terminal.requests.post = lambda *a, **kw: _make_response(200, {"success": True, "provider": "deepinfra"})
+        try:
+            client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
+            result = client.configure_llm("deepinfra", "di_test_key_value")
+            assert result.get("success", False) is True
+        finally:
+            murphy_terminal.requests.post = _orig
 
-    @patch("murphy_terminal.requests.post")
-    def test_configure_llm_explicit_success_true(self, mock_post):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"success": True, "provider": "deepinfra"}
-        mock_resp.raise_for_status = MagicMock()
-        mock_post.return_value = mock_resp
-
-        client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
-        result = client.configure_llm("deepinfra", "gsk_test_key_value")
-        assert result.get("success", False) is True
-
-    @patch("murphy_terminal.requests.post")
-    def test_configure_llm_explicit_success_false(self, mock_post):
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"success": False, "error": "bad key"}
-        mock_resp.raise_for_status = MagicMock()
-        mock_post.return_value = mock_resp
-
-        client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
-        result = client.configure_llm("deepinfra", "gsk_bad")
-        assert result.get("success", False) is False
+    def test_configure_llm_explicit_success_false(self):
+        import murphy_terminal
+        _orig = murphy_terminal.requests.post
+        murphy_terminal.requests.post = lambda *a, **kw: _make_response(200, {"success": False, "error": "bad key"})
+        try:
+            client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
+            result = client.configure_llm("deepinfra", "di_bad")
+            assert result.get("success", False) is False
+        finally:
+            murphy_terminal.requests.post = _orig
 
 
 class TestBug4StatusBarAuth:
     """BUG-4: _check_llm_status should rely on actual auth test, not just env vars."""
 
-    @patch("murphy_terminal.requests.post")
-    @patch("murphy_terminal.requests.get")
-    def test_llm_status_enabled_but_test_fails_returns_false(self, mock_get, mock_post):
+    def test_llm_status_enabled_but_test_fails_returns_false(self):
         """Status says enabled but auth test fails → client should reflect failure."""
-        # Mock llm_status → enabled
-        get_resp = MagicMock()
-        get_resp.json.return_value = {"enabled": True, "provider": "deepinfra", "model": "meta-llama/Meta-Llama-3.1-8B-Instruct"}
-        get_resp.raise_for_status = MagicMock()
-        mock_get.return_value = get_resp
+        import murphy_terminal
+        _orig_get = murphy_terminal.requests.get
+        _orig_post = murphy_terminal.requests.post
+        murphy_terminal.requests.get = lambda *a, **kw: _make_response(
+            200, {"enabled": True, "provider": "deepinfra", "model": "meta-llama/Meta-Llama-3.1-70B-Instruct"},
+        )
+        murphy_terminal.requests.post = lambda *a, **kw: _make_response(
+            200, {"success": False, "error": "Invalid API key"},
+        )
+        try:
+            client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
+            status = client.llm_status()
+            assert status.get("enabled") is True
+            test_result = client.llm_test()
+            assert test_result.get("success") is False
+        finally:
+            murphy_terminal.requests.get = _orig_get
+            murphy_terminal.requests.post = _orig_post
 
-        # Mock llm_test → failure
-        post_resp = MagicMock()
-        post_resp.json.return_value = {"success": False, "error": "Invalid API key"}
-        post_resp.raise_for_status = MagicMock()
-        mock_post.return_value = post_resp
-
-        client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
-        status = client.llm_status()
-        assert status.get("enabled") is True
-
-        test_result = client.llm_test()
-        assert test_result.get("success") is False
-
-    @patch("murphy_terminal.requests.post")
-    @patch("murphy_terminal.requests.get")
-    def test_llm_status_enabled_and_test_passes(self, mock_get, mock_post):
+    def test_llm_status_enabled_and_test_passes(self):
         """Status enabled and auth test passes → should report success."""
-        get_resp = MagicMock()
-        get_resp.json.return_value = {"enabled": True, "provider": "deepinfra", "model": "meta-llama/Meta-Llama-3.1-8B-Instruct"}
-        get_resp.raise_for_status = MagicMock()
-        mock_get.return_value = get_resp
-
-        post_resp = MagicMock()
-        post_resp.json.return_value = {"success": True, "provider": "deepinfra"}
-        post_resp.raise_for_status = MagicMock()
-        mock_post.return_value = post_resp
-
-        client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
-        status = client.llm_status()
-        assert status.get("enabled") is True
-
-        test_result = client.llm_test()
-        assert test_result.get("success") is True
+        import murphy_terminal
+        _orig_get = murphy_terminal.requests.get
+        _orig_post = murphy_terminal.requests.post
+        murphy_terminal.requests.get = lambda *a, **kw: _make_response(
+            200, {"enabled": True, "provider": "deepinfra", "model": "meta-llama/Meta-Llama-3.1-70B-Instruct"},
+        )
+        murphy_terminal.requests.post = lambda *a, **kw: _make_response(
+            200, {"success": True, "provider": "deepinfra"},
+        )
+        try:
+            client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
+            status = client.llm_status()
+            assert status.get("enabled") is True
+            test_result = client.llm_test()
+            assert test_result.get("success") is True
+        finally:
+            murphy_terminal.requests.get = _orig_get
+            murphy_terminal.requests.post = _orig_post
 
 
 class TestBug1ClipboardPriority:
@@ -1388,12 +1432,12 @@ class TestBug1ClipboardPriority:
 class TestBug6NoHardcodedKeys:
     """BUG-6: No real API keys should remain in the archive directory."""
 
-    def test_no_groq_keys_in_archive(self):
+    def test_no_deepinfra_keys_in_archive(self):
         """Ensure no gsk_ prefixed keys of 20+ chars remain in the archive."""
         archive_dir = os.path.join(os.path.dirname(__file__), "..", "archive")
         if not os.path.isdir(archive_dir):
             pytest.skip("archive directory not present")
-        pattern = re.compile(r"gsk_[A-Za-z0-9]{20,}")
+        pattern = re.compile(r"di_[A-Za-z0-9]{20,}")
         hits: list[str] = []
         for root, _dirs, files in os.walk(archive_dir):
             for fname in files:

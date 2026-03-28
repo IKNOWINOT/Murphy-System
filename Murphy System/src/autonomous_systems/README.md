@@ -1,35 +1,20 @@
-# `src/autonomous_systems` — Autonomous Systems Module
+# Autonomous Systems
 
-Self-scheduling task execution, risk assessment, and human-oversight controls for autonomous Murphy operation.
+The `autonomous_systems` package provides scheduling, risk management, and
+human-oversight primitives for autonomous Murphy operations.
 
-![License: BSL 1.1](https://img.shields.io/badge/License-BSL%201.1-blue.svg)
-
-## Overview
-
-The autonomous systems module enables Murphy to plan and execute tasks without constant human direction while preserving meaningful oversight. The `AutonomousScheduler` manages dependency graphs and resource pools to sequence tasks efficiently across priorities. The `RiskManager` evaluates each planned action against configurable risk thresholds and emits mitigation recommendations before execution proceeds. The `HumanOversightSystem` gates high-risk operations behind an approval queue and records every intervention in an immutable event log.
-
-## Key Components
+## Key Modules
 
 | Module | Purpose |
 |--------|---------|
-| `autonomous_scheduler.py` | `AutonomousScheduler` with `DependencyGraph`, `ResourcePool`, `Task`, and priority queuing |
-| `risk_manager.py` | `RiskManager`, `RiskMonitor`, `MitigationPlanner` — categorised risk assessment |
-| `human_oversight_system.py` | `HumanOversightSystem`, `ApprovalQueue`, `InterventionManager`, and `EventLogger` |
+| `autonomous_scheduler.py` | Schedules autonomous tasks with priority queuing |
+| `risk_manager.py` | Calculates and enforces risk budgets for autonomous actions |
+| `human_oversight_system.py` | HITL gate that pauses execution pending human approval |
 
 ## Usage
 
 ```python
-from autonomous_systems import AutonomousScheduler, RiskManager, HumanOversightSystem, OversightLevel
-
+from autonomous_systems.autonomous_scheduler import AutonomousScheduler
 scheduler = AutonomousScheduler()
-risk = RiskManager()
-oversight = HumanOversightSystem(level=OversightLevel.STANDARD)
-
-task = scheduler.enqueue(task_id="deploy-v2", priority="high", dependencies=["build"])
-assessment = risk.assess(task)
-if assessment.requires_approval:
-    oversight.request_approval(task, assessment)
+scheduler.schedule(task={...}, run_at="2026-04-01T00:00:00Z")
 ```
-
----
-*Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post · License: BSL 1.1*

@@ -13,13 +13,12 @@ License: BSL 1.1
 """
 from __future__ import annotations
 
+from src.billing.grants.eligibility_engine import EligibilityEngine
+from src.billing.grants.engine import GrantEligibilityEngine
+
 # Phase 2: HITL Agentic Form-Filling System
 from src.billing.grants.grant_database import GRANT_PROGRAMS, GrantProgram
-from src.billing.grants.eligibility_engine import EligibilityEngine
-from src.billing.grants.session_manager import GrantSessionManager
 from src.billing.grants.hitl_task_queue import HITLTaskQueue
-from src.billing.grants.prerequisites_tracker import PrerequisitesTracker
-from src.billing.grants.murphy_profiles import MurphyGrantProfile, ProfileFlavor
 
 # Phase 3: Core models and eligibility engine
 from src.billing.grants.models import (
@@ -39,7 +38,9 @@ from src.billing.grants.models import (
     SavedFormData,
     SessionCredential,
 )
-from src.billing.grants.engine import GrantEligibilityEngine
+from src.billing.grants.murphy_profiles import MurphyGrantProfile, ProfileFlavor
+from src.billing.grants.prerequisites_tracker import PrerequisitesTracker
+from src.billing.grants.session_manager import GrantSessionManager
 from src.billing.grants.sessions import SessionManager
 
 __all__ = [

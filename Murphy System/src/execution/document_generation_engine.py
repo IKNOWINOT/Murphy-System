@@ -234,7 +234,7 @@ class DocumentGenerationEngine:
                 )
                 return renderer.render_to_base64(wrapped_html, brand, {})
         except Exception:
-            logger.debug("Rich PDF renderer unavailable, falling back to reportlab")
+            pass
 
         # 2. reportlab fallback
         try:

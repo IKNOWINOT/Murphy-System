@@ -224,7 +224,7 @@ class LocalLLMFallback:
 
             "murphy": """Murphy System is an AI-powered automation assistant that helps teams automate operations, onboard new users, manage integrations, and run end-to-end workflows. Key commands include: 'start interview' for guided onboarding, 'help' for command list, 'show modules' for system modules, 'status' for system health, 'execute <task>' to run workflows, 'set key <provider> <key>' to configure API keys, and 'api keys' for integration setup links.""",
 
-            "murphy_setup": """To set up Murphy System: 1) Run the startup script (start_murphy_1.0.sh). 2) Set your DeepInfra API key using 'set key deepinfra gsk_yourKeyHere' in the terminal. 3) Type 'start interview' for guided onboarding. 4) Use 'status' to verify connectivity. 5) Use 'execute <task>' to start automating. For API keys, type 'api keys' to see all available integrations.""",
+            "murphy_setup": """To set up Murphy System: 1) Run the startup script (start_murphy_1.0.sh). 2) Set your DeepInfra API key using 'set key deepinfra <your_key>' in the terminal. 3) Type 'start interview' for guided onboarding. 4) Use 'status' to verify connectivity. 5) Use 'execute <task>' to start automating. For API keys, type 'api keys' to see all available integrations.""",
 
             "murphy_troubleshooting": """Common Murphy troubleshooting: If LLM is not working, check 'llm status' and ensure your API key is set with 'set key deepinfra <key>'. If the backend is unreachable, try 'reconnect' or 'set api <url>'. If you're stuck, type 'help' for available commands. For API key issues, use 'set key <provider> <key>' to set keys inline without restarting.""",
 
@@ -433,7 +433,7 @@ I'm operating in offline mode, so for specific technical details and current bes
 
 **Next Steps**: Type `start interview` to describe your integration need, or type `api keys` to see all supported platforms.
 
-💡 Add a DeepInfra API key (`set key deepinfra gsk_...`) for AI-powered integration planning."""
+💡 Add a DeepInfra API key (`set key deepinfra <your_key>`) for AI-powered integration planning."""
 
         elif response_type == "recommendation":
             return f"""Regarding '{prompt}', here are some general recommendations:
@@ -477,7 +477,7 @@ Which platforms need to be integrated? Murphy supports Shopify, Stripe, Gmail, S
 
 **To proceed**: Type `start interview` to walk through your specific automation needs, or describe exactly what triggers and actions you want.
 
-💡 Add a DeepInfra API key (`set key deepinfra gsk_...`) to unlock full AI-powered planning."""
+💡 Add a DeepInfra API key (`set key deepinfra <your_key>`) to unlock full AI-powered planning."""
 
         elif response_type == "business":
             return f"""Thanks for sharing information about your business!
@@ -519,7 +519,7 @@ Once I understand your workflow, I can build an automation blueprint for you. Ty
 
 **To get started**: Describe your business and what you want to automate, then type `start interview`.
 
-Get a free DeepInfra key at https://console.deepinfra.com/keys for the best experience."""
+Get a DeepInfra key at https://deepinfra.com for the best experience."""
 
         else:
             return self._generate_default_response(prompt, max_tokens)
@@ -543,7 +543,7 @@ To provide the most accurate and helpful response, I would need:
 3. Any constraints or requirements you have
 
 **💡 Tip**: Try `set key deepinfra <your-key>` to add an API key for full AI capabilities.
-Get a free key at: https://console.deepinfra.com/keys
+Get a free key at: https://deepinfra.com
 
 Would you like to:
 - Rephrase your question with more context?

@@ -396,7 +396,7 @@ class TestGateG5G6RuntimeBlockers:
         content = lra.read_text()
         assert "FULL GO" in content
 
-    def test_env_example_has_groq_key_placeholder(self, project_root):
+    def test_env_example_has_deepinfra_key_placeholder(self, project_root):
         """@arch-lead: .env.example has DEEPINFRA_API_KEY placeholder."""
         env_file = project_root / ".env.example"
         content = env_file.read_text()

@@ -112,7 +112,7 @@ REDIS_URL=redis://:<password>@localhost:6379/0
 REDIS_PASSWORD=<generated>
 
 # LLM
-DEEPINFRA_API_KEY=gsk_...           # Free: https://console.deepinfra.com/keys
+DEEPINFRA_API_KEY=di_...           # Free: https://deepinfra.com
 OLLAMA_HOST=http://localhost:11434  # For onboard Ollama
 
 # Email (optional, for notifications)

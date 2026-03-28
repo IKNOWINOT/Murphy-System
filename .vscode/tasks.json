@@ -1,0 +1,55 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Murphy: Start Server",
+            "type": "shell",
+            "command": "cd 'Murphy System' && ./start.sh",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Murphy: Stop Server",
+            "type": "shell",
+            "command": "pkill -f murphy_system_1.0_runtime.py",
+            "problemMatcher": []
+        },
+        {
+            "label": "Murphy: Install Dependencies",
+            "type": "shell",
+            "command": "cd 'Murphy System' && pip install -r requirements_murphy_1.0.txt",
+            "problemMatcher": []
+        },
+        {
+            "label": "Murphy: Run Quick Demo",
+            "type": "shell",
+            "command": "cd 'Murphy System' && python scripts/quick_demo.py",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Murphy: Health Check",
+            "type": "shell",
+            "command": "curl http://localhost:8000/api/health",
+            "problemMatcher": []
+        },
+        {
+            "label": "Murphy: View API Docs",
+            "type": "shell",
+            "command": "open http://localhost:8000/docs || xdg-open http://localhost:8000/docs",
+            "problemMatcher": []
+        },
+        {
+            "label": "Murphy: Run Tests",
+            "type": "shell",
+            "command": "cd 'Murphy System' && python -m pytest tests/ -v --no-cov --timeout=60",
+            "problemMatcher": []
+        }
+    ]
+}

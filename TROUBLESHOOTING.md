@@ -58,10 +58,10 @@ sudo systemctl restart murphy-production
 # Store key (persists across restarts)
 curl -s -X POST http://localhost:8000/api/credentials/store \
   -H "Content-Type: application/json" \
-  -d '{"integration":"deepinfra","credential":"gsk_YOUR_KEY_HERE"}'
+  -d '{"integration":"deepinfra","credential":"di_YOUR_KEY_HERE"}'
 
 # OR via terminal command inside Murphy
-set key deepinfra gsk_YOUR_KEY_HERE
+set key deepinfra di_YOUR_KEY_HERE
 ```
 
 ---

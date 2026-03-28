@@ -11710,7 +11710,7 @@ class MurphySystem:
     API_PROVIDER_LINKS: Dict[str, Dict[str, str]] = {
         "deepinfra": {
             "name": "DeepInfra",
-            "url": "https://console.deepinfra.com/keys",
+            "url": "https://deepinfra.com/keys",
             "env_var": "DEEPINFRA_API_KEY",
             "description": "LLM provider (fast inference for Llama, Mixtral, Gemma)",
         },
@@ -11830,7 +11830,7 @@ class MurphySystem:
             "count": len(entries),
             "instructions": (
                 "Set each API key as an environment variable before starting Murphy. "
-                "Example:  export DEEPINFRA_API_KEY=gsk_..."
+                "Example:  export DEEPINFRA_API_KEY=di_..."
             ),
         }
 
@@ -12220,7 +12220,7 @@ class MurphySystem:
                         body["messages"].append({"role": "system", "content": f"Context: {context}"})
                     body["messages"].append({"role": "user", "content": prompt})
                     resp = _requests.post(
-                        "https://api.deepinfra.com/v1/openai/chat/completions",
+                        "https://api.deepinfra.com/v1/openai/openai/v1/chat/completions",
                         headers=headers,
                         json=body,
                         timeout=15,
@@ -12410,7 +12410,7 @@ class MurphySystem:
                     "\n\n_Librarian is operating in **onboard** mode using built-in "
                     "system knowledge. To upgrade to LLM-powered responses: set "
                     "MURPHY_LLM_PROVIDER and the appropriate API key "
-                    "(e.g. DEEPINFRA_API_KEY). Get a free key at https://console.deepinfra.com/keys_"
+                    "(e.g. DEEPINFRA_API_KEY). Get a free key at https://deepinfra.com/keys_"
                 )
                 session["_llm_notice_shown"] = True
             result: Dict[str, Any] = {
@@ -12466,7 +12466,7 @@ class MurphySystem:
                 "\n\n_Librarian is operating in **onboard** mode using built-in "
                 "system knowledge. To upgrade to LLM-powered responses: set "
                 "MURPHY_LLM_PROVIDER and the appropriate API key "
-                "(e.g. DEEPINFRA_API_KEY). Get a free key at https://console.deepinfra.com/keys_"
+                "(e.g. DEEPINFRA_API_KEY). Get a free key at https://deepinfra.com/keys_"
             )
             session["_llm_notice_shown"] = True
         result = {
@@ -13344,7 +13344,7 @@ class MurphySystem:
         lines.append(
             "\n**Quick start:** Get a free DeepInfra key (link above), then:\n"
             "```\nexport MURPHY_LLM_PROVIDER=deepinfra\n"
-            "export DEEPINFRA_API_KEY=gsk_your_key_here\n```"
+            "export DEEPINFRA_API_KEY=your_deepinfra_api_key\n```"
         )
         return "\n".join(lines)
 
@@ -13440,7 +13440,7 @@ class MurphySystem:
                     )
                 response += "\n**What to do next:**\n"
                 response += "1. Sign up for the API keys listed above (links provided)\n"
-                response += "2. Set each as an environment variable (e.g. `export DEEPINFRA_API_KEY=gsk_...`)\n"
+                response += "2. Set each as an environment variable (e.g. `export DEEPINFRA_API_KEY=di_...`)\n"
                 response += "3. Restart Murphy to pick up the new keys\n"
                 response += "4. Type **status** to verify everything is connected\n"
                 response += "5. Type **execute <your first task>** to start automating!\n\n"

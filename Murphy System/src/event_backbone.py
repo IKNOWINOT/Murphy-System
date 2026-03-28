@@ -14,7 +14,7 @@ from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +68,10 @@ class EventType(Enum):
     FLEET_BOT_DESPAWNED = "fleet_bot_despawned"
     FLEET_BOT_UPDATED = "fleet_bot_updated"
     FLEET_RECONCILED = "fleet_reconciled"
+    AUTOMATION_EXECUTED = "automation_executed"
+    THRESHOLD_UPDATED = "threshold_updated"
+    GATE_EVOLVED = "gate_evolved"
+    PATTERN_DETECTED = "pattern_detected"
     FLEET_DRIFT_DETECTED = "fleet_drift_detected"
     PREDICTION_GENERATED = "prediction_generated"
     PREDICTION_PREEMPTED = "prediction_preempted"
@@ -80,6 +84,35 @@ class EventType(Enum):
     IMMUNITY_RECALLED = "immunity_recalled"
     CHAOS_VALIDATED = "chaos_validated"
     CASCADE_CHECKED = "cascade_checked"
+    TEST_FAILED = "test_failed"
+    DOC_DRIFT = "doc_drift"
+    CODE_HEALER_STARTED = "code_healer_started"
+    CODE_HEALER_COMPLETED = "code_healer_completed"
+    CODE_HEALER_PROPOSAL_CREATED = "code_healer_proposal_created"
+    CODE_HEALER_GAP_LOW_CONFIDENCE = "code_healer_gap_low_confidence"
+
+    @classmethod
+    def from_string(cls, name: str) -> "EventType":
+        """Convert a string to EventType, trying value then name lookup.
+
+        Args:
+            name: Either the enum value (e.g. ``"task_submitted"``) or the
+                  enum member name (e.g. ``"TASK_SUBMITTED"``).
+
+        Raises:
+            ValueError: If no matching EventType is found.
+        """
+        # Try by value first (lowercase match, e.g. "task_submitted")
+        try:
+            return cls(name.lower())
+        except ValueError:
+            pass
+        # Try by name (uppercase match, e.g. "TASK_SUBMITTED")
+        try:
+            return cls[name.upper()]
+        except KeyError:
+            pass
+        raise ValueError(f"No EventType matching {name!r}")
 
 
 @dataclass
@@ -173,11 +206,16 @@ class EventBackbone:
     dead letter queue, and ordered processing.
     """
 
+    # Default backpressure threshold: warn when total pending events exceeds this
+    _DEFAULT_BACKPRESSURE_THRESHOLD = 1000
+
     def __init__(
         self,
         persistence_dir: Optional[str] = None,
         circuit_breaker_threshold: int = 5,
         circuit_breaker_timeout: float = 60.0,
+        loop_interval_ms: Optional[int] = None,
+        backpressure_threshold: int = _DEFAULT_BACKPRESSURE_THRESHOLD,
     ):
         self._lock = threading.Lock()
         self._persistence_dir = persistence_dir
@@ -205,6 +243,29 @@ class EventBackbone:
 
         self._cb_threshold = circuit_breaker_threshold
         self._cb_timeout = circuit_breaker_timeout
+
+        # Background loop configuration
+        _env_ms = os.environ.get("MURPHY_EVENT_LOOP_INTERVAL_MS")
+        if loop_interval_ms is not None:
+            self._loop_interval_s: float = loop_interval_ms / 1000.0
+        elif _env_ms is not None:
+            try:
+                self._loop_interval_s = int(_env_ms) / 1000.0
+            except ValueError:
+                self._loop_interval_s = 0.1
+        else:
+            self._loop_interval_s = 0.1  # 100 ms default
+
+        self._backpressure_threshold = backpressure_threshold
+        self._stop_event = threading.Event()
+        self._bg_thread: Optional[threading.Thread] = None
+
+        # Metrics
+        self._metrics_lock = threading.Lock()
+        self._last_loop_latency_s: float = 0.0
+        self._loop_iteration_count: int = 0
+        self._events_processed_in_window: int = 0
+        self._window_start_time: float = time.monotonic()
 
         if self._persistence_dir:
             os.makedirs(self._persistence_dir, exist_ok=True)
@@ -291,6 +352,96 @@ class EventBackbone:
             processed += self._process_queue(event_type)
         return processed
 
+    # ------------------------------------------------------------------
+    # Background processing loop lifecycle
+    # ------------------------------------------------------------------
+
+    def start(self) -> None:
+        """Start the background daemon thread that drains the event queues."""
+        with self._lock:
+            if self._bg_thread is not None and self._bg_thread.is_alive():
+                logger.debug("EventBackbone background loop already running")
+                return
+            self._stop_event.clear()
+        self._bg_thread = threading.Thread(
+            target=self._run_loop,
+            name="event-backbone-loop",
+            daemon=True,
+        )
+        self._bg_thread.start()
+        logger.info(
+            "EventBackbone background loop started (interval=%.0fms)",
+            self._loop_interval_s * 1000,
+        )
+
+    def stop(self) -> None:
+        """Signal the background loop to stop and wait for it to exit."""
+        self._stop_event.set()
+        thread = self._bg_thread
+        if thread is not None and thread.is_alive():
+            thread.join(timeout=max(self._loop_interval_s * 5, 2.0))
+            if thread.is_alive():
+                logger.warning("EventBackbone background loop did not stop in time")
+        logger.info("EventBackbone background loop stopped")
+
+    @property
+    def is_running(self) -> bool:
+        """Return True if the background loop thread is alive."""
+        return self._bg_thread is not None and self._bg_thread.is_alive()
+
+    @property
+    def loop_interval_ms(self) -> float:
+        """Return the configured processing interval in milliseconds."""
+        return self._loop_interval_s * 1000.0
+
+    def _run_loop(self) -> None:
+        """Main loop body — runs in the daemon thread."""
+        while not self._stop_event.is_set():
+            loop_start = time.monotonic()
+            try:
+                self._check_backpressure()
+                n = self.process_pending()
+                with self._metrics_lock:
+                    self._events_processed_in_window += n
+                    self._loop_iteration_count += 1
+                    self._last_loop_latency_s = time.monotonic() - loop_start
+            except Exception:
+                logger.exception("Unhandled error in EventBackbone background loop")
+            self._stop_event.wait(timeout=self._loop_interval_s)
+
+    def _check_backpressure(self) -> None:
+        """Emit a warning and a SYSTEM_HEALTH event if queue depth is too high."""
+        with self._lock:
+            total_pending = sum(len(q) for q in self._queues.values())
+        if total_pending <= self._backpressure_threshold:
+            return
+        logger.warning(
+            "EventBackbone backpressure: %d events pending (threshold=%d)",
+            total_pending,
+            self._backpressure_threshold,
+        )
+        # Build the alert outside the lock to minimise lock-hold time.
+        event_id = str(uuid.uuid4())
+        timestamp = datetime.now(timezone.utc).isoformat()
+        alert = Event(
+            event_id=event_id,
+            event_type=EventType.SYSTEM_HEALTH,
+            payload={
+                "type": "backpressure",
+                "pending": total_pending,
+                "threshold": self._backpressure_threshold,
+            },
+            timestamp=timestamp,
+            source="event_backbone",
+        )
+        try:
+            with self._lock:
+                self._seen_event_ids.add(event_id)
+                self._queues[EventType.SYSTEM_HEALTH].append(alert)
+                self._events_published += 1
+        except Exception:
+            logger.exception("Failed to publish backpressure SYSTEM_HEALTH event")
+
     def get_dead_letter_queue(self) -> List[Event]:
         """Return a copy of events in the dead letter queue."""
         with self._lock:
@@ -317,15 +468,34 @@ class EventBackbone:
                         "failures": cb.failure_count,
                     }
 
-            return {
-                "events_published": self._events_published,
-                "events_processed": self._events_processed,
-                "events_failed": self._events_failed,
-                "pending_counts": pending_counts,
-                "subscriber_counts": subscriber_counts,
-                "dlq_size": len(self._dlq),
-                "circuit_breakers": breaker_states,
-            }
+            total_pending = sum(len(q) for q in self._queues.values())
+
+        with self._metrics_lock:
+            now = time.monotonic()
+            elapsed = now - self._window_start_time
+            if elapsed > 0:
+                events_per_second = self._events_processed_in_window / elapsed
+            else:
+                events_per_second = 0.0
+            loop_latency_ms = self._last_loop_latency_s * 1000
+            loop_iterations = self._loop_iteration_count
+
+        return {
+            "events_published": self._events_published,
+            "events_processed": self._events_processed,
+            "events_failed": self._events_failed,
+            "pending_counts": pending_counts,
+            "subscriber_counts": subscriber_counts,
+            "dlq_size": len(self._dlq),
+            "circuit_breakers": breaker_states,
+            "background_loop_running": self.is_running,
+            "metrics": {
+                "queue_depth": total_pending,
+                "events_per_second": round(events_per_second, 2),
+                "last_loop_latency_ms": round(loop_latency_ms, 3),
+                "loop_iterations": loop_iterations,
+            },
+        }
 
     def get_event_history(
         self,
@@ -512,3 +682,21 @@ class EventBackbone:
             )
         except (OSError, json.JSONDecodeError, KeyError):
             logger.exception("Failed to load event backbone state")
+
+
+# ---------------------------------------------------------------------------
+# Module-level singleton
+# ---------------------------------------------------------------------------
+
+_global_backbone: Optional[EventBackbone] = None
+_global_backbone_lock = threading.Lock()
+
+
+def get_event_backbone() -> EventBackbone:
+    """Return the process-wide EventBackbone singleton, creating it on first call."""
+    global _global_backbone
+    if _global_backbone is None:
+        with _global_backbone_lock:
+            if _global_backbone is None:
+                _global_backbone = EventBackbone()
+    return _global_backbone

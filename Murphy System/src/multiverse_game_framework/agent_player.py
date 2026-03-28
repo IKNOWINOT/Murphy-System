@@ -411,9 +411,9 @@ class AgentPlayerEngine:
                 goal.completed = True
                 goals_completed.append(goal.goal_id)
                 if goal.goal_type == GoalType.DISCOVER_SYNERGY:
-                    highlights.append(f"Discovered a new spell synergy!")
+                    highlights.append("Discovered a new spell synergy!")
                 elif goal.goal_type == GoalType.EXPLORE_ZONE:
-                    highlights.append(f"Found a hidden area!")
+                    highlights.append("Found a hidden area!")
             else:
                 goals_failed.append(goal.goal_id)
 

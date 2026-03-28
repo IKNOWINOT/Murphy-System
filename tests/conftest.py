@@ -1,19 +1,21 @@
 """
 Test configuration for Murphy System.
 
-Adds src/ to sys.path so modules can be imported without
-manual PYTHONPATH manipulation.
+sys.path is configured via pyproject.toml [tool.pytest.ini_options] pythonpath,
+which adds the project root ("."), "src/", and "strategic/" to sys.path.
+
+Preferred import style in tests:
+    from src.xxx import yyy          # always works (src package)
+    from confidence_engine import yyy  # works when src/ is in path
+
+Do NOT add ``sys.path`` hacks in test files — the pyproject.toml
+pythonpath setting handles it automatically for pytest runs.  For
+editable-install / runtime use, ``pip install -e .`` covers it.
 """
 
 import asyncio
 import os
 import sys
-
-# Add src/ to the Python path
-_src_dir = os.path.join(os.path.dirname(__file__), '..', 'src')
-_src_dir = os.path.abspath(_src_dir)
-if _src_dir not in sys.path:
-    sys.path.insert(0, _src_dir)
 
 
 # ---------------------------------------------------------------------------

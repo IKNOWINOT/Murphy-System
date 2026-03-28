@@ -1,17 +1,14 @@
 """
-TaskRouter — Librarian-first task routing with gate validation.
+Task Router — Librarian-driven dynamic task routing.
 
-Receives a raw task dict, consults :class:`SystemLibrarian` for capability
-matches, builds :class:`SolutionPath` alternatives, ranks them by combined
-Librarian score × historical feedback weight, then validates each path through
-:class:`GovernanceKernel` gates (best-first).
+Replaces hardcoded ``IntegrationBus`` chains with a Librarian-first routing
+pipeline:
 
-Returns a :class:`RoutingResult` whose *status* is one of:
-
-- ``APPROVED``  — a path passed all gates; ``solution_path`` is populated.
-- ``HITL``      — all paths need human review; ``solution_path`` is the best
-  candidate.
-- ``BLOCKED``   — no path could be approved or safely escalated.
+    TaskRouter.route(task_dict)
+        → SystemLibrarian.find_capabilities(task)
+        → SolutionPath list (ranked)
+        → GovernanceKernel gate validation
+        → RoutingResult
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
@@ -24,298 +21,386 @@ import logging
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from src.system_librarian import SystemLibrarian
-    from src.module_registry import ModuleRegistry
-    from src.solution_path_registry import SolutionPathRegistry, SolutionPath
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# Enumerations
+# Route status
 # ---------------------------------------------------------------------------
+
 
 class RouteStatus(Enum):
     APPROVED = "approved"
-    HITL = "hitl"
+    HITL = "hitl_required"
     BLOCKED = "blocked"
+    NO_PATH = "no_viable_path"
 
 
 # ---------------------------------------------------------------------------
-# Result container
+# CapabilityMatch
 # ---------------------------------------------------------------------------
 
-@dataclass
-class RoutingResult:
-    """Outcome of a :meth:`TaskRouter.route` call."""
-
-    status: RouteStatus
-    task_id: str
-    solution_path: Optional["SolutionPath"] = None
-    alternatives: List["SolutionPath"] = field(default_factory=list)
-    rejection_reason: Optional[str] = None
-    gate_results: Dict[str, Any] = field(default_factory=dict)
-
-    def is_approved(self) -> bool:
-        return self.status == RouteStatus.APPROVED
-
-    def needs_hitl(self) -> bool:
-        return self.status == RouteStatus.HITL
-
-    def is_blocked(self) -> bool:
-        return self.status == RouteStatus.BLOCKED
-
-
-# ---------------------------------------------------------------------------
-# CapabilityMatch — lightweight score holder returned by the Librarian
-# ---------------------------------------------------------------------------
 
 @dataclass
 class CapabilityMatch:
-    """A capability that the Librarian matched against the incoming task."""
+    """A single capability candidate returned by ``SystemLibrarian.find_capabilities()``.
+
+    Attributes:
+        capability_id: Unique identifier for the capability (e.g. ``"llm_routing"``).
+        module_path: Dotted import path of the module providing this capability.
+        score: Combined relevance score in [0.0, 1.0].
+        match_reasons: Human-readable explanations of why this capability matched.
+        cost_estimate: One of ``"low"``, ``"medium"``, ``"high"``.
+        determinism: One of ``"deterministic"``, ``"stochastic"``.
+        gate_compatibility: Mapping of gate name to compatibility status string.
+        filtered: ``True`` if this match was excluded by the gate pre-filter.
+        filter_reason: Explanation when *filtered* is ``True``.
+    """
 
     capability_id: str
     module_path: str
-    score: float               # 0.0–1.0 relevance score
-    cost_estimate: str = "low"
+    score: float
+    match_reasons: List[str] = field(default_factory=list)
+    cost_estimate: str = "medium"
+    determinism: str = "deterministic"
+    gate_compatibility: Dict[str, str] = field(default_factory=dict)
+    filtered: bool = False
+    filter_reason: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
+# SolutionPath
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class SolutionPath:
+    """A single ranked execution option for a task.
+
+    Attributes:
+        path_id: UUID string for this path.
+        task_id: Parent task UUID.
+        capability_id: e.g. ``"invoice_processing_pipeline"``.
+        module_path: e.g. ``"src.invoice_processing.pipeline"``.
+        score: Combined rank score in [0.0, 1.0].
+        librarian_score: Raw Librarian match score.
+        feedback_weight: Historical success weight (default 1.0 = neutral).
+        cost_estimate: ``"low"`` | ``"medium"`` | ``"high"``.
+        determinism: ``"deterministic"`` | ``"stochastic"``.
+        requires_hitl: Whether a HITL gate is expected for this path.
+        parameters: Extracted task parameters for this path.
+        wingman: Assigned wingman validator module name, if any.
+    """
+
+    path_id: str
+    task_id: str
+    capability_id: str
+    module_path: str
+    score: float
+    librarian_score: float
+    feedback_weight: float = 1.0
+    cost_estimate: str = "medium"
     determinism: str = "deterministic"
     requires_hitl: bool = False
     parameters: Dict[str, Any] = field(default_factory=dict)
     wingman: Optional[str] = None
+
+    @property
+    def combined_score(self) -> float:
+        """Librarian score multiplied by historical feedback weight."""
+        return self.librarian_score * self.feedback_weight
+
+
+# ---------------------------------------------------------------------------
+# RoutingResult
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class RoutingResult:
+    """Outcome of a single ``TaskRouter.route()`` call.
+
+    Attributes:
+        task_id: The task's unique identifier.
+        status: Final routing disposition (:class:`RouteStatus`).
+        solution_path: The approved path, or ``None`` if blocked/no_path.
+        alternatives: All other paths that were evaluated.
+        gate_results: Mapping of gate name → ``"pass"`` | ``"fail"`` | ``"hitl"``.
+        confidence: Aggregate confidence in [0.0, 1.0].
+    """
+
+    task_id: str
+    status: RouteStatus
+    solution_path: Optional[SolutionPath]
+    alternatives: List[SolutionPath]
+    gate_results: Dict[str, str]
+    confidence: float
 
 
 # ---------------------------------------------------------------------------
 # TaskRouter
 # ---------------------------------------------------------------------------
 
+
 class TaskRouter:
-    """
-    Librarian-first task router.
+    """Librarian-first task router.
+
+    Routes any incoming task dict through the Librarian capability-discovery
+    pipeline, validates each candidate path through the GovernanceKernel, and
+    returns the best viable :class:`RoutingResult`.
 
     Usage::
 
-        router = TaskRouter(librarian, module_registry, solution_registry)
-        result = router.route({"task": "generate invoice", "amount": 5000})
-        if result.is_approved():
+        router = TaskRouter(librarian, registry, governance_kernel, feedback)
+        result = await router.route({"task": "generate invoice", "amount": 5000})
+        if result.status == RouteStatus.APPROVED:
             executor.execute(result.solution_path)
+
+    If the GovernanceKernel is unavailable (``None``), all paths are treated as
+    approved (graceful degradation — preserves the old IntegrationBus behaviour).
+
+    If the FeedbackIntegrator is unavailable (``None``), historical weights
+    default to 1.0 (neutral — no learning penalty or bonus).
     """
 
     def __init__(
         self,
-        librarian: "SystemLibrarian",
-        module_registry: "ModuleRegistry",
-        solution_registry: "SolutionPathRegistry",
+        librarian: Any,
+        solution_registry: Any,
         governance: Optional[Any] = None,
+        feedback: Optional[Any] = None,
     ) -> None:
         self._librarian = librarian
-        self._registry = module_registry
-        self._solution_registry = solution_registry
+        self._registry = solution_registry
         self._governance = governance
+        self._feedback = feedback
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
 
-    def route(self, task: Dict[str, Any]) -> RoutingResult:
-        """
-        Full routing pipeline:
+    async def route(self, task: Dict[str, Any]) -> RoutingResult:
+        """Route *task* through the Librarian pipeline and return a result.
 
-        1. Ask Librarian for capability matches via ``search_knowledge``.
-        2. Build :class:`SolutionPath` alternatives weighted by historical
-           success rate from :class:`SolutionPathRegistry`.
-        3. Rank paths by combined score (librarian × feedback).
-        4. Register alternatives in the registry.
-        5. Run gate validation on each path (best-first).
-        6. Return first approved path, or HITL/BLOCKED.
+        Pipeline:
+            1. Ask Librarian for capability matches.
+            2. Build :class:`SolutionPath` objects from the matches.
+            3. Rank by Librarian score × FeedbackIntegrator historical weight.
+            4. Register alternatives in :class:`SolutionPathRegistry`.
+            5. Run gate validation on each path (best-first).
+            6. Return first approved path, or HITL/BLOCKED if none pass.
         """
-        task_id = str(uuid.uuid4())
-        task_text = self._extract_task_text(task)
-        logger.info("Routing task %s: %r", task_id, task_text[:80])
+        task_id = task.get("task_id") or str(uuid.uuid4())
+        task_text = str(task.get("task", task.get("description", "")))
 
-        # Step 1 – match capabilities via Librarian
-        matches = self._match_capabilities(task_text, task)
+        logger.info("TaskRouter: routing task_id=%s text=%r", task_id, task_text[:80])
+
+        # Step 1 — capability discovery
+        matches: List[CapabilityMatch] = self._librarian.find_capabilities(task)
+
         if not matches:
-            logger.warning("No capabilities matched for task %s", task_id)
+            logger.warning("TaskRouter: no capabilities found for task_id=%s", task_id)
             return RoutingResult(
-                status=RouteStatus.BLOCKED,
                 task_id=task_id,
-                rejection_reason="No registered capability matched the task.",
+                status=RouteStatus.NO_PATH,
+                solution_path=None,
+                alternatives=[],
+                gate_results={},
+                confidence=0.0,
             )
 
-        # Step 2 – build SolutionPath objects
-        from src.solution_path_registry import SolutionPath  # local import to avoid circulars
-        paths = self._build_paths(task_id, matches)
+        # Step 2+3 — build and rank SolutionPaths
+        paths = self._rank_paths(matches, self._feedback)
+        for p in paths:
+            p.task_id = task_id
 
-        # Step 3 – rank by combined score
-        ranked = sorted(paths, key=lambda p: p.combined_score, reverse=True)
+        # Step 4 — persist alternatives in registry
+        self._registry.register(task_id, paths)
 
-        # Step 4 – register alternatives
-        self._solution_registry.register(task_id, ranked)
+        # Step 5 — gate validation (best-first)
+        gate_results: Dict[str, str] = {}
+        approved_path: Optional[SolutionPath] = None
+        hitl_path: Optional[SolutionPath] = None
 
-        # Step 5 – gate validation (best-first)
-        approved_path, gate_results = self._validate_paths(ranked)
+        for path in paths:
+            verdict = self._validate_path(path, task, gate_results)
+            if verdict == "pass":
+                approved_path = path
+                break
+            elif verdict == "hitl" and hitl_path is None:
+                hitl_path = path
+                # continue — a fully-approved path is preferred over HITL
 
-        # Step 6 – return result
+        # Step 6 — return result
         if approved_path is not None:
+            logger.info(
+                "TaskRouter: APPROVED path=%s capability=%s score=%.3f",
+                approved_path.path_id,
+                approved_path.capability_id,
+                approved_path.combined_score,
+            )
             return RoutingResult(
+                task_id=task_id,
                 status=RouteStatus.APPROVED,
-                task_id=task_id,
                 solution_path=approved_path,
-                alternatives=ranked,
+                alternatives=[p for p in paths if p is not approved_path],
                 gate_results=gate_results,
+                confidence=approved_path.combined_score,
             )
 
-        # Check whether any path needs HITL vs full block
-        hitl_path = next((p for p in ranked if p.requires_hitl), None)
         if hitl_path is not None:
+            logger.info(
+                "TaskRouter: HITL path=%s capability=%s",
+                hitl_path.path_id,
+                hitl_path.capability_id,
+            )
             return RoutingResult(
-                status=RouteStatus.HITL,
                 task_id=task_id,
+                status=RouteStatus.HITL,
                 solution_path=hitl_path,
-                alternatives=ranked,
+                alternatives=[p for p in paths if p is not hitl_path],
                 gate_results=gate_results,
+                confidence=hitl_path.combined_score,
             )
 
+        logger.warning("TaskRouter: all paths BLOCKED for task_id=%s", task_id)
         return RoutingResult(
-            status=RouteStatus.BLOCKED,
             task_id=task_id,
-            alternatives=ranked,
-            rejection_reason="All candidate paths failed gate validation.",
+            status=RouteStatus.BLOCKED,
+            solution_path=None,
+            alternatives=paths,
             gate_results=gate_results,
+            confidence=0.0,
         )
+
+    def route_sync(self, task: Dict[str, Any]) -> RoutingResult:
+        """Synchronous wrapper around :meth:`route` for callers without an event loop."""
+        import asyncio
+
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # Running inside an existing event loop — create a new thread
+                import concurrent.futures
+
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+                    future = ex.submit(asyncio.run, self.route(task))
+                    return future.result()
+            return loop.run_until_complete(self.route(task))
+        except RuntimeError:
+            return asyncio.run(self.route(task))
 
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _extract_task_text(self, task: Dict[str, Any]) -> str:
-        """Extract a single search string from the task dict."""
-        if "task" in task:
-            return str(task["task"])
-        if "description" in task:
-            return str(task["description"])
-        if "intent" in task:
-            return str(task["intent"])
-        # Fallback: join all string values
-        return " ".join(str(v) for v in task.values() if isinstance(v, str))
+    def _rank_paths(
+        self,
+        matches: List[CapabilityMatch],
+        feedback: Optional[Any],
+    ) -> List[SolutionPath]:
+        """Build and rank :class:`SolutionPath` objects from *matches*.
 
-    def _match_capabilities(
-        self, task_text: str, task: Dict[str, Any]
-    ) -> List[CapabilityMatch]:
+        Multiply the Librarian match score by the historical success weight from
+        *feedback*.  Paths with no historical data use a neutral weight of 1.0.
         """
-        Ask the Librarian to search its knowledge base, then cross-reference
-        with the ModuleRegistry to build :class:`CapabilityMatch` objects.
-        """
-        matches: List[CapabilityMatch] = []
-
-        # Librarian knowledge search
-        knowledge_hits = self._librarian.search_knowledge(task_text)
-        for hit in knowledge_hits:
-            score = self._relevance_score(task_text, hit)
-            matches.append(
-                CapabilityMatch(
-                    capability_id=hit.topic,
-                    module_path=f"src.{hit.category}",
-                    score=score,
-                    parameters=dict(task),
-                )
-            )
-
-        # Module registry capability search (fallback / supplement)
-        registry_caps = self._registry.get_capabilities()
-        for cap_name, module_names in registry_caps.items():
-            if task_text.lower() in cap_name.lower() or any(
-                word in cap_name.lower()
-                for word in task_text.lower().split()
-                if len(word) > 3
-            ):
-                for mod_name in module_names[:1]:  # take best module per capability
-                    # Avoid duplicating Librarian hits
-                    existing_ids = {m.capability_id for m in matches}
-                    if cap_name not in existing_ids:
-                        matches.append(
-                            CapabilityMatch(
-                                capability_id=cap_name,
-                                module_path=f"src.{mod_name}",
-                                score=0.5,
-                                parameters=dict(task),
-                            )
-                        )
-
-        return matches
-
-    def _relevance_score(self, query: str, knowledge: Any) -> float:
-        """Compute a 0.0–1.0 relevance score for a knowledge hit."""
-        query_words = set(query.lower().split())
-        topic_words = set(knowledge.topic.lower().split())
-        desc_words = set(knowledge.description.lower().split())
-        all_words = topic_words | desc_words
-        overlap = len(query_words & all_words)
-        if not query_words:
-            return 0.0
-        return min(1.0, overlap / len(query_words))
-
-    def _build_paths(
-        self, task_id: str, matches: List[CapabilityMatch]
-    ) -> List["SolutionPath"]:
-        """Build SolutionPath dataclasses, weighting by historical success rate."""
-        from src.solution_path_registry import SolutionPath
-
-        paths = []
+        paths: List[SolutionPath] = []
         for match in matches:
-            feedback_weight = self._solution_registry.get_success_rate(
-                match.capability_id
+            if match.filtered:
+                continue
+            weight = self._get_feedback_weight(match.capability_id, feedback)
+            path = SolutionPath(
+                path_id=str(uuid.uuid4()),
+                task_id="",  # filled in after task_id is known
+                capability_id=match.capability_id,
+                module_path=match.module_path,
+                score=match.score * weight,
+                librarian_score=match.score,
+                feedback_weight=weight,
+                cost_estimate=match.cost_estimate,
+                determinism=match.determinism,
+                requires_hitl=False,
+                parameters={},
             )
-            paths.append(
-                SolutionPath(
-                    path_id=str(uuid.uuid4()),
-                    task_id=task_id,
-                    capability_id=match.capability_id,
-                    module_path=match.module_path,
-                    score=match.score * feedback_weight,
-                    librarian_score=match.score,
-                    feedback_weight=feedback_weight,
-                    cost_estimate=match.cost_estimate,
-                    determinism=match.determinism,
-                    requires_hitl=match.requires_hitl,
-                    parameters=match.parameters,
-                    wingman=match.wingman,
-                )
-            )
+            paths.append(path)
+
+        paths.sort(key=lambda p: p.combined_score, reverse=True)
         return paths
 
-    def _validate_paths(
-        self, ranked_paths: List["SolutionPath"]
-    ) -> tuple[Optional["SolutionPath"], Dict[str, Any]]:
-        """
-        Run gate validation best-first.
+    @staticmethod
+    def _get_feedback_weight(capability_id: str, feedback: Optional[Any]) -> float:
+        """Return the historical success weight for *capability_id*.
 
-        If no GovernanceKernel is configured, every path is approved
-        (permissive default — suitable for development).
+        Queries :meth:`FeedbackIntegrator.get_weight` if available.  Falls back
+        to a neutral weight of ``1.0`` so that capabilities with no history are
+        neither penalised nor boosted.
         """
-        gate_results: Dict[str, Any] = {}
+        if feedback is None:
+            return 1.0
+        get_weight = getattr(feedback, "get_weight", None)
+        if callable(get_weight):
+            try:
+                w = get_weight(capability_id)
+                return float(w) if w is not None else 1.0
+            except Exception as exc:
+                logger.debug("TaskRouter: feedback.get_weight failed: %s", exc)
+        return 1.0
+
+    def _validate_path(
+        self,
+        path: SolutionPath,
+        task: Dict[str, Any],
+        gate_results: Dict[str, str],
+    ) -> str:
+        """Run gate validation for *path* and return ``"pass"``, ``"hitl"``, or ``"fail"``.
+
+        When no GovernanceKernel is configured, every path is treated as approved
+        (graceful degradation — mirrors the old IntegrationBus behaviour).
+        """
+        if path.requires_hitl:
+            gate_results[f"hitl_gate:{path.capability_id}"] = "hitl"
+            return "hitl"
 
         if self._governance is None:
-            # No governance — approve best path unconditionally
-            if ranked_paths:
-                best = ranked_paths[0]
-                gate_results[best.path_id] = {"status": "approved", "gates": []}
-                return best, gate_results
-            return None, gate_results
+            gate_results[f"governance:{path.capability_id}"] = "pass"
+            return "pass"
 
-        for path in ranked_paths:
+        # Try the lightweight enforce() API if available
+        enforce = getattr(self._governance, "enforce", None)
+        if callable(enforce):
             try:
-                result = self._governance.validate_path(path)
-                gate_results[path.path_id] = result
-                if result.get("approved", False):
-                    return path, gate_results
-            except Exception as exc:
-                logger.warning(
-                    "Gate validation error for path %s: %s", path.path_id, exc
+                result = enforce(
+                    caller_id="task_router",
+                    department_id=task.get("department_id", "default"),
+                    tool_name=path.capability_id,
+                    estimated_cost=0.0,
+                    context={"task": task, "path_id": path.path_id},
                 )
-                gate_results[path.path_id] = {"error": str(exc)}
+                action = getattr(result, "action", None)
+                if action is not None:
+                    action_val = action.value if hasattr(action, "value") else str(action)
+                    gate_results[f"governance:{path.capability_id}"] = (
+                        "pass" if action_val in ("allow", "approved") else action_val
+                    )
+                    if action_val in ("allow", "approved"):
+                        return "pass"
+                    if action_val == "hitl_required":
+                        return "hitl"
+                    return "fail"
+            except Exception as exc:
+                logger.debug("TaskRouter: governance.enforce failed: %s", exc)
 
-        return None, gate_results
+        # Fallback — assume pass
+        gate_results[f"governance:{path.capability_id}"] = "pass"
+        return "pass"
+
+
+__all__ = [
+    "RouteStatus",
+    "RoutingResult",
+    "CapabilityMatch",
+    "SolutionPath",
+    "TaskRouter",
+]

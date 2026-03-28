@@ -62,9 +62,9 @@ class EnhancedLocalLLM:
         elif provider == 'wulfrum':
             response = self._wulfrum_response(prompt, temperature)
         elif provider == 'deepinfra':
-            response = _deepinfra_response(prompt, temperature)
+            response = self._deepinfra_response(prompt, temperature)
         else:
-            response = _deepinfra_response(prompt, temperature)
+            response = self._deepinfra_response(prompt, temperature)
             provider = 'deepinfra'
 
         # Calculate tokens (rough estimate)

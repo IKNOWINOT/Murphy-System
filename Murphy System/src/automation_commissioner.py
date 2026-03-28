@@ -254,6 +254,7 @@ class AutomationCommissioner:
         if self._llm_controller is not None:
             try:
                 import asyncio
+
                 from llm_controller import LLMRequest
                 req = LLMRequest(prompt=prompt, max_tokens=max_tokens)
                 try:
@@ -273,7 +274,7 @@ class AutomationCommissioner:
             from local_llm_fallback import LocalLLMFallback
             return LocalLLMFallback().generate(prompt, max_tokens=max_tokens)
         except Exception:
-            return f"Expected output for automation step."
+            return "Expected output for automation step."
 
     def _infer_expected_outputs(
         self,
@@ -324,23 +325,22 @@ class AutomationCommissioner:
             else:
                 # Deterministic fallback from step metadata — always domain-specific
                 action_phrase = {
-                    "data_retrieval": f"Retrieved data completed successfully for: {full_desc}. source validated records retrieved.",
-                    "data_transformation": f"Transformed data completed successfully for: {full_desc}. success raw normalised all records.",
-                    "validation": f"Validated successfully completed for: {full_desc}. passed checks approved success.",
-                    "approval": f"Approved completed for: {full_desc}. approved conditions met confidence success.",
-                    "notification": f"Notification sent completed for: {full_desc}. channel sent recipient notified success.",
-                    "deployment": f"Deployed successfully completed for: {full_desc}. production latest health check passed.",
-                    "scheduling": f"Scheduled completed for: {full_desc}. job confirmed next run interval active.",
-                    "data_output": f"Data written completed successfully for: {full_desc}. success structured all records stored confirmed.",
-                    "computation": f"Computed result completed successfully for: {full_desc}. formula applied value confirmed.",
-                    "error_handling": f"Error handling completed for: {full_desc}. errors resolved fallback confirmed.",
-                    # execute/llm_execute: align with DAG engine _llm_enrich("Execute", detail) output
-                    "execute": f"Execute completed successfully for: {full_desc}. success status completed action confirmed.",
-                    "llm_execute": f"Execute completed successfully for: {full_desc}. success status completed action confirmed.",
-                    "llm_generate": f"Generate completed successfully for: {full_desc}. success content created artifacts produced.",
-                    "llm_analyze": f"Analyze completed successfully for: {full_desc}. success risks assessed recommendations ready.",
-                    "llm_review": f"Review completed successfully for: {full_desc}. success approved confidence high feedback positive.",
-                }.get(action, f"Step completed successfully for: {full_desc}. success status completed output confirmed.")
+                    "data_retrieval": f"Retrieved data successfully: {full_desc}. Source connected. Records retrieved and validated.",
+                    "data_transformation": f"Data transformed: {full_desc}. Input normalised. Output schema applied. Records processed.",
+                    "validation": f"Validation passed: {full_desc}. All checks passed. No issues found. Status: approved.",
+                    "approval": f"Approved: {full_desc}. Approval criteria met. Confidence high. Conditions satisfied.",
+                    "notification": f"Notification sent: {full_desc}. Recipient notified. Channel active. Confirmed delivered.",
+                    "deployment": f"Deployed: {full_desc}. Environment updated. Health check passed. Version confirmed.",
+                    "scheduling": f"Scheduled: {full_desc}. Job confirmed. Next run set. Interval active.",
+                    "data_output": f"Data written: {full_desc}. Records stored. Destination confirmed. Confirmation received.",
+                    "computation": f"Computed: {full_desc}. Formula applied. Result generated. Calculation complete.",
+                    "error_handling": f"Error handling complete: {full_desc}. Errors caught. Resolved. No fallback needed.",
+                    "execute": f"Executed: {full_desc}. Action completed. Result confirmed. Status success.",
+                    "llm_execute": f"Executed: {full_desc}. Action completed. Result confirmed. Status success.",
+                    "llm_generate": f"Generated: {full_desc}. Content created. Artifacts produced.",
+                    "llm_analyze": f"Analysis complete: {full_desc}. Risks assessed. Recommendations ready.",
+                    "llm_review": f"Review complete: {full_desc}. Approved. Confidence high. Feedback positive.",
+                }.get(action, f"Step completed: {full_desc}. Status success. Output confirmed.")
                 expected[step.step_id] = action_phrase
 
         return expected

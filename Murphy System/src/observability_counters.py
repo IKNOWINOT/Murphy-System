@@ -33,12 +33,6 @@ VALID_CATEGORIES = (
     "integration_wiring",
     "security_hardening",
     "documentation",
-    # Permutation calibration categories
-    "permutation_exploration",
-    "permutation_promotion",
-    "permutation_demotion",
-    "sequence_learning",
-    "drift_detection",
 )
 
 
@@ -172,114 +166,6 @@ class ObservabilitySummaryCounters:
             counter_id = self.register_counter(counter_name, "permutation_coverage")
         self.increment(counter_id, delta=test_count, reason=description)
         return counter_id
-
-    # ==================== Permutation Calibration Recorders ====================
-
-    def record_exploration(self, domain: str, candidates_evaluated: int, description: str) -> str:
-        """Record a permutation exploration run.
-
-        Args:
-            domain: Domain where exploration was performed.
-            candidates_evaluated: Number of candidate orderings evaluated.
-            description: Human-readable description.
-
-        Returns:
-            The counter_id used.
-        """
-        counter_name = f"{domain}:permutation_exploration"
-        counter_id = self._find_counter_by_name(counter_name)
-        if counter_id is None:
-            counter_id = self.register_counter(counter_name, "permutation_exploration")
-        self.increment(counter_id, delta=candidates_evaluated, reason=description)
-        return counter_id
-
-    def record_sequence_learning(self, domain: str, sequences_learned: int, description: str) -> str:
-        """Record learned sequences in a domain.
-
-        Args:
-            domain: Domain where sequences were learned.
-            sequences_learned: Number of new sequences registered.
-            description: Human-readable description.
-
-        Returns:
-            The counter_id used.
-        """
-        counter_name = f"{domain}:sequence_learning"
-        counter_id = self._find_counter_by_name(counter_name)
-        if counter_id is None:
-            counter_id = self.register_counter(counter_name, "sequence_learning")
-        self.increment(counter_id, delta=sequences_learned, reason=description)
-        return counter_id
-
-    def record_promotion(self, domain: str, description: str) -> str:
-        """Record a sequence promotion event.
-
-        Args:
-            domain: Domain of the promoted sequence.
-            description: Human-readable description.
-
-        Returns:
-            The counter_id used.
-        """
-        counter_name = f"{domain}:permutation_promotion"
-        counter_id = self._find_counter_by_name(counter_name)
-        if counter_id is None:
-            counter_id = self.register_counter(counter_name, "permutation_promotion")
-        self.increment(counter_id, delta=1, reason=description)
-        return counter_id
-
-    def record_demotion(self, domain: str, description: str) -> str:
-        """Record a sequence demotion/deprecation event.
-
-        Args:
-            domain: Domain of the demoted sequence.
-            description: Human-readable description.
-
-        Returns:
-            The counter_id used.
-        """
-        counter_name = f"{domain}:permutation_demotion"
-        counter_id = self._find_counter_by_name(counter_name)
-        if counter_id is None:
-            counter_id = self.register_counter(counter_name, "permutation_demotion")
-        self.increment(counter_id, delta=1, reason=description)
-        return counter_id
-
-    def record_drift_detection(self, domain: str, description: str) -> str:
-        """Record a drift detection event.
-
-        Args:
-            domain: Domain where drift was detected.
-            description: Human-readable description.
-
-        Returns:
-            The counter_id used.
-        """
-        counter_name = f"{domain}:drift_detection"
-        counter_id = self._find_counter_by_name(counter_name)
-        if counter_id is None:
-            counter_id = self.register_counter(counter_name, "drift_detection")
-        self.increment(counter_id, delta=1, reason=description)
-        return counter_id
-
-    def get_permutation_calibration_summary(self) -> dict:
-        """Return summary of permutation calibration activities.
-
-        Returns:
-            Summary of exploration, learning, promotions, demotions, and drift detections.
-        """
-        return {
-            "status": "ok",
-            "exploration_total": self._category_totals.get("permutation_exploration", 0),
-            "sequences_learned": self._category_totals.get("sequence_learning", 0),
-            "promotions": self._category_totals.get("permutation_promotion", 0),
-            "demotions": self._category_totals.get("permutation_demotion", 0),
-            "drift_detections": self._category_totals.get("drift_detection", 0),
-            "promotion_rate": (
-                self._category_totals.get("permutation_promotion", 0) /
-                max(1, self._category_totals.get("sequence_learning", 0))
-            ),
-        }
 
     # ==================== Query Methods ====================
 

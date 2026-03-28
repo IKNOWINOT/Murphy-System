@@ -232,7 +232,6 @@ class ComplianceToggleManager:
         self,
         country_code: str,
         industry: str,
-        use_ml: bool = False,
     ) -> List[str]:
         """Return recommended framework IDs for a given country and industry.
 
@@ -240,10 +239,6 @@ class ComplianceToggleManager:
         Use "US-CA" for California-specific recommendations.
         Industry must be one of the keys in _INDUSTRY_FRAMEWORKS, or
         "general" as a fallback.
-
-        When *use_ml* is True, the result is enhanced with ML predictions from
-        :class:`~regulation_ml_engine.RegulationMLEngine` (predictions are
-        merged with the baseline heuristics and any new frameworks are appended).
         """
         country_upper = country_code.upper()
         industry_lower = industry.lower()
@@ -259,21 +254,6 @@ class ComplianceToggleManager:
             if fw in ALL_FRAMEWORKS and fw not in seen:
                 merged.append(fw)
                 seen.add(fw)
-
-        # ML enhancement path
-        if use_ml:
-            try:
-                from regulation_ml_engine import get_engine as get_reg_engine
-                ml_result = get_reg_engine().predict_optimal_toggles(
-                    country_upper, industry_lower
-                )
-                ml_fws = ml_result.get("recommended_frameworks", [])
-                for fw in ml_fws:
-                    if fw in ALL_FRAMEWORKS and fw not in seen:
-                        merged.append(fw)
-                        seen.add(fw)
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("RegulationMLEngine ML prediction unavailable: %s", exc)
 
         logger.debug(
             "Recommended frameworks for %s / %s: %s",

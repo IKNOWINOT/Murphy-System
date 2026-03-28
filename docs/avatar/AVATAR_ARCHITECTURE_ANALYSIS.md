@@ -66,7 +66,7 @@ The Murphy System is a sophisticated, production-grade AI automation platform bu
 ### ✅ 9. Security & Key Management
 - **`src/security_plane/`** — 11-module security plane: authentication (FIDO2/mTLS/JWT), access control (RBAC), post-quantum cryptography, DLP scanning, adaptive defense, anti-surveillance, packet protection.
 - **`src/secure_key_manager.py`** — Fernet-encrypted API key storage with master key from environment.
-- **`src/groq_key_rotator.py`** — Round-robin API key rotation with automatic disabling on failures. Directly applicable to rotating avatar API keys (HeyGen, ElevenLabs, etc.).
+- **`src/deepinfra_key_rotator.py`** — Round-robin API key rotation with automatic disabling on failures. Directly applicable to rotating avatar API keys (HeyGen, ElevenLabs, etc.).
 
 ### ✅ 10. Orchestration & Workflow
 - **`two_phase_orchestrator.py`** — Phase 1 (Generative Setup): analyze request, select engines, create ExecutionPacket. Phase 2 (Production): load session, execute, deliver, learn, repeat.
@@ -313,7 +313,7 @@ The conversion funnel ends at "transition to subscription platform" but **no con
 **2.5 Real-Time Sentiment Classifier**
 - Create `src/sentiment_classifier.py`
 - Fast path: VADER lexicon for sub-10ms classification
-- Accurate path: DeepInfra API call for nuanced sentiment (routed via `groq_key_rotator.py`)
+- Accurate path: DeepInfra API call for nuanced sentiment (routed via `deepinfra_key_rotator.py`)
 - Output: `{ valence: float, arousal: float, dominant_emotion: string, intent_signal: string }`
 - Wire into `comms/pipeline.py` `MessageIngestor` as a post-ingestion step
 
@@ -334,7 +334,7 @@ The conversion funnel ends at "transition to subscription platform" but **no con
 - Methods: `synthesize_text(text, voice_id, emotion, speed) -> audio_bytes`, `clone_voice(audio_samples) -> voice_id`, `list_voices() -> List[VoiceProfile]`
 - Wire into `VoiceDeliveryAdapter` as the synthesis backend
 - Store `voice_id` in `AvatarProfile.voice_profile`
-- Use `groq_key_rotator.py` pattern for ElevenLabs API key rotation
+- Use `deepinfra_key_rotator.py` pattern for ElevenLabs API key rotation
 
 **3.2 HeyGen Video Avatar Connector**
 - Create `src/connectors/heygen_connector.py`
@@ -470,7 +470,7 @@ Third-Party API Call
 - Store raw cost data in `cost_ledger` PostgreSQL table for reconciliation
 - Expose `/api/billing/usage` endpoint for customer self-service cost visibility
 - Implement monthly cost caps per customer to prevent runaway charges
-- Use `groq_key_rotator.py` pattern for all third-party API key rotation
+- Use `deepinfra_key_rotator.py` pattern for all third-party API key rotation
 
 ---
 

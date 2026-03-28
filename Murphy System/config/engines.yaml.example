@@ -114,7 +114,7 @@ control_plane:
 
   # Ordered list of LLM providers to try when the primary is down.
   fallback_order:
-    - deepinfra
+    - groq
     - openai
     - anthropic
     - local

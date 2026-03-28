@@ -1,0 +1,950 @@
+<!-- Murphy System — Automations / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Automations — Murphy System</title>
+  <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="static/murphy-design-system.css">
+  <style>
+    :root {
+      --bg-base: #0C1017; --bg-surface: #131A24; --bg-elevated: #1A2332;
+      --bg-input: #0F1620; --border-subtle: #1E2A3A; --border-default: #2A3A4E;
+      --border-focus: #00D4AA; --text-primary: #E6ECF2; --text-secondary: #8899AA;
+      --text-muted: #566778; --teal: #00D4AA; --teal-glow: rgba(0,212,170,0.12);
+      --success: #22C55E; --warning: #FFA63E; --danger: #EF4444; --info: #3B9EFF;
+      --font-ui: Inter, system-ui, -apple-system, sans-serif;
+      --font-code: 'JetBrains Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Topbar ──────────────────────────────────────────────── */
+    .topbar {
+      position: sticky; top: 0; z-index: 1000;
+      background: rgba(12,16,23,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-default);
+      padding: 0 2rem;
+      height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar-brand {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; color: var(--text-primary); font-weight: 700; font-size: 1rem;
+    }
+    .topbar-brand svg { flex-shrink: 0; }
+    .topbar-title {
+      font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;
+      padding-left: 12px; border-left: 1px solid var(--border-subtle);
+    }
+    .topbar-right { display: flex; align-items: center; gap: 8px; }
+    .topbar-status {
+      font-size: 0.75rem; color: var(--text-muted);
+    }
+
+    /* ── Layout ──────────────────────────────────────────────── */
+    .app-layout {
+      display: flex; height: calc(100vh - 56px);
+    }
+    .main-area {
+      flex: 1; display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    /* ── Tabs ────────────────────────────────────────────────── */
+    .tab-bar {
+      display: flex; align-items: center; gap: 0;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0 24px;
+    }
+    .tab-btn {
+      padding: 12px 20px; font-size: 0.82rem; font-weight: 600;
+      color: var(--text-muted); background: none; border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer; transition: color 0.15s, border-color 0.15s;
+      font-family: var(--font-ui);
+    }
+    .tab-btn:hover { color: var(--text-secondary); }
+    .tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); }
+    .tab-actions {
+      margin-left: auto; display: flex; align-items: center; gap: 8px;
+      padding: 8px 0;
+    }
+
+    /* ── Content area ────────────────────────────────────────── */
+    .content-area {
+      flex: 1; overflow: auto; padding: 24px;
+    }
+
+    /* ── Buttons ─────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 6px;
+      font-family: var(--font-ui); font-size: 0.8rem; font-weight: 500;
+      cursor: pointer; border: 1px solid transparent;
+      transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary {
+      background: var(--teal); color: #0C1017; border-color: var(--teal);
+    }
+    .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+    .btn-ghost {
+      background: transparent; color: var(--text-secondary); border-color: var(--border-default);
+    }
+    .btn-ghost:hover:not(:disabled) { background: var(--bg-elevated); color: var(--text-primary); }
+    .btn-danger {
+      background: transparent; color: var(--danger); border-color: var(--danger);
+    }
+    .btn-danger:hover:not(:disabled) { background: rgba(239,68,68,0.1); }
+    .btn-sm { padding: 5px 10px; font-size: 0.75rem; }
+    .btn-icon {
+      padding: 6px; background: transparent; color: var(--text-muted);
+      border: none; border-radius: 4px; cursor: pointer;
+    }
+    .btn-icon:hover { color: var(--text-primary); background: var(--bg-elevated); }
+
+    /* ── Table ───────────────────────────────────────────────── */
+    .data-table {
+      width: 100%; border-collapse: separate; border-spacing: 0;
+      font-size: 0.82rem;
+    }
+    .data-table th {
+      text-align: left; padding: 8px 12px; font-size: 0.72rem;
+      color: var(--text-muted); font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.04em; border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-surface); position: sticky; top: 0; z-index: 1;
+    }
+    .data-table td {
+      padding: 10px 12px; border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+    .data-table tr:hover td { background: var(--bg-elevated); }
+    .rule-name-cell {
+      font-weight: 500; cursor: pointer; min-width: 180px;
+    }
+    .rule-name-cell:hover { color: var(--teal); }
+    .row-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+    .data-table tr:hover .row-actions { opacity: 1; }
+
+    /* ── Toggle switch ──────────────────────────────────────── */
+    .toggle {
+      position: relative; display: inline-block; width: 36px; height: 20px;
+      cursor: pointer;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute; inset: 0; border-radius: 10px;
+      background: var(--border-default); transition: background 0.2s;
+    }
+    .toggle-track::after {
+      content: ''; position: absolute; left: 2px; top: 2px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--text-secondary); transition: transform 0.2s, background 0.2s;
+    }
+    .toggle input:checked + .toggle-track {
+      background: var(--teal);
+    }
+    .toggle input:checked + .toggle-track::after {
+      transform: translateX(16px); background: #0C1017;
+    }
+
+    /* ── Status badges ──────────────────────────────────────── */
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: 10px;
+      font-size: 0.72rem; font-weight: 600; text-align: center;
+    }
+    .badge-success { background: rgba(34,197,94,0.15); color: var(--success); }
+    .badge-danger { background: rgba(239,68,68,0.15); color: var(--danger); }
+    .badge-warning { background: rgba(255,166,62,0.15); color: var(--warning); }
+    .badge-info { background: rgba(59,158,255,0.15); color: var(--info); }
+    .badge-muted { background: var(--bg-elevated); color: var(--text-muted); }
+
+    /* ── Detail panel ───────────────────────────────────────── */
+    .detail-panel {
+      background: var(--bg-surface); border: 1px solid var(--border-subtle);
+      border-radius: 10px; margin-top: 20px; overflow: hidden;
+    }
+    .detail-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border-subtle);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .detail-header h3 { font-size: 0.95rem; font-weight: 700; }
+    .detail-body { padding: 20px; }
+    .detail-row {
+      display: flex; gap: 12px; margin-bottom: 14px;
+    }
+    .detail-label {
+      font-size: 0.75rem; font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.04em;
+      min-width: 120px; flex-shrink: 0; padding-top: 2px;
+    }
+    .detail-value {
+      font-size: 0.82rem; color: var(--text-secondary); flex: 1;
+      word-break: break-word;
+    }
+    .json-block {
+      background: var(--bg-input); border: 1px solid var(--border-subtle);
+      border-radius: 6px; padding: 10px 12px; font-family: var(--font-code);
+      font-size: 0.75rem; color: var(--text-secondary); white-space: pre-wrap;
+      max-height: 200px; overflow: auto; line-height: 1.5;
+    }
+
+    /* ── Modal ───────────────────────────────────────────────── */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      z-index: 500; display: none;
+    }
+    .modal-backdrop.open { display: flex; align-items: center; justify-content: center; }
+    .modal {
+      background: var(--bg-surface); border: 1px solid var(--border-default);
+      border-radius: 12px; width: 520px; max-width: 90vw;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    }
+    .modal-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border-subtle);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-header h3 { font-size: 0.95rem; font-weight: 700; }
+    .modal-body { padding: 20px; }
+    .modal-footer {
+      padding: 12px 20px; border-top: 1px solid var(--border-subtle);
+      display: flex; justify-content: flex-end; gap: 8px;
+    }
+
+    /* ── Form elements ───────────────────────────────────────── */
+    .form-group { margin-bottom: 14px; }
+    .form-label {
+      display: block; font-size: 0.78rem; font-weight: 600;
+      color: var(--text-secondary); margin-bottom: 6px;
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%; background: var(--bg-input); color: var(--text-primary);
+      border: 1px solid var(--border-subtle); padding: 9px 12px;
+      border-radius: 6px; font-family: var(--font-ui); font-size: 0.85rem;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none; border-color: var(--border-focus);
+    }
+    .form-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' stroke='%238899AA' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center;
+      padding-right: 32px; cursor: pointer;
+    }
+    .form-textarea {
+      font-family: var(--font-code); font-size: 0.78rem;
+      min-height: 80px; resize: vertical; line-height: 1.5;
+    }
+
+    /* ── Error banner ────────────────────────────────────────── */
+    .error-banner {
+      padding: 10px 24px; background: rgba(239,68,68,0.1);
+      border-bottom: 1px solid var(--danger); color: var(--danger);
+      font-size: 0.82rem; display: none; align-items: center; gap: 8px;
+    }
+    .error-banner.visible { display: flex; }
+    .error-banner button {
+      margin-left: auto; background: none; border: none;
+      color: var(--danger); cursor: pointer; font-size: 1rem; padding: 0 4px;
+    }
+
+    /* ── Empty state ─────────────────────────────────────────── */
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 64px 24px; text-align: center; color: var(--text-muted);
+    }
+    .empty-state-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.5; }
+    .empty-state h3 { font-size: 1rem; color: var(--text-secondary); margin-bottom: 6px; }
+    .empty-state p { font-size: 0.82rem; margin-bottom: 16px; max-width: 320px; }
+
+    /* ── Spinner ──────────────────────────────────────────────── */
+    .spinner {
+      display: inline-block; width: 18px; height: 18px;
+      border: 2px solid var(--border-subtle); border-top-color: var(--teal);
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-overlay {
+      display: flex; align-items: center; justify-content: center;
+      padding: 48px; color: var(--text-muted); gap: 10px; font-size: 0.82rem;
+    }
+
+    /* ── Confirm dialog ──────────────────────────────────────── */
+    .confirm-text { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+
+    /* ── Scrollbar ────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-default); }
+  </style>
+</head>
+<body>
+
+  <!-- ── Topbar ──────────────────────────────────────────────── -->
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <a href="/" class="topbar-brand">
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <rect width="32" height="32" rx="8" fill="var(--teal)"/>
+          <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700">M</text>
+        </svg>
+        <span>Murphy System</span>
+      </a>
+      <span class="topbar-title">Automations</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-status" id="refresh-status"></span>
+    </div>
+  </div>
+
+  <!-- ── Error banner ────────────────────────────────────────── -->
+  <div class="error-banner" id="error-banner" role="alert">
+    <span id="error-message"></span>
+    <button onclick="dismissError()" title="Dismiss" aria-label="Dismiss error">&times;</button>
+  </div>
+
+  <!-- ── App layout ──────────────────────────────────────────── -->
+  <div class="app-layout">
+    <murphy-sidebar active="AUTOMATIONS"></murphy-sidebar>
+
+    <div class="main-area">
+      <!-- Tab bar -->
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tab-rules" data-tab="rules">Rules</button>
+        <button class="tab-btn" id="tab-log" data-tab="log">Execution Log</button>
+        <div class="tab-actions">
+          <button class="btn btn-ghost btn-sm" id="btn-fire-trigger" title="Fire trigger manually">⚡ Fire Trigger</button>
+          <button class="btn btn-primary btn-sm" id="btn-new-rule" title="Create automation rule">+ New Rule</button>
+        </div>
+      </div>
+
+      <!-- Content area -->
+      <div class="content-area" id="content-area">
+        <!-- Rules tab -->
+        <div id="panel-rules">
+          <div id="rules-loading" class="loading-overlay">
+            <span class="spinner"></span> Loading rules…
+          </div>
+          <div id="rules-empty" class="empty-state" style="display:none;">
+            <div class="empty-state-icon" aria-hidden="true">⚙️</div>
+            <h3>No automation rules</h3>
+            <p>Create your first automation rule to trigger actions automatically based on board events.</p>
+            <button class="btn btn-primary" id="btn-new-rule-empty">+ Create Rule</button>
+          </div>
+          <table class="data-table" id="rules-table" style="display:none;">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Trigger Type</th>
+                <th>Board ID</th>
+                <th>Actions</th>
+                <th>Enabled</th>
+                <th style="width:80px;"></th>
+              </tr>
+            </thead>
+            <tbody id="rules-tbody"></tbody>
+          </table>
+
+          <!-- Detail panel (shown when a rule is clicked) -->
+          <div class="detail-panel" id="rule-detail" style="display:none;">
+            <div class="detail-header">
+              <h3 id="detail-name"></h3>
+              <button class="btn-icon" id="btn-close-detail" title="Close detail" aria-label="Close detail panel">&times;</button>
+            </div>
+            <div class="detail-body">
+              <div class="detail-row">
+                <span class="detail-label">Rule ID</span>
+                <span class="detail-value" id="detail-id"></span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Board ID</span>
+                <span class="detail-value" id="detail-board-id"></span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Trigger Type</span>
+                <span class="detail-value" id="detail-trigger-type"></span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Enabled</span>
+                <span class="detail-value" id="detail-enabled"></span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Trigger Config</span>
+                <div class="detail-value"><pre class="json-block" id="detail-trigger-config"></pre></div>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Conditions</span>
+                <div class="detail-value"><pre class="json-block" id="detail-conditions"></pre></div>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Actions</span>
+                <div class="detail-value"><pre class="json-block" id="detail-actions"></pre></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Execution log tab -->
+        <div id="panel-log" style="display:none;">
+          <div id="log-loading" class="loading-overlay">
+            <span class="spinner"></span> Loading execution log…
+          </div>
+          <div id="log-empty" class="empty-state" style="display:none;">
+            <div class="empty-state-icon" aria-hidden="true">📜</div>
+            <h3>No executions yet</h3>
+            <p>Automation execution history will appear here once rules are triggered.</p>
+          </div>
+          <table class="data-table" id="log-table" style="display:none;">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Rule Name</th>
+                <th>Status</th>
+                <th>Context</th>
+              </tr>
+            </thead>
+            <tbody id="log-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal backdrop ──────────────────────────────────────── -->
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal" id="modal" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h3 id="modal-title"></h3>
+        <button class="btn-icon" onclick="closeModal()" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer" id="modal-footer"></div>
+    </div>
+  </div>
+
+  <script src="static/murphy-components.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    /* ── API helper ────────────────────────────────────────────── */
+    function API(path, opts) {
+      opts = opts || {};
+      var headers = {'Content-Type':'application/json'};
+      if (opts.headers) Object.keys(opts.headers).forEach(function(k){headers[k]=opts.headers[k];});
+      return fetch(path, {
+        method: opts.method || 'GET',
+        credentials: 'same-origin',
+        headers: headers,
+        body: opts.body ? JSON.stringify(opts.body) : undefined
+      }).then(function(r){
+        if (!r.ok) throw new Error(r.status+' '+r.statusText);
+        return r.json();
+      }).catch(function(e){
+        showError(e.message);
+        throw e;
+      });
+    }
+
+    /* ── State ─────────────────────────────────────────────────── */
+    var rules = [];
+    var logEntries = [];
+    var activeTab = 'rules';
+    var selectedRuleId = null;
+    var refreshTimer = null;
+    var REFRESH_MS = 15000;
+
+    var TRIGGER_TYPES = [
+      'item_created', 'item_updated', 'status_changed',
+      'date_arrived', 'column_changed', 'recurring'
+    ];
+
+    /* ── DOM refs ──────────────────────────────────────────────── */
+    var $rulesLoading    = document.getElementById('rules-loading');
+    var $rulesEmpty      = document.getElementById('rules-empty');
+    var $rulesTable      = document.getElementById('rules-table');
+    var $rulesTbody      = document.getElementById('rules-tbody');
+    var $ruleDetail      = document.getElementById('rule-detail');
+    var $logLoading      = document.getElementById('log-loading');
+    var $logEmpty        = document.getElementById('log-empty');
+    var $logTable        = document.getElementById('log-table');
+    var $logTbody        = document.getElementById('log-tbody');
+    var $panelRules      = document.getElementById('panel-rules');
+    var $panelLog        = document.getElementById('panel-log');
+    var $errorBanner     = document.getElementById('error-banner');
+    var $errorMessage    = document.getElementById('error-message');
+    var $refreshStatus   = document.getElementById('refresh-status');
+    var $modalBackdrop   = document.getElementById('modal-backdrop');
+    var $modalTitle      = document.getElementById('modal-title');
+    var $modalBody       = document.getElementById('modal-body');
+    var $modalFooter     = document.getElementById('modal-footer');
+
+    /* ── Utility ───────────────────────────────────────────────── */
+    function esc(s) {
+      var d = document.createElement('div');
+      d.textContent = s || '';
+      return d.innerHTML;
+    }
+
+    function escAttr(s) {
+      return (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '—';
+      var d = new Date(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function prettyJSON(obj) {
+      if (obj === null || obj === undefined) return '—';
+      if (typeof obj === 'string') {
+        try { obj = JSON.parse(obj); } catch (e) { return esc(obj); }
+      }
+      return esc(JSON.stringify(obj, null, 2));
+    }
+
+    function truncate(s, max) {
+      if (!s) return '—';
+      if (typeof s === 'object') s = JSON.stringify(s);
+      if (s.length <= max) return esc(s);
+      return esc(s.substring(0, max)) + '…';
+    }
+
+    function actionsCount(rule) {
+      if (!rule.actions) return 0;
+      if (Array.isArray(rule.actions)) return rule.actions.length;
+      return 1;
+    }
+
+    /* ── Error handling ────────────────────────────────────────── */
+    function showError(msg) {
+      $errorMessage.textContent = msg;
+      $errorBanner.classList.add('visible');
+    }
+
+    window.dismissError = function () {
+      $errorBanner.classList.remove('visible');
+    };
+
+    /* ── Modal ─────────────────────────────────────────────────── */
+    function openModal(title, bodyHTML, footerHTML) {
+      $modalTitle.textContent = title;
+      $modalBody.innerHTML = bodyHTML;
+      $modalFooter.innerHTML = footerHTML;
+      $modalBackdrop.classList.add('open');
+    }
+
+    window.closeModal = function () {
+      $modalBackdrop.classList.remove('open');
+    };
+
+    $modalBackdrop.addEventListener('click', function (e) {
+      if (e.target === $modalBackdrop) window.closeModal();
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') window.closeModal();
+    });
+
+    /* ── Tabs ──────────────────────────────────────────────────── */
+    function switchTab(tab) {
+      activeTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(function (btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
+      });
+      $panelRules.style.display = tab === 'rules' ? '' : 'none';
+      $panelLog.style.display = tab === 'log' ? '' : 'none';
+      if (tab === 'log') loadLog();
+    }
+
+    document.getElementById('tab-rules').addEventListener('click', function () { switchTab('rules'); });
+    document.getElementById('tab-log').addEventListener('click', function () { switchTab('log'); });
+
+    /* ── Load rules ────────────────────────────────────────────── */
+    function loadRules() {
+      $rulesLoading.style.display = 'flex';
+      $rulesEmpty.style.display = 'none';
+      $rulesTable.style.display = 'none';
+
+      API('/api/automations/rules').then(function (data) {
+        rules = Array.isArray(data) ? data : (data.rules || data.items || []);
+        renderRules();
+        updateRefreshStatus();
+      }).catch(function () {
+        $rulesLoading.style.display = 'none';
+      });
+    }
+
+    function renderRules() {
+      $rulesLoading.style.display = 'none';
+
+      if (rules.length === 0) {
+        $rulesEmpty.style.display = 'flex';
+        $rulesTable.style.display = 'none';
+        $ruleDetail.style.display = 'none';
+        return;
+      }
+
+      $rulesEmpty.style.display = 'none';
+      $rulesTable.style.display = 'table';
+
+      var html = '';
+      for (var i = 0; i < rules.length; i++) {
+        var r = rules[i];
+        var ruleId = escAttr(r.id || r.rule_id || '');
+        var checked = r.enabled !== false ? 'checked' : '';
+        html += '<tr data-rule-id="' + ruleId + '">'
+          + '<td class="rule-name-cell" data-action="detail">' + esc(r.name || 'Unnamed Rule') + '</td>'
+          + '<td><span class="badge badge-info">' + esc(r.trigger_type || '—') + '</span></td>'
+          + '<td>' + esc(r.board_id || '—') + '</td>'
+          + '<td>' + actionsCount(r) + '</td>'
+          + '<td>'
+          +   '<label class="toggle" title="' + (r.enabled !== false ? 'Enabled' : 'Disabled') + '">'
+          +     '<input type="checkbox" ' + checked + ' data-action="toggle">'
+          +     '<span class="toggle-track"></span>'
+          +   '</label>'
+          + '</td>'
+          + '<td>'
+          +   '<div class="row-actions">'
+          +     '<button class="btn-icon btn-sm" data-action="delete" title="Delete rule" aria-label="Delete rule">🗑</button>'
+          +   '</div>'
+          + '</td>'
+          + '</tr>';
+      }
+      $rulesTbody.innerHTML = html;
+    }
+
+    /* ── Rules table events ────────────────────────────────────── */
+    $rulesTbody.addEventListener('click', function (e) {
+      var target = e.target;
+      var action = target.getAttribute('data-action') || (target.closest('[data-action]') || {}).getAttribute
+        ? (target.closest('[data-action]') || {dataset:{}}).getAttribute && target.closest('[data-action]')
+          ? target.closest('[data-action]').getAttribute('data-action')
+          : null
+        : null;
+      var row = target.closest('tr');
+      if (!row) return;
+      var ruleId = row.getAttribute('data-rule-id');
+
+      if (action === 'detail') {
+        showRuleDetail(ruleId);
+      } else if (action === 'delete') {
+        confirmDeleteRule(ruleId);
+      }
+    });
+
+    $rulesTbody.addEventListener('change', function (e) {
+      if (e.target.getAttribute('data-action') === 'toggle') {
+        var row = e.target.closest('tr');
+        if (!row) return;
+        var ruleId = row.getAttribute('data-rule-id');
+        var enabled = e.target.checked;
+        toggleRule(ruleId, enabled);
+      }
+    });
+
+    /* ── Rule detail ───────────────────────────────────────────── */
+    function showRuleDetail(ruleId) {
+      selectedRuleId = ruleId;
+
+      API('/api/automations/rules/' + encodeURIComponent(ruleId)).then(function (rule) {
+        document.getElementById('detail-name').textContent = rule.name || 'Unnamed Rule';
+        document.getElementById('detail-id').textContent = rule.id || rule.rule_id || ruleId;
+        document.getElementById('detail-board-id').textContent = rule.board_id || '—';
+        document.getElementById('detail-trigger-type').textContent = rule.trigger_type || '—';
+        document.getElementById('detail-enabled').innerHTML = rule.enabled !== false
+          ? '<span class="badge badge-success">Enabled</span>'
+          : '<span class="badge badge-muted">Disabled</span>';
+        document.getElementById('detail-trigger-config').innerHTML = prettyJSON(rule.trigger_config);
+        document.getElementById('detail-conditions').innerHTML = prettyJSON(rule.conditions);
+        document.getElementById('detail-actions').innerHTML = prettyJSON(rule.actions);
+        $ruleDetail.style.display = 'block';
+      });
+    }
+
+    document.getElementById('btn-close-detail').addEventListener('click', function () {
+      $ruleDetail.style.display = 'none';
+      selectedRuleId = null;
+    });
+
+    /* ── Toggle rule ───────────────────────────────────────────── */
+    function toggleRule(ruleId, enabled) {
+      API('/api/automations/rules/' + encodeURIComponent(ruleId), {
+        method: 'PATCH',
+        body: { enabled: enabled }
+      }).then(function () {
+        loadRules();
+      });
+    }
+
+    /* ── Delete rule ───────────────────────────────────────────── */
+    function confirmDeleteRule(ruleId) {
+      var rule = null;
+      for (var i = 0; i < rules.length; i++) {
+        if ((rules[i].id || rules[i].rule_id) === ruleId) { rule = rules[i]; break; }
+      }
+      var name = rule ? esc(rule.name) : ruleId;
+
+      openModal(
+        'Delete Rule',
+        '<p class="confirm-text">Are you sure you want to delete <strong>' + name + '</strong>? This action cannot be undone.</p>',
+        '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
+        + '<button class="btn btn-danger" id="btn-confirm-delete">Delete</button>'
+      );
+
+      document.getElementById('btn-confirm-delete').addEventListener('click', function () {
+        this.disabled = true;
+        this.textContent = 'Deleting…';
+        API('/api/automations/rules/' + encodeURIComponent(ruleId), { method: 'DELETE' }).then(function () {
+          window.closeModal();
+          if (selectedRuleId === ruleId) {
+            $ruleDetail.style.display = 'none';
+            selectedRuleId = null;
+          }
+          loadRules();
+        }).catch(function () { window.closeModal(); });
+      });
+    }
+
+    /* ── Create rule modal ─────────────────────────────────────── */
+    function openCreateRuleModal() {
+      var triggerOpts = '';
+      for (var i = 0; i < TRIGGER_TYPES.length; i++) {
+        triggerOpts += '<option value="' + escAttr(TRIGGER_TYPES[i]) + '">' + esc(TRIGGER_TYPES[i]) + '</option>';
+      }
+
+      var body = ''
+        + '<div class="form-group">'
+        +   '<label class="form-label" for="cr-name">Rule Name</label>'
+        +   '<input class="form-input" id="cr-name" type="text" placeholder="e.g. Notify on status change" autocomplete="off">'
+        + '</div>'
+        + '<div class="form-group">'
+        +   '<label class="form-label" for="cr-board">Board ID</label>'
+        +   '<input class="form-input" id="cr-board" type="text" placeholder="Board identifier" autocomplete="off">'
+        + '</div>'
+        + '<div class="form-group">'
+        +   '<label class="form-label" for="cr-trigger">Trigger Type</label>'
+        +   '<select class="form-select" id="cr-trigger">' + triggerOpts + '</select>'
+        + '</div>'
+        + '<div class="form-group">'
+        +   '<label class="form-label" for="cr-trigger-config">Trigger Config (JSON)</label>'
+        +   '<textarea class="form-textarea" id="cr-trigger-config" placeholder=\'{"column_id": "status"}\'></textarea>'
+        + '</div>'
+        + '<div class="form-group">'
+        +   '<label class="form-label" for="cr-conditions">Conditions (JSON)</label>'
+        +   '<textarea class="form-textarea" id="cr-conditions" placeholder=\'[{"field": "status", "operator": "eq", "value": "Done"}]\'></textarea>'
+        + '</div>'
+        + '<div class="form-group">'
+        +   '<label class="form-label" for="cr-actions">Actions (JSON)</label>'
+        +   '<textarea class="form-textarea" id="cr-actions" placeholder=\'[{"type": "notify", "config": {"channel": "#general"}}]\'></textarea>'
+        + '</div>';
+
+      openModal(
+        'Create Automation Rule',
+        body,
+        '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
+        + '<button class="btn btn-primary" id="btn-submit-rule">Create Rule</button>'
+      );
+
+      document.getElementById('btn-submit-rule').addEventListener('click', function () {
+        var name = document.getElementById('cr-name').value.trim();
+        var boardId = document.getElementById('cr-board').value.trim();
+        var triggerType = document.getElementById('cr-trigger').value;
+        var triggerConfigRaw = document.getElementById('cr-trigger-config').value.trim();
+        var conditionsRaw = document.getElementById('cr-conditions').value.trim();
+        var actionsRaw = document.getElementById('cr-actions').value.trim();
+
+        if (!name) { showError('Rule name is required.'); return; }
+        if (!boardId) { showError('Board ID is required.'); return; }
+
+        var triggerConfig = {};
+        var conditions = [];
+        var actions = [];
+
+        try { if (triggerConfigRaw) triggerConfig = JSON.parse(triggerConfigRaw); }
+        catch (e) { showError('Trigger Config is not valid JSON.'); return; }
+
+        try { if (conditionsRaw) conditions = JSON.parse(conditionsRaw); }
+        catch (e) { showError('Conditions is not valid JSON.'); return; }
+
+        try { if (actionsRaw) actions = JSON.parse(actionsRaw); }
+        catch (e) { showError('Actions is not valid JSON.'); return; }
+
+        this.disabled = true;
+        this.textContent = 'Creating…';
+
+        API('/api/automations/rules', {
+          method: 'POST',
+          body: {
+            name: name,
+            board_id: boardId,
+            trigger_type: triggerType,
+            trigger_config: triggerConfig,
+            conditions: conditions,
+            actions: actions
+          }
+        }).then(function () {
+          window.closeModal();
+          loadRules();
+        }).catch(function () {
+          var btn = document.getElementById('btn-submit-rule');
+          if (btn) { btn.disabled = false; btn.textContent = 'Create Rule'; }
+        });
+      });
+    }
+
+    document.getElementById('btn-new-rule').addEventListener('click', openCreateRuleModal);
+    document.getElementById('btn-new-rule-empty').addEventListener('click', openCreateRuleModal);
+
+    /* ── Fire trigger modal ────────────────────────────────────── */
+    function openFireTriggerModal() {
+      var triggerOpts = '';
+      for (var i = 0; i < TRIGGER_TYPES.length; i++) {
+        triggerOpts += '<option value="' + escAttr(TRIGGER_TYPES[i]) + '">' + esc(TRIGGER_TYPES[i]) + '</option>';
+      }
+
+      var body = ''
+        + '<div class="form-group">'
+        +   '<label class="form-label" for="ft-board">Board ID</label>'
+        +   '<input class="form-input" id="ft-board" type="text" placeholder="Board identifier" autocomplete="off">'
+        + '</div>'
+        + '<div class="form-group">'
+        +   '<label class="form-label" for="ft-trigger">Trigger Type</label>'
+        +   '<select class="form-select" id="ft-trigger">' + triggerOpts + '</select>'
+        + '</div>'
+        + '<div class="form-group">'
+        +   '<label class="form-label" for="ft-context">Context (JSON)</label>'
+        +   '<textarea class="form-textarea" id="ft-context" placeholder=\'{"item_id": "abc123", "old_value": "Working", "new_value": "Done"}\'></textarea>'
+        + '</div>';
+
+      openModal(
+        'Fire Trigger',
+        body,
+        '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
+        + '<button class="btn btn-primary" id="btn-submit-trigger">⚡ Fire</button>'
+      );
+
+      document.getElementById('btn-submit-trigger').addEventListener('click', function () {
+        var boardId = document.getElementById('ft-board').value.trim();
+        var triggerType = document.getElementById('ft-trigger').value;
+        var contextRaw = document.getElementById('ft-context').value.trim();
+
+        if (!boardId) { showError('Board ID is required.'); return; }
+
+        var context = {};
+        try { if (contextRaw) context = JSON.parse(contextRaw); }
+        catch (e) { showError('Context is not valid JSON.'); return; }
+
+        this.disabled = true;
+        this.textContent = 'Firing…';
+
+        API('/api/automations/trigger', {
+          method: 'POST',
+          body: {
+            board_id: boardId,
+            trigger_type: triggerType,
+            context: context
+          }
+        }).then(function () {
+          window.closeModal();
+          switchTab('log');
+          loadLog();
+        }).catch(function () {
+          var btn = document.getElementById('btn-submit-trigger');
+          if (btn) { btn.disabled = false; btn.textContent = '⚡ Fire'; }
+        });
+      });
+    }
+
+    document.getElementById('btn-fire-trigger').addEventListener('click', openFireTriggerModal);
+
+    /* ── Load execution log ────────────────────────────────────── */
+    function loadLog() {
+      $logLoading.style.display = 'flex';
+      $logEmpty.style.display = 'none';
+      $logTable.style.display = 'none';
+
+      API('/api/automations/log?limit=50').then(function (data) {
+        logEntries = Array.isArray(data) ? data : (data.entries || data.logs || data.items || []);
+        renderLog();
+      }).catch(function () {
+        $logLoading.style.display = 'none';
+      });
+    }
+
+    function renderLog() {
+      $logLoading.style.display = 'none';
+
+      if (logEntries.length === 0) {
+        $logEmpty.style.display = 'flex';
+        $logTable.style.display = 'none';
+        return;
+      }
+
+      $logEmpty.style.display = 'none';
+      $logTable.style.display = 'table';
+
+      var html = '';
+      for (var i = 0; i < logEntries.length; i++) {
+        var entry = logEntries[i];
+        var status = (entry.status || 'unknown').toLowerCase();
+        var badgeClass = status === 'success' ? 'badge-success'
+          : status === 'error' || status === 'failed' ? 'badge-danger'
+          : status === 'skipped' ? 'badge-warning'
+          : 'badge-muted';
+
+        html += '<tr>'
+          + '<td style="white-space:nowrap;">' + esc(formatDate(entry.timestamp || entry.executed_at || entry.created_at)) + '</td>'
+          + '<td>' + esc(entry.rule_name || entry.name || '—') + '</td>'
+          + '<td><span class="badge ' + badgeClass + '">' + esc(entry.status || 'unknown') + '</span></td>'
+          + '<td style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + truncate(entry.context || entry.summary, 120) + '</td>'
+          + '</tr>';
+      }
+      $logTbody.innerHTML = html;
+    }
+
+    /* ── Refresh ───────────────────────────────────────────────── */
+    function updateRefreshStatus() {
+      var now = new Date();
+      $refreshStatus.textContent = 'Updated ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    function refresh() {
+      if (activeTab === 'rules') {
+        loadRules();
+      } else {
+        loadLog();
+      }
+    }
+
+    function startAutoRefresh() {
+      stopAutoRefresh();
+      refreshTimer = setInterval(refresh, REFRESH_MS);
+    }
+
+    function stopAutoRefresh() {
+      if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+    }
+
+    /* ── Init ──────────────────────────────────────────────────── */
+    loadRules();
+    startAutoRefresh();
+
+  }());
+  </script>
+</body>
+</html>

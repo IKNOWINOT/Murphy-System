@@ -42,34 +42,8 @@ RUN apt-get update \
 
 # Copy application source
 COPY src/ ./src/
-COPY setup.py pyproject.toml requirements_murphy_1.0.txt ./
+COPY setup.py requirements_murphy_1.0.txt ./
 COPY murphy_system_1.0_runtime.py ./
-
-# murphy_production_server.py is kept for standalone/dev use;
-# in Docker the unified server (create_app) includes its routes via production_router.
-COPY murphy_production_server.py ./
-
-# Dashboard and UI assets
-COPY murphy_dashboard/ ./murphy_dashboard/
-
-# Root-level HTML pages (51 files served via /ui/{page_name})
-COPY *.html ./
-
-# Root-level JS (auth, overlay) and CLI entry point
-COPY murphy_auth.js murphy_overlay.js murphy ./
-
-# Root-level orchestrator modules (imported by src/execution_router.py)
-COPY two_phase_orchestrator.py universal_control_plane.py ./
-
-# Murphy System legacy directory (HTML pages, static assets, config)
-# NOTE: Space in directory name requires careful quoting
-COPY "Murphy System/" "./Murphy System/"
-
-# Config directory
-COPY config/ ./config/
-
-# Environment configuration
-COPY .env.example ./
 
 # Create persistent data directories
 RUN mkdir -p /app/data /app/logs \

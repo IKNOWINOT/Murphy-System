@@ -96,10 +96,10 @@ class TestProviderConfig:
             assert p.default_model == "gpt-4"
             assert p.available is True
 
-    def test_from_env_groq(self) -> None:
+    def test_from_env_deepinfra(self) -> None:
         env = {
             "OPENAI_PROVIDER_TYPE": "deepinfra",
-            "DEEPINFRA_API_KEY": "gsk_test",
+            "DEEPINFRA_API_KEY": "di_test",
         }
         with patch.dict(os.environ, env, clear=False):
             p = OpenAICompatibleProvider.from_env()
@@ -368,13 +368,13 @@ class TestOnboardLLM:
         assert provider._config.api_key == "sk-test-123"
 
     @pytest.mark.asyncio
-    async def test_from_env_uses_groq_when_groq_key_set(self) -> None:
+    async def test_from_env_uses_deepinfra_when_deepinfra_key_set(self) -> None:
         """With DEEPINFRA_API_KEY, from_env() should select deepinfra."""
-        env = {"DEEPINFRA_API_KEY": "gsk_test456"}
+        env = {"DEEPINFRA_API_KEY": "di_test456"}
         with patch.dict(os.environ, env, clear=True):
             provider = OpenAICompatibleProvider.from_env()
         assert provider.provider_type == ProviderType.DEEPINFRA
-        assert provider._config.api_key == "gsk_test456"
+        assert provider._config.api_key == "di_test456"
 
     @pytest.mark.asyncio
     async def test_onboard_chat_completion_returns_response(self) -> None:

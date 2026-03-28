@@ -239,7 +239,7 @@ Status:       ⏳ Open / 🔧 In Progress / ✅ Resolved
 
 ```bash
 # Test DeepInfra API connectivity
-curl -X POST https://api.deepinfra.com/v1/openai/chat/completions \
+curl -X POST https://api.deepinfra.com/v1/openai/v1/chat/completions \
   -H "Authorization: Bearer $DEEPINFRA_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"model": "meta-llama/Meta-Llama-3.1-8B-Instruct", "messages": [{"role": "user", "content": "Hello"}]}'

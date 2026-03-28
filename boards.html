@@ -1,0 +1,1218 @@
+<!-- Murphy System — Board System / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boards — Murphy System</title>
+  <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="static/murphy-design-system.css">
+  <style>
+    :root {
+      --bg-base: #0C1017; --bg-surface: #131A24; --bg-elevated: #1A2332;
+      --bg-input: #0F1620; --border-subtle: #1E2A3A; --border-default: #2A3A4E;
+      --border-focus: #00D4AA; --text-primary: #E6ECF2; --text-secondary: #8899AA;
+      --text-muted: #566778; --teal: #00D4AA; --teal-glow: rgba(0,212,170,0.12);
+      --success: #22C55E; --warning: #FFA63E; --danger: #EF4444; --info: #3B9EFF;
+      --font-ui: Inter, system-ui, -apple-system, sans-serif;
+      --font-code: 'JetBrains Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Topbar ──────────────────────────────────────────────── */
+    .topbar {
+      position: sticky; top: 0; z-index: 1000;
+      background: rgba(12,16,23,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-default);
+      padding: 0 2rem;
+      height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar-brand {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; color: var(--text-primary); font-weight: 700; font-size: 1rem;
+    }
+    .topbar-brand svg { flex-shrink: 0; }
+    .topbar-title {
+      font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;
+      padding-left: 12px; border-left: 1px solid var(--border-subtle);
+    }
+    .topbar-right { display: flex; align-items: center; gap: 8px; }
+    .topbar-status {
+      font-size: 0.75rem; color: var(--text-muted);
+    }
+
+    /* ── Layout ──────────────────────────────────────────────── */
+    .app-layout {
+      display: flex; height: calc(100vh - 56px);
+    }
+    .sidebar-slot { flex-shrink: 0; }
+    .board-sidebar {
+      width: 280px; background: var(--bg-surface);
+      border-right: 1px solid var(--border-subtle);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .board-sidebar-header {
+      padding: 16px; border-bottom: 1px solid var(--border-subtle);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .board-sidebar-header h2 {
+      font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .board-list {
+      flex: 1; overflow-y: auto; padding: 8px;
+    }
+    .board-list-item {
+      padding: 10px 12px; border-radius: 6px; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between;
+      transition: background 0.15s;
+      margin-bottom: 2px;
+    }
+    .board-list-item:hover { background: var(--bg-elevated); }
+    .board-list-item.active { background: var(--teal-glow); border: 1px solid rgba(0,212,170,0.25); }
+    .board-list-item .board-name {
+      font-size: 0.875rem; font-weight: 500; color: var(--text-primary);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;
+    }
+    .board-list-item .board-count {
+      font-size: 0.7rem; color: var(--text-muted); background: var(--bg-input);
+      padding: 2px 7px; border-radius: 10px; flex-shrink: 0;
+    }
+
+    /* ── Main area ───────────────────────────────────────────── */
+    .main-area {
+      flex: 1; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .board-toolbar {
+      padding: 12px 24px; border-bottom: 1px solid var(--border-subtle);
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      background: var(--bg-surface);
+    }
+    .board-toolbar-left { display: flex; align-items: center; gap: 12px; }
+    .board-toolbar-left h1 {
+      font-size: 1.1rem; font-weight: 700;
+    }
+    .board-toolbar-left .board-desc {
+      font-size: 0.8rem; color: var(--text-muted); max-width: 400px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .board-toolbar-right { display: flex; align-items: center; gap: 8px; }
+    .board-content {
+      flex: 1; overflow: auto; padding: 16px 24px;
+    }
+
+    /* ── Buttons ─────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 6px;
+      font-family: var(--font-ui); font-size: 0.8rem; font-weight: 500;
+      cursor: pointer; border: 1px solid transparent;
+      transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary {
+      background: var(--teal); color: #0C1017; border-color: var(--teal);
+    }
+    .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+    .btn-ghost {
+      background: transparent; color: var(--text-secondary); border-color: var(--border-default);
+    }
+    .btn-ghost:hover:not(:disabled) { background: var(--bg-elevated); color: var(--text-primary); }
+    .btn-danger {
+      background: transparent; color: var(--danger); border-color: var(--danger);
+    }
+    .btn-danger:hover:not(:disabled) { background: rgba(239,68,68,0.1); }
+    .btn-sm { padding: 5px 10px; font-size: 0.75rem; }
+    .btn-icon {
+      padding: 6px; background: transparent; color: var(--text-muted);
+      border: none; border-radius: 4px; cursor: pointer;
+    }
+    .btn-icon:hover { color: var(--text-primary); background: var(--bg-elevated); }
+
+    /* ── Group ───────────────────────────────────────────────── */
+    .board-group {
+      margin-bottom: 24px;
+    }
+    .group-header {
+      display: flex; align-items: center; gap: 8px; padding: 8px 0; margin-bottom: 4px;
+    }
+    .group-color-bar {
+      width: 4px; height: 22px; border-radius: 2px; flex-shrink: 0;
+    }
+    .group-title {
+      font-size: 0.95rem; font-weight: 700; cursor: default;
+    }
+    .group-item-count {
+      font-size: 0.7rem; color: var(--text-muted);
+    }
+    .group-actions { margin-left: auto; display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+    .group-header:hover .group-actions { opacity: 1; }
+
+    /* ── Items Table ─────────────────────────────────────────── */
+    .items-table {
+      width: 100%; border-collapse: separate; border-spacing: 0;
+      font-size: 0.82rem;
+    }
+    .items-table th {
+      text-align: left; padding: 6px 12px; font-size: 0.72rem;
+      color: var(--text-muted); font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.04em; border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-surface); position: sticky; top: 0; z-index: 1;
+    }
+    .items-table td {
+      padding: 8px 12px; border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+    .items-table tr:hover td { background: var(--bg-elevated); }
+    .item-name-cell {
+      font-weight: 500; cursor: pointer; min-width: 200px;
+    }
+    .item-name-cell:hover { color: var(--teal); }
+    .item-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+    .items-table tr:hover .item-actions { opacity: 1; }
+
+    /* ── Status pills ────────────────────────────────────────── */
+    .status-pill {
+      display: inline-block; padding: 3px 10px; border-radius: 10px;
+      font-size: 0.72rem; font-weight: 600; text-align: center;
+      min-width: 80px; cursor: pointer; transition: opacity 0.15s;
+    }
+    .status-pill:hover { opacity: 0.8; }
+    .status-working { background: var(--info); color: #fff; }
+    .status-stuck   { background: var(--danger); color: #fff; }
+    .status-done    { background: var(--success); color: #fff; }
+    .status-blank   { background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border-subtle); }
+
+    /* ── Inline edit ─────────────────────────────────────────── */
+    .inline-input {
+      background: var(--bg-input); color: var(--text-primary);
+      border: 1px solid var(--border-focus); border-radius: 4px;
+      padding: 4px 8px; font-family: var(--font-ui); font-size: 0.82rem;
+      outline: none; width: 100%;
+    }
+
+    /* ── Status dropdown ─────────────────────────────────────── */
+    .status-dropdown {
+      position: absolute; z-index: 100; background: var(--bg-elevated);
+      border: 1px solid var(--border-default); border-radius: 8px;
+      padding: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      display: none;
+    }
+    .status-dropdown.open { display: block; }
+    .status-option {
+      padding: 6px 14px; border-radius: 6px; cursor: pointer;
+      font-size: 0.78rem; font-weight: 500; margin-bottom: 2px;
+      transition: opacity 0.15s;
+    }
+    .status-option:hover { opacity: 0.8; }
+
+    /* ── Modal ───────────────────────────────────────────────── */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      z-index: 500; display: none;
+    }
+    .modal-backdrop.open { display: flex; align-items: center; justify-content: center; }
+    .modal {
+      background: var(--bg-surface); border: 1px solid var(--border-default);
+      border-radius: 12px; width: 440px; max-width: 90vw;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    }
+    .modal-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border-subtle);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-header h3 { font-size: 0.95rem; font-weight: 700; }
+    .modal-body { padding: 20px; }
+    .modal-footer {
+      padding: 12px 20px; border-top: 1px solid var(--border-subtle);
+      display: flex; justify-content: flex-end; gap: 8px;
+    }
+
+    /* ── Form elements ───────────────────────────────────────── */
+    .form-group { margin-bottom: 14px; }
+    .form-label {
+      display: block; font-size: 0.78rem; font-weight: 600;
+      color: var(--text-secondary); margin-bottom: 6px;
+    }
+    .form-input {
+      width: 100%; background: var(--bg-input); color: var(--text-primary);
+      border: 1px solid var(--border-subtle); padding: 9px 12px;
+      border-radius: 6px; font-family: var(--font-ui); font-size: 0.85rem;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus { outline: none; border-color: var(--border-focus); }
+
+    /* ── Activity log ────────────────────────────────────────── */
+    .activity-panel {
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+    }
+    .activity-toggle {
+      padding: 10px 24px; cursor: pointer; display: flex; align-items: center; gap: 8px;
+      font-size: 0.78rem; font-weight: 600; color: var(--text-secondary);
+      user-select: none;
+    }
+    .activity-toggle:hover { color: var(--text-primary); }
+    .activity-toggle .chevron { transition: transform 0.2s; }
+    .activity-toggle.expanded .chevron { transform: rotate(90deg); }
+    .activity-body {
+      max-height: 0; overflow: hidden; transition: max-height 0.3s ease;
+    }
+    .activity-body.open { max-height: 300px; overflow-y: auto; }
+    .activity-list { padding: 0 24px 12px; }
+    .activity-entry {
+      padding: 6px 0; border-bottom: 1px solid var(--border-subtle);
+      font-size: 0.75rem; color: var(--text-secondary);
+      display: flex; gap: 12px;
+    }
+    .activity-entry:last-child { border-bottom: none; }
+    .activity-time { color: var(--text-muted); white-space: nowrap; flex-shrink: 0; width: 70px; }
+    .activity-action { flex: 1; }
+
+    /* ── Error banner ────────────────────────────────────────── */
+    .error-banner {
+      padding: 10px 24px; background: rgba(239,68,68,0.1);
+      border-bottom: 1px solid var(--danger); color: var(--danger);
+      font-size: 0.82rem; display: none; align-items: center; gap: 8px;
+    }
+    .error-banner.visible { display: flex; }
+    .error-banner button {
+      margin-left: auto; background: none; border: none;
+      color: var(--danger); cursor: pointer; font-size: 1rem; padding: 0 4px;
+    }
+
+    /* ── Empty state ─────────────────────────────────────────── */
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 64px 24px; text-align: center; color: var(--text-muted);
+    }
+    .empty-state-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.5; }
+    .empty-state h3 { font-size: 1rem; color: var(--text-secondary); margin-bottom: 6px; }
+    .empty-state p { font-size: 0.82rem; margin-bottom: 16px; max-width: 320px; }
+
+    /* ── Spinner ──────────────────────────────────────────────── */
+    .spinner {
+      display: inline-block; width: 18px; height: 18px;
+      border: 2px solid var(--border-subtle); border-top-color: var(--teal);
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-overlay {
+      display: flex; align-items: center; justify-content: center;
+      padding: 48px; color: var(--text-muted); gap: 10px; font-size: 0.82rem;
+    }
+
+    /* ── Confirm dialog ──────────────────────────────────────── */
+    .confirm-text { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+
+    /* ── Scrollbar ────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-default); }
+  </style>
+</head>
+<body>
+
+  <!-- ── Topbar ──────────────────────────────────────────────── -->
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <a href="/" class="topbar-brand">
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <rect width="32" height="32" rx="8" fill="var(--teal)"/>
+          <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700">M</text>
+        </svg>
+        <span>Murphy System</span>
+      </a>
+      <span class="topbar-title">Boards</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-status" id="refresh-status"></span>
+    </div>
+  </div>
+
+  <!-- ── Error banner ────────────────────────────────────────── -->
+  <div class="error-banner" id="error-banner" role="alert">
+    <span id="error-message"></span>
+    <button onclick="dismissError()" title="Dismiss" aria-label="Dismiss error">&times;</button>
+  </div>
+
+  <!-- ── App layout ──────────────────────────────────────────── -->
+  <div class="app-layout">
+    <murphy-sidebar active="BOARDS"></murphy-sidebar>
+
+    <!-- Board list sidebar -->
+    <div class="board-sidebar">
+      <div class="board-sidebar-header">
+        <h2>My Boards</h2>
+        <button class="btn btn-primary btn-sm" id="btn-new-board" title="Create new board" aria-label="Create new board">+ New</button>
+      </div>
+      <div id="board-list-loading" class="loading-overlay">
+        <span class="spinner"></span> Loading boards…
+      </div>
+      <div class="board-list" id="board-list" role="list" aria-label="Board list"></div>
+    </div>
+
+    <!-- Main area -->
+    <div class="main-area">
+      <!-- No board selected -->
+      <div id="no-board-state" class="empty-state" style="flex:1;">
+        <div class="empty-state-icon" aria-hidden="true">📋</div>
+        <h3>Select a board</h3>
+        <p>Choose a board from the sidebar or create a new one to get started.</p>
+        <button class="btn btn-primary" id="btn-new-board-empty">+ Create Board</button>
+      </div>
+
+      <!-- Board detail -->
+      <div id="board-detail" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+        <!-- Toolbar -->
+        <div class="board-toolbar">
+          <div class="board-toolbar-left">
+            <h1 id="board-title"></h1>
+            <span class="board-desc" id="board-desc"></span>
+          </div>
+          <div class="board-toolbar-right">
+            <button class="btn btn-ghost btn-sm" id="btn-add-group" title="Add group">+ Group</button>
+            <button class="btn btn-ghost btn-sm" id="btn-edit-board" title="Edit board">✏️ Edit</button>
+            <button class="btn btn-danger btn-sm" id="btn-delete-board" title="Delete board">🗑 Delete</button>
+          </div>
+        </div>
+
+        <!-- Board content -->
+        <div class="board-content" id="board-content">
+          <div id="board-loading" class="loading-overlay">
+            <span class="spinner"></span> Loading board…
+          </div>
+          <div id="groups-container"></div>
+          <div id="no-items-state" class="empty-state" style="display:none;">
+            <div class="empty-state-icon" aria-hidden="true">📝</div>
+            <h3>No items yet</h3>
+            <p>Add a group and start creating items to track your work.</p>
+            <button class="btn btn-primary" id="btn-add-group-empty">+ Add Group</button>
+          </div>
+        </div>
+
+        <!-- Activity log -->
+        <div class="activity-panel" id="activity-panel">
+          <div class="activity-toggle" id="activity-toggle" role="button" tabindex="0" aria-expanded="false" aria-label="Toggle activity log">
+            <span class="chevron">▶</span> Activity Log
+          </div>
+          <div class="activity-body" id="activity-body">
+            <div class="activity-list" id="activity-list"></div>
+          </div>
+        </div>
+
+        <!-- Collaboration: Comments -->
+        <div class="activity-panel" id="comments-panel">
+          <div class="activity-toggle" id="comments-toggle" role="button" tabindex="0" aria-expanded="false" aria-label="Toggle comments">
+            <span class="chevron">▶</span> Comments &amp; Collaboration
+          </div>
+          <div class="activity-body" id="comments-body">
+            <div style="padding:8px 24px 8px;">
+              <div style="display:flex;gap:8px;">
+                <input class="input" id="comment-input" placeholder="Add a comment…" style="flex:1;font-size:0.82rem;padding:6px 10px;background:var(--bg-input);border:1px solid var(--border-default);border-radius:6px;color:var(--text-primary);">
+                <button class="btn btn-primary" id="btn-post-comment" style="padding:6px 14px;font-size:0.78rem;">Post</button>
+              </div>
+            </div>
+            <div class="activity-list" id="comments-list"></div>
+          </div>
+        </div>
+
+        <!-- Collaboration: Notification badge -->
+        <div class="activity-panel" id="notifications-panel">
+          <div class="activity-toggle" id="notifications-toggle" role="button" tabindex="0" aria-expanded="false" aria-label="Toggle notifications">
+            <span class="chevron">▶</span> Notifications <span id="notif-badge" style="background:var(--teal);color:#000;font-size:0.7rem;padding:1px 6px;border-radius:10px;margin-left:6px;display:none;">0</span>
+          </div>
+          <div class="activity-body" id="notifications-body">
+            <div class="activity-list" id="notifications-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal backdrop ──────────────────────────────────────── -->
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal" id="modal" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h3 id="modal-title"></h3>
+        <button class="btn-icon" onclick="closeModal()" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer" id="modal-footer"></div>
+    </div>
+  </div>
+
+  <!-- ── Status dropdown (positioned absolutely) ─────────────── -->
+  <div class="status-dropdown" id="status-dropdown">
+    <div class="status-option status-working" data-status="Working on it">Working on it</div>
+    <div class="status-option status-stuck" data-status="Stuck">Stuck</div>
+    <div class="status-option status-done" data-status="Done">Done</div>
+    <div class="status-option status-blank" data-status="">Not set</div>
+  </div>
+
+  <script src="static/murphy-components.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    /* ── API helper ────────────────────────────────────────────── */
+    var API = function (path, opts) {
+      opts = opts || {};
+      return fetch(path, {
+        method: opts.method || 'GET',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: opts.body ? (typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body)) : undefined,
+      }).then(function (r) {
+        if (!r.ok) {
+          return r.json().then(function (d) {
+            throw new Error(d.detail || d.error || 'Request failed (' + r.status + ')');
+          }).catch(function (e) {
+            if (e.message) throw e;
+            throw new Error('Request failed (' + r.status + ')');
+          });
+        }
+        return r.json();
+      }).catch(function (e) {
+        showError(e.message);
+        throw e;
+      });
+    };
+
+    /* ── State ─────────────────────────────────────────────────── */
+    var boards = [];
+    var activeBoard = null;     // full board object
+    var activeBoardId = null;
+    var refreshTimer = null;
+    var REFRESH_MS = 10000;
+
+    /* ── DOM refs ──────────────────────────────────────────────── */
+    var $boardList       = document.getElementById('board-list');
+    var $boardListLoad   = document.getElementById('board-list-loading');
+    var $noBoardState    = document.getElementById('no-board-state');
+    var $boardDetail     = document.getElementById('board-detail');
+    var $boardTitle      = document.getElementById('board-title');
+    var $boardDesc       = document.getElementById('board-desc');
+    var $boardContent    = document.getElementById('board-content');
+    var $boardLoading    = document.getElementById('board-loading');
+    var $groupsContainer = document.getElementById('groups-container');
+    var $noItemsState    = document.getElementById('no-items-state');
+    var $activityList    = document.getElementById('activity-list');
+    var $activityBody    = document.getElementById('activity-body');
+    var $activityToggle  = document.getElementById('activity-toggle');
+    var $errorBanner     = document.getElementById('error-banner');
+    var $errorMessage    = document.getElementById('error-message');
+    var $refreshStatus   = document.getElementById('refresh-status');
+    var $modalBackdrop   = document.getElementById('modal-backdrop');
+    var $modalTitle      = document.getElementById('modal-title');
+    var $modalBody       = document.getElementById('modal-body');
+    var $modalFooter     = document.getElementById('modal-footer');
+    var $statusDropdown  = document.getElementById('status-dropdown');
+
+    /* ── Utility ───────────────────────────────────────────────── */
+    function esc(s) {
+      var d = document.createElement('div');
+      d.textContent = s || '';
+      return d.innerHTML;
+    }
+
+    function escAttr(s) {
+      return (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function safeColor(c) {
+      if (!c) return '#579bfc';
+      if (/^#[0-9a-fA-F]{3,8}$/.test(c)) return c;
+      if (/^rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)$/.test(c)) return c;
+      return '#579bfc';
+    }
+
+    function formatTime(iso) {
+      if (!iso) return '';
+      var d = new Date(iso);
+      return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '';
+      var d = new Date(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function totalItems(board) {
+      if (!board || !board.groups) return 0;
+      var count = 0;
+      for (var i = 0; i < board.groups.length; i++) {
+        count += (board.groups[i].items || []).length;
+      }
+      return count;
+    }
+
+    function statusClass(val) {
+      if (!val) return 'status-blank';
+      var v = (val + '').toLowerCase();
+      if (v === 'working on it') return 'status-working';
+      if (v === 'stuck') return 'status-stuck';
+      if (v === 'done') return 'status-done';
+      return 'status-blank';
+    }
+
+    function statusDisplay(val) {
+      if (!val) return 'Not set';
+      return val;
+    }
+
+    function getStatusCell(item) {
+      if (!item.cells) return '';
+      var keys = Object.keys(item.cells);
+      for (var i = 0; i < keys.length; i++) {
+        var c = item.cells[keys[i]];
+        if (c && c.column_id && c.value !== undefined && c.value !== null) {
+          var v = (c.display_value || c.value || '').toString().toLowerCase();
+          if (v === 'working on it' || v === 'stuck' || v === 'done' || v === '') {
+            return c.display_value || c.value || '';
+          }
+        }
+      }
+      return '';
+    }
+
+    function findStatusColumnId(board) {
+      if (!board || !board.columns) return null;
+      for (var i = 0; i < board.columns.length; i++) {
+        if (board.columns[i].column_type === 'status') return board.columns[i].id;
+      }
+      return null;
+    }
+
+    /* ── Error banner ────────────────────────────────────────── */
+    function showError(msg) {
+      $errorMessage.textContent = msg;
+      $errorBanner.classList.add('visible');
+    }
+    window.dismissError = function () {
+      $errorBanner.classList.remove('visible');
+    };
+
+    /* ── Refresh status ──────────────────────────────────────── */
+    function updateRefreshStatus(loading) {
+      $refreshStatus.textContent = loading
+        ? 'Refreshing…'
+        : 'Updated ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    /* ── Modal ───────────────────────────────────────────────── */
+    function openModal(title, bodyHtml, footerHtml) {
+      $modalTitle.textContent = title;
+      $modalBody.innerHTML = bodyHtml;
+      $modalFooter.innerHTML = footerHtml;
+      $modalBackdrop.classList.add('open');
+    }
+    window.closeModal = function () {
+      $modalBackdrop.classList.remove('open');
+    };
+    $modalBackdrop.addEventListener('click', function (e) {
+      if (e.target === $modalBackdrop) closeModal();
+    });
+
+    /* ── Load board list ─────────────────────────────────────── */
+    function loadBoards(silent) {
+      if (!silent) $boardListLoad.style.display = 'flex';
+      return API('/api/boards').then(function (data) {
+        boards = Array.isArray(data) ? data : [];
+        renderBoardList();
+        if (!silent) $boardListLoad.style.display = 'none';
+        return boards;
+      }).catch(function () {
+        boards = [];
+        renderBoardList();
+        if (!silent) $boardListLoad.style.display = 'none';
+      });
+    }
+
+    function renderBoardList() {
+      if (boards.length === 0) {
+        $boardList.innerHTML = '<div class="empty-state" style="padding:32px 16px;">' +
+          '<div class="empty-state-icon" aria-hidden="true">📋</div>' +
+          '<p style="font-size:0.78rem;">No boards yet</p></div>';
+        return;
+      }
+      var html = '';
+      for (var i = 0; i < boards.length; i++) {
+        var b = boards[i];
+        var isActive = b.id === activeBoardId;
+        var count = totalItems(b);
+        html += '<div class="board-list-item' + (isActive ? ' active' : '') + '" role="listitem" ' +
+          'data-board-id="' + escAttr(b.id) + '" tabindex="0" aria-label="' + escAttr(b.name) + '">' +
+          '<span class="board-name">' + esc(b.name) + '</span>' +
+          '<span class="board-count">' + count + '</span></div>';
+      }
+      $boardList.innerHTML = html;
+    }
+
+    $boardList.addEventListener('click', function (e) {
+      var item = e.target.closest('.board-list-item');
+      if (!item) return;
+      var id = item.getAttribute('data-board-id');
+      if (id) selectBoard(id);
+    });
+
+    $boardList.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        var item = e.target.closest('.board-list-item');
+        if (item) {
+          var id = item.getAttribute('data-board-id');
+          if (id) selectBoard(id);
+        }
+      }
+    });
+
+    /* ── Select board ────────────────────────────────────────── */
+    function selectBoard(boardId) {
+      activeBoardId = boardId;
+      renderBoardList();
+      $noBoardState.style.display = 'none';
+      $boardDetail.style.display = 'flex';
+      loadBoardDetail(boardId);
+      loadComments(boardId);
+      loadNotifications();
+    }
+
+    function loadBoardDetail(boardId, silent) {
+      if (!silent) {
+        $boardLoading.style.display = 'flex';
+        $groupsContainer.innerHTML = '';
+        $noItemsState.style.display = 'none';
+      }
+      updateRefreshStatus(true);
+      return API('/api/boards/' + encodeURIComponent(boardId)).then(function (board) {
+        activeBoard = board;
+        $boardTitle.textContent = board.name || 'Untitled Board';
+        $boardDesc.textContent = board.description || '';
+        renderGroups(board);
+        loadActivity(boardId);
+        if (!silent) $boardLoading.style.display = 'none';
+        updateRefreshStatus(false);
+      }).catch(function () {
+        if (!silent) $boardLoading.style.display = 'none';
+        updateRefreshStatus(false);
+      });
+    }
+
+    /* ── Render groups & items ───────────────────────────────── */
+    function renderGroups(board) {
+      var groups = board.groups || [];
+      if (groups.length === 0) {
+        $groupsContainer.innerHTML = '';
+        $noItemsState.style.display = 'flex';
+        return;
+      }
+      $noItemsState.style.display = 'none';
+
+      var statusColId = findStatusColumnId(board);
+      var html = '';
+      for (var g = 0; g < groups.length; g++) {
+        var grp = groups[g];
+        var items = grp.items || [];
+        html += '<div class="board-group" data-group-id="' + escAttr(grp.id) + '">';
+        html += '<div class="group-header">';
+        html += '<div class="group-color-bar" style="background:' + safeColor(grp.color) + ';"></div>';
+        html += '<span class="group-title" style="color:' + safeColor(grp.color) + ';">' + esc(grp.title) + '</span>';
+        html += '<span class="group-item-count">' + items.length + ' item' + (items.length !== 1 ? 's' : '') + '</span>';
+        html += '<div class="group-actions">';
+        html += '<button class="btn btn-ghost btn-sm btn-add-item" data-group-id="' + escAttr(grp.id) + '" title="Add item">+ Item</button>';
+        html += '<button class="btn-icon btn-delete-group" data-group-id="' + escAttr(grp.id) + '" title="Delete group">🗑</button>';
+        html += '</div></div>';
+
+        html += '<table class="items-table"><thead><tr>';
+        html += '<th style="width:40px;">#</th><th>Item</th>';
+        if (statusColId) html += '<th style="width:140px;">Status</th>';
+        html += '<th style="width:140px;">Updated</th>';
+        html += '<th style="width:80px;"></th>';
+        html += '</tr></thead><tbody>';
+
+        if (items.length === 0) {
+          var colSpan = statusColId ? 5 : 4;
+          html += '<tr><td colspan="' + colSpan + '" style="text-align:center;color:var(--text-muted);padding:16px;">No items in this group</td></tr>';
+        }
+        for (var j = 0; j < items.length; j++) {
+          var it = items[j];
+          var sv = '';
+          if (statusColId && it.cells && it.cells[statusColId]) {
+            sv = it.cells[statusColId].display_value || it.cells[statusColId].value || '';
+          }
+          html += '<tr data-item-id="' + escAttr(it.id) + '" data-group-id="' + escAttr(grp.id) + '">';
+          html += '<td style="color:var(--text-muted);">' + (j + 1) + '</td>';
+          html += '<td class="item-name-cell" data-item-id="' + escAttr(it.id) + '">' + esc(it.name) + '</td>';
+          if (statusColId) {
+            html += '<td><span class="status-pill ' + statusClass(sv) + '" data-item-id="' + escAttr(it.id) + '" data-column-id="' + escAttr(statusColId) + '">' + esc(statusDisplay(sv)) + '</span></td>';
+          }
+          html += '<td style="color:var(--text-muted);font-size:0.75rem;">' + formatDate(it.updated_at) + '</td>';
+          html += '<td><div class="item-actions">';
+          html += '<button class="btn-icon btn-delete-item" data-item-id="' + escAttr(it.id) + '" title="Delete item">🗑</button>';
+          html += '</div></td>';
+          html += '</tr>';
+        }
+        html += '</tbody></table></div>';
+      }
+      $groupsContainer.innerHTML = html;
+    }
+
+    /* ── Group & item event delegation ───────────────────────── */
+    $groupsContainer.addEventListener('click', function (e) {
+      var target = e.target;
+
+      // Add item
+      var addBtn = target.closest('.btn-add-item');
+      if (addBtn) {
+        var groupId = addBtn.getAttribute('data-group-id');
+        showAddItemModal(groupId);
+        return;
+      }
+
+      // Delete group
+      var delGroupBtn = target.closest('.btn-delete-group');
+      if (delGroupBtn) {
+        var gid = delGroupBtn.getAttribute('data-group-id');
+        showConfirm('Delete Group', 'Are you sure you want to delete this group and all its items?', function () {
+          API('/api/boards/' + encodeURIComponent(activeBoardId) + '/groups/' + encodeURIComponent(gid), {
+            method: 'DELETE'
+          }).then(function () { closeModal(); loadBoardDetail(activeBoardId); loadBoards(true); });
+        });
+        return;
+      }
+
+      // Delete item
+      var delItemBtn = target.closest('.btn-delete-item');
+      if (delItemBtn) {
+        var itemId = delItemBtn.getAttribute('data-item-id');
+        showConfirm('Delete Item', 'Are you sure you want to delete this item?', function () {
+          API('/api/boards/' + encodeURIComponent(activeBoardId) + '/items/' + encodeURIComponent(itemId), {
+            method: 'DELETE'
+          }).then(function () { closeModal(); loadBoardDetail(activeBoardId); loadBoards(true); });
+        });
+        return;
+      }
+
+      // Inline edit item name
+      var nameCell = target.closest('.item-name-cell');
+      if (nameCell && !nameCell.querySelector('.inline-input')) {
+        startInlineEdit(nameCell);
+        return;
+      }
+
+      // Status pill click
+      var pill = target.closest('.status-pill');
+      if (pill) {
+        showStatusDropdown(pill);
+        return;
+      }
+    });
+
+    /* ── Inline edit (item name) ─────────────────────────────── */
+    function startInlineEdit(cell) {
+      var itemId = cell.getAttribute('data-item-id');
+      var currentName = cell.textContent;
+      var input = document.createElement('input');
+      input.className = 'inline-input';
+      input.type = 'text';
+      input.value = currentName;
+      cell.innerHTML = '';
+      cell.appendChild(input);
+      input.focus();
+      input.select();
+
+      function save() {
+        var newName = input.value.trim();
+        if (!newName || newName === currentName) {
+          cell.textContent = currentName;
+          return;
+        }
+        cell.textContent = newName;
+        API('/api/boards/' + encodeURIComponent(activeBoardId) + '/items/' + encodeURIComponent(itemId), {
+          method: 'PATCH',
+          body: { name: newName }
+        }).then(function () {
+          loadBoards(true);
+        }).catch(function () {
+          cell.textContent = currentName;
+        });
+      }
+
+      input.addEventListener('blur', save);
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+        if (e.key === 'Escape') { cell.textContent = currentName; }
+      });
+    }
+
+    /* ── Status dropdown ─────────────────────────────────────── */
+    function showStatusDropdown(pill) {
+      var rect = pill.getBoundingClientRect();
+      $statusDropdown.style.top = (rect.bottom + 4) + 'px';
+      $statusDropdown.style.left = rect.left + 'px';
+      $statusDropdown.classList.add('open');
+      $statusDropdown._itemId = pill.getAttribute('data-item-id');
+      $statusDropdown._columnId = pill.getAttribute('data-column-id');
+    }
+
+    $statusDropdown.addEventListener('click', function (e) {
+      var opt = e.target.closest('.status-option');
+      if (!opt) return;
+      var newStatus = opt.getAttribute('data-status');
+      var itemId = $statusDropdown._itemId;
+      var columnId = $statusDropdown._columnId;
+      $statusDropdown.classList.remove('open');
+
+      if (activeBoardId && itemId && columnId) {
+        API('/api/boards/' + encodeURIComponent(activeBoardId) + '/items/' + encodeURIComponent(itemId) + '/cells/' + encodeURIComponent(columnId), {
+          method: 'PATCH',
+          body: { value: newStatus }
+        }).then(function () {
+          loadBoardDetail(activeBoardId, true);
+        });
+      }
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.status-dropdown') && !e.target.closest('.status-pill')) {
+        $statusDropdown.classList.remove('open');
+      }
+    });
+
+    /* ── Activity log ────────────────────────────────────────── */
+    function loadActivity(boardId) {
+      API('/api/boards/' + encodeURIComponent(boardId) + '/activity').then(function (entries) {
+        entries = Array.isArray(entries) ? entries : [];
+        if (entries.length === 0) {
+          $activityList.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:0.78rem;">No activity recorded yet.</div>';
+          return;
+        }
+        var html = '';
+        for (var i = 0; i < entries.length; i++) {
+          var a = entries[i];
+          html += '<div class="activity-entry">';
+          html += '<span class="activity-time">' + formatTime(a.timestamp) + '</span>';
+          html += '<span class="activity-action">' + esc((a.action || '').replace(/_/g, ' ')) + '</span>';
+          html += '</div>';
+        }
+        $activityList.innerHTML = html;
+      }).catch(function () {
+        $activityList.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:0.78rem;">Failed to load activity.</div>';
+      });
+    }
+
+    $activityToggle.addEventListener('click', function () {
+      var isOpen = $activityBody.classList.toggle('open');
+      $activityToggle.classList.toggle('expanded', isOpen);
+      $activityToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    /* ── Create board ────────────────────────────────────────── */
+    function showCreateBoardModal() {
+      openModal('Create Board',
+        '<div class="form-group">' +
+          '<label class="form-label">Board Name</label>' +
+          '<input class="form-input" id="modal-board-name" placeholder="My Board" required autofocus>' +
+        '</div>' +
+        '<div class="form-group">' +
+          '<label class="form-label">Description (optional)</label>' +
+          '<input class="form-input" id="modal-board-desc" placeholder="What is this board for?">' +
+        '</div>',
+        '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary" id="modal-create-board-btn">Create Board</button>'
+      );
+      document.getElementById('modal-create-board-btn').addEventListener('click', function () {
+        var name = document.getElementById('modal-board-name').value.trim();
+        if (!name) return;
+        var desc = document.getElementById('modal-board-desc').value.trim();
+        this.disabled = true;
+        this.textContent = 'Creating…';
+        API('/api/boards', {
+          method: 'POST',
+          body: { name: name, description: desc }
+        }).then(function (board) {
+          closeModal();
+          loadBoards().then(function () {
+            if (board && board.id) selectBoard(board.id);
+          });
+        }).catch(function () {
+          var btn = document.getElementById('modal-create-board-btn');
+          if (btn) { btn.disabled = false; btn.textContent = 'Create Board'; }
+        });
+      });
+    }
+
+    document.getElementById('btn-new-board').addEventListener('click', showCreateBoardModal);
+    document.getElementById('btn-new-board-empty').addEventListener('click', showCreateBoardModal);
+
+    /* ── Edit board ──────────────────────────────────────────── */
+    document.getElementById('btn-edit-board').addEventListener('click', function () {
+      if (!activeBoard) return;
+      openModal('Edit Board',
+        '<div class="form-group">' +
+          '<label class="form-label">Board Name</label>' +
+          '<input class="form-input" id="modal-edit-name" value="' + escAttr(activeBoard.name) + '">' +
+        '</div>' +
+        '<div class="form-group">' +
+          '<label class="form-label">Description</label>' +
+          '<input class="form-input" id="modal-edit-desc" value="' + escAttr(activeBoard.description || '') + '">' +
+        '</div>',
+        '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary" id="modal-save-board-btn">Save Changes</button>'
+      );
+      document.getElementById('modal-save-board-btn').addEventListener('click', function () {
+        var name = document.getElementById('modal-edit-name').value.trim();
+        var desc = document.getElementById('modal-edit-desc').value.trim();
+        if (!name) return;
+        this.disabled = true;
+        this.textContent = 'Saving…';
+        API('/api/boards/' + encodeURIComponent(activeBoardId), {
+          method: 'PATCH',
+          body: { name: name, description: desc }
+        }).then(function () {
+          closeModal();
+          loadBoardDetail(activeBoardId);
+          loadBoards(true);
+        });
+      });
+    });
+
+    /* ── Delete board ────────────────────────────────────────── */
+    document.getElementById('btn-delete-board').addEventListener('click', function () {
+      if (!activeBoard) return;
+      showConfirm('Delete Board', 'Are you sure you want to delete "' + esc(activeBoard.name) + '"? This cannot be undone.', function () {
+        API('/api/boards/' + encodeURIComponent(activeBoardId), { method: 'DELETE' }).then(function () {
+          closeModal();
+          activeBoard = null;
+          activeBoardId = null;
+          $boardDetail.style.display = 'none';
+          $noBoardState.style.display = 'flex';
+          loadBoards();
+        });
+      });
+    });
+
+    /* ── Add group ───────────────────────────────────────────── */
+    function showAddGroupModal() {
+      if (!activeBoardId) return;
+      openModal('Add Group',
+        '<div class="form-group">' +
+          '<label class="form-label">Group Title</label>' +
+          '<input class="form-input" id="modal-group-title" placeholder="New Group" required autofocus>' +
+        '</div>' +
+        '<div class="form-group">' +
+          '<label class="form-label">Color</label>' +
+          '<input class="form-input" id="modal-group-color" type="color" value="#579bfc" style="height:38px;padding:4px;">' +
+        '</div>',
+        '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary" id="modal-add-group-btn">Add Group</button>'
+      );
+      document.getElementById('modal-add-group-btn').addEventListener('click', function () {
+        var title = document.getElementById('modal-group-title').value.trim() || 'New Group';
+        var color = document.getElementById('modal-group-color').value;
+        this.disabled = true;
+        this.textContent = 'Adding…';
+        API('/api/boards/' + encodeURIComponent(activeBoardId) + '/groups', {
+          method: 'POST',
+          body: { title: title, color: color }
+        }).then(function () {
+          closeModal();
+          loadBoardDetail(activeBoardId);
+          loadBoards(true);
+        });
+      });
+    }
+
+    document.getElementById('btn-add-group').addEventListener('click', showAddGroupModal);
+    document.getElementById('btn-add-group-empty').addEventListener('click', showAddGroupModal);
+
+    /* ── Add item ────────────────────────────────────────────── */
+    function showAddItemModal(groupId) {
+      openModal('Add Item',
+        '<div class="form-group">' +
+          '<label class="form-label">Item Name</label>' +
+          '<input class="form-input" id="modal-item-name" placeholder="New item" required autofocus>' +
+        '</div>',
+        '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary" id="modal-add-item-btn">Add Item</button>'
+      );
+      document.getElementById('modal-add-item-btn').addEventListener('click', function () {
+        var name = document.getElementById('modal-item-name').value.trim();
+        if (!name) return;
+        this.disabled = true;
+        this.textContent = 'Adding…';
+        API('/api/boards/' + encodeURIComponent(activeBoardId) + '/items', {
+          method: 'POST',
+          body: { name: name, group_id: groupId }
+        }).then(function () {
+          closeModal();
+          loadBoardDetail(activeBoardId);
+          loadBoards(true);
+        });
+      });
+    }
+
+    /* ── Confirm dialog ──────────────────────────────────────── */
+    function showConfirm(title, message, onConfirm) {
+      openModal(title,
+        '<p class="confirm-text">' + esc(message) + '</p>',
+        '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-danger" id="modal-confirm-btn">Delete</button>'
+      );
+      document.getElementById('modal-confirm-btn').addEventListener('click', function () {
+        this.disabled = true;
+        this.textContent = 'Deleting…';
+        onConfirm();
+      });
+    }
+
+    /* ── Auto-refresh ────────────────────────────────────────── */
+    function refreshAll() {
+      loadBoards(true);
+      if (activeBoardId) {
+        loadBoardDetail(activeBoardId, true);
+        loadComments(activeBoardId);
+        loadCollabFeed(activeBoardId);
+      }
+      loadNotifications();
+    }
+
+    function scheduleRefresh() {
+      if (refreshTimer) clearInterval(refreshTimer);
+      refreshTimer = setInterval(refreshAll, REFRESH_MS);
+    }
+
+    /* ── Keyboard shortcuts ──────────────────────────────────── */
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        closeModal();
+        $statusDropdown.classList.remove('open');
+      }
+    });
+
+    /* ── Init ────────────────────────────────────────────────── */
+    function init() {
+      loadBoards().then(function () {
+        if (boards.length > 0) selectBoard(boards[0].id);
+      });
+      scheduleRefresh();
+    }
+
+    /* ── Collaboration: Comments ─────────────────────────────── */
+    var $commentsList = document.getElementById('comments-list');
+    var $commentsBody = document.getElementById('comments-body');
+    var $commentsToggle = document.getElementById('comments-toggle');
+    var $commentInput = document.getElementById('comment-input');
+
+    function loadComments(boardId) {
+      if (!boardId) return;
+      API('/api/collaboration/comments/' + encodeURIComponent(boardId)).then(function (data) {
+        var comments = data.comments || data || [];
+        if (!comments.length) {
+          $commentsList.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:0.78rem;">No comments yet.</div>';
+          return;
+        }
+        var html = '';
+        comments.forEach(function (c) {
+          html += '<div class="activity-entry">';
+          html += '<span class="activity-time">' + esc(c.author_name || c.author_id || 'anon') + '</span>';
+          html += '<span class="activity-action">' + esc(c.body || '') + '</span>';
+          html += '</div>';
+        });
+        $commentsList.innerHTML = html;
+      }).catch(function () {
+        $commentsList.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:0.78rem;">Failed to load comments.</div>';
+      });
+    }
+
+    $commentsToggle.addEventListener('click', function () {
+      var isOpen = $commentsBody.classList.toggle('open');
+      $commentsToggle.classList.toggle('expanded', isOpen);
+      $commentsToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    document.getElementById('btn-post-comment').addEventListener('click', function () {
+      var body = $commentInput.value.trim();
+      if (!body || !activeBoardId) return;
+      API('/api/collaboration/comments', {
+        method: 'POST',
+        body: { entity_type: 'board', entity_id: activeBoardId, board_id: activeBoardId, body: body }
+      }).then(function () {
+        $commentInput.value = '';
+        loadComments(activeBoardId);
+      });
+    });
+
+    /* ── Collaboration: Notifications ────────────────────────── */
+    var $notifList = document.getElementById('notifications-list');
+    var $notifBody = document.getElementById('notifications-body');
+    var $notifToggle = document.getElementById('notifications-toggle');
+    var $notifBadge = document.getElementById('notif-badge');
+
+    function loadNotifications() {
+      API('/api/collaboration/notifications/current-user/count').then(function (data) {
+        var count = data.unread || data.count || 0;
+        if (count > 0) {
+          $notifBadge.textContent = count;
+          $notifBadge.style.display = 'inline';
+        } else {
+          $notifBadge.style.display = 'none';
+        }
+      }).catch(function () {});
+
+      API('/api/collaboration/notifications/current-user').then(function (data) {
+        var notifs = data.notifications || data || [];
+        if (!notifs.length) {
+          $notifList.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:0.78rem;">No notifications.</div>';
+          return;
+        }
+        var html = '';
+        notifs.slice(0, 20).forEach(function (n) {
+          html += '<div class="activity-entry">';
+          html += '<span class="activity-time">' + esc(n.type || '') + '</span>';
+          html += '<span class="activity-action">' + esc(n.message || n.body || '') + '</span>';
+          html += '</div>';
+        });
+        $notifList.innerHTML = html;
+      }).catch(function () {
+        $notifList.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:0.78rem;">Failed to load notifications.</div>';
+      });
+    }
+
+    $notifToggle.addEventListener('click', function () {
+      var isOpen = $notifBody.classList.toggle('open');
+      $notifToggle.classList.toggle('expanded', isOpen);
+      $notifToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    /* ── Collaboration: Activity Feed ────────────────────────── */
+    function loadCollabFeed(boardId) {
+      if (!boardId) return;
+      API('/api/collaboration/feed/board/' + encodeURIComponent(boardId)).then(function () {
+        // Feed data loaded for board-level collaboration awareness
+      }).catch(function () {});
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+
+  }());
+  </script>
+</body>
+</html>
