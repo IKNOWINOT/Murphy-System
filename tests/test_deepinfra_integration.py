@@ -12,7 +12,7 @@ responses when no API key is configured, so Tier 2 tests call the real
 ``_call_deepinfra()`` without an API key and verify the actual response shapes.
 
 Run:
-  python -m pytest tests/test_groq_integration.py -v
+  python -m pytest tests/test_deepinfra_integration.py -v
 
 Copyright © 2020-2026 Inoni LLC — Created by Corey Post
 License: BSL 1.1
@@ -38,7 +38,7 @@ if _src_dir not in sys.path:
 
 _DEEPINFRA_API_KEY_SET = bool(os.environ.get("DEEPINFRA_API_KEY"))
 
-skip_without_groq_key = pytest.mark.skipif(
+skip_without_deepinfra_key = pytest.mark.skipif(
     not _DEEPINFRA_API_KEY_SET,
     reason="DEEPINFRA_API_KEY not set – skipping live API test",
 )
@@ -77,7 +77,7 @@ def _clear_managed_env() -> None:
 # ---------------------------------------------------------------------------
 
 
-class TestGroqProviderDetection:
+class TestDeepInfraProviderDetection:
     """Verify DeepInfra provider is selected correctly from env vars."""
 
     def setup_method(self) -> None:
@@ -86,7 +86,7 @@ class TestGroqProviderDetection:
     def teardown_method(self) -> None:
         _restore_env(self._env_snapshot)
 
-    def test_groq_key_selects_groq_provider(self) -> None:
+    def test_deepinfra_key_selects_deepinfra_provider(self) -> None:
         """Setting DEEPINFRA_API_KEY should auto-detect DeepInfra provider."""
         from openai_compatible_provider import OpenAICompatibleProvider, ProviderType
 
@@ -95,7 +95,7 @@ class TestGroqProviderDetection:
         provider = OpenAICompatibleProvider.from_env()
         assert provider.provider_type == ProviderType.DEEPINFRA
 
-    def test_groq_default_model(self) -> None:
+    def test_deepinfra_default_model(self) -> None:
         """DeepInfra provider should default to meta-llama/Meta-Llama-3.1-70B-Instruct."""
         from openai_compatible_provider import OpenAICompatibleProvider
 
@@ -104,7 +104,7 @@ class TestGroqProviderDetection:
         provider = OpenAICompatibleProvider.from_env()
         assert provider.default_model == "meta-llama/Meta-Llama-3.1-70B-Instruct"
 
-    def test_groq_explicit_provider_type(self) -> None:
+    def test_deepinfra_explicit_provider_type(self) -> None:
         """Explicitly setting OPENAI_PROVIDER_TYPE=deepinfra should select DeepInfra."""
         from openai_compatible_provider import OpenAICompatibleProvider, ProviderType
 
@@ -113,7 +113,7 @@ class TestGroqProviderDetection:
         provider = OpenAICompatibleProvider.from_env()
         assert provider.provider_type == ProviderType.DEEPINFRA
 
-    def test_openai_key_takes_priority_over_groq(self) -> None:
+    def test_openai_key_takes_priority_over_deepinfra(self) -> None:
         """OPENAI_API_KEY should take priority when both keys are set."""
         from openai_compatible_provider import OpenAICompatibleProvider, ProviderType
 
@@ -137,8 +137,8 @@ class TestGroqProviderDetection:
 # ---------------------------------------------------------------------------
 
 
-class TestGroqKeyRotation:
-    """Verify GroqKeyRotator deprecated-stub behavior."""
+class TestDeprecatedKeyRotation:
+    """Verify deprecated GroqKeyRotator stub (Groq→DeepInfra migration complete)."""
 
     def test_round_robin_rotation(self) -> None:
         """Deprecated stub: get_next_key() always returns None."""
@@ -208,10 +208,10 @@ class TestGroqKeyRotation:
 # ---------------------------------------------------------------------------
 
 
-class TestGroqDomainRouting:
+class TestDeepInfraDomainRouting:
     """Verify domain-to-provider routing assigns DeepInfra to correct domains."""
 
-    def test_creative_domain_routes_to_groq(self) -> None:
+    def test_creative_domain_routes_to_deepinfra(self) -> None:
         """Creative domain should route to DeepInfra provider."""
         from llm_integration_layer import LLMProvider, DomainType, LLMIntegrationLayer
 
@@ -219,7 +219,7 @@ class TestGroqDomainRouting:
         config = layer.domain_routing.get(DomainType.CREATIVE, {})
         assert config.get("primary_provider") == LLMProvider.DEEPINFRA
 
-    def test_strategic_domain_routes_to_groq(self) -> None:
+    def test_strategic_domain_routes_to_deepinfra(self) -> None:
         """Strategic domain should route to DeepInfra provider."""
         from llm_integration_layer import LLMProvider, DomainType, LLMIntegrationLayer
 
@@ -227,7 +227,7 @@ class TestGroqDomainRouting:
         config = layer.domain_routing.get(DomainType.STRATEGIC, {})
         assert config.get("primary_provider") == LLMProvider.DEEPINFRA
 
-    def test_general_domain_routes_to_groq(self) -> None:
+    def test_general_domain_routes_to_deepinfra(self) -> None:
         """General domain should route to DeepInfra provider."""
         from llm_integration_layer import LLMProvider, DomainType, LLMIntegrationLayer
 
@@ -249,7 +249,7 @@ class TestGroqDomainRouting:
 # ---------------------------------------------------------------------------
 
 
-class TestGroqRealModule:
+class TestDeepInfraRealModule:
     """Integration tests calling real _call_deepinfra() without an API key.
 
     Without a valid DEEPINFRA_API_KEY the method exercises the built-in local
@@ -283,7 +283,7 @@ class TestGroqRealModule:
             context={},
         )
 
-    def test_successful_groq_response(self) -> None:
+    def test_successful_deepinfra_response(self) -> None:
         """Call _call_deepinfra without API key; expect a local fallback response."""
         from llm_integration_layer import LLMIntegrationLayer
 
@@ -295,7 +295,7 @@ class TestGroqRealModule:
         assert isinstance(result.response, str)
         assert len(result.response) > 0
 
-    def test_groq_api_error_falls_back_to_local(self) -> None:
+    def test_deepinfra_api_error_falls_back_to_local(self) -> None:
         """Without an API key the local fallback IS the error-recovery path."""
         from llm_integration_layer import LLMIntegrationLayer
 
@@ -306,7 +306,7 @@ class TestGroqRealModule:
         assert result is not None
         assert result.response  # Non-empty fallback response
 
-    def test_groq_timeout_falls_back_to_local(self) -> None:
+    def test_deepinfra_timeout_falls_back_to_local(self) -> None:
         """Without an API key, no HTTP call is made — the local fallback fires."""
         from llm_integration_layer import LLMIntegrationLayer
 
@@ -317,7 +317,7 @@ class TestGroqRealModule:
         assert result is not None
         assert result.response
 
-    def test_groq_rate_limit_response(self) -> None:
+    def test_deepinfra_rate_limit_response(self) -> None:
         """No API key means no HTTP 429 — local fallback responds cleanly."""
         from llm_integration_layer import LLMIntegrationLayer
 
@@ -328,7 +328,7 @@ class TestGroqRealModule:
         assert result is not None
         assert result.response
 
-    def test_groq_key_pool_rotation_in_layer(self) -> None:
+    def test_deepinfra_key_pool_rotation_in_layer(self) -> None:
         """Integration layer reads DEEPINFRA_API_KEY from environment."""
         from llm_integration_layer import LLMIntegrationLayer
 
@@ -424,7 +424,7 @@ class TestGroqRealModule:
 # ---------------------------------------------------------------------------
 
 
-class TestGroqCircuitBreaker:
+class TestDeepInfraCircuitBreaker:
     """Test circuit breaker behavior with DeepInfra failures."""
 
     def test_circuit_breaker_initial_state_closed(self) -> None:
@@ -459,19 +459,19 @@ class TestGroqCircuitBreaker:
 # ---------------------------------------------------------------------------
 
 
-class TestGroqLiveAPI:
+class TestDeepInfraLiveAPI:
     """Live DeepInfra API tests — skipped unless DEEPINFRA_API_KEY is set."""
 
-    @skip_without_groq_key
-    def test_live_groq_provider_available(self) -> None:
+    @skip_without_deepinfra_key
+    def test_live_deepinfra_provider_available(self) -> None:
         """DeepInfra provider should be available when API key is set."""
         from openai_compatible_provider import OpenAICompatibleProvider
 
         provider = OpenAICompatibleProvider.from_env()
         assert provider.available is True
 
-    @skip_without_groq_key
-    def test_live_groq_chat_completion(self) -> None:
+    @skip_without_deepinfra_key
+    def test_live_deepinfra_chat_completion(self) -> None:
         """Send a simple chat completion to DeepInfra and validate response."""
         from llm_integration_layer import (
             LLMIntegrationLayer, LLMRequest, LLMProvider, DomainType,
@@ -491,8 +491,8 @@ class TestGroqLiveAPI:
         assert result is not None
         assert result.response  # Non-empty response
 
-    @skip_without_groq_key
-    def test_live_groq_response_metadata(self) -> None:
+    @skip_without_deepinfra_key
+    def test_live_deepinfra_response_metadata(self) -> None:
         """Live response should include expected metadata fields."""
         from llm_integration_layer import (
             LLMIntegrationLayer, LLMRequest, LLMProvider, DomainType,
@@ -513,8 +513,8 @@ class TestGroqLiveAPI:
         assert hasattr(result, "response")
         assert hasattr(result, "provider")
 
-    @skip_without_groq_key
-    def test_live_groq_domain_routing_creative(self) -> None:
+    @skip_without_deepinfra_key
+    def test_live_deepinfra_domain_routing_creative(self) -> None:
         """Creative domain request should route to DeepInfra and return response."""
         from llm_integration_layer import (
             LLMIntegrationLayer, LLMRequest, LLMProvider, DomainType,
