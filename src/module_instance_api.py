@@ -226,6 +226,8 @@ def register_module_instance_routes(app: FastAPI) -> None:
             current_count = len(
                 _manager.list_instances(module_type=req.module_type)
             )
+            # Intentional access: the API layer is the public facade for
+            # the manager and its viability checker.
             result = _manager._viability_checker.check_viability(
                 module_type=req.module_type,
                 current_instances=current_count,
@@ -387,13 +389,13 @@ def register_module_instance_routes(app: FastAPI) -> None:
     async def bulk_despawn(req: BulkDespawnRequest) -> JSONResponse:
         """Despawn multiple instances in one call."""
         try:
-            results = _manager.bulk_despawn(
+            bulk_result = _manager.bulk_despawn(
                 instance_ids=req.instance_ids,
                 actor=req.actor,
                 correlation_id=req.correlation_id,
             )
             return JSONResponse(
-                content={"success": True, "results": results},
+                content={"success": True, **bulk_result},
             )
         except Exception:
             logger.exception("bulk_despawn failed")
