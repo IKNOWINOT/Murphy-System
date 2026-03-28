@@ -5,6 +5,30 @@ All notable changes to Murphy System will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — Wave 1: Config Files and Loader (Core Infrastructure)
+
+### Added
+- **Config Loader** (`config/config_loader.py`) — YAML + environment variable
+  configuration loader following twelve-factor app principles. Loads `config/murphy.yaml`
+  and `config/engines.yaml`, overlays env vars (highest priority), and exposes
+  `load_config()`, `get(dotted_key, default)`, `get_all()`, and `invalidate_cache()`.
+  Handles missing files, bad YAML, and absent PyYAML gracefully (safe defaults, no crash).
+- **Config Package** (`config/__init__.py`) — Exposes `load_config`, `get`, `get_all`
+  as the public API for the config package.
+- **murphy.yaml** (`config/murphy.yaml`) — Main runtime defaults covering system env,
+  API server, LLM provider, safety thresholds, database, cache, rate limiting,
+  conversation, logging, tenant settings, and self-learning.
+- **engines.yaml** (`config/engines.yaml`) — Engine defaults covering domain engines,
+  swarm system, learning engine, gate parameters (MFGC-AI), two-phase orchestrator,
+  universal control plane, form executor, and self-healing coordinator.
+- **murphy.yaml.example** / **engines.yaml.example** — Annotated example config files
+  for operator reference.
+- **38 unit tests** (`tests/test_config_loader.py`) — Full coverage of YAML loading,
+  deep merge, env var overlay (legacy and namespaced), type coercion, dotted-key access,
+  shallow-copy semantics, cache/force-reload behaviour, and default YAML key validation.
+- **SOURCE**: `copilot/add-config-files-and-loader` (SHA: 68ee202)
+- **WAVE**: 1 — Core Infrastructure
+
 ## [Unreleased] — Module Instance Manager + HITL/Infrastructure Enhancements
 
 ### Added

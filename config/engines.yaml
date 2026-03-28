@@ -1,0 +1,80 @@
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post
+# License: BSL 1.1
+# Murphy System — Engine Configuration
+# config/engines.yaml
+#
+# Configures individual subsystem engines. Values here are defaults;
+# environment variables prefixed with the relevant section always win.
+#
+# See config/engines.yaml.example for full annotated documentation.
+
+# ── Domain Engines ────────────────────────────────────────────────────────────
+domain_engines:
+  enabled:
+    - sales
+    - marketing
+    - operations
+    - finance
+    - hr
+    - legal
+    - engineering
+    - customer_success
+  default_timeout: 30         # seconds per engine invocation
+  parallel_limit: 4           # max engines running concurrently
+
+# ── Swarm System ──────────────────────────────────────────────────────────────
+swarm:
+  exploration_agents: 3       # number of agents in the exploration swarm
+  control_agents: 2           # number of agents in the control swarm
+  max_iterations: 10
+  convergence_threshold: 0.90 # swarm agreement threshold (0.0–1.0)
+  timeout: 120                # seconds before swarm is force-terminated
+
+# ── Learning Engine ───────────────────────────────────────────────────────────
+learning_engine:
+  pattern_detection_enabled: true
+  outcome_tracking_enabled: true
+  feedback_window_days: 30    # rolling window for pattern analysis
+  min_samples_for_update: 10  # minimum executions before threshold auto-update
+  threshold_update_rate: 0.05 # maximum change per update cycle (0.0–1.0)
+
+# ── Gate Parameters (MFGC-AI) ─────────────────────────────────────────────────
+gates:
+  pre_execution_required: true
+  post_execution_required: true
+  hitl_auto_graduate_threshold: 0.95  # success rate to graduate to autonomous
+  hitl_min_runs: 20                   # minimum runs before graduation eligible
+  gate_timeout: 60                    # seconds before a gate check times out
+
+# ── Two-Phase Orchestrator ────────────────────────────────────────────────────
+orchestrator:
+  phase1_timeout: 300         # Generative Setup phase timeout (seconds)
+  phase2_timeout: 600         # Production Execute phase timeout (seconds)
+  max_parallel_tasks: 10
+  retry_on_failure: true
+  max_retries: 3
+
+# ── Universal Control Plane ───────────────────────────────────────────────────
+control_plane:
+  engine_selection_strategy: confidence  # confidence | round_robin | least_loaded
+  fallback_enabled: true
+  fallback_order:
+    - deepinfra
+    - openai
+    - anthropic
+    - local
+
+# ── Form-Driven Executor ──────────────────────────────────────────────────────
+form_executor:
+  pipeline_stages: 7
+  stage_timeout: 60           # seconds per pipeline stage
+  validation_strict: true
+
+# ── Self-Healing Coordinator ─────────────────────────────────────────────────
+self_healing:
+  enabled: true
+  backoff_base: 2.0           # exponential backoff base (seconds)
+  backoff_max: 120            # maximum backoff ceiling (seconds)
+  circuit_breaker_threshold: 5  # failures before circuit opens
+  circuit_breaker_timeout: 60   # seconds before circuit half-opens
