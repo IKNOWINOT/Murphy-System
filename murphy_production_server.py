@@ -663,13 +663,13 @@ if _mim_available and _register_mim_routes is not None:
     _register_mim_routes(app)
 
     # Wire spawn/despawn events → SSE + WebSocket broadcasts
-    def _on_instance_spawned(data):
+    async def _on_instance_spawned(data):
         _broadcast_sse("module_instance_spawned", data)
-        return _broadcast_ws("module_instance_spawned", data)
+        await _broadcast_ws("module_instance_spawned", data)
 
-    def _on_instance_despawned(data):
+    async def _on_instance_despawned(data):
         _broadcast_sse("module_instance_despawned", data)
-        return _broadcast_ws("module_instance_despawned", data)
+        await _broadcast_ws("module_instance_despawned", data)
 
     if _set_mim_callbacks is not None:
         _set_mim_callbacks(

@@ -197,6 +197,7 @@ class TestConcurrentSpawning:
                 f.result()
 
         trail = mgr.get_audit_trail(limit=500)
-        assert len(trail) >= 40, (
-            f"Expected ≥40 audit entries, got {len(trail)}"
+        # 40 spawns + 20 despawns + 20 config updates = 80 audit entries
+        assert len(trail) >= 60, (
+            f"Expected ≥60 audit entries (40 spawn + 20 despawn + 20 config), got {len(trail)}"
         )
