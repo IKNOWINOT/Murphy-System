@@ -354,8 +354,8 @@ These pages are **correctly static** and do not need API wiring:
 | 🟢 MEDIUM | Dev Module | ✅ | ✅ | ✅ | `dev_module.html` — Sprint 3 |
 | 🟢 MEDIUM | Service Module | ✅ | ✅ | ✅ | `service_module.html` — Sprint 3 |
 | 🟢 MEDIUM | Guest Collab | ✅ | ✅ | ✅ | `guest_portal.html` — Sprint 3 |
-| 🟢 MEDIUM | Collaboration | ✅ | ❌ | ❌ | Embed in boards/workdocs |
-| 🟢 MEDIUM | Founder Update | ✅ | ❌ | ❌ | Embed in management.html |
+| 🟢 MEDIUM | Collaboration | ✅ | ✅ | ✅ | Embedded in boards.html + workdocs.html — Sprint 3 |
+| 🟢 MEDIUM | Founder Update | ✅ | ✅ | ✅ | Embedded in management.html — Sprint 3 |
 | ⚪ N/A | Mobile API | ✅ | N/A | N/A | Mobile-only — no HTML needed |
 
 ---
@@ -454,27 +454,27 @@ Every feature in Murphy follows a consistent pipeline:
 - [x] Create `dev_module.html` — Sprint/bug/release tracker
 - [x] Create `service_module.html` — Ticket/KB/SLA manager
 - [x] Create `guest_portal.html` — Guest collaboration portal
-- [ ] Embed collaboration features in boards/workdocs
-- [ ] Embed founder updates in management.html
+- [x] Embed collaboration features in boards/workdocs
+- [x] Embed founder updates in management.html
 
 ### Sprint 4 (Hardening) — Production Commissioning
 - [ ] MCB automated commissioning for all new pages
 - [ ] Permutation calibration for UI operation sequences
 - [ ] Security pen-test on new endpoints
-- [ ] Full E2E wiring test suite
-- [ ] Documentation as-built update
+- [x] Full E2E wiring test suite — 141 tests
+- [x] Documentation as-built update
 - [ ] Production deployment validation
 
 ---
 
 ## Metrics
 
-| Metric | Current | After Sprint 1 | After Sprint 3 | After Sprint 4 |
-|--------|---------|-----------------|-----------------|-----------------|
-| Pages with API wiring | 24/54 (44%) | 27/57 (47%) | 35/65 (54%) | 38/65 (58%) |
+| Metric | Current | After Sprint 1 | After Sprint 3 | After Sprint 3+ |
+|--------|---------|-----------------|-----------------|------------------|
+| Pages with API wiring | 24/54 (44%) | 27/57 (47%) | 35/65 (54%) | 35/65 (54%) |
 | Backend modules with UI | 1/15 (7%) | 4/15 (27%) | 11/15 (73%) | 13/15 (87%) |
-| Endpoint coverage (UI calls / total) | ~120/700 (17%) | ~170/700 (24%) | ~290/700 (41%) | ~350/700 (50%) |
-| Commissioning tests | 222 | 245 | 131 wiring | 350+ |
+| Endpoint coverage (UI calls / total) | ~120/700 (17%) | ~170/700 (24%) | ~290/700 (41%) | ~320/700 (46%) |
+| Commissioning tests | 222 | 245 | 131 wiring | 141 wiring |
 
 ---
 
