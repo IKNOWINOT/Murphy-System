@@ -13,6 +13,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.readiness_scanner import ReadinessScanner, run_readiness_scan
 
+# Environment keys managed across tests
+_MANAGED_KEYS = (
+    "DEEPINFRA_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
+    "MURPHY_ENV", "MURPHY_TESTS_PASSED",
+    "MURPHY_API_KEYS", "MURPHY_CREDENTIAL_MASTER_KEY",
+    "MURPHY_JWT_SECRET", "POSTGRES_PASSWORD", "MURPHY_SECRET_KEY",
+)
+
 
 # ---------------------------------------------------------------------------
 # Basic scan structure
@@ -91,27 +99,37 @@ class TestReadinessScannerStructure:
 # ---------------------------------------------------------------------------
 
 class TestBlockers:
-    def test_missing_llm_key_creates_blocker(self, monkeypatch):
-        monkeypatch.delenv("DEEPINFRA_API_KEY", raising=False)
-        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    def setup_method(self):
+        self._snapshot = {k: os.environ.get(k) for k in _MANAGED_KEYS}
+
+    def teardown_method(self):
+        for k, v in self._snapshot.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+    def test_missing_llm_key_creates_blocker(self):
+        os.environ.pop("DEEPINFRA_API_KEY", None)
+        os.environ.pop("OPENAI_API_KEY", None)
+        os.environ.pop("ANTHROPIC_API_KEY", None)
 
         scanner = ReadinessScanner()
         report = scanner.scan(base_url=None)
         blocker_names = [b["check"] for b in report["blockers"]]
         assert "llm_api_key" in blocker_names
 
-    def test_has_llm_key_no_blocker(self, monkeypatch):
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_test_key_12345")
+    def test_has_llm_key_no_blocker(self):
+        os.environ["DEEPINFRA_API_KEY"] = "di_test_key_12345"
         scanner = ReadinessScanner()
         report = scanner.scan(base_url=None)
         blocker_names = [b["check"] for b in report["blockers"]]
         assert "llm_api_key" not in blocker_names
 
-    def test_ready_false_when_blockers_present(self, monkeypatch):
-        monkeypatch.delenv("DEEPINFRA_API_KEY", raising=False)
-        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    def test_ready_false_when_blockers_present(self):
+        os.environ.pop("DEEPINFRA_API_KEY", None)
+        os.environ.pop("OPENAI_API_KEY", None)
+        os.environ.pop("ANTHROPIC_API_KEY", None)
 
         scanner = ReadinessScanner()
         report = scanner.scan(base_url=None)
@@ -119,8 +137,8 @@ class TestBlockers:
         if report["blockers"]:
             assert report["ready"] is False
 
-    def test_ready_true_when_no_blockers(self, monkeypatch):
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_test_key_12345")
+    def test_ready_true_when_no_blockers(self):
+        os.environ["DEEPINFRA_API_KEY"] = "di_test_key_12345"
         scanner = ReadinessScanner()
         report = scanner.scan(base_url=None)
         if not report["blockers"]:
@@ -168,6 +186,16 @@ class TestConvenienceFunction:
 class TestDeploymentGateRunner:
     """Tests for the five production-blocking deployment gates."""
 
+    def setup_method(self):
+        self._snapshot = {k: os.environ.get(k) for k in _MANAGED_KEYS}
+
+    def teardown_method(self):
+        for k, v in self._snapshot.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
     def test_runner_has_five_default_gates(self):
         """DeploymentGateRunner has exactly 5 default gates."""
         from readiness_scanner import DeploymentGateRunner
@@ -193,75 +221,75 @@ class TestDeploymentGateRunner:
                     "gates_failed", "blocked_by", "evaluated_at"):
             assert key in status
 
-    def test_security_scan_gate_fails_without_murphy_env(self, monkeypatch):
+    def test_security_scan_gate_fails_without_murphy_env(self):
         """security_scan gate fails when MURPHY_ENV is not set."""
         from readiness_scanner import DeploymentGateRunner
-        monkeypatch.delenv("MURPHY_ENV", raising=False)
+        os.environ.pop("MURPHY_ENV", None)
         runner = DeploymentGateRunner()
         result = runner.run_all()
         sec_gate = next(g for g in result["gates"] if g["gate"] == "security_scan")
         assert sec_gate["passed"] is False
 
-    def test_security_scan_gate_passes_in_development(self, monkeypatch):
+    def test_security_scan_gate_passes_in_development(self):
         """security_scan gate passes in development environment."""
         from readiness_scanner import DeploymentGateRunner
-        monkeypatch.setenv("MURPHY_ENV", "development")
+        os.environ["MURPHY_ENV"] = "development"
         runner = DeploymentGateRunner()
         result = runner.run_all()
         sec_gate = next(g for g in result["gates"] if g["gate"] == "security_scan")
         assert sec_gate["passed"] is True
 
-    def test_test_pass_gate_skipped_in_development(self, monkeypatch):
+    def test_test_pass_gate_skipped_in_development(self):
         """test_pass gate passes (skipped) in development environment."""
         from readiness_scanner import DeploymentGateRunner
-        monkeypatch.setenv("MURPHY_ENV", "development")
+        os.environ["MURPHY_ENV"] = "development"
         runner = DeploymentGateRunner()
         result = runner.run_all()
         tp_gate = next(g for g in result["gates"] if g["gate"] == "test_pass")
         assert tp_gate["passed"] is True
 
-    def test_test_pass_gate_fails_in_production_without_flag(self, monkeypatch):
+    def test_test_pass_gate_fails_in_production_without_flag(self):
         """test_pass gate fails in production when MURPHY_TESTS_PASSED != 1."""
         from readiness_scanner import DeploymentGateRunner
-        monkeypatch.setenv("MURPHY_ENV", "production")
-        monkeypatch.delenv("MURPHY_TESTS_PASSED", raising=False)
+        os.environ["MURPHY_ENV"] = "production"
+        os.environ.pop("MURPHY_TESTS_PASSED", None)
         runner = DeploymentGateRunner()
         result = runner.run_all()
         tp_gate = next(g for g in result["gates"] if g["gate"] == "test_pass")
         assert tp_gate["passed"] is False
 
-    def test_test_pass_gate_passes_in_production_with_flag(self, monkeypatch):
+    def test_test_pass_gate_passes_in_production_with_flag(self):
         """test_pass gate passes in production when MURPHY_TESTS_PASSED=1."""
         from readiness_scanner import DeploymentGateRunner
-        monkeypatch.setenv("MURPHY_ENV", "production")
-        monkeypatch.setenv("MURPHY_TESTS_PASSED", "1")
+        os.environ["MURPHY_ENV"] = "production"
+        os.environ["MURPHY_TESTS_PASSED"] = "1"
         runner = DeploymentGateRunner()
         result = runner.run_all()
         tp_gate = next(g for g in result["gates"] if g["gate"] == "test_pass")
         assert tp_gate["passed"] is True
 
-    def test_secret_availability_gate_skipped_in_development(self, monkeypatch):
+    def test_secret_availability_gate_skipped_in_development(self):
         """secret_availability gate passes (skipped) in development."""
         from readiness_scanner import DeploymentGateRunner
-        monkeypatch.setenv("MURPHY_ENV", "development")
+        os.environ["MURPHY_ENV"] = "development"
         runner = DeploymentGateRunner()
         result = runner.run_all()
         sa_gate = next(g for g in result["gates"] if g["gate"] == "secret_availability")
         assert sa_gate["passed"] is True
 
-    def test_secret_availability_gate_fails_in_production_without_secrets(self, monkeypatch):
+    def test_secret_availability_gate_fails_in_production_without_secrets(self):
         """secret_availability gate fails in production when secrets are missing."""
         from readiness_scanner import DeploymentGateRunner
-        monkeypatch.setenv("MURPHY_ENV", "production")
+        os.environ["MURPHY_ENV"] = "production"
         for k in ("MURPHY_API_KEYS", "MURPHY_CREDENTIAL_MASTER_KEY",
                   "MURPHY_JWT_SECRET", "POSTGRES_PASSWORD", "MURPHY_SECRET_KEY"):
-            monkeypatch.delenv(k, raising=False)
+            os.environ.pop(k, None)
         runner = DeploymentGateRunner()
         result = runner.run_all()
         sa_gate = next(g for g in result["gates"] if g["gate"] == "secret_availability")
         assert sa_gate["passed"] is False
 
-    def test_add_custom_gate(self, monkeypatch):
+    def test_add_custom_gate(self):
         """Custom gate can be added and evaluated."""
         from readiness_scanner import DeploymentGateRunner
         runner = DeploymentGateRunner()
@@ -271,10 +299,10 @@ class TestDeploymentGateRunner:
         assert custom is not None
         assert custom["passed"] is True
 
-    def test_all_gates_pass_in_development_with_server_mocked(self, monkeypatch):
+    def test_all_gates_pass_in_development_with_server_mocked(self):
         """All non-infra gates pass in development env (health skipped via custom)."""
         from readiness_scanner import DeploymentGateRunner, DeploymentGate
-        monkeypatch.setenv("MURPHY_ENV", "development")
+        os.environ["MURPHY_ENV"] = "development"
         runner = DeploymentGateRunner()
         # Override health check gate to always pass (no server running)
         for gate in runner._gates:
