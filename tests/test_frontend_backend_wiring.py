@@ -125,6 +125,10 @@ def _get_html_routes() -> Dict[str, str]:
         "/ui/crm": "crm.html",
         "/ui/portfolio": "portfolio.html",
         "/ui/aionmind": "aionmind.html",
+        "/ui/automations": "automations.html",
+        "/ui/dev-module": "dev_module.html",
+        "/ui/service-module": "service_module.html",
+        "/ui/guest-portal": "guest_portal.html",
     }
 
 
@@ -170,6 +174,10 @@ class TestSidebarNavigation:
         assert "/ui/crm" in sidebar_js, "Sidebar missing /ui/crm link"
         assert "/ui/portfolio" in sidebar_js, "Sidebar missing /ui/portfolio link"
         assert "/ui/aionmind" in sidebar_js, "Sidebar missing /ui/aionmind link"
+        assert "/ui/automations" in sidebar_js, "Sidebar missing /ui/automations link"
+        assert "/ui/dev-module" in sidebar_js, "Sidebar missing /ui/dev-module link"
+        assert "/ui/service-module" in sidebar_js, "Sidebar missing /ui/service-module link"
+        assert "/ui/guest-portal" in sidebar_js, "Sidebar missing /ui/guest-portal link"
 
     def test_sidebar_links_are_registered(self):
         sidebar_js = (PROJECT_ROOT / "static" / "murphy-components.js").read_text()
@@ -199,6 +207,10 @@ class TestAPIWiring:
         ("crm.html", {"/api/crm/contacts"}),
         ("portfolio.html", {"/api/portfolio/bars"}),
         ("aionmind.html", {"/api/aionmind/status"}),
+        ("automations.html", {"/api/automations/rules"}),
+        ("dev_module.html", {"/api/dev/sprints"}),
+        ("service_module.html", {"/api/service/tickets"}),
+        ("guest_portal.html", {"/api/guest/invites"}),
     ]
 
     @pytest.mark.parametrize(
@@ -300,6 +312,26 @@ class TestAppRouteRegistration:
         assert '"/ui/aionmind"' in app_py, "app.py missing /ui/aionmind route"
         assert '"aionmind.html"' in app_py, "app.py missing aionmind.html mapping"
 
+    def test_automations_route_in_app(self):
+        app_py = (PROJECT_ROOT / "src" / "runtime" / "app.py").read_text()
+        assert '"/ui/automations"' in app_py, "app.py missing /ui/automations route"
+        assert '"automations.html"' in app_py, "app.py missing automations.html mapping"
+
+    def test_dev_module_route_in_app(self):
+        app_py = (PROJECT_ROOT / "src" / "runtime" / "app.py").read_text()
+        assert '"/ui/dev-module"' in app_py, "app.py missing /ui/dev-module route"
+        assert '"dev_module.html"' in app_py, "app.py missing dev_module.html mapping"
+
+    def test_service_module_route_in_app(self):
+        app_py = (PROJECT_ROOT / "src" / "runtime" / "app.py").read_text()
+        assert '"/ui/service-module"' in app_py, "app.py missing /ui/service-module route"
+        assert '"service_module.html"' in app_py, "app.py missing service_module.html mapping"
+
+    def test_guest_portal_route_in_app(self):
+        app_py = (PROJECT_ROOT / "src" / "runtime" / "app.py").read_text()
+        assert '"/ui/guest-portal"' in app_py, "app.py missing /ui/guest-portal route"
+        assert '"guest_portal.html"' in app_py, "app.py missing guest_portal.html mapping"
+
 
 class TestSprint2PageIntegration:
     """Verify Sprint 2 pages (dashboards, crm, portfolio, aionmind) are fully wired."""
@@ -353,19 +385,71 @@ class TestSprint2PageIntegration:
         assert "murphy-sidebar" in text
 
 
+class TestSprint3PageIntegration:
+    """Verify Sprint 3 pages (automations, dev_module, service_module, guest_portal) are fully wired."""
+
+    def test_automations_html_exists(self):
+        assert (PROJECT_ROOT / "automations.html").is_file()
+
+    def test_automations_html_has_api_calls(self):
+        calls = _extract_api_calls_from_html(PROJECT_ROOT / "automations.html")
+        assert any("/api/automations" in c for c in calls), f"automations.html missing /api/automations calls: {calls}"
+
+    def test_automations_html_has_murphy_sidebar(self):
+        text = (PROJECT_ROOT / "automations.html").read_text()
+        assert "murphy-sidebar" in text
+
+    def test_automations_html_has_design_system(self):
+        text = (PROJECT_ROOT / "automations.html").read_text()
+        assert "murphy-design-system.css" in text
+
+    def test_dev_module_html_exists(self):
+        assert (PROJECT_ROOT / "dev_module.html").is_file()
+
+    def test_dev_module_html_has_api_calls(self):
+        calls = _extract_api_calls_from_html(PROJECT_ROOT / "dev_module.html")
+        assert any("/api/dev" in c for c in calls), f"dev_module.html missing /api/dev calls: {calls}"
+
+    def test_dev_module_html_has_murphy_sidebar(self):
+        text = (PROJECT_ROOT / "dev_module.html").read_text()
+        assert "murphy-sidebar" in text
+
+    def test_service_module_html_exists(self):
+        assert (PROJECT_ROOT / "service_module.html").is_file()
+
+    def test_service_module_html_has_api_calls(self):
+        calls = _extract_api_calls_from_html(PROJECT_ROOT / "service_module.html")
+        assert any("/api/service" in c for c in calls), f"service_module.html missing /api/service calls: {calls}"
+
+    def test_service_module_html_has_murphy_sidebar(self):
+        text = (PROJECT_ROOT / "service_module.html").read_text()
+        assert "murphy-sidebar" in text
+
+    def test_guest_portal_html_exists(self):
+        assert (PROJECT_ROOT / "guest_portal.html").is_file()
+
+    def test_guest_portal_html_has_api_calls(self):
+        calls = _extract_api_calls_from_html(PROJECT_ROOT / "guest_portal.html")
+        assert any("/api/guest" in c for c in calls), f"guest_portal.html missing /api/guest calls: {calls}"
+
+    def test_guest_portal_html_has_murphy_sidebar(self):
+        text = (PROJECT_ROOT / "guest_portal.html").read_text()
+        assert "murphy-sidebar" in text
+
+
 class TestGapClosureMetrics:
     """Report on the overall wiring state."""
 
     def test_wiring_coverage(self):
-        """At least 31 pages should have API calls (24 original + 3 sprint1 + 4 sprint2)."""
+        """At least 35 pages should have API calls (24 original + 3 sprint1 + 4 sprint2 + 4 sprint3)."""
         pages = _collect_pages()
         pages_with_api = 0
         for route, filepath in pages:
             calls = _extract_api_calls_from_html(filepath)
             if calls:
                 pages_with_api += 1
-        assert pages_with_api >= 31, (
-            f"Expected at least 31 pages with API calls, got {pages_with_api}"
+        assert pages_with_api >= 35, (
+            f"Expected at least 35 pages with API calls, got {pages_with_api}"
         )
 
     def test_no_orphan_sidebar_links(self):

@@ -347,13 +347,13 @@ These pages are **correctly static** and do not need API wiring:
 | 🔴 CRITICAL | Workdocs | ✅ | ❌ | ❌ | Create `workdocs.html` |
 | 🟡 HIGH | Time Tracking | ✅ | ❌ | ❌ | Create `time_tracking.html` |
 | 🟡 HIGH | Dashboards | ✅ | ❌ | ❌ | Create `dashboards.html` |
-| 🟡 HIGH | CRM | ✅ | ❌ | ❌ | Create `crm.html` |
-| 🟡 HIGH | Portfolio/Gantt | ✅ | ❌ | ❌ | Create `portfolio.html` |
-| 🟡 HIGH | AionMind | ✅ | ❌ | ❌ | Create `aionmind.html` |
-| 🟢 MEDIUM | Automations | ✅ | ❌ | ❌ | Create `automations.html` |
-| 🟢 MEDIUM | Dev Module | ✅ | ❌ | ❌ | Create `dev_module.html` |
-| 🟢 MEDIUM | Service Module | ✅ | ❌ | ❌ | Create `service_module.html` |
-| 🟢 MEDIUM | Guest Collab | ✅ | ❌ | ❌ | Create `guest_portal.html` |
+| 🟡 HIGH | CRM | ✅ | ✅ | ✅ | `crm.html` — Sprint 2 |
+| 🟡 HIGH | Portfolio/Gantt | ✅ | ✅ | ✅ | `portfolio.html` — Sprint 2 |
+| 🟡 HIGH | AionMind | ✅ | ✅ | ✅ | `aionmind.html` — Sprint 2 |
+| 🟢 MEDIUM | Automations | ✅ | ✅ | ✅ | `automations.html` — Sprint 3 |
+| 🟢 MEDIUM | Dev Module | ✅ | ✅ | ✅ | `dev_module.html` — Sprint 3 |
+| 🟢 MEDIUM | Service Module | ✅ | ✅ | ✅ | `service_module.html` — Sprint 3 |
+| 🟢 MEDIUM | Guest Collab | ✅ | ✅ | ✅ | `guest_portal.html` — Sprint 3 |
 | 🟢 MEDIUM | Collaboration | ✅ | ❌ | ❌ | Embed in boards/workdocs |
 | 🟢 MEDIUM | Founder Update | ✅ | ❌ | ❌ | Embed in management.html |
 | ⚪ N/A | Mobile API | ✅ | N/A | N/A | Mobile-only — no HTML needed |
@@ -443,17 +443,17 @@ Every feature in Murphy follows a consistent pipeline:
 - [ ] Register all three in `_html_routes` and sidebar navigation
 - [ ] Add wiring commissioning test
 
-### Sprint 2 (Next) — High-Priority Pages
-- [ ] Create `dashboards.html` — Dashboard builder
-- [ ] Create `crm.html` — CRM pipeline view
-- [ ] Create `portfolio.html` — Gantt/portfolio view
-- [ ] Create `aionmind.html` — AI orchestration console
+### Sprint 2 (Next) — High-Priority Pages ✅ COMPLETE
+- [x] Create `dashboards.html` — Dashboard builder
+- [x] Create `crm.html` — CRM pipeline view
+- [x] Create `portfolio.html` — Gantt/portfolio view
+- [x] Create `aionmind.html` — AI orchestration console
 
-### Sprint 3 (Following) — Medium-Priority Pages
-- [ ] Create `automations.html` — Automation rule builder
-- [ ] Create `dev_module.html` — Sprint/bug/release tracker
-- [ ] Create `service_module.html` — Ticket/KB/SLA manager
-- [ ] Create `guest_portal.html` — Guest collaboration portal
+### Sprint 3 (Following) — Medium-Priority Pages ✅ COMPLETE
+- [x] Create `automations.html` — Automation rule builder
+- [x] Create `dev_module.html` — Sprint/bug/release tracker
+- [x] Create `service_module.html` — Ticket/KB/SLA manager
+- [x] Create `guest_portal.html` — Guest collaboration portal
 - [ ] Embed collaboration features in boards/workdocs
 - [ ] Embed founder updates in management.html
 
@@ -469,12 +469,12 @@ Every feature in Murphy follows a consistent pipeline:
 
 ## Metrics
 
-| Metric | Current | After Sprint 1 | After Sprint 4 |
-|--------|---------|-----------------|-----------------|
-| Pages with API wiring | 24/54 (44%) | 27/57 (47%) | 38/65 (58%) |
-| Backend modules with UI | 1/15 (7%) | 4/15 (27%) | 13/15 (87%) |
-| Endpoint coverage (UI calls / total) | ~120/700 (17%) | ~170/700 (24%) | ~350/700 (50%) |
-| Commissioning tests | 222 | 245 | 350+ |
+| Metric | Current | After Sprint 1 | After Sprint 3 | After Sprint 4 |
+|--------|---------|-----------------|-----------------|-----------------|
+| Pages with API wiring | 24/54 (44%) | 27/57 (47%) | 35/65 (54%) | 38/65 (58%) |
+| Backend modules with UI | 1/15 (7%) | 4/15 (27%) | 11/15 (73%) | 13/15 (87%) |
+| Endpoint coverage (UI calls / total) | ~120/700 (17%) | ~170/700 (24%) | ~290/700 (41%) | ~350/700 (50%) |
+| Commissioning tests | 222 | 245 | 131 wiring | 350+ |
 
 ---
 

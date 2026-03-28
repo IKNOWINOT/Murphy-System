@@ -9934,6 +9934,10 @@ def create_app() -> FastAPI:
             "/ui/crm": "crm.html",
             "/ui/portfolio": "portfolio.html",
             "/ui/aionmind": "aionmind.html",
+            "/ui/automations": "automations.html",
+            "/ui/dev-module": "dev_module.html",
+            "/ui/service-module": "service_module.html",
+            "/ui/guest-portal": "guest_portal.html",
         }
 
         # ── Route classification: public vs auth-required ──────────
