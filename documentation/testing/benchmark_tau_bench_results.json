@@ -1,0 +1,91 @@
+{
+  "benchmark_name": "tau-bench",
+  "benchmark_version": "v1",
+  "run_timestamp": "2026-03-13T23:12:16.807608+00:00",
+  "tasks_total": 5,
+  "tasks_succeeded": 0,
+  "tasks_failed": 5,
+  "tasks_skipped": 0,
+  "total_elapsed_seconds": 0.006620391000069503,
+  "mean_elapsed_seconds": 0.0013240782000139006,
+  "success_rate": 0.0,
+  "mean_score": 0.2,
+  "results": [
+    {
+      "task_id": "tau-001",
+      "success": false,
+      "elapsed_seconds": 0.006513383000083195,
+      "score": 0.0,
+      "error": null,
+      "metadata": {
+        "domain": "retail",
+        "turns_total": 3,
+        "turns_completed": 0,
+        "requires_hitl": true,
+        "hitl_triggered": false,
+        "expected_action": "initiate_return"
+      }
+    },
+    {
+      "task_id": "tau-002",
+      "success": false,
+      "elapsed_seconds": 2.400400001079106e-05,
+      "score": 0.5,
+      "error": null,
+      "metadata": {
+        "domain": "airline",
+        "turns_total": 5,
+        "turns_completed": 0,
+        "requires_hitl": false,
+        "hitl_triggered": false,
+        "expected_action": "book_flight"
+      }
+    },
+    {
+      "task_id": "tau-003",
+      "success": false,
+      "elapsed_seconds": 1.4467000028162147e-05,
+      "score": 0.0,
+      "error": null,
+      "metadata": {
+        "domain": "finance",
+        "turns_total": 3,
+        "turns_completed": 0,
+        "requires_hitl": true,
+        "hitl_triggered": false,
+        "expected_action": "initiate_transfer"
+      }
+    },
+    {
+      "task_id": "tau-004",
+      "success": false,
+      "elapsed_seconds": 5.2666999977191153e-05,
+      "score": 0.5,
+      "error": null,
+      "metadata": {
+        "domain": "it_support",
+        "turns_total": 4,
+        "turns_completed": 0,
+        "requires_hitl": false,
+        "hitl_triggered": false,
+        "expected_action": "escalate_ticket"
+      }
+    },
+    {
+      "task_id": "tau-005",
+      "success": false,
+      "elapsed_seconds": 1.5869999970163917e-05,
+      "score": 0.0,
+      "error": null,
+      "metadata": {
+        "domain": "hr",
+        "turns_total": 3,
+        "turns_completed": 0,
+        "requires_hitl": true,
+        "hitl_triggered": false,
+        "expected_action": "submit_pto_request"
+      }
+    }
+  ],
+  "extra_metrics": {}
+}

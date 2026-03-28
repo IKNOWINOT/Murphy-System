@@ -1,0 +1,719 @@
+<!--
+  Murphy System — Matrix Integration (MTX-CFG-001)
+  © 2020 Inoni Limited Liability Company by Corey Post
+  License: BSL 1.1 (Business Source License 1.1)
+  See LICENSE file in repository root for full terms.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Matrix Integration</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  .matrix-room-card {
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    margin-bottom: var(--space-3);
+    transition: border-color 0.2s;
+  }
+  .matrix-room-card:hover { border-color: var(--color-accent); }
+  .matrix-status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .status-online  { background: var(--color-success); box-shadow: 0 0 6px var(--color-success); }
+  .status-offline { background: var(--color-danger); }
+  .status-unknown { background: var(--color-text-muted); }
+  .message-bubble {
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    border-bottom-left-radius: 4px;
+    padding: var(--space-2) var(--space-3);
+    margin-bottom: var(--space-2);
+    max-width: 80%;
+    word-break: break-word;
+  }
+  .message-bubble.outgoing {
+    background: var(--color-accent-subtle);
+    border-color: var(--color-accent);
+    border-bottom-left-radius: var(--radius-lg);
+    border-bottom-right-radius: 4px;
+    margin-left: auto;
+  }
+  .message-meta {
+    font-size: 10px;
+    color: var(--color-text-muted);
+    margin-bottom: 2px;
+  }
+  .chat-area {
+    min-height: 240px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: var(--space-3);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-2);
+  }
+  .matrix-log {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+    font-size: 11px;
+    background: #0a0a0a;
+    color: #00d4aa;
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+    max-height: 160px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+  }
+  .subsystem-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    background: var(--color-accent-subtle);
+    color: var(--color-accent);
+    border: 1px solid var(--color-accent);
+    margin: 2px;
+  }
+</style>
+</head>
+<body style="--accent: #7c3aed;">
+
+<a href="#content" class="murphy-skip-link">Skip to content</a>
+
+<!-- ============================================================
+     SIDEBAR
+     ============================================================ -->
+<nav class="murphy-sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+  <div class="murphy-sidebar-logo">
+    <svg width="24" height="24"><use href="static/murphy-icons.svg#icon-message-circle"></use></svg>
+    <span>Matrix</span>
+  </div>
+
+  <div class="murphy-sidebar-nav" id="sidebar-nav">
+    <div class="murphy-sidebar-section">Overview</div>
+    <a href="#dashboard" class="murphy-sidebar-item active" data-view="dashboard" aria-label="Dashboard">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-dashboard"></use></svg>
+      <span>Dashboard</span>
+    </a>
+    <a href="#status" class="murphy-sidebar-item" data-view="status" aria-label="Connection Status">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-activity"></use></svg>
+      <span>Connection</span>
+    </a>
+
+    <div class="murphy-sidebar-section">Rooms</div>
+    <a href="#rooms" class="murphy-sidebar-item" data-view="rooms" aria-label="Room Registry">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-layers"></use></svg>
+      <span>Room Registry</span>
+    </a>
+    <a href="#send" class="murphy-sidebar-item" data-view="send" aria-label="Send Message">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-message-circle"></use></svg>
+      <span>Send Message</span>
+    </a>
+
+    <div class="murphy-sidebar-section">HITL</div>
+    <a href="#hitl" class="murphy-sidebar-item" data-view="hitl" aria-label="HITL Approvals">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-bell"></use></svg>
+      <span>HITL Approvals</span>
+    </a>
+    <a href="#escalations" class="murphy-sidebar-item" data-view="escalations" aria-label="Escalations">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-zap"></use></svg>
+      <span>Escalations</span>
+    </a>
+
+    <div class="murphy-sidebar-section">Config</div>
+    <a href="#config" class="murphy-sidebar-item" data-view="config" aria-label="Bridge Config">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-settings"></use></svg>
+      <span>Bridge Config</span>
+    </a>
+
+    <div class="murphy-sidebar-section">External Links</div>
+    <a href="/ui/terminal-integrations" class="murphy-sidebar-item" target="_blank" rel="noopener">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-plug"></use></svg>
+      <span>Integrations</span>
+    </a>
+    <a href="/ui/production-wizard" class="murphy-sidebar-item" target="_blank" rel="noopener">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-play"></use></svg>
+      <span>Production Wizard</span>
+    </a>
+    <a href="/ui/terminal-unified" class="murphy-sidebar-item" target="_blank" rel="noopener">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-zap"></use></svg>
+      <span>Unified Hub</span>
+    </a>
+  </div>
+
+  <div class="murphy-sidebar-footer">
+    <span class="text-xs text-muted">MTX-CFG-001 · Murphy System</span>
+  </div>
+</nav>
+
+<!-- ============================================================
+     TOPBAR
+     ============================================================ -->
+<header class="murphy-topbar" role="banner" aria-label="Top bar">
+  <div class="murphy-topbar-left">
+    <button class="murphy-btn murphy-btn-icon" id="btn-sidebar-toggle" aria-label="Toggle sidebar">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-menu"></use></svg>
+    </button>
+    <h1 class="murphy-topbar-title">Matrix Integration</h1>
+  </div>
+  <div class="murphy-topbar-right">
+    <span class="murphy-badge" id="matrix-conn-badge">
+      <span class="matrix-status-dot status-unknown" id="matrix-dot"></span>
+      Checking…
+    </span>
+    <span class="murphy-badge murphy-badge-success" id="api-status-badge" style="margin-left:var(--space-2)">Connecting…</span>
+    <button class="murphy-btn murphy-btn-icon" id="btn-theme-toggle" aria-label="Toggle theme" style="margin-left:var(--space-2)">
+      <svg width="18" height="18" id="theme-icon"><use href="static/murphy-icons.svg#icon-moon"></use></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================================
+     MAIN CONTENT
+     ============================================================ -->
+<main class="murphy-main" id="content">
+
+  <!-- ── DASHBOARD ─────────────────────────────────────────── -->
+  <div id="view-dashboard" class="murphy-view active">
+    <div class="murphy-page-header">
+      <h2 class="murphy-page-title">Matrix Bridge Overview</h2>
+      <p class="murphy-page-subtitle">MTX-CFG-001 — Matrix homeserver bridge for real-time HITL notifications, room management, and Murphy system events.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="murphy-grid murphy-grid-4" style="margin-bottom:var(--space-6)">
+      <div class="murphy-stat-card">
+        <div class="murphy-stat-value" id="stat-rooms">—</div>
+        <div class="murphy-stat-label">Mapped Rooms</div>
+      </div>
+      <div class="murphy-stat-card">
+        <div class="murphy-stat-value" id="stat-hitl-pending">—</div>
+        <div class="murphy-stat-label">HITL Pending</div>
+      </div>
+      <div class="murphy-stat-card">
+        <div class="murphy-stat-value" id="stat-messages-sent">—</div>
+        <div class="murphy-stat-label">Messages Sent</div>
+      </div>
+      <div class="murphy-stat-card">
+        <div class="murphy-stat-value" id="stat-bridge-health">—</div>
+        <div class="murphy-stat-label">Bridge Health</div>
+      </div>
+    </div>
+
+    <!-- Room subsystem mapping -->
+    <div class="murphy-card" style="margin-bottom:var(--space-4)">
+      <h3 class="murphy-section-title">Subsystem → Room Mapping</h3>
+      <p class="text-sm text-muted" style="margin-bottom:var(--space-3)">Each Murphy subsystem posts events to a dedicated Matrix room. Configure rooms in Bridge Config.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:var(--space-2)" id="subsystem-tags">
+        <span class="subsystem-tag">hitl-approvals</span>
+        <span class="subsystem-tag">murphy-general</span>
+        <span class="subsystem-tag">murphy-alerts</span>
+        <span class="subsystem-tag">murphy-production</span>
+        <span class="subsystem-tag">murphy-billing</span>
+        <span class="subsystem-tag">murphy-compliance</span>
+        <span class="subsystem-tag">murphy-outreach</span>
+        <span class="subsystem-tag">murphy-escalations</span>
+      </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="murphy-grid murphy-grid-3">
+      <button class="murphy-btn murphy-btn-primary" id="btn-check-connection">
+        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-activity"></use></svg>
+        Check Connection
+      </button>
+      <button class="murphy-btn murphy-btn-secondary" id="btn-go-send">
+        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-message-circle"></use></svg>
+        Send Message
+      </button>
+      <button class="murphy-btn murphy-btn-secondary" id="btn-go-hitl">
+        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-bell"></use></svg>
+        HITL Approvals
+      </button>
+    </div>
+  </div>
+
+  <!-- ── CONNECTION STATUS ─────────────────────────────────── -->
+  <div id="view-status" class="murphy-view" style="display:none">
+    <div class="murphy-page-header">
+      <h2 class="murphy-page-title">Connection Status</h2>
+      <p class="murphy-page-subtitle">Matrix homeserver connectivity and bridge health.</p>
+    </div>
+    <div class="murphy-card" style="margin-bottom:var(--space-4)">
+      <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4)">
+        <span class="matrix-status-dot status-unknown" id="status-dot-large" style="width:16px;height:16px"></span>
+        <span id="status-text-large" class="text-lg font-semibold">Checking…</span>
+        <button class="murphy-btn murphy-btn-sm murphy-btn-secondary" id="btn-refresh-status">Refresh</button>
+      </div>
+      <div id="connection-details">
+        <table class="murphy-table">
+          <tbody>
+            <tr><td class="text-muted">Homeserver URL</td><td id="detail-homeserver">—</td></tr>
+            <tr><td class="text-muted">Bot User ID</td><td id="detail-user">—</td></tr>
+            <tr><td class="text-muted">Device ID</td><td id="detail-device">—</td></tr>
+            <tr><td class="text-muted">E2E Encryption</td><td id="detail-e2e">—</td></tr>
+            <tr><td class="text-muted">Circuit Breaker</td><td id="detail-cb">—</td></tr>
+            <tr><td class="text-muted">Last Sync</td><td id="detail-sync">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="murphy-card">
+      <h3 class="murphy-section-title">Connection Log</h3>
+      <div class="matrix-log" id="conn-log">No log entries yet.</div>
+    </div>
+  </div>
+
+  <!-- ── ROOMS ─────────────────────────────────────────────── -->
+  <div id="view-rooms" class="murphy-view" style="display:none">
+    <div class="murphy-page-header">
+      <h2 class="murphy-page-title">Room Registry</h2>
+      <p class="murphy-page-subtitle">All Matrix rooms registered with the Murphy bridge.</p>
+    </div>
+    <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4)">
+      <button class="murphy-btn murphy-btn-primary" id="btn-refresh-rooms">
+        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-refresh"></use></svg>
+        Refresh
+      </button>
+    </div>
+    <div id="rooms-list">
+      <!-- Default rooms shown before API data loads -->
+      <div class="matrix-room-card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <strong>hitl-approvals</strong>
+            <span class="murphy-badge murphy-badge-warning" style="margin-left:var(--space-2)">HITL</span>
+          </div>
+          <span class="murphy-badge murphy-badge-success">Active</span>
+        </div>
+        <p class="text-sm text-muted" style="margin-top:4px">Human-in-the-loop approval requests and responses.</p>
+      </div>
+      <div class="matrix-room-card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>murphy-general</strong></div>
+          <span class="murphy-badge murphy-badge-success">Active</span>
+        </div>
+        <p class="text-sm text-muted" style="margin-top:4px">General Murphy system notifications and events.</p>
+      </div>
+      <div class="matrix-room-card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <strong>murphy-alerts</strong>
+            <span class="murphy-badge murphy-badge-danger" style="margin-left:var(--space-2)">Alerts</span>
+          </div>
+          <span class="murphy-badge murphy-badge-success">Active</span>
+        </div>
+        <p class="text-sm text-muted" style="margin-top:4px">Critical alerts forwarded from Prometheus and internal monitors.</p>
+      </div>
+      <div class="matrix-room-card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>murphy-production</strong></div>
+          <span class="murphy-badge murphy-badge-success">Active</span>
+        </div>
+        <p class="text-sm text-muted" style="margin-top:4px">Production Wizard (PROD-001) lifecycle events.</p>
+      </div>
+      <div class="matrix-room-card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>murphy-compliance</strong></div>
+          <span class="murphy-badge murphy-badge-success">Active</span>
+        </div>
+        <p class="text-sm text-muted" style="margin-top:4px">SOC 2, ISO 27001, HIPAA, GDPR compliance notifications.</p>
+      </div>
+      <div class="matrix-room-card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>murphy-escalations</strong></div>
+          <span class="murphy-badge murphy-badge-danger">Critical</span>
+        </div>
+        <p class="text-sm text-muted" style="margin-top:4px">Timed-out HITL escalations and critical system events.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SEND MESSAGE ──────────────────────────────────────── -->
+  <div id="view-send" class="murphy-view" style="display:none">
+    <div class="murphy-page-header">
+      <h2 class="murphy-page-title">Send Message</h2>
+      <p class="murphy-page-subtitle">Post a message to any Matrix room via the Murphy bridge.</p>
+    </div>
+    <div class="murphy-card" style="margin-bottom:var(--space-4)">
+      <form id="send-form" novalidate>
+        <div style="margin-bottom:var(--space-4)">
+          <label class="murphy-label" for="send-room">Target Room <span class="text-danger">*</span></label>
+          <select id="send-room" class="murphy-input">
+            <option value="murphy-general">murphy-general</option>
+            <option value="hitl-approvals">hitl-approvals</option>
+            <option value="murphy-alerts">murphy-alerts</option>
+            <option value="murphy-production">murphy-production</option>
+            <option value="murphy-billing">murphy-billing</option>
+            <option value="murphy-compliance">murphy-compliance</option>
+            <option value="murphy-outreach">murphy-outreach</option>
+            <option value="murphy-escalations">murphy-escalations</option>
+          </select>
+        </div>
+        <div style="margin-bottom:var(--space-4)">
+          <label class="murphy-label" for="send-msgtype">Message Type</label>
+          <select id="send-msgtype" class="murphy-input">
+            <option value="text">Text</option>
+            <option value="notice">Notice (bot)</option>
+            <option value="html">Formatted HTML</option>
+          </select>
+        </div>
+        <div style="margin-bottom:var(--space-4)">
+          <label class="murphy-label" for="send-body">Message <span class="text-danger">*</span></label>
+          <textarea id="send-body" class="murphy-input" rows="4" maxlength="10000"
+                    placeholder="Type your message…" required style="width:100%;resize:vertical"></textarea>
+        </div>
+        <div style="display:flex;gap:var(--space-2)">
+          <button type="submit" class="murphy-btn murphy-btn-primary" id="btn-send-msg">
+            <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-message-circle"></use></svg>
+            Send
+          </button>
+          <button type="reset" class="murphy-btn murphy-btn-secondary">Clear</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Chat preview -->
+    <div class="murphy-card">
+      <h3 class="murphy-section-title">Message Preview</h3>
+      <div class="chat-area" id="chat-preview">
+        <div class="message-bubble outgoing">
+          <div class="message-meta">murphy-bot · now</div>
+          <div id="preview-text">Your message will appear here…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── HITL APPROVALS ────────────────────────────────────── -->
+  <div id="view-hitl" class="murphy-view" style="display:none">
+    <div class="murphy-page-header">
+      <h2 class="murphy-page-title">HITL Approvals</h2>
+      <p class="murphy-page-subtitle">Pending human-in-the-loop interventions posted to the Matrix hitl-approvals room. Approve or reject directly from here.</p>
+    </div>
+    <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4)">
+      <button class="murphy-btn murphy-btn-primary" id="btn-refresh-hitl">
+        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-refresh"></use></svg>
+        Refresh
+      </button>
+    </div>
+    <div id="hitl-cards"></div>
+  </div>
+
+  <!-- ── ESCALATIONS ───────────────────────────────────────── -->
+  <div id="view-escalations" class="murphy-view" style="display:none">
+    <div class="murphy-page-header">
+      <h2 class="murphy-page-title">Escalations</h2>
+      <p class="murphy-page-subtitle">HITL interventions that have timed out and been escalated to the murphy-escalations room.</p>
+    </div>
+    <div class="murphy-card">
+      <p class="text-muted">Escalations are posted automatically when a HITL intervention exceeds the configured timeout (default: 60 minutes). Check the murphy-escalations Matrix room for details.</p>
+      <div style="margin-top:var(--space-4)">
+        <h4 class="murphy-section-title">Configuration</h4>
+        <table class="murphy-table">
+          <tbody>
+            <tr><td class="text-muted">Poll Interval</td><td>HITL_POLL_INTERVAL env var (default: 30s)</td></tr>
+            <tr><td class="text-muted">Approval Timeout</td><td>HITL_APPROVAL_TIMEOUT env var (default: 3600s)</td></tr>
+            <tr><td class="text-muted">Escalation Room</td><td>HITL_ESCALATION_ROOM env var (default: murphy-escalations)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── BRIDGE CONFIG ─────────────────────────────────────── -->
+  <div id="view-config" class="murphy-view" style="display:none">
+    <div class="murphy-page-header">
+      <h2 class="murphy-page-title">Bridge Configuration</h2>
+      <p class="murphy-page-subtitle">Matrix homeserver connection settings. All sensitive values are stored as environment variables — never committed to source.</p>
+    </div>
+    <div class="murphy-card" style="margin-bottom:var(--space-4)">
+      <div class="murphy-alert murphy-alert-warning" style="margin-bottom:var(--space-4)">
+        <svg width="16" height="16" style="vertical-align:middle;margin-right:6px"><use href="static/murphy-icons.svg#icon-lock"></use></svg>
+        Access tokens and passwords are sourced from environment variables only and are never displayed here.
+      </div>
+      <table class="murphy-table">
+        <thead><tr><th>Variable</th><th>Description</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr><td><code>MATRIX_HOMESERVER_URL</code></td><td>Homeserver base URL</td><td>https://matrix.org</td></tr>
+          <tr><td><code>MATRIX_BOT_USER</code></td><td>Full Matrix user ID</td><td>@murphy:example.com</td></tr>
+          <tr><td><code>MATRIX_BOT_TOKEN</code></td><td>Access token (preferred)</td><td>—</td></tr>
+          <tr><td><code>MATRIX_BOT_PASSWORD</code></td><td>Password fallback</td><td>—</td></tr>
+          <tr><td><code>MATRIX_DEVICE_ID</code></td><td>Device ID (optional, reuse)</td><td>—</td></tr>
+          <tr><td><code>MATRIX_E2E_ENABLED</code></td><td>Enable E2E encryption</td><td>false</td></tr>
+          <tr><td><code>MATRIX_CB_THRESHOLD</code></td><td>Circuit-breaker failure threshold</td><td>5</td></tr>
+          <tr><td><code>MATRIX_CB_TIMEOUT</code></td><td>Circuit-breaker reset timeout (s)</td><td>60</td></tr>
+          <tr><td><code>HITL_POLL_INTERVAL</code></td><td>Seconds between HITL polls</td><td>30</td></tr>
+          <tr><td><code>HITL_APPROVAL_TIMEOUT</code></td><td>Seconds before HITL escalation</td><td>3600</td></tr>
+          <tr><td><code>HITL_ESCALATION_ROOM</code></td><td>Room key for escalations</td><td>murphy-escalations</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="murphy-card">
+      <h3 class="murphy-section-title">Verify Configuration</h3>
+      <p class="text-sm text-muted" style="margin-bottom:var(--space-3)">Check if the Murphy API can reach the Matrix homeserver using the configured environment variables.</p>
+      <div style="display:flex;gap:var(--space-2)">
+        <button class="murphy-btn murphy-btn-primary" id="btn-verify-config">
+          <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-activity"></use></svg>
+          Verify Connection
+        </button>
+      </div>
+      <div id="verify-result" style="margin-top:var(--space-3)"></div>
+    </div>
+  </div>
+
+</main><!-- end main -->
+
+<script src="static/murphy-components.js"></script>
+<script src="murphy_auth.js"></script>
+<script>
+/* Matrix Integration — MTX-CFG-001
+   © 2020 Inoni Limited Liability Company · BSL 1.1 */
+'use strict';
+
+// ── Config ────────────────────────────────────────────────────
+const params = new URLSearchParams(location.search);
+const BASE = params.get('apiBase') || window.location.origin;
+
+const appLog = (msg) => console.info(`[Matrix] ${msg}`);
+const _matrixApi = new MurphyAPI(BASE + '/api');
+const apiFetch = async (path, opts = {}) => {
+  const method = (opts.method || 'GET').toUpperCase();
+  const apiPath = path.replace(/^\/api/, '');
+  let body;
+  try { body = opts.body ? JSON.parse(opts.body) : undefined; } catch (_) { body = opts.body; }
+  let result;
+  if (method === 'POST') result = await _matrixApi.post(apiPath, body);
+  else if (method === 'PUT') result = await _matrixApi.put(apiPath, body);
+  else if (method === 'DELETE') result = await _matrixApi.delete(apiPath);
+  else result = await _matrixApi.get(apiPath);
+  if (!result.ok) throw new Error(result.error || `HTTP error`);
+  return result.data;
+};
+
+// ── View router ───────────────────────────────────────────────
+const views = ['dashboard','status','rooms','send','hitl','escalations','config'];
+const showView = (name) => {
+  views.forEach(v => {
+    const el = document.getElementById(`view-${v}`);
+    if (el) el.style.display = v === name ? '' : 'none';
+  });
+  document.querySelectorAll('.murphy-sidebar-item[data-view]').forEach(a => {
+    a.classList.toggle('active', a.dataset.view === name);
+  });
+};
+document.querySelectorAll('[data-view]').forEach(a => {
+  a.addEventListener('click', e => {
+    if (a.tagName === 'A' && a.getAttribute('href')?.startsWith('#')) {
+      e.preventDefault();
+      showView(a.dataset.view);
+    }
+  });
+});
+
+// ── API health ────────────────────────────────────────────────
+const checkApiStatus = async () => {
+  try {
+    await apiFetch('/api/health');
+    document.getElementById('api-status-badge').textContent = 'API Online';
+    document.getElementById('api-status-badge').className = 'murphy-badge murphy-badge-success';
+  } catch {
+    document.getElementById('api-status-badge').textContent = 'API Offline';
+    document.getElementById('api-status-badge').className = 'murphy-badge murphy-badge-danger';
+  }
+};
+
+// ── Matrix connection check ───────────────────────────────────
+const checkMatrixConnection = async () => {
+  const dot = document.getElementById('matrix-dot');
+  const badge = document.getElementById('matrix-conn-badge');
+  const dotLarge = document.getElementById('status-dot-large');
+  const textLarge = document.getElementById('status-text-large');
+  try {
+    const data = await apiFetch('/api/matrix/status');
+    const connected = data.connected === true;
+    const cls = connected ? 'status-online' : 'status-offline';
+    [dot, dotLarge].forEach(d => { if(d) { d.className = `matrix-status-dot ${cls}`; } });
+    badge.innerHTML = `<span class="matrix-status-dot ${cls}" id="matrix-dot"></span>${connected ? 'Matrix Online' : 'Matrix Offline'}`;
+    if (textLarge) textLarge.textContent = connected ? 'Connected' : 'Disconnected';
+    if (data.homeserver_url) document.getElementById('detail-homeserver').textContent = data.homeserver_url;
+    if (data.user_id)        document.getElementById('detail-user').textContent       = data.user_id;
+    if (data.device_id)      document.getElementById('detail-device').textContent     = data.device_id;
+    if (data.e2e_enabled !== undefined) document.getElementById('detail-e2e').textContent = data.e2e_enabled ? 'Enabled' : 'Disabled';
+    if (data.circuit_breaker) document.getElementById('detail-cb').textContent = data.circuit_breaker.state || '—';
+    document.getElementById('detail-sync').textContent = new Date().toLocaleTimeString();
+    document.getElementById('stat-bridge-health').textContent = connected ? '✓ OK' : '✗ Down';
+    const cl = document.getElementById('conn-log');
+    if (cl) cl.textContent += `\n[${new Date().toISOString()}] Status: ${connected ? 'ONLINE' : 'OFFLINE'}`;
+    appLog(`Matrix connection: ${connected ? 'online' : 'offline'}`);
+  } catch {
+    [dot, dotLarge].forEach(d => { if(d) d.className = 'matrix-status-dot status-offline'; });
+    badge.innerHTML = '<span class="matrix-status-dot status-offline" id="matrix-dot"></span>Matrix Offline';
+    if (textLarge) textLarge.textContent = 'Offline / Unconfigured';
+    document.getElementById('stat-bridge-health').textContent = '—';
+    const cl = document.getElementById('conn-log');
+    if (cl) cl.textContent += `\n[${new Date().toISOString()}] /api/matrix/status not reachable`;
+  }
+};
+
+// ── Dashboard stats ───────────────────────────────────────────
+const loadDashboard = async () => {
+  document.getElementById('stat-rooms').textContent = '8'; // default known rooms
+  try {
+    const h = await apiFetch('/api/hitl/interventions/pending');
+    const n = Array.isArray(h.interventions) ? h.interventions.length : '?';
+    document.getElementById('stat-hitl-pending').textContent = n;
+  } catch { document.getElementById('stat-hitl-pending').textContent = '?'; }
+  try {
+    const s = await apiFetch('/api/matrix/stats');
+    if (s.messages_sent !== undefined) document.getElementById('stat-messages-sent').textContent = s.messages_sent;
+  } catch { document.getElementById('stat-messages-sent').textContent = '—'; }
+};
+
+// ── Send message form ─────────────────────────────────────────
+document.getElementById('send-body').addEventListener('input', function() {
+  document.getElementById('preview-text').textContent = this.value || 'Your message will appear here…';
+});
+document.getElementById('send-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const room  = document.getElementById('send-room').value;
+  const type  = document.getElementById('send-msgtype').value;
+  const body  = document.getElementById('send-body').value.trim();
+  if (!body) return;
+  const btn = document.getElementById('btn-send-msg');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    const payload = { room_alias: room, message_type: type, body };
+    if (type === 'html') payload.formatted_body = body;
+    await apiFetch('/api/matrix/send', { method: 'POST', body: JSON.stringify(payload) });
+    const area = document.getElementById('chat-preview');
+    const bubble = document.createElement('div');
+    bubble.className = 'message-bubble outgoing';
+    bubble.innerHTML = `<div class="message-meta">murphy-bot → ${room} · ${new Date().toLocaleTimeString()}</div><div>${body}</div>`;
+    area.appendChild(bubble);
+    area.scrollTop = area.scrollHeight;
+    document.getElementById('send-body').value = '';
+    document.getElementById('preview-text').textContent = 'Your message will appear here…';
+    appLog(`Message sent to ${room}`);
+  } catch (err) {
+    alert(`Send failed: ${err.message}`);
+    appLog(`ERROR: Send failed — ${err.message}`);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Send';
+  }
+});
+
+// ── HITL approvals ────────────────────────────────────────────
+const loadHITL = async () => {
+  try {
+    const data = await apiFetch('/api/hitl/interventions/pending');
+    const items = data.interventions || data.items || [];
+    document.getElementById('hitl-cards').innerHTML = items.length
+      ? items.map(it => `<div class="matrix-room-card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <strong>${it.intervention_id || it.id || '—'}</strong>
+            <span class="murphy-badge murphy-badge-warning">Pending</span>
+          </div>
+          <p class="text-sm text-muted" style="margin:4px 0">${it.description || it.reason || 'Awaiting approval'}</p>
+          <div style="display:flex;gap:var(--space-2);margin-top:var(--space-2)">
+            <button class="murphy-btn murphy-btn-sm murphy-btn-success"
+              onclick="respondHITL('${it.intervention_id||it.id}','approved')">✓ Approve</button>
+            <button class="murphy-btn murphy-btn-sm murphy-btn-danger"
+              onclick="respondHITL('${it.intervention_id||it.id}','rejected')">✗ Reject</button>
+          </div>
+        </div>`).join('')
+      : '<div class="matrix-room-card"><p class="text-muted">No pending HITL interventions — all clear.</p></div>';
+    appLog(`Loaded ${items.length} HITL items.`);
+  } catch (err) {
+    document.getElementById('hitl-cards').innerHTML =
+      `<div class="murphy-alert murphy-alert-danger">Failed to load: ${err.message}</div>`;
+  }
+};
+window.respondHITL = async (id, decision) => {
+  try {
+    await apiFetch(`/api/hitl/interventions/${id}/respond`, { method: 'POST', body: JSON.stringify({ decision }) });
+    appLog(`HITL ${id}: ${decision}`);
+    await loadHITL();
+  } catch (err) {
+    appLog(`ERROR: HITL respond failed — ${err.message}`);
+  }
+};
+document.getElementById('btn-refresh-hitl').addEventListener('click', loadHITL);
+
+// ── Rooms refresh ─────────────────────────────────────────────
+document.getElementById('btn-refresh-rooms').addEventListener('click', async () => {
+  try {
+    const data = await apiFetch('/api/matrix/rooms');
+    const rooms = data.rooms || [];
+    if (rooms.length) {
+      document.getElementById('rooms-list').innerHTML = rooms.map(r =>
+        `<div class="matrix-room-card">
+          <div style="display:flex;justify-content:space-between">
+            <strong>${r.alias || r.name || r.id}</strong>
+            <span class="murphy-badge ${r.active ? 'murphy-badge-success':'murphy-badge-danger'}">${r.active?'Active':'Inactive'}</span>
+          </div>
+          <p class="text-sm text-muted" style="margin-top:4px">${r.description||''}</p>
+         </div>`
+      ).join('');
+    }
+  } catch { appLog('Could not refresh rooms — /api/matrix/rooms not available.'); }
+});
+
+// ── Status refresh ────────────────────────────────────────────
+document.getElementById('btn-refresh-status').addEventListener('click', checkMatrixConnection);
+document.getElementById('btn-check-connection').addEventListener('click', () => { showView('status'); checkMatrixConnection(); });
+
+// ── Verify config ─────────────────────────────────────────────
+document.getElementById('btn-verify-config').addEventListener('click', async () => {
+  const el = document.getElementById('verify-result');
+  el.innerHTML = '<span class="text-muted">Verifying…</span>';
+  try {
+    const data = await apiFetch('/api/matrix/status');
+    el.innerHTML = data.connected
+      ? `<div class="murphy-alert murphy-alert-success">✓ Connected to <strong>${data.homeserver_url||'homeserver'}</strong> as <strong>${data.user_id||'bot'}</strong>.</div>`
+      : `<div class="murphy-alert murphy-alert-warning">Bridge reachable but not connected. Check MATRIX_BOT_TOKEN / MATRIX_BOT_PASSWORD.</div>`;
+  } catch (err) {
+    el.innerHTML = `<div class="murphy-alert murphy-alert-danger">Configuration check failed: ${err.message}<br>Ensure MATRIX_HOMESERVER_URL and MATRIX_BOT_TOKEN are set.</div>`;
+  }
+});
+
+// ── Quick-action buttons ──────────────────────────────────────
+document.getElementById('btn-go-send').addEventListener('click', () => showView('send'));
+document.getElementById('btn-go-hitl').addEventListener('click', () => { showView('hitl'); loadHITL(); });
+
+// ── Sidebar toggle & theme ────────────────────────────────────
+document.getElementById('btn-sidebar-toggle').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+});
+document.getElementById('btn-theme-toggle').addEventListener('click', () => {
+  document.documentElement.classList.toggle('dark');
+  const icon = document.getElementById('theme-icon');
+  icon.innerHTML = document.documentElement.classList.contains('dark')
+    ? '<use href="static/murphy-icons.svg#icon-sun"></use>'
+    : '<use href="static/murphy-icons.svg#icon-moon"></use>';
+});
+
+// ── Init ──────────────────────────────────────────────────────
+(async () => {
+  await checkApiStatus();
+  await checkMatrixConnection();
+  await loadDashboard();
+  showView('dashboard');
+})();
+</script>
+</body>
+</html>

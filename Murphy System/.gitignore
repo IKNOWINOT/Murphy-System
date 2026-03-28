@@ -1,0 +1,15 @@
+.murphy_persistence/
+.pytest_cache/
+__pycache__/
+.coverage
+coverage.xml
+
+# EQEmu server assets (downloaded by scripts/fetch_eqemu_assets.sh)
+eqemu-server/
+eqemu-assets/
+*.sql.gz
+eqemu-server-*.zip
+data/mfm_shadow_logs/
+
+# Mail server TLS certificates (generated at deploy time, not tracked)
+config/mail/ssl/

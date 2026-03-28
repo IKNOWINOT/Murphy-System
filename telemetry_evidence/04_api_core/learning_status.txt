@@ -1,0 +1,2 @@
+HTTP 200
+{"self_learning_enabled":true,"skipped_operations":0,"note":"Learning active — training data is being collected and stored."}

@@ -1,0 +1,25 @@
+# Murphy System — Kubernetes Resource Quota
+# Copyright © 2020 Inoni Limited Liability Company
+# License: BSL-1.1
+#
+# Governs total resource consumption across the murphy-system namespace.
+# Adjust values based on your cluster capacity and expected workload.
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: murphy-system-quota
+  namespace: murphy-system
+  labels:
+    app: murphy-system
+    component: governance
+    environment: production
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: "8Gi"
+    limits.cpu: "8"
+    limits.memory: "16Gi"
+    pods: "30"
+    persistentvolumeclaims: "10"
+    services: "10"

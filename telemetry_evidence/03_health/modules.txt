@@ -1,0 +1,990 @@
+[
+    {
+        "name": "SystemBuilder",
+        "status": "available",
+        "description": "Builds system architecture from natural language",
+        "capabilities": [
+            "architecture_design",
+            "component_selection",
+            "system_planning"
+        ]
+    },
+    {
+        "name": "GateBuilder",
+        "status": "available",
+        "description": "Creates safety gates for any system",
+        "capabilities": [
+            "safety_gates",
+            "risk_mitigation",
+            "security_checks"
+        ]
+    },
+    {
+        "name": "ModuleManager",
+        "status": "available",
+        "description": "Manages dynamic module coupling/decoupling",
+        "capabilities": [
+            "module_management",
+            "dynamic_loading",
+            "system_integration"
+        ]
+    },
+    {
+        "name": "TaskExecutor",
+        "status": "available",
+        "description": "Executes tasks using available tools",
+        "capabilities": [
+            "task_execution",
+            "tool_selection",
+            "automation"
+        ]
+    },
+    {
+        "name": "module_manager",
+        "status": "available",
+        "description": "Module manager registry",
+        "capabilities": [
+            "module_registry",
+            "capability_mapping"
+        ]
+    },
+    {
+        "name": "modular_runtime",
+        "status": "available",
+        "description": "Modular runtime core",
+        "capabilities": [
+            "runtime",
+            "module_execution"
+        ]
+    },
+    {
+        "name": "universal_control_plane",
+        "status": "available",
+        "description": "Universal control plane",
+        "capabilities": [
+            "control_plane",
+            "execution_policy"
+        ]
+    },
+    {
+        "name": "inoni_business_automation",
+        "status": "available",
+        "description": "Business automation engines",
+        "capabilities": [
+            "business_automation",
+            "executive_operations"
+        ]
+    },
+    {
+        "name": "two_phase_orchestrator",
+        "status": "available",
+        "description": "Two-phase orchestrator",
+        "capabilities": [
+            "orchestration",
+            "handoff"
+        ]
+    },
+    {
+        "name": "form_intake",
+        "status": "available",
+        "description": "Form intake handlers",
+        "capabilities": [
+            "forms",
+            "intake"
+        ]
+    },
+    {
+        "name": "confidence_engine",
+        "status": "available",
+        "description": "Confidence evaluation engine",
+        "capabilities": [
+            "confidence",
+            "validation"
+        ]
+    },
+    {
+        "name": "execution_engine",
+        "status": "available",
+        "description": "Execution engine",
+        "capabilities": [
+            "execution",
+            "actions"
+        ]
+    },
+    {
+        "name": "learning_engine",
+        "status": "available",
+        "description": "Learning and correction engine",
+        "capabilities": [
+            "learning",
+            "correction"
+        ]
+    },
+    {
+        "name": "hitl_monitor",
+        "status": "available",
+        "description": "Human-in-the-loop monitor",
+        "capabilities": [
+            "hitl",
+            "supervision"
+        ]
+    },
+    {
+        "name": "governance_framework",
+        "status": "available",
+        "description": "Governance scheduling framework",
+        "capabilities": [
+            "governance",
+            "scheduling"
+        ]
+    },
+    {
+        "name": "telemetry_ingestion",
+        "status": "available",
+        "description": "Telemetry ingestion and analytics",
+        "capabilities": [
+            "telemetry",
+            "analytics"
+        ]
+    },
+    {
+        "name": "mfgc_adapter",
+        "status": "available",
+        "description": "MFGC adapter",
+        "capabilities": [
+            "adapter",
+            "execution_fallback"
+        ]
+    },
+    {
+        "name": "system_integrator",
+        "status": "available",
+        "description": "System integrator bridge",
+        "capabilities": [
+            "integration",
+            "adapter_bridge"
+        ]
+    },
+    {
+        "name": "gate_synthesis",
+        "status": "available",
+        "description": "Gate synthesis engine",
+        "capabilities": [
+            "gates",
+            "risk",
+            "compliance"
+        ]
+    },
+    {
+        "name": "true_swarm_system",
+        "status": "available",
+        "description": "Swarm execution planner",
+        "capabilities": [
+            "swarm",
+            "task_expansion"
+        ]
+    },
+    {
+        "name": "domain_swarms",
+        "status": "available",
+        "description": "Domain swarm selection",
+        "capabilities": [
+            "domain_detection",
+            "swarm_candidates"
+        ]
+    },
+    {
+        "name": "system_librarian",
+        "status": "available",
+        "description": "Librarian knowledge and conditions",
+        "capabilities": [
+            "librarian",
+            "conditions"
+        ]
+    },
+    {
+        "name": "organization_chart_system",
+        "status": "available",
+        "description": "Org chart coverage and contracts",
+        "capabilities": [
+            "org_chart",
+            "contracts"
+        ]
+    },
+    {
+        "name": "compute_plane",
+        "status": "available",
+        "description": "Deterministic compute plane",
+        "capabilities": [
+            "deterministic_compute"
+        ]
+    },
+    {
+        "name": "recursive_stability_controller",
+        "status": "available",
+        "description": "Recursive stability control",
+        "capabilities": [
+            "stability",
+            "feedback"
+        ]
+    },
+    {
+        "name": "integration_engine",
+        "status": "available",
+        "description": "Integration engine",
+        "capabilities": [
+            "integrations",
+            "handoff"
+        ]
+    },
+    {
+        "name": "adapter_framework",
+        "status": "available",
+        "description": "Adapter execution runtime",
+        "capabilities": [
+            "adapter_runtime",
+            "device_execution"
+        ]
+    },
+    {
+        "name": "telemetry_adapter",
+        "status": "available",
+        "description": "Telemetry adapter",
+        "capabilities": [
+            "telemetry"
+        ]
+    },
+    {
+        "name": "module_compiler_adapter",
+        "status": "available",
+        "description": "Module compiler adapter",
+        "capabilities": [
+            "module_compiler"
+        ]
+    },
+    {
+        "name": "librarian_adapter",
+        "status": "available",
+        "description": "Librarian adapter",
+        "capabilities": [
+            "librarian_adapter"
+        ]
+    },
+    {
+        "name": "neuro_symbolic_adapter",
+        "status": "available",
+        "description": "Neuro-symbolic adapter",
+        "capabilities": [
+            "neuro_symbolic"
+        ]
+    },
+    {
+        "name": "security_plane_adapter",
+        "status": "available",
+        "description": "Security plane adapter",
+        "capabilities": [
+            "security"
+        ]
+    },
+    {
+        "name": "persistence_manager",
+        "status": "available",
+        "description": "Durable persistence layer for documents, gates, audit trails, and replay",
+        "capabilities": [
+            "persistence",
+            "audit",
+            "replay"
+        ]
+    },
+    {
+        "name": "event_backbone",
+        "status": "available",
+        "description": "Event-driven backbone with durable queues, retry, and circuit breakers",
+        "capabilities": [
+            "events",
+            "queues",
+            "retry"
+        ]
+    },
+    {
+        "name": "delivery_adapters",
+        "status": "available",
+        "description": "Production delivery adapters for document, email, chat, voice, translation",
+        "capabilities": [
+            "delivery",
+            "multi_channel"
+        ]
+    },
+    {
+        "name": "gate_execution_wiring",
+        "status": "available",
+        "description": "Gate synthesis wired into runtime execution with policy enforcement",
+        "capabilities": [
+            "gate_execution",
+            "policy_enforcement"
+        ]
+    },
+    {
+        "name": "self_improvement_engine",
+        "status": "available",
+        "description": "Self-improvement engine with feedback loops and confidence calibration",
+        "capabilities": [
+            "self_improvement",
+            "learning_feedback",
+            "confidence_calibration"
+        ]
+    },
+    {
+        "name": "operational_slo_tracker",
+        "status": "available",
+        "description": "Operational SLO tracker with success rate, latency percentiles, and compliance checks",
+        "capabilities": [
+            "slo_tracking",
+            "operational_telemetry",
+            "compliance_monitoring"
+        ]
+    },
+    {
+        "name": "automation_scheduler",
+        "status": "available",
+        "description": "Multi-project automation scheduler with priority-based load balancing",
+        "capabilities": [
+            "scheduling",
+            "multi_project",
+            "load_balancing"
+        ]
+    },
+    {
+        "name": "capability_map",
+        "status": "available",
+        "description": "Repository-wide capability map with gap analysis and remediation sequencing",
+        "capabilities": [
+            "capability_inventory",
+            "gap_analysis",
+            "remediation_planning"
+        ]
+    },
+    {
+        "name": "compliance_engine",
+        "status": "available",
+        "description": "Compliance validation engine with GDPR/SOC2/HIPAA/PCI-DSS sensors and HITL approvals",
+        "capabilities": [
+            "compliance_validation",
+            "regulatory_sensors",
+            "release_readiness"
+        ]
+    },
+    {
+        "name": "rbac_governance",
+        "status": "available",
+        "description": "Role-based access control with multi-tenant isolation and shadow agent governance",
+        "capabilities": [
+            "rbac",
+            "tenant_isolation",
+            "shadow_agent_governance"
+        ]
+    },
+    {
+        "name": "ticketing_adapter",
+        "status": "available",
+        "description": "ITSM ticketing adapter with remote access and patch/rollback automation",
+        "capabilities": [
+            "ticketing",
+            "remote_access",
+            "patch_rollback"
+        ]
+    },
+    {
+        "name": "wingman_protocol",
+        "status": "available",
+        "description": "Executor/validator pairing with deterministic runbook-based validation",
+        "capabilities": [
+            "wingman_pairing",
+            "deterministic_validation",
+            "runbooks"
+        ]
+    },
+    {
+        "name": "runtime_profile_compiler",
+        "status": "available",
+        "description": "Compile onboarding data into runtime execution profiles with safety/budget/autonomy controls",
+        "capabilities": [
+            "profile_compilation",
+            "execution_governance",
+            "autonomy_control"
+        ]
+    },
+    {
+        "name": "governance_kernel",
+        "status": "available",
+        "description": "Non-LLM governance enforcement layer with budget tracking and audit emission",
+        "capabilities": [
+            "governance_enforcement",
+            "budget_control",
+            "audit_emission"
+        ]
+    },
+    {
+        "name": "control_plane_separation",
+        "status": "available",
+        "description": "Planning-plane / execution-plane separation with strict/balanced/dynamic mode switching",
+        "capabilities": [
+            "plane_routing",
+            "mode_switching",
+            "planning_execution_separation"
+        ]
+    },
+    {
+        "name": "durable_swarm_orchestrator",
+        "status": "available",
+        "description": "Budget-aware durable swarm orchestration with idempotency, retry, circuit breaker, and anti-recursion",
+        "capabilities": [
+            "swarm_spawning",
+            "budget_control",
+            "circuit_breaker",
+            "idempotency"
+        ]
+    },
+    {
+        "name": "golden_path_bridge",
+        "status": "available",
+        "description": "Golden-path capture and replay for execution acceleration and knowledge/RAG",
+        "capabilities": [
+            "golden_path_capture",
+            "path_matching",
+            "replay_acceleration"
+        ]
+    },
+    {
+        "name": "org_chart_enforcement",
+        "status": "available",
+        "description": "Role-bound permissions, escalation chains, and cross-department workflow arbitration",
+        "capabilities": [
+            "permission_enforcement",
+            "escalation_chains",
+            "cross_dept_arbitration"
+        ]
+    },
+    {
+        "name": "shadow_agent_integration",
+        "status": "available",
+        "description": "Shadow-agent org-chart parity with account/user-base controls and governance boundaries",
+        "capabilities": [
+            "shadow_agent_lifecycle",
+            "org_chart_parity",
+            "account_management"
+        ]
+    },
+    {
+        "name": "triage_rollcall_adapter",
+        "status": "available",
+        "description": "Capability-rollcall stage before swarm expansion with ranked candidate selection",
+        "capabilities": [
+            "candidate_registry",
+            "rollcall_ranking",
+            "confidence_probing"
+        ]
+    },
+    {
+        "name": "rubix_evidence_adapter",
+        "status": "available",
+        "description": "Deterministic evidence lane for CI/hypothesis/Bayesian/Monte Carlo/forecast checks",
+        "capabilities": [
+            "evidence_checks",
+            "compliance_artifacts",
+            "deterministic_verification"
+        ]
+    },
+    {
+        "name": "semantics_boundary_controller",
+        "status": "available",
+        "description": "Runtime semantics boundary control-loop with belief-state, risk/CVaR, RVoI, invariance, verification-feedback",
+        "capabilities": [
+            "belief_state",
+            "risk_assessment",
+            "rvoi_questions",
+            "invariance_checks",
+            "verification_feedback"
+        ]
+    },
+    {
+        "name": "bot_governance_policy_mapper",
+        "status": "available",
+        "description": "Maps legacy bot quota/budget/stability controls to Murphy runtime execution profiles",
+        "capabilities": [
+            "policy_mapping",
+            "gate_checks",
+            "budget_tracking",
+            "quota_management"
+        ]
+    },
+    {
+        "name": "bot_telemetry_normalizer",
+        "status": "available",
+        "description": "Standardizes triage/rubix bot event payloads into Murphy observability schema",
+        "capabilities": [
+            "event_normalization",
+            "triage_rules",
+            "rubix_rules",
+            "telemetry_alignment"
+        ]
+    },
+    {
+        "name": "legacy_compatibility_matrix",
+        "status": "available",
+        "description": "Legacy orchestration bridge hooks and compatibility-matrix decisions as profile-governed runtime controls",
+        "capabilities": [
+            "compatibility_matrix",
+            "bridge_hooks",
+            "migration_paths",
+            "governance_validation"
+        ]
+    },
+    {
+        "name": "hitl_autonomy_controller",
+        "status": "available",
+        "description": "Runtime policy toggles for HITL arming/disarming and high-confidence autonomy enablement",
+        "capabilities": [
+            "hitl_toggle",
+            "autonomy_policy",
+            "confidence_threshold",
+            "cooldown_management"
+        ]
+    },
+    {
+        "name": "compliance_region_validator",
+        "status": "available",
+        "description": "Region-specific compliance sensor validation before delivery with cross-border checks",
+        "capabilities": [
+            "region_compliance",
+            "cross_border_validation",
+            "data_residency",
+            "retention_checks"
+        ]
+    },
+    {
+        "name": "observability_counters",
+        "status": "available",
+        "description": "Summary counters distinguishing behavior fixes from permutation-only coverage for closed-loop improvement",
+        "capabilities": [
+            "behavior_tracking",
+            "coverage_tracking",
+            "improvement_velocity",
+            "fix_ratio_analysis"
+        ]
+    },
+    {
+        "name": "deterministic_routing_engine",
+        "status": "available",
+        "description": "Policy-driven deterministic vs LLM routing with guardrails, fallback promotion, and parity validation",
+        "capabilities": [
+            "deterministic_routing",
+            "llm_routing",
+            "hybrid_routing",
+            "route_parity",
+            "fallback_promotion"
+        ]
+    },
+    {
+        "name": "platform_connector_framework",
+        "status": "available",
+        "description": "Unified connector SDK for popular platforms (Slack, Jira, Salesforce, GitHub, AWS, Azure, GCP, Stripe, etc.) with auth, rate limiting, retry, health checks",
+        "capabilities": [
+            "platform_connectors",
+            "crm_integration",
+            "communication_integration",
+            "cloud_integration",
+            "devops_integration",
+            "payment_integration"
+        ]
+    },
+    {
+        "name": "workflow_dag_engine",
+        "status": "available",
+        "description": "DAG-based workflow definition and execution with topological sort, parallel groups, conditional branching, checkpoint/resume",
+        "capabilities": [
+            "workflow_dag",
+            "topological_execution",
+            "parallel_steps",
+            "conditional_branching",
+            "checkpoint_resume"
+        ]
+    },
+    {
+        "name": "automation_type_registry",
+        "status": "available",
+        "description": "Registry of all automation types (IT, business process, data pipeline, marketing, customer service, HR, financial, content, security, DevOps, compliance) with templates",
+        "capabilities": [
+            "automation_templates",
+            "it_automation",
+            "business_process_automation",
+            "data_pipeline",
+            "marketing_automation",
+            "security_automation"
+        ]
+    },
+    {
+        "name": "api_gateway_adapter",
+        "status": "available",
+        "description": "Unified API gateway for external integrations with rate limiting, auth management, webhook dispatch, circuit breaker, and response caching",
+        "capabilities": [
+            "api_gateway",
+            "rate_limiting",
+            "auth_management",
+            "webhook_dispatch",
+            "circuit_breaker",
+            "response_caching"
+        ]
+    },
+    {
+        "name": "webhook_event_processor",
+        "status": "available",
+        "description": "Inbound webhook handling for event-driven integrations with signature verification, payload normalization, and event routing",
+        "capabilities": [
+            "webhook_processing",
+            "signature_verification",
+            "event_normalization",
+            "event_routing",
+            "platform_webhooks"
+        ]
+    },
+    {
+        "name": "self_automation_orchestrator",
+        "status": "available",
+        "description": "Self-automation task queue with prompt chain templates for continuous self-improvement cycles",
+        "capabilities": [
+            "self_automation",
+            "task_queue",
+            "prompt_chain",
+            "gap_analysis",
+            "improvement_cycles"
+        ]
+    },
+    {
+        "name": "plugin_extension_sdk",
+        "status": "available",
+        "description": "Third-party plugin lifecycle management with manifest validation, sandboxed execution, and capability gating",
+        "capabilities": [
+            "plugin_management",
+            "manifest_validation",
+            "sandboxed_execution",
+            "capability_gating",
+            "lifecycle_management"
+        ]
+    },
+    {
+        "name": "ai_workflow_generator",
+        "status": "available",
+        "description": "Natural language to DAG workflow translation using template matching, keyword inference, and dependency resolution",
+        "capabilities": [
+            "workflow_generation",
+            "template_matching",
+            "keyword_inference",
+            "dependency_resolution",
+            "natural_language"
+        ]
+    },
+    {
+        "name": "workflow_template_marketplace",
+        "status": "available",
+        "description": "Marketplace for publishing, searching, installing, rating, and versioning community workflow templates",
+        "capabilities": [
+            "template_marketplace",
+            "publishing",
+            "search",
+            "rating",
+            "versioning"
+        ]
+    },
+    {
+        "name": "cross_platform_data_sync",
+        "status": "available",
+        "description": "Real-time bidirectional data synchronization between platforms with field mapping and conflict resolution",
+        "capabilities": [
+            "data_sync",
+            "field_mapping",
+            "conflict_resolution",
+            "change_tracking",
+            "bidirectional_sync"
+        ]
+    },
+    {
+        "name": "building_automation_connectors",
+        "status": "available",
+        "description": "Building automation protocol connectors (BACnet, Modbus, KNX, LonWorks, DALI, OPC UA) with Johnson Controls, Honeywell, Siemens, Alerton, Trane, Carrier/Automated Logic, Schneider Electric, ABB, Delta Controls, Distech vendor integrations",
+        "capabilities": [
+            "bacnet",
+            "modbus",
+            "knx",
+            "lonworks",
+            "dali",
+            "opc_ua",
+            "hvac_control",
+            "lighting_control",
+            "vendor_integration"
+        ]
+    },
+    {
+        "name": "manufacturing_automation_standards",
+        "status": "available",
+        "description": "Manufacturing automation standards (ISA-95, OPC UA, MTConnect, PackML, MQTT/Sparkplug B, IEC 61131) with ISA-95 layer-aware workflow orchestration",
+        "capabilities": [
+            "isa_95",
+            "opc_ua_manufacturing",
+            "mtconnect",
+            "packml",
+            "mqtt_sparkplug_b",
+            "iec_61131",
+            "production_management",
+            "plc_integration"
+        ]
+    },
+    {
+        "name": "energy_management_connectors",
+        "status": "available",
+        "description": "Energy management system connectors (Johnson Controls OpenBlue, Honeywell Forge, Schneider EcoStruxure, Siemens Navigator, EnergyCAP, ENERGY STAR, Enel X, Alerton EMS, SolarEdge, GridPoint, Tridium Niagara, ABB Ability, Emerson Ovation, Enverus, Brainbox AI) with demand response and renewables",
+        "capabilities": [
+            "energy_monitoring",
+            "utility_analytics",
+            "demand_response",
+            "sustainability_reporting",
+            "renewable_integration",
+            "carbon_tracking"
+        ]
+    },
+    {
+        "name": "analytics_dashboard",
+        "status": "available",
+        "description": "Real-time analytics dashboard with execution analytics, compliance tracking, performance metrics, business intelligence, and alert rules engine",
+        "capabilities": [
+            "execution_analytics",
+            "compliance_analytics",
+            "performance_metrics",
+            "business_intelligence",
+            "alerting",
+            "real_time_dashboard"
+        ]
+    },
+    {
+        "name": "executive_planning_engine",
+        "status": "available",
+        "description": "Executive strategy planning with business gate generation, integration automation binding, and executive dashboard generation",
+        "capabilities": [
+            "strategy_planning",
+            "business_gates",
+            "integration_binding",
+            "executive_dashboard",
+            "response_engine"
+        ]
+    },
+    {
+        "name": "enterprise_integrations",
+        "status": "available",
+        "description": "Enterprise integration registry for accounting, engineering, project management, document, communication, DevOps, analytics, and ERP platforms with DAG workflow binding",
+        "capabilities": [
+            "enterprise_connectors",
+            "quickbooks",
+            "autocad",
+            "blender",
+            "sap",
+            "dynamics365",
+            "workflow_binding",
+            "capability_mapping"
+        ]
+    },
+    {
+        "name": "digital_asset_generator",
+        "status": "available",
+        "description": "Digital asset generation pipeline for Unreal Engine, Maya, Blender, Fortnite Creative/UEFN, Unity, Godot with sprite sheets, texture atlases, 3D model descriptors, material/shader generation, and batch pipeline orchestration",
+        "capabilities": [
+            "asset_generation",
+            "sprite_sheets",
+            "texture_atlas",
+            "unreal_engine",
+            "maya",
+            "blender",
+            "fortnite_creative",
+            "unity",
+            "godot",
+            "pipeline_orchestration"
+        ]
+    },
+    {
+        "name": "rosetta_stone_heartbeat",
+        "status": "available",
+        "description": "Organization-wide heartbeat synchronization with executive-origin pulse propagation, tier-based translators, and sync verification across executive/management/operations/worker/integration tiers",
+        "capabilities": [
+            "heartbeat_sync",
+            "pulse_propagation",
+            "tier_translation",
+            "sync_verification",
+            "executive_directives",
+            "org_health"
+        ]
+    },
+    {
+        "name": "content_creator_platform_modulator",
+        "status": "available",
+        "description": "Content creator platform connectors for YouTube, Twitch, OnlyFans, TikTok, Patreon, Kick, Rumble with content scheduling, analytics, monetization tracking, audience management, cross-platform syndication, and live stream orchestration",
+        "capabilities": [
+            "youtube",
+            "twitch",
+            "onlyfans",
+            "tiktok",
+            "patreon",
+            "kick",
+            "rumble",
+            "content_scheduling",
+            "cross_platform_syndication",
+            "analytics_aggregation",
+            "monetization_tracking",
+            "live_stream_orchestration"
+        ]
+    },
+    {
+        "name": "ml_strategy_engine",
+        "status": "available",
+        "description": "Pure-Python ML strategy engine providing anomaly detection (z-score/IQR), time-series forecasting (exponential smoothing/moving average), Naive Bayes classification, content-based and collaborative recommendation, K-means clustering, Q-learning reinforcement learning, feature importance analysis, A/B testing framework, ensemble methods, and online incremental learning",
+        "capabilities": [
+            "anomaly_detection",
+            "time_series_forecasting",
+            "naive_bayes_classification",
+            "recommendation_engine",
+            "kmeans_clustering",
+            "q_learning",
+            "feature_importance",
+            "ab_testing",
+            "ensemble_methods",
+            "online_learning",
+            "reinforcement_learning"
+        ]
+    },
+    {
+        "name": "agentic_api_provisioner",
+        "status": "available",
+        "description": "Self-provisioning API infrastructure that autonomously discovers modules, generates REST/GraphQL/WebSocket endpoints, auto-configures auth and rate limits, generates OpenAPI specs, registers webhooks, and performs self-healing health monitoring",
+        "capabilities": [
+            "auto_provision",
+            "endpoint_registration",
+            "openapi_generation",
+            "webhook_management",
+            "health_monitoring",
+            "self_healing",
+            "module_introspection",
+            "rate_limiting",
+            "auth_policy",
+            "api_versioning"
+        ]
+    },
+    {
+        "name": "video_streaming_connector",
+        "status": "available",
+        "description": "Unified live video streaming connectors for Twitch, YouTube Live, OBS Studio, vMix, Restream, StreamYard, Streamlabs, Kick Live, and Facebook Live with simulcast orchestration, stream health monitoring, recording management, and chat integration",
+        "capabilities": [
+            "live_streaming",
+            "simulcasting",
+            "recording",
+            "chat_integration",
+            "stream_health",
+            "twitch",
+            "youtube_live",
+            "obs_studio",
+            "vmix",
+            "restream",
+            "streamyard"
+        ]
+    },
+    {
+        "name": "remote_access_connector",
+        "status": "available",
+        "description": "Remote desktop and administration connectors for TeamViewer, AnyDesk, RDP, VNC, SSH Tunneling, Parsec, Chrome Remote Desktop, Apache Guacamole, and Splashtop with session management, file transfer, unattended access, session recording, and Wake-on-LAN",
+        "capabilities": [
+            "remote_desktop",
+            "file_transfer",
+            "unattended_access",
+            "session_recording",
+            "teamviewer",
+            "anydesk",
+            "rdp",
+            "vnc",
+            "ssh_tunnel",
+            "parsec",
+            "wake_on_lan"
+        ]
+    },
+    {
+        "name": "ui_testing_framework",
+        "status": "available",
+        "description": "Comprehensive UI testing infrastructure covering all 12 testing gaps: visual regression, interactive components, E2E browser harness, performance/Core Web Vitals, cross-browser compatibility, mobile gestures, animation/transition validation, error state handling, dark mode, API integration, security (XSS/injection), and i18n/RTL",
+        "capabilities": [
+            "visual_regression",
+            "interactive_testing",
+            "e2e_browser",
+            "performance_testing",
+            "cross_browser",
+            "mobile_gesture",
+            "animation_testing",
+            "error_state",
+            "dark_mode",
+            "security_testing",
+            "i18n_testing",
+            "accessibility"
+        ]
+    },
+    {
+        "name": "security_hardening_config",
+        "status": "available",
+        "description": "Centralized security hardening orchestrator with input sanitization (XSS/SQLi/path traversal), CORS lockdown, token-bucket rate limiting, CSP headers, API key rotation enforcement, structured audit logging, and session security controls (MFA, concurrent limits, timeout)",
+        "capabilities": [
+            "input_sanitization",
+            "cors_lockdown",
+            "rate_limiting",
+            "csp_headers",
+            "api_key_rotation",
+            "audit_logging",
+            "session_security",
+            "injection_prevention",
+            "path_traversal_prevention"
+        ]
+    },
+    {
+        "name": "_deps",
+        "status": "available",
+        "description": "Auto-registered local module (root)",
+        "capabilities": [
+            "auto_registered",
+            "category:root",
+            "module:_deps"
+        ]
+    },
+    {
+        "name": "app",
+        "status": "available",
+        "description": "Auto-registered local module (root)",
+        "capabilities": [
+            "auto_registered",
+            "category:root",
+            "module:app"
+        ]
+    },
+    {
+        "name": "living_document",
+        "status": "available",
+        "description": "Auto-registered local module (root)",
+        "capabilities": [
+            "auto_registered",
+            "category:root",
+            "module:living_document"
+        ]
+    },
+    {
+        "name": "murphy_system_core",
+        "status": "available",
+        "description": "Auto-registered local module (root)",
+        "capabilities": [
+            "auto_registered",
+            "category:root",
+            "module:murphy_system_core"
+        ]
+    }
+]

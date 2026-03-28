@@ -1,0 +1,157 @@
+/* ─── Murphy Flow Canvas – Neon Terminal Theme ─── */
+
+:root {
+  --neon-green: #00ff41;
+  --neon-green-dim: #1a4f1a;
+  --neon-green-mid: #0d2b0d;
+  --bg-black: #0a0a0a;
+  --bg-dark: #0d0d0d;
+  --border-green: 1px solid #00ff41;
+  --font-mono: 'Courier New', Courier, monospace;
+}
+
+/* ─── Container ─── */
+.flow-canvas-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 600px;
+  background: var(--bg-black);
+  border: var(--border-green);
+  font-family: var(--font-mono);
+  color: var(--neon-green);
+  outline: none; /* suppress focus ring on div; keyboard handled internally */
+  box-sizing: border-box;
+}
+
+/* ─── Toolbar ─── */
+.flow-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--bg-dark);
+  border-bottom: var(--border-green);
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+.flow-toolbar__section {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.flow-toolbar__section--palette {
+  flex: 1;
+}
+
+.flow-toolbar__section--actions {
+  gap: 6px;
+}
+
+.flow-toolbar__label {
+  font-size: 10px;
+  color: var(--neon-green);
+  margin-right: 4px;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+}
+
+.flow-toolbar__btn {
+  background: var(--neon-green-mid);
+  border: var(--border-green);
+  color: var(--neon-green);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+  border-radius: 2px;
+  letter-spacing: 0.04em;
+  transition: background 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+
+.flow-toolbar__btn:hover:not(:disabled) {
+  background: var(--neon-green-dim);
+  box-shadow: 0 0 6px #00ff4155;
+}
+
+.flow-toolbar__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.flow-toolbar__btn--node {
+  font-size: 10px;
+  padding: 2px 6px;
+  /* border-color and color are set inline per NodeKind */
+}
+
+.flow-toolbar__btn--run {
+  border-color: #39ff14;
+  color: #39ff14;
+  font-weight: bold;
+}
+
+.flow-toolbar__btn--run:hover:not(:disabled) {
+  background: #0b2e0b;
+  box-shadow: 0 0 8px #39ff1466;
+}
+
+.flow-toolbar__btn--danger {
+  border-color: #ff073a;
+  color: #ff073a;
+}
+
+.flow-toolbar__btn--danger:hover {
+  background: #2b000a;
+  box-shadow: 0 0 6px #ff073a55;
+}
+
+/* ─── Viewport / SVG ─── */
+.flow-canvas-viewport {
+  flex: 1;
+  overflow: auto;
+  background: var(--bg-black);
+  position: relative;
+}
+
+.flow-canvas-svg {
+  display: block;
+  background: var(--bg-black);
+  cursor: crosshair;
+}
+
+/* ─── Status bar ─── */
+.flow-canvas-statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 10px;
+  background: var(--bg-dark);
+  border-top: var(--border-green);
+  font-size: 11px;
+  color: var(--neon-green);
+  flex-shrink: 0;
+  min-height: 28px;
+  gap: 12px;
+}
+
+.flow-canvas-statusbar__msg {
+  flex: 1;
+  text-align: center;
+  opacity: 0.85;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flow-canvas-statusbar__hint {
+  opacity: 0.45;
+  font-size: 10px;
+  white-space: nowrap;
+}

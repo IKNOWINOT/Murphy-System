@@ -1,0 +1,2 @@
+HTTP 200
+{"success":true,"statistics":{"total_corrections":0,"total_patterns":0,"unique_tasks":0,"corrections_by_type":{},"corrections_by_severity":{"normal":0}}}

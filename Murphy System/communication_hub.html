@@ -1,0 +1,1001 @@
+<!--
+  Murphy System — Communication Hub
+  © 2020 Inoni Limited Liability Company by Corey Post
+  License: BSL 1.1 (Business Source License 1.1)
+
+  Unified onboard communication dashboard:
+    • Instant Messaging (IM)  — multi-account thread-based chat
+    • Voice Calls             — WebRTC signalling + call controls
+    • Video Calls             — WebRTC signalling + camera/mic controls
+    • Email                   — compose / inbox / outbox
+    • Automation Rules        — per-channel triggers
+    • Moderator Console       — broadcast, auto-mod, user management
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Communication Hub</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  /* ── Layout ─────────────────────────────────────────────────── */
+  :root {
+    --sidebar-w: 240px;
+    --topbar-h: 52px;
+  }
+  body { margin:0; background:var(--bg-base); color:var(--text-primary); font-family:var(--font-ui); overflow:hidden; }
+
+  .hub-topbar {
+    position:fixed; top:0; left:0; right:0; height:var(--topbar-h);
+    background:var(--bg-surface); border-bottom:1px solid var(--border-default);
+    display:flex; align-items:center; gap:var(--space-3); padding:0 var(--space-4);
+    z-index:100;
+  }
+  .hub-topbar h1 { font-size:1rem; font-weight:600; margin:0; }
+  .hub-topbar .spacer { flex:1; }
+  .user-badge {
+    display:flex; align-items:center; gap:var(--space-2);
+    background:var(--bg-elevated); border:1px solid var(--border-default);
+    border-radius:var(--radius-md); padding:4px 10px; font-size:.85rem;
+  }
+  .status-dot { width:8px; height:8px; border-radius:50%; background:#22c55e; }
+
+  .hub-body {
+    display:flex; height:calc(100vh - var(--topbar-h)); margin-top:var(--topbar-h);
+  }
+
+  /* ── Left sidebar ────────────────────────────────────────────── */
+  .hub-sidebar {
+    width:var(--sidebar-w); min-width:var(--sidebar-w);
+    background:var(--bg-surface); border-right:1px solid var(--border-default);
+    display:flex; flex-direction:column; overflow-y:auto;
+  }
+  .sidebar-section { padding:var(--space-3) var(--space-3) 0; }
+  .sidebar-section h3 { font-size:.7rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted); margin:0 0 var(--space-2); }
+  .nav-item {
+    display:flex; align-items:center; gap:var(--space-2);
+    padding:6px var(--space-3); border-radius:var(--radius-sm); cursor:pointer;
+    font-size:.875rem; color:var(--text-secondary); transition:background .12s;
+    margin-bottom:2px;
+  }
+  .nav-item:hover { background:var(--bg-elevated); }
+  .nav-item.active { background:var(--color-accent-subtle); color:var(--color-accent); font-weight:600; }
+  .nav-item .icon { font-size:1rem; width:20px; text-align:center; flex-shrink:0; }
+  .nav-item .badge {
+    margin-left:auto; background:var(--color-accent); color:#fff;
+    border-radius:9999px; padding:0 6px; font-size:.7rem; font-weight:700;
+  }
+
+  /* ── Main content area ───────────────────────────────────────── */
+  .hub-main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+  .panel { display:none; flex:1; flex-direction:column; overflow:hidden; }
+  .panel.active { display:flex; }
+
+  /* ── Panel header ────────────────────────────────────────────── */
+  .panel-header {
+    padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--border-default);
+    background:var(--bg-surface); display:flex; align-items:center; gap:var(--space-3);
+  }
+  .panel-header h2 { margin:0; font-size:1rem; font-weight:600; }
+  .panel-header .actions { margin-left:auto; display:flex; gap:var(--space-2); }
+
+  /* ── IM Chat ─────────────────────────────────────────────────── */
+  .chat-layout { display:flex; flex:1; overflow:hidden; }
+  .thread-list {
+    width:200px; border-right:1px solid var(--border-default);
+    overflow-y:auto; background:var(--bg-surface);
+  }
+  .thread-item {
+    padding:10px var(--space-3); cursor:pointer; border-bottom:1px solid var(--border-subtle);
+    font-size:.85rem;
+  }
+  .thread-item:hover { background:var(--bg-elevated); }
+  .thread-item.active { background:var(--color-accent-subtle); color:var(--color-accent); }
+  .thread-item .t-name { font-weight:600; }
+  .thread-item .t-meta { font-size:.75rem; color:var(--text-muted); }
+  .chat-pane { flex:1; display:flex; flex-direction:column; }
+  .messages-area { flex:1; overflow-y:auto; padding:var(--space-4); display:flex; flex-direction:column; gap:var(--space-2); }
+  .msg-bubble { max-width:70%; padding:8px 12px; border-radius:var(--radius-lg); font-size:.875rem; line-height:1.4; }
+  .msg-bubble.mine { align-self:flex-end; background:var(--color-accent); color:#fff; }
+  .msg-bubble.theirs { align-self:flex-start; background:var(--bg-elevated); }
+  .msg-bubble .msg-sender { font-size:.7rem; font-weight:700; opacity:.7; margin-bottom:2px; }
+  .msg-bubble .msg-time { font-size:.68rem; opacity:.6; margin-top:2px; text-align:right; }
+  .msg-bubble.flagged { border:1px solid var(--color-danger); }
+  .chat-input-row {
+    padding:var(--space-3) var(--space-4); border-top:1px solid var(--border-default);
+    display:flex; gap:var(--space-2);
+  }
+  .chat-input-row input { flex:1; }
+
+  /* ── Voice / Video ───────────────────────────────────────────── */
+  .call-layout { flex:1; overflow-y:auto; padding:var(--space-4); display:flex; flex-direction:column; gap:var(--space-4); }
+  .call-card {
+    background:var(--bg-elevated); border:1px solid var(--border-default);
+    border-radius:var(--radius-lg); padding:var(--space-4);
+  }
+  .call-card h3 { margin:0 0 var(--space-3); font-size:.95rem; }
+  .call-controls { display:flex; gap:var(--space-2); flex-wrap:wrap; margin-top:var(--space-3); }
+  .session-list { margin-top:var(--space-3); display:flex; flex-direction:column; gap:var(--space-2); }
+  .session-row {
+    background:var(--bg-surface); border:1px solid var(--border-default);
+    border-radius:var(--radius-md); padding:10px var(--space-3);
+    display:flex; align-items:center; gap:var(--space-3); font-size:.85rem;
+  }
+  .session-row .sess-state {
+    padding:2px 8px; border-radius:9999px; font-size:.7rem; font-weight:700; text-transform:uppercase;
+  }
+  .sess-state.ringing  { background:#fef3c7; color:#b45309; }
+  .sess-state.active   { background:#d1fae5; color:#065f46; }
+  .sess-state.on_hold  { background:#e0e7ff; color:#3730a3; }
+  .sess-state.ended    { background:#f1f5f9; color:#64748b; }
+  .sess-state.rejected { background:#fee2e2; color:#991b1b; }
+  .session-row .sess-actions { margin-left:auto; display:flex; gap:var(--space-1); }
+
+  /* ── Email ───────────────────────────────────────────────────── */
+  .email-layout { display:flex; flex:1; overflow:hidden; }
+  .email-sidebar {
+    width:180px; background:var(--bg-surface); border-right:1px solid var(--border-default);
+    display:flex; flex-direction:column; padding:var(--space-3);
+  }
+  .email-folder {
+    padding:6px var(--space-2); border-radius:var(--radius-sm); cursor:pointer; font-size:.875rem;
+    color:var(--text-secondary); margin-bottom:2px;
+  }
+  .email-folder:hover { background:var(--bg-elevated); }
+  .email-folder.active { background:var(--color-accent-subtle); color:var(--color-accent); font-weight:600; }
+  .email-list { flex:1; overflow-y:auto; border-right:1px solid var(--border-default); }
+  .email-item {
+    padding:10px var(--space-3); cursor:pointer; border-bottom:1px solid var(--border-subtle);
+    font-size:.85rem;
+  }
+  .email-item:hover { background:var(--bg-elevated); }
+  .email-item.active { background:var(--color-accent-subtle); }
+  .email-item .e-subject { font-weight:600; }
+  .email-item .e-from { font-size:.75rem; color:var(--text-muted); }
+  .email-detail { flex:1; overflow-y:auto; padding:var(--space-4); }
+  .email-detail h2 { margin:0 0 var(--space-2); font-size:1.1rem; }
+  .email-detail .e-meta { font-size:.8rem; color:var(--text-muted); margin-bottom:var(--space-4); }
+  .email-detail .e-body { line-height:1.6; }
+  .compose-form { display:flex; flex-direction:column; gap:var(--space-3); padding:var(--space-4); max-width:640px; }
+  .compose-form textarea { min-height:180px; resize:vertical; }
+
+  /* ── Automation Rules ────────────────────────────────────────── */
+  .rules-layout { flex:1; overflow-y:auto; padding:var(--space-4); }
+  .rule-row {
+    display:flex; align-items:center; gap:var(--space-3);
+    background:var(--bg-elevated); border:1px solid var(--border-default);
+    border-radius:var(--radius-md); padding:10px var(--space-3); margin-bottom:var(--space-2);
+    font-size:.875rem;
+  }
+  .rule-row .rule-name { font-weight:600; flex:1; }
+  .rule-row .rule-trigger { font-size:.75rem; color:var(--text-muted); }
+  .rule-row .rule-channel { font-size:.75rem; background:var(--bg-surface); border:1px solid var(--border-default); border-radius:var(--radius-sm); padding:1px 6px; }
+  .toggle-switch { position:relative; display:inline-block; width:38px; height:22px; }
+  .toggle-switch input { display:none; }
+  .toggle-slider { position:absolute; inset:0; border-radius:9999px; background:#cbd5e1; cursor:pointer; transition:.2s; }
+  .toggle-switch input:checked + .toggle-slider { background:var(--color-accent); }
+  .toggle-slider:before { content:''; position:absolute; width:16px; height:16px; left:3px; bottom:3px; border-radius:50%; background:#fff; transition:.2s; }
+  .toggle-switch input:checked + .toggle-slider:before { transform:translateX(16px); }
+
+  /* ── Moderator Console ───────────────────────────────────────── */
+  .mod-layout { flex:1; overflow-y:auto; padding:var(--space-4); display:flex; flex-direction:column; gap:var(--space-4); }
+  .mod-section { background:var(--bg-elevated); border:1px solid var(--border-default); border-radius:var(--radius-lg); padding:var(--space-4); }
+  .mod-section h3 { margin:0 0 var(--space-3); font-size:.95rem; font-weight:700; }
+  .user-list { display:flex; flex-direction:column; gap:var(--space-2); }
+  .user-row {
+    display:flex; align-items:center; gap:var(--space-3); padding:8px var(--space-3);
+    background:var(--bg-surface); border:1px solid var(--border-default); border-radius:var(--radius-md);
+    font-size:.85rem;
+  }
+  .user-row .u-name { font-weight:600; flex:1; }
+  .role-badge { font-size:.7rem; padding:2px 8px; border-radius:9999px; font-weight:700; }
+  .role-admin     { background:#fef9c3; color:#713f12; }
+  .role-moderator { background:#dbeafe; color:#1e3a8a; }
+  .role-member    { background:#f1f5f9; color:#475569; }
+  .status-muted   { background:#fee2e2; color:#991b1b; font-size:.7rem; padding:2px 6px; border-radius:9999px; }
+  .status-banned  { background:#450a0a; color:#fca5a5; font-size:.7rem; padding:2px 6px; border-radius:9999px; }
+  .broadcast-form { display:flex; flex-direction:column; gap:var(--space-3); }
+  .broadcast-form textarea { min-height:80px; resize:vertical; }
+  .platform-chips { display:flex; flex-wrap:wrap; gap:var(--space-2); }
+  .chip {
+    padding:4px 10px; border:1px solid var(--border-default); border-radius:9999px;
+    font-size:.8rem; cursor:pointer; transition:.15s; user-select:none;
+  }
+  .chip.selected { background:var(--color-accent); color:#fff; border-color:var(--color-accent); }
+  .audit-log { font-family:var(--font-mono); font-size:.78rem; max-height:200px; overflow-y:auto; background:var(--bg-base); border-radius:var(--radius-sm); padding:var(--space-2) var(--space-3); }
+  .audit-row { padding:2px 0; border-bottom:1px solid var(--border-subtle); }
+  .audit-row .a-time { color:var(--text-muted); }
+  .audit-row .a-action { color:var(--color-accent); font-weight:700; }
+
+  /* ── Utility ─────────────────────────────────────────────────── */
+  .btn { padding:6px 14px; border-radius:var(--radius-md); border:1px solid var(--border-default); background:var(--bg-elevated); cursor:pointer; font-size:.85rem; transition:.15s; }
+  .btn:hover { background:var(--bg-surface-hover,var(--bg-surface)); }
+  .btn-primary { background:var(--color-accent); color:#fff; border-color:var(--color-accent); }
+  .btn-primary:hover { opacity:.9; }
+  .btn-danger { background:#ef4444; color:#fff; border-color:#ef4444; }
+  .btn-sm { padding:4px 10px; font-size:.8rem; }
+  input, select, textarea { background:var(--bg-base); border:1px solid var(--border-default); border-radius:var(--radius-md); padding:6px 10px; color:var(--text-primary); font-family:inherit; font-size:.875rem; width:100%; box-sizing:border-box; }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--color-accent); }
+  .empty-state { text-align:center; padding:var(--space-8); color:var(--text-muted); font-size:.9rem; }
+  .tag-success { color:#22c55e; }
+  .tag-warn    { color:#f59e0b; }
+  .tag-danger  { color:#ef4444; }
+  .loading { opacity:.5; pointer-events:none; }
+</style>
+</head>
+<body>
+<!-- ── Top bar ──────────────────────────────────────────────────────────── -->
+<div class="hub-topbar">
+  <span style="font-size:1.3rem">💬</span>
+  <h1>Communication Hub</h1>
+  <div class="spacer"></div>
+  <div class="user-badge">
+    <span class="status-dot"></span>
+    <span id="current-user-label">Loading…</span>
+  </div>
+  <a href="/ui/dashboard" class="btn btn-sm">← Dashboard</a>
+</div>
+
+<div class="hub-body">
+  <!-- ── Sidebar ────────────────────────────────────────────────────── -->
+  <nav class="hub-sidebar">
+    <div class="sidebar-section" style="margin-top:var(--space-3)">
+      <h3>Messaging</h3>
+      <div class="nav-item active" data-panel="im">
+        <span class="icon">💬</span> Instant Messages
+        <span class="badge" id="im-badge" style="display:none"></span>
+      </div>
+      <div class="nav-item" data-panel="email">
+        <span class="icon">📧</span> Email
+        <span class="badge" id="email-badge" style="display:none"></span>
+      </div>
+    </div>
+    <div class="sidebar-section" style="margin-top:var(--space-3)">
+      <h3>Calls</h3>
+      <div class="nav-item" data-panel="voice">
+        <span class="icon">📞</span> Voice Calls
+      </div>
+      <div class="nav-item" data-panel="video">
+        <span class="icon">📹</span> Video Calls
+      </div>
+    </div>
+    <div class="sidebar-section" style="margin-top:var(--space-3)">
+      <h3>Automation</h3>
+      <div class="nav-item" data-panel="automation">
+        <span class="icon">⚡</span> Automation Rules
+      </div>
+    </div>
+    <div class="sidebar-section" style="margin-top:var(--space-3)">
+      <h3>Moderation</h3>
+      <div class="nav-item" data-panel="moderator">
+        <span class="icon">🛡️</span> Moderator Console
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Main content ───────────────────────────────────────────────── -->
+  <main class="hub-main">
+
+    <!-- ════════════════════════════════ IM PANEL ════════════════════ -->
+    <section id="panel-im" class="panel active">
+      <div class="panel-header">
+        <h2>💬 Instant Messages</h2>
+        <div class="actions">
+          <button class="btn btn-primary btn-sm" onclick="openNewThreadModal()">+ New Thread</button>
+        </div>
+      </div>
+      <div class="chat-layout">
+        <div class="thread-list" id="thread-list">
+          <div class="empty-state" style="padding:var(--space-4);font-size:.8rem">No threads yet</div>
+        </div>
+        <div class="chat-pane">
+          <div id="no-thread-selected" class="empty-state" style="flex:1;display:flex;align-items:center;justify-content:center">
+            Select a thread to start chatting
+          </div>
+          <div id="active-chat" style="display:none;flex:1;flex-direction:column;">
+            <div class="messages-area" id="messages-area"></div>
+            <div class="chat-input-row">
+              <input type="text" id="msg-input" placeholder="Type a message… (Enter to send)" />
+              <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════ VOICE PANEL ══════════════════ -->
+    <section id="panel-voice" class="panel">
+      <div class="panel-header">
+        <h2>📞 Voice Calls</h2>
+        <div class="actions">
+          <button class="btn btn-primary btn-sm" onclick="openCallModal('voice')">+ New Call</button>
+        </div>
+      </div>
+      <div class="call-layout" id="voice-sessions">
+        <div class="empty-state">No voice sessions yet</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════ VIDEO PANEL ══════════════════ -->
+    <section id="panel-video" class="panel">
+      <div class="panel-header">
+        <h2>📹 Video Calls</h2>
+        <div class="actions">
+          <button class="btn btn-primary btn-sm" onclick="openCallModal('video')">+ New Call</button>
+        </div>
+      </div>
+      <div class="call-layout" id="video-sessions">
+        <div class="empty-state">No video sessions yet</div>
+      </div>
+    </section>
+
+    <!-- ═════════════════════════════════ EMAIL PANEL ════════════════ -->
+    <section id="panel-email" class="panel">
+      <div class="panel-header">
+        <h2>📧 Email</h2>
+        <div class="actions">
+          <button class="btn btn-primary btn-sm" onclick="showCompose()">✏️ Compose</button>
+        </div>
+      </div>
+      <div class="email-layout">
+        <div class="email-sidebar">
+          <div class="email-folder active" data-folder="inbox" onclick="switchFolder(this,'inbox')">📥 Inbox</div>
+          <div class="email-folder" data-folder="outbox" onclick="switchFolder(this,'outbox')">📤 Outbox</div>
+          <div class="email-folder" data-folder="compose" onclick="showCompose()">✏️ Compose</div>
+        </div>
+        <div class="email-list" id="email-list">
+          <div class="empty-state">No emails</div>
+        </div>
+        <div class="email-detail" id="email-detail">
+          <div class="empty-state">Select an email to read it</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ AUTOMATION PANEL ═════════════════ -->
+    <section id="panel-automation" class="panel">
+      <div class="panel-header">
+        <h2>⚡ Automation Rules</h2>
+        <div class="actions">
+          <button class="btn btn-primary btn-sm" onclick="openRuleModal()">+ New Rule</button>
+          <button class="btn btn-sm" onclick="loadRules()">↺ Refresh</button>
+        </div>
+      </div>
+      <div class="rules-layout" id="rules-list">
+        <div class="empty-state">No automation rules</div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════ MODERATOR PANEL ═════════════════ -->
+    <section id="panel-moderator" class="panel">
+      <div class="panel-header">
+        <h2>🛡️ Moderator Console</h2>
+        <div class="actions">
+          <button class="btn btn-sm" onclick="loadModData()">↺ Refresh</button>
+        </div>
+      </div>
+      <div class="mod-layout">
+
+        <!-- Broadcast -->
+        <div class="mod-section">
+          <h3>📢 Broadcast to Multiple Platforms</h3>
+          <div class="broadcast-form">
+            <div>
+              <label style="font-size:.8rem;font-weight:600;display:block;margin-bottom:4px">Platforms</label>
+              <div class="platform-chips" id="platform-chips">
+                <span class="chip selected" data-platform="im">IM</span>
+                <span class="chip selected" data-platform="email">Email</span>
+                <span class="chip" data-platform="slack">Slack</span>
+                <span class="chip" data-platform="discord">Discord</span>
+                <span class="chip" data-platform="matrix">Matrix</span>
+                <span class="chip" data-platform="sms">SMS</span>
+              </div>
+            </div>
+            <input type="text" id="broadcast-subject" placeholder="Subject (optional)" />
+            <textarea id="broadcast-msg" placeholder="Broadcast message…"></textarea>
+            <div style="display:flex;gap:var(--space-2)">
+              <select id="broadcast-priority" style="width:auto">
+                <option value="normal">Normal priority</option>
+                <option value="high">High priority</option>
+                <option value="urgent">Urgent</option>
+                <option value="low">Low priority</option>
+              </select>
+              <button class="btn btn-primary" onclick="sendBroadcast()">📢 Broadcast</button>
+            </div>
+            <div id="broadcast-status" style="font-size:.8rem"></div>
+          </div>
+        </div>
+
+        <!-- User Management -->
+        <div class="mod-section">
+          <h3>👥 User Management</h3>
+          <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-3)">
+            <input type="text" id="mod-user-input" placeholder="username" style="max-width:200px" />
+            <button class="btn btn-sm" onclick="modAction('warn')">⚠️ Warn</button>
+            <button class="btn btn-sm" onclick="modAction('mute')">🔇 Mute</button>
+            <button class="btn btn-sm" onclick="modAction('unmute')">🔊 Unmute</button>
+            <button class="btn btn-sm" onclick="modAction('kick')">👟 Kick</button>
+            <button class="btn btn-sm btn-danger" onclick="modAction('ban')">🚫 Ban</button>
+            <button class="btn btn-sm" onclick="modAction('unban')">✅ Unban</button>
+          </div>
+          <div class="user-list" id="mod-user-list">
+            <div class="empty-state">No users tracked yet</div>
+          </div>
+        </div>
+
+        <!-- Auto-moderation -->
+        <div class="mod-section">
+          <h3>🤖 Auto-Moderation</h3>
+          <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-3)">
+            <input type="text" id="blocked-word-input" placeholder="Add blocked word" style="max-width:200px" />
+            <button class="btn btn-sm btn-primary" onclick="addBlockedWord()">+ Add</button>
+          </div>
+          <div id="blocked-words-display" style="font-size:.85rem;margin-bottom:var(--space-3)"></div>
+          <div style="display:flex;gap:var(--space-2)">
+            <input type="text" id="automod-check-input" placeholder="Check a message…" />
+            <button class="btn btn-sm" onclick="checkAutomod()">🔍 Check</button>
+          </div>
+          <div id="automod-result" style="font-size:.85rem;margin-top:var(--space-2)"></div>
+        </div>
+
+        <!-- Audit Log -->
+        <div class="mod-section">
+          <h3>📋 Audit Log</h3>
+          <div class="audit-log" id="audit-log">
+            <div class="empty-state" style="padding:var(--space-2)">No entries</div>
+          </div>
+        </div>
+
+        <!-- Broadcast History -->
+        <div class="mod-section">
+          <h3>📜 Broadcast History</h3>
+          <div class="audit-log" id="broadcast-history">
+            <div class="empty-state" style="padding:var(--space-2)">No broadcasts yet</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ── Modals ──────────────────────────────────────────────────────────── -->
+<div id="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center">
+  <div id="modal-box" style="background:var(--bg-surface);border-radius:var(--radius-xl);padding:var(--space-6);min-width:360px;max-width:500px;width:90%">
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script src="static/murphy-components.js"></script>
+<script src="static/murphy_auth.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════════════
+   Communication Hub — frontend logic
+   ══════════════════════════════════════════════════════════════ */
+
+const API = '/api/comms';
+const MAPI = '/api/moderator';
+let currentUser = '';
+let activeThread = null;
+let emailFolder = 'inbox';
+let pollTimer = null;
+
+// ── Init ────────────────────────────────────────────────────────
+
+async function init() {
+  try {
+    const me = await fetch('/api/profiles/me').then(r => r.json());
+    currentUser = me.email || me.username || me.account_id || 'guest@murphy.systems';
+  } catch {
+    currentUser = 'guest@murphy.systems';
+  }
+  document.getElementById('current-user-label').textContent = currentUser;
+  loadThreads();
+  loadModerationData();
+  startPolling();
+}
+
+// ── Nav ─────────────────────────────────────────────────────────
+
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    const id = 'panel-' + el.dataset.panel;
+    document.getElementById(id).classList.add('active');
+    if (el.dataset.panel === 'voice') loadSessions('voice');
+    if (el.dataset.panel === 'video') loadSessions('video');
+    if (el.dataset.panel === 'email') loadEmails();
+    if (el.dataset.panel === 'automation') loadRules();
+    if (el.dataset.panel === 'moderator') loadModData();
+  });
+});
+
+// ── Polling ─────────────────────────────────────────────────────
+
+function startPolling() {
+  pollTimer = setInterval(() => {
+    if (activeThread) fetchMessages(activeThread);
+  }, 4000);
+}
+
+// ── IM Threads ──────────────────────────────────────────────────
+
+async function loadThreads() {
+  const res = await fetch(`${API}/im/threads?user=${encodeURIComponent(currentUser)}`).then(r=>r.json()).catch(()=>({threads:[]}));
+  const list = document.getElementById('thread-list');
+  if (!res.threads || res.threads.length === 0) {
+    list.innerHTML = '<div class="empty-state" style="padding:var(--space-4);font-size:.8rem">No threads yet</div>';
+    return;
+  }
+  list.innerHTML = res.threads.map(t => `
+    <div class="thread-item ${t.id === activeThread ? 'active':''}" onclick="selectThread('${t.id}','${escHtml(t.name)}')">
+      <div class="t-name">${escHtml(t.name)}</div>
+      <div class="t-meta">${t.type} · ${t.participants.length} members</div>
+    </div>
+  `).join('');
+}
+
+function selectThread(tid, name) {
+  activeThread = tid;
+  document.getElementById('no-thread-selected').style.display = 'none';
+  document.getElementById('active-chat').style.display = 'flex';
+  loadThreads();
+  fetchMessages(tid);
+}
+
+async function fetchMessages(tid) {
+  const res = await fetch(`${API}/im/threads/${tid}/messages?limit=80`).then(r=>r.json()).catch(()=>({messages:[]}));
+  const area = document.getElementById('messages-area');
+  if (!res.messages || res.messages.length === 0) {
+    area.innerHTML = '<div class="empty-state">No messages yet — say hello!</div>';
+    return;
+  }
+  area.innerHTML = res.messages.map(m => {
+    const mine = m.sender === currentUser;
+    const flag = m.automod && m.automod.flagged ? ' flagged' : '';
+    return `<div class="msg-bubble ${mine?'mine':'theirs'}${flag}">
+      ${!mine ? `<div class="msg-sender">${escHtml(m.sender)}</div>` : ''}
+      <div>${escHtml(m.content)}</div>
+      <div class="msg-time">${formatTime(m.created)}${flag ? ' ⚠️' : ''}</div>
+    </div>`;
+  }).join('');
+  area.scrollTop = area.scrollHeight;
+}
+
+async function sendMessage() {
+  const input = document.getElementById('msg-input');
+  const content = input.value.trim();
+  if (!content || !activeThread) return;
+  input.value = '';
+  await fetch(`${API}/im/threads/${activeThread}/messages`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ sender: currentUser, content })
+  });
+  fetchMessages(activeThread);
+}
+
+document.getElementById('msg-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+function openNewThreadModal() {
+  showModal(`
+    <h3 style="margin:0 0 var(--space-4)">New Thread</h3>
+    <div style="display:flex;flex-direction:column;gap:var(--space-3)">
+      <input id="m-thread-name" placeholder="Thread name (optional)" />
+      <input id="m-participants" placeholder="Participants (comma-separated)" />
+      <select id="m-thread-type"><option value="direct">Direct</option><option value="group">Group</option></select>
+      <div style="display:flex;gap:var(--space-2);justify-content:flex-end">
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="createThread()">Create</button>
+      </div>
+    </div>
+  `);
+}
+
+async function createThread() {
+  const name = document.getElementById('m-thread-name').value.trim();
+  const rawParts = document.getElementById('m-participants').value.trim();
+  const participants = rawParts.split(',').map(s=>s.trim()).filter(Boolean);
+  if (!participants.includes(currentUser)) participants.unshift(currentUser);
+  const type = document.getElementById('m-thread-type').value;
+  await fetch(`${API}/im/threads`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ participants, name: name || undefined, type })
+  });
+  closeModal();
+  loadThreads();
+}
+
+// ── Voice / Video Calls ─────────────────────────────────────────
+
+async function loadSessions(type) {
+  const res = await fetch(`${API}/${type}/sessions?user=${encodeURIComponent(currentUser)}`).then(r=>r.json()).catch(()=>({sessions:[]}));
+  const container = document.getElementById(`${type}-sessions`);
+  if (!res.sessions || res.sessions.length === 0) {
+    container.innerHTML = '<div class="empty-state">No ' + type + ' sessions</div>';
+    return;
+  }
+  container.innerHTML = res.sessions.map(s => `
+    <div class="session-row">
+      <span>${type === 'voice' ? '📞' : '📹'}</span>
+      <span><b>${escHtml(s.caller)}</b> → ${(s.participants||[]).map(escHtml).join(', ')}</span>
+      <span class="sess-state ${s.state}">${s.state}</span>
+      ${s.duration_seconds != null ? `<span>${s.duration_seconds}s</span>` : ''}
+      <div class="sess-actions">
+        ${s.state === 'ringing' ? `<button class="btn btn-sm btn-primary" onclick="answerCall('${type}','${s.id}')">Answer</button>
+          <button class="btn btn-sm btn-danger" onclick="rejectCall('${type}','${s.id}')">Reject</button>` : ''}
+        ${s.state === 'active' ? `<button class="btn btn-sm" onclick="holdCall('${type}','${s.id}')">Hold</button>
+          <button class="btn btn-sm btn-danger" onclick="endCall('${type}','${s.id}')">End</button>` : ''}
+        ${s.state === 'on_hold' ? `<button class="btn btn-sm btn-danger" onclick="endCall('${type}','${s.id}')">End</button>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function openCallModal(type) {
+  showModal(`
+    <h3 style="margin:0 0 var(--space-4)">${type === 'voice' ? '📞' : '📹'} New ${type} call</h3>
+    <div style="display:flex;flex-direction:column;gap:var(--space-3)">
+      <input id="m-call-participants" placeholder="Participants (comma-separated usernames)" />
+      <div style="display:flex;gap:var(--space-2);justify-content:flex-end">
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="startCall('${type}')">Call</button>
+      </div>
+    </div>
+  `);
+}
+
+async function startCall(type) {
+  const raw = document.getElementById('m-call-participants').value.trim();
+  const participants = raw.split(',').map(s=>s.trim()).filter(Boolean);
+  await fetch(`${API}/${type}/sessions`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ caller: currentUser, participants })
+  });
+  closeModal();
+  loadSessions(type);
+}
+
+async function answerCall(type, sid) {
+  await fetch(`${API}/${type}/sessions/${sid}/answer`, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+  loadSessions(type);
+}
+async function rejectCall(type, sid) {
+  await fetch(`${API}/${type}/sessions/${sid}/reject`, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+  loadSessions(type);
+}
+async function holdCall(type, sid) {
+  await fetch(`${API}/${type}/sessions/${sid}/hold`, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+  loadSessions(type);
+}
+async function endCall(type, sid) {
+  await fetch(`${API}/${type}/sessions/${sid}/end`, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+  loadSessions(type);
+}
+
+// ── Email ────────────────────────────────────────────────────────
+
+async function loadEmails() {
+  const res = await fetch(`${API}/email/${emailFolder}?user=${encodeURIComponent(currentUser)}`).then(r=>r.json()).catch(()=>({emails:[]}));
+  const list = document.getElementById('email-list');
+  const emails = res.emails || [];
+  if (emails.length === 0) {
+    list.innerHTML = '<div class="empty-state">Empty</div>';
+    return;
+  }
+  list.innerHTML = emails.map(e => `
+    <div class="email-item" onclick="viewEmail('${e.id}','${emailFolder}')">
+      <div class="e-subject">${escHtml(e.subject || '(no subject)')}</div>
+      <div class="e-from">${escHtml(emailFolder === 'inbox' ? e.sender : 'To: ' + (e.recipients||[]).join(', '))}</div>
+      <div class="t-meta" style="font-size:.7rem;color:var(--text-muted)">${formatTime(e.created)} · ${e.priority}</div>
+    </div>
+  `).join('');
+}
+
+async function viewEmail(eid) {
+  const res = await fetch(`${API}/email/${eid}`).then(r=>r.json()).catch(()=>({}));
+  const email = res.email || {};
+  document.getElementById('email-detail').innerHTML = `
+    <h2>${escHtml(email.subject || '(no subject)')}</h2>
+    <div class="e-meta">
+      <b>From:</b> ${escHtml(email.sender)} &nbsp;
+      <b>To:</b> ${(email.recipients||[]).map(escHtml).join(', ')} &nbsp;
+      <b>Date:</b> ${formatTime(email.created)} &nbsp;
+      <b>Priority:</b> ${email.priority}
+      ${email.automod && email.automod.flagged ? '<span class="tag-danger"> ⚠️ Flagged by automod</span>' : ''}
+    </div>
+    <div class="e-body">${escHtml(email.body || '')}</div>
+  `;
+  // Mark as read
+  fetch(`${API}/email/${eid}/read`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ user: currentUser })
+  });
+}
+
+function switchFolder(el, folder) {
+  document.querySelectorAll('.email-folder').forEach(f => f.classList.remove('active'));
+  el.classList.add('active');
+  emailFolder = folder;
+  loadEmails();
+}
+
+function showCompose() {
+  document.getElementById('email-detail').innerHTML = `
+    <div class="compose-form">
+      <h2 style="margin:0">✏️ New Email</h2>
+      <input id="c-to" placeholder="To (comma-separated)" />
+      <input id="c-cc" placeholder="CC (optional)" />
+      <input id="c-subject" placeholder="Subject" />
+      <select id="c-priority">
+        <option value="normal">Normal</option><option value="high">High</option>
+        <option value="urgent">Urgent</option><option value="low">Low</option>
+      </select>
+      <textarea id="c-body" placeholder="Message body…"></textarea>
+      <div style="display:flex;gap:var(--space-2)">
+        <button class="btn btn-primary" onclick="sendEmail()">📤 Send</button>
+        <button class="btn" onclick="loadEmails()">Cancel</button>
+      </div>
+      <div id="compose-status" style="font-size:.8rem"></div>
+    </div>
+  `;
+}
+
+async function sendEmail() {
+  const to = document.getElementById('c-to').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const cc = document.getElementById('c-cc').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const subject = document.getElementById('c-subject').value.trim();
+  const body = document.getElementById('c-body').value.trim();
+  const priority = document.getElementById('c-priority').value;
+  if (!to.length || !body) { document.getElementById('compose-status').innerHTML = '<span class="tag-danger">To and body are required</span>'; return; }
+  const res = await fetch(`${API}/email/send`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ sender: currentUser, recipients: to, cc, subject, body, priority })
+  }).then(r=>r.json()).catch(()=>({ok:false}));
+  if (res.ok) {
+    document.getElementById('compose-status').innerHTML = '<span class="tag-success">✓ Sent</span>';
+    setTimeout(() => { emailFolder = 'outbox'; loadEmails(); }, 1000);
+  } else {
+    document.getElementById('compose-status').innerHTML = '<span class="tag-danger">Failed to send</span>';
+  }
+}
+
+// ── Automation Rules ─────────────────────────────────────────────
+
+async function loadRules() {
+  const res = await fetch('/api/comms/automate/rules').then(r=>r.json()).catch(()=>({rules:[]}));
+  const container = document.getElementById('rules-list');
+  const rules = res.rules || [];
+  if (rules.length === 0) {
+    container.innerHTML = '<div class="empty-state">No automation rules defined</div>';
+    return;
+  }
+  container.innerHTML = rules.map(r => `
+    <div class="rule-row">
+      <div>
+        <div class="rule-name">${escHtml(r.name)}</div>
+        <div class="rule-trigger">${r.trigger} · ${r.action}</div>
+      </div>
+      <span class="rule-channel">${r.channel}</span>
+      <label class="toggle-switch">
+        <input type="checkbox" ${r.enabled ? 'checked' : ''} onchange="toggleRule('${r.id}', this.checked)" />
+        <span class="toggle-slider"></span>
+      </label>
+      <button class="btn btn-sm btn-danger" onclick="deleteRule('${r.id}')">Delete</button>
+    </div>
+  `).join('');
+}
+
+async function toggleRule(rid, enabled) {
+  await fetch(`/api/comms/automate/rules/${rid}/toggle`, {
+    method:'PATCH', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ enabled })
+  });
+}
+
+async function deleteRule(rid) {
+  if (!confirm('Delete this rule?')) return;
+  await fetch(`/api/comms/automate/rules/${rid}`, { method:'DELETE' });
+  loadRules();
+}
+
+function openRuleModal() {
+  showModal(`
+    <h3 style="margin:0 0 var(--space-4)">New Automation Rule</h3>
+    <div style="display:flex;flex-direction:column;gap:var(--space-3)">
+      <input id="r-name" placeholder="Rule name" />
+      <select id="r-trigger">
+        <option value="on_message">On message</option>
+        <option value="on_email">On email</option>
+        <option value="on_missed_call">On missed call</option>
+        <option value="on_voicemail">On voicemail</option>
+      </select>
+      <input id="r-channel" placeholder='Channel (* for all, or "im", "email"…)' value="*" />
+      <input id="r-action" placeholder='Action (e.g. notify, archive, escalate)' />
+      <input id="r-keyword" placeholder='Keyword condition (optional)' />
+      <div style="display:flex;gap:var(--space-2);justify-content:flex-end">
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="createRule()">Create</button>
+      </div>
+    </div>
+  `);
+}
+
+async function createRule() {
+  const name    = document.getElementById('r-name').value.trim();
+  const trigger = document.getElementById('r-trigger').value;
+  const channel = document.getElementById('r-channel').value.trim() || '*';
+  const action  = document.getElementById('r-action').value.trim();
+  const keyword = document.getElementById('r-keyword').value.trim();
+  if (!name || !action) return;
+  await fetch('/api/comms/automate/rules', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ name, trigger, channel, action, conditions: keyword ? {keyword} : {} })
+  });
+  closeModal();
+  loadRules();
+}
+
+// ── Moderator Console ─────────────────────────────────────────────
+
+async function loadModData() {
+  loadModerationData();
+  loadAuditLog();
+  loadBroadcastHistory();
+  loadBlockedWords();
+}
+
+async function loadModerationData() {
+  const res = await fetch(`${MAPI}/users`).then(r=>r.json()).catch(()=>({users:[]}));
+  const users = res.users || [];
+  const ul = document.getElementById('mod-user-list');
+  if (users.length === 0) {
+    ul.innerHTML = '<div class="empty-state">No users tracked yet</div>';
+    return;
+  }
+  ul.innerHTML = users.map(u => `
+    <div class="user-row">
+      <span class="u-name">${escHtml(u.user)}</span>
+      <span class="role-badge role-${u.role||'member'}">${u.role||'member'}</span>
+      ${u.muted  ? '<span class="status-muted">MUTED</span>'  : ''}
+      ${u.banned ? '<span class="status-banned">BANNED</span>' : ''}
+      <span style="font-size:.75rem;color:var(--text-muted)">${u.warnings||0} warnings</span>
+    </div>
+  `).join('');
+}
+
+async function modAction(action) {
+  const user = document.getElementById('mod-user-input').value.trim();
+  if (!user) { (function(){var el=document.querySelector('#mod-user-input,[id*=username],[placeholder*=username]');if(el){el.style.border='1px solid #ff4444';el.placeholder='⚠ Enter username first';el.focus();setTimeout(function(){el.style.border='';el.placeholder=el.placeholder.replace('⚠ ','');},3000);}else{console.warn('Enter a username first');}})(); return; }
+  const reason = action === 'warn' || action === 'mute' || action === 'ban'
+    ? prompt('Reason?') || 'No reason given'
+    : '';
+  const url = `${MAPI}/users/${encodeURIComponent(user)}/${action}`;
+  await fetch(url, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ reason, by: currentUser })
+  });
+  loadModerationData();
+  loadAuditLog();
+}
+
+async function loadBlockedWords() {
+  const res = await fetch(`${MAPI}/automod/words`).then(r=>r.json()).catch(()=>({blocked_words:{default:[],custom:[]}}));
+  const bw = res.blocked_words || {};
+  const custom = bw.custom || [];
+  const div = document.getElementById('blocked-words-display');
+  div.innerHTML = `<b>Default:</b> ${(bw.default||[]).join(', ')} <br><b>Custom:</b> ` +
+    (custom.length ? custom.map(w => `<span style="background:var(--bg-elevated);border-radius:var(--radius-sm);padding:1px 6px;margin:2px">${escHtml(w)} <a href="#" onclick="removeBlockedWord('${escHtml(w)}');return false" style="color:var(--color-danger)">×</a></span>`).join(' ') : 'none');
+}
+
+async function addBlockedWord() {
+  const word = document.getElementById('blocked-word-input').value.trim();
+  if (!word) return;
+  await fetch(`${MAPI}/automod/words`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ words:[word], by: currentUser })
+  });
+  document.getElementById('blocked-word-input').value = '';
+  loadBlockedWords();
+}
+
+async function removeBlockedWord(word) {
+  await fetch(`${MAPI}/automod/words/${encodeURIComponent(word)}?by=${encodeURIComponent(currentUser)}`, { method:'DELETE' });
+  loadBlockedWords();
+}
+
+async function checkAutomod() {
+  const text = document.getElementById('automod-check-input').value.trim();
+  if (!text) return;
+  const res = await fetch(`${MAPI}/automod/check`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ text })
+  }).then(r=>r.json()).catch(()=>({automod:{}}));
+  const am = res.automod || {};
+  const div = document.getElementById('automod-result');
+  div.innerHTML = am.flagged
+    ? `<span class="tag-danger">⚠️ Flagged — ${am.reason} — matches: ${(am.matches||[]).join(', ')}</span>`
+    : `<span class="tag-success">✓ Clean — no violations detected</span>`;
+}
+
+document.querySelectorAll('.chip').forEach(c => {
+  c.addEventListener('click', () => c.classList.toggle('selected'));
+});
+
+async function sendBroadcast() {
+  const message = document.getElementById('broadcast-msg').value.trim();
+  if (!message) { document.getElementById('broadcast-status').innerHTML = '<span class="tag-danger">Message is required</span>'; return; }
+  const platforms = [...document.querySelectorAll('.chip.selected')].map(c => c.dataset.platform);
+  const subject  = document.getElementById('broadcast-subject').value.trim() || null;
+  const priority = document.getElementById('broadcast-priority').value;
+  const res = await fetch(`${MAPI}/broadcast`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ message, platforms, subject, priority, sender: currentUser })
+  }).then(r=>r.json()).catch(()=>({ok:false}));
+  if (res.ok) {
+    document.getElementById('broadcast-status').innerHTML = '<span class="tag-success">✓ Broadcast delivered</span>';
+    document.getElementById('broadcast-msg').value = '';
+    loadBroadcastHistory();
+    loadAuditLog();
+  } else {
+    document.getElementById('broadcast-status').innerHTML = `<span class="tag-danger">✗ ${res.error || 'Failed'}</span>`;
+  }
+}
+
+async function loadAuditLog() {
+  const res = await fetch(`${MAPI}/audit?limit=30`).then(r=>r.json()).catch(()=>({audit_log:[]}));
+  const log = (res.audit_log || []).reverse();
+  const div = document.getElementById('audit-log');
+  div.innerHTML = log.length === 0
+    ? '<div class="empty-state" style="padding:var(--space-2)">No entries</div>'
+    : log.map(e => `<div class="audit-row"><span class="a-time">${formatTime(e.timestamp)}</span> <span class="a-action">[${escHtml(e.action)}]</span> <b>${escHtml(e.actor)}</b> → ${escHtml(e.target)}${e.reason ? ' — '+escHtml(e.reason):''}</div>`).join('');
+}
+
+async function loadBroadcastHistory() {
+  const res = await fetch(`${MAPI}/broadcast/history?limit=10`).then(r=>r.json()).catch(()=>({broadcasts:[]}));
+  const bh = (res.broadcasts || []).reverse();
+  const div = document.getElementById('broadcast-history');
+  div.innerHTML = bh.length === 0
+    ? '<div class="empty-state" style="padding:var(--space-2)">No broadcasts yet</div>'
+    : bh.map(b => `<div class="audit-row"><span class="a-time">${formatTime(b.created)}</span> <b>${escHtml(b.sender)}</b>: ${escHtml((b.message||'').slice(0,60))} → ${(b.platforms||[]).join(', ')}</div>`).join('');
+}
+
+// ── Modal helpers ────────────────────────────────────────────────
+
+function showModal(html) {
+  document.getElementById('modal-content').innerHTML = html;
+  const ov = document.getElementById('modal-overlay');
+  ov.style.display = 'flex';
+}
+function closeModal() {
+  document.getElementById('modal-overlay').style.display = 'none';
+}
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+});
+
+// ── Utilities ────────────────────────────────────────────────────
+
+function escHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function formatTime(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  } catch { return iso; }
+}
+
+// ── Boot ─────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

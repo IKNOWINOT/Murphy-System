@@ -1,0 +1,14 @@
+{
+    "success": true,
+    "session_id": "default",
+    "reply_text": "I'm Murphy \u2014 your professional automation assistant. I can help with onboarding, integrations, execution plans, and more.\n\nTry:\n\u2022 **start interview** \u2014 guided onboarding (I'll learn your needs)\n\u2022 **help** \u2014 see all commands\n\u2022 **status** \u2014 system health\n\u2022 **plan** \u2014 execution plan overview\n\u2022 **api keys** \u2014 see API signup links for integrations\n\nOr just describe what you'd like to accomplish and I'll guide you.",
+    "response": "I'm Murphy \u2014 your professional automation assistant. I can help with onboarding, integrations, execution plans, and more.\n\nTry:\n\u2022 **start interview** \u2014 guided onboarding (I'll learn your needs)\n\u2022 **help** \u2014 see all commands\n\u2022 **status** \u2014 system health\n\u2022 **plan** \u2014 execution plan overview\n\u2022 **api keys** \u2014 see API signup links for integrations\n\nOr just describe what you'd like to accomplish and I'll guide you.",
+    "message": "I'm Murphy \u2014 your professional automation assistant. I can help with onboarding, integrations, execution plans, and more.\n\nTry:\n\u2022 **start interview** \u2014 guided onboarding (I'll learn your needs)\n\u2022 **help** \u2014 see all commands\n\u2022 **status** \u2014 system health\n\u2022 **plan** \u2014 execution plan overview\n\u2022 **api keys** \u2014 see API signup links for integrations\n\nOr just describe what you'd like to accomplish and I'll guide you.",
+    "intent": "general",
+    "mode": "onboard",
+    "suggested_commands": [
+        "help",
+        "start interview",
+        "status"
+    ]
+}

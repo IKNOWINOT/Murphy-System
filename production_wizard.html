@@ -1,0 +1,1877 @@
+<!--
+  Murphy System — Production Wizard (PROD-001)
+  © 2020 Inoni Limited Liability Company by Corey Post
+  License: BSL 1.1 (Business Source License 1.1)
+  See LICENSE file in repository root for full terms.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Production Wizard</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  .prod-step-indicator {
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+    margin-bottom: var(--space-6);
+    flex-wrap: wrap;
+  }
+  .prod-step {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    background: var(--color-surface-raised);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
+    transition: all 0.2s;
+  }
+  .prod-step.active {
+    background: var(--color-accent);
+    color: #fff;
+    border-color: var(--color-accent);
+  }
+  .prod-step.completed {
+    background: var(--color-success-subtle);
+    color: var(--color-success);
+    border-color: var(--color-success);
+  }
+  .prod-step-connector {
+    width: 24px;
+    height: 2px;
+    background: var(--color-border);
+    flex-shrink: 0;
+  }
+  .lifecycle-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .lifecycle-created    { background: var(--color-surface-raised); color: var(--color-text-muted); }
+  .lifecycle-in_review  { background: #fef3c7; color: #92400e; }
+  .lifecycle-approved   { background: var(--color-success-subtle); color: var(--color-success); }
+  .lifecycle-in_progress{ background: #dbeafe; color: #1e40af; }
+  .lifecycle-delivered  { background: #f3e8ff; color: #6b21a8; }
+  .lifecycle-verified   { background: var(--color-success-subtle); color: var(--color-success); font-weight: 700; }
+  .prod-card {
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    margin-bottom: var(--space-3);
+    transition: border-color 0.2s;
+    cursor: pointer;
+  }
+  .prod-card:hover { border-color: var(--color-accent); }
+  .prod-card.selected { border-color: var(--color-accent); background: var(--color-accent-subtle); }
+  .gate-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border);
+    margin: 2px;
+  }
+  .gate-chip.required { border-color: var(--color-accent); color: var(--color-accent); }
+  /* ── Layout fix: clear fixed topbar + activity log panel ── */
+  .murphy-main {
+    padding-top: 64px;
+    padding-bottom: 280px;
+    overflow-y: auto;
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+  .murphy-view {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--space-6, 1.5rem);
+  }
+  /* ── Timeline graph ── */
+  #timeline-graph {
+    background: var(--color-surface-raised, #111);
+    border: 1px solid var(--color-border, #2a2a2a);
+    border-radius: var(--radius-lg, 8px);
+    width: 100%;
+    height: 220px;
+    overflow: hidden;
+    position: relative;
+  }
+  #timeline-graph svg { display: block; width: 100%; height: 100%; }
+  #prod-log {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+    font-size: 12px;
+    background: #0a0a0a;
+    color: #00ff41;
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+  }
+  /* ── Production Timeline ──────────────────────────────────── */
+  .prod-timeline {
+    width: 100%;
+    overflow-x: auto;
+    background: #0a0a0a;
+    position: relative;
+    min-height: 130px;
+  }
+  .prod-timeline-svg {
+    display: block;
+    width: 100%;
+    min-height: 120px;
+  }
+  .prod-timeline-node {
+    cursor: pointer;
+  }
+  .prod-timeline-node circle {
+    transition: transform 0.15s, opacity 0.15s;
+    transform-origin: center;
+    transform-box: fill-box;
+  }
+  .prod-timeline-node:hover circle {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+  .prod-timeline-tooltip {
+    position: absolute;
+    background: #111;
+    border: 1px solid #00ff41;
+    color: #00ff41;
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 200;
+    white-space: nowrap;
+    display: none;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* ── Heatmap Strip ────────────────────────────────────────── */
+  .prod-heatmap-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    padding: var(--space-3) var(--space-4);
+    background: #0a0a0a;
+    min-height: 28px;
+  }
+  .prod-heatmap-cell {
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: transform 0.1s;
+    flex-shrink: 0;
+  }
+  .prod-heatmap-cell:hover {
+    transform: scale(1.4);
+    z-index: 1;
+  }
+  /* ── Activity Feed ────────────────────────────────────────── */
+  .prod-activity-entry {
+    display: block;
+    animation: prodSlideIn 0.3s ease;
+  }
+  @keyframes prodSlideIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .prod-activity-proposal  { color: #a3a3a3; }
+  .prod-activity-in_review { color: #fbbf24; }
+  .prod-activity-approved  { color: #34d399; }
+  .prod-activity-in_progress { color: #60a5fa; }
+  .prod-activity-delivered { color: #c084fc; }
+  .prod-activity-verified  { color: #00ff41; font-weight: 700; }
+  /* ── Layout fixes: clear fixed topbar and fixed activity log ── */
+  .murphy-main {
+    padding-top: 80px;    /* clear the fixed topbar */
+    padding-bottom: 260px; /* clear the fixed activity-log panel */
+    min-height: 100vh;
+    overflow-y: auto;
+  }
+  .murphy-view {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--space-4);
+  }
+  /* ── Production timeline graph ─────────────────────────────── */
+  #timeline-section {
+    margin: var(--space-6) 0;
+  }
+  #timeline-section h3 {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: var(--space-3);
+  }
+  #timeline-canvas-wrapper {
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    overflow-x: auto;
+    position: relative;
+    min-height: 180px;
+  }
+  #timeline-svg {
+    display: block;
+    width: 100%;
+    min-width: 600px;
+  }
+  #timeline-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-8);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+  }
+  .tl-node {
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .tl-node:hover { opacity: 0.8; }
+  .tl-tooltip {
+    position: fixed;
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 6px 10px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 9999;
+    display: none;
+    max-width: 220px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body style="--accent: #10b981;">
+
+<a href="#content" class="murphy-skip-link">Skip to content</a>
+
+<!-- ============================================================
+     SIDEBAR
+     ============================================================ -->
+<nav class="murphy-sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+  <div class="murphy-sidebar-logo">
+    <svg width="24" height="24"><use href="static/murphy-icons.svg#icon-zap"></use></svg>
+    <span>Production</span>
+  </div>
+
+  <div class="murphy-sidebar-nav" id="sidebar-nav">
+    <div class="murphy-sidebar-section">Overview</div>
+    <a href="#dashboard" class="murphy-sidebar-item active" data-view="dashboard" aria-label="Dashboard">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-dashboard"></use></svg>
+      <span>Dashboard</span>
+    </a>
+    <a href="#queue" class="murphy-sidebar-item" data-view="queue" aria-label="Production Queue">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-layers"></use></svg>
+      <span>Queue</span>
+    </a>
+
+    <div class="murphy-sidebar-section">Wizard</div>
+    <a href="#proposal" class="murphy-sidebar-item" data-view="proposal" aria-label="New Proposal">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-file-text"></use></svg>
+      <span>New Proposal</span>
+    </a>
+    <a href="#workorder" class="murphy-sidebar-item" data-view="workorder" aria-label="Work Order">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-play"></use></svg>
+      <span>Work Order</span>
+    </a>
+    <a href="#validate" class="murphy-sidebar-item" data-view="validate" aria-label="Validate">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-check"></use></svg>
+      <span>Validate</span>
+    </a>
+    <a href="#profiles" class="murphy-sidebar-item" data-view="profiles" aria-label="Profiles">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-database"></use></svg>
+      <span>Profiles</span>
+    </a>
+
+    <div class="murphy-sidebar-section">Quality</div>
+    <a href="#hitl" class="murphy-sidebar-item" data-view="hitl" aria-label="HITL Review">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-bell"></use></svg>
+      <span>HITL Review</span>
+    </a>
+    <a href="#schedule" class="murphy-sidebar-item" data-view="schedule" aria-label="Automation Schedule">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-activity"></use></svg>
+      <span>Schedule</span>
+    </a>
+    <a href="#deliverables" class="murphy-sidebar-item" data-view="deliverables" aria-label="Deliverables">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-layers"></use></svg>
+      <span>Deliverables</span>
+    </a>
+
+    <div class="murphy-sidebar-section">External Links</div>
+    <a href="/ui/terminal-unified" class="murphy-sidebar-item" target="_blank" rel="noopener">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-zap"></use></svg>
+      <span>Unified Hub</span>
+    </a>
+    <a href="/ui/matrix" class="murphy-sidebar-item" target="_blank" rel="noopener">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-message-circle"></use></svg>
+      <span>Matrix Bridge</span>
+    </a>
+    <a href="/ui/compliance" class="murphy-sidebar-item" target="_blank" rel="noopener">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-lock"></use></svg>
+      <span>Compliance</span>
+    </a>
+  </div>
+
+  <div class="murphy-sidebar-footer">
+    <span class="text-xs text-muted">PROD-001 · Murphy System</span>
+  </div>
+</nav>
+
+<!-- ============================================================
+     TOPBAR
+     ============================================================ -->
+<header class="murphy-topbar" role="banner" aria-label="Top bar">
+  <div class="murphy-topbar-left">
+    <button class="murphy-btn murphy-btn-icon" id="btn-sidebar-toggle" aria-label="Toggle sidebar">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-menu"></use></svg>
+    </button>
+    <h1 class="murphy-topbar-title">Production Wizard</h1>
+  </div>
+  <div class="murphy-topbar-right">
+    <span class="murphy-badge murphy-badge-success" id="api-status-badge">Connecting…</span>
+    <button class="murphy-btn murphy-btn-icon" id="btn-theme-toggle" aria-label="Toggle theme">
+      <svg width="18" height="18" id="theme-icon"><use href="static/murphy-icons.svg#icon-moon"></use></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================================
+     MAIN CONTENT
+     ============================================================ -->
+<main class="murphy-main" id="content">
+
+<!-- ── AUTH ERROR BANNER ──────────────────────────────────────── -->
+<div id="auth-error-banner" style="display:none;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:12px 16px;margin:12px 16px;color:#991b1b;font-size:0.9rem;">
+  <strong>Authentication required.</strong>
+  Please <a href="/ui/login?next=/ui/production-wizard" style="color:#7f1d1d;font-weight:600;text-decoration:underline;">log in</a> to access the Production Wizard.
+</div>
+
+  <!-- ── DASHBOARD VIEW ─────────────────────────────────────── -->
+  <div id="view-dashboard" class="murphy-view active">
+    <div class="murphy-page-header">
+      <h2 class="murphy-page-title">Production Overview</h2>
+      <p class="murphy-page-subtitle">PROD-001 — Submit proposals, validate work orders, and track the full production lifecycle.</p>
+    </div>
+
+    <!-- Step Indicator -->
+    <div class="prod-step-indicator" aria-label="Production lifecycle steps">
+      <div class="prod-step" id="step-proposal">
+        <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-file-text"></use></svg>
+        1. Proposal
+      </div>
+      <div class="prod-step-connector"></div>
+      <div class="prod-step" id="step-validate-proposal">
+        <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-check"></use></svg>
+        2. Validate
+      </div>
+      <div class="prod-step-connector"></div>
+      <div class="prod-step" id="step-workorder">
+        <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-play"></use></svg>
+        3. Work Order
+      </div>
+      <div class="prod-step-connector"></div>
+      <div class="prod-step" id="step-deliver">
+        <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-activity"></use></svg>
+        4. Deliver
+      </div>
+      <div class="prod-step-connector"></div>
+      <div class="prod-step" id="step-verify">
+        <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-zap"></use></svg>
+        5. Verified ✓
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="murphy-grid murphy-grid-4" style="margin-bottom:var(--space-6)">
+      <div class="murphy-stat-card">
+        <div class="murphy-stat-value" id="stat-queue">—</div>
+        <div class="murphy-stat-label">Queue Items</div>
+      </div>
+      <div class="murphy-stat-card">
+        <div class="murphy-stat-value" id="stat-deliverables">—</div>
+        <div class="murphy-stat-label">Deliverables</div>
+      </div>
+      <div class="murphy-stat-card">
+        <div class="murphy-stat-value" id="stat-hitl-pending">—</div>
+        <div class="murphy-stat-label">HITL Pending</div>
+      </div>
+      <div class="murphy-stat-card">
+        <div class="murphy-stat-value" id="stat-confidence">—</div>
+        <div class="murphy-stat-label">Min Confidence</div>
+      </div>
+    </div>
+
+    <!-- Timeline + Heatmap Card -->
+    <div class="murphy-card" style="margin-bottom:var(--space-4);padding:0;overflow:hidden;border:1px solid var(--color-border)">
+      <!-- Timeline header -->
+      <div style="padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:center;background:var(--color-surface-raised)">
+        <span style="font-size:var(--text-sm);font-weight:600;color:var(--color-text)">
+          <svg width="14" height="14" style="margin-right:4px;vertical-align:-2px"><use href="static/murphy-icons.svg#icon-activity"></use></svg>
+          Production Timeline
+        </span>
+        <span class="text-xs text-muted" id="timeline-status">Loading…</span>
+      </div>
+      <!-- SVG timeline canvas -->
+      <div class="prod-timeline" id="prod-timeline-container">
+        <svg id="prod-timeline-svg" class="prod-timeline-svg" viewBox="0 0 900 120" preserveAspectRatio="xMinYMid meet">
+          <text x="450" y="65" text-anchor="middle" fill="#444" font-family="monospace" font-size="12">Loading timeline…</text>
+        </svg>
+        <div id="prod-timeline-tooltip" class="prod-timeline-tooltip"></div>
+      </div>
+      <!-- Heatmap strip header -->
+      <div style="padding:var(--space-2) var(--space-4) 0;border-top:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:center;background:var(--color-surface-raised)">
+        <span style="font-size:var(--text-xs);font-weight:600;color:#00D4AA">
+          <svg width="12" height="12" style="margin-right:4px;vertical-align:-1px"><use href="static/murphy-icons.svg#icon-zap"></use></svg>
+          Functionality Heatmap
+        </span>
+        <span class="text-xs text-muted" id="heatmap-coverage-stats">—</span>
+      </div>
+      <!-- Heatmap cells -->
+      <div class="prod-heatmap-strip" id="prod-heatmap-strip">
+        <span class="text-xs text-muted">Loading heatmap data…</span>
+      </div>
+    </div>
+    <!-- Real-time Timeline Activity Graph -->
+    <div id="timeline-graph-section" style="margin-bottom:var(--space-6)">
+      <h3 class="murphy-section-title">Processing Timeline</h3>
+      <p class="murphy-hint">Real-time view of files touched and deliverables produced. Color intensity = recency of activity.</p>
+      <div id="timeline-graph">
+        <!-- SVG timeline rendered by JS -->
+      </div>
+    </div>
+    <!-- Timeline activity graph -->
+    <div id="timeline-section">
+      <h3>Production Timeline — Live Activity</h3>
+      <div id="timeline-canvas-wrapper">
+        <svg id="timeline-svg" height="160" aria-label="Production timeline graph"></svg>
+        <div id="timeline-empty" style="display:none">
+          <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3A9 9 0 1 1 3 12a9 9 0 0 1 18 0z"/></svg>
+          <span>No active production items. Submit a proposal to get started.</span>
+        </div>
+      </div>
+    </div>
+    <div id="tl-tooltip" class="tl-tooltip"></div>
+
+    <!-- Quick actions -->
+    <div class="murphy-grid murphy-grid-3">
+      <button class="murphy-btn murphy-btn-primary" id="btn-new-proposal">
+        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-file-text"></use></svg>
+        New Proposal
+      </button>
+      <button class="murphy-btn murphy-btn-secondary" id="btn-view-queue">
+        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-layers"></use></svg>
+        View Queue
+      </button>
+      <button class="murphy-btn murphy-btn-secondary" id="btn-view-hitl">
+        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-bell"></use></svg>
+        HITL Gates
+      </button>
+    </div>
+  </div>
+
+  <!-- ── PROPOSAL VIEW ──────────────────────────────────────── -->
+  <div id="view-proposal" class="murphy-view" style="display:none">
+    <div class="murphy-page-header">
+      <h2 class="murphy-page-title">Submit Production Proposal</h2>
+      <p class="murphy-page-subtitle">Define regulatory context, deliverable spec, and required confidence gates.</p>
+    </div>
+
+    <div class="murphy-card">
+      <form id="proposal-form" novalidate>
+        <div class="murphy-grid murphy-grid-2" style="gap:var(--space-4)">
+          <div>
+            <label class="murphy-label" for="prop-id">Proposal ID <span class="text-danger">*</span></label>
+            <input type="text" id="prop-id" class="murphy-input" placeholder="e.g. prop-2026-001" maxlength="200" required
+                   pattern="[a-zA-Z0-9_\-]{1,200}" aria-describedby="prop-id-hint">
+            <p id="prop-id-hint" class="murphy-hint">Alphanumeric, hyphens, underscores only</p>
+          </div>
+          <div>
+            <label class="murphy-label" for="prop-location">Regulatory Location <span class="text-danger">*</span></label>
+            <input type="text" id="prop-location" class="murphy-input" placeholder="e.g. United States, EU" maxlength="300" required>
+          </div>
+          <div>
+            <label class="murphy-label" for="prop-industry">Regulatory Industry <span class="text-danger">*</span></label>
+            <input type="text" id="prop-industry" class="murphy-input" placeholder="e.g. Healthcare, Finance" maxlength="200" required>
+          </div>
+          <div>
+            <label class="murphy-label" for="prop-functions">Regulatory Functions <span class="text-danger">*</span></label>
+            <input type="text" id="prop-functions" class="murphy-input" placeholder="Comma-separated, e.g. HIPAA, SOC2, GDPR" maxlength="2000">
+          </div>
+        </div>
+
+        <div style="margin-top:var(--space-4)">
+          <label class="murphy-label" for="prop-spec">Deliverable Specification <span class="text-danger">*</span></label>
+          <textarea id="prop-spec" class="murphy-input" rows="5" maxlength="10000"
+                    placeholder="Describe the expected deliverable in detail…" required style="width:100%;resize:vertical"></textarea>
+          <p class="murphy-hint">Max 10,000 characters</p>
+        </div>
+
+        <div style="margin-top:var(--space-4)">
+          <label class="murphy-label">Required Gates</label>
+          <div id="gates-container" style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-bottom:var(--space-2)">
+            <label class="gate-chip required"><input type="checkbox" value="SAFETY" checked hidden>SAFETY</label>
+            <label class="gate-chip required"><input type="checkbox" value="COMPLIANCE" checked hidden>COMPLIANCE</label>
+            <label class="gate-chip"><input type="checkbox" value="HITL_REVIEW">HITL_REVIEW</label>
+            <label class="gate-chip"><input type="checkbox" value="LEGAL">LEGAL</label>
+            <label class="gate-chip"><input type="checkbox" value="SECURITY">SECURITY</label>
+            <label class="gate-chip"><input type="checkbox" value="QUALITY_ASSURANCE">QUALITY_ASSURANCE</label>
+          </div>
+        </div>
+
+        <div style="margin-top:var(--space-4);display:flex;gap:var(--space-3)">
+          <button type="submit" class="murphy-btn murphy-btn-primary" id="btn-submit-proposal">
+            <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-play"></use></svg>
+            Submit Proposal
+          </button>
+          <button type="button" class="murphy-btn murphy-btn-secondary" id="btn-cancel-proposal">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Result panel -->
+    <div id="proposal-result" class="murphy-card" style="display:none;margin-top:var(--space-4)">
+      <h3 class="murphy-section-title">Submission Result</h3>
+      <div id="proposal-result-body"></div>
+    </div>
+  </div>
+
+  <!-- ── WORK ORDER VIEW ────────────────────────────────────── -->
+  <div id="view-workorder" class="murphy-view" style="display:none">
+    <div class="murphy-page-header">
+      <h2 class="murphy-page-title">Submit Work Order</h2>
+      <p class="murphy-page-subtitle">Link a work order to an approved proposal and attach the deliverable for validation.</p>
+    </div>
+
+    <div class="murphy-card">
+      <form id="workorder-form" novalidate>
+        <div class="murphy-grid murphy-grid-2" style="gap:var(--space-4)">
+          <div>
+            <label class="murphy-label" for="wo-id">Work Order ID <span class="text-danger">*</span></label>
+            <input type="text" id="wo-id" class="murphy-input" placeholder="e.g. wo-2026-001" maxlength="200" required>
+          </div>
+          <div>
+            <label class="murphy-label" for="wo-proposal-id">Approved Proposal ID <span class="text-danger">*</span></label>
+            <input type="text" id="wo-proposal-id" class="murphy-input" placeholder="e.g. prop-2026-001" maxlength="200" required>
+          </div>
+        </div>
+        <div style="margin-top:var(--space-4)">
+          <label class="murphy-label" for="wo-deliverable">Deliverable Content <span class="text-danger">*</span></label>
+          <textarea id="wo-deliverable" class="murphy-input" rows="6" maxlength="50000"
+                    placeholder="Paste the full deliverable content here…" required style="width:100%;resize:vertical"></textarea>
+          <p class="murphy-hint">Max 50,000 characters</p>
+        </div>
+        <div style="margin-top:var(--space-4);display:flex;gap:var(--space-3)">
+          <button type="submit" class="murphy-btn murphy-btn-primary" id="btn-submit-wo">
+            <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-play"></use></svg>
+            Submit Work Order
+          </button>
+          <button type="button" class="murphy-btn murphy-btn-secondary" id="btn-cancel-wo">Cancel</button>
+        </div>
+      </form>
+    </div>
+    <div id="workorder-result" class="murphy-card" style="display:none;margin-top:var(--space-4)">
+      <h3 class="murphy-section-title">Submission Result</h3>
+      <div id="workorder-result-body"></div>
+    </div>
+  </div>
+
+  <!-- ── VALIDATE VIEW ──────────────────────────────────────── -->
+  <div id="view-validate" class="murphy-view" style="display:none">
+    <div class="murphy-page-header">
+      <h2 class="murphy-page-title">Validate</h2>
+      <p class="murphy-page-subtitle">Run confidence gate validation on a proposal or work order (requires ≥ 0.99 confidence).</p>
+    </div>
+    <div class="murphy-card">
+      <div class="murphy-tabs" role="tablist">
+        <button class="murphy-tab active" id="tab-val-proposal" role="tab" aria-selected="true" data-tab="val-proposal">Proposal</button>
+        <button class="murphy-tab" id="tab-val-wo" role="tab" aria-selected="false" data-tab="val-wo">Work Order</button>
+      </div>
+      <div id="tab-content-val-proposal" style="margin-top:var(--space-4)">
+        <label class="murphy-label" for="val-proposal-id">Proposal ID</label>
+        <div style="display:flex;gap:var(--space-2)">
+          <input type="text" id="val-proposal-id" class="murphy-input" placeholder="prop-2026-001" style="max-width:320px">
+          <button class="murphy-btn murphy-btn-primary" id="btn-validate-proposal">Validate</button>
+        </div>
+        <div id="val-proposal-result" style="margin-top:var(--space-3)"></div>
+      </div>
+      <div id="tab-content-val-wo" style="display:none;margin-top:var(--space-4)">
+        <label class="murphy-label" for="val-wo-id">Work Order ID</label>
+        <div style="display:flex;gap:var(--space-2)">
+          <input type="text" id="val-wo-id" class="murphy-input" placeholder="wo-2026-001" style="max-width:320px">
+          <button class="murphy-btn murphy-btn-primary" id="btn-validate-wo">Validate</button>
+        </div>
+        <div id="val-wo-result" style="margin-top:var(--space-3)"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PROFILES VIEW ──────────────────────────────────────── -->
+  <div id="view-profiles" class="murphy-view" style="display:none">
+    <div class="murphy-page-header">
+      <h2 class="murphy-page-title">Production Profiles</h2>
+      <p class="murphy-page-subtitle">Active lifecycle profiles: created → in_review → approved → in_progress → delivered → verified.</p>
+    </div>
+    <div style="margin-bottom:var(--space-4);display:flex;gap:var(--space-2)">
+      <button class="murphy-btn murphy-btn-primary" id="btn-refresh-profiles">
+        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-refresh"></use></svg>
+        Refresh
+      </button>
+    </div>
+    <div id="profiles-list"></div>
+  </div>
+
+  <!-- ── QUEUE VIEW ─────────────────────────────────────────── -->
+  <div id="view-queue" class="murphy-view" style="display:none">
+    <div class="murphy-page-header">
+      <h2 class="murphy-page-title">Production Queue</h2>
+    </div>
+    <button class="murphy-btn murphy-btn-primary" id="btn-refresh-queue" style="margin-bottom:var(--space-4)">
+      <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-refresh"></use></svg>
+      Refresh
+    </button>
+    <div id="queue-list"></div>
+  </div>
+
+  <!-- ── HITL VIEW ──────────────────────────────────────────── -->
+  <div id="view-hitl" class="murphy-view" style="display:none">
+    <div class="murphy-page-header">
+      <h2 class="murphy-page-title">HITL Review Center</h2>
+      <p class="murphy-page-subtitle">Review outputs, request revisions, and manage compliance. Revisions are tracked for document control.</p>
+    </div>
+
+    <!-- Quick actions -->
+    <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4);flex-wrap:wrap">
+      <button class="murphy-btn murphy-btn-primary" id="btn-refresh-hitl">
+        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-refresh"></use></svg>
+        Refresh Reviews
+      </button>
+      <button class="murphy-btn murphy-btn-secondary" id="btn-submit-demo-review">
+        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-play"></use></svg>
+        Submit Example for Review
+      </button>
+      <button class="murphy-btn murphy-btn-secondary" id="btn-view-learned">
+        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-audit-log"></use></svg>
+        View Learned Patterns
+      </button>
+    </div>
+
+    <!-- Compliance toggles -->
+    <div class="murphy-card" style="margin-bottom:var(--space-4)">
+      <h3 class="murphy-section-title">Compliance Requirements</h3>
+      <p class="murphy-hint" style="margin-bottom:var(--space-2)">Toggle additional compliance frameworks. These apply to all reviews.</p>
+      <div id="compliance-toggles" style="display:flex;flex-wrap:wrap;gap:var(--space-2)">
+        <label class="gate-chip required"><input type="checkbox" value="HIPAA" checked>HIPAA</label>
+        <label class="gate-chip required"><input type="checkbox" value="SOC2" checked>SOC2</label>
+        <label class="gate-chip"><input type="checkbox" value="GDPR">GDPR</label>
+        <label class="gate-chip"><input type="checkbox" value="PCI_DSS">PCI-DSS</label>
+        <label class="gate-chip"><input type="checkbox" value="ISO_27001">ISO 27001</label>
+        <label class="gate-chip"><input type="checkbox" value="CCPA">CCPA</label>
+        <label class="gate-chip"><input type="checkbox" value="FERPA">FERPA</label>
+        <label class="gate-chip"><input type="checkbox" value="FedRAMP">FedRAMP</label>
+        <label class="gate-chip"><input type="checkbox" value="NIST">NIST 800-53</label>
+      </div>
+    </div>
+
+    <!-- Pending reviews list -->
+    <div id="hitl-list"></div>
+
+    <!-- Learned patterns panel -->
+    <div id="learned-patterns-panel" class="murphy-card" style="display:none;margin-top:var(--space-4)">
+      <h3 class="murphy-section-title">Learned Patterns</h3>
+      <p class="murphy-hint">These patterns were learned from accepted HITL reviews and will train future outputs.</p>
+      <div id="learned-list"></div>
+    </div>
+  </div>
+
+  <!-- ── SCHEDULE VIEW ──────────────────────────────────────── -->
+  <div id="view-schedule" class="murphy-view" style="display:none">
+    <div class="murphy-page-header">
+      <h2 class="murphy-page-title">Automation Schedule</h2>
+      <p class="murphy-page-subtitle">Your automation calendar — see what the system plans to do and when. Blocks show automated vs. human-required steps.</p>
+    </div>
+
+    <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4)">
+      <button class="murphy-btn murphy-btn-primary" id="btn-refresh-schedule">
+        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-refresh"></use></svg>
+        Refresh Schedule
+      </button>
+    </div>
+
+    <!-- Summary stats -->
+    <div class="murphy-grid murphy-grid-4" style="margin-bottom:var(--space-4)" id="schedule-stats">
+      <div class="murphy-stat-card">
+        <div class="murphy-stat-value" id="sched-total">—</div>
+        <div class="murphy-stat-label">Total Steps</div>
+      </div>
+      <div class="murphy-stat-card">
+        <div class="murphy-stat-value" style="color:var(--color-success)" id="sched-automated">—</div>
+        <div class="murphy-stat-label">🤖 Automated</div>
+      </div>
+      <div class="murphy-stat-card">
+        <div class="murphy-stat-value" style="color:var(--color-warning)" id="sched-human">—</div>
+        <div class="murphy-stat-label">🙋 Needs You</div>
+      </div>
+      <div class="murphy-stat-card">
+        <div class="murphy-stat-value" id="sched-proposals">—</div>
+        <div class="murphy-stat-label">Active Proposals</div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div style="display:flex;gap:var(--space-4);margin-bottom:var(--space-3);font-size:0.8rem">
+      <span><span style="display:inline-block;width:12px;height:12px;background:var(--color-success);border-radius:3px;margin-right:4px;vertical-align:middle"></span>Automated</span>
+      <span><span style="display:inline-block;width:12px;height:12px;background:var(--color-warning);border-radius:3px;margin-right:4px;vertical-align:middle"></span>Needs Human</span>
+      <span><span style="display:inline-block;width:12px;height:12px;background:var(--color-info, #60A5FA);border-radius:3px;margin-right:4px;vertical-align:middle"></span>Ready Now</span>
+    </div>
+
+    <!-- Schedule calendar / timeline -->
+    <div id="schedule-timeline"></div>
+  </div>
+
+  <!-- ── DELIVERABLES VIEW ──────────────────────────────────── -->
+  <div id="view-deliverables" class="murphy-view" style="display:none">
+    <div class="murphy-page-header">
+      <h2 class="murphy-page-title">Deliverables</h2>
+    </div>
+    <button class="murphy-btn murphy-btn-primary" id="btn-refresh-deliverables" style="margin-bottom:var(--space-4)">
+      <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-refresh"></use></svg>
+      Refresh
+    </button>
+    <div id="deliverables-list"></div>
+  </div>
+
+  <!-- ── ACTIVITY LOG ───────────────────────────────────────── -->
+  <div id="activity-log-panel" style="position:fixed;bottom:0;left:var(--sidebar-width);right:0;background:var(--color-surface);border-top:1px solid var(--color-border);padding:var(--space-2) var(--space-4)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <span class="text-xs text-muted">Activity Log</span>
+      <button class="murphy-btn murphy-btn-icon" id="btn-clear-log" aria-label="Clear log" title="Clear log" style="padding:2px">
+        <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-refresh"></use></svg>
+      </button>
+    </div>
+    <div id="prod-log">Ready. Configure API port with ?apiPort=8000</div>
+  </div>
+
+</main><!-- end main -->
+
+<script src="static/murphy-components.js"></script>
+<script src="murphy_auth.js"></script>
+<script>
+/* Production Wizard — PROD-001
+   © 2020 Inoni Limited Liability Company · BSL 1.1 */
+'use strict';
+
+// ── Config ────────────────────────────────────────────────────
+const params = new URLSearchParams(location.search);
+const BASE = params.get('apiBase') || window.location.origin;
+const log = (msg) => {
+  const el = document.getElementById('prod-log');
+  if (el) el.textContent += `\n[${new Date().toISOString()}] ${msg}`;
+};
+const _prodApi = new MurphyAPI(BASE + '/api');
+const _showAuthBanner = () => {
+  const banner = document.getElementById('auth-error-banner');
+  if (banner) banner.style.display = 'block';
+};
+
+const apiFetch = async (path, opts = {}) => {
+  const method = (opts.method || 'GET').toUpperCase();
+  const apiPath = path.replace(/^\/api/, '');
+  let body;
+  try { body = opts.body ? JSON.parse(opts.body) : undefined; } catch (_) { body = opts.body; }
+  let result;
+  if (method === 'POST') result = await _prodApi.post(apiPath, body);
+  else if (method === 'PUT') result = await _prodApi.put(apiPath, body);
+  else if (method === 'DELETE') result = await _prodApi.delete(apiPath);
+  else result = await _prodApi.get(apiPath);
+  if (!result.ok) {
+    // Show inline login prompt for auth errors instead of crashing/redirecting.
+    if (result.status === 401 || result.status === 403) {
+      _showAuthBanner();
+      throw new Error('Authentication required');
+    }
+    throw new Error(result.error || `HTTP error`);
+  }
+  return result.data;
+};
+
+// ── API status ────────────────────────────────────────────────
+const checkApiStatus = async () => {
+  try {
+    await apiFetch('/api/health');
+    document.getElementById('api-status-badge').textContent = 'API Online';
+    document.getElementById('api-status-badge').className = 'murphy-badge murphy-badge-success';
+    log('API health check passed.');
+  } catch {
+    document.getElementById('api-status-badge').textContent = 'API Offline';
+    document.getElementById('api-status-badge').className = 'murphy-badge murphy-badge-danger';
+    log('WARNING: API unreachable at ' + BASE);
+  }
+};
+
+// ── View router ───────────────────────────────────────────────
+const views = ['dashboard','proposal','workorder','validate','profiles','queue','hitl','schedule','deliverables'];
+const showView = (name) => {
+  if (name !== 'dashboard' && _dashboardPollTimer) {
+    clearInterval(_dashboardPollTimer);
+    _dashboardPollTimer = null;
+  }
+  views.forEach(v => {
+    const el = document.getElementById(`view-${v}`);
+    if (el) el.style.display = v === name ? '' : 'none';
+  });
+  document.querySelectorAll('.murphy-sidebar-item').forEach(a => {
+    a.classList.toggle('active', a.dataset.view === name);
+  });
+};
+document.querySelectorAll('[data-view]').forEach(a => {
+  a.addEventListener('click', e => {
+    if (a.tagName === 'A' && a.hasAttribute('href') && a.getAttribute('href').startsWith('#')) {
+      e.preventDefault();
+      const target = a.dataset.view;
+      showView(target);
+      // Stop timeline polling when leaving the dashboard
+      if (target !== 'dashboard' && _tlPollTimer) {
+        clearInterval(_tlPollTimer);
+        _tlPollTimer = null;
+      }
+      // Restart timeline polling when entering the dashboard
+      if (target === 'dashboard') loadDashboard();
+    }
+  });
+});
+
+// ── Dashboard stats ───────────────────────────────────────────
+
+// Lifecycle stage → normalised X position (0–1 of SVG width)
+const _STAGE_IDX = {
+  created: 0, proposal: 0,
+  in_review: 1, approved: 1,
+  in_progress: 2,
+  delivered: 3,
+  verified: 4
+};
+const _STAGE_LABELS = ['Proposal', 'Validate', 'Work Order', 'Deliver', 'Verified'];
+
+// Timeline layout constants
+const STAGE_FRACTIONS   = [0.05, 0.25, 0.5, 0.75, 0.95];
+const JITTER_ROWS       = 5;
+const JITTER_CENTER     = 2;
+const JITTER_SPACING    = 13;
+const NODE_LABEL_LENGTH = 9;
+
+// Polling interval for dashboard auto-refresh (ms)
+const DASHBOARD_POLL_INTERVAL_MS = 5000;
+
+let _heatmapFilter    = null;
+let _lastTimelineData = null;
+let _dashboardPollTimer = null;
+
+const _heatColor = (heat) => {
+  if (heat >= 0.8) return '#00ff41';
+  if (heat >= 0.5) return '#00D4AA';
+  if (heat >= 0.2) return '#00ffff';
+  return '#1a4a3a';
+};
+
+// ── Render timeline SVG ───────────────────────────────────────
+const renderTimeline = (queueItems, proposals, heatEntries) => {
+  const svg = document.getElementById('prod-timeline-svg');
+  const tooltip = document.getElementById('prod-timeline-tooltip');
+  const container = document.getElementById('prod-timeline-container');
+  const statusEl = document.getElementById('timeline-status');
+  if (!svg) return;
+
+  const W = 900, H = 120, TRACK_Y = 62;
+  const STAGE_XS = STAGE_FRACTIONS.map(f => Math.round(f * W));
+
+  const heatMap = {};
+  const heatMax = Math.max(1, ...(heatEntries || []).map(e => e.value || e.count || 0));
+  (heatEntries || []).forEach(e => {
+    heatMap[(e.label || e.module || '').toLowerCase()] = (e.value || e.count || 0);
+  });
+
+  const allItems = [
+    ...(queueItems || []).map(i => ({ ...i, _src: 'queue' })),
+    ...(proposals || []).map(p => ({ ...p, _src: 'proposal', lifecycle: p.lifecycle || p.status || 'created' }))
+  ];
+
+  const displayed = _heatmapFilter
+    ? allItems.filter(i => (i.domain || i.regulatory_industry || '').toLowerCase().includes(_heatmapFilter.toLowerCase()))
+    : allItems;
+
+  let out = '';
+
+  out += `<defs>
+    <marker id="pw-arrow" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
+      <polygon points="0 0, 6 2, 0 4" fill="#00D4AA" opacity="0.5"/>
+    </marker>
+  </defs>`;
+
+  out += `<line x1="${STAGE_XS[0]}" y1="${TRACK_Y}" x2="${STAGE_XS[4]}" y2="${TRACK_Y}" stroke="#00D4AA" stroke-width="1.5" opacity="0.25" marker-end="url(#pw-arrow)"/>`;
+
+  _STAGE_LABELS.forEach((lbl, i) => {
+    out += `<line x1="${STAGE_XS[i]}" y1="${TRACK_Y - 6}" x2="${STAGE_XS[i]}" y2="${TRACK_Y + 6}" stroke="#333" stroke-width="1"/>`;
+    out += `<text x="${STAGE_XS[i]}" y="${H - 4}" text-anchor="middle" fill="#444" font-family="monospace" font-size="9">${lbl}</text>`;
+  });
+
+  out += `<text x="${STAGE_XS[0]}" y="14" text-anchor="start" fill="#333" font-family="monospace" font-size="9">◀ first touched</text>`;
+  out += `<text x="${STAGE_XS[4]}" y="14" text-anchor="end" fill="#333" font-family="monospace" font-size="9">deliverable ▶</text>`;
+
+  const colCount = {};
+  displayed.forEach((item) => {
+    const stageKey = (item.lifecycle || item.status || 'created').toLowerCase().replace(/\s+/g, '_');
+    const stageIdx = _STAGE_IDX[stageKey] !== undefined ? _STAGE_IDX[stageKey] : 0;
+    const cx = STAGE_XS[stageIdx];
+
+    colCount[stageIdx] = (colCount[stageIdx] || 0) + 1;
+    const jitter = (((colCount[stageIdx] - 1) % JITTER_ROWS) - JITTER_CENTER) * JITTER_SPACING;
+    const cy = TRACK_Y + jitter;
+
+    const domainKey = (item.domain || item.regulatory_industry || '').toLowerCase();
+    const heat = heatMax > 0 ? (heatMap[domainKey] || 0) / heatMax : 0;
+    const nodeColor = _heatColor(heat);
+
+    const label = item.proposal_id || item.id || '?';
+    const conf = item.confidence !== undefined ? ` · conf:${Number(item.confidence).toFixed(2)}` : '';
+    const ts = (item.created_at || item.timestamp || '').toString().slice(0, 16);
+    const titleAttr = `${label}${conf}${ts ? ' · ' + ts : ''}`.replace(/"/g, '\'');
+
+    out += `<g class="prod-timeline-node" data-title="${titleAttr}">
+      <circle cx="${cx}" cy="${cy}" r="7" fill="${nodeColor}" opacity="0.85"/>
+      <text x="${cx}" y="${cy - 11}" text-anchor="middle" fill="${nodeColor}" font-family="monospace" font-size="8" opacity="0.8">${label.slice(-NODE_LABEL_LENGTH)}</text>
+    </g>`;
+  });
+
+  if (displayed.length === 0) {
+    const msg = _heatmapFilter ? `No items match domain filter` : 'No items in pipeline — submit a proposal to begin';
+    out += `<text x="450" y="${TRACK_Y}" text-anchor="middle" fill="#444" font-family="monospace" font-size="11">${msg}</text>`;
+  }
+
+  svg.innerHTML = out;
+
+  if (tooltip && container && !svg.dataset.listenersAttached) {
+    svg.dataset.listenersAttached = '1';
+    svg.addEventListener('mouseover', (e) => {
+      const node = e.target.closest('.prod-timeline-node');
+      if (!node) return;
+      tooltip.textContent = node.dataset.title;
+      tooltip.style.display = 'block';
+    });
+    svg.addEventListener('mousemove', (e) => {
+      if (tooltip.style.display === 'none') return;
+      const rect = container.getBoundingClientRect();
+      tooltip.style.left = (e.clientX - rect.left + 14) + 'px';
+      tooltip.style.top  = (e.clientY - rect.top  - 28) + 'px';
+    });
+    svg.addEventListener('mouseout', (e) => {
+      if (!e.target.closest('.prod-timeline-node')) return;
+      tooltip.style.display = 'none';
+    });
+  }
+
+  if (statusEl) {
+    statusEl.textContent = `${displayed.length} item${displayed.length !== 1 ? 's' : ''}${_heatmapFilter ? ' (filtered)' : ''} · ${new Date().toLocaleTimeString()}`;
+  }
+};
+
+// ── Render heatmap strip ──────────────────────────────────────
+const renderHeatmap = (entries) => {
+  const strip = document.getElementById('prod-heatmap-strip');
+  const statsEl = document.getElementById('heatmap-coverage-stats');
+  if (!strip) return;
+
+  const max = Math.max(1, ...(entries || []).map(e => e.value || e.count || 0));
+  const active = (entries || []).filter(e => (e.value || e.count || 0) > 0).length;
+  const total = (entries || []).length;
+  const pct = total > 0 ? Math.round((active / total) * 100) : 0;
+
+  if (statsEl) statsEl.textContent = `${active}/${total} modules active · ${pct}% coverage`;
+
+  if (!entries || entries.length === 0) {
+    strip.innerHTML = '<span class="text-xs text-muted" style="padding:4px 0">No heatmap data available.</span>';
+    return;
+  }
+
+  strip.innerHTML = entries.map(e => {
+    const val = e.value || e.count || 0;
+    const heat = max > 0 ? val / max : 0;
+    const opacity = (0.12 + heat * 0.88).toFixed(2);
+    const bg = heat >= 0.7 ? '#00ff41' : heat >= 0.4 ? '#00D4AA' : '#00ffff';
+    const label = (e.label || e.module || '').replace(/"/g, '\'');
+    return `<div class="prod-heatmap-cell" title="${label}: ${val}" data-domain="${label}" style="background:${bg};opacity:${opacity}"></div>`;
+  }).join('');
+
+  if (!strip.dataset.listenersAttached) {
+    strip.dataset.listenersAttached = '1';
+    strip.addEventListener('click', (e) => {
+      const cell = e.target.closest('.prod-heatmap-cell');
+      if (!cell) return;
+      const domain = cell.dataset.domain;
+      if (_heatmapFilter === domain) {
+        _heatmapFilter = null;
+        strip.querySelectorAll('.prod-heatmap-cell').forEach(c => { c.style.outline = ''; });
+      } else {
+        _heatmapFilter = domain;
+        strip.querySelectorAll('.prod-heatmap-cell').forEach(c => {
+          c.style.outline = c.dataset.domain === domain ? '2px solid #fff' : '';
+        });
+      }
+      if (_lastTimelineData) {
+        renderTimeline(_lastTimelineData.items, _lastTimelineData.proposals, _lastTimelineData.heat);
+      }
+    });
+  }
+};
+
+// ── Activity log helper ───────────────────────────────────────
+const logActivity = (msg, lifecycle) => {
+  const el = document.getElementById('prod-log');
+  if (!el) return;
+  const ts = new Date().toLocaleTimeString();
+  const entry = document.createElement('span');
+  entry.className = `prod-activity-entry prod-activity-${lifecycle || 'proposal'}`;
+  entry.textContent = `\n[${ts}] ${msg}`;
+  el.appendChild(entry);
+  el.scrollTop = el.scrollHeight;
+};
+
+const _queueItemMsg = (item) => {
+  const stage = item.lifecycle || item.status || 'proposal';
+  const conf  = item.confidence !== undefined ? ` (confidence: ${Number(item.confidence).toFixed(2)})` : '';
+  return { msg: `${item.proposal_id || item.id || '?'} → ${stage}${conf}`, stage };
+};
+
+// ── Dashboard load + polling ──────────────────────────────────
+// ── Dashboard stats + timeline ────────────────────────────────
+const TL_STAGES = ['proposal','validate','workorder','deliver','verified'];
+const TL_COLORS = {
+  in_progress: '#3b82f6',
+  completed:   '#10b981',
+  waiting:     '#f59e0b',
+  error:       '#ef4444',
+  created:     '#6b7280',
+  in_review:   '#f59e0b',
+  approved:    '#10b981',
+  delivered:   '#8b5cf6',
+  verified:    '#10b981',
+};
+const TL_STAGE_IDX = {
+  created: 0, in_review: 1, approved: 2, in_progress: 2,
+  waiting: 2, workorder: 2, deliver: 3, delivered: 3,
+  verified: 4, completed: 4, error: 2,
+};
+
+let _tlPollTimer = null;
+
+const renderTimeline = (items) => {
+  const svg = document.getElementById('timeline-svg');
+  const empty = document.getElementById('timeline-empty');
+  if (!svg) return;
+  svg.innerHTML = '';
+  if (!items || items.length === 0) {
+    svg.style.display = 'none';
+    if (empty) empty.style.display = 'flex';
+    return;
+  }
+  svg.style.display = 'block';
+  if (empty) empty.style.display = 'none';
+
+  const W = svg.parentElement.clientWidth || 700;
+  const H = 160;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('height', H);
+
+  const stageCount = TL_STAGES.length;
+  const colW = W / stageCount;
+
+  // Draw stage column headers
+  TL_STAGES.forEach((stage, i) => {
+    const x = colW * i + colW / 2;
+    const labels = ['Proposal','Validate','Work Order','Deliver','Verified'];
+    const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+    lbl.setAttribute('x', x);
+    lbl.setAttribute('y', 16);
+    lbl.setAttribute('text-anchor','middle');
+    lbl.setAttribute('font-size','11');
+    lbl.setAttribute('font-weight','600');
+    lbl.setAttribute('fill','var(--color-text-muted, #9ca3af)');
+    lbl.textContent = labels[i];
+    svg.appendChild(lbl);
+
+    // Vertical divider (except last)
+    if (i < stageCount - 1) {
+      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1', colW * (i + 1));
+      line.setAttribute('y1', 22);
+      line.setAttribute('x2', colW * (i + 1));
+      line.setAttribute('y2', H - 8);
+      line.setAttribute('stroke','var(--color-border, #374151)');
+      line.setAttribute('stroke-width','1');
+      svg.appendChild(line);
+    }
+  });
+
+  // Place items as circles in their stage column
+  const slotsByCol = Array.from({length: stageCount}, () => []);
+  items.forEach(item => {
+    const status = (item.status || item.lifecycle_status || 'created').toLowerCase();
+    const stageIdx = TL_STAGE_IDX[status] ?? 0;
+    slotsByCol[stageIdx].push(item);
+  });
+
+  const tooltip = document.getElementById('tl-tooltip');
+  slotsByCol.forEach((colItems, col) => {
+    const x = colW * col + colW / 2;
+    colItems.forEach((item, row) => {
+      const rowCount = colItems.length;
+      const ySpan = H - 40;
+      const y = rowCount === 1 ? H / 2 + 8 : 28 + (ySpan / Math.max(rowCount - 1, 1)) * row;
+      const status = (item.status || item.lifecycle_status || 'created').toLowerCase();
+      const color = TL_COLORS[status] || '#6b7280';
+      const r = Math.min(14, Math.max(7, 20 - colItems.length));
+
+      const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      circle.setAttribute('cx', x);
+      circle.setAttribute('cy', y);
+      circle.setAttribute('r', r);
+      circle.setAttribute('fill', color);
+      circle.setAttribute('fill-opacity','0.85');
+      circle.setAttribute('class','tl-node');
+
+      const label = document.createElementNS('http://www.w3.org/2000/svg','text');
+      label.setAttribute('x', x);
+      label.setAttribute('y', y + 4);
+      label.setAttribute('text-anchor','middle');
+      label.setAttribute('font-size','9');
+      label.setAttribute('fill','#fff');
+      label.setAttribute('pointer-events','none');
+      const shortId = (item.id || item.proposal_id || item.work_order_id || '?').slice(-6);
+      label.textContent = shortId;
+
+      const showTip = (e) => {
+        if (!tooltip) return;
+        const itemId = String(item.id || item.proposal_id || item.work_order_id || 'Item');
+        const ts = item.created_at || item.timestamp || '';
+        const timeStr = ts ? 'Time: ' + new Date(ts).toLocaleTimeString() : '';
+        // Build tooltip using textContent to avoid XSS
+        tooltip.textContent = '';
+        const strong = document.createElement('strong');
+        strong.textContent = itemId;
+        tooltip.appendChild(strong);
+        tooltip.appendChild(document.createTextNode('\nStatus: ' + status + (timeStr ? '\n' + timeStr : '')));
+        tooltip.style.display = 'block';
+        tooltip.style.left = (e.clientX + 12) + 'px';
+        tooltip.style.top = (e.clientY - 10) + 'px';
+      };
+      circle.addEventListener('mouseenter', showTip);
+      circle.addEventListener('mousemove', showTip);
+      circle.addEventListener('mouseleave', () => { if (tooltip) tooltip.style.display = 'none'; });
+
+      svg.appendChild(circle);
+      svg.appendChild(label);
+    });
+  });
+};
+
+const loadTimeline = async () => {
+  try {
+    const [qRes, sRes] = await Promise.allSettled([
+      apiFetch('/api/production/queue'),
+      apiFetch('/api/production/schedule'),
+    ]);
+    const items = [];
+    if (qRes.status === 'fulfilled') {
+      const q = qRes.value;
+      if (Array.isArray(q.items)) items.push(...q.items);
+    }
+    if (sRes.status === 'fulfilled') {
+      const s = sRes.value;
+      if (Array.isArray(s.jobs)) items.push(...s.jobs);
+      else if (Array.isArray(s.schedule)) items.push(...s.schedule);
+    }
+    renderTimeline(items);
+    log(`Timeline refreshed — ${items.length} item(s)`);
+  } catch (err) {
+    renderTimeline([]);
+    log('Timeline load error: ' + err.message);
+  }
+};
+
+const startTimelinePolling = () => {
+  if (_tlPollTimer) clearInterval(_tlPollTimer);
+  _tlPollTimer = setInterval(loadTimeline, 8000);
+};
+
+const loadDashboard = async () => {
+  let queueItems = [];
+  try {
+    const q = await apiFetch('/api/production/queue');
+    queueItems = Array.isArray(q.items) ? q.items : [];
+    document.getElementById('stat-queue').textContent = queueItems.length;
+  } catch { document.getElementById('stat-queue').textContent = '?'; }
+
+  try {
+    const d = await apiFetch('/api/deliverables');
+    document.getElementById('stat-deliverables').textContent = Array.isArray(d.deliverables) ? d.deliverables.length : '?';
+  } catch { document.getElementById('stat-deliverables').textContent = '?'; }
+
+  try {
+    const h = await apiFetch('/api/hitl/interventions/pending');
+    document.getElementById('stat-hitl-pending').textContent = Array.isArray(h.interventions) ? h.interventions.length : '?';
+  } catch { document.getElementById('stat-hitl-pending').textContent = '?'; }
+
+  document.getElementById('stat-confidence').textContent = '0.99';
+
+  let proposals = [];
+  try {
+    const p = await apiFetch('/api/production/proposals');
+    proposals = Array.isArray(p.proposals) ? p.proposals : [];
+  } catch { /* offline */ }
+
+  let heatEntries = [];
+  try {
+    const hm = await apiFetch('/api/heatmap/data');
+    heatEntries = Array.isArray(hm.entries) ? hm.entries : [];
+    renderHeatmap(heatEntries);
+    apiFetch('/api/heatmap/coverage').then(cov => {
+      const statsEl = document.getElementById('heatmap-coverage-stats');
+      if (statsEl && cov && cov.total_modules) {
+        statsEl.textContent = `${cov.active_modules}/${cov.total_modules} modules active · ${Math.round(cov.coverage_pct || 0)}% coverage`;
+      }
+    }).catch(() => {});
+  } catch {
+    const strip = document.getElementById('prod-heatmap-strip');
+    if (strip) strip.innerHTML = '<span class="text-xs text-muted">Heatmap API offline.</span>';
+  }
+
+  _lastTimelineData = { items: queueItems, proposals, heat: heatEntries };
+  renderTimeline(queueItems, proposals, heatEntries);
+
+  if (queueItems.length > 0) {
+    queueItems.slice(-5).forEach(item => {
+      const { msg, stage } = _queueItemMsg(item);
+      logActivity(msg, stage);
+    });
+  }
+
+  if (_dashboardPollTimer) clearInterval(_dashboardPollTimer);
+  _dashboardPollTimer = setInterval(async () => {
+    try {
+      const q = await apiFetch('/api/production/queue');
+      const items = Array.isArray(q.items) ? q.items : [];
+      document.getElementById('stat-queue').textContent = items.length;
+      const prev = (_lastTimelineData && _lastTimelineData.items) || [];
+      const prevIds = new Set(prev.map(i => i.proposal_id || i.id));
+      items.filter(i => !prevIds.has(i.proposal_id || i.id)).forEach(item => {
+        const { msg, stage } = _queueItemMsg(item);
+        logActivity(msg, stage);
+      });
+      let heat = (_lastTimelineData && _lastTimelineData.heat) || [];
+      try {
+        const hm = await apiFetch('/api/heatmap/data');
+        heat = Array.isArray(hm.entries) ? hm.entries : [];
+        renderHeatmap(heat);
+      } catch { /* keep previous */ }
+      _lastTimelineData = { items, proposals: (_lastTimelineData && _lastTimelineData.proposals) || [], heat };
+      renderTimeline(items, _lastTimelineData.proposals, heat);
+    } catch { /* API offline */ }
+  }, DASHBOARD_POLL_INTERVAL_MS);
+  renderTimelineGraph();
+};
+
+// ── Real-time Timeline Activity Graph ────────────────────────
+const _tlStatusColor = {
+  in_progress: '#3b82f6',
+  approved:    '#10b981',
+  verified:    '#00ff41',
+  delivered:   '#8b5cf6',
+  in_review:   '#f59e0b',
+  created:     '#6b7280',
+  waiting:     '#f59e0b',
+  pending:     '#f59e0b',
+};
+const _tlDefaultColor = '#6b7280';
+
+function _tlNodeColor(status, ageMs) {
+  const base = _tlStatusColor[status] || _tlDefaultColor;
+  // Clamp age 0–600s; newer = full saturation, older = 40% opacity
+  const alpha = Math.max(0.4, 1 - Math.min(ageMs / 600000, 1) * 0.6); // 600000ms = 10 min activity window
+  const hex = base.replace('#', '');
+  const r = parseInt(hex.slice(0,2),16);
+  const g = parseInt(hex.slice(2,4),16);
+  const b = parseInt(hex.slice(4,6),16);
+  return `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
+}
+
+function _buildTimelineSVG(queueItems, deliverables) {
+  const W = 900, H = 200;
+  const cx = W / 2, cy = H / 2;
+  const now = Date.now();
+
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+  // Center timeline axis
+  const axisLine = document.createElementNS(ns, 'line');
+  axisLine.setAttribute('x1', '0'); axisLine.setAttribute('y1', cy);
+  axisLine.setAttribute('x2', W);  axisLine.setAttribute('y2', cy);
+  axisLine.setAttribute('stroke', '#2a2a2a'); axisLine.setAttribute('stroke-width', '2');
+  svg.appendChild(axisLine);
+
+  // Labels
+  const mkText = (text, x, y, anchor, fill, fs) => {
+    const t = document.createElementNS(ns, 'text');
+    t.setAttribute('x', x); t.setAttribute('y', y);
+    t.setAttribute('text-anchor', anchor || 'middle');
+    t.setAttribute('fill', fill || '#888');
+    t.setAttribute('font-size', fs || '10');
+    t.setAttribute('font-family', 'monospace');
+    t.textContent = text;
+    return t;
+  };
+  svg.appendChild(mkText('◀ INPUT FILES', 20, cy - 10, 'start', '#555', '9'));
+  svg.appendChild(mkText('DELIVERABLES ▶', W - 20, cy - 10, 'end', '#555', '9'));
+
+  if (!queueItems.length && !deliverables.length) {
+    svg.appendChild(mkText('No activity yet — submit a proposal to begin', cx, cy + 5, 'middle', '#444', '12'));
+    return svg;
+  }
+
+  // Left side — queue/input items (up to 8)
+  const leftItems = queueItems.slice(0, 8);
+  leftItems.forEach((item, i) => {
+    const spacing = Math.min((cx - 40) / (leftItems.length + 1), 90);
+    const x = cx - spacing * (i + 1);
+    const status = item.status || 'created';
+    const ts = item.updated_at || item.created_at || '';
+    const ageMs = ts ? now - new Date(ts).getTime() : 300000;
+    const col = _tlNodeColor(status, ageMs);
+    const label = (item.id || item.task_id || `item-${i}`).slice(0, 14);
+
+    // Connector to center
+    const line = document.createElementNS(ns, 'line');
+    line.setAttribute('x1', x); line.setAttribute('y1', cy);
+    line.setAttribute('x2', cx); line.setAttribute('y2', cy);
+    line.setAttribute('stroke', col); line.setAttribute('stroke-width', '1.5');
+    line.setAttribute('stroke-dasharray', '4 3');
+    svg.appendChild(line);
+
+    // Node circle
+    const circle = document.createElementNS(ns, 'circle');
+    circle.setAttribute('cx', x); circle.setAttribute('cy', cy);
+    circle.setAttribute('r', '10');
+    circle.setAttribute('fill', col);
+    circle.setAttribute('stroke', '#fff'); circle.setAttribute('stroke-width', '1');
+    svg.appendChild(circle);
+
+    // Label below
+    svg.appendChild(mkText(label, x, cy + 24, 'middle', '#aaa', '8'));
+    svg.appendChild(mkText(status, x, cy + 34, 'middle', col, '8'));
+  });
+
+  // Right side — deliverables (up to 8)
+  const rightItems = deliverables.slice(0, 8);
+  rightItems.forEach((item, i) => {
+    const spacing = Math.min((cx - 40) / (rightItems.length + 1), 90);
+    const x = cx + spacing * (i + 1);
+    const status = item.status || 'delivered';
+    const ts = item.delivered_at || item.created_at || '';
+    const ageMs = ts ? now - new Date(ts).getTime() : 300000;
+    const col = _tlNodeColor(status, ageMs);
+    const label = (item.deliverable_id || item.id || `del-${i}`).slice(0, 14);
+
+    // Connector from center
+    const line = document.createElementNS(ns, 'line');
+    line.setAttribute('x1', cx); line.setAttribute('y1', cy);
+    line.setAttribute('x2', x);  line.setAttribute('y2', cy);
+    line.setAttribute('stroke', col); line.setAttribute('stroke-width', '1.5');
+    svg.appendChild(line);
+
+    // Diamond shape for deliverables
+    const pts = `${x},${cy-10} ${x+10},${cy} ${x},${cy+10} ${x-10},${cy}`;
+    const diamond = document.createElementNS(ns, 'polygon');
+    diamond.setAttribute('points', pts);
+    diamond.setAttribute('fill', col);
+    diamond.setAttribute('stroke', '#fff'); diamond.setAttribute('stroke-width', '1');
+    svg.appendChild(diamond);
+
+    // Label below
+    svg.appendChild(mkText(label, x, cy + 24, 'middle', '#aaa', '8'));
+    svg.appendChild(mkText(status, x, cy + 34, 'middle', col, '8'));
+  });
+
+  // Center node
+  const centerCircle = document.createElementNS(ns, 'circle');
+  centerCircle.setAttribute('cx', cx); centerCircle.setAttribute('cy', cy);
+  centerCircle.setAttribute('r', '6');
+  centerCircle.setAttribute('fill', '#10b981');
+  svg.appendChild(centerCircle);
+  svg.appendChild(mkText('PROD', cx, cy + 18, 'middle', '#10b981', '8'));
+
+  return svg;
+}
+
+let _tlPollTimer = null;
+
+const renderTimelineGraph = async () => {
+  const container = document.getElementById('timeline-graph');
+  if (!container) return;
+  let queueItems = [], deliverables = [];
+  try {
+    const q = await apiFetch('/api/production/queue');
+    queueItems = q.items || [];
+  } catch (_) {}
+  try {
+    const s = await apiFetch('/api/production/schedule');
+    if (Array.isArray(s.schedules)) queueItems = [...queueItems, ...s.schedules];
+  } catch (_) {}
+  try {
+    const d = await apiFetch('/api/deliverables');
+    deliverables = d.deliverables || [];
+  } catch (_) {}
+  container.innerHTML = '';
+  container.appendChild(_buildTimelineSVG(queueItems, deliverables));
+  await loadTimeline();
+  startTimelinePolling();
+};
+
+const startTimelinePolling = () => {
+  if (_tlPollTimer) clearInterval(_tlPollTimer);
+  _tlPollTimer = setInterval(renderTimelineGraph, 7000); // poll every 7s
+};
+
+
+document.getElementById('proposal-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('prop-id').value.trim();
+  const location = document.getElementById('prop-location').value.trim();
+  const industry = document.getElementById('prop-industry').value.trim();
+  const funcs = document.getElementById('prop-functions').value.split(',').map(s => s.trim()).filter(Boolean);
+  const spec = document.getElementById('prop-spec').value.trim();
+  const gates = [...document.querySelectorAll('#gates-container input[type=checkbox]:checked')].map(c => c.value);
+  if (!id || !location || !industry || !spec) {
+    log('ERROR: All required fields must be filled.');
+    return;
+  }
+  const btn = document.getElementById('btn-submit-proposal');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+  try {
+    const payload = { proposal_id: id, regulatory_location: location, regulatory_industry: industry, regulatory_functions: funcs, deliverable_spec: spec, required_gates: gates };
+    log(`Submitting proposal ${id}…`);
+    const res = await apiFetch('/api/production/proposals', { method: 'POST', body: JSON.stringify(payload) });
+    const wf = res.workflow;
+    const wfJson = wf ? JSON.stringify(wf) : null;
+    document.getElementById('proposal-result-body').innerHTML =
+      `<div class="murphy-alert murphy-alert-success">
+         Proposal <strong>${id}</strong> submitted successfully.<br>
+         Status: ${res.status || 'pending'}
+         ${wf ? `<br>Workflow generated: <strong>${wf.nodes ? wf.nodes.length : 0} nodes</strong>, <strong>${wf.edges ? wf.edges.length : 0} connections</strong>` : ''}
+       </div>
+       ${wf ? `<button class="murphy-btn murphy-btn-primary" id="btn-open-workflow" style="margin-top:var(--space-3)">
+         🏭 Open Workflow in Visual Editor ↗
+       </button>` : ''}`;
+    document.getElementById('proposal-result').style.display = '';
+    // Bind the workflow-open button
+    if (wf) {
+      document.getElementById('btn-open-workflow').addEventListener('click', () => {
+        try { localStorage.setItem('murphy_production_workflow', wfJson); } catch(e) { console.warn('localStorage unavailable:', e.message); }
+        window.open('/ui/workflow-canvas?production=' + encodeURIComponent(id), '_blank');
+      });
+    }
+    log(`Proposal ${id} submitted. Status: ${res.status}. Workflow: ${wf ? wf.nodes.length + ' nodes' : 'none'}`);
+  } catch (err) {
+    document.getElementById('proposal-result-body').innerHTML =
+      `<div class="murphy-alert murphy-alert-danger">Submission failed: ${err.message}</div>`;
+    document.getElementById('proposal-result').style.display = '';
+    log(`ERROR: Proposal submission failed — ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Submit Proposal';
+  }
+});
+document.getElementById('btn-cancel-proposal').addEventListener('click', () => showView('dashboard'));
+
+// ── Work order form ───────────────────────────────────────────
+document.getElementById('workorder-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('wo-id').value.trim();
+  const proposalId = document.getElementById('wo-proposal-id').value.trim();
+  const deliverable = document.getElementById('wo-deliverable').value.trim();
+  if (!id || !proposalId || !deliverable) {
+    log('ERROR: All required fields must be filled.');
+    return;
+  }
+  const btn = document.getElementById('btn-submit-wo');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+  try {
+    const payload = { work_order_id: id, proposal_id: proposalId, deliverable_content: deliverable };
+    log(`Submitting work order ${id}…`);
+    const res = await apiFetch('/api/production/work-orders', { method: 'POST', body: JSON.stringify(payload) });
+    document.getElementById('workorder-result-body').innerHTML =
+      `<div class="murphy-alert murphy-alert-success">Work order <strong>${id}</strong> submitted.<br>Status: ${res.status || 'pending'}</div>`;
+    document.getElementById('workorder-result').style.display = '';
+    log(`Work order ${id} submitted. Status: ${res.status}`);
+  } catch (err) {
+    document.getElementById('workorder-result-body').innerHTML =
+      `<div class="murphy-alert murphy-alert-danger">Submission failed: ${err.message}</div>`;
+    document.getElementById('workorder-result').style.display = '';
+    log(`ERROR: Work order submission failed — ${err.message}`);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Submit Work Order';
+  }
+});
+document.getElementById('btn-cancel-wo').addEventListener('click', () => showView('dashboard'));
+
+// ── Validate tabs ─────────────────────────────────────────────
+document.querySelectorAll('.murphy-tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.murphy-tab').forEach(x => { x.classList.remove('active'); x.setAttribute('aria-selected','false'); });
+    t.classList.add('active'); t.setAttribute('aria-selected','true');
+    document.querySelectorAll('[id^="tab-content-"]').forEach(c => c.style.display = 'none');
+    document.getElementById(`tab-content-${t.dataset.tab}`).style.display = '';
+  });
+});
+document.getElementById('btn-validate-proposal').addEventListener('click', async () => {
+  const id = document.getElementById('val-proposal-id').value.trim();
+  if (!id) return;
+  try {
+    log(`Validating proposal ${id}…`);
+    const res = await apiFetch(`/api/production/proposals/${id}/validate`, { method: 'POST' });
+    document.getElementById('val-proposal-result').innerHTML =
+      `<div class="murphy-alert ${res.passed ? 'murphy-alert-success' : 'murphy-alert-warning'}">
+        <strong>${res.passed ? '✓ Passed' : '✗ Failed'}</strong> — Confidence: ${(res.confidence_score * 100).toFixed(1)}%
+        ${res.issues?.length ? `<ul>${res.issues.map(i=>`<li>${i}</li>`).join('')}</ul>` : ''}
+      </div>`;
+    log(`Validation result: ${res.passed ? 'PASSED' : 'FAILED'} (${res.confidence_score})`);
+  } catch (err) {
+    document.getElementById('val-proposal-result').innerHTML = `<div class="murphy-alert murphy-alert-danger">${err.message}</div>`;
+    log(`ERROR: Validation failed — ${err.message}`);
+  }
+});
+document.getElementById('btn-validate-wo').addEventListener('click', async () => {
+  const id = document.getElementById('val-wo-id').value.trim();
+  if (!id) return;
+  try {
+    log(`Validating work order ${id}…`);
+    const res = await apiFetch(`/api/production/work-orders/${id}/validate`, { method: 'POST' });
+    document.getElementById('val-wo-result').innerHTML =
+      `<div class="murphy-alert ${res.passed ? 'murphy-alert-success' : 'murphy-alert-warning'}">
+        <strong>${res.passed ? '✓ Passed' : '✗ Failed'}</strong> — Score: ${(res.score * 100).toFixed(1)}%
+      </div>`;
+    log(`Work order validation: ${res.passed ? 'PASSED' : 'FAILED'}`);
+  } catch (err) {
+    document.getElementById('val-wo-result').innerHTML = `<div class="murphy-alert murphy-alert-danger">${err.message}</div>`;
+    log(`ERROR: Work order validation failed — ${err.message}`);
+  }
+});
+
+// ── Queue ─────────────────────────────────────────────────────
+const loadQueue = async () => {
+  try {
+    const data = await apiFetch('/api/production/queue');
+    const items = data.items || [];
+    document.getElementById('queue-list').innerHTML = items.length
+      ? items.map(it => `<div class="prod-card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <strong>${it.id || it.task_id || '—'}</strong>
+            <span class="lifecycle-badge lifecycle-${(it.status||'created').replace(/ /g,'_')}">${it.status || 'created'}</span>
+          </div>
+          <p class="text-sm text-muted" style="margin-top:4px">${it.description || it.deliverable_spec || ''}</p>
+        </div>`).join('')
+      : '<p class="text-muted">No items in queue.</p>';
+    log(`Loaded ${items.length} queue items.`);
+  } catch (err) { document.getElementById('queue-list').innerHTML = `<div class="murphy-alert murphy-alert-danger">${err.message}</div>`; }
+};
+document.getElementById('btn-refresh-queue').addEventListener('click', loadQueue);
+
+// ── HITL Review System ──────────────────────────────────────────
+function getActiveComplianceFlags() {
+  return [...document.querySelectorAll('#compliance-toggles input[type=checkbox]:checked')].map(c => c.value);
+}
+
+const loadHITL = async () => {
+  try {
+    // Load from production HITL review system
+    const data = await apiFetch('/api/production/hitl/pending');
+    const items = data.reviews || [];
+    // Also try legacy HITL interventions
+    let legacyItems = [];
+    try {
+      const legacy = await apiFetch('/api/hitl/interventions/pending');
+      legacyItems = legacy.interventions || legacy.items || [];
+    } catch(_) {}
+
+    let html = '';
+
+    // Production HITL reviews (full accept/deny/revisions)
+    if (items.length) {
+      html += items.map(r => `<div class="prod-card" style="border-left:3px solid var(--color-warning)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>${r.review_id}</strong>
+          <div style="display:flex;gap:var(--space-2);align-items:center">
+            <span class="murphy-badge murphy-badge-warning">Rev ${r.revision}</span>
+            <span class="murphy-badge" style="background:var(--color-info,#60A5FA);color:#000">Pending</span>
+          </div>
+        </div>
+        <p class="text-sm text-muted" style="margin:var(--space-2) 0">Proposal: ${r.proposal_id}</p>
+
+        <div class="murphy-card" style="background:var(--bg-elevated);padding:var(--space-3);margin:var(--space-2) 0;font-family:monospace;font-size:0.85rem;white-space:pre-wrap;max-height:200px;overflow-y:auto">${escH(r.output_content)}</div>
+
+        <p style="font-size:0.75rem;color:var(--text-dim)">Compliance: ${(r.compliance_flags || []).join(', ') || 'none'} · Revision history: ${r.history ? r.history.length : 0} entries</p>
+
+        <div style="margin-top:var(--space-3)">
+          <label class="murphy-label" style="font-size:0.8rem">Reviewer Notes</label>
+          <textarea id="notes-${r.review_id}" class="murphy-input" rows="2" style="width:100%;resize:vertical;font-size:0.85rem" placeholder="Add notes, corrections, or suggested output…"></textarea>
+        </div>
+
+        <div style="margin-top:var(--space-2);display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap">
+          <button class="murphy-btn murphy-btn-sm murphy-btn-success" onclick="respondReview('${r.review_id}','accept')">✅ Accept</button>
+          <button class="murphy-btn murphy-btn-sm murphy-btn-danger" onclick="respondReview('${r.review_id}','deny')">❌ Deny</button>
+          <button class="murphy-btn murphy-btn-sm" style="background:var(--color-warning);color:#000" onclick="respondReview('${r.review_id}','revisions')">🔄 Request Revisions → Rev ${r.revision + 1}</button>
+          <label style="margin-left:auto;font-size:0.8rem;display:flex;align-items:center;gap:4px;cursor:pointer">
+            <input type="checkbox" id="exception-${r.review_id}">
+            <span>Exception (don't learn)</span>
+          </label>
+        </div>
+      </div>`).join('');
+    }
+
+    // Legacy HITL interventions (simple approve/reject)
+    if (legacyItems.length) {
+      html += '<h4 style="margin-top:var(--space-4);margin-bottom:var(--space-2)">Legacy Interventions</h4>';
+      html += legacyItems.map(it => `<div class="prod-card">
+        <div style="display:flex;justify-content:space-between">
+          <strong>${it.intervention_id || it.id || '—'}</strong>
+          <span class="murphy-badge murphy-badge-warning">Pending</span>
+        </div>
+        <p class="text-sm text-muted">${it.description || it.reason || ''}</p>
+        <div style="margin-top:var(--space-2);display:flex;gap:var(--space-2)">
+          <button class="murphy-btn murphy-btn-sm murphy-btn-success" onclick="respondLegacyHITL('${it.intervention_id||it.id}','approved')">Approve</button>
+          <button class="murphy-btn murphy-btn-sm murphy-btn-danger" onclick="respondLegacyHITL('${it.intervention_id||it.id}','rejected')">Reject</button>
+        </div>
+      </div>`).join('');
+    }
+
+    if (!html) html = '<p class="text-muted">No pending HITL reviews. Submit an example to test the review cycle.</p>';
+    document.getElementById('hitl-list').innerHTML = html;
+    log(`Loaded ${items.length} reviews + ${legacyItems.length} legacy interventions.`);
+  } catch (err) { document.getElementById('hitl-list').innerHTML = `<div class="murphy-alert murphy-alert-danger">${err.message}</div>`; }
+};
+
+function escH(s) { const d = document.createElement('div'); d.appendChild(document.createTextNode(s||'')); return d.innerHTML; }
+
+window.respondReview = async (reviewId, decision) => {
+  try {
+    const notes = (document.getElementById('notes-' + reviewId) || {}).value || '';
+    const exception = (document.getElementById('exception-' + reviewId) || {}).checked || false;
+    const compliance = getActiveComplianceFlags();
+    const payload = { decision, notes, exception, compliance_flags: compliance };
+    if (decision === 'revisions') {
+      payload.revised_content = notes || '(awaiting revised content)';
+    }
+    const res = await apiFetch(`/api/production/hitl/${reviewId}/respond`, { method: 'POST', body: JSON.stringify(payload) });
+    if (decision === 'accept') {
+      log(`✅ Review ${reviewId}: ACCEPTED${exception ? ' (exception — not learned)' : ' (learned for future outputs)'}`);
+    } else if (decision === 'deny') {
+      log(`❌ Review ${reviewId}: DENIED`);
+    } else if (decision === 'revisions') {
+      log(`🔄 Review ${reviewId}: REVISIONS requested → Rev ${res.revision} (${res.new_review_id})`);
+    }
+    loadHITL();
+  } catch (err) { log(`ERROR: HITL respond failed — ${err.message}`); }
+};
+
+window.respondLegacyHITL = async (id, decision) => {
+  try {
+    await apiFetch(`/api/hitl/interventions/${id}/respond`, { method: 'POST', body: JSON.stringify({ decision }) });
+    log(`HITL ${id}: ${decision}`);
+    loadHITL();
+  } catch (err) { log(`ERROR: HITL respond failed — ${err.message}`); }
+};
+
+// Submit a demo review item for testing
+document.getElementById('btn-submit-demo-review').addEventListener('click', async () => {
+  const proposals = Object.keys(window._cachedProposals || {});
+  const pid = proposals.length ? proposals[proposals.length - 1] : 'demo-proposal';
+  const compliance = getActiveComplianceFlags();
+  try {
+    const res = await apiFetch('/api/production/hitl/submit', {
+      method: 'POST',
+      body: JSON.stringify({
+        proposal_id: pid,
+        output_content: `=== Production Output (${pid}) ===\n\nDeliverable: Automated workflow for ${pid}\nCompliance: ${compliance.join(', ')}\nConfidence: 0.92\n\nGenerated report with 3 sections:\n1. Executive Summary\n2. Compliance Matrix\n3. Implementation Plan\n\n[This is an example output for HITL review.\n Edit notes below to suggest changes.]`,
+        compliance_flags: compliance,
+      }),
+    });
+    log(`📋 Submitted review: ${res.review.review_id} for ${pid}`);
+    loadHITL();
+  } catch (err) { log(`ERROR: Submit review failed — ${err.message}`); }
+});
+
+// View learned patterns
+document.getElementById('btn-view-learned').addEventListener('click', async () => {
+  const panel = document.getElementById('learned-patterns-panel');
+  try {
+    const data = await apiFetch('/api/production/hitl/learned');
+    const patterns = data.patterns || [];
+    panel.style.display = '';
+    document.getElementById('learned-list').innerHTML = patterns.length
+      ? patterns.map(p => `<div class="prod-card" style="border-left:3px solid var(--color-success)">
+          <div style="display:flex;justify-content:space-between">
+            <strong>${p.proposal_id}</strong>
+            <span class="murphy-badge murphy-badge-success">Rev ${p.revision} · Learned</span>
+          </div>
+          <div class="murphy-card" style="background:var(--bg-elevated);padding:var(--space-2);margin:var(--space-2) 0;font-family:monospace;font-size:0.8rem;white-space:pre-wrap;max-height:120px;overflow-y:auto">${escH(p.output_content)}</div>
+          <p class="text-sm text-muted">Notes: ${escH(p.notes) || '—'} · Learned: ${new Date(p.learned_at).toLocaleString()}</p>
+        </div>`).join('')
+      : '<p class="text-muted">No patterns learned yet. Accept a review to start training.</p>';
+    log(`Loaded ${patterns.length} learned patterns.`);
+  } catch (err) { document.getElementById('learned-list').innerHTML = `<div class="murphy-alert murphy-alert-danger">${err.message}</div>`; }
+});
+
+document.getElementById('btn-refresh-hitl').addEventListener('click', loadHITL);
+
+// ── Automation Schedule ────────────────────────────────────────
+const loadSchedule = async () => {
+  try {
+    const data = await apiFetch('/api/production/schedule');
+    const items = data.schedule || [];
+    const summary = data.summary || {};
+
+    document.getElementById('sched-total').textContent = summary.total_steps || 0;
+    document.getElementById('sched-automated').textContent = summary.automated || 0;
+    document.getElementById('sched-human').textContent = summary.needs_human || 0;
+    document.getElementById('sched-proposals').textContent = summary.active_proposals || 0;
+
+    if (!items.length) {
+      document.getElementById('schedule-timeline').innerHTML = '<p class="text-muted">No scheduled automations. Create a proposal to populate the schedule.</p>';
+      return;
+    }
+
+    // Group by proposal
+    const grouped = {};
+    items.forEach(item => {
+      const pid = item.proposal_id || 'unknown';
+      if (!grouped[pid]) grouped[pid] = [];
+      grouped[pid].push(item);
+    });
+
+    let html = '';
+    for (const [pid, steps] of Object.entries(grouped)) {
+      html += `<div class="murphy-card" style="margin-bottom:var(--space-3)">
+        <h3 class="murphy-section-title" style="margin-bottom:var(--space-2)">📋 ${escH(pid)}</h3>
+        <div style="display:flex;flex-direction:column;gap:2px">`;
+      steps.forEach((step, i) => {
+        const isAuto = step.automated;
+        const isHuman = step.status === 'waiting_human';
+        const isReady = step.status === 'ready';
+        const bg = isReady ? 'var(--color-info,#60A5FA)' : isHuman ? 'var(--color-warning)' : 'var(--color-success)';
+        const textColor = '#000';
+        const time = new Date(step.scheduled_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+        const icon = isHuman ? '🙋' : '🤖';
+        html += `<div style="display:flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-2);border-radius:var(--radius-sm);background:${bg}15;border-left:3px solid ${bg}">
+          <span style="font-size:0.75rem;color:var(--text-dim);min-width:52px">${time}</span>
+          <span style="min-width:24px;text-align:center">${icon}</span>
+          <span style="flex:1;font-size:0.85rem">${escH(step.label)}</span>
+          <span class="murphy-badge" style="background:${bg};color:${textColor};font-size:0.7rem">${step.stage.replace('gate:','')}</span>
+        </div>`;
+      });
+      html += '</div></div>';
+    }
+    document.getElementById('schedule-timeline').innerHTML = html;
+    log(`Schedule loaded: ${items.length} steps across ${Object.keys(grouped).length} proposals.`);
+  } catch (err) {
+    document.getElementById('schedule-timeline').innerHTML = `<div class="murphy-alert murphy-alert-danger">${err.message}</div>`;
+  }
+};
+document.getElementById('btn-refresh-schedule').addEventListener('click', loadSchedule);
+
+// Cache proposal IDs for demo review submission
+window._cachedProposals = {};
+(async () => {
+  try {
+    const data = await apiFetch('/api/production/proposals');
+    (data.proposals || []).forEach(p => { window._cachedProposals[p.proposal_id] = p; });
+  } catch(_) {}
+})();
+
+// ── Deliverables ──────────────────────────────────────────────
+const loadDeliverables = async () => {
+  try {
+    const data = await apiFetch('/api/deliverables');
+    const items = data.deliverables || data.items || [];
+    document.getElementById('deliverables-list').innerHTML = items.length
+      ? items.map(it => `<div class="prod-card">
+          <strong>${it.id || '—'}</strong>
+          <span class="lifecycle-badge lifecycle-${(it.lifecycle||'created')}" style="margin-left:var(--space-2)">${it.lifecycle||'created'}</span>
+          <p class="text-sm text-muted">${it.description || ''}</p>
+        </div>`).join('')
+      : '<p class="text-muted">No deliverables found.</p>';
+  } catch (err) { document.getElementById('deliverables-list').innerHTML = `<div class="murphy-alert murphy-alert-danger">${err.message}</div>`; }
+};
+document.getElementById('btn-refresh-deliverables').addEventListener('click', loadDeliverables);
+
+// ── Quick-action buttons ──────────────────────────────────────
+document.getElementById('btn-new-proposal').addEventListener('click', () => showView('proposal'));
+document.getElementById('btn-view-queue').addEventListener('click', () => { showView('queue'); loadQueue(); });
+document.getElementById('btn-view-hitl').addEventListener('click', () => { showView('hitl'); loadHITL(); });
+
+// ── Sidebar toggle & theme ────────────────────────────────────
+document.getElementById('btn-sidebar-toggle').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+});
+document.getElementById('btn-theme-toggle').addEventListener('click', () => {
+  document.documentElement.classList.toggle('dark');
+  const icon = document.getElementById('theme-icon');
+  icon.innerHTML = document.documentElement.classList.contains('dark')
+    ? '<use href="static/murphy-icons.svg#icon-sun"></use>'
+    : '<use href="static/murphy-icons.svg#icon-moon"></use>';
+});
+
+// ── Clear log ─────────────────────────────────────────────────
+document.getElementById('btn-clear-log').addEventListener('click', () => {
+  document.getElementById('prod-log').textContent = 'Log cleared.';
+});
+
+// ── Init ──────────────────────────────────────────────────────
+(async () => {
+  await checkApiStatus();
+  await loadDashboard();
+  startTimelinePolling();
+  showView('dashboard');
+})();
+</script>
+</body>
+</html>

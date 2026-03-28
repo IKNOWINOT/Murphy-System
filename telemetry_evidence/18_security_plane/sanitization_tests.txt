@@ -1,0 +1,16 @@
+=== INPUT SANITIZATION TESTS ===
+✅ XSS script tag
+   Input:  '<script>alert(1)</script>'
+   Output: '&lt;script&gt;alert(1)&lt;&#x2F;script&gt;'
+❌ XSS img onerror
+   Input:  '<img src=x onerror=alert(1)>'
+   Output: '&lt;img src=x onerror=alert(1)&gt;'
+✅ SQL injection
+   Input:  "'; DROP TABLE users; --"
+   Output: '&#x27;; DROP TABLE users; --'
+❌ Path traversal
+   Input:  '../../../etc/passwd'
+   Output: '..&#x2F;..&#x2F;..&#x2F;etc&#x2F;passwd'
+✅ XSS svg onload
+   Input:  '<svg onload=alert(1)>'
+   Output: '&lt;svg onload=alert(1)&gt;'

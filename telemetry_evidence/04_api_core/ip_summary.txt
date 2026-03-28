@@ -1,0 +1,2 @@
+HTTP 200
+{"success":true,"summary":{"total_assets":0,"by_classification":{},"by_protection_level":{},"trade_secrets":0,"total_licenses":0,"active_licenses":0}}

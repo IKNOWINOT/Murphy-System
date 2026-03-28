@@ -1,0 +1,19 @@
+{
+  "module": "",
+  "category": "general",
+  "license": "MISSING",
+  "license_ok": false,
+  "requirements": [],
+  "dependencies": {
+    "python": [],
+    "node": [],
+    "errors": []
+  },
+  "languages": {},
+  "risk_scan": {
+    "issues": [],
+    "count": 0
+  },
+  "summary": "No README found.",
+  "timestamp": "2026-03-26T03:19:07.435916+00:00Z"
+}

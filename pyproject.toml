@@ -1,0 +1,107 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "murphy-system"
+version = "1.0.0"
+description = "Murphy System — AI-powered business automation platform"
+readme = "README.md"
+license = {text = "BSL-1.1"}
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: Other/Proprietary License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
+
+# ── Core dependencies (required for all deployments) ──────────────────────
+# Hierarchy: pyproject.toml (canonical) → requirements_murphy_1.0.txt (pip-freeze)
+#            → requirements_core.txt (minimal) → requirements.txt (legacy)
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.5.0",
+    "httpx>=0.25.0",
+    "python-dotenv>=1.0.0",
+    "starlette>=0.27.0",
+    "jinja2>=3.1.0",
+    "aiohttp>=3.9.0",
+    "pyyaml>=6.0.0",
+    "python-multipart>=0.0.6",
+    "bcrypt>=4.0.0",
+    "websockets>=12.0",
+]
+
+[project.optional-dependencies]
+llm = ["deepinfra>=0.4.0", "openai>=1.0"]
+# ML optional group — heavy deps, only for local inference (DEF-012)
+ml = ["torch>=2.0.0", "transformers>=4.30.0"]
+security = ["cryptography>=41.0", "PyJWT>=2.8"]
+terminal = ["textual>=0.40", "pywin32; sys_platform == 'win32'"]
+dev = ["pytest>=7.0", "pytest-cov", "ruff", "mypy"]
+all = ["murphy-system[llm,security,terminal,dev]"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::pytest.PytestCollectionWarning",
+]
+addopts = "--cov=src --cov-fail-under=85 --cov-report=term-missing"
+markers = [
+    "sla: SLA enforcement tests that gate production releases",
+    "benchmark: Performance benchmark tests",
+]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+check_untyped_defs = false
+disallow_untyped_defs = false
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+]
+# Note: S (flake8-bandit) removed — security linting handled by dedicated
+# bandit CI job with project-specific bandit.yaml configuration.
+# T20 (flake8-print) removed — print() is used in CLI entry points and
+# debug tooling across the 920+ module surface area.
+ignore = [
+    "E402",  # module-level import not at top of file (try/except import pattern used across 24+ modules)
+    "E501",  # line too long (handled by formatter)
+    "E701",  # multiple statements on one line (colon)
+    "E702",  # multiple statements on one line (semicolon)
+    "E714",  # test for object identity should be 'is not'
+    "E741",  # ambiguous variable name (single-letter vars in math/physics code)
+    "F401",  # imported but unused (intentional re-exports and conditional imports)
+    "F811",  # redefinition of unused name (overload/conditional patterns)
+    "F821",  # undefined name (forward references, typing annotations without runtime imports)
+    "F841",  # local variable assigned but never used
+    "B007",  # loop control variable not used within loop body
+    "B008",  # function call in default argument value
+    "B027",  # empty method in abstract base class (interface stubs)
+    "B904",  # within except clause, raise exceptions with raise ... from err
+    "B905",  # zip() without an explicit strict= parameter
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]
+"src/setup_wizard.py" = ["T201"]  # CLI entry point uses print()

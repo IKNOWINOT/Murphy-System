@@ -1,0 +1,936 @@
+<!-- Murphy System — Meeting Intelligence / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Meeting Intelligence</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+/* Neon terminal theme — Color Key: green=#00ff41, cyan=#00ffff, teal=#00D4AA, bg=#0a0a0a */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+*:focus-visible{outline:2px solid #00ff41;outline-offset:2px}
+body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);overflow:hidden;height:100vh;display:flex;flex-direction:column}
+
+/* ── TOPBAR ── */
+.mi-topbar{height:52px;background:var(--bg-surface);border-bottom:1px solid var(--border-default);display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex-shrink:0;z-index:200}
+.mi-brand{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--teal);font-weight:700;font-size:1rem;letter-spacing:.05em}
+.mi-topbar-right{display:flex;align-items:center;gap:8px}
+.mi-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--radius-md);border:1px solid var(--border-default);background:var(--bg-elevated);color:var(--text-primary);font-size:13px;cursor:pointer;font-family:var(--font-ui);transition:background var(--transition-fast)}
+.mi-btn:hover{background:var(--bg-input);border-color:var(--teal)}
+.mi-btn-primary{background:var(--teal);color:#000;border-color:var(--teal);font-weight:600}
+.mi-btn-primary:hover{background:#00b890}
+
+/* ── SHELL ── */
+.mi-shell{display:flex;flex:1;overflow:hidden}
+
+/* ── SIDEBAR ── */
+.mi-sidebar{width:260px;background:var(--bg-surface);border-right:1px solid var(--border-default);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+.mi-sidebar-header{padding:14px 16px;border-bottom:1px solid var(--border-subtle)}
+.mi-sidebar-title{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.mi-session-search{width:100%;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:6px 10px;color:var(--text-primary);font-size:13px;font-family:var(--font-ui)}
+.mi-session-search:focus{outline:2px solid var(--teal);outline-offset:0}
+.mi-session-list{flex:1;overflow-y:auto}
+.mi-session-item{padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border-subtle);transition:background var(--transition-fast)}
+.mi-session-item:hover{background:var(--bg-elevated)}
+.mi-session-item.active{background:rgba(0,212,170,.08);border-left:3px solid var(--teal)}
+.mi-session-name{font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:2px}
+.mi-session-meta{font-size:11px;color:var(--text-muted);display:flex;gap:8px;align-items:center}
+.mi-session-badge{font-size:10px;font-weight:600;padding:1px 6px;border-radius:var(--radius-full);background:rgba(0,212,170,.12);color:var(--teal);border:1px solid rgba(0,212,170,.2)}
+.mi-session-badge.pending{background:rgba(255,196,0,.12);color:#ffc400;border-color:rgba(255,196,0,.2)}
+.mi-session-badge.draft{background:rgba(0,255,65,.1);color:#00ff41;border-color:rgba(0,255,65,.2)}
+.mi-sidebar-footer{padding:12px 14px;border-top:1px solid var(--border-subtle)}
+.mi-org-cap{font-size:12px;color:var(--text-tertiary);display:flex;align-items:center;gap:6px}
+.mi-org-cap strong{color:var(--teal)}
+
+/* ── MAIN CONTENT ── */
+.mi-main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+
+/* ── HERO BANNER ── */
+.mi-hero{background:linear-gradient(135deg,rgba(0,212,170,.1) 0%,rgba(0,255,65,.04) 100%);border-bottom:1px solid rgba(0,212,170,.2);padding:20px 28px;flex-shrink:0}
+.mi-hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.mi-hero-title{font-size:1.5rem;font-weight:800;color:var(--text-primary);margin-bottom:4px}
+.mi-hero-sub{font-size:13px;color:var(--text-secondary)}
+.mi-hero-meta{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap}
+.mi-meta-chip{font-size:12px;color:var(--text-secondary);display:flex;align-items:center;gap:4px}
+.mi-meta-chip strong{color:var(--text-primary)}
+
+/* ── CONFIDENCE HERO ── */
+.mi-conf-hero{display:flex;align-items:center;gap:12px;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:10px 16px;min-width:220px}
+.mi-conf-circle{width:56px;height:56px;border-radius:50%;background:conic-gradient(var(--teal) 0%,var(--bg-surface) 0%);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--teal);flex-shrink:0;border:2px solid var(--border-default);transition:background 1s}
+.mi-conf-info{flex:1}
+.mi-conf-label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:2px}
+.mi-conf-val{font-size:1.25rem;font-weight:800;color:var(--teal)}
+.mi-conf-desc{font-size:11px;color:var(--text-tertiary)}
+
+/* ── TAB BAR ── */
+.mi-tabs{background:var(--bg-surface);border-bottom:1px solid var(--border-default);display:flex;gap:0;flex-shrink:0;padding:0 20px}
+.mi-tab{padding:10px 18px;font-size:13px;font-weight:500;color:var(--text-secondary);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:color var(--transition-fast);background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font-ui)}
+.mi-tab:hover{color:var(--text-primary)}
+.mi-tab.active{color:var(--teal);border-bottom-color:var(--teal);font-weight:600}
+
+/* ── TAB PANELS ── */
+.mi-panel{display:none;flex:1;padding:20px 24px;overflow-y:auto}
+.mi-panel.active{display:block}
+
+/* ── SECTION HEADERS ── */
+.mi-section-title{font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.mi-section-title span{font-size:11px;font-weight:600;padding:2px 8px;border-radius:var(--radius-full);background:rgba(0,212,170,.12);color:var(--teal);border:1px solid rgba(0,212,170,.2)}
+
+/* ── TRANSCRIPT ── */
+.mi-transcript{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);max-height:420px;overflow-y:auto;font-size:13px;line-height:1.6}
+.mi-transcript-line{padding:8px 14px;border-bottom:1px solid var(--border-subtle);display:flex;gap:10px}
+.mi-transcript-line:last-child{border-bottom:none}
+.mi-tr-time{font-size:11px;color:var(--text-muted);white-space:nowrap;padding-top:2px;min-width:42px}
+.mi-tr-speaker{font-size:12px;font-weight:700;color:var(--teal);white-space:nowrap;min-width:72px}
+.mi-tr-text{color:var(--text-secondary)}
+.mi-tr-text.highlight{background:rgba(0,212,170,.08);border-radius:4px;padding:0 4px;color:var(--text-primary)}
+
+/* ── DRAFT CARDS ── */
+.mi-draft-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:16px}
+.mi-draft-card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:16px;transition:border-color var(--transition-fast)}
+.mi-draft-card:hover{border-color:rgba(0,212,170,.3)}
+.mi-draft-card.accepted{border-color:rgba(0,255,65,.3);background:rgba(0,255,65,.03)}
+.mi-draft-card.rejected{opacity:.5}
+.mi-draft-card-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.mi-draft-icon{font-size:22px}
+.mi-draft-title{font-size:14px;font-weight:700;color:var(--text-primary)}
+.mi-draft-subtitle{font-size:11px;color:var(--text-muted)}
+.mi-draft-body{font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:12px;white-space:pre-wrap;max-height:120px;overflow-y:auto;border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:8px 10px;background:var(--bg-base);font-family:var(--font-code)}
+.mi-draft-actions{display:flex;gap:8px;flex-wrap:wrap}
+.mi-draft-btn{font-size:12px;font-weight:600;padding:5px 10px;border-radius:var(--radius-sm);border:1px solid var(--border-default);cursor:pointer;font-family:var(--font-ui);transition:all var(--transition-fast)}
+.mi-draft-accept{background:rgba(0,255,65,.1);border-color:rgba(0,255,65,.3);color:#00ff41}
+.mi-draft-accept:hover{background:rgba(0,255,65,.2)}
+.mi-draft-reject{background:none;color:var(--text-muted)}
+.mi-draft-reject:hover{border-color:#ff4444;color:#ff4444}
+.mi-draft-export{background:none;color:var(--teal);border-color:rgba(0,212,170,.3)}
+.mi-draft-export:hover{background:rgba(0,212,170,.08)}
+.mi-draft-vote-bar{margin-top:8px}
+.mi-draft-vote-label{font-size:10px;color:var(--text-muted);margin-bottom:4px;display:flex;justify-content:space-between}
+.mi-draft-vote-track{height:5px;background:var(--bg-elevated);border-radius:3px;overflow:hidden}
+.mi-draft-vote-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--teal),#00ff41);transition:width .8s ease}
+
+/* ── SUGGESTION REVIEW ── */
+.mi-sug-list{display:flex;flex-direction:column;gap:10px}
+.mi-sug-card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:14px 16px;transition:border-color var(--transition-fast)}
+.mi-sug-card:hover{border-color:rgba(0,212,170,.25)}
+.mi-sug-card.accepted{border-left:3px solid #00ff41}
+.mi-sug-card.flagged{border-left:3px solid #ffc400}
+.mi-sug-card.dismissed{opacity:.45}
+.mi-sug-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.mi-sug-type{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:var(--radius-full);border:1px solid}
+.mi-sug-type.insight{background:rgba(0,212,170,.1);color:var(--teal);border-color:rgba(0,212,170,.25)}
+.mi-sug-type.risk{background:rgba(255,68,68,.1);color:#ff4444;border-color:rgba(255,68,68,.25)}
+.mi-sug-type.action{background:rgba(0,255,65,.1);color:#00ff41;border-color:rgba(0,255,65,.25)}
+.mi-sug-type.proposal{background:rgba(0,255,255,.1);color:#00ffff;border-color:rgba(0,255,255,.25)}
+.mi-sug-conf{margin-left:auto;font-size:11px;font-weight:700}
+.mi-sug-conf.high{color:#00ff41}.mi-sug-conf.mid{color:#ffc400}.mi-sug-conf.low{color:#ff4444}
+.mi-sug-text{font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:10px}
+.mi-sug-actions{display:flex;gap:8px}
+.mi-sug-btn{font-size:11px;padding:4px 10px;border-radius:var(--radius-sm);border:1px solid var(--border-default);cursor:pointer;font-family:var(--font-ui);background:none;color:var(--text-secondary);transition:all var(--transition-fast)}
+.mi-sug-btn.accept{border-color:rgba(0,255,65,.3);color:#00ff41}
+.mi-sug-btn.accept:hover{background:rgba(0,255,65,.1)}
+.mi-sug-btn.flag{border-color:rgba(255,196,0,.3);color:#ffc400}
+.mi-sug-btn.flag:hover{background:rgba(255,196,0,.08)}
+.mi-sug-btn:not(.accept):not(.flag):hover{border-color:rgba(255,68,68,.3);color:#ff4444}
+
+/* ── ROYALTY TRACKING ── */
+.mi-royalty-table{width:100%;border-collapse:collapse;font-size:13px}
+.mi-royalty-table th{text-align:left;padding:8px 12px;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid var(--border-default);background:var(--bg-surface)}
+.mi-royalty-table td{padding:10px 12px;border-bottom:1px solid var(--border-subtle);color:var(--text-secondary)}
+.mi-royalty-table tr:hover td{background:var(--bg-elevated)}
+.mi-royalty-table tr:last-child td{border-bottom:none}
+.mi-royalty-amount{font-weight:700;color:var(--teal)}
+.mi-royalty-status{font-size:11px;padding:2px 8px;border-radius:var(--radius-full);border:1px solid}
+.mi-royalty-status.earned{background:rgba(0,212,170,.1);color:var(--teal);border-color:rgba(0,212,170,.2)}
+.mi-royalty-status.pending{background:rgba(255,196,0,.1);color:#ffc400;border-color:rgba(255,196,0,.2)}
+.mi-royalty-status.paid{background:rgba(0,255,65,.1);color:#00ff41;border-color:rgba(0,255,65,.2)}
+.mi-royalty-progress{height:4px;background:var(--bg-elevated);border-radius:2px;overflow:hidden;margin-top:4px;width:80px}
+.mi-royalty-progress-fill{height:100%;background:var(--teal);transition:width .8s ease}
+
+/* ── ORG INTELLIGENCE ── */
+.mi-org-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:20px}
+.mi-org-stat{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:16px;text-align:center}
+.mi-org-stat-val{font-size:2rem;font-weight:800;color:var(--teal);margin-bottom:4px}
+.mi-org-stat-label{font-size:12px;color:var(--text-muted)}
+.mi-capability-list{display:flex;flex-direction:column;gap:8px}
+.mi-cap-row{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:10px 14px;display:flex;align-items:center;gap:12px}
+.mi-cap-icon{font-size:18px;width:28px;text-align:center;flex-shrink:0}
+.mi-cap-info{flex:1}
+.mi-cap-name{font-size:13px;font-weight:600;color:var(--text-primary)}
+.mi-cap-desc{font-size:11px;color:var(--text-muted)}
+.mi-cap-sessions{font-size:12px;font-weight:700;color:var(--teal);white-space:nowrap}
+
+/* ── VOTING MODAL ── */
+.mi-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.mi-modal-bg[hidden]{display:none}
+.mi-modal{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-2xl);width:100%;max-width:600px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.mi-modal-header{padding:16px 20px;border-bottom:1px solid var(--border-default);display:flex;align-items:center;justify-content:space-between}
+.mi-modal-title{font-size:15px;font-weight:700;color:var(--text-primary)}
+.mi-modal-close{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:4px}
+.mi-modal-close:hover{color:var(--text-primary)}
+.mi-modal-body{padding:20px;overflow-y:auto;flex:1}
+.mi-vote-options{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.mi-vote-option{flex:1;min-width:140px;border:2px solid var(--border-default);border-radius:var(--radius-lg);padding:14px;cursor:pointer;text-align:center;transition:all var(--transition-fast);background:var(--bg-elevated)}
+.mi-vote-option:hover{border-color:rgba(0,212,170,.4)}
+.mi-vote-option.selected{border-color:var(--teal);background:rgba(0,212,170,.08)}
+.mi-vote-icon{font-size:24px;margin-bottom:6px}
+.mi-vote-label{font-size:13px;font-weight:600;color:var(--text-primary)}
+.mi-vote-desc{font-size:11px;color:var(--text-muted);margin-top:2px}
+.mi-modal-footer{padding:14px 20px;border-top:1px solid var(--border-default);display:flex;justify-content:flex-end;gap:8px}
+
+/* ── EMPTY STATE ── */
+.mi-empty{text-align:center;padding:60px 24px;color:var(--text-tertiary)}
+.mi-empty-icon{font-size:48px;margin-bottom:12px}
+.mi-empty h3{font-size:16px;font-weight:700;color:var(--text-secondary);margin-bottom:6px}
+.mi-empty p{font-size:13px;max-width:360px;margin:0 auto}
+
+/* ── ETHICS & LICENSE BANNER ── */
+.mi-ethics-banner{background:rgba(0,255,65,.04);border:1px solid rgba(0,255,65,.15);border-radius:var(--radius-md);padding:10px 14px;font-size:12px;color:var(--text-secondary);margin-bottom:16px;display:flex;gap:10px;align-items:flex-start}
+.mi-ethics-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+
+/* ── SCROLLBARS ── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:3px}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#mi-main" style="position:absolute;left:-999px;top:0;z-index:9999;padding:4px 8px;background:var(--teal);color:#000;font-size:12px">Skip to main content</a>
+
+<!-- TOPBAR -->
+<header class="mi-topbar" role="banner">
+  <a class="mi-brand" href="/ui/landing" aria-label="Murphy System home">
+    <svg width="22" height="22" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#00D4AA" fill-opacity=".15"/><path d="M6 26 L16 6 L26 26" stroke="#00D4AA" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.5 18 L21.5 18" stroke="#00ff41" stroke-width="2" stroke-linecap="round"/></svg>
+    <span>Meeting Intelligence</span>
+  </a>
+  <div class="mi-topbar-right">
+    <button class="mi-btn" id="btn-email-report" aria-label="Email report to participants">📧 Email Report</button>
+    <button class="mi-btn mi-btn-primary" id="btn-export-all" aria-label="Export all session data">⬇ Export All</button>
+    <a href="/ui/workspace" class="mi-btn" style="text-decoration:none">← Workspace</a>
+  </div>
+</header>
+
+<!-- SHELL -->
+<div class="mi-shell">
+
+  <!-- SIDEBAR: Session List -->
+  <aside class="mi-sidebar" aria-label="Sessions sidebar">
+    <div class="mi-sidebar-header">
+      <div class="mi-sidebar-title">Sessions</div>
+      <input class="mi-session-search" type="search" placeholder="Search sessions…" id="session-search" aria-label="Search sessions">
+    </div>
+    <div class="mi-session-list" id="session-list" role="list" aria-label="Meeting sessions">
+      <!-- Populated by JS -->
+    </div>
+    <div class="mi-sidebar-footer">
+      <div class="mi-org-cap">
+        <span>🧠</span>
+        <span>Org capability: <strong id="footer-org-sessions">0</strong> sessions</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="mi-main" id="mi-main" tabindex="-1">
+
+    <!-- HERO -->
+    <section class="mi-hero" aria-label="Session overview" id="mi-hero">
+      <div class="mi-hero-top">
+        <div>
+          <div class="mi-hero-title" id="hero-title">No session selected</div>
+          <div class="mi-hero-sub" id="hero-sub">Select a meeting from the sidebar or start a new one in the Workspace</div>
+        </div>
+        <div class="mi-conf-hero" role="status" aria-label="Session confidence">
+          <div class="mi-conf-circle" id="conf-circle">–%</div>
+          <div class="mi-conf-info">
+            <div class="mi-conf-label">Group Confidence</div>
+            <div class="mi-conf-val" id="conf-val">–</div>
+            <div class="mi-conf-desc" id="conf-desc">No data</div>
+          </div>
+        </div>
+      </div>
+      <div class="mi-hero-meta" id="hero-meta">
+        <div class="mi-meta-chip">📅 <strong id="hero-date">–</strong></div>
+        <div class="mi-meta-chip">⏱ <strong id="hero-duration">–</strong></div>
+        <div class="mi-meta-chip">👥 <strong id="hero-participants">–</strong></div>
+        <div class="mi-meta-chip">💡 <strong id="hero-suggestions">–</strong> suggestions</div>
+        <div class="mi-meta-chip">📋 <strong id="hero-drafts">–</strong> drafts</div>
+      </div>
+    </section>
+
+    <!-- TABS -->
+    <nav class="mi-tabs" role="tablist" aria-label="Session sections">
+      <button class="mi-tab active" role="tab" aria-selected="true" data-panel="panel-drafts">📋 Drafts</button>
+      <button class="mi-tab" role="tab" aria-selected="false" data-panel="panel-suggestions">💡 Suggestions</button>
+      <button class="mi-tab" role="tab" aria-selected="false" data-panel="panel-transcript">📝 Transcript</button>
+      <button class="mi-tab" role="tab" aria-selected="false" data-panel="panel-royalties">💰 Royalties</button>
+      <button class="mi-tab" role="tab" aria-selected="false" data-panel="panel-org">🧠 Org Intelligence</button>
+    </nav>
+
+    <!-- ── PANEL: Drafts ── -->
+    <section class="mi-panel active" id="panel-drafts" role="tabpanel" aria-label="Generated drafts">
+
+      <div class="mi-ethics-banner" role="note">
+        <span class="mi-ethics-icon">⚖️</span>
+        <span>Shadow AI drafts are <strong>suggestions only</strong>. Your organisation retains full ownership. Accepted drafts trigger BSL 1.1 royalty credits for contributing shadow agents. All drafts are subject to your organisation's ethical review before implementation.</span>
+      </div>
+
+      <div class="mi-section-title">Generated Drafts <span id="draft-count">0</span></div>
+
+      <div class="mi-draft-grid" id="draft-grid">
+        <div class="mi-empty">
+          <div class="mi-empty-icon">📋</div>
+          <h3>No drafts yet</h3>
+          <p>Start a Shadow AI session in the Workspace, then click "Generate Drafts" to create documents from your meeting.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PANEL: Suggestions ── -->
+    <section class="mi-panel" id="panel-suggestions" role="tabpanel" aria-label="AI suggestions for review">
+      <div class="mi-section-title">Shadow AI Suggestions <span id="sug-count">0</span></div>
+      <div class="mi-sug-list" id="sug-list" role="list">
+        <div class="mi-empty">
+          <div class="mi-empty-icon">💡</div>
+          <h3>No suggestions loaded</h3>
+          <p>Suggestions from your Shadow AI session will appear here for review after a meeting.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PANEL: Transcript ── -->
+    <section class="mi-panel" id="panel-transcript" role="tabpanel" aria-label="Meeting transcript">
+      <div class="mi-section-title">Meeting Transcript</div>
+      <div class="mi-transcript" id="transcript-view" aria-live="polite">
+        <div class="mi-empty">
+          <div class="mi-empty-icon">📝</div>
+          <h3>No transcript</h3>
+          <p>The transcript from your session will appear here.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PANEL: Royalties ── -->
+    <section class="mi-panel" id="panel-royalties" role="tabpanel" aria-label="Royalty tracking">
+      <div class="mi-ethics-banner" role="note">
+        <span class="mi-ethics-icon">💰</span>
+        <span>Under BSL 1.1, each shadow agent that contributes accepted insights earns royalty credits. When your organisation reuses a capability derived from a session, a micro-licensing fee is distributed proportionally to the contributing agents and their users. <a href="/ui/legal" style="color:var(--teal)">Read full policy →</a></span>
+      </div>
+      <div class="mi-section-title">Royalty Ledger <span id="royalty-count">0</span></div>
+      <div style="overflow-x:auto">
+        <table class="mi-royalty-table" aria-label="Royalty ledger">
+          <thead>
+            <tr>
+              <th>Session</th>
+              <th>Agent / User</th>
+              <th>Contribution</th>
+              <th>Credits Earned</th>
+              <th>Status</th>
+              <th>Sessions Used</th>
+            </tr>
+          </thead>
+          <tbody id="royalty-tbody">
+            <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-tertiary)">No royalty data yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── PANEL: Org Intelligence ── -->
+    <section class="mi-panel" id="panel-org" role="tabpanel" aria-label="Organisational intelligence">
+      <div class="mi-section-title">Organisational Intelligence</div>
+
+      <div class="mi-org-grid" id="org-stats">
+        <div class="mi-org-stat"><div class="mi-org-stat-val" id="stat-sessions">0</div><div class="mi-org-stat-label">Sessions Accumulated</div></div>
+        <div class="mi-org-stat"><div class="mi-org-stat-val" id="stat-insights">0</div><div class="mi-org-stat-label">Accepted Insights</div></div>
+        <div class="mi-org-stat"><div class="mi-org-stat-val" id="stat-drafts-accepted">0</div><div class="mi-org-stat-label">Drafts Accepted</div></div>
+        <div class="mi-org-stat"><div class="mi-org-stat-val" id="stat-agents">0</div><div class="mi-org-stat-label">Active Shadow Agents</div></div>
+      </div>
+
+      <div class="mi-section-title" style="margin-top:8px">Accumulated Capabilities</div>
+      <div class="mi-capability-list" id="capability-list">
+        <div class="mi-empty">
+          <div class="mi-empty-icon">🧠</div>
+          <h3>No capabilities yet</h3>
+          <p>As your team completes sessions, the organisation builds reusable problem-solving capabilities. Each 30–60 min session adds to the collective intelligence.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- VOTING MODAL -->
+<div class="mi-modal-bg" id="vote-modal" hidden role="dialog" aria-modal="true" aria-labelledby="vote-modal-title">
+  <div class="mi-modal">
+    <div class="mi-modal-header">
+      <div class="mi-modal-title" id="vote-modal-title">Vote on Draft</div>
+      <button class="mi-modal-close" id="vote-modal-close" aria-label="Close">✕</button>
+    </div>
+    <div class="mi-modal-body">
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px" id="vote-modal-desc">Cast your vote on this draft document.</p>
+      <div class="mi-vote-options" role="group" aria-label="Vote options">
+        <div class="mi-vote-option" data-vote="accept" tabindex="0" role="button">
+          <div class="mi-vote-icon">✅</div>
+          <div class="mi-vote-label">Accept</div>
+          <div class="mi-vote-desc">Ready to implement</div>
+        </div>
+        <div class="mi-vote-option" data-vote="revise" tabindex="0" role="button">
+          <div class="mi-vote-icon">✏️</div>
+          <div class="mi-vote-label">Revise</div>
+          <div class="mi-vote-desc">Needs changes first</div>
+        </div>
+        <div class="mi-vote-option" data-vote="reject" tabindex="0" role="button">
+          <div class="mi-vote-icon">❌</div>
+          <div class="mi-vote-label">Reject</div>
+          <div class="mi-vote-desc">Not applicable</div>
+        </div>
+      </div>
+      <textarea id="vote-comment" style="width:100%;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:8px 10px;color:var(--text-primary);font-size:13px;font-family:var(--font-ui);resize:vertical;min-height:70px" placeholder="Optional comment…" aria-label="Vote comment"></textarea>
+    </div>
+    <div class="mi-modal-footer">
+      <button class="mi-btn" id="vote-cancel">Cancel</button>
+      <button class="mi-btn mi-btn-primary" id="vote-submit">Submit Vote</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  function $id(id) { return document.getElementById(id); }
+  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  /* ── Load data from last session (written by workspace.html Shadow AI) ── */
+  var session = null;
+  try {
+    var raw = localStorage.getItem('murphy_last_meeting');
+    if (raw) session = JSON.parse(raw);
+  } catch (_) {}
+
+  /* ── Check URL param ── */
+  var urlParams = new URLSearchParams(window.location.search);
+  var sesId = urlParams.get('session');
+
+  /* ── Also load all sessions (localStorage as cache/fallback) ── */
+  var allSessions = [];
+  try {
+    var allRaw = localStorage.getItem('murphy_all_meetings');
+    if (allRaw) allSessions = JSON.parse(allRaw);
+  } catch (_) {}
+  if (session && session.id) {
+    var exists = allSessions.find(function (s) { return s.id === session.id; });
+    if (!exists) {
+      allSessions.unshift(session);
+      try { localStorage.setItem('murphy_all_meetings', JSON.stringify(allSessions.slice(0, 50))); } catch (_) {}
+    }
+  }
+
+  /* ── Normalise a server session record to match local schema ── */
+  function normaliseServerSession(s) {
+    return {
+      id: s.session_id || s.id,
+      title: s.title || 'Untitled session',
+      date: s.started_at || s.date || new Date().toISOString(),
+      duration: s.duration || '',
+      participants: s.participants || [],
+      confidence: s.confidence || 0,
+      suggestions: s.suggestions || [],
+      drafts: s.drafts || {},
+      transcript: s.transcript || [],
+      status: s.status || 'ended',
+    };
+  }
+
+  /* ── Fetch sessions from API, merge with localStorage, then render ── */
+  function initSessions(localSessions) {
+    fetch('/api/meeting-intelligence/sessions')
+      .then(function (res) { return res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status)); })
+      .then(function (data) {
+        var serverSessions = (data && data.sessions) ? data.sessions.map(normaliseServerSession) : [];
+        // Merge: server sessions take precedence; local-only sessions appended after
+        var merged = serverSessions.slice();
+        localSessions.forEach(function (ls) {
+          var lsId = ls.id || ls.session_id;
+          if (lsId && !merged.find(function (m) { return (m.id || m.session_id) === lsId; })) {
+            merged.push(ls);
+          }
+        });
+        allSessions = merged;
+        // Update localStorage cache
+        if (allSessions.length) {
+          try { localStorage.setItem('murphy_all_meetings', JSON.stringify(allSessions.slice(0, 50))); } catch (_) {}
+        }
+        // Seed demo only when both API and localStorage returned nothing
+        if (!allSessions.length) {
+          allSessions = DEMO_SESSIONS;
+        }
+        renderAll();
+      })
+      .catch(function (err) {
+        console.error('[MeetingIntelligence] Failed to load sessions from API:', err);
+        // Fall back to localStorage-only
+        allSessions = localSessions.length ? localSessions : DEMO_SESSIONS;
+        renderAll();
+      });
+  }
+
+  /* ── Demo seed data (only used when API + localStorage are both empty) ── */
+  var DEMO_SESSIONS = [
+    {
+      id: 'demo-001',
+        title: 'Product Roadmap Q2 2026',
+        date: '2026-03-14T14:00:00Z',
+        duration: '47 min',
+        participants: ['Alex Chen', 'Jordan Kim', 'Murphy AI'],
+        confidence: 78,
+        suggestions: [
+          { type: 'insight', text: 'The team consistently returns to the theme of reducing onboarding friction. This is the top priority signal.', confidence: 82 },
+          { type: 'action', text: 'Schedule a dedicated sprint for the onboarding flow redesign by end of Q2.', confidence: 74 },
+          { type: 'risk', text: 'The API rate limit changes may delay the integration milestones by 1–2 weeks.', confidence: 61 },
+          { type: 'proposal', text: 'Adopt a phased rollout strategy: internal beta in April, public beta in May, GA in June.', confidence: 79 }
+        ],
+        drafts: {
+          'action-plan': 'Action Plan — Product Roadmap Q2 2026\n\n1. Redesign onboarding flow (Sprint 14–15)\n2. Complete API integration layer (Sprint 14)\n3. Ship compliance dashboard v2 (Sprint 15)\n4. Phased rollout: internal beta Apr 1\n5. Public beta May 1\n6. GA June 1\n\nOwners: Alex Chen (frontend), Jordan Kim (backend)\nReview date: March 28, 2026',
+          'decision-record': 'Decision Record\n\nDecision: Adopt phased rollout for Q2 launch\nDate: March 14, 2026\nDeciders: Alex Chen, Jordan Kim\nContext: Reduce risk of GA regression\nOutcome: Internal beta → public beta → GA\nConsequences: 2-week buffer built into timeline',
+          'proposal': 'Proposal: Onboarding UX Overhaul\n\nBackground: User drop-off at step 3 of onboarding is 34%. Simplifying to 3 steps is estimated to reduce drop-off to under 10%.\n\nProposed solution: Merge steps 2 and 3, add progress indicator, add skip-for-now option.\n\nEstimated effort: 5 story points\nRecommended sprint: Sprint 14',
+          'risk-register': 'Risk Register\n\nRisk 1: API rate limit changes (Severity: Medium)\n  - Likelihood: High\n  - Impact: 1–2 week delay on integration milestones\n  - Mitigation: Cache aggressively, batch requests\n\nRisk 2: Onboarding sprint scope creep (Severity: Low)\n  - Likelihood: Medium\n  - Mitigation: Hard scope limit, no new features mid-sprint'
+        },
+        transcript: [
+          { time: '00:01', speaker: 'Alex', text: 'Let\'s start with the onboarding numbers. Drop-off is still at 34%.' },
+          { time: '00:03', speaker: 'Jordan', text: 'That\'s worse than last month. We need to prioritise this for Q2.' },
+          { time: '00:05', speaker: 'Murphy', text: 'I\'m detecting a recurring theme around onboarding friction. Flagging as high priority.' },
+          { time: '00:08', speaker: 'Alex', text: 'I think we merge steps 2 and 3. That alone should cut drop-off significantly.' },
+          { time: '00:11', speaker: 'Jordan', text: 'Agreed. What about the API rate limit issue? That could delay our integrations.' },
+          { time: '00:14', speaker: 'Murphy', text: 'Risk flagged: API rate limit changes — medium severity, high likelihood. Recommend caching strategy.' },
+          { time: '00:17', speaker: 'Alex', text: 'Good catch. Let\'s add that to the risk register.' },
+          { time: '00:22', speaker: 'Jordan', text: 'For the rollout, I say internal beta April 1, public beta May 1, GA June 1.' },
+          { time: '00:24', speaker: 'Alex', text: 'That gives us buffer. I like it.' },
+          { time: '00:26', speaker: 'Murphy', text: 'Phased rollout proposal recorded. Confidence in plan: 78%.' }
+        ]
+      }
+    ];
+
+  /* ── Render everything after sessions are resolved ── */
+  /* ── Render session list ── */
+  function renderSessionList(filter) {
+    var list = $id('session-list');
+    list.innerHTML = '';
+    var filtered = filter ? allSessions.filter(function (s) {
+      return (s.title || '').toLowerCase().includes(filter.toLowerCase());
+    }) : allSessions;
+
+    if (!filtered.length) {
+      list.innerHTML = '<div class="mi-empty" style="padding:30px 14px"><div class="mi-empty-icon">📭</div><h3>No sessions</h3></div>';
+      return;
+    }
+    filtered.forEach(function (s, i) {
+      var d = new Date(s.date || Date.now());
+      var dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      var el = document.createElement('div');
+      el.className = 'mi-session-item' + (i === 0 && !sesId ? ' active' : '');
+      el.setAttribute('role', 'listitem');
+      el.setAttribute('tabindex', '0');
+      el.innerHTML = '<div class="mi-session-name">' + esc(s.title || 'Untitled session') + '</div>' +
+        '<div class="mi-session-meta">' +
+        '<span>' + dateStr + '</span>' +
+        '<span>' + esc(s.duration || '–') + '</span>' +
+        '<span class="mi-session-badge">' + (s.confidence || 0) + '% conf</span>' +
+        '</div>';
+      el.addEventListener('click', function () {
+        document.querySelectorAll('.mi-session-item').forEach(function (e) { e.classList.remove('active'); });
+        el.classList.add('active');
+        loadSession(s);
+      });
+      el.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') el.click(); });
+      list.appendChild(el);
+    });
+  }
+
+  $id('session-search').addEventListener('input', function () {
+    renderSessionList(this.value);
+  });
+
+  /* ── Load session data into panels ── */
+  var currentSession = null;
+  function loadSession(s) {
+    currentSession = s;
+    var d = new Date(s.date || Date.now());
+
+    /* Hero */
+    $id('hero-title').textContent = s.title || 'Untitled session';
+    $id('hero-sub').textContent = 'Shadow AI swarm session — ' + (s.participants || []).join(', ');
+    $id('hero-date').textContent = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    $id('hero-duration').textContent = s.duration || '–';
+    $id('hero-participants').textContent = (s.participants || []).length;
+    $id('hero-suggestions').textContent = (s.suggestions || []).length;
+    $id('hero-drafts').textContent = Object.keys(s.drafts || {}).length;
+
+    /* Confidence circle */
+    var conf = s.confidence || 0;
+    var deg = Math.round(conf / 100 * 360);
+    var col = conf >= 65 ? 'var(--teal)' : conf >= 40 ? '#ffc400' : '#ff4444';
+    var circle = $id('conf-circle');
+    circle.style.background = 'conic-gradient(' + col + ' ' + deg + 'deg, var(--bg-elevated) ' + deg + 'deg)';
+    circle.textContent = conf + '%';
+    $id('conf-val').textContent = conf + '%';
+    $id('conf-val').style.color = col;
+    $id('conf-desc').textContent = conf >= 65 ? 'Strong consensus' : conf >= 40 ? 'Moderate alignment' : 'Low confidence';
+
+    renderDrafts(s);
+    renderSuggestions(s);
+    renderTranscript(s);
+    renderRoyalties(s);
+    renderOrgCapabilities();
+  }
+
+  /* ── Render drafts ── */
+  var DRAFT_META = {
+    'action-plan':    { icon: '📋', title: 'Action Plan', sub: 'Concrete next steps' },
+    'decision-record':{ icon: '⚖️', title: 'Decision Record', sub: 'What was decided and why' },
+    'proposal':       { icon: '📄', title: 'Proposal', sub: 'Ideas for implementation' },
+    'risk-register':  { icon: '🚨', title: 'Risk Register', sub: 'Identified risks and mitigations' }
+  };
+
+  /* ── Render everything after sessions are resolved ── */
+  /* NOTE: defined after DRAFT_META so loadSession() can access it safely. */
+  function renderAll() {
+    /* ── ORG stats ── */
+    var orgSessions = parseInt(localStorage.getItem('murphy_org_sessions') || '0', 10) || allSessions.length;
+    var orgInsights = parseInt(localStorage.getItem('murphy_org_insights') || '0', 10) || 4;
+    var orgDraftsAccepted = parseInt(localStorage.getItem('murphy_org_drafts_accepted') || '0', 10) || 2;
+    $id('footer-org-sessions').textContent = orgSessions;
+    $id('stat-sessions').textContent = orgSessions;
+    $id('stat-insights').textContent = orgInsights;
+    $id('stat-drafts-accepted').textContent = orgDraftsAccepted;
+    $id('stat-agents').textContent = Math.max(1, Math.floor(orgSessions * 1.4));
+
+    renderSessionList('');
+
+    /* Auto-select session from URL param or first in list */
+    if (sesId) {
+      var urlSession = allSessions.find(function (s) { return (s.id || s.session_id) === sesId; });
+      if (urlSession) loadSession(urlSession);
+    } else if (allSessions.length) {
+      loadSession(allSessions[0]);
+    }
+  }
+
+  /* ── Kick off: fetch from API, merge with localStorage, render ── */
+  initSessions(allSessions);
+
+  function renderDrafts(s) {
+    var grid = $id('draft-grid');
+    var drafts = s.drafts || {};
+    var keys = Object.keys(drafts);
+    $id('draft-count').textContent = keys.length;
+
+    if (!keys.length) {
+      grid.innerHTML = '<div class="mi-empty"><div class="mi-empty-icon">📋</div><h3>No drafts</h3><p>Start a Shadow AI session in Workspace.</p></div>';
+      return;
+    }
+
+    grid.innerHTML = '';
+    keys.forEach(function (key) {
+      var meta = DRAFT_META[key] || { icon: '📄', title: key.replace(/-/g, ' '), sub: '' };
+      var content = drafts[key] || '';
+      var votes = s.votes || {};
+      var voteData = votes[key] || { accept: 0, total: 0 };
+      var votePercent = voteData.total > 0 ? Math.round(voteData.accept / voteData.total * 100) : 0;
+
+      var card = document.createElement('div');
+      card.className = 'mi-draft-card' + (voteData.accept > voteData.total / 2 ? ' accepted' : '');
+      card.innerHTML =
+        '<div class="mi-draft-card-header">' +
+          '<div class="mi-draft-icon" aria-hidden="true">' + meta.icon + '</div>' +
+          '<div><div class="mi-draft-title">' + esc(meta.title) + '</div>' +
+          '<div class="mi-draft-subtitle">' + esc(meta.sub) + '</div></div>' +
+        '</div>' +
+        '<div class="mi-draft-body" tabindex="0" aria-label="Draft content">' + esc(content) + '</div>' +
+        '<div class="mi-draft-vote-bar">' +
+          '<div class="mi-draft-vote-label"><span>Team consensus</span><span>' + votePercent + '%</span></div>' +
+          '<div class="mi-draft-vote-track"><div class="mi-draft-vote-fill" style="width:' + votePercent + '%"></div></div>' +
+        '</div>' +
+        '<div class="mi-draft-actions" style="margin-top:10px">' +
+          '<button class="mi-draft-btn mi-draft-accept" data-action="accept" data-key="' + esc(key) + '">✅ Accept</button>' +
+          '<button class="mi-draft-btn mi-draft-export" data-action="export" data-key="' + esc(key) + '">⬇ Export</button>' +
+          '<button class="mi-draft-btn mi-draft-reject" data-action="vote" data-key="' + esc(key) + '">🗳 Vote</button>' +
+        '</div>';
+
+      card.querySelectorAll('[data-action]').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var action = btn.dataset.action;
+          if (action === 'accept') {
+            card.classList.add('accepted');
+            btn.textContent = '✓ Accepted';
+            btn.disabled = true;
+            orgDraftsAccepted++;
+            $id('stat-drafts-accepted').textContent = orgDraftsAccepted;
+            try { localStorage.setItem('murphy_org_drafts_accepted', String(orgDraftsAccepted)); } catch (_) {}
+            submitDraftToAPI(key, content, 'accepted');
+          } else if (action === 'export') {
+            exportText(meta.title + '.txt', content);
+          } else if (action === 'vote') {
+            openVoteModal(key, meta.title, content);
+          }
+        });
+      });
+      grid.appendChild(card);
+    });
+  }
+
+  /* ── Render suggestions ── */
+  function renderSuggestions(s) {
+    var list = $id('sug-list');
+    var sugs = s.suggestions || [];
+    $id('sug-count').textContent = sugs.length;
+
+    if (!sugs.length) {
+      list.innerHTML = '<div class="mi-empty"><div class="mi-empty-icon">💡</div><h3>No suggestions</h3><p>Suggestions from Shadow AI will appear here.</p></div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    sugs.forEach(function (sug) {
+      var conf = sug.confidence || 50;
+      var confClass = conf >= 65 ? 'high' : conf >= 40 ? 'mid' : 'low';
+      var card = document.createElement('div');
+      card.className = 'mi-sug-card';
+      card.setAttribute('role', 'listitem');
+      card.innerHTML =
+        '<div class="mi-sug-header">' +
+          '<span class="mi-sug-type ' + esc(sug.type) + '">' + esc(sug.type.toUpperCase()) + '</span>' +
+          '<span class="mi-sug-conf ' + confClass + '">' + conf + '% conf</span>' +
+        '</div>' +
+        '<div class="mi-sug-text">' + esc(sug.text) + '</div>' +
+        '<div class="mi-sug-actions">' +
+          '<button class="mi-sug-btn accept" aria-label="Accept suggestion">✓ Accept</button>' +
+          '<button class="mi-sug-btn flag" aria-label="Flag suggestion">⚑ Flag</button>' +
+          '<button class="mi-sug-btn" aria-label="Dismiss suggestion">✕ Dismiss</button>' +
+        '</div>';
+
+      card.querySelector('.accept').addEventListener('click', function () {
+        card.classList.add('accepted');
+        this.textContent = '✓ Accepted';
+        this.disabled = true;
+        orgInsights++;
+        $id('stat-insights').textContent = orgInsights;
+        try { localStorage.setItem('murphy_org_insights', String(orgInsights)); } catch (_) {}
+      });
+      card.querySelector('.flag').addEventListener('click', function () {
+        card.classList.toggle('flagged');
+        this.textContent = card.classList.contains('flagged') ? '⚑ Flagged' : '⚑ Flag';
+      });
+      card.querySelector('.mi-sug-btn:not(.accept):not(.flag)').addEventListener('click', function () {
+        card.classList.add('dismissed');
+      });
+      list.appendChild(card);
+    });
+  }
+
+  /* ── Render transcript ── */
+  function renderTranscript(s) {
+    var view = $id('transcript-view');
+    var lines = s.transcript || [];
+    if (!lines.length) {
+      view.innerHTML = '<div class="mi-empty"><div class="mi-empty-icon">📝</div><h3>No transcript</h3></div>';
+      return;
+    }
+    view.innerHTML = '';
+    lines.forEach(function (line) {
+      var row = document.createElement('div');
+      row.className = 'mi-transcript-line';
+      var isMurphy = (line.speaker || '').toLowerCase() === 'murphy';
+      row.innerHTML =
+        '<span class="mi-tr-time">' + esc(line.time || '') + '</span>' +
+        '<span class="mi-tr-speaker" style="color:' + (isMurphy ? 'var(--teal)' : '#00ffff') + '">' + esc(line.speaker || '') + '</span>' +
+        '<span class="mi-tr-text' + (isMurphy ? ' highlight' : '') + '">' + esc(line.text || '') + '</span>';
+      view.appendChild(row);
+    });
+  }
+
+  /* ── Render royalties ── */
+  function renderRoyalties(s) {
+    var tbody = $id('royalty-tbody');
+    var sugs = s.suggestions || [];
+    var accepted = sugs.filter(function (sug) { return sug.accepted; });
+
+    /* Seed demo royalties */
+    var rows = [
+      { session: s.title || 'Session', agent: 'Murphy AI', contribution: 'Pattern recognition — onboarding drop-off', credits: '0.42', status: 'earned', usedIn: 2 },
+      { session: s.title || 'Session', agent: 'Shadow-Alex', contribution: 'Phased rollout risk model', credits: '0.28', status: 'pending', usedIn: 0 },
+      { session: s.title || 'Session', agent: 'Shadow-Jordan', contribution: 'API rate-limit mitigation strategy', credits: '0.19', status: 'earned', usedIn: 1 }
+    ];
+
+    $id('royalty-count').textContent = rows.length;
+    tbody.innerHTML = '';
+    rows.forEach(function (row) {
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + esc(row.session) + '</td>' +
+        '<td style="color:var(--teal);font-weight:600">' + esc(row.agent) + '</td>' +
+        '<td>' + esc(row.contribution) + '</td>' +
+        '<td><div class="mi-royalty-amount">Ω ' + esc(row.credits) + '</div>' +
+          '<div class="mi-royalty-progress"><div class="mi-royalty-progress-fill" style="width:' + Math.round(parseFloat(row.credits) * 200) + '%"></div></div></td>' +
+        '<td><span class="mi-royalty-status ' + esc(row.status) + '">' + esc(row.status) + '</span></td>' +
+        '<td>' + row.usedIn + '</td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  /* ── Render org capabilities ── */
+  var CAPABILITIES = [
+    { icon: '🔍', name: 'Onboarding Analysis', desc: 'Drop-off pattern detection from user sessions', sessions: 3 },
+    { icon: '⚠️', name: 'Risk Detection', desc: 'API dependency and timeline risk identification', sessions: 2 },
+    { icon: '📐', name: 'Phased Rollout Planning', desc: 'Beta → GA launch sequencing', sessions: 1 },
+    { icon: '💬', name: 'Meeting Facilitation', desc: 'Real-time consensus tracking and draft generation', sessions: 4 }
+  ];
+
+  function renderOrgCapabilities() {
+    var list = $id('capability-list');
+    var sessions = parseInt(localStorage.getItem('murphy_org_sessions') || '0', 10) || allSessions.length;
+    if (!sessions) {
+      list.innerHTML = '<div class="mi-empty"><div class="mi-empty-icon">🧠</div><h3>No capabilities yet</h3><p>Complete sessions to build org intelligence.</p></div>';
+      return;
+    }
+    list.innerHTML = '';
+    CAPABILITIES.forEach(function (cap) {
+      var row = document.createElement('div');
+      row.className = 'mi-cap-row';
+      row.innerHTML =
+        '<div class="mi-cap-icon" aria-hidden="true">' + cap.icon + '</div>' +
+        '<div class="mi-cap-info"><div class="mi-cap-name">' + esc(cap.name) + '</div><div class="mi-cap-desc">' + esc(cap.desc) + '</div></div>' +
+        '<div class="mi-cap-sessions">' + cap.sessions + ' session' + (cap.sessions !== 1 ? 's' : '') + '</div>';
+      list.appendChild(row);
+    });
+  }
+
+  /* ── Tabs ── */
+
+  document.querySelectorAll('.mi-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      document.querySelectorAll('.mi-tab').forEach(function (t) { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+      document.querySelectorAll('.mi-panel').forEach(function (p) { p.classList.remove('active'); });
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      var panel = $id(tab.dataset.panel);
+      if (panel) panel.classList.add('active');
+    });
+  });
+
+  /* ── Vote modal ── */
+  var voteTarget = null;
+  function openVoteModal(key, title, content) {
+    voteTarget = { key: key, title: title, content: content };
+    $id('vote-modal-title').textContent = 'Vote: ' + title;
+    $id('vote-modal-desc').textContent = 'Cast your vote on this draft. The organisation collectively decides what to adopt.';
+    document.querySelectorAll('.mi-vote-option').forEach(function (o) { o.classList.remove('selected'); });
+    $id('vote-comment').value = '';
+    $id('vote-modal').hidden = false;
+  }
+
+  function closeVoteModal() { $id('vote-modal').hidden = true; voteTarget = null; }
+
+  $id('vote-modal-close').addEventListener('click', closeVoteModal);
+  $id('vote-cancel').addEventListener('click', closeVoteModal);
+  $id('vote-modal').addEventListener('click', function (e) { if (e.target === this) closeVoteModal(); });
+
+  document.querySelectorAll('.mi-vote-option').forEach(function (opt) {
+    opt.addEventListener('click', function () {
+      document.querySelectorAll('.mi-vote-option').forEach(function (o) { o.classList.remove('selected'); });
+      opt.classList.add('selected');
+    });
+    opt.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') opt.click(); });
+  });
+
+  $id('vote-submit').addEventListener('click', function () {
+    var selected = document.querySelector('.mi-vote-option.selected');
+    if (!selected) { alert('Please select a vote option.'); return; }
+    var vote = selected.dataset.vote;
+    var comment = $id('vote-comment').value.trim();
+    if (voteTarget) {
+      submitVoteToAPI(voteTarget.key, vote, comment);
+    }
+    closeVoteModal();
+    showToast('Vote recorded: ' + vote);
+  });
+
+  /* ── Email report ── */
+  $id('btn-email-report').addEventListener('click', function () {
+    if (!currentSession) { showToast('Select a session first'); return; }
+    var sessionId = currentSession.id || currentSession.session_id;
+    fetch('/api/meeting-intelligence/email-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: sessionId, title: currentSession.title, participants: currentSession.participants })
+    })
+      .then(function (res) { return res.ok ? res.json() : Promise.reject(res.status); })
+      .then(function () { showToast('Report queued for delivery to participants ✓'); })
+      .catch(function (err) {
+        console.error('[MeetingIntelligence] Email report failed:', err);
+        showToast('Failed to queue report — check console for details');
+      });
+  });
+
+  /* ── Export all ── */
+  $id('btn-export-all').addEventListener('click', function () {
+    if (!currentSession) { showToast('Select a session first'); return; }
+    var parts = ['Meeting Intelligence Report\n' + (currentSession.title || '') + '\n' + new Date(currentSession.date || Date.now()).toLocaleString() + '\n\n'];
+    var drafts = currentSession.drafts || {};
+    Object.keys(drafts).forEach(function (k) { parts.push('=== ' + k.toUpperCase() + ' ===\n' + drafts[k] + '\n\n'); });
+    var sugs = currentSession.suggestions || [];
+    if (sugs.length) {
+      parts.push('=== SUGGESTIONS ===\n');
+      sugs.forEach(function (s, i) { parts.push((i + 1) + '. [' + s.type.toUpperCase() + '] ' + s.text + '\n'); });
+    }
+    exportText('meeting-report-' + (currentSession.id || 'session') + '.txt', parts.join(''));
+  });
+
+  /* ── API helpers ── */
+  function submitDraftToAPI(key, content, status) {
+    var sessionId = currentSession ? (currentSession.id || currentSession.session_id) : undefined;
+    fetch('/api/meeting-intelligence/drafts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: sessionId, draft_type: key, content: content, status: status })
+    })
+      .then(function (res) { return res.ok ? res.json() : Promise.reject(res.status); })
+      .then(function () { showToast('Draft saved to server ✓'); })
+      .catch(function (err) { console.error('[MeetingIntelligence] Draft save failed:', err); });
+  }
+
+  function submitVoteToAPI(key, vote, comment) {
+    var sessionId = currentSession ? (currentSession.id || currentSession.session_id) : undefined;
+    fetch('/api/meeting-intelligence/vote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: sessionId, draft_type: key, vote: vote, comment: comment })
+    })
+      .then(function (res) { return res.ok ? res.json() : Promise.reject(res.status); })
+      .then(function () { showToast('Vote recorded on server ✓'); })
+      .catch(function (err) { console.error('[MeetingIntelligence] Vote submit failed:', err); });
+  }
+
+  /* ── Utilities ── */
+  function exportText(filename, content) {
+    var a = document.createElement('a');
+    a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(content);
+    a.download = filename;
+    a.click();
+  }
+
+  function showToast(msg) {
+    var t = document.createElement('div');
+    t.style.cssText = 'position:fixed;bottom:20px;right:20px;background:var(--bg-surface);border:1px solid var(--teal);color:var(--text-primary);padding:10px 16px;border-radius:var(--radius-md);font-size:13px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.4)';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function () { t.remove(); }, 3000);
+  }
+
+})();
+</script>
+</body>
+</html>

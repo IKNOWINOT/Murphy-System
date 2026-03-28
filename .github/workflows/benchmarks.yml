@@ -1,0 +1,72 @@
+name: External Benchmarks
+
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post
+# License: BSL 1.1
+
+on:
+  workflow_dispatch:
+    inputs:
+      benchmark:
+        description: 'Which benchmark(s) to run (all, swe-bench, gaia, agent-bench, web-arena, tool-bench, tau-bench, terminal-bench)'
+        required: false
+        default: 'all'
+      max_tasks:
+        description: 'Maximum tasks per benchmark suite'
+        required: false
+        default: '5'
+  schedule:
+    # Weekly on Sunday at 06:00 UTC
+    - cron: '0 6 * * 0'
+
+permissions:
+  contents: read
+
+jobs:
+  benchmarks:
+    name: Run External Benchmarks (${{ github.event.inputs.benchmark || 'all' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: "Murphy System"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install core CI dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements_ci.txt
+
+      - name: Install benchmark dependencies
+        run: |
+          pip install -r requirements_benchmarks.txt
+
+      - name: Run benchmark suite
+        env:
+          MURPHY_RUN_EXTERNAL_BENCHMARKS: '1'
+          MURPHY_BENCHMARK_MAX_TASKS: ${{ github.event.inputs.max_tasks || '5' }}
+          MURPHY_BENCHMARK_RESULTS_DIR: documentation/testing
+          PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/Murphy System/src"
+        run: |
+          BENCHMARK="${{ github.event.inputs.benchmark || 'all' }}"
+          bash scripts/run_benchmarks.sh ${BENCHMARK}
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-results-${{ github.run_number }}
+          path: |
+            Murphy System/documentation/testing/benchmark_*_results.json
+            Murphy System/documentation/testing/BENCHMARK_EXTERNAL_RESULTS.json
+            Murphy System/documentation/testing/BENCHMARK_EXTERNAL_RESULTS.md
+          retention-days: 90

@@ -1,0 +1,88 @@
+# Murphy System 1.0 — Production Docker Compose Override
+#
+# Usage (merge with base docker-compose.yml):
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# What this override adds:
+#   - Multi-replica murphy-api (scale via MURPHY_REPLICAS env var)
+#   - Stricter resource limits
+#   - json-file logging driver with rotation
+#   - Auto-migration enabled on startup
+#   - Production MURPHY_ENV + worker count from CPU count
+#
+# Copyright © 2020 Inoni Limited Liability Company
+# License: BSL-1.1
+
+services:
+  murphy-api:
+    environment:
+      MURPHY_ENV: production
+      MURPHY_AUTO_MIGRATE: "true"
+      MURPHY_LOG_LEVEL: warning
+    deploy:
+      replicas: ${MURPHY_REPLICAS:-2}
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 4G
+        reservations:
+          cpus: "1.0"
+          memory: 1G
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  postgres:
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  redis:
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  prometheus:
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  grafana:
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

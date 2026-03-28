@@ -1,0 +1,1 @@
+export function ips(rewards:number[], prop:number[]){ let s=0; for(let i=0;i<rewards.length;i++){ s+= rewards[i]/Math.max(1e-6,prop[i]); } return s/rewards.length; }

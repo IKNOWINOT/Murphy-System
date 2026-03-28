@@ -1,0 +1,19 @@
+[run]
+branch = true
+source =
+    rosetta_subsystem_wiring
+    startup_feature_summary
+omit =
+    src/tests/*
+    src/*_test.py
+
+[report]
+show_missing = true
+fail_under = 80
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
+    if __name__ == .__main__
+    @abstractmethod
+    if TYPE_CHECKING:

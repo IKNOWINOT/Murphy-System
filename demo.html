@@ -1,0 +1,504 @@
+<!-- Murphy System — Interactive Demo Page / © 2020 Inoni Limited Liability Company / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Try Murphy — Interactive Demo</title>
+<meta name="description" content="Try Murphy System live. Type a task and watch Murphy automate it in real time.">
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+:root{--bg:#0a0e17;--fg:#e2e8f0;--cyan:#00e5ff;--teal:#1de9b6;--green:#76ff03;--panel:#111827;--border:#1e293b;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--fg);font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:2rem 1rem;}
+.demo-page-header{text-align:center;margin-bottom:2rem;}
+.demo-page-header h1{font-size:2rem;color:var(--cyan);margin-bottom:.5rem;}
+.demo-page-header p{color:#94a3b8;font-size:1.1rem;max-width:600px;}
+.demo-container{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:2rem;max-width:720px;width:100%;}
+.demo-prompt-row{display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;}
+.demo-prompt-dollar{color:var(--green);font-weight:700;font-family:'Fira Code','Courier New',monospace;font-size:1.1rem;}
+.demo-prompt-input{flex:1;background:#0f172a;border:1px solid var(--border);border-radius:8px;color:var(--fg);padding:.6rem .8rem;font-size:1rem;font-family:inherit;outline:none;}
+.demo-prompt-input:focus{border-color:var(--cyan);}
+.demo-run-btn{background:var(--cyan);color:#0a0e17;border:none;border-radius:8px;padding:.6rem 1.2rem;font-weight:700;cursor:pointer;font-size:.95rem;}
+.demo-run-btn:hover{opacity:.85;}
+.demo-chips{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.5rem;}
+.demo-chip{background:#1e293b;border:1px solid var(--border);color:var(--cyan);border-radius:20px;padding:.35rem .9rem;cursor:pointer;font-size:.85rem;transition:background .15s;}
+.demo-chip:hover{background:#334155;}
+.demo-term{background:#0f172a;border:1px solid var(--border);border-radius:8px;padding:1rem;font-family:'Fira Code','Courier New',monospace;font-size:.85rem;line-height:1.6;max-height:400px;overflow-y:auto;}
+.dt-line{white-space:pre-wrap;word-break:break-word;}
+.dt-green,.dt-cmd{color:var(--green);}
+.dt-cyan,.dt-info{color:var(--cyan);}
+.dt-teal,.dt-ok,.dt-step{color:var(--teal);}
+.dt-roi,.dt-done{color:#fbbf24;font-weight:700;}
+.demo-cursor{display:inline-block;width:8px;height:1.1em;background:var(--cyan);animation:blink .6s step-end infinite;vertical-align:text-bottom;}
+@keyframes blink{50%{opacity:0;}}
+.demo-roi-block{text-align:center;margin-top:1.5rem;padding:1rem;background:#1e293b;border-radius:8px;}
+.demo-roi-stat{color:#fbbf24;font-weight:700;font-size:1rem;margin-bottom:1rem;}
+.demo-btns{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;}
+.demo-btns a,.demo-btns button{padding:.6rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;cursor:pointer;text-decoration:none;border:none;}
+.demo-btns a{background:var(--cyan);color:#0a0e17;}
+.demo-btns button{background:transparent;border:1px solid var(--border);color:var(--fg);}
+.demo-btns button:hover{background:#334155;}
+.demo-dl-btn{background:#1de9b6!important;color:#0a0e17!important;border:none!important;}
+.demo-dl-btn:hover{opacity:.85;background:#1de9b6!important;}
+.demo-dl-btn:disabled{opacity:.5;cursor:not-allowed;}
+.demo-usage-counter{font-size:.78rem;color:#94a3b8;margin-top:.6rem;}
+.demo-limit-msg{margin-top:.75rem;padding:.6rem 1rem;background:#1e1a2e;border:1px solid #7c3aed;border-radius:8px;color:#c4b5fd;font-size:.85rem;}
+.back-link{margin-top:2rem;color:#94a3b8;font-size:.9rem;}
+.back-link a{color:var(--cyan);text-decoration:none;}
+.back-link a:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+
+<div class="demo-page-header">
+  <h1>&#9889; Try Murphy Now</h1>
+  <p>Type what you need — or pick a suggestion — and watch Murphy handle it live.</p>
+</div>
+
+<div class="demo-container">
+  <!-- Input area -->
+  <div id="demo-input-wrap">
+    <div class="demo-prompt-row">
+      <span class="demo-prompt-dollar" aria-hidden="true">$</span>
+      <input type="text" class="demo-prompt-input" id="demo-prompt-input"
+             placeholder="e.g. onboard a new client…"
+             aria-label="Enter a task for Murphy to automate"
+             autocomplete="off" autocorrect="off" spellcheck="false">
+      <button class="demo-run-btn" id="demo-run-btn" aria-label="Run demo">Run &#8629;</button>
+    </div>
+    <div class="demo-chips" id="demo-chips" role="group" aria-label="Demo suggestions">
+      <button class="demo-chip" data-query="Onboard a new client">Onboard New Client</button>
+      <button class="demo-chip" data-query="Generate Q3 finance report">Q3 Finance Report</button>
+      <button class="demo-chip" data-query="Screen candidates for PM role">Screen Candidates</button>
+      <button class="demo-chip" data-query="Run compliance audit">Compliance Audit</button>
+      <button class="demo-chip" data-query="Create project plan">Project Plan</button>
+      <button class="demo-chip" data-query="Process invoice batch">Invoice Processing</button>
+    </div>
+  </div>
+
+  <!-- Terminal output -->
+  <div class="demo-term" id="demo-term" aria-live="polite" aria-label="Murphy terminal output" hidden></div>
+
+  <!-- ROI + CTA (shown after demo completes) -->
+  <div class="demo-roi-block" id="demo-roi-block" hidden>
+    <div class="demo-roi-stat" id="demo-roi-stat"></div>
+    <div class="demo-btns">
+      <a href="/ui/signup">Start Free Trial</a>
+      <button id="demo-dl-btn" class="demo-dl-btn" onclick="downloadDeliverable()">&#8659; Download Deliverable</button>
+      <button id="demo-bundle-btn" class="demo-dl-btn" onclick="downloadBundle()" style="display:none;background:#7c3aed!important;color:#fff!important;">&#128230; Download Full Package (ZIP)</button>
+      <button onclick="demoReset()">&#8635; Try Another</button>
+    </div>
+    <div id="demo-spec-summary" style="display:none;margin-top:1rem;padding:1rem;background:#0f172a;border:1px solid var(--border);border-radius:8px;text-align:left;font-size:.85rem;line-height:1.7;">
+    </div>
+    <div class="demo-usage-counter" id="demo-usage-counter"></div>
+    <div class="demo-limit-msg" id="demo-limit-msg" style="display:none"></div>
+  </div>
+</div>
+
+<p class="back-link"><a href="/">&larr; Back to Murphy Home</a></p>
+
+<script>
+// ── Demo Scenarios (same as landing page) ──
+var DEMO_SCENARIOS={
+  onboarding:{
+    kw:['onboard','client','customer','intake','new client','new customer'],
+    lines:[
+      {t:'$ murphy workflow run client-onboarding --client="Acme Corp"',c:'green'},
+      {t:'\u2192 Generating intake form\u2026',c:'cyan'},
+      {t:'\u2713 Intake form sent \u00b7 signed in 2m 14s',c:'teal'},
+      {t:'\u2192 Drafting master service agreement\u2026',c:'cyan'},
+      {t:'\u2713 Contract e-signed via DocuSign',c:'teal'},
+      {t:'\u2192 Creating invoice #2091 ($4,500)\u2026',c:'cyan'},
+      {t:'\u2713 Invoice emailed \u00b7 payment link attached',c:'teal'},
+      {t:'\u2192 Syncing to HubSpot CRM\u2026',c:'cyan'},
+      {t:'\u2713 Contact created \u00b7 pipeline stage: Active Client',c:'teal'},
+      {t:'\u2192 Spinning up project workspace\u2026',c:'cyan'},
+      {t:'\u2713 Project board created \u00b7 14 tasks assigned',c:'teal'},
+      {t:'\u2713 Full onboarding complete in 4m 38s  \u00b7  Manual equivalent: ~3 hrs',c:'roi'}
+    ],
+    roi:'\u2713 Onboarding complete in 4m 38s. Without Murphy: ~3 hours of manual work.'
+  },
+  finance:{
+    kw:['finance','report','q3','quarterly','expense','forecast','revenue','accounting'],
+    lines:[
+      {t:'$ murphy report generate --type=quarterly --period=Q3-2024',c:'green'},
+      {t:'\u2192 Pulling transactions from QuickBooks\u2026',c:'cyan'},
+      {t:'\u2713 3,847 transactions loaded',c:'teal'},
+      {t:'\u2192 Categorizing expenses with AI\u2026',c:'cyan'},
+      {t:'\u2713 98.7% auto-categorized \u00b7 52 flagged for review',c:'teal'},
+      {t:'\u2192 Building revenue breakdown by client\u2026',c:'cyan'},
+      {t:'\u2713 23 clients \u00b7 top 5 account for 61% of ARR',c:'teal'},
+      {t:'\u2192 Generating 6-month forecast\u2026',c:'cyan'},
+      {t:'\u2713 Forecast: +18% growth \u00b7 confidence 87%',c:'teal'},
+      {t:'\u2192 Exporting to PDF + Google Sheets\u2026',c:'cyan'},
+      {t:'\u2713 Q3 Finance Report ready \u00b7 24-page PDF generated',c:'teal'},
+      {t:'\u2713 Full Q3 report in 6m 12s  \u00b7  Manual equivalent: ~8 hrs',c:'roi'}
+    ],
+    roi:'\u2713 Q3 Finance Report generated in 6m 12s. Without Murphy: ~8 hours.'
+  },
+  hr:{
+    kw:['hr','recruit','candidate','hire','screen','interview','job','offer','resume','talent','pm role'],
+    lines:[
+      {t:'$ murphy hr screen --role="Senior Product Manager" --applicants=47',c:'green'},
+      {t:'\u2192 Parsing 47 resumes\u2026',c:'cyan'},
+      {t:'\u2713 Resumes parsed \u00b7 12 meet base criteria',c:'teal'},
+      {t:'\u2192 Scoring candidates against job requirements\u2026',c:'cyan'},
+      {t:'\u2713 Top 5 candidates ranked by fit score',c:'teal'},
+      {t:'\u2192 Scheduling interviews via calendar AI\u2026',c:'cyan'},
+      {t:'\u2713 5 interviews booked \u00b7 invites sent',c:'teal'},
+      {t:'\u2192 Drafting offer letter for top candidate\u2026',c:'cyan'},
+      {t:'\u2713 Offer letter ready \u00b7 pending approval',c:'teal'},
+      {t:'\u2713 Screening + scheduling done in 3m 55s  \u00b7  Manual equivalent: ~2 days',c:'roi'}
+    ],
+    roi:'\u2713 47 candidates screened + interviews scheduled in 3m 55s. Without Murphy: ~2 days.'
+  },
+  compliance:{
+    kw:['compliance','audit','soc','hipaa','gdpr','security','gap','risk'],
+    lines:[
+      {t:'$ murphy compliance audit --frameworks=SOC2,HIPAA',c:'green'},
+      {t:'\u2192 Scanning access controls\u2026',c:'cyan'},
+      {t:'\u2713 124 controls evaluated \u00b7 3 gaps found',c:'teal'},
+      {t:'\u2192 Running HIPAA PHI data inventory\u2026',c:'cyan'},
+      {t:'\u2713 8 PHI data flows mapped \u00b7 1 unencrypted',c:'teal'},
+      {t:'\u2192 Generating gap analysis report\u2026',c:'cyan'},
+      {t:'\u2713 Gap report: 4 critical, 7 medium findings',c:'teal'},
+      {t:'\u2192 Building remediation plan\u2026',c:'cyan'},
+      {t:'\u2713 11-step remediation plan \u00b7 ETA 14 days',c:'teal'},
+      {t:'\u2192 Enabling continuous monitoring\u2026',c:'cyan'},
+      {t:'\u2713 Auto re-scan scheduled \u00b7 alerts configured',c:'teal'},
+      {t:'\u2713 Full SOC 2 + HIPAA audit in 5m 20s  \u00b7  Manual equivalent: ~3 weeks',c:'roi'}
+    ],
+    roi:'\u2713 Full compliance audit in 5m 20s. Without Murphy: ~3 weeks of consultant time.'
+  },
+  project:{
+    kw:['project','plan','task','timeline','resource','sprint','milestone','manage'],
+    lines:[
+      {t:'$ murphy project create --name="Website Redesign" --team=8',c:'green'},
+      {t:'\u2192 Analyzing project scope with AI\u2026',c:'cyan'},
+      {t:'\u2713 8 epics identified \u00b7 47 tasks generated',c:'teal'},
+      {t:'\u2192 Allocating resources by skill match\u2026',c:'cyan'},
+      {t:'\u2713 8 team members assigned \u00b7 no conflicts',c:'teal'},
+      {t:'\u2192 Building Gantt timeline\u2026',c:'cyan'},
+      {t:'\u2713 12-week timeline \u00b7 4 milestones set',c:'teal'},
+      {t:'\u2192 Configuring standup automation\u2026',c:'cyan'},
+      {t:'\u2713 Daily standups scheduled \u00b7 Slack connected',c:'teal'},
+      {t:'\u2713 Project fully planned in 2m 47s  \u00b7  Manual equivalent: ~1 day',c:'roi'}
+    ],
+    roi:'\u2713 Full project plan + resource allocation in 2m 47s. Without Murphy: ~1 day.'
+  },
+  invoice:{
+    kw:['invoice','payment','bill','batch','ap','accounts payable','vendor','receipt'],
+    lines:[
+      {t:'$ murphy invoices process --batch=38 --auto-approve-under=500',c:'green'},
+      {t:'\u2192 Ingesting 38 invoices\u2026',c:'cyan'},
+      {t:'\u2713 38 invoices parsed \u00b7 2 duplicates flagged',c:'teal'},
+      {t:'\u2192 Matching to POs and contracts\u2026',c:'cyan'},
+      {t:'\u2713 34 matched \u00b7 4 require approval',c:'teal'},
+      {t:'\u2192 Routing approval requests (invoices >$500)\u2026',c:'cyan'},
+      {t:'\u2713 4 approval requests sent \u00b7 mobile push',c:'teal'},
+      {t:'\u2192 Scheduling ACH payments\u2026',c:'cyan'},
+      {t:'\u2713 $142,890 scheduled \u00b7 3 payment runs',c:'teal'},
+      {t:'\u2192 Syncing to QuickBooks\u2026',c:'cyan'},
+      {t:'\u2713 All 38 invoices posted \u00b7 reconciliation done',c:'teal'},
+      {t:'\u2713 38 invoices processed in 4m 02s  \u00b7  Manual equivalent: ~4 hrs',c:'roi'}
+    ],
+    roi:'\u2713 38 invoices processed + payments scheduled in 4m 02s. Without Murphy: ~4 hours.'
+  }
+};
+
+function demoMatch(q){
+  var s=q.toLowerCase();
+  for(var k in DEMO_SCENARIOS){
+    var kw=DEMO_SCENARIOS[k].kw;
+    for(var i=0;i<kw.length;i++){if(s.indexOf(kw[i])>=0)return DEMO_SCENARIOS[k];}
+  }
+  return {kw:[],lines:[
+    {t:'$ murphy execute "'+q+'"',c:'green'},
+    {t:'\u2192 Analyzing request\u2026',c:'cyan'},
+    {t:'\u2713 Task classified: Custom Deliverable',c:'teal'},
+    {t:'\u2192 Selecting execution pipeline\u2026',c:'cyan'},
+    {t:'\u2713 Pipeline: research \u2192 draft \u2192 review \u2192 deliver',c:'teal'},
+    {t:'\u2192 Generating deliverable\u2026',c:'cyan'},
+    {t:'\u2713 Document ready \u00b7 8 pages \u00b7 quality score: 94/100',c:'teal'},
+    {t:'\u2713 Done in 2m 14s  \u00b7  Manual equivalent: ~2 hrs',c:'roi'}
+  ],roi:'\u2713 Custom deliverable generated in 2m 14s. Sign up to get the full output.'};
+}
+
+function demoReset(){
+  var term=document.getElementById('demo-term');
+  var roiBlock=document.getElementById('demo-roi-block');
+  var inputWrap=document.getElementById('demo-input-wrap');
+  term.hidden=true;
+  term.innerHTML='';
+  roiBlock.hidden=true;
+  inputWrap.style.display='';
+  var inp=document.getElementById('demo-prompt-input');
+  inp.value='';
+  inp.focus();
+}
+
+function demoRun(query){
+  _lastDemoQuery = query;
+  var scenario = demoMatch(query);
+  var term = document.getElementById('demo-term');
+  var roiBlock = document.getElementById('demo-roi-block');
+  var inputWrap = document.getElementById('demo-input-wrap');
+  inputWrap.style.display = 'none';
+  term.innerHTML = '';
+  term.hidden = false;
+  roiBlock.hidden = true;
+
+  // Show a "connecting" line while we call the real API
+  var connectLine = document.createElement('div');
+  connectLine.className = 'dt-line dt-cyan';
+  connectLine.textContent = '→ Routing through Murphy System pipeline…';
+  term.appendChild(connectLine);
+
+  // Hide spec summary and bundle button until demo completes
+  var specSummary = document.getElementById('demo-spec-summary');
+  var bundleBtn = document.getElementById('demo-bundle-btn');
+  if(specSummary) specSummary.style.display = 'none';
+  if(bundleBtn) bundleBtn.style.display = 'none';
+
+  // Try the real backend API first
+  fetch('/api/demo/run', {
+    method: 'POST',
+    headers: _apiHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({query: query})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    term.innerHTML = '';
+    if(data.success && data.steps && data.steps.length > 0){
+      // Animate real pipeline steps from the API
+      _animateSteps(data.steps, term, function(){
+        var roi = data.roi_message || scenario.roi;
+        document.getElementById('demo-roi-stat').textContent = roi;
+        roiBlock.hidden = false;
+        // Show spec summary if API returned spec data
+        if(data.spec) _showSpecSummary(data.spec);
+        // Show bundle download button
+        if(bundleBtn) bundleBtn.style.display = '';
+        // Show usage counter
+        _updateUsageCounter(data.usage);
+      });
+    } else if(data.error === 'limit_exceeded'){
+      // Rate limited — show message
+      var limitLine = document.createElement('div');
+      limitLine.className = 'dt-line dt-roi';
+      limitLine.textContent = data.message || 'Daily limit reached.';
+      term.appendChild(limitLine);
+      _updateUsageCounter(data.usage);
+    } else {
+      // Fall back to hardcoded scenario animation
+      _animateHardcoded(scenario, term, roiBlock);
+      if(bundleBtn) bundleBtn.style.display = '';
+    }
+  })
+  .catch(function(){
+    // Network/server unavailable — fall back to hardcoded animation
+    term.innerHTML = '';
+    _animateHardcoded(scenario, term, roiBlock);
+    if(bundleBtn) bundleBtn.style.display = '';
+  });
+}
+
+function _animateSteps(steps, term, onDone){
+  function addStep(i){
+    if(i >= steps.length){ setTimeout(onDone, 400); return; }
+    var s = steps[i];
+    var cls = s.cls || s['class'] || 'cyan';
+    var div = document.createElement('div');
+    div.className = 'dt-line dt-' + cls;
+    term.appendChild(div);
+    term.scrollTop = term.scrollHeight;
+    var txt = s.label || '';
+    if(!txt){ setTimeout(function(){ addStep(i+1); }, 80); return; }
+    var pos = 0;
+    var cursor = document.createElement('span');
+    cursor.className = 'demo-cursor';
+    div.appendChild(cursor);
+    var iv = setInterval(function(){
+      if(pos < txt.length){
+        cursor.insertAdjacentText('beforebegin', txt[pos++]);
+        term.scrollTop = term.scrollHeight;
+      } else {
+        clearInterval(iv);
+        cursor.remove();
+        var delay = (cls === 'roi' || cls === 'done') ? 600 : 80 + Math.random()*120;
+        setTimeout(function(){ addStep(i+1); }, delay);
+      }
+    }, 14 + Math.random()*10);
+  }
+  addStep(0);
+}
+
+function _animateHardcoded(scenario, term, roiBlock){
+  var lines = scenario.lines;
+  function addLine(i){
+    if(i >= lines.length){
+      setTimeout(function(){
+        document.getElementById('demo-roi-stat').textContent = scenario.roi;
+        roiBlock.hidden = false;
+      }, 400);
+      return;
+    }
+    var div = document.createElement('div');
+    div.className = 'dt-line dt-' + lines[i].c;
+    term.appendChild(div);
+    term.scrollTop = term.scrollHeight;
+    if(!lines[i].t){ setTimeout(function(){ addLine(i+1); }, 80); return; }
+    var txt = lines[i].t, pos = 0;
+    var cursor = document.createElement('span');
+    cursor.className = 'demo-cursor';
+    div.appendChild(cursor);
+    var iv = setInterval(function(){
+      if(pos < txt.length){
+        cursor.insertAdjacentText('beforebegin', txt[pos++]);
+        term.scrollTop = term.scrollHeight;
+      } else {
+        clearInterval(iv);
+        cursor.remove();
+        setTimeout(function(){ addLine(i+1); }, lines[i].c === 'roi' ? 600 : 80 + Math.random()*120);
+      }
+    }, 18 + Math.random()*14);
+  }
+  addLine(0);
+}
+
+// Wire demo input
+(function(){
+  var inp=document.getElementById('demo-prompt-input');
+  var btn=document.getElementById('demo-run-btn');
+  if(inp)inp.addEventListener('keydown',function(e){if(e.key==='Enter'&&inp.value.trim())demoRun(inp.value.trim());});
+  if(btn)btn.addEventListener('click',function(){var v=document.getElementById('demo-prompt-input').value.trim();if(v)demoRun(v);});
+  document.querySelectorAll('.demo-chip').forEach(function(c){c.addEventListener('click',function(){demoRun(c.dataset.query);});});
+  if(inp)inp.focus();
+})();
+
+function exportText(filename,content){
+  var a=document.createElement('a');
+  a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(content);
+  a.download=filename;
+  a.click();
+}
+
+function _apiHeaders(){
+  var h={'Content-Type':'application/json'};
+  var token=localStorage.getItem('murphy_session_token');
+  if(token)h['Authorization']='Bearer '+token;
+  return h;
+}
+
+function _updateUsageCounter(usage){
+  var counter = document.getElementById('demo-usage-counter');
+  var limitMsg = document.getElementById('demo-limit-msg');
+  if(!usage || !counter) return;
+  var lim = usage.limit === -1 ? 'unlimited' : usage.limit;
+  var rem = usage.limit === -1 ? 'unlimited' : usage.remaining;
+  counter.textContent = rem + ' of ' + lim + ' free uses remaining today';
+  if(usage.remaining === 0 && limitMsg){
+    limitMsg.textContent = 'Daily limit reached. Sign up or upgrade for more.';
+    limitMsg.style.display = '';
+  }
+}
+
+function downloadBundle(){
+  var btn=document.getElementById('demo-bundle-btn');
+  if(btn)btn.disabled=true;
+  if(btn)btn.textContent='Packaging…';
+  fetch('/api/demo/download-bundle',{
+    method:'POST',
+    headers:_apiHeaders(),
+    credentials:'include',
+    body:JSON.stringify({query:_lastDemoQuery||'Custom deliverable'})
+  })
+  .then(function(r){
+    if(r.ok) return r.blob();
+    return r.json().then(function(d){throw d;});
+  })
+  .then(function(blob){
+    if(btn)btn.disabled=false;
+    if(btn)btn.textContent='\u{1F4E6} Download Full Package (ZIP)';
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='murphy-engagement-package.zip';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+  })
+  .catch(function(err){
+    if(btn)btn.disabled=false;
+    if(btn)btn.textContent='\u{1F4E6} Download Full Package (ZIP)';
+    var counter=document.getElementById('demo-usage-counter');
+    var limitMsg=document.getElementById('demo-limit-msg');
+    if(err&&err.error==='limit_exceeded'){
+      if(limitMsg){limitMsg.textContent=err.message||'Daily limit reached.';limitMsg.style.display='';}
+    } else {
+      if(counter)counter.textContent='Bundle download failed — please try again.';
+    }
+  });
+}
+
+function _showSpecSummary(specData){
+  var el=document.getElementById('demo-spec-summary');
+  if(!el||!specData)return;
+  var html='<div style="color:var(--cyan);font-weight:700;margin-bottom:.5rem;">\u26a1 Automation Proposal Summary</div>';
+  if(specData.title) html+='<div><b>Scope:</b> '+specData.title+'</div>';
+  if(specData.workflow_count) html+='<div><b>Workflows:</b> '+specData.workflow_count+' automated workflows</div>';
+  if(specData.hours_saved_month) html+='<div><b>Time Saved:</b> '+specData.hours_saved_month+' hours/month</div>';
+  if(specData.monthly_savings_usd) html+='<div><b>Monthly Savings:</b> $'+specData.monthly_savings_usd.toLocaleString()+'/mo</div>';
+  if(specData.murphy_cost) html+='<div><b>Murphy Cost:</b> $'+specData.murphy_cost+'/mo ('+specData.recommended_tier+')</div>';
+  if(specData.roi_multiple) html+='<div style="color:#fbbf24;font-weight:700;margin-top:.3rem;"><b>ROI:</b> '+specData.roi_multiple+'\u00d7 return on investment</div>';
+  if(specData.signup_url) html+='<div style="margin-top:.5rem;"><a href="'+specData.signup_url+'" style="color:var(--teal);">Activate this automation \u2192</a></div>';
+  el.innerHTML=html;
+  el.style.display='';
+}
+
+function downloadDeliverable(){
+  var btn=document.getElementById('demo-dl-btn');
+  var counter=document.getElementById('demo-usage-counter');
+  var limitMsg=document.getElementById('demo-limit-msg');
+  if(btn)btn.disabled=true;
+  if(btn)btn.textContent='Generating…';
+  if(limitMsg)limitMsg.style.display='none';
+  fetch('/api/demo/generate-deliverable',{
+    method:'POST',
+    headers:_apiHeaders(),
+    credentials:'include',
+    body:JSON.stringify({query:_lastDemoQuery||'Custom deliverable'})
+  })
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if(btn)btn.disabled=false;
+    if(btn)btn.textContent='\u2659 Download Deliverable';
+    if(data.success&&data.deliverable){
+      exportText(data.deliverable.filename||'murphy-deliverable.txt',data.deliverable.content);
+      var u=data.usage||{};
+      if(counter){
+        var lim=u.limit===-1?'unlimited':u.limit;
+        var rem=u.limit===-1?'unlimited':u.remaining;
+        counter.textContent=rem+' of '+lim+' free downloads remaining today';
+      }
+    } else if(data.error==='limit_exceeded'){
+      if(counter)counter.textContent='';
+      if(limitMsg){
+        limitMsg.textContent=data.message||'Daily download limit reached.';
+        limitMsg.style.display='';
+      }
+      var u=data.usage||{};
+      if(u.tier==='anonymous'&&counter)counter.textContent='0 of '+(u.limit||5)+' free downloads remaining today';
+    } else {
+      if(counter)counter.textContent='Download failed — please try again.';
+    }
+  })
+  .catch(function(){
+    if(btn)btn.disabled=false;
+    if(btn)btn.textContent='\u2659 Download Deliverable';
+    if(counter)counter.textContent='Network error — please try again.';
+  });
+}
+</script>
+</body>
+</html>

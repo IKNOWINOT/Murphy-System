@@ -1,0 +1,2 @@
+HTTP 200
+{"success":true,"health":{"architecture_health":0.8333333333333334,"governance_compliance":0.0,"information_quality":0.0,"evolution_score":0.8,"simulation_risk":0.875}}

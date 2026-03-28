@@ -1,0 +1,105 @@
+# Murphy System 1.0 - Requirements (pinned for reproducible builds)
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post | License: BSL-1.1
+#
+# Versions are pinned to the minimum tested release for each dependency.
+# To upgrade, bump both the == version here and run the full test suite.
+# For development with a newer Python environment, use requirements-dev.txt.
+
+# LLM and ML
+transformers>=4.48.0,<5.0.0
+torch>=2.6.0,<3.0.0
+sentencepiece>=0.2.1,<1.0.0
+
+# Data structures and utilities
+numpy>=1.24.0,<3.0.0
+networkx>=3.1,<4.0
+
+# Cryptography for execution packets
+cryptography>=46.0.5,<48.0.0
+
+# Web framework — REST API runtime
+fastapi>=0.109.1,<1.0.0
+uvicorn>=0.23.0,<1.0.0
+
+# Web framework — sub-module API servers
+Flask>=3.0.0,<4.0.0
+flask-cors>=4.0.0,<6.0.0
+
+# Data validation and models
+pydantic>=2.0.0,<3.0.0
+pydantic-settings>=2.0.0,<3.0.0
+jsonschema>=4.19.0,<5.0.0
+
+# HTTP client
+requests>=2.31.0,<3.0.0
+httpx>=0.27.0,<1.0.0
+aiohttp>=3.9.0,<4.0.0
+
+# Coinbase Advanced Trade API (Trader Automation — PR 1)
+coinbase-advanced-py>=1.8.0,<2.0.0
+
+# Crypto exchange abstraction
+websocket-client>=1.6.0,<2.0.0
+ccxt>=4.4.0,<5.0.0
+web3>=6.20.0,<8.0.0
+
+# Market data feeds — stocks + crypto
+yfinance>=0.2.31,<2.0.0
+alpaca-py>=0.20.0,<1.0.0
+alpha_vantage>=2.3.1,<4.0.0
+polygon-api-client>=1.12.0,<2.0.0
+iexfinance>=0.5.0,<1.0.0
+ta>=0.11.0,<1.0.0
+
+# Binance exchange feed
+python-binance>=1.0.16,<2.0.0
+# Interactive Brokers — optional, requires IB TWS/Gateway running locally
+# ib_insync>=0.9.70,<1.0.0  # Install manually if needed
+
+# Matrix bot integration (Synapse / Dendrite)
+matrix-nio[e2e]>=0.24.0,<1.0.0
+
+# System monitoring
+psutil>=5.9.0,<7.0.0
+
+# Symbolic computation (compute plane)
+sympy>=1.12,<2.0
+
+# Terminal UI
+rich>=13.0.0,<15.0.0
+textual>=1.0.0,<2.0.0
+pyfiglet>=1.0.0,<2.0.0
+prompt-toolkit>=3.0.0,<4.0.0
+
+# Configuration
+pyyaml>=6.0,<7.0
+python-dotenv>=1.0.0,<2.0.0
+
+# Database
+sqlalchemy>=2.0.0,<3.0.0
+alembic>=1.12.0,<2.0.0
+
+# Cache
+redis>=5.0.0,<6.0.0
+
+# Monitoring
+prometheus-client>=0.19.0,<1.0.0
+python-json-logger>=2.0.7,<4.0.0
+
+# Security
+pyjwt>=2.8.0,<3.0.0
+
+# Testing
+pytest>=7.4.0,<9.0.0
+pytest-cov>=4.1.0,<7.0.0
+pytest-asyncio>=0.21.0,<2.0.0
+pytest-timeout>=2.2.0,<3.0.0
+
+# IoT / Industrial Protocols (INC-19)
+pymodbus>=3.6.9,<4.0.0
+# Document Export — Optional rich PDF renderer (BSD-3-Clause)
+# Requires system libraries: cairo, pango, gdk-pixbuf2. Falls back to
+# reportlab plain-text rendering when not installed.
+# Install manually if needed: pip install "weasyprint>=60.0"
+# weasyprint>=60.0

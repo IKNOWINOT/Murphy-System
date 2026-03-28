@@ -1,0 +1,18 @@
+# config/mail/postfix-accounts.cf.example
+#
+# THIS FILE IS AN EXAMPLE ONLY — do NOT store real credentials here.
+#
+# The real `postfix-accounts.cf` is generated at deploy time by:
+#
+#   bash scripts/mail_setup.sh
+#
+# That script creates password hashes using docker-mailserver's `setup email add`
+# command and writes them directly into the running container volume.
+# The actual postfix-accounts.cf is NEVER committed to the repository;
+# it is listed in .gitignore to prevent accidental exposure.
+#
+# Format (one account per line):
+#   user@domain|{SHA512-CRYPT}$6$<salt>$<hash>
+#
+# Example (DO NOT USE — not real credentials):
+#   murphy@murphy.systems|{SHA512-CRYPT}$6$exampleSalt$exampleHashValue...

@@ -1,0 +1,156 @@
+{
+    "success": true,
+    "questions": [
+        {
+            "id": "q1",
+            "text": "What is your organization's name?",
+            "field": "organization_name",
+            "question_type": "text",
+            "options": null,
+            "default": ""
+        },
+        {
+            "id": "q2",
+            "text": "What industry does your organization operate in?",
+            "field": "industry",
+            "question_type": "choice",
+            "options": [
+                "manufacturing",
+                "technology",
+                "finance",
+                "healthcare",
+                "retail",
+                "energy",
+                "media",
+                "other"
+            ],
+            "default": "other"
+        },
+        {
+            "id": "q3",
+            "text": "What is the size of your company?",
+            "field": "company_size",
+            "question_type": "choice",
+            "options": [
+                "small",
+                "medium",
+                "enterprise"
+            ],
+            "default": "small"
+        },
+        {
+            "id": "q4",
+            "text": "Which automation types would you like to enable?",
+            "field": "automation_types",
+            "question_type": "multi_choice",
+            "options": [
+                "factory_iot",
+                "content",
+                "data",
+                "system",
+                "agent",
+                "business"
+            ],
+            "default": []
+        },
+        {
+            "id": "q5",
+            "text": "What security level do you require?",
+            "field": "security_level",
+            "question_type": "choice",
+            "options": [
+                "basic",
+                "standard",
+                "hardened"
+            ],
+            "default": "standard"
+        },
+        {
+            "id": "q6",
+            "text": "Do you want to enable robotics integration?",
+            "field": "robotics_enabled",
+            "question_type": "boolean",
+            "options": null,
+            "default": false
+        },
+        {
+            "id": "q7",
+            "text": "Which robotics protocols should be enabled?",
+            "field": "robotics_protocols",
+            "question_type": "multi_choice",
+            "options": [
+                "spot",
+                "universal_robot",
+                "ros2",
+                "modbus",
+                "bacnet",
+                "opcua",
+                "fanuc",
+                "kuka",
+                "abb",
+                "dji",
+                "clearpath",
+                "mqtt"
+            ],
+            "default": []
+        },
+        {
+            "id": "q8",
+            "text": "Do you want to enable avatar identity?",
+            "field": "avatar_enabled",
+            "question_type": "boolean",
+            "options": null,
+            "default": false
+        },
+        {
+            "id": "q9",
+            "text": "Which LLM provider would you like to use?",
+            "field": "llm_provider",
+            "question_type": "choice",
+            "options": [
+                "local",
+                "deepinfra",
+                "openai",
+                "anthropic",
+                "azure"
+            ],
+            "default": "local"
+        },
+        {
+            "id": "q10",
+            "text": "Which compliance frameworks apply to your organization?",
+            "field": "compliance_frameworks",
+            "question_type": "multi_choice",
+            "options": [
+                "SOC2",
+                "HIPAA",
+                "GDPR",
+                "PCI_DSS",
+                "ISO27001",
+                "none"
+            ],
+            "default": []
+        },
+        {
+            "id": "q11",
+            "text": "What is your preferred deployment mode?",
+            "field": "deployment_mode",
+            "question_type": "choice",
+            "options": [
+                "local",
+                "docker",
+                "kubernetes"
+            ],
+            "default": "local"
+        },
+        {
+            "id": "q12",
+            "text": "Do you want to enable sales automation?",
+            "field": "sales_automation_enabled",
+            "question_type": "boolean",
+            "options": null,
+            "default": false
+        }
+    ],
+    "total": 12
+}

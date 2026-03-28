@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Murphy System Observability Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ─── Reset & Base ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0a0a0a;
+      --surface:     #111111;
+      --surface2:    #181818;
+      --surface3:    #1e1e1e;
+      --border:      #1f1f1f;
+      --green:       #00ff41;
+      --green-dim:   #00cc33;
+      --green-dark:  #003311;
+      --teal:        #00e5cc;
+      --amber:       #ffaa00;
+      --red:         #ff3333;
+      --text:        #cccccc;
+      --text-dim:    #666666;
+      --font:        'Courier New', Courier, monospace;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    /* ─── Scrollbar ─────────────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--green-dark); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--green-dim); }
+
+    /* ─── Header ────────────────────────────────────────────────────────── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 28px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--green-dark);
+      box-shadow: 0 2px 24px rgba(0,255,65,0.07);
+    }
+
+    header h1 {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: var(--green);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.75rem;
+      color: var(--green);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .pulse-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(0,255,65,0.7); opacity: 1; }
+      50%       { box-shadow: 0 0 0 8px rgba(0,255,65,0);  opacity: 0.8; }
+    }
+
+    #timestamp {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+    }
+
+    /* ─── Navigation Tabs ───────────────────────────────────────────────── */
+    nav {
+      display: flex;
+      gap: 2px;
+      padding: 10px 28px 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+    }
+
+    nav::-webkit-scrollbar { height: 2px; }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-family: var(--font);
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      padding: 8px 18px 10px;
+      text-transform: uppercase;
+      transition: color 0.2s, border-color 0.2s;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover { color: var(--green); }
+
+    .tab-btn.active {
+      color: var(--green);
+      border-bottom-color: var(--green);
+    }
+
+    /* ─── Main Layout ───────────────────────────────────────────────────── */
+    main {
+      padding: 28px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ─── Section Labels ────────────────────────────────────────────────── */
+    .section-label {
+      font-size: 0.68rem;
+      letter-spacing: 0.18em;
+      color: var(--green-dim);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      border-left: 2px solid var(--green);
+      padding-left: 8px;
+    }
+
+    /* ─── System Health Banner ──────────────────────────────────────────── */
+    .health-banner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      background: var(--green-dark);
+      border: 1px solid var(--green-dim);
+      border-radius: 6px;
+      padding: 28px;
+      margin-bottom: 28px;
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--green);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      box-shadow: 0 0 40px rgba(0,255,65,0.1);
+    }
+
+    .health-banner span { font-size: 2.4rem; }
+
+    /* ─── Stat Cards ────────────────────────────────────────────────────── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 900px) {
+      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 500px) {
+      .stat-grid { grid-template-columns: 1fr; }
+    }
+
+    .stat-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s;
+    }
+
+    .stat-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 100%; height: 2px;
+      background: var(--green);
+      opacity: 0.35;
+    }
+
+    .stat-card:hover { border-color: var(--green-dark); }
+
+    .stat-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-size: 2.4rem;
+      font-weight: bold;
+      color: var(--green);
+      line-height: 1;
+      margin-bottom: 6px;
+      transition: all 0.3s;
+    }
+
+    .stat-delta {
+      font-size: 0.68rem;
+      color: var(--green-dim);
+    }
+
+    /* ─── Chart Containers ──────────────────────────────────────────────── */
+    .chart-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 22px;
+      margin-bottom: 28px;
+    }
+
+    .chart-title {
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+
+    .chart-wrap {
+      position: relative;
+      width: 100%;
+    }
+
+    .chart-wrap-sm  { height: 220px; }
+    .chart-wrap-md  { height: 300px; }
+    .chart-wrap-lg  { height: 360px; }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 800px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+
+    /* ─── Stats Row ─────────────────────────────────────────────────────── */
+    .mini-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 700px) {
+      .mini-stats { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .mini-stat {
+      background: var(--surface3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .mini-stat-label {
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .mini-stat-value {
+      font-size: 1.5rem;
+      color: var(--teal);
+      font-weight: bold;
+    }
+
+    /* ─── Tables ────────────────────────────────────────────────────────── */
+    .table-wrap {
+      overflow-x: auto;
+      margin-bottom: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+    }
+
+    thead th {
+      background: var(--surface3);
+      color: var(--green-dim);
+      font-size: 0.62rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+
+    tbody tr:hover { background: var(--surface3); }
+
+    tbody td {
+      padding: 9px 14px;
+      color: var(--text);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 0.65rem;
+      font-weight: bold;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .badge-pass { background: rgba(0,255,65,0.15); color: var(--green); border: 1px solid var(--green-dark); }
+    .badge-fail { background: rgba(255,51,51,0.15); color: var(--red);   border: 1px solid rgba(255,51,51,0.3); }
+    .badge-ok   { background: rgba(0,229,204,0.12); color: var(--teal);  border: 1px solid rgba(0,229,204,0.25); }
+    .badge-warn { background: rgba(255,170,0,0.12); color: var(--amber); border: 1px solid rgba(255,170,0,0.25); }
+
+    /* ─── Connector status grid ─────────────────────────────────────────── */
+    .conn-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .conn-card {
+      background: var(--surface3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .conn-name {
+      font-size: 0.72rem;
+      color: var(--text);
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ─── Footer ────────────────────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 0.62rem;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+      border-top: 1px solid var(--border);
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  HEADER                                                                -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<header>
+  <h1>Murphy System &mdash; Observability Dashboard</h1>
+  <div class="header-right">
+    <div class="live-badge">
+      <div class="pulse-dot"></div>
+      Live
+    </div>
+    <div id="timestamp">Initialising...</div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  NAV TABS                                                               -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<nav id="tab-nav">
+  <button class="tab-btn active" data-tab="overview">Overview</button>
+  <button class="tab-btn"        data-tab="confidence">Confidence Scores</button>
+  <button class="tab-btn"        data-tab="gates">Gate Activity</button>
+  <button class="tab-btn"        data-tab="llm">LLM Usage</button>
+  <button class="tab-btn"        data-tab="deployments">Deployments</button>
+  <button class="tab-btn"        data-tab="connectors">Connectors</button>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  MAIN                                                                   -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<main>
+
+  <!-- ─── OVERVIEW ──────────────────────────────────────────────────────── -->
+  <section class="tab-panel active" id="tab-overview">
+
+    <div class="health-banner">
+      <span>🟢</span> System Healthy
+    </div>
+
+    <div class="section-label">Key Metrics</div>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">Gate Evaluations</div>
+        <div class="stat-value" id="stat-gates">0</div>
+        <div class="stat-delta" id="stat-gates-delta">+0 this cycle</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">LLM Requests</div>
+        <div class="stat-value" id="stat-llm">0</div>
+        <div class="stat-delta" id="stat-llm-delta">+0 this cycle</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Agents</div>
+        <div class="stat-value" id="stat-agents">0</div>
+        <div class="stat-delta" id="stat-agents-delta">+0 this cycle</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Deployments</div>
+        <div class="stat-value" id="stat-deployments">0</div>
+        <div class="stat-delta" id="stat-deployments-delta">+0 this cycle</div>
+      </div>
+    </div>
+
+    <div class="section-label">Confidence Scores — Live Stream</div>
+    <div class="chart-card">
+      <div class="chart-title">Confidence Score Over Time (last 20 samples)</div>
+      <div class="chart-wrap chart-wrap-md">
+        <canvas id="chart-overview-line"></canvas>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ─── CONFIDENCE SCORES ─────────────────────────────────────────────── -->
+  <section class="tab-panel" id="tab-confidence">
+
+    <div class="section-label">Score Distribution</div>
+    <div class="mini-stats">
+      <div class="mini-stat">
+        <div class="mini-stat-label">Min</div>
+        <div class="mini-stat-value" id="cs-min">0.31</div>
+      </div>
+      <div class="mini-stat">
+        <div class="mini-stat-label">Max</div>
+        <div class="mini-stat-value" id="cs-max">0.99</div>
+      </div>
+      <div class="mini-stat">
+        <div class="mini-stat-label">Avg</div>
+        <div class="mini-stat-value" id="cs-avg">0.74</div>
+      </div>
+      <div class="mini-stat">
+        <div class="mini-stat-label">P95</div>
+        <div class="mini-stat-value" id="cs-p95">0.94</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Histogram — Confidence Score Distribution (bins: 0.0–1.0)</div>
+      <div class="chart-wrap chart-wrap-lg">
+        <canvas id="chart-confidence-hist"></canvas>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ─── GATE ACTIVITY ─────────────────────────────────────────────────── -->
+  <section class="tab-panel" id="tab-gates">
+
+    <div class="section-label">Gate Evaluations by Type</div>
+    <div class="chart-card">
+      <div class="chart-title">Gate Evaluations — Grouped by Gate Type</div>
+      <div class="chart-wrap chart-wrap-md">
+        <canvas id="chart-gates-bar"></canvas>
+      </div>
+    </div>
+
+    <div class="section-label">Recent Gate Evaluations</div>
+    <div class="chart-card">
+      <div class="table-wrap">
+        <table id="table-gates">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Gate Name</th>
+              <th>Agent</th>
+              <th>Result</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-gates"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ─── LLM USAGE ─────────────────────────────────────────────────────── -->
+  <section class="tab-panel" id="tab-llm">
+
+    <div class="section-label">Request Distribution by Provider</div>
+    <div class="two-col">
+      <div class="chart-card">
+        <div class="chart-title">Requests by Provider</div>
+        <div class="chart-wrap chart-wrap-md">
+          <canvas id="chart-llm-doughnut"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Avg Latency by Provider (ms)</div>
+        <div class="chart-wrap chart-wrap-md">
+          <canvas id="chart-llm-latency"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Provider Details</div>
+    <div class="chart-card">
+      <div class="table-wrap">
+        <table id="table-llm">
+          <thead>
+            <tr>
+              <th>Provider</th>
+              <th>Requests</th>
+              <th>Avg Latency</th>
+              <th>Est. Cost (USD)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-llm"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ─── DEPLOYMENTS ───────────────────────────────────────────────────── -->
+  <section class="tab-panel" id="tab-deployments">
+
+    <div class="section-label">Deployment Frequency — Last 30 Days</div>
+    <div class="chart-card">
+      <div class="chart-title">Deployments per Day</div>
+      <div class="chart-wrap chart-wrap-lg">
+        <canvas id="chart-deployments-line"></canvas>
+      </div>
+    </div>
+
+    <div class="section-label">Recent Deployments</div>
+    <div class="chart-card">
+      <div class="table-wrap">
+        <table id="table-deployments">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Version</th>
+              <th>Environment</th>
+              <th>Triggered By</th>
+              <th>Status</th>
+              <th>Duration</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-deployments"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ─── CONNECTORS ────────────────────────────────────────────────────── -->
+  <section class="tab-panel" id="tab-connectors">
+
+    <div class="section-label">Usage by Connector Category</div>
+    <div class="chart-card">
+      <div class="chart-title">Connector Invocations by Category</div>
+      <div class="chart-wrap chart-wrap-md">
+        <canvas id="chart-connectors-bar"></canvas>
+      </div>
+    </div>
+
+    <div class="section-label">Top 10 Connector Status</div>
+    <div class="chart-card">
+      <div class="table-wrap">
+        <table id="table-connectors">
+          <thead>
+            <tr>
+              <th>Connector</th>
+              <th>Category</th>
+              <th>Invocations</th>
+              <th>Avg Latency</th>
+              <th>Error Rate</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-connectors"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </section>
+
+</main>
+
+<footer>Murphy System &mdash; Observability Dashboard &mdash; Internal Use Only &mdash; Auto-refreshing every 2s</footer>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  JAVASCRIPT                                                             -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<script>
+/* ─────────────────────────────────────────────────────────────────────────
+   UTILITIES
+───────────────────────────────────────────────────────────────────────── */
+const rnd  = (min, max) => Math.random() * (max - min) + min;
+const rndI = (min, max) => Math.floor(rnd(min, max));
+const fmt2 = (n) => n.toFixed(2);
+const fmtTs = (d) => d.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+const now  = () => new Date();
+
+const CHART_DEFAULTS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      labels: { color: '#999', font: { family: 'Courier New', size: 11 } }
+    },
+    tooltip: {
+      backgroundColor: '#181818',
+      borderColor: '#00cc33',
+      borderWidth: 1,
+      titleColor: '#00ff41',
+      bodyColor: '#cccccc',
+      titleFont: { family: 'Courier New' },
+      bodyFont:  { family: 'Courier New' },
+    }
+  },
+  scales: {
+    x: {
+      ticks: { color: '#555', font: { family: 'Courier New', size: 10 } },
+      grid:  { color: '#1a1a1a' }
+    },
+    y: {
+      ticks: { color: '#555', font: { family: 'Courier New', size: 10 } },
+      grid:  { color: '#1a1a1a' }
+    }
+  }
+};
+
+const GREEN_PALETTE = [
+  '#00ff41', '#00e5cc', '#00cc33', '#00bfff',
+  '#7fff00', '#39ff14', '#00fa9a', '#1de9b6',
+];
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MOCK DATA SEEDS
+───────────────────────────────────────────────────────────────────────── */
+let gateCount      = rndI(4800, 6200);
+let llmCount       = rndI(2100, 3500);
+let agentCount     = rndI(12, 28);
+let deployCount    = rndI(38, 72);
+
+// 20-point confidence score stream
+const makeConfStream = () => Array.from({length: 20}, () => parseFloat(rnd(0.52, 0.98).toFixed(3)));
+let confStream = makeConfStream();
+
+// Histogram buckets for confidence scores (10 buckets: 0.0–0.1, …, 0.9–1.0)
+const confHistData = [2, 4, 9, 18, 34, 52, 71, 88, 64, 22];
+
+// Gate types
+const GATE_TYPES = ['HIPAA Gate', 'Safety Gate', 'Confidence Gate', 'Business Rule'];
+const gateBarData = [rndI(900,1400), rndI(700,1100), rndI(1200,1900), rndI(600,950)];
+
+// Gate eval table rows
+const GATE_AGENTS = ['ResearchAgent', 'SummaryAgent', 'DispatchAgent', 'ComplianceAgent', 'AuditAgent'];
+const makeGateRows = () => Array.from({length: 14}, (_, i) => {
+  const d = new Date(Date.now() - i * rndI(8000, 40000));
+  const pass = Math.random() > 0.22;
+  return {
+    ts:     fmtTs(d),
+    gate:   GATE_TYPES[rndI(0, GATE_TYPES.length)],
+    agent:  GATE_AGENTS[rndI(0, GATE_AGENTS.length)],
+    result: pass ? 'PASS' : 'FAIL',
+    score:  parseFloat(rnd(pass ? 0.62 : 0.12, pass ? 0.99 : 0.59).toFixed(3)),
+  };
+});
+let gateRows = makeGateRows();
+
+// LLM providers
+const LLM_PROVIDERS = [
+  { name: 'GPT-4o',        reqs: rndI(480, 760), latency: rndI(820, 1400), cost: rnd(12, 22),  ok: true  },
+  { name: 'Claude 3.5',    reqs: rndI(280, 460), latency: rndI(640, 1100), cost: rnd(8,  15),  ok: true  },
+  { name: 'Gemini 1.5 Pro',reqs: rndI(160, 320), latency: rndI(510, 900),  cost: rnd(4,  9),   ok: true  },
+  { name: 'DeepInfra / Llama3', reqs: rndI(200, 380), latency: rndI(180, 380),  cost: rnd(1,  4),   ok: true  },
+  { name: 'Mistral Large', reqs: rndI(80,  180), latency: rndI(600, 950),  cost: rnd(2,  6),   ok: false },
+];
+
+// Deployments over 30 days
+const makeDeplDays = () => {
+  const labels = [];
+  const vals   = [];
+  const base   = new Date();
+  base.setDate(base.getDate() - 29);
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(base);
+    d.setDate(base.getDate() + i);
+    labels.push(`${d.getMonth()+1}/${d.getDate()}`);
+    vals.push(rndI(0, 5));
+  }
+  return { labels, vals };
+};
+const deplDays = makeDeplDays();
+
+const DEPL_ENVS  = ['production', 'staging', 'canary'];
+const DEPL_BOTS  = ['CI/CD Pipeline', 'ops-bot', 'manual', 'auto-promote'];
+const makeDeploymentsRows = () => Array.from({length: 12}, (_, i) => {
+  const d    = new Date(Date.now() - i * rndI(3600000, 14400000));
+  const ok   = Math.random() > 0.15;
+  const v    = `v${rndI(1,3)}.${rndI(0,12)}.${rndI(0,30)}`;
+  const env  = DEPL_ENVS[rndI(0, DEPL_ENVS.length)];
+  const by   = DEPL_BOTS[rndI(0, DEPL_BOTS.length)];
+  const dur  = rndI(28, 320);
+  return { ts: fmtTs(d), version: v, env, by, status: ok ? 'SUCCESS' : 'FAILED', dur };
+});
+let deplRows = makeDeploymentsRows();
+
+// Connectors
+const CONN_CATEGORIES = ['Database', 'Messaging', 'REST API', 'File System', 'Auth', 'AI/ML'];
+const connCatData = [rndI(600,1100), rndI(400,750), rndI(900,1500), rndI(200,450), rndI(300,600), rndI(500,900)];
+
+const CONNECTORS = [
+  { name: 'PostgreSQL',        cat: 'Database',   inv: rndI(400,700), lat: rndI(12,45),  err: rnd(0,2).toFixed(1),  ok: true  },
+  { name: 'Redis Cache',       cat: 'Database',   inv: rndI(800,1200),lat: rndI(1,8),    err: rnd(0,0.5).toFixed(1),ok: true  },
+  { name: 'RabbitMQ',          cat: 'Messaging',  inv: rndI(300,600), lat: rndI(3,18),   err: rnd(0,1).toFixed(1),  ok: true  },
+  { name: 'Slack Webhook',     cat: 'REST API',   inv: rndI(50,200),  lat: rndI(80,250), err: rnd(0,3).toFixed(1),  ok: true  },
+  { name: 'S3 / Object Store', cat: 'File System',inv: rndI(200,450), lat: rndI(30,120), err: rnd(0,1.5).toFixed(1),ok: true  },
+  { name: 'OKTA Auth',         cat: 'Auth',       inv: rndI(100,300), lat: rndI(60,200), err: rnd(0,0.8).toFixed(1),ok: true  },
+  { name: 'OpenAI Embeddings', cat: 'AI/ML',      inv: rndI(400,900), lat: rndI(200,600),err: rnd(0,1.2).toFixed(1),ok: true  },
+  { name: 'GitHub REST API',   cat: 'REST API',   inv: rndI(80,250),  lat: rndI(100,400),err: rnd(0,2).toFixed(1),  ok: false },
+  { name: 'SMTP Gateway',      cat: 'Messaging',  inv: rndI(20,80),   lat: rndI(50,300), err: rnd(0,5).toFixed(1),  ok: false },
+  { name: 'Pinecone Vector DB',cat: 'AI/ML',      inv: rndI(200,500), lat: rndI(40,180), err: rnd(0,0.6).toFixed(1),ok: true  },
+];
+
+/* ─────────────────────────────────────────────────────────────────────────
+   TAB SWITCHING
+───────────────────────────────────────────────────────────────────────── */
+const tabs    = document.querySelectorAll('.tab-btn');
+const panels  = document.querySelectorAll('.tab-panel');
+
+tabs.forEach(btn => {
+  btn.addEventListener('click', () => {
+    tabs.forEach(b   => b.classList.remove('active'));
+    panels.forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CHART: OVERVIEW LINE
+───────────────────────────────────────────────────────────────────────── */
+const overviewLineCtx = document.getElementById('chart-overview-line').getContext('2d');
+const overviewLineChart = new Chart(overviewLineCtx, {
+  type: 'line',
+  data: {
+    labels: confStream.map((_, i) => `T-${19 - i}`),
+    datasets: [{
+      label: 'Confidence Score',
+      data: [...confStream],
+      borderColor: '#00ff41',
+      backgroundColor: 'rgba(0,255,65,0.06)',
+      borderWidth: 2,
+      pointRadius: 3,
+      pointBackgroundColor: '#00ff41',
+      tension: 0.4,
+      fill: true,
+    }]
+  },
+  options: {
+    ...CHART_DEFAULTS,
+    scales: {
+      ...CHART_DEFAULTS.scales,
+      y: { ...CHART_DEFAULTS.scales.y, min: 0, max: 1 }
+    }
+  }
+});
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CHART: CONFIDENCE HISTOGRAM
+───────────────────────────────────────────────────────────────────────── */
+const confHistCtx = document.getElementById('chart-confidence-hist').getContext('2d');
+const confHistChart = new Chart(confHistCtx, {
+  type: 'bar',
+  data: {
+    labels: ['0.0–0.1','0.1–0.2','0.2–0.3','0.3–0.4','0.4–0.5',
+             '0.5–0.6','0.6–0.7','0.7–0.8','0.8–0.9','0.9–1.0'],
+    datasets: [{
+      label: 'Count',
+      data: [...confHistData],
+      backgroundColor: confHistData.map((_, i) => `rgba(0,255,65,${0.2 + i * 0.08})`),
+      borderColor: '#00ff41',
+      borderWidth: 1,
+    }]
+  },
+  options: { ...CHART_DEFAULTS }
+});
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CHART: GATE BAR
+───────────────────────────────────────────────────────────────────────── */
+const gateBarCtx = document.getElementById('chart-gates-bar').getContext('2d');
+const gateBarChart = new Chart(gateBarCtx, {
+  type: 'bar',
+  data: {
+    labels: GATE_TYPES,
+    datasets: [{
+      label: 'Evaluations',
+      data: [...gateBarData],
+      backgroundColor: ['rgba(0,255,65,0.55)','rgba(0,229,204,0.55)','rgba(0,191,255,0.55)','rgba(127,255,0,0.55)'],
+      borderColor:     ['#00ff41','#00e5cc','#00bfff','#7fff00'],
+      borderWidth: 1,
+    }]
+  },
+  options: { ...CHART_DEFAULTS }
+});
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CHART: LLM DOUGHNUT
+───────────────────────────────────────────────────────────────────────── */
+const llmDoughCtx = document.getElementById('chart-llm-doughnut').getContext('2d');
+const llmDoughChart = new Chart(llmDoughCtx, {
+  type: 'doughnut',
+  data: {
+    labels: LLM_PROVIDERS.map(p => p.name),
+    datasets: [{
+      data: LLM_PROVIDERS.map(p => p.reqs),
+      backgroundColor: GREEN_PALETTE.slice(0, LLM_PROVIDERS.length).map(c => c + '99'),
+      borderColor:     GREEN_PALETTE.slice(0, LLM_PROVIDERS.length),
+      borderWidth: 1,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { ...CHART_DEFAULTS.plugins },
+    cutout: '60%',
+  }
+});
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CHART: LLM LATENCY BAR
+───────────────────────────────────────────────────────────────────────── */
+const llmLatCtx = document.getElementById('chart-llm-latency').getContext('2d');
+const llmLatChart = new Chart(llmLatCtx, {
+  type: 'bar',
+  data: {
+    labels: LLM_PROVIDERS.map(p => p.name),
+    datasets: [{
+      label: 'Avg Latency (ms)',
+      data: LLM_PROVIDERS.map(p => p.latency),
+      backgroundColor: 'rgba(0,229,204,0.45)',
+      borderColor: '#00e5cc',
+      borderWidth: 1,
+    }]
+  },
+  options: { ...CHART_DEFAULTS }
+});
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CHART: DEPLOYMENTS LINE
+───────────────────────────────────────────────────────────────────────── */
+const deplLineCtx = document.getElementById('chart-deployments-line').getContext('2d');
+const deplLineChart = new Chart(deplLineCtx, {
+  type: 'line',
+  data: {
+    labels: deplDays.labels,
+    datasets: [{
+      label: 'Deployments',
+      data: [...deplDays.vals],
+      borderColor: '#00bfff',
+      backgroundColor: 'rgba(0,191,255,0.07)',
+      borderWidth: 2,
+      pointRadius: 4,
+      pointBackgroundColor: '#00bfff',
+      tension: 0.3,
+      fill: true,
+    }]
+  },
+  options: {
+    ...CHART_DEFAULTS,
+    scales: {
+      ...CHART_DEFAULTS.scales,
+      y: { ...CHART_DEFAULTS.scales.y, min: 0, ticks: { ...CHART_DEFAULTS.scales.y.ticks, stepSize: 1 } }
+    }
+  }
+});
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CHART: CONNECTORS BAR
+───────────────────────────────────────────────────────────────────────── */
+const connBarCtx = document.getElementById('chart-connectors-bar').getContext('2d');
+const connBarChart = new Chart(connBarCtx, {
+  type: 'bar',
+  data: {
+    labels: CONN_CATEGORIES,
+    datasets: [{
+      label: 'Invocations',
+      data: [...connCatData],
+      backgroundColor: GREEN_PALETTE.slice(0, CONN_CATEGORIES.length).map(c => c + '77'),
+      borderColor:     GREEN_PALETTE.slice(0, CONN_CATEGORIES.length),
+      borderWidth: 1,
+    }]
+  },
+  options: { ...CHART_DEFAULTS }
+});
+
+/* ─────────────────────────────────────────────────────────────────────────
+   TABLE RENDERERS
+───────────────────────────────────────────────────────────────────────── */
+function renderGateTable() {
+  const tbody = document.getElementById('tbody-gates');
+  tbody.innerHTML = gateRows.map(r => `
+    <tr>
+      <td>${r.ts}</td>
+      <td>${r.gate}</td>
+      <td>${r.agent}</td>
+      <td><span class="badge ${r.result === 'PASS' ? 'badge-pass' : 'badge-fail'}">${r.result}</span></td>
+      <td>${r.score}</td>
+    </tr>`).join('');
+}
+
+function renderLLMTable() {
+  const tbody = document.getElementById('tbody-llm');
+  tbody.innerHTML = LLM_PROVIDERS.map(p => `
+    <tr>
+      <td>${p.name}</td>
+      <td>${p.reqs.toLocaleString()}</td>
+      <td>${p.latency} ms</td>
+      <td>$${p.cost.toFixed(2)}</td>
+      <td><span class="badge ${p.ok ? 'badge-ok' : 'badge-warn'}">${p.ok ? 'OK' : 'Degraded'}</span></td>
+    </tr>`).join('');
+}
+
+function renderDeployTable() {
+  const tbody = document.getElementById('tbody-deployments');
+  tbody.innerHTML = deplRows.map(r => `
+    <tr>
+      <td>${r.ts}</td>
+      <td>${r.version}</td>
+      <td>${r.env}</td>
+      <td>${r.by}</td>
+      <td><span class="badge ${r.status === 'SUCCESS' ? 'badge-pass' : 'badge-fail'}">${r.status}</span></td>
+      <td>${r.dur}s</td>
+    </tr>`).join('');
+}
+
+function renderConnTable() {
+  const tbody = document.getElementById('tbody-connectors');
+  tbody.innerHTML = CONNECTORS.map(c => `
+    <tr>
+      <td>${c.name}</td>
+      <td>${c.cat}</td>
+      <td>${c.inv.toLocaleString()}</td>
+      <td>${c.lat} ms</td>
+      <td>${c.err}%</td>
+      <td><span class="badge ${c.ok ? 'badge-ok' : 'badge-warn'}">${c.ok ? 'Online' : 'Degraded'}</span></td>
+    </tr>`).join('');
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CONFIDENCE STATS
+───────────────────────────────────────────────────────────────────────── */
+function updateConfStats() {
+  // Synthesise a large sample from histogram data for stat computation
+  const samples = [];
+  confHistData.forEach((count, i) => {
+    for (let j = 0; j < count; j++) {
+      samples.push(i * 0.1 + rnd(0, 0.1));
+    }
+  });
+  samples.sort((a, b) => a - b);
+  const min = samples[0];
+  const max = samples[samples.length - 1];
+  const avg = samples.reduce((s, v) => s + v, 0) / samples.length;
+  const p95 = samples[Math.floor(samples.length * 0.95)];
+  document.getElementById('cs-min').textContent = fmt2(min);
+  document.getElementById('cs-max').textContent = fmt2(max);
+  document.getElementById('cs-avg').textContent = fmt2(avg);
+  document.getElementById('cs-p95').textContent = fmt2(p95);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   INITIAL RENDER
+───────────────────────────────────────────────────────────────────────── */
+document.getElementById('stat-gates').textContent       = gateCount.toLocaleString();
+document.getElementById('stat-llm').textContent         = llmCount.toLocaleString();
+document.getElementById('stat-agents').textContent      = agentCount.toLocaleString();
+document.getElementById('stat-deployments').textContent = deployCount.toLocaleString();
+
+renderGateTable();
+renderLLMTable();
+renderDeployTable();
+renderConnTable();
+updateConfStats();
+
+/* ─────────────────────────────────────────────────────────────────────────
+   LIVE UPDATE LOOP — every 2000ms
+───────────────────────────────────────────────────────────────────────── */
+setInterval(() => {
+
+  /* 1 ── Timestamp */
+  document.getElementById('timestamp').textContent = fmtTs(now());
+
+  /* 2 ── Stat cards */
+  const dGates = rndI(1, 18);
+  const dLLM   = rndI(1, 9);
+  const dAgents = rndI(-1, 3);
+  const dDeploy = Math.random() > 0.85 ? 1 : 0;
+
+  gateCount   += dGates;
+  llmCount    += dLLM;
+  agentCount   = Math.max(1, agentCount + dAgents);
+  deployCount += dDeploy;
+
+  document.getElementById('stat-gates').textContent       = gateCount.toLocaleString();
+  document.getElementById('stat-llm').textContent         = llmCount.toLocaleString();
+  document.getElementById('stat-agents').textContent      = agentCount.toLocaleString();
+  document.getElementById('stat-deployments').textContent = deployCount.toLocaleString();
+
+  document.getElementById('stat-gates-delta').textContent     = `+${dGates} this cycle`;
+  document.getElementById('stat-llm-delta').textContent       = `+${dLLM} this cycle`;
+  document.getElementById('stat-agents-delta').textContent    = `${dAgents >= 0 ? '+' : ''}${dAgents} this cycle`;
+  document.getElementById('stat-deployments-delta').textContent = `+${dDeploy} this cycle`;
+
+  /* 3 ── Overview line chart: push new point, shift old */
+  const newScore = parseFloat(rnd(0.52, 0.99).toFixed(3));
+  confStream.push(newScore);
+  confStream.shift();
+  overviewLineChart.data.datasets[0].data = [...confStream];
+  overviewLineChart.update('none');
+
+  /* 4 ── Occasionally insert a new gate row at the top */
+  if (Math.random() > 0.55) {
+    const pass = Math.random() > 0.22;
+    gateRows.unshift({
+      ts:     fmtTs(now()),
+      gate:   GATE_TYPES[rndI(0, GATE_TYPES.length)],
+      agent:  GATE_AGENTS[rndI(0, GATE_AGENTS.length)],
+      result: pass ? 'PASS' : 'FAIL',
+      score:  parseFloat(rnd(pass ? 0.62 : 0.12, pass ? 0.99 : 0.59).toFixed(3)),
+    });
+    if (gateRows.length > 14) gateRows.pop();
+    renderGateTable();
+  }
+
+  /* 5 ── LLM provider requests drift */
+  LLM_PROVIDERS.forEach(p => {
+    p.reqs   += rndI(0, 4);
+    p.latency = Math.max(80, p.latency + rndI(-20, 20));
+    p.cost   += rnd(0, 0.04);
+  });
+  llmDoughChart.data.datasets[0].data = LLM_PROVIDERS.map(p => p.reqs);
+  llmDoughChart.update('none');
+  llmLatChart.data.datasets[0].data = LLM_PROVIDERS.map(p => p.latency);
+  llmLatChart.update('none');
+  renderLLMTable();
+
+  /* 6 ── Connector invocation counts drift */
+  CONNECTORS.forEach(c => { c.inv += rndI(0, 6); });
+  renderConnTable();
+
+}, 2000);
+
+/* ─────────────────────────────────────────────────────────────────────────
+   KICK OFF TIMESTAMP IMMEDIATELY
+───────────────────────────────────────────────────────────────────────── */
+document.getElementById('timestamp').textContent = fmtTs(now());
+</script>
+</body>
+</html>

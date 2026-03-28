@@ -1,0 +1,40 @@
+# Replace murphy.example.com with your actual domain before deploying
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: murphy-api
+  namespace: murphy-system
+  labels:
+    app: murphy-system
+    component: ingress
+    environment: production
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      add_header X-Frame-Options "DENY" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+      add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - murphy.example.com
+      secretName: murphy-tls
+  rules:
+    - host: murphy.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: murphy-api
+                port:
+                  number: 80

@@ -1,0 +1,2 @@
+HTTP 200
+{"flows":[{"type":"Proposals","count":0,"status":"ready"},{"type":"Reports","count":0,"status":"ready"},{"type":"Management Reports","count":0,"status":"ready"},{"type":"Deliverables","count":0,"status":"ready"}]}

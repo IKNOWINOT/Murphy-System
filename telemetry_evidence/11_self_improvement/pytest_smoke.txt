@@ -1,0 +1,43 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.2, pluggy-1.6.0
+rootdir: /home/runner/work/Murphy-System/Murphy-System/Murphy System
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: anyio-4.12.1, asyncio-1.3.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 26 items
+
+tests/test_e2e_smoke.py ...................                              [ 73%]
+tests/test_code_hardening.py ...F...                                     [100%]
+
+=================================== FAILURES ===================================
+_ TestMFMEndpointExceptionHandling.test_mfm_endpoints_no_bare_except_exception _
+tests/test_code_hardening.py:127: in test_mfm_endpoints_no_bare_except_exception
+    assert len(violations) == 0, (
+E   AssertionError: Found 6 bare except Exception without logging in MFM section: [(138, 'except Exception as exc:'), (149, 'except Exception as exc:'), (161, 'except Exception as exc:'), (172, 'except Exception as exc:'), (203, 'except Exception as exc:'), (217, 'except Exception as exc:')]
+E   assert 6 == 0
+E    +  where 6 = len([(138, 'except Exception as exc:'), (149, 'except Exception as exc:'), (161, 'except Exception as exc:'), (172, 'except Exception as exc:'), (203, 'except Exception as exc:'), (217, 'except Exception as exc:')])
+=========================== short test summary info ============================
+FAILED tests/test_code_hardening.py::TestMFMEndpointExceptionHandling::test_mfm_endpoints_no_bare_except_exception - AssertionError: Found 6 bare except Exception without logging in MFM section: [(138, 'except Exception as exc:'), (149, 'except Exception as exc:'), (161, 'except Exception as exc:'), (172, 'except Exception as exc:'), (203, 'except Exception as exc:'), (217, 'except Exception as exc:')]
+assert 6 == 0
+ +  where 6 = len([(138, 'except Exception as exc:'), (149, 'except Exception as exc:'), (161, 'except Exception as exc:'), (172, 'except Exception as exc:'), (203, 'except Exception as exc:'), (217, 'except Exception as exc:')])
+========================= 1 failed, 25 passed in 0.50s =========================
+E   TypeError: can't compare offset-naive and offset-aware datetimes
+________________ TestTrainingDataPipeline.test_retention_filter ________________
+tests/test_murphy_foundation_model.py:424: in test_retention_filter
+    result = pipeline.run_pipeline()
+             ^^^^^^^^^^^^^^^^^^^^^^^
+src/murphy_foundation_model/training_data_pipeline.py:84: in run_pipeline
+    traces = self._filter_by_retention(traces)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/murphy_foundation_model/training_data_pipeline.py:117: in _filter_by_retention
+    return [t for t in traces if t.timestamp >= cutoff]
+                                 ^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: can't compare offset-naive and offset-aware datetimes
+=========================== short test summary info ============================
+FAILED tests/test_murphy_foundation_model.py::TestActionTraceCollector::test_load_traces_since_days - TypeError: can't subtract offset-naive and offset-aware datetimes
+FAILED tests/test_murphy_foundation_model.py::TestActionTraceCollector::test_compress_old_files - TypeError: can't compare offset-naive and offset-aware datetimes
+FAILED tests/test_murphy_foundation_model.py::TestActionTraceCollector::test_compress_skips_recent - TypeError: can't compare offset-naive and offset-aware datetimes
+FAILED tests/test_murphy_foundation_model.py::TestTrainingDataPipeline::test_run_pipeline - TypeError: can't compare offset-naive and offset-aware datetimes
+FAILED tests/test_murphy_foundation_model.py::TestTrainingDataPipeline::test_output_format - TypeError: can't compare offset-naive and offset-aware datetimes
+FAILED tests/test_murphy_foundation_model.py::TestTrainingDataPipeline::test_retention_filter - TypeError: can't compare offset-naive and offset-aware datetimes
+======================== 6 failed, 109 passed in 0.64s =========================

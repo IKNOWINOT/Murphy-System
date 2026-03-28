@@ -1,0 +1,79 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check deploy secrets are configured
+        id: check_secrets
+        run: |
+          if [ -z "${{ secrets.DEPLOY_HOST }}" ] || [ -z "${{ secrets.DEPLOY_USER }}" ] || [ -z "${{ secrets.DEPLOY_PASSWORD }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Deploy Skipped::DEPLOY_HOST, DEPLOY_USER, or DEPLOY_PASSWORD secret not configured. Skipping deploy."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy to Hetzner via SSH
+        if: steps.check_secrets.outputs.skip == 'false'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          password: ${{ secrets.DEPLOY_PASSWORD }}
+          envs: MURPHY_SECRET_KEY,POSTGRES_PASSWORD,REDIS_PASSWORD,GRAFANA_ADMIN_PASSWORD,MURPHY_JWT_SECRET,ENCRYPTION_KEY,MURPHY_API_KEY,SMTP_PASSWORD
+          script: |
+            set -e
+
+            # ── 1. Pull latest code ─────────────────────────────────────────
+            cd /opt/Murphy-System
+            git pull origin main
+
+            # ── 2. Write production environment file ────────────────────────
+            mkdir -p /etc/murphy-production
+            cat > /etc/murphy-production/environment <<EOF
+            MURPHY_ENV=production
+            MURPHY_PORT=8000
+            MURPHY_SECRET_KEY=${MURPHY_SECRET_KEY}
+            POSTGRES_USER=murphy
+            POSTGRES_DB=murphy
+            POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+            DATABASE_URL=postgresql://murphy:${POSTGRES_PASSWORD}@localhost:5432/murphy
+            REDIS_PASSWORD=${REDIS_PASSWORD}
+            REDIS_URL=redis://:${REDIS_PASSWORD}@localhost:6379/0
+            MURPHY_REDIS_URL=redis://:${REDIS_PASSWORD}@localhost:6379/0
+            GRAFANA_ADMIN_USER=admin
+            GRAFANA_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+            MURPHY_JWT_SECRET=${MURPHY_JWT_SECRET}
+            ENCRYPTION_KEY=${ENCRYPTION_KEY}
+            MURPHY_API_KEY=${MURPHY_API_KEY}
+            OLLAMA_HOST=http://localhost:11434
+            OLLAMA_MODEL=phi3
+            MURPHY_LLM_PROVIDER=local
+            MURPHY_MAIL_INTERNAL=true
+            MURPHY_MAIL_HOSTNAME=mail.murphy.systems
+            MURPHY_MAIL_DOMAIN=murphy.systems
+            SMTP_HOST=localhost
+            SMTP_PORT=587
+            SMTP_USER=murphy@murphy.systems
+            SMTP_PASSWORD=${SMTP_PASSWORD}
+            EOF
+
+            # ── 3. Secure the environment file ──────────────────────────────
+            chmod 600 /etc/murphy-production/environment
+
+            # ── 4. Run idempotent server setup ──────────────────────────────
+            bash /opt/Murphy-System/scripts/self_setup.sh
+
+            # ── 5. Restart application services ─────────────────────────────
+            systemctl daemon-reload
+            systemctl restart murphy-production
+            systemctl is-active --quiet murphy-production \
+              || { echo "[ERROR] murphy-production failed to start"; exit 1; }

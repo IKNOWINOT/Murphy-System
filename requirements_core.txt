@@ -1,0 +1,20 @@
+# Murphy System 1.0 — Core Dependencies (fast install)
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post | License: BSL 1.1
+#
+# For the full system with ML, Matrix, HVAC, etc: pip install -r requirements.txt
+# For just the API server: pip install -r requirements_core.txt
+
+fastapi>=0.100.0
+uvicorn[standard]>=0.22.0
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+httpx>=0.24.0
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+cryptography>=41.0.0
+jinja2>=3.1.0
+pyyaml>=6.0
+aiofiles>=23.0.0
+requests>=2.28.0
+# NOTE: asyncio is stdlib — do NOT add it here

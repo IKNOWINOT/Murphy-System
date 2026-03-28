@@ -1,0 +1,4434 @@
+{
+    "version": "1.0.0",
+    "status": "running",
+    "uptime_seconds": 96.726625,
+    "start_time": "2026-03-11T08:16:48.953345+00:00",
+    "llm": {
+        "enabled": false,
+        "provider": null,
+        "model": null,
+        "healthy": false,
+        "error": "MURPHY_LLM_PROVIDER not set"
+    },
+    "librarian": {
+        "enabled": true,
+        "healthy": true,
+        "mode": "onboard",
+        "llm_provider": "onboard"
+    },
+    "components": {
+        "control_plane": "active",
+        "inoni_automation": "active",
+        "integration_engine": "active",
+        "orchestrator": "active",
+        "form_handler": "active",
+        "confidence_engine": "active",
+        "correction_system": "active",
+        "hitl_monitor": "active",
+        "persistence_manager": "active",
+        "event_backbone": "active",
+        "delivery_orchestrator": "inactive",
+        "gate_execution_wiring": "active",
+        "self_improvement_engine": "active",
+        "slo_tracker": "active",
+        "automation_scheduler": "active",
+        "capability_map": "active",
+        "compliance_engine": "active",
+        "rbac_governance": "active",
+        "ticketing_adapter": "active",
+        "wingman_protocol": "active",
+        "runtime_profile_compiler": "active",
+        "governance_kernel": "active",
+        "control_plane_separation": "active",
+        "durable_swarm_orchestrator": "active",
+        "golden_path_bridge": "active",
+        "org_chart_enforcement": "active",
+        "shadow_agent_integration": "active",
+        "triage_rollcall_adapter": "active",
+        "rubix_evidence_adapter": "active",
+        "semantics_boundary_controller": "active",
+        "bot_governance_policy_mapper": "active",
+        "bot_telemetry_normalizer": "active",
+        "legacy_compatibility_matrix": "active",
+        "hitl_autonomy_controller": "active",
+        "compliance_region_validator": "active",
+        "observability_counters": "active",
+        "deterministic_routing_engine": "active",
+        "platform_connector_framework": "active",
+        "workflow_dag_engine": "active",
+        "automation_type_registry": "active",
+        "api_gateway_adapter": "active",
+        "webhook_event_processor": "active",
+        "self_automation_orchestrator": "active",
+        "plugin_extension_sdk": "active",
+        "ai_workflow_generator": "active",
+        "workflow_template_marketplace": "active",
+        "cross_platform_data_sync": "active",
+        "digital_asset_generator": "active",
+        "rosetta_stone_heartbeat": "active",
+        "content_creator_platform_modulator": "active",
+        "ml_strategy_engine": "active",
+        "agentic_api_provisioner": "active",
+        "video_streaming_connector": "active",
+        "remote_access_connector": "active",
+        "ui_testing_framework": "active",
+        "security_hardening_config": "active"
+    },
+    "statistics": {
+        "sessions": 0,
+        "repositories": 0,
+        "active_automations": 0,
+        "pending_integrations": 0,
+        "committed_integrations": 0,
+        "executions": 0,
+        "execution_success_rate": 0.0
+    },
+    "module_registry": {
+        "total_available": 90,
+        "total_active": 0,
+        "modules": {
+            "SystemBuilder": {
+                "description": "Builds system architecture from natural language",
+                "status": "available",
+                "capabilities": [
+                    "architecture_design",
+                    "component_selection",
+                    "system_planning"
+                ]
+            },
+            "GateBuilder": {
+                "description": "Creates safety gates for any system",
+                "status": "available",
+                "capabilities": [
+                    "safety_gates",
+                    "risk_mitigation",
+                    "security_checks"
+                ]
+            },
+            "ModuleManager": {
+                "description": "Manages dynamic module coupling/decoupling",
+                "status": "available",
+                "capabilities": [
+                    "module_management",
+                    "dynamic_loading",
+                    "system_integration"
+                ]
+            },
+            "TaskExecutor": {
+                "description": "Executes tasks using available tools",
+                "status": "available",
+                "capabilities": [
+                    "task_execution",
+                    "tool_selection",
+                    "automation"
+                ]
+            },
+            "module_manager": {
+                "description": "Module manager registry",
+                "status": "available",
+                "capabilities": [
+                    "module_registry",
+                    "capability_mapping"
+                ]
+            },
+            "modular_runtime": {
+                "description": "Modular runtime core",
+                "status": "available",
+                "capabilities": [
+                    "runtime",
+                    "module_execution"
+                ]
+            },
+            "universal_control_plane": {
+                "description": "Universal control plane",
+                "status": "available",
+                "capabilities": [
+                    "control_plane",
+                    "execution_policy"
+                ]
+            },
+            "inoni_business_automation": {
+                "description": "Business automation engines",
+                "status": "available",
+                "capabilities": [
+                    "business_automation",
+                    "executive_operations"
+                ]
+            },
+            "two_phase_orchestrator": {
+                "description": "Two-phase orchestrator",
+                "status": "available",
+                "capabilities": [
+                    "orchestration",
+                    "handoff"
+                ]
+            },
+            "form_intake": {
+                "description": "Form intake handlers",
+                "status": "available",
+                "capabilities": [
+                    "forms",
+                    "intake"
+                ]
+            },
+            "confidence_engine": {
+                "description": "Confidence evaluation engine",
+                "status": "available",
+                "capabilities": [
+                    "confidence",
+                    "validation"
+                ]
+            },
+            "execution_engine": {
+                "description": "Execution engine",
+                "status": "available",
+                "capabilities": [
+                    "execution",
+                    "actions"
+                ]
+            },
+            "learning_engine": {
+                "description": "Learning and correction engine",
+                "status": "available",
+                "capabilities": [
+                    "learning",
+                    "correction"
+                ]
+            },
+            "hitl_monitor": {
+                "description": "Human-in-the-loop monitor",
+                "status": "available",
+                "capabilities": [
+                    "hitl",
+                    "supervision"
+                ]
+            },
+            "governance_framework": {
+                "description": "Governance scheduling framework",
+                "status": "available",
+                "capabilities": [
+                    "governance",
+                    "scheduling"
+                ]
+            },
+            "telemetry_ingestion": {
+                "description": "Telemetry ingestion and analytics",
+                "status": "available",
+                "capabilities": [
+                    "telemetry",
+                    "analytics"
+                ]
+            },
+            "mfgc_adapter": {
+                "description": "MFGC adapter",
+                "status": "available",
+                "capabilities": [
+                    "adapter",
+                    "execution_fallback"
+                ]
+            },
+            "system_integrator": {
+                "description": "System integrator bridge",
+                "status": "available",
+                "capabilities": [
+                    "integration",
+                    "adapter_bridge"
+                ]
+            },
+            "gate_synthesis": {
+                "description": "Gate synthesis engine",
+                "status": "available",
+                "capabilities": [
+                    "gates",
+                    "risk",
+                    "compliance"
+                ]
+            },
+            "true_swarm_system": {
+                "description": "Swarm execution planner",
+                "status": "available",
+                "capabilities": [
+                    "swarm",
+                    "task_expansion"
+                ]
+            },
+            "domain_swarms": {
+                "description": "Domain swarm selection",
+                "status": "available",
+                "capabilities": [
+                    "domain_detection",
+                    "swarm_candidates"
+                ]
+            },
+            "system_librarian": {
+                "description": "Librarian knowledge and conditions",
+                "status": "available",
+                "capabilities": [
+                    "librarian",
+                    "conditions"
+                ]
+            },
+            "organization_chart_system": {
+                "description": "Org chart coverage and contracts",
+                "status": "available",
+                "capabilities": [
+                    "org_chart",
+                    "contracts"
+                ]
+            },
+            "compute_plane": {
+                "description": "Deterministic compute plane",
+                "status": "available",
+                "capabilities": [
+                    "deterministic_compute"
+                ]
+            },
+            "recursive_stability_controller": {
+                "description": "Recursive stability control",
+                "status": "available",
+                "capabilities": [
+                    "stability",
+                    "feedback"
+                ]
+            },
+            "integration_engine": {
+                "description": "Integration engine",
+                "status": "available",
+                "capabilities": [
+                    "integrations",
+                    "handoff"
+                ]
+            },
+            "adapter_framework": {
+                "description": "Adapter execution runtime",
+                "status": "available",
+                "capabilities": [
+                    "adapter_runtime",
+                    "device_execution"
+                ]
+            },
+            "telemetry_adapter": {
+                "description": "Telemetry adapter",
+                "status": "available",
+                "capabilities": [
+                    "telemetry"
+                ]
+            },
+            "module_compiler_adapter": {
+                "description": "Module compiler adapter",
+                "status": "available",
+                "capabilities": [
+                    "module_compiler"
+                ]
+            },
+            "librarian_adapter": {
+                "description": "Librarian adapter",
+                "status": "available",
+                "capabilities": [
+                    "librarian_adapter"
+                ]
+            },
+            "neuro_symbolic_adapter": {
+                "description": "Neuro-symbolic adapter",
+                "status": "available",
+                "capabilities": [
+                    "neuro_symbolic"
+                ]
+            },
+            "security_plane_adapter": {
+                "description": "Security plane adapter",
+                "status": "available",
+                "capabilities": [
+                    "security"
+                ]
+            },
+            "persistence_manager": {
+                "description": "Durable persistence layer for documents, gates, audit trails, and replay",
+                "status": "available",
+                "capabilities": [
+                    "persistence",
+                    "audit",
+                    "replay"
+                ]
+            },
+            "event_backbone": {
+                "description": "Event-driven backbone with durable queues, retry, and circuit breakers",
+                "status": "available",
+                "capabilities": [
+                    "events",
+                    "queues",
+                    "retry"
+                ]
+            },
+            "delivery_adapters": {
+                "description": "Production delivery adapters for document, email, chat, voice, translation",
+                "status": "available",
+                "capabilities": [
+                    "delivery",
+                    "multi_channel"
+                ]
+            },
+            "gate_execution_wiring": {
+                "description": "Gate synthesis wired into runtime execution with policy enforcement",
+                "status": "available",
+                "capabilities": [
+                    "gate_execution",
+                    "policy_enforcement"
+                ]
+            },
+            "self_improvement_engine": {
+                "description": "Self-improvement engine with feedback loops and confidence calibration",
+                "status": "available",
+                "capabilities": [
+                    "self_improvement",
+                    "learning_feedback",
+                    "confidence_calibration"
+                ]
+            },
+            "operational_slo_tracker": {
+                "description": "Operational SLO tracker with success rate, latency percentiles, and compliance checks",
+                "status": "available",
+                "capabilities": [
+                    "slo_tracking",
+                    "operational_telemetry",
+                    "compliance_monitoring"
+                ]
+            },
+            "automation_scheduler": {
+                "description": "Multi-project automation scheduler with priority-based load balancing",
+                "status": "available",
+                "capabilities": [
+                    "scheduling",
+                    "multi_project",
+                    "load_balancing"
+                ]
+            },
+            "capability_map": {
+                "description": "Repository-wide capability map with gap analysis and remediation sequencing",
+                "status": "available",
+                "capabilities": [
+                    "capability_inventory",
+                    "gap_analysis",
+                    "remediation_planning"
+                ]
+            },
+            "compliance_engine": {
+                "description": "Compliance validation engine with GDPR/SOC2/HIPAA/PCI-DSS sensors and HITL approvals",
+                "status": "available",
+                "capabilities": [
+                    "compliance_validation",
+                    "regulatory_sensors",
+                    "release_readiness"
+                ]
+            },
+            "rbac_governance": {
+                "description": "Role-based access control with multi-tenant isolation and shadow agent governance",
+                "status": "available",
+                "capabilities": [
+                    "rbac",
+                    "tenant_isolation",
+                    "shadow_agent_governance"
+                ]
+            },
+            "ticketing_adapter": {
+                "description": "ITSM ticketing adapter with remote access and patch/rollback automation",
+                "status": "available",
+                "capabilities": [
+                    "ticketing",
+                    "remote_access",
+                    "patch_rollback"
+                ]
+            },
+            "wingman_protocol": {
+                "description": "Executor/validator pairing with deterministic runbook-based validation",
+                "status": "available",
+                "capabilities": [
+                    "wingman_pairing",
+                    "deterministic_validation",
+                    "runbooks"
+                ]
+            },
+            "runtime_profile_compiler": {
+                "description": "Compile onboarding data into runtime execution profiles with safety/budget/autonomy controls",
+                "status": "available",
+                "capabilities": [
+                    "profile_compilation",
+                    "execution_governance",
+                    "autonomy_control"
+                ]
+            },
+            "governance_kernel": {
+                "description": "Non-LLM governance enforcement layer with budget tracking and audit emission",
+                "status": "available",
+                "capabilities": [
+                    "governance_enforcement",
+                    "budget_control",
+                    "audit_emission"
+                ]
+            },
+            "control_plane_separation": {
+                "description": "Planning-plane / execution-plane separation with strict/balanced/dynamic mode switching",
+                "status": "available",
+                "capabilities": [
+                    "plane_routing",
+                    "mode_switching",
+                    "planning_execution_separation"
+                ]
+            },
+            "durable_swarm_orchestrator": {
+                "description": "Budget-aware durable swarm orchestration with idempotency, retry, circuit breaker, and anti-recursion",
+                "status": "available",
+                "capabilities": [
+                    "swarm_spawning",
+                    "budget_control",
+                    "circuit_breaker",
+                    "idempotency"
+                ]
+            },
+            "golden_path_bridge": {
+                "description": "Golden-path capture and replay for execution acceleration and knowledge/RAG",
+                "status": "available",
+                "capabilities": [
+                    "golden_path_capture",
+                    "path_matching",
+                    "replay_acceleration"
+                ]
+            },
+            "org_chart_enforcement": {
+                "description": "Role-bound permissions, escalation chains, and cross-department workflow arbitration",
+                "status": "available",
+                "capabilities": [
+                    "permission_enforcement",
+                    "escalation_chains",
+                    "cross_dept_arbitration"
+                ]
+            },
+            "shadow_agent_integration": {
+                "description": "Shadow-agent org-chart parity with account/user-base controls and governance boundaries",
+                "status": "available",
+                "capabilities": [
+                    "shadow_agent_lifecycle",
+                    "org_chart_parity",
+                    "account_management"
+                ]
+            },
+            "triage_rollcall_adapter": {
+                "description": "Capability-rollcall stage before swarm expansion with ranked candidate selection",
+                "status": "available",
+                "capabilities": [
+                    "candidate_registry",
+                    "rollcall_ranking",
+                    "confidence_probing"
+                ]
+            },
+            "rubix_evidence_adapter": {
+                "description": "Deterministic evidence lane for CI/hypothesis/Bayesian/Monte Carlo/forecast checks",
+                "status": "available",
+                "capabilities": [
+                    "evidence_checks",
+                    "compliance_artifacts",
+                    "deterministic_verification"
+                ]
+            },
+            "semantics_boundary_controller": {
+                "description": "Runtime semantics boundary control-loop with belief-state, risk/CVaR, RVoI, invariance, verification-feedback",
+                "status": "available",
+                "capabilities": [
+                    "belief_state",
+                    "risk_assessment",
+                    "rvoi_questions",
+                    "invariance_checks",
+                    "verification_feedback"
+                ]
+            },
+            "bot_governance_policy_mapper": {
+                "description": "Maps legacy bot quota/budget/stability controls to Murphy runtime execution profiles",
+                "status": "available",
+                "capabilities": [
+                    "policy_mapping",
+                    "gate_checks",
+                    "budget_tracking",
+                    "quota_management"
+                ]
+            },
+            "bot_telemetry_normalizer": {
+                "description": "Standardizes triage/rubix bot event payloads into Murphy observability schema",
+                "status": "available",
+                "capabilities": [
+                    "event_normalization",
+                    "triage_rules",
+                    "rubix_rules",
+                    "telemetry_alignment"
+                ]
+            },
+            "legacy_compatibility_matrix": {
+                "description": "Legacy orchestration bridge hooks and compatibility-matrix decisions as profile-governed runtime controls",
+                "status": "available",
+                "capabilities": [
+                    "compatibility_matrix",
+                    "bridge_hooks",
+                    "migration_paths",
+                    "governance_validation"
+                ]
+            },
+            "hitl_autonomy_controller": {
+                "description": "Runtime policy toggles for HITL arming/disarming and high-confidence autonomy enablement",
+                "status": "available",
+                "capabilities": [
+                    "hitl_toggle",
+                    "autonomy_policy",
+                    "confidence_threshold",
+                    "cooldown_management"
+                ]
+            },
+            "compliance_region_validator": {
+                "description": "Region-specific compliance sensor validation before delivery with cross-border checks",
+                "status": "available",
+                "capabilities": [
+                    "region_compliance",
+                    "cross_border_validation",
+                    "data_residency",
+                    "retention_checks"
+                ]
+            },
+            "observability_counters": {
+                "description": "Summary counters distinguishing behavior fixes from permutation-only coverage for closed-loop improvement",
+                "status": "available",
+                "capabilities": [
+                    "behavior_tracking",
+                    "coverage_tracking",
+                    "improvement_velocity",
+                    "fix_ratio_analysis"
+                ]
+            },
+            "deterministic_routing_engine": {
+                "description": "Policy-driven deterministic vs LLM routing with guardrails, fallback promotion, and parity validation",
+                "status": "available",
+                "capabilities": [
+                    "deterministic_routing",
+                    "llm_routing",
+                    "hybrid_routing",
+                    "route_parity",
+                    "fallback_promotion"
+                ]
+            },
+            "platform_connector_framework": {
+                "description": "Unified connector SDK for popular platforms (Slack, Jira, Salesforce, GitHub, AWS, Azure, GCP, Stripe, etc.) with auth, rate limiting, retry, health checks",
+                "status": "available",
+                "capabilities": [
+                    "platform_connectors",
+                    "crm_integration",
+                    "communication_integration",
+                    "cloud_integration",
+                    "devops_integration",
+                    "payment_integration"
+                ]
+            },
+            "workflow_dag_engine": {
+                "description": "DAG-based workflow definition and execution with topological sort, parallel groups, conditional branching, checkpoint/resume",
+                "status": "available",
+                "capabilities": [
+                    "workflow_dag",
+                    "topological_execution",
+                    "parallel_steps",
+                    "conditional_branching",
+                    "checkpoint_resume"
+                ]
+            },
+            "automation_type_registry": {
+                "description": "Registry of all automation types (IT, business process, data pipeline, marketing, customer service, HR, financial, content, security, DevOps, compliance) with templates",
+                "status": "available",
+                "capabilities": [
+                    "automation_templates",
+                    "it_automation",
+                    "business_process_automation",
+                    "data_pipeline",
+                    "marketing_automation",
+                    "security_automation"
+                ]
+            },
+            "api_gateway_adapter": {
+                "description": "Unified API gateway for external integrations with rate limiting, auth management, webhook dispatch, circuit breaker, and response caching",
+                "status": "available",
+                "capabilities": [
+                    "api_gateway",
+                    "rate_limiting",
+                    "auth_management",
+                    "webhook_dispatch",
+                    "circuit_breaker",
+                    "response_caching"
+                ]
+            },
+            "webhook_event_processor": {
+                "description": "Inbound webhook handling for event-driven integrations with signature verification, payload normalization, and event routing",
+                "status": "available",
+                "capabilities": [
+                    "webhook_processing",
+                    "signature_verification",
+                    "event_normalization",
+                    "event_routing",
+                    "platform_webhooks"
+                ]
+            },
+            "self_automation_orchestrator": {
+                "description": "Self-automation task queue with prompt chain templates for continuous self-improvement cycles",
+                "status": "available",
+                "capabilities": [
+                    "self_automation",
+                    "task_queue",
+                    "prompt_chain",
+                    "gap_analysis",
+                    "improvement_cycles"
+                ]
+            },
+            "plugin_extension_sdk": {
+                "description": "Third-party plugin lifecycle management with manifest validation, sandboxed execution, and capability gating",
+                "status": "available",
+                "capabilities": [
+                    "plugin_management",
+                    "manifest_validation",
+                    "sandboxed_execution",
+                    "capability_gating",
+                    "lifecycle_management"
+                ]
+            },
+            "ai_workflow_generator": {
+                "description": "Natural language to DAG workflow translation using template matching, keyword inference, and dependency resolution",
+                "status": "available",
+                "capabilities": [
+                    "workflow_generation",
+                    "template_matching",
+                    "keyword_inference",
+                    "dependency_resolution",
+                    "natural_language"
+                ]
+            },
+            "workflow_template_marketplace": {
+                "description": "Marketplace for publishing, searching, installing, rating, and versioning community workflow templates",
+                "status": "available",
+                "capabilities": [
+                    "template_marketplace",
+                    "publishing",
+                    "search",
+                    "rating",
+                    "versioning"
+                ]
+            },
+            "cross_platform_data_sync": {
+                "description": "Real-time bidirectional data synchronization between platforms with field mapping and conflict resolution",
+                "status": "available",
+                "capabilities": [
+                    "data_sync",
+                    "field_mapping",
+                    "conflict_resolution",
+                    "change_tracking",
+                    "bidirectional_sync"
+                ]
+            },
+            "building_automation_connectors": {
+                "description": "Building automation protocol connectors (BACnet, Modbus, KNX, LonWorks, DALI, OPC UA) with Johnson Controls, Honeywell, Siemens, Alerton, Trane, Carrier/Automated Logic, Schneider Electric, ABB, Delta Controls, Distech vendor integrations",
+                "status": "available",
+                "capabilities": [
+                    "bacnet",
+                    "modbus",
+                    "knx",
+                    "lonworks",
+                    "dali",
+                    "opc_ua",
+                    "hvac_control",
+                    "lighting_control",
+                    "vendor_integration"
+                ]
+            },
+            "manufacturing_automation_standards": {
+                "description": "Manufacturing automation standards (ISA-95, OPC UA, MTConnect, PackML, MQTT/Sparkplug B, IEC 61131) with ISA-95 layer-aware workflow orchestration",
+                "status": "available",
+                "capabilities": [
+                    "isa_95",
+                    "opc_ua_manufacturing",
+                    "mtconnect",
+                    "packml",
+                    "mqtt_sparkplug_b",
+                    "iec_61131",
+                    "production_management",
+                    "plc_integration"
+                ]
+            },
+            "energy_management_connectors": {
+                "description": "Energy management system connectors (Johnson Controls OpenBlue, Honeywell Forge, Schneider EcoStruxure, Siemens Navigator, EnergyCAP, ENERGY STAR, Enel X, Alerton EMS, SolarEdge, GridPoint, Tridium Niagara, ABB Ability, Emerson Ovation, Enverus, Brainbox AI) with demand response and renewables",
+                "status": "available",
+                "capabilities": [
+                    "energy_monitoring",
+                    "utility_analytics",
+                    "demand_response",
+                    "sustainability_reporting",
+                    "renewable_integration",
+                    "carbon_tracking"
+                ]
+            },
+            "analytics_dashboard": {
+                "description": "Real-time analytics dashboard with execution analytics, compliance tracking, performance metrics, business intelligence, and alert rules engine",
+                "status": "available",
+                "capabilities": [
+                    "execution_analytics",
+                    "compliance_analytics",
+                    "performance_metrics",
+                    "business_intelligence",
+                    "alerting",
+                    "real_time_dashboard"
+                ]
+            },
+            "executive_planning_engine": {
+                "description": "Executive strategy planning with business gate generation, integration automation binding, and executive dashboard generation",
+                "status": "available",
+                "capabilities": [
+                    "strategy_planning",
+                    "business_gates",
+                    "integration_binding",
+                    "executive_dashboard",
+                    "response_engine"
+                ]
+            },
+            "enterprise_integrations": {
+                "description": "Enterprise integration registry for accounting, engineering, project management, document, communication, DevOps, analytics, and ERP platforms with DAG workflow binding",
+                "status": "available",
+                "capabilities": [
+                    "enterprise_connectors",
+                    "quickbooks",
+                    "autocad",
+                    "blender",
+                    "sap",
+                    "dynamics365",
+                    "workflow_binding",
+                    "capability_mapping"
+                ]
+            },
+            "digital_asset_generator": {
+                "description": "Digital asset generation pipeline for Unreal Engine, Maya, Blender, Fortnite Creative/UEFN, Unity, Godot with sprite sheets, texture atlases, 3D model descriptors, material/shader generation, and batch pipeline orchestration",
+                "status": "available",
+                "capabilities": [
+                    "asset_generation",
+                    "sprite_sheets",
+                    "texture_atlas",
+                    "unreal_engine",
+                    "maya",
+                    "blender",
+                    "fortnite_creative",
+                    "unity",
+                    "godot",
+                    "pipeline_orchestration"
+                ]
+            },
+            "rosetta_stone_heartbeat": {
+                "description": "Organization-wide heartbeat synchronization with executive-origin pulse propagation, tier-based translators, and sync verification across executive/management/operations/worker/integration tiers",
+                "status": "available",
+                "capabilities": [
+                    "heartbeat_sync",
+                    "pulse_propagation",
+                    "tier_translation",
+                    "sync_verification",
+                    "executive_directives",
+                    "org_health"
+                ]
+            },
+            "content_creator_platform_modulator": {
+                "description": "Content creator platform connectors for YouTube, Twitch, OnlyFans, TikTok, Patreon, Kick, Rumble with content scheduling, analytics, monetization tracking, audience management, cross-platform syndication, and live stream orchestration",
+                "status": "available",
+                "capabilities": [
+                    "youtube",
+                    "twitch",
+                    "onlyfans",
+                    "tiktok",
+                    "patreon",
+                    "kick",
+                    "rumble",
+                    "content_scheduling",
+                    "cross_platform_syndication",
+                    "analytics_aggregation",
+                    "monetization_tracking",
+                    "live_stream_orchestration"
+                ]
+            },
+            "ml_strategy_engine": {
+                "description": "Pure-Python ML strategy engine providing anomaly detection (z-score/IQR), time-series forecasting (exponential smoothing/moving average), Naive Bayes classification, content-based and collaborative recommendation, K-means clustering, Q-learning reinforcement learning, feature importance analysis, A/B testing framework, ensemble methods, and online incremental learning",
+                "status": "available",
+                "capabilities": [
+                    "anomaly_detection",
+                    "time_series_forecasting",
+                    "naive_bayes_classification",
+                    "recommendation_engine",
+                    "kmeans_clustering",
+                    "q_learning",
+                    "feature_importance",
+                    "ab_testing",
+                    "ensemble_methods",
+                    "online_learning",
+                    "reinforcement_learning"
+                ]
+            },
+            "agentic_api_provisioner": {
+                "description": "Self-provisioning API infrastructure that autonomously discovers modules, generates REST/GraphQL/WebSocket endpoints, auto-configures auth and rate limits, generates OpenAPI specs, registers webhooks, and performs self-healing health monitoring",
+                "status": "available",
+                "capabilities": [
+                    "auto_provision",
+                    "endpoint_registration",
+                    "openapi_generation",
+                    "webhook_management",
+                    "health_monitoring",
+                    "self_healing",
+                    "module_introspection",
+                    "rate_limiting",
+                    "auth_policy",
+                    "api_versioning"
+                ]
+            },
+            "video_streaming_connector": {
+                "description": "Unified live video streaming connectors for Twitch, YouTube Live, OBS Studio, vMix, Restream, StreamYard, Streamlabs, Kick Live, and Facebook Live with simulcast orchestration, stream health monitoring, recording management, and chat integration",
+                "status": "available",
+                "capabilities": [
+                    "live_streaming",
+                    "simulcasting",
+                    "recording",
+                    "chat_integration",
+                    "stream_health",
+                    "twitch",
+                    "youtube_live",
+                    "obs_studio",
+                    "vmix",
+                    "restream",
+                    "streamyard"
+                ]
+            },
+            "remote_access_connector": {
+                "description": "Remote desktop and administration connectors for TeamViewer, AnyDesk, RDP, VNC, SSH Tunneling, Parsec, Chrome Remote Desktop, Apache Guacamole, and Splashtop with session management, file transfer, unattended access, session recording, and Wake-on-LAN",
+                "status": "available",
+                "capabilities": [
+                    "remote_desktop",
+                    "file_transfer",
+                    "unattended_access",
+                    "session_recording",
+                    "teamviewer",
+                    "anydesk",
+                    "rdp",
+                    "vnc",
+                    "ssh_tunnel",
+                    "parsec",
+                    "wake_on_lan"
+                ]
+            },
+            "ui_testing_framework": {
+                "description": "Comprehensive UI testing infrastructure covering all 12 testing gaps: visual regression, interactive components, E2E browser harness, performance/Core Web Vitals, cross-browser compatibility, mobile gestures, animation/transition validation, error state handling, dark mode, API integration, security (XSS/injection), and i18n/RTL",
+                "status": "available",
+                "capabilities": [
+                    "visual_regression",
+                    "interactive_testing",
+                    "e2e_browser",
+                    "performance_testing",
+                    "cross_browser",
+                    "mobile_gesture",
+                    "animation_testing",
+                    "error_state",
+                    "dark_mode",
+                    "security_testing",
+                    "i18n_testing",
+                    "accessibility"
+                ]
+            },
+            "security_hardening_config": {
+                "description": "Centralized security hardening orchestrator with input sanitization (XSS/SQLi/path traversal), CORS lockdown, token-bucket rate limiting, CSP headers, API key rotation enforcement, structured audit logging, and session security controls (MFA, concurrent limits, timeout)",
+                "status": "available",
+                "capabilities": [
+                    "input_sanitization",
+                    "cors_lockdown",
+                    "rate_limiting",
+                    "csp_headers",
+                    "api_key_rotation",
+                    "audit_logging",
+                    "session_security",
+                    "injection_prevention",
+                    "path_traversal_prevention"
+                ]
+            },
+            "_deps": {
+                "description": "Auto-registered local module (root)",
+                "status": "available",
+                "capabilities": [
+                    "auto_registered",
+                    "category:root",
+                    "module:_deps"
+                ]
+            },
+            "app": {
+                "description": "Auto-registered local module (root)",
+                "status": "available",
+                "capabilities": [
+                    "auto_registered",
+                    "category:root",
+                    "module:app"
+                ]
+            },
+            "living_document": {
+                "description": "Auto-registered local module (root)",
+                "status": "available",
+                "capabilities": [
+                    "auto_registered",
+                    "category:root",
+                    "module:living_document"
+                ]
+            },
+            "murphy_system_core": {
+                "description": "Auto-registered local module (root)",
+                "status": "available",
+                "capabilities": [
+                    "auto_registered",
+                    "category:root",
+                    "module:murphy_system_core"
+                ]
+            }
+        }
+    },
+    "module_registry_summary": {
+        "total_available": 90,
+        "total_active": 0,
+        "core_expected": 82,
+        "core_registered": 82,
+        "core_missing": [],
+        "auto_registered": 4,
+        "category_counts": {
+            "root": 4
+        }
+    },
+    "summary_surface_consistency": {
+        "status": "consistent",
+        "checks": {
+            "integration_summary_present": true,
+            "alignment_summary_present": true,
+            "completion_snapshot_present": true,
+            "registry_total_matches_status": true,
+            "registry_core_complete": true
+        }
+    },
+    "completion_snapshot": {
+        "areas": [
+            {
+                "area": "execution_wiring",
+                "percent": 47
+            },
+            {
+                "area": "deterministic_llm_routing",
+                "percent": 40
+            },
+            {
+                "area": "persistence_replay",
+                "percent": 23
+            },
+            {
+                "area": "multichannel_delivery",
+                "percent": 58
+            },
+            {
+                "area": "compliance_validation",
+                "percent": 38
+            },
+            {
+                "area": "operational_automation",
+                "percent": 22
+            },
+            {
+                "area": "ui_user_testing",
+                "percent": 70
+            },
+            {
+                "area": "dynamic_chain_test_coverage",
+                "percent": 96
+            }
+        ],
+        "summary": {
+            "total_areas": 8,
+            "average_percent": 49.25,
+            "remediation_threshold_percent": 50,
+            "low_completion_areas": 5,
+            "low_completion_area_ids": [
+                "execution_wiring",
+                "deterministic_llm_routing",
+                "persistence_replay",
+                "compliance_validation",
+                "operational_automation"
+            ]
+        }
+    },
+    "runtime_execution_profile": {
+        "execution_mode": "balanced",
+        "execution_profile_source": "default",
+        "execution_enforcement_level": "policy_guarded",
+        "control_plane_separation_state": "adaptive",
+        "self_improvement_rd_candidate": "hybrid_governance_feedback_loop",
+        "approval_checkpoint_policy": "conditional",
+        "budget_enforcement_mode": "soft_cap",
+        "audit_logging_policy": "standard_governance_stream",
+        "escalation_routing_policy": "policy_scored_chain",
+        "tool_mediation_policy": "policy_guarded_mediation",
+        "deterministic_routing_policy": "deterministic_preferred",
+        "compute_routing_policy": "hybrid_compute_lane",
+        "policy_compiler_mode": "guarded_policy_compilation",
+        "permission_validation_policy": "policy_guided_validation",
+        "delegation_scope_policy": "policy_bounded_delegation",
+        "execution_broker_policy": "broker_policy_guarded",
+        "role_registry_policy": "governed_role_registry",
+        "authority_boundary_policy": "policy_scoped_authority_boundaries",
+        "cross_department_arbitration_policy": "policy_scored_arbitration",
+        "department_memory_isolation_policy": "policy_scoped_isolation",
+        "employee_contract_responsibility_policy": "contract_guided_responsibilities",
+        "core_responsibility_scope": "org_chart_role_and_contract_policy_boundaries",
+        "shadow_agent_account_policy": "policy_governed_shadow_accounts",
+        "user_base_management_surface_policy": "admin_ui_with_policy_api",
+        "employee_contract_change_authority_policy": "policy_scoped_manager_plus_hr_approval",
+        "employee_contract_management_surface_policy": "hr_admin_ui_with_policy_api",
+        "employee_contract_accountability_policy": "contract_obligation_attestation_guided",
+        "shadow_agent_org_parity_policy": "policy_validated_org_role_shadowing",
+        "shadow_agent_contract_binding_policy": "contract_binding_policy_guided",
+        "user_base_access_governance_policy": "rbac_policy_governed_controls",
+        "employee_contract_obligation_tracking_policy": "obligation_tracking_policy_guided",
+        "employee_contract_escalation_binding_policy": "contract_escalation_binding_policy_guided",
+        "regulatory_context_binding_policy": "regulatory_context_policy_guided",
+        "autonomy_preference_override_policy": "autonomy_override_policy_scoped",
+        "risk_tolerance_enforcement_policy": "risk_tolerance_policy_scored",
+        "safety_level_assurance_policy": "safety_level_attestation_guided",
+        "delegation_comfort_governance_policy": "delegation_comfort_policy_bounds",
+        "employee_contract_review_policy": "hr_review_policy_guided",
+        "employee_contract_versioning_policy": "governed_contract_version_history",
+        "shadow_agent_account_lifecycle_policy": "policy_guided_shadow_lifecycle",
+        "user_base_ui_audit_policy": "governed_ui_audit_stream",
+        "org_chart_assignment_sync_policy": "policy_scoped_org_chart_sync",
+        "event_queue_durability_policy": "durable_queue_policy_guided",
+        "idempotency_key_enforcement_policy": "idempotency_keys_policy_scoped",
+        "retry_backoff_policy": "policy_scoped_retry_backoff",
+        "circuit_breaker_policy": "circuit_breaker_policy_guarded",
+        "rollback_recovery_policy": "policy_scoped_rollback_recovery",
+        "planning_plane_decomposition_policy": "policy_guided_decomposition",
+        "planning_plane_risk_simulation_policy": "risk_simulation_policy_guided",
+        "execution_plane_permission_gate_policy": "permission_gates_policy_guided",
+        "execution_plane_budget_guardrail_policy": "policy_scoped_budget_guardrails",
+        "execution_plane_audit_trail_integrity_policy": "governed_audit_trail_integrity",
+        "swarm_spawn_governance_policy": "spawn_governance_policy_scoped",
+        "swarm_failure_containment_policy": "failure_containment_policy_guided",
+        "swarm_budget_expansion_policy": "swarm_budget_expansion_policy_scoped",
+        "shadow_reinforcement_signal_policy": "shadow_reinforcement_signals_policy_guided",
+        "behavioral_divergence_tracking_policy": "behavioral_divergence_tracking_policy_scoped",
+        "planning_plane_gate_synthesis_policy": "policy_guided_gate_synthesis",
+        "planning_plane_org_mapping_policy": "policy_scoped_org_mapping",
+        "execution_plane_tool_permission_enforcement_policy": "policy_scoped_tool_permission_enforcement",
+        "execution_plane_budget_ceiling_override_policy": "budget_ceiling_override_policy_scoped",
+        "execution_plane_escalation_checkpoint_policy": "escalation_checkpoint_policy_guided",
+        "human_in_the_loop_enforcement_policy": "human_in_the_loop_enforcement_policy_guided",
+        "regulatory_audit_retention_policy": "regulatory_audit_retention_policy_scoped",
+        "tenant_boundary_enforcement_policy": "tenant_boundary_enforcement_policy_scoped",
+        "policy_exception_handling_policy": "policy_exception_handling_governed_review",
+        "runtime_profile_refresh_policy": "runtime_profile_refresh_policy_guided",
+        "planning_plane_compliance_modeling_policy": "compliance_modeling_policy_guided",
+        "planning_plane_proposal_generation_policy": "proposal_generation_policy_scoped",
+        "execution_plane_policy_compiler_enforcement_policy": "execution_policy_compiler_enforcement_scoped",
+        "execution_plane_deterministic_override_policy": "deterministic_override_policy_scoped",
+        "hitl_escalation_requirement_policy": "hitl_escalation_requirement_policy_guided",
+        "shadow_peer_role_enforcement_policy": "shadow_peer_role_enforcement_policy_guided",
+        "shadow_account_user_binding_policy": "shadow_account_user_binding_policy_guided",
+        "employee_contract_scope_enforcement_policy": "employee_contract_scope_enforcement_policy_guided",
+        "employee_contract_exception_review_policy": "employee_contract_exception_review_policy_guided",
+        "user_base_tenant_boundary_policy": "user_base_tenant_boundary_policy_scoped",
+        "compliance_event_escalation_policy": "compliance_event_escalation_policy_guided",
+        "regulatory_override_resolution_policy": "regulatory_override_resolution_policy_scoped",
+        "budget_ceiling_revision_policy": "budget_ceiling_revision_policy_scoped",
+        "budget_consumption_alert_policy": "budget_consumption_alert_policy_guided",
+        "approval_checkpoint_timeout_policy": "approval_checkpoint_timeout_policy_scoped",
+        "compliance_sensor_event_policy": "compliance_sensor_events_policy_scoped",
+        "policy_drift_detection_policy": "policy_drift_detection_governed_review",
+        "onboarding_profile_revalidation_policy": "onboarding_profile_revalidation_policy_scoped",
+        "control_plane_mode_transition_policy": "control_plane_mode_transition_policy_scoped",
+        "user_autonomy_preference_ui_policy": "user_autonomy_preference_ui_policy_scoped",
+        "planning_execution_toggle_guard_policy": "planning_execution_toggle_policy_scoped",
+        "governance_exception_escalation_policy": "governance_exception_escalation_policy_guided",
+        "approval_sla_enforcement_policy": "approval_sla_enforcement_policy_scoped",
+        "tenant_residency_control_policy": "tenant_residency_control_policy_scoped",
+        "swarm_recursion_guard_policy": "swarm_recursion_guard_policy_scoped",
+        "contract_renewal_gate_policy": "contract_renewal_gate_policy_scoped",
+        "shadow_account_suspension_policy": "shadow_account_suspension_policy_scoped",
+        "user_base_offboarding_policy": "user_base_offboarding_policy_scoped",
+        "governance_kernel_heartbeat_policy": "governance_kernel_heartbeat_policy_scoped",
+        "policy_compiler_change_control_policy": "policy_compiler_change_control_policy_scoped",
+        "replay_reconciliation_policy": "replay_reconciliation_policy_scoped",
+        "audit_artifact_retention_policy": "audit_artifact_retention_policy_scoped",
+        "event_backpressure_management_policy": "event_backpressure_management_policy_scoped",
+        "queue_health_slo_policy": "queue_health_slo_policy_scoped",
+        "rollback_compensation_policy": "rollback_compensation_policy_scoped",
+        "durable_queue_replay_policy": "durable_queue_replay_policy_scoped",
+        "swarm_failure_domain_isolation_policy": "swarm_failure_domain_isolation_policy_scoped",
+        "idempotent_recovery_validation_policy": "idempotent_recovery_validation_policy_scoped",
+        "agent_spawn_budget_reconciliation_policy": "agent_spawn_budget_reconciliation_policy_scoped",
+        "audit_chain_export_policy": "audit_chain_export_policy_scoped",
+        "semantics_belief_state_policy": "structured_spec_hypothesis_belief_policy_scoped",
+        "semantics_loss_risk_policy": "loss_and_cvar_risk_evaluation_policy_scoped",
+        "semantics_voi_question_policy": "voi_questioning_policy_scoped",
+        "semantics_invariance_boundary_policy": "invariance_commutation_policy_scoped",
+        "semantics_verification_feedback_policy": "verification_feedback_policy_scoped",
+        "semantics_hypothesis_update_policy": "belief_hypothesis_posterior_update_policy_scoped",
+        "semantics_likelihood_scoring_policy": "answer_likelihood_scoring_policy_scoped",
+        "semantics_rvoi_decision_policy": "rvoi_question_decision_policy_scoped",
+        "semantics_clarifying_question_budget_policy": "clarifying_question_budget_policy_scoped",
+        "semantics_invariance_retry_policy": "invariance_retry_or_ask_policy_scoped",
+        "semantics_hypothesis_distribution_policy": "structured_hypothesis_distribution_policy_scoped",
+        "semantics_cvar_risk_measure_policy": "expected_loss_and_cvar_policy_scoped",
+        "semantics_question_cost_policy": "question_cost_and_voi_threshold_policy_scoped",
+        "semantics_invariance_transform_set_policy": "invariance_transform_set_policy_scoped",
+        "semantics_verification_boundary_policy": "verification_boundary_enforcement_policy_scoped",
+        "runtime_telemetry_tokens_to_resolution_policy": "telemetry_tokens_to_resolution_policy_scoped",
+        "runtime_telemetry_question_count_policy": "telemetry_question_count_policy_scoped",
+        "runtime_telemetry_invariance_score_policy": "telemetry_invariance_score_policy_scoped",
+        "runtime_telemetry_risk_score_policy": "telemetry_risk_score_policy_scoped",
+        "runtime_telemetry_verification_feedback_policy": "telemetry_verification_feedback_policy_scoped",
+        "semantics_question_candidate_generation_policy": "semantics_question_candidate_generation_policy_scoped",
+        "semantics_answer_prediction_policy": "semantics_answer_prediction_policy_scoped",
+        "semantics_belief_normalization_policy": "semantics_belief_normalization_policy_scoped",
+        "semantics_verification_loss_injection_policy": "semantics_verification_loss_injection_policy_scoped",
+        "semantics_action_revision_policy": "semantics_action_revision_policy_scoped",
+        "legacy_orchestrator_discovery_policy": "legacy_orchestrator_inventory_policy_scoped",
+        "rubixcube_orchestrator_adapter_policy": "rubixcube_adapter_wiring_policy_scoped",
+        "triage_orchestrator_adapter_policy": "triage_adapter_wiring_policy_scoped",
+        "bot_catalog_capability_mapping_policy": "bot_catalog_capability_mapping_policy_scoped",
+        "legacy_orchestrator_wiring_priority_policy": "legacy_orchestrator_wiring_priority_policy_scoped",
+        "modern_arcana_clockwork_bridge_policy": "modern_arcana_clockwork_bridge_policy_scoped",
+        "legacy_orchestrator_compatibility_matrix_policy": "legacy_orchestrator_compatibility_matrix_policy_scoped",
+        "rubixcube_kaia_mix_scoring_policy": "rubixcube_kaia_mix_scoring_policy_scoped",
+        "triage_rollcall_selection_policy": "triage_rollcall_selection_policy_scoped",
+        "legacy_orchestrator_tooling_plan_policy": "legacy_orchestrator_tooling_plan_policy_scoped",
+        "clockwork_orchestrator_bridge_policy": "clockwork_orchestrator_bridge_policy_scoped",
+        "arcana_pipeline_compatibility_policy": "arcana_pipeline_compatibility_policy_scoped",
+        "rubixcube_evidence_engine_policy": "rubixcube_evidence_engine_policy_scoped",
+        "triage_rollcall_confidence_policy": "triage_rollcall_confidence_policy_scoped",
+        "golden_path_reuse_policy": "golden_path_reuse_policy_scoped",
+        "governance_review_cadence_policy": "governance_review_cadence_policy_scoped",
+        "section_status_reconciliation_policy": "section_status_reconciliation_policy_scoped",
+        "orchestrator_wiring_readiness_policy": "orchestrator_wiring_readiness_policy_scoped",
+        "verification_feedback_closure_policy": "verification_feedback_closure_policy_scoped",
+        "self_improvement_backlog_priority_policy": "self_improvement_backlog_priority_policy_scoped",
+        "assessment_section_coverage_policy": "assessment_section_coverage_policy_scoped",
+        "assessment_recommendation_acceptance_policy": "assessment_recommendation_acceptance_policy_scoped",
+        "assessment_standardization_governance_policy": "assessment_standardization_governance_policy_scoped",
+        "assessment_progression_loop_policy": "assessment_progression_loop_policy_scoped",
+        "assessment_readme_assessment_sync_policy": "assessment_readme_assessment_sync_policy_scoped",
+        "process_gate_iteration_policy": "process_gate_iteration_policy_scoped",
+        "process_followup_testing_loop_policy": "process_followup_testing_loop_policy_scoped",
+        "process_section_sync_audit_policy": "process_section_sync_audit_policy_scoped",
+        "process_readme_update_enforcement_policy": "process_readme_update_enforcement_policy_scoped",
+        "process_standardization_hygiene_policy": "process_standardization_hygiene_policy_scoped",
+        "full_section_coverage_audit_policy": "full_section_coverage_audit_policy_scoped",
+        "recommendation_acceptance_trace_policy": "recommendation_acceptance_trace_policy_scoped",
+        "iterative_test_loop_enforcement_policy": "iterative_test_loop_enforcement_policy_scoped",
+        "readme_assessment_consistency_policy": "readme_assessment_consistency_policy_scoped",
+        "standardization_terminology_lock_policy": "standardization_terminology_lock_policy_scoped",
+        "section_transition_handoff_policy": "section_transition_handoff_policy_scoped",
+        "section_evidence_traceability_policy": "section_evidence_traceability_policy_scoped",
+        "section_recommendation_closure_policy": "section_recommendation_closure_policy_scoped",
+        "section_quality_gate_policy": "section_quality_gate_policy_scoped",
+        "section_snapshot_publication_policy": "section_snapshot_publication_policy_scoped",
+        "all_section_review_coverage_policy": "all_section_review_coverage_policy_scoped",
+        "all_section_recommendation_acceptance_policy": "all_section_recommendation_acceptance_policy_scoped",
+        "all_section_progression_gate_policy": "all_section_progression_gate_policy_scoped",
+        "all_section_standardization_lock_policy": "all_section_standardization_lock_policy_scoped",
+        "all_section_reporting_sync_policy": "all_section_reporting_sync_policy_scoped",
+        "recommendation_acceptance_attestation_policy": "recommendation_acceptance_attestation_policy_scoped",
+        "recommendation_execution_checkpoint_policy": "recommendation_execution_checkpoint_policy_scoped",
+        "recommendation_test_evidence_policy": "recommendation_test_evidence_policy_scoped",
+        "recommendation_section_sync_policy": "recommendation_section_sync_policy_scoped",
+        "recommendation_completion_report_policy": "recommendation_completion_report_policy_scoped",
+        "section_1_to_14_continuity_policy": "section_1_to_14_continuity_policy_scoped",
+        "section_recommendation_acceptance_audit_policy": "section_recommendation_acceptance_audit_policy_scoped",
+        "section_recommendation_implementation_trace_policy": "section_recommendation_implementation_trace_policy_scoped",
+        "section_followup_test_loop_policy": "section_followup_test_loop_policy_scoped",
+        "section_readme_assessment_lockstep_policy": "section_readme_assessment_lockstep_policy_scoped",
+        "section_completion_delta_reporting_policy": "section_completion_delta_reporting_policy_scoped",
+        "section_micro_build_tracking_policy": "section_micro_build_tracking_policy_scoped",
+        "section_prompt_increment_logging_policy": "section_prompt_increment_logging_policy_scoped",
+        "section_recommendation_acceptance_evidence_policy": "section_recommendation_acceptance_evidence_policy_scoped",
+        "section_change_budget_tracking_policy": "section_change_budget_tracking_policy_scoped",
+        "section_test_result_reporting_policy": "section_test_result_reporting_policy_scoped",
+        "section_warning_budget_policy": "section_warning_budget_policy_scoped",
+        "section_retest_trigger_policy": "section_retest_trigger_policy_scoped",
+        "section_documentation_accuracy_policy": "section_documentation_accuracy_policy_scoped",
+        "section_loop_exit_criteria_policy": "section_loop_exit_criteria_policy_scoped",
+        "section_recommendation_priority_policy": "section_recommendation_priority_policy_scoped",
+        "section_recommendation_dependency_policy": "section_recommendation_dependency_policy_scoped",
+        "section_risk_escalation_policy": "section_risk_escalation_policy_scoped",
+        "section_completion_signoff_policy": "section_completion_signoff_policy_scoped",
+        "section_continuous_improvement_policy": "section_continuous_improvement_policy_scoped",
+        "section_recommendation_conflict_resolution_policy": "section_recommendation_conflict_resolution_policy_scoped",
+        "section_dependency_unblock_policy": "section_dependency_unblock_policy_scoped",
+        "section_regression_guard_policy": "section_regression_guard_policy_scoped",
+        "section_release_readiness_policy": "section_release_readiness_policy_scoped",
+        "section_traceability_index_policy": "section_traceability_index_policy_scoped",
+        "section_acceptance_criteria_enforcement_policy": "section_acceptance_criteria_enforcement_policy_scoped",
+        "section_artifact_quality_review_policy": "section_artifact_quality_review_policy_scoped",
+        "section_retest_on_change_policy": "section_retest_on_change_policy_scoped",
+        "section_documentation_trace_policy": "section_documentation_trace_policy_scoped",
+        "section_release_gate_attestation_policy": "section_release_gate_attestation_policy_scoped",
+        "section_dependency_health_policy": "section_dependency_health_policy_scoped",
+        "section_recommendation_sla_policy": "section_recommendation_sla_policy_scoped",
+        "section_documentation_sync_policy": "section_documentation_sync_policy_scoped",
+        "section_validation_signal_policy": "section_validation_signal_policy_scoped",
+        "section_handoff_audit_policy": "section_handoff_audit_policy_scoped",
+        "section_change_control_policy": "section_change_control_policy_scoped",
+        "section_quality_drift_policy": "section_quality_drift_policy_scoped",
+        "section_verification_retry_policy": "section_verification_retry_policy_scoped",
+        "section_governance_exception_budget_policy": "section_governance_exception_budget_policy_scoped",
+        "section_release_documentation_gate_policy": "section_release_documentation_gate_policy_scoped",
+        "section_contract_compliance_link_policy": "section_contract_compliance_link_policy_scoped",
+        "section_cost_center_attribution_policy": "section_cost_center_attribution_policy_scoped",
+        "section_unowned_work_throwback_policy": "section_unowned_work_throwback_policy_scoped",
+        "section_change_order_trigger_policy": "section_change_order_trigger_policy_scoped",
+        "section_manager_assignment_policy": "section_manager_assignment_policy_scoped",
+        "section_enterprise_operating_model_policy": "section_enterprise_operating_model_policy_scoped",
+        "section_unaccounted_work_classification_policy": "section_unaccounted_work_classification_policy_scoped",
+        "section_manager_throwback_routing_policy": "section_manager_throwback_routing_policy_scoped",
+        "section_scope_boundary_enforcement_policy": "section_scope_boundary_enforcement_policy_scoped",
+        "section_change_order_authority_policy": "section_change_order_authority_policy_scoped",
+        "section_completion_verification_policy": "section_completion_verification_policy_scoped",
+        "section_recommendation_rollforward_policy": "section_recommendation_rollforward_policy_scoped",
+        "section_dependency_traceability_policy": "section_dependency_traceability_policy_scoped",
+        "section_operational_readiness_policy": "section_operational_readiness_policy_scoped",
+        "section_reporting_attestation_policy": "section_reporting_attestation_policy_scoped",
+        "section_governance_traceability_policy": "section_governance_traceability_policy_scoped",
+        "section_progress_checkpoint_policy": "section_progress_checkpoint_policy_scoped",
+        "section_acceptance_verification_policy": "section_acceptance_verification_policy_scoped",
+        "section_sync_integrity_policy": "section_sync_integrity_policy_scoped",
+        "section_lifecycle_reporting_policy": "section_lifecycle_reporting_policy_scoped",
+        "section_contractual_risk_alignment_policy": "section_contractual_risk_alignment_policy_scoped",
+        "section_compliance_rulepack_sync_policy": "section_compliance_rulepack_sync_policy_scoped",
+        "section_authoritative_source_integrity_policy": "section_authoritative_source_integrity_policy_scoped",
+        "section_budget_gate_reconciliation_policy": "section_budget_gate_reconciliation_policy_scoped",
+        "section_governance_override_hierarchy_policy": "section_governance_override_hierarchy_policy_scoped",
+        "section_policy_pack_versioning_policy": "section_policy_pack_versioning_policy_scoped",
+        "section_authority_delegation_revocation_policy": "section_authority_delegation_revocation_policy_scoped",
+        "section_evidence_immutability_policy": "section_evidence_immutability_policy_scoped",
+        "section_compute_plane_replay_attestation_policy": "section_compute_plane_replay_attestation_policy_scoped",
+        "section_swarm_isolation_boundary_policy": "section_swarm_isolation_boundary_policy_scoped",
+        "section_risk_tolerance_boundary_policy": "section_risk_tolerance_boundary_policy_scoped",
+        "section_approval_delegation_integrity_policy": "section_approval_delegation_integrity_policy_scoped",
+        "section_budget_anomaly_circuit_breaker_policy": "section_budget_anomaly_circuit_breaker_policy_scoped",
+        "section_compliance_evidence_freshness_policy": "section_compliance_evidence_freshness_policy_scoped",
+        "section_decision_packet_trace_policy": "section_decision_packet_trace_policy_scoped",
+        "section_exec_authority_gate_policy": "section_exec_authority_gate_policy_scoped",
+        "section_compute_plane_determinism_policy": "section_compute_plane_determinism_policy_scoped",
+        "section_change_order_budget_delta_policy": "section_change_order_budget_delta_policy_scoped",
+        "section_domain_swarm_accountability_policy": "section_domain_swarm_accountability_policy_scoped",
+        "section_audit_packet_release_policy": "section_audit_packet_release_policy_scoped",
+        "section_request_envelope_integrity_policy": "section_request_envelope_integrity_policy_scoped",
+        "section_gate_graph_compilation_policy": "section_gate_graph_compilation_policy_scoped",
+        "section_domain_swarm_routing_policy": "section_domain_swarm_routing_policy_scoped",
+        "section_compute_replay_consistency_policy": "section_compute_replay_consistency_policy_scoped",
+        "section_authority_scope_binding_policy": "section_authority_scope_binding_policy_scoped",
+        "section_request_envelope_auditability_policy": "section_request_envelope_auditability_policy_scoped",
+        "section_gate_dependency_replay_policy": "section_gate_dependency_replay_policy_scoped",
+        "section_domain_escalation_binding_policy": "section_domain_escalation_binding_policy_scoped",
+        "section_budget_variance_justification_policy": "section_budget_variance_justification_policy_scoped",
+        "section_release_packet_signoff_policy": "section_release_packet_signoff_policy_scoped",
+        "section_authority_chain_escalation_policy": "section_authority_chain_escalation_policy_scoped",
+        "section_gate_decision_replay_policy": "section_gate_decision_replay_policy_scoped",
+        "section_rulepack_refresh_attestation_policy": "section_rulepack_refresh_attestation_policy_scoped",
+        "section_domain_owner_ack_policy": "section_domain_owner_ack_policy_scoped",
+        "section_handoff_readiness_attestation_policy": "section_handoff_readiness_attestation_policy_scoped",
+        "section_execution_audit_trail_policy": "section_execution_audit_trail_policy_scoped",
+        "section_policy_enforcement_checkpoint_policy": "section_policy_enforcement_checkpoint_policy_scoped",
+        "section_change_scope_integrity_policy": "section_change_scope_integrity_policy_scoped",
+        "section_domain_handoff_chain_policy": "section_domain_handoff_chain_policy_scoped",
+        "section_release_attestation_packet_policy": "section_release_attestation_packet_policy_scoped",
+        "section_contract_scope_recheck_policy": "section_contract_scope_recheck_policy_scoped",
+        "section_proposal_change_order_trace_policy": "section_proposal_change_order_trace_policy_scoped",
+        "section_gate_graph_dependency_guard_policy": "section_gate_graph_dependency_guard_policy_scoped",
+        "section_evidence_store_attestation_policy": "section_evidence_store_attestation_policy_scoped",
+        "section_release_readout_integrity_policy": "section_release_readout_integrity_policy_scoped",
+        "section_governance_sla_policy": "section_governance_sla_policy_scoped",
+        "section_authority_chain_replay_policy": "section_authority_chain_replay_policy_scoped",
+        "section_change_order_scope_lock_policy": "section_change_order_scope_lock_policy_scoped",
+        "section_evidence_lineage_policy": "section_evidence_lineage_policy_scoped",
+        "section_decision_trace_attestation_policy": "section_decision_trace_attestation_policy_scoped",
+        "section_rulepack_activation_policy": "section_rulepack_activation_policy_scoped",
+        "section_gate_input_allowlist_policy": "section_gate_input_allowlist_policy_scoped",
+        "section_nte_change_order_policy": "section_nte_change_order_policy_scoped",
+        "section_approval_identity_binding_policy": "section_approval_identity_binding_policy_scoped",
+        "section_compute_reproducibility_window_policy": "section_compute_reproducibility_window_policy_scoped",
+        "section_refusal_reason_standard_policy": "section_refusal_reason_standard_policy_scoped",
+        "section_escalation_reason_code_policy": "section_escalation_reason_code_policy_scoped",
+        "section_authority_delegation_expiry_policy": "section_authority_delegation_expiry_policy_scoped",
+        "section_budget_tag_enforcement_policy": "section_budget_tag_enforcement_policy_scoped",
+        "section_evidence_snapshot_replay_policy": "section_evidence_snapshot_replay_policy_scoped",
+        "section_budget_circuit_breaker_policy": "section_budget_circuit_breaker_policy_scoped",
+        "section_change_order_authority_scope_policy": "section_change_order_authority_scope_policy_scoped",
+        "section_evidence_signature_policy": "section_evidence_signature_policy_scoped",
+        "section_domain_escalation_sla_policy": "section_domain_escalation_sla_policy_scoped",
+        "section_governance_override_precedence_policy": "section_governance_override_precedence_policy_scoped",
+        "section_gate_outcome_reason_integrity_policy": "section_gate_outcome_reason_integrity_policy_scoped",
+        "section_authority_signature_validation_policy": "section_authority_signature_validation_policy_scoped",
+        "section_compute_replay_snapshot_policy": "section_compute_replay_snapshot_policy_scoped",
+        "section_budget_control_trace_policy": "section_budget_control_trace_policy_scoped",
+        "section_release_evidence_bundle_policy": "section_release_evidence_bundle_policy_scoped",
+        "section_gate_evaluation_determinism_policy": "section_gate_evaluation_determinism_policy_scoped",
+        "section_authority_override_documentation_policy": "section_authority_override_documentation_policy_scoped",
+        "section_change_order_dependency_validation_policy": "section_change_order_dependency_validation_policy_scoped",
+        "section_budget_forecast_alignment_policy": "section_budget_forecast_alignment_policy_scoped",
+        "section_handoff_audit_completion_policy": "section_handoff_audit_completion_policy_scoped",
+        "section_gate_decision_signature_policy": "section_gate_decision_signature_policy_scoped",
+        "section_authority_scope_timeout_policy": "section_authority_scope_timeout_policy_scoped",
+        "section_change_order_cost_trace_policy": "section_change_order_cost_trace_policy_scoped",
+        "section_evidence_checkpoint_policy": "section_evidence_checkpoint_policy_scoped",
+        "section_release_packet_consistency_policy": "section_release_packet_consistency_policy_scoped",
+        "section_authority_recertification_policy": "section_authority_recertification_policy_scoped",
+        "section_budget_forecast_variance_policy": "section_budget_forecast_variance_policy_scoped",
+        "section_evidence_hash_chain_policy": "section_evidence_hash_chain_policy_scoped",
+        "section_gate_timeout_enforcement_policy": "section_gate_timeout_enforcement_policy_scoped",
+        "section_release_exception_register_policy": "section_release_exception_register_policy_scoped",
+        "section_domain_owner_escalation_policy": "section_domain_owner_escalation_policy_scoped",
+        "section_gate_dependency_trace_policy": "section_gate_dependency_trace_policy_scoped",
+        "section_budget_variance_escalation_policy": "section_budget_variance_escalation_policy_scoped",
+        "section_evidence_lineage_recheck_policy": "section_evidence_lineage_recheck_policy_scoped",
+        "section_release_authority_replay_policy": "section_release_authority_replay_policy_scoped",
+        "section_gate_reason_code_replay_policy": "section_gate_reason_code_replay_policy_scoped",
+        "section_approval_delegation_registry_policy": "section_approval_delegation_registry_policy_scoped",
+        "section_budget_cap_change_log_policy": "section_budget_cap_change_log_policy_scoped",
+        "section_evidence_attestation_signature_policy": "section_evidence_attestation_signature_policy_scoped",
+        "section_release_governance_manifest_policy": "section_release_governance_manifest_policy_scoped",
+        "section_governance_path_integrity_policy": "section_governance_path_integrity_policy_scoped",
+        "section_policy_exception_disposition_policy": "section_policy_exception_disposition_policy_scoped",
+        "section_budget_reforecast_attestation_policy": "section_budget_reforecast_attestation_policy_scoped",
+        "section_evidence_chain_custody_policy": "section_evidence_chain_custody_policy_scoped",
+        "section_release_authorization_token_policy": "section_release_authorization_token_policy_scoped",
+        "section_governance_checkpoint_replay_policy": "section_governance_checkpoint_replay_policy_scoped",
+        "section_authority_token_rotation_policy": "section_authority_token_rotation_policy_scoped",
+        "section_budget_spike_containment_policy": "section_budget_spike_containment_policy_scoped",
+        "section_evidence_bundle_hash_policy": "section_evidence_bundle_hash_policy_scoped",
+        "section_release_exception_revalidation_policy": "section_release_exception_revalidation_policy_scoped",
+        "section_governance_policy_reconciliation_policy": "section_governance_policy_reconciliation_policy_scoped",
+        "section_authority_chain_expiry_policy": "section_authority_chain_expiry_policy_scoped",
+        "section_budget_exception_audit_policy": "section_budget_exception_audit_policy_scoped",
+        "section_gate_signature_rotation_policy": "section_gate_signature_rotation_policy_scoped",
+        "section_release_packet_attestation_policy": "section_release_packet_attestation_policy_scoped",
+        "section_governance_rollup_consistency_policy": "section_governance_rollup_consistency_policy_scoped",
+        "section_authority_chain_snapshot_policy": "section_authority_chain_snapshot_policy_scoped",
+        "section_budget_envelope_audit_policy": "section_budget_envelope_audit_policy_scoped",
+        "section_evidence_manifest_replay_policy": "section_evidence_manifest_replay_policy_scoped",
+        "section_release_override_justification_policy": "section_release_override_justification_policy_scoped",
+        "section_governance_decision_envelope_policy": "section_governance_decision_envelope_policy_scoped",
+        "section_authority_recusal_trace_policy": "section_authority_recusal_trace_policy_scoped",
+        "section_budget_guardrail_replay_policy": "section_budget_guardrail_replay_policy_scoped",
+        "section_evidence_provenance_reconciliation_policy": "section_evidence_provenance_reconciliation_policy_scoped",
+        "section_release_attestation_chain_policy": "section_release_attestation_chain_policy_scoped",
+        "section_governance_trace_seal_policy": "section_governance_trace_seal_policy_scoped",
+        "section_authority_replay_token_policy": "section_authority_replay_token_policy_scoped",
+        "section_budget_exception_replay_policy": "section_budget_exception_replay_policy_scoped",
+        "section_evidence_freshness_recertification_policy": "section_evidence_freshness_recertification_policy_scoped",
+        "section_release_handoff_replay_policy": "section_release_handoff_replay_policy_scoped",
+        "section_governance_audit_recertification_policy": "section_governance_audit_recertification_policy_scoped",
+        "section_authority_scope_exception_policy": "section_authority_scope_exception_policy_scoped",
+        "section_budget_change_envelope_policy": "section_budget_change_envelope_policy_scoped",
+        "section_evidence_chain_seal_policy": "section_evidence_chain_seal_policy_scoped",
+        "section_release_gate_replay_policy": "section_release_gate_replay_policy_scoped",
+        "section_governance_exception_timeout_policy": "section_governance_exception_timeout_policy_scoped",
+        "section_authority_delegation_ledger_policy": "section_authority_delegation_ledger_policy_scoped",
+        "section_budget_burnrate_attestation_policy": "section_budget_burnrate_attestation_policy_scoped",
+        "section_evidence_snapshot_expiry_policy": "section_evidence_snapshot_expiry_policy_scoped",
+        "section_release_override_reconciliation_policy": "section_release_override_reconciliation_policy_scoped",
+        "section_governance_ledger_integrity_policy": "section_governance_ledger_integrity_policy_scoped",
+        "section_authority_chain_digest_policy": "section_authority_chain_digest_policy_scoped",
+        "section_budget_reconciliation_digest_policy": "section_budget_reconciliation_digest_policy_scoped",
+        "section_evidence_checkpoint_digest_policy": "section_evidence_checkpoint_digest_policy_scoped",
+        "section_release_chain_digest_policy": "section_release_chain_digest_policy_scoped",
+        "section_governance_policy_replay_lock_policy": "section_governance_policy_replay_lock_policy_scoped",
+        "section_authority_chain_nonce_policy": "section_authority_chain_nonce_policy_scoped",
+        "section_budget_override_attestation_policy": "section_budget_override_attestation_policy_scoped",
+        "section_evidence_packet_nonce_policy": "section_evidence_packet_nonce_policy_scoped",
+        "section_release_gate_override_policy": "section_release_gate_override_policy_scoped",
+        "section_governance_dependency_sequencing_policy": "section_governance_dependency_sequencing_policy_scoped",
+        "section_authority_scope_replay_attestation_policy": "section_authority_scope_replay_attestation_policy_scoped",
+        "section_budget_allocation_trace_policy": "section_budget_allocation_trace_policy_scoped",
+        "section_evidence_manifest_freshness_policy": "section_evidence_manifest_freshness_policy_scoped",
+        "section_release_override_chain_policy": "section_release_override_chain_policy_scoped",
+        "section_governance_verification_digest_policy": "section_governance_verification_digest_policy_scoped",
+        "section_authority_scope_nonce_rotation_policy": "section_authority_scope_nonce_rotation_policy_scoped",
+        "section_budget_forecast_lock_policy": "section_budget_forecast_lock_policy_scoped",
+        "section_evidence_bundle_canonicalization_policy": "section_evidence_bundle_canonicalization_policy_scoped",
+        "section_release_attestation_digest_policy": "section_release_attestation_digest_policy_scoped",
+        "section_governance_dependency_nonce_lock_policy": "section_governance_dependency_nonce_lock_policy_scoped",
+        "section_authority_override_recertification_policy": "section_authority_override_recertification_policy_scoped",
+        "section_budget_exception_rebind_policy": "section_budget_exception_rebind_policy_scoped",
+        "section_evidence_packet_reseal_policy": "section_evidence_packet_reseal_policy_scoped",
+        "section_release_gate_drift_policy": "section_release_gate_drift_policy_scoped",
+        "hitl_escalation_comfort_policy": "hitl_escalation_requirement_policy_guided",
+        "safety_level": "standard",
+        "escalation_policy": "selective",
+        "budget_constraints": "standard",
+        "tool_permissions": "governed_default",
+        "audit_requirements": "standard",
+        "autonomy_level": "balanced"
+    },
+    "registry_health": {
+        "status": "needs_attention",
+        "summary": {
+            "total_available": 90,
+            "total_active": 0,
+            "core_expected": 82,
+            "core_registered": 82,
+            "core_missing": [],
+            "auto_registered": 4,
+            "category_counts": {
+                "root": 4
+            }
+        },
+        "reasons": [
+            "No active modules reported."
+        ],
+        "module_status": {
+            "total_available": 90,
+            "total_active": 0,
+            "modules": {
+                "SystemBuilder": {
+                    "description": "Builds system architecture from natural language",
+                    "status": "available",
+                    "capabilities": [
+                        "architecture_design",
+                        "component_selection",
+                        "system_planning"
+                    ]
+                },
+                "GateBuilder": {
+                    "description": "Creates safety gates for any system",
+                    "status": "available",
+                    "capabilities": [
+                        "safety_gates",
+                        "risk_mitigation",
+                        "security_checks"
+                    ]
+                },
+                "ModuleManager": {
+                    "description": "Manages dynamic module coupling/decoupling",
+                    "status": "available",
+                    "capabilities": [
+                        "module_management",
+                        "dynamic_loading",
+                        "system_integration"
+                    ]
+                },
+                "TaskExecutor": {
+                    "description": "Executes tasks using available tools",
+                    "status": "available",
+                    "capabilities": [
+                        "task_execution",
+                        "tool_selection",
+                        "automation"
+                    ]
+                },
+                "module_manager": {
+                    "description": "Module manager registry",
+                    "status": "available",
+                    "capabilities": [
+                        "module_registry",
+                        "capability_mapping"
+                    ]
+                },
+                "modular_runtime": {
+                    "description": "Modular runtime core",
+                    "status": "available",
+                    "capabilities": [
+                        "runtime",
+                        "module_execution"
+                    ]
+                },
+                "universal_control_plane": {
+                    "description": "Universal control plane",
+                    "status": "available",
+                    "capabilities": [
+                        "control_plane",
+                        "execution_policy"
+                    ]
+                },
+                "inoni_business_automation": {
+                    "description": "Business automation engines",
+                    "status": "available",
+                    "capabilities": [
+                        "business_automation",
+                        "executive_operations"
+                    ]
+                },
+                "two_phase_orchestrator": {
+                    "description": "Two-phase orchestrator",
+                    "status": "available",
+                    "capabilities": [
+                        "orchestration",
+                        "handoff"
+                    ]
+                },
+                "form_intake": {
+                    "description": "Form intake handlers",
+                    "status": "available",
+                    "capabilities": [
+                        "forms",
+                        "intake"
+                    ]
+                },
+                "confidence_engine": {
+                    "description": "Confidence evaluation engine",
+                    "status": "available",
+                    "capabilities": [
+                        "confidence",
+                        "validation"
+                    ]
+                },
+                "execution_engine": {
+                    "description": "Execution engine",
+                    "status": "available",
+                    "capabilities": [
+                        "execution",
+                        "actions"
+                    ]
+                },
+                "learning_engine": {
+                    "description": "Learning and correction engine",
+                    "status": "available",
+                    "capabilities": [
+                        "learning",
+                        "correction"
+                    ]
+                },
+                "hitl_monitor": {
+                    "description": "Human-in-the-loop monitor",
+                    "status": "available",
+                    "capabilities": [
+                        "hitl",
+                        "supervision"
+                    ]
+                },
+                "governance_framework": {
+                    "description": "Governance scheduling framework",
+                    "status": "available",
+                    "capabilities": [
+                        "governance",
+                        "scheduling"
+                    ]
+                },
+                "telemetry_ingestion": {
+                    "description": "Telemetry ingestion and analytics",
+                    "status": "available",
+                    "capabilities": [
+                        "telemetry",
+                        "analytics"
+                    ]
+                },
+                "mfgc_adapter": {
+                    "description": "MFGC adapter",
+                    "status": "available",
+                    "capabilities": [
+                        "adapter",
+                        "execution_fallback"
+                    ]
+                },
+                "system_integrator": {
+                    "description": "System integrator bridge",
+                    "status": "available",
+                    "capabilities": [
+                        "integration",
+                        "adapter_bridge"
+                    ]
+                },
+                "gate_synthesis": {
+                    "description": "Gate synthesis engine",
+                    "status": "available",
+                    "capabilities": [
+                        "gates",
+                        "risk",
+                        "compliance"
+                    ]
+                },
+                "true_swarm_system": {
+                    "description": "Swarm execution planner",
+                    "status": "available",
+                    "capabilities": [
+                        "swarm",
+                        "task_expansion"
+                    ]
+                },
+                "domain_swarms": {
+                    "description": "Domain swarm selection",
+                    "status": "available",
+                    "capabilities": [
+                        "domain_detection",
+                        "swarm_candidates"
+                    ]
+                },
+                "system_librarian": {
+                    "description": "Librarian knowledge and conditions",
+                    "status": "available",
+                    "capabilities": [
+                        "librarian",
+                        "conditions"
+                    ]
+                },
+                "organization_chart_system": {
+                    "description": "Org chart coverage and contracts",
+                    "status": "available",
+                    "capabilities": [
+                        "org_chart",
+                        "contracts"
+                    ]
+                },
+                "compute_plane": {
+                    "description": "Deterministic compute plane",
+                    "status": "available",
+                    "capabilities": [
+                        "deterministic_compute"
+                    ]
+                },
+                "recursive_stability_controller": {
+                    "description": "Recursive stability control",
+                    "status": "available",
+                    "capabilities": [
+                        "stability",
+                        "feedback"
+                    ]
+                },
+                "integration_engine": {
+                    "description": "Integration engine",
+                    "status": "available",
+                    "capabilities": [
+                        "integrations",
+                        "handoff"
+                    ]
+                },
+                "adapter_framework": {
+                    "description": "Adapter execution runtime",
+                    "status": "available",
+                    "capabilities": [
+                        "adapter_runtime",
+                        "device_execution"
+                    ]
+                },
+                "telemetry_adapter": {
+                    "description": "Telemetry adapter",
+                    "status": "available",
+                    "capabilities": [
+                        "telemetry"
+                    ]
+                },
+                "module_compiler_adapter": {
+                    "description": "Module compiler adapter",
+                    "status": "available",
+                    "capabilities": [
+                        "module_compiler"
+                    ]
+                },
+                "librarian_adapter": {
+                    "description": "Librarian adapter",
+                    "status": "available",
+                    "capabilities": [
+                        "librarian_adapter"
+                    ]
+                },
+                "neuro_symbolic_adapter": {
+                    "description": "Neuro-symbolic adapter",
+                    "status": "available",
+                    "capabilities": [
+                        "neuro_symbolic"
+                    ]
+                },
+                "security_plane_adapter": {
+                    "description": "Security plane adapter",
+                    "status": "available",
+                    "capabilities": [
+                        "security"
+                    ]
+                },
+                "persistence_manager": {
+                    "description": "Durable persistence layer for documents, gates, audit trails, and replay",
+                    "status": "available",
+                    "capabilities": [
+                        "persistence",
+                        "audit",
+                        "replay"
+                    ]
+                },
+                "event_backbone": {
+                    "description": "Event-driven backbone with durable queues, retry, and circuit breakers",
+                    "status": "available",
+                    "capabilities": [
+                        "events",
+                        "queues",
+                        "retry"
+                    ]
+                },
+                "delivery_adapters": {
+                    "description": "Production delivery adapters for document, email, chat, voice, translation",
+                    "status": "available",
+                    "capabilities": [
+                        "delivery",
+                        "multi_channel"
+                    ]
+                },
+                "gate_execution_wiring": {
+                    "description": "Gate synthesis wired into runtime execution with policy enforcement",
+                    "status": "available",
+                    "capabilities": [
+                        "gate_execution",
+                        "policy_enforcement"
+                    ]
+                },
+                "self_improvement_engine": {
+                    "description": "Self-improvement engine with feedback loops and confidence calibration",
+                    "status": "available",
+                    "capabilities": [
+                        "self_improvement",
+                        "learning_feedback",
+                        "confidence_calibration"
+                    ]
+                },
+                "operational_slo_tracker": {
+                    "description": "Operational SLO tracker with success rate, latency percentiles, and compliance checks",
+                    "status": "available",
+                    "capabilities": [
+                        "slo_tracking",
+                        "operational_telemetry",
+                        "compliance_monitoring"
+                    ]
+                },
+                "automation_scheduler": {
+                    "description": "Multi-project automation scheduler with priority-based load balancing",
+                    "status": "available",
+                    "capabilities": [
+                        "scheduling",
+                        "multi_project",
+                        "load_balancing"
+                    ]
+                },
+                "capability_map": {
+                    "description": "Repository-wide capability map with gap analysis and remediation sequencing",
+                    "status": "available",
+                    "capabilities": [
+                        "capability_inventory",
+                        "gap_analysis",
+                        "remediation_planning"
+                    ]
+                },
+                "compliance_engine": {
+                    "description": "Compliance validation engine with GDPR/SOC2/HIPAA/PCI-DSS sensors and HITL approvals",
+                    "status": "available",
+                    "capabilities": [
+                        "compliance_validation",
+                        "regulatory_sensors",
+                        "release_readiness"
+                    ]
+                },
+                "rbac_governance": {
+                    "description": "Role-based access control with multi-tenant isolation and shadow agent governance",
+                    "status": "available",
+                    "capabilities": [
+                        "rbac",
+                        "tenant_isolation",
+                        "shadow_agent_governance"
+                    ]
+                },
+                "ticketing_adapter": {
+                    "description": "ITSM ticketing adapter with remote access and patch/rollback automation",
+                    "status": "available",
+                    "capabilities": [
+                        "ticketing",
+                        "remote_access",
+                        "patch_rollback"
+                    ]
+                },
+                "wingman_protocol": {
+                    "description": "Executor/validator pairing with deterministic runbook-based validation",
+                    "status": "available",
+                    "capabilities": [
+                        "wingman_pairing",
+                        "deterministic_validation",
+                        "runbooks"
+                    ]
+                },
+                "runtime_profile_compiler": {
+                    "description": "Compile onboarding data into runtime execution profiles with safety/budget/autonomy controls",
+                    "status": "available",
+                    "capabilities": [
+                        "profile_compilation",
+                        "execution_governance",
+                        "autonomy_control"
+                    ]
+                },
+                "governance_kernel": {
+                    "description": "Non-LLM governance enforcement layer with budget tracking and audit emission",
+                    "status": "available",
+                    "capabilities": [
+                        "governance_enforcement",
+                        "budget_control",
+                        "audit_emission"
+                    ]
+                },
+                "control_plane_separation": {
+                    "description": "Planning-plane / execution-plane separation with strict/balanced/dynamic mode switching",
+                    "status": "available",
+                    "capabilities": [
+                        "plane_routing",
+                        "mode_switching",
+                        "planning_execution_separation"
+                    ]
+                },
+                "durable_swarm_orchestrator": {
+                    "description": "Budget-aware durable swarm orchestration with idempotency, retry, circuit breaker, and anti-recursion",
+                    "status": "available",
+                    "capabilities": [
+                        "swarm_spawning",
+                        "budget_control",
+                        "circuit_breaker",
+                        "idempotency"
+                    ]
+                },
+                "golden_path_bridge": {
+                    "description": "Golden-path capture and replay for execution acceleration and knowledge/RAG",
+                    "status": "available",
+                    "capabilities": [
+                        "golden_path_capture",
+                        "path_matching",
+                        "replay_acceleration"
+                    ]
+                },
+                "org_chart_enforcement": {
+                    "description": "Role-bound permissions, escalation chains, and cross-department workflow arbitration",
+                    "status": "available",
+                    "capabilities": [
+                        "permission_enforcement",
+                        "escalation_chains",
+                        "cross_dept_arbitration"
+                    ]
+                },
+                "shadow_agent_integration": {
+                    "description": "Shadow-agent org-chart parity with account/user-base controls and governance boundaries",
+                    "status": "available",
+                    "capabilities": [
+                        "shadow_agent_lifecycle",
+                        "org_chart_parity",
+                        "account_management"
+                    ]
+                },
+                "triage_rollcall_adapter": {
+                    "description": "Capability-rollcall stage before swarm expansion with ranked candidate selection",
+                    "status": "available",
+                    "capabilities": [
+                        "candidate_registry",
+                        "rollcall_ranking",
+                        "confidence_probing"
+                    ]
+                },
+                "rubix_evidence_adapter": {
+                    "description": "Deterministic evidence lane for CI/hypothesis/Bayesian/Monte Carlo/forecast checks",
+                    "status": "available",
+                    "capabilities": [
+                        "evidence_checks",
+                        "compliance_artifacts",
+                        "deterministic_verification"
+                    ]
+                },
+                "semantics_boundary_controller": {
+                    "description": "Runtime semantics boundary control-loop with belief-state, risk/CVaR, RVoI, invariance, verification-feedback",
+                    "status": "available",
+                    "capabilities": [
+                        "belief_state",
+                        "risk_assessment",
+                        "rvoi_questions",
+                        "invariance_checks",
+                        "verification_feedback"
+                    ]
+                },
+                "bot_governance_policy_mapper": {
+                    "description": "Maps legacy bot quota/budget/stability controls to Murphy runtime execution profiles",
+                    "status": "available",
+                    "capabilities": [
+                        "policy_mapping",
+                        "gate_checks",
+                        "budget_tracking",
+                        "quota_management"
+                    ]
+                },
+                "bot_telemetry_normalizer": {
+                    "description": "Standardizes triage/rubix bot event payloads into Murphy observability schema",
+                    "status": "available",
+                    "capabilities": [
+                        "event_normalization",
+                        "triage_rules",
+                        "rubix_rules",
+                        "telemetry_alignment"
+                    ]
+                },
+                "legacy_compatibility_matrix": {
+                    "description": "Legacy orchestration bridge hooks and compatibility-matrix decisions as profile-governed runtime controls",
+                    "status": "available",
+                    "capabilities": [
+                        "compatibility_matrix",
+                        "bridge_hooks",
+                        "migration_paths",
+                        "governance_validation"
+                    ]
+                },
+                "hitl_autonomy_controller": {
+                    "description": "Runtime policy toggles for HITL arming/disarming and high-confidence autonomy enablement",
+                    "status": "available",
+                    "capabilities": [
+                        "hitl_toggle",
+                        "autonomy_policy",
+                        "confidence_threshold",
+                        "cooldown_management"
+                    ]
+                },
+                "compliance_region_validator": {
+                    "description": "Region-specific compliance sensor validation before delivery with cross-border checks",
+                    "status": "available",
+                    "capabilities": [
+                        "region_compliance",
+                        "cross_border_validation",
+                        "data_residency",
+                        "retention_checks"
+                    ]
+                },
+                "observability_counters": {
+                    "description": "Summary counters distinguishing behavior fixes from permutation-only coverage for closed-loop improvement",
+                    "status": "available",
+                    "capabilities": [
+                        "behavior_tracking",
+                        "coverage_tracking",
+                        "improvement_velocity",
+                        "fix_ratio_analysis"
+                    ]
+                },
+                "deterministic_routing_engine": {
+                    "description": "Policy-driven deterministic vs LLM routing with guardrails, fallback promotion, and parity validation",
+                    "status": "available",
+                    "capabilities": [
+                        "deterministic_routing",
+                        "llm_routing",
+                        "hybrid_routing",
+                        "route_parity",
+                        "fallback_promotion"
+                    ]
+                },
+                "platform_connector_framework": {
+                    "description": "Unified connector SDK for popular platforms (Slack, Jira, Salesforce, GitHub, AWS, Azure, GCP, Stripe, etc.) with auth, rate limiting, retry, health checks",
+                    "status": "available",
+                    "capabilities": [
+                        "platform_connectors",
+                        "crm_integration",
+                        "communication_integration",
+                        "cloud_integration",
+                        "devops_integration",
+                        "payment_integration"
+                    ]
+                },
+                "workflow_dag_engine": {
+                    "description": "DAG-based workflow definition and execution with topological sort, parallel groups, conditional branching, checkpoint/resume",
+                    "status": "available",
+                    "capabilities": [
+                        "workflow_dag",
+                        "topological_execution",
+                        "parallel_steps",
+                        "conditional_branching",
+                        "checkpoint_resume"
+                    ]
+                },
+                "automation_type_registry": {
+                    "description": "Registry of all automation types (IT, business process, data pipeline, marketing, customer service, HR, financial, content, security, DevOps, compliance) with templates",
+                    "status": "available",
+                    "capabilities": [
+                        "automation_templates",
+                        "it_automation",
+                        "business_process_automation",
+                        "data_pipeline",
+                        "marketing_automation",
+                        "security_automation"
+                    ]
+                },
+                "api_gateway_adapter": {
+                    "description": "Unified API gateway for external integrations with rate limiting, auth management, webhook dispatch, circuit breaker, and response caching",
+                    "status": "available",
+                    "capabilities": [
+                        "api_gateway",
+                        "rate_limiting",
+                        "auth_management",
+                        "webhook_dispatch",
+                        "circuit_breaker",
+                        "response_caching"
+                    ]
+                },
+                "webhook_event_processor": {
+                    "description": "Inbound webhook handling for event-driven integrations with signature verification, payload normalization, and event routing",
+                    "status": "available",
+                    "capabilities": [
+                        "webhook_processing",
+                        "signature_verification",
+                        "event_normalization",
+                        "event_routing",
+                        "platform_webhooks"
+                    ]
+                },
+                "self_automation_orchestrator": {
+                    "description": "Self-automation task queue with prompt chain templates for continuous self-improvement cycles",
+                    "status": "available",
+                    "capabilities": [
+                        "self_automation",
+                        "task_queue",
+                        "prompt_chain",
+                        "gap_analysis",
+                        "improvement_cycles"
+                    ]
+                },
+                "plugin_extension_sdk": {
+                    "description": "Third-party plugin lifecycle management with manifest validation, sandboxed execution, and capability gating",
+                    "status": "available",
+                    "capabilities": [
+                        "plugin_management",
+                        "manifest_validation",
+                        "sandboxed_execution",
+                        "capability_gating",
+                        "lifecycle_management"
+                    ]
+                },
+                "ai_workflow_generator": {
+                    "description": "Natural language to DAG workflow translation using template matching, keyword inference, and dependency resolution",
+                    "status": "available",
+                    "capabilities": [
+                        "workflow_generation",
+                        "template_matching",
+                        "keyword_inference",
+                        "dependency_resolution",
+                        "natural_language"
+                    ]
+                },
+                "workflow_template_marketplace": {
+                    "description": "Marketplace for publishing, searching, installing, rating, and versioning community workflow templates",
+                    "status": "available",
+                    "capabilities": [
+                        "template_marketplace",
+                        "publishing",
+                        "search",
+                        "rating",
+                        "versioning"
+                    ]
+                },
+                "cross_platform_data_sync": {
+                    "description": "Real-time bidirectional data synchronization between platforms with field mapping and conflict resolution",
+                    "status": "available",
+                    "capabilities": [
+                        "data_sync",
+                        "field_mapping",
+                        "conflict_resolution",
+                        "change_tracking",
+                        "bidirectional_sync"
+                    ]
+                },
+                "building_automation_connectors": {
+                    "description": "Building automation protocol connectors (BACnet, Modbus, KNX, LonWorks, DALI, OPC UA) with Johnson Controls, Honeywell, Siemens, Alerton, Trane, Carrier/Automated Logic, Schneider Electric, ABB, Delta Controls, Distech vendor integrations",
+                    "status": "available",
+                    "capabilities": [
+                        "bacnet",
+                        "modbus",
+                        "knx",
+                        "lonworks",
+                        "dali",
+                        "opc_ua",
+                        "hvac_control",
+                        "lighting_control",
+                        "vendor_integration"
+                    ]
+                },
+                "manufacturing_automation_standards": {
+                    "description": "Manufacturing automation standards (ISA-95, OPC UA, MTConnect, PackML, MQTT/Sparkplug B, IEC 61131) with ISA-95 layer-aware workflow orchestration",
+                    "status": "available",
+                    "capabilities": [
+                        "isa_95",
+                        "opc_ua_manufacturing",
+                        "mtconnect",
+                        "packml",
+                        "mqtt_sparkplug_b",
+                        "iec_61131",
+                        "production_management",
+                        "plc_integration"
+                    ]
+                },
+                "energy_management_connectors": {
+                    "description": "Energy management system connectors (Johnson Controls OpenBlue, Honeywell Forge, Schneider EcoStruxure, Siemens Navigator, EnergyCAP, ENERGY STAR, Enel X, Alerton EMS, SolarEdge, GridPoint, Tridium Niagara, ABB Ability, Emerson Ovation, Enverus, Brainbox AI) with demand response and renewables",
+                    "status": "available",
+                    "capabilities": [
+                        "energy_monitoring",
+                        "utility_analytics",
+                        "demand_response",
+                        "sustainability_reporting",
+                        "renewable_integration",
+                        "carbon_tracking"
+                    ]
+                },
+                "analytics_dashboard": {
+                    "description": "Real-time analytics dashboard with execution analytics, compliance tracking, performance metrics, business intelligence, and alert rules engine",
+                    "status": "available",
+                    "capabilities": [
+                        "execution_analytics",
+                        "compliance_analytics",
+                        "performance_metrics",
+                        "business_intelligence",
+                        "alerting",
+                        "real_time_dashboard"
+                    ]
+                },
+                "executive_planning_engine": {
+                    "description": "Executive strategy planning with business gate generation, integration automation binding, and executive dashboard generation",
+                    "status": "available",
+                    "capabilities": [
+                        "strategy_planning",
+                        "business_gates",
+                        "integration_binding",
+                        "executive_dashboard",
+                        "response_engine"
+                    ]
+                },
+                "enterprise_integrations": {
+                    "description": "Enterprise integration registry for accounting, engineering, project management, document, communication, DevOps, analytics, and ERP platforms with DAG workflow binding",
+                    "status": "available",
+                    "capabilities": [
+                        "enterprise_connectors",
+                        "quickbooks",
+                        "autocad",
+                        "blender",
+                        "sap",
+                        "dynamics365",
+                        "workflow_binding",
+                        "capability_mapping"
+                    ]
+                },
+                "digital_asset_generator": {
+                    "description": "Digital asset generation pipeline for Unreal Engine, Maya, Blender, Fortnite Creative/UEFN, Unity, Godot with sprite sheets, texture atlases, 3D model descriptors, material/shader generation, and batch pipeline orchestration",
+                    "status": "available",
+                    "capabilities": [
+                        "asset_generation",
+                        "sprite_sheets",
+                        "texture_atlas",
+                        "unreal_engine",
+                        "maya",
+                        "blender",
+                        "fortnite_creative",
+                        "unity",
+                        "godot",
+                        "pipeline_orchestration"
+                    ]
+                },
+                "rosetta_stone_heartbeat": {
+                    "description": "Organization-wide heartbeat synchronization with executive-origin pulse propagation, tier-based translators, and sync verification across executive/management/operations/worker/integration tiers",
+                    "status": "available",
+                    "capabilities": [
+                        "heartbeat_sync",
+                        "pulse_propagation",
+                        "tier_translation",
+                        "sync_verification",
+                        "executive_directives",
+                        "org_health"
+                    ]
+                },
+                "content_creator_platform_modulator": {
+                    "description": "Content creator platform connectors for YouTube, Twitch, OnlyFans, TikTok, Patreon, Kick, Rumble with content scheduling, analytics, monetization tracking, audience management, cross-platform syndication, and live stream orchestration",
+                    "status": "available",
+                    "capabilities": [
+                        "youtube",
+                        "twitch",
+                        "onlyfans",
+                        "tiktok",
+                        "patreon",
+                        "kick",
+                        "rumble",
+                        "content_scheduling",
+                        "cross_platform_syndication",
+                        "analytics_aggregation",
+                        "monetization_tracking",
+                        "live_stream_orchestration"
+                    ]
+                },
+                "ml_strategy_engine": {
+                    "description": "Pure-Python ML strategy engine providing anomaly detection (z-score/IQR), time-series forecasting (exponential smoothing/moving average), Naive Bayes classification, content-based and collaborative recommendation, K-means clustering, Q-learning reinforcement learning, feature importance analysis, A/B testing framework, ensemble methods, and online incremental learning",
+                    "status": "available",
+                    "capabilities": [
+                        "anomaly_detection",
+                        "time_series_forecasting",
+                        "naive_bayes_classification",
+                        "recommendation_engine",
+                        "kmeans_clustering",
+                        "q_learning",
+                        "feature_importance",
+                        "ab_testing",
+                        "ensemble_methods",
+                        "online_learning",
+                        "reinforcement_learning"
+                    ]
+                },
+                "agentic_api_provisioner": {
+                    "description": "Self-provisioning API infrastructure that autonomously discovers modules, generates REST/GraphQL/WebSocket endpoints, auto-configures auth and rate limits, generates OpenAPI specs, registers webhooks, and performs self-healing health monitoring",
+                    "status": "available",
+                    "capabilities": [
+                        "auto_provision",
+                        "endpoint_registration",
+                        "openapi_generation",
+                        "webhook_management",
+                        "health_monitoring",
+                        "self_healing",
+                        "module_introspection",
+                        "rate_limiting",
+                        "auth_policy",
+                        "api_versioning"
+                    ]
+                },
+                "video_streaming_connector": {
+                    "description": "Unified live video streaming connectors for Twitch, YouTube Live, OBS Studio, vMix, Restream, StreamYard, Streamlabs, Kick Live, and Facebook Live with simulcast orchestration, stream health monitoring, recording management, and chat integration",
+                    "status": "available",
+                    "capabilities": [
+                        "live_streaming",
+                        "simulcasting",
+                        "recording",
+                        "chat_integration",
+                        "stream_health",
+                        "twitch",
+                        "youtube_live",
+                        "obs_studio",
+                        "vmix",
+                        "restream",
+                        "streamyard"
+                    ]
+                },
+                "remote_access_connector": {
+                    "description": "Remote desktop and administration connectors for TeamViewer, AnyDesk, RDP, VNC, SSH Tunneling, Parsec, Chrome Remote Desktop, Apache Guacamole, and Splashtop with session management, file transfer, unattended access, session recording, and Wake-on-LAN",
+                    "status": "available",
+                    "capabilities": [
+                        "remote_desktop",
+                        "file_transfer",
+                        "unattended_access",
+                        "session_recording",
+                        "teamviewer",
+                        "anydesk",
+                        "rdp",
+                        "vnc",
+                        "ssh_tunnel",
+                        "parsec",
+                        "wake_on_lan"
+                    ]
+                },
+                "ui_testing_framework": {
+                    "description": "Comprehensive UI testing infrastructure covering all 12 testing gaps: visual regression, interactive components, E2E browser harness, performance/Core Web Vitals, cross-browser compatibility, mobile gestures, animation/transition validation, error state handling, dark mode, API integration, security (XSS/injection), and i18n/RTL",
+                    "status": "available",
+                    "capabilities": [
+                        "visual_regression",
+                        "interactive_testing",
+                        "e2e_browser",
+                        "performance_testing",
+                        "cross_browser",
+                        "mobile_gesture",
+                        "animation_testing",
+                        "error_state",
+                        "dark_mode",
+                        "security_testing",
+                        "i18n_testing",
+                        "accessibility"
+                    ]
+                },
+                "security_hardening_config": {
+                    "description": "Centralized security hardening orchestrator with input sanitization (XSS/SQLi/path traversal), CORS lockdown, token-bucket rate limiting, CSP headers, API key rotation enforcement, structured audit logging, and session security controls (MFA, concurrent limits, timeout)",
+                    "status": "available",
+                    "capabilities": [
+                        "input_sanitization",
+                        "cors_lockdown",
+                        "rate_limiting",
+                        "csp_headers",
+                        "api_key_rotation",
+                        "audit_logging",
+                        "session_security",
+                        "injection_prevention",
+                        "path_traversal_prevention"
+                    ]
+                },
+                "_deps": {
+                    "description": "Auto-registered local module (root)",
+                    "status": "available",
+                    "capabilities": [
+                        "auto_registered",
+                        "category:root",
+                        "module:_deps"
+                    ]
+                },
+                "app": {
+                    "description": "Auto-registered local module (root)",
+                    "status": "available",
+                    "capabilities": [
+                        "auto_registered",
+                        "category:root",
+                        "module:app"
+                    ]
+                },
+                "living_document": {
+                    "description": "Auto-registered local module (root)",
+                    "status": "available",
+                    "capabilities": [
+                        "auto_registered",
+                        "category:root",
+                        "module:living_document"
+                    ]
+                },
+                "murphy_system_core": {
+                    "description": "Auto-registered local module (root)",
+                    "status": "available",
+                    "capabilities": [
+                        "auto_registered",
+                        "category:root",
+                        "module:murphy_system_core"
+                    ]
+                }
+            }
+        }
+    },
+    "schema_drift": {
+        "status": "drift_detected",
+        "summary": {
+            "total_issues": 2
+        },
+        "issues": [
+            {
+                "area": "persistence",
+                "status": "disabled",
+                "reason": "Set MURPHY_PERSISTENCE_DIR to enable persistence snapshots."
+            },
+            {
+                "area": "delivery_adapters",
+                "status": "needs_integration",
+                "count": 5,
+                "missing": [
+                    "document_delivery",
+                    "email_delivery",
+                    "chat_delivery",
+                    "voice_delivery",
+                    "translation_delivery"
+                ]
+            }
+        ]
+    },
+    "adapter_execution": {
+        "summary": {
+            "total": 5,
+            "configured": 0,
+            "available": 5,
+            "needs_integration": 0
+        },
+        "adapters": [
+            {
+                "id": "telemetry_adapter",
+                "label": "Telemetry adapter",
+                "module": "src.telemetry_adapter",
+                "channel": "telemetry",
+                "available": true,
+                "configured": false,
+                "status": "available"
+            },
+            {
+                "id": "module_compiler_adapter",
+                "label": "Module compiler adapter",
+                "module": "src.module_compiler_adapter",
+                "channel": "module_compiler",
+                "available": true,
+                "configured": false,
+                "status": "available"
+            },
+            {
+                "id": "librarian_adapter",
+                "label": "Librarian adapter",
+                "module": "src.librarian_adapter",
+                "channel": "librarian",
+                "available": true,
+                "configured": false,
+                "status": "available"
+            },
+            {
+                "id": "neuro_symbolic_adapter",
+                "label": "Neuro-symbolic adapter",
+                "module": "src.neuro_symbolic_adapter",
+                "channel": "neuro_symbolic",
+                "available": true,
+                "configured": false,
+                "status": "available"
+            },
+            {
+                "id": "security_plane_adapter",
+                "label": "Security plane adapter",
+                "module": "src.security_plane_adapter",
+                "channel": "security",
+                "available": true,
+                "configured": false,
+                "status": "available"
+            }
+        ]
+    },
+    "integration_capabilities": {
+        "summary": {
+            "total": 12,
+            "ready": 12,
+            "needs_integration": 0
+        },
+        "connectors": [
+            {
+                "id": "document_delivery",
+                "label": "Document delivery adapter",
+                "channel": "document",
+                "requires": "adapter_runtime",
+                "available": true,
+                "status": "available",
+                "configured": false
+            },
+            {
+                "id": "email_delivery",
+                "label": "Email delivery adapter",
+                "channel": "email",
+                "requires": "adapter_runtime",
+                "available": true,
+                "status": "available",
+                "configured": false
+            },
+            {
+                "id": "chat_delivery",
+                "label": "Chat delivery adapter",
+                "channel": "chat",
+                "requires": "adapter_runtime",
+                "available": true,
+                "status": "available",
+                "configured": false
+            },
+            {
+                "id": "voice_delivery",
+                "label": "Voice delivery adapter",
+                "channel": "voice",
+                "requires": "adapter_runtime",
+                "available": true,
+                "status": "available",
+                "configured": false
+            },
+            {
+                "id": "ticketing_integration",
+                "label": "Ticketing/CRM integration",
+                "channel": "ticketing",
+                "requires": "integration_engine",
+                "available": true,
+                "status": "available",
+                "configured": false
+            },
+            {
+                "id": "remote_access",
+                "label": "Remote access onboarding",
+                "channel": "remote_access",
+                "requires": "integration_engine",
+                "available": true,
+                "status": "available",
+                "configured": false
+            },
+            {
+                "id": "patch_rollback",
+                "label": "Patch and rollback automation",
+                "channel": "operations",
+                "requires": "governance_scheduler",
+                "available": true,
+                "status": "available",
+                "configured": false
+            },
+            {
+                "id": "telemetry_adapter",
+                "label": "Telemetry adapter",
+                "channel": "telemetry",
+                "requires": "module_available",
+                "available": true,
+                "configured": false,
+                "status": "available",
+                "module": "src.telemetry_adapter"
+            },
+            {
+                "id": "module_compiler_adapter",
+                "label": "Module compiler adapter",
+                "channel": "module_compiler",
+                "requires": "module_available",
+                "available": true,
+                "configured": false,
+                "status": "available",
+                "module": "src.module_compiler_adapter"
+            },
+            {
+                "id": "librarian_adapter",
+                "label": "Librarian adapter",
+                "channel": "librarian",
+                "requires": "module_available",
+                "available": true,
+                "configured": false,
+                "status": "available",
+                "module": "src.librarian_adapter"
+            },
+            {
+                "id": "neuro_symbolic_adapter",
+                "label": "Neuro-symbolic adapter",
+                "channel": "neuro_symbolic",
+                "requires": "module_available",
+                "available": true,
+                "configured": false,
+                "status": "available",
+                "module": "src.neuro_symbolic_adapter"
+            },
+            {
+                "id": "security_plane_adapter",
+                "label": "Security plane adapter",
+                "channel": "security",
+                "requires": "module_available",
+                "available": true,
+                "configured": false,
+                "status": "available",
+                "module": "src.security_plane_adapter"
+            }
+        ]
+    },
+    "integration_capabilities_summary": {
+        "total": 12,
+        "ready": 12,
+        "needs_integration": 0
+    },
+    "competitive_feature_alignment": {
+        "summary": {
+            "total": 20,
+            "available": 20,
+            "partial": 0,
+            "missing": 0
+        },
+        "features": [
+            {
+                "id": "workflow_orchestration",
+                "label": "Workflow orchestration",
+                "description": "Coordinate multi-phase workflows across execution paths.",
+                "status": "available",
+                "coverage": 1.0,
+                "required_capabilities": [
+                    "orchestration",
+                    "handoff",
+                    "execution"
+                ],
+                "available_capabilities": [
+                    "orchestration",
+                    "handoff",
+                    "execution"
+                ],
+                "missing_capabilities": []
+            },
+            {
+                "id": "event_driven_automation",
+                "label": "Event-driven automation",
+                "description": "Trigger automations from schedules and governance policies.",
+                "status": "available",
+                "coverage": 1.0,
+                "required_capabilities": [
+                    "scheduling",
+                    "governance"
+                ],
+                "available_capabilities": [
+                    "scheduling",
+                    "governance"
+                ],
+                "missing_capabilities": []
+            },
+            {
+                "id": "adaptive_execution_routing",
+                "label": "Adaptive execution routing",
+                "description": "Route tasks across deterministic and LLM execution paths.",
+                "status": "available",
+                "coverage": 1.0,
+                "required_capabilities": [
+                    "control_plane",
+                    "execution_policy",
+                    "confidence"
+                ],
+                "available_capabilities": [
+                    "control_plane",
+                    "execution_policy",
+                    "confidence"
+                ],
+                "missing_capabilities": []
+            },
+            {
+                "id": "connector_ecosystem",
+                "label": "Connector ecosystem",
+                "description": "Integrate external systems, adapters, and delivery channels.",
+                "status": "available",
+                "coverage": 1.0,
+                "required_capabilities": [
+                    "integrations",
+                    "adapter_runtime"
+                ],
+                "available_capabilities": [
+                    "integrations",
+                    "adapter_runtime"
+                ],
+                "missing_capabilities": [],
+                "integration_summary": {
+                    "total": 12,
+                    "ready": 12,
+                    "needs_integration": 0
+                },
+                "integration_coverage": 1.0,
+                "integration_status": "available"
+            },
+            {
+                "id": "multichannel_delivery",
+                "label": "Multi-channel delivery",
+                "description": "Deliver outputs across documents, email, chat, and voice.",
+                "status": "available",
+                "coverage": 1.0,
+                "required_capabilities": [
+                    "adapter_runtime",
+                    "integrations"
+                ],
+                "available_capabilities": [
+                    "adapter_runtime",
+                    "integrations"
+                ],
+                "missing_capabilities": []
+            },
+            {
+                "id": "policy_as_code",
+                "label": "Policy-as-code governance",
+                "description": "Encode governance policy checks and compliance assertions.",
+                "status": "available",
+                "coverage": 1.0,
+                "required_capabilities": [
+                    "governance",
+                    "compliance"
+                ],
+                "available_capabilities": [
+                    "governance",
+                    "compliance"
+                ],
+                "missing_capabilities": []
+            },
+            {
+                "id": "governance_policy",
+                "label": "Governance + HITL policy",
+                "description": "Enforce approvals and safety policies before execution.",
+                "status": "available",
+                "coverage": 1.0,
+                "required_capabilities": [
+                    "governance",
+                    "hitl",
+                    "validation"
+                ],
+                "available_capabilities": [
+                    "governance",
+                    "hitl",
+                    "validation"
+                ],
+                "missing_capabilities": []
+            },
+            {
+                "id": "rbac_tenancy",
+                "label": "RBAC + tenant governance",
+                "description": "Standardize role-based access controls and tenant policies.",
+                "status": "available",
+                "coverage": 1.0,
+                "required_capabilities": [
+                    "security",
+                    "governance"
+                ],
+                "available_capabilities": [
+                    "security",
+                    "governance"
+                ],
+                "missing_capabilities": []
+            },
+            {
+                "id": "audit_compliance",
+                "label": "Audit + compliance",
+                "description": "Audit automation actions with compliance gates and telemetry.",
+                "status": "available",
+                "coverage": 1.0,
+                "required_capabilities": [
+                    "telemetry",
+                    "risk",
+                    "compliance"
+                ],
+                "available_capabilities": [
+                    "telemetry",
+                    "risk",
+                    "compliance"
+                ],
+                "missing_capabilities": []
+            },
+            {
+                "id": "persistent_memory",
+                "label": "Persistent memory + replay",
+                "description": "Persist automation context and enable replayable approvals.",
+                "status": "available",
+                "coverage": 1.0,
+                "required_capabilities": [
+                    "persistence",
+                    "audit"
+                ],
+                "available_capabilities": [
+                    "persistence",
+                    "audit"
+                ],
+                "missing_capabilities": []
+            },
+            {
+                "id": "observability_aiops",
+                "label": "Observability + AIOps",
+                "description": "Monitor runtime health with telemetry and feedback loops.",
+                "status": "available",
+                "coverage": 1.0,
+                "required_capabilities": [
+                    "telemetry",
+                    "analytics",
+                    "feedback"
+                ],
+                "available_capabilities": [
+                    "telemetry",
+                    "analytics",
+                    "feedback"
+                ],
+                "missing_capabilities": []
+            },
+            {
+                "id": "monitoring_analytics",
+                "label": "Monitoring + analytics",
+                "description": "Track execution metrics and performance analytics.",
+                "status": "available",
+                "coverage": 1.0,
+                "required_capabilities": [
+                    "telemetry",
+                    "analytics"
+                ],
+                "available_capabilities": [
+                    "telemetry",
+                    "analytics"
+                ],
+                "missing_capabilities": []
+            },
+            {
+                "id": "ai_model_lifecycle",
+                "label": "AI model lifecycle orchestration",
+                "description": "Coordinate model feedback, tuning signals, and runtime execution outcomes.",
+                "status": "available",
+                "coverage": 1.0,
+                "required_capabilities": [
+                    "learning",
+                    "analytics",
+                    "execution"
+                ],
+                "available_capabilities": [
+                    "learning",
+                    "analytics",
+                    "execution"
+                ],
+                "missing_capabilities": []
+            },
+            {
+                "id": "low_code_automation",
+                "label": "Low-code/no-code automation intake",
+                "description": "Enable guided form-based automation setup with governance validation.",
+                "status": "available",
+                "coverage": 1.0,
+                "required_capabilities": [
+                    "forms",
+                    "intake",
+                    "governance"
+                ],
+                "available_capabilities": [
+                    "forms",
+                    "intake",
+                    "governance"
+                ],
+                "missing_capabilities": []
+            },
+            {
+                "id": "self_healing",
+                "label": "Self-healing automation",
+                "description": "Recover from failures with rollback and stabilization logic.",
+                "status": "available",
+                "coverage": 1.0,
+                "required_capabilities": [
+                    "stability",
+                    "feedback",
+                    "governance"
+                ],
+                "available_capabilities": [
+                    "stability",
+                    "feedback",
+                    "governance"
+                ],
+                "missing_capabilities": []
+            },
+            {
+                "id": "self_improvement",
+                "label": "Self-improvement",
+                "description": "Learn from corrections with feedback telemetry for self-optimization.",
+                "status": "available",
+                "coverage": 1.0,
+                "required_capabilities": [
+                    "learning",
+                    "correction",
+                    "feedback",
+                    "telemetry"
+                ],
+                "available_capabilities": [
+                    "learning",
+                    "correction",
+                    "feedback",
+                    "telemetry"
+                ],
+                "missing_capabilities": []
+            },
+            {
+                "id": "knowledge_rag",
+                "label": "Knowledge + RAG automation",
+                "description": "Ground automation decisions in curated knowledge and conditions.",
+                "status": "available",
+                "coverage": 1.0,
+                "required_capabilities": [
+                    "librarian",
+                    "conditions",
+                    "learning"
+                ],
+                "available_capabilities": [
+                    "librarian",
+                    "conditions",
+                    "learning"
+                ],
+                "missing_capabilities": []
+            },
+            {
+                "id": "swarm_expansion",
+                "label": "Dynamic swarm expansion",
+                "description": "Expand tasks into parallel execution swarms.",
+                "status": "available",
+                "coverage": 1.0,
+                "required_capabilities": [
+                    "swarm",
+                    "task_expansion"
+                ],
+                "available_capabilities": [
+                    "swarm",
+                    "task_expansion"
+                ],
+                "missing_capabilities": []
+            },
+            {
+                "id": "connector_marketplace",
+                "label": "Connector marketplace readiness",
+                "description": "Compose adapters and connectors for marketplace-grade integrations.",
+                "status": "available",
+                "coverage": 1.0,
+                "required_capabilities": [
+                    "adapter_runtime",
+                    "module_compiler",
+                    "integrations"
+                ],
+                "available_capabilities": [
+                    "adapter_runtime",
+                    "module_compiler",
+                    "integrations"
+                ],
+                "missing_capabilities": []
+            },
+            {
+                "id": "security_hardening",
+                "label": "Security hardening",
+                "description": "Protect automation runs with security controls.",
+                "status": "available",
+                "coverage": 1.0,
+                "required_capabilities": [
+                    "security"
+                ],
+                "available_capabilities": [
+                    "security"
+                ],
+                "missing_capabilities": []
+            }
+        ]
+    },
+    "competitive_feature_alignment_summary": {
+        "total": 20,
+        "available": 20,
+        "partial": 0,
+        "missing": 0
+    },
+    "connector_orchestration": {
+        "status": "needs_integration",
+        "summary": {
+            "total": 5,
+            "configured": 0,
+            "available": 5,
+            "needs_integration": 0
+        },
+        "channels": [
+            {
+                "channel": "document",
+                "adapter_id": "document_delivery",
+                "adapter_status": "available",
+                "configured_connectors": [],
+                "status": "available"
+            },
+            {
+                "channel": "email",
+                "adapter_id": "email_delivery",
+                "adapter_status": "available",
+                "configured_connectors": [],
+                "status": "available"
+            },
+            {
+                "channel": "chat",
+                "adapter_id": "chat_delivery",
+                "adapter_status": "available",
+                "configured_connectors": [],
+                "status": "available"
+            },
+            {
+                "channel": "voice",
+                "adapter_id": "voice_delivery",
+                "adapter_status": "available",
+                "configured_connectors": [],
+                "status": "available"
+            },
+            {
+                "channel": "translation",
+                "adapter_id": "translation_delivery",
+                "adapter_status": "available",
+                "configured_connectors": [],
+                "status": "available"
+            }
+        ],
+        "gap_action": "Configure delivery connectors for document/email/chat/voice outputs."
+    },
+    "orchestrator_readiness": {
+        "summary": {
+            "total": 3,
+            "ready": 2,
+            "needs_wiring": 1
+        },
+        "components": {
+            "async_orchestrator": {
+                "status": "needs_wiring",
+                "available": false
+            },
+            "two_phase_orchestrator": {
+                "status": "ready",
+                "available": true
+            },
+            "swarm_system": {
+                "status": "ready",
+                "available": true
+            }
+        },
+        "execution_ready": true,
+        "preferred_path": "two_phase_orchestrator"
+    },
+    "observability": {
+        "status": "available",
+        "telemetry_bus": {
+            "events_received": 0,
+            "events_deduplicated": 0,
+            "events_dropped": 0,
+            "buffer_size": 0,
+            "seen_hashes": 0
+        },
+        "ingestion": {
+            "artifacts_ingested": 0,
+            "validation_failures": 0,
+            "integrity_failures": 0
+        }
+    },
+    "compliance_validation": {
+        "status": "needs_info",
+        "compliance_status": "needs_info",
+        "regulatory_source": null,
+        "regulatory_sources": [],
+        "next_action": "Attach compliance evidence and regulatory sources."
+    },
+    "handoff_queue": {
+        "status": "clear",
+        "monitor_status": "ready",
+        "summary": {
+            "pending_interventions": 0,
+            "pending_contracts": 0,
+            "total_pending": 0
+        },
+        "pending_interventions": [],
+        "pending_contracts": [],
+        "gap_action": "No HITL backlog; monitor ready for new approvals."
+    },
+    "governance_dashboard": {
+        "status": "needs_wiring",
+        "summary": {
+            "total": 6,
+            "ready": 0,
+            "pending": 0,
+            "needs_info": 2,
+            "needs_wiring": 4,
+            "other": 0
+        },
+        "components": {
+            "executive": {
+                "status": "needs_info",
+                "normalized_status": "needs_info"
+            },
+            "operations": {
+                "status": "needs_wiring",
+                "normalized_status": "needs_wiring"
+            },
+            "quality_assurance": {
+                "status": "needs_wiring",
+                "normalized_status": "needs_wiring"
+            },
+            "hitl": {
+                "status": "needs_wiring",
+                "normalized_status": "needs_wiring"
+            },
+            "delivery": {
+                "status": "needs_info",
+                "normalized_status": "needs_info"
+            },
+            "compliance": {
+                "status": "needs_wiring",
+                "normalized_status": "needs_wiring"
+            }
+        },
+        "gap_action": "Initialize missing governance services and delivery connectors."
+    },
+    "learning_backlog": {
+        "status": "unavailable",
+        "reason": "Learning loop unavailable.",
+        "summary": {
+            "total_iterations": 0
+        }
+    },
+    "self_improvement": {
+        "status": "needs_attention",
+        "reason": "Dynamic implementation plan unavailable.",
+        "summary": {
+            "total_backlog": 5,
+            "consistency_gaps": 0,
+            "completion_remediation_threshold_percent": 50,
+            "completion_average_percent": 49.25,
+            "completion_total_areas": 8,
+            "completion_gaps": 5,
+            "completion_gap_areas": [
+                "execution_wiring",
+                "deterministic_llm_routing",
+                "persistence_replay",
+                "compliance_validation",
+                "operational_automation"
+            ],
+            "completion_coverage_ratio": 0.38,
+            "completion_backlog_items": 5,
+            "completion_backlog_ratio": 1.0
+        },
+        "summary_surface_consistency": {
+            "status": "consistent",
+            "checks": {
+                "integration_summary_present": true,
+                "alignment_summary_present": true,
+                "completion_snapshot_present": true,
+                "registry_total_matches_status": true,
+                "registry_core_complete": true
+            }
+        },
+        "completion_snapshot": {
+            "areas": [
+                {
+                    "area": "execution_wiring",
+                    "percent": 47
+                },
+                {
+                    "area": "deterministic_llm_routing",
+                    "percent": 40
+                },
+                {
+                    "area": "persistence_replay",
+                    "percent": 23
+                },
+                {
+                    "area": "multichannel_delivery",
+                    "percent": 58
+                },
+                {
+                    "area": "compliance_validation",
+                    "percent": 38
+                },
+                {
+                    "area": "operational_automation",
+                    "percent": 22
+                },
+                {
+                    "area": "ui_user_testing",
+                    "percent": 70
+                },
+                {
+                    "area": "dynamic_chain_test_coverage",
+                    "percent": 96
+                }
+            ],
+            "summary": {
+                "total_areas": 8,
+                "average_percent": 49.25,
+                "remediation_threshold_percent": 50,
+                "low_completion_areas": 5,
+                "low_completion_area_ids": [
+                    "execution_wiring",
+                    "deterministic_llm_routing",
+                    "persistence_replay",
+                    "compliance_validation",
+                    "operational_automation"
+                ]
+            }
+        },
+        "backlog": [
+            {
+                "id": "completion_execution_wiring",
+                "type": "completion",
+                "owner": "runtime",
+                "reason": "Completion area 'execution_wiring' below threshold: 47% < 50%."
+            },
+            {
+                "id": "completion_deterministic_llm_routing",
+                "type": "completion",
+                "owner": "runtime",
+                "reason": "Completion area 'deterministic_llm_routing' below threshold: 40% < 50%."
+            },
+            {
+                "id": "completion_persistence_replay",
+                "type": "completion",
+                "owner": "runtime",
+                "reason": "Completion area 'persistence_replay' below threshold: 23% < 50%."
+            },
+            {
+                "id": "completion_compliance_validation",
+                "type": "completion",
+                "owner": "runtime",
+                "reason": "Completion area 'compliance_validation' below threshold: 38% < 50%."
+            },
+            {
+                "id": "completion_operational_automation",
+                "type": "completion",
+                "owner": "runtime",
+                "reason": "Completion area 'operational_automation' below threshold: 22% < 50%."
+            }
+        ],
+        "remediation_actions": [
+            "Prioritize low completion areas and schedule remediation loops."
+        ]
+    },
+    "integrated_modules": {
+        "gate_execution_wiring": {
+            "registered_gates": {},
+            "total_registered": 0,
+            "default_policy": "warn",
+            "total_evaluations": 0,
+            "gate_sequence": [
+                "compliance",
+                "budget",
+                "executive",
+                "operations",
+                "qa",
+                "hitl"
+            ]
+        },
+        "event_backbone": {
+            "events_published": 0,
+            "events_processed": 0,
+            "events_failed": 0,
+            "pending_counts": {},
+            "subscriber_counts": {},
+            "dlq_size": 0,
+            "circuit_breakers": {}
+        },
+        "delivery_orchestrator": {},
+        "self_improvement_engine": {
+            "total_outcomes": 0,
+            "total_patterns": 0,
+            "total_proposals": 0,
+            "pending_proposals": 0,
+            "applied_corrections": 0,
+            "corrections_log_size": 0
+        },
+        "persistence_manager": {
+            "persistence_dir": ".murphy_persistence",
+            "documents": 0,
+            "gate_sessions": 0,
+            "librarian_contexts": 0,
+            "audit_events": 0
+        },
+        "slo_tracker": {
+            "total_records": 0,
+            "total_slo_targets": 2,
+            "task_types_tracked": [],
+            "tracking_active": false
+        },
+        "automation_scheduler": {
+            "total_projects": 0,
+            "total_executions": 0,
+            "pending_executions": 0,
+            "running_executions": 0,
+            "completed_executions": 0,
+            "failed_executions": 0
+        },
+        "capability_map": {
+            "total_modules": 0,
+            "subsystems": [],
+            "active_modules": 0,
+            "partial_modules": 0,
+            "unused_modules": 0,
+            "runtime_imports_detected": 0
+        },
+        "compliance_engine": {
+            "total_requirements": 11,
+            "total_sessions": 0,
+            "total_checks": 0,
+            "framework_requirement_counts": {
+                "gdpr": 3,
+                "soc2": 3,
+                "hipaa": 2,
+                "pci_dss": 3
+            },
+            "check_status_counts": {},
+            "current_session": "d5391ece358f"
+        },
+        "rbac_governance": {
+            "total_tenants": 0,
+            "total_users": 0,
+            "total_shadow_agents": 0,
+            "audit_log_size": 0
+        },
+        "ticketing_adapter": {
+            "total_tickets": 0,
+            "tickets_by_status": {},
+            "tickets_by_type": {},
+            "history_events": 0
+        },
+        "wingman_protocol": {
+            "total_pairs": 0,
+            "total_runbooks": 1,
+            "total_validations": 0,
+            "total_approved": 0,
+            "total_rejected": 0
+        },
+        "runtime_profile_compiler": {
+            "total_profiles": 0,
+            "total_orgs": 0,
+            "mode_distribution": {}
+        },
+        "governance_kernel": {
+            "strict_mode": false,
+            "total_departments": 0,
+            "total_budgets": 0,
+            "total_audit_entries": 0,
+            "total_executions": 0,
+            "department_ids": []
+        },
+        "control_plane_separation": {
+            "mode": "balanced",
+            "total_handlers": 2,
+            "planning_handlers": 1,
+            "execution_handlers": 1,
+            "total_routed_tasks": 0
+        },
+        "durable_swarm_orchestrator": {
+            "total_tasks": 0,
+            "state_counts": {},
+            "budget": {
+                "total_budget": 1000.0,
+                "allocated": 0.0,
+                "spent": 0.0,
+                "remaining": 1000.0,
+                "max_per_task": 100.0,
+                "max_spawn_depth": 5
+            },
+            "circuit_breaker": {
+                "state": "closed",
+                "consecutive_failures": 0,
+                "failure_threshold": 5,
+                "recovery_timeout": 30.0
+            }
+        },
+        "golden_path_bridge": {
+            "total_paths": 0,
+            "active_paths": 0,
+            "invalidated_paths": 0,
+            "expired_paths": 0,
+            "bridge_operational": true
+        },
+        "org_chart_enforcement": {
+            "total_nodes": 0,
+            "departments": [],
+            "total_escalations": 0,
+            "pending_escalations": 0,
+            "total_workflows": 0,
+            "pending_workflows": 0,
+            "total_audit_entries": 0
+        },
+        "shadow_agent_integration": {
+            "total_accounts": 0,
+            "total_shadow_agents": 0,
+            "active_shadows": 0,
+            "suspended_shadows": 0,
+            "revoked_shadows": 0,
+            "total_bindings": 0,
+            "total_audit_entries": 0
+        },
+        "triage_rollcall_adapter": {
+            "total_candidates": 0,
+            "candidates_by_status": {}
+        },
+        "rubix_evidence_adapter": {
+            "total_checks": 0,
+            "total_artifacts": 0,
+            "pass_count": 0,
+            "fail_count": 0,
+            "inconclusive_count": 0
+        },
+        "semantics_boundary_controller": {
+            "total_hypotheses": 0,
+            "total_risk_assessments": 0,
+            "total_questions": 0,
+            "answered_questions": 0,
+            "total_invariance_checks": 0,
+            "verified_invariance": 0,
+            "commutative_count": 0,
+            "total_verifications": 0,
+            "pass_count": 0,
+            "fail_count": 0,
+            "inconclusive_count": 0,
+            "unrouted_failures": 0,
+            "controller_operational": true
+        },
+        "bot_governance_policy_mapper": {
+            "total_bots": 0,
+            "active_bots": 0,
+            "total_policy_mappings": 6,
+            "total_gate_checks": 0
+        },
+        "bot_telemetry_normalizer": {
+            "registered_rules": 9,
+            "total_events_processed": 0,
+            "normalized_events": 0,
+            "unmapped_events": 0,
+            "success_rate": 0.0
+        },
+        "legacy_compatibility_matrix": {
+            "status": "ok",
+            "total_entries": 0,
+            "total_hooks": 0,
+            "total_executions": 0,
+            "entries": [],
+            "hooks": [],
+            "execution_history": [],
+            "compatibility_level_counts": {},
+            "timestamp": "2026-03-11T08:18:25.681564+00:00"
+        },
+        "hitl_autonomy_controller": {
+            "total_actions": 0,
+            "autonomous_count": 0,
+            "hitl_count": 0,
+            "avg_confidence": 0.0,
+            "outcomes": {}
+        },
+        "compliance_region_validator": {
+            "status": "report_generated",
+            "total_regions": 6,
+            "known_regions": 6,
+            "unknown_regions": 0,
+            "regions": [
+                {
+                    "status": "found",
+                    "region": "EU",
+                    "framework": "GDPR",
+                    "data_residency": "EU",
+                    "requires_consent": true,
+                    "retention_max_days": 365,
+                    "cross_border_allowed": false,
+                    "regulatory_body": "European Data Protection Board",
+                    "metadata": {}
+                },
+                {
+                    "status": "found",
+                    "region": "US_CA",
+                    "framework": "CCPA",
+                    "data_residency": "US",
+                    "requires_consent": true,
+                    "retention_max_days": 365,
+                    "cross_border_allowed": true,
+                    "regulatory_body": "California Attorney General",
+                    "metadata": {}
+                },
+                {
+                    "status": "found",
+                    "region": "US_HIPAA",
+                    "framework": "HIPAA",
+                    "data_residency": "US",
+                    "requires_consent": true,
+                    "retention_max_days": 2190,
+                    "cross_border_allowed": false,
+                    "regulatory_body": "HHS Office for Civil Rights",
+                    "metadata": {}
+                },
+                {
+                    "status": "found",
+                    "region": "CA",
+                    "framework": "PIPEDA",
+                    "data_residency": "CA",
+                    "requires_consent": true,
+                    "retention_max_days": 730,
+                    "cross_border_allowed": true,
+                    "regulatory_body": "Office of the Privacy Commissioner",
+                    "metadata": {}
+                },
+                {
+                    "status": "found",
+                    "region": "BR",
+                    "framework": "LGPD",
+                    "data_residency": "BR",
+                    "requires_consent": true,
+                    "retention_max_days": 365,
+                    "cross_border_allowed": false,
+                    "regulatory_body": "ANPD",
+                    "metadata": {}
+                },
+                {
+                    "status": "found",
+                    "region": "AU",
+                    "framework": "Privacy Act",
+                    "data_residency": "AU",
+                    "requires_consent": true,
+                    "retention_max_days": 365,
+                    "cross_border_allowed": true,
+                    "regulatory_body": "OAIC",
+                    "metadata": {}
+                }
+            ],
+            "validation_history_count": 0,
+            "generated_at": "2026-03-11T08:18:25.681598+00:00"
+        },
+        "observability_counters": {
+            "status": "ok",
+            "counters": {},
+            "category_summary": {
+                "status": "ok",
+                "categories": {
+                    "behavior_fix": 0,
+                    "permutation_coverage": 0,
+                    "integration_wiring": 0,
+                    "security_hardening": 0,
+                    "documentation": 0
+                },
+                "total": 0
+            },
+            "ratio": {
+                "status": "ok",
+                "behavior_fix_total": 0,
+                "permutation_coverage_total": 0,
+                "ratio": 0.0
+            },
+            "total_events": 0
+        },
+        "deterministic_routing_engine": {
+            "engine": "DeterministicRoutingEngine",
+            "policies_registered": 4,
+            "total_decisions": 0,
+            "total_promotions": 0,
+            "route_type_distribution": {},
+            "status": "active"
+        },
+        "platform_connector_framework": {
+            "module": "platform_connector_framework",
+            "statistics": {
+                "total_definitions": 76,
+                "configured_connectors": 0,
+                "enabled_connectors": 0,
+                "total_actions": 0,
+                "successful_actions": 0,
+                "failed_actions": 0,
+                "success_rate": 0.0,
+                "categories": [
+                    "payment",
+                    "custom",
+                    "analytics",
+                    "cloud",
+                    "project_management",
+                    "communication",
+                    "erp",
+                    "itsm",
+                    "devops",
+                    "crm",
+                    "knowledge"
+                ],
+                "platforms": [
+                    "slack",
+                    "ms_teams",
+                    "discord",
+                    "jira",
+                    "asana",
+                    "monday",
+                    "salesforce",
+                    "hubspot",
+                    "github",
+                    "gitlab",
+                    "aws",
+                    "azure",
+                    "gcp",
+                    "stripe",
+                    "confluence",
+                    "notion",
+                    "servicenow",
+                    "snowflake",
+                    "google_workspace",
+                    "zapier",
+                    "whatsapp",
+                    "telegram",
+                    "signal",
+                    "snapchat",
+                    "wechat",
+                    "line",
+                    "kakaotalk",
+                    "google_business_messages",
+                    "zenbusiness",
+                    "n8n",
+                    "make",
+                    "ifttt",
+                    "shopify",
+                    "woocommerce",
+                    "zendesk",
+                    "intercom",
+                    "freshdesk",
+                    "datadog",
+                    "pagerduty",
+                    "sentry",
+                    "newrelic",
+                    "circleci",
+                    "jenkins",
+                    "twilio",
+                    "sendgrid",
+                    "paypal",
+                    "docusign",
+                    "dropbox",
+                    "calendly",
+                    "quickbooks",
+                    "huggingface",
+                    "ollama",
+                    "replicate",
+                    "supabase",
+                    "firebase",
+                    "mongodb_atlas",
+                    "vercel",
+                    "netlify",
+                    "railway",
+                    "trello",
+                    "airtable",
+                    "linear",
+                    "twitter",
+                    "linkedin",
+                    "reddit",
+                    "youtube",
+                    "twitch",
+                    "spotify",
+                    "resend",
+                    "mailgun",
+                    "mixpanel",
+                    "posthog",
+                    "cloudflare",
+                    "google_calendar",
+                    "google_drive",
+                    "product_hunt"
+                ]
+            },
+            "configured": []
+        },
+        "workflow_dag_engine": {
+            "module": "workflow_dag_engine",
+            "statistics": {
+                "total_workflows": 0,
+                "total_executions": 0,
+                "execution_history_count": 0,
+                "completed_executions": 0,
+                "failed_executions": 0,
+                "success_rate": 0.0,
+                "registered_handlers": 0
+            },
+            "workflows": []
+        },
+        "automation_type_registry": {
+            "module": "automation_type_registry",
+            "statistics": {
+                "total_templates": 16,
+                "total_categories": 11,
+                "categories": [
+                    "business_process",
+                    "devops",
+                    "data_pipeline",
+                    "hr_onboarding",
+                    "compliance",
+                    "it_operations",
+                    "marketing",
+                    "customer_service",
+                    "security",
+                    "financial",
+                    "content_generation"
+                ],
+                "total_executions": 0,
+                "most_used": [],
+                "hitl_required_templates": 8,
+                "critical_templates": 3,
+                "required_platforms": {
+                    "slack": 6,
+                    "github": 4,
+                    "servicenow": 3,
+                    "confluence": 3,
+                    "google_workspace": 3,
+                    "jira": 3,
+                    "hubspot": 3,
+                    "aws": 2,
+                    "snowflake": 2,
+                    "azure": 1,
+                    "gcp": 1,
+                    "salesforce": 1,
+                    "stripe": 1,
+                    "notion": 1
+                }
+            },
+            "categories": [
+                {
+                    "category": "it_operations",
+                    "name": "It Operations",
+                    "template_count": 3,
+                    "supported_platforms": [
+                        "aws",
+                        "azure",
+                        "servicenow",
+                        "slack",
+                        "gcp",
+                        "github"
+                    ],
+                    "enabled": true
+                },
+                {
+                    "category": "business_process",
+                    "name": "Business Process",
+                    "template_count": 1,
+                    "supported_platforms": [
+                        "slack",
+                        "confluence"
+                    ],
+                    "enabled": true
+                },
+                {
+                    "category": "hr_onboarding",
+                    "name": "Hr Onboarding",
+                    "template_count": 1,
+                    "supported_platforms": [
+                        "slack",
+                        "jira",
+                        "google_workspace"
+                    ],
+                    "enabled": true
+                },
+                {
+                    "category": "data_pipeline",
+                    "name": "Data Pipeline",
+                    "template_count": 2,
+                    "supported_platforms": [
+                        "snowflake",
+                        "google_workspace"
+                    ],
+                    "enabled": true
+                },
+                {
+                    "category": "marketing",
+                    "name": "Marketing",
+                    "template_count": 2,
+                    "supported_platforms": [
+                        "slack",
+                        "google_workspace",
+                        "hubspot",
+                        "salesforce"
+                    ],
+                    "enabled": true
+                },
+                {
+                    "category": "customer_service",
+                    "name": "Customer Service",
+                    "template_count": 1,
+                    "supported_platforms": [
+                        "slack",
+                        "hubspot"
+                    ],
+                    "enabled": true
+                },
+                {
+                    "category": "financial",
+                    "name": "Financial",
+                    "template_count": 1,
+                    "supported_platforms": [
+                        "stripe"
+                    ],
+                    "enabled": true
+                },
+                {
+                    "category": "content_generation",
+                    "name": "Content Generation",
+                    "template_count": 1,
+                    "supported_platforms": [
+                        "confluence",
+                        "notion"
+                    ],
+                    "enabled": true
+                },
+                {
+                    "category": "security",
+                    "name": "Security",
+                    "template_count": 1,
+                    "supported_platforms": [
+                        "jira",
+                        "github"
+                    ],
+                    "enabled": true
+                },
+                {
+                    "category": "devops",
+                    "name": "Devops",
+                    "template_count": 2,
+                    "supported_platforms": [
+                        "aws",
+                        "slack",
+                        "github",
+                        "jira"
+                    ],
+                    "enabled": true
+                },
+                {
+                    "category": "compliance",
+                    "name": "Compliance",
+                    "template_count": 1,
+                    "supported_platforms": [
+                        "servicenow",
+                        "confluence"
+                    ],
+                    "enabled": true
+                }
+            ]
+        },
+        "api_gateway_adapter": {
+            "module": "api_gateway_adapter",
+            "statistics": {
+                "total_routes": 0,
+                "total_requests": 0,
+                "total_errors": 0,
+                "success_rate": 0.0,
+                "webhook_subscriptions": 0,
+                "registered_handlers": 0,
+                "registered_api_keys": 0
+            },
+            "routes": []
+        },
+        "webhook_event_processor": {
+            "module": "webhook_event_processor",
+            "statistics": {
+                "total_sources": 61,
+                "active_sources": 61,
+                "total_rules": 48,
+                "total_handlers": 0,
+                "total_events": 0,
+                "processed_events": 0,
+                "rejected_events": 0,
+                "failed_events": 0,
+                "success_rate": 0.0
+            },
+            "sources": [
+                {
+                    "source_id": "github_webhook",
+                    "name": "GitHub Webhooks",
+                    "platform": "github",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "slack_webhook",
+                    "name": "Slack Events",
+                    "platform": "slack",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "stripe_webhook",
+                    "name": "Stripe Events",
+                    "platform": "stripe",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "jira_webhook",
+                    "name": "Jira Webhooks",
+                    "platform": "jira",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "hubspot_webhook",
+                    "name": "HubSpot Webhooks",
+                    "platform": "hubspot",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "servicenow_webhook",
+                    "name": "ServiceNow Events",
+                    "platform": "servicenow",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "salesforce_webhook",
+                    "name": "Salesforce Platform Events",
+                    "platform": "salesforce",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "azure_webhook",
+                    "name": "Azure Event Grid",
+                    "platform": "azure",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "aws_webhook",
+                    "name": "AWS SNS/EventBridge",
+                    "platform": "aws",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "discord_webhook",
+                    "name": "Discord Events",
+                    "platform": "discord",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "shopify_webhook",
+                    "name": "Shopify Webhooks",
+                    "platform": "shopify",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "twilio_webhook",
+                    "name": "Twilio Status Callbacks",
+                    "platform": "twilio",
+                    "signature_algorithm": "sha1",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "pagerduty_webhook",
+                    "name": "PagerDuty Webhooks",
+                    "platform": "pagerduty",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "datadog_webhook",
+                    "name": "Datadog Webhooks",
+                    "platform": "datadog",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "zendesk_webhook",
+                    "name": "Zendesk Webhooks",
+                    "platform": "zendesk",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "zapier_webhook",
+                    "name": "Zapier Webhooks",
+                    "platform": "zapier",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "n8n_webhook",
+                    "name": "n8n Webhooks",
+                    "platform": "n8n",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "sendgrid_webhook",
+                    "name": "SendGrid Event Webhooks",
+                    "platform": "sendgrid",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "paypal_webhook",
+                    "name": "PayPal Webhooks",
+                    "platform": "paypal",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "intercom_webhook",
+                    "name": "Intercom Webhooks",
+                    "platform": "intercom",
+                    "signature_algorithm": "sha1",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "calendly_webhook",
+                    "name": "Calendly Webhooks",
+                    "platform": "calendly",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "sentry_webhook",
+                    "name": "Sentry Webhooks",
+                    "platform": "sentry",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "circleci_webhook",
+                    "name": "CircleCI Webhooks",
+                    "platform": "circleci",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "docusign_webhook",
+                    "name": "DocuSign Connect",
+                    "platform": "docusign",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "dropbox_webhook",
+                    "name": "Dropbox Webhooks",
+                    "platform": "dropbox",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "whatsapp_webhook",
+                    "name": "WhatsApp Cloud API Webhooks",
+                    "platform": "whatsapp",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "telegram_webhook",
+                    "name": "Telegram Bot Webhooks",
+                    "platform": "telegram",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "make_webhook",
+                    "name": "Make (Integromat) Webhooks",
+                    "platform": "make",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "ifttt_webhook",
+                    "name": "IFTTT Webhooks",
+                    "platform": "ifttt",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "github_actions_webhook",
+                    "name": "GitHub Actions Webhooks",
+                    "platform": "github",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "gitlab_webhook",
+                    "name": "GitLab Webhooks",
+                    "platform": "gitlab",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "vercel_webhook",
+                    "name": "Vercel Deploy Hooks",
+                    "platform": "vercel",
+                    "signature_algorithm": "sha1",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "netlify_webhook",
+                    "name": "Netlify Deploy Notifications",
+                    "platform": "netlify",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "trello_webhook",
+                    "name": "Trello Webhooks",
+                    "platform": "trello",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "linear_webhook",
+                    "name": "Linear Webhooks",
+                    "platform": "linear",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "airtable_webhook",
+                    "name": "Airtable Webhooks",
+                    "platform": "airtable",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "twitch_webhook",
+                    "name": "Twitch EventSub",
+                    "platform": "twitch",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "resend_webhook",
+                    "name": "Resend Webhooks",
+                    "platform": "resend",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "mailgun_webhook",
+                    "name": "Mailgun Webhooks",
+                    "platform": "mailgun",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "cloudflare_webhook",
+                    "name": "Cloudflare Webhooks",
+                    "platform": "cloudflare",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "posthog_webhook",
+                    "name": "PostHog Webhooks",
+                    "platform": "posthog",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "railway_webhook",
+                    "name": "Railway Deploy Webhooks",
+                    "platform": "railway",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "replicate_webhook",
+                    "name": "Replicate Prediction Webhooks",
+                    "platform": "replicate",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "google_calendar_webhook",
+                    "name": "Google Calendar Push Notifications",
+                    "platform": "google_calendar",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "google_drive_webhook",
+                    "name": "Google Drive Push Notifications",
+                    "platform": "google_drive",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "signal_webhook",
+                    "name": "Signal Webhooks",
+                    "platform": "signal",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "asana_webhook",
+                    "name": "Asana Webhooks",
+                    "platform": "asana",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "notion_webhook",
+                    "name": "Notion Webhooks",
+                    "platform": "notion",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "monday_webhook",
+                    "name": "Monday.com Webhooks",
+                    "platform": "monday",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "jenkins_webhook",
+                    "name": "Jenkins Webhooks",
+                    "platform": "jenkins",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "freshdesk_webhook",
+                    "name": "Freshdesk Webhooks",
+                    "platform": "freshdesk",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "newrelic_webhook",
+                    "name": "New Relic Webhooks",
+                    "platform": "newrelic",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "woocommerce_webhook",
+                    "name": "WooCommerce Webhooks",
+                    "platform": "woocommerce",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "confluence_webhook",
+                    "name": "Confluence Webhooks",
+                    "platform": "confluence",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "firebase_webhook",
+                    "name": "Firebase Cloud Functions Webhooks",
+                    "platform": "firebase",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "linkedin_webhook",
+                    "name": "LinkedIn Webhooks",
+                    "platform": "linkedin",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "mongodb_atlas_webhook",
+                    "name": "MongoDB Atlas Alerts",
+                    "platform": "mongodb_atlas",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "quickbooks_webhook",
+                    "name": "QuickBooks Webhooks",
+                    "platform": "quickbooks",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "google_workspace_webhook",
+                    "name": "Google Workspace Events",
+                    "platform": "google_workspace",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "ms_teams_webhook",
+                    "name": "Microsoft Teams Webhooks",
+                    "platform": "ms_teams",
+                    "signature_algorithm": "sha256",
+                    "active": true,
+                    "has_secret": false
+                },
+                {
+                    "source_id": "custom_webhook",
+                    "name": "Custom Webhook",
+                    "platform": "custom",
+                    "signature_algorithm": "none",
+                    "active": true,
+                    "has_secret": false
+                }
+            ]
+        },
+        "self_automation_orchestrator": {
+            "total_tasks": 0,
+            "queue_length": 0,
+            "completed_count": 0,
+            "status_breakdown": {},
+            "category_breakdown": {},
+            "open_gaps": 0,
+            "total_gaps": 0,
+            "current_cycle": null,
+            "completed_cycles": 0,
+            "prompt_steps": [
+                "analysis",
+                "planning",
+                "implementation",
+                "testing",
+                "review",
+                "documentation",
+                "iteration",
+                "transition"
+            ],
+            "available_categories": [
+                "coverage_gap",
+                "integration_gap",
+                "competitive_gap",
+                "quality_gap",
+                "documentation_gap",
+                "self_improvement",
+                "feature_request",
+                "bug_fix"
+            ]
+        },
+        "plugin_extension_sdk": {
+            "module": "plugin_extension_sdk",
+            "murphy_version": "1.0.0",
+            "total_plugins": 0,
+            "state_counts": {},
+            "total_events": 0,
+            "available_capabilities": [
+                "read_data",
+                "write_data",
+                "execute_tasks",
+                "manage_workflows",
+                "access_telemetry",
+                "send_notifications",
+                "modify_config",
+                "admin"
+            ]
+        },
+        "ai_workflow_generator": {
+            "module": "ai_workflow_generator",
+            "template_count": 6,
+            "custom_step_types": 0,
+            "total_generations": 0,
+            "supported_step_keywords": 61
+        },
+        "workflow_template_marketplace": {
+            "module": "workflow_template_marketplace",
+            "total_templates": 0,
+            "installed_templates": 0,
+            "total_downloads": 0,
+            "total_ratings": 0,
+            "categories": [
+                "data_pipeline",
+                "ci_cd",
+                "incident_response",
+                "customer_service",
+                "hr_onboarding",
+                "marketing_automation",
+                "financial_reporting",
+                "security_compliance",
+                "devops",
+                "content_management",
+                "general"
+            ]
+        },
+        "cross_platform_data_sync": {
+            "module": "cross_platform_data_sync",
+            "state": "idle",
+            "connectors": 0,
+            "mappings": 0,
+            "total_syncs": 0,
+            "unresolved_conflicts": 0,
+            "pending_changes": 0
+        }
+    },
+    "self_operation": {
+        "enabled": true,
+        "can_work_on_self": true,
+        "activation_required": true,
+        "state": "active"
+    }
+}

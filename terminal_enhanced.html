@@ -1,0 +1,718 @@
+<!--
+  Murphy System — ☠ Enhanced Terminal
+  © 2020 Inoni Limited Liability Company by Corey Post
+  License: BSL 1.1 (Business Source License 1.1)
+  See LICENSE file in repository root for full terms.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — ☠ Enhanced Terminal</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  /* Neon terminal theme */
+  /* Cyan accent: #00ffff */
+  /* Color Key: green=#00ff41, cyan=#00ffff, bg=#0a0a0a */
+  .murphy-terminal, .murphy-output, pre, code {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+  }
+  textarea, input[type="text"] {
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
+    color: #00ff41;
+    background: #0a0a0a;
+  }
+</style>
+</head>
+<body style="--accent: #E879F9;">
+<!--
+╔══════════════════════════════════════════════════╗
+║ ███╗   ███╗██╗   ██╗██████╗ ██████╗ ██╗  ██╗██╗   ██╗                       ║
+║ ████╗ ████║██║   ██║██╔══██╗██╔══██╗██║  ██║╚██╗ ██╔╝                       ║
+║ ██╔████╔██║██║   ██║██████╔╝██████╔╝███████║ ╚████╔╝                        ║
+║ ██║╚██╔╝██║██║   ██║██╔══██╗██╔═══╝ ██╔══██║  ╚██╔╝                         ║
+║ ██║ ╚═╝ ██║╚██████╔╝██║  ██║██║     ██║  ██║   ██║                          ║
+║ ╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝   ╚═╝                          ║
+║ ███████╗██╗   ██╗███████╗████████╗███████╗███╗   ███╗                        ║
+║ ██╔════╝╚██╗ ██╔╝██╔════╝╚══██╔══╝██╔════╝████╗ ████║                        ║
+║ ███████╗ ╚████╔╝ ███████╗   ██║   █████╗  ██╔████╔██║                        ║
+║ ╚════██║  ╚██╔╝  ╚════██║   ██║   ██╔══╝  ██║╚██╔╝██║                        ║
+║ ███████║   ██║   ███████║   ██║   ███████╗██║ ╚═╝ ██║                        ║
+║ ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚══════╝╚═╝     ╚═╝                        ║
+╚══════════════════════════════════════════════════╝
+-->
+
+<!-- Skip link for accessibility -->
+<a href="#content" class="murphy-skip-link">Skip to content</a>
+
+<!-- ============================================================
+     SIDEBAR
+     ============================================================ -->
+<nav class="murphy-sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+  <div class="murphy-sidebar-logo">
+    <svg width="24" height="24"><use href="static/murphy-icons.svg#icon-zap"></use></svg>
+    <span>Enhanced</span>
+  </div>
+
+  <div class="murphy-sidebar-nav" id="sidebar-nav">
+    <!-- Overview -->
+    <div class="murphy-sidebar-section" aria-label="Overview">Overview</div>
+    <a href="#dashboard" class="murphy-sidebar-item" data-view="dashboard" aria-label="Dashboard">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-dashboard"></use></svg>
+      <span>Dashboard</span>
+    </a>
+    <a href="#status" class="murphy-sidebar-item" data-view="status" aria-label="System Status">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-activity"></use></svg>
+      <span>System Status</span>
+    </a>
+
+    <!-- Intelligence -->
+    <div class="murphy-sidebar-section" aria-label="Intelligence">Intelligence</div>
+    <a href="#librarian" class="murphy-sidebar-item" data-view="librarian" aria-label="Librarian">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-search"></use></svg>
+      <span>Librarian</span>
+    </a>
+    <a href="#chat" class="murphy-sidebar-item" data-view="chat" aria-label="Chat">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-message-circle"></use></svg>
+      <span>Chat</span>
+    </a>
+
+    <!-- Data -->
+    <div class="murphy-sidebar-section" aria-label="Data">Data</div>
+    <a href="#ip" class="murphy-sidebar-item" data-view="ip" aria-label="IP Management">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-layers"></use></svg>
+      <span>IP Management</span>
+    </a>
+    <a href="#documents" class="murphy-sidebar-item" data-view="documents" aria-label="Documents">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-code"></use></svg>
+      <span>Documents</span>
+    </a>
+
+    <!-- Tools -->
+    <div class="murphy-sidebar-section" aria-label="Tools">Tools</div>
+    <a href="#execute" class="murphy-sidebar-item" data-view="execute" aria-label="Execute">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-terminal"></use></svg>
+      <span>Raw API</span>
+    </a>
+
+    <!-- External Links -->
+    <div class="murphy-sidebar-section" aria-label="External Links">External Links</div>
+    <a href="/ui/workflow-canvas" class="murphy-sidebar-item" aria-label="Workflow Canvas">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-topology"></use></svg>
+      <span>Workflow Canvas</span>
+    </a>
+    <a href="/ui/system-visualizer" class="murphy-sidebar-item" aria-label="System Visualizer">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-git-branch"></use></svg>
+      <span>System Visualizer</span>
+    </a>
+  </div>
+
+  <div class="murphy-sidebar-footer">
+    <span class="text-xs text-muted">Murphy System v2</span>
+  </div>
+</nav>
+
+<!-- ============================================================
+     TOP BAR
+     ============================================================ -->
+<header class="murphy-topbar" role="banner" aria-label="Top bar">
+  <div class="murphy-topbar-left">
+    <button class="murphy-btn murphy-btn-icon" id="btn-sidebar-toggle" aria-label="Toggle sidebar" title="Toggle sidebar">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-menu"></use></svg>
+    </button>
+    <h1 class="murphy-topbar-title">☠ Enhanced Terminal — AI-Assisted Operations</h1>
+    <span class="murphy-topbar-subtitle" style="font-size:0.75rem;opacity:0.7;">Natural language · Execute · Monitor</span>
+  </div>
+  <div class="murphy-topbar-right">
+    <div class="relative" id="topbar-search-wrapper">
+      <input type="search" class="murphy-input" id="topbar-search" placeholder="Search… (Ctrl+K)" aria-label="Search" autocomplete="off">
+    </div>
+    <button class="murphy-btn murphy-btn-icon" id="btn-theme-toggle" aria-label="Toggle theme" title="Toggle theme">
+      <svg width="18" height="18" id="theme-icon"><use href="static/murphy-icons.svg#icon-moon"></use></svg>
+    </button>
+    <button class="murphy-btn murphy-btn-icon" id="btn-notifications" aria-label="Notifications" title="Notifications">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-bell"></use></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================================
+     MAIN CONTENT AREA
+     ============================================================ -->
+<main id="content" role="main" aria-label="Main content" aria-live="polite"
+      style="margin-left: var(--sidebar-width); margin-top: var(--topbar-height); padding: var(--space-5); min-height: calc(100vh - var(--topbar-height)); transition: margin-left 0.2s ease;">
+</main>
+
+
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script src="static/murphy-components.js"></script>
+<script src="murphy_auth.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ===========================================================
+     1. SHARED COMPONENT INITIALIZATION
+     =========================================================== */
+  var api       = new MurphyAPI('/api');
+  var health    = new MurphyHealth(api);
+  var theme     = new MurphyTheme();
+  var keyboard  = new MurphyKeyboard();
+  var jargon    = new MurphyJargon();
+  var librarian = new MurphyLibrarianChat(api);
+  var toast     = new MurphyToast();
+
+  theme.init();
+  keyboard.init();
+  jargon.init();
+  health.start(15000);
+
+  /* ===========================================================
+     1b. SIDEBAR TOGGLE & THEME TOGGLE
+     =========================================================== */
+  var sidebar   = document.getElementById('sidebar');
+  var contentEl = document.getElementById('content');
+
+  var sidebarToggle = document.getElementById('btn-sidebar-toggle');
+  if (sidebarToggle) {
+    sidebarToggle.addEventListener('click', function () {
+      if (window.innerWidth <= 640) {
+        sidebar.classList.toggle('murphy-sidebar-open');
+      } else {
+        sidebar.classList.toggle('murphy-sidebar-collapsed');
+        contentEl.style.marginLeft = sidebar.classList.contains('murphy-sidebar-collapsed')
+          ? '56px'
+          : 'var(--sidebar-width)';
+      }
+    });
+  }
+
+  var themeToggle = document.getElementById('btn-theme-toggle');
+  if (themeToggle) {
+    themeToggle.addEventListener('click', function () {
+      theme.toggle();
+    });
+  }
+
+  /* ===========================================================
+     2. HELPERS — HTML generation utilities
+     =========================================================== */
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+
+  function icon(name, size) {
+    size = size || 18;
+    return '<svg width="' + size + '" height="' + size + '"><use href="static/murphy-icons.svg#icon-' + esc(name) + '"></use></svg>';
+  }
+
+  function badge(text, variant) {
+    variant = variant || 'neutral';
+    return '<span class="murphy-badge murphy-badge-' + esc(variant) + '">' + esc(text) + '</span>';
+  }
+
+  function skeletonCards(n) {
+    var h = '';
+    for (var i = 0; i < (n || 4); i++) {
+      h += '<div class="murphy-skeleton-card murphy-skeleton"></div>';
+    }
+    return '<div class="grid gap-4" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));">' + h + '</div>';
+  }
+
+  function skeletonRows(n) {
+    var h = '';
+    for (var i = 0; i < (n || 6); i++) {
+      h += '<div class="murphy-skeleton murphy-skeleton-text"></div>';
+    }
+    return '<div class="flex flex-col gap-3 p-4">' + h + '</div>';
+  }
+
+  function emptyState(title, msg) {
+    return '<div class="murphy-empty-state">' +
+      '<div class="murphy-empty-state-icon">' + icon('search', 48) + '</div>' +
+      '<div class="murphy-empty-state-title">' + esc(title) + '</div>' +
+      '<div class="murphy-empty-state-message">' + esc(msg) + '</div>' +
+      '</div>';
+  }
+
+  function errorCard(message, retryHash) {
+    var rh = esc(retryHash || '');
+    return '<div class="murphy-card">' +
+      '<div class="murphy-card-body flex flex-col items-center gap-4 p-6">' +
+      '<div class="text-danger text-lg font-bold">' + icon('alert', 32) + ' Error</div>' +
+      '<p class="text-secondary text-sm">' + esc(message) + '</p>' +
+      '<button class="murphy-btn murphy-btn-primary" onclick="location.hash=\'' + rh + '\';navigate(\'' + rh.replace('#', '') + '\');">Retry</button>' +
+      '</div></div>';
+  }
+
+  function statCard(label, value, trendDir, trendText) {
+    var tc = trendDir === 'up' ? 'murphy-stat-card-trend-up' : (trendDir === 'down' ? 'murphy-stat-card-trend-down' : '');
+    var th = trendText ? '<div class="murphy-stat-card-trend ' + tc + '">' + esc(trendText) + '</div>' : '';
+    return '<div class="murphy-stat-card">' +
+      '<div class="murphy-stat-card-label">' + esc(label) + '</div>' +
+      '<div class="murphy-stat-card-value">' + esc(value) + '</div>' +
+      th +
+      '</div>';
+  }
+
+  function sectionHeader(title, subtitle) {
+    return '<div class="flex items-center justify-between mb-4">' +
+      '<div>' +
+      '<h2 class="text-xl font-bold">' + esc(title) + '</h2>' +
+      (subtitle ? '<p class="text-sm text-secondary">' + esc(subtitle) + '</p>' : '') +
+      '</div></div>';
+  }
+
+  function cardWrap(headerHtml, bodyHtml, footerHtml) {
+    var h = '<div class="murphy-card">';
+    if (headerHtml) h += '<div class="murphy-card-header">' + headerHtml + '</div>';
+    h += '<div class="murphy-card-body">' + bodyHtml + '</div>';
+    if (footerHtml) h += '<div class="murphy-card-footer">' + footerHtml + '</div>';
+    h += '</div>';
+    return h;
+  }
+
+  function tableHTML(columns, rows) {
+    var h = '<div class="murphy-table murphy-table-striped"><div class="murphy-table-header">';
+    columns.forEach(function (c) { h += '<div>' + esc(c.label) + '</div>'; });
+    h += '</div>';
+    if (!rows || rows.length === 0) {
+      h += '<div class="p-6 text-center text-muted text-sm">No data available</div>';
+    } else {
+      rows.forEach(function (row) {
+        h += '<div class="murphy-table-row">';
+        columns.forEach(function (c) {
+          var val = row[c.key];
+          h += '<div>' + (c.render ? c.render(val, row) : esc(val)) + '</div>';
+        });
+        h += '</div>';
+      });
+    }
+    h += '</div>';
+    return h;
+  }
+
+  /* ===========================================================
+     3. SIDEBAR CLICK HANDLER (mobile close)
+     =========================================================== */
+  var sidebar   = document.getElementById('sidebar');
+  var contentEl = document.getElementById('content');
+
+  sidebar.addEventListener('click', function (e) {
+    if (e.target.closest('.murphy-sidebar-item') && window.innerWidth <= 640) {
+      sidebar.classList.remove('murphy-sidebar-open');
+    }
+  });
+
+  /* ===========================================================
+     4. HASH ROUTER
+     =========================================================== */
+  var currentView = '';
+
+  var views = {
+    dashboard:  renderDashboard,
+    status:     renderStatus,
+    librarian:  renderLibrarian,
+    chat:       renderChat,
+    ip:         renderIP,
+    documents:  renderDocuments,
+    execute:    renderExecute
+  };
+
+  /* Exposed on window so the retry button can call it */
+  window.navigate = navigate;
+
+  function navigate(hash) {
+    hash = hash || 'dashboard';
+    if (!views[hash]) hash = 'dashboard';
+    currentView = hash;
+
+    sidebar.querySelectorAll('.murphy-sidebar-item').forEach(function (el) {
+      el.classList.toggle('murphy-sidebar-item-active', el.getAttribute('data-view') === hash);
+    });
+
+    librarian.setContext('terminal_enhanced#' + hash);
+    views[hash]();
+    setTimeout(function () { jargon.autoScan(); }, 200);
+  }
+
+  window.addEventListener('hashchange', function () {
+    navigate(location.hash.slice(1));
+  });
+
+  /* ===========================================================
+     5. VIEW: DASHBOARD
+     =========================================================== */
+  async function renderDashboard() {
+    contentEl.innerHTML = sectionHeader('Dashboard', 'System overview and quick actions') + skeletonCards(4);
+    try {
+      var res  = await api.get('/status');
+      var data = (res && res.data) || res || {};
+
+      var modulesLoaded = data.modules_loaded != null ? data.modules_loaded : (data.modules ? data.modules.length : '\u2014');
+      var uptime        = data.uptime        != null ? data.uptime : '\u2014';
+      var activeTasks   = data.active_tasks   != null ? data.active_tasks : '\u2014';
+      var healthPct     = data.health         != null ? data.health + '%' : '\u2014';
+      var highLoad      = typeof activeTasks === 'number' && activeTasks > 10;
+
+      var html = sectionHeader('Dashboard', 'System overview and quick actions');
+
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+      html += statCard('Modules Loaded', modulesLoaded);
+      html += statCard('Uptime', uptime);
+      html += statCard('Active Tasks', activeTasks, highLoad ? 'up' : null, highLoad ? 'High load' : '');
+      html += statCard('System Health', healthPct);
+      html += '</div>';
+
+      /* Health status */
+      try {
+        var hRes  = await api.get('/health');
+        var hData = (hRes && hRes.data) || hRes || {};
+        var healthStatus = hData.status || hData.health || 'unknown';
+        html += cardWrap('Health Status',
+          '<div class="flex items-center gap-3">' +
+          icon('activity', 24) +
+          '<span class="font-bold">' + esc(healthStatus) + '</span> ' +
+          badge(healthStatus === 'healthy' || healthStatus === 'ok' ? 'Healthy' : healthStatus, healthStatus === 'healthy' || healthStatus === 'ok' ? 'success' : 'warning') +
+          '</div>'
+        );
+      } catch (_) { /* health endpoint optional */ }
+
+      /* Quick actions */
+      html += '<div class="flex flex-wrap gap-3 mt-6">';
+      html += '<a href="#librarian" class="murphy-btn murphy-btn-primary">' + icon('search') + ' Ask Librarian</a>';
+      html += '<a href="#chat" class="murphy-btn murphy-btn-secondary">' + icon('message-circle') + ' Open Chat</a>';
+      html += '<a href="#ip" class="murphy-btn murphy-btn-secondary">' + icon('layers') + ' IP Assets</a>';
+      html += '<a href="#execute" class="murphy-btn murphy-btn-secondary">' + icon('terminal') + ' Raw API</a>';
+      html += '</div>';
+
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Dashboard') + errorCard(e.message, '#dashboard');
+    }
+  }
+
+  /* ===========================================================
+     6. VIEW: SYSTEM STATUS
+     =========================================================== */
+  async function renderStatus() {
+    contentEl.innerHTML = sectionHeader('System Status') + skeletonRows(6);
+    try {
+      var res  = await api.get('/status');
+      var hRes = await api.get('/health');
+      var data  = (res  && res.data)  || res  || {};
+      var hData = (hRes && hRes.data) || hRes || {};
+
+      var html = sectionHeader('System Status', 'Health and module information');
+
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+      html += statCard('Overall Health', (hData.health || data.health || '\u2014') + '%');
+      html += statCard('Uptime', hData.uptime || data.uptime || '\u2014');
+      html += statCard('API Latency', (hData.latency_ms || data.latency_ms || '\u2014') + ' ms');
+      html += '</div>';
+
+      var modules = data.modules || hData.modules || [];
+      if (modules.length) {
+        html += cardWrap('Modules', tableHTML(
+          [
+            { key: 'name', label: 'Module' },
+            { key: 'status', label: 'Status', render: function (v) { return badge(v || 'unknown', v === 'running' || v === 'healthy' ? 'success' : (v === 'error' ? 'danger' : 'warning')); } },
+            { key: 'version', label: 'Version' }
+          ],
+          modules
+        ));
+      } else {
+        html += emptyState('No Modules', 'Module status data is not available.');
+      }
+
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('System Status') + errorCard(e.message, '#status');
+    }
+  }
+
+  /* ===========================================================
+     7. VIEW: LIBRARIAN
+     =========================================================== */
+  var librarianHistory = [];
+
+  async function renderLibrarian() {
+    var html = sectionHeader('Librarian', 'Knowledge base search and inquiry');
+    html += '<div class="murphy-card mb-4"><div class="murphy-card-body">';
+    html += '<label class="murphy-label" for="lib-query">Ask the Librarian</label>';
+    html += '<div class="flex gap-3">';
+    html += '<input type="text" class="murphy-input flex-1" id="lib-query" placeholder="Ask a question\u2026" autocomplete="off">';
+    html += '<button class="murphy-btn murphy-btn-primary" id="lib-ask">' + icon('search') + ' Ask</button>';
+    html += '</div></div></div>';
+    html += '<div id="lib-results"></div>';
+
+    /* Render past questions */
+    if (librarianHistory.length) {
+      html += '<div class="mt-6">' + sectionHeader('History', 'Previous questions');
+      librarianHistory.slice().reverse().forEach(function (entry) {
+        html += cardWrap(
+          '<div class="flex items-center gap-2">' + icon('search') + ' <span class="font-bold">' + esc(entry.question) + '</span></div>',
+          '<div class="text-sm" style="white-space:pre-wrap;">' + esc(entry.answer) + '</div>'
+        );
+      });
+      html += '</div>';
+    }
+
+    contentEl.innerHTML = html;
+
+    var queryInput = document.getElementById('lib-query');
+    var resultsEl  = document.getElementById('lib-results');
+    var askBtn     = document.getElementById('lib-ask');
+
+    async function doAsk() {
+      var q = queryInput.value.trim();
+      if (!q) return;
+      resultsEl.innerHTML = skeletonRows(4);
+      askBtn.classList.add('murphy-btn-loading');
+      try {
+        var res = await api.post('/librarian/ask', { question: q });
+        var d = (res && res.data) || res || {};
+        var answer = d.answer || d.response || JSON.stringify(d, null, 2);
+        librarianHistory.push({ question: q, answer: answer });
+        resultsEl.innerHTML = cardWrap('Answer', '<div class="text-sm" style="white-space:pre-wrap;">' + esc(answer) + '</div>');
+      } catch (e) {
+        resultsEl.innerHTML = errorCard(e.message, '#librarian');
+      }
+      askBtn.classList.remove('murphy-btn-loading');
+      queryInput.value = '';
+    }
+
+    askBtn.addEventListener('click', doAsk);
+    queryInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doAsk(); });
+    queryInput.focus();
+  }
+
+  /* ===========================================================
+     8. VIEW: CHAT
+     =========================================================== */
+  var chatMessages = [];
+
+  async function renderChat() {
+    var html = sectionHeader('Chat', 'Conversational interface');
+    html += '<div class="murphy-card mb-4"><div class="murphy-card-body" id="chat-messages" style="min-height:300px;max-height:500px;overflow:auto;">';
+    if (!chatMessages.length) {
+      html += '<div class="text-sm text-muted text-center p-4">No messages yet. Start a conversation below.</div>';
+    } else {
+      chatMessages.forEach(function (msg) {
+        var isUser = msg.role === 'user';
+        html += '<div class="flex ' + (isUser ? 'justify-end' : 'justify-start') + ' mb-3">';
+        html += '<div class="murphy-card" style="max-width:70%;display:inline-block;">';
+        html += '<div class="murphy-card-body">';
+        html += '<div class="text-xs text-muted mb-1">' + esc(isUser ? 'You' : 'Assistant') + '</div>';
+        html += '<div class="text-sm" style="white-space:pre-wrap;">' + esc(msg.content) + '</div>';
+        html += '</div></div></div>';
+      });
+    }
+    html += '</div></div>';
+    html += '<div class="murphy-card"><div class="murphy-card-body">';
+    html += '<div class="flex gap-3">';
+    html += '<input type="text" class="murphy-input flex-1" id="chat-input" placeholder="Type a message\u2026" autocomplete="off">';
+    html += '<button class="murphy-btn murphy-btn-primary" id="chat-send">' + icon('message-circle') + ' Send</button>';
+    html += '</div></div></div>';
+
+    contentEl.innerHTML = html;
+
+    var chatInput  = document.getElementById('chat-input');
+    var sendBtn    = document.getElementById('chat-send');
+    var messagesEl = document.getElementById('chat-messages');
+
+    /* Scroll to bottom */
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+
+    async function sendMessage() {
+      var text = chatInput.value.trim();
+      if (!text) return;
+
+      chatMessages.push({ role: 'user', content: text });
+      chatInput.value = '';
+      sendBtn.classList.add('murphy-btn-loading');
+
+      /* Re-render messages */
+      var mHtml = '';
+      chatMessages.forEach(function (msg) {
+        var isUser = msg.role === 'user';
+        mHtml += '<div class="flex ' + (isUser ? 'justify-end' : 'justify-start') + ' mb-3">';
+        mHtml += '<div class="murphy-card" style="max-width:70%;display:inline-block;">';
+        mHtml += '<div class="murphy-card-body">';
+        mHtml += '<div class="text-xs text-muted mb-1">' + esc(isUser ? 'You' : 'Assistant') + '</div>';
+        mHtml += '<div class="text-sm" style="white-space:pre-wrap;">' + esc(msg.content) + '</div>';
+        mHtml += '</div></div></div>';
+      });
+      messagesEl.innerHTML = mHtml;
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+
+      try {
+        var res = await api.post('/chat', { message: text, history: chatMessages });
+        var d = (res && res.data) || res || {};
+        var reply = d.reply || d.response || d.message || d.answer || JSON.stringify(d, null, 2);
+        chatMessages.push({ role: 'assistant', content: reply });
+      } catch (e) {
+        chatMessages.push({ role: 'assistant', content: 'Error: ' + e.message });
+      }
+
+      /* Re-render with response */
+      mHtml = '';
+      chatMessages.forEach(function (msg) {
+        var isUser = msg.role === 'user';
+        mHtml += '<div class="flex ' + (isUser ? 'justify-end' : 'justify-start') + ' mb-3">';
+        mHtml += '<div class="murphy-card" style="max-width:70%;display:inline-block;">';
+        mHtml += '<div class="murphy-card-body">';
+        mHtml += '<div class="text-xs text-muted mb-1">' + esc(isUser ? 'You' : 'Assistant') + '</div>';
+        mHtml += '<div class="text-sm" style="white-space:pre-wrap;">' + esc(msg.content) + '</div>';
+        mHtml += '</div></div></div>';
+      });
+      messagesEl.innerHTML = mHtml;
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      sendBtn.classList.remove('murphy-btn-loading');
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendMessage(); });
+    chatInput.focus();
+  }
+
+  /* ===========================================================
+     9. VIEW: IP MANAGEMENT
+     =========================================================== */
+  async function renderIP() {
+    contentEl.innerHTML = sectionHeader('IP Management') + skeletonRows(6);
+    try {
+      var res;
+      try {
+        res = await api.get('/ip/assets');
+      } catch (_) {
+        res = await api.get('/ip/list');
+      }
+      var data  = (res && res.data) || res || {};
+      var items = data.assets || data.items || data.list || (Array.isArray(data) ? data : []);
+      var html  = sectionHeader('IP Management', 'Intellectual property asset tracking');
+
+      if (!items.length) {
+        html += emptyState('No IP Assets', 'No intellectual property assets have been registered.');
+      } else {
+        html += tableHTML(
+          [
+            { key: 'name',    label: 'Name' },
+            { key: 'type',    label: 'Type', render: function (v) { return badge(v || 'unknown', 'neutral'); } },
+            { key: 'status',  label: 'Status', render: function (v) { return badge(v || 'unknown', v === 'active' || v === 'registered' ? 'success' : (v === 'pending' ? 'warning' : 'neutral')); } },
+            { key: 'created', label: 'Created' }
+          ],
+          items
+        );
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('IP Management') + errorCard(e.message, '#ip');
+    }
+  }
+
+  /* ===========================================================
+     10. VIEW: DOCUMENTS
+     =========================================================== */
+  async function renderDocuments() {
+    contentEl.innerHTML = sectionHeader('Documents') + skeletonRows(6);
+    try {
+      var res   = await api.get('/documents/list');
+      var data  = (res && res.data) || res || {};
+      var items = data.documents || data.items || data.list || (Array.isArray(data) ? data : []);
+      var html  = sectionHeader('Documents', 'Document repository');
+
+      if (!items.length) {
+        html += emptyState('No Documents', 'No documents are available.');
+      } else {
+        html += tableHTML(
+          [
+            { key: 'name',    label: 'Name' },
+            { key: 'type',    label: 'Type' },
+            { key: 'size',    label: 'Size' },
+            { key: 'updated', label: 'Updated' }
+          ],
+          items
+        );
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Documents') + errorCard(e.message, '#documents');
+    }
+  }
+
+  /* ===========================================================
+     11. VIEW: RAW API (EXECUTE)
+     =========================================================== */
+  var executeHistory = [];
+
+  async function renderExecute() {
+    var html = sectionHeader('Raw API', 'Execute commands against the system');
+    html += '<div class="murphy-card mb-4"><div class="murphy-card-body">';
+    html += '<label class="murphy-label" for="exec-cmd">Command</label>';
+    html += '<div class="flex gap-3">';
+    html += '<input type="text" class="murphy-input flex-1" id="exec-cmd" placeholder="Enter command\u2026" autocomplete="off">';
+    html += '<button class="murphy-btn murphy-btn-primary" id="exec-run">' + icon('play') + ' Run</button>';
+    html += '</div></div></div>';
+    html += '<div class="murphy-card"><div class="murphy-card-header">Output</div>';
+    html += '<div class="murphy-card-body"><pre id="exec-output" class="murphy-terminal-output" style="min-height:200px;max-height:500px;overflow:auto;white-space:pre-wrap;">Ready.</pre>';
+    html += '</div></div>';
+
+    /* Render history */
+    if (executeHistory.length) {
+      html += '<div class="mt-6">' + sectionHeader('Recent Commands');
+      executeHistory.slice().reverse().forEach(function (entry) {
+        html += cardWrap(
+          '<code class="text-sm font-bold">' + esc(entry.command) + '</code>',
+          '<pre class="text-sm" style="white-space:pre-wrap;max-height:200px;overflow:auto;">' + esc(entry.result) + '</pre>'
+        );
+      });
+      html += '</div>';
+    }
+
+    contentEl.innerHTML = html;
+
+    var cmdInput = document.getElementById('exec-cmd');
+    var outputEl = document.getElementById('exec-output');
+    var runBtn   = document.getElementById('exec-run');
+
+    async function runCommand() {
+      var cmd = cmdInput.value.trim();
+      if (!cmd) return;
+      outputEl.textContent = 'Executing\u2026';
+      runBtn.classList.add('murphy-btn-loading');
+      try {
+        var res = await api.post('/execute', { command: cmd });
+        var d = (res && res.data) || res || {};
+        var result = d.output || d.result || JSON.stringify(d, null, 2);
+        outputEl.textContent = result;
+        executeHistory.push({ command: cmd, result: result });
+      } catch (e) {
+        outputEl.textContent = 'Error: ' + e.message;
+        executeHistory.push({ command: cmd, result: 'Error: ' + e.message });
+      }
+      runBtn.classList.remove('murphy-btn-loading');
+      cmdInput.value = '';
+    }
+
+    runBtn.addEventListener('click', runCommand);
+    cmdInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') runCommand(); });
+    cmdInput.focus();
+  }
+
+  /* ===========================================================
+     12. BOOT — initial navigation
+     =========================================================== */
+  navigate(location.hash.slice(1) || 'dashboard');
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1413 @@
+<!-- Murphy System — Compliance Dashboard / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!--
+  Murphy System — Compliance & Regulatory Settings
+  © 2020 Inoni Limited Liability Company by Corey Post
+  License: BSL 1.1 (Business Source License 1.1)
+  See LICENSE file in repository root for full terms.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Compliance &amp; Regulatory Settings</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  /* Color Key: green=#00ff41, cyan=#00ffff, teal=#00D4AA, bg=#0a0a0a */
+  .murphy-terminal, .murphy-output, pre, code {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+  }
+  textarea, input[type="text"] {
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
+    color: #00ff41;
+    background: #0a0a0a;
+  }
+  *:focus-visible { outline: 2px solid #00ff41; outline-offset: 2px; }
+
+  /* ── Layout ── */
+  .compliance-layout {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 1.5rem;
+    align-items: start;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem;
+  }
+  .compliance-main { min-width: 0; }
+
+  /* ── Breadcrumb ── */
+  .murphy-breadcrumb {
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
+    font-size: 0.78rem;
+    color: #666;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .murphy-breadcrumb a { color: #00D4AA; text-decoration: none; }
+  .murphy-breadcrumb a:hover { text-decoration: underline; }
+  .murphy-breadcrumb-sep { color: #444; }
+
+  /* ── Page Heading ── */
+  .compliance-page-title {
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #00ffff;
+    margin: 0 0 1.5rem;
+    letter-spacing: 0.02em;
+  }
+
+  /* ── Auto-Detection Banner ── */
+  .compliance-banner {
+    background: rgba(255, 196, 0, 0.08);
+    border: 1px solid rgba(255, 196, 0, 0.35);
+    border-left: 3px solid #ffc400;
+    border-radius: 6px;
+    padding: 0.9rem 1.1rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+    flex-wrap: wrap;
+  }
+  .compliance-banner-icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    margin-top: 0.05rem;
+  }
+  .compliance-banner-text {
+    flex: 1;
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
+    font-size: 0.82rem;
+    color: #e0c97f;
+    line-height: 1.5;
+    min-width: 200px;
+  }
+  .compliance-banner-actions { flex-shrink: 0; }
+
+  /* ── Collapsible Sections ── */
+  .compliance-section {
+    margin-bottom: 1.25rem;
+    border: 1px solid #1a1a1a;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #0e0e0e;
+  }
+  .compliance-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1.1rem;
+    background: #111;
+    cursor: pointer;
+    border: none;
+    width: 100%;
+    text-align: left;
+    gap: 0.75rem;
+    border-bottom: 1px solid #1a1a1a;
+    transition: background 0.15s;
+  }
+  .compliance-section-header:hover { background: #161616; }
+  .compliance-section-header[aria-expanded="false"] { border-bottom-color: transparent; }
+  .compliance-section-title-text {
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #00ff41;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .compliance-section-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-left: auto;
+  }
+  .compliance-section-count {
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
+    font-size: 0.72rem;
+    color: #555;
+    background: #1a1a1a;
+    border-radius: 20px;
+    padding: 0.1rem 0.55rem;
+  }
+  .compliance-chevron {
+    color: #444;
+    font-size: 0.7rem;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .compliance-section-header[aria-expanded="true"] .compliance-chevron { transform: rotate(180deg); color: #00ff41; }
+  .compliance-section-body { padding: 1rem; }
+  .compliance-section-body[hidden] { display: none; }
+
+  /* ── Toggle Grid ── */
+  .toggle-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 0.6rem;
+  }
+
+  /* ── Toggle Item ── */
+  .toggle-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.7rem 0.85rem;
+    background: #0a0a0a;
+    border: 1px solid #1c1c1c;
+    border-radius: 6px;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+  .toggle-item:has(.framework-toggle:checked) {
+    border-color: rgba(0, 212, 170, 0.3);
+    background: rgba(0, 212, 170, 0.04);
+  }
+  .toggle-item-info { flex: 1; min-width: 0; }
+  .toggle-item-name {
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #e0e0e0;
+    display: block;
+    line-height: 1.3;
+  }
+  .toggle-item-desc {
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
+    font-size: 0.72rem;
+    color: #555;
+    display: block;
+    margin-top: 0.18rem;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .toggle-item-badge {
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 0.1rem 0.42rem;
+    border-radius: 3px;
+    display: inline-block;
+    margin-top: 0.3rem;
+    background: #111;
+    color: #00D4AA;
+    border: 1px solid rgba(0, 212, 170, 0.25);
+  }
+  .toggle-item-badge[data-scope="EU"]   { color: #4d9de0; border-color: rgba(77,157,224,0.3); }
+  .toggle-item-badge[data-scope="US"]   { color: #e07b4d; border-color: rgba(224,123,77,0.3); }
+  .toggle-item-badge[data-scope="US-CA"]{ color: #e07b4d; border-color: rgba(224,123,77,0.3); }
+  .toggle-item-badge[data-scope="Global"]{ color: #00ff41; border-color: rgba(0,255,65,0.25); }
+  .toggle-item-badge[data-scope="BR"]   { color: #7cc47e; border-color: rgba(124,196,126,0.3); }
+  .toggle-item-badge[data-scope="CA"]   { color: #e8bb4e; border-color: rgba(232,187,78,0.3); }
+  .toggle-item-badge[data-scope="AU"]   { color: #c47cc4; border-color: rgba(196,124,196,0.3); }
+  .toggle-item-badge[data-scope="JP"]   { color: #c4a97c; border-color: rgba(196,169,124,0.3); }
+  .toggle-item-badge[data-scope="ZA"]   { color: #7cc4b8; border-color: rgba(124,196,184,0.3); }
+  .toggle-item-badge[data-scope="SG/TH"]{ color: #a07cc4; border-color: rgba(160,124,196,0.3); }
+  .toggle-item-badge[data-scope="DE"]   { color: #c47c7c; border-color: rgba(196,124,124,0.3); }
+
+  /* ── Toggle Switch ── */
+  .toggle-switch-wrap {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+  }
+  .toggle-switch-wrap input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    cursor: pointer;
+    z-index: 1;
+  }
+  .toggle-track {
+    display: block;
+    width: 36px;
+    height: 20px;
+    background: #222;
+    border: 1px solid #333;
+    border-radius: 10px;
+    transition: background 0.2s, border-color 0.2s;
+    pointer-events: none;
+    position: relative;
+  }
+  .toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: #555;
+    border-radius: 50%;
+    transition: transform 0.2s, background 0.2s;
+    pointer-events: none;
+  }
+  .toggle-switch-wrap input:checked ~ .toggle-track { background: rgba(0,212,170,0.2); border-color: #00D4AA; }
+  .toggle-switch-wrap input:checked ~ .toggle-track .toggle-thumb { transform: translateX(16px); background: #00D4AA; }
+  .toggle-switch-wrap input:focus-visible ~ .toggle-track { outline: 2px solid #00ff41; outline-offset: 2px; }
+
+  /* ── Status Sidebar ── */
+  .compliance-sidebar {
+    position: sticky;
+    top: 1.5rem;
+  }
+  .compliance-status-card {
+    background: #0e0e0e;
+    border: 1px solid #1a1a1a;
+    border-radius: 8px;
+    padding: 1.1rem;
+    margin-bottom: 1rem;
+  }
+  .compliance-status-title {
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #00ff41;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 0.9rem;
+  }
+  .compliance-status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.6rem;
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
+    font-size: 0.8rem;
+  }
+  .compliance-status-label { color: #555; }
+  .compliance-status-value { color: #00ffff; font-weight: 700; }
+  .compliance-enabled-bar {
+    height: 4px;
+    background: #1a1a1a;
+    border-radius: 2px;
+    overflow: hidden;
+    margin: 0.75rem 0 0.4rem;
+  }
+  .compliance-enabled-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00D4AA, #00ff41);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+  .compliance-enabled-pct {
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
+    font-size: 0.68rem;
+    color: #444;
+    text-align: right;
+  }
+
+  /* ── Toast ── */
+  .compliance-toast {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    background: #111;
+    border: 1px solid #1e1e1e;
+    border-radius: 8px;
+    padding: 0.8rem 1.1rem;
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
+    font-size: 0.82rem;
+    color: #e0e0e0;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    z-index: 9999;
+    max-width: 320px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    transform: translateY(0);
+    transition: opacity 0.3s, transform 0.3s;
+  }
+  .compliance-toast.toast-success { border-left: 3px solid #00D4AA; }
+  .compliance-toast.toast-error   { border-left: 3px solid #ff4141; }
+  .compliance-toast.toast-hidden  { opacity: 0; transform: translateY(8px); pointer-events: none; }
+  .compliance-toast-icon { font-size: 1rem; }
+
+  /* ── Mobile ── */
+  @media (max-width: 480px) {
+    .compliance-layout {
+      grid-template-columns: 1fr;
+      padding: 1rem;
+    }
+    .compliance-sidebar { position: static; }
+    .compliance-page-title { font-size: 1.2rem; }
+    .toggle-grid { grid-template-columns: 1fr; }
+    .compliance-banner { flex-direction: column; gap: 0.6rem; }
+  }
+  @media (max-width: 900px) {
+    .compliance-layout { grid-template-columns: 1fr; }
+    .compliance-sidebar { position: static; }
+  }
+</style>
+</head>
+<body class="murphy-no-sidebar">
+
+<!-- Murphy error banner — shown automatically on 5xx fetch errors -->
+<div id="murphy-error-banner" role="alert" aria-live="assertive" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#c0392b;color:#fff;padding:10px 16px;font-size:14px;align-items:center;gap:12px;">
+  <span id="murphy-error-banner-msg" style="flex:1"></span>
+  <button onclick="document.getElementById('murphy-error-banner').style.display='none'" aria-label="Dismiss" style="background:transparent;border:1px solid rgba(255,255,255,0.6);color:#fff;cursor:pointer;padding:2px 8px;border-radius:3px;font-size:13px;">✕</button>
+</div>
+<script>
+function showMurphyError(msg) {
+  var b = document.getElementById('murphy-error-banner');
+  document.getElementById('murphy-error-banner-msg').textContent = msg || 'An unexpected error occurred.';
+  b.style.display = 'flex';
+}
+(function() {
+  var _origFetch = window.fetch;
+  window.fetch = function() {
+    return _origFetch.apply(this, arguments).then(function(resp) {
+      if (resp.status >= 500) showMurphyError('Server error (' + resp.status + ') — ' + resp.url.split('?')[0]);
+      return resp;
+    });
+  };
+})();
+</script>
+
+<!-- Skip link -->
+<a class="murphy-skip-link" href="#compliance-content">Skip to content</a>
+
+<!-- ── Top Navigation Bar ── -->
+<nav class="murphy-topbar" role="navigation" aria-label="Main navigation">
+  <div class="murphy-topbar-left flex items-center gap-3">
+    <a href="/ui/landing" class="murphy-topbar-brand">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="var(--teal)"/>
+        <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700" font-family="Inter, sans-serif">M</text>
+      </svg>
+      <span class="murphy-topbar-brand-name">Murphy System</span>
+    </a>
+    <div class="murphy-nav-links nav-links-desktop">
+      <a href="/ui/landing" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Home</a>
+      <a href="/ui/terminal-unified"    class="murphy-btn murphy-btn-ghost murphy-btn-sm">Terminal</a>
+      <a href="/ui/onboarding"   class="murphy-btn murphy-btn-ghost murphy-btn-sm">Onboarding</a>
+      <a href="#" aria-current="page"    class="murphy-btn murphy-btn-ghost murphy-btn-sm" style="color:#00D4AA;">Compliance</a>
+    </div>
+  </div>
+  <div class="murphy-topbar-right flex items-center gap-2">
+    <button class="murphy-btn murphy-btn-ghost murphy-btn-icon" id="theme-toggle-btn" aria-label="Toggle theme" title="Toggle theme">🌙</button>
+    <a href="/ui/onboarding" class="murphy-btn murphy-btn-primary murphy-btn-sm">Get Started</a>
+  </div>
+</nav>
+
+<!-- ── Main Content ── -->
+<main id="compliance-content" role="main" aria-label="Compliance and regulatory settings">
+
+  <div class="compliance-layout">
+
+    <!-- ── Left: Sections ── -->
+    <div class="compliance-main">
+
+      <!-- Breadcrumb -->
+      <nav aria-label="Breadcrumb" class="murphy-breadcrumb">
+        <a href="/ui/landing">Dashboard</a>
+        <span class="murphy-breadcrumb-sep" aria-hidden="true">›</span>
+        <span aria-current="page">Compliance Settings</span>
+      </nav>
+
+      <h1 class="compliance-page-title" id="page-heading">Compliance &amp; Regulatory Settings</h1>
+
+      <!-- ── Auto-Detection Banner ── -->
+      <div class="compliance-banner" role="region" aria-label="Auto-detection status">
+        <span class="compliance-banner-icon" aria-hidden="true">⚡</span>
+        <p class="compliance-banner-text">
+          Select your country and industry below, then click <strong>Refresh Detection</strong> to get recommended compliance frameworks.
+        </p>
+        <div class="compliance-banner-actions" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <select id="detect-country" aria-label="Country" style="padding:4px 8px;border-radius:4px;border:1px solid var(--border-default,#333);background:var(--bg-surface,#1a1a2e);color:var(--text-primary,#eee);font-size:13px;">
+            <option value="">— Country —</option>
+            <option value="US">United States</option>
+            <option value="GB">United Kingdom</option>
+            <option value="DE">Germany</option>
+            <option value="FR">France</option>
+            <option value="CA">Canada</option>
+            <option value="AU">Australia</option>
+            <option value="JP">Japan</option>
+            <option value="SG">Singapore</option>
+            <option value="BR">Brazil</option>
+            <option value="IN">India</option>
+            <option value="EU">EU (General)</option>
+          </select>
+          <select id="detect-industry" aria-label="Industry" style="padding:4px 8px;border-radius:4px;border:1px solid var(--border-default,#333);background:var(--bg-surface,#1a1a2e);color:var(--text-primary,#eee);font-size:13px;">
+            <option value="">— Industry —</option>
+            <option value="technology">Technology</option>
+            <option value="finance">Finance &amp; Banking</option>
+            <option value="healthcare">Healthcare</option>
+            <option value="retail">Retail &amp; E-Commerce</option>
+            <option value="manufacturing">Manufacturing</option>
+            <option value="energy">Energy</option>
+            <option value="education">Education</option>
+            <option value="government">Government</option>
+            <option value="legal">Legal</option>
+            <option value="media">Media &amp; Entertainment</option>
+          </select>
+          <button
+            class="murphy-btn murphy-btn-ghost murphy-btn-sm"
+            id="refresh-detection-btn"
+            aria-label="Refresh auto-detected compliance recommendations"
+          >
+            ↺ Refresh Detection
+          </button>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════ -->
+      <!-- SECTION 1 — Data Privacy                          -->
+      <!-- ══════════════════════════════════════════════════ -->
+      <section class="compliance-section" aria-labelledby="section-privacy">
+        <button
+          class="compliance-section-header"
+          aria-expanded="true"
+          aria-controls="body-privacy"
+          id="section-privacy"
+          type="button"
+        >
+          <span class="compliance-section-title-text">🔒 Data Privacy</span>
+          <span class="compliance-section-meta">
+            <span class="compliance-section-count" id="count-privacy" aria-live="polite" aria-label="Enabled count for Data Privacy section">0 / 11</span>
+            <span class="compliance-chevron" aria-hidden="true">▼</span>
+          </span>
+        </button>
+        <div class="compliance-section-body" id="body-privacy" role="region" aria-labelledby="section-privacy">
+          <div class="toggle-grid" role="list">
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-gdpr" data-framework-id="gdpr" checked aria-describedby="desc-gdpr">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-gdpr" class="toggle-item-info">
+                <span class="toggle-item-name">GDPR (EU)</span>
+                <span class="toggle-item-desc" id="desc-gdpr">General Data Protection Regulation</span>
+                <span class="toggle-item-badge" data-scope="EU">EU</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-ccpa" data-framework-id="ccpa" checked aria-describedby="desc-ccpa">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-ccpa" class="toggle-item-info">
+                <span class="toggle-item-name">CCPA/CPRA (California)</span>
+                <span class="toggle-item-desc" id="desc-ccpa">California Consumer Privacy Rights Act</span>
+                <span class="toggle-item-badge" data-scope="US-CA">US-CA</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-lgpd" data-framework-id="lgpd" aria-describedby="desc-lgpd">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-lgpd" class="toggle-item-info">
+                <span class="toggle-item-name">LGPD (Brazil)</span>
+                <span class="toggle-item-desc" id="desc-lgpd">Lei Geral de Proteção de Dados</span>
+                <span class="toggle-item-badge" data-scope="BR">BR</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-pipeda" data-framework-id="pipeda" aria-describedby="desc-pipeda">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-pipeda" class="toggle-item-info">
+                <span class="toggle-item-name">PIPEDA (Canada)</span>
+                <span class="toggle-item-desc" id="desc-pipeda">Personal Information Protection</span>
+                <span class="toggle-item-badge" data-scope="CA">CA</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-privacy_act_au" data-framework-id="privacy_act_au" aria-describedby="desc-privacy_act_au">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-privacy_act_au" class="toggle-item-info">
+                <span class="toggle-item-name">Privacy Act (Australia)</span>
+                <span class="toggle-item-desc" id="desc-privacy_act_au">Australian Privacy Principles Act</span>
+                <span class="toggle-item-badge" data-scope="AU">AU</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-appi" data-framework-id="appi" aria-describedby="desc-appi">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-appi" class="toggle-item-info">
+                <span class="toggle-item-name">APPI (Japan)</span>
+                <span class="toggle-item-desc" id="desc-appi">Act on Protection of Personal Information</span>
+                <span class="toggle-item-badge" data-scope="JP">JP</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-popia" data-framework-id="popia" aria-describedby="desc-popia">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-popia" class="toggle-item-info">
+                <span class="toggle-item-name">POPIA (South Africa)</span>
+                <span class="toggle-item-desc" id="desc-popia">Protection of Personal Information Act</span>
+                <span class="toggle-item-badge" data-scope="ZA">ZA</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-pdpa" data-framework-id="pdpa" aria-describedby="desc-pdpa">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-pdpa" class="toggle-item-info">
+                <span class="toggle-item-name">PDPA (Singapore/Thailand)</span>
+                <span class="toggle-item-desc" id="desc-pdpa">Personal Data Protection Act</span>
+                <span class="toggle-item-badge" data-scope="SG/TH">SG/TH</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-coppa" data-framework-id="coppa" aria-describedby="desc-coppa">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-coppa" class="toggle-item-info">
+                <span class="toggle-item-name">COPPA (US)</span>
+                <span class="toggle-item-desc" id="desc-coppa">Children's Online Privacy Protection</span>
+                <span class="toggle-item-badge" data-scope="US">US</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-ferpa" data-framework-id="ferpa" aria-describedby="desc-ferpa">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-ferpa" class="toggle-item-info">
+                <span class="toggle-item-name">FERPA (US)</span>
+                <span class="toggle-item-desc" id="desc-ferpa">Family Educational Rights and Privacy</span>
+                <span class="toggle-item-badge" data-scope="US">US</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-dsgvo" data-framework-id="dsgvo" aria-describedby="desc-dsgvo">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-dsgvo" class="toggle-item-info">
+                <span class="toggle-item-name">DSGVO (Germany)</span>
+                <span class="toggle-item-desc" id="desc-dsgvo">German GDPR Implementation</span>
+                <span class="toggle-item-badge" data-scope="DE">DE</span>
+              </label>
+            </div>
+
+          </div><!-- /.toggle-grid -->
+        </div><!-- /#body-privacy -->
+      </section>
+
+      <!-- ══════════════════════════════════════════════════ -->
+      <!-- SECTION 2 — Financial & Payment                   -->
+      <!-- ══════════════════════════════════════════════════ -->
+      <section class="compliance-section" aria-labelledby="section-financial">
+        <button
+          class="compliance-section-header"
+          aria-expanded="true"
+          aria-controls="body-financial"
+          id="section-financial"
+          type="button"
+        >
+          <span class="compliance-section-title-text">💳 Financial &amp; Payment</span>
+          <span class="compliance-section-meta">
+            <span class="compliance-section-count" id="count-financial" aria-live="polite" aria-label="Enabled count for Financial section">0 / 8</span>
+            <span class="compliance-chevron" aria-hidden="true">▼</span>
+          </span>
+        </button>
+        <div class="compliance-section-body" id="body-financial" role="region" aria-labelledby="section-financial">
+          <div class="toggle-grid" role="list">
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-pci_dss" data-framework-id="pci_dss" aria-describedby="desc-pci_dss">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-pci_dss" class="toggle-item-info">
+                <span class="toggle-item-name">PCI-DSS</span>
+                <span class="toggle-item-desc" id="desc-pci_dss">Payment Card Industry Data Security Standard</span>
+                <span class="toggle-item-badge" data-scope="Global">Global</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-sox" data-framework-id="sox" aria-describedby="desc-sox">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-sox" class="toggle-item-info">
+                <span class="toggle-item-name">SOX (Sarbanes-Oxley)</span>
+                <span class="toggle-item-desc" id="desc-sox">Financial Reporting</span>
+                <span class="toggle-item-badge" data-scope="US">US</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-aml_kyc" data-framework-id="aml_kyc" aria-describedby="desc-aml_kyc">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-aml_kyc" class="toggle-item-info">
+                <span class="toggle-item-name">AML/KYC</span>
+                <span class="toggle-item-desc" id="desc-aml_kyc">Anti-Money Laundering / Know Your Customer</span>
+                <span class="toggle-item-badge" data-scope="Global">Global</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-glba" data-framework-id="glba" aria-describedby="desc-glba">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-glba" class="toggle-item-info">
+                <span class="toggle-item-name">GLBA</span>
+                <span class="toggle-item-desc" id="desc-glba">Gramm-Leach-Bliley Act</span>
+                <span class="toggle-item-badge" data-scope="US">US</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-basel_iii" data-framework-id="basel_iii" aria-describedby="desc-basel_iii">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-basel_iii" class="toggle-item-info">
+                <span class="toggle-item-name">Basel III</span>
+                <span class="toggle-item-desc" id="desc-basel_iii">Banking Capital Requirements</span>
+                <span class="toggle-item-badge" data-scope="Global">Global</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-mifid_ii" data-framework-id="mifid_ii" aria-describedby="desc-mifid_ii">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-mifid_ii" class="toggle-item-info">
+                <span class="toggle-item-name">MiFID II (EU)</span>
+                <span class="toggle-item-desc" id="desc-mifid_ii">Markets in Financial Instruments Directive</span>
+                <span class="toggle-item-badge" data-scope="EU">EU</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-psd2" data-framework-id="psd2" aria-describedby="desc-psd2">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-psd2" class="toggle-item-info">
+                <span class="toggle-item-name">PSD2 (EU)</span>
+                <span class="toggle-item-desc" id="desc-psd2">Payment Services Directive</span>
+                <span class="toggle-item-badge" data-scope="EU">EU</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-dora" data-framework-id="dora" aria-describedby="desc-dora">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-dora" class="toggle-item-info">
+                <span class="toggle-item-name">DORA (EU)</span>
+                <span class="toggle-item-desc" id="desc-dora">Digital Operational Resilience Act</span>
+                <span class="toggle-item-badge" data-scope="EU">EU</span>
+              </label>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════════════ -->
+      <!-- SECTION 3 — Healthcare                            -->
+      <!-- ══════════════════════════════════════════════════ -->
+      <section class="compliance-section" aria-labelledby="section-healthcare">
+        <button
+          class="compliance-section-header"
+          aria-expanded="true"
+          aria-controls="body-healthcare"
+          id="section-healthcare"
+          type="button"
+        >
+          <span class="compliance-section-title-text">🏥 Healthcare</span>
+          <span class="compliance-section-meta">
+            <span class="compliance-section-count" id="count-healthcare" aria-live="polite" aria-label="Enabled count for Healthcare section">0 / 3</span>
+            <span class="compliance-chevron" aria-hidden="true">▼</span>
+          </span>
+        </button>
+        <div class="compliance-section-body" id="body-healthcare" role="region" aria-labelledby="section-healthcare">
+          <div class="toggle-grid" role="list">
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-hipaa" data-framework-id="hipaa" aria-describedby="desc-hipaa">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-hipaa" class="toggle-item-info">
+                <span class="toggle-item-name">HIPAA</span>
+                <span class="toggle-item-desc" id="desc-hipaa">Health Insurance Portability and Accountability</span>
+                <span class="toggle-item-badge" data-scope="US">US</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-hitech" data-framework-id="hitech" aria-describedby="desc-hitech">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-hitech" class="toggle-item-info">
+                <span class="toggle-item-name">HITECH</span>
+                <span class="toggle-item-desc" id="desc-hitech">Health Information Technology for Economic and Clinical Health</span>
+                <span class="toggle-item-badge" data-scope="US">US</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-fda_21_cfr_11" data-framework-id="fda_21_cfr_11" aria-describedby="desc-fda_21_cfr_11">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-fda_21_cfr_11" class="toggle-item-info">
+                <span class="toggle-item-name">FDA 21 CFR Part 11</span>
+                <span class="toggle-item-desc" id="desc-fda_21_cfr_11">Electronic Records/Signatures</span>
+                <span class="toggle-item-badge" data-scope="US">US</span>
+              </label>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════════════ -->
+      <!-- SECTION 4 — Industry & Safety                     -->
+      <!-- ══════════════════════════════════════════════════ -->
+      <section class="compliance-section" aria-labelledby="section-industry">
+        <button
+          class="compliance-section-header"
+          aria-expanded="true"
+          aria-controls="body-industry"
+          id="section-industry"
+          type="button"
+        >
+          <span class="compliance-section-title-text">🏭 Industry &amp; Safety</span>
+          <span class="compliance-section-meta">
+            <span class="compliance-section-count" id="count-industry" aria-live="polite" aria-label="Enabled count for Industry and Safety section">0 / 10</span>
+            <span class="compliance-chevron" aria-hidden="true">▼</span>
+          </span>
+        </button>
+        <div class="compliance-section-body" id="body-industry" role="region" aria-labelledby="section-industry">
+          <div class="toggle-grid" role="list">
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-iso_9001" data-framework-id="iso_9001" aria-describedby="desc-iso_9001">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-iso_9001" class="toggle-item-info">
+                <span class="toggle-item-name">ISO 9001</span>
+                <span class="toggle-item-desc" id="desc-iso_9001">Quality Management</span>
+                <span class="toggle-item-badge" data-scope="Global">Global</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-iso_14001" data-framework-id="iso_14001" aria-describedby="desc-iso_14001">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-iso_14001" class="toggle-item-info">
+                <span class="toggle-item-name">ISO 14001</span>
+                <span class="toggle-item-desc" id="desc-iso_14001">Environmental Management</span>
+                <span class="toggle-item-badge" data-scope="Global">Global</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-iso_27001" data-framework-id="iso_27001" aria-describedby="desc-iso_27001">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-iso_27001" class="toggle-item-info">
+                <span class="toggle-item-name">ISO 27001</span>
+                <span class="toggle-item-desc" id="desc-iso_27001">Information Security Management</span>
+                <span class="toggle-item-badge" data-scope="Global">Global</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-iso_45001" data-framework-id="iso_45001" aria-describedby="desc-iso_45001">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-iso_45001" class="toggle-item-info">
+                <span class="toggle-item-name">ISO 45001</span>
+                <span class="toggle-item-desc" id="desc-iso_45001">Occupational Health &amp; Safety</span>
+                <span class="toggle-item-badge" data-scope="Global">Global</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-osha" data-framework-id="osha" aria-describedby="desc-osha">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-osha" class="toggle-item-info">
+                <span class="toggle-item-name">OSHA</span>
+                <span class="toggle-item-desc" id="desc-osha">Occupational Safety and Health</span>
+                <span class="toggle-item-badge" data-scope="US">US</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-ce_marking" data-framework-id="ce_marking" aria-describedby="desc-ce_marking">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-ce_marking" class="toggle-item-info">
+                <span class="toggle-item-name">CE Marking (EU)</span>
+                <span class="toggle-item-desc" id="desc-ce_marking">Product Safety</span>
+                <span class="toggle-item-badge" data-scope="EU">EU</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-ul_certification" data-framework-id="ul_certification" aria-describedby="desc-ul_certification">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-ul_certification" class="toggle-item-info">
+                <span class="toggle-item-name">UL Certification</span>
+                <span class="toggle-item-desc" id="desc-ul_certification">Product Safety (US)</span>
+                <span class="toggle-item-badge" data-scope="US">US</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-isa_95" data-framework-id="isa_95" aria-describedby="desc-isa_95">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-isa_95" class="toggle-item-info">
+                <span class="toggle-item-name">ISA-95</span>
+                <span class="toggle-item-desc" id="desc-isa_95">Manufacturing Systems Integration</span>
+                <span class="toggle-item-badge" data-scope="Global">Global</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-iec_61131" data-framework-id="iec_61131" aria-describedby="desc-iec_61131">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-iec_61131" class="toggle-item-info">
+                <span class="toggle-item-name">IEC 61131</span>
+                <span class="toggle-item-desc" id="desc-iec_61131">PLC Programming Standards</span>
+                <span class="toggle-item-badge" data-scope="Global">Global</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-nfpa" data-framework-id="nfpa" aria-describedby="desc-nfpa">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-nfpa" class="toggle-item-info">
+                <span class="toggle-item-name">NFPA</span>
+                <span class="toggle-item-desc" id="desc-nfpa">Fire Protection Standards</span>
+                <span class="toggle-item-badge" data-scope="US">US</span>
+              </label>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════════════ -->
+      <!-- SECTION 5 — Government & Defense                  -->
+      <!-- ══════════════════════════════════════════════════ -->
+      <section class="compliance-section" aria-labelledby="section-government">
+        <button
+          class="compliance-section-header"
+          aria-expanded="true"
+          aria-controls="body-government"
+          id="section-government"
+          type="button"
+        >
+          <span class="compliance-section-title-text">🏛️ Government &amp; Defense</span>
+          <span class="compliance-section-meta">
+            <span class="compliance-section-count" id="count-government" aria-live="polite" aria-label="Enabled count for Government and Defense section">0 / 5</span>
+            <span class="compliance-chevron" aria-hidden="true">▼</span>
+          </span>
+        </button>
+        <div class="compliance-section-body" id="body-government" role="region" aria-labelledby="section-government">
+          <div class="toggle-grid" role="list">
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-fedramp" data-framework-id="fedramp" aria-describedby="desc-fedramp">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-fedramp" class="toggle-item-info">
+                <span class="toggle-item-name">FedRAMP</span>
+                <span class="toggle-item-desc" id="desc-fedramp">Federal Risk and Authorization Management</span>
+                <span class="toggle-item-badge" data-scope="US">US</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-cmmc" data-framework-id="cmmc" aria-describedby="desc-cmmc">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-cmmc" class="toggle-item-info">
+                <span class="toggle-item-name">CMMC</span>
+                <span class="toggle-item-desc" id="desc-cmmc">Cybersecurity Maturity Model Certification</span>
+                <span class="toggle-item-badge" data-scope="US">US</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-nist_800_171" data-framework-id="nist_800_171" aria-describedby="desc-nist_800_171">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-nist_800_171" class="toggle-item-info">
+                <span class="toggle-item-name">NIST 800-171</span>
+                <span class="toggle-item-desc" id="desc-nist_800_171">Controlled Unclassified Information</span>
+                <span class="toggle-item-badge" data-scope="US">US</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-itar" data-framework-id="itar" aria-describedby="desc-itar">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-itar" class="toggle-item-info">
+                <span class="toggle-item-name">ITAR</span>
+                <span class="toggle-item-desc" id="desc-itar">International Traffic in Arms Regulations</span>
+                <span class="toggle-item-badge" data-scope="US">US</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-nis2" data-framework-id="nis2" aria-describedby="desc-nis2">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-nis2" class="toggle-item-info">
+                <span class="toggle-item-name">NIS2 (EU)</span>
+                <span class="toggle-item-desc" id="desc-nis2">Network and Information Security Directive</span>
+                <span class="toggle-item-badge" data-scope="EU">EU</span>
+              </label>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════════════ -->
+      <!-- SECTION 6 — Security Frameworks                   -->
+      <!-- ══════════════════════════════════════════════════ -->
+      <section class="compliance-section" aria-labelledby="section-security">
+        <button
+          class="compliance-section-header"
+          aria-expanded="true"
+          aria-controls="body-security"
+          id="section-security"
+          type="button"
+        >
+          <span class="compliance-section-title-text">🛡️ Security Frameworks</span>
+          <span class="compliance-section-meta">
+            <span class="compliance-section-count" id="count-security" aria-live="polite" aria-label="Enabled count for Security Frameworks section">0 / 5</span>
+            <span class="compliance-chevron" aria-hidden="true">▼</span>
+          </span>
+        </button>
+        <div class="compliance-section-body" id="body-security" role="region" aria-labelledby="section-security">
+          <div class="toggle-grid" role="list">
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-soc2" data-framework-id="soc2" aria-describedby="desc-soc2">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-soc2" class="toggle-item-info">
+                <span class="toggle-item-name">SOC 2 Type II</span>
+                <span class="toggle-item-desc" id="desc-soc2">Service Organization Controls</span>
+                <span class="toggle-item-badge" data-scope="Global">Global</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-soc1" data-framework-id="soc1" aria-describedby="desc-soc1">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-soc1" class="toggle-item-info">
+                <span class="toggle-item-name">SOC 1</span>
+                <span class="toggle-item-desc" id="desc-soc1">Financial Reporting Controls</span>
+                <span class="toggle-item-badge" data-scope="Global">Global</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-nist_csf" data-framework-id="nist_csf" aria-describedby="desc-nist_csf">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-nist_csf" class="toggle-item-info">
+                <span class="toggle-item-name">NIST CSF</span>
+                <span class="toggle-item-desc" id="desc-nist_csf">Cybersecurity Framework</span>
+                <span class="toggle-item-badge" data-scope="Global">Global</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-cis_controls" data-framework-id="cis_controls" aria-describedby="desc-cis_controls">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-cis_controls" class="toggle-item-info">
+                <span class="toggle-item-name">CIS Controls</span>
+                <span class="toggle-item-desc" id="desc-cis_controls">Center for Internet Security</span>
+                <span class="toggle-item-badge" data-scope="Global">Global</span>
+              </label>
+            </div>
+
+            <div class="toggle-item" role="listitem">
+              <div class="toggle-switch-wrap">
+                <input type="checkbox" class="framework-toggle" id="toggle-csa_star" data-framework-id="csa_star" aria-describedby="desc-csa_star">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+              </div>
+              <label for="toggle-csa_star" class="toggle-item-info">
+                <span class="toggle-item-name">CSA STAR</span>
+                <span class="toggle-item-desc" id="desc-csa_star">Cloud Security Alliance</span>
+                <span class="toggle-item-badge" data-scope="Global">Global</span>
+              </label>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Save Button ── -->
+      <div style="margin-top:1.5rem;padding-bottom:2rem;">
+        <button
+          id="save-btn"
+          class="murphy-btn murphy-btn-primary"
+          type="button"
+          style="width:100%;padding:0.85rem;font-size:1rem;letter-spacing:0.04em;"
+          aria-label="Save compliance framework settings"
+        >
+          💾 Save Compliance Settings
+        </button>
+      </div>
+
+    </div><!-- /.compliance-main -->
+
+    <!-- ── Right: Status Sidebar ── -->
+    <aside class="compliance-sidebar" aria-label="Compliance status summary">
+
+      <div class="compliance-status-card" role="region" aria-labelledby="status-heading">
+        <h2 class="compliance-status-title" id="status-heading">Status Summary</h2>
+
+        <div class="compliance-status-row">
+          <span class="compliance-status-label">Enabled</span>
+          <span class="compliance-status-value" id="status-enabled" aria-live="polite" aria-atomic="true">2 / 42</span>
+        </div>
+        <div class="compliance-enabled-bar" aria-hidden="true">
+          <div class="compliance-enabled-fill" id="status-bar" style="width:4.65%"></div>
+        </div>
+        <p class="compliance-enabled-pct" id="status-pct" aria-hidden="true">4.65%</p>
+
+        <div class="compliance-status-row" style="margin-top:0.75rem;">
+          <span class="compliance-status-label">Last saved</span>
+          <span class="compliance-status-value" id="status-last-saved" style="font-size:0.72rem;">—</span>
+        </div>
+        <div class="compliance-status-row">
+          <span class="compliance-status-label">Status</span>
+          <span class="compliance-status-value" id="status-api" style="font-size:0.72rem;color:#555;">Not saved</span>
+        </div>
+      </div>
+
+      <div class="compliance-status-card">
+        <h2 class="compliance-status-title">Actions</h2>
+        <button
+          id="export-btn"
+          class="murphy-btn murphy-btn-ghost murphy-btn-sm"
+          type="button"
+          style="width:100%;margin-bottom:0.5rem;text-align:left;"
+          aria-label="Export compliance report (opens in new tab)"
+        >
+          📄 Export Compliance Report
+        </button>
+        <button
+          id="sidebar-save-btn"
+          class="murphy-btn murphy-btn-primary murphy-btn-sm"
+          type="button"
+          style="width:100%;text-align:left;"
+          aria-label="Save compliance settings"
+        >
+          💾 Save Settings
+        </button>
+      </div>
+
+    </aside><!-- /.compliance-sidebar -->
+
+  </div><!-- /.compliance-layout -->
+
+</main>
+
+<!-- ── Toast notification ── -->
+<div
+  id="compliance-toast"
+  class="compliance-toast toast-hidden"
+  role="status"
+  aria-live="polite"
+  aria-atomic="true"
+>
+  <span class="compliance-toast-icon" id="toast-icon" aria-hidden="true">✓</span>
+  <span id="toast-message">Settings saved.</span>
+</div>
+
+<script src="static/murphy-components.js"></script>
+<script src="murphy_auth.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var TOTAL = 42;
+  var API_BASE = '/api/compliance';
+
+  /* ── MurphyAPI / theme init (if available) ── */
+  if (typeof MurphyTheme !== 'undefined') {
+    var theme = new MurphyTheme();
+    theme.init();
+  }
+
+  /* ── DOM refs ── */
+  var toggles       = document.querySelectorAll('.framework-toggle');
+  var statusEnabled = document.getElementById('status-enabled');
+  var statusBar     = document.getElementById('status-bar');
+  var statusPct     = document.getElementById('status-pct');
+  var statusApiEl   = document.getElementById('status-api');
+  var lastSavedEl   = document.getElementById('status-last-saved');
+  var toastEl       = document.getElementById('compliance-toast');
+  var toastMsg      = document.getElementById('toast-message');
+  var toastIcon     = document.getElementById('toast-icon');
+  var toastTimer    = null;
+
+  /* ── Section toggle counts ── */
+  var sectionMap = {
+    privacy:    { body: 'body-privacy',    count: 'count-privacy'    },
+    financial:  { body: 'body-financial',  count: 'count-financial'  },
+    healthcare: { body: 'body-healthcare', count: 'count-healthcare' },
+    industry:   { body: 'body-industry',   count: 'count-industry'   },
+    government: { body: 'body-government', count: 'count-government' },
+    security:   { body: 'body-security',   count: 'count-security'   }
+  };
+
+  /* ── Update summary panel ── */
+  function updateSummary() {
+    var total = 0;
+    Object.keys(sectionMap).forEach(function (key) {
+      var bodyEl    = document.getElementById(sectionMap[key].body);
+      var countEl   = document.getElementById(sectionMap[key].count);
+      var sToggles  = bodyEl.querySelectorAll('.framework-toggle');
+      var enabled   = 0;
+      sToggles.forEach(function (t) { if (t.checked) { enabled++; total++; } });
+      countEl.textContent = enabled + ' / ' + sToggles.length;
+    });
+    var pct = Math.round((total / TOTAL) * 10000) / 100;
+    statusEnabled.textContent = total + ' / ' + TOTAL;
+    statusBar.style.width     = pct + '%';
+    statusPct.textContent     = pct + '%';
+  }
+
+  /* ── Collapsible section headers ── */
+  document.querySelectorAll('.compliance-section-header').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var expanded  = btn.getAttribute('aria-expanded') === 'true';
+      var bodyId    = btn.getAttribute('aria-controls');
+      var bodyEl    = document.getElementById(bodyId);
+      btn.setAttribute('aria-expanded', !expanded);
+      if (expanded) {
+        bodyEl.setAttribute('hidden', '');
+      } else {
+        bodyEl.removeAttribute('hidden');
+      }
+    });
+  });
+
+  /* ── Live toggle listener ── */
+  toggles.forEach(function (t) {
+    t.addEventListener('change', updateSummary);
+  });
+
+  /* ── Toast helper ── */
+  function showToast(msg, type) {
+    clearTimeout(toastTimer);
+    toastMsg.textContent  = msg;
+    toastIcon.textContent = type === 'error' ? '✕' : '✓';
+    toastEl.className     = 'compliance-toast ' + (type === 'error' ? 'toast-error' : 'toast-success');
+    toastTimer = setTimeout(function () {
+      toastEl.classList.add('toast-hidden');
+    }, 4000);
+  }
+
+  /* ── Collect enabled framework IDs ── */
+  function getEnabledIds() {
+    var ids = [];
+    toggles.forEach(function (t) { if (t.checked) { ids.push(t.dataset.frameworkId); } });
+    return ids;
+  }
+
+  /* ── Apply state from API response ── */
+  function applyState(enabledIds) {
+    var set = {};
+    enabledIds.forEach(function (id) { set[id] = true; });
+    toggles.forEach(function (t) {
+      t.checked = !!set[t.dataset.frameworkId];
+    });
+    updateSummary();
+  }
+
+  /* ── Load saved state on page load ── */
+  function loadSavedState() {
+    statusApiEl.textContent = 'Loading…';
+    statusApiEl.style.color = '#555';
+    fetch(API_BASE + '/toggles', { credentials: 'same-origin' })
+      .then(function (res) {
+        if (!res.ok) { throw new Error('HTTP ' + res.status); }
+        return res.json();
+      })
+      .then(function (data) {
+        if (Array.isArray(data.enabled)) {
+          applyState(data.enabled);
+        }
+        statusApiEl.textContent = 'Loaded';
+        statusApiEl.style.color = '#00D4AA';
+      })
+      .catch(function () {
+        /* Backend may be offline during development — keep defaults */
+        statusApiEl.textContent = 'Offline';
+        statusApiEl.style.color = '#555';
+        updateSummary();
+        showMurphyError('Compliance API offline — displaying cached defaults.');
+      });
+  }
+
+  /* ── Save settings ── */
+  function saveSettings() {
+    var btn = document.getElementById('save-btn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Saving…';
+    statusApiEl.textContent = 'Saving…';
+    statusApiEl.style.color = '#ffc400';
+
+    fetch(API_BASE + '/toggles', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: getEnabledIds() })
+    })
+      .then(function (res) {
+        if (!res.ok) { throw new Error('HTTP ' + res.status); }
+        return res.json();
+      })
+      .then(function () {
+        var now = new Date().toLocaleTimeString();
+        lastSavedEl.textContent  = now;
+        statusApiEl.textContent  = 'Saved ✓';
+        statusApiEl.style.color  = '#00D4AA';
+        showToast('Compliance settings saved successfully.', 'success');
+      })
+      .catch(function (err) {
+        statusApiEl.textContent = 'Error';
+        statusApiEl.style.color = '#ff4141';
+        showToast('Save failed: ' + err.message, 'error');
+        showMurphyError('Save failed: ' + err.message);
+      })
+      .finally(function () {
+        btn.disabled = false;
+        btn.textContent = '💾 Save Compliance Settings';
+      });
+  }
+
+  /* ── Refresh detection ── */
+  document.getElementById('refresh-detection-btn').addEventListener('click', function () {
+    var btn = this;
+    var country = document.getElementById('detect-country').value;
+    var industry = document.getElementById('detect-industry').value;
+    if (!country || !industry) {
+      showToast('Please select both a country and an industry.', 'error');
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = '⏳ Detecting…';
+
+    fetch(API_BASE + '/recommended?country=' + encodeURIComponent(country) + '&industry=' + encodeURIComponent(industry), { credentials: 'same-origin' })
+      .then(function (res) {
+        if (!res.ok) { throw new Error('HTTP ' + res.status); }
+        return res.json();
+      })
+      .then(function (data) {
+        if (Array.isArray(data.enabled)) {
+          applyState(data.enabled);
+          showToast('Recommendations refreshed.', 'success');
+        }
+      })
+      .catch(function () {
+        showToast('Detection service offline.', 'error');
+        showMurphyError('Compliance detection service is offline.');
+      })
+      .finally(function () {
+        btn.disabled = false;
+        btn.textContent = '↺ Refresh Detection';
+      });
+  });
+
+  /* ── Export report ── */
+  document.getElementById('export-btn').addEventListener('click', function () {
+    window.open(API_BASE + '/report', '_blank', 'noopener,noreferrer');
+  });
+
+  /* ── Save button (main + sidebar) ── */
+  document.getElementById('save-btn').addEventListener('click', saveSettings);
+  document.getElementById('sidebar-save-btn').addEventListener('click', saveSettings);
+
+  /* ── Theme toggle (if button present) ── */
+  var themeBtn = document.getElementById('theme-toggle-btn');
+  if (themeBtn && typeof MurphyTheme === 'undefined') {
+    themeBtn.addEventListener('click', function () {
+      document.body.classList.toggle('murphy-light');
+      themeBtn.textContent = document.body.classList.contains('murphy-light') ? '☀️' : '🌙';
+    });
+  }
+
+  /* ── Init ── */
+  loadSavedState();
+
+}());
+</script>
+</body>
+</html>

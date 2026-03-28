@@ -1,0 +1,194 @@
+# Murphy System 1.0 - Complete Requirements
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post
+# License: BSL-1.1
+#
+# Dependency Pinning Policy:
+# All dependencies use minimum-version pins with upper bounds to ensure
+# pip can resolve the dependency tree efficiently.
+# For reproducible production deployments, generate a fully pinned lockfile:
+#   pip install -r requirements_murphy_1.0.txt && pip freeze > requirements.lock
+#
+# NOTE: Requires Python 3.11 or higher (check version with: python --version)
+
+# ==================== Core Dependencies ====================
+
+# Web Framework
+fastapi>=0.109.1,<1.0.0
+uvicorn[standard]>=0.24.0,<1.0.0
+pydantic>=2.0.0,<3.0.0
+pydantic-settings>=2.0.0,<3.0.0
+python-multipart>=0.0.6,<1.0.0
+flask>=3.0.0,<4.0.0
+flask-cors>=4.0.0,<5.0.0
+
+# Async Support
+aiohttp>=3.9.0,<4.0.0
+httpx>=0.25.0,<1.0.0
+
+# Matrix Integration
+matrix-nio[e2e]>=0.24.0,<1.0.0
+
+# Database
+sqlalchemy>=2.0.0,<3.0.0
+psycopg2-binary>=2.9.9,<3.0.0
+alembic>=1.12.0,<2.0.0
+
+# Cache & Queue
+redis>=5.0.0,<6.0.0
+celery>=5.3.0,<6.0.0
+
+# Data Processing
+pandas>=2.1.0,<3.0.0
+numpy>=1.24.0,<3.0.0
+scipy>=1.11.0,<2.0.0
+sympy>=1.12.1,<2.0.0
+
+# Machine Learning
+scikit-learn>=1.3.0,<2.0.0
+torch>=2.6.0,<3.0.0
+transformers>=4.48.0,<5.0.0
+
+# NLP
+spacy>=3.7.0,<4.0.0
+nltk>=3.8.1,<4.0.0
+
+# LLM Integration
+openai>=1.3.0,<2.0.0
+anthropic>=0.7.0,<1.0.0
+deepinfra>=0.4.0,<1.0.0
+
+# Data Validation
+jsonschema>=4.19.0,<5.0.0
+pyyaml>=6.0.1,<7.0.0
+toml>=0.10.2,<1.0.0
+
+# HTTP & API
+requests>=2.31.0,<3.0.0
+urllib3>=2.1.0,<3.0.0
+beautifulsoup4>=4.12.0,<5.0.0
+
+# File Processing
+python-magic>=0.4.27,<1.0.0
+pillow>=10.1.0,<12.0.0
+pypdf2>=3.0.1,<4.0.0
+
+# Cryptography & Security
+cryptography>=46.0.5,<48.0.0
+pyjwt>=2.8.0,<3.0.0
+bcrypt>=4.1.0,<5.0.0
+
+# Monitoring & Logging
+prometheus-client>=0.19.0,<1.0.0
+python-json-logger>=2.0.7,<4.0.0
+sentry-sdk>=1.38.0,<3.0.0
+
+# Testing
+pytest>=7.4.0,<9.0.0
+pytest-asyncio>=0.21.0,<1.0.0
+pytest-cov>=4.1.0,<7.0.0
+pytest-mock>=3.12.0,<4.0.0
+pytest-timeout>=2.2.0,<3.0.0
+
+# Code Quality
+black>=23.11.0,<26.0.0
+flake8>=6.1.0,<8.0.0
+mypy>=1.7.0,<2.0.0
+ruff>=0.8.0,<1.0.0
+
+# Documentation
+mkdocs>=1.5.0,<2.0.0
+mkdocs-material>=9.4.0,<10.0.0
+
+# Utilities
+python-dotenv>=1.0.0,<2.0.0
+click>=8.1.7,<9.0.0
+rich>=13.7.0,<15.0.0
+textual>=1.0.0,<3.0.0
+pyfiglet>=1.0.0,<2.0.0
+tqdm>=4.66.0,<5.0.0
+pyperclip>=1.8.0,<2.0.0
+
+# Date & Time
+python-dateutil>=2.8.2,<3.0.0
+pytz>=2023.3,<2026.0
+apscheduler>=3.10.0,<4.0.0
+
+# Git Integration
+gitpython>=3.1.40,<4.0.0
+
+# Docker & Kubernetes
+docker>=6.1.0,<8.0.0
+kubernetes>=28.1.0,<33.0.0
+
+# Cloud Providers
+boto3>=1.29.0,<2.0.0
+google-cloud-storage>=2.10.0,<3.0.0
+azure-storage-blob>=12.19.0,<13.0.0
+
+# Payment Processing
+stripe>=7.4.0,<13.0.0
+
+# Communication
+twilio>=9.0.0,<10.0.0
+sendgrid>=6.11.0,<7.0.0
+
+# Data Serialization
+msgpack>=1.0.7,<2.0.0
+protobuf>=4.25.0,<6.0.0
+
+# Compression
+zstandard>=0.22.0,<1.0.0
+
+# System Monitoring
+psutil>=5.9.6,<7.0.0
+
+# ==================== Crypto Trading ====================
+# Official Coinbase Advanced Trade REST + WebSocket SDK
+coinbase-advanced-py>=1.8.2,<2.0.0
+websocket-client>=1.6.0,<2.0.0
+# Multi-exchange abstraction — CCXT (MIT Licensed)
+ccxt>=4.5.0,<6.0.0
+# EVM wallet signing — required for SoftwareWallet.sign_transaction
+web3>=7.0.0,<9.0.0
+# Bitcoin wallet utilities
+bitcoin-utils>=0.6.0,<1.0.0
+# Alpaca Markets (stocks + crypto, free paper trading API)
+alpaca-trade-api>=3.2.0,<4.0.0
+alpaca-py>=0.20.0,<1.0.0
+# Binance REST + WebSocket feed
+python-binance>=1.0.16,<2.0.0
+
+# ==================== Market Data Feeds ====================
+yfinance>=1.2.0,<2.0.0
+alpha_vantage>=2.3.1,<3.0.0
+polygon-api-client>=1.12.0,<2.0.0
+iexfinance>=0.5.0,<1.0.0
+# Technical analysis indicators
+ta>=0.11.0,<1.0.0
+
+# ==================== Integration SDKs ====================
+tweepy>=4.14.0,<5.0.0
+slack-sdk>=3.27.0,<4.0.0
+python-telegram-bot>=20.7,<22.0.0
+hubspot-api-client>=8.0.0,<12.0.0
+simple-salesforce>=1.12.0,<2.0.0
+PyGithub>=2.3.0,<3.0.0
+requests-oauthlib>=1.3.0,<3.0.0
+authlib>=1.2.0,<2.0.0
+
+# ==================== Market Data & Technical Analysis ====================
+statsmodels>=0.14.2,<1.0.0
+
+# ==================== Development Dependencies ====================
+ipython>=8.17.0,<10.0.0
+jupyter>=1.0.0,<2.0.0
+notebook>=7.0.0,<8.0.0
+
+# ==================== Supplemental ====================
+notion-client>=2.2.0,<3.0.0
+jira>=3.8.0,<4.0.0
+pyairtable>=2.3.0,<3.0.0
+tomli>=2.0.0;python_version<'3.11'
+tinycss2>=1.5.0,<2.0.0
+

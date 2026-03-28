@@ -1,0 +1,34 @@
+# Murphy System — SpamAssassin custom rules
+# These rules extend the default SpamAssassin configuration.
+
+# ── Required score to classify as spam ────────────────────────────────────
+required_score 5.0
+
+# ── Report all spam (don't stop at threshold) ─────────────────────────────
+report_safe 0
+
+# ── Rewrite spam subject lines ────────────────────────────────────────────
+rewrite_header Subject [SPAM]
+
+# ── Update spam scoring rules automatically ───────────────────────────────
+skip_rbl_checks 0
+
+# ── Enable Bayesian filtering ─────────────────────────────────────────────
+use_bayes 1
+bayes_auto_learn 1
+bayes_auto_learn_threshold_spam 12.0
+bayes_auto_learn_threshold_nonspam 0.1
+
+# ── Trusted networks (docker internal) ────────────────────────────────────
+trusted_networks 172.16.0.0/12 10.0.0.0/8 127.0.0.1
+
+# ── Custom scores ─────────────────────────────────────────────────────────
+score SPF_FAIL 5.0
+score SPF_SOFTFAIL 2.0
+score DKIM_ADSP_NXDOMAIN 3.5
+score DMARC_FAIL 4.0
+score RAZOR2_CHECK 1.5
+score PYZOR_CHECK 1.5
+
+# ── Whitelist murphy.systems domain (internal) ────────────────────────────
+whitelist_from *@murphy.systems

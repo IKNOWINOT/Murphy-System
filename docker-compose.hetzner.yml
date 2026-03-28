@@ -1,0 +1,227 @@
+# Murphy System — Hetzner Production Docker Compose (support services only)
+# Copyright © 2020 Inoni Limited Liability Company | License: BSL-1.1
+#
+# This file starts ONLY the support services needed on the Hetzner bare-metal
+# server.  Murphy itself (murphy-production) runs as a systemd service and is
+# NOT included here to avoid a port :8000 conflict.
+#
+# Usage (called automatically by scripts/hetzner_load.sh):
+#   docker compose -f docker-compose.hetzner.yml up -d
+#
+# Services managed here:
+#   murphy-postgres   PostgreSQL 16           :5432
+#   murphy-redis      Redis 7.2               :6379
+#   murphy-prometheus Prometheus              :9090
+#   murphy-grafana    Grafana                 :3000
+#   murphy-mailserver docker-mailserver       :25 :143 :465 :587 :993
+#   murphy-webmail    Roundcube               :8443
+#
+# All secrets are read from /etc/murphy-production/environment
+# (set via --env-file in hetzner_load.sh — no .env file needed).
+# ---------------------------------------------------------------------------
+
+services:
+
+  # ── PostgreSQL ─────────────────────────────────────────────────────────────
+  murphy-postgres:
+    image: postgres:16-alpine
+    container_name: murphy-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-murphy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in /etc/murphy-production/environment}
+      POSTGRES_DB:       ${POSTGRES_DB:-murphy}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-murphy}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ── Redis ──────────────────────────────────────────────────────────────────
+  murphy-redis:
+    image: redis:7.2-alpine
+    container_name: murphy-redis
+    restart: unless-stopped
+    command: >
+      sh -c '
+      if [ -n "$$REDIS_PASSWORD" ]; then
+        redis-server --requirepass "$$REDIS_PASSWORD" --save 60 1 --loglevel warning
+      else
+        redis-server --save 60 1 --loglevel warning
+      fi
+      '
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ── Prometheus ────────────────────────────────────────────────────────────
+  murphy-prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: murphy-prometheus
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus-rules:/etc/prometheus/rules:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.enable-lifecycle"
+      - "--web.listen-address=0.0.0.0:9090"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # ── Grafana ───────────────────────────────────────────────────────────────
+  murphy-grafana:
+    image: grafana/grafana:11.1.0
+    container_name: murphy-grafana
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER:     ${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER must be set in /etc/murphy-production/environment}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set in /etc/murphy-production/environment}
+      GF_USERS_ALLOW_SIGN_UP:     "false"
+      GF_SERVER_ROOT_URL:         "%(protocol)s://%(domain)s/grafana/"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - murphy-prometheus
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # ── Mail Server (Postfix + Dovecot) ───────────────────────────────────────
+  murphy-mailserver:
+    image: ghcr.io/docker-mailserver/docker-mailserver:14
+    container_name: murphy-mailserver
+    hostname: ${MURPHY_MAIL_HOSTNAME:-mail.murphy.systems}
+    domainname: ${MURPHY_MAIL_DOMAIN:-murphy.systems}
+    restart: unless-stopped
+    ports:
+      - "25:25"     # SMTP   (inbound from internet — must be open)
+      - "143:143"   # IMAP   (clients — consider restricting to VPN)
+      - "465:465"   # SMTPS  (submission with implicit TLS)
+      - "587:587"   # SMTP submission (STARTTLS)
+      - "993:993"   # IMAPS  (IMAP over TLS)
+    environment:
+      OVERRIDE_HOSTNAME:        ${MURPHY_MAIL_HOSTNAME:-mail.murphy.systems}
+      DOMAINNAME:               ${MURPHY_MAIL_DOMAIN:-murphy.systems}
+      POSTMASTER_ADDRESS:       postmaster@${MURPHY_MAIL_DOMAIN:-murphy.systems}
+      ENABLE_SPAMASSASSIN:      "1"
+      SPAMASSASSIN_SPAM_TO_JUNK: "1"
+      ENABLE_CLAMAV:            "1"
+      ENABLE_FAIL2BAN:          "1"
+      ENABLE_POSTGREY:          "0"
+      ONE_DIR:                  "1"
+      DMS_DEBUG:                "0"
+      SSL_TYPE:                 "self-signed"
+      PERMIT_DOCKER:            "host"
+      POSTFIX_INET_PROTOCOLS:   "ipv4"
+      ENABLE_IMAP:              "1"
+      ENABLE_POP3:              "0"
+      DOVECOT_INET_PROTOCOLS:   "ipv4"
+      DOVECOT_MAILBOX_FORMAT:   "maildir"
+      QUOTA_STORAGE_SIZE:       "5G"
+      ENABLE_MANAGESIEVE:       "1"
+    volumes:
+      - mailserver-data:/var/mail
+      - mailserver-state:/var/mail-state
+      - mailserver-logs:/var/log/mail
+      - ./config/mail:/tmp/docker-mailserver:ro
+    cap_add:
+      - NET_ADMIN
+    healthcheck:
+      test: ["CMD-SHELL", "ss -lntp | grep -q ':25'"]
+      interval: 60s
+      timeout: 10s
+      start_period: 120s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+
+  # ── Roundcube Webmail ─────────────────────────────────────────────────────
+  murphy-webmail:
+    image: roundcube/roundcubemail:1.6.13-apache
+    container_name: murphy-webmail
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MURPHY_WEBMAIL_PORT:-8443}:80"
+    environment:
+      ROUNDCUBEMAIL_DEFAULT_HOST:       murphy-mailserver
+      ROUNDCUBEMAIL_DEFAULT_PORT:       "143"
+      ROUNDCUBEMAIL_SMTP_SERVER:        murphy-mailserver
+      ROUNDCUBEMAIL_SMTP_PORT:          "587"
+      ROUNDCUBEMAIL_SKIN:               elastic
+      ROUNDCUBEMAIL_DB_TYPE:            sqlite
+      ROUNDCUBEMAIL_UPLOAD_MAX_FILESIZE: "50M"
+    volumes:
+      - roundcube-data:/var/roundcube/db
+      - ./config/roundcube/config.inc.php:/var/roundcube/config/config.inc.php:ro
+    depends_on:
+      - murphy-mailserver
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+volumes:
+  postgres-data:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+  mailserver-data:
+  mailserver-state:
+  mailserver-logs:
+  roundcube-data:

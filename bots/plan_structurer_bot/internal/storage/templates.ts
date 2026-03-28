@@ -1,0 +1,1 @@
+export async function saveTemplate(db:any, tenant:string, goal:string, domain:string, template:any, prompt:any){ return { id: 'tpl_'+Date.now() }; }

@@ -1,0 +1,2 @@
+HTTP 200
+{"success":true,"statistics":{"pending_count":0,"total_interventions":0}}

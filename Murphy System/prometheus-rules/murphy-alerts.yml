@@ -1,0 +1,133 @@
+# Murphy System — Prometheus Alert Rules
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post
+# License: BSL 1.1
+
+groups:
+  - name: murphy-system-health
+    interval: 30s
+    rules:
+      # API availability
+      - alert: MurphyAPIDown
+        expr: up{job="murphy-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: murphy
+        annotations:
+          summary: "Murphy API is down"
+          description: "Murphy API instance {{ $labels.instance }} has been unreachable for more than 1 minute."
+          runbook_url: "https://github.com/IKNOWINOT/Murphy-System/blob/main/Murphy%20System/docs/DEPLOYMENT_GUIDE.md"
+
+      # High error rate (>5% of requests returning 5xx)
+      - alert: MurphyHighErrorRate
+        expr: |
+          (
+            sum(rate(murphy_requests_total{status=~"5.."}[5m]))
+            /
+            sum(rate(murphy_requests_total[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          team: murphy
+        annotations:
+          summary: "High error rate on Murphy API"
+          description: "More than 5% of requests are failing with 5xx errors over the last 5 minutes. Current rate: {{ $value | humanizePercentage }}"
+
+      # High request latency (p95 > 2s)
+      - alert: MurphyHighLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(murphy_request_duration_seconds_bucket[5m])) by (le))
+          > 2
+        for: 5m
+        labels:
+          severity: warning
+          team: murphy
+        annotations:
+          summary: "High request latency on Murphy API"
+          description: "95th percentile request latency is above 2 seconds. Current p95: {{ $value | humanizeDuration }}"
+
+      # Pod restarts
+      - alert: MurphyPodRestarting
+        expr: increase(kube_pod_container_status_restarts_total{namespace="murphy-system"}[1h]) > 3
+        for: 5m
+        labels:
+          severity: warning
+          team: murphy
+        annotations:
+          summary: "Murphy pod restarting frequently"
+          description: "Pod {{ $labels.pod }} has restarted {{ $value }} times in the last hour."
+
+      # Memory usage high (>80% of limit)
+      - alert: MurphyHighMemoryUsage
+        expr: |
+          container_memory_working_set_bytes{namespace="murphy-system", container="murphy-api"}
+          /
+          container_spec_memory_limit_bytes{namespace="murphy-system", container="murphy-api"}
+          > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: murphy
+        annotations:
+          summary: "Murphy API high memory usage"
+          description: "Murphy API is using more than 80% of its memory limit."
+
+      # CPU usage high (>80% of limit)
+      - alert: MurphyHighCPUUsage
+        expr: |
+          sum(rate(container_cpu_usage_seconds_total{namespace="murphy-system", container="murphy-api"}[5m]))
+          /
+          sum(container_spec_cpu_quota{namespace="murphy-system", container="murphy-api"} / container_spec_cpu_period{namespace="murphy-system", container="murphy-api"})
+          > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: murphy
+        annotations:
+          summary: "Murphy API high CPU usage"
+          description: "Murphy API is using more than 80% of its CPU limit."
+
+      # LLM call failures
+      - alert: MurphyLLMCallFailures
+        expr: |
+          sum(rate(murphy_llm_calls_total{status="error"}[5m]))
+          /
+          sum(rate(murphy_llm_calls_total[5m]))
+          > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: murphy
+        annotations:
+          summary: "High LLM call failure rate"
+          description: "More than 10% of LLM calls are failing. Current failure rate: {{ $value | humanizePercentage }}"
+
+      # Task queue depth too high
+      - alert: MurphyTaskQueueBacklog
+        expr: murphy_task_queue_depth > 100
+        for: 10m
+        labels:
+          severity: warning
+          team: murphy
+        annotations:
+          summary: "Murphy task queue backlog"
+          description: "Task queue depth is {{ $value }}, indicating a processing backlog."
+
+  - name: murphy-system-slos
+    interval: 60s
+    rules:
+      # SLO: 99.9% availability over 30 days (recording rule)
+      - record: murphy:availability:ratio_30d
+        expr: |
+          1 - (
+            sum(increase(murphy_requests_total{status=~"5.."}[30d]))
+            /
+            sum(increase(murphy_requests_total[30d]))
+          )
+
+      # SLO: p99 latency under 5s (recording rule)
+      - record: murphy:latency:p99_5m
+        expr: |
+          histogram_quantile(0.99, sum(rate(murphy_request_duration_seconds_bucket[5m])) by (le))

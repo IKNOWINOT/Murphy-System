@@ -1,0 +1,2 @@
+HTTP 200
+{"success":true,"categories":["communication","project_management","crm","storage","database","analytics","automation","deployment","monitoring","social_media","media_streaming","payment","email","ai_ml","developer_tools","cloud_infrastructure","custom"]}

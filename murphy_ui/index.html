@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Automation Calendar</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   MURPHY SYSTEM — DESIGN TOKENS
+═══════════════════════════════════════════════════════════════════ */
+:root {
+  --bg-base:      #0d0f14;
+  --bg-surface:   #141720;
+  --bg-elevated:  #1a1e2a;
+  --bg-input:     #1f2333;
+  --bg-card:      #1c2030;
+  --border:       #2a2f3e;
+  --border-light: #353a4e;
+  --teal:         #00d4aa;
+  --teal-dim:     rgba(0,212,170,.15);
+  --teal-glow:    rgba(0,212,170,.35);
+  --blue:         #3b9eff;
+  --amber:        #f59e0b;
+  --purple:       #a855f7;
+  --red:          #ef4444;
+  --green:        #10b981;
+  --pink:         #ec4899;
+  --indigo:       #6366f1;
+  --text-primary: #e8ecf4;
+  --text-secondary:#a0a8bc;
+  --text-muted:   #606880;
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+  --radius:       8px;
+  --radius-sm:    4px;
+  --radius-lg:    12px;
+  --shadow:       0 4px 24px rgba(0,0,0,.4);
+  --trans:        0.18s ease;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.5;
+}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+
+/* ═══ LAYOUT ═══════════════════════════════════════════════════════ */
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+/* ── Top Bar ── */
+.topbar {
+  height: 52px; flex-shrink: 0;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px; padding: 0 16px;
+  z-index: 200;
+}
+.brand {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 800; font-size: 15px; color: var(--teal);
+  letter-spacing: .04em; text-decoration: none; flex-shrink: 0;
+}
+.brand svg { width: 24px; height: 24px; }
+.topbar-sep { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
+.tier-badge {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--teal-dim); border: 1px solid var(--teal-glow);
+  border-radius: 20px; padding: 3px 10px; font-size: 11px;
+  color: var(--teal); font-weight: 600;
+}
+.live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--teal); animation: pulse 1.8s ease infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity:1; transform: scale(1); }
+  50% { opacity:.4; transform: scale(.7); }
+}
+.topbar-center { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+/* View tabs */
+.view-tabs { display: flex; gap: 2px; background: var(--bg-elevated); border-radius: var(--radius); padding: 3px; }
+.vt { padding: 5px 14px; border-radius: var(--radius-sm); border: none; background: none;
+      color: var(--text-secondary); font: inherit; font-size: 12px; cursor: pointer; transition: var(--trans); }
+.vt.active { background: var(--bg-surface); color: var(--text-primary); font-weight: 600; }
+.vt:hover:not(.active) { background: var(--bg-input); color: var(--text-primary); }
+
+/* Nav */
+.nav-btn { background: none; border: 1px solid var(--border); color: var(--text-secondary);
+           padding: 5px 9px; border-radius: var(--radius-sm); cursor: pointer; font: inherit;
+           display: flex; align-items: center; gap: 4px; transition: var(--trans); }
+.nav-btn:hover { border-color: var(--teal); color: var(--teal); }
+.period-label { font-size: 14px; font-weight: 700; min-width: 180px; text-align: center; }
+
+.topbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--bg-elevated); color: var(--text-primary);
+  font: inherit; font-size: 12px; cursor: pointer; transition: var(--trans);
+}
+.btn:hover { border-color: var(--teal); background: var(--bg-input); }
+.btn-primary { background: var(--teal); color: #000; border-color: var(--teal); font-weight: 700; }
+.btn-primary:hover { background: #00b890; }
+.btn-danger { background: rgba(239,68,68,.1); color: var(--red); border-color: rgba(239,68,68,.3); }
+.btn-danger:hover { background: rgba(239,68,68,.2); }
+
+/* ── Shell ── */
+.shell { display: flex; flex: 1; overflow: hidden; }
+
+/* ── Left Panel ── */
+.left-panel {
+  width: 260px; flex-shrink: 0;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+
+/* ── Main Area ── */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* ── Right Panel ── */
+.right-panel {
+  width: 320px; flex-shrink: 0;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+  transition: width var(--trans);
+}
+.right-panel.collapsed { width: 0; overflow: hidden; }
+
+/* ═══ LEFT PANEL ════════════════════════════════════════════════════ */
+.panel-section { border-bottom: 1px solid var(--border); }
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px 8px; font-size: 11px; font-weight: 700;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: .08em;
+}
+.panel-header .btn-icon { background: none; border: none; color: var(--text-muted);
+                          cursor: pointer; padding: 2px; border-radius: var(--radius-sm);
+                          display: flex; align-items: center; }
+.panel-header .btn-icon:hover { color: var(--teal); }
+
+/* Prompt box */
+.prompt-area { padding: 10px 14px; }
+.prompt-wrap {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color var(--trans), box-shadow var(--trans);
+}
+.prompt-wrap:focus-within { border-color: var(--teal); box-shadow: 0 0 0 2px var(--teal-dim); }
+#promptInput {
+  width: 100%; background: none; border: none; color: var(--text-primary);
+  font: inherit; font-size: 12px; padding: 10px 12px; resize: none; outline: none;
+  min-height: 70px;
+}
+#promptInput::placeholder { color: var(--text-muted); }
+.prompt-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 10px; border-top: 1px solid var(--border);
+  background: var(--bg-input);
+}
+.prompt-hint { font-size: 11px; color: var(--text-muted); }
+#runPrompt {
+  background: var(--teal); color: #000; border: none; border-radius: var(--radius-sm);
+  padding: 5px 12px; font: inherit; font-size: 11px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; gap: 5px; transition: var(--trans);
+}
+#runPrompt:hover { background: #00b890; }
+#runPrompt.loading { opacity: .6; pointer-events: none; }
+
+/* Automation list */
+.auto-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+.auto-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px; cursor: pointer; transition: background var(--trans);
+  border-left: 3px solid transparent;
+}
+.auto-item:hover { background: var(--bg-elevated); }
+.auto-item.active { background: var(--bg-elevated); border-left-color: var(--teal); }
+.auto-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.auto-info { flex: 1; min-width: 0; }
+.auto-name { font-size: 12px; font-weight: 500; color: var(--text-primary);
+             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.auto-meta { font-size: 11px; color: var(--text-muted); }
+.auto-status { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 10px; }
+.auto-status.active { background: rgba(0,212,170,.15); color: var(--teal); }
+.auto-status.paused { background: rgba(245,158,11,.1); color: var(--amber); }
+.auto-status.failed { background: rgba(239,68,68,.1); color: var(--red); }
+
+/* Mini calendar */
+.mini-cal { padding: 10px 14px; }
+.mini-cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.mini-cal-title { font-size: 13px; font-weight: 700; }
+.mini-nav { background: none; border: none; color: var(--text-muted);
+            cursor: pointer; padding: 3px 5px; border-radius: var(--radius-sm); }
+.mini-nav:hover { color: var(--teal); }
+.mini-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; text-align: center; }
+.mh { font-size: 10px; color: var(--text-muted); padding: 3px 0; }
+.md {
+  font-size: 11px; padding: 4px 2px; border-radius: var(--radius-sm);
+  cursor: pointer; color: var(--text-secondary); transition: background var(--trans);
+}
+.md:hover { background: var(--bg-elevated); }
+.md.today { background: var(--teal); color: #000; font-weight: 700; }
+.md.selected { background: var(--teal-dim); color: var(--teal); font-weight: 600; }
+.md.has-autos::after { content: '•'; display: block; color: var(--teal); font-size: 8px; margin-top: -2px; }
+.md.other { color: var(--text-muted); opacity: .35; }
+
+/* ═══ CALENDAR MAIN ═════════════════════════════════════════════════ */
+.cal-header {
+  padding: 0 16px; height: 44px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+  background: var(--bg-surface);
+}
+.cal-search {
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  color: var(--text-primary); padding: 6px 10px; border-radius: var(--radius);
+  font: inherit; font-size: 12px; width: 180px; outline: none; transition: var(--trans);
+}
+.cal-search:focus { border-color: var(--teal); }
+.cal-content { flex: 1; overflow: auto; }
+
+/* ── Week grid ── */
+.week-grid {
+  display: grid;
+  grid-template-columns: 58px repeat(7, 1fr);
+  min-height: 100%;
+}
+.time-gutter { position: sticky; left: 0; z-index: 2; }
+.wg-time {
+  height: 56px; border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border); display: flex;
+  align-items: flex-start; justify-content: flex-end;
+  padding: 4px 8px 0; font-size: 10px; color: var(--text-muted);
+  background: var(--bg-surface);
+}
+.wg-day-col { position: relative; border-right: 1px solid var(--border); }
+.wg-day-head {
+  height: 44px; position: sticky; top: 0; z-index: 3;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-size: 12px; color: var(--text-secondary);
+  transition: color var(--trans);
+}
+.wg-day-head.today { color: var(--teal); }
+.wg-day-num { font-size: 22px; font-weight: 800; }
+.wg-hour-row {
+  height: 56px; border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.wg-hour-row:nth-child(odd) { background: rgba(255,255,255,.012); }
+
+/* Automation blocks */
+.cal-block {
+  position: absolute; left: 2px; right: 2px;
+  border-radius: var(--radius-sm); padding: 3px 6px;
+  font-size: 10px; font-weight: 600; color: #000;
+  overflow: hidden; cursor: pointer; z-index: 4;
+  transition: transform var(--trans), box-shadow var(--trans), height var(--trans), opacity var(--trans);
+  box-shadow: 0 1px 4px rgba(0,0,0,.3);
+  border-left: 3px solid rgba(0,0,0,.2);
+}
+.cal-block:hover {
+  transform: translateX(-1px) scaleX(1.02);
+  box-shadow: 0 2px 12px rgba(0,0,0,.5);
+  z-index: 10;
+}
+.cal-block.paused { opacity: .45; }
+.cal-block.failed { filter: brightness(0.6); }
+.cal-block.expanding {
+  animation: expandBlock .4s ease forwards;
+}
+.cal-block.contracting {
+  animation: contractBlock .4s ease forwards;
+}
+@keyframes expandBlock {
+  from { height: var(--base-h); }
+  to { height: calc(var(--base-h) * 2.2); }
+}
+@keyframes contractBlock {
+  from { height: calc(var(--base-h) * 2.2); }
+  to { height: var(--base-h); }
+}
+
+/* Now indicator */
+.now-line {
+  position: absolute; left: 0; right: 0; height: 2px;
+  background: var(--red); z-index: 5; pointer-events: none;
+}
+.now-line::before {
+  content: ''; position: absolute; left: -5px; top: -4px;
+  width: 10px; height: 10px; border-radius: 50%; background: var(--red);
+}
+
+/* ── Month grid ── */
+.month-grid {
+  display: grid; grid-template-columns: repeat(7,1fr);
+  grid-template-rows: 36px repeat(6, 1fr);
+  min-height: 100%;
+}
+.mg-day-head {
+  border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  background: var(--bg-surface); display: flex; align-items: center;
+  justify-content: center; font-size: 11px; font-weight: 600;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em;
+}
+.mg-cell {
+  border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  padding: 4px 6px; overflow: hidden; cursor: pointer;
+  transition: background var(--trans); min-height: 80px;
+}
+.mg-cell:hover { background: var(--bg-elevated); }
+.mg-cell.today .mg-num { background: var(--teal); color: #000; border-radius: 50%;
+                          width: 22px; height: 22px; display: flex;
+                          align-items: center; justify-content: center; }
+.mg-cell.other-month .mg-num { color: var(--text-muted); opacity: .4; }
+.mg-num { font-size: 12px; font-weight: 600; margin-bottom: 3px;
+          width: 22px; height: 22px; display: flex; align-items: center; }
+.mg-pill {
+  border-radius: 3px; padding: 1px 5px; font-size: 10px; font-weight: 600;
+  margin-bottom: 2px; cursor: pointer; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; color: #000; transition: transform var(--trans);
+}
+.mg-pill:hover { transform: scaleX(1.02); }
+.mg-more { font-size: 10px; color: var(--text-muted); padding: 1px 4px; }
+
+/* ── Day view ── */
+.day-grid { display: grid; grid-template-columns: 58px 1fr; min-height: 100%; }
+
+/* ═══ RIGHT PANEL ═══════════════════════════════════════════════════ */
+.rp-tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.rp-tab {
+  flex: 1; padding: 10px 8px; text-align: center; font-size: 11px; font-weight: 600;
+  color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent;
+  transition: var(--trans); letter-spacing: .04em; text-transform: uppercase;
+}
+.rp-tab.active { color: var(--teal); border-bottom-color: var(--teal); }
+.rp-tab:hover:not(.active) { color: var(--text-primary); }
+.rp-body { flex: 1; overflow-y: auto; padding: 14px; }
+
+/* Cost savings bars */
+.savings-item { margin-bottom: 14px; }
+.savings-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.savings-name { font-size: 12px; font-weight: 500; flex: 1; min-width: 0;
+                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.savings-val { font-size: 12px; font-weight: 700; color: var(--teal); flex-shrink: 0; }
+.bar-track { height: 6px; background: var(--bg-elevated); border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
+.bar-sub { display: flex; justify-content: space-between; margin-top: 3px; }
+.bar-label { font-size: 10px; color: var(--text-muted); }
+
+/* Execution log */
+.exec-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+.exec-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+.exec-dot.completed { background: var(--teal); }
+.exec-dot.failed { background: var(--red); }
+.exec-name { font-size: 12px; font-weight: 500; }
+.exec-meta { font-size: 10px; color: var(--text-muted); }
+.exec-time { font-size: 10px; color: var(--text-secondary); flex-shrink: 0; text-align: right; }
+
+/* Bot status */
+.bot-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0; border-bottom: 1px solid var(--border);
+}
+.bot-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.bot-dot.healthy { background: var(--teal); }
+.bot-dot.degraded { background: var(--amber); animation: pulse 1.5s ease infinite; }
+.bot-name { font-size: 11px; flex: 1; color: var(--text-secondary); }
+.bot-up { font-size: 10px; color: var(--text-muted); }
+
+/* Summary cards */
+.summary-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.scard {
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 12px;
+}
+.scard-val { font-size: 20px; font-weight: 800; color: var(--teal); }
+.scard-label { font-size: 10px; color: var(--text-muted); margin-top: 2px; text-transform: uppercase; letter-spacing: .06em; }
+
+/* Tooltip */
+.tooltip {
+  position: fixed; z-index: 9999; pointer-events: none;
+  background: var(--bg-card); border: 1px solid var(--border-light);
+  border-radius: var(--radius); padding: 10px 12px;
+  box-shadow: var(--shadow); font-size: 12px; min-width: 200px; max-width: 280px;
+  display: none;
+}
+.tooltip.visible { display: block; }
+.tt-name { font-weight: 700; margin-bottom: 6px; font-size: 13px; }
+.tt-row { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 3px; }
+.tt-label { color: var(--text-muted); }
+.tt-val { font-weight: 600; color: var(--text-primary); }
+.tt-savings { color: var(--teal); font-weight: 700; }
+
+/* Multicursor */
+.cursor-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 8000;
+}
+.remote-cursor {
+  position: absolute; width: 12px; height: 12px;
+  border-radius: 50%; border: 2px solid #fff;
+  transform: translate(-50%, -50%);
+  transition: left .15s ease, top .15s ease;
+}
+.remote-cursor-label {
+  position: absolute; top: 14px; left: 8px;
+  background: var(--blue); color: #fff; font-size: 10px; font-weight: 600;
+  padding: 2px 5px; border-radius: 10px; white-space: nowrap;
+}
+
+/* Connection status */
+.conn-status {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--text-muted);
+}
+.conn-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); }
+.conn-dot.connected { background: var(--teal); animation: pulse 2s ease infinite; }
+.conn-dot.error { background: var(--red); }
+
+/* Animations */
+@keyframes fadeIn { from { opacity:0; transform: translateY(4px); } to { opacity:1; transform: none; } }
+.fade-in { animation: fadeIn .3s ease; }
+@keyframes slideIn { from { opacity:0; transform: translateX(8px); } to { opacity:1; transform: none; } }
+
+/* Scrollbar visible on hover */
+.auto-list { scrollbar-width: thin; }
+
+/* Toggle buttons */
+.toggle-btn {
+  background: none; border: 1px solid var(--border); color: var(--text-secondary);
+  padding: 4px 8px; border-radius: var(--radius-sm); cursor: pointer; font: inherit;
+  font-size: 11px; transition: var(--trans);
+}
+.toggle-btn.active { background: var(--teal-dim); border-color: var(--teal); color: var(--teal); }
+.toggle-btn:hover:not(.active) { border-color: var(--border-light); color: var(--text-primary); }
+
+/* Empty state */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 20px; color: var(--text-muted); text-align: center; gap: 8px;
+}
+.empty-state svg { opacity: .3; }
+.empty-state p { font-size: 13px; }
+
+/* Resize handle */
+.cal-block-resize {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 5px;
+  cursor: s-resize; z-index: 5;
+}
+</style>
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+<div id="app">
+
+  <!-- ══ TOP BAR ═══════════════════════════════════════════════════════ -->
+  <div class="topbar">
+    <a class="brand" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 6v6l4 2"/>
+      </svg>
+      MURPHY
+    </a>
+    <div class="topbar-sep"></div>
+    <div id="tierBadge" class="tier-badge">
+      <span class="live-dot"></span>
+      <span id="tierName">Business</span>
+    </div>
+
+    <div class="topbar-center">
+      <button class="nav-btn" onclick="navigate(-1)">‹</button>
+      <div class="view-tabs">
+        <button class="vt active" onclick="setView('day')">Day</button>
+        <button class="vt" onclick="setView('week')">Week</button>
+        <button class="vt" onclick="setView('month')">Month</button>
+      </div>
+      <div class="period-label" id="periodLabel"></div>
+      <button class="nav-btn" onclick="navigate(1)">›</button>
+      <button class="nav-btn" onclick="goToday()">Today</button>
+    </div>
+
+    <div class="topbar-right">
+      <div class="conn-status">
+        <div class="conn-dot" id="connDot"></div>
+        <span id="connLabel">connecting…</span>
+      </div>
+      <div class="topbar-sep"></div>
+      <button class="btn btn-primary" onclick="openPromptPanel()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Automation
+      </button>
+      <button class="btn" onclick="toggleRightPanel()">⇌ Panel</button>
+    </div>
+  </div>
+
+  <!-- ══ SHELL ═════════════════════════════════════════════════════════ -->
+  <div class="shell">
+
+    <!-- ── LEFT PANEL ──────────────────────────────────────────── -->
+    <div class="left-panel">
+
+      <!-- Prompt -->
+      <div class="panel-section">
+        <div class="panel-header">
+          <span>Prompt</span>
+        </div>
+        <div class="prompt-area">
+          <div class="prompt-wrap">
+            <textarea id="promptInput" placeholder="Describe an automation…
+e.g. Send daily report at 9am
+     Sync leads to CRM every hour
+     Run security scan at 2am daily"></textarea>
+            <div class="prompt-footer">
+              <span class="prompt-hint" id="promptHint">↵ to run</span>
+              <button id="runPrompt" onclick="runPrompt()">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3l14 9-14 9V3z"/></svg>
+                Run
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mini calendar -->
+      <div class="panel-section">
+        <div class="mini-cal">
+          <div class="mini-cal-header">
+            <div class="mini-cal-title" id="miniCalTitle"></div>
+            <div style="display:flex;gap:4px">
+              <button class="mini-nav" onclick="miniCalNav(-1)">‹</button>
+              <button class="mini-nav" onclick="miniCalNav(1)">›</button>
+            </div>
+          </div>
+          <div class="mini-grid" id="miniGrid"></div>
+        </div>
+      </div>
+
+      <!-- Automation list -->
+      <div class="panel-header" style="border-bottom:1px solid var(--border)">
+        <span>Automations</span>
+        <div style="display:flex;gap:4px">
+          <button class="toggle-btn active" id="filterAll" onclick="setFilter('all')">All</button>
+          <button class="toggle-btn" id="filterActive" onclick="setFilter('active')">Active</button>
+        </div>
+      </div>
+      <div class="auto-list" id="autoList"></div>
+
+    </div>
+
+    <!-- ── MAIN CALENDAR ────────────────────────────────────────── -->
+    <div class="main">
+      <div class="cal-header">
+        <input class="cal-search" id="calSearch" placeholder="Search automations…" oninput="onSearch(this.value)">
+        <div style="flex:1"></div>
+        <button class="toggle-btn active" id="showActive" onclick="toggleLayer('active')" style="font-size:10px">
+          ● Active
+        </button>
+        <button class="toggle-btn active" id="showPaused" onclick="toggleLayer('paused')" style="font-size:10px">
+          ○ Paused
+        </button>
+        <span style="color:var(--text-muted);font-size:11px;margin-left:8px">
+          <span id="blockCount">0</span> blocks
+        </span>
+      </div>
+      <div class="cal-content" id="calContent"></div>
+    </div>
+
+    <!-- ── RIGHT PANEL ──────────────────────────────────────────── -->
+    <div class="right-panel" id="rightPanel">
+      <div class="rp-tabs">
+        <div class="rp-tab active" onclick="setRpTab('cost')">Cost</div>
+        <div class="rp-tab" onclick="setRpTab('log')">Log</div>
+        <div class="rp-tab" onclick="setRpTab('bots')">Bots</div>
+      </div>
+      <div class="rp-body" id="rpBody"></div>
+    </div>
+
+  </div><!-- .shell -->
+</div><!-- #app -->
+
+<!-- Tooltip -->
+<div class="tooltip" id="tooltip">
+  <div class="tt-name" id="ttName"></div>
+  <div class="tt-row"><span class="tt-label">Category</span><span class="tt-val" id="ttCat"></span></div>
+  <div class="tt-row"><span class="tt-label">ETC</span><span class="tt-val" id="ttEtc"></span></div>
+  <div class="tt-row"><span class="tt-label">Actual</span><span class="tt-val" id="ttActual"></span></div>
+  <div class="tt-row"><span class="tt-label">Variance</span><span class="tt-val" id="ttVariance"></span></div>
+  <div class="tt-row"><span class="tt-label">Monthly Savings</span><span class="tt-savings" id="ttSavings"></span></div>
+  <div class="tt-row"><span class="tt-label">Status</span><span class="tt-val" id="ttStatus"></span></div>
+</div>
+
+<!-- Multicursor overlay -->
+<div class="cursor-overlay" id="cursorOverlay"></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   MURPHY SYSTEM — PRODUCTION UI
+   Calendar + Prompt + Live Automations + Cost Analytics
+══════════════════════════════════════════════════════════════════ */
+const API = '';  // same origin
+
+let currentView = 'week';
+let currentDate = new Date();
+let calendarBlocks = [];
+let automations = [];
+let executions = [];
+let botStatuses = [];
+let costData = null;
+let activeFilter = 'all';
+let layersVisible = { active: true, paused: true };
+let searchQuery = '';
+let rpTab = 'cost';
+let rightPanelOpen = true;
+let ws = null;
+let sseSource = null;
+let miniCalDate = new Date();
+let selectedAutoId = null;
+
+/* ── API helpers ── */
+async function api(path, opts = {}) {
+  const r = await fetch(API + path, opts);
+  if (!r.ok) { const t = await r.text(); throw new Error(t || r.statusText); }
+  return r.json();
+}
+
+/* ── Init ── */
+async function init() {
+  updatePeriodLabel();
+  renderMiniCal();
+  await Promise.all([loadAutomations(), loadCalendar(), loadCostData(), loadBots()]);
+  connectSSE();
+  connectWS();
+  startTickLoop();
+}
+
+/* ── Load automations ── */
+async function loadAutomations() {
+  const d = await api('/api/automations');
+  automations = d.automations || [];
+  renderAutoList();
+  renderTierBadge();
+}
+
+/* ── Load calendar ── */
+async function loadCalendar() {
+  const dateStr = currentDate.toISOString().split('T')[0];
+  const d = await api(`/api/calendar?date=${dateStr}&view=${currentView}`);
+  calendarBlocks = d.blocks || [];
+  renderCalendar();
+}
+
+/* ── Load cost data ── */
+async function loadCostData() {
+  costData = await api('/api/labor-cost');
+  if (rpTab === 'cost') renderRpCost();
+}
+
+/* ── Load bots ── */
+async function loadBots() {
+  const d = await api('/api/bots/status');
+  botStatuses = d.bots || [];
+  if (rpTab === 'bots') renderRpBots();
+}
+
+/* ── Load executions ── */
+async function loadExecutions() {
+  const d = await api('/api/executions?limit=50');
+  executions = d.executions || [];
+  if (rpTab === 'log') renderRpLog();
+}
+
+/* ── SSE connection ── */
+function connectSSE() {
+  if (sseSource) sseSource.close();
+  sseSource = new EventSource(API + '/api/automations/stream');
+  sseSource.onopen = () => setConnStatus('connected');
+  sseSource.onerror = () => setConnStatus('error');
+  sseSource.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      handleSSEEvent(msg);
+    } catch {}
+  };
+}
+
+function handleSSEEvent(msg) {
+  if (msg.event === 'automation_executed') {
+    const exec = msg.data;
+    // Update actual time in automations
+    const a = automations.find(x => x.id === exec.automation_id);
+    if (a) { a.actual_minutes = exec.actual_minutes; }
+    // Animate the block
+    animateBlock(exec.automation_id, exec.status);
+    // Prepend to executions
+    executions.unshift(exec);
+    if (executions.length > 200) executions.pop();
+    if (rpTab === 'log') renderRpLog();
+    // Refresh cost if needed
+    loadCostData();
+  }
+  if (msg.event === 'automation_created') {
+    automations.push(msg.data);
+    renderAutoList();
+    loadCalendar();
+    loadCostData();
+    showToast(`✓ Created: ${msg.data.name}`);
+  }
+  if (msg.event === 'automation_updated') {
+    const idx = automations.findIndex(x => x.id === msg.data.id);
+    if (idx >= 0) automations[idx] = msg.data;
+    renderAutoList();
+    loadCalendar();
+  }
+  if (msg.event === 'automation_deleted') {
+    automations = automations.filter(x => x.id !== msg.data.id);
+    renderAutoList();
+    loadCalendar();
+  }
+}
+
+/* ── WebSocket connection ── */
+function connectWS() {
+  const wsUrl = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
+  ws = new WebSocket(wsUrl);
+  ws.onopen = () => {
+    setConnStatus('connected');
+    // Share cursor moves
+    document.addEventListener('mousemove', (e) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ event: 'cursor', data: { x: e.clientX, y: e.clientY } }));
+      }
+    }, { passive: true });
+  };
+  ws.onmessage = (e) => {
+    try { handleWSEvent(JSON.parse(e.data)); } catch {}
+  };
+  ws.onerror = () => setConnStatus('error');
+  ws.onclose = () => { setConnStatus('disconnected'); setTimeout(connectWS, 3000); };
+}
+
+const _remoteCursors = {};
+function handleWSEvent(msg) {
+  if (msg.event === 'cursor' && msg.data.client_id) {
+    updateRemoteCursor(msg.data.client_id, msg.data.x, msg.data.y);
+  }
+  if (msg.event === 'automation_executed') handleSSEEvent(msg);
+  if (msg.event === 'automation_created') handleSSEEvent(msg);
+}
+
+function updateRemoteCursor(id, x, y) {
+  const overlay = document.getElementById('cursorOverlay');
+  let el = document.getElementById('rc_' + id);
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'rc_' + id;
+    el.className = 'remote-cursor';
+    el.style.background = `hsl(${(parseInt(id,16) % 360)},70%,55%)`;
+    const lbl = document.createElement('div');
+    lbl.className = 'remote-cursor-label';
+    lbl.textContent = 'User ' + id.slice(0,4);
+    el.appendChild(lbl);
+    overlay.appendChild(el);
+    _remoteCursors[id] = el;
+  }
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  clearTimeout(el._hideTimeout);
+  el._hideTimeout = setTimeout(() => el.remove(), 5000);
+}
+
+function setConnStatus(state) {
+  const dot = document.getElementById('connDot');
+  const lbl = document.getElementById('connLabel');
+  dot.className = 'conn-dot ' + (state === 'connected' ? 'connected' : state === 'error' ? 'error' : '');
+  lbl.textContent = state === 'connected' ? 'Live' : state === 'error' ? 'Error' : 'Connecting…';
+}
+
+/* ── Navigation ── */
+function setView(v) {
+  currentView = v;
+  document.querySelectorAll('.vt').forEach((el, i) => {
+    el.classList.toggle('active', ['day','week','month'][i] === v);
+  });
+  updatePeriodLabel();
+  loadCalendar();
+}
+
+function navigate(dir) {
+  if (currentView === 'day') currentDate = offsetDate(currentDate, dir);
+  else if (currentView === 'week') currentDate = offsetDate(currentDate, dir * 7);
+  else { const d = new Date(currentDate); d.setMonth(d.getMonth() + dir); currentDate = d; }
+  updatePeriodLabel();
+  renderMiniCal();
+  loadCalendar();
+}
+
+function goToday() {
+  currentDate = new Date();
+  updatePeriodLabel();
+  renderMiniCal();
+  loadCalendar();
+}
+
+function offsetDate(d, days) {
+  const n = new Date(d);
+  n.setDate(n.getDate() + days);
+  return n;
+}
+
+function updatePeriodLabel() {
+  const el = document.getElementById('periodLabel');
+  const opts = { month: 'long', year: 'numeric' };
+  if (currentView === 'day') {
+    el.textContent = currentDate.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+  } else if (currentView === 'week') {
+    const mon = getWeekStart(currentDate);
+    const sun = new Date(mon); sun.setDate(sun.getDate() + 6);
+    el.textContent = `${mon.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${sun.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
+  } else {
+    el.textContent = currentDate.toLocaleDateString('en-US', opts);
+  }
+}
+
+function getWeekStart(d) {
+  const n = new Date(d);
+  const day = n.getDay();
+  n.setDate(n.getDate() - day);
+  return n;
+}
+
+/* ── Mini calendar ── */
+function miniCalNav(dir) {
+  miniCalDate = new Date(miniCalDate.getFullYear(), miniCalDate.getMonth() + dir, 1);
+  renderMiniCal();
+}
+
+function renderMiniCal() {
+  const days = ['S','M','T','W','T','F','S'];
+  const today = new Date();
+  const year = miniCalDate.getFullYear(), month = miniCalDate.getMonth();
+  document.getElementById('miniCalTitle').textContent =
+    miniCalDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
+  const grid = document.getElementById('miniGrid');
+  grid.innerHTML = '';
+  days.forEach(d => { const h = document.createElement('div'); h.className='mh'; h.textContent=d; grid.appendChild(h); });
+
+  const first = new Date(year, month, 1);
+  const last = new Date(year, month+1, 0);
+  // Pad start
+  for (let i = 0; i < first.getDay(); i++) {
+    const blank = document.createElement('div'); blank.className='md other'; grid.appendChild(blank);
+  }
+  for (let d = 1; d <= last.getDate(); d++) {
+    const el = document.createElement('div');
+    el.className = 'md';
+    el.textContent = d;
+    const thisDate = new Date(year, month, d);
+    if (isSameDay(thisDate, today)) el.classList.add('today');
+    if (isSameDay(thisDate, currentDate)) el.classList.add('selected');
+    // Check if any automations run on this day
+    if (automations.length > 0) el.classList.add('has-autos');
+    el.onclick = () => {
+      currentDate = new Date(year, month, d);
+      updatePeriodLabel();
+      renderMiniCal();
+      loadCalendar();
+    };
+    grid.appendChild(el);
+  }
+}
+
+function isSameDay(a, b) {
+  return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();
+}
+
+/* ── Automation list ── */
+function setFilter(f) {
+  activeFilter = f;
+  document.getElementById('filterAll').classList.toggle('active', f==='all');
+  document.getElementById('filterActive').classList.toggle('active', f==='active');
+  renderAutoList();
+}
+
+function renderAutoList() {
+  const list = document.getElementById('autoList');
+  let items = automations;
+  if (activeFilter === 'active') items = items.filter(a => a.status === 'active');
+  if (searchQuery) items = items.filter(a =>
+    a.name.toLowerCase().includes(searchQuery) ||
+    (a.category||'').toLowerCase().includes(searchQuery)
+  );
+
+  if (!items.length) {
+    list.innerHTML = `<div class="empty-state">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/>
+      </svg>
+      <p>No automations</p></div>`;
+    return;
+  }
+  list.innerHTML = items.map(a => `
+    <div class="auto-item${a.id===selectedAutoId?' active':''}" onclick="selectAuto('${a.id}')">
+      <div class="auto-dot" style="background:${a.color}"></div>
+      <div class="auto-info">
+        <div class="auto-name">${escHtml(a.name)}</div>
+        <div class="auto-meta">${a.recurrence} · ${a.category}</div>
+      </div>
+      <span class="auto-status ${a.status}">${a.status}</span>
+    </div>`).join('');
+}
+
+function selectAuto(id) {
+  selectedAutoId = id;
+  renderAutoList();
+  const a = automations.find(x => x.id === id);
+  if (a) showAutoDetail(a);
+}
+
+/* ── Calendar render ── */
+function renderCalendar() {
+  const content = document.getElementById('calContent');
+  if (currentView === 'week') renderWeekView(content);
+  else if (currentView === 'day') renderDayView(content);
+  else renderMonthView(content);
+  document.getElementById('blockCount').textContent = getVisibleBlocks().length;
+}
+
+function getVisibleBlocks() {
+  return calendarBlocks.filter(b => {
+    if (!layersVisible[b.status] && b.status !== 'active') return false;
+    if (!layersVisible['active'] && b.status === 'active') return false;
+    if (!layersVisible['paused'] && b.status === 'paused') return false;
+    if (searchQuery && !b.automation_name.toLowerCase().includes(searchQuery)) return false;
+    return true;
+  });
+}
+
+/* ── Week view ── */
+function renderWeekView(container) {
+  const weekStart = getWeekStart(currentDate);
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart); d.setDate(d.getDate() + i); days.push(d);
+  }
+
+  let html = `<div class="week-grid">`;
+
+  // Time gutter header (empty corner)
+  html += `<div class="time-gutter"><div style="height:44px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);background:var(--bg-surface)"></div>`;
+  for (let h = 0; h < 24; h++) {
+    html += `<div class="wg-time">${h === 0 ? '12am' : h < 12 ? h+'am' : h===12 ? '12pm' : (h-12)+'pm'}</div>`;
+  }
+  html += `</div>`;
+
+  const blocks = getVisibleBlocks();
+
+  // Day columns
+  days.forEach((day, di) => {
+    const isToday = isSameDay(day, new Date());
+    html += `<div class="wg-day-col" data-dayidx="${di}">
+      <div class="wg-day-head${isToday?' today':''}">
+        <span>${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][day.getDay()]}</span>
+        <span class="wg-day-num">${day.getDate()}</span>
+      </div>`;
+
+    // Hour slots
+    for (let h = 0; h < 24; h++) {
+      html += `<div class="wg-hour-row" data-day="${di}" data-hour="${h}"></div>`;
+    }
+
+    // Render automation blocks for this day
+    const dayBlocks = blocks.filter(b => {
+      const bDate = new Date(b.start);
+      return bDate.getFullYear()===day.getFullYear()&&bDate.getMonth()===day.getMonth()&&bDate.getDate()===day.getDate();
+    });
+
+    dayBlocks.forEach(b => {
+      const bDate = new Date(b.start);
+      const topMin = bDate.getHours()*60 + bDate.getMinutes();
+      const top = 44 + (topMin / 60) * 56; // 44px header + 56px/hour
+      const durationH = Math.max(0.25, (b.duration_minutes || 5) / 60);
+      const height = Math.max(14, durationH * 56);
+      const etc = b.estimated_minutes || 5;
+      const actual = b.actual_minutes || 0;
+      const variance = actual > 0 ? ((actual - etc) / etc * 100).toFixed(0) : 0;
+      const varColor = actual > etc * 1.15 ? '#ef4444' : actual > etc * 1.05 ? '#f59e0b' : '#00d4aa';
+      const savings = (b.cost_savings || 0).toFixed(2);
+      html += `<div class="cal-block${' '+b.status}" id="blk_${b.automation_id}_${di}"
+        style="top:${top}px;height:${height}px;background:${b.color};--base-h:${height}px"
+        data-id="${b.automation_id}"
+        data-name="${escAttr(b.automation_name)}"
+        data-cat="${escAttr(b.category)}"
+        data-etc="${etc}"
+        data-actual="${actual}"
+        data-variance="${variance}"
+        data-savings="${savings}"
+        data-status="${b.status}"
+        onmouseenter="showTooltip(event,this)"
+        onmouseleave="hideTooltip()"
+        onclick="blockClick('${b.automation_id}')">
+        <div>${escHtml(b.automation_name)}</div>
+        ${height > 28 ? `<div style="opacity:.7;font-size:9px">${etc}m ETC ${actual>0?'· '+actual+'m act':''}</div>` : ''}
+        ${height > 40 && actual > 0 ? `<div style="color:${varColor};font-size:9px;font-weight:700">${variance>0?'+':''}${variance}%</div>` : ''}
+        <div class="cal-block-resize"></div>
+      </div>`;
+    });
+
+    // Now indicator
+    if (isToday) {
+      const now = new Date();
+      const nowMin = now.getHours()*60 + now.getMinutes();
+      const nowTop = 44 + (nowMin / 60) * 56;
+      html += `<div class="now-line" id="nowLine" style="top:${nowTop}px"></div>`;
+    }
+
+    html += `</div>`;
+  });
+
+  html += `</div>`;
+  container.innerHTML = html;
+
+  // Scroll to 7am
+  setTimeout(() => { container.scrollTop = 44 + 7 * 56 - 60; }, 50);
+}
+
+/* ── Day view ── */
+function renderDayView(container) {
+  const day = currentDate;
+  let html = `<div class="day-grid">`;
+  html += `<div class="time-gutter"><div style="height:44px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);background:var(--bg-surface)"></div>`;
+  for (let h = 0; h < 24; h++) {
+    html += `<div class="wg-time">${h===0?'12am':h<12?h+'am':h===12?'12pm':(h-12)+'pm'}</div>`;
+  }
+  html += `</div>`;
+
+  html += `<div class="wg-day-col" style="flex:1">
+    <div class="wg-day-head today">
+      <span>${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][day.getDay()]}</span>
+      <span class="wg-day-num">${day.getDate()}</span>
+    </div>`;
+
+  for (let h = 0; h < 24; h++) {
+    html += `<div class="wg-hour-row"></div>`;
+  }
+
+  const blocks = getVisibleBlocks().filter(b => {
+    const bd = new Date(b.start);
+    return isSameDay(bd, day);
+  });
+
+  blocks.forEach(b => {
+    const bd = new Date(b.start);
+    const topMin = bd.getHours()*60 + bd.getMinutes();
+    const top = 44 + (topMin/60)*56;
+    const height = Math.max(24, (b.duration_minutes||5)/60*56);
+    const savings = (b.cost_savings||0).toFixed(2);
+    html += `<div class="cal-block ${b.status}" id="blk_day_${b.automation_id}"
+      style="top:${top}px;height:${height}px;background:${b.color};--base-h:${height}px"
+      data-id="${b.automation_id}"
+      data-name="${escAttr(b.automation_name)}"
+      data-cat="${escAttr(b.category)}"
+      data-etc="${b.estimated_minutes}"
+      data-actual="${b.actual_minutes}"
+      data-savings="${savings}"
+      data-status="${b.status}"
+      onmouseenter="showTooltip(event,this)"
+      onmouseleave="hideTooltip()"
+      onclick="blockClick('${b.automation_id}')">
+      <div>${escHtml(b.automation_name)}</div>
+      ${height>28?`<div style="opacity:.7;font-size:9px">${b.estimated_minutes}m ETC</div>`:''}
+    </div>`;
+  });
+
+  const now = new Date();
+  if (isSameDay(now, day)) {
+    const nowTop = 44 + (now.getHours()*60+now.getMinutes())/60*56;
+    html += `<div class="now-line" style="top:${nowTop}px"></div>`;
+  }
+
+  html += `</div></div>`;
+  container.innerHTML = html;
+  setTimeout(() => { container.scrollTop = 44 + 7*56 - 60; }, 50);
+}
+
+/* ── Month view ── */
+function renderMonthView(container) {
+  const year = currentDate.getFullYear(), month = currentDate.getMonth();
+  const today = new Date();
+  const first = new Date(year, month, 1);
+  const last = new Date(year, month+1, 0);
+  const blocks = getVisibleBlocks();
+
+  let html = `<div class="month-grid">`;
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
+    html += `<div class="mg-day-head">${d}</div>`;
+  });
+
+  // Padding before first
+  for (let i = 0; i < first.getDay(); i++) {
+    html += `<div class="mg-cell other-month"><div class="mg-num"></div></div>`;
+  }
+
+  for (let d = 1; d <= last.getDate(); d++) {
+    const thisDay = new Date(year, month, d);
+    const isToday = isSameDay(thisDay, today);
+    const dayBlocks = blocks.filter(b => {
+      const bd = new Date(b.start);
+      return bd.getFullYear()===year && bd.getMonth()===month && bd.getDate()===d;
+    });
+    // Deduplicate by automation (show one pill per unique automation per day)
+    const seen = new Set();
+    const unique = dayBlocks.filter(b => { if(seen.has(b.automation_id)) return false; seen.add(b.automation_id); return true; });
+    const pills = unique.slice(0,3);
+    const more = unique.length - 3;
+
+    html += `<div class="mg-cell${isToday?' today':''}">
+      <div class="mg-num">${d}</div>
+      ${pills.map(b => `<div class="mg-pill" style="background:${b.color}" title="${escAttr(b.automation_name)}">${escHtml(b.automation_name)}</div>`).join('')}
+      ${more > 0 ? `<div class="mg-more">+${more} more</div>` : ''}
+    </div>`;
+  }
+  html += `</div>`;
+  container.innerHTML = html;
+}
+
+/* ── Block animation ── */
+function animateBlock(autoId, status) {
+  // Find all blocks for this automation and animate expand→contract
+  document.querySelectorAll(`[data-id="${autoId}"]`).forEach(el => {
+    el.classList.remove('expanding', 'contracting');
+    void el.offsetWidth; // force reflow
+    if (status === 'completed') {
+      el.classList.add('expanding');
+      setTimeout(() => { el.classList.remove('expanding'); el.classList.add('contracting'); }, 400);
+      setTimeout(() => el.classList.remove('contracting'), 800);
+    } else if (status === 'failed') {
+      el.style.filter = 'brightness(0.5) saturate(0.3)';
+      setTimeout(() => { el.style.filter = ''; }, 2000);
+    }
+  });
+}
+
+/* ── Tooltip ── */
+function showTooltip(e, el) {
+  const tt = document.getElementById('tooltip');
+  document.getElementById('ttName').textContent = el.dataset.name;
+  document.getElementById('ttCat').textContent = el.dataset.cat;
+  document.getElementById('ttEtc').textContent = el.dataset.etc + ' min';
+  const actual = parseFloat(el.dataset.actual||0);
+  document.getElementById('ttActual').textContent = actual > 0 ? actual.toFixed(1) + ' min' : '—';
+  const etc = parseFloat(el.dataset.etc||0);
+  const variance = actual > 0 && etc > 0 ? ((actual-etc)/etc*100).toFixed(0)+'%' : '—';
+  document.getElementById('ttVariance').textContent = variance;
+  const savings = parseFloat(el.dataset.savings||0);
+  const monthly = (savings * ({hourly:720,daily:30,weekly:4,monthly:1}[el.dataset.recurrence]||30)).toFixed(0);
+  document.getElementById('ttSavings').textContent = '$' + parseFloat(el.dataset.savings||0).toFixed(2) + '/run';
+  document.getElementById('ttStatus').textContent = el.dataset.status;
+
+  tt.style.left = Math.min(e.clientX + 14, window.innerWidth - 300) + 'px';
+  tt.style.top = Math.min(e.clientY - 10, window.innerHeight - 200) + 'px';
+  tt.classList.add('visible');
+}
+
+function hideTooltip() {
+  document.getElementById('tooltip').classList.remove('visible');
+}
+
+/* ── Block click ── */
+function blockClick(id) {
+  selectedAutoId = id;
+  renderAutoList();
+  const a = automations.find(x => x.id === id);
+  if (a) showAutoDetail(a);
+  // Highlight all blocks of this automation
+  document.querySelectorAll('.cal-block').forEach(el => {
+    el.style.outline = el.dataset.id === id ? '2px solid #fff' : '';
+  });
+}
+
+/* ── Auto detail in right panel ── */
+function showAutoDetail(a) {
+  setRpTab('cost');
+}
+
+/* ── Prompt ── */
+async function runPrompt() {
+  const input = document.getElementById('promptInput');
+  const prompt = input.value.trim();
+  if (!prompt) return;
+  const btn = document.getElementById('runPrompt');
+  btn.classList.add('loading');
+  btn.textContent = '…';
+  try {
+    const result = await api('/api/prompt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, board_id: 'board-001', tier: 'business' }),
+    });
+    input.value = '';
+    showToast(`✓ Created: ${result.name}`);
+    await Promise.all([loadAutomations(), loadCalendar(), loadCostData()]);
+  } catch (e) {
+    showToast('✗ ' + (e.message || 'Error'), true);
+  } finally {
+    btn.classList.remove('loading');
+    btn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3l14 9-14 9V3z"/></svg> Run';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('promptInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) runPrompt();
+  });
+});
+
+function openPromptPanel() {
+  document.getElementById('promptInput').focus();
+}
+
+/* ── Right panel ── */
+function toggleRightPanel() {
+  rightPanelOpen = !rightPanelOpen;
+  document.getElementById('rightPanel').classList.toggle('collapsed', !rightPanelOpen);
+}
+
+function setRpTab(tab) {
+  rpTab = tab;
+  document.querySelectorAll('.rp-tab').forEach((el, i) => {
+    el.classList.toggle('active', ['cost','log','bots'][i] === tab);
+  });
+  if (tab === 'cost') renderRpCost();
+  else if (tab === 'log') { loadExecutions(); renderRpLog(); }
+  else { loadBots(); renderRpBots(); }
+}
+
+function renderRpCost() {
+  const body = document.getElementById('rpBody');
+  if (!costData) { body.innerHTML = '<div class="empty-state"><p>Loading…</p></div>'; return; }
+  const s = costData.summary;
+  const maxSavings = Math.max(...costData.items.map(x=>x.monthly_savings), 1);
+
+  body.innerHTML = `
+    <div class="summary-cards">
+      <div class="scard">
+        <div class="scard-val">$${(s.total_monthly_savings/1000).toFixed(1)}k</div>
+        <div class="scard-label">Monthly Savings</div>
+      </div>
+      <div class="scard">
+        <div class="scard-val">${s.roi_multiplier}x</div>
+        <div class="scard-label">ROI vs Manual</div>
+      </div>
+      <div class="scard">
+        <div class="scard-val">${s.total_automations}</div>
+        <div class="scard-label">Automations</div>
+      </div>
+      <div class="scard">
+        <div class="scard-val">$${s.total_manual_cost_per_run.toFixed(0)}</div>
+        <div class="scard-label">Manual Cost/Run</div>
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">By Automation</div>
+    ${costData.items.map(item => `
+      <div class="savings-item">
+        <div class="savings-row">
+          <div class="savings-name" title="${escHtml(item.name)}">
+            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${item.color};margin-right:5px;flex-shrink:0"></span>
+            ${escHtml(item.name)}
+          </div>
+          <div class="savings-val">$${item.monthly_savings.toFixed(0)}/mo</div>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${(item.monthly_savings/maxSavings*100).toFixed(1)}%;background:${item.color}"></div>
+        </div>
+        <div class="bar-sub">
+          <span class="bar-label">ETC ${item.estimated_minutes}m · Act ${item.actual_minutes.toFixed(1)}m</span>
+          <span class="bar-label ${item.variance_pct>10?'style="color:var(--amber)"':'style="color:var(--teal)"'}">${item.variance_pct>0?'+':''}${item.variance_pct}%</span>
+        </div>
+      </div>`).join('')}`;
+}
+
+function renderRpLog() {
+  const body = document.getElementById('rpBody');
+  if (!executions.length) {
+    body.innerHTML = '<div class="empty-state"><p>No executions yet — waiting for automations to run…</p></div>';
+    return;
+  }
+  body.innerHTML = executions.slice(0,40).map(e => {
+    const a = automations.find(x=>x.id===e.automation_id)||{color:'#888',name:e.automation_name};
+    const time = new Date(e.started_at).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    const savings = e.cost_savings ? `$${e.cost_savings.toFixed(2)} saved` : '';
+    return `<div class="exec-item fade-in">
+      <div class="exec-dot ${e.status}" style="background:${a.color}"></div>
+      <div style="flex:1;min-width:0">
+        <div class="exec-name">${escHtml(e.automation_name||a.name)}</div>
+        <div class="exec-meta">${e.actual_minutes?.toFixed(1)||'?'}m · ${savings}</div>
+      </div>
+      <div class="exec-time">
+        <div>${time}</div>
+        <div style="color:${e.status==='completed'?'var(--teal)':'var(--red)'}">${e.status}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderRpBots() {
+  const body = document.getElementById('rpBody');
+  if (!botStatuses.length) { body.innerHTML = '<div class="empty-state"><p>Loading…</p></div>'; return; }
+  const healthy = botStatuses.filter(b=>b.status==='healthy').length;
+  body.innerHTML = `
+    <div class="summary-cards" style="margin-bottom:12px">
+      <div class="scard"><div class="scard-val" style="color:var(--teal)">${healthy}</div><div class="scard-label">Healthy</div></div>
+      <div class="scard"><div class="scard-val" style="color:var(--amber)">${botStatuses.length-healthy}</div><div class="scard-label">Degraded</div></div>
+    </div>
+    ${botStatuses.map(b=>`
+      <div class="bot-item">
+        <div class="bot-dot ${b.status}"></div>
+        <div class="bot-name">${b.name}</div>
+        <div class="bot-up">${b.uptime_pct}%</div>
+      </div>`).join('')}`;
+}
+
+/* ── Tier badge ── */
+async function renderTierBadge() {
+  try {
+    const d = await api('/api/tiers');
+    const active = d.active_automations;
+    document.getElementById('tierName').textContent = `Business · ${active} automations`;
+  } catch {}
+}
+
+/* ── Layers ── */
+function toggleLayer(layer) {
+  layersVisible[layer] = !layersVisible[layer];
+  document.getElementById('show'+layer.charAt(0).toUpperCase()+layer.slice(1))
+    .classList.toggle('active', layersVisible[layer]);
+  renderCalendar();
+}
+
+/* ── Search ── */
+function onSearch(q) {
+  searchQuery = q.toLowerCase();
+  renderCalendar();
+  renderAutoList();
+}
+
+/* ── Toast ── */
+function showToast(msg, isError = false) {
+  const t = document.createElement('div');
+  t.style.cssText = `position:fixed;bottom:20px;right:20px;z-index:9999;
+    background:${isError?'var(--red)':'var(--teal)'};color:#000;
+    padding:10px 16px;border-radius:8px;font-weight:700;font-size:13px;
+    box-shadow:0 4px 20px rgba(0,0,0,.4);animation:fadeIn .3s ease;`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+/* ── Tick loop ── */
+function startTickLoop() {
+  // Refresh data every 30s
+  setInterval(() => {
+    loadCalendar();
+    loadCostData();
+  }, 30000);
+
+  // Update now indicator every minute
+  setInterval(() => {
+    const el = document.getElementById('nowLine');
+    if (el) {
+      const now = new Date();
+      const nowTop = 44 + (now.getHours()*60+now.getMinutes())/60*56;
+      el.style.top = nowTop + 'px';
+    }
+  }, 60000);
+}
+
+/* ── Helpers ── */
+function escHtml(s) {
+  return String(s).replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/"/g,'"');
+}
+function escAttr(s) { return escHtml(s); }
+
+/* ── Boot ── */
+init().catch(console.error);
+</script>
+</body>
+</html>
