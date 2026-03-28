@@ -84,13 +84,13 @@ class TestSafeContent:
 # ---------------------------------------------------------------------------
 
 class TestAPIKeyDetection:
-    def test_groq_api_key_blocked(self):
+    def test_deepinfra_api_key_blocked(self):
         reviewer = UploadContentReviewer()
-        rec = _make_recording(terminal_output=["key=gsk_abcdefghijklmnopqrstuvwxyz12345"])
+        rec = _make_recording(terminal_output=["key=di_abcdefghijklmnopqrstuvwxyz12345"])
         result = reviewer.review(rec)
         assert result.is_safe is False
         names = [f.pattern_name for f in result.findings]
-        assert "groq_api_key" in names
+        assert "deepinfra_api_key" in names
 
     def test_openai_key_blocked(self):
         reviewer = UploadContentReviewer()
@@ -215,7 +215,7 @@ class TestAutoRedaction:
 
     def test_auto_redact_preserves_run_id(self):
         reviewer = UploadContentReviewer()
-        rec = _make_recording(terminal_output=["key: gsk_abcdefghijklmnopqrstuvwxyz12345"])
+        rec = _make_recording(terminal_output=["key: di_abcdefghijklmnopqrstuvwxyz12345"])
         result = reviewer.review(rec, auto_redact=True)
         assert result.redacted_recording is not None
         assert result.redacted_recording.run_id == rec.run_id

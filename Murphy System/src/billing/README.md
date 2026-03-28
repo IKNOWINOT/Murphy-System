@@ -1,35 +1,21 @@
-# `src/billing` — Billing & Subscription
+# Billing
 
-PayPal-first subscription and multi-currency billing API for the Murphy System.
+The `billing` package manages subscription plans, usage metering, and
+payment processing for the Murphy System.  It integrates with **PayPal**
+and **Coinbase Commerce** for payment collection.
 
-![License: BSL 1.1](https://img.shields.io/badge/License-BSL%201.1-blue.svg)
-
-## Overview
-
-The billing package provides the subscription and payment processing backbone for Murphy SaaS offerings. It exposes a FastAPI router for plan management, subscription lifecycle (create, upgrade, cancel), and webhook processing for payment provider events. Multi-currency support is handled by the currency module, which normalises amounts across supported fiat currencies. PayPal is the primary payment provider with the architecture open to additional connectors.
-
-## Key Components
+## Key Modules
 
 | Module | Purpose |
 |--------|---------|
-| `api.py` | FastAPI router for subscription CRUD and payment webhook ingestion |
-| `currency.py` | Currency normalisation, conversion helpers, and supported-currency registry |
+| `api.py` | FastAPI router: plan management, webhook handlers, invoices |
+| `currency.py` | Multi-currency conversion and rounding helpers |
 
-## Usage
+## Payment Providers
 
-```python
-from billing.api import create_billing_router
+| Provider | Use Case |
+|----------|----------|
+| PayPal | Recurring subscriptions, invoices |
+| Coinbase Commerce | Crypto payments |
 
-app.include_router(create_billing_router(), prefix="/api/billing")
-```
-
-## Configuration
-
-| Variable | Description |
-|----------|-------------|
-| `PAYPAL_CLIENT_ID` | PayPal application client ID |
-| `PAYPAL_CLIENT_SECRET` | PayPal application client secret |
-| `PAYPAL_ENVIRONMENT` | `sandbox` or `live` |
-
----
-*Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post · License: BSL 1.1*
+> **Note:** Stripe is not used. Do not add `STRIPE_API_KEY` to secrets.

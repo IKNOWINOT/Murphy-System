@@ -6,9 +6,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, List
 
-from .task_catalog import TASK_CATALOG, OnboardingTask
-from .priority_scorer import PriorityScorer
 from .onboarding_session import OnboardingSession
+from .priority_scorer import PriorityScorer
+from .task_catalog import TASK_CATALOG, OnboardingTask
 
 _TASK_MAP = {t.task_id: t for t in TASK_CATALOG}
 _TOTAL = len(TASK_CATALOG)

@@ -3192,179 +3192,12 @@ def _build_content_from_mss(
 
 
 def _build_minimal_custom_content(query: str) -> str:
-    """Domain-aware structured content when all upstream stages are unavailable.
-
-    Detects the domain from the query and generates richer, more relevant
-    content than a generic template. This ensures that even without MSS or
-    LLM availability, the deliverable is useful and specific to the request.
-    """
-    q = query.lower()
-
-    # Domain-specific sections
-    domain_sections = ""
-    if any(k in q for k in ["sale", "lead", "crm", "pipeline", "deal", "prospect", "revenue"]):
-        domain_sections = """\
-
-■ SALES PIPELINE FRAMEWORK
-───────────────────────────
-  Stage 1 — Lead Capture
-    • Inbound: web forms, chatbot, content downloads
-    • Outbound: prospecting lists, referral network, cold outreach
-    • Auto-score leads by engagement, firmographics, and intent signals
-
-  Stage 2 — Qualification & Nurture
-    • BANT/MEDDIC scoring criteria applied automatically
-    • Drip sequences triggered by lead score tier
-    • Sales Development Rep (SDR) handoff at score ≥70
-
-  Stage 3 — Opportunity Management
-    • Pipeline stage tracking with probability weighting
-    • Automated follow-up reminders and stakeholder mapping
-    • Deal-room document sharing and e-signature routing
-
-  Stage 4 — Close & Handoff
-    • Proposal generation from template library
-    • Contract routing with DocuSign/HelloSign integration
-    • Won-deal triggers onboarding workflow automatically
-
-  Stage 5 — Reporting & Forecasting
-    • Weekly pipeline digest to leadership
-    • Revenue forecast with confidence intervals
-    • Win/loss analysis and coaching recommendations
-"""
-    elif any(k in q for k in ["market", "email", "newsletter", "social", "content", "seo", "campaign", "brand"]):
-        domain_sections = """\
-
-■ MARKETING AUTOMATION FRAMEWORK
-─────────────────────────────────
-  Channel Strategy
-    • Email: segmented drip campaigns, A/B subject testing, send-time optimization
-    • Social: scheduled posting, engagement monitoring, sentiment analysis
-    • Content: editorial calendar, SEO keyword tracking, performance scoring
-    • Paid: budget allocation, bid management, ROAS optimization
-
-  Audience Segmentation
-    • Behavioral: page visits, downloads, email opens
-    • Demographic: industry, company size, role
-    • Lifecycle: prospect → MQL → SQL → customer → advocate
-
-  Campaign Workflow
-    1. Define campaign objective and KPIs
-    2. Build audience segments from CRM + analytics data
-    3. Create content assets (copy, creative, landing pages)
-    4. Configure automation triggers and nurture sequences
-    5. Launch with A/B testing on subject lines and CTAs
-    6. Monitor performance dashboard in real-time
-    7. Optimize based on conversion data
-
-  Measurement & Attribution
-    • Multi-touch attribution model (first-touch, last-touch, linear)
-    • Customer Acquisition Cost (CAC) tracking by channel
-    • Marketing Qualified Lead (MQL) → SQL conversion rates
-"""
-    elif any(k in q for k in ["support", "ticket", "helpdesk", "customer service", "chat", "knowledge base"]):
-        domain_sections = """\
-
-■ CUSTOMER SUPPORT AUTOMATION FRAMEWORK
-────────────────────────────────────────
-  Tier 1 — Self-Service (Automated)
-    • Knowledge base with AI-powered search
-    • Chatbot handling common questions (password reset, order status, FAQs)
-    • Auto-routing by category, sentiment, and priority
-    • Estimated resolution: < 2 minutes
-
-  Tier 2 — Agent-Assisted (Semi-Automated)
-    • AI-suggested responses and resolution templates
-    • Customer context panel (history, sentiment, account health)
-    • Automatic escalation rules based on SLA timers
-    • Estimated resolution: < 30 minutes
-
-  Tier 3 — Specialist (Human + AI)
-    • Complex issue routing to subject matter experts
-    • AI summarization of ticket history for fast handoff
-    • Root cause analysis and trend detection
-    • Estimated resolution: < 4 hours
-
-  Metrics Dashboard
-    • First Response Time (FRT): target < 5 min
-    • Customer Satisfaction (CSAT): target ≥ 90%
-    • Resolution Rate: target ≥ 95%
-    • Ticket Volume Trends: daily/weekly/monthly
-"""
-    elif any(k in q for k in ["inventory", "supply", "order", "fulfil", "warehouse", "logistics", "shipping"]):
-        domain_sections = """\
-
-■ OPERATIONS & FULFILLMENT FRAMEWORK
-──────────────────────────────────────
-  Inventory Management
-    • Real-time stock levels across all warehouses
-    • Automatic reorder points based on velocity + lead time
-    • Dead stock identification and liquidation triggers
-    • Multi-location transfer optimization
-
-  Order Processing
-    • Order validation and fraud screening
-    • Automatic routing to nearest fulfillment center
-    • Pick/pack/ship workflow with barcode verification
-    • Real-time tracking number generation and notification
-
-  Shipping & Logistics
-    • Multi-carrier rate shopping (USPS, UPS, FedEx, DHL)
-    • Label generation and manifest creation
-    • Delivery confirmation and exception handling
-    • Returns processing and restocking automation
-
-  Reporting
-    • Order cycle time tracking (order → delivery)
-    • Fulfillment accuracy rate: target ≥ 99.5%
-    • Inventory turnover ratio by SKU category
-    • Shipping cost per order trending
-"""
-    else:
-        domain_sections = """\
-
-■ PROCESS ANALYSIS
-───────────────────
-  Murphy System has analyzed your request and identified the following
-  process structure:
-
-  Phase 1 — Discovery & Requirements
-    • Identify all stakeholders and their roles
-    • Document current-state process (as-is workflow)
-    • Map data flows between systems and people
-    • Define success criteria and KPIs
-
-  Phase 2 — Design & Architecture
-    • Design target-state automation workflow
-    • Select integration points and API connections
-    • Define exception handling and escalation paths
-    • Create test plan with acceptance criteria
-
-  Phase 3 — Implementation
-    • Configure Murphy System workflows
-    • Connect integrations via OAuth / API keys
-    • Build notification and alerting rules
-    • Populate templates and document library
-
-  Phase 4 — Testing & Validation
-    • Execute end-to-end test with sample data
-    • Validate output quality against acceptance criteria
-    • Performance test under expected load
-    • User acceptance testing (UAT) with stakeholders
-
-  Phase 5 — Go-Live & Optimization
-    • Gradual rollout with parallel manual process
-    • 30-day hypercare monitoring period
-    • Weekly optimization reviews
-    • Full handoff and process documentation
-"""
-
+    """Minimal structured content when all upstream stages are unavailable."""
     return f"""\
 ■ DELIVERABLE OVERVIEW
 ───────────────────────
   Request:  {query}
-  Status:   Generated by Murphy System
-  Domain:   Business Process Automation
+  Status:   Generated by Murphy System onboard engine
 
 ■ EXECUTIVE SUMMARY
 ─────────────────────
@@ -3372,17 +3205,15 @@ def _build_minimal_custom_content(query: str) -> str:
 
   Murphy System has analyzed your request and prepared this structured
   document to help you execute the task efficiently. The sections below
-  provide a domain-specific framework, recommended actions, and a clear
-  path to full automation.
-{domain_sections}
+  provide a framework, recommended actions, and next steps.
+
 ■ RECOMMENDED APPROACH
 ───────────────────────
   1.  Define clear success criteria before beginning execution.
   2.  Break the task into discrete, measurable sub-tasks.
   3.  Assign ownership and deadlines to each sub-task.
-  4.  Identify systems and data sources that need to be connected.
-  5.  Schedule a review checkpoint at 50% completion.
-  6.  Document outcomes and lessons learned on completion.
+  4.  Schedule a review checkpoint at 50% completion.
+  5.  Document outcomes and lessons learned on completion.
 
 ■ ACTION ITEMS
 ───────────────
@@ -3390,7 +3221,6 @@ def _build_minimal_custom_content(query: str) -> str:
   □  Share with stakeholders for alignment before execution.
   □  Track progress against the steps above on a weekly basis.
   □  Use Murphy System workflow automation to automate repetitive steps.
-  □  Connect your existing tools via Murphy's integration hub.
 
 ■ NEXT STEPS
 ─────────────
@@ -3430,17 +3260,15 @@ def generate_custom_deliverable(
     if lib_section:
         content = content.rstrip() + "\n\n" + lib_section
 
-    # Stage 5 — Always append Automation Blueprint for custom deliverables.
-    # This ensures every demo output includes a concrete, executable
-    # workflow definition — the core sales asset of the demo experience.
-    content = content.rstrip() + "\n\n" + _build_automation_blueprint(query, mss_result)
+    # Stage 5 — Append paid-tier Automation Blueprint preview if automation requested
+    if _detect_major_automation(query):
+        content = content.rstrip() + "\n\n" + _build_automation_blueprint(query, mss_result)
 
-    # Stage 6 — Always append Quality Plan with itemized service catalog
-    # and automation quote. This fulfils the requirement that every demo
-    # produces a proposal with an itemized quote at 100% of cost.
-    content = content.rstrip() + "\n\n" + _build_quality_plan(
-        query, mss_result=mss_result, librarian_context=librarian_context,
-    )
+    # Append Quality Plan when the query involves planning or automation
+    if any(kw in query.lower() for kw in ("plan", "quote", "automate", "service", "cost", "pricing")):
+        content = content.rstrip() + "\n\n" + _build_quality_plan(
+            query, mss_result=mss_result, librarian_context=librarian_context,
+        )
 
     filename = _scenario_to_filename(None, query)
 

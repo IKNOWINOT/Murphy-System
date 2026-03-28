@@ -30,7 +30,7 @@ system completion to **100%** at the functional level.
 - **Documentation freshness:** ~92% of documentation accurately reflects current code (up from 90%)
 - **Package-level READMEs:** 65 of 65 src/ packages now have README.md (up from 15) ✅ **GAP-5 CLOSED**
 - **AUAR documentation:** Appendix C added (UCB1, persistence, admin security) ✅ **GAP-4 CLOSED**
-- **DeepInfra test suite:** 22 tests in `tests/test_groq_integration.py` covering Tiers 1-3 ✅ **GAP-6 CLOSED**
+- **DeepInfra test suite:** 22 tests in `tests/test_deepinfra_integration.py` covering Tiers 1-3 ✅ **GAP-6 CLOSED**
 - **Environment variable docs:** All 96 vars documented in `CONFIGURATION.md` (§11-14 added) ✅ **GAP-7 CLOSED**
 - **Branch merge status:** PR #277 merge conflicts resolved (2026-03-16) — `main` merged into branch with `--allow-unrelated-histories`; root-level files reconciled, `requirements.txt` updated with email delivery deps
 
@@ -59,7 +59,7 @@ system completion to **100%** at the functional level.
 | `src/openai_compatible_provider.py` | `documentation/components/LLM_SUBSYSTEM.md` | ✅ Resolved (round 49) — all 8 provider types documented |
 | `src/llm_controller.py` | `documentation/components/LLM_SUBSYSTEM.md` | ✅ Resolved (round 49) — model selection + routing documented |
 | `src/llm_integration_layer.py` | `documentation/components/LLM_SUBSYSTEM.md` | ✅ Resolved (round 49) — domain routing matrix documented |
-| `src/groq_key_rotator.py` | `documentation/components/LLM_SUBSYSTEM.md` | ✅ Resolved (round 49) + `tests/test_groq_integration.py` (22 tests) |
+| `src/deepinfra_key_rotator.py` | `documentation/components/LLM_SUBSYSTEM.md` | ✅ Resolved (round 49) + `tests/test_deepinfra_integration.py` (22 tests) |
 
 ### 2.2 Runtime Subsystem
 
@@ -139,7 +139,7 @@ system completion to **100%** at the functional level.
 | **LLM Controller** (`src/llm_controller.py`) | 100% | 90% | 75% | 88% |
 | **LLM Integration Layer** (`src/llm_integration_layer.py`) | 100% | 90% | 70% | 87% |
 | **OpenAI Provider** (`src/openai_compatible_provider.py`) | 100% | 90% | 95% | 95% |
-| **DeepInfra Key Rotator** (`src/groq_key_rotator.py`) | 100% | 90% | 95% | 95% |
+| **DeepInfra Key Rotator** (`src/deepinfra_key_rotator.py`) | 100% | 90% | 95% | 95% |
 | **MFM** (`src/murphy_foundation_model/`) | 100% | 85% | 90% | 92% |
 | **AUAR** (`src/auar/`) | 100% | 95% | 95% | 97% |
 | **Compute Plane** (`src/compute_plane/`) | 100% | 85% | 80% | 88% |
@@ -194,7 +194,7 @@ system completion to **100%** at the functional level.
 ### 4.1 Critical Gaps (Immediate Action Required)
 
 #### ~~GAP-1: LLM Subsystem Documentation~~ ✅ RESOLVED (2026-03-16)
-- **Affected:** `llm_controller.py`, `llm_integration_layer.py`, `groq_key_rotator.py`
+- **Affected:** `llm_controller.py`, `llm_integration_layer.py`, `deepinfra_key_rotator.py`
 - **Resolution:** Created `documentation/components/LLM_SUBSYSTEM.md` — full reference covering model inventory, capability routing, request/response structures, domain-to-provider routing matrix, key rotation auto-disable, all 8 OpenAI-compatible provider types, and environment variables.
 
 #### ~~GAP-2: MFM API Endpoints in API Reference~~ ✅ RESOLVED (2026-03-16)
@@ -219,7 +219,7 @@ system completion to **100%** at the functional level.
 
 #### ~~GAP-6: DeepInfra Integration Test Suite~~ ✅ RESOLVED (2026-03-16)
 - **Affected:** Test coverage for DeepInfra API integration
-- **Resolution:** `tests/test_groq_integration.py` implemented with 22 tests across 3 tiers: Tier 1 (provider detection/unit), Tier 2 (mocked HTTP integration), Tier 3 (live API, skip unless `DEEPINFRA_API_KEY` set). Covers: provider selection, key rotation, domain routing, API error fallback, timeout, rate-limit handling, circuit breaker, and live chat completion.
+- **Resolution:** `tests/test_deepinfra_integration.py` implemented with 22 tests across 3 tiers: Tier 1 (provider detection/unit), Tier 2 (mocked HTTP integration), Tier 3 (live API, skip unless `DEEPINFRA_API_KEY` set). Covers: provider selection, key rotation, domain routing, API error fallback, timeout, rate-limit handling, circuit breaker, and live chat completion.
 
 ### 4.3 Low Gaps
 
@@ -247,12 +247,12 @@ system completion to **100%** at the functional level.
 | 1.2 | Document LLM Integration Layer domain routing | `llm_integration_layer.py` | 3h |
 | 1.3 | Add MFM endpoints to API reference | `documentation/api/ENDPOINTS.md` | 1h |
 | 1.4 | Create Security Plane documentation | `src/security_plane/` | 4h |
-| 1.5 | Document DeepInfra key rotation system | `groq_key_rotator.py` | 2h |
+| 1.5 | Document DeepInfra key rotation system | `deepinfra_key_rotator.py` | 2h |
 
 ### Phase 2: Testing Enhancement (Week 1-2)
 | Step | Task | Module | Effort |
 |------|------|--------|--------|
-| 2.1 | Create DeepInfra API integration test suite | `tests/test_groq_integration.py` | 4h |
+| 2.1 | Create DeepInfra API integration test suite | `tests/test_deepinfra_integration.py` | 4h |
 | 2.2 | Create cross-module system validation tests | `tests/test_system_wide_validation.py` | 4h |
 | 2.3 | Add LLM controller dedicated tests | `tests/test_llm_controller_dedicated.py` | 3h |
 | 2.4 | Update testing documentation | `documentation/testing/` | 2h |
@@ -290,7 +290,7 @@ system completion to **100%** at the functional level.
 ### Top-Level Source Files (354 total)
 Organized by functional category:
 
-**LLM & AI (12 files):** `llm_controller.py`, `llm_integration_layer.py`, `openai_compatible_provider.py`, `groq_key_rotator.py`, `aristotle_engine.py`, `wulfrum_engine.py`, `enhanced_local_llm.py`, `prompt_generator.py`, `prompt_expansion_engine.py`, `domain_engine.py`, `nlp_engine.py`, `embedding_service.py`
+**LLM & AI (12 files):** `llm_controller.py`, `llm_integration_layer.py`, `openai_compatible_provider.py`, `deepinfra_key_rotator.py`, `aristotle_engine.py`, `wulfrum_engine.py`, `enhanced_local_llm.py`, `prompt_generator.py`, `prompt_expansion_engine.py`, `domain_engine.py`, `nlp_engine.py`, `embedding_service.py`
 
 **Execution (8 files):** `execution_compiler.py`, `execution_feedback.py`, `execution_orchestrator_core.py`, `plan_decomposer.py`, `plan_executor.py`, `goal_planner.py`, `task_scheduler.py`, `batch_executor.py`
 
@@ -314,175 +314,6 @@ All packages have `__init__.py`. Only 3 have README.md files.
 - `tests/e2e/` — End-to-end tests
 - `tests/commissioning/` — Import and registration verification
 - `tests/test_gap_closure_round*.py` — Gap closure verification (rounds 13-46)
-
----
-
-## Appendix: Production Readiness Audit — Waves 5–10 (2026-03)
-
-### Context
-
-This appendix documents the engineering commissioning work performed in the
-comprehensive production readiness audit (PR #443, branch `audit/comprehensive-production-readiness`).
-Waves 1–4 addressed foundational issues (unified FastAPI server, module registry, launcher hardening,
-HTML deduplication). Waves 5–10 completed the execution engine wiring, security plane commissioning,
-deployment hardening, and as-built documentation.
-
-### Wave 5: Execution Engine & Orchestrator Wiring (DEF-045/046)
-
-**Problem:** Three orchestrators (`TwoPhaseOrchestrator`, `UniversalControlPlane`,
-`ExecutionOrchestrator`) existed as standalone modules but were not accessible through
-the unified FastAPI server.
-
-**Solution:** Created `src/execution_router.py` — a FastAPI APIRouter with 14 routes
-wiring all three orchestrators into `create_app()`. Lazy initialization with graceful
-error handling ensures the server starts even if individual orchestrators fail.
-
-**Files Created/Modified:**
-- `src/execution_router.py` — NEW (14 routes)
-- `src/runtime/app.py` — Added execution router wiring
-
-**Verification:** All three orchestrators instantiate, Phase 1/2 lifecycle verified,
-session isolation confirmed, 1,131 total routes (up from 1,124).
-
-### Wave 6: Security Plane Commissioning (DEF-016)
-
-**Problem:** 17 security_plane modules existed but their runtime behavior needed verification,
-particularly regarding real vs. simulated cryptography.
-
-**Findings:**
-- `_HAS_REAL_CLASSICAL=True` — Real ECDSA P-256 via `cryptography` library
-- `_HAS_REAL_PQC=False` — HMAC-SHA3 simulation (liboqs not available)
-- Startup logs clearly indicate which mode is active
-- `src/auth_middleware.py` (lightweight) coexists with `security_plane/middleware.py` (advanced)
-
-**Verified:** Classical sign/verify, PQC Dilithium sign/verify, Hybrid sign/verify,
-KeyManager lifecycle (generate → rotate → retrieve), PacketSigner full cycle, all 17 modules import.
-
-### Wave 7: .env.example Cleanup (DEF-011)
-
-**Problem:** 600 lines with duplicate variable declarations across sections.
-
-**Solution:** Complete rewrite — 369 lines (38% reduction), zero duplicates, 29 active
-variables, 5 CHANGEME entries. Added CONFIGURATION.md cross-reference.
-
-### Wave 8: Docker & Deployment Documentation (DEF-029/030)
-
-**Docker-compose hardening:**
-- `docker-compose.yml`: Bound postgres/redis/prometheus to 127.0.0.1, added json-file
-  logging to all 7 services, fixed mailserver healthcheck (CMD→CMD-SHELL)
-- `docker-compose.murphy.yml`: Removed deprecated `version:`, added Redis password support,
-  localhost bindings, healthcheck depends_on, logging
-- `docker-compose.hetzner.yml`: Already well-hardened — no changes needed
-
-**Dockerfile fix (CRITICAL):**
-- Added `COPY two_phase_orchestrator.py universal_control_plane.py ./` — these root-level
-  files were missing from the Docker image, breaking the execution router.
-
-**Kubernetes hardening:**
-- Fixed `resource-quota.yaml` duplicate keys
-- Fixed `limit-range.yaml` duplicate LimitRange definitions
-- Added `limit-range.yaml` + monitoring manifests to `kustomization.yaml`
-- Added `GRAFANA_ADMIN_USER` + `GRAFANA_ADMIN_PASSWORD` to `secret.yaml`
-- Fixed Grafana deployment to source admin user from Secret
-- Fixed DeepInfra placeholder (was still "groq")
-- Created `k8s/README.md` with architecture, deployment guide, manifest reference
-
-### Wave 9: Commissioning Tests
-
-Created 84 new commissioning tests across 3 files:
-
-| File | Tests | Scope |
-|------|-------|-------|
-| `tests/commissioning/test_wave5_execution_router.py` | 16 | Route registration, auth enforcement, orchestrator imports |
-| `tests/commissioning/test_wave6_security_plane.py` | 37 | Crypto lifecycle, all 17 security modules |
-| `tests/commissioning/test_wave8_docker_k8s.py` | 31 | Docker/K8s manifest validation |
-
-**Result:** 84/84 new tests PASS. Pre-existing commissioning suite: 307 passed, 17 failed
-(all in `test_freelancer_validator.py` — pre-existing, not related to this audit).
-
-### Wave 10: As-Built Documentation
-
-- Updated this report (Appendix)
-- Created `docs/EXECUTION_ENGINE.md` — Full execution pipeline architecture
-- Created `k8s/README.md` — Kubernetes deployment guide
-
-### Summary of All Changes
-
-| Category | Files Changed | Key Metric |
-|----------|--------------|------------|
-| Execution Wiring | 2 new, 1 modified | 14 new API routes |
-| Security Plane | 0 modified (verified) | 17/17 modules commissioned |
-| .env.example | 1 rewritten | 600→369 lines, 0 duplicates |
-| Docker | 3 modified | 3 security fixes, 1 critical Dockerfile fix |
-| Kubernetes | 6 modified, 1 new | 5 manifest fixes, README added |
-| Tests | 3 new | 84 new commissioning tests |
-| Documentation | 3 new/updated | Execution engine + K8s + audit report |
-
-### Wave 11: Demo System Commissioning
-
-Comprehensive audit and enhancement of the landing page demo feature to ensure it meets
-production requirements for any-domain deliverable generation with professional output.
-
-**6 Deficiencies Identified and Resolved:**
-
-| ID | Severity | Description | Resolution |
-|----|----------|-------------|------------|
-| D1-BUNDLE | High | No ZIP download bundle — only `.txt` | Created `demo_bundle_generator.py` + `/api/demo/download-bundle` endpoint |
-| D2-CUSTOM | Medium | Custom query fallback too thin (~30 lines) | Enhanced `_build_minimal_custom_content()` with domain-aware templates |
-| D3-PROPOSAL | Medium | Automation proposal fragmented across modules | Created unified `_build_automation_proposal()` in bundle generator |
-| D4-QUOTE | High | No explicit 100% itemized quote | Created `_build_itemized_quote()` with labor, platform, comparison |
-| D5-DEMO-RUN | High | `/api/demo/run` had no rate limiting | Added rate limiting matching generate-deliverable pattern |
-| D6-SPEC-CUSTOM | Medium | Automation content conditionally omitted | Changed to always append blueprint + quality plan |
-
-**New Files:**
-
-| File | Lines | Purpose |
-|------|-------|---------|
-| `src/demo_bundle_generator.py` | 472 | ZIP bundle with proposal, quote, spec, README, LICENSE |
-| `tests/commissioning/test_wave11_demo_system.py` | 710 | 114 commissioning tests across 8 sections |
-| `docs/WAVE11_DEMO_DEFICIENCY_REPORT.md` | — | Full deficiency register with resolution details |
-| `docs/WAVE11_API_SDK_RECOMMENDATIONS.md` | — | API keys and SDK recommendations for platform |
-
-**Modified Files:**
-
-| File | Changes | Impact |
-|------|---------|--------|
-| `src/demo_deliverable_generator.py` | +186, -14 | Domain-aware fallback, always-include automation |
-| `src/runtime/app.py` | +163 | Rate limiting on `/api/demo/run`, new `/api/demo/download-bundle` |
-| `demo.html` | +70 | Bundle download button, spec summary, usage counter |
-| `murphy_landing_page.html` | +85 | Bundle download, spec summary in forge section |
-
-**Commissioning Test Results:** 114/114 PASS (0 failures)
-
-| Section | Tests | Status |
-|---------|-------|--------|
-| Function Availability | 9 | ✅ |
-| Cross-Domain Deliverables (14 domains) | 42 | ✅ |
-| Content Quality | 4 | ✅ |
-| Minimal Custom Content | 5 | ✅ |
-| Automation Spec | 12 | ✅ |
-| Bundle Generation | 7 | ✅ |
-| Bundle Proposal Content | 5 | ✅ |
-| Bundle Quote Content | 5 | ✅ |
-| Fingerprint & Rate Limiting | 10 | ✅ |
-| API Endpoint Shapes | 8 | ✅ |
-| End-to-End Integration | 3 | ✅ |
-| Always-Include Automation | 4 | ✅ |
-| DemoRunner Commission | 1 | ✅ |
-
-### Summary of All Changes (Waves 1–11)
-
-| Category | Files Changed | Key Metric |
-|----------|--------------|------------|
-| DeepInfra Migration (Wave 1) | 286 modified | 100% Groq→DeepInfra replacement |
-| Execution Wiring (Wave 5) | 2 new, 1 modified | 14 new API routes |
-| Security Plane (Wave 6) | 0 modified (verified) | 17/17 modules commissioned |
-| .env.example (Wave 7) | 1 rewritten | 600→369 lines, 0 duplicates |
-| Docker (Wave 8) | 3 modified | 3 security fixes, 1 critical Dockerfile fix |
-| Kubernetes (Wave 8) | 6 modified, 1 new | 5 manifest fixes, README added |
-| Tests (Waves 9–11) | 6 new | 198 new commissioning tests |
-| Documentation (Waves 10–11) | 5 new/updated | Execution engine + K8s + demo report |
-| Demo System (Wave 11) | 2 new, 4 modified | 6 deficiencies resolved, ZIP bundle, rate limiting |
 
 ---
 

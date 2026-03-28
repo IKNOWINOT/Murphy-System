@@ -196,7 +196,7 @@ ollama pull phi3
 # Fall back to external API (if DeepInfra key is set):
 # In /etc/murphy-production/environment:
 # MURPHY_LLM_PROVIDER=deepinfra
-# DEEPINFRA_API_KEY=gsk_...
+# DEEPINFRA_API_KEY=di_...
 sudo systemctl restart murphy-production
 ```
 

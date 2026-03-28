@@ -1,0 +1,959 @@
+<!-- Murphy System — Guest Portal / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guest Portal — Murphy System</title>
+  <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="static/murphy-design-system.css">
+  <style>
+    :root {
+      --bg-base: #0C1017; --bg-surface: #131A24; --bg-elevated: #1A2332;
+      --bg-input: #0F1620; --border-subtle: #1E2A3A; --border-default: #2A3A4E;
+      --border-focus: #00D4AA; --text-primary: #E6ECF2; --text-secondary: #8899AA;
+      --text-muted: #566778; --teal: #00D4AA; --teal-glow: rgba(0,212,170,0.12);
+      --success: #22C55E; --warning: #FFA63E; --danger: #EF4444; --info: #3B9EFF;
+      --font-ui: Inter, system-ui, -apple-system, sans-serif;
+      --font-code: 'JetBrains Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Topbar ──────────────────────────────────────────────── */
+    .topbar {
+      position: sticky; top: 0; z-index: 1000;
+      background: rgba(12,16,23,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-default);
+      padding: 0 2rem;
+      height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar-brand {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; color: var(--text-primary); font-weight: 700; font-size: 1rem;
+    }
+    .topbar-brand svg { flex-shrink: 0; }
+    .topbar-title {
+      font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;
+      padding-left: 12px; border-left: 1px solid var(--border-subtle);
+    }
+    .topbar-right { display: flex; align-items: center; gap: 8px; }
+    .topbar-status {
+      font-size: 0.75rem; color: var(--text-muted);
+    }
+
+    /* ── Layout ──────────────────────────────────────────────── */
+    .app-layout {
+      display: flex; height: calc(100vh - 56px);
+    }
+    .sidebar-slot { flex-shrink: 0; }
+    .main-area {
+      flex: 1; display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    /* ── Tabs ────────────────────────────────────────────────── */
+    .tab-bar {
+      display: flex; align-items: center; gap: 0;
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-surface); padding: 0 24px;
+    }
+    .tab-btn {
+      padding: 12px 20px; font-size: 0.82rem; font-weight: 600;
+      color: var(--text-muted); background: none; border: none;
+      border-bottom: 2px solid transparent; cursor: pointer;
+      font-family: var(--font-ui); transition: color 0.15s, border-color 0.15s;
+    }
+    .tab-btn:hover { color: var(--text-secondary); }
+    .tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); }
+    .tab-panel {
+      flex: 1; overflow: auto; padding: 24px; display: none;
+    }
+    .tab-panel.active { display: block; }
+
+    /* ── Toolbar ─────────────────────────────────────────────── */
+    .panel-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .panel-toolbar h2 {
+      font-size: 1rem; font-weight: 700;
+    }
+    .panel-toolbar-right { display: flex; align-items: center; gap: 8px; }
+
+    /* ── Buttons ─────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 6px;
+      font-family: var(--font-ui); font-size: 0.8rem; font-weight: 500;
+      cursor: pointer; border: 1px solid transparent;
+      transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary {
+      background: var(--teal); color: #0C1017; border-color: var(--teal);
+    }
+    .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+    .btn-ghost {
+      background: transparent; color: var(--text-secondary); border-color: var(--border-default);
+    }
+    .btn-ghost:hover:not(:disabled) { background: var(--bg-elevated); color: var(--text-primary); }
+    .btn-danger {
+      background: transparent; color: var(--danger); border-color: var(--danger);
+    }
+    .btn-danger:hover:not(:disabled) { background: rgba(239,68,68,0.1); }
+    .btn-sm { padding: 5px 10px; font-size: 0.75rem; }
+    .btn-icon {
+      padding: 6px; background: transparent; color: var(--text-muted);
+      border: none; border-radius: 4px; cursor: pointer;
+    }
+    .btn-icon:hover { color: var(--text-primary); background: var(--bg-elevated); }
+
+    /* ── Table ───────────────────────────────────────────────── */
+    .data-table {
+      width: 100%; border-collapse: separate; border-spacing: 0;
+      font-size: 0.82rem;
+    }
+    .data-table th {
+      text-align: left; padding: 6px 12px; font-size: 0.72rem;
+      color: var(--text-muted); font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.04em; border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-surface); position: sticky; top: 0; z-index: 1;
+    }
+    .data-table td {
+      padding: 8px 12px; border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+    .data-table tr:hover td { background: var(--bg-elevated); }
+    .row-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+    .data-table tr:hover .row-actions { opacity: 1; }
+
+    /* ── Status pills ────────────────────────────────────────── */
+    .status-pill {
+      display: inline-block; padding: 3px 10px; border-radius: 10px;
+      font-size: 0.72rem; font-weight: 600; text-align: center; min-width: 70px;
+    }
+    .pill-pending  { background: var(--warning); color: #0C1017; }
+    .pill-accepted { background: var(--success); color: #fff; }
+    .pill-revoked  { background: var(--danger); color: #fff; }
+    .pill-active   { background: var(--success); color: #fff; }
+    .pill-inactive { background: var(--text-muted); color: #fff; }
+    .pill-view     { background: var(--info); color: #fff; }
+    .pill-edit     { background: var(--teal); color: #0C1017; }
+
+    /* ── Color swatch ────────────────────────────────────────── */
+    .color-swatch {
+      display: inline-block; width: 14px; height: 14px; border-radius: 3px;
+      vertical-align: middle; margin-right: 6px; border: 1px solid var(--border-subtle);
+    }
+
+    /* ── Modal ───────────────────────────────────────────────── */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      z-index: 500; display: none;
+    }
+    .modal-backdrop.open { display: flex; align-items: center; justify-content: center; }
+    .modal {
+      background: var(--bg-surface); border: 1px solid var(--border-default);
+      border-radius: 12px; width: 480px; max-width: 90vw;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    }
+    .modal-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border-subtle);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-header h3 { font-size: 0.95rem; font-weight: 700; }
+    .modal-body { padding: 20px; }
+    .modal-footer {
+      padding: 12px 20px; border-top: 1px solid var(--border-subtle);
+      display: flex; justify-content: flex-end; gap: 8px;
+    }
+
+    /* ── Form elements ───────────────────────────────────────── */
+    .form-group { margin-bottom: 14px; }
+    .form-label {
+      display: block; font-size: 0.78rem; font-weight: 600;
+      color: var(--text-secondary); margin-bottom: 6px;
+    }
+    .form-input {
+      width: 100%; background: var(--bg-input); color: var(--text-primary);
+      border: 1px solid var(--border-subtle); padding: 9px 12px;
+      border-radius: 6px; font-family: var(--font-ui); font-size: 0.85rem;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus { outline: none; border-color: var(--border-focus); }
+
+    /* ── Error banner ────────────────────────────────────────── */
+    .error-banner {
+      padding: 10px 24px; background: rgba(239,68,68,0.1);
+      border-bottom: 1px solid var(--danger); color: var(--danger);
+      font-size: 0.82rem; display: none; align-items: center; gap: 8px;
+    }
+    .error-banner.visible { display: flex; }
+    .error-banner button {
+      margin-left: auto; background: none; border: none;
+      color: var(--danger); cursor: pointer; font-size: 1rem; padding: 0 4px;
+    }
+
+    /* ── Empty state ─────────────────────────────────────────── */
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 64px 24px; text-align: center; color: var(--text-muted);
+    }
+    .empty-state-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.5; }
+    .empty-state h3 { font-size: 1rem; color: var(--text-secondary); margin-bottom: 6px; }
+    .empty-state p { font-size: 0.82rem; margin-bottom: 16px; max-width: 320px; }
+
+    /* ── Spinner ──────────────────────────────────────────────── */
+    .spinner {
+      display: inline-block; width: 18px; height: 18px;
+      border: 2px solid var(--border-subtle); border-top-color: var(--teal);
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-overlay {
+      display: flex; align-items: center; justify-content: center;
+      padding: 48px; color: var(--text-muted); gap: 10px; font-size: 0.82rem;
+    }
+
+    /* ── Confirm dialog ──────────────────────────────────────── */
+    .confirm-text { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+
+    /* ── Scrollbar ────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-default); }
+  </style>
+</head>
+<body>
+
+  <!-- ── Topbar ──────────────────────────────────────────────── -->
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <a href="/" class="topbar-brand">
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <rect width="32" height="32" rx="8" fill="var(--teal)"/>
+          <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700">M</text>
+        </svg>
+        <span>Murphy System</span>
+      </a>
+      <span class="topbar-title">Guest Portal</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-status" id="refresh-status"></span>
+    </div>
+  </div>
+
+  <!-- ── Error banner ────────────────────────────────────────── -->
+  <div class="error-banner" id="error-banner" role="alert">
+    <span id="error-message"></span>
+    <button onclick="dismissError()" title="Dismiss" aria-label="Dismiss error">&times;</button>
+  </div>
+
+  <!-- ── App layout ──────────────────────────────────────────── -->
+  <div class="app-layout">
+    <murphy-sidebar active="GUEST PORTAL"></murphy-sidebar>
+
+    <div class="main-area">
+      <!-- Tab bar -->
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="guests">Guests</button>
+        <button class="tab-btn" data-tab="links">Links</button>
+        <button class="tab-btn" data-tab="portals">Portals</button>
+        <button class="tab-btn" data-tab="forms">Forms</button>
+      </div>
+
+      <!-- ── Tab: Guests ─────────────────────────────────────── -->
+      <div class="tab-panel active" id="panel-guests">
+        <div class="panel-toolbar">
+          <h2>Guest Invitations</h2>
+          <div class="panel-toolbar-right">
+            <button class="btn btn-primary btn-sm" id="btn-invite-guest">+ Invite Guest</button>
+          </div>
+        </div>
+        <div id="guests-loading" class="loading-overlay"><span class="spinner"></span> Loading guests…</div>
+        <div id="guests-table-wrap"></div>
+        <div id="guests-empty" class="empty-state" style="display:none;">
+          <div class="empty-state-icon" aria-hidden="true">👤</div>
+          <h3>No guests yet</h3>
+          <p>Invite external guests to collaborate on specific boards with controlled permissions.</p>
+          <button class="btn btn-primary" id="btn-invite-guest-empty">+ Invite Guest</button>
+        </div>
+      </div>
+
+      <!-- ── Tab: Links ──────────────────────────────────────── -->
+      <div class="tab-panel" id="panel-links">
+        <div class="panel-toolbar">
+          <h2>Shareable Links</h2>
+          <div class="panel-toolbar-right">
+            <button class="btn btn-primary btn-sm" id="btn-create-link">+ Create Link</button>
+          </div>
+        </div>
+        <div id="links-loading" class="loading-overlay"><span class="spinner"></span> Loading links…</div>
+        <div id="links-table-wrap"></div>
+        <div id="links-empty" class="empty-state" style="display:none;">
+          <div class="empty-state-icon" aria-hidden="true">🔗</div>
+          <h3>No shareable links</h3>
+          <p>Create shareable links to give external users view or edit access to specific boards and items.</p>
+          <button class="btn btn-primary" id="btn-create-link-empty">+ Create Link</button>
+        </div>
+      </div>
+
+      <!-- ── Tab: Portals ────────────────────────────────────── -->
+      <div class="tab-panel" id="panel-portals">
+        <div class="panel-toolbar">
+          <h2>Client Portals</h2>
+          <div class="panel-toolbar-right">
+            <button class="btn btn-primary btn-sm" id="btn-create-portal">+ Create Portal</button>
+          </div>
+        </div>
+        <div id="portals-loading" class="loading-overlay"><span class="spinner"></span> Loading portals…</div>
+        <div id="portals-table-wrap"></div>
+        <div id="portals-empty" class="empty-state" style="display:none;">
+          <div class="empty-state-icon" aria-hidden="true">🏢</div>
+          <h3>No client portals</h3>
+          <p>Create branded portals for clients with customized access to shared boards and content.</p>
+          <button class="btn btn-primary" id="btn-create-portal-empty">+ Create Portal</button>
+        </div>
+      </div>
+
+      <!-- ── Tab: Forms ──────────────────────────────────────── -->
+      <div class="tab-panel" id="panel-forms">
+        <div class="panel-toolbar">
+          <h2>External Forms</h2>
+          <div class="panel-toolbar-right">
+            <button class="btn btn-primary btn-sm" id="btn-create-form">+ Create Form</button>
+          </div>
+        </div>
+        <div id="forms-loading" class="loading-overlay"><span class="spinner"></span> Loading forms…</div>
+        <div id="forms-table-wrap"></div>
+        <div id="forms-empty" class="empty-state" style="display:none;">
+          <div class="empty-state-icon" aria-hidden="true">📝</div>
+          <h3>No external forms</h3>
+          <p>Create forms that external users can submit to feed data directly into your boards.</p>
+          <button class="btn btn-primary" id="btn-create-form-empty">+ Create Form</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal backdrop ──────────────────────────────────────── -->
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal" id="modal" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h3 id="modal-title"></h3>
+        <button class="btn-icon" onclick="closeModal()" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer" id="modal-footer"></div>
+    </div>
+  </div>
+
+  <script src="static/murphy-components.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    /* ── API helper ────────────────────────────────────────────── */
+    var API = function (path, opts) {
+      opts = opts || {};
+      return fetch(path, {
+        method: opts.method || 'GET',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: opts.body ? (typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body)) : undefined,
+      }).then(function (r) {
+        if (!r.ok) {
+          return r.json().then(function (d) {
+            throw new Error(d.detail || d.error || 'Request failed (' + r.status + ')');
+          }).catch(function (e) {
+            if (e.message) throw e;
+            throw new Error('Request failed (' + r.status + ')');
+          });
+        }
+        return r.json();
+      }).catch(function (e) {
+        showError(e.message);
+        throw e;
+      });
+    };
+
+    /* ── State ─────────────────────────────────────────────────── */
+    var guests = [];
+    var links = [];
+    var portals = [];
+    var forms = [];
+    var activeTab = 'guests';
+    var refreshTimer = null;
+    var REFRESH_MS = 15000;
+
+    /* ── DOM refs ──────────────────────────────────────────────── */
+    var $errorBanner     = document.getElementById('error-banner');
+    var $errorMessage    = document.getElementById('error-message');
+    var $refreshStatus   = document.getElementById('refresh-status');
+    var $modalBackdrop   = document.getElementById('modal-backdrop');
+    var $modalTitle      = document.getElementById('modal-title');
+    var $modalBody       = document.getElementById('modal-body');
+    var $modalFooter     = document.getElementById('modal-footer');
+
+    var $guestsLoading   = document.getElementById('guests-loading');
+    var $guestsTable     = document.getElementById('guests-table-wrap');
+    var $guestsEmpty     = document.getElementById('guests-empty');
+
+    var $linksLoading    = document.getElementById('links-loading');
+    var $linksTable      = document.getElementById('links-table-wrap');
+    var $linksEmpty      = document.getElementById('links-empty');
+
+    var $portalsLoading  = document.getElementById('portals-loading');
+    var $portalsTable    = document.getElementById('portals-table-wrap');
+    var $portalsEmpty    = document.getElementById('portals-empty');
+
+    var $formsLoading    = document.getElementById('forms-loading');
+    var $formsTable      = document.getElementById('forms-table-wrap');
+    var $formsEmpty      = document.getElementById('forms-empty');
+
+    /* ── Utility ───────────────────────────────────────────────── */
+    function esc(s) {
+      var d = document.createElement('div');
+      d.textContent = s || '';
+      return d.innerHTML;
+    }
+
+    function escAttr(s) {
+      return (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '—';
+      var d = new Date(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function formatDateTime(iso) {
+      if (!iso) return '—';
+      var d = new Date(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function safeColor(c) {
+      if (!c) return '#00D4AA';
+      if (/^#[0-9a-fA-F]{3,8}$/.test(c)) return c;
+      return '#00D4AA';
+    }
+
+    /* ── Error banner ────────────────────────────────────────── */
+    function showError(msg) {
+      $errorMessage.textContent = msg;
+      $errorBanner.classList.add('visible');
+    }
+    window.dismissError = function () {
+      $errorBanner.classList.remove('visible');
+    };
+
+    /* ── Refresh status ──────────────────────────────────────── */
+    function updateRefreshStatus(loading) {
+      $refreshStatus.textContent = loading
+        ? 'Refreshing…'
+        : 'Updated ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    /* ── Modal ───────────────────────────────────────────────── */
+    function openModal(title, bodyHtml, footerHtml) {
+      $modalTitle.textContent = title;
+      $modalBody.innerHTML = bodyHtml;
+      $modalFooter.innerHTML = footerHtml;
+      $modalBackdrop.classList.add('open');
+    }
+    window.closeModal = function () {
+      $modalBackdrop.classList.remove('open');
+    };
+    $modalBackdrop.addEventListener('click', function (e) {
+      if (e.target === $modalBackdrop) closeModal();
+    });
+
+    /* ── Confirm ─────────────────────────────────────────────── */
+    function confirmAction(title, message, actionLabel, actionClass, onConfirm) {
+      openModal(
+        title,
+        '<p class="confirm-text">' + esc(message) + '</p>',
+        '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn ' + escAttr(actionClass) + ' btn-sm" id="confirm-action-btn">' + esc(actionLabel) + '</button>'
+      );
+      document.getElementById('confirm-action-btn').addEventListener('click', function () {
+        closeModal();
+        onConfirm();
+      });
+    }
+
+    /* ── Tabs ────────────────────────────────────────────────── */
+    var tabBtns = document.querySelectorAll('.tab-btn');
+    var tabPanels = document.querySelectorAll('.tab-panel');
+
+    function switchTab(tab) {
+      activeTab = tab;
+      for (var i = 0; i < tabBtns.length; i++) {
+        tabBtns[i].classList.toggle('active', tabBtns[i].getAttribute('data-tab') === tab);
+      }
+      for (var j = 0; j < tabPanels.length; j++) {
+        tabPanels[j].classList.toggle('active', tabPanels[j].id === 'panel-' + tab);
+      }
+      loadActiveTab();
+    }
+
+    for (var i = 0; i < tabBtns.length; i++) {
+      tabBtns[i].addEventListener('click', function () {
+        switchTab(this.getAttribute('data-tab'));
+      });
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       GUESTS TAB
+    ───────────────────────────────────────────────────────────── */
+    function loadGuests(silent) {
+      if (!silent) { $guestsLoading.style.display = 'flex'; $guestsTable.innerHTML = ''; $guestsEmpty.style.display = 'none'; }
+      updateRefreshStatus(true);
+      return API('/api/guest/invites').then(function (data) {
+        guests = Array.isArray(data) ? data : [];
+        renderGuests();
+        if (!silent) $guestsLoading.style.display = 'none';
+        updateRefreshStatus(false);
+      }).catch(function () {
+        guests = [];
+        renderGuests();
+        if (!silent) $guestsLoading.style.display = 'none';
+        updateRefreshStatus(false);
+      });
+    }
+
+    function renderGuests() {
+      if (guests.length === 0) {
+        $guestsTable.innerHTML = '';
+        $guestsEmpty.style.display = 'flex';
+        return;
+      }
+      $guestsEmpty.style.display = 'none';
+      var html = '<table class="data-table"><thead><tr>' +
+        '<th>Name</th><th>Email</th><th>Permission</th><th>Status</th><th>Expires</th><th></th>' +
+        '</tr></thead><tbody>';
+      for (var i = 0; i < guests.length; i++) {
+        var g = guests[i];
+        var status = (g.status || 'pending').toLowerCase();
+        var pillClass = status === 'accepted' ? 'pill-accepted' : status === 'revoked' ? 'pill-revoked' : 'pill-pending';
+        var permPill = (g.permission || 'view').toLowerCase() === 'edit' ? 'pill-edit' : 'pill-view';
+        html += '<tr data-guest-id="' + escAttr(g.id) + '">' +
+          '<td>' + esc(g.name) + '</td>' +
+          '<td style="color:var(--text-secondary)">' + esc(g.email) + '</td>' +
+          '<td><span class="status-pill ' + permPill + '">' + esc(g.permission || 'view') + '</span></td>' +
+          '<td><span class="status-pill ' + pillClass + '">' + esc(status) + '</span></td>' +
+          '<td style="color:var(--text-muted)">' + formatDate(g.expires_at) + '</td>' +
+          '<td><div class="row-actions">';
+        if (status === 'pending') {
+          html += '<button class="btn btn-ghost btn-sm guest-accept" data-id="' + escAttr(g.id) + '" title="Accept invite">✓ Accept</button>';
+        }
+        if (status !== 'revoked') {
+          html += '<button class="btn btn-ghost btn-sm guest-edit" data-id="' + escAttr(g.id) + '" title="Edit guest">✏️</button>' +
+            '<button class="btn btn-danger btn-sm guest-revoke" data-id="' + escAttr(g.id) + '" title="Revoke invite">Revoke</button>';
+        }
+        html += '</div></td></tr>';
+      }
+      html += '</tbody></table>';
+      $guestsTable.innerHTML = html;
+    }
+
+    $guestsTable.addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      var id = btn.getAttribute('data-id');
+      if (!id) return;
+      if (btn.classList.contains('guest-accept')) {
+        confirmAction('Accept Invite', 'Accept this guest invitation?', 'Accept', 'btn-primary', function () {
+          API('/api/guest/invites/' + encodeURIComponent(id) + '/accept', { method: 'POST', body: {} }).then(function () { loadGuests(true); });
+        });
+      } else if (btn.classList.contains('guest-revoke')) {
+        confirmAction('Revoke Invite', 'Revoke this guest invitation? The guest will lose access.', 'Revoke', 'btn-danger', function () {
+          API('/api/guest/invites/' + encodeURIComponent(id) + '/revoke', { method: 'POST', body: {} }).then(function () { loadGuests(true); });
+        });
+      } else if (btn.classList.contains('guest-edit')) {
+        openEditGuestModal(id);
+      }
+    });
+
+    function openInviteGuestModal() {
+      openModal('Invite Guest',
+        '<div class="form-group"><label class="form-label">Name</label><input class="form-input" id="f-guest-name" placeholder="Guest name"></div>' +
+        '<div class="form-group"><label class="form-label">Email</label><input class="form-input" id="f-guest-email" type="email" placeholder="guest@example.com"></div>' +
+        '<div class="form-group"><label class="form-label">Permission</label><select class="form-input" id="f-guest-perm"><option value="view">View</option><option value="edit">Edit</option></select></div>' +
+        '<div class="form-group"><label class="form-label">Board IDs (comma-separated)</label><input class="form-input" id="f-guest-boards" placeholder="board-1, board-2"></div>' +
+        '<div class="form-group"><label class="form-label">Expires At</label><input class="form-input" id="f-guest-expires" type="date"></div>',
+        '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary btn-sm" id="btn-submit-invite">Send Invite</button>'
+      );
+      document.getElementById('btn-submit-invite').addEventListener('click', function () {
+        var name = document.getElementById('f-guest-name').value.trim();
+        var email = document.getElementById('f-guest-email').value.trim();
+        var perm = document.getElementById('f-guest-perm').value;
+        var boards = document.getElementById('f-guest-boards').value.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        var expires = document.getElementById('f-guest-expires').value || null;
+        if (!name || !email) { showError('Name and email are required.'); return; }
+        var body = { name: name, email: email, permission: perm, board_ids: boards, invited_by: 'current_user', expires_at: expires };
+        closeModal();
+        API('/api/guest/invites', { method: 'POST', body: body }).then(function () { loadGuests(true); });
+      });
+    }
+
+    function openEditGuestModal(guestId) {
+      var guest = null;
+      for (var i = 0; i < guests.length; i++) { if (guests[i].id === guestId) { guest = guests[i]; break; } }
+      if (!guest) return;
+      openModal('Edit Guest — ' + esc(guest.name),
+        '<div class="form-group"><label class="form-label">Permission</label><select class="form-input" id="f-edit-perm">' +
+          '<option value="view"' + (guest.permission === 'view' ? ' selected' : '') + '>View</option>' +
+          '<option value="edit"' + (guest.permission === 'edit' ? ' selected' : '') + '>Edit</option>' +
+        '</select></div>' +
+        '<div class="form-group"><label class="form-label">Board IDs (comma-separated)</label>' +
+          '<input class="form-input" id="f-edit-boards" value="' + escAttr((guest.board_ids || []).join(', ')) + '"></div>',
+        '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary btn-sm" id="btn-submit-edit-guest">Save</button>'
+      );
+      document.getElementById('btn-submit-edit-guest').addEventListener('click', function () {
+        var perm = document.getElementById('f-edit-perm').value;
+        var boards = document.getElementById('f-edit-boards').value.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        closeModal();
+        API('/api/guest/invites/' + encodeURIComponent(guestId), { method: 'PATCH', body: { permission: perm, board_ids: boards } }).then(function () { loadGuests(true); });
+      });
+    }
+
+    document.getElementById('btn-invite-guest').addEventListener('click', openInviteGuestModal);
+    document.getElementById('btn-invite-guest-empty').addEventListener('click', openInviteGuestModal);
+
+    /* ─────────────────────────────────────────────────────────────
+       LINKS TAB
+    ───────────────────────────────────────────────────────────── */
+    function loadLinks(silent) {
+      if (!silent) { $linksLoading.style.display = 'flex'; $linksTable.innerHTML = ''; $linksEmpty.style.display = 'none'; }
+      updateRefreshStatus(true);
+      return API('/api/guest/links').then(function (data) {
+        links = Array.isArray(data) ? data : [];
+        renderLinks();
+        if (!silent) $linksLoading.style.display = 'none';
+        updateRefreshStatus(false);
+      }).catch(function () {
+        links = [];
+        renderLinks();
+        if (!silent) $linksLoading.style.display = 'none';
+        updateRefreshStatus(false);
+      });
+    }
+
+    function renderLinks() {
+      if (links.length === 0) {
+        $linksTable.innerHTML = '';
+        $linksEmpty.style.display = 'flex';
+        return;
+      }
+      $linksEmpty.style.display = 'none';
+      var html = '<table class="data-table"><thead><tr>' +
+        '<th>Board</th><th>Item</th><th>Access</th><th>Active</th><th>Expires</th><th></th>' +
+        '</tr></thead><tbody>';
+      for (var i = 0; i < links.length; i++) {
+        var lk = links[i];
+        var isActive = lk.active !== false;
+        var accessPill = (lk.access || 'view').toLowerCase() === 'edit' ? 'pill-edit' : 'pill-view';
+        var activePill = isActive ? 'pill-active' : 'pill-inactive';
+        html += '<tr data-link-id="' + escAttr(lk.id) + '">' +
+          '<td>' + esc(lk.board_id) + '</td>' +
+          '<td style="color:var(--text-secondary)">' + esc(lk.item_id || '—') + '</td>' +
+          '<td><span class="status-pill ' + accessPill + '">' + esc(lk.access || 'view') + '</span></td>' +
+          '<td><span class="status-pill ' + activePill + '">' + (isActive ? 'Active' : 'Inactive') + '</span></td>' +
+          '<td style="color:var(--text-muted)">' + formatDate(lk.expires_at) + '</td>' +
+          '<td><div class="row-actions">';
+        if (isActive) {
+          html += '<button class="btn btn-danger btn-sm link-deactivate" data-id="' + escAttr(lk.id) + '" title="Deactivate link">Deactivate</button>';
+        }
+        html += '</div></td></tr>';
+      }
+      html += '</tbody></table>';
+      $linksTable.innerHTML = html;
+    }
+
+    $linksTable.addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      var id = btn.getAttribute('data-id');
+      if (!id) return;
+      if (btn.classList.contains('link-deactivate')) {
+        confirmAction('Deactivate Link', 'Deactivate this shareable link? Users will no longer be able to access it.', 'Deactivate', 'btn-danger', function () {
+          API('/api/guest/links/' + encodeURIComponent(id) + '/deactivate', { method: 'POST', body: {} }).then(function () { loadLinks(true); });
+        });
+      }
+    });
+
+    function openCreateLinkModal() {
+      openModal('Create Shareable Link',
+        '<div class="form-group"><label class="form-label">Board ID</label><input class="form-input" id="f-link-board" placeholder="board-id"></div>' +
+        '<div class="form-group"><label class="form-label">Item ID (optional)</label><input class="form-input" id="f-link-item" placeholder="item-id"></div>' +
+        '<div class="form-group"><label class="form-label">Access</label><select class="form-input" id="f-link-access"><option value="view">View</option><option value="edit">Edit</option></select></div>' +
+        '<div class="form-group"><label class="form-label">Password (optional)</label><input class="form-input" id="f-link-password" type="password" placeholder="Optional password"></div>' +
+        '<div class="form-group"><label class="form-label">Expires At</label><input class="form-input" id="f-link-expires" type="date"></div>',
+        '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary btn-sm" id="btn-submit-link">Create Link</button>'
+      );
+      document.getElementById('btn-submit-link').addEventListener('click', function () {
+        var boardId = document.getElementById('f-link-board').value.trim();
+        var itemId = document.getElementById('f-link-item').value.trim() || null;
+        var access = document.getElementById('f-link-access').value;
+        var password = document.getElementById('f-link-password').value || null;
+        var expires = document.getElementById('f-link-expires').value || null;
+        if (!boardId) { showError('Board ID is required.'); return; }
+        var body = { board_id: boardId, item_id: itemId, access: access, created_by: 'current_user', password: password, expires_at: expires };
+        closeModal();
+        API('/api/guest/links', { method: 'POST', body: body }).then(function () { loadLinks(true); });
+      });
+    }
+
+    document.getElementById('btn-create-link').addEventListener('click', openCreateLinkModal);
+    document.getElementById('btn-create-link-empty').addEventListener('click', openCreateLinkModal);
+
+    /* ─────────────────────────────────────────────────────────────
+       PORTALS TAB
+    ───────────────────────────────────────────────────────────── */
+    function loadPortals(silent) {
+      if (!silent) { $portalsLoading.style.display = 'flex'; $portalsTable.innerHTML = ''; $portalsEmpty.style.display = 'none'; }
+      updateRefreshStatus(true);
+      return API('/api/guest/portals').then(function (data) {
+        portals = Array.isArray(data) ? data : [];
+        renderPortals();
+        if (!silent) $portalsLoading.style.display = 'none';
+        updateRefreshStatus(false);
+      }).catch(function () {
+        portals = [];
+        renderPortals();
+        if (!silent) $portalsLoading.style.display = 'none';
+        updateRefreshStatus(false);
+      });
+    }
+
+    function renderPortals() {
+      if (portals.length === 0) {
+        $portalsTable.innerHTML = '';
+        $portalsEmpty.style.display = 'flex';
+        return;
+      }
+      $portalsEmpty.style.display = 'none';
+      var html = '<table class="data-table"><thead><tr>' +
+        '<th>Name</th><th>Owner</th><th>Boards</th><th>Color</th><th></th>' +
+        '</tr></thead><tbody>';
+      for (var i = 0; i < portals.length; i++) {
+        var p = portals[i];
+        var boardCount = (p.board_ids || []).length;
+        html += '<tr data-portal-id="' + escAttr(p.id) + '">' +
+          '<td style="font-weight:500">' + esc(p.name) + '</td>' +
+          '<td style="color:var(--text-secondary)">' + esc(p.owner_id) + '</td>' +
+          '<td>' + boardCount + ' board' + (boardCount !== 1 ? 's' : '') + '</td>' +
+          '<td><span class="color-swatch" style="background:' + escAttr(safeColor(p.primary_color)) + '"></span>' + esc(p.primary_color || '#00D4AA') + '</td>' +
+          '<td><div class="row-actions">' +
+            '<button class="btn btn-ghost btn-sm portal-add-guest" data-id="' + escAttr(p.id) + '" title="Add guest to portal">+ Guest</button>' +
+          '</div></td></tr>';
+      }
+      html += '</tbody></table>';
+      $portalsTable.innerHTML = html;
+    }
+
+    $portalsTable.addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      var id = btn.getAttribute('data-id');
+      if (!id) return;
+      if (btn.classList.contains('portal-add-guest')) {
+        openAddGuestToPortalModal(id);
+      }
+    });
+
+    function openCreatePortalModal() {
+      openModal('Create Client Portal',
+        '<div class="form-group"><label class="form-label">Portal Name</label><input class="form-input" id="f-portal-name" placeholder="My Client Portal"></div>' +
+        '<div class="form-group"><label class="form-label">Board IDs (comma-separated)</label><input class="form-input" id="f-portal-boards" placeholder="board-1, board-2"></div>' +
+        '<div class="form-group"><label class="form-label">Logo URL (optional)</label><input class="form-input" id="f-portal-logo" placeholder="https://example.com/logo.png"></div>' +
+        '<div class="form-group"><label class="form-label">Primary Color</label><input class="form-input" id="f-portal-color" type="color" value="#00D4AA"></div>' +
+        '<div class="form-group"><label class="form-label">Welcome Message</label><textarea class="form-input" id="f-portal-welcome" rows="3" placeholder="Welcome to our portal!"></textarea></div>',
+        '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary btn-sm" id="btn-submit-portal">Create Portal</button>'
+      );
+      document.getElementById('btn-submit-portal').addEventListener('click', function () {
+        var name = document.getElementById('f-portal-name').value.trim();
+        var boards = document.getElementById('f-portal-boards').value.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        var logo = document.getElementById('f-portal-logo').value.trim() || null;
+        var color = document.getElementById('f-portal-color').value;
+        var welcome = document.getElementById('f-portal-welcome').value.trim() || null;
+        if (!name) { showError('Portal name is required.'); return; }
+        var body = { name: name, owner_id: 'current_user', board_ids: boards, logo_url: logo, primary_color: color, welcome_message: welcome };
+        closeModal();
+        API('/api/guest/portals', { method: 'POST', body: body }).then(function () { loadPortals(true); });
+      });
+    }
+
+    function openAddGuestToPortalModal(portalId) {
+      openModal('Add Guest to Portal',
+        '<div class="form-group"><label class="form-label">Guest ID</label><input class="form-input" id="f-portal-guest-id" placeholder="guest-id"></div>',
+        '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary btn-sm" id="btn-submit-add-guest-portal">Add Guest</button>'
+      );
+      document.getElementById('btn-submit-add-guest-portal').addEventListener('click', function () {
+        var guestId = document.getElementById('f-portal-guest-id').value.trim();
+        if (!guestId) { showError('Guest ID is required.'); return; }
+        closeModal();
+        API('/api/guest/portals/' + encodeURIComponent(portalId) + '/guests/' + encodeURIComponent(guestId), { method: 'POST', body: {} }).then(function () { loadPortals(true); });
+      });
+    }
+
+    document.getElementById('btn-create-portal').addEventListener('click', openCreatePortalModal);
+    document.getElementById('btn-create-portal-empty').addEventListener('click', openCreatePortalModal);
+
+    /* ─────────────────────────────────────────────────────────────
+       FORMS TAB
+    ───────────────────────────────────────────────────────────── */
+    function loadForms(silent) {
+      if (!silent) { $formsLoading.style.display = 'flex'; $formsTable.innerHTML = ''; $formsEmpty.style.display = 'none'; }
+      updateRefreshStatus(true);
+      return API('/api/guest/forms').then(function (data) {
+        forms = Array.isArray(data) ? data : [];
+        renderForms();
+        if (!silent) $formsLoading.style.display = 'none';
+        updateRefreshStatus(false);
+      }).catch(function () {
+        forms = [];
+        renderForms();
+        if (!silent) $formsLoading.style.display = 'none';
+        updateRefreshStatus(false);
+      });
+    }
+
+    function renderForms() {
+      if (forms.length === 0) {
+        $formsTable.innerHTML = '';
+        $formsEmpty.style.display = 'flex';
+        return;
+      }
+      $formsEmpty.style.display = 'none';
+      var html = '<table class="data-table"><thead><tr>' +
+        '<th>Name</th><th>Board</th><th>Group</th><th>Submissions</th><th></th>' +
+        '</tr></thead><tbody>';
+      for (var i = 0; i < forms.length; i++) {
+        var f = forms[i];
+        var subCount = f.submission_count != null ? f.submission_count : 0;
+        html += '<tr data-form-id="' + escAttr(f.id) + '">' +
+          '<td style="font-weight:500">' + esc(f.name) + '</td>' +
+          '<td style="color:var(--text-secondary)">' + esc(f.board_id) + '</td>' +
+          '<td style="color:var(--text-secondary)">' + esc(f.group_id || '—') + '</td>' +
+          '<td>' + subCount + '</td>' +
+          '<td><div class="row-actions">' +
+            '<button class="btn btn-ghost btn-sm form-submissions" data-id="' + escAttr(f.id) + '" data-name="' + escAttr(f.name) + '" title="View submissions">📋 Submissions</button>' +
+          '</div></td></tr>';
+      }
+      html += '</tbody></table>';
+      $formsTable.innerHTML = html;
+    }
+
+    $formsTable.addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      var id = btn.getAttribute('data-id');
+      if (!id) return;
+      if (btn.classList.contains('form-submissions')) {
+        openSubmissionsModal(id, btn.getAttribute('data-name') || 'Form');
+      }
+    });
+
+    function openCreateFormModal() {
+      openModal('Create External Form',
+        '<div class="form-group"><label class="form-label">Form Name</label><input class="form-input" id="f-form-name" placeholder="Contact Request"></div>' +
+        '<div class="form-group"><label class="form-label">Board ID</label><input class="form-input" id="f-form-board" placeholder="board-id"></div>' +
+        '<div class="form-group"><label class="form-label">Group ID (optional)</label><input class="form-input" id="f-form-group" placeholder="group-id"></div>' +
+        '<div class="form-group"><label class="form-label">Fields (JSON array)</label>' +
+          '<textarea class="form-input" id="f-form-fields" rows="4" placeholder=\'[{"name":"email","type":"text","required":true}]\'></textarea></div>',
+        '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary btn-sm" id="btn-submit-form">Create Form</button>'
+      );
+      document.getElementById('btn-submit-form').addEventListener('click', function () {
+        var name = document.getElementById('f-form-name').value.trim();
+        var boardId = document.getElementById('f-form-board').value.trim();
+        var groupId = document.getElementById('f-form-group').value.trim() || null;
+        var fieldsRaw = document.getElementById('f-form-fields').value.trim();
+        if (!name || !boardId) { showError('Form name and board ID are required.'); return; }
+        var fields = [];
+        if (fieldsRaw) {
+          try { fields = JSON.parse(fieldsRaw); } catch (e) { showError('Fields must be valid JSON.'); return; }
+        }
+        var body = { name: name, board_id: boardId, group_id: groupId, fields: fields };
+        closeModal();
+        API('/api/guest/forms', { method: 'POST', body: body }).then(function () { loadForms(true); });
+      });
+    }
+
+    function openSubmissionsModal(formId, formName) {
+      openModal('Submissions — ' + formName, '<div class="loading-overlay"><span class="spinner"></span> Loading submissions…</div>', '');
+      API('/api/guest/forms/' + encodeURIComponent(formId) + '/submissions').then(function (data) {
+        var subs = Array.isArray(data) ? data : [];
+        if (subs.length === 0) {
+          $modalBody.innerHTML = '<div class="empty-state" style="padding:24px;"><div class="empty-state-icon" aria-hidden="true">📭</div><h3>No submissions yet</h3><p>Submissions will appear here once external users fill out this form.</p></div>';
+          return;
+        }
+        var html = '<table class="data-table"><thead><tr><th>Submitter</th><th>Date</th><th>Data</th></tr></thead><tbody>';
+        for (var i = 0; i < subs.length; i++) {
+          var s = subs[i];
+          var dataStr = '';
+          if (s.data) {
+            try { dataStr = JSON.stringify(s.data); } catch (e) { dataStr = String(s.data); }
+            if (dataStr.length > 80) dataStr = dataStr.substring(0, 80) + '…';
+          }
+          html += '<tr><td>' + esc(s.submitter_email || '—') + '</td>' +
+            '<td style="color:var(--text-muted)">' + formatDateTime(s.created_at || s.submitted_at) + '</td>' +
+            '<td style="color:var(--text-secondary);font-size:0.75rem;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(dataStr) + '</td></tr>';
+        }
+        html += '</tbody></table>';
+        $modalBody.innerHTML = html;
+      }).catch(function () {
+        $modalBody.innerHTML = '<p class="confirm-text" style="color:var(--danger)">Failed to load submissions.</p>';
+      });
+    }
+
+    document.getElementById('btn-create-form').addEventListener('click', openCreateFormModal);
+    document.getElementById('btn-create-form-empty').addEventListener('click', openCreateFormModal);
+
+    /* ─────────────────────────────────────────────────────────────
+       AUTO-REFRESH & INIT
+    ───────────────────────────────────────────────────────────── */
+    function loadActiveTab(silent) {
+      switch (activeTab) {
+        case 'guests':  return loadGuests(silent);
+        case 'links':   return loadLinks(silent);
+        case 'portals': return loadPortals(silent);
+        case 'forms':   return loadForms(silent);
+      }
+    }
+
+    function startAutoRefresh() {
+      if (refreshTimer) clearInterval(refreshTimer);
+      refreshTimer = setInterval(function () {
+        loadActiveTab(true);
+      }, REFRESH_MS);
+    }
+
+    /* ── Boot ────────────────────────────────────────────────── */
+    loadActiveTab(false);
+    startAutoRefresh();
+
+  })();
+  </script>
+</body>
+</html>

@@ -288,36 +288,11 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
   .sol-grid,.ind-grid,.partner-grid{grid-template-columns:1fr 1fr;}
 }
 @media(max-width:480px){.g2,.g3,.g4,.sol-grid,.ind-grid,.partner-grid{grid-template-columns:1fr;}}
-/* Error banner */
-#murphy-error-banner{display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#c0392b;color:#fff;padding:10px 16px;font-size:14px;align-items:center;gap:12px;}
-#murphy-error-banner-msg{flex:1;}
-#murphy-error-banner-close{background:transparent;border:1px solid rgba(255,255,255,.6);color:#fff;cursor:pointer;padding:2px 8px;border-radius:3px;font-size:13px;}
-.forge-err-msg{color:var(--red);font-size:.85rem;padding:.5rem 0;}
+.forge-err-msg{color:#f44;font-size:.85rem;padding:.5rem 0;}
 .forge-err-link{color:var(--teal);}
 </style>
 </head>
 <body>
-<!-- Murphy error banner — shown automatically on 5xx fetch errors -->
-<div id="murphy-error-banner" role="alert" aria-live="assertive">
-  <span id="murphy-error-banner-msg"></span>
-  <button id="murphy-error-banner-close" onclick="document.getElementById('murphy-error-banner').style.display='none'" aria-label="Dismiss">✕</button>
-</div>
-<script>
-function showMurphyError(msg) {
-  var b = document.getElementById('murphy-error-banner');
-  document.getElementById('murphy-error-banner-msg').textContent = msg || 'An unexpected error occurred.';
-  b.style.display = 'flex';
-}
-(function() {
-  var _origFetch = window.fetch;
-  window.fetch = function() {
-    return _origFetch.apply(this, arguments).then(function(resp) {
-      if (resp.status >= 500) showMurphyError('Server error (' + resp.status + ') — ' + resp.url.split('?')[0]);
-      return resp;
-    });
-  };
-})();
-</script>
 <a class="skip" href="#main-content">Skip to main content</a>
 
 <!-- TOPBAR -->
@@ -657,9 +632,6 @@ function showMurphyError(msg) {
         <!-- HTML preview button (only shown for .html deliverables) -->
         <button class="forge-dl-btn" id="forge-html-preview-btn" style="display:none;background:rgba(0,212,170,.15);color:var(--teal);border:1px solid var(--teal);margin-bottom:.5rem;" onclick="_forgePreviewInTab()">&#9654; Preview in New Tab</button>
         <button class="forge-dl-btn" id="forge-dl-btn">&#8595; Download Your Deliverable</button>
-        <button class="forge-dl-btn" id="forge-bundle-btn" style="display:none;background:rgba(124,58,237,.2);color:#c4b5fd;border:1px solid #7c3aed;margin-top:.5rem;" onclick="_forgeDownloadBundle()">&#128230; Download Full Package (ZIP)</button>
-        <!-- Automation Proposal Spec Summary -->
-        <div id="forge-spec-summary" style="display:none;margin-top:1rem;padding:1rem;background:#0a0a0a;border:1px solid rgba(0,255,65,.2);border-radius:8px;text-align:left;font-size:.82rem;line-height:1.7;color:var(--muted);"></div>
         <div class="forge-fallback-cta" id="forge-fallback-cta" style="display:none;">
           <a href="/ui/signup">Sign up free to download this deliverable →</a>
         </div>
@@ -1476,7 +1448,7 @@ function _convergePanes(onDone){
 }
 
 /* Show result block */
-function _showResult(deliverable,usedRealApi,forgeUsage,apiMetrics){
+function _showResult(deliverable,usedRealApi,forgeUsage){
   var resBlock=document.getElementById('forge-result');
   var titleEl=document.getElementById('forge-result-title');
   var statsEl=document.getElementById('forge-result-stats');
@@ -1497,30 +1469,14 @@ function _showResult(deliverable,usedRealApi,forgeUsage,apiMetrics){
   var isHtml=/\.html?$/i.test(filename)||/<html/i.test((content||'').slice(0,200));
 
   titleEl.innerHTML='&#10003; '+title;
-  
-  // Use real metrics from API if available, otherwise fall back to defaults
-  var agentCount = (apiMetrics && apiMetrics.agent_count) ? apiMetrics.agent_count : 64;
-  var buildTime = (apiMetrics && apiMetrics.actual_elapsed_seconds) ? apiMetrics.actual_elapsed_seconds.toFixed(1) : '8';
-  var llmCalls = (apiMetrics && apiMetrics.llm_calls) ? apiMetrics.llm_calls : 5;
-  var actualCost = (apiMetrics && apiMetrics.total_actual_cost_usd) ? '$' + apiMetrics.total_actual_cost_usd.toFixed(4) : '$0.05';
-  var savings = (apiMetrics && apiMetrics.cost_savings_usd) ? '$' + apiMetrics.cost_savings_usd.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) : '$600';
-  var roiMultiple = (apiMetrics && apiMetrics.roi_multiple) ? apiMetrics.roi_multiple.toLocaleString() : '2698';
-  
   statsEl.innerHTML=
-    '<div class="forge-stat"><span class="forge-stat-val">'+llmCalls+'</span><span class="forge-stat-lbl">LLM Calls</span></div>'+
-    '<div class="forge-stat"><span class="forge-stat-val">'+buildTime+'s</span><span class="forge-stat-lbl">Build Time</span></div>'+
-    '<div class="forge-stat"><span class="forge-stat-val">'+actualCost+'</span><span class="forge-stat-lbl">Actual Cost</span></div>'+
-    '<div class="forge-stat"><span class="forge-stat-val">'+savings+'</span><span class="forge-stat-lbl">Savings</span></div>'+
-    '<div class="forge-stat"><span class="forge-stat-val">'+roiMultiple+'x</span><span class="forge-stat-lbl">ROI</span></div>';
+    '<div class="forge-stat"><span class="forge-stat-val">64</span><span class="forge-stat-lbl">Agents</span></div>'+
+    '<div class="forge-stat"><span class="forge-stat-val">8s</span><span class="forge-stat-lbl">Build Time</span></div>'+
+    '<div class="forge-stat"><span class="forge-stat-val">'+wordCount.toLocaleString()+'</span><span class="forge-stat-lbl">Words</span></div>'+
+    '<div class="forge-stat"><span class="forge-stat-val">'+lineCount.toLocaleString()+'</span><span class="forge-stat-lbl">Lines</span></div>'+
+    '<div class="forge-stat"><span class="forge-stat-val">'+sizeKb+'KB</span><span class="forge-stat-lbl">Size</span></div>';
 
-  // Dynamic ROI message based on metrics
-  var roiMsg = '<strong>'+agentCount+' agents × '+buildTime+'s</strong> = what would take a team of developers <strong>days or weeks</strong> to produce manually.';
-  if(apiMetrics && apiMetrics.predicted_human_hours) {
-    roiMsg = 'Delivered in <strong>'+buildTime+'s</strong> vs <strong>'+apiMetrics.predicted_human_hours+' human hours</strong>. ';
-    roiMsg += 'Cost: <strong>'+actualCost+'</strong> vs <strong>$'+apiMetrics.predicted_human_cost_usd.toLocaleString()+'</strong> manual. ';
-    roiMsg += '<strong>ROI: '+roiMultiple+'x</strong>';
-  }
-  roiEl.innerHTML = roiMsg;
+  roiEl.innerHTML='<strong>64 agents × 8 seconds</strong> = what would take a team of developers <strong>days or weeks</strong> to produce manually. <strong>ROI: immediate.</strong>';
 
   // Show usage counter
   if(forgeUsage&&usageEl){
@@ -1591,21 +1547,6 @@ function _showResult(deliverable,usedRealApi,forgeUsage,apiMetrics){
     }
     resBlock.style.display='';
     _setStatus('&#10003; Build complete — your deliverable is ready.','phase');
-    // Show bundle download button
-    var bundleBtn=document.getElementById('forge-bundle-btn');
-    if(bundleBtn) bundleBtn.style.display='';
-    // Fetch and show spec summary
-    if(usedRealApi && _forgeQuery){
-      fetch('/api/demo/run',{
-        method:'POST',
-        headers:_apiHeaders(),
-        credentials:'include',
-        body:JSON.stringify({query:_forgeQuery})
-      })
-      .then(function(r){return r.json();})
-      .then(function(d){if(d.success&&d.spec) _forgeShowSpecSummary(d.spec);})
-      .catch(function(){});
-    }
   } else {
     // API unavailable or returned no content -- use client-side fallback
     var _fb = _forgeFallback(_forgeQuery);
@@ -1686,7 +1627,6 @@ function _forgeDownload(attempt){
       setTimeout(function(){_forgeDownload(attempt+1);},1000*attempt);
     } else {
       _setStatus('\u26a0 Download failed after '+maxRetries+' attempts. Please sign up for reliable access.','phase');
-      showMurphyError('Download failed — please sign up for full access.');
     }
   })
   .catch(function(){
@@ -1694,7 +1634,6 @@ function _forgeDownload(attempt){
       setTimeout(function(){_forgeDownload(attempt+1);},1000*attempt);
     } else {
       _setStatus('\u26a0 Download failed after '+maxRetries+' attempts. Please sign up for reliable access.','phase');
-      showMurphyError('Download failed — please sign up for full access.');
     }
   });
 }
@@ -1714,52 +1653,6 @@ function _gateCheck(query){
   if(q.split(' ').length>=4) score+=35; else questions.push('Can you describe it in a few more words?');
   // Score ≥85 → proceed, else ask
   return {score:score,questions:questions,pass:score>=85};
-}
-
-/* ── Bundle download for forge section ── */
-function _forgeDownloadBundle(){
-  var btn=document.getElementById('forge-bundle-btn');
-  if(btn){btn.disabled=true;btn.textContent='Packaging…';}
-  fetch('/api/demo/download-bundle',{
-    method:'POST',
-    headers:_apiHeaders(),
-    credentials:'include',
-    body:JSON.stringify({query:_forgeQuery||'Custom deliverable'})
-  })
-  .then(function(r){
-    if(r.ok) return r.blob();
-    return r.json().then(function(d){throw d;});
-  })
-  .then(function(blob){
-    if(btn){btn.disabled=false;btn.textContent='\\u{1F4E6} Download Full Package (ZIP)';}
-    var a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);
-    a.download='murphy-engagement-package.zip';
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
-  })
-  .catch(function(err){
-    if(btn){btn.disabled=false;btn.textContent='\\u{1F4E6} Download Full Package (ZIP)';}
-    if(err&&err.error==='limit_exceeded'){
-      var errEl=document.getElementById('forge-api-err');
-      if(errEl){errEl.textContent=err.message||'Daily limit reached.';errEl.style.display='';}
-    }
-  });
-}
-
-/* ── Show spec summary in forge result ── */
-function _forgeShowSpecSummary(specData){
-  var el=document.getElementById('forge-spec-summary');
-  if(!el||!specData)return;
-  var html='<div style="color:var(--green);font-weight:700;margin-bottom:.5rem;">⚡ Automation Proposal Summary</div>';
-  if(specData.title) html+='<div><b>Scope:</b> '+specData.title+'</div>';
-  if(specData.workflow_count) html+='<div><b>Workflows:</b> '+specData.workflow_count+' automated workflows</div>';
-  if(specData.hours_saved_month) html+='<div><b>Time Saved:</b> '+specData.hours_saved_month+' hours/month</div>';
-  if(specData.monthly_savings_usd) html+='<div><b>Monthly Savings:</b> $'+specData.monthly_savings_usd.toLocaleString()+'/mo</div>';
-  if(specData.murphy_cost) html+='<div><b>Murphy Cost:</b> $'+specData.murphy_cost+'/mo ('+specData.recommended_tier+')</div>';
-  if(specData.roi_multiple) html+='<div style="color:#fbbf24;font-weight:700;margin-top:.3rem;"><b>ROI:</b> '+specData.roi_multiple+'× return on investment</div>';
-  if(specData.signup_url) html+='<div style="margin-top:.5rem;"><a href="'+specData.signup_url+'" style="color:var(--teal);">Activate this automation →</a></div>';
-  el.innerHTML=html;
-  el.style.display='';
 }
 
 /* Main forge run */
@@ -1800,10 +1693,10 @@ function forgeRun(query){
   if(liveWrap)liveWrap.style.display='';
 
   // Kick off real API call in background
-  var apiDone=false,animDone=false,apiResult=null,apiUsed=false,apiForgeUsage=null,apiMetrics=null;
+  var apiDone=false,animDone=false,apiResult=null,apiUsed=false,apiForgeUsage=null;
   function tryMerge(){
     if(!apiDone||!animDone)return;
-    _convergePanes(function(){_showResult(apiResult,apiUsed,apiForgeUsage,apiMetrics);_forgeRunning=false;});
+    _convergePanes(function(){_showResult(apiResult,apiUsed,apiForgeUsage);_forgeRunning=false;});
   }
 
   // API call
@@ -1820,11 +1713,9 @@ function forgeRun(query){
       apiResult.llm_provider=data.llm_provider||'local';
       apiUsed=true;
       apiForgeUsage=data.forge_usage||null;
-      apiMetrics=data.metrics||null;
     } else if(data&&!data.success&&data.error){
-      // API returned an error (e.g. rate limit) — pass a sentinel so _showResult shows a clear message
       apiResult=null;
-      apiUsed=true; // We did reach the API
+      apiUsed=true;
     }
     apiDone=true; tryMerge();
   })
@@ -1886,19 +1777,9 @@ function probe(){
   }).catch(function(){
     var txt=document.getElementById('sys-status-text');if(txt)txt.textContent='offline';
     var pill=document.getElementById('sys-status-pill');if(pill)pill.className='sys-pill warn';
-    showMurphyError('Unable to reach Murphy server — check your connection.');
   });
 }
 probe();setInterval(probe,30000);
-})();
-</script>
-<script src="/static/murphy-components.js"></script>
-<script>
-/* MurphyLibrarianChat — wired to the landing page using the standard API */
-(function(){
-  var api = new MurphyAPI('/api');
-  var lc = new MurphyLibrarianChat(api);
-  window._murphyLibrarianChat = lc;
 })();
 </script>
 </body>

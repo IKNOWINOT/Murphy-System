@@ -117,6 +117,18 @@ class MurphySidebar extends HTMLElement {
       { icon: '◈', label: 'ARCHITECT',    href: '/ui/terminal-architect' },
       { icon: '◎', label: 'WORKER',       href: '/ui/terminal-worker' },
       { icon: '⊞', label: 'COSTS',        href: '/ui/terminal-costs' },
+      { section: 'WORK' },
+      { icon: '▦', label: 'BOARDS',       href: '/ui/boards' },
+      { icon: '📄', label: 'WORKDOCS',     href: '/ui/workdocs' },
+      { icon: '⏱', label: 'TIME TRACK',   href: '/ui/time-tracking' },
+      { icon: '📊', label: 'DASHBOARDS',  href: '/ui/dashboards' },
+      { icon: '🤝', label: 'CRM',          href: '/ui/crm' },
+      { icon: '📐', label: 'PORTFOLIO',    href: '/ui/portfolio' },
+      { icon: '🧠', label: 'AIONMIND',     href: '/ui/aionmind' },
+      { icon: '⚙', label: 'AUTOMATIONS',  href: '/ui/automations' },
+      { icon: '🛠', label: 'DEV MODULE',   href: '/ui/dev-module' },
+      { icon: '🎫', label: 'SERVICE',      href: '/ui/service-module' },
+      { icon: '👤', label: 'GUEST PORTAL', href: '/ui/guest-portal' },
       { section: 'BUILD' },
       { icon: '⋮', label: 'WORKFLOWS',    href: '/ui/workflow-canvas' },
       { icon: '🏭', label: 'PRODUCTION',   href: '/ui/production-wizard' },
@@ -2017,6 +2029,121 @@ window.MurphyKeyboard       = MurphyKeyboard;
 window.MurphyTerminalPanel  = MurphyTerminalPanel;
 window.MurphyLibrarianChat  = MurphyLibrarianChat;
 window.MurphyMarkdown       = MurphyMarkdown;
+
+/* ES module export — only when loaded as type="module" */
+try {
+  if (typeof globalThis !== 'undefined' && typeof globalThis[Symbol.for('murphy-components-exported')] === 'undefined') {
+    globalThis[Symbol.for('murphy-components-exported')] = true;
+  }
+} catch (_) { /* non-module context */ }
+  /**
+   * @param {object}      opts
+   * @param {HTMLElement} opts.container   Element to render chat into.
+   * @param {string}      [opts.sessionId] Persistent session identifier.
+   * @param {string}      [opts.baseUrl='/api'] API base URL.
+   * @param {string}      [opts.placeholder='Ask Murphy anything…']
+   */
+  constructor({ container, sessionId, baseUrl = '/api', placeholder } = {}) {
+    this._container  = container || null;
+    this._sessionId  = sessionId  || ('lc-' + Math.random().toString(36).slice(2, 10));
+    this._baseUrl    = baseUrl.replace(/\/+$/, '');
+    this._placeholder = placeholder || 'Ask Murphy anything…';
+    this._history    = [];
+    this._api        = typeof MurphyAPI !== 'undefined' ? new MurphyAPI(baseUrl) : null;
+  }
+
+  /**
+   * Render the chat widget into `this._container`.
+   * Safe to call multiple times — replaces existing content.
+   */
+  render() {
+    if (!this._container) return;
+    this._container.innerHTML = `
+      <div class="mlc-wrap" style="display:flex;flex-direction:column;height:100%;min-height:200px;font-size:13px;">
+        <div class="mlc-messages" style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px;"></div>
+        <div class="mlc-input-row" style="display:flex;gap:6px;padding:8px;border-top:1px solid var(--border-dim,#333);">
+          <input class="mlc-input" type="text" placeholder="${this._placeholder}"
+            style="flex:1;background:var(--bg-secondary,#1a1a2e);color:var(--text-primary,#eee);border:1px solid var(--border-dim,#333);border-radius:5px;padding:6px 10px;font-size:13px;outline:none;" />
+          <button class="mlc-send" style="background:var(--accent,#00d4aa);color:#000;border:none;border-radius:5px;padding:6px 14px;font-weight:700;cursor:pointer;">Ask</button>
+        </div>
+      </div>`;
+    const input  = this._container.querySelector('.mlc-input');
+    const btn    = this._container.querySelector('.mlc-send');
+    const msgBox = this._container.querySelector('.mlc-messages');
+    const send = () => {
+      const text = (input.value || '').trim();
+      if (!text) return;
+      input.value = '';
+      this._addBubble(msgBox, 'user', text);
+      this.ask(text).then(reply => this._addBubble(msgBox, 'assistant', reply));
+    };
+    btn.addEventListener('click', send);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+  }
+
+  /**
+   * Send a question and return a promise resolving to the answer string.
+   * @param {string} question
+   * @returns {Promise<string>}
+   */
+  async ask(question) {
+    this._history.push({ role: 'user', content: question });
+    try {
+      let data;
+      if (this._api) {
+        const res = await this._api.post('/librarian/ask', { query: question, session_id: this._sessionId });
+        data = res.data;
+      } else {
+        const r = await fetch(`${this._baseUrl}/librarian/ask`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: question, session_id: this._sessionId }),
+        });
+        data = await r.json();
+      }
+      const answer = data.response || data.reply_text || data.answer || data.message || data.content || 'Got it!';
+      this._history.push({ role: 'assistant', content: answer });
+      return answer;
+    } catch (_) {
+      const fallback = this._offlineAnswer(question);
+      this._history.push({ role: 'assistant', content: fallback });
+      return fallback;
+    }
+  }
+
+  /** Clears the chat history and re-renders the message area. */
+  clear() {
+    this._history = [];
+    const msgBox = this._container && this._container.querySelector('.mlc-messages');
+    if (msgBox) msgBox.innerHTML = '';
+  }
+
+  // ── internals ─────────────────────────────────────────────────────────
+
+  _addBubble(container, role, text) {
+    const div = document.createElement('div');
+    const isUser = role === 'user';
+    div.style.cssText = `align-self:${isUser ? 'flex-end' : 'flex-start'};max-width:85%;background:${isUser ? 'var(--accent,#00d4aa)' : 'var(--bg-secondary,#1a1a2e)'};color:${isUser ? '#000' : 'var(--text-primary,#eee)'};border-radius:10px;padding:7px 12px;line-height:1.45;word-break:break-word;`;
+    div.textContent = text;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  _offlineAnswer(q) {
+    const lq = q.toLowerCase();
+    if (lq.includes('invoice') || lq.includes('billing'))
+      return 'Murphy can automate end-to-end invoice processing — extraction, validation, GL posting, and approval routing. Ask on the onboarding page to configure it for your stack.';
+    if (lq.includes('onboard') || lq.includes('setup'))
+      return 'Visit /ui/onboarding to start the guided setup interview. Murphy will ask a few questions and generate your automation plan.';
+    if (lq.includes('roi') || lq.includes('cost') || lq.includes('saving'))
+      return 'Check the ROI Calendar at /ui/roi-calendar to see live cost comparisons between human and agent work.';
+    if (lq.includes('workflow') || lq.includes('automat'))
+      return 'Murphy supports 12+ automation templates including invoice processing, compliance audits, payroll, and email campaigns. Start at /ui/onboarding.';
+    if (lq.includes('agent') || lq.includes('who'))
+      return 'Murphy uses a pool of named agents — Orchestrator, DataExtractor, Validator, ComplianceBot, Integrator and more — each colour-coded and assigned to specific steps.';
+    return 'I can help you set up automations, understand ROI, or navigate the system. What would you like to know more about?';
+  }
+}
 
 /* ES module export — only when loaded as type="module" */
 try {

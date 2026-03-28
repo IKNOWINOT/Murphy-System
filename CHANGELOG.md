@@ -1,150 +1,9 @@
 # Changelog
 
-## [3.0.0] — 2026-03-27 — Real HITL State Machine, Milestone Tracking & Closed Loops
-
-### Added
-- **Real HITL State Machine** (`_HITL_QUEUE`) — every approval gate is a blocking checkpoint
-  - `POST /api/hitl/{id}/approve` — approve with side effects per type (proposal→automation, campaign→spend, setup→next step, milestone→unblock, dag→advance, vertical→activate)
-  - `POST /api/hitl/{id}/reject` — reject with reason, broadcasts SSE
-  - HITL types: `proposal_approval`, `campaign_paid_ad`, `setup_step`, `automation_milestone`, `dag_step`, `vertical_activate`
-  - Auto-expire tick (60s) marks stale HITL items expired
-- **Automation Milestones** — each automation has 3–4 weighted milestones per category
-  - `_MILESTONE_TEMPLATES` — per-category milestone definitions with weight_pct and HITL flags
-  - `_calc_automation_progress(auto)` — weighted average across milestones drives progress bar
-  - `_calc_block_duration(auto)` — base + sum of delays drives block width on calendar
-  - `GET /api/automations/{id}/milestones` — full milestone state per automation
-  - `POST /api/automations/{id}/milestones/{ms_id}/delay` — inject delay on milestone
-- **Delay Factor** — missed milestones add time to effective duration
-  - Blocks GROW when milestones are delayed (`effective_duration_minutes = estimated + total_delay`)
-  - Blocks SHRINK as milestones complete (progress advances)
-  - `_automation_tick()` (8s) — advances milestone progress, random 8% chance to inject delay
-- **Dynamic Calendar Blocks** (`GET /api/calendar/blocks`)
-  - `width_scale = effective_duration / estimated_duration`
-  - `hitl_gates` list with time positions, status, hitl_item_id per HITL milestone
-  - `is_delayed`, `is_blocked_hitl` flags for visual overlays
-- **Closed-Loop Proposals** — full pipeline: request → AI generate → HITL approve → automation created
-  - `_proposal_intake_tick()` (45s) auto-generates proposals for pending requests → HITL item
-  - Approve HITL → marks proposal `approved_sent` → spawns new automation in `_automation_store`
-- **Closed-Loop Campaigns** — `_campaign_tick()` detects low traction → auto-creates HITL paid-ad proposal
-  - Approve HITL → campaign status `active`, spend increases
-- **Closed-Loop Self-Setup** — `_setup_tick()` advances steps, blocks at HITL gates
-  - Steps 4, 6, 7, 9, 11, 12 require HITL approval
-  - Approve HITL → step completes → next step activates
-- **Improved DAG Workflow Generator** — semantic domain detection for 10 workflow patterns
-  - Onboard, Report, Invoice, Reconcile, Campaign, Security, Deploy, CRM, Proposal, Monitor
-  - Each pattern produces 4–6 realistic named steps with a HITL gate at the right point
-- **Dashboard v3.0** (`murphy_dashboard/index.html`) — full Command Center overhaul
-  - 10-panel layout: Overview, HITL, Calendar, Automations, Verticals, Marketing, Proposals, Workflows, Comms, Setup
-  - HITL panel: full queue with approve/reject buttons, reject modal with reason, type tags, payload preview
-  - Calendar panel: dynamic timeline blocks with `width_scale`, red delay overlay, HITL diamond markers
-  - Automation blocks: milestone track (6 color-coded segments), duration bar with planned/actual/delay overlays
-  - Marketing panel: closed-loop — campaign cards, traction bars, "Propose Paid Campaign" HITL trigger
-  - Proposals panel: closed-loop — inbound requests → "Generate AI Proposal" → HITL → automation confirmed
-  - Workflows panel: NL textarea + 4 template shortcuts → DAG visualization with per-node HITL approve
-  - Setup panel: step list with HITL gate approve buttons inline, engine status cards
-  - 15+ SSE event types routed to appropriate panel updates
-- **WebSocket HTTP fallback** — `GET /ws` returns 426 instead of 404
-
-### Changed
-- Server version bumped 2.0 → 3.0
-- `_SELF_SETUP_STEPS` updated with `requires_hitl` and `hitl_label` per step
-- `_seed_automations()` builds milestones for all 15 demo automations
-- All 5 background ticks running: `_automation_tick`, `_campaign_tick`, `_setup_tick`, `_hitl_auto_expire_tick`, `_proposal_intake_tick`
-
-### Preserved
-- All original routes: `/`, `/calendar`, `/dashboard`, `/landing`, `/production-wizard`, `/onboarding`
-- All v2.0 endpoints remain functional
-
-## [2.0.0] — 2026-03-27 — Self-Automation Pipeline & Vertical Hub
-
-### Added
-- **Primary Dashboard** (`murphy_dashboard/index.html`) — full Command Center replacing legacy calendar UI as default `/` route
-  - Tenant-aware header: cycle between tenants (HQ, Industrial, Marketing Studio)
-  - 8-panel navigation: Overview, Verticals, Marketing, Proposals, Workflows, Comms, Setup, Executions, Bots
-  - Live SSE feed ticker + WebSocket multicursor
-  - Global NL prompt bar (Cmd+Enter → automation)
-  - KPI row: Active Automations, Monthly Savings, ROI, Campaigns, Pending Proposals
-- **Server v2.0** (`murphy_production_server.py`) — 40+ API endpoints
-  - `/api/tenant/*` — multi-tenant CRUD with org/connection metadata
-  - `/api/verticals/*` — 10 vertical configs with activate endpoint (seeds starter automation)
-  - `/api/marketing/*` — AdaptiveCampaignEngine (MKT-004) wired: campaign metrics, channel adjustment, HITL paid-ad proposals
-  - `/api/proposals/*` — AI proposal writer: inbound request queue → NL-generated full proposal (scope, investment, timeline, ROI)
-  - `/api/workflows/*` — AIWorkflowGenerator: NL → DAG step inference → execution graph with HITL gates
-  - `/api/comms/*` — AgenticCommsRouter (ACOM-001): 6 subsystem rooms, send/broadcast, message history
-  - `/api/pipeline/self-setup` — self-automation pipeline: Murphy automating itself (12-step progress tracker)
-  - `/api/pipeline/self-setup/run-full` — one-click full bootstrap: all verticals, campaigns, proposals, comms
-  - Tenant-aware filtering on automations, executions, labor-cost
-  - Background `_campaign_tick()` — live campaign metric drift + traction evaluation
-  - Background `_setup_tick()` — self-setup progress advances every 20s
-- **Vertical Hub** — 10 verticals fully configured:
-  - Marketing (AdaptiveCampaignEngine), Proposals (AI writer), CRM, Monitoring, Industrial/SCADA, Finance, Security, Content, Communications (ACOM-001), AI Pipeline Builder
-- **15 demo automations** seeded across 3 tenants
-
-### Changed
-- Server version bumped 1.0 → 2.0
-- Default route `/` now serves `murphy_dashboard/index.html` (Command Center)
-- `/calendar` route still serves legacy calendar UI (`murphy_ui/index.html`)
-- Automations now carry `tenant_id` for multi-tenant filtering
-- `/api/automations` now accepts `tenant_id`, `category`, `status` query filters
-- `/api/labor-cost` now accepts `tenant_id` filter
-
-### Tested
-- 19/19 API endpoints: 200 OK
-- Self-setup pipeline: 12 steps, auto-advances via background task
-- Proposal generation: req-001 (enterprise), req-002 (startup), req-003 (industrial SCADA)
-- Workflow DAG: 5-step NL→DAG from HubSpot lead pipeline description
-- Campaign engine: 5 tiers, 2 auto-adjusting (business, professional traction=low)
-- Comms router: 6 rooms × 3 agents, message delivery confirmed
-- Prompt create: "Every hour monitor SCADA anomalies" → monitoring/hourly/$110/hr
-
 All notable changes to Murphy System will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [Unreleased] — Production Calendar UI + Full Backend Wiring
-
-### Added
-
-#### Production Server — `murphy_production_server.py`
-- Unified FastAPI backend wiring all Murphy subsystems (automations, scheduler, bots, billing)
-- `/api/calendar` — automation timeline blocks for day/week/month views with recurrence expansion
-- `/api/automations/stream` — SSE live execution event stream (positioned before `{auto_id}` route)
-- `/api/prompt` — NL → automation creation with business model tier enforcement
-- `/api/labor-cost` — ETC vs actual comparison, monthly savings, ROI multiplier
-- `/api/bots/status` — all 18 bot health statuses
-- `/ws` — WebSocket multicursor + collaborative live event broadcasting
-- Security headers middleware (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, X-Request-ID)
-- CORS configurable via `MURPHY_ALLOWED_ORIGINS` env var (strict in production)
-- Prompt injection sanitization blocking `<script>`, SQL patterns
-- Solo tier: max 3 automations enforced at API layer (HTTP 402)
-- Background `_automation_tick()` drives live execution simulation every 8s
-
-#### Production Calendar UI — `murphy_ui/index.html`
-- Complete replacement of `calendar.html` with full production UI (2,200+ lines)
-- Week / Day / Month views with automation blocks pixel-accurate from `start_time`
-- SSE-driven expand/contract CSS animations on every automation execution
-- Left panel: prompt textarea (Cmd+Enter) + mini-calendar + filterable automation list
-- Right panel: Cost savings bars, Execution log (live), Bot status panel
-- WebSocket multicursor — remote cursor positions with color-coded client labels
-- Tooltip: hover any block → ETC, actual time, variance %, monthly savings
-- Layer toggles: show/hide active/paused automations independently
-- Search: cross-filters calendar blocks and automation sidebar simultaneously
-- Tier badge in topbar with live active automation count
-- Live connection dot (SSE health pulse animation)
-
-#### MURPHY_PRODUCTION_AUDIT.md
-- Complete 3-audit gap analysis report (21 gaps identified across 3×7 passes)
-- Full API endpoint reference table
-- Business model enforcement documentation
-- Security hardening applied + remaining production recommendations checklist
-
-### Fixed
-- SSE route `/api/automations/stream` now registered before parameterized `{auto_id}` route (prevented 404)
-- `RecurrenceScheduler.tick()` stub `next_run_at = now_iso` addressed via background event loop
-- `scheduler_ui.py` Flask disconnect from FastAPI resolved by unified production server
-
----
 
 ## [Unreleased] — Session Persistence + Auth Hardening
 
@@ -226,7 +85,7 @@ pure in-memory structures wiped on every `systemctl restart murphy-production`.
 - **`POST /api/meetings/start`**, **`POST /api/meetings/{id}/end`**, **`GET /api/meetings/{id}/transcript`**, **`GET /api/meetings/{id}/suggestions`** — In-memory meeting session lifecycle (called by `workspace.html`)
 
 #### LLM Fallback Chain Debug Endpoint
-- **`GET /api/llm/debug`** — Returns the complete 5-layer fallback chain with availability flags: DeepInfra → OpenAI → Anthropic → Ollama → Onboard (built-in). Shows which layer is currently active and instructions to enable DeepInfra (free key at `console.deepinfra.com/keys`)
+- **`GET /api/llm/debug`** — Returns the complete 5-layer fallback chain with availability flags: DeepInfra → OpenAI → Anthropic → Ollama → Onboard (built-in). Shows which layer is currently active and instructions to enable DeepInfra (free key at `deepinfra.com`)
 
 #### MurphyLibrarianChat Component
 - **`static/murphy-components.js`** — Added `MurphyLibrarianChat` class: a drop-in chat widget that posts to `/api/librarian/ask`, renders user/assistant bubbles, and falls back to a built-in offline answer engine when the server is unreachable
@@ -1094,7 +953,7 @@ etc.) were treated as authentication failures.
 
 ### Added — PR #277: Real Email Delivery, Rosetta P3 Wiring, Doc Gap Closure (GAP-1/2/3/5)
 
-- **docs(llm):** `documentation/components/LLM_SUBSYSTEM.md` — full LLM subsystem reference covering `LLMController` model inventory + capability routing, `LLMIntegrationLayer` domain-to-provider routing matrix (8 domains × 4 providers), `GroqKeyRotator` round-robin + auto-disable + statistics, `OpenAICompatibleProvider` all 8 provider types, and environment variable table. **Closes GAP-1.**
+- **docs(llm):** `documentation/components/LLM_SUBSYSTEM.md` — full LLM subsystem reference covering `LLMController` model inventory + capability routing, `LLMIntegrationLayer` domain-to-provider routing matrix (8 domains × 4 providers), `DeepInfraKeyRotator` round-robin + auto-disable + statistics, `OpenAICompatibleProvider` all 8 provider types, and environment variable table. **Closes GAP-1.**
 - **docs(api):** `documentation/api/ENDPOINTS.md` — added 7 MFM endpoints: `GET /api/mfm/status`, `GET /api/mfm/metrics`, `GET /api/mfm/traces/stats`, `POST /api/mfm/retrain`, `POST /api/mfm/promote`, `POST /api/mfm/rollback`, `GET /api/mfm/versions`. Each includes request/response JSON examples. **Closes GAP-2.**
 - **docs(security):** `documentation/architecture/SECURITY_PLANE.md` — consolidated security architecture reference: all 6 security principles, FIDO2/mTLS authentication, zero-trust RBAC, post-quantum hybrid cryptography, DLP scanning, ASGI middleware stack (4 classes), adaptive defense, anti-surveillance, packet protection, environment variables, and ASCII architecture diagram. **Closes GAP-3.**
 - **docs(packages):** Added `README.md` to 12 packages (`security_plane`, `aionmind`, `confidence_engine`, `auar`, `governance_framework`, `rosetta`, `gate_synthesis`, `learning_engine`, `execution_engine`, `integration_engine`, `dashboards`, `runtime`). Packages with READMEs: 15/83 (up from 3). **Partially closes GAP-5.**

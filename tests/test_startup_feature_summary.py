@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import os
 import sys
-from unittest.mock import patch
 
 import pytest
 
@@ -31,30 +30,53 @@ from startup_feature_summary import (
     print_feature_summary,
 )
 
+# Env vars probed by feature summary — saved/restored around each test.
+_PROBED_KEYS = [env_var for _, env_var, _ in _FEATURE_PROBES]
+
+
+def _save_probed_env() -> dict:
+    return {k: os.environ.get(k) for k in _PROBED_KEYS}
+
+
+def _restore_probed_env(snapshot: dict) -> None:
+    for k, v in snapshot.items():
+        if v is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = v
+
+
+def _clear_probed_env() -> None:
+    for k in _PROBED_KEYS:
+        os.environ.pop(k, None)
+
 
 class TestGetFeatureStatus:
     """Tests for get_feature_status()."""
 
+    def setup_method(self) -> None:
+        self._snapshot = _save_probed_env()
+
+    def teardown_method(self) -> None:
+        _restore_probed_env(self._snapshot)
+
     def test_all_disabled_by_default(self) -> None:
-        """With no env vars set, all features should be disabled."""
-        with patch.dict(os.environ, {}, clear=True):
-            status = get_feature_status()
+        """With no probe env vars set, all features should be disabled."""
+        _clear_probed_env()
+        status = get_feature_status()
         for name, info in status.items():
             assert info["status"] == "disabled", f"{name} should be disabled"
 
-    def test_groq_enabled(self) -> None:
-        with patch.dict(os.environ, {"DEEPINFRA_API_KEY": "gsk_test"}, clear=False):
-            status = get_feature_status()
+    def test_deepinfra_enabled(self) -> None:
+        os.environ["DEEPINFRA_API_KEY"] = "di_test"
+        status = get_feature_status()
         assert status["DeepInfra LLM"]["status"] == "enabled"
 
     def test_multiple_features_enabled(self) -> None:
-        env = {
-            "DEEPINFRA_API_KEY": "gsk_test",
-            "SENDGRID_API_KEY": "SG.test",
-            "DATABASE_URL": "postgresql://localhost/murphy",
-        }
-        with patch.dict(os.environ, env, clear=False):
-            status = get_feature_status()
+        os.environ["DEEPINFRA_API_KEY"] = "di_test"
+        os.environ["SENDGRID_API_KEY"] = "SG.test"
+        os.environ["DATABASE_URL"] = "postgresql://localhost/murphy"
+        status = get_feature_status()
         assert status["DeepInfra LLM"]["status"] == "enabled"
         assert status["SendGrid Email"]["status"] == "enabled"
         assert status["PostgreSQL"]["status"] == "enabled"
@@ -71,18 +93,25 @@ class TestGetFeatureStatus:
 class TestPrintFeatureSummary:
     """Tests for print_feature_summary()."""
 
+    def setup_method(self) -> None:
+        self._snapshot = _save_probed_env()
+
+    def teardown_method(self) -> None:
+        _restore_probed_env(self._snapshot)
+
     def test_returns_string(self) -> None:
         result = print_feature_summary()
         assert isinstance(result, str)
         assert "Feature Availability" in result
 
     def test_shows_enabled_feature(self) -> None:
-        with patch.dict(os.environ, {"DEEPINFRA_API_KEY": "gsk_test"}, clear=False):
-            result = print_feature_summary()
+        os.environ["DEEPINFRA_API_KEY"] = "di_test"
+        result = print_feature_summary()
         assert "DeepInfra LLM" in result
         assert "✅" in result
 
     def test_shows_disabled_features(self) -> None:
+        _clear_probed_env()
         result = print_feature_summary()
         assert "⬚" in result  # At least some disabled
 
@@ -97,10 +126,12 @@ class TestRuntimeIntegration:
 
     def test_runtime_imports_feature_summary(self) -> None:
         """INC-06 signal: Runtime prints feature-availability summary."""
-        runtime_path = os.path.join(
-            os.path.dirname(__file__), "..", "murphy_system_1.0_runtime.py"
+        # The runtime entry-point delegates to src/runtime/app.py which calls
+        # print_feature_summary in its main() path.
+        app_path = os.path.join(
+            os.path.dirname(__file__), "..", "src", "runtime", "app.py"
         )
-        with open(runtime_path, "r") as f:
+        with open(app_path, "r") as f:
             content = f.read()
         assert "print_feature_summary" in content, (
             "Runtime must call print_feature_summary at startup (INC-06)"

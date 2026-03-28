@@ -4,14 +4,23 @@ REST API for dynamic gate generation and lifecycle management
 """
 
 import logging
-import os
 
 # Import from confidence engine
-import sys
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from flask import Flask, jsonify, request
+
+from flask_security import configure_secure_app, is_debug_mode
+from src.confidence_engine.models import (
+    ArtifactGraph,
+    ArtifactNode,
+    ArtifactSource,
+    ArtifactType,
+    AuthorityBand,
+    ConfidenceState,
+    Phase,
+)
 
 from .failure_mode_enumerator import FailureModeEnumerator
 from .gate_generator import GateGenerator
@@ -28,19 +37,6 @@ from .models import (
     RiskVector,
 )
 from .murphy_estimator import MurphyProbabilityEstimator
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-
-from confidence_engine.models import (
-    ArtifactGraph,
-    ArtifactNode,
-    ArtifactSource,
-    ArtifactType,
-    AuthorityBand,
-    ConfidenceState,
-    Phase,
-)
-from flask_security import configure_secure_app, is_debug_mode
 
 # Initialize Flask app
 app = Flask(__name__)

@@ -37,7 +37,7 @@
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | /api/credentials/list | Yes | List all integration credentials and their configured status (secrets never returned) |
-| POST | /api/credentials/store | Yes | Store an integration credential as a platform secret · Body: `{"integration":"deepinfra","credential":"gsk_…"}` |
+| POST | /api/credentials/store | Yes | Store an integration credential as a platform secret · Body: `{"integration":"deepinfra","credential":"di_…"}` |
 | GET | /api/credentials/profiles | Yes | List credential profiles |
 | POST | /api/credentials/profiles | Yes | Create a credential profile |
 | GET | /api/credentials/metrics | Yes | Credential usage metrics |

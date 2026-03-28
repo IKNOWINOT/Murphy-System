@@ -8,10 +8,10 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from src.billing.grants.notifications.deadline_alerts import DeadlineAlertSystem
 from src.billing.grants.submission.models import SubmissionStatus
 from src.billing.grants.submission.submission_manager import SubmissionManager
 from src.billing.grants.submission.submission_tracker import SubmissionTracker
-from src.billing.grants.notifications.deadline_alerts import DeadlineAlertSystem
 
 router = APIRouter(prefix="/api/grants", tags=["grants"])
 

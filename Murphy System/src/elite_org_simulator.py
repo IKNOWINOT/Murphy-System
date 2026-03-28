@@ -59,13 +59,13 @@ except ImportError:  # pragma: no cover
 
 try:
     from murphy_native_automation import (
+        ActionType,
         MultiCursorDesktop,
+        NativeStep,
+        NativeTask,
+        ScreenZone,
         SplitScreenLayout,
         SplitScreenManager,
-        ScreenZone,
-        NativeTask,
-        NativeStep,
-        ActionType,
     )
     _HAS_NATIVE = True
 except ImportError:  # pragma: no cover
@@ -1388,15 +1388,15 @@ class EliteOrgSimulator:
     def summary(self, result: OrgSimulationResult) -> str:
         """Return a human-readable summary of a simulation result."""
         lines = [
-            f"═══ ELITE ORG SIMULATION RESULT ═══",
+            "═══ ELITE ORG SIMULATION RESULT ═══",
             f"Run ID          : {result.run_id}",
             f"Company Stage   : {result.company_stage}",
             f"Scenario        : {result.scenario_type}",
             f"Layout          : {result.layout_used} ({len(result.cursor_zones_assigned)} zones)",
             f"Duration        : {result.duration_ms:.1f} ms",
-            f"",
+            "",
             f"ORG SCORE       : {result.org_score:.4f} / 1.0000",
-            f"",
+            "",
             "── Department Performance ──────────────────────────────",
         ]
         for dept, dr in sorted(result.department_results.items(), key=lambda kv: kv[1].overall(), reverse=True):

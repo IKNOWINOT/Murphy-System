@@ -100,7 +100,7 @@ murphy stop           # Stop daemon
 murphy help           # See all commands
 ```
 
-> **No API key required** — the onboard LLM works out of the box. Add a [DeepInfra API key](https://console.deepinfra.com) to `.env` for enhanced quality (optional).
+> **No API key required** — the onboard LLM works out of the box. Add a [DeepInfra API key](https://deepinfra.com) to `.env` for enhanced quality (optional).
 
 ### Clone & Run
 

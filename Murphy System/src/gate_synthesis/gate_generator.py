@@ -4,12 +4,13 @@ Synthesizes gates based on failure modes and risk analysis
 """
 
 import hashlib
-import os
+import logging
 
 # Import from confidence engine
-import sys
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
+
+from src.confidence_engine.models import AuthorityBand, Phase
 
 from .models import (
     FailureMode,
@@ -21,12 +22,6 @@ from .models import (
     RetirementCondition,
     RiskVector,
 )
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-
-import logging
-
-from confidence_engine.models import AuthorityBand, Phase
 
 logger = logging.getLogger(__name__)
 

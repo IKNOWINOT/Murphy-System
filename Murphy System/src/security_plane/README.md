@@ -1,37 +1,27 @@
-# `src/security_plane` — Security Plane Package
+# Security Plane
 
-Zero-trust security architecture for the Murphy System. Wraps all subsystems with
-authentication, authorization, post-quantum cryptography, DLP, and anti-surveillance.
+The `security_plane` package provides authentication, authorisation,
+cryptography, anomaly detection, and compliance enforcement for every
+request that passes through the Murphy System.
 
-## Public API
-
-```python
-from security_plane import (
-    HumanAuthenticator, MachineAuthenticator,
-    ZeroTrustAccessController,
-    HybridCryptography, KeyManager, PacketSigner,
-    SensitiveDataClassifier, ExfiltrationDetector,
-    wire_security_plane_middleware,
-)
-```
-
-## Architecture
-
-See [`documentation/architecture/SECURITY_PLANE.md`](../../documentation/architecture/SECURITY_PLANE.md) for the full reference.
-
-## Key Components
+## Key Modules
 
 | Module | Purpose |
 |--------|---------|
-| `authentication.py` | FIDO2 / mTLS human + machine auth |
-| `access_control.py` | Zero-trust RBAC per request |
-| `cryptography.py` | Hybrid classical + post-quantum crypto |
-| `middleware.py` | ASGI middleware stack (4 classes) |
-| `data_leak_prevention.py` | DLP scanning for all responses |
-| `adaptive_defense.py` | Anomaly detection + auto-block |
-| `anti_surveillance.py` | Timing normalization + metadata scrubbing |
-| `packet_protection.py` | Execution packet signing/verification |
+| `authentication.py` | JWT / API-key validation, multi-factor hooks |
+| `access_control.py` | RBAC policy evaluation, role-permission matrices |
+| `cryptography.py` | Key generation, AES-GCM encryption/decryption helpers |
+| `adaptive_defense.py` | Real-time threat scoring, automatic rate-limit escalation |
+| `bot_anomaly_detector.py` | Detects non-human request patterns |
+| `bot_identity_verifier.py` | Verifies bot JWTs and capability attestation |
+| `bot_resource_quotas.py` | Per-bot CPU / memory / API-call budgets |
+| `anti_surveillance.py` | Anti-tracking and data-minimisation helpers |
+| `authorization_enhancer.py` | Context-aware permission expansion (ABAC layer) |
 
-## Tests
+## Architecture
 
-`tests/test_security_plane_wiring.py` — 45 tests covering all middleware classes.
+```
+Request ──▶ authentication ──▶ access_control ──▶ adaptive_defense ──▶ Handler
+                                                        │
+                                               anomaly / quota guards
+```

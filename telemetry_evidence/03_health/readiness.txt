@@ -20,12 +20,12 @@
             "check": "llm_api_key",
             "status": "MISSING",
             "detail": "No LLM API key found (DEEPINFRA_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY).",
-            "fix": "set key deepinfra gsk_...  \u2190 DeepInfra is free: https://console.deepinfra.com/keys"
+            "fix": "set key deepinfra di_...  \u2190 DeepInfra is free: https://deepinfra.com"
         }
     ],
     "warnings": [
         {
-            "check": "groq_api_key",
+            "check": "deepinfra_api_key",
             "status": "WARNING",
             "detail": "DEEPINFRA_API_KEY is not set"
         },
@@ -61,7 +61,7 @@
             {
                 "rank": 1,
                 "name": "DeepInfra (FREE)",
-                "url": "https://console.deepinfra.com/keys",
+                "url": "https://deepinfra.com",
                 "models": "Llama 3, Mixtral",
                 "note": "Best first choice. Free tier with generous rate limits, fast inference. Register 2-3 keys for round-robin rotation (use_key_rotation=true)."
             },

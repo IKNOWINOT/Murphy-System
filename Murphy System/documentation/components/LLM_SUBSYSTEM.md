@@ -1,7 +1,7 @@
 # LLM Subsystem
 
 **Package:** `src/` (standalone modules)  
-**Key files:** `llm_controller.py`, `llm_integration_layer.py`, `groq_key_rotator.py`, `openai_compatible_provider.py`  
+**Key files:** `llm_controller.py`, `llm_integration_layer.py`, `deepinfra_key_rotator.py`, `openai_compatible_provider.py`  
 **Last updated:** 2026-03-16
 
 ---
@@ -13,7 +13,7 @@ The Murphy System LLM Subsystem is the unified gateway between the application l
 - **Provider abstraction** — a single `OpenAICompatibleProvider` that speaks to OpenAI, Azure OpenAI, DeepInfra, Ollama, vLLM, LiteLLM, custom endpoints, and the on-board Murphy Foundation Model (MFM)
 - **Intelligent routing** — `LLMController` selects the best model for each request based on capability, cost, and context requirements
 - **Domain-to-provider routing** — `LLMIntegrationLayer` routes by knowledge domain (mathematical → Aristotle, creative → DeepInfra, etc.)
-- **API key rotation** — `GroqKeyRotator` distributes calls across multiple keys to maximize throughput and handle key failures gracefully
+- **API key rotation** — `DeepInfraKeyRotator` distributes calls across multiple keys to maximize throughput and handle key failures gracefully
 
 ---
 
@@ -34,7 +34,7 @@ LLMIntegrationLayer              OpenAICompatibleProvider
   - math/physics validation       │
        │                          │
        ▼                          ▼
-GroqKeyRotator          Provider Backends
+DeepInfraKeyRotator          Provider Backends
   - round-robin rotation   OpenAI / Azure / DeepInfra / Ollama /
   - auto-disable on error  vLLM / LiteLLM / Custom / MFM
   - usage stats
@@ -92,8 +92,8 @@ from openai_compatible_provider import OpenAICompatibleProvider, ProviderConfig,
 config = ProviderConfig(
     provider_type=ProviderType.DEEPINFRA,
     api_key=os.environ["DEEPINFRA_API_KEY"],
-    base_url="https://api.deepinfra.com/v1/openai",
-    model="meta-llama/Meta-Llama-3.1-70B-Instruct",
+    base_url="https://api.deepinfra.com/v1/openai/v1",
+    model="mixtral-8x7b-32768",
 )
 provider = OpenAICompatibleProvider(config)
 response = await provider.complete([ChatMessage(role="user", content="Hello")])
@@ -112,9 +112,9 @@ Based on the Recursive Language Models (RLM) pattern (arXiv:2512.24601).
 
 | `LLMModel` | Description | Best For |
 |------------|-------------|----------|
-| `GROQ_MIXTRAL` | DeepInfra Mixtral-8x7B | General purpose, high quality |
-| `GROQ_LLAMA` | DeepInfra LLaMA-3 | Fast inference, reasoning |
-| `GROQ_GEMMA` | DeepInfra Gemma-7B | Lightweight tasks |
+| `DEEPINFRA_MIXTRAL` | DeepInfra Mixtral-8x7B | General purpose, high quality |
+| `DEEPINFRA_LLAMA` | DeepInfra LLaMA-3 | Fast inference, reasoning |
+| `DEEPINFRA_GEMMA` | DeepInfra Gemma-7B | Lightweight tasks |
 | `LOCAL_SMALL` | On-device small model | Offline, fast |
 | `LOCAL_MEDIUM` | On-device medium model | Offline, balanced |
 | `MFM` | Murphy Foundation Model | Murphy-specific domain knowledge |
@@ -219,7 +219,7 @@ HumanLoopTrigger(
 from llm_integration_layer import LLMIntegrationLayer, DomainType, LLMProvider
 
 layer = LLMIntegrationLayer(
-    groq_api_key=os.environ["DEEPINFRA_API_KEY"],
+    deepinfra_api_key=os.environ["DEEPINFRA_API_KEY"],
 )
 response = layer.route_request(
     prompt="Calculate the load-bearing capacity of this beam...",
@@ -233,7 +233,7 @@ if response.human_loop_triggers:
 
 ---
 
-### `groq_key_rotator.py`
+### `deepinfra_key_rotator.py`
 
 **Round-robin API key rotation with automatic failure handling.**
 
@@ -260,12 +260,12 @@ if response.human_loop_triggers:
 #### Usage
 
 ```python
-from groq_key_rotator import GroqKeyRotator
+from deepinfra_key_rotator import DeepInfraKeyRotator
 
-rotator = GroqKeyRotator([
-    ("Primary", os.environ["GROQ_KEY_1"]),
-    ("Secondary", os.environ["GROQ_KEY_2"]),
-    ("Tertiary", os.environ["GROQ_KEY_3"]),
+rotator = DeepInfraKeyRotator([
+    ("Primary", os.environ["DEEPINFRA_KEY_1"]),
+    ("Secondary", os.environ["DEEPINFRA_KEY_2"]),
+    ("Tertiary", os.environ["DEEPINFRA_KEY_3"]),
 ])
 
 name, key = rotator.get_next_key()
@@ -300,10 +300,10 @@ stats = rotator.get_statistics()
 
 ```bash
 # Unit tests
-python -m pytest tests/test_groq_key_rotator.py tests/test_llm_integration_layer.py --no-cov -q
+python -m pytest tests/test_deepinfra_key_rotator.py tests/test_llm_integration_layer.py --no-cov -q
 
 # DeepInfra integration tests (requires DEEPINFRA_API_KEY)
-python -m pytest tests/test_groq_integration.py --no-cov -q
+python -m pytest tests/test_deepinfra_integration.py --no-cov -q
 ```
 
 ---

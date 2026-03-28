@@ -46,6 +46,7 @@ class ProviderType(Enum):
     OPENAI = "openai"
     AZURE = "azure"
     DEEPINFRA = "deepinfra"
+    TOGETHER = "together"
     OLLAMA = "ollama"
     VLLM = "vllm"
     LITELLM = "litellm"
@@ -211,6 +212,7 @@ class OpenAICompatibleProvider:
             ProviderType.OPENAI,
             ProviderType.AZURE,
             ProviderType.DEEPINFRA,
+            ProviderType.TOGETHER,
         }
         if config.provider_type in cloud_providers and not config.api_key:
             logger.info(
@@ -232,36 +234,35 @@ class OpenAICompatibleProvider:
             OPENAI_API_KEY          — API key
             OPENAI_BASE_URL         — Base URL override
             OPENAI_DEFAULT_MODEL    — Model name (default gpt-3.5-turbo)
-            OPENAI_PROVIDER_TYPE    — One of openai/deepinfra/ollama/onboard/…
+            OPENAI_PROVIDER_TYPE    — One of openai/deepinfra/together/ollama/onboard/…
             OPENAI_MAX_RETRIES      — SDK retry count
             OPENAI_TIMEOUT          — Per-request timeout in seconds
             OPENAI_TEMPERATURE      — Default temperature
             OPENAI_MAX_TOKENS       — Default max tokens
 
-        For DeepInfra-specific usage, ``DEEPINFRA_API_KEY`` is also accepted and
-        takes precedence when the provider type is ``deepinfra``.
+        For DeepInfra, ``DEEPINFRA_API_KEY`` is accepted and takes precedence
+        when the provider type is ``deepinfra``.  For Together AI, ``TOGETHER_API_KEY``
+        is accepted when provider type is ``together``.
 
-        **Default behaviour (no API keys):** When neither ``OPENAI_API_KEY``
-        nor ``DEEPINFRA_API_KEY`` is set and no explicit provider type is
-        configured, the provider automatically selects the **onboard LLM**
-        (``EnhancedLocalLLM``) so Murphy works out-of-the-box with zero
-        external dependencies.
+        **Default behaviour (no API keys):** When no keys are configured the provider
+        automatically selects the **onboard LLM** so Murphy works offline.
         """
         provider_type_str = os.getenv("OPENAI_PROVIDER_TYPE", "").lower()
 
-        # Resolve API key — honour provider-specific env vars
         api_key = os.getenv("OPENAI_API_KEY", "")
         deepinfra_key = os.getenv("DEEPINFRA_API_KEY", "")
+        together_key = os.getenv("TOGETHER_API_KEY", "")
 
-        # Auto-detect provider type when not explicitly set
         if not provider_type_str:
             if api_key:
                 provider_type_str = "openai"
             elif deepinfra_key:
                 provider_type_str = "deepinfra"
                 api_key = deepinfra_key
+            elif together_key:
+                provider_type_str = "together"
+                api_key = together_key
             else:
-                # No API keys at all → use the onboard LLM
                 provider_type_str = "onboard"
 
         try:
@@ -271,11 +272,14 @@ class OpenAICompatibleProvider:
 
         if provider_type == ProviderType.DEEPINFRA:
             api_key = deepinfra_key or api_key
+        elif provider_type == ProviderType.TOGETHER:
+            api_key = together_key or api_key
 
-        # Resolve base URL — provider-specific defaults
         base_url = os.getenv("OPENAI_BASE_URL")
         if base_url is None and provider_type == ProviderType.DEEPINFRA:
             base_url = "https://api.deepinfra.com/v1/openai"
+        elif base_url is None and provider_type == ProviderType.TOGETHER:
+            base_url = "https://api.together.xyz/v1"
         elif base_url is None and provider_type == ProviderType.OLLAMA:
             _ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
             base_url = f"{_ollama_host}/v1"
@@ -283,6 +287,8 @@ class OpenAICompatibleProvider:
         default_model = os.getenv("OPENAI_DEFAULT_MODEL", "gpt-3.5-turbo")
         if provider_type == ProviderType.DEEPINFRA and default_model == "gpt-3.5-turbo":
             default_model = "meta-llama/Meta-Llama-3.1-70B-Instruct"
+        elif provider_type == ProviderType.TOGETHER and default_model == "gpt-3.5-turbo":
+            default_model = "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"
         elif provider_type == ProviderType.OLLAMA and default_model == "gpt-3.5-turbo":
             default_model = os.getenv("OLLAMA_MODEL", "llama3")
         elif provider_type == ProviderType.ONBOARD:

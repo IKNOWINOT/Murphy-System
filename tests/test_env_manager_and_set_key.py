@@ -120,11 +120,11 @@ class TestReloadEnv:
 
 class TestValidateApiKey:
 
-    def test_valid_groq_key(self):
-        ok, msg = validate_api_key("deepinfra", "gsk_abcdefghijklmnopqrstuvwx")
+    def test_valid_deepinfra_key(self):
+        ok, msg = validate_api_key("deepinfra", "di_abcdefghijklmnopqrstuvwx")
         assert ok is True
 
-    def test_invalid_groq_key_prefix(self):
+    def test_invalid_deepinfra_key_prefix(self):
         ok, msg = validate_api_key("deepinfra", "sk-invalid_prefix_key_value")
         assert ok is False
         assert "gsk_" in msg
@@ -147,19 +147,19 @@ class TestValidateApiKey:
         assert "Unknown provider" in msg
 
     def test_provider_case_insensitive(self):
-        ok, msg = validate_api_key("DEEPINFRA", "gsk_abcdefghijklmnopqrstuvwx")
+        ok, msg = validate_api_key("DEEPINFRA", "di_abcdefghijklmnopqrstuvwx")
         assert ok is True
 
     def test_short_key_rejected(self):
         ok, msg = validate_api_key("deepinfra", "gsk_short")
         assert ok is False
 
-    def test_angle_bracket_groq_key(self):
-        ok, msg = validate_api_key("deepinfra", "<gsk_abcdefghijklmnopqrstuvwx>")
+    def test_angle_bracket_deepinfra_key(self):
+        ok, msg = validate_api_key("deepinfra", "<di_abcdefghijklmnopqrstuvwx>")
         assert ok is True
 
-    def test_quoted_groq_key(self):
-        ok, msg = validate_api_key("deepinfra", '"gsk_abcdefghijklmnopqrstuvwx"')
+    def test_quoted_deepinfra_key(self):
+        ok, msg = validate_api_key("deepinfra", '"di_abcdefghijklmnopqrstuvwx"')
         assert ok is True
 
     def test_angle_bracket_openai_key(self):
@@ -167,7 +167,7 @@ class TestValidateApiKey:
         assert ok is True
 
     def test_backtick_wrapped_key(self):
-        ok, msg = validate_api_key("deepinfra", "`gsk_abcdefghijklmnopqrstuvwx`")
+        ok, msg = validate_api_key("deepinfra", "`di_abcdefghijklmnopqrstuvwx`")
         assert ok is True
 
     def test_single_quote_wrapped_key(self):
@@ -197,7 +197,7 @@ class TestSetKeyIntentDetection:
         assert detect_intent("set api http://host") == "intent_set_api"
 
     def test_set_key_case_insensitive(self):
-        assert detect_intent("SET KEY deepinfra gsk_abc") == "intent_set_key"
+        assert detect_intent("SET KEY deepinfra di_abc") == "intent_set_key"
 
 
 # ---------------------------------------------------------------------------
@@ -245,8 +245,8 @@ class TestFirstRunGate:
 
     @pytest.mark.asyncio
     async def test_gate_activates_with_placeholder_key(self, monkeypatch):
-        """When DEEPINFRA_API_KEY is a placeholder like 'your_groq_key_here', gate should still activate."""
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "your_groq_key_here")
+        """When DEEPINFRA_API_KEY is a placeholder like 'your_deepinfra_key_here', gate should still activate."""
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "your_deepinfra_key_here")
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause()
@@ -277,7 +277,7 @@ class TestFirstRunGate:
 class TestSetKeyTUI:
 
     @pytest.mark.asyncio
-    async def test_set_key_groq_in_terminal(self, tmp_path, monkeypatch):
+    async def test_set_key_deepinfra_in_terminal(self, tmp_path, monkeypatch):
         """User types 'set key deepinfra <key>' and key is persisted and active."""
         env_file = tmp_path / ".env"
         monkeypatch.setattr("murphy_terminal.get_env_path", lambda: str(env_file))
@@ -287,17 +287,17 @@ class TestSetKeyTUI:
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause()
             await pilot.pause()
-            cmd = "set key deepinfra gsk_abcdefghijklmnopqrstuvwx"
+            cmd = "set key deepinfra di_abcdefghijklmnopqrstuvwx"
             for ch in cmd:
                 await pilot.press(ch)
             await pilot.press("enter")
             await pilot.pause()
             await pilot.pause()  # extra pause for async event flush
             # Key should now be in os.environ
-            assert os.environ.get("DEEPINFRA_API_KEY") == "gsk_abcdefghijklmnopqrstuvwx"
+            assert os.environ.get("DEEPINFRA_API_KEY") == "di_abcdefghijklmnopqrstuvwx"
             # Key should be persisted in .env
             content = env_file.read_text()
-            assert "gsk_abcdefghijklmnopqrstuvwx" in content
+            assert "di_abcdefghijklmnopqrstuvwx" in content
 
     @pytest.mark.asyncio
     async def test_set_key_writes_murphy_llm_provider(self, tmp_path, monkeypatch):
@@ -310,7 +310,7 @@ class TestSetKeyTUI:
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause()
             await pilot.pause()
-            cmd = "set key deepinfra gsk_abcdefghijklmnopqrstuvwx"
+            cmd = "set key deepinfra di_abcdefghijklmnopqrstuvwx"
             for ch in cmd:
                 await pilot.press(ch)
             await pilot.press("enter")
@@ -334,7 +334,7 @@ class TestConfigureLlmClient:
         """configure_llm should return a dict with success=False when backend is unreachable."""
         from murphy_terminal import MurphyAPIClient
         client = MurphyAPIClient(base_url="http://localhost:19999")
-        result = client.configure_llm("deepinfra", "gsk_abcdefghijklmnopqrstuvwx")
+        result = client.configure_llm("deepinfra", "di_abcdefghijklmnopqrstuvwx")
         assert result.get("success") is False
 
     def test_configure_llm_posts_to_correct_endpoint(self, monkeypatch):
@@ -349,10 +349,10 @@ class TestConfigureLlmClient:
 
         client = MurphyAPIClient(base_url="http://localhost:19999")
         monkeypatch.setattr(client, "_post", mock_post)
-        result = client.configure_llm("deepinfra", "gsk_abcdefghijklmnopqrstuvwx")
+        result = client.configure_llm("deepinfra", "di_abcdefghijklmnopqrstuvwx")
         assert captured["path"] == "/api/llm/configure"
         assert captured["data"]["provider"] == "deepinfra"
-        assert captured["data"]["api_key"] == "gsk_abcdefghijklmnopqrstuvwx"
+        assert captured["data"]["api_key"] == "di_abcdefghijklmnopqrstuvwx"
         assert result.get("success") is True
 
     def test_configure_llm_returns_success_response(self, monkeypatch):
@@ -364,7 +364,7 @@ class TestConfigureLlmClient:
 
         client = MurphyAPIClient(base_url="http://localhost:19999")
         monkeypatch.setattr(client, "_post", mock_post)
-        result = client.configure_llm("deepinfra", "gsk_abcdefghijklmnopqrstuvwx")
+        result = client.configure_llm("deepinfra", "di_abcdefghijklmnopqrstuvwx")
         assert result.get("success") is True
         assert result.get("provider") == "deepinfra"
         assert result.get("model") == "meta-llama/Meta-Llama-3.1-8B-Instruct"
@@ -384,7 +384,7 @@ class TestIsRealKey:
         assert MurphyTerminalApp._is_real_key("") is False
 
     def test_placeholder_is_not_real(self):
-        assert MurphyTerminalApp._is_real_key("your_groq_key_here") is False
+        assert MurphyTerminalApp._is_real_key("your_deepinfra_key_here") is False
 
     def test_another_placeholder_is_not_real(self):
         assert MurphyTerminalApp._is_real_key("your_openai_key_here") is False
@@ -395,8 +395,8 @@ class TestIsRealKey:
     def test_xxx_is_not_real(self):
         assert MurphyTerminalApp._is_real_key("xxx") is False
 
-    def test_real_groq_key(self):
-        assert MurphyTerminalApp._is_real_key("gsk_abcdefghijklmnopqrstuvwx") is True
+    def test_real_deepinfra_key(self):
+        assert MurphyTerminalApp._is_real_key("di_abcdefghijklmnopqrstuvwx") is True
 
     def test_real_openai_key(self):
         assert MurphyTerminalApp._is_real_key("sk-abcdefghijklmnopqrstuvwx") is True
@@ -501,21 +501,21 @@ class TestStripKeyWrapping:
 
     def test_strips_zero_width_space(self):
         from src.env_manager import strip_key_wrapping
-        key = "\u200bgsk_abcdefghijklmnopqrstuvwx\u200b"
-        assert strip_key_wrapping(key) == "gsk_abcdefghijklmnopqrstuvwx"
+        key = "\u200bdi_abcdefghijklmnopqrstuvwx\u200b"
+        assert strip_key_wrapping(key) == "di_abcdefghijklmnopqrstuvwx"
 
     def test_strips_bom(self):
         from src.env_manager import strip_key_wrapping
-        key = "\ufeffgsk_abcdefghijklmnopqrstuvwx"
-        assert strip_key_wrapping(key) == "gsk_abcdefghijklmnopqrstuvwx"
+        key = "\ufeffdi_abcdefghijklmnopqrstuvwx"
+        assert strip_key_wrapping(key) == "di_abcdefghijklmnopqrstuvwx"
 
     def test_strips_non_breaking_space(self):
         from src.env_manager import strip_key_wrapping
-        key = "\u00a0gsk_abcdefghijklmnopqrstuvwx\u00a0"
-        assert strip_key_wrapping(key) == "gsk_abcdefghijklmnopqrstuvwx"
+        key = "\u00a0di_abcdefghijklmnopqrstuvwx\u00a0"
+        assert strip_key_wrapping(key) == "di_abcdefghijklmnopqrstuvwx"
 
     def test_validate_key_with_zero_width_space_passes_after_strip(self):
-        ok, _ = validate_api_key("deepinfra", "\u200bgsk_abcdefghijklmnopqrstuvwx\u200b")
+        ok, _ = validate_api_key("deepinfra", "\u200bdi_abcdefghijklmnopqrstuvwx\u200b")
         assert ok is True
 
 
@@ -526,9 +526,9 @@ class TestStripKeyWrapping:
 
 class TestEnvExamplePlaceholders:
 
-    def test_groq_api_key_placeholder_not_real(self):
+    def test_deepinfra_api_key_placeholder_not_real(self):
         """The placeholder in .env.example should trigger the startup gate."""
-        assert MurphyTerminalApp._is_real_key("your_groq_api_key_here") is False
+        assert MurphyTerminalApp._is_real_key("your_deepinfra_api_key_here") is False
 
     def test_openai_placeholder_not_real(self):
         assert MurphyTerminalApp._is_real_key("sk-your_openai_key_here") is False
@@ -678,7 +678,7 @@ class TestReadEnvBomHandling:
         so _is_real_key can evaluate it correctly."""
         env_file = tmp_path / ".env"
         env_file.write_bytes(
-            b"\xef\xbb\xbfDEEPINFRA_API_KEY=your_groq_api_key_here\n"
+            b"\xef\xbb\xbfDEEPINFRA_API_KEY=your_deepinfra_api_key_here\n"
         )
         monkeypatch.setattr("murphy_terminal.get_env_path", lambda: str(env_file))
         monkeypatch.delenv("DEEPINFRA_API_KEY", raising=False)
@@ -706,12 +706,12 @@ class TestEnvExampleConsistency:
         import murphy_terminal
         return murphy_terminal._PLACEHOLDER_KEY_VALUES
 
-    def test_env_example_groq_placeholder_is_blocked(self, tmp_path):
-        """The exact string 'your_groq_api_key_here' (from .env.example) must be
+    def test_env_example_deepinfra_placeholder_is_blocked(self, tmp_path):
+        """The exact string 'your_deepinfra_api_key_here' (from .env.example) must be
         in _PLACEHOLDER_KEY_VALUES so the startup gate fires for unconfigured installs."""
         placeholders = self._get_placeholder_key_values()
-        assert "your_groq_api_key_here" in placeholders, (
-            "'your_groq_api_key_here' is the placeholder in .env.example for DEEPINFRA_API_KEY "
+        assert "your_deepinfra_api_key_here" in placeholders, (
+            "'your_deepinfra_api_key_here' is the placeholder in .env.example for DEEPINFRA_API_KEY "
             "but it is not in _PLACEHOLDER_KEY_VALUES — users who don't replace the "
             "template value will bypass the startup gate"
         )
@@ -785,7 +785,7 @@ class TestStripKeyWrappingEdgeCases:
         assert self.strip("\u200b\ufeff\u00a0") == ""
 
     def test_idempotent_plain_key(self):
-        key = "gsk_abcdefghijklmnopqrstuvwx"
+        key = "di_abcdefghijklmnopqrstuvwx"
         assert self.strip(self.strip(key)) == self.strip(key)
 
     def test_idempotent_bom_wrapped(self):
@@ -795,14 +795,14 @@ class TestStripKeyWrappingEdgeCases:
         assert once == twice
 
     def test_mixed_unicode_and_whitespace(self):
-        key = "  \u200b  gsk_abcdefghijklmnopqrstuvwx\t\u00a0  "
-        assert self.strip(key) == "gsk_abcdefghijklmnopqrstuvwx"
+        key = "  \u200b  di_abcdefghijklmnopqrstuvwx\t\u00a0  "
+        assert self.strip(key) == "di_abcdefghijklmnopqrstuvwx"
 
     def test_quote_wrapping_after_unicode_strip(self):
         """Quotes around the key should still be stripped even after unicode removal."""
-        key = "\u200b\"gsk_abcdefghijklmnopqrstuvwx\"\u200b"
-        assert self.strip(key) == "gsk_abcdefghijklmnopqrstuvwx"
+        key = "\u200b\"di_abcdefghijklmnopqrstuvwx\"\u200b"
+        assert self.strip(key) == "di_abcdefghijklmnopqrstuvwx"
 
     def test_angle_bracket_after_unicode_strip(self):
-        key = "\ufeff<gsk_abcdefghijklmnopqrstuvwx>\ufeff"
-        assert self.strip(key) == "gsk_abcdefghijklmnopqrstuvwx"
+        key = "\ufeff<di_abcdefghijklmnopqrstuvwx>\ufeff"
+        assert self.strip(key) == "di_abcdefghijklmnopqrstuvwx"

@@ -102,9 +102,9 @@ class PendingApprovalStore:
         }
         with self._lock:
             self._pending[tc.call_id] = rec
-        
+
         try:
-            from src.db import get_session, PendingApproval
+            from src.db import PendingApproval, get_session
             sess = get_session()
             pa = PendingApproval(
                 id=uuid.uuid4().hex[:12],
@@ -122,7 +122,7 @@ class PendingApprovalStore:
             sess.close()
         except Exception as e:
             logger.debug("DB write failed (in-memory fallback): %s", e)
-        
+
         return rec
 
     def approve(self, call_id: str, approved_by: str = "user") -> Optional[ToolCall]:
@@ -133,9 +133,9 @@ class PendingApprovalStore:
             rec["status"] = "approved"
             rec["approved_by"] = approved_by
             rec["decided_at"] = _now_iso()
-        
+
         try:
-            from src.db import get_session, PendingApproval
+            from src.db import PendingApproval, get_session
             sess = get_session()
             pa = sess.query(PendingApproval).filter_by(call_id=call_id, status="pending").first()
             if pa:
@@ -146,7 +146,7 @@ class PendingApprovalStore:
             sess.close()
         except Exception:
             pass
-        
+
         return ToolCall(
             tool_name=rec["tool_name"],
             args=rec["args"],
@@ -164,9 +164,9 @@ class PendingApprovalStore:
             rec["approved_by"] = rejected_by
             rec["rejection_reason"] = reason
             rec["decided_at"] = _now_iso()
-        
+
         try:
-            from src.db import get_session, PendingApproval
+            from src.db import PendingApproval, get_session
             sess = get_session()
             pa = sess.query(PendingApproval).filter_by(call_id=call_id, status="pending").first()
             if pa:
@@ -178,7 +178,7 @@ class PendingApprovalStore:
             sess.close()
         except Exception:
             pass
-        
+
         return True
 
     def list_pending(self, tier: str = None) -> List[dict]:
@@ -193,22 +193,22 @@ class PendingApprovalStore:
             return self._pending.get(call_id)
 
 class MultiCursorContext:
-    DOMAINS = ["im", "meetings", "calls", "email", "ambient", 
+    DOMAINS = ["im", "meetings", "calls", "email", "ambient",
                "shadow", "automation", "moderator", "system", "approvals"]
 
     def snapshot(self, domains: List[str] = None, user: str = None) -> dict:
         if domains is None:
             domains = self.DOMAINS
-        
+
         cursor_id = uuid.uuid4().hex[:12]
         snap = {"cursor_id": cursor_id, "timestamp": _now_iso(), "domains": {}}
-        
+
         for domain in domains:
             try:
                 snap["domains"][domain] = self._snapshot_domain(domain, user)
             except Exception as e:
                 snap["domains"][domain] = {"error": str(e)}
-        
+
         return snap
 
     def _snapshot_domain(self, domain: str, user: str) -> dict:
@@ -273,11 +273,11 @@ class MultiCursorContext:
 
 def parse_natural_language(text: str, caller_id: str = "human") -> Optional[ToolCall]:
     text_lower = text.lower()
-    
+
     # Snapshot/cursor
     if any(kw in text_lower for kw in ["snapshot", "cursor", "context"]):
         return None
-    
+
     # IM
     if "send im" in text_lower or "send message" in text_lower or "chat" in text_lower:
         import re
@@ -286,7 +286,7 @@ def parse_natural_language(text: str, caller_id: str = "human") -> Optional[Tool
         msg_match = re.search(r":\s*(.+)$", text)
         message = msg_match.group(1).strip() if msg_match else "hello"
         return ToolCall("comms.send_im", {"target": target, "message": message}, caller_id)
-    
+
     # Email
     if "email" in text_lower or "mail" in text_lower:
         import re
@@ -300,7 +300,7 @@ def parse_natural_language(text: str, caller_id: str = "human") -> Optional[Tool
             "subject": "Murphy Dispatch",
             "body": body,
         }, caller_id)
-    
+
     # Meeting
     if "meeting" in text_lower or "meet" in text_lower:
         import re
@@ -309,32 +309,32 @@ def parse_natural_language(text: str, caller_id: str = "human") -> Optional[Tool
             participants = [p.strip() for p in match.group(1).split(",")]
             topic = match.group(2).strip()
             return ToolCall("meeting.start", {"topic": topic, "participants": participants}, caller_id)
-    
+
     # Broadcast
     if "broadcast" in text_lower or "announce" in text_lower:
         import re
         match = re.search(r":\s*(.+)$", text)
         message = match.group(1).strip() if match else text
         return ToolCall("comms.broadcast", {"message": message, "sender_id": caller_id}, caller_id)
-    
+
     # Voice call
     if "call" in text_lower or "phone" in text_lower:
         import re
         match = re.search(r"call\s+(\w+)", text, re.I)
         target = match.group(1) if match else "unknown"
         return ToolCall("comms.start_voice_call", {"caller_id": caller_id, "target_id": target}, caller_id)
-    
+
     # Video call
     if "video" in text_lower:
         import re
         match = re.search(r"with\s+([\w\s,]+)", text, re.I)
         participants = [p.strip() for p in match.group(1).split(",")] if match else ["team"]
         return ToolCall("comms.start_video_call", {"initiator_id": caller_id, "participant_ids": participants}, caller_id)
-    
+
     # Health check
     if "health" in text_lower or "status" in text_lower:
         return ToolCall("system.health", {}, caller_id)
-    
+
     return None
 
 class Dispatcher:
@@ -347,7 +347,7 @@ class Dispatcher:
         tool = self._registry.get(tc.tool_name)
         if not tool:
             return ToolResult(False, None, f"Tool {tc.tool_name} not found", 0, tc.tool_name, tc.call_id)
-        
+
         # Approval check
         if tool.approval_tier != "none":
             if tool.approval_tier == "platform":
@@ -358,7 +358,7 @@ class Dispatcher:
             elif tool.approval_tier in ["user", "customer"]:
                 self._approval_store.queue(tc, tool.approval_tier)
                 return ToolResult(False, {"pending": True, "approval_id": tc.call_id, "tier": tool.approval_tier}, None, 0, tc.tool_name, tc.call_id)
-        
+
         return self._execute(tc, tool)
 
     def _execute(self, tc: ToolCall, tool: Tool = None) -> ToolResult:
@@ -366,7 +366,7 @@ class Dispatcher:
             tool = self._registry.get(tc.tool_name)
             if not tool:
                 return ToolResult(False, None, f"Tool {tc.tool_name} not found", 0, tc.tool_name, tc.call_id)
-        
+
         start = time.time()
         try:
             result = tool.handler(tc.args)
@@ -381,7 +381,7 @@ class Dispatcher:
     def _mss_soft_check(self, content: str) -> float:
         try:
             import httpx
-            resp = httpx.post("http://localhost:8000/api/mss/score", 
+            resp = httpx.post("http://localhost:8000/api/mss/score",
                               json={"text": content}, timeout=2.0)
             if resp.status_code == 200:
                 data = resp.json()
@@ -393,7 +393,7 @@ class Dispatcher:
 
     def _persist(self, tc: ToolCall, ok: bool, data: Any, error: Optional[str], duration: int):
         try:
-            from src.db import get_session, DispatchLog
+            from src.db import DispatchLog, get_session
             sess = get_session()
             log = DispatchLog(
                 call_id=tc.call_id,
@@ -436,7 +436,7 @@ class Dispatcher:
 
     def get_log(self, limit: int = 50) -> List[dict]:
         try:
-            from src.db import get_session, DispatchLog
+            from src.db import DispatchLog, get_session
             sess = get_session()
             logs = sess.query(DispatchLog).order_by(DispatchLog.timestamp.desc()).limit(limit).all()
             result = [
@@ -460,55 +460,55 @@ def _register_builtin_tools(registry: ToolRegistry):
     def send_im_handler(args):
         from src.communication_hub import im_store
         return im_store.send_message(args["target"], args["message"], args.get("sender", "murphy"))
-    
+
     registry.register(Tool("comms.send_im", "Send IM", {"type": "object", "properties": {"target": {"type": "string"}, "message": {"type": "string"}}}, send_im_handler, "comms", approval_tier="platform"))
-    
+
     def send_email_handler(args):
         from src.communication_hub import email_store
         return email_store.send(args["sender"], args["recipients"], args["subject"], args["body"])
-    
+
     registry.register(Tool("comms.send_email", "Send email", {"type": "object"}, send_email_handler, "comms", approval_tier="user"))
-    
+
     def broadcast_handler(args):
         from src.communication_hub import mod_console
         return mod_console.broadcast(args["message"], args.get("sender_id", "murphy"))
-    
+
     registry.register(Tool("comms.broadcast", "Broadcast message", {"type": "object"}, broadcast_handler, "comms", approval_tier="user"))
-    
+
     def voice_call_handler(args):
         from src.communication_hub import call_store
         return call_store.start_call(args["caller_id"], args["target_id"], "voice")
-    
+
     registry.register(Tool("comms.start_voice_call", "Start voice call", {"type": "object"}, voice_call_handler, "comms", approval_tier="platform"))
-    
+
     def video_call_handler(args):
         from src.communication_hub import call_store
         return call_store.start_video_call(args["initiator_id"], args.get("participant_ids", []))
-    
+
     registry.register(Tool("comms.start_video_call", "Start video call", {"type": "object"}, video_call_handler, "comms", approval_tier="platform"))
-    
+
     # Meeting tools
     def meeting_start_handler(args):
         from src.meetings_bridge import MeetingsBridge
         mb = MeetingsBridge()
         return mb.start_meeting(args.get("topic", "Meeting"), args.get("participants", []))
-    
+
     registry.register(Tool("meeting.start", "Start meeting", {"type": "object"}, meeting_start_handler, "meetings", approval_tier="user"))
-    
+
     def meeting_end_handler(args):
         from src.meetings_bridge import MeetingsBridge
         mb = MeetingsBridge()
         return mb.end_meeting(args["meeting_id"])
-    
+
     registry.register(Tool("meeting.end", "End meeting", {"type": "object"}, meeting_end_handler, "meetings", approval_tier="user"))
-    
+
     # System health
     def health_handler(args):
         from src.db import check_database
         return {"db": "ok" if check_database() else "error", "status": "running"}
-    
+
     registry.register(Tool("system.health", "System health", {"type": "object"}, health_handler, "system", approval_tier="none"))
-    
+
     # Analysis
     def analysis_handler(args):
         try:
@@ -518,9 +518,9 @@ def _register_builtin_tools(registry: ToolRegistry):
         except Exception as exc:
             logger.debug("analysis.run handler unavailable: %s", exc)
             return {"result": f"Analysis: {args['task']}"}
-    
+
     registry.register(Tool("analysis.run", "Run analysis", {"type": "object"}, analysis_handler, "analysis", approval_tier="platform"))
-    
+
     # Memory
     def memory_store_handler(args):
         try:
@@ -530,9 +530,9 @@ def _register_builtin_tools(registry: ToolRegistry):
         except Exception as exc:
             logger.debug("memory.store handler unavailable: %s", exc)
             return {"stored": True}
-    
+
     registry.register(Tool("memory.store", "Store memory", {"type": "object"}, memory_store_handler, "memory", approval_tier="platform"))
-    
+
     def memory_recall_handler(args):
         try:
             from bots.memory_cortex_bot import MemoryCortexBot
@@ -541,9 +541,9 @@ def _register_builtin_tools(registry: ToolRegistry):
         except Exception as exc:
             logger.debug("memory.recall handler unavailable: %s", exc)
             return {"results": []}
-    
+
     registry.register(Tool("memory.recall", "Recall memory", {"type": "object"}, memory_recall_handler, "memory", approval_tier="platform"))
-    
+
     # LLM
     def llm_query_handler(args):
         try:
@@ -553,9 +553,9 @@ def _register_builtin_tools(registry: ToolRegistry):
         except Exception as exc:
             logger.debug("llm.query handler unavailable: %s", exc)
             return {"response": "LLM unavailable"}
-    
+
     registry.register(Tool("llm.query", "LLM query", {"type": "object"}, llm_query_handler, "llm", approval_tier="platform"))
-    
+
     # Org
     def org_check_handler(args):
         try:
@@ -565,9 +565,9 @@ def _register_builtin_tools(registry: ToolRegistry):
         except Exception as exc:
             logger.debug("org.check_permission handler unavailable: %s", exc)
             return {"allowed": True}
-    
+
     registry.register(Tool("org.check_permission", "Check org permission", {"type": "object"}, org_check_handler, "org", approval_tier="platform"))
-    
+
     def org_escalate_handler(args):
         try:
             from src.org_chart_enforcement import OrgChartEnforcement
@@ -576,7 +576,7 @@ def _register_builtin_tools(registry: ToolRegistry):
         except Exception as exc:
             logger.debug("org.escalate handler unavailable: %s", exc)
             return {"escalated": True}
-    
+
     registry.register(Tool("org.escalate", "Escalate org issue", {"type": "object"}, org_escalate_handler, "org", approval_tier="user"))
 
 _registry = ToolRegistry()

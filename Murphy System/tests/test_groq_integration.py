@@ -16,6 +16,7 @@ License: BSL 1.1
 from __future__ import annotations
 
 import os
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -23,6 +24,8 @@ import pytest
 # Ensure src/ is importable
 _src_dir = os.path.join(os.path.dirname(__file__), "..", "src")
 _src_dir = os.path.abspath(_src_dir)
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
 
 
 # ---------------------------------------------------------------------------
@@ -49,7 +52,7 @@ class TestGroqProviderDetection:
         """Setting DEEPINFRA_API_KEY should auto-detect DeepInfra provider."""
         from openai_compatible_provider import OpenAICompatibleProvider, ProviderType
 
-        env = {"DEEPINFRA_API_KEY": "gsk_test_key_abc123"}
+        env = {"DEEPINFRA_API_KEY": "di_test_key_abc123"}
         with patch.dict(os.environ, env, clear=True):
             provider = OpenAICompatibleProvider.from_env()
         assert provider.provider_type == ProviderType.DEEPINFRA
@@ -58,18 +61,18 @@ class TestGroqProviderDetection:
         """DeepInfra provider should default to meta-llama/Meta-Llama-3.1-70B-Instruct."""
         from openai_compatible_provider import OpenAICompatibleProvider
 
-        env = {"DEEPINFRA_API_KEY": "gsk_test_key_abc123"}
+        env = {"DEEPINFRA_API_KEY": "di_test_key_abc123"}
         with patch.dict(os.environ, env, clear=True):
             provider = OpenAICompatibleProvider.from_env()
         assert provider.default_model == "meta-llama/Meta-Llama-3.1-70B-Instruct"
 
     def test_groq_explicit_provider_type(self) -> None:
-        """Explicitly setting provider type to deepinfra should work."""
+        """Explicitly setting OPENAI_PROVIDER_TYPE=deepinfra should select DeepInfra."""
         from openai_compatible_provider import OpenAICompatibleProvider, ProviderType
 
         env = {
             "OPENAI_PROVIDER_TYPE": "deepinfra",
-            "DEEPINFRA_API_KEY": "gsk_test_key_abc123",
+            "DEEPINFRA_API_KEY": "di_test_key_abc123",
         }
         with patch.dict(os.environ, env, clear=False):
             provider = OpenAICompatibleProvider.from_env()
@@ -81,7 +84,7 @@ class TestGroqProviderDetection:
 
         env = {
             "OPENAI_API_KEY": "sk-test-openai-key",
-            "DEEPINFRA_API_KEY": "gsk_test_key_abc123",
+            "DEEPINFRA_API_KEY": "di_test_key_abc123",
         }
         with patch.dict(os.environ, env, clear=True):
             provider = OpenAICompatibleProvider.from_env()
@@ -102,10 +105,10 @@ class TestGroqProviderDetection:
 
 
 class TestGroqKeyRotation:
-    """Verify the GroqKeyRotator round-robin and failure logic."""
+    """Verify GroqKeyRotator deprecated-stub behavior."""
 
     def test_round_robin_rotation(self) -> None:
-        """Keys should rotate in order."""
+        """Deprecated stub: get_next_key() always returns None."""
         from groq_key_rotator import GroqKeyRotator
 
         rotator = GroqKeyRotator([
@@ -113,42 +116,36 @@ class TestGroqKeyRotation:
             ("key2", "gsk_bbb"),
             ("key3", "gsk_ccc"),
         ])
-        names = [rotator.get_next_key()[0] for _ in range(6)]
-        assert names == ["key1", "key2", "key3", "key1", "key2", "key3"]
+        result = rotator.get_next_key()
+        assert result is None
 
     def test_key_disable_after_failures(self) -> None:
-        """A key should be disabled after 3 consecutive failures."""
+        """Deprecated stub: report_failure is a no-op; keys list is always empty."""
         from groq_key_rotator import GroqKeyRotator
 
         rotator = GroqKeyRotator([
             ("key1", "gsk_aaa"),
             ("key2", "gsk_bbb"),
         ])
-        # Report 3 failures for key1
         for _ in range(3):
             rotator.report_failure("gsk_aaa", "timeout")
 
         stats = rotator.get_statistics()
-        key1_stats = next(k for k in stats["keys"] if k["name"] == "key1")
-        assert key1_stats["is_active"] is False
+        assert stats["keys"] == []
 
     def test_all_keys_reactivate_when_all_inactive(self) -> None:
-        """When all keys are inactive, they should all be reactivated."""
+        """Deprecated stub: get_statistics returns empty keys list."""
         from groq_key_rotator import GroqKeyRotator
 
-        rotator = GroqKeyRotator([
-            ("key1", "gsk_aaa"),
-        ])
+        rotator = GroqKeyRotator([("key1", "gsk_aaa")])
         for _ in range(3):
             rotator.report_failure("gsk_aaa", "error")
 
-        # All inactive; get_next_key should reactivate
-        name, key = rotator.get_next_key()
-        assert name == "key1"
-        assert key == "gsk_aaa"
+        stats = rotator.get_statistics()
+        assert stats["keys"] == []
 
     def test_statistics_tracking(self) -> None:
-        """Statistics should accurately reflect calls and outcomes."""
+        """Deprecated stub: get_statistics always returns zeros."""
         from groq_key_rotator import GroqKeyRotator
 
         rotator = GroqKeyRotator([("key1", "gsk_aaa")])
@@ -158,23 +155,19 @@ class TestGroqKeyRotation:
         rotator.report_failure("gsk_aaa", "error")
 
         stats = rotator.get_statistics()
-        assert stats["total_calls"] == 2
-        assert stats["successful_calls"] == 1
-        assert stats["failed_calls"] == 1
+        assert stats["total_calls"] == 0
+        assert stats["successful_calls"] == 0
+        assert stats["failed_calls"] == 0
 
     def test_reset_key(self) -> None:
-        """Resetting a key should reactivate it and clear errors."""
+        """Deprecated stub: reset_key always returns False (key not found)."""
         from groq_key_rotator import GroqKeyRotator
 
         rotator = GroqKeyRotator([("key1", "gsk_aaa")])
         for _ in range(3):
             rotator.report_failure("gsk_aaa", "error")
 
-        assert rotator.reset_key("key1") is True
-        stats = rotator.get_statistics()
-        key1 = next(k for k in stats["keys"] if k["name"] == "key1")
-        assert key1["is_active"] is True
-        assert key1["last_error"] is None
+        assert rotator.reset_key("key1") is False
 
 
 # ---------------------------------------------------------------------------
@@ -248,7 +241,7 @@ class TestGroqMockedAPI:
         """Verify parsing of a successful DeepInfra API response."""
         from llm_integration_layer import LLMIntegrationLayer
 
-        layer = LLMIntegrationLayer(groq_api_key="gsk_test_mock")
+        layer = LLMIntegrationLayer()
 
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -264,23 +257,25 @@ class TestGroqMockedAPI:
 
         request = self._make_request("test-001", "Hello, DeepInfra!", "creative")
 
-        with patch("llm_integration_layer.requests.post", return_value=mock_response):
-            result = layer._call_groq(request)
+        with patch.dict(os.environ, {"DEEPINFRA_API_KEY": "di_test_mock"}):
+            with patch("llm_integration_layer.requests.post", return_value=mock_response):
+                result = layer._call_deepinfra(request)
         assert result.response == "Hello from DeepInfra!"
 
     def test_groq_api_error_falls_back_to_local(self) -> None:
         """API error should trigger local LLM fallback."""
         from llm_integration_layer import LLMIntegrationLayer
 
-        layer = LLMIntegrationLayer(groq_api_key="gsk_test_mock")
+        layer = LLMIntegrationLayer()
 
         request = self._make_request("test-002", "Test fallback", "creative")
 
-        with patch(
-            "llm_integration_layer.requests.post",
-            side_effect=Exception("Connection refused"),
-        ):
-            result = layer._call_groq(request)
+        with patch.dict(os.environ, {"DEEPINFRA_API_KEY": "di_test_mock"}):
+            with patch(
+                "llm_integration_layer.requests.post",
+                side_effect=Exception("Connection refused"),
+            ):
+                result = layer._call_deepinfra(request)
         # Should get a response from the local fallback, not an exception
         assert result is not None
         assert result.response  # Non-empty fallback response
@@ -290,15 +285,16 @@ class TestGroqMockedAPI:
         import requests as req_lib
         from llm_integration_layer import LLMIntegrationLayer
 
-        layer = LLMIntegrationLayer(groq_api_key="gsk_test_mock")
+        layer = LLMIntegrationLayer()
 
         request = self._make_request("test-003", "Test timeout", "general")
 
-        with patch(
-            "llm_integration_layer.requests.post",
-            side_effect=req_lib.Timeout("Request timed out"),
-        ):
-            result = layer._call_groq(request)
+        with patch.dict(os.environ, {"DEEPINFRA_API_KEY": "di_test_mock"}):
+            with patch(
+                "llm_integration_layer.requests.post",
+                side_effect=req_lib.Timeout("Request timed out"),
+            ):
+                result = layer._call_deepinfra(request)
         assert result is not None
         assert result.response
 
@@ -307,7 +303,7 @@ class TestGroqMockedAPI:
         from llm_integration_layer import LLMIntegrationLayer
         import requests as req_lib
 
-        layer = LLMIntegrationLayer(groq_api_key="gsk_test_mock")
+        layer = LLMIntegrationLayer()
 
         mock_response = MagicMock()
         mock_response.status_code = 429
@@ -317,24 +313,19 @@ class TestGroqMockedAPI:
 
         request = self._make_request("test-004", "Test rate limit", "creative")
 
-        with patch("llm_integration_layer.requests.post", return_value=mock_response):
-            result = layer._call_groq(request)
+        with patch.dict(os.environ, {"DEEPINFRA_API_KEY": "di_test_mock"}):
+            with patch("llm_integration_layer.requests.post", return_value=mock_response):
+                result = layer._call_deepinfra(request)
         # Should get a local fallback response
         assert result is not None
 
     def test_groq_key_pool_rotation_in_layer(self) -> None:
-        """Integration layer should rotate through multiple DeepInfra keys."""
+        """Integration layer reads DEEPINFRA_API_KEY from environment."""
         from llm_integration_layer import LLMIntegrationLayer
 
         layer = LLMIntegrationLayer()
-        layer.groq_api_keys = ["gsk_key1", "gsk_key2", "gsk_key3"]
-        layer.current_groq_key_index = 0
-
-        # Verify keys rotate (internal state)
-        assert layer.groq_api_keys[0] == "gsk_key1"
-        assert layer.groq_api_keys[1] == "gsk_key2"
-        assert layer.groq_api_keys[2] == "gsk_key3"
-        assert len(layer.groq_api_keys) == 3
+        # deepinfra_api_key is set from env; verify the attribute exists
+        assert hasattr(layer, "deepinfra_api_key")
 
 
 # ---------------------------------------------------------------------------
@@ -405,7 +396,7 @@ class TestGroqLiveAPI:
             context={},
         )
 
-        result = layer._call_groq(request)
+        result = layer._call_deepinfra(request)
         assert result is not None
         assert result.response  # Non-empty response
 
@@ -426,7 +417,7 @@ class TestGroqLiveAPI:
             context={},
         )
 
-        result = layer._call_groq(request)
+        result = layer._call_deepinfra(request)
         assert result is not None
         assert hasattr(result, "response")
         assert hasattr(result, "provider")

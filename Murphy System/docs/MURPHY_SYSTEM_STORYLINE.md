@@ -1301,7 +1301,7 @@ responses — even when no cloud API key is set.
 To upgrade to a faster cloud LLM, navigate to **Sidebar → LLM Config** in any terminal
 view. A configuration form lets you select a provider and enter your API key:
 
-1. **DeepInfra** (recommended — free tier available): Get a key at https://console.deepinfra.com/keys
+1. **DeepInfra** (recommended — free tier available): Get a key at https://deepinfra.com
 2. **OpenAI**: Get a key at https://platform.openai.com/api-keys
 3. **Anthropic**: Get a key at https://console.anthropic.com/
 
@@ -1311,7 +1311,7 @@ system hot-reloads the configuration without restart.
 Alternatively, set environment variables directly:
 
 ```bash
-export DEEPINFRA_API_KEY="gsk_..."
+export DEEPINFRA_API_KEY="di_..."
 export MURPHY_LLM_PROVIDER="deepinfra"
 ```
 

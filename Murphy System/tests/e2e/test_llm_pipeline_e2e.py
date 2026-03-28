@@ -108,7 +108,7 @@ class TestLLMPipelineWithMockDeepInfra:
         url = f"http://{mock_deepinfra_server.host}:{mock_deepinfra_server.port}/openai/v1/chat/completions"
         payload = json.dumps(
             {
-                "model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
+                "model": "mistralai/Mixtral-8x22B-Instruct-v0.1",
                 "messages": [{"role": "user", "content": "ping"}],
             }
         ).encode()

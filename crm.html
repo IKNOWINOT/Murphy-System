@@ -1,0 +1,1412 @@
+<!-- Murphy System — CRM / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRM — Murphy System</title>
+  <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="static/murphy-design-system.css">
+  <style>
+    :root {
+      --bg-base: #0C1017; --bg-surface: #131A24; --bg-elevated: #1A2332;
+      --bg-input: #0F1620; --border-subtle: #1E2A3A; --border-default: #2A3A4E;
+      --border-focus: #00D4AA; --text-primary: #E6ECF2; --text-secondary: #8899AA;
+      --text-muted: #566778; --teal: #00D4AA; --teal-glow: rgba(0,212,170,0.12);
+      --success: #22C55E; --warning: #FFA63E; --danger: #EF4444; --info: #3B9EFF;
+      --font-ui: Inter, system-ui, -apple-system, sans-serif;
+      --font-code: 'JetBrains Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Topbar ──────────────────────────────────────────────── */
+    .topbar {
+      position: sticky; top: 0; z-index: 1000;
+      background: rgba(12,16,23,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-default);
+      padding: 0 2rem;
+      height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar-brand {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; color: var(--text-primary); font-weight: 700; font-size: 1rem;
+    }
+    .topbar-brand svg { flex-shrink: 0; }
+    .topbar-title {
+      font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;
+      padding-left: 12px; border-left: 1px solid var(--border-subtle);
+    }
+    .topbar-right { display: flex; align-items: center; gap: 8px; }
+    .topbar-status {
+      font-size: 0.75rem; color: var(--text-muted);
+    }
+
+    /* ── Layout ──────────────────────────────────────────────── */
+    .app-layout {
+      display: flex; height: calc(100vh - 56px);
+    }
+    .sidebar-slot { flex-shrink: 0; }
+    .main-area {
+      flex: 1; display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    /* ── Tabs ────────────────────────────────────────────────── */
+    .tab-bar {
+      display: flex; align-items: center; gap: 0;
+      padding: 0 24px; background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .tab-btn {
+      padding: 14px 20px; font-size: 0.82rem; font-weight: 600;
+      color: var(--text-muted); background: none; border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer; font-family: var(--font-ui);
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab-btn:hover { color: var(--text-secondary); }
+    .tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); }
+    .tab-content { flex: 1; overflow: auto; padding: 20px 24px; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Buttons ─────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 6px;
+      font-family: var(--font-ui); font-size: 0.8rem; font-weight: 500;
+      cursor: pointer; border: 1px solid transparent;
+      transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary {
+      background: var(--teal); color: #0C1017; border-color: var(--teal);
+    }
+    .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+    .btn-ghost {
+      background: transparent; color: var(--text-secondary); border-color: var(--border-default);
+    }
+    .btn-ghost:hover:not(:disabled) { background: var(--bg-elevated); color: var(--text-primary); }
+    .btn-danger {
+      background: transparent; color: var(--danger); border-color: var(--danger);
+    }
+    .btn-danger:hover:not(:disabled) { background: rgba(239,68,68,0.1); }
+    .btn-sm { padding: 5px 10px; font-size: 0.75rem; }
+    .btn-icon {
+      padding: 6px; background: transparent; color: var(--text-muted);
+      border: none; border-radius: 4px; cursor: pointer;
+    }
+    .btn-icon:hover { color: var(--text-primary); background: var(--bg-elevated); }
+
+    /* ── Table ───────────────────────────────────────────────── */
+    .data-table {
+      width: 100%; border-collapse: separate; border-spacing: 0;
+      font-size: 0.82rem;
+    }
+    .data-table th {
+      text-align: left; padding: 6px 12px; font-size: 0.72rem;
+      color: var(--text-muted); font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.04em; border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-surface); position: sticky; top: 0; z-index: 1;
+    }
+    .data-table td {
+      padding: 8px 12px; border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+    .data-table tr:hover td { background: var(--bg-elevated); }
+    .clickable-name {
+      font-weight: 500; cursor: pointer;
+    }
+    .clickable-name:hover { color: var(--teal); }
+    .row-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+    .data-table tr:hover .row-actions { opacity: 1; }
+
+    /* ── Toolbar row ─────────────────────────────────────────── */
+    .section-toolbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      margin-bottom: 16px;
+    }
+    .section-toolbar h2 { font-size: 1rem; font-weight: 700; }
+
+    /* ── Tags ────────────────────────────────────────────────── */
+    .tag {
+      display: inline-block; padding: 2px 8px; border-radius: 10px;
+      font-size: 0.68rem; font-weight: 600; background: var(--bg-elevated);
+      color: var(--text-secondary); border: 1px solid var(--border-subtle);
+      margin-right: 4px;
+    }
+
+    /* ── Type pill ───────────────────────────────────────────── */
+    .type-pill {
+      display: inline-block; padding: 3px 10px; border-radius: 10px;
+      font-size: 0.72rem; font-weight: 600; text-align: center; min-width: 70px;
+    }
+    .type-lead     { background: var(--info); color: #fff; }
+    .type-customer { background: var(--success); color: #fff; }
+    .type-partner  { background: var(--warning); color: #fff; }
+    .type-other    { background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border-subtle); }
+
+    /* ── Pipeline / Kanban ───────────────────────────────────── */
+    .pipeline-header {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .pipeline-header h2 { font-size: 1rem; font-weight: 700; }
+    .pipeline-stats {
+      display: flex; gap: 16px; align-items: center;
+    }
+    .pipeline-stat {
+      font-size: 0.78rem; color: var(--text-secondary);
+    }
+    .pipeline-stat strong { color: var(--teal); font-weight: 700; }
+    .pipeline-selector {
+      background: var(--bg-input); color: var(--text-primary);
+      border: 1px solid var(--border-subtle); border-radius: 6px;
+      padding: 6px 10px; font-size: 0.82rem; font-family: var(--font-ui);
+    }
+    .pipeline-selector:focus { outline: none; border-color: var(--border-focus); }
+
+    .kanban {
+      display: flex; gap: 16px; overflow-x: auto; padding-bottom: 16px;
+      min-height: 300px;
+    }
+    .kanban-col {
+      min-width: 260px; width: 260px; flex-shrink: 0;
+      background: var(--bg-surface); border: 1px solid var(--border-subtle);
+      border-radius: 10px; display: flex; flex-direction: column;
+      max-height: calc(100vh - 260px);
+    }
+    .kanban-col-header {
+      padding: 12px 14px; border-bottom: 1px solid var(--border-subtle);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .kanban-col-title {
+      font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .kanban-col-count {
+      font-size: 0.68rem; color: var(--text-muted); background: var(--bg-input);
+      padding: 2px 7px; border-radius: 10px;
+    }
+    .kanban-col-body {
+      flex: 1; overflow-y: auto; padding: 8px;
+    }
+    .deal-card {
+      background: var(--bg-elevated); border: 1px solid var(--border-subtle);
+      border-radius: 8px; padding: 12px; margin-bottom: 8px;
+      cursor: pointer; transition: border-color 0.15s;
+    }
+    .deal-card:hover { border-color: var(--teal); }
+    .deal-card-title {
+      font-size: 0.82rem; font-weight: 600; margin-bottom: 6px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .deal-card-value {
+      font-size: 0.88rem; font-weight: 700; color: var(--teal); margin-bottom: 4px;
+    }
+    .deal-card-meta {
+      font-size: 0.7rem; color: var(--text-muted);
+      display: flex; justify-content: space-between;
+    }
+    .deal-card-actions {
+      display: flex; gap: 4px; margin-top: 8px; opacity: 0; transition: opacity 0.15s;
+    }
+    .deal-card:hover .deal-card-actions { opacity: 1; }
+
+    /* ── Detail panel ───────────────────────────────────────── */
+    .detail-panel {
+      position: fixed; top: 56px; right: 0; width: 440px; max-width: 95vw;
+      height: calc(100vh - 56px); background: var(--bg-surface);
+      border-left: 1px solid var(--border-default);
+      box-shadow: -8px 0 24px rgba(0,0,0,0.3);
+      z-index: 400; display: none; flex-direction: column;
+      overflow-y: auto;
+    }
+    .detail-panel.open { display: flex; }
+    .detail-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border-subtle);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .detail-header h3 { font-size: 0.95rem; font-weight: 700; }
+    .detail-body { padding: 20px; flex: 1; }
+    .detail-field { margin-bottom: 14px; }
+    .detail-label {
+      font-size: 0.72rem; font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px;
+    }
+    .detail-value {
+      font-size: 0.85rem; color: var(--text-primary);
+    }
+    .detail-footer {
+      padding: 12px 20px; border-top: 1px solid var(--border-subtle);
+      display: flex; gap: 8px;
+    }
+
+    /* ── Modal ───────────────────────────────────────────────── */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      z-index: 500; display: none;
+    }
+    .modal-backdrop.open { display: flex; align-items: center; justify-content: center; }
+    .modal {
+      background: var(--bg-surface); border: 1px solid var(--border-default);
+      border-radius: 12px; width: 480px; max-width: 90vw;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    }
+    .modal-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border-subtle);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-header h3 { font-size: 0.95rem; font-weight: 700; }
+    .modal-body { padding: 20px; }
+    .modal-footer {
+      padding: 12px 20px; border-top: 1px solid var(--border-subtle);
+      display: flex; justify-content: flex-end; gap: 8px;
+    }
+
+    /* ── Form elements ───────────────────────────────────────── */
+    .form-group { margin-bottom: 14px; }
+    .form-label {
+      display: block; font-size: 0.78rem; font-weight: 600;
+      color: var(--text-secondary); margin-bottom: 6px;
+    }
+    .form-input {
+      width: 100%; background: var(--bg-input); color: var(--text-primary);
+      border: 1px solid var(--border-subtle); padding: 9px 12px;
+      border-radius: 6px; font-family: var(--font-ui); font-size: 0.85rem;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus { outline: none; border-color: var(--border-focus); }
+    select.form-input { cursor: pointer; }
+
+    /* ── Error banner ───────────────────────────────────────── */
+    .error-banner {
+      padding: 10px 24px; background: rgba(239,68,68,0.1);
+      border-bottom: 1px solid var(--danger); color: var(--danger);
+      font-size: 0.82rem; display: none; align-items: center; gap: 8px;
+    }
+    .error-banner.visible { display: flex; }
+    .error-banner button {
+      margin-left: auto; background: none; border: none;
+      color: var(--danger); cursor: pointer; font-size: 1rem; padding: 0 4px;
+    }
+
+    /* ── Empty state ────────────────────────────────────────── */
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 64px 24px; text-align: center; color: var(--text-muted);
+    }
+    .empty-state-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.5; }
+    .empty-state h3 { font-size: 1rem; color: var(--text-secondary); margin-bottom: 6px; }
+    .empty-state p { font-size: 0.82rem; margin-bottom: 16px; max-width: 320px; }
+
+    /* ── Spinner ─────────────────────────────────────────────── */
+    .spinner {
+      display: inline-block; width: 18px; height: 18px;
+      border: 2px solid var(--border-subtle); border-top-color: var(--teal);
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-overlay {
+      display: flex; align-items: center; justify-content: center;
+      padding: 48px; color: var(--text-muted); gap: 10px; font-size: 0.82rem;
+    }
+
+    /* ── Confirm dialog ─────────────────────────────────────── */
+    .confirm-text { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+
+    /* ── Activity type pill ──────────────────────────────────── */
+    .activity-type {
+      display: inline-block; padding: 2px 8px; border-radius: 10px;
+      font-size: 0.7rem; font-weight: 600; min-width: 56px; text-align: center;
+    }
+    .activity-call    { background: var(--info); color: #fff; }
+    .activity-email   { background: #8B5CF6; color: #fff; }
+    .activity-meeting { background: var(--warning); color: #fff; }
+    .activity-note    { background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border-subtle); }
+    .activity-task    { background: var(--success); color: #fff; }
+    .activity-other   { background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border-subtle); }
+
+    /* ── Scrollbar ───────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-default); }
+  </style>
+</head>
+<body>
+
+  <!-- ── Topbar ──────────────────────────────────────────────── -->
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <a href="/" class="topbar-brand">
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <rect width="32" height="32" rx="8" fill="var(--teal)"/>
+          <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700">M</text>
+        </svg>
+        <span>Murphy System</span>
+      </a>
+      <span class="topbar-title">CRM</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-status" id="refresh-status"></span>
+    </div>
+  </div>
+
+  <!-- ── Error banner ────────────────────────────────────────── -->
+  <div class="error-banner" id="error-banner" role="alert">
+    <span id="error-message"></span>
+    <button onclick="dismissError()" title="Dismiss" aria-label="Dismiss error">&times;</button>
+  </div>
+
+  <!-- ── App layout ──────────────────────────────────────────── -->
+  <div class="app-layout">
+    <murphy-sidebar active="CRM"></murphy-sidebar>
+
+    <div class="main-area">
+      <!-- Tab bar -->
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="contacts">Contacts</button>
+        <button class="tab-btn" data-tab="pipeline">Pipeline</button>
+        <button class="tab-btn" data-tab="activities">Activities</button>
+      </div>
+
+      <div class="tab-content">
+        <!-- ── Contacts tab ────────────────────────────────────── -->
+        <div class="tab-panel active" id="panel-contacts">
+          <div class="section-toolbar">
+            <h2>Contacts</h2>
+            <button class="btn btn-primary btn-sm" id="btn-new-contact">+ New Contact</button>
+          </div>
+          <div id="contacts-loading" class="loading-overlay">
+            <span class="spinner"></span> Loading contacts…
+          </div>
+          <div id="contacts-empty" class="empty-state" style="display:none;">
+            <div class="empty-state-icon" aria-hidden="true">👤</div>
+            <h3>No contacts yet</h3>
+            <p>Add your first contact to start managing relationships.</p>
+            <button class="btn btn-primary" id="btn-new-contact-empty">+ Add Contact</button>
+          </div>
+          <table class="data-table" id="contacts-table" style="display:none;">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Company</th>
+                <th>Type</th>
+                <th>Tags</th>
+                <th style="width:80px;"></th>
+              </tr>
+            </thead>
+            <tbody id="contacts-body"></tbody>
+          </table>
+        </div>
+
+        <!-- ── Pipeline tab ────────────────────────────────────── -->
+        <div class="tab-panel" id="panel-pipeline">
+          <div class="pipeline-header">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <h2>Pipeline</h2>
+              <select class="pipeline-selector" id="pipeline-select" aria-label="Select pipeline"></select>
+            </div>
+            <div class="pipeline-stats" id="pipeline-stats"></div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost btn-sm" id="btn-new-pipeline">+ New Pipeline</button>
+              <button class="btn btn-primary btn-sm" id="btn-new-deal">+ New Deal</button>
+            </div>
+          </div>
+          <div id="pipeline-loading" class="loading-overlay">
+            <span class="spinner"></span> Loading pipeline…
+          </div>
+          <div id="pipeline-empty" class="empty-state" style="display:none;">
+            <div class="empty-state-icon" aria-hidden="true">📊</div>
+            <h3>No pipelines yet</h3>
+            <p>Create a pipeline to start tracking your deals.</p>
+            <button class="btn btn-primary" id="btn-new-pipeline-empty">+ Create Pipeline</button>
+          </div>
+          <div class="kanban" id="kanban-board" style="display:none;"></div>
+        </div>
+
+        <!-- ── Activities tab ──────────────────────────────────── -->
+        <div class="tab-panel" id="panel-activities">
+          <div class="section-toolbar">
+            <h2>Activity Log</h2>
+            <button class="btn btn-primary btn-sm" id="btn-new-activity">+ Log Activity</button>
+          </div>
+          <div id="activities-loading" class="loading-overlay">
+            <span class="spinner"></span> Loading activities…
+          </div>
+          <div id="activities-empty" class="empty-state" style="display:none;">
+            <div class="empty-state-icon" aria-hidden="true">📝</div>
+            <h3>No activities yet</h3>
+            <p>Log calls, emails, meetings, and notes to keep track of interactions.</p>
+            <button class="btn btn-primary" id="btn-new-activity-empty">+ Log Activity</button>
+          </div>
+          <table class="data-table" id="activities-table" style="display:none;">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Summary</th>
+                <th>Contact</th>
+                <th>Deal</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="activities-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Contact detail panel ────────────────────────────────── -->
+  <div class="detail-panel" id="contact-detail" role="complementary" aria-label="Contact details">
+    <div class="detail-header">
+      <h3 id="contact-detail-name"></h3>
+      <button class="btn-icon" onclick="closeContactDetail()" aria-label="Close detail panel">&times;</button>
+    </div>
+    <div class="detail-body" id="contact-detail-body"></div>
+    <div class="detail-footer">
+      <button class="btn btn-ghost btn-sm" id="btn-edit-contact-detail">✏️ Edit</button>
+      <button class="btn btn-danger btn-sm" id="btn-delete-contact-detail">🗑 Delete</button>
+    </div>
+  </div>
+
+  <!-- ── Deal detail panel ───────────────────────────────────── -->
+  <div class="detail-panel" id="deal-detail" role="complementary" aria-label="Deal details">
+    <div class="detail-header">
+      <h3 id="deal-detail-title"></h3>
+      <button class="btn-icon" onclick="closeDealDetail()" aria-label="Close detail panel">&times;</button>
+    </div>
+    <div class="detail-body" id="deal-detail-body"></div>
+    <div class="detail-footer">
+      <button class="btn btn-ghost btn-sm" id="btn-edit-deal-detail">✏️ Edit</button>
+      <button class="btn btn-danger btn-sm" id="btn-delete-deal-detail">🗑 Delete</button>
+    </div>
+  </div>
+
+  <!-- ── Modal backdrop ──────────────────────────────────────── -->
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal" id="modal" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h3 id="modal-title"></h3>
+        <button class="btn-icon" onclick="closeModal()" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer" id="modal-footer"></div>
+    </div>
+  </div>
+
+  <script src="static/murphy-components.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    /* ── API helper ────────────────────────────────────────────── */
+    var API = function (path, opts) {
+      opts = opts || {};
+      return fetch(path, {
+        method: opts.method || 'GET',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: opts.body ? (typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body)) : undefined,
+      }).then(function (r) {
+        if (!r.ok) {
+          return r.json().then(function (d) {
+            throw new Error(d.detail || d.error || 'Request failed (' + r.status + ')');
+          }).catch(function (e) {
+            if (e.message) throw e;
+            throw new Error('Request failed (' + r.status + ')');
+          });
+        }
+        return r.json();
+      }).catch(function (e) {
+        showError(e.message);
+        throw e;
+      });
+    };
+
+    /* ── State ─────────────────────────────────────────────────── */
+    var contacts = [];
+    var pipelines = [];
+    var deals = [];
+    var activities = [];
+    var activePipelineId = null;
+    var activePipelineStages = [];
+    var selectedContactId = null;
+    var selectedDealId = null;
+    var contactsMap = {};
+    var dealsMap = {};
+    var refreshTimer = null;
+    var REFRESH_MS = 15000;
+    var activeTab = 'contacts';
+
+    /* ── DOM refs ──────────────────────────────────────────────── */
+    var $errorBanner     = document.getElementById('error-banner');
+    var $errorMessage    = document.getElementById('error-message');
+    var $refreshStatus   = document.getElementById('refresh-status');
+    var $modalBackdrop   = document.getElementById('modal-backdrop');
+    var $modalTitle      = document.getElementById('modal-title');
+    var $modalBody       = document.getElementById('modal-body');
+    var $modalFooter     = document.getElementById('modal-footer');
+
+    var $contactsLoading = document.getElementById('contacts-loading');
+    var $contactsEmpty   = document.getElementById('contacts-empty');
+    var $contactsTable   = document.getElementById('contacts-table');
+    var $contactsBody    = document.getElementById('contacts-body');
+    var $contactDetail   = document.getElementById('contact-detail');
+    var $contactDetailName = document.getElementById('contact-detail-name');
+    var $contactDetailBody = document.getElementById('contact-detail-body');
+
+    var $pipelineLoading = document.getElementById('pipeline-loading');
+    var $pipelineEmpty   = document.getElementById('pipeline-empty');
+    var $pipelineSelect  = document.getElementById('pipeline-select');
+    var $pipelineStats   = document.getElementById('pipeline-stats');
+    var $kanbanBoard     = document.getElementById('kanban-board');
+
+    var $activitiesLoading = document.getElementById('activities-loading');
+    var $activitiesEmpty   = document.getElementById('activities-empty');
+    var $activitiesTable   = document.getElementById('activities-table');
+    var $activitiesBody    = document.getElementById('activities-body');
+
+    var $dealDetail      = document.getElementById('deal-detail');
+    var $dealDetailTitle  = document.getElementById('deal-detail-title');
+    var $dealDetailBody   = document.getElementById('deal-detail-body');
+
+    /* ── Utility ───────────────────────────────────────────────── */
+    function esc(s) {
+      var d = document.createElement('div');
+      d.textContent = s || '';
+      return d.innerHTML;
+    }
+
+    function escAttr(s) {
+      return (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '';
+      var d = new Date(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatCurrency(value, currency) {
+      if (value === null || value === undefined) return '—';
+      var num = parseFloat(value);
+      if (isNaN(num)) return '—';
+      var cur = (currency || 'USD').toUpperCase();
+      try {
+        return num.toLocaleString('en-US', { style: 'currency', currency: cur, minimumFractionDigits: 0, maximumFractionDigits: 0 });
+      } catch (e) {
+        return cur + ' ' + num.toLocaleString();
+      }
+    }
+
+    function typeClass(t) {
+      if (!t) return 'type-other';
+      var v = t.toLowerCase();
+      if (v === 'lead') return 'type-lead';
+      if (v === 'customer') return 'type-customer';
+      if (v === 'partner') return 'type-partner';
+      return 'type-other';
+    }
+
+    function activityTypeClass(t) {
+      if (!t) return 'activity-other';
+      var v = t.toLowerCase();
+      if (v === 'call') return 'activity-call';
+      if (v === 'email') return 'activity-email';
+      if (v === 'meeting') return 'activity-meeting';
+      if (v === 'note') return 'activity-note';
+      if (v === 'task') return 'activity-task';
+      return 'activity-other';
+    }
+
+    function contactName(id) {
+      if (!id) return '—';
+      var c = contactsMap[id];
+      return c ? esc(c.name || '') : esc(id);
+    }
+
+    function dealTitle(id) {
+      if (!id) return '—';
+      var d = dealsMap[id];
+      return d ? esc(d.title || '') : esc(id);
+    }
+
+    function buildContactsMap() {
+      contactsMap = {};
+      for (var i = 0; i < contacts.length; i++) {
+        contactsMap[contacts[i].id] = contacts[i];
+      }
+    }
+
+    function buildDealsMap() {
+      dealsMap = {};
+      for (var i = 0; i < deals.length; i++) {
+        dealsMap[deals[i].id] = deals[i];
+      }
+    }
+
+    /* ── Error banner ────────────────────────────────────────── */
+    function showError(msg) {
+      $errorMessage.textContent = msg;
+      $errorBanner.classList.add('visible');
+    }
+    window.dismissError = function () {
+      $errorBanner.classList.remove('visible');
+    };
+
+    /* ── Refresh status ──────────────────────────────────────── */
+    function updateRefreshStatus(loading) {
+      $refreshStatus.textContent = loading
+        ? 'Refreshing…'
+        : 'Updated ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    /* ── Modal ───────────────────────────────────────────────── */
+    function openModal(title, bodyHtml, footerHtml) {
+      $modalTitle.textContent = title;
+      $modalBody.innerHTML = bodyHtml;
+      $modalFooter.innerHTML = footerHtml;
+      $modalBackdrop.classList.add('open');
+    }
+    window.closeModal = function () {
+      $modalBackdrop.classList.remove('open');
+    };
+    $modalBackdrop.addEventListener('click', function (e) {
+      if (e.target === $modalBackdrop) closeModal();
+    });
+
+    /* ── Tabs ────────────────────────────────────────────────── */
+    var tabBtns = document.querySelectorAll('.tab-btn');
+    var tabPanels = document.querySelectorAll('.tab-panel');
+
+    function switchTab(tab) {
+      activeTab = tab;
+      for (var i = 0; i < tabBtns.length; i++) {
+        tabBtns[i].classList.toggle('active', tabBtns[i].getAttribute('data-tab') === tab);
+      }
+      for (var j = 0; j < tabPanels.length; j++) {
+        tabPanels[j].classList.toggle('active', tabPanels[j].id === 'panel-' + tab);
+      }
+      closeContactDetail();
+      closeDealDetail();
+      if (tab === 'contacts') loadContacts(true);
+      if (tab === 'pipeline') loadPipelines(true);
+      if (tab === 'activities') loadActivities(true);
+    }
+
+    for (var i = 0; i < tabBtns.length; i++) {
+      tabBtns[i].addEventListener('click', function () {
+        switchTab(this.getAttribute('data-tab'));
+      });
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       CONTACTS
+       ═══════════════════════════════════════════════════════════ */
+    function loadContacts(silent) {
+      if (!silent) $contactsLoading.style.display = 'flex';
+      return API('/api/crm/contacts').then(function (data) {
+        contacts = Array.isArray(data) ? data : (data.contacts || data.items || []);
+        buildContactsMap();
+        renderContacts();
+        if (!silent) $contactsLoading.style.display = 'none';
+      }).catch(function () {
+        contacts = [];
+        buildContactsMap();
+        renderContacts();
+        if (!silent) $contactsLoading.style.display = 'none';
+      });
+    }
+
+    function renderContacts() {
+      $contactsLoading.style.display = 'none';
+      if (contacts.length === 0) {
+        $contactsEmpty.style.display = 'flex';
+        $contactsTable.style.display = 'none';
+        return;
+      }
+      $contactsEmpty.style.display = 'none';
+      $contactsTable.style.display = 'table';
+
+      var html = '';
+      for (var i = 0; i < contacts.length; i++) {
+        var c = contacts[i];
+        var tags = c.tags || [];
+        var tagsHtml = '';
+        for (var t = 0; t < tags.length; t++) {
+          tagsHtml += '<span class="tag">' + esc(tags[t]) + '</span>';
+        }
+        html += '<tr data-contact-id="' + escAttr(c.id) + '">' +
+          '<td class="clickable-name" data-action="view-contact">' + esc(c.name) + '</td>' +
+          '<td>' + esc(c.email || '') + '</td>' +
+          '<td>' + esc(c.company || '') + '</td>' +
+          '<td><span class="type-pill ' + typeClass(c.contact_type) + '">' + esc(c.contact_type || 'Other') + '</span></td>' +
+          '<td>' + (tagsHtml || '<span style="color:var(--text-muted)">—</span>') + '</td>' +
+          '<td><div class="row-actions">' +
+            '<button class="btn-icon btn-sm" data-action="edit-contact" title="Edit" aria-label="Edit contact">✏️</button>' +
+            '<button class="btn-icon btn-sm" data-action="delete-contact" title="Delete" aria-label="Delete contact">🗑</button>' +
+          '</div></td>' +
+        '</tr>';
+      }
+      $contactsBody.innerHTML = html;
+    }
+
+    $contactsBody.addEventListener('click', function (e) {
+      var tr = e.target.closest('tr');
+      if (!tr) return;
+      var id = tr.getAttribute('data-contact-id');
+      var action = e.target.closest('[data-action]');
+      if (!action) return;
+      var act = action.getAttribute('data-action');
+      if (act === 'view-contact') openContactDetail(id);
+      else if (act === 'edit-contact') openEditContactModal(id);
+      else if (act === 'delete-contact') confirmDeleteContact(id);
+    });
+
+    function openContactDetail(id) {
+      var c = contactsMap[id];
+      if (!c) return;
+      selectedContactId = id;
+      closeDealDetail();
+      $contactDetailName.textContent = c.name || 'Unnamed';
+      var html =
+        '<div class="detail-field"><div class="detail-label">Email</div><div class="detail-value">' + esc(c.email || '—') + '</div></div>' +
+        '<div class="detail-field"><div class="detail-label">Phone</div><div class="detail-value">' + esc(c.phone || '—') + '</div></div>' +
+        '<div class="detail-field"><div class="detail-label">Company</div><div class="detail-value">' + esc(c.company || '—') + '</div></div>' +
+        '<div class="detail-field"><div class="detail-label">Type</div><div class="detail-value"><span class="type-pill ' + typeClass(c.contact_type) + '">' + esc(c.contact_type || 'Other') + '</span></div></div>' +
+        '<div class="detail-field"><div class="detail-label">Owner</div><div class="detail-value">' + esc(c.owner_id || '—') + '</div></div>';
+      var tags = c.tags || [];
+      var tagsHtml = '';
+      for (var i = 0; i < tags.length; i++) {
+        tagsHtml += '<span class="tag">' + esc(tags[i]) + '</span>';
+      }
+      html += '<div class="detail-field"><div class="detail-label">Tags</div><div class="detail-value">' + (tagsHtml || '—') + '</div></div>';
+      if (c.created_at) {
+        html += '<div class="detail-field"><div class="detail-label">Created</div><div class="detail-value">' + esc(formatDate(c.created_at)) + '</div></div>';
+      }
+      $contactDetailBody.innerHTML = html;
+      $contactDetail.classList.add('open');
+    }
+
+    window.closeContactDetail = function () {
+      $contactDetail.classList.remove('open');
+      selectedContactId = null;
+    };
+
+    document.getElementById('btn-edit-contact-detail').addEventListener('click', function () {
+      if (selectedContactId) openEditContactModal(selectedContactId);
+    });
+
+    document.getElementById('btn-delete-contact-detail').addEventListener('click', function () {
+      if (selectedContactId) confirmDeleteContact(selectedContactId);
+    });
+
+    /* ── Contact form HTML ───────────────────────────────────── */
+    function contactFormHtml(c) {
+      c = c || {};
+      return '<div class="form-group"><label class="form-label">Name *</label>' +
+        '<input class="form-input" id="cf-name" value="' + escAttr(c.name) + '" required></div>' +
+        '<div class="form-group"><label class="form-label">Email</label>' +
+        '<input class="form-input" id="cf-email" type="email" value="' + escAttr(c.email) + '"></div>' +
+        '<div class="form-group"><label class="form-label">Phone</label>' +
+        '<input class="form-input" id="cf-phone" value="' + escAttr(c.phone) + '"></div>' +
+        '<div class="form-group"><label class="form-label">Company</label>' +
+        '<input class="form-input" id="cf-company" value="' + escAttr(c.company) + '"></div>' +
+        '<div class="form-group"><label class="form-label">Type</label>' +
+        '<select class="form-input" id="cf-type">' +
+          '<option value="lead"' + (c.contact_type === 'lead' ? ' selected' : '') + '>Lead</option>' +
+          '<option value="customer"' + (c.contact_type === 'customer' ? ' selected' : '') + '>Customer</option>' +
+          '<option value="partner"' + (c.contact_type === 'partner' ? ' selected' : '') + '>Partner</option>' +
+          '<option value="other"' + (!c.contact_type || c.contact_type === 'other' ? ' selected' : '') + '>Other</option>' +
+        '</select></div>' +
+        '<div class="form-group"><label class="form-label">Owner ID</label>' +
+        '<input class="form-input" id="cf-owner" value="' + escAttr(c.owner_id) + '"></div>' +
+        '<div class="form-group"><label class="form-label">Tags (comma-separated)</label>' +
+        '<input class="form-input" id="cf-tags" value="' + escAttr((c.tags || []).join(', ')) + '"></div>';
+    }
+
+    function readContactForm() {
+      var tagsRaw = document.getElementById('cf-tags').value;
+      var tags = tagsRaw ? tagsRaw.split(',').map(function (t) { return t.trim(); }).filter(Boolean) : [];
+      return {
+        name: document.getElementById('cf-name').value.trim(),
+        email: document.getElementById('cf-email').value.trim(),
+        phone: document.getElementById('cf-phone').value.trim(),
+        company: document.getElementById('cf-company').value.trim(),
+        contact_type: document.getElementById('cf-type').value,
+        owner_id: document.getElementById('cf-owner').value.trim() || undefined,
+        tags: tags
+      };
+    }
+
+    /* ── Create contact ──────────────────────────────────────── */
+    function openNewContactModal() {
+      openModal('New Contact', contactFormHtml({}),
+        '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary" id="btn-save-new-contact">Create</button>');
+      document.getElementById('btn-save-new-contact').addEventListener('click', function () {
+        var data = readContactForm();
+        if (!data.name) { showError('Contact name is required'); return; }
+        this.disabled = true;
+        API('/api/crm/contacts', { method: 'POST', body: data }).then(function () {
+          closeModal();
+          loadContacts();
+        }).catch(function () {});
+      });
+    }
+
+    document.getElementById('btn-new-contact').addEventListener('click', openNewContactModal);
+    document.getElementById('btn-new-contact-empty').addEventListener('click', openNewContactModal);
+
+    /* ── Edit contact ────────────────────────────────────────── */
+    function openEditContactModal(id) {
+      var c = contactsMap[id];
+      if (!c) return;
+      openModal('Edit Contact', contactFormHtml(c),
+        '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary" id="btn-save-edit-contact">Save</button>');
+      document.getElementById('btn-save-edit-contact').addEventListener('click', function () {
+        var data = readContactForm();
+        if (!data.name) { showError('Contact name is required'); return; }
+        this.disabled = true;
+        API('/api/crm/contacts/' + encodeURIComponent(id), { method: 'PATCH', body: data }).then(function () {
+          closeModal();
+          loadContacts().then(function () {
+            if (selectedContactId === id) openContactDetail(id);
+          });
+        }).catch(function () {});
+      });
+    }
+
+    /* ── Delete contact ──────────────────────────────────────── */
+    function confirmDeleteContact(id) {
+      var c = contactsMap[id];
+      var name = c ? c.name : id;
+      openModal('Delete Contact',
+        '<p class="confirm-text">Are you sure you want to delete <strong>' + esc(name) + '</strong>? This action cannot be undone.</p>',
+        '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-danger" id="btn-confirm-delete-contact">Delete</button>');
+      document.getElementById('btn-confirm-delete-contact').addEventListener('click', function () {
+        this.disabled = true;
+        API('/api/crm/contacts/' + encodeURIComponent(id), { method: 'DELETE' }).then(function () {
+          closeModal();
+          closeContactDetail();
+          loadContacts();
+        }).catch(function () {});
+      });
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       PIPELINES & DEALS
+       ═══════════════════════════════════════════════════════════ */
+    function loadPipelines(silent) {
+      if (!silent) $pipelineLoading.style.display = 'flex';
+      return API('/api/crm/pipelines').then(function (data) {
+        pipelines = Array.isArray(data) ? data : (data.pipelines || data.items || []);
+        renderPipelineSelector();
+        if (pipelines.length === 0) {
+          $pipelineLoading.style.display = 'none';
+          $pipelineEmpty.style.display = 'flex';
+          $kanbanBoard.style.display = 'none';
+          return;
+        }
+        $pipelineEmpty.style.display = 'none';
+        if (!activePipelineId || !pipelines.find(function (p) { return p.id === activePipelineId; })) {
+          activePipelineId = pipelines[0].id;
+          $pipelineSelect.value = activePipelineId;
+        }
+        return loadPipelineDeals(activePipelineId, silent);
+      }).catch(function () {
+        pipelines = [];
+        renderPipelineSelector();
+        if (!silent) $pipelineLoading.style.display = 'none';
+      });
+    }
+
+    function renderPipelineSelector() {
+      var html = '';
+      for (var i = 0; i < pipelines.length; i++) {
+        var p = pipelines[i];
+        html += '<option value="' + escAttr(p.id) + '"' + (p.id === activePipelineId ? ' selected' : '') + '>' + esc(p.name) + '</option>';
+      }
+      $pipelineSelect.innerHTML = html;
+    }
+
+    $pipelineSelect.addEventListener('change', function () {
+      activePipelineId = this.value;
+      loadPipelineDeals(activePipelineId);
+    });
+
+    function loadPipelineDeals(pipelineId, silent) {
+      if (!silent) $pipelineLoading.style.display = 'flex';
+      var pipeline = pipelines.find(function (p) { return p.id === pipelineId; });
+      activePipelineStages = (pipeline && pipeline.stages) ? pipeline.stages : [];
+
+      var dealsPromise = API('/api/crm/deals?pipeline_id=' + encodeURIComponent(pipelineId));
+      var valuePromise = API('/api/crm/pipelines/' + encodeURIComponent(pipelineId) + '/value').catch(function () { return { total_value: 0 }; });
+
+      return Promise.all([dealsPromise, valuePromise]).then(function (results) {
+        deals = Array.isArray(results[0]) ? results[0] : (results[0].deals || results[0].items || []);
+        buildDealsMap();
+        var valueData = results[1] || {};
+        renderPipelineStats(valueData);
+        renderKanban();
+        if (!silent) $pipelineLoading.style.display = 'none';
+      }).catch(function () {
+        deals = [];
+        buildDealsMap();
+        renderKanban();
+        if (!silent) $pipelineLoading.style.display = 'none';
+      });
+    }
+
+    function renderPipelineStats(valueData) {
+      var total = valueData.total_value || valueData.value || 0;
+      var currency = valueData.currency || 'USD';
+      $pipelineStats.innerHTML =
+        '<span class="pipeline-stat">Total value: <strong>' + esc(formatCurrency(total, currency)) + '</strong></span>' +
+        '<span class="pipeline-stat">Deals: <strong>' + deals.length + '</strong></span>';
+    }
+
+    function renderKanban() {
+      $pipelineLoading.style.display = 'none';
+      if (activePipelineStages.length === 0 && deals.length === 0) {
+        $kanbanBoard.style.display = 'none';
+        if (pipelines.length > 0) {
+          $pipelineEmpty.style.display = 'none';
+          $kanbanBoard.style.display = 'flex';
+          $kanbanBoard.innerHTML = '<div class="empty-state" style="width:100%;"><div class="empty-state-icon" aria-hidden="true">📊</div><h3>No stages defined</h3><p>This pipeline has no stages. Create a new pipeline with stages.</p></div>';
+        }
+        return;
+      }
+      $kanbanBoard.style.display = 'flex';
+
+      var stages = activePipelineStages.length > 0 ? activePipelineStages : collectStages();
+      var html = '';
+      for (var s = 0; s < stages.length; s++) {
+        var stage = stages[s];
+        var stageDeals = deals.filter(function (d) { return d.stage === stage; });
+        html += '<div class="kanban-col" data-stage="' + escAttr(stage) + '">' +
+          '<div class="kanban-col-header">' +
+            '<span class="kanban-col-title">' + esc(stage) + '</span>' +
+            '<span class="kanban-col-count">' + stageDeals.length + '</span>' +
+          '</div>' +
+          '<div class="kanban-col-body">';
+        if (stageDeals.length === 0) {
+          html += '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:0.75rem;">No deals</div>';
+        }
+        for (var d = 0; d < stageDeals.length; d++) {
+          var deal = stageDeals[d];
+          html += renderDealCard(deal, stages, stage);
+        }
+        html += '</div></div>';
+      }
+      $kanbanBoard.innerHTML = html;
+    }
+
+    function collectStages() {
+      var seen = {};
+      var result = [];
+      for (var i = 0; i < deals.length; i++) {
+        if (deals[i].stage && !seen[deals[i].stage]) {
+          seen[deals[i].stage] = true;
+          result.push(deals[i].stage);
+        }
+      }
+      return result;
+    }
+
+    function renderDealCard(deal, stages, currentStage) {
+      var moveHtml = '';
+      for (var s = 0; s < stages.length; s++) {
+        if (stages[s] !== currentStage) {
+          moveHtml += '<button class="btn btn-ghost btn-sm" style="font-size:0.68rem;padding:3px 6px;" data-action="move-deal" data-deal-id="' + escAttr(deal.id) + '" data-stage="' + escAttr(stages[s]) + '" title="Move to ' + escAttr(stages[s]) + '">→ ' + esc(stages[s]) + '</button>';
+        }
+      }
+      return '<div class="deal-card" data-deal-id="' + escAttr(deal.id) + '" data-action="view-deal">' +
+        '<div class="deal-card-title">' + esc(deal.title) + '</div>' +
+        '<div class="deal-card-value">' + esc(formatCurrency(deal.value, deal.currency)) + '</div>' +
+        '<div class="deal-card-meta">' +
+          '<span>' + contactName(deal.contact_id) + '</span>' +
+          '<span>' + esc(deal.expected_close_date ? formatDate(deal.expected_close_date) : '') + '</span>' +
+        '</div>' +
+        '<div class="deal-card-actions" style="flex-wrap:wrap;">' +
+          moveHtml +
+          '<button class="btn-icon btn-sm" data-action="edit-deal" data-deal-id="' + escAttr(deal.id) + '" title="Edit" aria-label="Edit deal">✏️</button>' +
+          '<button class="btn-icon btn-sm" data-action="delete-deal" data-deal-id="' + escAttr(deal.id) + '" title="Delete" aria-label="Delete deal">🗑</button>' +
+        '</div>' +
+      '</div>';
+    }
+
+    $kanbanBoard.addEventListener('click', function (e) {
+      var actionEl = e.target.closest('[data-action]');
+      if (!actionEl) return;
+      var action = actionEl.getAttribute('data-action');
+      var dealId = actionEl.getAttribute('data-deal-id') || (actionEl.closest('.deal-card') || {}).getAttribute('data-deal-id');
+
+      if (action === 'view-deal' && dealId) {
+        openDealDetail(dealId);
+      } else if (action === 'move-deal' && dealId) {
+        e.stopPropagation();
+        var stage = actionEl.getAttribute('data-stage');
+        moveDealToStage(dealId, stage);
+      } else if (action === 'edit-deal' && dealId) {
+        e.stopPropagation();
+        openEditDealModal(dealId);
+      } else if (action === 'delete-deal' && dealId) {
+        e.stopPropagation();
+        confirmDeleteDeal(dealId);
+      }
+    });
+
+    function moveDealToStage(dealId, stage) {
+      API('/api/crm/deals/' + encodeURIComponent(dealId) + '/move/' + encodeURIComponent(stage), { method: 'POST' })
+        .then(function () {
+          loadPipelineDeals(activePipelineId, true);
+        }).catch(function () {});
+    }
+
+    /* ── Deal detail ─────────────────────────────────────────── */
+    function openDealDetail(id) {
+      var d = dealsMap[id];
+      if (!d) return;
+      selectedDealId = id;
+      closeContactDetail();
+      $dealDetailTitle.textContent = d.title || 'Untitled Deal';
+      var html =
+        '<div class="detail-field"><div class="detail-label">Value</div><div class="detail-value" style="color:var(--teal);font-weight:700;font-size:1.1rem;">' + esc(formatCurrency(d.value, d.currency)) + '</div></div>' +
+        '<div class="detail-field"><div class="detail-label">Stage</div><div class="detail-value">' + esc(d.stage || '—') + '</div></div>' +
+        '<div class="detail-field"><div class="detail-label">Contact</div><div class="detail-value">' + contactName(d.contact_id) + '</div></div>' +
+        '<div class="detail-field"><div class="detail-label">Pipeline</div><div class="detail-value">' + esc(d.pipeline_id || '—') + '</div></div>' +
+        '<div class="detail-field"><div class="detail-label">Owner</div><div class="detail-value">' + esc(d.owner_id || '—') + '</div></div>' +
+        '<div class="detail-field"><div class="detail-label">Expected Close</div><div class="detail-value">' + esc(d.expected_close_date ? formatDate(d.expected_close_date) : '—') + '</div></div>';
+      if (d.created_at) {
+        html += '<div class="detail-field"><div class="detail-label">Created</div><div class="detail-value">' + esc(formatDate(d.created_at)) + '</div></div>';
+      }
+      $dealDetailBody.innerHTML = html;
+      $dealDetail.classList.add('open');
+    }
+
+    window.closeDealDetail = function () {
+      $dealDetail.classList.remove('open');
+      selectedDealId = null;
+    };
+
+    document.getElementById('btn-edit-deal-detail').addEventListener('click', function () {
+      if (selectedDealId) openEditDealModal(selectedDealId);
+    });
+
+    document.getElementById('btn-delete-deal-detail').addEventListener('click', function () {
+      if (selectedDealId) confirmDeleteDeal(selectedDealId);
+    });
+
+    /* ── Deal form HTML ──────────────────────────────────────── */
+    function dealFormHtml(d) {
+      d = d || {};
+      var contactOpts = '<option value="">— Select contact —</option>';
+      for (var i = 0; i < contacts.length; i++) {
+        var c = contacts[i];
+        contactOpts += '<option value="' + escAttr(c.id) + '"' + (c.id === d.contact_id ? ' selected' : '') + '>' + esc(c.name) + '</option>';
+      }
+      var pipelineOpts = '';
+      for (var p = 0; p < pipelines.length; p++) {
+        pipelineOpts += '<option value="' + escAttr(pipelines[p].id) + '"' + (pipelines[p].id === (d.pipeline_id || activePipelineId) ? ' selected' : '') + '>' + esc(pipelines[p].name) + '</option>';
+      }
+      var stageOpts = '<option value="">— Select stage —</option>';
+      for (var s = 0; s < activePipelineStages.length; s++) {
+        stageOpts += '<option value="' + escAttr(activePipelineStages[s]) + '"' + (activePipelineStages[s] === d.stage ? ' selected' : '') + '>' + esc(activePipelineStages[s]) + '</option>';
+      }
+      return '<div class="form-group"><label class="form-label">Title *</label>' +
+        '<input class="form-input" id="df-title" value="' + escAttr(d.title) + '" required></div>' +
+        '<div class="form-group"><label class="form-label">Contact</label>' +
+        '<select class="form-input" id="df-contact">' + contactOpts + '</select></div>' +
+        '<div class="form-group"><label class="form-label">Pipeline</label>' +
+        '<select class="form-input" id="df-pipeline">' + pipelineOpts + '</select></div>' +
+        '<div class="form-group"><label class="form-label">Stage</label>' +
+        '<select class="form-input" id="df-stage">' + stageOpts + '</select></div>' +
+        '<div class="form-group"><label class="form-label">Value</label>' +
+        '<input class="form-input" id="df-value" type="number" step="0.01" value="' + escAttr(d.value != null ? String(d.value) : '') + '"></div>' +
+        '<div class="form-group"><label class="form-label">Currency</label>' +
+        '<input class="form-input" id="df-currency" value="' + escAttr(d.currency || 'USD') + '" placeholder="USD"></div>' +
+        '<div class="form-group"><label class="form-label">Owner ID</label>' +
+        '<input class="form-input" id="df-owner" value="' + escAttr(d.owner_id) + '"></div>' +
+        '<div class="form-group"><label class="form-label">Expected Close Date</label>' +
+        '<input class="form-input" id="df-close-date" type="date" value="' + escAttr(d.expected_close_date ? d.expected_close_date.substring(0, 10) : '') + '"></div>';
+    }
+
+    function readDealForm() {
+      return {
+        title: document.getElementById('df-title').value.trim(),
+        contact_id: document.getElementById('df-contact').value || undefined,
+        pipeline_id: document.getElementById('df-pipeline').value || undefined,
+        stage: document.getElementById('df-stage').value || undefined,
+        value: parseFloat(document.getElementById('df-value').value) || 0,
+        currency: document.getElementById('df-currency').value.trim() || 'USD',
+        owner_id: document.getElementById('df-owner').value.trim() || undefined,
+        expected_close_date: document.getElementById('df-close-date').value || undefined
+      };
+    }
+
+    /* ── Create deal ─────────────────────────────────────────── */
+    function openNewDealModal() {
+      if (pipelines.length === 0) {
+        showError('Create a pipeline first before adding deals.');
+        return;
+      }
+      openModal('New Deal', dealFormHtml({}),
+        '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary" id="btn-save-new-deal">Create</button>');
+
+      setupPipelineStageSync();
+
+      document.getElementById('btn-save-new-deal').addEventListener('click', function () {
+        var data = readDealForm();
+        if (!data.title) { showError('Deal title is required'); return; }
+        this.disabled = true;
+        API('/api/crm/deals', { method: 'POST', body: data }).then(function () {
+          closeModal();
+          loadPipelineDeals(activePipelineId);
+        }).catch(function () {});
+      });
+    }
+
+    function setupPipelineStageSync() {
+      var pipelineSel = document.getElementById('df-pipeline');
+      if (!pipelineSel) return;
+      pipelineSel.addEventListener('change', function () {
+        var pid = this.value;
+        var pl = pipelines.find(function (p) { return p.id === pid; });
+        var stages = (pl && pl.stages) ? pl.stages : [];
+        var stageSel = document.getElementById('df-stage');
+        var html = '<option value="">— Select stage —</option>';
+        for (var i = 0; i < stages.length; i++) {
+          html += '<option value="' + escAttr(stages[i]) + '">' + esc(stages[i]) + '</option>';
+        }
+        stageSel.innerHTML = html;
+      });
+    }
+
+    document.getElementById('btn-new-deal').addEventListener('click', openNewDealModal);
+
+    /* ── Edit deal ───────────────────────────────────────────── */
+    function openEditDealModal(id) {
+      var d = dealsMap[id];
+      if (!d) return;
+      openModal('Edit Deal', dealFormHtml(d),
+        '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary" id="btn-save-edit-deal">Save</button>');
+
+      setupPipelineStageSync();
+
+      document.getElementById('btn-save-edit-deal').addEventListener('click', function () {
+        var data = readDealForm();
+        if (!data.title) { showError('Deal title is required'); return; }
+        this.disabled = true;
+        API('/api/crm/deals/' + encodeURIComponent(id), { method: 'PATCH', body: data }).then(function () {
+          closeModal();
+          loadPipelineDeals(activePipelineId).then(function () {
+            if (selectedDealId === id) openDealDetail(id);
+          });
+        }).catch(function () {});
+      });
+    }
+
+    /* ── Delete deal ─────────────────────────────────────────── */
+    function confirmDeleteDeal(id) {
+      var d = dealsMap[id];
+      var title = d ? d.title : id;
+      openModal('Delete Deal',
+        '<p class="confirm-text">Are you sure you want to delete deal <strong>' + esc(title) + '</strong>? This action cannot be undone.</p>',
+        '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-danger" id="btn-confirm-delete-deal">Delete</button>');
+      document.getElementById('btn-confirm-delete-deal').addEventListener('click', function () {
+        this.disabled = true;
+        API('/api/crm/deals/' + encodeURIComponent(id), { method: 'DELETE' }).then(function () {
+          closeModal();
+          closeDealDetail();
+          loadPipelineDeals(activePipelineId);
+        }).catch(function () {});
+      });
+    }
+
+    /* ── Create pipeline ─────────────────────────────────────── */
+    function openNewPipelineModal() {
+      var body =
+        '<div class="form-group"><label class="form-label">Pipeline Name *</label>' +
+        '<input class="form-input" id="pf-name" placeholder="e.g. Sales Pipeline"></div>' +
+        '<div class="form-group"><label class="form-label">Stages (comma-separated) *</label>' +
+        '<input class="form-input" id="pf-stages" placeholder="e.g. Lead, Qualified, Proposal, Negotiation, Won, Lost"></div>';
+      openModal('New Pipeline', body,
+        '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary" id="btn-save-new-pipeline">Create</button>');
+      document.getElementById('btn-save-new-pipeline').addEventListener('click', function () {
+        var name = document.getElementById('pf-name').value.trim();
+        var stagesRaw = document.getElementById('pf-stages').value;
+        var stages = stagesRaw ? stagesRaw.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : [];
+        if (!name) { showError('Pipeline name is required'); return; }
+        if (stages.length === 0) { showError('At least one stage is required'); return; }
+        this.disabled = true;
+        API('/api/crm/pipelines', { method: 'POST', body: { name: name, stages: stages } }).then(function (newPipeline) {
+          closeModal();
+          if (newPipeline && newPipeline.id) activePipelineId = newPipeline.id;
+          loadPipelines();
+        }).catch(function () {});
+      });
+    }
+
+    document.getElementById('btn-new-pipeline').addEventListener('click', openNewPipelineModal);
+    document.getElementById('btn-new-pipeline-empty').addEventListener('click', openNewPipelineModal);
+
+    /* ═══════════════════════════════════════════════════════════
+       ACTIVITIES
+       ═══════════════════════════════════════════════════════════ */
+    function loadActivities(silent) {
+      if (!silent) $activitiesLoading.style.display = 'flex';
+      return API('/api/crm/activities').then(function (data) {
+        activities = Array.isArray(data) ? data : (data.activities || data.items || []);
+        renderActivities();
+        if (!silent) $activitiesLoading.style.display = 'none';
+      }).catch(function () {
+        activities = [];
+        renderActivities();
+        if (!silent) $activitiesLoading.style.display = 'none';
+      });
+    }
+
+    function renderActivities() {
+      $activitiesLoading.style.display = 'none';
+      if (activities.length === 0) {
+        $activitiesEmpty.style.display = 'flex';
+        $activitiesTable.style.display = 'none';
+        return;
+      }
+      $activitiesEmpty.style.display = 'none';
+      $activitiesTable.style.display = 'table';
+
+      var html = '';
+      for (var i = 0; i < activities.length; i++) {
+        var a = activities[i];
+        html += '<tr>' +
+          '<td><span class="activity-type ' + activityTypeClass(a.activity_type) + '">' + esc(a.activity_type || 'other') + '</span></td>' +
+          '<td>' + esc(a.summary || '') + '</td>' +
+          '<td>' + contactName(a.contact_id) + '</td>' +
+          '<td>' + dealTitle(a.deal_id) + '</td>' +
+          '<td>' + esc(formatDate(a.created_at || a.timestamp)) + '</td>' +
+        '</tr>';
+      }
+      $activitiesBody.innerHTML = html;
+    }
+
+    /* ── Log activity ────────────────────────────────────────── */
+    function openNewActivityModal() {
+      var contactOpts = '<option value="">— None —</option>';
+      for (var i = 0; i < contacts.length; i++) {
+        contactOpts += '<option value="' + escAttr(contacts[i].id) + '">' + esc(contacts[i].name) + '</option>';
+      }
+      var dealOpts = '<option value="">— None —</option>';
+      for (var d = 0; d < deals.length; d++) {
+        dealOpts += '<option value="' + escAttr(deals[d].id) + '">' + esc(deals[d].title) + '</option>';
+      }
+      var body =
+        '<div class="form-group"><label class="form-label">Type *</label>' +
+        '<select class="form-input" id="af-type">' +
+          '<option value="call">Call</option>' +
+          '<option value="email">Email</option>' +
+          '<option value="meeting">Meeting</option>' +
+          '<option value="note">Note</option>' +
+          '<option value="task">Task</option>' +
+        '</select></div>' +
+        '<div class="form-group"><label class="form-label">Summary *</label>' +
+        '<input class="form-input" id="af-summary" placeholder="Brief description"></div>' +
+        '<div class="form-group"><label class="form-label">Details</label>' +
+        '<textarea class="form-input" id="af-details" rows="3" placeholder="Additional details…"></textarea></div>' +
+        '<div class="form-group"><label class="form-label">Contact</label>' +
+        '<select class="form-input" id="af-contact">' + contactOpts + '</select></div>' +
+        '<div class="form-group"><label class="form-label">Deal</label>' +
+        '<select class="form-input" id="af-deal">' + dealOpts + '</select></div>' +
+        '<div class="form-group"><label class="form-label">User ID</label>' +
+        '<input class="form-input" id="af-user" placeholder="Your user ID"></div>';
+      openModal('Log Activity', body,
+        '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary" id="btn-save-new-activity">Log</button>');
+      document.getElementById('btn-save-new-activity').addEventListener('click', function () {
+        var data = {
+          activity_type: document.getElementById('af-type').value,
+          summary: document.getElementById('af-summary').value.trim(),
+          details: document.getElementById('af-details').value.trim() || undefined,
+          contact_id: document.getElementById('af-contact').value || undefined,
+          deal_id: document.getElementById('af-deal').value || undefined,
+          user_id: document.getElementById('af-user').value.trim() || undefined
+        };
+        if (!data.summary) { showError('Activity summary is required'); return; }
+        this.disabled = true;
+        API('/api/crm/activities', { method: 'POST', body: data }).then(function () {
+          closeModal();
+          loadActivities();
+        }).catch(function () {});
+      });
+    }
+
+    document.getElementById('btn-new-activity').addEventListener('click', openNewActivityModal);
+    document.getElementById('btn-new-activity-empty').addEventListener('click', openNewActivityModal);
+
+    /* ═══════════════════════════════════════════════════════════
+       REFRESH & INIT
+       ═══════════════════════════════════════════════════════════ */
+    function refreshAll() {
+      updateRefreshStatus(true);
+      var p1 = loadContacts(true);
+      var p2 = (activeTab === 'pipeline' && activePipelineId) ? loadPipelineDeals(activePipelineId, true) : Promise.resolve();
+      var p3 = (activeTab === 'activities') ? loadActivities(true) : Promise.resolve();
+      Promise.all([p1, p2, p3]).then(function () {
+        updateRefreshStatus(false);
+      }).catch(function () {
+        updateRefreshStatus(false);
+      });
+    }
+
+    function scheduleRefresh() {
+      if (refreshTimer) clearInterval(refreshTimer);
+      refreshTimer = setInterval(refreshAll, REFRESH_MS);
+    }
+
+    /* ── Keyboard shortcuts ──────────────────────────────────── */
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        closeModal();
+        closeContactDetail();
+        closeDealDetail();
+      }
+    });
+
+    /* ── Init ────────────────────────────────────────────────── */
+    function init() {
+      loadContacts();
+      loadPipelines(true);
+      loadActivities(true);
+      scheduleRefresh();
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+
+  }());
+  </script>
+</body>
+</html>

@@ -1,38 +1,24 @@
-# `src/adapter_framework` — Sensor / Robot Adapter Framework
+# Adapter Framework
 
-Standardises device telemetry ingestion and actuation across all physical interfaces with strict safety enforcement.
+The `adapter_framework` package defines the contract that all Murphy adapters
+must implement and provides the runtime that discovers, loads, and executes them.
 
-![License: BSL 1.1](https://img.shields.io/badge/License-BSL%201.1-blue.svg)
-
-## Overview
-
-The adapter framework defines the contract every sensor and robot adapter must satisfy before it may receive or emit data. All telemetry flows through a typed ingestion pipeline that converts raw device readings into `TelemetryArtifact` objects consumable by the Control Plane. Actuation is only possible through compiled `DeviceExecutionPacket` objects — no free-form commands are ever forwarded to hardware. Safety hooks including an emergency-stop and a heartbeat watchdog guard every registered adapter at runtime.
-
-## Key Components
+## Key Modules
 
 | Module | Purpose |
 |--------|---------|
-| `adapter_contract.py` | `AdapterAPI`, `AdapterCapability`, and `AdapterManifest` interface definitions |
-| `adapter_runtime.py` | `AdapterRuntime` execution loop and `AdapterRegistry` for managing live adapters |
-| `execution_packet_extension.py` | `DeviceExecutionPacket` — compiled hardware command with gate checks |
-| `safety_hooks.py` | `SafetyHooks`, `EmergencyStop`, and `HeartbeatWatchdog` enforcement layer |
-| `telemetry_artifact.py` | `TelemetryArtifact` model and `TelemetryIngestionPipeline` normalisation logic |
-| `adapters/` | Built-in adapter implementations for common device categories |
+| `adapter_contract.py` | `AdapterContract` abstract base with typed `execute()` signature |
+| `adapter_runtime.py` | Discovers adapters, validates contracts, and dispatches calls |
+| `execution_packet_extension.py` | Extends `ExecutionPacket` with adapter-specific metadata |
+| `safety_hooks.py` | Pre/post execution guards (rate-limit, sandboxing, rollback) |
+| `adapters/` | Built-in adapter implementations |
 
-## Usage
+## Writing an Adapter
 
 ```python
-from adapter_framework import AdapterRegistry, AdapterRuntime, SafetyHooks
-
-registry = AdapterRegistry()
-runtime = AdapterRuntime(registry=registry, safety_hooks=SafetyHooks())
-
-# Register a device adapter
-registry.register(my_sensor_adapter)
-
-# Start ingestion
-runtime.start()
+from adapter_framework.adapter_contract import AdapterContract, ExecutionResult
+class MyAdapter(AdapterContract):
+    capability = "my_capability"
+    async def execute(self, payload: dict) -> ExecutionResult:
+        ...
 ```
-
----
-*Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post · License: BSL 1.1*

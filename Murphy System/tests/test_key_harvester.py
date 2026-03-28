@@ -504,7 +504,7 @@ class TestAcquireSingleTOSGate:
 
         with patch.object(tos_gate, "request_approval", side_effect=_capturing_request):
             # Mock MurphyNativeRunner so no real automation is needed
-            mock_runner = _make_mock_runner(key_value="gsk_testkey_abc123456789xyz")
+            mock_runner = _make_mock_runner(key_value="di_testkey_abc123456789xyz")
             with patch("key_harvester.MurphyNativeRunner", return_value=mock_runner):
                 with patch("key_harvester._HAS_NATIVE_AUTOMATION", True):
                     with patch("asyncio.sleep", new_callable=AsyncMock):
@@ -683,7 +683,7 @@ def _provide_creds(cred_gate: UserCredentialGate, harvester: KeyHarvester) -> No
     harvester._credential_gate.request_credentials = _instant_provide  # type: ignore[method-assign]
 
 
-def _make_mock_runner(key_value: str = "gsk_test_key_abc123") -> Any:
+def _make_mock_runner(key_value: str = "di_test_key_abc123") -> Any:
     """Build a mock MurphyNativeRunner that returns successful run() results."""
     from unittest.mock import MagicMock
 
@@ -976,7 +976,7 @@ class TestSharedPageInSignupFlow:
             tos_gate.approve(req.request_id, approved_by="tester")
             return req
 
-        mock_runner = _make_mock_runner(key_value="gsk_testkey_abc123456789xyz")
+        mock_runner = _make_mock_runner(key_value="di_testkey_abc123456789xyz")
         with patch.object(tos_gate, "request_approval", side_effect=patched_request):
             with patch("key_harvester.MurphyNativeRunner", return_value=mock_runner):
                 with patch("key_harvester._HAS_NATIVE_AUTOMATION", True):

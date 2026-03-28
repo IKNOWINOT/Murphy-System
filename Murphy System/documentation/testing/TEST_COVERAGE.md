@@ -67,8 +67,8 @@ tests/
 ├── test_authority_gate.py
 ├── test_email_integration.py
 ├── test_financial_reporting_engine.py
-├── test_groq_integration.py           # Tier 1/2/3 — unit, mock, live
-├── test_groq_key_rotator.py
+├── test_deepinfra_integration.py           # Tier 1/2/3 — unit, mock, live
+├── test_deepinfra_key_rotator.py
 ├── test_human_oversight_system*.py
 ├── test_k8s_manifests.py
 ├── test_learning_engine_connector.py
@@ -174,13 +174,13 @@ python -m pytest tests/ --no-cov --timeout=30 -q
 
 ```bash
 # Single module
-python -m pytest tests/test_groq_integration.py -v --timeout=30
+python -m pytest tests/test_deepinfra_integration.py -v --timeout=30
 
 # Gap-closure tests only
 python -m pytest tests/ -k "gap_closure" --timeout=30 -q
 
 # Skip live API tests (no keys required)
-python -m pytest tests/ --ignore=tests/test_groq_integration.py -q
+python -m pytest tests/ --ignore=tests/test_deepinfra_integration.py -q
 
 # With coverage (core modules)
 python -m pytest tests/ --cov=rosetta_subsystem_wiring \
@@ -194,7 +194,7 @@ environment variable is absent:
 
 | Test file | Required env var |
 |-----------|-----------------|
-| `test_groq_integration.py` (Tier 3) | `DEEPINFRA_API_KEY` |
+| `test_deepinfra_integration.py` (Tier 3) | `DEEPINFRA_API_KEY` |
 | `test_email_integration.py` (SendGrid path) | `SENDGRID_API_KEY` |
 
 ---

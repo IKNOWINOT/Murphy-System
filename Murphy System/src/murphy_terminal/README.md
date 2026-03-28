@@ -1,29 +1,19 @@
-# `src/murphy_terminal` — Murphy Terminal
+# Murphy Terminal
 
-Universal command registry and category definitions for the Murphy System terminal interface.
+The `murphy_terminal` package powers the interactive command-line
+interface embedded in the Murphy web UI.  It maintains a command registry
+and dispatches terminal inputs to the appropriate Murphy subsystems.
 
-![License: BSL 1.1](https://img.shields.io/badge/License-BSL%201.1-blue.svg)
-
-## Overview
-
-The murphy terminal package provides the canonical registry of all commands available in the Murphy interactive terminal. `CommandRegistry` holds `CommandDefinition` objects organised into `CommandCategory` groups — covering system management, orchestration, agent operations, and developer utilities. The `build_registry` factory function bootstraps the full `MURPHY_COMMANDS` dictionary on first call, making the registry available to terminal frontends, the Matrix bridge command router, and the REST API.
-
-## Key Components
+## Key Module
 
 | Module | Purpose |
 |--------|---------|
-| `command_registry.py` | `CommandRegistry`, `CommandDefinition`, `CommandCategory`, `MURPHY_COMMANDS`, `build_registry` |
+| `command_registry.py` | `CommandRegistry` — maps command strings to handler functions |
 
 ## Usage
 
 ```python
-from murphy_terminal import CommandRegistry, build_registry, CommandCategory
-
-registry = build_registry()
-system_commands = registry.by_category(CommandCategory.SYSTEM)
-for cmd in system_commands:
-    print(cmd.name, cmd.description)
+from murphy_terminal.command_registry import CommandRegistry
+registry = CommandRegistry()
+result = await registry.dispatch("status", args=[])
 ```
-
----
-*Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post · License: BSL 1.1*

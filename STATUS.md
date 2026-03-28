@@ -1,6 +1,6 @@
 # Murphy System — Project Status
 
-> **Last updated**: 2026-03-27 (v3.0 — Real HITL state machine, automation milestones with shrink/grow, delay factor, closed-loop proposals/campaigns/setup, improved DAG generator, 50+ endpoints, 10-panel dashboard)
+> **Last updated**: 2026-03-24 (Security hardening PR — all Critical/High QA findings resolved)
 > **License**: BSL 1.1 (Business Source License)
 > Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post
 
@@ -10,17 +10,7 @@
 
 | Area | Status | Notes |
 |------|--------|-------|
-| Core Runtime | ✅ Operational | FastAPI server v3.0, 1,100+ modules, modular engine architecture |
-| **HITL State Machine** | ✅ **New** | Real blocking gates — approve/reject with side effects, 6 HITL types, auto-expire |
-| **Automation Milestones** | ✅ **New** | Per-automation milestone tracking, weighted progress, HITL blocking milestones |
-| **Delay Factor** | ✅ **New** | Missed milestones grow calendar blocks, completed milestones shrink them |
-| **Closed-Loop Proposals** | ✅ **New** | Request → AI generate → HITL approve → automation created |
-| **Closed-Loop Campaigns** | ✅ **New** | Low traction → HITL paid-ad proposal → approve → campaign resumes |
-| **Closed-Loop Self-Setup** | ✅ **New** | 12-step pipeline with 6 HITL gates, each blocks until approved |
-| **Dynamic Calendar Blocks** | ✅ **New** | width_scale, delay overlays, HITL diamond markers per block |
-| **Command Center v3.0** | ✅ **New** | 10-panel dashboard: HITL queue, calendar, milestones, all loops visible |
-| Production Calendar UI | ✅ Operational | Day/Week/Month views, SSE live updates, WebSocket multicursor, prompt→automation |
-| Automation Scheduler API | ✅ Operational | `/api/calendar`, `/api/automations/stream`, `/api/labor-cost`, `/api/prompt`, `/api/calendar/blocks` |
+| Core Runtime | ✅ Operational | FastAPI server, 1,100+ modules, modular engine architecture |
 | Control Plane | ✅ Operational | Execution packets, state vectors, formal constraints |
 | Governance Framework | ✅ Operational | HITL gates, governance kernel, compliance scheduling |
 | Confidence Engine | ✅ Operational | Bayesian scoring, Murphy Index, artifact graphs |

@@ -147,11 +147,6 @@ class OptimalRoutingWiring:
     All five subsystems are optional (graceful degradation).  When a subsystem
     is unavailable its stage is skipped and a warning is logged.
 
-    ── MCB AGENT CONTROLLER ─────────────────────────────────────────────
-    OptimalRoutingWiring checks out a MultiCursorBrowser controller at
-    construction time (agent_id ``"optimal_routing_wiring"``), making MCB
-    the controller for any UI validation or browser-based routing steps.
-
     Parameters
     ----------
     triage_engine:
@@ -187,14 +182,6 @@ class OptimalRoutingWiring:
         self._golden    = golden_path_bridge
         self._max_tools = max_tool_candidates
         self._rubix_thr = rubix_pass_threshold
-
-        # ── MCB controller checkout ───────────────────────────────────
-        try:
-            from agent_module_loader import MultiCursorBrowser as _MCB
-            self._mcb = _MCB.get_controller(agent_id="optimal_routing_wiring")
-        except Exception:
-            self._mcb = None
-
 
     # ------------------------------------------------------------------
     # Main entry point

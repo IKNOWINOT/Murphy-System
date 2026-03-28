@@ -185,7 +185,7 @@ class TestSanityPreviousGapsStillClosed:
         for gap in range(1, 9):
             assert f"GAP-{gap}" in text
 
-    def test_groq_integration_test_still_present(self):
+    def test_deepinfra_integration_test_still_present(self):
         assert (TESTS_DIR / "test_groq_integration.py").exists()
 
     def test_configuration_doc_has_16_sections(self):

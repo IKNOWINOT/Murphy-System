@@ -33,16 +33,16 @@ MURPHY_VERSION=1.0.0
 MURPHY_ENV=development
 MURPHY_PORT=8000
 
-# API Keys — set your keys using:  set key groq gsk_yourKeyHere  (in the Murphy terminal)
+# API Keys — set your keys using:  set key deepinfra <your_key>  (in the Murphy terminal)
 # Or uncomment and fill in below:
-# GROQ_API_KEY=
+# DEEPINFRA_API_KEY=
 # OPENAI_API_KEY=
 
 # Optional: Database (not required for basic operation)
 # DATABASE_URL=postgresql://user:pass@localhost:5432/murphy
 # REDIS_URL=redis://localhost:6379
 EOF
-    echo "✅ Created .env file (use 'set key groq <key>' in Murphy terminal to add API keys)"
+    echo "✅ Created .env file (use 'set key deepinfra <key>' in Murphy terminal to add API keys)"
 fi
 
 # Install dependencies if needed

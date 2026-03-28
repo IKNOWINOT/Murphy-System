@@ -545,13 +545,13 @@ class TestMagnifySolidifyFlow(unittest.TestCase):
 # 4. DeepInfra LLM Integration Tests
 # ============================================================================
 
-class TestGroqIntegration(unittest.TestCase):
+class TestDeepInfraIntegration(unittest.TestCase):
     """Test with DeepInfra API key (if available and network accessible)."""
 
     def setUp(self):
         self.murphy = _get_murphy()
-        self.groq_key = os.environ.get("DEEPINFRA_API_KEY", "")
-        if not self.groq_key:
+        self.deepinfra_key = os.environ.get("DEEPINFRA_API_KEY", "")
+        if not self.deepinfra_key:
             self.skipTest("DEEPINFRA_API_KEY not set — skipping DeepInfra tests")
         # Check if DeepInfra API is reachable (sandbox may not have network)
         try:
@@ -560,7 +560,7 @@ class TestGroqIntegration(unittest.TestCase):
         except (OSError, socket.timeout):
             self.skipTest("api.deepinfra.com not reachable — no network access")
 
-    def test_groq_responds_in_llm_mode(self):
+    def test_deepinfra_responds_in_llm_mode(self):
         """With DeepInfra key, responses should be in 'llm' mode."""
         os.environ["MURPHY_LLM_PROVIDER"] = "deepinfra"
         r = self.murphy.librarian_ask(
@@ -570,7 +570,7 @@ class TestGroqIntegration(unittest.TestCase):
         self.assertEqual(r["mode"], "llm")
         self.assertGreater(len(r["message"]), 50)
 
-    def test_groq_maintains_context(self):
+    def test_deepinfra_maintains_context(self):
         """DeepInfra LLM should receive context about previously collected dimensions."""
         os.environ["MURPHY_LLM_PROVIDER"] = "deepinfra"
         session = "deepinfra-context"
@@ -590,7 +590,7 @@ class TestGroqIntegration(unittest.TestCase):
         has_context = "manufactur" in msg_lower or "inoni" in msg_lower or "integrat" in msg_lower
         self.assertTrue(has_context, "DeepInfra response lacks context from prior message")
 
-    def test_groq_score_still_tracked(self):
+    def test_deepinfra_score_still_tracked(self):
         """MFGC/5U score should be tracked even in LLM mode."""
         os.environ["MURPHY_LLM_PROVIDER"] = "deepinfra"
         r = self.murphy.librarian_ask(

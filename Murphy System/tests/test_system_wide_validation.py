@@ -105,9 +105,9 @@ class TestLLMSubsystemIntegration:
         from llm_controller import LLMModel
 
         # DeepInfra provider should have matching models
-        assert hasattr(LLMModel, "GROQ_MIXTRAL")
-        assert hasattr(LLMModel, "GROQ_LLAMA")
-        assert hasattr(LLMModel, "GROQ_GEMMA")
+        assert hasattr(LLMModel, "DEEPINFRA_MIXTRAL")
+        assert hasattr(LLMModel, "DEEPINFRA_META_LLAMA")
+        assert hasattr(LLMModel, "TOGETHER_META_LLAMA")
         assert hasattr(ProviderType, "DEEPINFRA")
 
     def test_controller_instantiation(self) -> None:

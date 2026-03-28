@@ -97,7 +97,7 @@ COPYLEFT_PATTERN = re.compile(
 
 # Patterns that look like real API keys (not placeholders)
 SECRET_PATTERNS = [
-    re.compile(r"""(?<=['"])(gsk_[A-Za-z0-9]{20,})(?=['"])"""),
+    re.compile(r"""(?<=['"])(di_[A-Za-z0-9]{20,})(?=['"])"""),
     re.compile(r"""(?<=['"])(sk-[A-Za-z0-9]{20,})(?=['"])"""),
     re.compile(r"""(?<=['"])(pk_live_[A-Za-z0-9]{10,})(?=['"])"""),
     re.compile(r"""(?<=['"])(sk_live_[A-Za-z0-9]{10,})(?=['"])"""),
@@ -340,7 +340,7 @@ class TestTrademarkNaming:
 
     def test_no_trademark_class_names(self) -> None:
         """No classes named directly after trademarked services."""
-        # Allowed: GroqConnector, OpenAIAdapter, etc. (service + suffix)
+        # Allowed: DeepInfraConnector, OpenAIAdapter, etc. (service + suffix)
         # Not allowed: class DeepInfra, class OpenAI, class Stripe (as Murphy's own)
         trademark_class_pattern = re.compile(
             r'class\s+(DeepInfra|OpenAI|Anthropic|Stripe|Coinbase|HeyGen|Tavus|Twilio|SendGrid)\s*[\(:]',

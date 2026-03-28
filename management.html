@@ -345,6 +345,9 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
       <div class="m-sidebar-item" id="nav-reports" onclick="switchView('reports')">
         <span>&#x1F4CA;</span> Reports
       </div>
+      <div class="m-sidebar-item" id="nav-founder" onclick="switchView('founder')">
+        <span>&#x1F4CA;</span> Founder Update
+      </div>
       <div class="m-sidebar-item" id="nav-inbox" onclick="switchView('board')">
         <span>&#x1F4EC;</span> Inbox
         <span class="m-sidebar-badge" id="badge-inbox" style="display:none">0</span>
@@ -369,6 +372,7 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
         <button class="m-tab" role="tab" data-view="board" onclick="switchView('board')">Recommendations</button>
         <button class="m-tab" role="tab" data-view="subsystems" onclick="switchView('subsystems')">Subsystems</button>
         <button class="m-tab" role="tab" data-view="reports" onclick="switchView('reports')">Reports</button>
+        <button class="m-tab" role="tab" data-view="founder" onclick="switchView('founder')">Founder Update</button>
       </div>
       <div class="m-header-actions">
         <label for="refresh-select" style="font-size:12px;color:var(--text-muted)">Auto-refresh:</label>
@@ -472,6 +476,24 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
         <div id="reports-errors"></div>
         <div id="reports-content">
           <div class="state-loading"><span class="loading-dot">Loading system status…</span></div>
+        </div>
+      </div>
+
+      <!-- FOUNDER UPDATE -->
+      <div class="view-panel" id="view-founder" role="tabpanel">
+        <div id="founder-errors"></div>
+        <div class="health-grid" id="founder-stats">
+          <div class="health-card"><div class="health-card-value loading-dot" id="founder-health-status">…</div><div class="health-card-label">System Health</div></div>
+          <div class="health-card"><div class="health-card-value loading-dot" id="founder-rec-count">…</div><div class="health-card-label">Recommendations</div></div>
+          <div class="health-card"><div class="health-card-value loading-dot" id="founder-history-count">…</div><div class="health-card-label">History Entries</div></div>
+        </div>
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 10px">Founder Recommendations</div>
+        <div id="founder-recs-table">
+          <div class="state-loading"><span class="loading-dot">Loading recommendations…</span></div>
+        </div>
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 10px">Report History</div>
+        <div id="founder-history-table">
+          <div class="state-loading"><span class="loading-dot">Loading history…</span></div>
         </div>
       </div>
 
@@ -1272,10 +1294,116 @@ function updateAgentBar(msg, loading) {
 }
 
 // ================================================================
+// FOUNDER UPDATE VIEW
+// ================================================================
+async function loadFounderHealth() {
+  try {
+    const res = await fetch('/api/founder/health', { credentials: 'same-origin' });
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    document.getElementById('founder-health-status').textContent = data.status || data.health || 'OK';
+    document.getElementById('founder-health-status').classList.remove('loading-dot');
+  } catch (e) {
+    document.getElementById('founder-health-status').textContent = '—';
+    document.getElementById('founder-health-status').classList.remove('loading-dot');
+  }
+}
+
+async function loadFounderRecommendations() {
+  try {
+    const res = await fetch('/api/founder/recommendations', { credentials: 'same-origin' });
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    const recs = Array.isArray(data) ? data : (data.recommendations || []);
+    document.getElementById('founder-rec-count').textContent = recs.length;
+    document.getElementById('founder-rec-count').classList.remove('loading-dot');
+    if (!recs.length) {
+      document.getElementById('founder-recs-table').innerHTML = '<div style="padding:16px;color:var(--text-muted);font-size:13px;">No recommendations at this time.</div>';
+      return;
+    }
+    let html = '<table class="m-table"><thead><tr><th>ID</th><th>Category</th><th>Title</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+    recs.forEach(function (r) {
+      const id = r.id || r.recommendation_id || '';
+      const cat = r.category || r.type || '';
+      const title = r.title || r.description || '';
+      const status = r.status || 'pending';
+      html += '<tr>';
+      html += '<td style="font-family:var(--font-code);font-size:12px;">' + escHtml(String(id)) + '</td>';
+      html += '<td><span class="m-badge">' + escHtml(cat) + '</span></td>';
+      html += '<td>' + escHtml(title) + '</td>';
+      html += '<td>' + escHtml(status) + '</td>';
+      html += '<td style="display:flex;gap:4px;">';
+      if (status === 'pending' || status === 'open') {
+        html += '<button class="m-btn m-btn-sm" onclick="founderAcceptRec(\'' + escHtml(String(id)) + '\')">&#x2705;</button>';
+        html += '<button class="m-btn m-btn-sm" onclick="founderRejectRec(\'' + escHtml(String(id)) + '\')">&#x274C;</button>';
+        html += '<button class="m-btn m-btn-sm" onclick="founderDeferRec(\'' + escHtml(String(id)) + '\')">&#x23F3;</button>';
+      }
+      html += '</td></tr>';
+    });
+    html += '</tbody></table>';
+    document.getElementById('founder-recs-table').innerHTML = html;
+  } catch (e) {
+    document.getElementById('founder-recs-table').innerHTML = '<div style="padding:16px;color:var(--danger);font-size:13px;">Failed to load recommendations.</div>';
+  }
+}
+
+async function loadFounderHistory() {
+  try {
+    const res = await fetch('/api/founder/history', { credentials: 'same-origin' });
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    const entries = Array.isArray(data) ? data : (data.history || data.reports || []);
+    document.getElementById('founder-history-count').textContent = entries.length;
+    document.getElementById('founder-history-count').classList.remove('loading-dot');
+    if (!entries.length) {
+      document.getElementById('founder-history-table').innerHTML = '<div style="padding:16px;color:var(--text-muted);font-size:13px;">No history yet.</div>';
+      return;
+    }
+    let html = '<table class="m-table"><thead><tr><th>Date</th><th>Summary</th><th>Status</th></tr></thead><tbody>';
+    entries.slice(0, 20).forEach(function (e) {
+      html += '<tr>';
+      html += '<td style="white-space:nowrap;">' + escHtml(e.date || e.timestamp || e.created_at || '') + '</td>';
+      html += '<td>' + escHtml(e.summary || e.title || '') + '</td>';
+      html += '<td>' + escHtml(e.status || '') + '</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    document.getElementById('founder-history-table').innerHTML = html;
+  } catch (e) {
+    document.getElementById('founder-history-table').innerHTML = '<div style="padding:16px;color:var(--danger);font-size:13px;">Failed to load history.</div>';
+  }
+}
+
+async function loadFounderView() {
+  await Promise.all([loadFounderHealth(), loadFounderRecommendations(), loadFounderHistory()]);
+}
+
+async function founderAcceptRec(id) {
+  try {
+    await fetch('/api/founder/recommendations/' + encodeURIComponent(id) + '/accept', { method: 'POST', credentials: 'same-origin' });
+    loadFounderRecommendations();
+  } catch (e) { /* ignore */ }
+}
+
+async function founderRejectRec(id) {
+  try {
+    await fetch('/api/founder/recommendations/' + encodeURIComponent(id) + '/reject', { method: 'POST', credentials: 'same-origin' });
+    loadFounderRecommendations();
+  } catch (e) { /* ignore */ }
+}
+
+async function founderDeferRec(id) {
+  try {
+    await fetch('/api/founder/recommendations/' + encodeURIComponent(id) + '/defer', { method: 'POST', credentials: 'same-origin' });
+    loadFounderRecommendations();
+  } catch (e) { /* ignore */ }
+}
+
+// ================================================================
 // VIEW SWITCHING
 // ================================================================
-const VIEW_TITLES = { health:'Health Overview', scans:'Run Scans', board:'Recommendations', subsystems:'Subsystems', reports:'Reports' };
-const VIEW_LOADERS = { health: loadHealthOverview, scans: () => Promise.resolve(), board: loadRecommendations, subsystems: loadSubsystemsTable, reports: loadReports };
+const VIEW_TITLES = { health:'Health Overview', scans:'Run Scans', board:'Recommendations', subsystems:'Subsystems', reports:'Reports', founder:'Founder Update' };
+const VIEW_LOADERS = { health: loadHealthOverview, scans: () => Promise.resolve(), board: loadRecommendations, subsystems: loadSubsystemsTable, reports: loadReports, founder: loadFounderView };
 
 function switchView(v) {
   _currentView = v;

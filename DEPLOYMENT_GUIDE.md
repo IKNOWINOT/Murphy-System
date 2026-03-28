@@ -1,7 +1,7 @@
 # Murphy System — Deployment Guide
 
 **Version:** 1.0  
-**Last updated:** 2026-03-27  
+**Last updated:** 2026-03-24  
 **License:** BSL 1.1
 
 > **Canonical detailed reference:** [documentation/deployment/DEPLOYMENT_GUIDE.md](documentation/deployment/DEPLOYMENT_GUIDE.md)  
@@ -9,48 +9,6 @@
 > **Scaling guide:** [documentation/deployment/SCALING.md](documentation/deployment/SCALING.md)  
 > **Maintenance guide:** [documentation/deployment/MAINTENANCE.md](documentation/deployment/MAINTENANCE.md)  
 > **Operational runbooks:** [docs/RUNBOOKS.md](docs/RUNBOOKS.md)
-
----
-
-## Quick Start — Production Server
-
-The unified production server (`murphy_production_server.py`) is the primary entry point as of 2026-03-27.
-
-```bash
-# Install dependencies
-pip install fastapi uvicorn[standard] pydantic sse-starlette
-
-# Run (development)
-python murphy_production_server.py
-
-# Run (production)
-MURPHY_ENV=production \
-MURPHY_ALLOWED_ORIGINS=https://yourdomain.com \
-PORT=8000 \
-python murphy_production_server.py
-```
-
-Open `http://localhost:8000` for the full Automation Calendar UI.
-
-### Key Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `MURPHY_ENV` | `development` | `development` / `staging` / `production` |
-| `MURPHY_ALLOWED_ORIGINS` | `*` (dev) | Comma-separated CORS origins |
-| `PORT` | `8000` | Server listen port |
-
-### Production Server Endpoints
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /` | Production Calendar UI |
-| `GET /api/calendar` | Automation timeline (day/week/month) |
-| `GET /api/automations/stream` | SSE live event stream |
-| `POST /api/prompt` | NL → automation (tier-enforced) |
-| `GET /api/labor-cost` | ETC vs actual + ROI analysis |
-| `WS /ws` | WebSocket multicursor |
-| `GET /docs` | OpenAPI documentation |
 
 ---
 
@@ -154,7 +112,7 @@ REDIS_URL=redis://:<password>@localhost:6379/0
 REDIS_PASSWORD=<generated>
 
 # LLM
-DEEPINFRA_API_KEY=gsk_...           # Free: https://console.deepinfra.com/keys
+DEEPINFRA_API_KEY=di_...           # Free: https://deepinfra.com
 OLLAMA_HOST=http://localhost:11434  # For onboard Ollama
 
 # Email (optional, for notifications)

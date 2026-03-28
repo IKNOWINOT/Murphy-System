@@ -129,6 +129,7 @@ class WorkflowDAGEngine:
             if llm_controller is not None:
                 try:
                     import asyncio
+
                     from llm_controller import LLMRequest
                     req = LLMRequest(prompt=f"{topic}: {detail}", max_tokens=max_tokens)
                     try:
@@ -170,7 +171,7 @@ class WorkflowDAGEngine:
             meta = getattr(step_def, "metadata", {}) or {}
             detail = meta.get("description") or step_def.name
             return {"action": "llm_execute", "step_id": step_def.step_id, "status": "completed",
-                    "success": True, "result": _llm_enrich("Execute", detail)}
+                    "result": _llm_enrich("Execute", detail)}
 
         def _handle_llm_review(step_def, context: Dict[str, Any]) -> Dict[str, Any]:
             meta = getattr(step_def, "metadata", {}) or {}
@@ -216,7 +217,6 @@ class WorkflowDAGEngine:
                 "action": "data_transformation",
                 "step_id": step_def.step_id,
                 "status": "completed",
-                "success": True,
                 "input_schema": "raw",
                 "output_schema": "normalised",
                 "records_transformed": "all",
@@ -329,7 +329,6 @@ class WorkflowDAGEngine:
                 "action": "data_output",
                 "step_id": step_def.step_id,
                 "status": "completed",
-                "success": True,
                 "destination": "target_system",
                 "format": "structured",
                 "records_written": "all",

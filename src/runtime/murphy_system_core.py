@@ -11710,7 +11710,7 @@ class MurphySystem:
     API_PROVIDER_LINKS: Dict[str, Dict[str, str]] = {
         "deepinfra": {
             "name": "DeepInfra",
-            "url": "https://console.deepinfra.com/keys",
+            "url": "https://deepinfra.com",
             "env_var": "DEEPINFRA_API_KEY",
             "description": "LLM provider (fast inference for Llama, Mixtral, Gemma)",
         },
@@ -11830,7 +11830,7 @@ class MurphySystem:
             "count": len(entries),
             "instructions": (
                 "Set each API key as an environment variable before starting Murphy. "
-                "Example:  export DEEPINFRA_API_KEY=gsk_..."
+                "Example:  export DEEPINFRA_API_KEY=your_key"
             ),
         }
 
@@ -12024,7 +12024,7 @@ class MurphySystem:
         """Return current LLM provider configuration and health.
 
         The onboard LocalLLMFallback is **always** available.  External API
-        providers (DeepInfra, OpenAI, Anthropic) are layered on top when keys are
+        providers (DeepInfra, Together AI, OpenAI, Anthropic) are layered on top when keys are
         present — they upgrade quality but are never required for operation.
         """
         provider = os.environ.get("MURPHY_LLM_PROVIDER", "").strip().lower()
@@ -12032,11 +12032,11 @@ class MurphySystem:
         if not provider:
             # Auto-detect provider from available API keys so that users who
             # only set DEEPINFRA_API_KEY (without MURPHY_LLM_PROVIDER) are still served.
-            deepinfra_key = os.environ.get("DEEPINFRA_API_KEY", "").strip()
+            deepinfra_key = (os.environ.get("DEEPINFRA_API_KEY", "") or os.environ.get("TOGETHER_API_KEY", "")).strip()
             openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
             anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
             if deepinfra_key:
-                provider = "deepinfra"
+                provider = "deepinfra" if os.environ.get("DEEPINFRA_API_KEY") else "together"
                 os.environ["MURPHY_LLM_PROVIDER"] = provider
             elif openai_key:
                 provider = "openai"
@@ -12078,8 +12078,8 @@ class MurphySystem:
                     ),
                 }
         # Validate provider-specific keys
-        if provider == "deepinfra":
-            api_key = os.environ.get("DEEPINFRA_API_KEY", "").strip()
+        if provider in ("deepinfra", "together"):
+            api_key = (os.environ.get("DEEPINFRA_API_KEY") or os.environ.get("TOGETHER_API_KEY", "")).strip()
             if not api_key:
                 # Key was removed at runtime — degrade gracefully to onboard
                 return {
@@ -12093,7 +12093,7 @@ class MurphySystem:
             return {
                 "enabled": True,
                 "provider": provider,
-                "model": model or "meta-llama/Meta-Llama-3.1-8B-Instruct",
+                "model": model or "meta-llama/Meta-Llama-3.1-70B-Instruct",
                 "healthy": True,
                 "mode": "external_api",
             }
@@ -12172,9 +12172,9 @@ class MurphySystem:
         mode = llm_status.get("mode", "onboard")
 
         # --- External API path ---
-        if mode == "external_api" and provider == "deepinfra":
-            model = llm_status.get("model") or "meta-llama/Meta-Llama-3.1-8B-Instruct"
-            api_key = os.environ.get("DEEPINFRA_API_KEY", "")
+        if mode == "external_api" and provider in ("deepinfra", "together"):
+            model = llm_status.get("model") or "llama3-8b-8192"
+            api_key = os.environ.get("DEEPINFRA_API_KEY") or os.environ.get("TOGETHER_API_KEY", "")
             if api_key:
                 try:
                     import requests as _requests
@@ -12410,7 +12410,7 @@ class MurphySystem:
                     "\n\n_Librarian is operating in **onboard** mode using built-in "
                     "system knowledge. To upgrade to LLM-powered responses: set "
                     "MURPHY_LLM_PROVIDER and the appropriate API key "
-                    "(e.g. DEEPINFRA_API_KEY). Get a free key at https://console.deepinfra.com/keys_"
+                    "(e.g. DEEPINFRA_API_KEY). Get a key at https://deepinfra.com"
                 )
                 session["_llm_notice_shown"] = True
             result: Dict[str, Any] = {
@@ -12466,7 +12466,7 @@ class MurphySystem:
                 "\n\n_Librarian is operating in **onboard** mode using built-in "
                 "system knowledge. To upgrade to LLM-powered responses: set "
                 "MURPHY_LLM_PROVIDER and the appropriate API key "
-                "(e.g. DEEPINFRA_API_KEY). Get a free key at https://console.deepinfra.com/keys_"
+                "(e.g. DEEPINFRA_API_KEY). Get a key at https://deepinfra.com"
             )
             session["_llm_notice_shown"] = True
         result = {
@@ -13342,9 +13342,9 @@ class MurphySystem:
                 f"  Env var: `{svc['env_var']}`"
             )
         lines.append(
-            "\n**Quick start:** Get a free DeepInfra key (link above), then:\n"
+            "\n**Quick start:** Get a DeepInfra key (link above), then:\n"
             "```\nexport MURPHY_LLM_PROVIDER=deepinfra\n"
-            "export DEEPINFRA_API_KEY=gsk_your_key_here\n```"
+            "export DEEPINFRA_API_KEY=your_key_here\n```"
         )
         return "\n".join(lines)
 
@@ -13440,7 +13440,7 @@ class MurphySystem:
                     )
                 response += "\n**What to do next:**\n"
                 response += "1. Sign up for the API keys listed above (links provided)\n"
-                response += "2. Set each as an environment variable (e.g. `export DEEPINFRA_API_KEY=gsk_...`)\n"
+                response += "2. Set each as an environment variable (e.g. `export DEEPINFRA_API_KEY=your_key`)\n"
                 response += "3. Restart Murphy to pick up the new keys\n"
                 response += "4. Type **status** to verify everything is connected\n"
                 response += "5. Type **execute <your first task>** to start automating!\n\n"

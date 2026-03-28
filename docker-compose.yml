@@ -48,11 +48,6 @@ services:
       timeout: 10s
       start_period: 15s
       retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
 
   # ── PostgreSQL ─────────────────────────────────────────────────────────
   postgres:
@@ -64,7 +59,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
       POSTGRES_DB: ${POSTGRES_DB:-murphy}
     ports:
-      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -72,11 +67,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
 
   # ── Redis ──────────────────────────────────────────────────────────────
   redis:
@@ -94,7 +84,7 @@ services:
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     ports:
-      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -102,11 +92,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
 
   # ── Prometheus (metrics) ───────────────────────────────────────────────
   prometheus:
@@ -114,7 +99,7 @@ services:
     container_name: murphy-prometheus
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+      - "${PROMETHEUS_PORT:-9090}:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./prometheus-rules:/etc/prometheus/rules:ro
@@ -123,11 +108,6 @@ services:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.retention.time=15d"
       - "--web.enable-lifecycle"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "3"
 
   # ── Grafana (dashboards) ──────────────────────────────────────────────
   grafana:
@@ -146,11 +126,6 @@ services:
       - grafana-data:/var/lib/grafana
     depends_on:
       - prometheus
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "3"
 
   # ── Mail Server (docker-mailserver) ──────────────────────────────────
   murphy-mailserver:
@@ -194,16 +169,11 @@ services:
     cap_add:
       - NET_ADMIN
     healthcheck:
-      test: ["CMD-SHELL", "ss -lntp | grep -q ':25'"]
+      test: ["CMD", "ss", "-lntp", "|", "grep", ":25"]
       interval: 60s
       timeout: 10s
       start_period: 120s
       retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "100m"
-        max-file: "5"
 
   # ── Roundcube Webmail ─────────────────────────────────────────────────
   murphy-webmail:
@@ -225,11 +195,6 @@ services:
       - ./config/roundcube/config.inc.php:/var/roundcube/config/config.inc.php:ro
     depends_on:
       - murphy-mailserver
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "3"
 
 volumes:
   murphy-data:

@@ -11,7 +11,7 @@ UI Chat  →  POST /api/chat
          ┌────┴──────────────────────────────────────────┐
          │ Step 1: LLMIntegrationLayer.route_request()   │
          │   • _determine_provider() picks domain        │
-         │   • _call_groq()  →  tries DEEPINFRA_API_KEY       │
+         │   • _call_deepinfra()  →  tries DEEPINFRA_API_KEY       │
          │                  →  tries Ollama (phi3 first) │
          │                  →  falls back to template    │
          └────┬──────────────────────────────────────────┘
@@ -88,7 +88,7 @@ Requires=ollama.service
 ```bash
 OLLAMA_BASE_URL=http://localhost:11434   # Default Ollama endpoint
 OLLAMA_MODEL=phi3                        # Default model
-DEEPINFRA_API_KEY=gsk_...                    # Optional: DeepInfra cloud API key
+DEEPINFRA_API_KEY=di_...                    # Optional: DeepInfra cloud API key
 ```
 
 ## Agentic API Key Collection

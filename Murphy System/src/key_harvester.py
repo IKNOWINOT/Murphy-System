@@ -319,8 +319,8 @@ PROVIDER_RECIPES: List[ProviderRecipe] = [
     ProviderRecipe(
         name="deepinfra",
         env_var="DEEPINFRA_API_KEY",
-        signup_url="https://console.deepinfra.com/login",
-        keys_page_url="https://console.deepinfra.com/keys",
+        signup_url="https://deepinfra.com/login",
+        keys_page_url="https://deepinfra.com/keys",
         tier="free",
         requires_payment=False,
         signup_selectors={

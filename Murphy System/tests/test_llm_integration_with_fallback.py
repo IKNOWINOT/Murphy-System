@@ -67,7 +67,7 @@ class TestLLMIntegrationWithFallback:
         print(f"   Confidence: {response.confidence}")
         print(f"   Response length: {len(response.response)} chars")
 
-    def test_groq_request_with_local_fallback(self, integration_layer_with_fallback):
+    def test_deepinfra_request_with_local_fallback(self, integration_layer_with_fallback):
         """Test DeepInfra request using local fallback"""
         response = integration_layer_with_fallback.route_request(
             prompt="Write a short poem about AI",

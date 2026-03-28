@@ -24,14 +24,8 @@ from memory_artifact_system import Artifact, ArtifactState, MemoryArtifactSystem
 # Import existing systems
 from true_swarm_system import ArtifactType, ProfessionAtom, SwarmMode, TrueSwarmSystem
 
-# Try to import LLM
-try:
-    import os
-
-    # deepinfra replaced: from openai import DeepInfra
-    DEEPINFRA_AVAILABLE = True
-except ImportError:
-    DEEPINFRA_AVAILABLE = False
+# DeepInfra HTTP client available (uses requests/httpx, no SDK needed)
+DEEPINFRA_AVAILABLE = True
 
 # Import local fallback LLM
 import logging
@@ -40,7 +34,7 @@ import logging
 from command_parser import CommandParser
 
 # Import key rotator
-from deepinfra_key_rotator import get_rotator
+from groq_key_rotator import get_rotator
 from local_llm_fallback import get_fallback_llm
 from question_manager import QuestionManager
 
@@ -86,7 +80,7 @@ class UnifiedMFGC:
                 self.key_rotator = get_rotator()
                 self.llm_available = True
                 self.llm_mode = "deepinfra_rotation"
-                logger.info(f"DeepInfra key rotation enabled with {len(self.key_rotator.keys)} keys")
+                logger.info(f"LLM provider routing enabled with {len(self.key_rotator.keys)} keys")
             except Exception as exc:
                 logger.info(f"Key rotation failed: {exc}, falling back to single key mode")
                 self.key_rotator = None
@@ -95,7 +89,7 @@ class UnifiedMFGC:
         if self.key_rotator is None:
             self.deepinfra_api_key = deepinfra_api_key or os.environ.get("DEEPINFRA_API_KEY")
             if self.deepinfra_api_key and DEEPINFRA_AVAILABLE:
-                self.deepinfra_client = DeepInfra(api_key=self.deepinfra_api_key)
+                self.deepinfra_client = self.deepinfra_api_key  # store key for HTTP calls
                 self.llm_available = True
                 self.llm_mode = "deepinfra"
             else:
@@ -894,26 +888,27 @@ Format as a numbered list."""
                 # Get next key from rotator
                 key_name, api_key = self.key_rotator.get_next_key()
 
-                # Create client with rotated key
-                client = DeepInfra(api_key=api_key)
-
-                # Make API call
-                chat_completion = client.chat.completions.create(
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": prompt,
-                        }
-                    ],
-                    model="llama-3.3-70b-versatile",
-                    temperature=0.7,
-                    max_tokens=max_tokens,
+                # Make API call via HTTP
+                import requests as _requests
+                resp = _requests.post(
+                    "https://api.deepinfra.com/v1/openai/chat/completions",
+                    json={
+                        "model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
+                        "messages": [{"role": "user", "content": prompt}],
+                        "temperature": 0.7,
+                        "max_tokens": max_tokens,
+                    },
+                    headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                    timeout=30,
                 )
+                resp.raise_for_status()
+                data = resp.json()
+                result = data.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
 
                 # Report success
                 self.key_rotator.report_success(api_key)
 
-                return chat_completion.choices[0].message.content.strip()
+                return result
 
             except Exception as exc:
                 # Report failure
@@ -927,19 +922,21 @@ Format as a numbered list."""
         # Try single key DeepInfra mode
         elif hasattr(self, 'deepinfra_client') and self.deepinfra_client and self.llm_mode == "deepinfra":
             try:
-                chat_completion = self.deepinfra_client.chat.completions.create(
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": prompt,
-                        }
-                    ],
-                    model="llama-3.3-70b-versatile",
-                    temperature=0.7,
-                    max_tokens=max_tokens,
+                import requests as _requests
+                resp = _requests.post(
+                    "https://api.deepinfra.com/v1/openai/chat/completions",
+                    json={
+                        "model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
+                        "messages": [{"role": "user", "content": prompt}],
+                        "temperature": 0.7,
+                        "max_tokens": max_tokens,
+                    },
+                    headers={"Authorization": f"Bearer {self.deepinfra_client}", "Content-Type": "application/json"},
+                    timeout=30,
                 )
-
-                return chat_completion.choices[0].message.content.strip()
+                resp.raise_for_status()
+                data = resp.json()
+                return data.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
             except Exception as exc:
                 # Fall back to offline mode if DeepInfra fails
                 logger.info(f"DeepInfra failed, using offline fallback: {str(exc)}")

@@ -1,73 +1,33 @@
 # Murphy System — LLM Subsystem
 
-## Architecture (Post-Migration — DeepInfra + Together.ai)
+## Architecture
 
 ```
 UI Chat  →  POST /api/chat
               │
               ▼
-     MurphySystem._try_llm_generate()
+     IntegrationBus._process_chat()
               │
          ┌────┴──────────────────────────────────────────┐
-         │ Chain 1: Direct DeepInfra API (runtime core)  │
-         │   • DEEPINFRA_API_KEY → api.deepinfra.com     │
-         │   • OpenAI-compatible endpoint                │
-         │   • Model: meta-llama/Llama-3.3-70B-Instruct  │
+         │ Step 1: LLMIntegrationLayer.route_request()   │
+         │   • _determine_provider() picks domain        │
+         │   • _call_deepinfra()  →  tries DEEPINFRA_API_KEY       │
+         │                  →  tries Ollama (phi3 first) │
+         │                  →  falls back to template    │
          └────┬──────────────────────────────────────────┘
-              │ (if Chain 1 fails or unavailable)
-         ┌────┴──────────────────────────────────────────┐
-         │ Chain 2: MurphyLLMProvider (src/llm_provider) │
-         │   • Primary: DeepInfra (api.deepinfra.com)    │
-         │   • Fallback: Together.ai (api.together.xyz)  │
-         │   • Emergency: LocalLLMFallback               │
-         └────┬──────────────────────────────────────────┘
-              │ (only if all cloud providers fail)
-         ┌────┴─────────────────────────────────────────┐
-         │ Chain 3: Local Fallback                      │
-         │   • Ollama (phi3, llama3, mistral)           │
-         │   • Deterministic template matcher           │
-         └──────────────────────────────────────────────┘
-
-
-POST /api/prompt  →  production_router
+              │ (only if Step 1 returns None)
+         ┌────┴─────────────────────────┐
+         │ Step 2: LLMController        │
+         │   • _query_local_small()     │
+         │   • _query_ollama("phi3")    │
+         └────┬─────────────────────────┘
               │
-              ▼
-     MurphyLLMProvider.generate()
-              │
-         ┌────┴──────────────────────────────────────────┐
-         │ Primary: DeepInfra API                        │
-         │   • https://api.deepinfra.com/v1/openai       │
-         │   • DEEPINFRA_API_KEY from environment        │
-         ├───────────────────────────────────────────────┤
-         │ Fallback: Together.ai API                     │
-         │   • https://api.together.xyz/v1               │
-         │   • TOGETHER_API_KEY from environment         │
-         ├───────────────────────────────────────────────┤
-         │ Emergency: LocalLLMFallback                   │
-         │   • Ollama → deterministic templates          │
-         └──────────────────────────────────────────────┘
+         ┌────┴─────────────────────────┐
+         │ Step 3: LLMOutputValidator   │
+         └──────────────────────────────┘
 ```
 
-## Provider Priority
-
-| Priority | Provider | Endpoint | Env Var | Model |
-|----------|----------|----------|---------|-------|
-| 1 (Primary) | **DeepInfra** | `https://api.deepinfra.com/v1/openai` | `DEEPINFRA_API_KEY` | `meta-llama/Llama-3.3-70B-Instruct` |
-| 2 (Fallback) | **Together.ai** | `https://api.together.xyz/v1` | `TOGETHER_API_KEY` | `meta-llama/Llama-3.3-70B-Instruct-Turbo` |
-| 3 (Local) | **Ollama** | `http://localhost:11434` | `OLLAMA_HOST` | `phi3` → `llama3` → `mistral` |
-| 4 (Emergency) | **LocalLLMFallback** | (in-process) | — | Deterministic template matcher |
-
-## Key Files
-
-| File | Role |
-|------|------|
-| `src/llm_provider.py` | **MurphyLLMProvider** — unified provider with DeepInfra + Together.ai + fallback |
-| `src/llm_integration_layer.py` | LLMIntegrationLayer — routes requests by domain, calls providers |
-| `src/local_llm_fallback.py` | LocalLLMFallback — Ollama probe + deterministic templates |
-| `src/runtime/murphy_system_core.py` | MurphySystem._try_llm_generate() — direct DeepInfra API chain |
-| `src/production_router.py` | /api/prompt endpoint — uses MurphyLLMProvider |
-
-## Default Local Model: phi3
+## Default Model: phi3
 
 All local Ollama inference defaults to **phi3** (Microsoft's 3.8B parameter model).
 
@@ -76,9 +36,9 @@ All local Ollama inference defaults to **phi3** (Microsoft's 3.8B parameter mode
 | `src/local_llm_fallback.py` | `_query_ollama(model="phi3")` |
 | `src/llm_integration.py` | `OllamaLLM(model_name="phi3")` |
 | `src/llm_swarm_integration.py` | `OLLAMA_MODEL=phi3` |
-| `src/llm_integration_layer.py` | Ollama tried before deterministic templates |
+| `src/llm_integration_layer.py` | Ollama tried before canned templates |
 
-## Model Probe Order (Ollama)
+## Model Probe Order
 
 When Ollama is available, models are tried in this order:
 
@@ -86,27 +46,90 @@ When Ollama is available, models are tried in this order:
 ["phi3", "llama3", "mistral", "phi", "tinyllama"]
 ```
 
+## Provider Priority
+
+1. **DeepInfra Cloud** (`DEEPINFRA_API_KEY`) — fastest, cloud-hosted
+2. **Ollama / phi3** — local, private, no API key needed
+3. **Deterministic fallback** — template-based, always available
+
 ## API Endpoints
 
-| Endpoint | Server | Description |
-|----------|--------|-------------|
-| `POST /api/chat` | Runtime (core) | Main chat — uses _try_llm_generate() → DeepInfra direct |
-| `POST /api/prompt` | Production Router | Prompt completion — uses MurphyLLMProvider |
-| `GET /api/llm/providers` | Runtime | Lists all providers with live Ollama status |
-| `POST /api/llm/configure` | Runtime | Hot-swap provider / API key without restart |
-| `GET /api/llm/status` | Runtime | Current LLM provider status and health |
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/llm/providers` | Lists all providers with live Ollama status |
+| `POST /api/llm/configure` | Hot-swap provider / API key without restart |
+| `POST /api/llm/test` | Smoke-test the active provider |
+| `POST /api/chat` | Main chat endpoint (routes through integration layer) |
 
-## Hot-Swap Configuration
+## Ollama Setup (Production)
 
 ```bash
-curl -X POST http://localhost:8000/api/llm/configure \
-  -H "Content-Type: application/json" \
-  -d '{"provider": "deepinfra", "api_key": "your-key-here"}'
+# Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Pull phi3 (default model)
+ollama pull phi3
+
+# Verify
+ollama run phi3 "Hello"
 ```
+
+### Systemd Integration
+
+```ini
+# /etc/systemd/system/murphy-production.service.d/override.conf
+[Unit]
+After=network.target ollama.service
+Requires=ollama.service
+```
+
+### Environment Variables
+
+```bash
+OLLAMA_BASE_URL=http://localhost:11434   # Default Ollama endpoint
+OLLAMA_MODEL=phi3                        # Default model
+DEEPINFRA_API_KEY=di_...                    # Optional: DeepInfra cloud API key
+```
+
+## Agentic API Key Collection
+
+Murphy includes a fully agentic API key harvester (`src/key_harvester.py`) that:
+
+1. **Auto-detects** which provider keys are needed from workflow context
+2. **Requests credentials** from the user via a HITL gate (email + password)
+3. **Opens a real browser** so the user sees every action
+4. **Requires explicit TOS approval** before any "I agree" checkbox
+5. **Stores keys securely** via `CredentialVault` (Fernet-encrypted at rest)
+
+### REST Endpoints
+
+```
+GET  /api/key-harvester/status               — Poll harvest status (15 providers tracked)
+POST /api/key-harvester/start                — Start harvest (background)
+GET  /api/key-harvester/pending-credentials  — What credentials does the user need to provide?
+POST /api/key-harvester/credentials/{id}/provide  — User provides email/password
+GET  /api/key-harvester/pending-tos          — Which TOS needs approval?
+POST /api/key-harvester/tos/{id}/approve     — User approves TOS
+GET  /api/key-harvester/audit-log            — Full audit trail
+```
+
+### Three Unbypassable Gates
+
+1. **Credential gate first** — no action until user provides their email/password
+2. **TOS gate before every checkbox** — every "I Agree" requires explicit human approval
+3. **Visible browser** — user's own real browser; Murphy never acts in a hidden window
+
+### Credential Storage via `POST /api/credentials/store`
+
+```json
+{ "integration": "sendgrid", "credential": "SG.xxxx" }
+```
+
+Supported integrations: `deepinfra`, `openai`, `anthropic`, `sendgrid`, `slack`, `stripe`, `hubspot`, `github`, `twilio`, `google_calendar`, `google_sheets`, `datadog`, `postgres`
 
 The key is written to `.env` (persisted across restarts) and to `os.environ` (immediate use).
 
-## LLM Mode Detection
+## LLM Mode Detection (Important!)
 
 The LLM subsystem is **always active** — it never completely fails. When no external LLM API key is configured, it operates in "onboard" mode using the LocalLLMFallback.
 
@@ -118,7 +141,7 @@ status = murphy._get_librarian_status()
 if status["mode"] == "onboard":
     # Using LocalLLMFallback (no external LLM)
 elif status["mode"] == "llm":
-    # Using external LLM API (DeepInfra, Together.ai)
+    # Using external LLM API (DeepInfra, OpenAI, Anthropic)
 
 # IMPORTANT: Do NOT check llm_status["enabled"] — it is always True
 # because the onboard fallback is always available.
@@ -128,7 +151,7 @@ elif status["mode"] == "llm":
 
 | Mode | Description |
 |------|-------------|
-| `external_api` | External LLM provider configured (DeepInfra, Together.ai) |
+| `external_api` | External LLM provider configured (DeepInfra, OpenAI, Anthropic) |
 | `onboard` | Using LocalLLMFallback (Ollama or pattern matcher) |
 
 ### Boot Validation
@@ -140,15 +163,6 @@ from src.startup_validator import validate_llm_boot_status
 
 status = validate_llm_boot_status()
 print(f"Mode: {status['mode']}")      # "external_api" or "onboard"
-print(f"Provider: {status['provider']}")  # "deepinfra", "together", or "onboard"
+print(f"Provider: {status['provider']}")  # "deepinfra", "openai", "anthropic", or "onboard"
 print(f"Healthy: {status['healthy']}")    # Always True (onboard is always available)
 ```
-
-## Migration History
-
-- **Pre-2026**: Groq API as primary cloud provider
-- **2026-03-26**: Migrated to DeepInfra (primary) + Together.ai (fallback)
-  - 286 files changed across the codebase
-  - All `groq` references replaced with `deepinfra`/`together` equivalents
-  - OpenAI-compatible API format retained for seamless switching
-  - Branch: `audit/comprehensive-production-readiness`

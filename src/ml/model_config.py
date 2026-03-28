@@ -50,6 +50,11 @@ class ModelConfig:
     timeout_seconds: float = 30.0
     cost_per_token: float = 0.0
     priority_rank: int = 1  # lower = higher priority
+    base_url: str = ""
+    api_key_env: str = ""
+    cost_per_1k_input: float = 0.0
+    cost_per_1k_output: float = 0.0
+    supports_streaming: bool = False
 
 
 @dataclass
@@ -136,13 +141,13 @@ _PROVIDER_MODEL_DEFAULTS: Dict[ModelProvider, ModelConfig] = {
     ),
     ModelProvider.DEEPINFRA: ModelConfig(
         provider=ModelProvider.DEEPINFRA,
-        model_name="meta-llama/Meta-Llama-3.1-8B-Instruct",
-        max_tokens=2048,
-        temperature=0.7,
-        top_p=0.9,
-        timeout_seconds=20.0,
-        cost_per_token=0.000_000_07,
-        priority_rank=2,
+        model_name="meta-llama/Meta-Llama-3.1-70B-Instruct",
+        base_url="https://api.deepinfra.com/v1/openai",
+        api_key_env="DEEPINFRA_API_KEY",
+        cost_per_1k_input=0.00052,
+        cost_per_1k_output=0.00075,
+        max_tokens=128000,
+        supports_streaming=True,
     ),
     ModelProvider.OPENAI: ModelConfig(
         provider=ModelProvider.OPENAI,

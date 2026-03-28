@@ -44,7 +44,7 @@ class TestSettingsDefaults(unittest.TestCase):
         self._orig_env = {}
         for key in list(os.environ):
             if key.upper().startswith(("API_", "DB_", "LLM_", "MURPHY_",
-                                       "CONFIDENCE_", "GROQ_", "RATE_LIMIT_",
+                                       "CONFIDENCE_", "DEEPINFRA_", "RATE_LIMIT_",
                                        "LOG_", "REDIS_", "CACHE_", "CORS_",
                                        "ENCRYPTED_", "USE_KEY_")):
                 self._orig_env[key] = os.environ.pop(key)
@@ -86,7 +86,7 @@ class TestSettingsEnvOverrides(unittest.TestCase):
         self._orig_env = {}
         for key in list(os.environ):
             if key.upper().startswith(("API_", "DB_", "LLM_", "MURPHY_",
-                                       "CONFIDENCE_", "GROQ_", "RATE_LIMIT_",
+                                       "CONFIDENCE_", "DEEPINFRA_", "RATE_LIMIT_",
                                        "LOG_", "REDIS_", "CACHE_", "CORS_",
                                        "ENCRYPTED_", "USE_KEY_")):
                 self._orig_env[key] = os.environ.pop(key)
@@ -126,7 +126,7 @@ class TestSettingsValidation(unittest.TestCase):
         self._orig_env = {}
         for key in list(os.environ):
             if key.upper().startswith(("API_", "DB_", "LLM_", "MURPHY_",
-                                       "CONFIDENCE_", "GROQ_", "RATE_LIMIT_",
+                                       "CONFIDENCE_", "DEEPINFRA_", "RATE_LIMIT_",
                                        "LOG_", "REDIS_", "CACHE_", "CORS_",
                                        "ENCRYPTED_", "USE_KEY_")):
                 self._orig_env[key] = os.environ.pop(key)
@@ -175,7 +175,7 @@ class TestReloadSettings(unittest.TestCase):
         self._orig_env = {}
         for key in list(os.environ):
             if key.upper().startswith(("API_", "DB_", "LLM_", "MURPHY_",
-                                       "CONFIDENCE_", "GROQ_", "RATE_LIMIT_",
+                                       "CONFIDENCE_", "DEEPINFRA_", "RATE_LIMIT_",
                                        "LOG_", "REDIS_", "CACHE_", "CORS_",
                                        "ENCRYPTED_", "USE_KEY_")):
                 self._orig_env[key] = os.environ.pop(key)

@@ -47,6 +47,7 @@ def _llm_available() -> bool:
     """Return True when at least one LLM backend key is configured."""
     return bool(
         os.environ.get("DEEPINFRA_API_KEY")
+        or os.environ.get("TOGETHER_API_KEY")
         or os.environ.get("OPENAI_API_KEY")
         or os.environ.get("MURPHY_LLM_ENDPOINT")
     )

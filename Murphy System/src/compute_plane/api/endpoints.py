@@ -4,21 +4,15 @@ REST API Endpoints for Compute Service
 Provides HTTP interface to the Deterministic Compute Plane.
 """
 
-import os
-import sys
+import logging
 from typing import Any, Dict
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
-# Add parent directory to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-
-import logging
-
-from compute_plane.models.compute_request import ComputeRequest
-from compute_plane.service import ComputeService
 from flask_security import configure_secure_app, is_debug_mode
+from src.compute_plane.models.compute_request import ComputeRequest
+from src.compute_plane.service import ComputeService
 
 logger = logging.getLogger(__name__)
 
