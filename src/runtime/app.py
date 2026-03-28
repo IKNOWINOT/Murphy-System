@@ -9927,6 +9927,9 @@ def create_app() -> FastAPI:
             "/ui/game-creation": "game_creation.html",
             "/ui/dispatch": "dispatch.html",
             "/ui/terminal-integrated-legacy": "murphy_ui_integrated_terminal.html",
+            "/ui/boards": "boards.html",
+            "/ui/workdocs": "workdocs.html",
+            "/ui/time-tracking": "time_tracking.html",
         }
 
         # ── Route classification: public vs auth-required ──────────
