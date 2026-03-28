@@ -121,6 +121,10 @@ def _get_html_routes() -> Dict[str, str]:
         "/ui/boards": "boards.html",
         "/ui/workdocs": "workdocs.html",
         "/ui/time-tracking": "time_tracking.html",
+        "/ui/dashboards": "dashboards.html",
+        "/ui/crm": "crm.html",
+        "/ui/portfolio": "portfolio.html",
+        "/ui/aionmind": "aionmind.html",
     }
 
 
@@ -162,6 +166,10 @@ class TestSidebarNavigation:
         assert "/ui/boards" in sidebar_js, "Sidebar missing /ui/boards link"
         assert "/ui/workdocs" in sidebar_js, "Sidebar missing /ui/workdocs link"
         assert "/ui/time-tracking" in sidebar_js, "Sidebar missing /ui/time-tracking link"
+        assert "/ui/dashboards" in sidebar_js, "Sidebar missing /ui/dashboards link"
+        assert "/ui/crm" in sidebar_js, "Sidebar missing /ui/crm link"
+        assert "/ui/portfolio" in sidebar_js, "Sidebar missing /ui/portfolio link"
+        assert "/ui/aionmind" in sidebar_js, "Sidebar missing /ui/aionmind link"
 
     def test_sidebar_links_are_registered(self):
         sidebar_js = (PROJECT_ROOT / "static" / "murphy-components.js").read_text()
@@ -187,6 +195,10 @@ class TestAPIWiring:
         ("boards.html", {"/api/boards"}),
         ("workdocs.html", {"/api/workdocs"}),
         ("time_tracking.html", {"/api/time-tracking/entries"}),
+        ("dashboards.html", {"/api/dashboards"}),
+        ("crm.html", {"/api/crm/contacts"}),
+        ("portfolio.html", {"/api/portfolio/bars"}),
+        ("aionmind.html", {"/api/aionmind/status"}),
     ]
 
     @pytest.mark.parametrize(
@@ -268,20 +280,92 @@ class TestAppRouteRegistration:
         assert '"/ui/time-tracking"' in app_py, "app.py missing /ui/time-tracking route"
         assert '"time_tracking.html"' in app_py, "app.py missing time_tracking.html mapping"
 
+    def test_dashboards_route_in_app(self):
+        app_py = (PROJECT_ROOT / "src" / "runtime" / "app.py").read_text()
+        assert '"/ui/dashboards"' in app_py, "app.py missing /ui/dashboards route"
+        assert '"dashboards.html"' in app_py, "app.py missing dashboards.html mapping"
+
+    def test_crm_route_in_app(self):
+        app_py = (PROJECT_ROOT / "src" / "runtime" / "app.py").read_text()
+        assert '"/ui/crm"' in app_py, "app.py missing /ui/crm route"
+        assert '"crm.html"' in app_py, "app.py missing crm.html mapping"
+
+    def test_portfolio_route_in_app(self):
+        app_py = (PROJECT_ROOT / "src" / "runtime" / "app.py").read_text()
+        assert '"/ui/portfolio"' in app_py, "app.py missing /ui/portfolio route"
+        assert '"portfolio.html"' in app_py, "app.py missing portfolio.html mapping"
+
+    def test_aionmind_route_in_app(self):
+        app_py = (PROJECT_ROOT / "src" / "runtime" / "app.py").read_text()
+        assert '"/ui/aionmind"' in app_py, "app.py missing /ui/aionmind route"
+        assert '"aionmind.html"' in app_py, "app.py missing aionmind.html mapping"
+
+
+class TestSprint2PageIntegration:
+    """Verify Sprint 2 pages (dashboards, crm, portfolio, aionmind) are fully wired."""
+
+    def test_dashboards_html_exists(self):
+        assert (PROJECT_ROOT / "dashboards.html").is_file()
+
+    def test_dashboards_html_has_api_calls(self):
+        calls = _extract_api_calls_from_html(PROJECT_ROOT / "dashboards.html")
+        assert any("/api/dashboards" in c for c in calls), f"dashboards.html missing /api/dashboards calls: {calls}"
+
+    def test_dashboards_html_has_murphy_sidebar(self):
+        text = (PROJECT_ROOT / "dashboards.html").read_text()
+        assert "murphy-sidebar" in text
+
+    def test_dashboards_html_has_design_system(self):
+        text = (PROJECT_ROOT / "dashboards.html").read_text()
+        assert "murphy-design-system.css" in text
+
+    def test_crm_html_exists(self):
+        assert (PROJECT_ROOT / "crm.html").is_file()
+
+    def test_crm_html_has_api_calls(self):
+        calls = _extract_api_calls_from_html(PROJECT_ROOT / "crm.html")
+        assert any("/api/crm" in c for c in calls), f"crm.html missing /api/crm calls: {calls}"
+
+    def test_crm_html_has_murphy_sidebar(self):
+        text = (PROJECT_ROOT / "crm.html").read_text()
+        assert "murphy-sidebar" in text
+
+    def test_portfolio_html_exists(self):
+        assert (PROJECT_ROOT / "portfolio.html").is_file()
+
+    def test_portfolio_html_has_api_calls(self):
+        calls = _extract_api_calls_from_html(PROJECT_ROOT / "portfolio.html")
+        assert any("/api/portfolio" in c for c in calls), f"portfolio.html missing /api/portfolio calls: {calls}"
+
+    def test_portfolio_html_has_murphy_sidebar(self):
+        text = (PROJECT_ROOT / "portfolio.html").read_text()
+        assert "murphy-sidebar" in text
+
+    def test_aionmind_html_exists(self):
+        assert (PROJECT_ROOT / "aionmind.html").is_file()
+
+    def test_aionmind_html_has_api_calls(self):
+        calls = _extract_api_calls_from_html(PROJECT_ROOT / "aionmind.html")
+        assert any("/api/aionmind" in c for c in calls), f"aionmind.html missing /api/aionmind calls: {calls}"
+
+    def test_aionmind_html_has_murphy_sidebar(self):
+        text = (PROJECT_ROOT / "aionmind.html").read_text()
+        assert "murphy-sidebar" in text
+
 
 class TestGapClosureMetrics:
     """Report on the overall wiring state."""
 
     def test_wiring_coverage(self):
-        """At least 27 pages should have API calls (24 original + 3 new)."""
+        """At least 31 pages should have API calls (24 original + 3 sprint1 + 4 sprint2)."""
         pages = _collect_pages()
         pages_with_api = 0
         for route, filepath in pages:
             calls = _extract_api_calls_from_html(filepath)
             if calls:
                 pages_with_api += 1
-        assert pages_with_api >= 27, (
-            f"Expected at least 27 pages with API calls, got {pages_with_api}"
+        assert pages_with_api >= 31, (
+            f"Expected at least 31 pages with API calls, got {pages_with_api}"
         )
 
     def test_no_orphan_sidebar_links(self):
