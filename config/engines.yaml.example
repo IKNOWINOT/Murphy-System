@@ -1,0 +1,147 @@
+# Murphy System — Engine Configuration Example
+# config/engines.yaml.example
+#
+# Copy this file to config/engines.yaml and edit the values.
+# Environment variables prefixed MURPHY_<SECTION>__<KEY> always override values
+# set here, e.g. MURPHY_SWARM__EXPLORATION_AGENTS=5.
+#
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post
+# License: BSL 1.1
+
+# ── Domain Engines ────────────────────────────────────────────────────────────
+domain_engines:
+  # Which domain engines are active. Unlisted engines are loaded but not
+  # automatically invoked by the UniversalControlPlane.
+  enabled:
+    - sales
+    - marketing
+    - operations
+    - finance
+    - hr
+    - legal
+    - engineering
+    - customer_success
+    # - trading          # requires additional brokerage credentials
+    # - iot              # requires industrial hardware adapters
+
+  # Maximum seconds an individual engine invocation may run.
+  default_timeout: 30
+
+  # Maximum number of domain engines that may run simultaneously.
+  parallel_limit: 4
+
+# ── Swarm System ──────────────────────────────────────────────────────────────
+swarm:
+  # Agents dedicated to exploring the solution space in parallel.
+  exploration_agents: 3
+
+  # Agents responsible for coordinating and controlling exploration output.
+  control_agents: 2
+
+  # Maximum number of swarm iterations before forcing a decision.
+  max_iterations: 10
+
+  # Fraction of agents that must agree before the swarm converges (0.0–1.0).
+  convergence_threshold: 0.90
+
+  # Hard timeout in seconds. The swarm is force-terminated after this.
+  timeout: 120
+
+# ── Learning Engine ───────────────────────────────────────────────────────────
+learning_engine:
+  # Activate the PatternDetector subsystem.
+  pattern_detection_enabled: true
+
+  # Track execution outcomes for the PerformancePredictor.
+  outcome_tracking_enabled: true
+
+  # Rolling window (days) over which patterns are analysed.
+  feedback_window_days: 30
+
+  # Minimum number of executions before confidence thresholds may auto-update.
+  min_samples_for_update: 10
+
+  # Maximum fractional change applied to a threshold in one update cycle.
+  # Prevents runaway threshold drift (e.g. 0.05 = max ±5% per cycle).
+  threshold_update_rate: 0.05
+
+# ── Gate Parameters (MFGC-AI) ─────────────────────────────────────────────────
+gates:
+  # Require all pre-execution gates to pass before a task can start.
+  pre_execution_required: true
+
+  # Require all post-execution gates to pass before results are accepted.
+  post_execution_required: true
+
+  # Minimum cumulative success rate (0.0–1.0) for a capability to be
+  # automatically graduated from supervised to semi-autonomous execution.
+  hitl_auto_graduate_threshold: 0.95
+
+  # Minimum number of supervised runs before graduation is eligible.
+  hitl_min_runs: 20
+
+  # Seconds before a gate evaluation is considered timed-out and failed.
+  gate_timeout: 60
+
+# ── Two-Phase Orchestrator ────────────────────────────────────────────────────
+orchestrator:
+  # Maximum seconds for Phase 1 (Generative Setup — plan building).
+  phase1_timeout: 300
+
+  # Maximum seconds for Phase 2 (Production Execute — plan execution).
+  phase2_timeout: 600
+
+  # How many tasks the orchestrator may run in parallel at one time.
+  max_parallel_tasks: 10
+
+  # Automatically retry a failed task (up to max_retries times).
+  retry_on_failure: true
+
+  # Maximum retry attempts per task.
+  max_retries: 3
+
+# ── Universal Control Plane ───────────────────────────────────────────────────
+control_plane:
+  # Strategy used to pick an engine for a task:
+  #   confidence   — highest confidence score wins
+  #   round_robin  — rotate evenly across available engines
+  #   least_loaded — engine with fewest active tasks wins
+  engine_selection_strategy: confidence
+
+  # Fall back to the next provider if the primary is unavailable.
+  fallback_enabled: true
+
+  # Ordered list of LLM providers to try when the primary is down.
+  fallback_order:
+    - deepinfra
+    - openai
+    - anthropic
+    - local
+
+# ── Form-Driven Executor ──────────────────────────────────────────────────────
+form_executor:
+  # Number of stages in the standard execution pipeline (default 7).
+  pipeline_stages: 7
+
+  # Maximum seconds allowed for an individual pipeline stage.
+  stage_timeout: 60
+
+  # Reject executions that fail form validation rather than attempting anyway.
+  validation_strict: true
+
+# ── Self-Healing Coordinator ─────────────────────────────────────────────────
+self_healing:
+  # Enable the SelfHealingCoordinator background process.
+  enabled: true
+
+  # Exponential backoff: first retry waits backoff_base seconds,
+  # subsequent retries wait backoff_base^n up to backoff_max.
+  backoff_base: 2.0
+  backoff_max: 120
+
+  # Number of consecutive failures before the circuit breaker opens.
+  circuit_breaker_threshold: 5
+
+  # Seconds the circuit stays open before attempting a half-open probe.
+  circuit_breaker_timeout: 60
