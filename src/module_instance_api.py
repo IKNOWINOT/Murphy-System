@@ -48,6 +48,42 @@ logger = logging.getLogger(__name__)
 
 _manager: ModuleInstanceManager = ModuleInstanceManager()
 
+# ---------------------------------------------------------------------------
+# Event callbacks — set by the host application (e.g. murphy_production_server)
+# to receive spawn/despawn notifications and forward them to SSE/WebSocket
+# clients or Matrix rooms.
+# ---------------------------------------------------------------------------
+
+_on_spawn_callback = None
+_on_despawn_callback = None
+
+
+def set_event_callbacks(
+    on_spawn=None,
+    on_despawn=None,
+) -> None:
+    """Register callbacks invoked after spawn/despawn events.
+
+    Each callback receives a *dict* describing the event.  Async
+    callables are supported — they will be awaited when triggered.
+    """
+    global _on_spawn_callback, _on_despawn_callback
+    _on_spawn_callback = on_spawn
+    _on_despawn_callback = on_despawn
+
+
+async def _fire_event(callback, payload: dict) -> None:
+    """Invoke *callback* with *payload*, handling both sync and async."""
+    if callback is None:
+        return
+    import asyncio
+    try:
+        result = callback(payload)
+        if asyncio.iscoroutine(result):
+            await result
+    except Exception:
+        logger.exception("Event callback failed")
+
 
 def get_module_instance_manager() -> ModuleInstanceManager:
     """Return the module-level ``ModuleInstanceManager`` singleton."""
@@ -162,6 +198,12 @@ def register_module_instance_routes(app: FastAPI) -> None:
             }
             if instance is not None:
                 payload["instance"] = instance.to_dict()
+                await _fire_event(_on_spawn_callback, {
+                    "instance_id": instance.instance_id,
+                    "module_type": instance.module_type,
+                    "actor": req.actor,
+                    "decision": decision.value,
+                })
             return JSONResponse(content=payload)
         except Exception:
             logger.exception("spawn_instance failed")
@@ -388,6 +430,14 @@ def register_module_instance_routes(app: FastAPI) -> None:
                 actor=req.actor,
                 correlation_id=req.correlation_id,
             )
+            # Fire despawn events for successfully despawned instances
+            for iid, ok in bulk_result.get("results", {}).items():
+                if ok:
+                    await _fire_event(_on_despawn_callback, {
+                        "instance_id": iid,
+                        "module_type": "bulk",
+                        "actor": req.actor,
+                    })
             return JSONResponse(
                 content={"success": True, **bulk_result},
             )
@@ -416,11 +466,18 @@ def register_module_instance_routes(app: FastAPI) -> None:
             if existing is None:
                 raise HTTPException(status_code=404, detail="Instance not found")
 
+            module_type = existing.module_type
             ok = _manager.despawn_instance(
                 instance_id=instance_id,
                 actor=req.actor,
                 correlation_id=req.correlation_id,
             )
+            if ok:
+                await _fire_event(_on_despawn_callback, {
+                    "instance_id": instance_id,
+                    "module_type": module_type,
+                    "actor": req.actor,
+                })
             return JSONResponse(
                 content={"success": ok, "instance_id": instance_id},
             )

@@ -2235,7 +2235,7 @@ unknown (initial state for auto-discovered subsystems)
 
 ### Purpose
 Dynamic module instantiation with unique instance IDs, spawn/despawn lifecycle, 
-configuration backward logic for auditing, viability checking, and resource-efficient 
+configuration backtracking for auditing, viability checking, and resource-efficient 
 lazy loading.
 
 ### Core Components
