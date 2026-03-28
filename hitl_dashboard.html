@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HITL Dashboard — Murphy System</title>
+  <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="static/murphy-design-system.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: #0C1017;
+      color: #E6ECF2;
+      min-height: 100vh;
+    }
+    .page-wrap {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px 24px 64px;
+    }
+    .page-title { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+    .page-subtitle { font-size: 13px; color: #8899AA; margin-bottom: 24px; }
+
+    /* Status Cards */
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .stat-card {
+      background: #131A24;
+      border: 1px solid #1E2A3A;
+      border-left: 3px solid #00D4AA;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .stat-card-value { font-size: 28px; font-weight: 700; }
+    .stat-card-label {
+      font-size: 11px; color: #8899AA;
+      text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;
+    }
+
+    /* Panels */
+    .panel {
+      background: #131A24;
+      border: 1px solid #1E2A3A;
+      border-radius: 12px;
+      margin-bottom: 24px;
+    }
+    .panel-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 20px; border-bottom: 1px solid #1E2A3A;
+    }
+    .panel-title { font-size: 15px; font-weight: 600; }
+    .panel-body { padding: 20px; }
+
+    /* HITL Items */
+    .hitl-list { display: flex; flex-direction: column; gap: 12px; }
+    .hitl-item {
+      background: #0F1620;
+      border: 1px solid #1E2A3A;
+      border-radius: 8px;
+      padding: 16px;
+      transition: border-color 0.15s;
+    }
+    .hitl-item:hover { border-color: #2A3A4E; }
+    .hitl-item-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 12px; flex-wrap: wrap; gap: 8px;
+    }
+    .hitl-item-meta { display: flex; flex-direction: column; gap: 2px; }
+    .hitl-item-id {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600;
+    }
+    .hitl-item-type { font-size: 12px; color: #8899AA; }
+    .hitl-item-date { font-size: 11px; color: #566778; }
+    .hitl-item-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* Badges */
+    .badge {
+      display: inline-block; padding: 2px 10px; border-radius: 9999px;
+      font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .badge-pending  { background: rgba(255,166,62,0.12); color: #FFA63E; border: 1px solid rgba(255,166,62,0.25); }
+    .badge-approved { background: rgba(34,197,94,0.12); color: #22C55E; border: 1px solid rgba(34,197,94,0.25); }
+    .badge-rejected { background: rgba(239,68,68,0.12); color: #EF4444; border: 1px solid rgba(239,68,68,0.25); }
+    .badge-review   { background: rgba(59,158,255,0.12); color: #3B9EFF; border: 1px solid rgba(59,158,255,0.25); }
+
+    /* Buttons */
+    .m-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      height: 36px; padding: 0 16px;
+      border-radius: 8px; border: 1px solid #2A3A4E;
+      background: transparent; color: #E6ECF2;
+      font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+    }
+    .m-btn:hover { background: #1A2332; border-color: #3A4E62; }
+    .m-btn-primary { background: #00D4AA; color: #0C1017; border-color: #00D4AA; }
+    .m-btn-primary:hover { background: #00E8BB; border-color: #00E8BB; }
+    .m-btn-danger { background: rgba(239,68,68,0.12); color: #EF4444; border-color: rgba(239,68,68,0.3); }
+    .m-btn-danger:hover { background: rgba(239,68,68,0.2); }
+    .m-btn-ghost { border-color: transparent; color: #8899AA; }
+    .m-btn-ghost:hover { color: #E6ECF2; background: #1A2332; }
+    .m-btn-sm { height: 28px; padding: 0 10px; font-size: 11px; }
+    .m-btn:disabled { opacity: 0.4; pointer-events: none; }
+
+    /* Modal overlay */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 600; backdrop-filter: blur(4px);
+    }
+    .modal-overlay[hidden] { display: none; }
+    .modal {
+      background: #131A24; border: 1px solid #2A3A4E;
+      border-radius: 12px; width: 100%; max-width: 520px; max-height: 85vh;
+      display: flex; flex-direction: column;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      animation: fadeInUp 0.2s ease-out;
+    }
+    @keyframes fadeInUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 20px; border-bottom: 1px solid #1E2A3A;
+    }
+    .modal-header h3 { font-size: 15px; font-weight: 600; }
+    .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+    .modal-footer {
+      display: flex; justify-content: flex-end; gap: 8px;
+      padding: 12px 20px; border-top: 1px solid #1E2A3A;
+    }
+    .modal-close {
+      background: none; border: none; color: #8899AA;
+      font-size: 20px; cursor: pointer; padding: 0; line-height: 1;
+    }
+    .modal-close:hover { color: #E6ECF2; }
+
+    /* Forms */
+    .form-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; }
+    .form-label {
+      font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.05em; color: #8899AA; font-weight: 500;
+    }
+    .form-input, .form-textarea {
+      height: 36px; padding: 0 12px;
+      background: #0F1620; border: 1px solid #2A3A4E;
+      border-radius: 6px; color: #E6ECF2; font-size: 13px;
+      font-family: inherit; transition: border-color 0.15s;
+    }
+    .form-input:focus, .form-textarea:focus {
+      outline: none; border-color: #00D4AA;
+      box-shadow: 0 0 0 2px rgba(0,212,170,0.15);
+    }
+    .form-textarea {
+      height: auto; min-height: 80px; padding: 10px 12px; resize: vertical;
+    }
+    .form-hint { font-size: 11px; color: #566778; }
+    .form-hint.error { color: #EF4444; }
+    .char-counter { font-size: 11px; color: #566778; text-align: right; }
+    .char-counter.warning { color: #FFA63E; }
+
+    .checkbox-row {
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
+    }
+    .checkbox-row input[type="checkbox"] {
+      accent-color: #00D4AA; width: 16px; height: 16px;
+    }
+    .checkbox-label { font-size: 13px; color: #E6ECF2; }
+
+    /* Inspect Panel */
+    .inspect-panel {
+      background: #0F1620; border: 1px solid #1E2A3A; border-radius: 8px;
+      padding: 16px; margin-top: 12px;
+      animation: fadeInUp 0.2s ease-out;
+    }
+    .inspect-panel h4 { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: #00D4AA; }
+    .inspect-field { margin-bottom: 8px; }
+    .inspect-field-label { font-size: 11px; color: #8899AA; text-transform: uppercase; letter-spacing: 0.04em; }
+    .inspect-field-value {
+      font-size: 13px; color: #E6ECF2; margin-top: 2px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .inspect-field-value pre {
+      background: #0C1017; padding: 8px 12px; border-radius: 6px;
+      overflow-x: auto; font-size: 12px; margin-top: 4px;
+      border: 1px solid #1E2A3A;
+    }
+
+    .refresh-indicator { font-size: 11px; color: #566778; }
+    .refresh-indicator .dot {
+      display: inline-block; width: 6px; height: 6px;
+      border-radius: 50%; background: #22C55E;
+      margin-right: 6px; vertical-align: middle;
+    }
+
+    .empty-state { text-align: center; padding: 48px 24px; color: #566778; }
+    .empty-state-icon { font-size: 36px; margin-bottom: 12px; }
+    .empty-state-msg { font-size: 14px; }
+
+    .toast-container {
+      position: fixed; bottom: 24px; right: 24px; z-index: 700;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      padding: 12px 20px; border-radius: 8px;
+      font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      animation: slideIn 0.25s ease-out;
+    }
+    .toast-success { background: #131A24; border: 1px solid #22C55E; color: #22C55E; }
+    .toast-error   { background: #131A24; border: 1px solid #EF4444; color: #EF4444; }
+    @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    footer { text-align: center; padding: 32px 0 16px; font-size: 11px; color: #566778; }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="murphy-skip-link" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;">Skip to main content</a>
+  <script src="static/murphy-nav.js"></script>
+
+  <main id="main-content">
+    <div class="page-wrap">
+      <h1 class="page-title">Human-in-the-Loop Dashboard</h1>
+      <p class="page-subtitle">Review, approve, or reject pending deliverables requiring human oversight</p>
+
+      <!-- Status Cards -->
+      <div class="status-grid" id="status-grid">
+        <div class="stat-card"><div class="stat-card-value" id="stat-pending">—</div><div class="stat-card-label">Pending</div></div>
+        <div class="stat-card"><div class="stat-card-value" id="stat-approved">—</div><div class="stat-card-label">Approved</div></div>
+        <div class="stat-card"><div class="stat-card-value" id="stat-rejected">—</div><div class="stat-card-label">Rejected</div></div>
+      </div>
+
+      <!-- Queue Panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Approval Queue</span>
+          <span class="refresh-indicator"><span class="dot"></span>Auto-refresh 15s</span>
+        </div>
+        <div class="panel-body">
+          <div class="hitl-list" id="hitl-list">
+            <div class="empty-state">
+              <div class="empty-state-icon">⏳</div>
+              <div class="empty-state-msg">Loading queue…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>© 2020 Inoni Limited Liability Company</footer>
+    </div>
+  </main>
+
+  <!-- Reject Modal -->
+  <div class="modal-overlay" id="reject-modal" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Reject Deliverable — <span id="reject-modal-id"></span></h3>
+        <button class="modal-close" onclick="closeRejectModal()" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="rej-reason">Reason *</label>
+          <textarea class="form-textarea" id="rej-reason" placeholder="Explain why this deliverable is being rejected (min 10 characters)…" rows="3" minlength="10" required></textarea>
+          <div class="char-counter" id="rej-reason-counter">0 / 10 min</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="rej-desired">Desired Outcome</label>
+          <textarea class="form-textarea" id="rej-desired" placeholder="Describe the expected result (optional)…" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="rej-example-url">Example Upload URL</label>
+          <input class="form-input" type="url" id="rej-example-url" placeholder="https://example.com/reference-file">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="rej-example-desc">Example Description</label>
+          <input class="form-input" type="text" id="rej-example-desc" placeholder="Brief description of the example">
+        </div>
+        <div class="form-group">
+          <label class="checkbox-row">
+            <input type="checkbox" id="rej-followup" checked>
+            <span class="checkbox-label">Request follow-up questions from agent</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="m-btn" onclick="closeRejectModal()">Cancel</button>
+        <button class="m-btn m-btn-danger" id="rej-submit-btn" onclick="submitRejection()">Reject</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="static/murphy-components.js"></script>
+  <script>
+    (function () {
+      const REFRESH_MS = 15000;
+      let refreshTimer = null;
+      let currentRejectId = null;
+
+      // --- Toast ---
+      function toast(msg, type) {
+        const el = document.createElement('div');
+        el.className = 'toast toast-' + type;
+        el.textContent = msg;
+        document.getElementById('toast-container').appendChild(el);
+        setTimeout(() => el.remove(), 4000);
+      }
+
+      function escHtml(s) {
+        const d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+      }
+
+      // --- Load queue ---
+      async function loadQueue() {
+        try {
+          const res = await fetch('/api/hitl/queue');
+          if (!res.ok) throw new Error(res.statusText);
+          const data = await res.json();
+          const items = Array.isArray(data) ? data : (data.items || data.queue || []);
+          renderQueue(items);
+          updateStats(items);
+        } catch (e) {
+          console.error('Queue load failed:', e);
+          document.getElementById('hitl-list').innerHTML =
+            '<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-msg">Failed to load queue</div></div>';
+        }
+      }
+
+      function updateStats(items) {
+        const counts = { pending: 0, approved: 0, rejected: 0 };
+        items.forEach(item => {
+          const s = (item.status || '').toLowerCase();
+          if (s === 'approved') counts.approved++;
+          else if (s === 'rejected') counts.rejected++;
+          else counts.pending++;
+        });
+        document.getElementById('stat-pending').textContent = counts.pending;
+        document.getElementById('stat-approved').textContent = counts.approved;
+        document.getElementById('stat-rejected').textContent = counts.rejected;
+      }
+
+      function renderQueue(items) {
+        const list = document.getElementById('hitl-list');
+        if (!items.length) {
+          list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><div class="empty-state-msg">No items in queue</div></div>';
+          return;
+        }
+        list.innerHTML = items.map(item => {
+          const id = item.id || item.hitl_id || '—';
+          const type = item.type || item.deliverable_type || '—';
+          const status = (item.status || 'pending').toLowerCase();
+          const created = item.created_at ? new Date(item.created_at).toLocaleString() : '—';
+          const badgeClass = 'badge-' + (['pending','approved','rejected','review'].includes(status) ? status : 'pending');
+          const isPending = status === 'pending' || status === 'review';
+
+          return '<div class="hitl-item" id="hitl-item-' + escHtml(String(id)) + '">' +
+            '<div class="hitl-item-header">' +
+              '<div class="hitl-item-meta">' +
+                '<div class="hitl-item-id">' + escHtml(String(id)) + '</div>' +
+                '<div class="hitl-item-type">' + escHtml(type) + '</div>' +
+                '<div class="hitl-item-date">' + escHtml(created) + '</div>' +
+              '</div>' +
+              '<span class="badge ' + badgeClass + '">' + escHtml(status) + '</span>' +
+            '</div>' +
+            '<div class="hitl-item-actions">' +
+              (isPending ? '<button class="m-btn m-btn-primary m-btn-sm" onclick="approveItem(\'' + escHtml(String(id)) + '\')">✓ Approve</button>' +
+              '<button class="m-btn m-btn-danger m-btn-sm" onclick="openRejectModal(\'' + escHtml(String(id)) + '\')">✗ Reject</button>' : '') +
+              '<button class="m-btn m-btn-ghost m-btn-sm" onclick="inspectItem(\'' + escHtml(String(id)) + '\', this)">🔍 Inspect</button>' +
+            '</div>' +
+            '<div class="inspect-target" id="inspect-' + escHtml(String(id)) + '"></div>' +
+          '</div>';
+        }).join('');
+      }
+
+      // --- Approve ---
+      window.approveItem = async function (id) {
+        try {
+          const res = await fetch('/api/hitl/' + encodeURIComponent(id) + '/approve', { method: 'POST' });
+          if (!res.ok) throw new Error(res.statusText);
+          toast('Deliverable ' + id + ' approved', 'success');
+          loadQueue();
+        } catch (e) {
+          toast('Approve failed: ' + e.message, 'error');
+        }
+      };
+
+      // --- Reject modal ---
+      window.openRejectModal = function (id) {
+        currentRejectId = id;
+        document.getElementById('reject-modal-id').textContent = id;
+        document.getElementById('rej-reason').value = '';
+        document.getElementById('rej-desired').value = '';
+        document.getElementById('rej-example-url').value = '';
+        document.getElementById('rej-example-desc').value = '';
+        document.getElementById('rej-followup').checked = true;
+        updateCharCounter();
+        document.getElementById('reject-modal').hidden = false;
+      };
+
+      window.closeRejectModal = function () {
+        document.getElementById('reject-modal').hidden = true;
+        currentRejectId = null;
+      };
+
+      // Character counter
+      const reasonField = document.getElementById('rej-reason');
+      reasonField.addEventListener('input', updateCharCounter);
+
+      function updateCharCounter() {
+        const len = reasonField.value.length;
+        const counter = document.getElementById('rej-reason-counter');
+        counter.textContent = len + ' / 10 min';
+        counter.className = len < 10 ? 'char-counter warning' : 'char-counter';
+      }
+
+      // Close modal on backdrop click
+      document.getElementById('reject-modal').addEventListener('click', function (e) {
+        if (e.target === this) closeRejectModal();
+      });
+
+      // --- Submit rejection ---
+      window.submitRejection = async function () {
+        const reason = document.getElementById('rej-reason').value.trim();
+        if (reason.length < 10) {
+          toast('Reason must be at least 10 characters', 'error');
+          reasonField.focus();
+          return;
+        }
+        const payload = {
+          reason: reason,
+          desired_outcome: document.getElementById('rej-desired').value.trim() || undefined,
+          example_upload_url: document.getElementById('rej-example-url').value.trim() || undefined,
+          example_description: document.getElementById('rej-example-desc').value.trim() || undefined,
+          request_followup_questions: document.getElementById('rej-followup').checked
+        };
+        // Remove undefined keys
+        Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
+
+        const btn = document.getElementById('rej-submit-btn');
+        btn.disabled = true;
+        btn.textContent = 'Rejecting…';
+        try {
+          const res = await fetch('/api/hitl/' + encodeURIComponent(currentRejectId) + '/reject', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.detail || res.statusText);
+          }
+          toast('Deliverable ' + currentRejectId + ' rejected', 'success');
+          closeRejectModal();
+          loadQueue();
+        } catch (e) {
+          toast('Reject failed: ' + e.message, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Reject';
+        }
+      };
+
+      // --- Inspect ---
+      window.inspectItem = async function (id, btn) {
+        const target = document.getElementById('inspect-' + id);
+        if (target.innerHTML) {
+          target.innerHTML = '';
+          return;
+        }
+        btn.disabled = true;
+        try {
+          const res = await fetch('/api/hitl/' + encodeURIComponent(id) + '/inspect');
+          if (!res.ok) throw new Error(res.statusText);
+          const data = await res.json();
+          target.innerHTML = renderInspection(data);
+        } catch (e) {
+          target.innerHTML = '<div class="inspect-panel"><p style="color:#EF4444;">Inspect failed: ' + escHtml(e.message) + '</p></div>';
+        } finally {
+          btn.disabled = false;
+        }
+      };
+
+      function renderInspection(data) {
+        let html = '<div class="inspect-panel"><h4>Deliverable Details</h4>';
+        const fields = Object.entries(data);
+        if (!fields.length) {
+          html += '<p style="color:#566778;">No details available</p>';
+        } else {
+          fields.forEach(([key, value]) => {
+            html += '<div class="inspect-field"><div class="inspect-field-label">' + escHtml(key) + '</div>';
+            if (typeof value === 'object' && value !== null) {
+              html += '<div class="inspect-field-value"><pre>' + escHtml(JSON.stringify(value, null, 2)) + '</pre></div>';
+            } else {
+              html += '<div class="inspect-field-value">' + escHtml(String(value ?? '—')) + '</div>';
+            }
+            html += '</div>';
+          });
+        }
+        html += '</div>';
+        return html;
+      }
+
+      // --- Refresh ---
+      function startAutoRefresh() {
+        if (refreshTimer) clearInterval(refreshTimer);
+        refreshTimer = setInterval(loadQueue, REFRESH_MS);
+      }
+
+      loadQueue();
+      startAutoRefresh();
+    })();
+  </script>
+</body>
+</html>

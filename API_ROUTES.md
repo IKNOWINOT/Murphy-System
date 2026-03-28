@@ -1250,3 +1250,18 @@ The following routes exist in `src/runtime/app.py` and were cataloged as missing
 | GET | /api/setup/checklist | Yes | |
 | POST | /api/workflows/generate | Yes | |
 | POST | /api/workflows/{workflow_id}/execute | Yes | |
+| POST | /module-instances/spawn | Yes | Spawn a new module instance |
+| POST | /module-instances/{id}/despawn | Yes | Despawn an instance |
+| GET | /module-instances/ | Yes | List all instances (filter by type/state) |
+| GET | /module-instances/{id} | Yes | Get instance details |
+| POST | /module-instances/viability/check | Yes | Pre-spawn viability check |
+| POST | /module-instances/find-viable | Yes | Find viable instances by type/capabilities |
+| GET | /module-instances/audit/trail | Yes | Audit trail (filter by instance_id, limit) |
+| GET | /module-instances/{id}/config-history | Yes | Configuration snapshot history |
+| GET | /module-instances/status/manager | Yes | Manager status overview |
+| GET | /module-instances/status/resources | Yes | Resource availability |
+| POST | /module-instances/types/register | Yes | Register a module type |
+| POST | /module-instances/types/{type}/blacklist | Yes | Blacklist a module type |
+| POST | /module-instances/bulk/despawn | Yes | Bulk despawn instances |
+| POST | /api/infrastructure/compare | Yes | Compare env against hetzner_load.sh |
+| POST | /api/matrix/notify | Yes | Send Matrix notification for HITL events |
