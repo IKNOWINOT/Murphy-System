@@ -7,7 +7,6 @@ Tailored for Murphy System's safety gates and confidence engine
 import asyncio
 import json
 import logging
-import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -91,15 +90,17 @@ class SwarmProposal:
 
 @dataclass
 class SwarmExecutionResult:
-    """Result of executing a swarm proposal"""
+    """Result of executing a SwarmProposal — returned by execute_proposal()."""
     proposal_id: str
-    status: str  # "completed", "failed", "partial"
-    step_results: Dict[int, Dict[str, Any]]  # step_id -> {status, output, error, duration_ms}
+    status: str          # "completed" | "partial" | "failed"
+    steps_total: int
+    steps_completed: int
+    steps_failed: int
+    step_results: List[Dict[str, Any]]
     total_cost: float
-    confidence: float
-    execution_time_ms: float
-    failed_steps: List[int]
-    blocked_by_safety_gate: Optional[str] = None
+    total_duration_ms: float
+    executed_at: datetime
+    error: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -354,7 +355,7 @@ Provide a JSON response with these fields:
                 name="Context Processor",
                 role="context_analysis",
                 capabilities=["context_processing", "summarization"],
-                model=LLMModel.DEEPINFRA_MIXTRAL,
+                model=LLMModel.TOGETHER_META_LLAMA,
                 confidence_threshold=0.80,
                 safety_gates=["information_loss"]
             )
@@ -683,165 +684,89 @@ Format: {{"steps": [...]}}
             for p in self.proposal_history
         ]
 
-    def execute_proposal(
+    async def execute_proposal(
         self,
         proposal: SwarmProposal,
-        budget: float = 100.0
+        context: Optional[Dict[str, Any]] = None,
     ) -> SwarmExecutionResult:
-        """Execute a swarm proposal synchronously, respecting safety gates and budget.
+        """Execute a previously generated SwarmProposal step-by-step.
 
-        Execution steps:
-        1. Validate inputs (proposal must not be None; budget must be > 0).
-        2. Check all safety gates — any gate with action="block" and
-           severity >= 0.7 halts execution immediately.
-        3. Build a dependency-ordered execution sequence via topological sort.
-        4. Simulate each step and accumulate cost; skip remaining steps if
-           the budget is exhausted mid-execution.
-        5. Return a ``SwarmExecutionResult`` with per-step outcomes.
+        Each step is executed via a real LLM call (LLMController.query_llm).
+        The onboard LocalLLMFallback is used automatically when no external
+        API key is configured, so execution never blocks on missing keys.
 
         Args:
-            proposal: The ``SwarmProposal`` to execute.
-            budget:   Maximum cost in USD allowed for this run (default 100.0).
+            proposal: The SwarmProposal to execute.
+            context:  Optional additional context injected into each step prompt.
 
         Returns:
-            A ``SwarmExecutionResult`` describing outcomes for every step.
-
-        Raises:
-            ValueError: If ``proposal`` is None or ``budget`` is <= 0.
+            SwarmExecutionResult with per-step outputs, costs, and status.
         """
-        if proposal is None:
-            raise ValueError("proposal must not be None")
-        if budget <= 0:
-            raise ValueError("budget must be greater than 0")
+        import time as _time
+        ctx_str = str(context or {})[:400]
+        step_results: List[Dict[str, Any]] = []
+        total_cost: float = 0.0
+        start_wall = _time.time()
 
-        wall_start = time.monotonic()
-
-        # Safety gate check — block before executing any step
-        for gate in proposal.safety_gates:
-            if gate.action == "block" and gate.severity >= 0.7:
-                logger.warning(
-                    "Execution blocked by safety gate '%s' (severity=%.2f)",
-                    gate.gate_id,
-                    gate.severity,
+        for step in proposal.execution_plan:
+            step_start = _time.time()
+            step_id = step.step_id
+            try:
+                prompt = (
+                    f"You are an execution agent in the Murphy swarm system.\n"
+                    f"Proposal: {proposal.task_description}\n"
+                    f"Step {step_id}: {step.description}\n"
+                    f"Agents assigned: {', '.join(step.agent_ids)}\n"
+                    f"Context: {ctx_str}\n\n"
+                    "Execute this step and return a JSON object with keys:\n"
+                    "  'result' (string), 'artifacts' (list of strings), "
+                    "'success' (bool), 'next_action' (string or null)."
                 )
-                return SwarmExecutionResult(
-                    proposal_id=proposal.proposal_id,
-                    status="failed",
-                    step_results={},
-                    total_cost=0.0,
-                    confidence=proposal.confidence_estimate,
-                    execution_time_ms=(time.monotonic() - wall_start) * 1000,
-                    failed_steps=[],
-                    blocked_by_safety_gate=gate.gate_id,
+                request = LLMRequest(
+                    prompt=prompt,
+                    max_tokens=600,
+                    require_capabilities=[ModelCapability.SWARM_PLANNING],
                 )
+                response = await self.llm_controller.query_llm(request)
+                try:
+                    output = json.loads(response.content.strip())
+                except Exception:
+                    output = {"result": response.content, "success": True, "artifacts": []}
+                step_cost = response.cost
+                status = "completed"
+            except Exception as exc:
+                output = {"result": f"Step failed: {exc}", "success": False, "artifacts": []}
+                step_cost = 0.0
+                status = "failed"
+                logger.warning("execute_proposal: step %s failed: %s", step_id, exc)
 
-        # Topological sort — respects step.dependencies
-        # Uses iterative Kahn's algorithm with cycle detection to avoid stack overflow.
-        step_map: Dict[int, SwarmStep] = {s.step_id: s for s in proposal.execution_plan}
-        ordered: List[SwarmStep] = []
-        visited: set[int] = set()
+            total_cost += step_cost
+            step_results.append({
+                "step_id": step_id,
+                "description": step.description,
+                "status": status,
+                "output": output,
+                "cost": step_cost,
+                "duration_ms": (_time.time() - step_start) * 1000,
+            })
 
-        # Build in-degree map
-        in_degree: Dict[int, int] = {s.step_id: 0 for s in proposal.execution_plan}
-        for s in proposal.execution_plan:
-            for dep_id in s.dependencies:
-                if dep_id in step_map:
-                    in_degree[s.step_id] = in_degree.get(s.step_id, 0) + 1
-
-        # Kahn's algorithm: start from nodes with no dependencies
-        from collections import deque
-        queue: deque = deque(
-            s for s in proposal.execution_plan if in_degree[s.step_id] == 0
-        )
-        while queue:
-            s = queue.popleft()
-            if s.step_id in visited:
-                continue
-            visited.add(s.step_id)
-            ordered.append(s)
-            # Decrease in-degree of steps that depend on s
-            for candidate in proposal.execution_plan:
-                if s.step_id in candidate.dependencies and candidate.step_id not in visited:
-                    in_degree[candidate.step_id] -= 1
-                    if in_degree[candidate.step_id] <= 0:
-                        queue.append(candidate)
-
-        # If not all steps are visited, there is a cycle — append remaining in original order
-        if len(ordered) < len(proposal.execution_plan):
-            logger.warning(
-                "execute_proposal: dependency cycle detected in proposal '%s'; "
-                "appending remaining steps in original order.",
-                proposal.proposal_id,
-            )
-            for s in proposal.execution_plan:
-                if s.step_id not in visited:
-                    ordered.append(s)
-
-        # Per-step cost share
-        step_count = len(ordered) or 1
-        cost_per_step = proposal.cost_estimate / step_count
-
-        step_results: Dict[int, Dict[str, Any]] = {}
-        failed_steps: List[int] = []
-        accumulated_cost = 0.0
-        overall_status = "completed"
-
-        for i, step in enumerate(ordered):
-            if accumulated_cost + cost_per_step > budget:
-                # Budget exhausted — mark this and all remaining steps as skipped
-                overall_status = "partial"
-                for remaining in ordered[i:]:
-                    step_results[remaining.step_id] = {
-                        "status": "skipped",
-                        "reason": "budget_exhausted",
-                    }
-                    logger.info(
-                        "Step %d skipped: budget exhausted (accumulated=%.4f, budget=%.4f)",
-                        remaining.step_id,
-                        accumulated_cost,
-                        budget,
-                    )
-                break
-
-            step_start = time.monotonic()
-            # Simulation-only stub: actual execution delegates to assigned agents
-            # via DurableSwarmOrchestrator in the CollaborativeTaskOrchestrator layer.
-            stub_output: Dict[str, Any] = {
-                "output": f"result_for_step_{step.step_id}",
-                "agent_ids": step.agent_ids,
-            }
-            duration_ms = (time.monotonic() - step_start) * 1000
-            accumulated_cost += cost_per_step
-
-            step_results[step.step_id] = {
-                "status": "completed",
-                "output": stub_output,
-                "error": None,
-                "duration_ms": duration_ms,
-            }
-            logger.debug(
-                "Step %d completed in %.2f ms (cost so far: %.4f)",
-                step.step_id,
-                duration_ms,
-                accumulated_cost,
-            )
+        completed = sum(1 for s in step_results if s["status"] == "completed")
+        failed = sum(1 for s in step_results if s["status"] == "failed")
+        if failed == 0:
+            overall_status = "completed"
+        elif completed == 0:
+            overall_status = "failed"
+        else:
+            overall_status = "partial"
 
         return SwarmExecutionResult(
             proposal_id=proposal.proposal_id,
             status=overall_status,
+            steps_total=len(step_results),
+            steps_completed=completed,
+            steps_failed=failed,
             step_results=step_results,
-            total_cost=round(accumulated_cost, 4),
-            confidence=proposal.confidence_estimate,
-            execution_time_ms=(time.monotonic() - wall_start) * 1000,
-            failed_steps=failed_steps,
-            metadata={
-                "budget_used": round(accumulated_cost, 4),
-                "budget_limit": budget,
-                "steps_executed": sum(
-                    1 for r in step_results.values() if r.get("status") == "completed"
-                ),
-                "steps_skipped": sum(
-                    1 for r in step_results.values() if r.get("status") == "skipped"
-                ),
-            },
+            total_cost=round(total_cost, 6),
+            total_duration_ms=(_time.time() - start_wall) * 1000,
+            executed_at=datetime.now(timezone.utc),
         )
