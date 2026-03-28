@@ -270,6 +270,226 @@ CATALOGUE: list[CommissionSpec] = [
         expected_behaviour="Pricing page loads; 4 tiers visible; Starter $0, Business $299",
         rosetta_viewpoints=["founder", "customer", "investor"],
     ),
+
+    # ── Boards (Sprint 1-3) ──────────────────────────────────────────
+    CommissionSpec(
+        id="BOARD-001", page="boards",
+        element=".board-sidebar",
+        expected_behaviour="Board sidebar with groups container and activity panel renders",
+        rosetta_viewpoints=["founder", "operator"],
+    ),
+    CommissionSpec(
+        id="BOARD-002", page="boards",
+        element="#groups-container",
+        expected_behaviour="Board API endpoints wired: /api/boards, /api/boards/{boardId}, /api/collaboration/comments",
+        rosetta_viewpoints=["operator"],
+    ),
+    CommissionSpec(
+        id="BOARD-003", page="boards",
+        element="murphy-sidebar",
+        expected_behaviour="murphy-sidebar navigation component present for cross-page nav",
+        rosetta_viewpoints=["founder", "customer"],
+    ),
+
+    # ── Workdocs (Sprint 1-3) ────────────────────────────────────────
+    CommissionSpec(
+        id="WDOC-001", page="workdocs",
+        element="#doc-list",
+        expected_behaviour="Document list and editor main area render with side panel",
+        rosetta_viewpoints=["founder", "operator"],
+    ),
+    CommissionSpec(
+        id="WDOC-002", page="workdocs",
+        element="#editor-main",
+        expected_behaviour="Workdocs API wired: /api/workdocs, /api/workdocs/{docId}/blocks, /api/collaboration/comments",
+        rosetta_viewpoints=["operator"],
+    ),
+    CommissionSpec(
+        id="WDOC-003", page="workdocs",
+        element="murphy-sidebar",
+        expected_behaviour="murphy-sidebar navigation component present for cross-page nav",
+        rosetta_viewpoints=["founder", "customer"],
+    ),
+
+    # ── Time Tracking (Sprint 1-3) ───────────────────────────────────
+    CommissionSpec(
+        id="TIME-001", page="time_tracking",
+        element="body",
+        expected_behaviour="Timer controls, entry table, and timesheet panel render",
+        rosetta_viewpoints=["operator", "founder"],
+    ),
+    CommissionSpec(
+        id="TIME-002", page="time_tracking",
+        element="body",
+        expected_behaviour="Time tracking API wired: /api/time-tracking/entries, /api/time-tracking/timer/start",
+        rosetta_viewpoints=["operator"],
+    ),
+    CommissionSpec(
+        id="TIME-003", page="time_tracking",
+        element="murphy-sidebar",
+        expected_behaviour="murphy-sidebar navigation component present for cross-page nav",
+        rosetta_viewpoints=["founder", "customer"],
+    ),
+
+    # ── Dashboards (Sprint 1-3) ──────────────────────────────────────
+    CommissionSpec(
+        id="DASH-001", page="dashboards",
+        element="body",
+        expected_behaviour="Dashboard list, widget grid, and chart containers render",
+        rosetta_viewpoints=["founder", "investor"],
+    ),
+    CommissionSpec(
+        id="DASH-002", page="dashboards",
+        element="body",
+        expected_behaviour="Dashboard API wired: /api/dashboards, /api/dashboards/{dashId}/render",
+        rosetta_viewpoints=["operator"],
+    ),
+    CommissionSpec(
+        id="DASH-003", page="dashboards",
+        element="murphy-sidebar",
+        expected_behaviour="murphy-sidebar navigation component present for cross-page nav",
+        rosetta_viewpoints=["founder", "customer"],
+    ),
+
+    # ── CRM (Sprint 1-3) ─────────────────────────────────────────────
+    CommissionSpec(
+        id="CRM-001", page="crm",
+        element="body",
+        expected_behaviour="Contact table, pipeline kanban, and activity feed render",
+        rosetta_viewpoints=["founder", "customer"],
+    ),
+    CommissionSpec(
+        id="CRM-002", page="crm",
+        element="body",
+        expected_behaviour="CRM API wired: /api/crm/contacts, /api/crm/pipelines, /api/crm/deals",
+        rosetta_viewpoints=["operator"],
+    ),
+    CommissionSpec(
+        id="CRM-003", page="crm",
+        element="murphy-sidebar",
+        expected_behaviour="murphy-sidebar navigation component present for cross-page nav",
+        rosetta_viewpoints=["founder", "customer"],
+    ),
+
+    # ── Portfolio (Sprint 1-3) ───────────────────────────────────────
+    CommissionSpec(
+        id="PORT-001", page="portfolio",
+        element="body",
+        expected_behaviour="Gantt chart, milestone markers, and critical path render",
+        rosetta_viewpoints=["founder", "investor"],
+    ),
+    CommissionSpec(
+        id="PORT-002", page="portfolio",
+        element="body",
+        expected_behaviour="Portfolio API wired: /api/portfolio/bars, /api/portfolio/milestones, /api/portfolio/critical-path",
+        rosetta_viewpoints=["operator"],
+    ),
+    CommissionSpec(
+        id="PORT-003", page="portfolio",
+        element="murphy-sidebar",
+        expected_behaviour="murphy-sidebar navigation component present for cross-page nav",
+        rosetta_viewpoints=["founder", "customer"],
+    ),
+
+    # ── AIONMind (Sprint 1-3) ────────────────────────────────────────
+    CommissionSpec(
+        id="AION-001", page="aionmind",
+        element="body",
+        expected_behaviour="Status panel, context input, and execution queue render",
+        rosetta_viewpoints=["operator", "founder"],
+    ),
+    CommissionSpec(
+        id="AION-002", page="aionmind",
+        element="body",
+        expected_behaviour="AIONMind API wired: /api/aionmind/status, /api/aionmind/orchestrate, /api/aionmind/proposals",
+        rosetta_viewpoints=["operator"],
+    ),
+    CommissionSpec(
+        id="AION-003", page="aionmind",
+        element="murphy-sidebar",
+        expected_behaviour="murphy-sidebar navigation component present for cross-page nav",
+        rosetta_viewpoints=["founder", "customer"],
+    ),
+
+    # ── Automations (Sprint 1-3) ─────────────────────────────────────
+    CommissionSpec(
+        id="AUTO-001", page="automations",
+        element="body",
+        expected_behaviour="Rule list, trigger/action config, and execution log render",
+        rosetta_viewpoints=["operator", "founder"],
+    ),
+    CommissionSpec(
+        id="AUTO-002", page="automations",
+        element="body",
+        expected_behaviour="Automations API wired: /api/automations/rules, /api/automations/trigger, /api/automations/log",
+        rosetta_viewpoints=["operator"],
+    ),
+    CommissionSpec(
+        id="AUTO-003", page="automations",
+        element="murphy-sidebar",
+        expected_behaviour="murphy-sidebar navigation component present for cross-page nav",
+        rosetta_viewpoints=["founder", "customer"],
+    ),
+
+    # ── Dev Module (Sprint 1-3) ──────────────────────────────────────
+    CommissionSpec(
+        id="DEV-001", page="dev_module",
+        element="body",
+        expected_behaviour="Sprint board, bug tracker, release panel, git feed, and roadmap render",
+        rosetta_viewpoints=["operator", "founder"],
+    ),
+    CommissionSpec(
+        id="DEV-002", page="dev_module",
+        element="body",
+        expected_behaviour="Dev API wired: /api/dev/sprints, /api/dev/bugs, /api/dev/releases, /api/dev/git, /api/dev/roadmap",
+        rosetta_viewpoints=["operator"],
+    ),
+    CommissionSpec(
+        id="DEV-003", page="dev_module",
+        element="murphy-sidebar",
+        expected_behaviour="murphy-sidebar navigation component present for cross-page nav",
+        rosetta_viewpoints=["founder", "customer"],
+    ),
+
+    # ── Service Module (Sprint 1-3) ──────────────────────────────────
+    CommissionSpec(
+        id="SVC-001", page="service_module",
+        element="body",
+        expected_behaviour="Ticket table, catalog list, KB search, and CSAT panel render",
+        rosetta_viewpoints=["operator", "customer"],
+    ),
+    CommissionSpec(
+        id="SVC-002", page="service_module",
+        element="body",
+        expected_behaviour="Service API wired: /api/service/tickets, /api/service/catalog, /api/service/kb, /api/service/csat",
+        rosetta_viewpoints=["operator"],
+    ),
+    CommissionSpec(
+        id="SVC-003", page="service_module",
+        element="murphy-sidebar",
+        expected_behaviour="murphy-sidebar navigation component present for cross-page nav",
+        rosetta_viewpoints=["founder", "customer"],
+    ),
+
+    # ── Guest Portal (Sprint 1-3) ────────────────────────────────────
+    CommissionSpec(
+        id="GUEST-001", page="guest_portal",
+        element="body",
+        expected_behaviour="Guest list, shareable links, portal config, and form builder render",
+        rosetta_viewpoints=["operator", "customer"],
+    ),
+    CommissionSpec(
+        id="GUEST-002", page="guest_portal",
+        element="body",
+        expected_behaviour="Guest API wired: /api/guest/invites, /api/guest/links, /api/guest/portals, /api/guest/forms",
+        rosetta_viewpoints=["operator"],
+    ),
+    CommissionSpec(
+        id="GUEST-003", page="guest_portal",
+        element="murphy-sidebar",
+        expected_behaviour="murphy-sidebar navigation component present for cross-page nav",
+        rosetta_viewpoints=["founder", "customer"],
+    ),
 ]
 
 # Index catalogue by ID for quick lookup
@@ -319,6 +539,10 @@ class TestStep1And2_IdentifyAndSpecify:
             "onboarding_wizard", "production_wizard",
             "grant_wizard", "grant_dashboard",
             "compliance_dashboard", "partner_request", "pricing",
+            # Sprint 1-3 pages
+            "boards", "workdocs", "time_tracking", "dashboards",
+            "crm", "portfolio", "aionmind", "automations",
+            "dev_module", "service_module", "guest_portal",
         }
         missing = required - pages_covered
         assert not missing, f"Catalogue missing pages: {missing}"
@@ -1028,6 +1252,83 @@ class TestStep8_RosettaMapping:
 
 
 # ══════════════════════════════════════════════════════════════════════════
+# SPRINT 1-3: Commissioning probes for new pages
+# ══════════════════════════════════════════════════════════════════════════
+
+SPRINT1TO3_PAGES = [
+    ("boards",         "boards.html",         "/api/boards"),
+    ("workdocs",       "workdocs.html",       "/api/workdocs"),
+    ("time_tracking",  "time_tracking.html",  "/api/time-tracking/entries"),
+    ("dashboards",     "dashboards.html",     "/api/dashboards"),
+    ("crm",            "crm.html",            "/api/crm/contacts"),
+    ("portfolio",      "portfolio.html",      "/api/portfolio/bars"),
+    ("aionmind",       "aionmind.html",       "/api/aionmind/status"),
+    ("automations",    "automations.html",    "/api/automations/rules"),
+    ("dev_module",     "dev_module.html",     "/api/dev/sprints"),
+    ("service_module", "service_module.html", "/api/service/tickets"),
+    ("guest_portal",   "guest_portal.html",   "/api/guest/invites"),
+]
+
+
+class TestSprint1to3Commissioning:
+    """MCB commissioning probes for Sprint 1-3 new pages."""
+
+    @pytest.mark.parametrize("name,page_file,_api", SPRINT1TO3_PAGES,
+                             ids=[p[0] for p in SPRINT1TO3_PAGES])
+    def test_page_exists_and_has_sidebar(self, name, page_file, _api):
+        """PROBE: Each Sprint 1-3 page HTML exists and contains murphy-sidebar."""
+        path = REPO_ROOT / page_file
+        assert path.exists(), f"{page_file} does not exist"
+        source = path.read_text()
+        assert "murphy-sidebar" in source or "murphy_sidebar" in source, (
+            f"{page_file} missing murphy-sidebar component"
+        )
+
+    @pytest.mark.parametrize("name,page_file,primary_api", SPRINT1TO3_PAGES,
+                             ids=[p[0] for p in SPRINT1TO3_PAGES])
+    def test_page_has_primary_api_endpoint(self, name, page_file, primary_api):
+        """PROBE: Each Sprint 1-3 page references its primary API endpoint."""
+        path = REPO_ROOT / page_file
+        assert path.exists(), f"{page_file} does not exist"
+        source = path.read_text()
+        assert primary_api in source, (
+            f"{page_file} missing primary API endpoint: {primary_api}"
+        )
+
+    def test_all_new_pages_in_app_html_routes(self):
+        """PROBE: All Sprint 1-3 pages are registered in app.py _html_routes."""
+        app_py = REPO_ROOT / "src" / "app.py"
+        if not app_py.exists():
+            pytest.skip("src/app.py not found — route check skipped")
+        source = app_py.read_text()
+        missing = []
+        for name, page_file, _ in SPRINT1TO3_PAGES:
+            route_name = page_file.replace(".html", "")
+            if route_name not in source:
+                missing.append(route_name)
+        assert not missing, (
+            f"Pages not registered in app.py _html_routes: {missing}"
+        )
+
+    def test_all_new_pages_in_sidebar_component(self):
+        """PROBE: All Sprint 1-3 pages have sidebar entries in murphy-components.js."""
+        comp_js = REPO_ROOT / "static" / "murphy-components.js"
+        if not comp_js.exists():
+            comp_js = REPO_ROOT / "murphy_overlay.js"
+        if not comp_js.exists():
+            pytest.skip("murphy-components.js / murphy_overlay.js not found")
+        source = comp_js.read_text()
+        missing = []
+        for name, page_file, _ in SPRINT1TO3_PAGES:
+            slug = page_file.replace(".html", "").replace("_", "-")
+            if slug not in source and name not in source:
+                missing.append(name)
+        assert not missing, (
+            f"Sidebar entries missing in component JS: {missing}"
+        )
+
+
+# ══════════════════════════════════════════════════════════════════════════
 # FINAL: Summary report — gap registry + commissioning status
 # ══════════════════════════════════════════════════════════════════════════
 
@@ -1059,6 +1360,18 @@ class TestFinal_CommissioningReport:
                     "PROD-001","PROD-003","PROD-004",
                     "GRANT-001","GRANT-003","GRANT-004","GRANT-005","GRANT-007",
                     "COMP-001","PART-001","PRICE-001",
+                    # Sprint 1-3 pages
+                    "BOARD-001","BOARD-002","BOARD-003",
+                    "WDOC-001","WDOC-002","WDOC-003",
+                    "TIME-001","TIME-002","TIME-003",
+                    "DASH-001","DASH-002","DASH-003",
+                    "CRM-001","CRM-002","CRM-003",
+                    "PORT-001","PORT-002","PORT-003",
+                    "AION-001","AION-002","AION-003",
+                    "AUTO-001","AUTO-002","AUTO-003",
+                    "DEV-001","DEV-002","DEV-003",
+                    "SVC-001","SVC-002","SVC-003",
+                    "GUEST-001","GUEST-002","GUEST-003",
                 ]
             )
         }
@@ -1069,7 +1382,12 @@ class TestFinal_CommissioningReport:
         """FINAL: Screenshot directories exist and are tracked."""
         for subdir in ["landing", "login", "onboarding", "production",
                        "grants", "compliance", "partner", "pricing",
-                       "chain", "rosetta"]:
+                       "chain", "rosetta",
+                       # Sprint 1-3 dirs — created when screenshots are captured
+                       # "boards", "workdocs", "time_tracking", "dashboards",
+                       # "crm", "portfolio", "aionmind", "automations",
+                       # "dev_module", "service_module", "guest_portal",
+                       ]:
             d = SCREENSHOTS / subdir
             assert d.exists(), f"Screenshot dir missing: {subdir}"
 
@@ -1090,6 +1408,18 @@ class TestFinal_CommissioningReport:
             ("onboarding_wizard.html",   "/ui/production-wizard"),
             ("grant_wizard.html",        "/ui/grant-dashboard"),
             ("grant_wizard.html",        "/ui/compliance"),
+            # Sprint 1-3 page API wiring
+            ("boards.html",              "/api/boards"),
+            ("workdocs.html",            "/api/workdocs"),
+            ("time_tracking.html",       "/api/time-tracking"),
+            ("dashboards.html",          "/api/dashboards"),
+            ("crm.html",                 "/api/crm/contacts"),
+            ("portfolio.html",           "/api/portfolio"),
+            ("aionmind.html",            "/api/aionmind"),
+            ("automations.html",         "/api/automations"),
+            ("dev_module.html",          "/api/dev/"),
+            ("service_module.html",      "/api/service/"),
+            ("guest_portal.html",        "/api/guest/"),
         ]
         failures = []
         for page, needle in critical_checks:
