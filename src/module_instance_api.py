@@ -425,6 +425,13 @@ def register_module_instance_routes(app: FastAPI) -> None:
     async def bulk_despawn(req: BulkDespawnRequest) -> JSONResponse:
         """Despawn multiple instances in one call."""
         try:
+            # Capture module types before despawn (instances become despawned after)
+            type_map = {}
+            for iid in req.instance_ids:
+                inst = _manager.get_instance(iid)
+                if inst is not None:
+                    type_map[iid] = inst.module_type
+
             bulk_result = _manager.bulk_despawn(
                 instance_ids=req.instance_ids,
                 actor=req.actor,
@@ -435,7 +442,7 @@ def register_module_instance_routes(app: FastAPI) -> None:
                 if ok:
                     await _fire_event(_on_despawn_callback, {
                         "instance_id": iid,
-                        "module_type": "bulk",
+                        "module_type": type_map.get(iid, "unknown"),
                         "actor": req.actor,
                     })
             return JSONResponse(
