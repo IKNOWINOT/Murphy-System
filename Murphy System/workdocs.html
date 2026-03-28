@@ -304,6 +304,8 @@
                placeholder="Document title" spellcheck="false">
         <button class="btn btn-sm" id="btn-versions" title="Version history">🕒 Versions</button>
         <button class="btn btn-sm" id="btn-collabs" title="Collaborators">👥 Collaborators</button>
+        <button class="btn btn-sm" id="btn-comments" title="Comments">💬 Comments</button>
+        <button class="btn btn-sm" id="btn-notifications" title="Notifications">🔔 <span id="notif-count" style="font-size:0.7rem;"></span></button>
         <button class="btn btn-sm btn-danger" id="btn-delete-doc" title="Delete document">🗑 Delete</button>
       </div>
       <div class="editor-content" id="block-list">
@@ -354,6 +356,30 @@
       <button class="btn btn-sm btn-teal" id="btn-add-collab" style="width:100%;">+ Add Collaborator</button>
     </div>
     <div class="side-panel-body" id="collab-list"></div>
+  </div>
+
+  <!-- Collaboration: Comments Panel -->
+  <div class="side-panel" id="panel-comments">
+    <div class="side-panel-header">
+      <h3>Comments</h3>
+      <button class="btn-icon" onclick="closePanel('comments')" title="Close">✕</button>
+    </div>
+    <div style="padding:12px 16px; border-bottom:1px solid var(--border-subtle);">
+      <div class="input-group" style="margin-bottom:8px;">
+        <input class="input" id="comment-input" placeholder="Add a comment…">
+      </div>
+      <button class="btn btn-sm btn-teal" id="btn-post-comment" style="width:100%;">💬 Post Comment</button>
+    </div>
+    <div class="side-panel-body" id="comment-list"></div>
+  </div>
+
+  <!-- Collaboration: Notifications Panel -->
+  <div class="side-panel" id="panel-notifications">
+    <div class="side-panel-header">
+      <h3>Notifications <span id="notif-badge" style="background:var(--teal);color:#000;font-size:0.7rem;padding:1px 6px;border-radius:10px;display:none;">0</span></h3>
+      <button class="btn-icon" onclick="closePanel('notifications')" title="Close">✕</button>
+    </div>
+    <div class="side-panel-body" id="notification-list"></div>
   </div>
 
 </div>
@@ -456,6 +482,8 @@
       panel.classList.add('open');
       if (name === 'versions') loadVersions();
       if (name === 'collabs') renderCollaborators();
+      if (name === 'comments') loadComments();
+      if (name === 'notifications') loadNotifications();
     }
   }
   window.closePanel = function (name) {
@@ -797,8 +825,102 @@
     return d.innerHTML;
   }
 
+  /* ── Collaboration: Comments ──────────────────────────── */
+  var $commentList = document.getElementById('comment-list');
+  var $commentInput = document.getElementById('comment-input');
+
+  function loadComments() {
+    if (!activeDocId) return;
+    API('/api/collaboration/comments/' + encodeURIComponent(activeDocId)).then(function (data) {
+      var comments = data.comments || data || [];
+      if (!comments.length) {
+        $commentList.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:0.82rem;">No comments yet.</div>';
+        return;
+      }
+      var html = '';
+      comments.forEach(function (c) {
+        html += '<div style="padding:8px 0;border-bottom:1px solid var(--border-subtle);font-size:0.82rem;">';
+        html += '<strong style="color:var(--teal);">' + escHtml(c.author_name || c.author_id || 'anon') + '</strong> ';
+        html += '<span style="color:var(--text-secondary);">' + escHtml(c.body || '') + '</span>';
+        html += '</div>';
+      });
+      $commentList.innerHTML = html;
+    }).catch(function () {
+      $commentList.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:0.82rem;">Failed to load comments.</div>';
+    });
+  }
+
+  document.getElementById('btn-post-comment').addEventListener('click', function () {
+    var body = ($commentInput.value || '').trim();
+    if (!body || !activeDocId) return;
+    API('/api/collaboration/comments', {
+      method: 'POST',
+      body: { entity_type: 'workdoc', entity_id: activeDocId, body: body }
+    }).then(function () {
+      $commentInput.value = '';
+      loadComments();
+    });
+  });
+
+  if (document.getElementById('btn-comments')) {
+    document.getElementById('btn-comments').addEventListener('click', function () {
+      togglePanel('comments');
+    });
+  }
+
+  /* ── Collaboration: Notifications ─────────────────────── */
+  var $notifList = document.getElementById('notification-list');
+  var $notifBadge = document.getElementById('notif-badge');
+  var $notifCount = document.getElementById('notif-count');
+
+  function loadNotifications() {
+    API('/api/collaboration/notifications/current-user/count').then(function (data) {
+      var count = data.unread || data.count || 0;
+      if ($notifBadge) {
+        $notifBadge.textContent = count;
+        $notifBadge.style.display = count > 0 ? 'inline' : 'none';
+      }
+      if ($notifCount) {
+        $notifCount.textContent = count > 0 ? '(' + count + ')' : '';
+      }
+    }).catch(function () {});
+
+    API('/api/collaboration/notifications/current-user').then(function (data) {
+      var notifs = data.notifications || data || [];
+      if (!notifs.length) {
+        $notifList.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:0.82rem;">No notifications.</div>';
+        return;
+      }
+      var html = '';
+      notifs.slice(0, 20).forEach(function (n) {
+        html += '<div style="padding:8px 0;border-bottom:1px solid var(--border-subtle);font-size:0.82rem;">';
+        html += '<strong style="color:var(--info);">' + escHtml(n.type || '') + '</strong> ';
+        html += '<span>' + escHtml(n.message || n.body || '') + '</span>';
+        html += '</div>';
+      });
+      $notifList.innerHTML = html;
+    }).catch(function () {
+      $notifList.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:0.82rem;">Failed to load.</div>';
+    });
+  }
+
+  if (document.getElementById('btn-notifications')) {
+    document.getElementById('btn-notifications').addEventListener('click', function () {
+      togglePanel('notifications');
+    });
+  }
+
+  /* ── Collaboration: Activity Feed ─────────────────────── */
+  function loadCollabFeed() {
+    if (!activeDocId) return;
+    API('/api/collaboration/feed/item/' + encodeURIComponent(activeDocId)).then(function () {
+      // Feed data loaded for collaboration awareness
+    }).catch(function () {});
+  }
+
   /* ── Init ──────────────────────────────────────────── */
   loadDocuments();
+  loadNotifications();
 
 }());
 </script>

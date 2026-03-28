@@ -412,6 +412,32 @@
             <div class="activity-list" id="activity-list"></div>
           </div>
         </div>
+
+        <!-- Collaboration: Comments -->
+        <div class="activity-panel" id="comments-panel">
+          <div class="activity-toggle" id="comments-toggle" role="button" tabindex="0" aria-expanded="false" aria-label="Toggle comments">
+            <span class="chevron">▶</span> Comments &amp; Collaboration
+          </div>
+          <div class="activity-body" id="comments-body">
+            <div style="padding:8px 24px 8px;">
+              <div style="display:flex;gap:8px;">
+                <input class="input" id="comment-input" placeholder="Add a comment…" style="flex:1;font-size:0.82rem;padding:6px 10px;background:var(--bg-input);border:1px solid var(--border-default);border-radius:6px;color:var(--text-primary);">
+                <button class="btn btn-primary" id="btn-post-comment" style="padding:6px 14px;font-size:0.78rem;">Post</button>
+              </div>
+            </div>
+            <div class="activity-list" id="comments-list"></div>
+          </div>
+        </div>
+
+        <!-- Collaboration: Notification badge -->
+        <div class="activity-panel" id="notifications-panel">
+          <div class="activity-toggle" id="notifications-toggle" role="button" tabindex="0" aria-expanded="false" aria-label="Toggle notifications">
+            <span class="chevron">▶</span> Notifications <span id="notif-badge" style="background:var(--teal);color:#000;font-size:0.7rem;padding:1px 6px;border-radius:10px;margin-left:6px;display:none;">0</span>
+          </div>
+          <div class="activity-body" id="notifications-body">
+            <div class="activity-list" id="notifications-list"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -660,6 +686,8 @@
       $noBoardState.style.display = 'none';
       $boardDetail.style.display = 'flex';
       loadBoardDetail(boardId);
+      loadComments(boardId);
+      loadNotifications();
     }
 
     function loadBoardDetail(boardId, silent) {
@@ -1054,7 +1082,12 @@
     /* ── Auto-refresh ────────────────────────────────────────── */
     function refreshAll() {
       loadBoards(true);
-      if (activeBoardId) loadBoardDetail(activeBoardId, true);
+      if (activeBoardId) {
+        loadBoardDetail(activeBoardId, true);
+        loadComments(activeBoardId);
+        loadCollabFeed(activeBoardId);
+      }
+      loadNotifications();
     }
 
     function scheduleRefresh() {
@@ -1076,6 +1109,101 @@
         if (boards.length > 0) selectBoard(boards[0].id);
       });
       scheduleRefresh();
+    }
+
+    /* ── Collaboration: Comments ─────────────────────────────── */
+    var $commentsList = document.getElementById('comments-list');
+    var $commentsBody = document.getElementById('comments-body');
+    var $commentsToggle = document.getElementById('comments-toggle');
+    var $commentInput = document.getElementById('comment-input');
+
+    function loadComments(boardId) {
+      if (!boardId) return;
+      API('/api/collaboration/comments/' + encodeURIComponent(boardId)).then(function (data) {
+        var comments = data.comments || data || [];
+        if (!comments.length) {
+          $commentsList.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:0.78rem;">No comments yet.</div>';
+          return;
+        }
+        var html = '';
+        comments.forEach(function (c) {
+          html += '<div class="activity-entry">';
+          html += '<span class="activity-time">' + esc(c.author_name || c.author_id || 'anon') + '</span>';
+          html += '<span class="activity-action">' + esc(c.body || '') + '</span>';
+          html += '</div>';
+        });
+        $commentsList.innerHTML = html;
+      }).catch(function () {
+        $commentsList.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:0.78rem;">Failed to load comments.</div>';
+      });
+    }
+
+    $commentsToggle.addEventListener('click', function () {
+      var isOpen = $commentsBody.classList.toggle('open');
+      $commentsToggle.classList.toggle('expanded', isOpen);
+      $commentsToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    document.getElementById('btn-post-comment').addEventListener('click', function () {
+      var body = $commentInput.value.trim();
+      if (!body || !activeBoardId) return;
+      API('/api/collaboration/comments', {
+        method: 'POST',
+        body: { entity_type: 'board', entity_id: activeBoardId, board_id: activeBoardId, body: body }
+      }).then(function () {
+        $commentInput.value = '';
+        loadComments(activeBoardId);
+      });
+    });
+
+    /* ── Collaboration: Notifications ────────────────────────── */
+    var $notifList = document.getElementById('notifications-list');
+    var $notifBody = document.getElementById('notifications-body');
+    var $notifToggle = document.getElementById('notifications-toggle');
+    var $notifBadge = document.getElementById('notif-badge');
+
+    function loadNotifications() {
+      API('/api/collaboration/notifications/current-user/count').then(function (data) {
+        var count = data.unread || data.count || 0;
+        if (count > 0) {
+          $notifBadge.textContent = count;
+          $notifBadge.style.display = 'inline';
+        } else {
+          $notifBadge.style.display = 'none';
+        }
+      }).catch(function () {});
+
+      API('/api/collaboration/notifications/current-user').then(function (data) {
+        var notifs = data.notifications || data || [];
+        if (!notifs.length) {
+          $notifList.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:0.78rem;">No notifications.</div>';
+          return;
+        }
+        var html = '';
+        notifs.slice(0, 20).forEach(function (n) {
+          html += '<div class="activity-entry">';
+          html += '<span class="activity-time">' + esc(n.type || '') + '</span>';
+          html += '<span class="activity-action">' + esc(n.message || n.body || '') + '</span>';
+          html += '</div>';
+        });
+        $notifList.innerHTML = html;
+      }).catch(function () {
+        $notifList.innerHTML = '<div style="padding:12px 0;color:var(--text-muted);font-size:0.78rem;">Failed to load notifications.</div>';
+      });
+    }
+
+    $notifToggle.addEventListener('click', function () {
+      var isOpen = $notifBody.classList.toggle('open');
+      $notifToggle.classList.toggle('expanded', isOpen);
+      $notifToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    /* ── Collaboration: Activity Feed ────────────────────────── */
+    function loadCollabFeed(boardId) {
+      if (!boardId) return;
+      API('/api/collaboration/feed/board/' + encodeURIComponent(boardId)).then(function () {
+        // Feed data loaded for board-level collaboration awareness
+      }).catch(function () {});
     }
 
     if (document.readyState === 'loading') {
