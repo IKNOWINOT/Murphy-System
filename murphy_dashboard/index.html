@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Murphy System — Command Center v3.0</title>
+<style>
+:root{
+  --bg0:#080c10;--bg1:#0d1117;--bg2:#161b22;--bg3:#1c2129;--bg4:#21262d;
+  --border:rgba(48,54,61,0.8);--border2:rgba(0,212,170,0.2);
+  --green:#00d4aa;--cyan:#00b4d8;--blue:#3b9eff;--purple:#a855f7;
+  --orange:#f97316;--red:#ef4444;--yellow:#f59e0b;--pink:#ec4899;
+  --text:#e6edf3;--muted:#8b949e;--dim:#484f58;
+  --hitl:#f59e0b;--hitl-bg:rgba(245,158,11,0.08);--hitl-border:rgba(245,158,11,0.35);
+  --delay:#ef4444;--delay-bg:rgba(239,68,68,0.08);
+  --ok:#00d4aa;--ok-bg:rgba(0,212,170,0.08);
+  --sidebar-w:56px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:13px;line-height:1.5}
+/* Layout */
+.shell{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:var(--sidebar-w);background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:4px;flex-shrink:0;z-index:100}
+.sb-logo{width:36px;height:36px;background:linear-gradient(135deg,var(--green),var(--cyan));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:8px;cursor:pointer;text-decoration:none}
+.sb-btn{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,color .15s;color:var(--muted);font-size:16px;position:relative;border:none;background:none}
+.sb-btn:hover{background:var(--bg3);color:var(--text)}
+.sb-btn.active{background:rgba(0,212,170,.15);color:var(--green)}
+.sb-badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;background:var(--red);border-radius:8px;font-size:9px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;padding:0 3px}
+.sb-badge.orange{background:var(--orange)}
+.sb-badge.yellow{background:var(--hitl);color:#000}
+.sb-spacer{flex:1}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+/* Topbar */
+.topbar{height:48px;background:var(--bg1);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0}
+.topbar-title{font-weight:700;font-size:14px;color:var(--text)}
+.topbar-sub{font-size:11px;color:var(--muted)}
+.topbar-spacer{flex:1}
+.topbar-tenant{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:4px 12px;cursor:pointer;font-size:12px;transition:border-color .15s}
+.topbar-tenant:hover{border-color:var(--green)}
+.topbar-tenant .dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0}
+.topbar-kpi{display:flex;align-items:center;gap:4px;padding:4px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-size:11px;font-family:monospace}
+.topbar-kpi .val{color:var(--green);font-weight:700}
+.topbar-kpi .label{color:var(--muted)}
+.hitl-alert{display:flex;align-items:center;gap:6px;background:var(--hitl-bg);border:1px solid var(--hitl-border);border-radius:6px;padding:4px 10px;font-size:11px;color:var(--hitl);cursor:pointer;animation:hpulse 2s infinite}
+@keyframes hpulse{0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,.4)}50%{box-shadow:0 0 0 4px rgba(245,158,11,0)}}
+/* Content area */
+.content{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.panel{display:none}
+.panel.active{display:contents}
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px}
+.card.hitl-card{border-color:var(--hitl-border);background:var(--hitl-bg)}
+.card.delay-card{border-color:rgba(239,68,68,.4);background:var(--delay-bg)}
+.card.ok-card{border-color:var(--border2);background:var(--ok-bg)}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}
+.card-title{font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+/* Grid */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center}
+.kpi-val{font-size:22px;font-weight:800;font-family:monospace}
+.kpi-label{font-size:10px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.06em}
+/* HITL Queue */
+.hitl-item{background:var(--bg2);border:1px solid var(--hitl-border);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.hitl-item.critical{border-color:var(--red);background:rgba(239,68,68,.06)}
+.hitl-header{display:flex;align-items:flex-start;gap:8px}
+.hitl-icon{font-size:20px;flex-shrink:0;margin-top:2px}
+.hitl-info{flex:1;min-width:0}
+.hitl-title{font-size:12px;font-weight:700;color:var(--hitl)}
+.hitl-desc{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
+.hitl-meta{display:flex;gap:8px;flex-wrap:wrap}
+.hitl-tag{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.tag-campaign{background:rgba(249,115,22,.15);color:var(--orange)}
+.tag-proposal{background:rgba(20,184,166,.15);color:var(--green)}
+.tag-setup{background:rgba(139,92,246,.15);color:var(--purple)}
+.tag-automation{background:rgba(59,158,255,.15);color:var(--blue)}
+.tag-dag{background:rgba(168,85,247,.15);color:var(--purple)}
+.tag-vertical{background:rgba(236,72,153,.15);color:var(--pink)}
+.hitl-actions{display:flex;gap:8px}
+.btn{display:inline-flex;align-items:center;gap:5px;border:none;border-radius:6px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn-approve{background:rgba(0,212,170,.15);color:var(--green);border:1px solid rgba(0,212,170,.3)}
+.btn-approve:hover{background:rgba(0,212,170,.25);border-color:var(--green)}
+.btn-reject{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.btn-reject:hover{background:rgba(239,68,68,.2)}
+.btn-primary{background:var(--green);color:#000;border:none}
+.btn-primary:hover{background:#00f5c4;transform:translateY(-1px)}
+.btn-sm{padding:4px 10px;font-size:10px}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:hover{color:var(--text);border-color:var(--muted)}
+.btn-warn{background:rgba(245,158,11,.15);color:var(--hitl);border:1px solid rgba(245,158,11,.3)}
+/* Automation blocks */
+.auto-block{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;position:relative;overflow:hidden;transition:border-color .2s}
+.auto-block.delayed{border-color:rgba(239,68,68,.4)}
+.auto-block.blocked{border-color:var(--hitl-border)}
+.auto-block-bar{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,rgba(0,212,170,.08),transparent);transition:width .8s ease;pointer-events:none}
+.auto-header{display:flex;align-items:center;justify-content:space-between;gap:8px;position:relative;z-index:1}
+.auto-name{font-size:12px;font-weight:600}
+.auto-badges{display:flex;gap:4px;align-items:center}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600}
+.badge-active{background:rgba(0,212,170,.12);color:var(--green)}
+.badge-paused{background:rgba(107,114,128,.15);color:var(--muted)}
+.badge-hitl{background:var(--hitl-bg);color:var(--hitl);border:1px solid var(--hitl-border)}
+.badge-delayed{background:rgba(239,68,68,.12);color:var(--red)}
+.badge-cat{background:var(--bg4);color:var(--muted)}
+.auto-milestones{margin-top:8px;position:relative;z-index:1}
+.ms-track{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--bg4);gap:1px}
+.ms-seg{height:100%;flex:1;border-radius:2px;transition:background .3s,flex .5s}
+.ms-seg.completed{background:var(--green)}
+.ms-seg.running{background:linear-gradient(90deg,var(--green),var(--cyan));animation:mspulse 1.5s infinite}
+.ms-seg.blocked_hitl{background:var(--hitl);animation:hitlpulse 1s infinite}
+.ms-seg.pending{background:var(--bg4)}
+@keyframes mspulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes hitlpulse{0%,100%{opacity:1;box-shadow:0 0 6px var(--hitl)}50%{opacity:.6;box-shadow:0 0 2px var(--hitl)}}
+.auto-stats{display:flex;gap:12px;margin-top:6px;font-size:10px;color:var(--muted);position:relative;z-index:1}
+.auto-stat-val{color:var(--text);font-weight:600;font-family:monospace}
+.delay-pill{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--red);background:rgba(239,68,68,.1);border-radius:4px;padding:2px 6px}
+.duration-bar{height:3px;background:var(--bg4);border-radius:2px;margin-top:6px;position:relative;overflow:visible}
+.duration-planned{position:absolute;left:0;top:0;height:100%;background:var(--dim);border-radius:2px;transition:width .5s}
+.duration-actual{position:absolute;left:0;top:0;height:100%;background:var(--green);border-radius:2px;transition:width .8s}
+.duration-delay{position:absolute;top:0;height:100%;background:var(--red);border-radius:2px;transition:left .5s,width .5s}
+/* Calendar Timeline */
+.timeline-header{display:grid;gap:1px;background:var(--bg3);border-radius:8px 8px 0 0;overflow:hidden}
+.timeline-row{display:flex;height:40px;align-items:center;gap:1px;position:relative}
+.timeline-label{width:160px;padding:0 10px;font-size:10px;color:var(--muted);flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.timeline-track{flex:1;height:100%;position:relative;background:var(--bg1)}
+.timeline-block{position:absolute;top:4px;bottom:4px;border-radius:4px;display:flex;align-items:center;padding:0 6px;font-size:9px;font-weight:600;white-space:nowrap;overflow:hidden;cursor:pointer;transition:opacity .2s,filter .2s;min-width:20px}
+.timeline-block:hover{filter:brightness(1.2);z-index:10}
+.timeline-block.delayed::after{content:'⚠';position:absolute;right:3px;font-size:8px}
+.timeline-block.blocked_hitl::after{content:'🔒';position:absolute;right:3px;font-size:8px}
+.hitl-diamond{position:absolute;top:50%;transform:translate(-50%,-50%);width:10px;height:10px;background:var(--hitl);clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);z-index:5;cursor:pointer}
+.hitl-diamond:hover::before{content:attr(data-tip);position:absolute;top:-24px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--hitl-border);border-radius:4px;padding:2px 6px;font-size:9px;white-space:nowrap;pointer-events:none}
+/* Campaign cards */
+.campaign-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px}
+.campaign-card.adjusting{border-color:var(--hitl-border)}
+.campaign-card.active.healthy{border-color:rgba(0,212,170,.3)}
+.traction-bar{height:4px;border-radius:2px;background:var(--bg4);margin-top:6px;overflow:hidden}
+.traction-fill{height:100%;border-radius:2px;transition:width .8s,background .5s}
+.metric-row{display:flex;justify-content:space-between;font-size:11px;margin-top:4px}
+.metric-val{font-family:monospace;font-weight:700}
+/* Workflow DAG */
+.dag-container{background:var(--bg1);border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto}
+.dag-steps{display:flex;align-items:center;gap:0;flex-wrap:wrap;row-gap:8px}
+.dag-step{display:flex;align-items:center;gap:0}
+.dag-node{min-width:110px;max-width:130px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:10px;text-align:center;position:relative}
+.dag-node.running{border-color:var(--green);background:var(--ok-bg);animation:noderun 1.5s infinite}
+.dag-node.completed{border-color:var(--green);background:var(--ok-bg)}
+.dag-node.awaiting_hitl,.dag-node.blocked_hitl{border-color:var(--hitl);background:var(--hitl-bg);animation:hitlpulse 1s infinite}
+.dag-node.approved{border-color:var(--green)}
+@keyframes noderun{0%,100%{box-shadow:0 0 0 0 rgba(0,212,170,0)}50%{box-shadow:0 0 8px rgba(0,212,170,.3)}}
+.dag-arrow{color:var(--dim);padding:0 4px;font-size:12px;flex-shrink:0}
+.dag-node-icon{font-size:14px;margin-bottom:3px}
+.dag-node-name{font-weight:600;line-height:1.3;word-break:break-word}
+.dag-node-type{font-size:9px;color:var(--muted);margin-top:2px}
+/* Self-setup steps */
+.setup-step{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;transition:border-color .2s}
+.setup-step.active{border-color:var(--border2)}
+.setup-step.blocked_hitl{border-color:var(--hitl-border);background:var(--hitl-bg);animation:hitlpulse 2s infinite}
+.setup-step.completed{opacity:.7}
+.step-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.step-icon.completed{background:var(--ok-bg);color:var(--green)}
+.step-icon.active{background:rgba(59,158,255,.1);color:var(--blue)}
+.step-icon.blocked_hitl{background:var(--hitl-bg);color:var(--hitl)}
+.step-icon.pending{background:var(--bg4);color:var(--dim)}
+.step-info{flex:1;min-width:0}
+.step-name{font-size:12px;font-weight:600}
+.step-cat{font-size:10px;color:var(--muted)}
+.step-prog{height:3px;background:var(--bg4);border-radius:2px;margin-top:4px;overflow:hidden}
+.step-prog-fill{height:100%;border-radius:2px;transition:width .5s;background:var(--green)}
+.step-prog-fill.hitl{background:var(--hitl)}
+/* Comms */
+.room-list{display:flex;flex-direction:column;gap:4px}
+.room-item{padding:8px 12px;border-radius:6px;cursor:pointer;transition:background .15s;display:flex;align-items:center;justify-content:space-between}
+.room-item:hover,.room-item.selected{background:var(--bg4)}
+.msg-list{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto}
+.msg-bubble{padding:8px 10px;background:var(--bg3);border-radius:6px;font-size:11px}
+.msg-sender{font-weight:700;color:var(--green);font-size:10px}
+.msg-content{margin-top:3px;color:var(--muted)}
+/* NL Prompt Bar */
+.prompt-bar{background:var(--bg1);border-top:1px solid var(--border);padding:10px 16px;display:flex;gap:8px;flex-shrink:0}
+.prompt-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:12px;outline:none;transition:border-color .15s}
+.prompt-input:focus{border-color:var(--green)}
+.prompt-input::placeholder{color:var(--dim)}
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--dim)}
+/* Utils */
+.dot-live{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pdot 2s infinite;display:inline-block}
+@keyframes pdot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.5)}}
+.tag{display:inline-flex;align-items:center;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;text-transform:uppercase}
+.text-green{color:var(--green)}.text-red{color:var(--red)}.text-yellow{color:var(--hitl)}.text-blue{color:var(--blue)}.text-muted{color:var(--muted)}
+.mono{font-family:monospace}.bold{font-weight:700}
+.flex{display:flex}.items-center{align-items:center}.gap-2{gap:8px}.gap-1{gap:4px}
+.w-full{width:100%}
+.toast-container{position:fixed;top:16px;right:16px;display:flex;flex-direction:column;gap:6px;z-index:9999}
+.toast{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;min-width:240px;max-width:360px;animation:toastin .2s ease}
+.toast.ok{border-color:var(--border2);color:var(--green)}
+.toast.warn{border-color:var(--hitl-border);color:var(--hitl)}
+.toast.err{border-color:rgba(239,68,68,.4);color:var(--red)}
+@keyframes toastin{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+/* Reject modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:flex;align-items:center;justify-content:center}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;width:420px;max-width:95vw}
+.modal-title{font-size:14px;font-weight:700;margin-bottom:12px}
+.modal-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-size:12px;outline:none;resize:vertical;min-height:80px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+/* Exec log */
+.exec-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:11px;transition:background .15s}
+.exec-row:hover{background:var(--bg3)}
+.exec-status{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.exec-status.completed{background:var(--green)}
+.exec-status.failed{background:var(--red)}
+/* Progress ring */
+.ring{position:relative;display:inline-flex;align-items:center;justify-content:center}
+.ring svg{transform:rotate(-90deg)}
+.ring-text{position:absolute;font-size:11px;font-weight:700;font-family:monospace}
+/* Vertical cards */
+.vert-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;transition:border-color .2s,transform .15s}
+.vert-card:hover{border-color:var(--border2);transform:translateY(-2px)}
+.vert-card.active-vert{border-color:rgba(0,212,170,.35)}
+.vert-icon{font-size:24px;margin-bottom:6px}
+.vert-name{font-size:12px;font-weight:700}
+.vert-engine{font-size:9px;color:var(--muted);margin-top:2px;line-height:1.3}
+.vert-stats{display:flex;gap:8px;margin-top:8px;font-size:10px}
+.vert-stat{flex:1;background:var(--bg3);border-radius:4px;padding:4px 6px;text-align:center}
+.vert-stat-val{font-weight:700;font-family:monospace;color:var(--green)}
+.vert-stat-lbl{color:var(--muted);font-size:9px}
+/* Live ticker */
+.ticker{background:var(--bg1);border-top:1px solid var(--border);height:24px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;padding:0 8px}
+.ticker-inner{display:flex;gap:24px;animation:tickerscroll 40s linear infinite;white-space:nowrap}
+.ticker-item{font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.ticker-item .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+@keyframes tickerscroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+</style>
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Reject modal -->
+<div class="modal-overlay" id="rejectModal" style="display:none">
+  <div class="modal">
+    <div class="modal-title">❌ Reject — Provide Reason</div>
+    <textarea class="modal-input" id="rejectReason" placeholder="Why are you rejecting this? (optional)"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeRejectModal()">Cancel</button>
+      <button class="btn btn-reject" onclick="submitReject()">Confirm Reject</button>
+    </div>
+  </div>
+</div>
+
+<div class="shell">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <a href="/landing" class="sb-logo" title="Landing Page">M</a>
+    <button class="sb-btn active" data-panel="overview" title="Overview" onclick="showPanel('overview',this)">🏠</button>
+    <button class="sb-btn" data-panel="hitl" title="HITL Queue" onclick="showPanel('hitl',this)">⚡</button>
+    <button class="sb-btn" data-panel="calendar" title="Production Calendar" onclick="showPanel('calendar',this)">📅</button>
+    <button class="sb-btn" data-panel="automations" title="Automations" onclick="showPanel('automations',this)">⚙️</button>
+    <button class="sb-btn" data-panel="verticals" title="Verticals" onclick="showPanel('verticals',this)">🔧</button>
+    <button class="sb-btn" data-panel="marketing" title="Marketing" onclick="showPanel('marketing',this)">📣</button>
+    <button class="sb-btn" data-panel="proposals" title="Proposals" onclick="showPanel('proposals',this)">📄</button>
+    <button class="sb-btn" data-panel="workflows" title="Workflows" onclick="showPanel('workflows',this)">🔀</button>
+    <button class="sb-btn" data-panel="comms" title="Comms" onclick="showPanel('comms',this)">💬</button>
+    <button class="sb-btn" data-panel="setup" title="Self-Setup" onclick="showPanel('setup',this)">🚀</button>
+    <div class="sb-spacer"></div>
+    <a href="/calendar" class="sb-btn" title="Legacy Calendar" style="color:var(--muted)">🗓</a>
+    <a href="/dashboard" class="sb-btn" title="Legacy Dashboard" style="color:var(--muted)">📊</a>
+    <a href="/docs" class="sb-btn" title="API Docs" target="_blank" style="color:var(--muted)">📖</a>
+  </nav>
+
+  <div class="main">
+    <!-- Topbar -->
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">Murphy System <span style="color:var(--green)">v3.0</span></div>
+        <div class="topbar-sub">Command Center — <span class="dot-live"></span> Live</div>
+      </div>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-kpi"><span class="val" id="kpi-autos">—</span><span class="label">automations</span></div>
+      <div class="topbar-kpi"><span class="val" id="kpi-savings">—</span><span class="label">$/mo saved</span></div>
+      <div class="topbar-kpi"><span class="val" id="kpi-execs">—</span><span class="label">executions</span></div>
+      <div class="hitl-alert" id="hitlAlert" onclick="showPanel('hitl',document.querySelector('[data-panel=hitl]'))" style="display:none">
+        ⚡ <span id="hitlAlertCount">0</span> pending HITL
+      </div>
+      <div class="topbar-tenant" onclick="cycleTenant()">
+        <div class="dot"></div>
+        <span id="tenantName">Loading...</span>
+        <span style="color:var(--muted);font-size:10px">▼</span>
+      </div>
+    </div>
+
+    <!-- Panels container -->
+    <div class="content" id="contentArea">
+
+      <!-- ===== OVERVIEW ===== -->
+      <div class="panel active" id="panel-overview">
+        <div class="kpi-grid" id="overviewKPIs"></div>
+        <div class="g2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">⚡ Active Automations — Milestone Progress</div><button class="btn btn-sm btn-ghost" onclick="loadAutomations()">Refresh</button></div>
+            <div id="autoBlocks" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto"></div>
+          </div>
+          <div class="card hitl-card" id="hitlPreviewCard">
+            <div class="card-header"><div class="card-title">⚡ HITL Queue — Pending Approvals</div><button class="btn btn-sm btn-approve" onclick="showPanel('hitl',document.querySelector('[data-panel=hitl]'))">View All</button></div>
+            <div id="hitlPreview" style="display:flex;flex-direction:column;gap:6px"></div>
+          </div>
+        </div>
+        <div class="g2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">📣 Campaign Traction</div></div>
+            <div id="campaignMini" style="display:flex;flex-direction:column;gap:6px"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">🚀 Self-Setup Pipeline</div></div>
+            <div id="setupMini" style="display:flex;flex-direction:column;gap:4px"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">📋 Recent Executions</div></div>
+          <div id="execMini" style="display:flex;flex-direction:column;gap:2px;max-height:180px;overflow-y:auto"></div>
+        </div>
+      </div>
+
+      <!-- ===== HITL QUEUE ===== -->
+      <div class="panel" id="panel-hitl">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">⚡ Human-in-the-Loop Queue — Real Approval Gates</div>
+            <div style="display:flex;gap:6px">
+              <select id="hitlFilter" onchange="loadHITL()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:3px 8px;font-size:11px">
+                <option value="">All</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+              <button class="btn btn-sm btn-ghost" onclick="loadHITL()">↺ Refresh</button>
+            </div>
+          </div>
+          <div id="hitlList" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+      </div>
+
+      <!-- ===== CALENDAR ===== -->
+      <div class="panel" id="panel-calendar">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📅 Production Timeline — Live Milestone Blocks</div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <span style="font-size:10px;color:var(--muted)">Blocks SHRINK as milestones complete · GROW when delayed · 🔒 = HITL blocked</span>
+              <button class="btn btn-sm btn-ghost" onclick="loadCalendar()">↺ Refresh</button>
+            </div>
+          </div>
+          <div id="calLegend" style="display:flex;gap:12px;margin-bottom:10px;font-size:10px;flex-wrap:wrap">
+            <span><span style="display:inline-block;width:12px;height:12px;background:var(--green);border-radius:2px;vertical-align:middle"></span> On track</span>
+            <span><span style="display:inline-block;width:12px;height:12px;background:var(--red);border-radius:2px;vertical-align:middle"></span> Delayed</span>
+            <span><span style="display:inline-block;width:12px;height:12px;background:var(--hitl);border-radius:2px;vertical-align:middle"></span> HITL blocked</span>
+            <span>♦ HITL gate</span>
+          </div>
+          <div id="calTimeline" style="overflow-x:auto"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">📊 Delay Summary</div></div>
+          <div id="delaySummary" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+        </div>
+      </div>
+
+      <!-- ===== AUTOMATIONS ===== -->
+      <div class="panel" id="panel-automations">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">⚙️ All Automations — Milestone Tracking</div>
+            <div style="display:flex;gap:6px">
+              <select id="autoFilter" onchange="loadAutomationsPanel()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:3px 8px;font-size:11px">
+                <option value="">All Categories</option>
+                <option value="marketing">Marketing</option>
+                <option value="crm">CRM</option>
+                <option value="monitoring">Monitoring</option>
+                <option value="security">Security</option>
+                <option value="finance">Finance</option>
+                <option value="industrial">Industrial</option>
+                <option value="pipeline">Pipeline</option>
+                <option value="proposals">Proposals</option>
+                <option value="content">Content</option>
+              </select>
+              <button class="btn btn-sm btn-ghost" onclick="loadAutomationsPanel()">↺ Refresh</button>
+            </div>
+          </div>
+          <div id="allAutoBlocks" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+      </div>
+
+      <!-- ===== VERTICALS ===== -->
+      <div class="panel" id="panel-verticals">
+        <div class="card">
+          <div class="card-header"><div class="card-title">🔧 Automation Verticals</div></div>
+          <div id="verticalGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px"></div>
+        </div>
+        <div class="card" id="vertDetailCard" style="display:none">
+          <div class="card-header"><div class="card-title" id="vertDetailTitle">Vertical Detail</div><button class="btn btn-sm btn-ghost" onclick="document.getElementById('vertDetailCard').style.display='none'">✕</button></div>
+          <div id="vertDetailContent"></div>
+        </div>
+      </div>
+
+      <!-- ===== MARKETING ===== -->
+      <div class="panel" id="panel-marketing">
+        <div class="g2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">📣 Campaign Tiers — Closed Loop</div><button class="btn btn-sm btn-ghost" onclick="loadMarketing()">↺</button></div>
+            <div id="campaignCards" style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">💳 Paid Ad Proposals — HITL Required</div></div>
+            <div id="paidProposals" style="display:flex;flex-direction:column;gap:8px"></div>
+            <div style="margin-top:10px;display:flex;gap:6px">
+              <select id="paidTierSel" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:11px;flex:1">
+                <option value="business">Business Tier</option>
+                <option value="professional">Professional Tier</option>
+                <option value="solo">Solo Tier</option>
+              </select>
+              <button class="btn btn-warn" onclick="createPaidProposal()">+ Propose Paid Ad</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PROPOSALS ===== -->
+      <div class="panel" id="panel-proposals">
+        <div class="g2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">📥 Inbound Requests</div><button class="btn btn-sm btn-ghost" onclick="loadProposals()">↺</button></div>
+            <div id="inboundRequests" style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">📄 Generated Proposals — HITL Review</div></div>
+            <div id="generatedProposals" style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+        </div>
+        <div class="card" id="proposalDetailCard" style="display:none">
+          <div class="card-header"><div class="card-title">📋 Proposal Detail</div><button class="btn btn-sm btn-ghost" onclick="document.getElementById('proposalDetailCard').style.display='none'">✕</button></div>
+          <div id="proposalDetail"></div>
+        </div>
+      </div>
+
+      <!-- ===== WORKFLOWS ===== -->
+      <div class="panel" id="panel-workflows">
+        <div class="card">
+          <div class="card-header"><div class="card-title">🔀 NL → DAG Workflow Builder</div></div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <textarea id="wfDesc" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:12px;resize:vertical;min-height:80px;outline:none" placeholder="Describe your workflow in plain English... e.g. 'Fetch leads from HubSpot, score and validate them, approve high-value ones, sync to Salesforce and send Slack notification'"></textarea>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <span class="btn btn-ghost btn-sm" onclick="setWfTemplate('fetch leads score validate approve sync notify')">🎯 Lead Pipeline</span>
+              <span class="btn btn-ghost btn-sm" onclick="setWfTemplate('read sensor data analyze anomalies review alert deploy fix')">🏭 SCADA Pipeline</span>
+              <span class="btn btn-ghost btn-sm" onclick="setWfTemplate('collect financial data calculate reconcile review export report')">💰 Finance Pipeline</span>
+              <span class="btn btn-ghost btn-sm" onclick="setWfTemplate('scan vulnerabilities analyze review approve deploy patch')">🔒 Security Pipeline</span>
+              <button class="btn btn-primary" onclick="generateWorkflow(false)">Build DAG</button>
+              <button class="btn btn-approve" onclick="generateWorkflow(true)">Build & Execute</button>
+            </div>
+          </div>
+        </div>
+        <div id="workflowResult" style="display:flex;flex-direction:column;gap:8px"></div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">📚 Workflow History</div></div>
+          <div id="workflowHistory" style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto"></div>
+        </div>
+      </div>
+
+      <!-- ===== COMMS ===== -->
+      <div class="panel" id="panel-comms">
+        <div class="g2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">🏠 Agent Rooms</div></div>
+            <div id="roomList" class="room-list"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title" id="roomTitle">Select a room</div></div>
+            <div id="msgList" class="msg-list"></div>
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <input id="msgInput" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:11px;outline:none" placeholder="Message agents...">
+              <button class="btn btn-primary btn-sm" onclick="sendMessage()">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SETUP ===== -->
+      <div class="panel" id="panel-setup">
+        <div class="g2">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">🚀 Self-Setup Pipeline — HITL Gated</div>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-sm btn-ghost" onclick="advanceSetup()">▶ Advance</button>
+                <button class="btn btn-sm btn-primary" onclick="runFullSetup()">⚡ Run Full</button>
+              </div>
+            </div>
+            <div style="margin-bottom:10px">
+              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+                <span>Overall Progress</span><span id="setupPct" class="text-green mono bold">0%</span>
+              </div>
+              <div style="background:var(--bg4);border-radius:4px;height:6px;overflow:hidden">
+                <div id="setupBar" style="height:100%;background:linear-gradient(90deg,var(--green),var(--cyan));border-radius:4px;transition:width .5s;width:0%"></div>
+              </div>
+            </div>
+            <div id="setupSteps" style="display:flex;flex-direction:column;gap:4px"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">⚙️ Engine Status</div></div>
+            <div id="engineStatus" style="display:flex;flex-direction:column;gap:6px"></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end content -->
+
+    <!-- NL Prompt Bar -->
+    <div class="prompt-bar">
+      <input class="prompt-input" id="globalPrompt" placeholder="✨ Describe an automation in plain English... e.g. 'every Monday, pull CRM leads and send Slack digest'" onkeydown="if(event.key==='Enter')createFromPrompt()">
+      <button class="btn btn-primary" onclick="createFromPrompt()">Create Automation</button>
+      <select id="promptTenant" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-size:11px">
+        <option value="tenant-001">HQ Enterprise</option>
+        <option value="tenant-002">Industrial Ops</option>
+        <option value="tenant-003">Marketing Studio</option>
+      </select>
+    </div>
+
+    <!-- Live ticker -->
+    <div class="ticker"><div class="ticker-inner" id="tickerInner"></div></div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let _tenants = [], _tenantIdx = 0, _currentTenant = 'tenant-001';
+let _selectedRoom = 'orchestration';
+let _rejectTargetId = null;
+let _tickerItems = [];
+
+// ===========================================================================
+// UTILS
+// ===========================================================================
+function toast(msg, type='ok', dur=3500) {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), dur);
+}
+
+async function apiFetch(path, opts={}) {
+  try {
+    const r = await fetch(API + path, opts);
+    if (!r.ok) { const e = await r.text(); throw new Error(e); }
+    return await r.json();
+  } catch(e) { toast('API error: ' + e.message, 'err'); throw e; }
+}
+
+function pct(v, total) { return total > 0 ? Math.min(100, Math.round(v/total*100)) : 0; }
+
+function fmtMoney(n) {
+  if (n >= 1000) return '$' + (n/1000).toFixed(1) + 'k';
+  return '$' + n.toFixed(0);
+}
+
+function fmtMin(m) {
+  if (m >= 60) return (m/60).toFixed(1) + 'h';
+  return m.toFixed(1) + 'm';
+}
+
+function ageStr(iso) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff/60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return m + 'm ago';
+  return Math.floor(m/60) + 'h ago';
+}
+
+function catColor(cat) {
+  const m = {marketing:'#f97316',crm:'#3b9eff',monitoring:'#f59e0b',content:'#a855f7',
+    industrial:'#10b981',finance:'#ef4444',security:'#6366f1',notifications:'#ec4899',
+    proposals:'#14b8a6',pipeline:'#8b5cf6',general:'#8b949e'};
+  return m[cat] || '#8b949e';
+}
+
+function hitlTypeTag(t) {
+  const m = {campaign_paid_ad:'tag-campaign',proposal_approval:'tag-proposal',
+    setup_step:'tag-setup',automation_milestone:'tag-automation',dag_step:'tag-dag',vertical_activate:'tag-vertical'};
+  const labels = {campaign_paid_ad:'Campaign',proposal_approval:'Proposal',
+    setup_step:'Setup',automation_milestone:'Automation',dag_step:'DAG Step',vertical_activate:'Vertical'};
+  return `<span class="hitl-tag ${m[t]||''}">${labels[t]||t}</span>`;
+}
+
+function priorityBadge(p) {
+  const c = {critical:'var(--red)',high:'var(--orange)',normal:'var(--blue)',low:'var(--muted)'};
+  return `<span style="font-size:10px;color:${c[p]||'var(--muted)'}">● ${p}</span>`;
+}
+
+// ===========================================================================
+// PANEL ROUTING
+// ===========================================================================
+function showPanel(name, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
+  const panel = document.getElementById('panel-' + name);
+  if (panel) panel.classList.add('active');
+  if (btn) btn.classList.add('active');
+  document.getElementById('contentArea').scrollTop = 0;
+
+  const loaders = {
+    overview: loadOverview, hitl: loadHITL, calendar: loadCalendar,
+    automations: loadAutomationsPanel, verticals: loadVerticals,
+    marketing: loadMarketing, proposals: loadProposals,
+    workflows: loadWorkflows, comms: loadComms, setup: loadSetup,
+  };
+  if (loaders[name]) loaders[name]();
+}
+
+// ===========================================================================
+// TENANT
+// ===========================================================================
+async function initTenants() {
+  const d = await apiFetch('/api/tenant');
+  _tenants = d.tenants || [];
+  if (_tenants.length) {
+    document.getElementById('tenantName').textContent = _tenants[0].name;
+    _currentTenant = _tenants[0].id;
+  }
+}
+
+function cycleTenant() {
+  if (!_tenants.length) return;
+  _tenantIdx = (_tenantIdx + 1) % _tenants.length;
+  const t = _tenants[_tenantIdx];
+  _currentTenant = t.id;
+  document.getElementById('tenantName').textContent = t.name;
+  document.getElementById('promptTenant').value = t.id;
+  toast(`Switched to ${t.name} [${t.tier}]`, 'ok');
+  loadOverview();
+}
+
+// ===========================================================================
+// SSE — Real-time push
+// ===========================================================================
+function connectSSE() {
+  const es = new EventSource('/api/automations/stream');
+  es.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      handleSSE(msg);
+    } catch {}
+  };
+  es.onerror = () => setTimeout(connectSSE, 3000);
+}
+
+function handleSSE(msg) {
+  const ev = msg.event, data = msg.data;
+  const active = document.querySelector('.panel.active');
+  const ap = active ? active.id : '';
+
+  if (ev === 'snapshot') {
+    updateTopbarKPIs(data);
+    return;
+  }
+  if (ev === 'hitl_item_created') {
+    updateHITLBadge(data);
+    if (ap === 'panel-hitl') loadHITL();
+    else { addTickerItem('⚡ HITL: ' + data.title, '#f59e0b'); refreshHITLPreview(); }
+    return;
+  }
+  if (ev === 'automation_executed') {
+    addExecToLog(data);
+    if (ap === 'panel-overview') updateAutoBlocks();
+    document.getElementById('kpi-execs').textContent = parseInt(document.getElementById('kpi-execs').textContent || '0') + 1;
+    return;
+  }
+  if (ev === 'automation_tick') {
+    updateAutoBlockLive(data);
+    return;
+  }
+  if (ev === 'automation_delay') {
+    toast(`⚠ Delay +${data.delay_added_minutes.toFixed(1)}m on "${data.automation_id.slice(0,8)}" — ${data.milestone}`, 'warn');
+    addTickerItem(`⚠ Delay +${data.delay_added_minutes.toFixed(1)}m: ${data.automation_id}`, '#ef4444');
+    if (ap === 'panel-automations') loadAutomationsPanel();
+    if (ap === 'panel-calendar') loadCalendar();
+    return;
+  }
+  if (ev === 'milestone_blocked_hitl') {
+    toast(`🔒 HITL Gate: ${data.automation_id}`, 'warn');
+    if (ap === 'panel-hitl') loadHITL();
+    return;
+  }
+  if (ev === 'campaigns_updated') {
+    if (ap === 'panel-marketing') updateCampaignCards(data.campaigns);
+    if (ap === 'panel-overview') updateCampaignMini(data.campaigns);
+    return;
+  }
+  if (ev === 'campaign_paid_proposal_created') {
+    toast(`📢 Paid ad proposal created for ${data.tier} tier — needs approval`, 'warn');
+    if (ap === 'panel-marketing') loadMarketing();
+    return;
+  }
+  if (ev === 'hitl_approved') {
+    toast(`✅ HITL approved: ${data.type} by ${data.approved_by}`, 'ok');
+    refreshHITLBadge();
+    if (ap === 'panel-hitl') loadHITL();
+    if (ap === 'panel-overview') loadOverview();
+    return;
+  }
+  if (ev === 'hitl_rejected') {
+    toast(`❌ HITL rejected: ${data.type}${data.reason ? ' — ' + data.reason : ''}`, 'err');
+    if (ap === 'panel-hitl') loadHITL();
+    return;
+  }
+  if (ev === 'setup_progress') {
+    if (ap === 'panel-setup') renderSetupSteps(data.steps);
+    if (ap === 'panel-overview') updateSetupMini(data.steps);
+    return;
+  }
+  if (ev === 'setup_step_blocked') {
+    toast(`🔒 Setup step blocked — HITL approval required`, 'warn');
+    if (ap === 'panel-setup') loadSetup();
+    return;
+  }
+  if (ev === 'proposal_auto_generated') {
+    toast(`📄 AI proposal generated for request ${data.request_id} — pending HITL`, 'ok');
+    if (ap === 'panel-proposals') loadProposals();
+    return;
+  }
+  if (ev === 'proposal_approved_automation_created') {
+    toast(`✅ Proposal approved → Automation ${data.automation_id} created!`, 'ok');
+    return;
+  }
+  if (ev === 'heartbeat') return;
+  addTickerItem(ev, '#8b949e');
+}
+
+function addTickerItem(text, color='#8b949e') {
+  _tickerItems.push({text, color, ts: Date.now()});
+  if (_tickerItems.length > 30) _tickerItems.shift();
+  renderTicker();
+}
+
+function renderTicker() {
+  const items = _tickerItems.slice(-20);
+  const doubled = [...items, ...items];
+  document.getElementById('tickerInner').innerHTML = doubled.map(i =>
+    `<span class="ticker-item"><span class="dot" style="background:${i.color}"></span>${i.text}</span>`
+  ).join('');
+}
+
+// ===========================================================================
+// OVERVIEW
+// ===========================================================================
+async function loadOverview() {
+  const [health, labor, hitl, execs, setup, campaigns] = await Promise.all([
+    apiFetch('/health'),
+    apiFetch('/api/labor-cost'),
+    apiFetch('/api/hitl/queue?status=pending'),
+    apiFetch('/api/executions?limit=20'),
+    apiFetch('/api/pipeline/self-setup'),
+    apiFetch('/api/marketing/campaigns'),
+  ]);
+  const savings = labor.summary?.total_monthly_savings || 0;
+  document.getElementById('kpi-autos').textContent = health.active_automations;
+  document.getElementById('kpi-savings').textContent = fmtMoney(savings);
+  document.getElementById('kpi-execs').textContent = execs.total;
+
+  document.getElementById('overviewKPIs').innerHTML = `
+    <div class="kpi"><div class="kpi-val" style="color:var(--green)">${health.active_automations}</div><div class="kpi-label">Active Automations</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--hitl)">${hitl.pending}</div><div class="kpi-label">HITL Pending</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--blue)">${fmtMoney(savings)}</div><div class="kpi-label">Monthly Savings</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--orange)">${health.tenants}</div><div class="kpi-label">Tenants</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--purple)">${health.campaigns}</div><div class="kpi-label">Campaigns Live</div></div>
+  `;
+  updateHITLBadge({pending: hitl.pending});
+  await updateAutoBlocks();
+  refreshHITLPreview();
+  updateCampaignMini(campaigns.campaigns);
+  updateSetupMini(setup.steps);
+  renderExecMini(execs.executions);
+}
+
+async function updateAutoBlocks() {
+  const d = await apiFetch(`/api/automations?status=active`);
+  const autos = (d.automations || []).slice(0, 8);
+  document.getElementById('autoBlocks').innerHTML = autos.map(a => renderAutoBlock(a, true)).join('');
+}
+
+function renderAutoBlock(a, mini=false) {
+  const ms = a.milestones || [];
+  const hasHitl = ms.some(m => m.status === 'blocked_hitl');
+  const isDelayed = (a.total_delay_minutes || 0) > 0;
+  const progress = a.progress || 0;
+  const est = a.estimated_minutes || 1;
+  const eff = a.effective_duration_minutes || est;
+  const widthScale = Math.min(2.0, eff / est);
+  const delaySecs = a.total_delay_minutes || 0;
+
+  const msTrack = ms.map(m => {
+    const colors = {completed:'completed',running:'running',blocked_hitl:'blocked_hitl',pending:'pending'};
+    return `<div class="ms-seg ${colors[m.status]||'pending'}" style="flex:${m.weight_pct}" title="${m.name}: ${m.status}${m.delay_minutes>0?' (delay: +'+m.delay_minutes.toFixed(1)+'m)':''}"></div>`;
+  }).join('');
+
+  const delayPct = pct(delaySecs, eff);
+  const progPct = progress;
+
+  return `
+    <div class="auto-block ${isDelayed?'delayed':''} ${hasHitl?'blocked':''}" id="ab-${a.id}">
+      <div class="auto-block-bar" style="width:${progress}%;background:linear-gradient(90deg,${a.color||'var(--green)'}18,transparent)"></div>
+      <div class="auto-header">
+        <div>
+          <div class="auto-name">${a.name}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px">${a.category} · ${a.recurrence}</div>
+        </div>
+        <div class="auto-badges">
+          ${hasHitl ? '<span class="badge badge-hitl">🔒 HITL</span>' : ''}
+          ${isDelayed ? `<span class="badge badge-delayed">+${delaySecs.toFixed(1)}m delay</span>` : ''}
+          <span class="badge ${a.status==='active'?'badge-active':'badge-paused'}">${a.status}</span>
+        </div>
+      </div>
+      <div class="auto-milestones" title="Milestone progress">
+        <div class="ms-track">${msTrack}</div>
+      </div>
+      <div class="duration-bar" title="Block duration: planned=${fmtMin(est)} effective=${fmtMin(eff)}">
+        <div class="duration-planned" style="width:${mini?'100':'60'}%"></div>
+        <div class="duration-actual" style="width:${progPct}%"></div>
+        ${delaySecs > 0 ? `<div class="duration-delay" style="left:${100*est/eff}%;width:${100*delaySecs/eff}%"></div>` : ''}
+      </div>
+      <div class="auto-stats">
+        <span>Progress <span class="auto-stat-val">${progress.toFixed(0)}%</span></span>
+        <span>Planned <span class="auto-stat-val">${fmtMin(est)}</span></span>
+        <span>Effective <span class="auto-stat-val" style="${isDelayed?'color:var(--red)':''}">${fmtMin(eff)}</span></span>
+        <span>Savings <span class="auto-stat-val">${fmtMoney(a.cost_savings||0)}/run</span></span>
+        ${isDelayed ? `<span class="delay-pill">⚠ +${fmtMin(delaySecs)}</span>` : ''}
+      </div>
+    </div>`;
+}
+
+function updateAutoBlockLive(data) {
+  const el = document.getElementById('ab-' + data.automation_id);
+  if (!el) return;
+  const bar = el.querySelector('.auto-block-bar');
+  if (bar) bar.style.width = data.progress + '%';
+  const stats = el.querySelector('.auto-stats');
+  if (stats && data.progress !== undefined) {
+    const spans = stats.querySelectorAll('.auto-stat-val');
+    if (spans[0]) spans[0].textContent = data.progress.toFixed(0) + '%';
+    if (spans[2] && data.effective_duration) spans[2].textContent = fmtMin(data.effective_duration);
+  }
+  if (data.milestones) {
+    const track = el.querySelector('.ms-track');
+    if (track) {
+      const colors = {completed:'completed',running:'running',blocked_hitl:'blocked_hitl',pending:'pending'};
+      track.innerHTML = data.milestones.map(m =>
+        `<div class="ms-seg ${colors[m.status]||'pending'}" style="flex:${m.weight_pct}"></div>`
+      ).join('');
+    }
+  }
+}
+
+async function refreshHITLPreview() {
+  const d = await apiFetch('/api/hitl/queue?status=pending');
+  const items = (d.items || []).slice(0, 4);
+  document.getElementById('hitlPreview').innerHTML = items.length
+    ? items.map(h => `
+        <div class="hitl-item" style="padding:8px 10px">
+          <div style="display:flex;align-items:center;gap:6px;justify-content:space-between">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:700;color:var(--hitl);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h.title}</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:2px">${hitlTypeTag(h.type)} ${priorityBadge(h.priority)}</div>
+            </div>
+            <div style="display:flex;gap:4px;flex-shrink:0">
+              <button class="btn btn-approve btn-sm" onclick="approveHITL('${h.id}')">✓</button>
+              <button class="btn btn-reject btn-sm" onclick="openRejectModal('${h.id}')">✕</button>
+            </div>
+          </div>
+        </div>`).join('')
+    : '<div style="color:var(--muted);font-size:11px;padding:12px;text-align:center">No pending HITL items ✓</div>';
+
+  const count = d.pending || 0;
+  updateHITLBadge({pending: count});
+}
+
+function updateHITLBadge(data) {
+  const count = data.pending !== undefined ? data.pending : (data.id ? null : 0);
+  if (count === null) {
+    refreshHITLBadge();
+    return;
+  }
+  const alert = document.getElementById('hitlAlert');
+  alert.style.display = count > 0 ? 'flex' : 'none';
+  document.getElementById('hitlAlertCount').textContent = count;
+  const btn = document.querySelector('[data-panel="hitl"]');
+  if (btn) {
+    let badge = btn.querySelector('.sb-badge');
+    if (count > 0) {
+      if (!badge) { badge = document.createElement('div'); badge.className = 'sb-badge yellow'; btn.appendChild(badge); }
+      badge.textContent = count;
+    } else if (badge) badge.remove();
+  }
+}
+
+async function refreshHITLBadge() {
+  const d = await apiFetch('/api/hitl/queue?status=pending');
+  updateHITLBadge({pending: d.pending || 0});
+}
+
+function updateCampaignMini(campaigns) {
+  document.getElementById('campaignMini').innerHTML = (campaigns || []).map(c => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg3);border-radius:6px">
+      <span style="font-size:11px;font-weight:600;width:80px;text-transform:capitalize">${c.tier}</span>
+      <div style="flex:1;background:var(--bg4);border-radius:2px;height:4px;overflow:hidden">
+        <div style="height:100%;width:${Math.min(100,c.conversion_rate*200)}%;background:${c.traction==='healthy'?'var(--green)':'var(--orange)'};transition:width .5s;border-radius:2px"></div>
+      </div>
+      <span style="font-size:10px;color:${c.traction==='healthy'?'var(--green)':'var(--orange)'};font-family:monospace;width:50px;text-align:right">${c.conversion_rate.toFixed(3)}%</span>
+      <span class="badge ${c.status==='active'?'badge-active':c.status==='adjusting'?'badge-hitl':'badge-paused'}" style="font-size:9px">${c.status}</span>
+    </div>`).join('');
+}
+
+function updateSetupMini(steps) {
+  const completed = steps.filter(s => s.status === 'completed').length;
+  const blocked = steps.filter(s => s.status === 'blocked_hitl').length;
+  const progress = Math.round(completed / steps.length * 100);
+  document.getElementById('setupMini').innerHTML = `
+    <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+      <span>${completed}/${steps.length} steps complete</span>
+      ${blocked > 0 ? `<span style="color:var(--hitl)">🔒 ${blocked} waiting approval</span>` : ''}
+      <span class="text-green mono">${progress}%</span>
+    </div>
+    <div style="background:var(--bg4);border-radius:4px;height:6px;overflow:hidden;margin-bottom:8px">
+      <div style="height:100%;width:${progress}%;background:linear-gradient(90deg,var(--green),var(--cyan));transition:width .5s;border-radius:4px"></div>
+    </div>` +
+    steps.slice(0, 6).map(s => `
+      <div style="display:flex;align-items:center;gap:6px;font-size:11px;padding:3px 0">
+        <span>${s.status==='completed'?'✅':s.status==='active'?'▶':s.status==='blocked_hitl'?'🔒':'○'}</span>
+        <span style="flex:1;color:${s.status==='completed'?'var(--muted)':s.status==='blocked_hitl'?'var(--hitl)':'var(--text)'}">${s.name}</span>
+        ${s.status==='active'?`<span class="mono" style="color:var(--blue);font-size:10px">${s.progress}%</span>`:''}
+      </div>`).join('');
+}
+
+function renderExecMini(execs) {
+  document.getElementById('execMini').innerHTML = (execs || []).slice().reverse().slice(0, 20).map(e => `
+    <div class="exec-row">
+      <div class="exec-status ${e.status}"></div>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.automation_name}</span>
+      <span class="mono" style="color:var(--muted)">${fmtMin(e.actual_minutes||0)}</span>
+      <span style="color:var(--green);font-family:monospace;font-size:10px">${fmtMoney(e.cost_savings||0)}</span>
+    </div>`).join('');
+}
+
+function addExecToLog(e) {
+  const el = document.getElementById('execMini');
+  if (!el) return;
+  const row = document.createElement('div');
+  row.className = 'exec-row';
+  row.innerHTML = `<div class="exec-status ${e.status}"></div><span style="flex:1">${e.automation_name}</span><span class="mono" style="color:var(--muted)">${fmtMin(e.actual_minutes||0)}</span><span style="color:var(--green);font-family:monospace;font-size:10px">${fmtMoney(e.cost_savings||0)}</span>`;
+  el.insertBefore(row, el.firstChild);
+  if (el.children.length > 20) el.lastChild.remove();
+}
+
+function updateTopbarKPIs(data) {
+  if (data.automations) document.getElementById('kpi-autos').textContent = data.automations.filter(a => a.status==='active').length;
+}
+
+// ===========================================================================
+// HITL QUEUE
+// ===========================================================================
+async function loadHITL() {
+  const status = document.getElementById('hitlFilter')?.value || '';
+  const d = await apiFetch(`/api/hitl/queue${status ? '?status=' + status : ''}`);
+  const items = d.items || [];
+  document.getElementById('hitlList').innerHTML = items.length
+    ? items.map(h => renderHITLItem(h)).join('')
+    : `<div style="padding:24px;text-align:center;color:var(--muted)">
+        <div style="font-size:24px;margin-bottom:8px">${status==='pending'?'✅':'📭'}</div>
+        <div>No ${status||''} HITL items</div>
+       </div>`;
+  refreshHITLBadge();
+}
+
+function renderHITLItem(h) {
+  const isPending = h.status === 'pending';
+  const icons = {campaign_paid_ad:'💳',proposal_approval:'📄',setup_step:'🚀',automation_milestone:'⚙️',dag_step:'🔀',vertical_activate:'🔧'};
+  return `
+    <div class="hitl-item ${h.priority==='critical'?'critical':''}">
+      <div class="hitl-header">
+        <div class="hitl-icon">${icons[h.type]||'⚡'}</div>
+        <div class="hitl-info">
+          <div class="hitl-title">${h.title}</div>
+          <div class="hitl-desc">${h.description}</div>
+          <div class="hitl-meta" style="margin-top:6px">
+            ${hitlTypeTag(h.type)}
+            ${priorityBadge(h.priority)}
+            <span style="font-size:10px;color:var(--dim)">${ageStr(h.created_at)}</span>
+            ${h.status !== 'pending' ? `<span style="font-size:10px;color:${h.status==='approved'?'var(--green)':'var(--red)'}">● ${h.status}${h.approved_by?' by '+h.approved_by:''}</span>` : ''}
+            ${h.rejection_reason ? `<span style="font-size:10px;color:var(--muted)">Reason: ${h.rejection_reason}</span>` : ''}
+          </div>
+          ${h.payload ? renderHITLPayloadPreview(h) : ''}
+        </div>
+      </div>
+      ${isPending ? `
+        <div class="hitl-actions">
+          <button class="btn btn-approve" onclick="approveHITL('${h.id}')">✓ Approve</button>
+          <button class="btn btn-reject" onclick="openRejectModal('${h.id}')">✕ Reject</button>
+        </div>` : ''}
+    </div>`;
+}
+
+function renderHITLPayloadPreview(h) {
+  const p = h.payload;
+  if (h.type === 'campaign_paid_ad') {
+    return `<div style="background:var(--bg3);border-radius:6px;padding:8px;margin-top:6px;font-size:11px">
+      <span>Tier: <strong>${p.tier}</strong></span> · <span>Budget: <strong style="color:var(--orange)">${fmtMoney(p.budget||0)}</strong></span> · <span>Projected ROI: <strong style="color:var(--green)">${p.projected_roi||0}x</strong></span>
+      <div style="color:var(--muted);margin-top:4px">${p.rationale||''}</div>
+    </div>`;
+  }
+  if (h.type === 'proposal_approval') {
+    return `<div style="background:var(--bg3);border-radius:6px;padding:8px;margin-top:6px;font-size:11px">
+      <span>Proposal ID: <strong>${p.proposal_id||''}</strong></span> · <span>Request: <strong>${p.request_id||''}</strong></span>
+    </div>`;
+  }
+  if (h.type === 'setup_step') {
+    return `<div style="background:var(--bg3);border-radius:6px;padding:6px 8px;margin-top:6px;font-size:11px;color:var(--muted)">
+      Step: <strong>${p.step_name||''}</strong>
+    </div>`;
+  }
+  if (h.type === 'automation_milestone') {
+    return `<div style="background:var(--bg3);border-radius:6px;padding:6px 8px;margin-top:6px;font-size:11px;color:var(--muted)">
+      Automation: <strong>${p.automation_id||''}</strong> · Milestone: <strong>${p.milestone_id||''}</strong>
+    </div>`;
+  }
+  return '';
+}
+
+async function approveHITL(id) {
+  await apiFetch(`/api/hitl/${id}/approve`, {
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({approved_by:'founder',reason:''})
+  });
+  toast('✅ Approved!', 'ok');
+  loadHITL();
+  refreshHITLPreview();
+}
+
+function openRejectModal(id) {
+  _rejectTargetId = id;
+  document.getElementById('rejectReason').value = '';
+  document.getElementById('rejectModal').style.display = 'flex';
+}
+
+function closeRejectModal() {
+  document.getElementById('rejectModal').style.display = 'none';
+  _rejectTargetId = null;
+}
+
+async function submitReject() {
+  if (!_rejectTargetId) return;
+  const reason = document.getElementById('rejectReason').value;
+  await apiFetch(`/api/hitl/${_rejectTargetId}/reject`, {
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({approved_by:'founder',reason})
+  });
+  toast('Rejected.', 'err');
+  closeRejectModal();
+  loadHITL();
+  refreshHITLPreview();
+}
+
+// ===========================================================================
+// CALENDAR — Dynamic timeline blocks
+// ===========================================================================
+async function loadCalendar() {
+  const d = await apiFetch(`/api/calendar/blocks?tenant_id=${_currentTenant}`);
+  const blocks = d.blocks || [];
+  const delayed = d.delayed_count || 0;
+  const hitlBlocked = d.hitl_blocked_count || 0;
+
+  document.getElementById('delaySummary').innerHTML = `
+    <div class="badge" style="background:rgba(0,212,170,.1);color:var(--green);padding:6px 10px">Total: ${blocks.length} blocks</div>
+    <div class="badge" style="background:rgba(239,68,68,.1);color:var(--red);padding:6px 10px">⚠ Delayed: ${delayed}</div>
+    <div class="badge" style="background:var(--hitl-bg);color:var(--hitl);padding:6px 10px">🔒 HITL Blocked: ${hitlBlocked}</div>
+    ${blocks.length > 0 ? `<div class="badge" style="background:var(--bg3);color:var(--muted);padding:6px 10px">Avg delay: ${(blocks.reduce((s,b)=>s+b.delay_minutes,0)/blocks.length).toFixed(1)}m</div>` : ''}`;
+
+  if (!blocks.length) {
+    document.getElementById('calTimeline').innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">No timeline blocks for this tenant</div>';
+    return;
+  }
+
+  // Sort by category then find max effective duration for scale
+  const maxEff = Math.max(...blocks.map(b => b.effective_duration_minutes), 1);
+  const groups = {};
+  for (const b of blocks) {
+    if (!groups[b.category]) groups[b.category] = [];
+    groups[b.category].push(b);
+  }
+
+  const rowsHtml = Object.entries(groups).slice(0, 12).map(([cat, catBlocks]) => {
+    const blockHtml = catBlocks.map(b => {
+      const leftPct = 0;
+      const widthPct = Math.max(2, Math.round(b.effective_duration_minutes / maxEff * 85));
+      const plannedWidthPct = Math.max(2, Math.round(b.estimated_minutes / maxEff * 85));
+      const delayWidthPct = Math.max(0, widthPct - plannedWidthPct);
+      const color = b.is_blocked_hitl ? 'var(--hitl)' : b.is_delayed ? 'var(--red)' : catColor(cat);
+      const statusClass = b.is_blocked_hitl ? 'blocked_hitl' : b.is_delayed ? 'delayed' : '';
+
+      const msLines = b.milestones ? b.milestones.filter(m => m.is_hitl).map(m => {
+        const gatePos = Math.round((m.planned_start_offset_minutes||0) / Math.max(b.estimated_minutes,1) * plannedWidthPct);
+        return `<div class="hitl-diamond" style="left:${gatePos}%" data-tip="Gate: ${m.name}"></div>`;
+      }).join('') : '';
+
+      return `
+        <div style="position:relative;margin:2px 0">
+          <div style="display:flex;height:28px;gap:1px">
+            <div class="timeline-block ${statusClass}" style="width:${widthPct}%;background:${color}22;border:1px solid ${color}66;position:relative"
+              title="${b.name} | Progress: ${b.progress.toFixed(0)}% | ${fmtMin(b.estimated_minutes)} planned${b.delay_minutes>0?' | +'+fmtMin(b.delay_minutes)+' delay':''}${b.is_blocked_hitl?' | 🔒 HITL blocked':''}">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:${Math.max(2,b.progress)}%;background:${color}40;transition:width .5s;border-radius:3px 0 0 3px"></div>
+              <div style="position:absolute;left:0;top:0;bottom:0;right:0;display:flex;align-items:center;padding:0 6px">
+                <span style="color:${color};font-size:9px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.name}${b.is_blocked_hitl?' 🔒':b.is_delayed?' ⚠':''}</span>
+              </div>
+              ${delayWidthPct > 0 ? `<div style="position:absolute;top:0;bottom:0;right:0;width:${Math.round(delayWidthPct/widthPct*100)}%;background:var(--red)33;border-left:1px dashed var(--red)"></div>` : ''}
+              ${msLines}
+            </div>
+            <div style="display:flex;flex-direction:column;justify-content:center;padding:0 6px;font-size:9px;color:var(--muted)">
+              <span>${b.progress.toFixed(0)}%</span>
+              ${b.delay_minutes > 0 ? `<span style="color:var(--red)">+${fmtMin(b.delay_minutes)}</span>` : ''}
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+    return `
+      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px">
+        <div style="width:120px;font-size:10px;color:var(--muted);padding-top:8px;flex-shrink:0;text-transform:capitalize">${cat}</div>
+        <div style="flex:1;min-width:0">${blockHtml}</div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('calTimeline').innerHTML = `
+    <div style="padding:8px 0">${rowsHtml}</div>`;
+}
+
+// ===========================================================================
+// AUTOMATIONS PANEL
+// ===========================================================================
+async function loadAutomationsPanel() {
+  const cat = document.getElementById('autoFilter')?.value || '';
+  const d = await apiFetch(`/api/automations${cat ? '?category=' + cat : ''}`);
+  document.getElementById('allAutoBlocks').innerHTML = (d.automations || []).map(a => renderAutoBlock(a, false)).join('');
+}
+
+async function loadAutomations() {
+  await updateAutoBlocks();
+}
+
+// ===========================================================================
+// VERTICALS
+// ===========================================================================
+async function loadVerticals() {
+  const d = await apiFetch(`/api/verticals?tenant_id=${_currentTenant}`);
+  document.getElementById('verticalGrid').innerHTML = (d.verticals || []).map(v => `
+    <div class="vert-card ${v.active ? 'active-vert' : ''}" onclick="showVerticalDetail('${v.id}')">
+      <div class="vert-icon">${v.icon}</div>
+      <div class="vert-name">${v.label}</div>
+      <div class="vert-engine">${v.engine}</div>
+      <div class="vert-stats">
+        <div class="vert-stat"><div class="vert-stat-val">${v.active_count}</div><div class="vert-stat-lbl">Active</div></div>
+        <div class="vert-stat"><div class="vert-stat-val">${fmtMoney(v.monthly_savings)}</div><div class="vert-stat-lbl">Saved/mo</div></div>
+      </div>
+      ${!v.active ? `<button class="btn btn-sm btn-primary" style="width:100%;margin-top:8px" onclick="event.stopPropagation();activateVertical('${v.id}')">Activate</button>` : '<div style="margin-top:6px;font-size:10px;color:var(--green)">✅ Active</div>'}
+    </div>`).join('');
+}
+
+async function showVerticalDetail(id) {
+  const d = await apiFetch(`/api/verticals/${id}?tenant_id=${_currentTenant}`);
+  document.getElementById('vertDetailTitle').textContent = d.icon + ' ' + d.label;
+  document.getElementById('vertDetailContent').innerHTML = `
+    <div class="g2">
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px">${d.description}</div>
+        <div style="font-size:11px;margin-bottom:4px;font-weight:700">Engine</div>
+        <div style="font-size:11px;color:var(--green);margin-bottom:10px">${d.engine}</div>
+        <div style="font-size:11px;font-weight:700;margin-bottom:4px">Templates</div>
+        ${(d.automation_templates||[]).map(t => `<div style="font-size:10px;color:var(--muted);padding:3px 0;border-bottom:1px solid var(--border)">• ${t}</div>`).join('')}
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;margin-bottom:8px">Automations (${d.automations?.length||0})</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${(d.automations||[]).slice(0,5).map(a => `
+            <div style="background:var(--bg3);border-radius:6px;padding:8px">
+              <div style="font-size:11px;font-weight:600">${a.name}</div>
+              <div style="font-size:10px;color:var(--muted)">${a.status} · ${a.recurrence} · ${fmtMoney(a.cost_savings||0)}/run</div>
+              ${a.progress > 0 ? `<div style="height:3px;background:var(--bg4);border-radius:2px;margin-top:4px;overflow:hidden"><div style="height:100%;width:${a.progress}%;background:var(--green);transition:width .5s"></div></div>` : ''}
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('vertDetailCard').style.display = 'block';
+}
+
+async function activateVertical(id) {
+  const d = await apiFetch(`/api/verticals/${id}/activate?tenant_id=${_currentTenant}`, {method:'POST'});
+  if (d.status === 'pending_hitl') {
+    toast(`🔒 ${id} activation needs approval — HITL created`, 'warn');
+  } else {
+    toast(`✅ ${id} activated!`, 'ok');
+  }
+  loadVerticals();
+}
+
+// ===========================================================================
+// MARKETING
+// ===========================================================================
+async function loadMarketing() {
+  const [camps, props] = await Promise.all([
+    apiFetch('/api/marketing/campaigns'),
+    apiFetch('/api/marketing/paid-proposals'),
+  ]);
+  updateCampaignCards(camps.campaigns);
+  renderPaidProposals(props.proposals);
+}
+
+function updateCampaignCards(campaigns) {
+  document.getElementById('campaignCards').innerHTML = (campaigns||[]).map(c => `
+    <div class="campaign-card ${c.status} ${c.traction}">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:12px;font-weight:700;text-transform:capitalize">${c.tier} Tier</div>
+          <div style="font-size:10px;color:var(--muted)">${(c.channels||[]).slice(0,3).join(' · ')}</div>
+        </div>
+        <div style="display:flex;gap:4px;flex-direction:column;align-items:flex-end">
+          <span class="badge ${c.status==='active'?'badge-active':c.status==='adjusting'?'badge-hitl':'badge-paused'}">${c.status}</span>
+          <span class="badge ${c.traction==='healthy'?'badge-active':'badge-delayed'}" style="font-size:9px">${c.traction}</span>
+        </div>
+      </div>
+      <div class="traction-bar"><div class="traction-fill" style="width:${Math.min(100,c.conversion_rate*200)}%;background:${c.traction==='healthy'?'var(--green)':'var(--orange)'}"></div></div>
+      <div class="metric-row"><span style="color:var(--muted)">Impressions</span><span class="metric-val">${c.impressions.toLocaleString()}</span></div>
+      <div class="metric-row"><span style="color:var(--muted)">Leads</span><span class="metric-val">${c.leads}</span></div>
+      <div class="metric-row"><span style="color:var(--muted)">Conversions</span><span class="metric-val">${c.conversions}</span></div>
+      <div class="metric-row"><span style="color:var(--muted)">Conv. Rate</span><span class="metric-val" style="color:${c.traction==='healthy'?'var(--green)':'var(--orange)'}">${c.conversion_rate.toFixed(3)}%</span></div>
+      ${c.spend > 0 ? `<div class="metric-row"><span style="color:var(--muted)">Spend</span><span class="metric-val">${fmtMoney(c.spend)}</span></div>` : ''}
+      ${c.traction === 'low' && !c.hitl_proposal_id ? `
+        <button class="btn btn-warn btn-sm" style="width:100%;margin-top:8px" onclick="createPaidProposalForTier('${c.tier}')">
+          ⚡ Low Traction — Propose Paid Campaign
+        </button>` : ''}
+      ${c.hitl_proposal_id ? `<div style="margin-top:8px;font-size:10px;color:var(--hitl);display:flex;align-items:center;gap:4px">🔒 Paid ad proposal awaiting approval</div>` : ''}
+    </div>`).join('');
+}
+
+function renderPaidProposals(props) {
+  document.getElementById('paidProposals').innerHTML = (props||[]).filter(p => p.status !== 'approved').map(p => `
+    <div style="background:var(--bg3);border:1px solid ${p.status==='approved'?'var(--border2)':'var(--hitl-border)'};border-radius:8px;padding:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;font-weight:700;text-transform:capitalize">${p.tier} Tier</span>
+        <span class="badge ${p.status==='approved'?'badge-active':'badge-hitl'}">${p.status}</span>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px">${p.rationale}</div>
+      <div style="display:flex;gap:12px;margin-top:6px;font-size:11px">
+        <span>Budget: <strong style="color:var(--orange)">${fmtMoney(p.budget||0)}</strong></span>
+        <span>Proj. ROI: <strong style="color:var(--green)">${p.projected_roi||0}x</strong></span>
+        <span>Leads: <strong>${p.projected_leads}</strong></span>
+      </div>
+      ${p.status==='pending_hitl' ? `
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button class="btn btn-approve btn-sm" onclick="approvePaidProposal('${p.id}')">✓ Approve Campaign</button>
+          <button class="btn btn-reject btn-sm" onclick="openRejectModal('${p.hitl_item_id||p.id}')">✕ Reject</button>
+        </div>` : ''}
+    </div>`).join('') || '<div style="color:var(--muted);font-size:11px;padding:12px;text-align:center">No paid proposals yet</div>';
+}
+
+async function createPaidProposal() {
+  const tier = document.getElementById('paidTierSel').value;
+  await createPaidProposalForTier(tier);
+}
+
+async function createPaidProposalForTier(tier) {
+  await apiFetch(`/api/marketing/paid-proposal?tier=${tier}`, {method:'POST'});
+  toast(`📢 Paid ad proposal created for ${tier} — HITL approval required`, 'warn');
+  loadMarketing();
+  refreshHITLPreview();
+}
+
+async function approvePaidProposal(id) {
+  await apiFetch(`/api/marketing/paid-proposal/${id}/approve`, {method:'POST'});
+  toast('✅ Paid campaign approved!', 'ok');
+  loadMarketing();
+}
+
+// ===========================================================================
+// PROPOSALS
+// ===========================================================================
+async function loadProposals() {
+  const [reqs, props] = await Promise.all([
+    apiFetch('/api/proposals/requests'),
+    apiFetch('/api/proposals/generated'),
+  ]);
+  document.getElementById('inboundRequests').innerHTML = (reqs.requests||[]).map(r => `
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:700">${r.subject}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${r.from} · ${r.source}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4">${r.body}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:12px;font-weight:700;color:var(--green)">${fmtMoney(r.estimated_value)}</div>
+          <span class="badge ${r.priority==='high'?'badge-hitl':'badge-active'}">${r.priority}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:10px;align-items:center">
+        <span class="badge badge-${r.status==='pending'?'paused':r.status==='in_progress'?'active':'active'}">${r.status}</span>
+        ${r.status==='pending' ? `<button class="btn btn-primary btn-sm" onclick="generateProposal('${r.id}')">🤖 Generate AI Proposal</button>` : ''}
+      </div>
+    </div>`).join('');
+
+  document.getElementById('generatedProposals').innerHTML = (props.proposals||[]).map(p => `
+    <div style="background:var(--bg3);border:1px solid ${p.status==='approved_sent'?'var(--border2)':'var(--hitl-border)'};border-radius:8px;padding:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.subject}</div>
+          <div style="font-size:10px;color:var(--muted)">→ ${p.to}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:12px;font-weight:700;color:var(--green)">${fmtMoney(p.monthly_savings||0)}/mo</div>
+          <span class="badge ${p.status==='approved_sent'?'badge-active':'badge-hitl'}">${p.status}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:6px;font-size:11px">
+        <span>Automations: <strong>${p.total_automations}</strong></span>
+        <span>ROI: <strong style="color:var(--green)">${p.roi}x</strong></span>
+        <span>Tier: <strong>${p.recommended_tier}</strong></span>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn btn-ghost btn-sm" onclick="showProposalDetail('${p.id}')">View Detail</button>
+        ${p.status==='pending_review'||p.status==='draft' ? `
+          <button class="btn btn-approve btn-sm" onclick="approveProposal('${p.id}')">✓ Approve & Send</button>
+          <button class="btn btn-reject btn-sm" onclick="openRejectModal('${p.hitl_item_id||p.id}')">✕ Reject</button>` : ''}
+        ${p.status==='approved_sent' ? '<span style="font-size:10px;color:var(--green)">✅ Sent · Automation created</span>' : ''}
+      </div>
+    </div>`).join('') || '<div style="color:var(--muted);font-size:11px;padding:12px;text-align:center">No proposals generated yet</div>';
+}
+
+async function generateProposal(reqId) {
+  await apiFetch('/api/proposals/generate', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({request_id:reqId, tenant_id:_currentTenant, tone:'professional'})
+  });
+  toast('📄 Proposal generated — awaiting HITL review', 'ok');
+  loadProposals();
+  refreshHITLPreview();
+}
+
+async function approveProposal(id) {
+  await apiFetch(`/api/proposals/generated/${id}/approve`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({approved_by:'founder',reason:''})
+  });
+  toast('✅ Proposal approved & sent — automation created!', 'ok');
+  loadProposals();
+}
+
+async function showProposalDetail(id) {
+  const p = await apiFetch(`/api/proposals/generated/${id}`);
+  const s = p.sections || {};
+  const inv = s.investment || {};
+  document.getElementById('proposalDetail').innerHTML = `
+    <div class="g2">
+      <div>
+        <div style="font-size:12px;font-weight:700;margin-bottom:8px">${p.subject}</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:12px">${s.executive_summary||''}</div>
+        <div style="font-size:11px;font-weight:700;margin-bottom:6px">Scope of Work</div>
+        ${(s.scope_of_work||[]).map(sw => `
+          <div style="background:var(--bg3);border-radius:6px;padding:8px;margin-bottom:6px">
+            <div style="font-weight:700;font-size:11px">${sw.vertical}</div>
+            <div style="font-size:10px;color:var(--muted)">${sw.automations} automations · ${sw.hours_saved_monthly}h/mo saved</div>
+            ${sw.key_workflows?.slice(0,2).map(w => `<div style="font-size:10px;color:var(--dim);margin-top:2px">• ${w}</div>`).join('')||''}
+          </div>`).join('')}
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;margin-bottom:8px">Investment</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
+          <div class="kpi"><div class="kpi-val" style="color:var(--green)">${fmtMoney(inv.estimated_monthly_savings||0)}</div><div class="kpi-label">Monthly Savings</div></div>
+          <div class="kpi"><div class="kpi-val" style="color:var(--blue)">${inv.roi_multiplier||0}x</div><div class="kpi-label">ROI</div></div>
+          <div class="kpi"><div class="kpi-val" style="color:var(--orange)">${inv.monthly_price ? '$'+inv.monthly_price : 'Custom'}</div><div class="kpi-label">Price/mo</div></div>
+          <div class="kpi"><div class="kpi-val" style="color:var(--purple)">${inv.payback_period_months||0}mo</div><div class="kpi-label">Payback</div></div>
+        </div>
+        <div style="font-size:11px;font-weight:700;margin-bottom:6px">Timeline</div>
+        ${(s.timeline||[]).map(t => `
+          <div style="display:flex;gap:8px;margin-bottom:6px;font-size:11px">
+            <span style="color:var(--green);font-family:monospace;white-space:nowrap">${t.duration}</span>
+            <div><div style="font-weight:600">${t.phase}</div><div style="color:var(--muted);font-size:10px">${t.deliverables}</div></div>
+          </div>`).join('')}
+        <div style="font-size:11px;font-weight:700;margin-bottom:6px;margin-top:8px">Next Steps</div>
+        ${(s.next_steps||[]).map((n,i) => `<div style="font-size:11px;color:var(--muted);padding:3px 0">→ ${n}</div>`).join('')}
+      </div>
+    </div>`;
+  document.getElementById('proposalDetailCard').style.display = 'block';
+}
+
+// ===========================================================================
+// WORKFLOWS
+// ===========================================================================
+async function loadWorkflows() {
+  const d = await apiFetch(`/api/workflows?tenant_id=${_currentTenant}`);
+  document.getElementById('workflowHistory').innerHTML = (d.workflows||[]).slice().reverse().slice(0,10).map(wf => `
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px;cursor:pointer" onclick="showWorkflowDetail('${wf.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:11px;font-weight:700">${wf.name}</div>
+        <span class="badge ${wf.status==='completed'?'badge-active':wf.status==='running'?'badge-hitl':'badge-paused'}">${wf.status}</span>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:3px">${wf.step_count} steps · ${wf.has_hitl_gates?'🔒 HITL gated':'No HITL'} · ${ageStr(wf.generated_at)}</div>
+    </div>`).join('') || '<div style="color:var(--muted);font-size:11px;padding:12px;text-align:center">No workflows yet</div>';
+}
+
+function setWfTemplate(text) { document.getElementById('wfDesc').value = text; }
+
+async function generateWorkflow(execute) {
+  const desc = document.getElementById('wfDesc').value.trim();
+  if (!desc) { toast('Enter a workflow description', 'warn'); return; }
+  const d = await apiFetch('/api/workflows/generate', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({description:desc, tenant_id:_currentTenant, execute_immediately:execute})
+  });
+  toast(`🔀 Workflow "${d.name}" created with ${d.step_count} steps`, 'ok');
+  showWorkflowDetail(d.id);
+  loadWorkflows();
+}
+
+async function showWorkflowDetail(wfId) {
+  const wfs = await apiFetch('/api/workflows');
+  const wf = (wfs.workflows||[]).find(w => w.id === wfId);
+  if (!wf) return;
+  const stepIcons = {data_retrieval:'📥',data_transformation:'🔄',validation:'✅',notification:'📬',data_output:'📤',analysis:'🔍',hitl_gate:'🔒',deployment:'🚀',execution:'▶',integration:'🔗',data_filtering:'🔽',computation:'🧮',delay:'⏳'};
+  document.getElementById('workflowResult').innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">${wf.name} <span class="badge ${wf.status==='completed'?'badge-active':wf.status==='running'?'badge-hitl':'badge-paused'}">${wf.status}</span></div>
+        <div style="display:flex;gap:6px">
+          ${wf.status==='draft' ? `<button class="btn btn-primary btn-sm" onclick="executeWorkflow('${wf.id}')">▶ Execute</button>` : ''}
+          ${wf.status==='running' ? `<button class="btn btn-approve btn-sm" onclick="advanceWorkflow('${wf.id}')">▶ Advance</button>` : ''}
+        </div>
+      </div>
+      <div class="dag-container">
+        <div class="dag-steps">
+          ${(wf.steps||[]).map((s,i) => `
+            ${i > 0 ? '<div class="dag-arrow">→</div>' : ''}
+            <div class="dag-node ${s.status||'pending'}" id="wfstep-${s.id}">
+              <div class="dag-node-icon">${stepIcons[s.type]||'⚙️'}</div>
+              <div class="dag-node-name">${s.name}</div>
+              <div class="dag-node-type">${s.type}</div>
+              ${s.status==='awaiting_hitl' || s.status==='blocked_hitl' ? `
+                <button class="btn btn-approve btn-sm" style="margin-top:6px;width:100%" onclick="approveWfStep('${wf.id}','${s.id}')">✓ Approve</button>` : ''}
+              ${s.approved_at ? `<div style="font-size:9px;color:var(--green);margin-top:4px">✓ ${new Date(s.approved_at).toLocaleTimeString()}</div>` : ''}
+            </div>`).join('')}
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:10px;font-size:11px">
+        <span>Steps: <strong>${wf.step_count}</strong></span>
+        <span>HITL Gates: <strong style="color:var(--hitl)">${(wf.steps||[]).filter(s=>s.is_hitl).length}</strong></span>
+        <span>Est. Duration: <strong>${wf.estimated_duration_seconds}s</strong></span>
+        ${wf.completed_at ? `<span>Completed: <strong style="color:var(--green)">${ageStr(wf.completed_at)}</strong></span>` : ''}
+      </div>
+    </div>`;
+}
+
+async function executeWorkflow(id) {
+  await apiFetch(`/api/workflows/${id}/execute`, {method:'POST'});
+  toast('▶ Workflow executing', 'ok');
+  showWorkflowDetail(id);
+}
+
+async function advanceWorkflow(id) {
+  await apiFetch(`/api/workflows/${id}/advance`, {method:'POST'});
+  showWorkflowDetail(id);
+}
+
+async function approveWfStep(wfId, stepId) {
+  await apiFetch(`/api/workflows/${wfId}/steps/${stepId}/approve`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({approved_by:'founder',reason:''})
+  });
+  toast('✅ Step approved — workflow advancing', 'ok');
+  showWorkflowDetail(wfId);
+}
+
+// ===========================================================================
+// COMMS
+// ===========================================================================
+async function loadComms() {
+  const d = await apiFetch('/api/comms/rooms');
+  document.getElementById('roomList').innerHTML = (d.rooms||[]).map(r => `
+    <div class="room-item ${r.id===_selectedRoom?'selected':''}" onclick="selectRoom('${r.id}')">
+      <div>
+        <div style="font-size:12px;font-weight:600">${r.id}</div>
+        <div style="font-size:10px;color:var(--muted)">${(r.agents||[]).slice(0,2).join(', ')}${(r.agents||[]).length>2?'...':''}</div>
+      </div>
+      <span class="badge badge-active" style="font-size:9px">${r.message_count}</span>
+    </div>`).join('');
+  selectRoom(_selectedRoom);
+}
+
+async function selectRoom(room) {
+  _selectedRoom = room;
+  document.getElementById('roomTitle').textContent = '💬 ' + room;
+  document.querySelectorAll('.room-item').forEach(el => {
+    el.classList.toggle('selected', el.onclick?.toString().includes(room));
+  });
+  const d = await apiFetch(`/api/comms/messages?room=${room}&limit=20`);
+  document.getElementById('msgList').innerHTML = (d.messages||[]).slice().reverse().map(m => `
+    <div class="msg-bubble">
+      <div class="msg-sender">${m.sender} <span style="color:var(--dim);font-weight:400">${ageStr(m.sent_at)}</span></div>
+      <div class="msg-content">${typeof m.content === 'object' ? JSON.stringify(m.content, null, 0).slice(0,120) : m.content}</div>
+    </div>`).join('');
+}
+
+async function sendMessage() {
+  const input = document.getElementById('msgInput');
+  const text = input.value.trim();
+  if (!text) return;
+  await apiFetch('/api/comms/send', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({sender:'founder', room:_selectedRoom, message_type:'chat', content:{text}})
+  });
+  input.value = '';
+  selectRoom(_selectedRoom);
+}
+
+// ===========================================================================
+// SETUP
+// ===========================================================================
+async function loadSetup() {
+  const d = await apiFetch('/api/pipeline/self-setup');
+  document.getElementById('setupPct').textContent = d.overall_progress + '%';
+  document.getElementById('setupBar').style.width = d.overall_progress + '%';
+  renderSetupSteps(d.steps);
+  loadEngineStatus();
+}
+
+function renderSetupSteps(steps) {
+  document.getElementById('setupSteps').innerHTML = steps.map(s => `
+    <div class="setup-step ${s.status}">
+      <div class="step-icon ${s.status}">${s.status==='completed'?'✅':s.status==='active'?'▶':s.status==='blocked_hitl'?'🔒':'○'}</div>
+      <div class="step-info">
+        <div class="step-name">${s.name}</div>
+        <div class="step-cat">${s.category}${s.requires_hitl?' · HITL required':''}</div>
+        ${s.status!=='pending' && s.status!=='completed' ? `
+          <div class="step-prog"><div class="step-prog-fill ${s.status==='blocked_hitl'?'hitl':''}" style="width:${s.progress}%"></div></div>` : ''}
+      </div>
+      <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
+        ${s.status==='active' ? `<span class="mono" style="color:var(--blue);font-size:11px">${s.progress}%</span>` : ''}
+        ${s.status==='blocked_hitl' ? `
+          <button class="btn btn-approve btn-sm" onclick="approveSetupStep('${s.hitl_item_id}')">✓ Approve</button>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+async function loadEngineStatus() {
+  const engines = [
+    {name:'AdaptiveCampaignEngine',id:'MKT-004',status:'running',color:'var(--orange)'},
+    {name:'AIWorkflowGenerator',id:'WF-001',status:'running',color:'var(--purple)'},
+    {name:'AgenticCommsRouter',id:'ACOM-001',status:'running',color:'var(--cyan)'},
+    {name:'OrchestrationEngine',id:'ORCH-001',status:'running',color:'var(--green)'},
+    {name:'AutomationEngine',id:'AUTO-001',status:'running',color:'var(--blue)'},
+    {name:'HITLGateManager',id:'HITL-001',status:'running',color:'var(--hitl)'},
+  ];
+  document.getElementById('engineStatus').innerHTML = engines.map(e => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:var(--bg3);border-radius:6px">
+      <div>
+        <div style="font-size:11px;font-weight:700">${e.name}</div>
+        <div style="font-size:10px;color:var(--muted)">${e.id}</div>
+      </div>
+      <span style="font-size:10px;color:${e.color};background:${e.color}18;padding:3px 8px;border-radius:4px;font-weight:700">● ${e.status}</span>
+    </div>`).join('');
+}
+
+async function approveSetupStep(hitlId) {
+  if (!hitlId) { toast('No HITL item ID', 'err'); return; }
+  await approveHITL(hitlId);
+  loadSetup();
+}
+
+async function advanceSetup() {
+  await apiFetch('/api/pipeline/self-setup/advance', {method:'POST'});
+  loadSetup();
+}
+
+async function runFullSetup() {
+  await apiFetch('/api/pipeline/self-setup/run-full', {method:'POST'});
+  toast('⚡ Full setup pipeline initiated', 'ok');
+  loadSetup();
+}
+
+// ===========================================================================
+// NL PROMPT
+// ===========================================================================
+async function createFromPrompt() {
+  const prompt = document.getElementById('globalPrompt').value.trim();
+  if (!prompt) { toast('Enter an automation description', 'warn'); return; }
+  const tenant = document.getElementById('promptTenant').value;
+  const d = await apiFetch('/api/prompt', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt, board_id:'board-001', tenant_id:tenant})
+  });
+  document.getElementById('globalPrompt').value = '';
+  toast(`✅ Created: ${d.name}`, 'ok');
+  addTickerItem('✨ New automation: ' + d.name, '#00d4aa');
+  if (document.querySelector('.panel.active').id === 'panel-overview') updateAutoBlocks();
+}
+
+// ===========================================================================
+// INIT
+// ===========================================================================
+async function init() {
+  try {
+    await initTenants();
+    await loadOverview();
+    connectSSE();
+
+    // Ticker seed
+    ['▶ Murphy v3.0 online','⚡ HITL gates active','📊 Milestone tracking enabled','🔀 DAG engine ready'].forEach(t => addTickerItem(t, '#00d4aa'));
+
+    // Auto-refresh every 30s
+    setInterval(() => {
+      const active = document.querySelector('.panel.active');
+      if (active) {
+        const loaders = {
+          'panel-overview': loadOverview, 'panel-hitl': loadHITL,
+          'panel-calendar': loadCalendar, 'panel-automations': loadAutomationsPanel,
+          'panel-marketing': loadMarketing, 'panel-proposals': loadProposals,
+          'panel-setup': loadSetup,
+        };
+        const fn = loaders[active.id];
+        if (fn) fn();
+      }
+    }, 30000);
+  } catch(e) {
+    console.error('Init error:', e);
+    toast('Initialization error: ' + e.message, 'err');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
