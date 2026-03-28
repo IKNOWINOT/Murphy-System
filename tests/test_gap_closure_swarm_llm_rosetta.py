@@ -37,7 +37,8 @@ from typing import Any, Dict, List, Optional
 _HERE = os.path.dirname(__file__)
 _SRC = os.path.join(_HERE, "..", "src")
 _MS_SRC = os.path.join(_HERE, "..", "Murphy System", "src")
-for _p in (_SRC, _MS_SRC):
+# Canonical src/ takes priority over Murphy System/src/ mirror
+for _p in (_MS_SRC, _SRC):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
@@ -467,9 +468,11 @@ class TestSwarmProposalExecute(unittest.TestCase):
             SwarmProposalGenerator, SwarmProposal, SwarmStep,
             SwarmExecutionResult, TaskComplexity, SwarmType,
         )
+        from llm_controller import LLMController
         from datetime import datetime, timezone
 
-        gen = SwarmProposalGenerator(llm_controller=None)
+        llm = LLMController()
+        gen = SwarmProposalGenerator(llm_controller=llm)
         proposal = SwarmProposal(
             proposal_id="prop_test",
             task_description="build microservice",
