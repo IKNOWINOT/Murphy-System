@@ -1,0 +1,1420 @@
+<!-- Murphy System — Dev Module / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dev Module — Murphy System</title>
+  <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="static/murphy-design-system.css">
+  <style>
+    :root {
+      --bg-base: #0C1017; --bg-surface: #131A24; --bg-elevated: #1A2332;
+      --bg-input: #0F1620; --border-subtle: #1E2A3A; --border-default: #2A3A4E;
+      --border-focus: #00D4AA; --text-primary: #E6ECF2; --text-secondary: #8899AA;
+      --text-muted: #566778; --teal: #00D4AA; --teal-glow: rgba(0,212,170,0.12);
+      --success: #22C55E; --warning: #FFA63E; --danger: #EF4444; --info: #3B9EFF;
+      --font-ui: Inter, system-ui, -apple-system, sans-serif;
+      --font-code: 'JetBrains Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Topbar ──────────────────────────────────────────────── */
+    .topbar {
+      position: sticky; top: 0; z-index: 1000;
+      background: rgba(12,16,23,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-default);
+      padding: 0 2rem;
+      height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar-brand {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; color: var(--text-primary); font-weight: 700; font-size: 1rem;
+    }
+    .topbar-brand svg { flex-shrink: 0; }
+    .topbar-title {
+      font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;
+      padding-left: 12px; border-left: 1px solid var(--border-subtle);
+    }
+    .topbar-right { display: flex; align-items: center; gap: 8px; }
+    .topbar-status {
+      font-size: 0.75rem; color: var(--text-muted);
+    }
+
+    /* ── Layout ──────────────────────────────────────────────── */
+    .app-layout {
+      display: flex; height: calc(100vh - 56px);
+    }
+    .sidebar-slot { flex-shrink: 0; }
+    .main-area {
+      flex: 1; display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    /* ── Tabs ────────────────────────────────────────────────── */
+    .tab-bar {
+      display: flex; gap: 0; border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-surface); padding: 0 24px; flex-shrink: 0;
+    }
+    .tab-btn {
+      padding: 12px 20px; background: none; border: none; border-bottom: 2px solid transparent;
+      font-family: var(--font-ui); font-size: 0.82rem; font-weight: 600;
+      color: var(--text-muted); cursor: pointer; transition: color 0.15s, border-color 0.15s;
+    }
+    .tab-btn:hover { color: var(--text-secondary); }
+    .tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); }
+
+    .tab-panel {
+      display: none; flex: 1; flex-direction: column; overflow: hidden;
+    }
+    .tab-panel.active { display: flex; }
+
+    /* ── Content area ────────────────────────────────────────── */
+    .panel-toolbar {
+      padding: 12px 24px; border-bottom: 1px solid var(--border-subtle);
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      background: var(--bg-surface); flex-shrink: 0;
+    }
+    .panel-toolbar-left { display: flex; align-items: center; gap: 12px; }
+    .panel-toolbar-left h2 { font-size: 1rem; font-weight: 700; }
+    .panel-toolbar-right { display: flex; align-items: center; gap: 8px; }
+    .panel-content {
+      flex: 1; overflow: auto; padding: 16px 24px;
+    }
+
+    /* ── Buttons ─────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 6px;
+      font-family: var(--font-ui); font-size: 0.8rem; font-weight: 500;
+      cursor: pointer; border: 1px solid transparent;
+      transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary {
+      background: var(--teal); color: #0C1017; border-color: var(--teal);
+    }
+    .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+    .btn-ghost {
+      background: transparent; color: var(--text-secondary); border-color: var(--border-default);
+    }
+    .btn-ghost:hover:not(:disabled) { background: var(--bg-elevated); color: var(--text-primary); }
+    .btn-danger {
+      background: transparent; color: var(--danger); border-color: var(--danger);
+    }
+    .btn-danger:hover:not(:disabled) { background: rgba(239,68,68,0.1); }
+    .btn-sm { padding: 5px 10px; font-size: 0.75rem; }
+    .btn-icon {
+      padding: 6px; background: transparent; color: var(--text-muted);
+      border: none; border-radius: 4px; cursor: pointer;
+    }
+    .btn-icon:hover { color: var(--text-primary); background: var(--bg-elevated); }
+    .btn-success {
+      background: transparent; color: var(--success); border-color: var(--success);
+    }
+    .btn-success:hover:not(:disabled) { background: rgba(34,197,94,0.1); }
+    .btn-warning {
+      background: transparent; color: var(--warning); border-color: var(--warning);
+    }
+    .btn-warning:hover:not(:disabled) { background: rgba(255,166,62,0.1); }
+
+    /* ── Items Table ─────────────────────────────────────────── */
+    .items-table {
+      width: 100%; border-collapse: separate; border-spacing: 0;
+      font-size: 0.82rem;
+    }
+    .items-table th {
+      text-align: left; padding: 6px 12px; font-size: 0.72rem;
+      color: var(--text-muted); font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.04em; border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-surface); position: sticky; top: 0; z-index: 1;
+    }
+    .items-table td {
+      padding: 8px 12px; border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+    .items-table tr:hover td { background: var(--bg-elevated); }
+    .item-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+    .items-table tr:hover .item-actions { opacity: 1; }
+
+    /* ── Status pills ────────────────────────────────────────── */
+    .status-pill {
+      display: inline-block; padding: 3px 10px; border-radius: 10px;
+      font-size: 0.72rem; font-weight: 600; text-align: center;
+      min-width: 80px;
+    }
+    .pill-planning  { background: var(--info); color: #fff; }
+    .pill-active    { background: var(--teal); color: #0C1017; }
+    .pill-completed { background: var(--success); color: #fff; }
+    .pill-draft     { background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border-subtle); }
+    .pill-published { background: var(--success); color: #fff; }
+    .pill-open      { background: var(--warning); color: #0C1017; }
+    .pill-resolved  { background: var(--info); color: #fff; }
+    .pill-closed    { background: var(--text-muted); color: #fff; }
+
+    /* ── Severity / Priority badges ──────────────────────────── */
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 8px;
+      font-size: 0.7rem; font-weight: 600;
+    }
+    .badge-critical { background: rgba(239,68,68,0.15); color: var(--danger); }
+    .badge-high     { background: rgba(255,166,62,0.15); color: var(--warning); }
+    .badge-medium   { background: rgba(59,158,255,0.15); color: var(--info); }
+    .badge-low      { background: rgba(86,103,120,0.15); color: var(--text-muted); }
+
+    /* ── Roadmap quarter group ───────────────────────────────── */
+    .quarter-group { margin-bottom: 24px; }
+    .quarter-header {
+      display: flex; align-items: center; gap: 10px; padding: 10px 0; margin-bottom: 8px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .quarter-header h3 {
+      font-size: 0.9rem; font-weight: 700; color: var(--teal);
+    }
+    .quarter-count {
+      font-size: 0.7rem; color: var(--text-muted); background: var(--bg-input);
+      padding: 2px 7px; border-radius: 10px;
+    }
+
+    .roadmap-card {
+      background: var(--bg-surface); border: 1px solid var(--border-subtle);
+      border-radius: 8px; padding: 14px 16px; margin-bottom: 8px;
+      transition: border-color 0.15s;
+    }
+    .roadmap-card:hover { border-color: var(--border-default); }
+    .roadmap-card-title { font-size: 0.88rem; font-weight: 600; margin-bottom: 6px; }
+    .roadmap-card-desc { font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 8px; }
+    .roadmap-card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .roadmap-tag {
+      font-size: 0.68rem; padding: 2px 8px; border-radius: 8px;
+      background: var(--teal-glow); color: var(--teal); font-weight: 500;
+    }
+
+    /* ── Burndown placeholder ────────────────────────────────── */
+    .burndown-placeholder {
+      background: var(--bg-surface); border: 1px solid var(--border-subtle);
+      border-radius: 8px; padding: 24px; margin-top: 16px;
+    }
+    .burndown-placeholder h4 {
+      font-size: 0.85rem; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary);
+    }
+    .burndown-chart {
+      height: 200px; display: flex; align-items: flex-end; gap: 4px; padding: 12px 0;
+    }
+    .burndown-bar {
+      flex: 1; background: var(--teal); border-radius: 3px 3px 0 0;
+      min-height: 4px; transition: height 0.3s;
+    }
+
+    /* ── Sprint items list ───────────────────────────────────── */
+    .sprint-items-list { margin-top: 12px; }
+    .sprint-item {
+      display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+      border-bottom: 1px solid var(--border-subtle); font-size: 0.82rem;
+    }
+    .sprint-item:last-child { border-bottom: none; }
+    .sprint-item-id { color: var(--text-muted); font-family: var(--font-code); font-size: 0.72rem; }
+    .sprint-item-pts {
+      font-size: 0.7rem; color: var(--teal); background: var(--teal-glow);
+      padding: 2px 7px; border-radius: 8px; margin-left: auto;
+    }
+
+    /* ── Release checklist ───────────────────────────────────── */
+    .checklist { margin-top: 10px; }
+    .checklist-item {
+      display: flex; align-items: center; gap: 8px; padding: 6px 0;
+      font-size: 0.82rem; color: var(--text-secondary);
+    }
+    .checklist-check {
+      width: 16px; height: 16px; border-radius: 4px;
+      border: 1px solid var(--border-default); display: flex; align-items: center; justify-content: center;
+      font-size: 0.65rem; flex-shrink: 0;
+    }
+    .checklist-check.done { background: var(--success); border-color: var(--success); color: #fff; }
+
+    /* ── Git feed ────────────────────────────────────────────── */
+    .git-event-type {
+      font-family: var(--font-code); font-size: 0.72rem;
+      padding: 2px 8px; border-radius: 6px;
+      background: var(--bg-elevated); color: var(--text-secondary);
+    }
+    .git-ref {
+      font-family: var(--font-code); font-size: 0.72rem; color: var(--info);
+    }
+
+    /* ── Velocity bar ────────────────────────────────────────── */
+    .velocity-section {
+      background: var(--bg-surface); border: 1px solid var(--border-subtle);
+      border-radius: 8px; padding: 16px; margin-top: 16px;
+    }
+    .velocity-section h4 {
+      font-size: 0.85rem; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary);
+    }
+    .velocity-bars { display: flex; align-items: flex-end; gap: 6px; height: 100px; }
+    .velocity-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .velocity-bar {
+      width: 100%; background: var(--teal); border-radius: 3px 3px 0 0;
+      min-height: 4px; transition: height 0.3s;
+    }
+    .velocity-label { font-size: 0.65rem; color: var(--text-muted); }
+
+    /* ── Modal ───────────────────────────────────────────────── */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      z-index: 500; display: none;
+    }
+    .modal-backdrop.open { display: flex; align-items: center; justify-content: center; }
+    .modal {
+      background: var(--bg-surface); border: 1px solid var(--border-default);
+      border-radius: 12px; width: 480px; max-width: 90vw;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    }
+    .modal-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border-subtle);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-header h3 { font-size: 0.95rem; font-weight: 700; }
+    .modal-body { padding: 20px; }
+    .modal-footer {
+      padding: 12px 20px; border-top: 1px solid var(--border-subtle);
+      display: flex; justify-content: flex-end; gap: 8px;
+    }
+
+    /* ── Form elements ───────────────────────────────────────── */
+    .form-group { margin-bottom: 14px; }
+    .form-label {
+      display: block; font-size: 0.78rem; font-weight: 600;
+      color: var(--text-secondary); margin-bottom: 6px;
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%; background: var(--bg-input); color: var(--text-primary);
+      border: 1px solid var(--border-subtle); padding: 9px 12px;
+      border-radius: 6px; font-family: var(--font-ui); font-size: 0.85rem;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--border-focus); }
+    .form-select { appearance: auto; }
+    .form-textarea { resize: vertical; min-height: 80px; }
+
+    /* ── Error banner ────────────────────────────────────────── */
+    .error-banner {
+      padding: 10px 24px; background: rgba(239,68,68,0.1);
+      border-bottom: 1px solid var(--danger); color: var(--danger);
+      font-size: 0.82rem; display: none; align-items: center; gap: 8px;
+    }
+    .error-banner.visible { display: flex; }
+    .error-banner button {
+      margin-left: auto; background: none; border: none;
+      color: var(--danger); cursor: pointer; font-size: 1rem; padding: 0 4px;
+    }
+
+    /* ── Empty state ─────────────────────────────────────────── */
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 64px 24px; text-align: center; color: var(--text-muted);
+    }
+    .empty-state-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.5; }
+    .empty-state h3 { font-size: 1rem; color: var(--text-secondary); margin-bottom: 6px; }
+    .empty-state p { font-size: 0.82rem; margin-bottom: 16px; max-width: 320px; }
+
+    /* ── Spinner ──────────────────────────────────────────────── */
+    .spinner {
+      display: inline-block; width: 18px; height: 18px;
+      border: 2px solid var(--border-subtle); border-top-color: var(--teal);
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-overlay {
+      display: flex; align-items: center; justify-content: center;
+      padding: 48px; color: var(--text-muted); gap: 10px; font-size: 0.82rem;
+    }
+
+    /* ── Confirm dialog ──────────────────────────────────────── */
+    .confirm-text { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+
+    /* ── Scrollbar ────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-default); }
+  </style>
+</head>
+<body>
+
+  <!-- ── Topbar ──────────────────────────────────────────────── -->
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <a href="/" class="topbar-brand">
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <rect width="32" height="32" rx="8" fill="var(--teal)"/>
+          <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700">M</text>
+        </svg>
+        <span>Murphy System</span>
+      </a>
+      <span class="topbar-title">Dev Module</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-status" id="refresh-status"></span>
+    </div>
+  </div>
+
+  <!-- ── Error banner ────────────────────────────────────────── -->
+  <div class="error-banner" id="error-banner" role="alert">
+    <span id="error-message"></span>
+    <button onclick="dismissError()" title="Dismiss" aria-label="Dismiss error">&times;</button>
+  </div>
+
+  <!-- ── App layout ──────────────────────────────────────────── -->
+  <div class="app-layout">
+    <murphy-sidebar active="DEV MODULE"></murphy-sidebar>
+
+    <div class="main-area">
+      <!-- Tabs -->
+      <div class="tab-bar" role="tablist">
+        <button class="tab-btn active" data-tab="sprints" role="tab" aria-selected="true">🏃 Sprints</button>
+        <button class="tab-btn" data-tab="bugs" role="tab" aria-selected="false">🐛 Bugs</button>
+        <button class="tab-btn" data-tab="releases" role="tab" aria-selected="false">📦 Releases</button>
+        <button class="tab-btn" data-tab="git" role="tab" aria-selected="false">🔀 Git Feed</button>
+        <button class="tab-btn" data-tab="roadmap" role="tab" aria-selected="false">🗺️ Roadmap</button>
+      </div>
+
+      <!-- ══ Sprint Panel ══════════════════════════════════════ -->
+      <div class="tab-panel active" id="panel-sprints" role="tabpanel">
+        <div class="panel-toolbar">
+          <div class="panel-toolbar-left"><h2>Sprints</h2></div>
+          <div class="panel-toolbar-right">
+            <button class="btn btn-primary btn-sm" id="btn-new-sprint">+ New Sprint</button>
+          </div>
+        </div>
+        <div class="panel-content">
+          <div id="sprints-loading" class="loading-overlay"><span class="spinner"></span> Loading sprints…</div>
+          <div id="sprints-list"></div>
+          <div id="sprints-empty" class="empty-state" style="display:none;">
+            <div class="empty-state-icon" aria-hidden="true">🏃</div>
+            <h3>No sprints yet</h3>
+            <p>Create your first sprint to start planning work.</p>
+          </div>
+          <div id="sprint-detail" style="display:none;">
+            <div id="sprint-detail-content"></div>
+            <div id="burndown-section"></div>
+            <div id="velocity-section"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ Bugs Panel ════════════════════════════════════════ -->
+      <div class="tab-panel" id="panel-bugs" role="tabpanel">
+        <div class="panel-toolbar">
+          <div class="panel-toolbar-left"><h2>Bug Tracker</h2></div>
+          <div class="panel-toolbar-right">
+            <button class="btn btn-primary btn-sm" id="btn-new-bug">+ Report Bug</button>
+          </div>
+        </div>
+        <div class="panel-content">
+          <div id="bugs-loading" class="loading-overlay"><span class="spinner"></span> Loading bugs…</div>
+          <div id="bugs-list"></div>
+          <div id="bugs-empty" class="empty-state" style="display:none;">
+            <div class="empty-state-icon" aria-hidden="true">🐛</div>
+            <h3>No bugs reported</h3>
+            <p>All clear! Report a bug when you find one.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ Releases Panel ════════════════════════════════════ -->
+      <div class="tab-panel" id="panel-releases" role="tabpanel">
+        <div class="panel-toolbar">
+          <div class="panel-toolbar-left"><h2>Releases</h2></div>
+          <div class="panel-toolbar-right">
+            <button class="btn btn-primary btn-sm" id="btn-new-release">+ New Release</button>
+          </div>
+        </div>
+        <div class="panel-content">
+          <div id="releases-loading" class="loading-overlay"><span class="spinner"></span> Loading releases…</div>
+          <div id="releases-list"></div>
+          <div id="releases-empty" class="empty-state" style="display:none;">
+            <div class="empty-state-icon" aria-hidden="true">📦</div>
+            <h3>No releases</h3>
+            <p>Create a release to package and ship your work.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ Git Feed Panel ════════════════════════════════════ -->
+      <div class="tab-panel" id="panel-git" role="tabpanel">
+        <div class="panel-toolbar">
+          <div class="panel-toolbar-left"><h2>Git Activity</h2></div>
+          <div class="panel-toolbar-right">
+            <button class="btn btn-ghost btn-sm" id="btn-log-git">+ Log Event</button>
+          </div>
+        </div>
+        <div class="panel-content">
+          <div id="git-loading" class="loading-overlay"><span class="spinner"></span> Loading git activity…</div>
+          <div id="git-list"></div>
+          <div id="git-empty" class="empty-state" style="display:none;">
+            <div class="empty-state-icon" aria-hidden="true">🔀</div>
+            <h3>No git activity</h3>
+            <p>Git events will appear here as they are logged.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ Roadmap Panel ═════════════════════════════════════ -->
+      <div class="tab-panel" id="panel-roadmap" role="tabpanel">
+        <div class="panel-toolbar">
+          <div class="panel-toolbar-left"><h2>Roadmap</h2></div>
+          <div class="panel-toolbar-right">
+            <button class="btn btn-primary btn-sm" id="btn-new-roadmap">+ Add Item</button>
+          </div>
+        </div>
+        <div class="panel-content">
+          <div id="roadmap-loading" class="loading-overlay"><span class="spinner"></span> Loading roadmap…</div>
+          <div id="roadmap-list"></div>
+          <div id="roadmap-empty" class="empty-state" style="display:none;">
+            <div class="empty-state-icon" aria-hidden="true">🗺️</div>
+            <h3>No roadmap items</h3>
+            <p>Plan your product roadmap by adding items to quarters.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal backdrop ──────────────────────────────────────── -->
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal" id="modal" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h3 id="modal-title"></h3>
+        <button class="btn-icon" onclick="closeModal()" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer" id="modal-footer"></div>
+    </div>
+  </div>
+
+  <script src="static/murphy-components.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    /* ── API helper ────────────────────────────────────────────── */
+    var API = function (path, opts) {
+      opts = opts || {};
+      return fetch(path, {
+        method: opts.method || 'GET',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: opts.body ? (typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body)) : undefined,
+      }).then(function (r) {
+        if (!r.ok) {
+          return r.json().then(function (d) {
+            throw new Error(d.detail || d.error || 'Request failed (' + r.status + ')');
+          }).catch(function (e) {
+            if (e.message) throw e;
+            throw new Error('Request failed (' + r.status + ')');
+          });
+        }
+        return r.json();
+      }).catch(function (e) {
+        showError(e.message);
+        throw e;
+      });
+    };
+
+    /* ── State ─────────────────────────────────────────────────── */
+    var activeTab = 'sprints';
+    var sprints = [];
+    var selectedSprint = null;
+    var bugs = [];
+    var releases = [];
+    var gitEvents = [];
+    var roadmapItems = [];
+    var refreshTimer = null;
+    var REFRESH_MS = 15000;
+    var activeBoardId = 'default';
+
+    /* ── DOM refs ──────────────────────────────────────────────── */
+    var $errorBanner   = document.getElementById('error-banner');
+    var $errorMessage  = document.getElementById('error-message');
+    var $refreshStatus = document.getElementById('refresh-status');
+    var $modalBackdrop = document.getElementById('modal-backdrop');
+    var $modalTitle    = document.getElementById('modal-title');
+    var $modalBody     = document.getElementById('modal-body');
+    var $modalFooter   = document.getElementById('modal-footer');
+
+    /* ── Utility ───────────────────────────────────────────────── */
+    function esc(s) {
+      var d = document.createElement('div');
+      d.textContent = s || '';
+      return d.innerHTML;
+    }
+
+    function escAttr(s) {
+      return (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '—';
+      var d = new Date(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function formatDateTime(iso) {
+      if (!iso) return '—';
+      var d = new Date(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
+             d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    /* ── Error banner ────────────────────────────────────────── */
+    function showError(msg) {
+      $errorMessage.textContent = msg;
+      $errorBanner.classList.add('visible');
+    }
+    window.dismissError = function () {
+      $errorBanner.classList.remove('visible');
+    };
+
+    /* ── Refresh status ──────────────────────────────────────── */
+    function updateRefreshStatus(loading) {
+      $refreshStatus.textContent = loading
+        ? 'Refreshing…'
+        : 'Updated ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    /* ── Modal ───────────────────────────────────────────────── */
+    function openModal(title, bodyHtml, footerHtml) {
+      $modalTitle.textContent = title;
+      $modalBody.innerHTML = bodyHtml;
+      $modalFooter.innerHTML = footerHtml;
+      $modalBackdrop.classList.add('open');
+    }
+    window.closeModal = function () {
+      $modalBackdrop.classList.remove('open');
+    };
+    $modalBackdrop.addEventListener('click', function (e) {
+      if (e.target === $modalBackdrop) closeModal();
+    });
+
+    function confirmAction(msg, onConfirm) {
+      openModal('Confirm',
+        '<p class="confirm-text">' + esc(msg) + '</p>',
+        '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary btn-sm" id="confirm-ok">Confirm</button>'
+      );
+      document.getElementById('confirm-ok').addEventListener('click', function () {
+        closeModal();
+        onConfirm();
+      });
+    }
+
+    /* ── Tab switching ───────────────────────────────────────── */
+    document.querySelector('.tab-bar').addEventListener('click', function (e) {
+      var btn = e.target.closest('.tab-btn');
+      if (!btn) return;
+      var tab = btn.getAttribute('data-tab');
+      if (tab === activeTab) return;
+
+      document.querySelectorAll('.tab-btn').forEach(function (b) {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
+
+      document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
+      document.getElementById('panel-' + tab).classList.add('active');
+      activeTab = tab;
+      refreshActiveTab();
+    });
+
+    /* ═══════════════════════════════════════════════════════════
+       SPRINTS
+    ═══════════════════════════════════════════════════════════ */
+    function loadSprints(silent) {
+      if (!silent) document.getElementById('sprints-loading').style.display = 'flex';
+      return API('/api/dev/sprints?board_id=' + encodeURIComponent(activeBoardId)).then(function (data) {
+        sprints = Array.isArray(data) ? data : [];
+        renderSprintsList();
+        if (!silent) document.getElementById('sprints-loading').style.display = 'none';
+      }).catch(function () {
+        sprints = [];
+        renderSprintsList();
+        if (!silent) document.getElementById('sprints-loading').style.display = 'none';
+      });
+    }
+
+    function renderSprintsList() {
+      var $list = document.getElementById('sprints-list');
+      var $empty = document.getElementById('sprints-empty');
+      var $detail = document.getElementById('sprint-detail');
+
+      if (sprints.length === 0) {
+        $list.innerHTML = '';
+        $empty.style.display = 'flex';
+        $detail.style.display = 'none';
+        return;
+      }
+      $empty.style.display = 'none';
+
+      var html = '<table class="items-table"><thead><tr>' +
+        '<th>Name</th><th>Goal</th><th>Start</th><th>End</th><th>Status</th><th>Actions</th>' +
+        '</tr></thead><tbody>';
+      for (var i = 0; i < sprints.length; i++) {
+        var s = sprints[i];
+        var status = s.status || 'planning';
+        var pillClass = 'pill-' + status;
+        html += '<tr data-sprint-id="' + escAttr(s.id) + '">' +
+          '<td style="font-weight:500;cursor:pointer;" class="sprint-name-cell">' + esc(s.name) + '</td>' +
+          '<td style="color:var(--text-secondary);">' + esc(s.goal || '') + '</td>' +
+          '<td>' + esc(formatDate(s.start_date)) + '</td>' +
+          '<td>' + esc(formatDate(s.end_date)) + '</td>' +
+          '<td><span class="status-pill ' + pillClass + '">' + esc(status) + '</span></td>' +
+          '<td><div class="item-actions" style="opacity:1;">';
+        if (status === 'planning') {
+          html += '<button class="btn btn-success btn-sm sprint-start-btn" data-id="' + escAttr(s.id) + '">▶ Start</button>';
+        }
+        if (status === 'active') {
+          html += '<button class="btn btn-warning btn-sm sprint-complete-btn" data-id="' + escAttr(s.id) + '">✓ Complete</button>';
+        }
+        html += '</div></td></tr>';
+      }
+      html += '</tbody></table>';
+      $list.innerHTML = html;
+
+      $list.querySelectorAll('.sprint-name-cell').forEach(function (cell) {
+        cell.addEventListener('click', function () {
+          var id = cell.closest('tr').getAttribute('data-sprint-id');
+          loadSprintDetail(id);
+        });
+      });
+
+      $list.querySelectorAll('.sprint-start-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-id');
+          confirmAction('Start this sprint?', function () {
+            API('/api/dev/sprints/' + encodeURIComponent(id) + '/start', { method: 'POST', body: {} }).then(function () { loadSprints(true); });
+          });
+        });
+      });
+
+      $list.querySelectorAll('.sprint-complete-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-id');
+          confirmAction('Complete this sprint?', function () {
+            API('/api/dev/sprints/' + encodeURIComponent(id) + '/complete', { method: 'POST', body: {} }).then(function () { loadSprints(true); });
+          });
+        });
+      });
+    }
+
+    function loadSprintDetail(sprintId) {
+      var $detail = document.getElementById('sprint-detail');
+      var $content = document.getElementById('sprint-detail-content');
+      $detail.style.display = 'block';
+      $content.innerHTML = '<div class="loading-overlay"><span class="spinner"></span> Loading sprint…</div>';
+
+      API('/api/dev/sprints/' + encodeURIComponent(sprintId)).then(function (sprint) {
+        selectedSprint = sprint;
+        var items = sprint.items || [];
+        var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">' +
+          '<h3 style="font-size:0.95rem;font-weight:700;">' + esc(sprint.name) + ' — Items</h3>' +
+          '<button class="btn btn-ghost btn-sm" id="btn-add-sprint-item">+ Add Item</button></div>';
+
+        if (items.length === 0) {
+          html += '<p style="font-size:0.82rem;color:var(--text-muted);">No items in this sprint yet.</p>';
+        } else {
+          html += '<div class="sprint-items-list">';
+          for (var i = 0; i < items.length; i++) {
+            var it = items[i];
+            var done = it.completed || it.status === 'completed';
+            html += '<div class="sprint-item">' +
+              '<span class="sprint-item-id">' + esc(it.item_id || it.id) + '</span>' +
+              '<span style="' + (done ? 'text-decoration:line-through;color:var(--text-muted);' : '') + '">' + esc(it.title || it.item_id || it.id) + '</span>' +
+              '<span class="sprint-item-pts">' + esc(String(it.story_points || 0)) + ' pts</span>';
+            if (!done) {
+              html += '<button class="btn btn-success btn-sm complete-item-btn" data-sprint="' + escAttr(sprint.id) + '" data-item="' + escAttr(it.item_id || it.id) + '">✓</button>';
+            }
+            html += '</div>';
+          }
+          html += '</div>';
+        }
+        $content.innerHTML = html;
+
+        document.getElementById('btn-add-sprint-item').addEventListener('click', function () {
+          openAddSprintItemModal(sprint.id);
+        });
+
+        $content.querySelectorAll('.complete-item-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var sid = btn.getAttribute('data-sprint');
+            var iid = btn.getAttribute('data-item');
+            API('/api/dev/sprints/' + encodeURIComponent(sid) + '/items/' + encodeURIComponent(iid) + '/complete', { method: 'POST', body: {} })
+              .then(function () { loadSprintDetail(sid); });
+          });
+        });
+
+        loadBurndown(sprint.id);
+        loadVelocity();
+      }).catch(function () {
+        $content.innerHTML = '<p style="color:var(--danger);font-size:0.82rem;">Failed to load sprint details.</p>';
+      });
+    }
+
+    function loadBurndown(sprintId) {
+      var $section = document.getElementById('burndown-section');
+      API('/api/dev/sprints/' + encodeURIComponent(sprintId) + '/burndown').then(function (data) {
+        var points = Array.isArray(data) ? data : (data.points || []);
+        if (points.length === 0) {
+          $section.innerHTML = '<div class="burndown-placeholder"><h4>📉 Burndown Chart</h4><p style="font-size:0.78rem;color:var(--text-muted);">No burndown data available yet.</p></div>';
+          return;
+        }
+        var max = 1;
+        for (var i = 0; i < points.length; i++) {
+          var v = points[i].remaining || points[i].value || 0;
+          if (v > max) max = v;
+        }
+        var html = '<div class="burndown-placeholder"><h4>📉 Burndown Chart</h4><div class="burndown-chart">';
+        for (var j = 0; j < points.length; j++) {
+          var val = points[j].remaining || points[j].value || 0;
+          var pct = Math.round((val / max) * 100);
+          html += '<div class="burndown-bar" style="height:' + pct + '%" title="' + escAttr(String(val)) + ' pts"></div>';
+        }
+        html += '</div></div>';
+        $section.innerHTML = html;
+      }).catch(function () {
+        $section.innerHTML = '<div class="burndown-placeholder"><h4>📉 Burndown Chart</h4><p style="font-size:0.78rem;color:var(--text-muted);">Unable to load burndown data.</p></div>';
+      });
+    }
+
+    function loadVelocity() {
+      var $section = document.getElementById('velocity-section');
+      API('/api/dev/velocity/' + encodeURIComponent(activeBoardId) + '?limit=10').then(function (data) {
+        var items = Array.isArray(data) ? data : (data.sprints || []);
+        if (items.length === 0) {
+          $section.innerHTML = '';
+          return;
+        }
+        var max = 1;
+        for (var i = 0; i < items.length; i++) {
+          var v = items[i].velocity || items[i].points || 0;
+          if (v > max) max = v;
+        }
+        var html = '<div class="velocity-section"><h4>⚡ Velocity</h4><div class="velocity-bars">';
+        for (var j = 0; j < items.length; j++) {
+          var val = items[j].velocity || items[j].points || 0;
+          var pct = Math.round((val / max) * 100);
+          html += '<div class="velocity-bar-col">' +
+            '<div class="velocity-bar" style="height:' + pct + 'px" title="' + escAttr(String(val)) + ' pts"></div>' +
+            '<span class="velocity-label">' + esc(items[j].name || 'S' + (j + 1)) + '</span></div>';
+        }
+        html += '</div></div>';
+        $section.innerHTML = html;
+      }).catch(function () {
+        $section.innerHTML = '';
+      });
+    }
+
+    function openAddSprintItemModal(sprintId) {
+      openModal('Add Sprint Item',
+        '<div class="form-group"><label class="form-label">Item ID</label>' +
+        '<input class="form-input" id="f-sprint-item-id" placeholder="e.g. TASK-42"></div>' +
+        '<div class="form-group"><label class="form-label">Story Points</label>' +
+        '<input class="form-input" id="f-sprint-item-pts" type="number" min="0" placeholder="0"></div>',
+        '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary btn-sm" id="modal-add-sprint-item">Add Item</button>'
+      );
+      document.getElementById('modal-add-sprint-item').addEventListener('click', function () {
+        var itemId = document.getElementById('f-sprint-item-id').value.trim();
+        var pts = parseInt(document.getElementById('f-sprint-item-pts').value, 10) || 0;
+        if (!itemId) { showError('Item ID is required.'); return; }
+        API('/api/dev/sprints/' + encodeURIComponent(sprintId) + '/items', {
+          method: 'POST',
+          body: { item_id: itemId, story_points: pts }
+        }).then(function () {
+          closeModal();
+          loadSprintDetail(sprintId);
+        });
+      });
+    }
+
+    document.getElementById('btn-new-sprint').addEventListener('click', function () {
+      openModal('Create Sprint',
+        '<div class="form-group"><label class="form-label">Sprint Name</label>' +
+        '<input class="form-input" id="f-sprint-name" placeholder="Sprint 1"></div>' +
+        '<div class="form-group"><label class="form-label">Goal</label>' +
+        '<input class="form-input" id="f-sprint-goal" placeholder="Sprint goal…"></div>' +
+        '<div class="form-group"><label class="form-label">Start Date</label>' +
+        '<input class="form-input" id="f-sprint-start" type="date"></div>' +
+        '<div class="form-group"><label class="form-label">End Date</label>' +
+        '<input class="form-input" id="f-sprint-end" type="date"></div>',
+        '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary btn-sm" id="modal-create-sprint">Create</button>'
+      );
+      document.getElementById('modal-create-sprint').addEventListener('click', function () {
+        var name = document.getElementById('f-sprint-name').value.trim();
+        if (!name) { showError('Sprint name is required.'); return; }
+        API('/api/dev/sprints', {
+          method: 'POST',
+          body: {
+            name: name,
+            board_id: activeBoardId,
+            start_date: document.getElementById('f-sprint-start').value || null,
+            end_date: document.getElementById('f-sprint-end').value || null,
+            goal: document.getElementById('f-sprint-goal').value.trim() || ''
+          }
+        }).then(function () {
+          closeModal();
+          loadSprints(true);
+        });
+      });
+    });
+
+    /* ═══════════════════════════════════════════════════════════
+       BUGS
+    ═══════════════════════════════════════════════════════════ */
+    function loadBugs(silent) {
+      if (!silent) document.getElementById('bugs-loading').style.display = 'flex';
+      return API('/api/dev/bugs?board_id=' + encodeURIComponent(activeBoardId)).then(function (data) {
+        bugs = Array.isArray(data) ? data : [];
+        renderBugsList();
+        if (!silent) document.getElementById('bugs-loading').style.display = 'none';
+      }).catch(function () {
+        bugs = [];
+        renderBugsList();
+        if (!silent) document.getElementById('bugs-loading').style.display = 'none';
+      });
+    }
+
+    function renderBugsList() {
+      var $list = document.getElementById('bugs-list');
+      var $empty = document.getElementById('bugs-empty');
+
+      if (bugs.length === 0) {
+        $list.innerHTML = '';
+        $empty.style.display = 'flex';
+        return;
+      }
+      $empty.style.display = 'none';
+
+      var html = '<table class="items-table"><thead><tr>' +
+        '<th>Title</th><th>Severity</th><th>Priority</th><th>Status</th><th>Assignee</th><th>Actions</th>' +
+        '</tr></thead><tbody>';
+      for (var i = 0; i < bugs.length; i++) {
+        var b = bugs[i];
+        var sev = (b.severity || 'medium').toLowerCase();
+        var pri = (b.priority || 'medium').toLowerCase();
+        var status = (b.status || 'open').toLowerCase();
+        var pillClass = 'pill-' + status;
+
+        html += '<tr>' +
+          '<td style="font-weight:500;">' + esc(b.title) + '</td>' +
+          '<td><span class="badge badge-' + escAttr(sev) + '">' + esc(b.severity || 'Medium') + '</span></td>' +
+          '<td><span class="badge badge-' + escAttr(pri) + '">' + esc(b.priority || 'Medium') + '</span></td>' +
+          '<td><span class="status-pill ' + pillClass + '">' + esc(status) + '</span></td>' +
+          '<td style="color:var(--text-secondary);">' + esc(b.assignee_id || b.assignee || '—') + '</td>' +
+          '<td><div class="item-actions" style="opacity:1;">';
+        if (status === 'open') {
+          html += '<button class="btn btn-success btn-sm bug-resolve-btn" data-id="' + escAttr(b.id) + '">Resolve</button>';
+        }
+        if (status === 'open' || status === 'resolved') {
+          html += '<button class="btn btn-ghost btn-sm bug-close-btn" data-id="' + escAttr(b.id) + '">Close</button>';
+        }
+        html += '</div></td></tr>';
+      }
+      html += '</tbody></table>';
+      $list.innerHTML = html;
+
+      $list.querySelectorAll('.bug-resolve-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-id');
+          API('/api/dev/bugs/' + encodeURIComponent(id) + '/resolve', { method: 'POST', body: {} })
+            .then(function () { loadBugs(true); });
+        });
+      });
+
+      $list.querySelectorAll('.bug-close-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-id');
+          confirmAction('Close this bug?', function () {
+            API('/api/dev/bugs/' + encodeURIComponent(id) + '/close', { method: 'POST', body: {} })
+              .then(function () { loadBugs(true); });
+          });
+        });
+      });
+    }
+
+    document.getElementById('btn-new-bug').addEventListener('click', function () {
+      openModal('Report Bug',
+        '<div class="form-group"><label class="form-label">Title</label>' +
+        '<input class="form-input" id="f-bug-title" placeholder="Bug title"></div>' +
+        '<div class="form-group"><label class="form-label">Description</label>' +
+        '<textarea class="form-textarea" id="f-bug-desc" placeholder="Describe the bug…"></textarea></div>' +
+        '<div style="display:flex;gap:12px;">' +
+        '<div class="form-group" style="flex:1;"><label class="form-label">Severity</label>' +
+        '<select class="form-select" id="f-bug-severity">' +
+        '<option value="critical">Critical</option><option value="high">High</option>' +
+        '<option value="medium" selected>Medium</option><option value="low">Low</option></select></div>' +
+        '<div class="form-group" style="flex:1;"><label class="form-label">Priority</label>' +
+        '<select class="form-select" id="f-bug-priority">' +
+        '<option value="critical">Critical</option><option value="high">High</option>' +
+        '<option value="medium" selected>Medium</option><option value="low">Low</option></select></div></div>' +
+        '<div style="display:flex;gap:12px;">' +
+        '<div class="form-group" style="flex:1;"><label class="form-label">Reporter ID</label>' +
+        '<input class="form-input" id="f-bug-reporter" placeholder="user-id"></div>' +
+        '<div class="form-group" style="flex:1;"><label class="form-label">Assignee ID</label>' +
+        '<input class="form-input" id="f-bug-assignee" placeholder="user-id"></div></div>',
+        '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary btn-sm" id="modal-create-bug">Report</button>'
+      );
+      document.getElementById('modal-create-bug').addEventListener('click', function () {
+        var title = document.getElementById('f-bug-title').value.trim();
+        if (!title) { showError('Bug title is required.'); return; }
+        API('/api/dev/bugs', {
+          method: 'POST',
+          body: {
+            title: title,
+            board_id: activeBoardId,
+            description: document.getElementById('f-bug-desc').value.trim(),
+            severity: document.getElementById('f-bug-severity').value,
+            priority: document.getElementById('f-bug-priority').value,
+            reporter_id: document.getElementById('f-bug-reporter').value.trim() || null,
+            assignee_id: document.getElementById('f-bug-assignee').value.trim() || null
+          }
+        }).then(function () {
+          closeModal();
+          loadBugs(true);
+        });
+      });
+    });
+
+    /* ═══════════════════════════════════════════════════════════
+       RELEASES
+    ═══════════════════════════════════════════════════════════ */
+    function loadReleases(silent) {
+      if (!silent) document.getElementById('releases-loading').style.display = 'flex';
+      return API('/api/dev/releases').then(function (data) {
+        releases = Array.isArray(data) ? data : [];
+        renderReleasesList();
+        if (!silent) document.getElementById('releases-loading').style.display = 'none';
+      }).catch(function () {
+        releases = [];
+        renderReleasesList();
+        if (!silent) document.getElementById('releases-loading').style.display = 'none';
+      });
+    }
+
+    function renderReleasesList() {
+      var $list = document.getElementById('releases-list');
+      var $empty = document.getElementById('releases-empty');
+
+      if (releases.length === 0) {
+        $list.innerHTML = '';
+        $empty.style.display = 'flex';
+        return;
+      }
+      $empty.style.display = 'none';
+
+      var html = '';
+      for (var i = 0; i < releases.length; i++) {
+        var r = releases[i];
+        var status = (r.status || 'draft').toLowerCase();
+        var pillClass = 'pill-' + status;
+        var checklist = r.checklist || [];
+
+        html += '<div class="roadmap-card" data-release-id="' + escAttr(r.id) + '">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+          '<div><span class="roadmap-card-title" style="margin-bottom:0;">' + esc(r.version || '') + '</span>' +
+          ' <span style="color:var(--text-secondary);font-size:0.82rem;">' + esc(r.name || '') + '</span></div>' +
+          '<div style="display:flex;align-items:center;gap:8px;">' +
+          '<span class="status-pill ' + pillClass + '">' + esc(status) + '</span>';
+
+        if (status === 'draft') {
+          html += '<button class="btn btn-success btn-sm release-publish-btn" data-id="' + escAttr(r.id) + '">🚀 Publish</button>';
+        }
+        html += '<button class="btn btn-ghost btn-sm release-checklist-btn" data-id="' + escAttr(r.id) + '">+ Checklist</button>';
+        html += '</div></div>';
+
+        if (r.release_notes) {
+          html += '<p style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:8px;">' + esc(r.release_notes) + '</p>';
+        }
+
+        if (checklist.length > 0) {
+          html += '<div class="checklist">';
+          for (var c = 0; c < checklist.length; c++) {
+            var ci = checklist[c];
+            var done = ci.checked || ci.completed || false;
+            html += '<div class="checklist-item">' +
+              '<div class="checklist-check' + (done ? ' done' : '') + '">' + (done ? '✓' : '') + '</div>' +
+              '<span>' + esc(ci.label || ci.text || '') + '</span></div>';
+          }
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+      $list.innerHTML = html;
+
+      $list.querySelectorAll('.release-publish-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-id');
+          confirmAction('Publish this release? This cannot be undone.', function () {
+            API('/api/dev/releases/' + encodeURIComponent(id) + '/publish', { method: 'POST', body: {} })
+              .then(function () { loadReleases(true); });
+          });
+        });
+      });
+
+      $list.querySelectorAll('.release-checklist-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-id');
+          openModal('Add Checklist Item',
+            '<div class="form-group"><label class="form-label">Label</label>' +
+            '<input class="form-input" id="f-checklist-label" placeholder="e.g. Run regression tests"></div>',
+            '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>' +
+            '<button class="btn btn-primary btn-sm" id="modal-add-checklist">Add</button>'
+          );
+          document.getElementById('modal-add-checklist').addEventListener('click', function () {
+            var label = document.getElementById('f-checklist-label').value.trim();
+            if (!label) { showError('Label is required.'); return; }
+            API('/api/dev/releases/' + encodeURIComponent(id) + '/checklist', {
+              method: 'POST',
+              body: { label: label }
+            }).then(function () {
+              closeModal();
+              loadReleases(true);
+            });
+          });
+        });
+      });
+    }
+
+    document.getElementById('btn-new-release').addEventListener('click', function () {
+      openModal('Create Release',
+        '<div class="form-group"><label class="form-label">Version</label>' +
+        '<input class="form-input" id="f-release-version" placeholder="v1.0.0"></div>' +
+        '<div class="form-group"><label class="form-label">Name</label>' +
+        '<input class="form-input" id="f-release-name" placeholder="Release name"></div>' +
+        '<div class="form-group"><label class="form-label">Sprint IDs (comma-separated)</label>' +
+        '<input class="form-input" id="f-release-sprints" placeholder="sprint-1, sprint-2"></div>' +
+        '<div class="form-group"><label class="form-label">Release Notes</label>' +
+        '<textarea class="form-textarea" id="f-release-notes" placeholder="What\'s new…"></textarea></div>',
+        '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary btn-sm" id="modal-create-release">Create</button>'
+      );
+      document.getElementById('modal-create-release').addEventListener('click', function () {
+        var version = document.getElementById('f-release-version').value.trim();
+        if (!version) { showError('Version is required.'); return; }
+        var sprintIds = document.getElementById('f-release-sprints').value.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        API('/api/dev/releases', {
+          method: 'POST',
+          body: {
+            version: version,
+            name: document.getElementById('f-release-name').value.trim(),
+            sprint_ids: sprintIds,
+            release_notes: document.getElementById('f-release-notes').value.trim()
+          }
+        }).then(function () {
+          closeModal();
+          loadReleases(true);
+        });
+      });
+    });
+
+    /* ═══════════════════════════════════════════════════════════
+       GIT FEED
+    ═══════════════════════════════════════════════════════════ */
+    function loadGitFeed(silent) {
+      if (!silent) document.getElementById('git-loading').style.display = 'flex';
+      return API('/api/dev/git?board_id=' + encodeURIComponent(activeBoardId) + '&limit=50').then(function (data) {
+        gitEvents = Array.isArray(data) ? data : [];
+        renderGitFeed();
+        if (!silent) document.getElementById('git-loading').style.display = 'none';
+      }).catch(function () {
+        gitEvents = [];
+        renderGitFeed();
+        if (!silent) document.getElementById('git-loading').style.display = 'none';
+      });
+    }
+
+    function renderGitFeed() {
+      var $list = document.getElementById('git-list');
+      var $empty = document.getElementById('git-empty');
+
+      if (gitEvents.length === 0) {
+        $list.innerHTML = '';
+        $empty.style.display = 'flex';
+        return;
+      }
+      $empty.style.display = 'none';
+
+      var html = '<table class="items-table"><thead><tr>' +
+        '<th>Event</th><th>Author</th><th>Message</th><th>Ref</th><th>Time</th>' +
+        '</tr></thead><tbody>';
+      for (var i = 0; i < gitEvents.length; i++) {
+        var ev = gitEvents[i];
+        html += '<tr>' +
+          '<td><span class="git-event-type">' + esc(ev.event_type || '') + '</span></td>' +
+          '<td style="font-weight:500;">' + esc(ev.author || '') + '</td>' +
+          '<td style="color:var(--text-secondary);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(ev.message || '') + '</td>' +
+          '<td><span class="git-ref">' + esc(ev.ref || '') + '</span></td>' +
+          '<td style="color:var(--text-muted);white-space:nowrap;">' + esc(formatDateTime(ev.created_at || ev.timestamp)) + '</td>' +
+          '</tr>';
+      }
+      html += '</tbody></table>';
+      $list.innerHTML = html;
+    }
+
+    document.getElementById('btn-log-git').addEventListener('click', function () {
+      openModal('Log Git Event',
+        '<div class="form-group"><label class="form-label">Event Type</label>' +
+        '<select class="form-select" id="f-git-type">' +
+        '<option value="push">push</option><option value="pull_request">pull_request</option>' +
+        '<option value="merge">merge</option><option value="tag">tag</option>' +
+        '<option value="branch">branch</option><option value="commit">commit</option></select></div>' +
+        '<div class="form-group"><label class="form-label">Author</label>' +
+        '<input class="form-input" id="f-git-author" placeholder="author name"></div>' +
+        '<div class="form-group"><label class="form-label">Message</label>' +
+        '<input class="form-input" id="f-git-message" placeholder="commit message or event description"></div>' +
+        '<div class="form-group"><label class="form-label">Ref</label>' +
+        '<input class="form-input" id="f-git-ref" placeholder="main, v1.0.0, feature/xyz"></div>' +
+        '<div class="form-group"><label class="form-label">URL (optional)</label>' +
+        '<input class="form-input" id="f-git-url" placeholder="https://…"></div>',
+        '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary btn-sm" id="modal-log-git">Log</button>'
+      );
+      document.getElementById('modal-log-git').addEventListener('click', function () {
+        var author = document.getElementById('f-git-author').value.trim();
+        var message = document.getElementById('f-git-message').value.trim();
+        if (!author || !message) { showError('Author and message are required.'); return; }
+        API('/api/dev/git', {
+          method: 'POST',
+          body: {
+            board_id: activeBoardId,
+            event_type: document.getElementById('f-git-type').value,
+            author: author,
+            message: message,
+            ref: document.getElementById('f-git-ref').value.trim(),
+            url: document.getElementById('f-git-url').value.trim() || null
+          }
+        }).then(function () {
+          closeModal();
+          loadGitFeed(true);
+        });
+      });
+    });
+
+    /* ═══════════════════════════════════════════════════════════
+       ROADMAP
+    ═══════════════════════════════════════════════════════════ */
+    function loadRoadmap(silent) {
+      if (!silent) document.getElementById('roadmap-loading').style.display = 'flex';
+      return API('/api/dev/roadmap').then(function (data) {
+        roadmapItems = Array.isArray(data) ? data : [];
+        renderRoadmap();
+        if (!silent) document.getElementById('roadmap-loading').style.display = 'none';
+      }).catch(function () {
+        roadmapItems = [];
+        renderRoadmap();
+        if (!silent) document.getElementById('roadmap-loading').style.display = 'none';
+      });
+    }
+
+    function renderRoadmap() {
+      var $list = document.getElementById('roadmap-list');
+      var $empty = document.getElementById('roadmap-empty');
+
+      if (roadmapItems.length === 0) {
+        $list.innerHTML = '';
+        $empty.style.display = 'flex';
+        return;
+      }
+      $empty.style.display = 'none';
+
+      var grouped = {};
+      for (var i = 0; i < roadmapItems.length; i++) {
+        var item = roadmapItems[i];
+        var q = item.quarter || 'Unassigned';
+        if (!grouped[q]) grouped[q] = [];
+        grouped[q].push(item);
+      }
+
+      var quarters = Object.keys(grouped).sort();
+      var html = '';
+      for (var qi = 0; qi < quarters.length; qi++) {
+        var quarter = quarters[qi];
+        var items = grouped[quarter];
+        html += '<div class="quarter-group">' +
+          '<div class="quarter-header"><h3>' + esc(quarter) + '</h3>' +
+          '<span class="quarter-count">' + items.length + ' item' + (items.length !== 1 ? 's' : '') + '</span></div>';
+
+        for (var j = 0; j < items.length; j++) {
+          var it = items[j];
+          var status = (it.status || 'planned').toLowerCase();
+          var statusPill = status === 'in_progress' || status === 'in-progress' ? 'pill-active' :
+                           status === 'completed' || status === 'done' ? 'pill-completed' :
+                           status === 'cancelled' ? 'pill-closed' : 'pill-draft';
+          var tags = it.tags || [];
+
+          html += '<div class="roadmap-card" data-item-id="' + escAttr(it.id) + '">' +
+            '<div style="display:flex;align-items:flex-start;justify-content:space-between;">' +
+            '<div class="roadmap-card-title">' + esc(it.title) + '</div>' +
+            '<div style="display:flex;gap:6px;align-items:center;">' +
+            '<span class="status-pill ' + statusPill + '">' + esc(it.status || 'planned') + '</span>' +
+            '<button class="btn btn-ghost btn-sm roadmap-edit-btn" data-id="' + escAttr(it.id) + '">✏️</button>' +
+            '</div></div>';
+
+          if (it.description) {
+            html += '<div class="roadmap-card-desc">' + esc(it.description) + '</div>';
+          }
+
+          html += '<div class="roadmap-card-meta">';
+          if (it.owner_id) {
+            html += '<span style="font-size:0.72rem;color:var(--text-muted);">👤 ' + esc(it.owner_id) + '</span>';
+          }
+          for (var t = 0; t < tags.length; t++) {
+            html += '<span class="roadmap-tag">' + esc(tags[t]) + '</span>';
+          }
+          html += '</div></div>';
+        }
+        html += '</div>';
+      }
+      $list.innerHTML = html;
+
+      $list.querySelectorAll('.roadmap-edit-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-id');
+          var item = null;
+          for (var k = 0; k < roadmapItems.length; k++) {
+            if (roadmapItems[k].id === id) { item = roadmapItems[k]; break; }
+          }
+          if (!item) return;
+          openEditRoadmapModal(item);
+        });
+      });
+    }
+
+    function openEditRoadmapModal(item) {
+      openModal('Update Roadmap Item',
+        '<div class="form-group"><label class="form-label">Title</label>' +
+        '<input class="form-input" id="f-rm-title" value="' + escAttr(item.title || '') + '"></div>' +
+        '<div class="form-group"><label class="form-label">Description</label>' +
+        '<textarea class="form-textarea" id="f-rm-desc">' + esc(item.description || '') + '</textarea></div>' +
+        '<div style="display:flex;gap:12px;">' +
+        '<div class="form-group" style="flex:1;"><label class="form-label">Quarter</label>' +
+        '<input class="form-input" id="f-rm-quarter" value="' + escAttr(item.quarter || '') + '" placeholder="Q1 2025"></div>' +
+        '<div class="form-group" style="flex:1;"><label class="form-label">Status</label>' +
+        '<select class="form-select" id="f-rm-status">' +
+        '<option value="planned"' + (item.status === 'planned' ? ' selected' : '') + '>Planned</option>' +
+        '<option value="in_progress"' + (item.status === 'in_progress' ? ' selected' : '') + '>In Progress</option>' +
+        '<option value="completed"' + (item.status === 'completed' ? ' selected' : '') + '>Completed</option>' +
+        '<option value="cancelled"' + (item.status === 'cancelled' ? ' selected' : '') + '>Cancelled</option></select></div></div>' +
+        '<div class="form-group"><label class="form-label">Owner ID</label>' +
+        '<input class="form-input" id="f-rm-owner" value="' + escAttr(item.owner_id || '') + '"></div>' +
+        '<div class="form-group"><label class="form-label">Tags (comma-separated)</label>' +
+        '<input class="form-input" id="f-rm-tags" value="' + escAttr((item.tags || []).join(', ')) + '"></div>',
+        '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary btn-sm" id="modal-update-roadmap">Update</button>'
+      );
+      document.getElementById('modal-update-roadmap').addEventListener('click', function () {
+        var title = document.getElementById('f-rm-title').value.trim();
+        if (!title) { showError('Title is required.'); return; }
+        var tags = document.getElementById('f-rm-tags').value.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        API('/api/dev/roadmap/' + encodeURIComponent(item.id), {
+          method: 'PATCH',
+          body: {
+            title: title,
+            description: document.getElementById('f-rm-desc').value.trim(),
+            quarter: document.getElementById('f-rm-quarter').value.trim(),
+            status: document.getElementById('f-rm-status').value,
+            owner_id: document.getElementById('f-rm-owner').value.trim() || null,
+            tags: tags
+          }
+        }).then(function () {
+          closeModal();
+          loadRoadmap(true);
+        });
+      });
+    }
+
+    document.getElementById('btn-new-roadmap').addEventListener('click', function () {
+      openModal('Add Roadmap Item',
+        '<div class="form-group"><label class="form-label">Title</label>' +
+        '<input class="form-input" id="f-rm-title" placeholder="Feature or initiative name"></div>' +
+        '<div class="form-group"><label class="form-label">Description</label>' +
+        '<textarea class="form-textarea" id="f-rm-desc" placeholder="Describe the item…"></textarea></div>' +
+        '<div style="display:flex;gap:12px;">' +
+        '<div class="form-group" style="flex:1;"><label class="form-label">Quarter</label>' +
+        '<input class="form-input" id="f-rm-quarter" placeholder="Q1 2025"></div>' +
+        '<div class="form-group" style="flex:1;"><label class="form-label">Owner ID</label>' +
+        '<input class="form-input" id="f-rm-owner" placeholder="user-id"></div></div>' +
+        '<div class="form-group"><label class="form-label">Tags (comma-separated)</label>' +
+        '<input class="form-input" id="f-rm-tags" placeholder="backend, performance"></div>',
+        '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn btn-primary btn-sm" id="modal-create-roadmap">Create</button>'
+      );
+      document.getElementById('modal-create-roadmap').addEventListener('click', function () {
+        var title = document.getElementById('f-rm-title').value.trim();
+        if (!title) { showError('Title is required.'); return; }
+        var tags = document.getElementById('f-rm-tags').value.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        API('/api/dev/roadmap', {
+          method: 'POST',
+          body: {
+            title: title,
+            description: document.getElementById('f-rm-desc').value.trim(),
+            quarter: document.getElementById('f-rm-quarter').value.trim(),
+            owner_id: document.getElementById('f-rm-owner').value.trim() || null,
+            tags: tags
+          }
+        }).then(function () {
+          closeModal();
+          loadRoadmap(true);
+        });
+      });
+    });
+
+    /* ═══════════════════════════════════════════════════════════
+       REFRESH & INIT
+    ═══════════════════════════════════════════════════════════ */
+    function refreshActiveTab(silent) {
+      updateRefreshStatus(true);
+      var p;
+      switch (activeTab) {
+        case 'sprints':  p = loadSprints(silent);  break;
+        case 'bugs':     p = loadBugs(silent);     break;
+        case 'releases': p = loadReleases(silent); break;
+        case 'git':      p = loadGitFeed(silent);  break;
+        case 'roadmap':  p = loadRoadmap(silent);  break;
+        default:         p = Promise.resolve();
+      }
+      return (p || Promise.resolve()).then(function () {
+        updateRefreshStatus(false);
+      }).catch(function () {
+        updateRefreshStatus(false);
+      });
+    }
+
+    function startAutoRefresh() {
+      if (refreshTimer) clearInterval(refreshTimer);
+      refreshTimer = setInterval(function () {
+        refreshActiveTab(true);
+      }, REFRESH_MS);
+    }
+
+    /* ── Init ──────────────────────────────────────────────── */
+    refreshActiveTab(false);
+    startAutoRefresh();
+
+  })();
+  </script>
+</body>
+</html>
