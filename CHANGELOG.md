@@ -5,6 +5,33 @@ All notable changes to Murphy System will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — Module Instance Manager + HITL/Infrastructure Enhancements
+
+### Added
+- **Module Instance Manager** (`src/module_instance_manager.py`) — Dynamic module
+  instantiation with unique instance IDs, spawn/despawn lifecycle, viability checking,
+  circuit breaker protection, configuration backward logic for auditing, and bounded
+  audit trails (InstanceState, ViabilityResult, SpawnDecision enums; ResourceProfile,
+  ModuleInstance, AuditEntry, ConfigurationSnapshot dataclasses; ViabilityChecker and
+  ModuleInstanceManager classes)
+- **Module Instance API** (`src/module_instance_api.py`) — 13 FastAPI REST endpoints
+  at `/module-instances/*` for spawn, despawn, list, get, viability check, find viable,
+  audit trail, config history, status, resources, type registration, blacklist, bulk
+  despawn; wired into `murphy_production_server.py` via `register_module_instance_routes()`
+- **Infrastructure Compare** — `POST /api/infrastructure/compare` for detailed
+  service-by-service comparison of production environment against `hetzner_load.sh`
+- **Matrix Notify** — `POST /api/matrix/notify` for real-time Matrix notifications
+  on HITL events (pending, approved, rejected) with configurable room targeting
+- **Module Instance Dashboard** (`module_instances.html`) — Status panel, instance
+  table, spawn/despawn controls with 10s auto-refresh
+- **HITL Dashboard** (`hitl_dashboard.html`) — Pending approvals list, approve/reject
+  with enhanced rejection form (mandatory ≥10-char reason, desired outcome, example
+  upload, follow-up question generation)
+- **Demo Config Panel** (`demo_config.html`) — Scenario browser, keyword cloud,
+  query inspector with MFGC pipeline trace visualization
+- 68 new tests: `tests/test_module_instance_manager.py` (49 unit tests),
+  `tests/test_module_instance_api.py` (19 integration tests)
+
 ## [Unreleased] — Session Persistence + Auth Hardening
 
 ### Fixed

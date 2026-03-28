@@ -223,14 +223,8 @@ def register_module_instance_routes(app: FastAPI) -> None:
                 cpu_cores=req.cpu_cores,
                 memory_mb=req.memory_mb,
             )
-            current_count = len(
-                _manager.list_instances(module_type=req.module_type)
-            )
-            # Intentional access: the API layer is the public facade for
-            # the manager and its viability checker.
-            result = _manager._viability_checker.check_viability(
+            result = _manager.check_viability(
                 module_type=req.module_type,
-                current_instances=current_count,
                 resource_profile=resource_profile,
                 parent_depth=req.parent_depth,
             )
