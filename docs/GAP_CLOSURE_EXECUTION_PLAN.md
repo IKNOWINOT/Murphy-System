@@ -68,6 +68,8 @@ incomplete exploration. These are corrected here:
 | P2-007 | No duplicate code detection | ⬜ TODO (future PR) |
 | P2-008 | Test job was non-blocking (continue-on-error: true) | ✅ CLOSED — tests now block merges |
 | P2-009 | Error system import not in smoke tests | ✅ CLOSED — src.errors in smoke-imports |
+| P2-010 | Rate governor not in smoke tests | ✅ CLOSED — src.swarm_rate_governor + src.forge_rate_limiter in smoke-imports |
+| P2-011 | Rate governor import validated in security job | ✅ CLOSED — separate CI step validates SwarmRateGovernor import |
 
 ### PR 3 GAPS — Error Handling System
 
@@ -89,8 +91,8 @@ incomplete exploration. These are corrected here:
 | ID | Gap | Status |
 |----|-----|--------|
 | P4-001 | Gunicorn/Uvicorn production config | ✅ CLOSED — gunicorn.conf.py created |
-| P4-002 | Global rate limiting (not just demo) | ⬜ TODO (future PR) |
-| P4-003 | Graceful shutdown handler for background tasks | ⬜ TODO (future PR) |
+| P4-002 | Global rate limiting (not just demo) | ✅ CLOSED — src/swarm_rate_governor.py (swarm-native, 4 traffic classes) |
+| P4-003 | Graceful shutdown handler for background tasks | ✅ CLOSED — @app.on_event("shutdown") cancels 5 background tasks |
 | P4-004 | Signal handling in Docker (STOPSIGNAL SIGTERM) | ⬜ TODO (future PR) |
 | P4-005 | Base image SHA pinning | ⬜ TODO (future PR) |
 | P4-006 | Secrets management documentation | ⬜ TODO (future PR) |
