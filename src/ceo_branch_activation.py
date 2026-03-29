@@ -962,6 +962,12 @@ class SystemWorkflow:
         Closes the feedback loop: after every tick, each VP role's report
         is persisted to its Rosetta state document so the agent knows
         what happened on the previous cycle.
+
+        Updates:
+          - system_state.status  (active / degraded)
+          - system_state.active_tasks
+          - automation_progress[] (appends tick summary)
+          - metadata.extras (stores last_tick, last_confidence, last_report)
         """
         if self._rosetta_manager is None or not _ROSETTA_AVAILABLE:
             return
@@ -972,18 +978,30 @@ class SystemWorkflow:
                 continue
             agent_id = role.agent_id
             try:
-                self._rosetta_manager.update_state(agent_id, {
-                    "system_state": {
-                        "status": "active" if rpt.status == RoleStatus.HEALTHY.value else "degraded",
-                        "active_tasks": rpt.metrics.get("rosetta_tasks", 0),
-                        "last_heartbeat": rpt.generated_at,
-                    },
-                    "metadata": {
-                        "last_tick": tick_number,
-                        "last_confidence": confidence,
-                        "last_report": rpt.to_dict(),
-                    },
-                })
+                state = self._rosetta_manager.load_state(agent_id)
+                if state is None:
+                    continue
+                state.system_state.status = (
+                    "active" if rpt.status == RoleStatus.HEALTHY.value else "degraded"
+                )
+                state.system_state.active_tasks = rpt.metrics.get("rosetta_tasks", 0)
+                # Append tick summary to automation_progress
+                from rosetta.rosetta_models import AutomationProgress
+                tick_entry = AutomationProgress(
+                    category=f"tick_{tick_number}",
+                    total_items=1,
+                    completed_items=1,
+                    coverage_percent=confidence * 100.0,
+                )
+                state.automation_progress.append(tick_entry)
+                # Bound the list (CWE-770)
+                if len(state.automation_progress) > 200:
+                    state.automation_progress = state.automation_progress[-200:]
+                # Store operational metadata in the extras dict
+                state.metadata.extras["last_tick"] = tick_number
+                state.metadata.extras["last_confidence"] = confidence
+                state.metadata.extras["last_report"] = rpt.to_dict()
+                self._rosetta_manager.save_state(state)
             except Exception as exc:  # noqa: BLE001
                 logger.debug(
                     "P2: failed to persist report for %s: %s",
