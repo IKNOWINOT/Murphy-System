@@ -27,6 +27,10 @@ terminal = ["textual>=0.40", "pywin32; sys_platform == 'win32'"]
 dev = ["pytest>=7.0", "pytest-cov", "ruff", "mypy"]
 all = ["murphy-system[llm,security,terminal,dev]"]
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src", "src.*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 # Add the project root, src/, and strategic/ to sys.path so all import styles
@@ -37,14 +41,21 @@ filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::pytest.PytestCollectionWarning",
 ]
-# --cov targets are intentionally narrow: core runtime paths that have
-# dedicated tests. Widen coverage targets as additional modules reach threshold.
-addopts = "--cov=src/runtime --cov=src/rosetta --cov-fail-under=0 --cov-report=term-missing"
+# INC-14 / M-05: Coverage is opt-in via CI workflow (--cov flags), not
+# forced in addopts — pytest-cov may not be installed in all environments
+# (benchmarks, gap-detector, e2e runners).  To run locally with coverage:
+#   pytest --cov=rosetta_subsystem_wiring --cov=startup_feature_summary \
+#          --cov-fail-under=80 --cov-report=term-missing
 markers = [
     "sla: SLA enforcement tests that gate production releases",
     "benchmark: Performance benchmark tests",
-    "storyline: stakeholder-visible story promise tests",
+    "storyline: Storyline conformance tests — validates each chapter maps to working code",
+    "parity: Management Systems parity acceptance tests (phases 2–8)",
+    "hero_flow: End-to-end Describe→Generate→Execute→Refine hero path integration tests",
 ]
+# Default per-test timeout: ~5 s per 1 000 lines of tested source.
+# Tests that target very large modules (app.py = 6 293 lines, compute_plane = 2 877 lines)
+# carry per-file @pytest.mark.timeout() overrides; this default covers the majority.
 
 [tool.mypy]
 python_version = "3.10"

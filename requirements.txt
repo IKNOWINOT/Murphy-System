@@ -1,79 +1,105 @@
-# Root requirements entrypoint — unified install.
-# Use this from the repository root:
-#   pip install -r requirements.txt
+# Murphy System 1.0 - Requirements (pinned for reproducible builds)
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post | License: BSL-1.1
 #
-# Installs both the base requirements and the comprehensive Murphy 1.0
-# requirements so that all features work out of the box.
+# Versions are pinned to the minimum tested release for each dependency.
+# To upgrade, bump both the == version here and run the full test suite.
+# For development with a newer Python environment, use requirements-dev.txt.
 
--r "Murphy System/requirements.txt"
--r "Murphy System/requirements_murphy_1.0.txt"
+# LLM and ML
+transformers>=4.48.0,<5.0.0
+torch>=2.6.0,<3.0.0
+sentencepiece>=0.2.1,<1.0.0
 
-# Extras commonly needed at runtime but not listed elsewhere
-watchdog>=3.0.0
-matplotlib>=3.7.0
+# Data structures and utilities
+numpy>=1.24.0,<3.0.0
+networkx>=3.1,<4.0
 
-# Statistical benchmarking (supplements pytest-cov already in Murphy System/requirements.txt)
-pytest-benchmark>=4.0.0
+# Cryptography for execution packets
+cryptography>=46.0.5,<48.0.0
 
-# Email delivery — real SMTP + SendGrid (no mock backends)
-aiosmtplib>=3.0.0
-aiosmtpd>=1.4.0
+# Web framework — REST API runtime
+fastapi>=0.109.1,<1.0.0
+uvicorn>=0.23.0,<1.0.0
 
-# HTTP transport interception for SendGrid tests
-respx>=0.21.0
+# Web framework — sub-module API servers
+Flask>=3.0.0,<4.0.0
+flask-cors>=4.0.0,<6.0.0
 
-# Integration SDKs — social, CRM, OAuth
-tweepy>=4.14.0
-slack-sdk>=3.23.0
-python-telegram-bot>=20.7
-hubspot-api-client>=8.0.0
-simple-salesforce>=1.12.0
-PyGithub>=2.1.0
-requests-oauthlib>=1.3.0
-authlib>=1.2.0
-# ─── Integration SDKs ───────────────────────────────────────────────────────
-# These are used by the world-model connectors in src/integrations/.
-# All connectors implement graceful fallback when the SDK is absent, so these
-# are soft dependencies — the system runs without them but integrations will
-# use the httpx-based connector instead.
+# Data validation and models
+pydantic>=2.0.0,<3.0.0
+pydantic-settings>=2.0.0,<3.0.0
+jsonschema>=4.19.0,<5.0.0
 
-# AI / LLM
-openai>=1.30.0,<2.0.0              # OpenAI GPT models
-anthropic>=0.25.0,<1.0.0           # Anthropic Claude models
-# deepinfra — accessed via OpenAI-compatible API (no SDK; uses openai package with base_url override)
-# together  — accessed via OpenAI-compatible API (no SDK; uses openai package with base_url override)
+# HTTP client
+requests>=2.31.0,<3.0.0
+httpx>=0.27.0,<1.0.0
+aiohttp>=3.9.0,<4.0.0
 
-# Communication
-sendgrid>=6.11.0,<7.0.0            # SendGrid email delivery
-slack-sdk>=3.27.0,<4.0.0          # Slack Web API + RTM
-twilio>=9.0.0,<10.0.0              # SMS / Voice / Verify
+# Coinbase Advanced Trade API (Trader Automation — PR 1)
+coinbase-advanced-py>=1.8.0,<2.0.0
 
-# CRM
-simple-salesforce>=1.12.0,<2.0.0  # Salesforce REST API
-hubspot-api-client>=8.2.0,<9.0.0  # HubSpot CRM v3 API
+# Crypto exchange abstraction
+websocket-client>=1.6.0,<2.0.0
+ccxt>=4.4.0,<5.0.0
+web3>=6.20.0,<8.0.0
 
-# Payments
-stripe>=9.0.0,<10.0.0              # Stripe payment processing
+# Market data feeds — stocks + crypto
+yfinance>=0.2.31,<2.0.0
+alpaca-py>=0.20.0,<1.0.0
+alpha_vantage>=2.3.1,<4.0.0
+polygon-api-client>=1.12.0,<2.0.0
+iexfinance>=0.5.0,<1.0.0
+ta>=0.11.0,<1.0.0
 
-# Productivity / Project Management
-notion-client>=2.2.0,<3.0.0       # Notion API v1
-jira>=3.8.0,<4.0.0                 # Jira Cloud REST API v3
-pyairtable>=2.3.0,<3.0.0           # Airtable REST API
+# Binance exchange feed
+python-binance>=1.0.16,<2.0.0
+# Interactive Brokers — optional, requires IB TWS/Gateway running locally
+# ib_insync>=0.9.70,<1.0.0  # Install manually if needed
 
-# Dev / Source Control
-PyGithub>=2.3.0,<3.0.0             # GitHub REST API v3
+# Matrix bot integration (Synapse / Dendrite)
+matrix-nio[e2e]>=0.24.0,<1.0.0
 
-# Google APIs
-google-api-python-client>=2.100.0,<3.0.0  # Google Calendar, Sheets, Drive
-google-auth>=2.28.0,<3.0.0                # Google auth library
-google-auth-httplib2>=0.2.0               # httplib2 transport for google-auth
+# System monitoring
+psutil>=5.9.0,<7.0.0
 
-# Monitoring / Alerting
-datadog>=0.49.0,<1.0.0             # Datadog metrics and events API
-# pagerduty — uses httpx directly (no PyPI SDK needed for v2 REST)
+# Symbolic computation (compute plane)
+sympy>=1.12,<2.0
 
-# Cloud / Infrastructure
-boto3>=1.34.0,<2.0.0               # AWS SDK (S3, SES, SNS, SQS, Lambda)
+# Terminal UI
+rich>=13.0.0,<15.0.0
+textual>=1.0.0,<2.0.0
+pyfiglet>=1.0.0,<2.0.0
+prompt-toolkit>=3.0.0,<4.0.0
 
-# Video / Meetings
-# zoom — uses httpx directly (Server-to-Server OAuth, no SDK required)
+# Configuration
+pyyaml>=6.0,<7.0
+python-dotenv>=1.0.0,<2.0.0
+
+# Database
+sqlalchemy>=2.0.0,<3.0.0
+alembic>=1.12.0,<2.0.0
+
+# Cache
+redis>=5.0.0,<6.0.0
+
+# Monitoring
+prometheus-client>=0.19.0,<1.0.0
+python-json-logger>=2.0.7,<4.0.0
+
+# Security
+pyjwt>=2.8.0,<3.0.0
+
+# Testing
+pytest>=7.4.0,<9.0.0
+pytest-cov>=4.1.0,<7.0.0
+pytest-asyncio>=0.21.0,<2.0.0
+pytest-timeout>=2.2.0,<3.0.0
+
+# IoT / Industrial Protocols (INC-19)
+pymodbus>=3.6.9,<4.0.0
+# Document Export — Optional rich PDF renderer (BSD-3-Clause)
+# Requires system libraries: cairo, pango, gdk-pixbuf2. Falls back to
+# reportlab plain-text rendering when not installed.
+# Install manually if needed: pip install "weasyprint>=60.0"
+# weasyprint>=60.0

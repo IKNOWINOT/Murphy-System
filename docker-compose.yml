@@ -45,9 +45,17 @@ services:
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
-      timeout: 10s
+      timeout: 5s
       start_period: 15s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
 
   # ── PostgreSQL ─────────────────────────────────────────────────────────
   postgres:
@@ -127,75 +135,6 @@ services:
     depends_on:
       - prometheus
 
-  # ── Mail Server (docker-mailserver) ──────────────────────────────────
-  murphy-mailserver:
-    image: ghcr.io/docker-mailserver/docker-mailserver:14
-    container_name: murphy-mailserver
-    hostname: ${MURPHY_MAIL_HOSTNAME:-mail.murphy.systems}
-    domainname: ${MURPHY_MAIL_DOMAIN:-murphy.systems}
-    restart: unless-stopped
-    ports:
-      - "25:25"     # SMTP
-      - "143:143"   # IMAP
-      - "465:465"   # SMTPS
-      - "587:587"   # Submission
-      - "993:993"   # IMAPS
-    environment:
-      OVERRIDE_HOSTNAME: ${MURPHY_MAIL_HOSTNAME:-mail.murphy.systems}
-      DOMAINNAME: ${MURPHY_MAIL_DOMAIN:-murphy.systems}
-      ENABLE_SPAMASSASSIN: "1"
-      SPAMASSASSIN_SPAM_TO_JUNK: "1"
-      ENABLE_CLAMAV: "1"
-      ENABLE_FAIL2BAN: "1"
-      ENABLE_POSTGREY: "0"
-      ENABLE_SASLAUTHD: "0"
-      ONE_DIR: "1"
-      DMS_DEBUG: "0"
-      SSL_TYPE: "self-signed"
-      PERMIT_DOCKER: "host"
-      POSTMASTER_ADDRESS: postmaster@${MURPHY_MAIL_DOMAIN:-murphy.systems}
-      POSTFIX_INET_PROTOCOLS: "ipv4"
-      ENABLE_IMAP: "1"
-      ENABLE_POP3: "0"
-      DOVECOT_INET_PROTOCOLS: "ipv4"
-      DOVECOT_MAILBOX_FORMAT: "maildir"
-      QUOTA_STORAGE_SIZE: "5G"
-      ENABLE_MANAGESIEVE: "1"
-    volumes:
-      - mailserver-data:/var/mail
-      - mailserver-state:/var/mail-state
-      - mailserver-logs:/var/log/mail
-      - ./config/mail:/tmp/docker-mailserver:ro
-    cap_add:
-      - NET_ADMIN
-    healthcheck:
-      test: ["CMD", "ss", "-lntp", "|", "grep", ":25"]
-      interval: 60s
-      timeout: 10s
-      start_period: 120s
-      retries: 3
-
-  # ── Roundcube Webmail ─────────────────────────────────────────────────
-  murphy-webmail:
-    image: roundcube/roundcubemail:1.6.13-apache
-    container_name: murphy-webmail
-    restart: unless-stopped
-    ports:
-      - "${MURPHY_WEBMAIL_PORT:-8443}:80"
-    environment:
-      ROUNDCUBEMAIL_DEFAULT_HOST: murphy-mailserver
-      ROUNDCUBEMAIL_DEFAULT_PORT: "143"
-      ROUNDCUBEMAIL_SMTP_SERVER: murphy-mailserver
-      ROUNDCUBEMAIL_SMTP_PORT: "587"
-      ROUNDCUBEMAIL_SKIN: elastic
-      ROUNDCUBEMAIL_DB_TYPE: sqlite
-      ROUNDCUBEMAIL_UPLOAD_MAX_FILESIZE: "50M"
-    volumes:
-      - roundcube-data:/var/roundcube/db
-      - ./config/roundcube/config.inc.php:/var/roundcube/config/config.inc.php:ro
-    depends_on:
-      - murphy-mailserver
-
 volumes:
   murphy-data:
   murphy-logs:
@@ -203,7 +142,3 @@ volumes:
   redis-data:
   prometheus-data:
   grafana-data:
-  mailserver-data:
-  mailserver-state:
-  mailserver-logs:
-  roundcube-data:
