@@ -658,6 +658,14 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(SecurityHeadersMiddleware)
 
+# -- Murphy Error Handling System ----------------------------------------------
+try:
+    from src.errors.handlers import register_error_handlers
+    register_error_handlers(app)
+    log.info("Murphy error handlers registered (/api/errors/*)")
+except Exception as _err_e:
+    log.warning("Murphy error handlers not available (%s)", _err_e)
+
 # -- Module Instance Manager routes --------------------------------------------
 if _mim_available and _register_mim_routes is not None:
     _register_mim_routes(app)
@@ -1252,7 +1260,7 @@ async def get_calendar(board_id:str=Query(default=""), tenant_id:str=Query(defau
     blocks = []
     for auto in autos:
         try: orig = datetime.fromisoformat(auto["start_time"].replace("Z","")).replace(tzinfo=_UTC)
-        except: orig = datetime.now(_UTC)
+        except (ValueError, TypeError, KeyError): orig = datetime.now(_UTC)
         rec = auto.get("recurrence","daily"); delta = _REC.get(rec,timedelta(days=1))
         dur = auto.get("effective_duration_minutes", auto.get("estimated_minutes", 10))
         total_delay = auto.get("total_delay_minutes", 0)
@@ -2471,7 +2479,7 @@ if (_MURPHY_DIR / "static").exists():
 
 def _read_html(path: Path) -> str:
     try: return path.read_text(encoding="utf-8")
-    except: return f"<h1>File not found: {path}</h1>"
+    except (OSError, UnicodeDecodeError): return f"<h1>File not found: {path}</h1>"
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_dashboard():
