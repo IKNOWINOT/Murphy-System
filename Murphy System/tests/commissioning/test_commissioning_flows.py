@@ -28,7 +28,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.ui.commissioning.mcb_harness import (
+from tests.commissioning.mcb_harness import (
     GAPS,
     GAP_FILE,
     REPO_ROOT,
