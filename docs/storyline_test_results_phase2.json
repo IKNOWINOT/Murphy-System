@@ -1,0 +1,35 @@
+[
+  {
+    "chapter": "Chapter 25",
+    "scenario": "Supervisor interface operable",
+    "expected": true,
+    "actual": true,
+    "passed": true,
+    "cause": "SupervisorInterface exposes feedback API for HITL corrections",
+    "effect": "Humans can submit corrections that propagate through the system",
+    "lesson": "The supervisor is the formal HITL checkpoint. All human corrections enter through this interface \u2014 ensuring audit trail and routing.",
+    "timestamp": "2026-03-29T06:51:11.943346+00:00"
+  },
+  {
+    "chapter": "Chapter 25",
+    "scenario": "AssumptionRegistry instantiable",
+    "expected": true,
+    "actual": true,
+    "passed": true,
+    "cause": "AssumptionRegistry() tracks assumptions with source and confidence",
+    "effect": "When assumptions are invalidated, dependent decisions are flagged",
+    "lesson": "Assumption tracking is the bridge between confidence engine and correction loops. Invalid assumptions decay confidence transitively.",
+    "timestamp": "2026-03-29T06:51:11.944773+00:00"
+  },
+  {
+    "chapter": "Chapter 25",
+    "scenario": "AntiRecursionSystem instantiable",
+    "expected": true,
+    "actual": true,
+    "passed": true,
+    "cause": "AntiRecursionSystem() prevents circular correction cascades",
+    "effect": "Correction A\u2192invalidate B\u2192invalidate C\u2192revalidate A is detected and stopped",
+    "lesson": "Without anti-recursion, the supervisor system could oscillate. The CircularDependencyDetector maps the assumption dependency graph.",
+    "timestamp": "2026-03-29T06:51:11.945785+00:00"
+  }
+]
