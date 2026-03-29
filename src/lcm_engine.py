@@ -255,7 +255,7 @@ class CausalGateProfiler:
             try:
                 self._inference_engine = InferenceDomainGateEngine()
             except Exception:  # noqa: BLE001
-                pass
+                logger.debug("InferenceDomainGateEngine init failed", exc_info=True)
         return self._inference_engine
 
     def _get_causality_engine(self) -> Optional[Any]:
@@ -265,7 +265,7 @@ class CausalGateProfiler:
             try:
                 self._causality_engine = CausalitySandboxEngine()
             except Exception:  # noqa: BLE001
-                pass
+                logger.debug("CausalitySandboxEngine init failed", exc_info=True)
         return self._causality_engine
 
     def profile_entity(
@@ -316,7 +316,7 @@ class CausalGateProfiler:
                     else:
                         base_confidence = 0.85
             except Exception:  # noqa: BLE001
-                pass
+                logger.debug("Inference engine domain gating failed for %s", domain_id, exc_info=True)
 
         # --- Fallback: derive gates from domain_id keywords ---
         if not gate_types:

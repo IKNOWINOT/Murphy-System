@@ -63,10 +63,6 @@ def _try_import(module_path: str, attr: str = None):
         return None
 
 
-# ---------------------------------------------------------------------------
-# Core dataclasses
-# ---------------------------------------------------------------------------
-
 
 @dataclass
 class GateConfig:
@@ -1249,7 +1245,7 @@ class GateBehaviorModelEngine:
                 try:
                     industry = engine.infer_industry(description)
                 except Exception:
-                    pass
+                    logger.debug("infer_industry failed for description: %.80s", description, exc_info=True)
 
         feature_vec = [
             float(len(keywords)),

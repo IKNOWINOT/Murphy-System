@@ -411,218 +411,268 @@ async def _automation_tick():
     """Every 8s: advance milestones, add delays when slipping, emit SSE."""
     while True:
         await asyncio.sleep(8)
-        active = [a for a in _automation_store if a.get("status") == "active"]
-        if not active:
-            continue
-        auto = random.choice(active)
-        ms = auto.get("milestones", [])
+        try:
+            await _automation_tick_body()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            log.exception("_automation_tick iteration failed")
 
-        running = next((m for m in ms if m["status"] == "running"), None)
-        if not running:
-            pending = next((m for m in ms if m["status"] == "pending"), None)
-            if pending:
-                pending["status"] = "running"
-                pending["progress"] = 0
-                running = pending
-            else:
-                for m in ms:
-                    m["status"] = "pending"
-                    m["progress"] = 0
-                    m["completed_at"] = None
-                    m["delay_minutes"] = 0.0
-                if ms:
-                    ms[0]["status"] = "running"
 
-        if running:
-            if running.get("is_hitl") and running.get("progress", 0) >= 90:
-                if not running.get("hitl_item_id"):
-                    hitl = _create_hitl_item(
-                        hitl_type="automation_milestone",
-                        title=f"HITL Gate: {running['name']}",
-                        description=f"Automation '{auto['name']}' reached milestone '{running['name']}' — human approval required.",
-                        payload={"automation_id": auto["id"], "milestone_id": running["id"]},
-                        related_id=auto["id"],
-                        priority="high",
-                    )
-                    running["hitl_item_id"] = hitl["id"]
-                    running["status"] = "blocked_hitl"
-                    _broadcast_sse("milestone_blocked_hitl", {
-                        "automation_id": auto["id"],
-                        "milestone": running,
-                        "hitl_id": hitl["id"]
-                    })
-                continue
+async def _automation_tick_body():
+    """Single iteration body for _automation_tick."""
+    active = [a for a in _automation_store if a.get("status") == "active"]
+    if not active:
+        return
+    auto = random.choice(active)
+    ms = auto.get("milestones", [])
 
-            if random.random() < 0.08:
-                delay = round(random.uniform(0.5, 3.0), 2)
-                running["delay_minutes"] = running.get("delay_minutes", 0) + delay
-                auto["total_delay_minutes"] = round(auto.get("total_delay_minutes", 0) + delay, 2)
-                auto["effective_duration_minutes"] = _calc_block_duration(auto)
-                _broadcast_sse("automation_delay", {
+    running = next((m for m in ms if m["status"] == "running"), None)
+    if not running:
+        pending = next((m for m in ms if m["status"] == "pending"), None)
+        if pending:
+            pending["status"] = "running"
+            pending["progress"] = 0
+            running = pending
+        else:
+            for m in ms:
+                m["status"] = "pending"
+                m["progress"] = 0
+                m["completed_at"] = None
+                m["delay_minutes"] = 0.0
+            if ms:
+                ms[0]["status"] = "running"
+
+    if running:
+        if running.get("is_hitl") and running.get("progress", 0) >= 90:
+            if not running.get("hitl_item_id"):
+                hitl = _create_hitl_item(
+                    hitl_type="automation_milestone",
+                    title=f"HITL Gate: {running['name']}",
+                    description=f"Automation '{auto['name']}' reached milestone '{running['name']}' — human approval required.",
+                    payload={"automation_id": auto["id"], "milestone_id": running["id"]},
+                    related_id=auto["id"],
+                    priority="high",
+                )
+                running["hitl_item_id"] = hitl["id"]
+                running["status"] = "blocked_hitl"
+                _broadcast_sse("milestone_blocked_hitl", {
                     "automation_id": auto["id"],
-                    "milestone": running["name"],
-                    "delay_added_minutes": delay,
-                    "total_delay": auto["total_delay_minutes"],
-                    "new_effective_duration": auto["effective_duration_minutes"],
+                    "milestone": running,
+                    "hitl_id": hitl["id"]
                 })
+            return
 
-            advance = random.randint(5, 18)
-            running["progress"] = min(100, running["progress"] + advance)
-            if running["progress"] >= 100:
-                running["status"] = "completed"
-                running["completed_at"] = _now_iso()
+        if random.random() < 0.08:
+            delay = round(random.uniform(0.5, 3.0), 2)
+            running["delay_minutes"] = running.get("delay_minutes", 0) + delay
+            auto["total_delay_minutes"] = round(auto.get("total_delay_minutes", 0) + delay, 2)
+            auto["effective_duration_minutes"] = _calc_block_duration(auto)
+            _broadcast_sse("automation_delay", {
+                "automation_id": auto["id"],
+                "milestone": running["name"],
+                "delay_added_minutes": delay,
+                "total_delay": auto["total_delay_minutes"],
+                "new_effective_duration": auto["effective_duration_minutes"],
+            })
 
-        auto["progress"] = _calc_automation_progress(auto)
-        auto["effective_duration_minutes"] = _calc_block_duration(auto)
+        advance = random.randint(5, 18)
+        running["progress"] = min(100, running["progress"] + advance)
+        if running["progress"] >= 100:
+            running["status"] = "completed"
+            running["completed_at"] = _now_iso()
 
-        actual = round(auto["estimated_minutes"] * random.uniform(0.75, 1.35), 2)
-        auto["actual_minutes"] = actual
-        record = {
-            "execution_id": f"exec-{uuid.uuid4().hex[:8]}",
-            "automation_id": auto["id"], "automation_name": auto["name"],
-            "tenant_id": auto.get("tenant_id","tenant-001"),
-            "status": "completed" if random.random() > 0.05 else "failed",
-            "estimated_minutes": auto["estimated_minutes"], "actual_minutes": actual,
-            "cost_savings": _cost_savings(auto), "started_at": _now_iso(),
-            "progress": auto["progress"],
-            "effective_duration_minutes": auto["effective_duration_minutes"],
-        }
-        _execution_log.append(record)
-        if len(_execution_log) > 500: del _execution_log[:50]
-        _broadcast_sse("automation_executed", record)
-        await _broadcast_ws("automation_tick", {
-            "automation_id": auto["id"],
-            "progress": auto["progress"],
-            "effective_duration": auto["effective_duration_minutes"],
-            "milestones": auto["milestones"],
-        })
+    auto["progress"] = _calc_automation_progress(auto)
+    auto["effective_duration_minutes"] = _calc_block_duration(auto)
+
+    actual = round(auto["estimated_minutes"] * random.uniform(0.75, 1.35), 2)
+    auto["actual_minutes"] = actual
+    record = {
+        "execution_id": f"exec-{uuid.uuid4().hex[:8]}",
+        "automation_id": auto["id"], "automation_name": auto["name"],
+        "tenant_id": auto.get("tenant_id","tenant-001"),
+        "status": "completed" if random.random() > 0.05 else "failed",
+        "estimated_minutes": auto["estimated_minutes"], "actual_minutes": actual,
+        "cost_savings": _cost_savings(auto), "started_at": _now_iso(),
+        "progress": auto["progress"],
+        "effective_duration_minutes": auto["effective_duration_minutes"],
+    }
+    _execution_log.append(record)
+    if len(_execution_log) > 500: del _execution_log[:50]
+    _broadcast_sse("automation_executed", record)
+    await _broadcast_ws("automation_tick", {
+        "automation_id": auto["id"],
+        "progress": auto["progress"],
+        "effective_duration": auto["effective_duration_minutes"],
+        "milestones": auto["milestones"],
+    })
 
 async def _campaign_tick():
     """Every 15s: drift metrics, detect low traction, create HITL paid-ad proposals."""
     while True:
         await asyncio.sleep(15)
-        for tier, camp in _campaigns.items():
-            camp["impressions"] += random.randint(10,200)
-            camp["clicks"] += random.randint(1,15)
-            if random.random() > 0.7: camp["leads"] += random.randint(0,3)
-            if random.random() > 0.9: camp["conversions"] += 1
-            camp["conversion_rate"] = round(camp["conversions"]/max(camp["impressions"],1)*100,3)
-            camp["lead_rate"] = round(camp["leads"]/max(camp["impressions"],1)*100,2)
-            camp["traction"] = "low" if camp["conversion_rate"] < 0.05 else "healthy"
-            if camp["traction"] == "low" and camp["status"] == "active":
-                camp["status"] = "adjusting"
-            elif camp["traction"] == "healthy" and camp["status"] == "adjusting":
-                camp["status"] = "active"
-            camp["last_evaluated"] = _now_iso()
+        try:
+            await _campaign_tick_body()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            log.exception("_campaign_tick iteration failed")
 
-            if (camp["traction"] == "low" and
-                not camp.get("hitl_proposal_id") and
-                random.random() < 0.15):
-                budget = round(camp.get("spend", 500) * 1.5 + 200, 2)
-                paid_prop = {
-                    "id": f"pp-{uuid.uuid4().hex[:6]}",
-                    "type": "paid_ad_proposal", "tier": tier,
-                    "status": "pending_hitl",
-                    "channels": ["LinkedIn Ads", "Google Ads", "Meta Ads"],
-                    "budget": budget,
-                    "rationale": f"Organic conversion rate for {tier} tier is {camp['conversion_rate']:.3f}% — below 0.05% threshold.",
-                    "projected_leads": int(camp["leads"] * 2.3),
-                    "projected_conversions": int(camp["conversions"] * 2.1),
-                    "projected_roi": round(int(camp["conversions"] * 2.1) * 299 / max(budget, 1), 2),
-                    "requires_hitl_approval": True,
-                    "proposed_at": _now_iso(), "hitl_item_id": None,
-                }
-                hitl = _create_hitl_item(
-                    hitl_type="campaign_paid_ad",
-                    title=f"Approve Paid Ad Campaign: {tier.title()} Tier",
-                    description=f"Conversion rate dropped to {camp['conversion_rate']:.3f}%. Proposed ${budget:,.0f} paid campaign.",
-                    payload=paid_prop,
-                    related_id=f"campaign-{tier}",
-                    priority="high",
-                )
-                paid_prop["hitl_item_id"] = hitl["id"]
-                camp["hitl_proposal_id"] = hitl["id"]
-                camp["paid_proposals"].append(paid_prop)
-                _marketing_proposals.append(paid_prop)
-                _broadcast_sse("campaign_paid_proposal_created", {
-                    "tier": tier, "proposal": paid_prop, "hitl_id": hitl["id"]
-                })
 
-        _broadcast_sse("campaigns_updated", {"campaigns": list(_campaigns.values())})
+async def _campaign_tick_body():
+    """Single iteration body for _campaign_tick."""
+    for tier, camp in _campaigns.items():
+        camp["impressions"] += random.randint(10,200)
+        camp["clicks"] += random.randint(1,15)
+        if random.random() > 0.7: camp["leads"] += random.randint(0,3)
+        if random.random() > 0.9: camp["conversions"] += 1
+        camp["conversion_rate"] = round(camp["conversions"]/max(camp["impressions"],1)*100,3)
+        camp["lead_rate"] = round(camp["leads"]/max(camp["impressions"],1)*100,2)
+        camp["traction"] = "low" if camp["conversion_rate"] < 0.05 else "healthy"
+        if camp["traction"] == "low" and camp["status"] == "active":
+            camp["status"] = "adjusting"
+        elif camp["traction"] == "healthy" and camp["status"] == "adjusting":
+            camp["status"] = "active"
+        camp["last_evaluated"] = _now_iso()
+
+        if (camp["traction"] == "low" and
+            not camp.get("hitl_proposal_id") and
+            random.random() < 0.15):
+            budget = round(camp.get("spend", 500) * 1.5 + 200, 2)
+            paid_prop = {
+                "id": f"pp-{uuid.uuid4().hex[:6]}",
+                "type": "paid_ad_proposal", "tier": tier,
+                "status": "pending_hitl",
+                "channels": ["LinkedIn Ads", "Google Ads", "Meta Ads"],
+                "budget": budget,
+                "rationale": f"Organic conversion rate for {tier} tier is {camp['conversion_rate']:.3f}% — below 0.05% threshold.",
+                "projected_leads": int(camp["leads"] * 2.3),
+                "projected_conversions": int(camp["conversions"] * 2.1),
+                "projected_roi": round(int(camp["conversions"] * 2.1) * 299 / max(budget, 1), 2),
+                "requires_hitl_approval": True,
+                "proposed_at": _now_iso(), "hitl_item_id": None,
+            }
+            hitl = _create_hitl_item(
+                hitl_type="campaign_paid_ad",
+                title=f"Approve Paid Ad Campaign: {tier.title()} Tier",
+                description=f"Conversion rate dropped to {camp['conversion_rate']:.3f}%. Proposed ${budget:,.0f} paid campaign.",
+                payload=paid_prop,
+                related_id=f"campaign-{tier}",
+                priority="high",
+            )
+            paid_prop["hitl_item_id"] = hitl["id"]
+            camp["hitl_proposal_id"] = hitl["id"]
+            camp["paid_proposals"].append(paid_prop)
+            _marketing_proposals.append(paid_prop)
+            _broadcast_sse("campaign_paid_proposal_created", {
+                "tier": tier, "proposal": paid_prop, "hitl_id": hitl["id"]
+            })
+
+    _broadcast_sse("campaigns_updated", {"campaigns": list(_campaigns.values())})
 
 async def _setup_tick():
     """Every 20s: advance self-setup steps, create HITL gates at checkpoints."""
     while True:
         await asyncio.sleep(20)
-        for step in _SELF_SETUP_STEPS:
-            if step["status"] == "active":
-                if step["requires_hitl"] and step["progress"] >= 95:
-                    if not step.get("hitl_item_id"):
-                        hitl = _create_hitl_item(
-                            hitl_type="setup_step",
-                            title=f"Setup Gate: {step['name']}",
-                            description=step.get("hitl_label", f"Human approval required for: {step['name']}"),
-                            payload={"step_id": step["id"], "step_name": step["name"]},
-                            related_id=step["id"],
-                            priority="high",
-                        )
-                        step["hitl_item_id"] = hitl["id"]
-                        step["status"] = "blocked_hitl"
-                        _broadcast_sse("setup_step_blocked", {"step_id": step["id"], "hitl_id": hitl["id"]})
-                    break
-                elif step["progress"] < (95 if step["requires_hitl"] else 100):
-                    step["progress"] = min(
-                        95 if step["requires_hitl"] else 100,
-                        step["progress"] + random.randint(2, 8)
+        try:
+            await _setup_tick_body()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            log.exception("_setup_tick iteration failed")
+
+
+async def _setup_tick_body():
+    """Single iteration body for _setup_tick."""
+    for step in _SELF_SETUP_STEPS:
+        if step["status"] == "active":
+            if step["requires_hitl"] and step["progress"] >= 95:
+                if not step.get("hitl_item_id"):
+                    hitl = _create_hitl_item(
+                        hitl_type="setup_step",
+                        title=f"Setup Gate: {step['name']}",
+                        description=step.get("hitl_label", f"Human approval required for: {step['name']}"),
+                        payload={"step_id": step["id"], "step_name": step["name"]},
+                        related_id=step["id"],
+                        priority="high",
                     )
-                    if step["progress"] >= 100:
-                        step["status"] = "completed"
-                        step["completed_at"] = _now_iso()
-                        for s2 in _SELF_SETUP_STEPS:
-                            if s2["status"] == "pending":
-                                s2["status"] = "active"
-                                break
-                    break
-        _broadcast_sse("setup_progress", {"steps": _SELF_SETUP_STEPS})
+                    step["hitl_item_id"] = hitl["id"]
+                    step["status"] = "blocked_hitl"
+                    _broadcast_sse("setup_step_blocked", {"step_id": step["id"], "hitl_id": hitl["id"]})
+                break
+            elif step["progress"] < (95 if step["requires_hitl"] else 100):
+                step["progress"] = min(
+                    95 if step["requires_hitl"] else 100,
+                    step["progress"] + random.randint(2, 8)
+                )
+                if step["progress"] >= 100:
+                    step["status"] = "completed"
+                    step["completed_at"] = _now_iso()
+                    for s2 in _SELF_SETUP_STEPS:
+                        if s2["status"] == "pending":
+                            s2["status"] = "active"
+                            break
+                break
+    _broadcast_sse("setup_progress", {"steps": _SELF_SETUP_STEPS})
 
 async def _hitl_auto_expire_tick():
     """Every 60s: expire HITL items past their auto_approve_after_seconds."""
     while True:
         await asyncio.sleep(60)
-        now_ts = _now_dt().timestamp()
-        for item in _HITL_QUEUE:
-            if item["status"] == "pending":
-                aat = item.get("auto_approve_after_seconds", 0)
-                if aat > 0 and (now_ts - item["_created_ts"]) > aat:
-                    item["status"] = "expired"
-                    item["approved_at"] = _now_iso()
-                    _broadcast_sse("hitl_expired", {"id": item["id"]})
+        try:
+            await _hitl_auto_expire_tick_body()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            log.exception("_hitl_auto_expire_tick iteration failed")
+
+
+async def _hitl_auto_expire_tick_body():
+    """Single iteration body for _hitl_auto_expire_tick."""
+    now_ts = _now_dt().timestamp()
+    for item in _HITL_QUEUE:
+        if item["status"] == "pending":
+            aat = item.get("auto_approve_after_seconds", 0)
+            if aat > 0 and (now_ts - item["_created_ts"]) > aat:
+                item["status"] = "expired"
+                item["approved_at"] = _now_iso()
+                _broadcast_sse("hitl_expired", {"id": item["id"]})
 
 async def _proposal_intake_tick():
     """Every 45s: auto-generate proposals for new incoming requests."""
     while True:
         await asyncio.sleep(45)
-        for req in _incoming_requests:
-            if req["status"] == "pending":
-                proposal = _generate_proposal_content(req)
-                _generated_proposals.append(proposal)
-                req["status"] = "in_progress"
-                hitl = _create_hitl_item(
-                    hitl_type="proposal_approval",
-                    title=f"Review AI Proposal: {req['subject'][:60]}",
-                    description=f"AI generated proposal for {req['from']}. Value: ${req.get('estimated_value',0):,}.",
-                    payload={"proposal_id": proposal["id"], "request_id": req["id"]},
-                    related_id=proposal["id"],
-                    priority="high" if req.get("priority") == "high" else "normal",
-                )
-                proposal["hitl_item_id"] = hitl["id"]
-                proposal["status"] = "pending_review"
-                _broadcast_sse("proposal_auto_generated", {
-                    "proposal_id": proposal["id"],
-                    "request_id": req["id"],
-                    "hitl_id": hitl["id"],
-                })
-                break
+        try:
+            await _proposal_intake_tick_body()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            log.exception("_proposal_intake_tick iteration failed")
+
+
+async def _proposal_intake_tick_body():
+    """Single iteration body for _proposal_intake_tick."""
+    for req in _incoming_requests:
+        if req["status"] == "pending":
+            proposal = _generate_proposal_content(req)
+            _generated_proposals.append(proposal)
+            req["status"] = "in_progress"
+            hitl = _create_hitl_item(
+                hitl_type="proposal_approval",
+                title=f"Review AI Proposal: {req['subject'][:60]}",
+                description=f"AI generated proposal for {req['from']}. Value: ${req.get('estimated_value',0):,}.",
+                payload={"proposal_id": proposal["id"], "request_id": req["id"]},
+                related_id=proposal["id"],
+                priority="high" if req.get("priority") == "high" else "normal",
+            )
+            proposal["hitl_item_id"] = hitl["id"]
+            proposal["status"] = "pending_review"
+            _broadcast_sse("proposal_auto_generated", {
+                "proposal_id": proposal["id"],
+                "request_id": req["id"],
+                "hitl_id": hitl["id"],
+            })
+            break
 
 # -- FastAPI app ---------------------------------------------------------------
 app = FastAPI(
@@ -793,6 +843,15 @@ class MilestoneDelayRequest(BaseModel):
     delay_minutes: float = Field(..., gt=0)
     reason: str = Field(default="Manual delay")
 
+def _bg_task_done_callback(task: asyncio.Task) -> None:
+    """Log unhandled exceptions from background tasks (safety net)."""
+    if task.cancelled():
+        return
+    exc = task.exception()
+    if exc is not None:
+        log.error("Background task %s crashed: %s", task.get_name(), exc, exc_info=exc)
+
+
 # -- Startup -------------------------------------------------------------------
 _background_tasks: list = []          # Track tasks for graceful shutdown
 
@@ -801,11 +860,16 @@ async def _startup():
     _seed_automations()
     _automation_store.extend(_DEMO_AUTOMATIONS)
     _seed_campaigns()
-    _background_tasks.append(asyncio.create_task(_automation_tick()))
-    _background_tasks.append(asyncio.create_task(_campaign_tick()))
-    _background_tasks.append(asyncio.create_task(_setup_tick()))
-    _background_tasks.append(asyncio.create_task(_hitl_auto_expire_tick()))
-    _background_tasks.append(asyncio.create_task(_proposal_intake_tick()))
+    for coro in (
+        _automation_tick(),
+        _campaign_tick(),
+        _setup_tick(),
+        _hitl_auto_expire_tick(),
+        _proposal_intake_tick(),
+    ):
+        task = asyncio.create_task(coro)
+        task.add_done_callback(_bg_task_done_callback)
+        _background_tasks.append(task)
     log.info("Murphy Production Server v3 started — HITL gates active, milestone tracking enabled")
 
 
@@ -3519,7 +3583,7 @@ async def matrix_health_check():
             host = parsed.hostname or "localhost"
             port = parsed.port or (443 if parsed.scheme == "https" else 8008)
         except Exception:
-            pass
+            log.warning("Failed to parse MATRIX_HOMESERVER_URL: %s", homeserver)
     
     # Check port connectivity
     def check_port(h: str, p: int) -> bool:
