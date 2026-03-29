@@ -1038,7 +1038,7 @@ class CustomerInfraOrchestrator:
                 )
                 return True
             except Exception:
-                pass
+                logger.debug("Health check attempt %d failed for %s", attempt, url, exc_info=True)
             if attempt < self._health_check_max_attempts:
                 time.sleep(self._health_check_interval)
 

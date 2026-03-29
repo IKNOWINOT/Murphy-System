@@ -1017,8 +1017,11 @@ class KeyHarvester:
         for i in range(0, len(recipes), batch_size):
             batch = recipes[i : i + batch_size]
             tasks = [self._acquire_single(recipe) for recipe in batch]
-            batch_results = await asyncio.gather(*tasks, return_exceptions=False)
+            batch_results = await asyncio.gather(*tasks, return_exceptions=True)
             for result in batch_results:
+                if isinstance(result, BaseException):
+                    logger.error("Credential acquisition failed for batch item: %s", result)
+                    continue
                 with self._lock:
                     capped_append(self._results, result)
                 all_results.append(result)
