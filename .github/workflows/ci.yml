@@ -139,13 +139,11 @@ jobs:
               print("  document why they should not be in root src/:")
               for f in sorted(only_in_mirror):
                   print(f"  {f}")
-              # Non-blocking: exits 0 so CI does not fail on legacy debt.
-              # Change to sys.exit(1) once the mirror is fully reconciled.
-              sys.exit(0)
+              sys.exit(1)
           else:
               print("OK: No new divergence detected between src/ trees.")
           EOF
-        continue-on-error: true
+        continue-on-error: false
 
   test:
     runs-on: ubuntu-latest

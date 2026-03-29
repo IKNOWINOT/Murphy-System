@@ -62,6 +62,44 @@ except ImportError:
             del target_list[: max_size // 10]
         target_list.append(item)
 
+# ---------------------------------------------------------------------------
+# Rosetta integration (soft imports — degrades gracefully when unavailable)
+# ---------------------------------------------------------------------------
+try:
+    from rosetta.rosetta_manager import RosettaManager as _RosettaManager
+    from rosetta.rosetta_models import (
+        AgentState as _AgentState,
+        Identity as _Identity,
+        RosettaAgentState as _RosettaAgentState,
+        SystemState as _SystemState,
+    )
+    _ROSETTA_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    _ROSETTA_AVAILABLE = False
+    _RosettaManager = None  # type: ignore[assignment,misc]
+    _RosettaAgentState = None  # type: ignore[assignment,misc]
+    _Identity = None  # type: ignore[assignment,misc]
+    _SystemState = None  # type: ignore[assignment,misc]
+    _AgentState = None  # type: ignore[assignment,misc]
+
+try:
+    from rosetta_platform_state import RosettaPlatformManager as _PlatformManager
+    _PLATFORM_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    _PLATFORM_AVAILABLE = False
+    _PlatformManager = None  # type: ignore[assignment,misc]
+
+try:
+    from rosetta_stone_heartbeat import (
+        OrganizationTier as _OrganizationTier,
+        RosettaStoneHeartbeat as _Heartbeat,
+    )
+    _HEARTBEAT_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    _HEARTBEAT_AVAILABLE = False
+    _OrganizationTier = None  # type: ignore[assignment,misc]
+    _Heartbeat = None  # type: ignore[assignment,misc]
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -211,6 +249,9 @@ class VPRole:
         subsystems: List[str],
         responsibilities: List[str],
         status_probe: Optional[Callable[[], Dict[str, Any]]] = None,
+        *,
+        rosetta_manager: Optional[Any] = None,
+        agent_id: Optional[str] = None,
     ) -> None:
         """Initialise a VP role.
 
@@ -220,6 +261,10 @@ class VPRole:
             responsibilities: Short description list of accountabilities.
             status_probe: Optional ``() -> dict`` that returns live status
                 from the role's subsystems.  Falls back to ``{}`` if *None*.
+            rosetta_manager: Optional :class:`RosettaManager` so the role
+                can read its own Rosetta state (P1 — Gap 1 closure).
+            agent_id: Rosetta agent ID for this role (derived from
+                role_label if not provided).
         """
         label = str(role_label or "")[:_MAX_ROLE_LABEL_LEN].replace("\x00", "")
         if not label:
@@ -238,6 +283,11 @@ class VPRole:
         )
         self._report_log: List[Dict[str, Any]] = []
         self._directive_log: List[Dict[str, Any]] = []
+        # P1 — Rosetta integration: each VP role can read its own state
+        self._rosetta_manager = rosetta_manager
+        self._agent_id: str = agent_id or re.sub(
+            r"[^a-zA-Z0-9_-]", "_", label.lower()
+        )[:200]
 
     # ------------------------------------------------------------------
     # Public interface
@@ -248,9 +298,32 @@ class VPRole:
         return self._role_label
 
     @property
+    def agent_id(self) -> str:
+        """Rosetta agent ID for this role."""
+        return self._agent_id
+
+    @property
     def subsystems(self) -> List[str]:
         with self._lock:
             return list(self._subsystems)
+
+    @property
+    def rosetta_state(self) -> Optional[Dict[str, Any]]:
+        """Return this role's Rosetta state document, or *None*.
+
+        Provides the VP agent with full context of what it has been doing
+        (task history, goal progress, automation status) and what is
+        happening system-wide (via the state feed).
+        """
+        if self._rosetta_manager is None:
+            return None
+        try:
+            state = self._rosetta_manager.load_state(self._agent_id)
+            if state is None:
+                return None
+            return state.model_dump(mode="json") if hasattr(state, "model_dump") else None
+        except Exception:  # noqa: BLE001
+            return None
 
     def status_check(self) -> RoleStatus:
         """Query subsystem health and return a :class:`RoleStatus`.
@@ -277,7 +350,9 @@ class VPRole:
         """Produce a CEO-dashboard report for this role.
 
         Includes the status, subsystem list, and any alerts discovered
-        by *status_check*.
+        by *status_check*.  When a Rosetta manager is available, the
+        report is enriched with historical context (goals, tasks,
+        automation progress) from the agent's own state document.
         """
         status = self.status_check()
         alerts: List[str] = []
@@ -296,6 +371,14 @@ class VPRole:
                 metrics = {k: v for k, v in probe_data.items() if k != "healthy"}
         except Exception:  # noqa: BLE001
             pass
+
+        # P1 — Enrich with Rosetta state context
+        rosetta_ctx = self.rosetta_state
+        if rosetta_ctx is not None:
+            agent_st = rosetta_ctx.get("agent_state", {})
+            metrics["rosetta_goals"] = len(agent_st.get("active_goals", []))
+            metrics["rosetta_tasks"] = len(agent_st.get("task_queue", []))
+            metrics["rosetta_agent_id"] = self._agent_id
 
         report = RoleReport(
             role_label=self._role_label,
@@ -467,16 +550,21 @@ class OrgChartAutomation:
     def __init__(
         self,
         role_probes: Optional[Dict[str, Callable[[], Dict[str, Any]]]] = None,
+        *,
+        rosetta_manager: Optional[Any] = None,
     ) -> None:
         """Initialise the org chart.
 
         Args:
             role_probes: Optional mapping of ``role_label -> callable`` that
                 returns a health dict ``{"healthy": bool, ...}``.
+            rosetta_manager: Optional :class:`RosettaManager` passed to
+                each VP role so they can read their Rosetta state (P1).
         """
         self._lock = threading.Lock()
         self._roles: Dict[str, VPRole] = {}
         self._audit_log: List[Dict[str, Any]] = []
+        self._rosetta_manager = rosetta_manager
 
         probes = role_probes or {}
         for definition in _ORG_CHART_DEFINITION:
@@ -486,6 +574,7 @@ class OrgChartAutomation:
                 subsystems=definition["subsystems"],
                 responsibilities=definition["responsibilities"],
                 status_probe=probes.get(label),
+                rosetta_manager=rosetta_manager,
             )
             self._roles[label] = role
 
@@ -627,6 +716,8 @@ class SystemWorkflow:
         tick_interval: float = _DEFAULT_TICK_SECONDS,
         confidence_threshold: float = _CONFIDENCE_THRESHOLD,
         alert_hook: Optional[Callable[[List[str]], None]] = None,
+        *,
+        rosetta_manager: Optional[Any] = None,
     ) -> None:
         """Initialise the system workflow.
 
@@ -637,6 +728,8 @@ class SystemWorkflow:
                 automation.  Below this, the loop degrades gracefully.
             alert_hook: Optional ``(alerts: List[str]) -> None`` called
                 when anomalies are detected in a tick.
+            rosetta_manager: Optional :class:`RosettaManager` for persisting
+                role reports back to Rosetta (P2 — Gap 3 closure).
         """
         if tick_interval <= 0:
             raise ValueError("tick_interval must be > 0")
@@ -648,6 +741,7 @@ class SystemWorkflow:
         self._tick_interval = tick_interval
         self._confidence_threshold = confidence_threshold
         self._alert_hook: Optional[Callable[[List[str]], None]] = alert_hook
+        self._rosetta_manager = rosetta_manager
 
         self._phase: WorkflowPhase = WorkflowPhase.IDLE
         self._tick_count: int = 0
@@ -816,6 +910,9 @@ class SystemWorkflow:
                 self._tick_results, result.to_dict(), max_size=_MAX_WORKFLOW_RESULTS
             )
 
+        # P2 — Write role reports back to Rosetta state
+        self._persist_reports_to_rosetta(reports, tick_number, confidence)
+
         logger.info(
             "SystemWorkflow tick #%d: confidence=%.2f phase=%s degraded=%s",
             tick_number,
@@ -853,6 +950,63 @@ class SystemWorkflow:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    def _persist_reports_to_rosetta(
+        self,
+        reports: List[RoleReport],
+        tick_number: int,
+        confidence: float,
+    ) -> None:
+        """P2 — Write role reports back to each agent's Rosetta state.
+
+        Closes the feedback loop: after every tick, each VP role's report
+        is persisted to its Rosetta state document so the agent knows
+        what happened on the previous cycle.
+
+        Updates:
+          - system_state.status  (active / degraded)
+          - system_state.active_tasks
+          - automation_progress[] (appends tick summary)
+          - metadata.extras (stores last_tick, last_confidence, last_report)
+        """
+        if self._rosetta_manager is None or not _ROSETTA_AVAILABLE:
+            return
+        for rpt in reports:
+            # Derive the agent_id from the role via the org chart
+            role = self._org_chart.get_role(rpt.role_label)
+            if role is None:
+                continue
+            agent_id = role.agent_id
+            try:
+                state = self._rosetta_manager.load_state(agent_id)
+                if state is None:
+                    continue
+                state.system_state.status = (
+                    "active" if rpt.status == RoleStatus.HEALTHY.value else "degraded"
+                )
+                state.system_state.active_tasks = rpt.metrics.get("rosetta_tasks", 0)
+                # Append tick summary to automation_progress
+                from rosetta.rosetta_models import AutomationProgress
+                tick_entry = AutomationProgress(
+                    category=f"tick_{tick_number}",
+                    total_items=1,
+                    completed_items=1,
+                    coverage_percent=confidence * 100.0,
+                )
+                state.automation_progress.append(tick_entry)
+                # Bound the list (CWE-770)
+                if len(state.automation_progress) > 200:
+                    state.automation_progress = state.automation_progress[-200:]
+                # Store operational metadata in the extras dict
+                state.metadata.extras["last_tick"] = tick_number
+                state.metadata.extras["last_confidence"] = confidence
+                state.metadata.extras["last_report"] = rpt.to_dict()
+                self._rosetta_manager.save_state(state)
+            except Exception as exc:  # noqa: BLE001
+                logger.debug(
+                    "P2: failed to persist report for %s: %s",
+                    rpt.role_label, str(exc)[:200],
+                )
 
     def _schedule_next(self) -> None:
         with self._lock:
@@ -962,6 +1116,16 @@ class CEOBranch:
     the self-generating operational plan, and hosts the continuous
     :class:`SystemWorkflow` loop.
 
+    Integration points wired in this class:
+      P0 — Persona loading: ``activate()`` seeds every VP role's Rosetta
+           state document so agents have context from tick #1.
+      P1 — VP Rosetta access: ``rosetta_manager`` is passed to each role.
+      P2 — Report write-back: ``SystemWorkflow`` persists reports.
+      P3 — Directive routing: ``issue_directive()`` records through
+           ``RosettaPlatformManager`` for audit trail.
+      P4 — Heartbeat translators: ``activate()`` registers MANAGEMENT-
+           tier translator that cascades pulses to VP roles.
+
     Designed to be embedded inside :class:`ActivatedHeartbeatRunner` as
     an optional extension (see ``ceo_branch`` parameter in the runner).
 
@@ -975,6 +1139,10 @@ class CEOBranch:
         confidence_threshold: float = _CONFIDENCE_THRESHOLD,
         alert_hook: Optional[Callable[[List[str]], None]] = None,
         event_backbone: Any = None,
+        *,
+        rosetta_manager: Optional[Any] = None,
+        platform_manager: Optional[Any] = None,
+        heartbeat: Optional[Any] = None,
     ) -> None:
         """Initialise the CEO branch.
 
@@ -987,6 +1155,12 @@ class CEOBranch:
             event_backbone: Optional :class:`EventBackbone` instance.  When
                 provided, telemetry events are also published to the backbone
                 so they flow through the system-wide event fabric.
+            rosetta_manager: Optional :class:`RosettaManager` — enables P0
+                (persona loading), P1 (VP state access), and P2 (report write-back).
+            platform_manager: Optional :class:`RosettaPlatformManager` —
+                enables P3 (directive audit trail via sync_down).
+            heartbeat: Optional :class:`RosettaStoneHeartbeat` — enables
+                P4 (management-tier translator registration).
         """
         self._lock = threading.Lock()
         self._branch_id: str = uuid.uuid4().hex[:12]
@@ -994,16 +1168,22 @@ class CEOBranch:
         self._activation_time: Optional[str] = None
         self._telemetry: List[Dict[str, Any]] = []
         self._backbone = event_backbone
+        self._rosetta_manager = rosetta_manager
+        self._platform_manager = platform_manager
+        self._heartbeat = heartbeat
 
-        # Build org chart
-        self._org_chart = OrgChartAutomation(role_probes=role_probes)
+        # Build org chart (P1 — pass rosetta_manager to every VP role)
+        self._org_chart = OrgChartAutomation(
+            role_probes=role_probes, rosetta_manager=rosetta_manager,
+        )
 
-        # Build continuous workflow
+        # Build continuous workflow (P2 — pass rosetta_manager for report write-back)
         self._workflow = SystemWorkflow(
             org_chart=self._org_chart,
             tick_interval=tick_interval,
             confidence_threshold=confidence_threshold,
             alert_hook=alert_hook,
+            rosetta_manager=rosetta_manager,
         )
 
         logger.info("CEOBranch %s initialised.", self._branch_id)
@@ -1015,7 +1195,12 @@ class CEOBranch:
     def activate(self) -> Dict[str, Any]:
         """Activate the CEO branch.
 
-        Runs the readiness check; if ready, starts the workflow loop.
+        On first activation:
+          1. Readiness check (query all VP roles).
+          2. **P0** — Seed Rosetta state for every VP role.
+          3. **P4** — Register MANAGEMENT-tier heartbeat translator.
+          4. Start the workflow loop.
+
         Always returns an activation report regardless of readiness.
 
         Returns:
@@ -1034,6 +1219,12 @@ class CEOBranch:
                     "at": now,
                 }
 
+        # P0 — Seed Rosetta state for every VP role
+        personas_loaded = self._seed_rosetta_personas()
+
+        # P4 — Register heartbeat management-tier translator
+        heartbeat_registered = self._register_heartbeat_translator()
+
         # Start the workflow regardless (supports graceful degradation)
         self._workflow.start()
 
@@ -1043,19 +1234,27 @@ class CEOBranch:
 
         self._emit_telemetry(
             "ceo_branch_activated",
-            {"readiness": readiness, "at": now},
+            {
+                "readiness": readiness,
+                "at": now,
+                "personas_loaded": personas_loaded,
+                "heartbeat_registered": heartbeat_registered,
+            },
         )
         logger.info(
-            "CEOBranch %s activated. Ready=%s degraded=%s",
+            "CEOBranch %s activated. Ready=%s degraded=%s personas=%d",
             self._branch_id,
             readiness["ready"],
             readiness["degraded_roles"],
+            personas_loaded,
         )
         return {
             "activated": True,
             "already_active": False,
             "branch_id": self._branch_id,
             "readiness": readiness,
+            "personas_loaded": personas_loaded,
+            "heartbeat_registered": heartbeat_registered,
             "at": now,
         }
 
@@ -1099,8 +1298,36 @@ class CEOBranch:
     def issue_directive(
         self, directive: str, roles: Optional[List[str]] = None
     ) -> List[DirectiveResult]:
-        """Issue a top-down directive to all (or selected) VP roles."""
+        """Issue a top-down directive to all (or selected) VP roles.
+
+        P3 — When a ``platform_manager`` is configured, the directive is
+        recorded in the platform state layer for audit trail and
+        persistence.  Each target agent receives a ``sync_down()`` push
+        so its Rosetta state reflects the new directive.
+        """
         results = self._org_chart.broadcast_directive(directive, roles=roles)
+
+        # P3 — Route through Platform Manager for audit trail
+        if self._platform_manager is not None:
+            try:
+                self._platform_manager.update_platform(
+                    status="active",
+                    metadata={"last_directive": str(directive or "")[:200]},
+                )
+                # Push directive to each targeted agent via sync_down
+                target_roles = self._org_chart.get_all_roles()
+                if roles is not None:
+                    target_roles = {
+                        k: v for k, v in target_roles.items() if k in roles
+                    }
+                for role in target_roles.values():
+                    try:
+                        self._platform_manager.sync_down(role.agent_id)
+                    except Exception:  # noqa: BLE001
+                        pass
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("P3: platform_manager directive recording failed: %s", str(exc)[:200])
+
         self._emit_telemetry(
             "ceo_directive",
             {
@@ -1150,16 +1377,113 @@ class CEOBranch:
         }
         with self._lock:
             capped_append(self._telemetry, entry, max_size=_MAX_TELEMETRY_EVENTS)
+        if self._backbone is not None:
+            try:
+                self._backbone.publish(event, entry)
+            except Exception:
+                logger.debug("CEOBranch: EventBackbone publish failed for event %r", event)
+
+    # ------------------------------------------------------------------
+    # P0 — Seed Rosetta state for every VP role (Gap 2 closure)
+    # ------------------------------------------------------------------
+
+    def _seed_rosetta_personas(self) -> int:
+        """Create a Rosetta state document for each VP role in the org chart.
+
+        Uses the canonical ``_ORG_CHART_DEFINITION`` to build an initial
+        ``RosettaAgentState`` per role.  Each agent gets:
+          - identity: agent_id derived from role label, name = role label,
+            role = first responsibility, org = "murphy-system"
+          - system_state: status="idle" (not yet active)
+          - agent_state: current_phase = "onboarding"
+
+        Returns the count of successfully created personas.
+        """
+        if self._rosetta_manager is None or not _ROSETTA_AVAILABLE:
+            return 0
+
+        loaded = 0
+        all_roles = self._org_chart.get_all_roles()
+        for role in all_roles.values():
+            try:
+                # Skip if state already exists (idempotent)
+                existing = self._rosetta_manager.load_state(role.agent_id)
+                if existing is not None:
+                    loaded += 1
+                    continue
+
+                state = _RosettaAgentState(
+                    identity=_Identity(
+                        agent_id=role.agent_id,
+                        name=role.role_label,
+                        role=role.role_label,
+                        version="1.0.0",
+                        organization="murphy-system",
+                    ),
+                    system_state=_SystemState(status="idle"),
+                    agent_state=_AgentState(current_phase="onboarding"),
+                )
+                self._rosetta_manager.save_state(state)
+                loaded += 1
+                logger.debug("P0: seeded Rosetta state for %s (%s)",
+                             role.role_label, role.agent_id)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "P0: failed to seed Rosetta state for %s: %s",
+                    role.role_label, str(exc)[:200],
+                )
+        return loaded
+
+    # ------------------------------------------------------------------
+    # P4 — Register heartbeat tier translator (Gap 4 closure)
+    # ------------------------------------------------------------------
+
+    def _register_heartbeat_translator(self) -> bool:
+        """Register a MANAGEMENT-tier translator that routes heartbeat
+        pulses to all VP roles as directives.
+
+        The translator converts each pulse's ``directives`` field into
+        ``execute_directive()`` calls on all non-CEO VP roles, enabling
+        cascading organisational communication.
+
+        Returns ``True`` if registration succeeded, ``False`` otherwise.
+        """
+        if self._heartbeat is None or not _HEARTBEAT_AVAILABLE:
+            return False
+
         try:
-            from event_backbone_client import publish as _bb_publish  # noqa: PLC0415
-            _bb_publish(
-                event,
-                entry,
-                source="ceo_branch_activation",
-                backbone=self._backbone,
+            org_chart = self._org_chart
+
+            def _management_translator(pulse_dict):
+                """Convert a heartbeat pulse into VP-level directives."""
+                directives = pulse_dict.get("directives", {})
+                if not directives:
+                    return {"ack": True, "actions": 0}
+
+                directive_text = "; ".join(
+                    f"{k}: {v}" for k, v in directives.items()
+                )[:_MAX_DIRECTIVE_LEN]
+
+                roles = org_chart.get_all_roles()
+                actions = 0
+                for label, role in roles.items():
+                    if label == "CEO":
+                        continue  # CEO is the pulse origin; skip
+                    try:
+                        role.execute_directive(directive_text)
+                        actions += 1
+                    except Exception:
+                        pass
+                return {"ack": True, "actions": actions}
+
+            self._heartbeat.register_translator(
+                _OrganizationTier.MANAGEMENT, _management_translator,
             )
-        except Exception:
-            logger.debug("CEOBranch: EventBackbone publish failed for event %r", event)
+            logger.info("P4: registered MANAGEMENT-tier heartbeat translator")
+            return True
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("P4: heartbeat translator registration failed: %s", str(exc)[:200])
+            return False
 
 
 # ---------------------------------------------------------------------------

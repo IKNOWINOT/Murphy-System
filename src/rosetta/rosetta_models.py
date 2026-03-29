@@ -182,11 +182,19 @@ class WorkflowPattern(BaseModel):
 
 
 class Metadata(BaseModel):
-    """Document metadata."""
+    """Document metadata.
+
+    The ``extras`` dict provides an extension point for downstream
+    consumers (heartbeat runner, platform manager, CEO branch report
+    write-back) to persist operational state that does not fit into
+    the fixed fields.  This avoids silent data loss when Pydantic
+    revalidation drops unknown keys.
+    """
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     version: str = "1.0.0"
     schema_version: str = "1.0"
+    extras: Dict[str, Any] = Field(default_factory=dict)
 
 
 # ==================== Main Model ====================

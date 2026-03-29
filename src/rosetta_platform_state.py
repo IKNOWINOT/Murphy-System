@@ -353,8 +353,12 @@ class RosettaPlatformManager:
                      "confidence": c.confidence, "domain": c.domain}
                     for c in self._platform.calibrations
                 ]
-            if hasattr(state, "metadata") and isinstance(state.metadata, dict):
-                state.metadata["platform_calibrations"] = cals
+            if hasattr(state, "metadata"):
+                # Metadata is a Pydantic model — use the extras dict
+                if hasattr(state.metadata, "extras"):
+                    state.metadata.extras["platform_calibrations"] = cals
+                elif isinstance(state.metadata, dict):
+                    state.metadata["platform_calibrations"] = cals
             self._agent_mgr.save_state(state)
             logger.debug("sync_down: platform calibrations pushed to agent '%s'", agent_id)
             return True
