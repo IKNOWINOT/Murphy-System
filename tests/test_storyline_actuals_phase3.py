@@ -380,7 +380,7 @@ class TestChapter18_Actuals:
                cause="AnalyticsDashboard class instantiable",
                effect="Users can see operational metrics and pipeline status",
                lesson="Results visibility builds trust in autonomous systems.")
-        assert True
+        assert ad is not None, "AnalyticsDashboard must be instantiable"
 
     def test_kpi_tracker_records_metrics(self):
         """Storyline: 'KPI Tracker records and exposes performance metrics'"""
