@@ -302,7 +302,7 @@ class CryptoFeed:
                         provider=FeedProvider.COINBASE.value,
                     ))
                 except Exception:
-                    pass
+                    logger.debug("Coinbase candle parse failed for %s", symbol, exc_info=True)
             return candles
         except Exception as exc:
             logger.debug("CryptoFeed Coinbase candles failed for %s: %s", symbol, exc)
@@ -733,7 +733,7 @@ class EquityFeed:
                         provider=FeedProvider.YAHOO.value,
                     ))
                 except Exception:
-                    pass
+                    logger.debug("yfinance candle parse failed for %s", symbol, exc_info=True)
             return candles
         except Exception as exc:
             logger.debug("EquityFeed yfinance candles failed for %s: %s", symbol, exc)
@@ -762,7 +762,7 @@ class EquityFeed:
                         asset_class=AssetClass.EQUITY.value,
                     ))
                 except Exception:
-                    pass
+                    logger.debug("yfinance mover fetch failed for %s", sym, exc_info=True)
             movers.sort(key=lambda m: abs(m.change_pct), reverse=True)
             return movers[:limit]
         except Exception as exc:
