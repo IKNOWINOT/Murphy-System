@@ -14,7 +14,6 @@ global exception handlers and the ``/api/errors/*`` catalogue endpoints.
 from __future__ import annotations
 
 import logging
-import traceback
 from typing import TYPE_CHECKING
 
 from fastapi import Request
