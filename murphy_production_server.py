@@ -658,6 +658,60 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(SecurityHeadersMiddleware)
 
+# -- Swarm-Native Global Rate Governor -----------------------------------------
+# Label: SWARM-RATE-GOV — classifies traffic into human/swarm/sensor/safety tiers.
+# Swarm-internal and AI-sensor traffic gets higher limits than human API calls.
+# Safety-critical paths (HITL, health, errors) are never rate-limited.
+try:
+    from src.swarm_rate_governor import SwarmRateGovernor
+    _rate_governor = SwarmRateGovernor(
+        human_rpm=int(os.environ.get("MURPHY_RATE_HUMAN_RPM", "60")),
+        human_burst=int(os.environ.get("MURPHY_RATE_HUMAN_BURST", "15")),
+        swarm_rpm=int(os.environ.get("MURPHY_RATE_SWARM_RPM", "600")),
+        swarm_burst=int(os.environ.get("MURPHY_RATE_SWARM_BURST", "100")),
+        sensor_rpm=int(os.environ.get("MURPHY_RATE_SENSOR_RPM", "300")),
+        sensor_burst=int(os.environ.get("MURPHY_RATE_SENSOR_BURST", "50")),
+    )
+
+    @app.middleware("http")
+    async def swarm_rate_limit_middleware(request: Request, call_next):
+        result = _rate_governor.check(request)
+        if not result["allowed"]:
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "success": False,
+                    "error": result.get("error", "MURPHY-E201"),
+                    "message": result.get("message", "Rate limit exceeded"),
+                    "retry_after_seconds": result.get("retry_after_seconds", 60),
+                    "traffic_class": result.get("traffic_class", "unknown"),
+                },
+                headers={"Retry-After": str(int(result.get("retry_after_seconds", 60)))},
+            )
+        response = await call_next(request)
+        # Inject rate-limit headers for observability
+        if "remaining" in result and result["remaining"] != -1:
+            response.headers["X-RateLimit-Remaining"] = str(result["remaining"])
+        if "limit" in result:
+            response.headers["X-RateLimit-Limit"] = str(result["limit"])
+        response.headers["X-Murphy-Traffic-Class"] = result.get("traffic_class", "unknown")
+        return response
+    log.info("Swarm rate governor active (human=%s/min, swarm=%s/min, sensor=%s/min)",
+             os.environ.get("MURPHY_RATE_HUMAN_RPM", "60"),
+             os.environ.get("MURPHY_RATE_SWARM_RPM", "600"),
+             os.environ.get("MURPHY_RATE_SENSOR_RPM", "300"))
+except Exception as _rg_e:
+    _rate_governor = None
+    log.warning("Swarm rate governor not available (%s) — running without global rate limits", _rg_e)
+
+# -- Murphy Error Handling System ----------------------------------------------
+try:
+    from src.errors.handlers import register_error_handlers
+    register_error_handlers(app)
+    log.info("Murphy error handlers registered (/api/errors/*)")
+except Exception as _err_e:
+    log.warning("Murphy error handlers not available (%s)", _err_e)
+
 # -- Module Instance Manager routes --------------------------------------------
 if _mim_available and _register_mim_routes is not None:
     _register_mim_routes(app)
@@ -740,17 +794,39 @@ class MilestoneDelayRequest(BaseModel):
     reason: str = Field(default="Manual delay")
 
 # -- Startup -------------------------------------------------------------------
+_background_tasks: list = []          # Track tasks for graceful shutdown
+
 @app.on_event("startup")
 async def _startup():
     _seed_automations()
     _automation_store.extend(_DEMO_AUTOMATIONS)
     _seed_campaigns()
-    asyncio.create_task(_automation_tick())
-    asyncio.create_task(_campaign_tick())
-    asyncio.create_task(_setup_tick())
-    asyncio.create_task(_hitl_auto_expire_tick())
-    asyncio.create_task(_proposal_intake_tick())
+    _background_tasks.append(asyncio.create_task(_automation_tick()))
+    _background_tasks.append(asyncio.create_task(_campaign_tick()))
+    _background_tasks.append(asyncio.create_task(_setup_tick()))
+    _background_tasks.append(asyncio.create_task(_hitl_auto_expire_tick()))
+    _background_tasks.append(asyncio.create_task(_proposal_intake_tick()))
     log.info("Murphy Production Server v3 started — HITL gates active, milestone tracking enabled")
+
+
+# -- Graceful Shutdown ---------------------------------------------------------
+# Label: GRACEFUL-SHUTDOWN — Clean up background tasks on SIGTERM / server stop.
+# Commissioning: All 5 background tick-loops are cancelled, SSE/WS clients
+# are notified, and the rate governor state is logged for diagnostics.
+@app.on_event("shutdown")
+async def _shutdown():
+    log.info("Murphy Production Server shutting down — cancelling %d background tasks", len(_background_tasks))
+    for task in _background_tasks:
+        if not task.done():
+            task.cancel()
+    # Wait briefly for tasks to acknowledge cancellation
+    if _background_tasks:
+        await asyncio.gather(*_background_tasks, return_exceptions=True)
+    _background_tasks.clear()
+    # Log rate governor final state for diagnostics
+    if _rate_governor is not None:
+        log.info("Rate governor final state: %s", _rate_governor.status())
+    log.info("Murphy Production Server shutdown complete")
 
 # ==============================================================================
 # HEALTH
@@ -767,6 +843,13 @@ async def health():
         "sse_subscribers": len(_sse_subscribers),
         "ws_clients": len(_ws_clients), "ts": _now_iso()
     })
+
+@app.get("/api/rate-governor/status")
+async def rate_governor_status():
+    """Swarm rate governor diagnostics — active buckets, per-class limits, usage."""
+    if _rate_governor is None:
+        return JSONResponse({"enabled": False, "message": "Rate governor not loaded"})
+    return JSONResponse({"enabled": True, **_rate_governor.status()})
 
 # ==============================================================================
 # HITL — Human-in-the-Loop Queue
@@ -1252,7 +1335,7 @@ async def get_calendar(board_id:str=Query(default=""), tenant_id:str=Query(defau
     blocks = []
     for auto in autos:
         try: orig = datetime.fromisoformat(auto["start_time"].replace("Z","")).replace(tzinfo=_UTC)
-        except: orig = datetime.now(_UTC)
+        except (ValueError, TypeError, KeyError): orig = datetime.now(_UTC)
         rec = auto.get("recurrence","daily"); delta = _REC.get(rec,timedelta(days=1))
         dur = auto.get("effective_duration_minutes", auto.get("estimated_minutes", 10))
         total_delay = auto.get("total_delay_minutes", 0)
@@ -2471,7 +2554,7 @@ if (_MURPHY_DIR / "static").exists():
 
 def _read_html(path: Path) -> str:
     try: return path.read_text(encoding="utf-8")
-    except: return f"<h1>File not found: {path}</h1>"
+    except (OSError, UnicodeDecodeError): return f"<h1>File not found: {path}</h1>"
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_dashboard():
