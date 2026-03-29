@@ -14,7 +14,7 @@ read from it, and ``docs/ERROR_CATALOG.md`` is generated from it.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 from .codes import ErrorCode
