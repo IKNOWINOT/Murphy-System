@@ -363,7 +363,11 @@ class MessageRouter:
             self._client.send_message(room_alias=alias, content=content)
             for alias in targets
         ]
-        return list(await asyncio.gather(*tasks, return_exceptions=False))
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for i, result in enumerate(results):
+            if isinstance(result, BaseException):
+                logger.error("broadcast to room %s failed: %s", targets[i], result)
+        return [r for r in results if not isinstance(r, BaseException)]
 
     # -----------------------------------------------------------------------
     # Inbound: Matrix message → command

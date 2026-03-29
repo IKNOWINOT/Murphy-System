@@ -545,4 +545,5 @@ class GraduationController:
                 return 0.0
             return (mean_r / std_r) * math.sqrt(_TRADING_DAYS_PER_YEAR)
         except Exception:
+            logger.debug("Sharpe ratio calculation failed", exc_info=True)
             return 0.0
