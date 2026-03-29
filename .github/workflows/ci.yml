@@ -88,6 +88,10 @@ jobs:
               "src.rosetta.global_aggregator",
               "src.rosetta_subsystem_wiring",
               "src.modular_runtime",
+              "src.errors",
+              "src.errors.codes",
+              "src.errors.registry",
+              "src.error_envelope",
           ]
           for mod in modules:
               try:
@@ -191,7 +195,6 @@ jobs:
             --ignore=tests/benchmarks \
             --continue-on-collection-errors \
             -k "not test_actual_local_llm"
-        continue-on-error: true
 
       - name: Upload coverage
         if: matrix.python-version == '3.12'
@@ -241,15 +244,27 @@ jobs:
       - name: Install security tools
         run: |
           python -m pip install --upgrade pip
-          pip install bandit
+          pip install bandit pip-audit
 
-      - name: Run bandit on core paths (non-blocking)
+      - name: Run bandit on core paths (HIGH severity blocks)
         run: |
           bandit -r src/runtime/ src/rosetta/ \
+            -c bandit.yaml \
+            --severity-level high \
+            -f txt
+
+      - name: Run bandit on extended paths (non-blocking)
+        run: |
+          bandit -r src/ \
             -c bandit.yaml \
             --severity-level medium \
             -f txt \
             || true
+        continue-on-error: true
+
+      - name: Audit dependencies for known vulnerabilities
+        run: |
+          pip-audit --requirement requirements_ci.txt --strict 2>&1 || true
         continue-on-error: true
 
   build:
