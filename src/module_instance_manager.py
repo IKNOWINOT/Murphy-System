@@ -590,6 +590,18 @@ class ModuleInstanceManager:
             logger.info("Registered module type: %s", module_type)
             return True
 
+    def unregister_module_type(self, module_type: str) -> bool:
+        """Unregister a module type.  Existing instances are not affected.
+
+        Returns ``True`` if the type was previously registered.
+        """
+        with self._lock:
+            if module_type not in self._registered_types:
+                return False
+            del self._registered_types[module_type]
+        logger.info("Unregistered module type: %s", module_type)
+        return True
+
     def blacklist_module_type(
         self,
         module_type: str,
@@ -608,6 +620,35 @@ class ModuleInstanceManager:
             logger.info("Blacklisted module type: %s", module_type)
             return True
 
+    def unblacklist_module_type(
+        self,
+        module_type: str,
+        actor: str = "system",
+        correlation_id: Optional[str] = None,
+    ) -> bool:
+        """Remove *module_type* from the viability blacklist.
+
+        Returns ``True`` if the type was previously blacklisted.
+        """
+        correlation_id = correlation_id or uuid.uuid4().hex[:8]
+        with self._lock:
+            if not self._viability_checker.is_blacklisted(module_type):
+                return False
+            self._viability_checker.remove_from_blacklist(module_type)
+            self._record_audit(
+                "unblacklist", actor, correlation_id, module_type=module_type,
+            )
+            logger.info("Removed %s from blacklist", module_type)
+            return True
+
+    def get_registered_types(self) -> Dict[str, Any]:
+        """Return a snapshot of all registered types and the blacklist."""
+        with self._lock:
+            return {
+                "registered": dict(self._registered_types),
+                "blacklisted": sorted(self._viability_checker._blacklist),
+            }
+
     # -- bulk operations ----------------------------------------------------
 
     def bulk_despawn(
@@ -624,6 +665,76 @@ class ModuleInstanceManager:
         for iid in instance_ids:
             results[iid] = self.despawn_instance(iid, actor=actor, correlation_id=correlation_id)
         return {"results": results}
+
+    def despawn_all(
+        self,
+        module_type: Optional[str] = None,
+        actor: str = "system",
+        correlation_id: Optional[str] = None,
+    ) -> int:
+        """Despawn all active instances, optionally filtered by type.
+
+        Returns the number of instances successfully despawned.
+        """
+        with self._lock:
+            candidates = [
+                iid for iid, inst in self._instances.items()
+                if inst.state not in (InstanceState.DESPAWNED, InstanceState.DESPAWNING)
+                and (module_type is None or inst.module_type == module_type)
+            ]
+        count = 0
+        for iid in candidates:
+            if self.despawn_instance(iid, actor=actor, correlation_id=correlation_id):
+                count += 1
+        logger.info(
+            "despawn_all: despawned %d instances (type=%s, actor=%s)",
+            count, module_type or "all", actor,
+        )
+        return count
+
+    # -- convenience queries ------------------------------------------------
+
+    def get_active_instances(self) -> List[ModuleInstance]:
+        """Return all instances in an ``ACTIVE`` state."""
+        return self.list_instances(state=InstanceState.ACTIVE)
+
+    def get_children(self, parent_instance_id: str) -> List[ModuleInstance]:
+        """Return active child instances spawned by *parent_instance_id*."""
+        with self._lock:
+            return [
+                inst for inst in self._instances.values()
+                if inst.parent_instance_id == parent_instance_id
+                and inst.state not in (InstanceState.DESPAWNED, InstanceState.DESPAWNING)
+            ]
+
+    # -- compliance ---------------------------------------------------------
+
+    def export_audit_report(self) -> Dict[str, Any]:
+        """Export a complete audit report suitable for compliance review."""
+        with self._lock:
+            active_count = sum(
+                1 for inst in self._instances.values()
+                if inst.state not in (InstanceState.DESPAWNED, InstanceState.DESPAWNING)
+            )
+            return {
+                "generated_at": _utcnow(),
+                "summary": {
+                    "total_instances": len(self._instances),
+                    "active_instances": active_count,
+                    "total_audit_entries": len(self._audit_trail),
+                    "registered_types": list(self._registered_types.keys()),
+                    "blacklisted_types": sorted(self._viability_checker._blacklist),
+                },
+                "instances": {
+                    iid: inst.to_dict()
+                    for iid, inst in self._instances.items()
+                },
+                "audit_log": [e.to_dict() for e in self._audit_trail[-1000:]],
+                "config_snapshots": {
+                    iid: [s.to_dict() for s in snaps]
+                    for iid, snaps in self._config_snapshots.items()
+                },
+            }
 
     # -- capability search --------------------------------------------------
 

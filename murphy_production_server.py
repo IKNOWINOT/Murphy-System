@@ -2258,6 +2258,206 @@ async def websocket_endpoint(ws:WebSocket):
         _ws_clients.pop(client_id,None)
 
 # ==============================================================================
+# ROI CALENDAR — Human vs Agent cost/ROI visualisation
+# ==============================================================================
+_roi_calendar_store: List[Dict[str, Any]] = []
+
+@app.get("/api/roi-calendar/events")
+async def roi_calendar_events_list(request: Request):
+    return JSONResponse({"ok": True, "events": list(_roi_calendar_store), "total": len(_roi_calendar_store)})
+
+@app.post("/api/roi-calendar/events")
+async def roi_calendar_event_create(request: Request):
+    body = await request.json()
+    eid = "roi-" + uuid.uuid4().hex[:12]
+    now_ts = _now_iso()
+    event: Dict[str, Any] = {
+        "event_id": eid,
+        "title": body.get("title", "Untitled Task"),
+        "description": body.get("description", ""),
+        "automation_id": body.get("automation_id"),
+        "start": body.get("start", now_ts),
+        "end": body.get("end"),
+        "status": "pending",
+        "progress_pct": 0,
+        "human_cost_estimate": float(body.get("human_cost_estimate", 0)),
+        "human_time_estimate_hours": float(body.get("human_time_estimate_hours", 8)),
+        "agent_compute_cost": 0.0,
+        "overhead_cost": 0.0,
+        "roi": 0.0,
+        "actual_time_hours": 0.0,
+        "agents": [],
+        "hitl_reviews": [],
+        "qc_passes": 0,
+        "qc_failures": 0,
+        "cost_adjustments": [],
+        "created_at": now_ts,
+        "updated_at": now_ts,
+    }
+    _roi_calendar_store.append(event)
+    return JSONResponse({"ok": True, "event": event}, status_code=201)
+
+@app.get("/api/roi-calendar/summary")
+async def roi_calendar_summary():
+    if not _roi_calendar_store:
+        return JSONResponse({"ok": True, "total_human_cost_estimate": 0, "total_agent_cost": 0,
+                             "total_roi": 0, "total_overhead": 0, "active_tasks": 0,
+                             "completed_tasks": 0, "total_tasks": 0, "roi_pct": 0})
+    total_human = sum(e["human_cost_estimate"] for e in _roi_calendar_store)
+    total_agent = sum(e["agent_compute_cost"] for e in _roi_calendar_store)
+    total_overhead = sum(e["overhead_cost"] for e in _roi_calendar_store)
+    total_roi = total_human - total_agent - total_overhead
+    roi_pct = round((total_roi / total_human * 100) if total_human > 0 else 0, 1)
+    return JSONResponse({"ok": True,
+        "total_human_cost_estimate": round(total_human, 2),
+        "total_agent_cost": round(total_agent, 2),
+        "total_roi": round(total_roi, 2),
+        "total_overhead": round(total_overhead, 2),
+        "active_tasks": sum(1 for e in _roi_calendar_store if e["status"] in ("running", "qc", "hitl_review")),
+        "completed_tasks": sum(1 for e in _roi_calendar_store if e["status"] == "complete"),
+        "total_tasks": len(_roi_calendar_store),
+        "roi_pct": roi_pct})
+
+@app.get("/api/roi-calendar/stream")
+async def roi_calendar_stream(request: Request):
+    _STATUS_SEQ = ["pending", "running", "qc", "complete"]
+    _HITL_CHANCE = 0.15
+
+    async def _gen():
+        last_states: dict = {}
+        ticks_to_advance = random.randint(3, 8)
+        for tick in range(600):
+            await asyncio.sleep(1)
+            ticks_to_advance -= 1
+
+            if ticks_to_advance <= 0:
+                candidates = [e for e in _roi_calendar_store
+                              if e.get("status") not in ("complete", "error")]
+                if candidates:
+                    ev = random.choice(candidates)
+                    delta_pct = random.randint(5, 15)
+                    ev["progress_pct"] = min(100, ev.get("progress_pct", 0) + delta_pct)
+
+                    checklist = ev.get("checklist", [])
+                    for ci, item in enumerate(checklist):
+                        if item.get("status") == "running":
+                            item["status"] = "complete"
+                            item["completed_at"] = _now_iso()
+                            for nitem in checklist[ci + 1:]:
+                                if nitem.get("status") == "pending":
+                                    nitem["status"] = "running"
+                                    break
+                            break
+                        elif item.get("status") == "pending":
+                            item["status"] = "running"
+                            break
+
+                    step_cost = round(random.uniform(0.02, 0.50), 2)
+                    ev["agent_compute_cost"] = round(ev.get("agent_compute_cost", 0) + step_cost, 2)
+
+                    hc = ev.get("human_cost_estimate", 0)
+                    ac = ev.get("agent_compute_cost", 0)
+                    oh = ev.get("overhead_cost", 0)
+                    ev["roi"] = round(hc - ac - oh, 2)
+
+                    cur_status = ev.get("status", "pending")
+                    pct = ev["progress_pct"]
+                    if cur_status == "pending" and pct > 5:
+                        ev["status"] = "running"
+                    elif cur_status == "running" and pct >= 90:
+                        if random.random() < _HITL_CHANCE:
+                            ev["status"] = "hitl_review"
+                            ev["hitl_reviews"].append({
+                                "decision": "pending",
+                                "notes": "Automated HITL review triggered",
+                                "ts": _now_iso(),
+                                "cost_delta": 0,
+                            })
+                        else:
+                            ev["status"] = "qc"
+                    elif cur_status in ("qc", "hitl_review") and pct >= 95:
+                        ev["status"] = "complete"
+                        ev["progress_pct"] = 100
+                        for item in checklist:
+                            if item.get("status") != "complete":
+                                item["status"] = "complete"
+                                if not item.get("completed_at"):
+                                    item["completed_at"] = _now_iso()
+                        ev["qc_passes"] = ev.get("qc_passes", 0) + 1
+
+                    ev["updated_at"] = _now_iso()
+
+                ticks_to_advance = random.randint(3, 8)
+
+            for ev in _roi_calendar_store:
+                eid = ev["event_id"]
+                ac = ev.get("agent_compute_cost", 0)
+                sk = f"{ev.get('progress_pct', 0)}:{ev.get('status', '')}:{ac:.2f}"
+                if last_states.get(eid) != sk:
+                    last_states[eid] = sk
+                    yield f"event: roi_update\ndata: {json.dumps(ev)}\n\n"
+            yield "event: ping\ndata: {}\n\n"
+
+    return StreamingResponse(_gen(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+@app.get("/api/roi-calendar/export")
+async def roi_calendar_export(fmt: str = "json"):
+    """Export ROI calendar data as JSON or CSV."""
+    import io as _io_exp
+    if fmt == "csv":
+        import csv as _csv_exp
+        output = _io_exp.StringIO()
+        fieldnames = ["event_id", "title", "status", "progress_pct",
+                      "human_cost_estimate", "human_time_estimate_hours",
+                      "agent_compute_cost", "overhead_cost", "roi", "start", "end"]
+        writer = _csv_exp.DictWriter(output, fieldnames=fieldnames, extrasaction="ignore")
+        writer.writeheader()
+        for ev in _roi_calendar_store:
+            writer.writerow(ev)
+        content = output.getvalue()
+        from starlette.responses import Response as _Resp
+        return _Resp(content=content, media_type="text/csv",
+                     headers={"Content-Disposition": "attachment; filename=roi-calendar.csv"})
+    else:
+        from starlette.responses import Response as _Resp
+        content = json.dumps({"ok": True, "events": _roi_calendar_store}, indent=2)
+        return _Resp(content=content, media_type="application/json",
+                     headers={"Content-Disposition": "attachment; filename=roi-calendar.json"})
+
+@app.patch("/api/roi-calendar/events/{event_id}")
+async def roi_calendar_event_update(event_id: str, request: Request):
+    body = await request.json()
+    event = next((e for e in _roi_calendar_store if e["event_id"] == event_id), None)
+    if not event:
+        return JSONResponse({"ok": False, "error": "Event not found"}, status_code=404)
+    for field in ["title", "description", "status", "progress_pct", "agent_compute_cost",
+                  "overhead_cost", "actual_time_hours", "agents", "end"]:
+        if field in body:
+            event[field] = body[field]
+    event["roi"] = event["human_cost_estimate"] - event["agent_compute_cost"] - event["overhead_cost"]
+    if "hitl_review" in body:
+        review = dict(body["hitl_review"])
+        review["ts"] = _now_iso()
+        event["hitl_reviews"].append(review)
+        delta = float(review.get("cost_delta", event["human_cost_estimate"] * 0.05))
+        event["cost_adjustments"].append({"reason": f"HITL review: {review.get('decision','change_requested')}", "delta": delta, "ts": review["ts"]})
+        event["agent_compute_cost"] += delta
+        event["roi"] = event["human_cost_estimate"] - event["agent_compute_cost"] - event["overhead_cost"]
+    if "qc_result" in body:
+        qc = body["qc_result"]
+        if qc.get("passed"):
+            event["qc_passes"] += 1
+        else:
+            event["qc_failures"] += 1
+            delta = float(qc.get("retry_cost", event["agent_compute_cost"] * 0.1))
+            event["cost_adjustments"].append({"reason": f"QC failure: {qc.get('reason','retry')}", "delta": delta, "ts": _now_iso()})
+            event["agent_compute_cost"] += delta
+            event["roi"] = event["human_cost_estimate"] - event["agent_compute_cost"] - event["overhead_cost"]
+    event["updated_at"] = _now_iso()
+    return JSONResponse({"ok": True, "event": event})
+
+# ==============================================================================
 # STATIC FILES + ALL ORIGINAL ROUTES PRESERVED
 # ==============================================================================
 _BASE_DIR   = Path(__file__).resolve().parent
@@ -2289,6 +2489,17 @@ async def serve_calendar():
     ]:
         if path.exists(): return HTMLResponse(path.read_text())
     return HTMLResponse("<p>Calendar at <a href='/'>dashboard</a></p>")
+
+@app.get("/ui/roi-calendar", response_class=HTMLResponse)
+async def serve_roi_calendar():
+    """ROI Calendar — cost/ROI metrics control panel"""
+    for path in [
+        _BASE_DIR / "roi_calendar.html",
+        _MURPHY_DIR / "roi_calendar.html",
+        _UI_DIR / "roi_calendar.html",
+    ]:
+        if path.exists(): return HTMLResponse(path.read_text())
+    return HTMLResponse("<p>ROI Calendar at <a href='/'>dashboard</a></p>")
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def serve_legacy_dashboard():

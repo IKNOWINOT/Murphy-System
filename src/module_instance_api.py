@@ -14,11 +14,15 @@ Endpoints (all prefixed with ``/module-instances``):
     POST   /module-instances/viability/check
     POST   /module-instances/find-viable
     GET    /module-instances/audit/trail
+    GET    /module-instances/audit/export
     GET    /module-instances/{instance_id}/config-history
     GET    /module-instances/status/manager
     GET    /module-instances/status/resources
     POST   /module-instances/types/register
+    DELETE /module-instances/types/{module_type}
     POST   /module-instances/types/{module_type}/blacklist
+    DELETE /module-instances/types/{module_type}/blacklist
+    GET    /module-instances/types
     POST   /module-instances/bulk/despawn
 
 Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post · BSL 1.1
@@ -337,6 +341,21 @@ def register_module_instance_routes(app: FastAPI) -> None:
                 content={"success": False, "error": "Internal server error"},
             )
 
+    # -- 5b. Audit export ------------------------------------------------
+
+    @app.get("/module-instances/audit/export")
+    async def audit_export() -> JSONResponse:
+        """Export a complete audit report for compliance review."""
+        try:
+            report = _manager.export_audit_report()
+            return JSONResponse(content={"success": True, **report})
+        except Exception:
+            logger.exception("audit_export failed")
+            return JSONResponse(
+                status_code=500,
+                content={"success": False, "error": "Internal server error"},
+            )
+
     # -- 6. Manager status -----------------------------------------------
 
     @app.get("/module-instances/status/manager")
@@ -391,6 +410,23 @@ def register_module_instance_routes(app: FastAPI) -> None:
                 content={"success": False, "error": "Internal server error"},
             )
 
+    # -- 8b. List module types (static — before parameterized) -----------
+
+    @app.get("/module-instances/types")
+    async def list_types() -> JSONResponse:
+        """List all registered and blacklisted module types."""
+        try:
+            type_info = _manager.get_registered_types()
+            return JSONResponse(
+                content={"success": True, **type_info},
+            )
+        except Exception:
+            logger.exception("list_types failed")
+            return JSONResponse(
+                status_code=500,
+                content={"success": False, "error": "Internal server error"},
+            )
+
     # -- 9. Blacklist module type ----------------------------------------
 
     @app.post("/module-instances/types/{module_type}/blacklist")
@@ -414,6 +450,55 @@ def register_module_instance_routes(app: FastAPI) -> None:
             )
         except Exception:
             logger.exception("blacklist_type failed")
+            return JSONResponse(
+                status_code=500,
+                content={"success": False, "error": "Internal server error"},
+            )
+
+    # -- 9b. Unblacklist module type -------------------------------------
+
+    @app.delete("/module-instances/types/{module_type}/blacklist")
+    async def unblacklist_type(module_type: str) -> JSONResponse:
+        """Remove a module type from the viability blacklist."""
+        try:
+            ok = _manager.unblacklist_module_type(module_type=module_type)
+            return JSONResponse(
+                content={
+                    "success": ok,
+                    "module_type": module_type,
+                    "unblacklisted": ok,
+                },
+            )
+        except Exception:
+            logger.exception("unblacklist_type failed")
+            return JSONResponse(
+                status_code=500,
+                content={"success": False, "error": "Internal server error"},
+            )
+
+    # -- 9c. Unregister module type --------------------------------------
+
+    @app.delete("/module-instances/types/{module_type}")
+    async def unregister_type(module_type: str) -> JSONResponse:
+        """Unregister a module type."""
+        try:
+            ok = _manager.unregister_module_type(module_type)
+            if not ok:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Module type '{module_type}' not found",
+                )
+            return JSONResponse(
+                content={
+                    "success": True,
+                    "module_type": module_type,
+                    "unregistered": True,
+                },
+            )
+        except HTTPException:
+            raise
+        except Exception:
+            logger.exception("unregister_type failed")
             return JSONResponse(
                 status_code=500,
                 content={"success": False, "error": "Internal server error"},

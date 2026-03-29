@@ -462,3 +462,144 @@ class TestIntegrationHelpers:
         adapter = SimpleNamespace(list_candidates=lambda: [candidate])
         integrate_with_triage_rollcall(mgr, adapter)
         assert mgr.register_module_type("cand_1") is False  # already registered
+
+
+# ── New methods from production calendar UI wiring ───────────────────────
+
+
+class TestUnregisterModuleType:
+    def test_unregister_existing_type(self):
+        mgr = ModuleInstanceManager()
+        mgr.register_module_type("temp_type", metadata={"v": 1})
+        assert mgr.unregister_module_type("temp_type") is True
+
+    def test_unregister_nonexistent_type_returns_false(self):
+        mgr = ModuleInstanceManager()
+        assert mgr.unregister_module_type("nonexistent") is False
+
+    def test_unregister_allows_re_registration(self):
+        mgr = ModuleInstanceManager()
+        mgr.register_module_type("reusable")
+        mgr.unregister_module_type("reusable")
+        assert mgr.register_module_type("reusable") is True
+
+
+class TestUnblacklistModuleType:
+    def test_unblacklist_restores_spawning(self):
+        mgr = ModuleInstanceManager()
+        mgr.blacklist_module_type("blocked")
+        decision, _ = mgr.spawn_instance("blocked")
+        assert decision == SpawnDecision.DENIED_BLACKLIST
+
+        assert mgr.unblacklist_module_type("blocked") is True
+        decision2, inst = mgr.spawn_instance("blocked")
+        assert decision2 == SpawnDecision.APPROVED
+        assert inst is not None
+
+    def test_unblacklist_not_blacklisted_returns_false(self):
+        mgr = ModuleInstanceManager()
+        assert mgr.unblacklist_module_type("never_blocked") is False
+
+    def test_unblacklist_creates_audit_entry(self):
+        mgr = ModuleInstanceManager()
+        mgr.blacklist_module_type("audited")
+        mgr.unblacklist_module_type("audited")
+        trail = mgr.get_audit_trail(limit=100)
+        actions = [e.action for e in trail]
+        assert "unblacklist" in actions
+
+
+class TestGetRegisteredTypes:
+    def test_returns_registered_and_blacklisted(self):
+        mgr = ModuleInstanceManager()
+        mgr.register_module_type("type_a")
+        mgr.register_module_type("type_b")
+        mgr.blacklist_module_type("type_c")
+        info = mgr.get_registered_types()
+        assert "type_a" in info["registered"]
+        assert "type_b" in info["registered"]
+        assert "type_c" in info["blacklisted"]
+
+    def test_empty_when_no_types_registered(self):
+        mgr = ModuleInstanceManager()
+        info = mgr.get_registered_types()
+        assert info["registered"] == {}
+        assert info["blacklisted"] == []
+
+
+class TestDespawnAll:
+    def test_despawn_all_by_type(self):
+        mgr = ModuleInstanceManager(max_instances_per_type=20)
+        for _ in range(5):
+            mgr.spawn_instance("alpha")
+        for _ in range(3):
+            mgr.spawn_instance("beta")
+        count = mgr.despawn_all(module_type="alpha")
+        assert count == 5
+        active = mgr.get_active_instances()
+        assert all(i.module_type == "beta" for i in active)
+
+    def test_despawn_all_without_filter(self):
+        mgr = ModuleInstanceManager(max_instances_per_type=20)
+        for _ in range(4):
+            mgr.spawn_instance("gamma")
+        count = mgr.despawn_all()
+        assert count == 4
+        assert len(mgr.get_active_instances()) == 0
+
+
+class TestGetActiveInstances:
+    def test_returns_only_active(self):
+        mgr = ModuleInstanceManager()
+        _, i1 = mgr.spawn_instance("a")
+        _, i2 = mgr.spawn_instance("b")
+        mgr.despawn_instance(i1.instance_id)
+        active = mgr.get_active_instances()
+        assert len(active) == 1
+        assert active[0].instance_id == i2.instance_id
+
+
+class TestGetChildren:
+    def test_returns_child_instances(self):
+        mgr = ModuleInstanceManager()
+        _, parent = mgr.spawn_instance("parent_type")
+        _, child1 = mgr.spawn_instance(
+            "child_type", parent_instance_id=parent.instance_id
+        )
+        _, child2 = mgr.spawn_instance(
+            "child_type", parent_instance_id=parent.instance_id
+        )
+        children = mgr.get_children(parent.instance_id)
+        assert len(children) == 2
+        child_ids = {c.instance_id for c in children}
+        assert child1.instance_id in child_ids
+        assert child2.instance_id in child_ids
+
+    def test_returns_empty_for_no_children(self):
+        mgr = ModuleInstanceManager()
+        _, inst = mgr.spawn_instance("solo")
+        assert mgr.get_children(inst.instance_id) == []
+
+
+class TestExportAuditReport:
+    def test_report_structure(self):
+        mgr = ModuleInstanceManager()
+        mgr.register_module_type("reporter")
+        _, inst = mgr.spawn_instance("reporter")
+        report = mgr.export_audit_report()
+        assert "generated_at" in report
+        assert "summary" in report
+        assert report["summary"]["total_instances"] == 1
+        assert report["summary"]["active_instances"] == 1
+        assert "reporter" in report["summary"]["registered_types"]
+        assert inst.instance_id in report["instances"]
+        assert len(report["audit_log"]) > 0
+
+    def test_report_includes_config_snapshots(self):
+        mgr = ModuleInstanceManager()
+        _, inst = mgr.spawn_instance("snapper", config={"k": "v"})
+        report = mgr.export_audit_report()
+        assert inst.instance_id in report["config_snapshots"]
+        snaps = report["config_snapshots"][inst.instance_id]
+        assert len(snaps) == 1
+        assert snaps[0]["config"] == {"k": "v"}
