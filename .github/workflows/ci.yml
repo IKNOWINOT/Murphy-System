@@ -92,6 +92,8 @@ jobs:
               "src.errors.codes",
               "src.errors.registry",
               "src.error_envelope",
+              "src.swarm_rate_governor",
+              "src.forge_rate_limiter",
           ]
           for mod in modules:
               try:
@@ -264,8 +266,12 @@ jobs:
 
       - name: Audit dependencies for known vulnerabilities
         run: |
-          pip-audit --requirement requirements_ci.txt --strict 2>&1 || true
+          pip-audit --requirement requirements_ci.txt --strict 2>&1 || echo "::warning::pip-audit found issues — review advisory output above"
         continue-on-error: true
+
+      - name: Validate swarm rate governor import
+        run: |
+          PYTHONPATH="${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}/src" python -c "from src.swarm_rate_governor import SwarmRateGovernor, TrafficClass; print('SwarmRateGovernor OK')"
 
   build:
     runs-on: ubuntu-latest
