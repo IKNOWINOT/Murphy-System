@@ -185,7 +185,7 @@
 **Component:** `runtime/app.py` *(was: inoni_business_automation.py)*
 
 **Responsibilities:**
-- Autonomous with HITL safety gates operation of Inoni LLC
+- Autonomous with HITL safety gates operation of Murphy Collective
 - 5 business automation engines
 - Self-operation capabilities with human-in-the-loop approval for high-risk actions
 - Business process automation

@@ -44,7 +44,7 @@ free labour for a company.
 | **Co-ownership** | Every merged contribution makes you a co-owner of the collective. Your work is credited, versioned, and preserved. |
 | **Validator compensation** | Contributors who review and validate pull requests are compensated from the collective's resource pool. Validation is valued work, not a favour. |
 | **Social income from workflows** | Workflows published to the shared registry earn social income for their authors — measured in usage, attribution, and resource-pool credits — whenever other members run them. |
-| **No paying-customer hierarchy** | There are no "paying customers" and "free users". Every contributing member has equal standing; access is determined by participation, not payment. |
+| **No paying-customer hierarchy** | There are no "contributing members" and "free users". Every contributing member has equal standing; access is determined by participation, not payment. |
 
 ### How credit flows
 

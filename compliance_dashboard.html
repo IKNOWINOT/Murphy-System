@@ -352,28 +352,6 @@
 </head>
 <body class="murphy-no-sidebar">
 
-<!-- Murphy error banner — shown automatically on 5xx fetch errors -->
-<div id="murphy-error-banner" role="alert" aria-live="assertive" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#c0392b;color:#fff;padding:10px 16px;font-size:14px;align-items:center;gap:12px;">
-  <span id="murphy-error-banner-msg" style="flex:1"></span>
-  <button onclick="document.getElementById('murphy-error-banner').style.display='none'" aria-label="Dismiss" style="background:transparent;border:1px solid rgba(255,255,255,0.6);color:#fff;cursor:pointer;padding:2px 8px;border-radius:3px;font-size:13px;">✕</button>
-</div>
-<script>
-function showMurphyError(msg) {
-  var b = document.getElementById('murphy-error-banner');
-  document.getElementById('murphy-error-banner-msg').textContent = msg || 'An unexpected error occurred.';
-  b.style.display = 'flex';
-}
-(function() {
-  var _origFetch = window.fetch;
-  window.fetch = function() {
-    return _origFetch.apply(this, arguments).then(function(resp) {
-      if (resp.status >= 500) showMurphyError('Server error (' + resp.status + ') — ' + resp.url.split('?')[0]);
-      return resp;
-    });
-  };
-})();
-</script>
-
 <!-- Skip link -->
 <a class="murphy-skip-link" href="#compliance-content">Skip to content</a>
 
@@ -1312,7 +1290,6 @@ function showMurphyError(msg) {
         statusApiEl.textContent = 'Offline';
         statusApiEl.style.color = '#555';
         updateSummary();
-        showMurphyError('Compliance API offline — displaying cached defaults.');
       });
   }
 
@@ -1345,7 +1322,6 @@ function showMurphyError(msg) {
         statusApiEl.textContent = 'Error';
         statusApiEl.style.color = '#ff4141';
         showToast('Save failed: ' + err.message, 'error');
-        showMurphyError('Save failed: ' + err.message);
       })
       .finally(function () {
         btn.disabled = false;
@@ -1378,7 +1354,6 @@ function showMurphyError(msg) {
       })
       .catch(function () {
         showToast('Detection service offline.', 'error');
-        showMurphyError('Compliance detection service is offline.');
       })
       .finally(function () {
         btn.disabled = false;

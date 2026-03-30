@@ -497,8 +497,6 @@
       </button>
     </div>
   </div>
-
-  <!-- ── PROPOSAL VIEW ──────────────────────────────────────── -->
   <div id="view-proposal" class="murphy-view" style="display:none">
     <div class="murphy-page-header">
       <h2 class="murphy-page-title">Submit Production Proposal</h2>
@@ -1305,173 +1303,11 @@ const loadDashboard = async () => {
       renderTimeline(items, _lastTimelineData.proposals, heat);
     } catch { /* API offline */ }
   }, DASHBOARD_POLL_INTERVAL_MS);
-  renderTimelineGraph();
-};
-
-// ── Real-time Timeline Activity Graph ────────────────────────
-const _tlStatusColor = {
-  in_progress: '#3b82f6',
-  approved:    '#10b981',
-  verified:    '#00ff41',
-  delivered:   '#8b5cf6',
-  in_review:   '#f59e0b',
-  created:     '#6b7280',
-  waiting:     '#f59e0b',
-  pending:     '#f59e0b',
-};
-const _tlDefaultColor = '#6b7280';
-
-function _tlNodeColor(status, ageMs) {
-  const base = _tlStatusColor[status] || _tlDefaultColor;
-  // Clamp age 0–600s; newer = full saturation, older = 40% opacity
-  const alpha = Math.max(0.4, 1 - Math.min(ageMs / 600000, 1) * 0.6); // 600000ms = 10 min activity window
-  const hex = base.replace('#', '');
-  const r = parseInt(hex.slice(0,2),16);
-  const g = parseInt(hex.slice(2,4),16);
-  const b = parseInt(hex.slice(4,6),16);
-  return `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
-}
-
-function _buildTimelineSVG(queueItems, deliverables) {
-  const W = 900, H = 200;
-  const cx = W / 2, cy = H / 2;
-  const now = Date.now();
-
-  const ns = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-
-  // Center timeline axis
-  const axisLine = document.createElementNS(ns, 'line');
-  axisLine.setAttribute('x1', '0'); axisLine.setAttribute('y1', cy);
-  axisLine.setAttribute('x2', W);  axisLine.setAttribute('y2', cy);
-  axisLine.setAttribute('stroke', '#2a2a2a'); axisLine.setAttribute('stroke-width', '2');
-  svg.appendChild(axisLine);
-
-  // Labels
-  const mkText = (text, x, y, anchor, fill, fs) => {
-    const t = document.createElementNS(ns, 'text');
-    t.setAttribute('x', x); t.setAttribute('y', y);
-    t.setAttribute('text-anchor', anchor || 'middle');
-    t.setAttribute('fill', fill || '#888');
-    t.setAttribute('font-size', fs || '10');
-    t.setAttribute('font-family', 'monospace');
-    t.textContent = text;
-    return t;
-  };
-  svg.appendChild(mkText('◀ INPUT FILES', 20, cy - 10, 'start', '#555', '9'));
-  svg.appendChild(mkText('DELIVERABLES ▶', W - 20, cy - 10, 'end', '#555', '9'));
-
-  if (!queueItems.length && !deliverables.length) {
-    svg.appendChild(mkText('No activity yet — submit a proposal to begin', cx, cy + 5, 'middle', '#444', '12'));
-    return svg;
-  }
-
-  // Left side — queue/input items (up to 8)
-  const leftItems = queueItems.slice(0, 8);
-  leftItems.forEach((item, i) => {
-    const spacing = Math.min((cx - 40) / (leftItems.length + 1), 90);
-    const x = cx - spacing * (i + 1);
-    const status = item.status || 'created';
-    const ts = item.updated_at || item.created_at || '';
-    const ageMs = ts ? now - new Date(ts).getTime() : 300000;
-    const col = _tlNodeColor(status, ageMs);
-    const label = (item.id || item.task_id || `item-${i}`).slice(0, 14);
-
-    // Connector to center
-    const line = document.createElementNS(ns, 'line');
-    line.setAttribute('x1', x); line.setAttribute('y1', cy);
-    line.setAttribute('x2', cx); line.setAttribute('y2', cy);
-    line.setAttribute('stroke', col); line.setAttribute('stroke-width', '1.5');
-    line.setAttribute('stroke-dasharray', '4 3');
-    svg.appendChild(line);
-
-    // Node circle
-    const circle = document.createElementNS(ns, 'circle');
-    circle.setAttribute('cx', x); circle.setAttribute('cy', cy);
-    circle.setAttribute('r', '10');
-    circle.setAttribute('fill', col);
-    circle.setAttribute('stroke', '#fff'); circle.setAttribute('stroke-width', '1');
-    svg.appendChild(circle);
-
-    // Label below
-    svg.appendChild(mkText(label, x, cy + 24, 'middle', '#aaa', '8'));
-    svg.appendChild(mkText(status, x, cy + 34, 'middle', col, '8'));
-  });
-
-  // Right side — deliverables (up to 8)
-  const rightItems = deliverables.slice(0, 8);
-  rightItems.forEach((item, i) => {
-    const spacing = Math.min((cx - 40) / (rightItems.length + 1), 90);
-    const x = cx + spacing * (i + 1);
-    const status = item.status || 'delivered';
-    const ts = item.delivered_at || item.created_at || '';
-    const ageMs = ts ? now - new Date(ts).getTime() : 300000;
-    const col = _tlNodeColor(status, ageMs);
-    const label = (item.deliverable_id || item.id || `del-${i}`).slice(0, 14);
-
-    // Connector from center
-    const line = document.createElementNS(ns, 'line');
-    line.setAttribute('x1', cx); line.setAttribute('y1', cy);
-    line.setAttribute('x2', x);  line.setAttribute('y2', cy);
-    line.setAttribute('stroke', col); line.setAttribute('stroke-width', '1.5');
-    svg.appendChild(line);
-
-    // Diamond shape for deliverables
-    const pts = `${x},${cy-10} ${x+10},${cy} ${x},${cy+10} ${x-10},${cy}`;
-    const diamond = document.createElementNS(ns, 'polygon');
-    diamond.setAttribute('points', pts);
-    diamond.setAttribute('fill', col);
-    diamond.setAttribute('stroke', '#fff'); diamond.setAttribute('stroke-width', '1');
-    svg.appendChild(diamond);
-
-    // Label below
-    svg.appendChild(mkText(label, x, cy + 24, 'middle', '#aaa', '8'));
-    svg.appendChild(mkText(status, x, cy + 34, 'middle', col, '8'));
-  });
-
-  // Center node
-  const centerCircle = document.createElementNS(ns, 'circle');
-  centerCircle.setAttribute('cx', cx); centerCircle.setAttribute('cy', cy);
-  centerCircle.setAttribute('r', '6');
-  centerCircle.setAttribute('fill', '#10b981');
-  svg.appendChild(centerCircle);
-  svg.appendChild(mkText('PROD', cx, cy + 18, 'middle', '#10b981', '8'));
-
-  return svg;
-}
-
-let _tlPollTimer = null;
-
-const renderTimelineGraph = async () => {
-  const container = document.getElementById('timeline-graph');
-  if (!container) return;
-  let queueItems = [], deliverables = [];
-  try {
-    const q = await apiFetch('/api/production/queue');
-    queueItems = q.items || [];
-  } catch (_) {}
-  try {
-    const s = await apiFetch('/api/production/schedule');
-    if (Array.isArray(s.schedules)) queueItems = [...queueItems, ...s.schedules];
-  } catch (_) {}
-  try {
-    const d = await apiFetch('/api/deliverables');
-    deliverables = d.deliverables || [];
-  } catch (_) {}
-  container.innerHTML = '';
-  container.appendChild(_buildTimelineSVG(queueItems, deliverables));
   await loadTimeline();
   startTimelinePolling();
 };
 
-const startTimelinePolling = () => {
-  if (_tlPollTimer) clearInterval(_tlPollTimer);
-  _tlPollTimer = setInterval(renderTimelineGraph, 7000); // poll every 7s
-};
-
-
+// ── Proposal form ─────────────────────────────────────────────
 document.getElementById('proposal-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const id = document.getElementById('prop-id').value.trim();
