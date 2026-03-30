@@ -1,7 +1,7 @@
-# Murphy System 1.0 — User Manual
+# Murphy System 1.0 — Member Manual
 
 **Universal AI Automation System**
-**Version:** 1.0 | **Publisher:** Inoni LLC | **Creator:** Corey Post
+**Version:** 1.0 | **Publisher:** Murphy Collective | **Creator:** Corey Post
 **License:** BSL 1.1 (converts to Apache 2.0 after 4 years)
 
 ---
@@ -32,7 +32,7 @@
 22. [IP Classification & Trade Secrets](#chapter-22-ip-classification--trade-secrets)
 23. [Credential Profiles & Automation Metrics](#chapter-23-credential-profiles--automation-metrics)
 24. [Agent Monitor Dashboard](#chapter-24-agent-monitor-dashboard)
-25. [Complete User Journey](#chapter-25-complete-user-journey)
+25. [Complete Member Journey](#chapter-25-complete-member-journey)
 
 ---
 
@@ -226,7 +226,7 @@ Murphy supports six automation domains, each handled by the Universal Control Pl
 | **Data** | Database Engine | ETL, analytics, migrations | Run nightly data pipeline |
 | **System** | Command Engine | Shell commands, DevOps, infra | Restart service, scale pods |
 | **Agent** | Agent Engine | AI swarms, complex reasoning | Multi-agent research task |
-| **Business** | Inoni Business Suite | Sales, marketing, finance | Generate invoice, run campaign |
+| **Community** | Murphy Community Suite | Sales, marketing, finance | Generate invoice, run campaign |
 
 ### 3.2 Factory/IoT Automation
 
@@ -275,9 +275,9 @@ curl -X POST http://localhost:8000/api/automation/agent/swarm \
   }'
 ```
 
-### 3.7 Business Automation (Inoni Suite)
+### 3.7 Community Workflow (Murphy Suite)
 
-The Inoni Business Automation layer contains five engines:
+The Murphy Community Workflow layer contains five engines:
 
 | Engine | Capabilities |
 |--------|-------------|
@@ -393,15 +393,15 @@ curl -X POST http://localhost:8000/api/corrections/submit \
 ### 5.2 Learning Pipeline
 
 ```
-Correction → Pattern Extraction → Shadow Agent Training → Evaluation → Deployment
+Correction → Pattern Extraction → Personal Agent Training → Evaluation → Deployment
 ```
 
 | Stage | Description |
 |-------|-------------|
 | **Pattern Extraction** | Groups corrections by domain, identifies recurring mistakes |
-| **Shadow Agent Training** | Trains a shadow model on corrections without affecting production |
-| **Evaluation** | Compares shadow agent performance against baseline |
-| **Deployment** | Promotes shadow agent if performance improves |
+| **Personal Agent Training** | Trains a personal agent model on corrections without affecting production |
+| **Evaluation** | Compares personal agent performance against baseline |
+| **Deployment** | Promotes personal agent if performance improves |
 
 ### 5.3 Querying Learning Data
 
@@ -619,7 +619,7 @@ curl -X POST http://localhost:8000/api/robotics/emergency-stop \
 
 ## Chapter 9: Avatar Identity Layer
 
-The Avatar system gives Murphy configurable personality, voice, and behavioral traits for user-facing interactions.
+The Avatar system gives Murphy configurable personality, voice, and behavioral traits for member-facing interactions.
 
 ### 9.1 Avatar Profiles
 
@@ -645,11 +645,11 @@ curl -X POST http://localhost:8000/api/avatar/inject \
   }'
 ```
 
-### 9.3 User Adaptation
+### 9.3 Member Adaptation
 
 - **Interaction patterns** — learns preferred communication style
 - **Formality preferences** — adjusts language register automatically
-- **Sentiment classification** — detects user mood and adapts tone
+- **Sentiment classification** — detects member mood and adapts tone
 - **Behavioral scoring** — tracks engagement and satisfaction
 
 ### 9.4 Session Management
@@ -933,11 +933,11 @@ Returns per-bot metrics: invocation count, success rate, average latency, and re
 
 ### 15.1 Available Interfaces
 
-Murphy provides multiple interfaces for different user roles:
+Murphy provides multiple interfaces for different member roles:
 
 | Interface | File | Purpose |
 |-----------|------|---------|
-| **Onboarding Wizard** | `onboarding_wizard.html` | No-code guided setup for new users |
+| **Member Onboarding** | `onboarding_wizard.html` | No-code guided setup for new members |
 | **Landing Page** | `murphy_landing_page.html` | System overview and navigation hub |
 | **Integrated Dashboard** | `murphy_ui_integrated.html` | Full management interface |
 | **Integrated Terminal** | `murphy_ui_integrated_terminal.html` | Combined terminal with dashboard |
@@ -1378,7 +1378,7 @@ curl -X POST http://localhost:8000/api/onboarding-flow/org/initialize
 - **Managers:** Engineering Manager, Product Manager, Sales Manager
 - **ICs:** Software Engineer, Sales Representative
 
-Each position has a shadow agent configuration with monitoring level and auto-escalation settings. The org chart structure is classified as **Business IP**.
+Each position has a personal agent configuration with monitoring level and auto-escalation settings. The org chart structure is classified as **Business IP**.
 
 ### 21.2 View Org Chart
 
@@ -1422,9 +1422,9 @@ curl -X POST http://localhost:8000/api/onboarding-flow/sessions/{session_id}/ans
   -d '{"question_id": "q1", "answer": "Alex Smith"}'
 ```
 
-### 21.5 Shadow Agent Assignment
+### 21.5 Personal Agent Assignment
 
-Shadow agents are assigned to onboarded individuals. The agent learns from their work patterns and becomes **Employee IP**:
+Personal agents are assigned to onboarded individuals. The agent learns from their work patterns and becomes **Employee IP**:
 
 ```bash
 curl -X POST http://localhost:8000/api/onboarding-flow/sessions/{session_id}/shadow-agent \
@@ -1440,7 +1440,7 @@ After onboarding, the system naturally transitions to the no-code builder with p
 curl -X POST http://localhost:8000/api/onboarding-flow/sessions/{session_id}/transition
 ```
 
-The builder context includes the employee's name, position, shadow agent ID, and suggested automations based on their role and answers.
+The builder context includes the employee's name, position, personal agent ID, and suggested automations based on their role and answers.
 
 ---
 
@@ -1452,14 +1452,14 @@ Murphy manages intellectual property across three tiers with trade secret protec
 
 | Tier | Source | Protection | Owner |
 |------|--------|------------|-------|
-| **Employee IP** | Shadow agent learning data | Confidential | Employee |
+| **Employee IP** | Personal agent learning data | Confidential | Employee |
 | **Business IP** | Org chart interactions, process flows | Restricted | Business |
 | **System IP** | Aggregated automation metrics | Internal (licensed to Murphy) | System |
 
 **Protection Levels:**
-- **Confidential** — Viewable only by the asset owner; not shared with other users or systems.
+- **Confidential** — Viewable only by the asset owner; not shared with other members or systems.
 - **Restricted** — Limited to authorized personnel within the organization; eligible for trade secret designation.
-- **Internal** — Accessible within the Murphy platform; automatically licensed for system-wide improvement.
+- **Internal** — Accessible within the Murphy commons; automatically licensed for system-wide improvement.
 - **Trade Secret** — Highest protection with access logging, NDA requirements, encryption at rest, and need-to-know access control.
 
 ### 22.2 Registering IP Assets
@@ -1519,7 +1519,7 @@ Returns breakdown by classification, protection level, trade secret count, and a
 
 ## Chapter 23: Credential Profiles & Automation Metrics
 
-HITL credential profiles track user interaction patterns to build optimal automation recommendations.
+HITL credential profiles track member interaction patterns to build optimal automation recommendations.
 
 ### 23.1 Creating Profiles
 
@@ -1627,7 +1627,7 @@ curl http://localhost:8000/api/agent-dashboard/agents/{agent_id}/activity
 
 ---
 
-## Chapter 25: Complete User Journey
+## Chapter 25: Complete Member Journey
 
 This chapter walks through the complete flow from initial setup to active automation.
 
@@ -1653,7 +1653,7 @@ curl -X POST http://localhost:8000/api/onboarding-flow/sessions/{id}/answer \
   -d '{"question_id": "q1", "answer": "Alex Smith"}'
 ```
 
-### Step 3 — Assign Shadow Agent
+### Step 3 — Assign Personal Agent
 
 ```bash
 curl -X POST http://localhost:8000/api/onboarding-flow/sessions/{id}/shadow-agent \
@@ -1724,18 +1724,18 @@ curl http://localhost:8000/api/credentials/metrics
 | **Exposure** | The blast radius of a potential failure |
 | **Packet** | Self-contained execution unit with task, plan, gates, and risk assessment |
 | **Drift** | Divergence of an agent's behavior from expected baseline |
-| **Shadow Agent** | An AI agent that mirrors a human role, learning from their work patterns; becomes Employee IP |
+| **Personal Agent** | An AI agent that mirrors a human role, learning from their work patterns; becomes Employee IP |
 | **Solidify** | Finalize and lock an artifact after validation |
 | **Magnify** | Deep inspection of an artifact's trust and confidence scores |
 | **UCP** | Universal Control Plane — the routing layer for all automation types |
 | **Librarian** | The conversational AI in the no-code workflow builder that infers and builds automations |
-| **Employee IP** | Intellectual property generated by shadow agents learning employee work patterns |
+| **Employee IP** | Intellectual property generated by personal agents learning employee work patterns |
 | **Business IP** | Intellectual property from org chart structure and system interaction patterns |
 | **System IP** | Aggregated automation metrics licensed to Murphy for improving recommendations |
 | **Trade Secret** | Protected IP with restricted access, audit logging, and need-to-know controls |
-| **Credential Profile** | HITL user profile tracking approval patterns, trust scores, and tier progression |
+| **Credential Profile** | HITL member profile tracking approval patterns, trust scores, and tier progression |
 
 ---
 
-*Murphy System 1.0 — © 2024 Inoni LLC. All rights reserved.*
+*Murphy System 1.0 — © 2024 Murphy Collective. All rights reserved.*
 *Created by Corey Post. Licensed under MIT (Community Edition).*
