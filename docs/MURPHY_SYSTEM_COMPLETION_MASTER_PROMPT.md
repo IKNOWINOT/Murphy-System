@@ -285,4 +285,4 @@ This prompt is designed to be **entered repeatedly**. Each session:
 
 *Reference: docs/MURPHY_SYSTEM_SPECIFICATIONS_GAP_ANALYSIS_COMPLETION_ROADMAP.md*
 *Repository: IKNOWINOT/Murphy-System*
-*License: BSL 1.1 — © 2020-2026 Inoni LLC — Created by Corey Post*
+*License: BSL 1.1 — © 2020-2026 Murphy Collective — Created by Corey Post*

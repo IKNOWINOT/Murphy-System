@@ -82,7 +82,7 @@ Gates (MFGC), and Librarian integration.
 |----------|----------|---------|
 | `GET /api/health` | [health.txt](03_health/health.txt) | `"status": "healthy"`, 90 modules loaded |
 | `GET /api/status` | [status.txt](03_health/status.txt) | All components active, uptime tracked |
-| `GET /api/info` | [info.txt](03_health/info.txt) | Murphy System v1.0.0 by Inoni LLC |
+| `GET /api/info` | [info.txt](03_health/info.txt) | Murphy System v1.0.0 by Murphy Collective |
 | `GET /api/readiness` | [readiness.txt](03_health/readiness.txt) | Production readiness check |
 | `GET /api/modules` | [modules.txt](03_health/modules.txt) | 90 loaded modules |
 

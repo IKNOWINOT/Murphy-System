@@ -141,6 +141,21 @@ Because your agent doubles as your wallet and authentication key, Murphy
 applies the highest security standards to agent storage and key management
 (see Security Controls below).
 
+### Social Recovery (Agent is NOT a Single Point of Failure)
+
+Losing your device must never lock you out of the collective permanently.
+Murphy uses **N-of-M social recovery**:
+
+- You designate **N trusted members** from a set of **M** who can co-sign
+  an agent recovery request (e.g., 3-of-5).
+- The agent is your primary key; **the collective is your backup**.
+- No single entity — including administrators — can unilaterally lock you out
+  or recover your agent on your behalf.
+- You update your designated trustees at any time through your agent settings.
+- If you have not designated trustees, a fallback process through the Steward
+  Council is available with a mandatory cooling-off period and identity
+  verification.
+
 ## Security Controls
 
 - **Encryption at rest**: Fernet symmetric encryption for credentials

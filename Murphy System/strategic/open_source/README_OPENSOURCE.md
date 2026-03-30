@@ -8,7 +8,7 @@
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://python.org)
 [![PyPI](https://img.shields.io/pypi/v/murphy-confidence.svg)](https://pypi.org/project/murphy-confidence/)
 
-**Part of the Murphy System** — created by **Corey Post**, [Inoni LLC](https://inoni.com).
+**Part of the Murphy System** — created by **Corey Post**, [Murphy Collective](https://inoni.com).
 
 ---
 
@@ -212,7 +212,7 @@ enterprise@inoni.com.
 
 ## About
 
-Created by **Corey Post** at **Inoni LLC**.  
+Created by **Corey Post** at **Murphy Collective**.  
 The MFGC formula and dynamic gate compilation are patent-pending inventions.
 
 © 2020-2026 Inoni Limited Liability Company. All rights reserved.

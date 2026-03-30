@@ -1,6 +1,6 @@
 # IP Protection Tracker — Murphy System
 
-**Maintained by:** Corey Post, Inoni LLC  
+**Maintained by:** Corey Post, Murphy Collective  
 **Last Updated:** 2026-03-05
 
 ---
@@ -9,9 +9,9 @@
 
 | # | Invention Title | Status | Filing Date | Application # | Assignee |
 |---|----------------|--------|-------------|---------------|----------|
-| 1 | Method and System for Multi-Factor Generative-Deterministic Confidence Scoring in Autonomous AI Systems | PROVISIONAL FILED | 2026-03-05 | TBD — awaiting USPTO confirmation | Inoni LLC |
-| 2 | System and Method for Dynamic Synthesis of Safety Gates in AI Execution Pipelines | PROVISIONAL FILED | 2026-03-05 | TBD — awaiting USPTO confirmation | Inoni LLC |
-| 3 | Cryptographic Integrity Verification System for AI Execution Packets with Time-Bounded Validity and Replay Prevention | PROVISIONAL FILED | 2026-03-05 | TBD — awaiting USPTO confirmation | Inoni LLC |
+| 1 | Method and System for Multi-Factor Generative-Deterministic Confidence Scoring in Autonomous AI Systems | PROVISIONAL FILED | 2026-03-05 | TBD — awaiting USPTO confirmation | Murphy Collective |
+| 2 | System and Method for Dynamic Synthesis of Safety Gates in AI Execution Pipelines | PROVISIONAL FILED | 2026-03-05 | TBD — awaiting USPTO confirmation | Murphy Collective |
+| 3 | Cryptographic Integrity Verification System for AI Execution Packets with Time-Bounded Validity and Replay Prevention | PROVISIONAL FILED | 2026-03-05 | TBD — awaiting USPTO confirmation | Murphy Collective |
 
 ---
 
@@ -62,8 +62,8 @@
 | File PCT international application (Inventions 1 & 2) | Patent counsel | 2027-03-04 | PLANNED |
 | European Patent Office (EPO) national phase entry | Patent counsel | 2028-Q1 | PLANNED |
 | Conduct formal prior art search (all 3 inventions) | Patent agent | 2026-05-01 | PLANNED |
-| Register copyright for murphy_confidence source code | Inoni LLC | 2026-04-15 | PLANNED |
-| File trademark application "Murphy System" | Inoni LLC | 2026-05-01 | PLANNED |
+| Register copyright for murphy_confidence source code | Murphy Collective | 2026-04-15 | PLANNED |
+| File trademark application "Murphy System" | Murphy Collective | 2026-05-01 | PLANNED |
 
 ---
 
@@ -80,6 +80,6 @@ The following remain as trade secrets (not in patent applications):
 
 ---
 
-## VERIFIED BY: Corey Post — Inoni LLC
+## VERIFIED BY: Corey Post — Murphy Collective
 
 © 2020-2026 Inoni Limited Liability Company. All rights reserved.

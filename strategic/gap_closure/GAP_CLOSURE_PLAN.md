@@ -278,4 +278,4 @@ All library modules (gap_scorer, launch, connectors, lowcode, observability, age
 
 **Overall readiness: 97.1% — 12/17 capabilities at 10/10, 5 remaining at 9/10 need evidence modules**
 
-> **VERIFIED BY: Corey Post — Inoni LLC**
+> **VERIFIED BY: Corey Post — Murphy Collective**

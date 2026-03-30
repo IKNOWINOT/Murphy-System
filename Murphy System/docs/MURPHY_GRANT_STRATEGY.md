@@ -1,8 +1,8 @@
-# Murphy Grant Strategy — Track A (Inoni LLC)
+# Murphy Grant Strategy — Track A (Murphy Collective)
 
 **"We are the first use case always."**
 
-Murphy System (Inoni LLC) applies for grants using the same system it ships to
+Murphy System (Murphy Collective) applies for grants using the same system it ships to
 customers. If the grant engine cannot help Murphy win funding, it cannot help
 customers. Track A is the proving ground.
 
@@ -92,7 +92,7 @@ when applying. Matching the right profile to the right grant is critical.
 
 ## Prerequisites Checklist
 
-Before any federal grant application can be submitted, Inoni LLC must complete
+Before any federal grant application can be submitted, Murphy Collective must complete
 the following registration chain (tracked in `prerequisites.py`):
 
 1. **[ ] SAM.gov Registration** — mandatory for all federal awards  
@@ -159,5 +159,5 @@ All Track A applications are tracked in `GrantSession` records with
 
 ---
 
-*This document is updated as Inoni LLC progresses through the grant lifecycle.  
+*This document is updated as Murphy Collective progresses through the grant lifecycle.  
 See `docs/GRANT_DATABASE_SCHEMA.md` for the full data model reference.*

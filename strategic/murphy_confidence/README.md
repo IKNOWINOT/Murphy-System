@@ -3,7 +3,7 @@
 > **Zero-dependency** Multi-Factor Generative-Deterministic (MFGC) confidence-scoring
 > engine with dynamic safety gate compilation for autonomous AI systems.
 
-Part of the **Murphy System** — created by **Corey Post**, Inoni LLC.
+Part of the **Murphy System** — created by **Corey Post**, Murphy Collective.
 
 ---
 

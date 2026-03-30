@@ -31,15 +31,15 @@ in `patents/PROVISIONAL_PATENT_APPLICATION.md` (2026-03-05):
 
 1. **"Method and System for Multi-Factor Generative-Deterministic Confidence
    Scoring in Autonomous AI Systems"**  
-   Inventor: Corey Post | Assignee: Inoni LLC
+   Inventor: Corey Post | Assignee: Murphy Collective
 
 2. **"System and Method for Dynamic Synthesis of Safety Gates in AI Execution
    Pipelines"**  
-   Inventor: Corey Post | Assignee: Inoni LLC
+   Inventor: Corey Post | Assignee: Murphy Collective
 
 3. **"Cryptographic Integrity Verification System for AI Execution Packets with
    Time-Bounded Validity and Replay Prevention"**  
-   Inventor: Corey Post | Assignee: Inoni LLC
+   Inventor: Corey Post | Assignee: Murphy Collective
 
 *All patent claims described in the provisional application are patent-pending
 and protected under 35 U.S.C. § 111(b). Unauthorized use of the described
@@ -64,7 +64,7 @@ For licensing inquiries, patent licensing, or enterprise partnerships:
 
 - **Email:** [contact@inoni.com]
 - **Website:** [https://inoni.com]
-- **LinkedIn:** [Corey Post / Inoni LLC]
+- **LinkedIn:** [Corey Post / Murphy Collective]
 
 ---
 
@@ -74,4 +74,4 @@ For licensing inquiries, patent licensing, or enterprise partnerships:
 Created by: Corey Post
 
 *Unauthorized reproduction, distribution, or use of this material without
-express written permission from Inoni LLC is prohibited.*
+express written permission from Murphy Collective is prohibited.*

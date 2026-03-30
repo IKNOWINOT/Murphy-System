@@ -64,7 +64,7 @@
 | `POST` | `/api/prompt` | NL prompt → new automation (tier-enforced) |
 | `GET` | `/api/labor-cost` | ETC vs actual + monthly savings analysis |
 | `GET` | `/api/executions` | Execution log (last N) |
-| `GET` | `/api/tiers` | Pricing tiers + active automation count |
+| `GET` | `/api/tiers` | Contribution tiers + active automation count |
 | `GET` | `/api/bots/status` | All 18 bot health statuses |
 | `WS` | `/ws` | WebSocket — multicursor + live events |
 | `GET` | `/` | Serve production calendar UI |

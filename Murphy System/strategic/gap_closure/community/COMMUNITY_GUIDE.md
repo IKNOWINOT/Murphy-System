@@ -25,7 +25,7 @@ Welcome to the Murphy System community. This guide explains how to get involved,
 
 ## 1. Welcome to the Murphy System Community
 
-Murphy System is an open-core workflow intelligence platform built by Inoni LLC. The community is the engine behind its growth — every plugin, bug report, documentation fix, and feature idea makes the platform better for every user.
+Murphy System is an open-core workflow intelligence platform built by Murphy Collective. The community is the engine behind its growth — every plugin, bug report, documentation fix, and feature idea makes the platform better for every user.
 
 **What the community builds together:**
 
@@ -248,7 +248,7 @@ Plugins are assigned a `ConnectorCategory` at development time. The marketplace 
 |-------------|--------------|----------------------------------------------------------------------------------|
 | Community   | ⭐ Community  | Passes `PluginValidator`, has tests, is listed in the registry                   |
 | Verified    | ✅ Verified   | ≥ 90% test coverage, complete docs, active maintenance, security review passed   |
-| Official    | 🏅 Official   | Maintained by Inoni LLC or a certified partner, SLA and support guarantees       |
+| Official    | 🏅 Official   | Maintained by Murphy Collective or a certified partner, SLA and support guarantees       |
 
 ### Plugin discovery
 
@@ -359,7 +359,7 @@ Murphy System follows a **BDFL with delegated authority** governance model.
 
 ### BDFL (Benevolent Dictator For Life)
 
-The BDFL is the founder and lead maintainer of Murphy System at Inoni LLC. The BDFL holds final decision-making authority on questions of project direction, breaking changes, and governance policy.
+The BDFL is the founder and lead maintainer of Murphy System at Murphy Collective. The BDFL holds final decision-making authority on questions of project direction, breaking changes, and governance policy.
 
 ### Core Team
 

@@ -2,7 +2,7 @@
 
 **Comprehensive testing documentation and coverage analysis**
 
-**License:** BSL 1.1 — *Copyright © 2020 Inoni LLC · Creator: Corey Post*
+**License:** BSL 1.1 — *Copyright © 2020 Murphy Collective · Creator: Corey Post*
 
 ---
 
@@ -318,4 +318,4 @@ manipulation per the import strategy).
 
 ---
 
-*Copyright © 2020 Inoni LLC · Creator: Corey Post · License: BSL 1.1*
+*Copyright © 2020 Murphy Collective · Creator: Corey Post · License: BSL 1.1*

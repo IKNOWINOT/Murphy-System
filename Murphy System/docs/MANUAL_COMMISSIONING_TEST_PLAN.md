@@ -1303,7 +1303,7 @@ curl -s http://localhost:8000/api/diagnostics/activation/last | python3 -m json.
 **Expected Result:**
 - The page loads with a dark neon theme.
 - The hero section shows "Murphy System" title with version badge.
-- Sections visible: Live stats bar, module grid, capabilities, pricing tiers, community links.
+- Sections visible: Live stats bar, module grid, capabilities, contribution tiers, community links.
 
 - [ ] **PASS** / **FAIL**
 

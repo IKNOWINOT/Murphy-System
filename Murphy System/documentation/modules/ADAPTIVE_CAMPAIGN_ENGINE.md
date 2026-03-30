@@ -9,7 +9,7 @@
 ## Overview
 
 The Adaptive Campaign Engine (ACE) manages marketing campaigns that
-continuously self-optimise to fill every pricing tier.  When traction
+continuously self-optimise to fill every contribution tier.  When traction
 falls below configurable thresholds the engine automatically adjusts
 channel mix, target demographics, and messaging.  Large paid-advertising
 spend requires **human-in-the-loop (HITL) founder approval** before
@@ -54,7 +54,7 @@ The main orchestrator.
 
 | Method | Description |
 |--------|-------------|
-| `bootstrap_campaigns(tiers)` | Creates one active campaign per pricing tier |
+| `bootstrap_campaigns(tiers)` | Creates one active campaign per contribution tier |
 | `record_metrics(campaign_id, metrics)` | Ingests performance data for a campaign |
 | `evaluate_traction(campaign_id)` | Checks if traction is below threshold; returns `TractionStatus` |
 | `auto_adjust(campaign_id, reason)` | Applies organic adjustments; publishes `CAMPAIGN_ADJUSTED` event |

@@ -1,6 +1,6 @@
 # Compliance Roadmap — Murphy System
 
-**Prepared by:** Corey Post, Inoni LLC  
+**Prepared by:** Corey Post, Murphy Collective  
 **Last Updated:** 2026-03-05  
 **Status:** DRAFT — Internal Strategic Document
 
@@ -18,7 +18,7 @@ for the Murphy System.
 
 | Work Item | Owner | Estimated Cost | Target Date |
 |-----------|-------|----------------|-------------|
-| Appoint Data Protection Officer (DPO) | Inoni LLC | $0 (internal) | 2026-05-01 |
+| Appoint Data Protection Officer (DPO) | Murphy Collective | $0 (internal) | 2026-05-01 |
 | Complete Annex III legal review (EU AI Act) | External counsel | $8,000–$15,000 | 2026-05-01 |
 | Deploy append-only gate event store (SOC 2 CC6.1) | Engineering | $2,000 (infra) | 2026-06-01 |
 | Implement RBAC middleware for gate endpoints (ISO A.9.4.1) | Engineering | $5,000 | 2026-06-15 |
@@ -81,6 +81,6 @@ for the Murphy System.
 
 ---
 
-## VERIFIED BY: Corey Post — Inoni LLC
+## VERIFIED BY: Corey Post — Murphy Collective
 
 © 2020-2026 Inoni Limited Liability Company. All rights reserved.

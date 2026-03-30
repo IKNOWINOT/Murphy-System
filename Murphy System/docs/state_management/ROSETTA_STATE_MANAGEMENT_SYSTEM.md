@@ -3,7 +3,7 @@
 
 **Document Version:** 1.0.0  
 **Branch:** `feature/rosetta-state-management`  
-**Owner:** Inoni LLC / Corey Post  
+**Owner:** Murphy Collective / Corey Post  
 **Repository:** https://github.com/IKNOWINOT/Murphy-System  
 **Runtime Scope:** `Murphy System/Murphy System/` only  
 

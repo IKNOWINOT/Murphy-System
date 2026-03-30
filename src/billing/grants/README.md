@@ -3,7 +3,7 @@
 > Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post · License: BSL 1.1
 
 Murphy System's grant, incentive, and financing infrastructure — covering both:
-- **Track A:** Murphy/Inoni LLC's own R&D grant applications (SBIR, STTR, ARPA-E, NSF, §41 R&D credit)
+- **Track A:** Murphy/Murphy Collective's own R&D grant applications (SBIR, STTR, ARPA-E, NSF, §41 R&D credit)
 - **Track B:** Customer-facing grant matching for automation project financing ($5K–$50M range)
 
 ## Architecture
@@ -38,9 +38,9 @@ src/billing/grants/
 
 **"We are the first use case always."**
 
-Inoni LLC uses the grant system to apply for its own R&D grants before shipping the capability to customers. This ensures the system works end-to-end and validates every part of the grant workflow.
+Murphy Collective uses the grant system to apply for its own R&D grants before shipping the capability to customers. This ensures the system works end-to-end and validates every part of the grant workflow.
 
-Primary grants for Inoni LLC:
+Primary grants for Murphy Collective:
 - SBIR Phase I/II (DOE, NSF) — non-dilutive R&D funding
 - STTR — university partnership R&D
 - DOE ARPA-E OPEN — transformative energy AI
@@ -115,7 +115,7 @@ GRANT_SYSTEM_ENABLED=true
 GRANT_SESSION_ENCRYPTION_KEY=     # Encryption key for tenant session data
 GRANT_MAX_SESSIONS_PER_ACCOUNT=10
 
-# Federal Prerequisites (Track A — Inoni LLC)
+# Federal Prerequisites (Track A — Murphy Collective)
 INONI_SAM_UEI=                    # Unique Entity Identifier from SAM.gov
 INONI_CAGE_CODE=                  # CAGE code
 INONI_GRANTS_GOV_USERNAME=        # Grants.gov account

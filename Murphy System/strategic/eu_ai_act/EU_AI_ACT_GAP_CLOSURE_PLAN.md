@@ -73,5 +73,5 @@ Actionable plan to close all identified gaps in Murphy System's EU AI Act (2024/
 Each gap will be tracked as a GitHub issue with the label `eu-ai-act`. Progress reviews monthly.
 
 ## Verification
-- Corey Post — Inoni LLC
+- Corey Post — Murphy Collective
 - Date: 2026-03-08

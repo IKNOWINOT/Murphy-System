@@ -25,7 +25,7 @@ TABLE OF CONTENTS
 ================================================================================
 
 Murphy System is an ambitious, ~200+ module Python-based automation platform
-created by Inoni LLC (Corey Post). It aims to be a universal automation system
+created by Murphy Collective (Corey Post). It aims to be a universal automation system
 that takes plain-English descriptions of what a user wants automated, builds
 the agents and safety gates required to do it, then runs those agents in a
 sandboxed production environment — learning from every execution.
@@ -893,6 +893,6 @@ Prepared by GitHub Copilot via recursive repository analysis.
 This document should be treated as a living specification — update it as
 gaps are closed and new requirements emerge.
 
-© 2020-2026 Inoni LLC | Murphy System | Created by Corey Post
+© 2020-2026 Murphy Collective | Murphy System | Created by Corey Post
 Analysis performed: 2026-03-09
 ```

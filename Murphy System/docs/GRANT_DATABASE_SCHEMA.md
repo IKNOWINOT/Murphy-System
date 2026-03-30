@@ -9,11 +9,11 @@
 ## Overview
 
 The grant database stores and indexes all funding opportunities relevant to Murphy System
-customers and to Inoni LLC itself. It follows a dual-track model:
+customers and to Murphy Collective itself. It follows a dual-track model:
 
 | Track | Beneficiary | Description |
 |-------|------------|-------------|
-| **Track A** | Inoni LLC | Murphy itself applies for R&D grants (SBIR, STTR, ARPA-E, NSF, EDA) |
+| **Track A** | Murphy Collective | Murphy itself applies for R&D grants (SBIR, STTR, ARPA-E, NSF, EDA) |
 | **Track B** | Murphy customers | Customers apply for project-level incentives (§48 ITC, C-PACE, NYSERDA, etc.) |
 
 ---

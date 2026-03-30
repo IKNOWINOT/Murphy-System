@@ -98,5 +98,5 @@ gap_closure/
 
 ---
 
-> **VERIFIED BY: Corey Post — Inoni LLC**  
+> **VERIFIED BY: Corey Post — Murphy Collective**  
 > All capabilities assessed, all gaps closed, 150% readiness achieved.

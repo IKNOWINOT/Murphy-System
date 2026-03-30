@@ -3,7 +3,7 @@
 **Document Version:** 1.0.0  
 **Runtime Scope:** repository root only  
 **Storage Path:** `.murphy_persistence/rosetta/<agent_id>.json`  
-**Owner:** Inoni LLC / Corey Post  
+**Owner:** Murphy Collective / Corey Post  
 
 ---
 
@@ -32,7 +32,7 @@ A Rosetta document is the **single source of truth** for an agent's current stat
     "agent_role": "string — human-readable role name (e.g. 'Engineering Bot', 'Triage Bot')",
     "agent_class": "string — class name from bots/ or src/ (e.g. 'EngineeringBot')",
     "authority_band": "string — NONE | LOW | MEDIUM | HIGH | CRITICAL (from AgentDescriptor)",
-    "owner": "string — 'Inoni LLC / Corey Post'",
+    "owner": "string — 'Murphy Collective / Corey Post'",
     "schema_version": "string — '1.0.0'",
     "created_at": "ISO-8601 datetime — when this document was first created",
     "last_updated": "ISO-8601 datetime — when this document was last written"
@@ -412,7 +412,7 @@ Use this as the initial document when registering a new agent:
     "agent_role": "REPLACE_WITH_ROLE_NAME",
     "agent_class": "REPLACE_WITH_CLASS_NAME",
     "authority_band": "MEDIUM",
-    "owner": "Inoni LLC / Corey Post",
+    "owner": "Murphy Collective / Corey Post",
     "schema_version": "1.0.0",
     "created_at": "REPLACE_WITH_ISO_DATETIME",
     "last_updated": "REPLACE_WITH_ISO_DATETIME"

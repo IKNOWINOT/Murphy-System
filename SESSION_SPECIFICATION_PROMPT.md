@@ -799,7 +799,7 @@ class MatrixRoomRequest(BaseModel):
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
 | GET | `/health` | Health check |
-| GET | `/api/tiers` | Get pricing tiers |
+| GET | `/api/tiers` | Get contribution tiers |
 | GET | `/api/bots/status` | Get bot status |
 | GET | `/api/labor-cost` | Get labor cost summary |
 | GET | `/api/verticals` | List verticals |

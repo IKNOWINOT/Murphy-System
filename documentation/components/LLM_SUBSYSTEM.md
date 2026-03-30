@@ -2,7 +2,7 @@
 
 **Murphy System — LLM Controller, Integration Layer, and Key Rotation**
 
-> **Copyright © 2020–2026 Inoni LLC — Created by Corey Post  
+> **Copyright © 2020–2026 Murphy Collective — Created by Corey Post  
 > License: BSL 1.1**
 
 ---

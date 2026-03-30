@@ -1,6 +1,6 @@
 # Murphy System — Architecture Overview
 
-> Updated: automatically maintained · License: BSL 1.1 · © 2020 Inoni LLC
+> Updated: automatically maintained · License: BSL 1.1 · © 2020 Murphy Collective
 
 ## Pilot Account
 
@@ -11,7 +11,7 @@ All platform-level automations route through the canonical pilot account:
 | Email | `cpost@murphy.systems` |
 | Name | Corey Post |
 | Role | `founder_admin` |
-| Org | Inoni LLC |
+| Org | Murphy Collective |
 | HITL Level | `graduated` (auto-executes when confidence criteria met) |
 
 Config source: `src/pilot_config.py`

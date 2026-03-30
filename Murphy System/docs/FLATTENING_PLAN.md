@@ -28,4 +28,4 @@ confirms zero failures across 319+ source files and 56+ packages.
 
 ---
 
-*Murphy System v1.0 — BSL 1.1 — Inoni LLC*
+*Murphy System v1.0 — BSL 1.1 — Murphy Collective*

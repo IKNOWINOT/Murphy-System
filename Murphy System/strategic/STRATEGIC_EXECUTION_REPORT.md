@@ -1,7 +1,7 @@
 # STRATEGIC EXECUTION REPORT
 
 **Generated:** 2026-03-05T01:38:38.397703 UTC  
-**Verified by:** Corey Post — Inoni LLC  
+**Verified by:** Corey Post — Murphy Collective  
 **Overall Readiness Score:** 91.3%  
 **Exit Code:** 0 (PASS)  
 
@@ -17,7 +17,7 @@
 | Financial Compliance Demo | ✓ PASS | Screenshots to be captured during live verification — demo runner logs show 0 failures, exit code 0 |
 | Manufacturing IoT Demo | ✓ PASS | Screenshots to be captured during live verification — demo runner logs show 0 failures, exit code 0 |
 
-**VERIFIED BY: Corey Post — Inoni LLC**
+**VERIFIED BY: Corey Post — Murphy Collective**
 
 ---
 
@@ -31,7 +31,7 @@
 
 Screenshots to be captured during live verification — pytest summary shows 49/49 tests passed, elapsed ≈0.0s.
 
-**VERIFIED BY: Corey Post — Inoni LLC**
+**VERIFIED BY: Corey Post — Murphy Collective**
 
 - Overall readiness : 65.4%
 - Open gaps         : 8
@@ -41,7 +41,7 @@ Screenshots to be captured during live verification — pytest summary shows 49/
 
 Screenshots to be captured during live verification — compliance framework assessment output shows overall readiness 65.4%, 8 open gaps.
 
-**VERIFIED BY: Corey Post — Inoni LLC**
+**VERIFIED BY: Corey Post — Murphy Collective**
 
 ---
 
@@ -55,7 +55,7 @@ Screenshots to be captured during live verification — compliance framework ass
 
 Screenshots to be captured during live verification — EU AI Act conformity assessment output shows 3/9 compliant, 5 partial, 5 gaps.
 
-**VERIFIED BY: Corey Post — Inoni LLC**
+**VERIFIED BY: Corey Post — Murphy Collective**
 
 ---
 
@@ -109,7 +109,7 @@ All strategic IP, algorithms, and implementations in this directory are:
 - **Owned by:** Inoni Limited Liability Company
 - **Patent-pending:** 3 provisional applications filed 2026-03-05
 
-**VERIFIED BY: Corey Post — Inoni LLC**
+**VERIFIED BY: Corey Post — Murphy Collective**
 
 ---
 

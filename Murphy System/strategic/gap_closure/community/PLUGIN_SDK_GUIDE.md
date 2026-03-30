@@ -1015,7 +1015,7 @@ homepage: "https://github.com/your-org/your-plugin"
 |-------------|-------------|--------------------------------------------------------------|
 | Community   | ⭐           | Passes validation, tests present                             |
 | Verified    | ✅ Verified  | ≥ 90% test coverage, docs complete, maintained actively      |
-| Official    | 🏅 Official  | Maintained by Inoni LLC or a certified partner organisation  |
+| Official    | 🏅 Official  | Maintained by Murphy Collective or a certified partner organisation  |
 
 ### Marketplace categories page
 

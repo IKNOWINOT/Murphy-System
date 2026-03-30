@@ -89,7 +89,7 @@ and `MURPHY_PORT` (see `.env.example` for all configuration options).
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/orgchart/inoni-agents` | Inoni LLC agent org chart (23 agents, 8 departments, 70+ automations) |
+| `GET` | `/api/orgchart/inoni-agents` | Murphy Collective agent org chart (23 agents, 8 departments, 70+ automations) |
 
 ### Creator Moderation
 

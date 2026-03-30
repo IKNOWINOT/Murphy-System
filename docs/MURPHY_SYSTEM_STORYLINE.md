@@ -1,8 +1,8 @@
 # Murphy System — The Full Story
 
-## How the System Works: Inoni LLC Sets Up Murphy to Sell Itself
+## How the System Works: Murphy Collective Sets Up Murphy to Sell Itself
 
-*This document tells the story of Murphy System as experienced by Inoni LLC — the company
+*This document tells the story of Murphy System as experienced by Murphy Collective — the company
 that built Murphy and now uses it to sell itself. From the moment a team member opens the
 terminal, through onboarding, into building the first sales automation, and finally watching
 the system learn, protect itself, and grow. Every section maps to actual code running in the
@@ -28,13 +28,13 @@ universal control plane that loads only the engines needed for each job. It is a
 runtime that can automate content publishing, invoice processing, sales pipelines, social
 media campaigns, factory floor robotics, trading strategies, and its own self-improvement.
 
-Here is the story of what happens when Inoni LLC uses Murphy to sell Murphy.
+Here is the story of what happens when Murphy Collective uses Murphy to sell Murphy.
 
 ---
 
 ## Chapter 1: The First Encounter
 
-A team member at Inoni LLC opens the Murphy terminal. On their screen appears a
+A team member at Murphy Collective opens the Murphy terminal. On their screen appears a
 conversational interface — not a dashboard full of buttons, but a natural language chat
 window.
 
@@ -47,7 +47,7 @@ Below the greeting, the user sees links to Swagger API docs, the system dashboar
 onboarding wizard, and the web terminal — all clickable, all live. A sidebar lists available
 commands. A status indicator shows whether the backend is connected.
 
-The team member's goal: set up Murphy to automate Inoni LLC's sales pipeline — lead
+The team member's goal: set up Murphy to automate Murphy Collective's sales pipeline — lead
 generation, qualification, demo scheduling, and proposal creation — so that Murphy can
 sell itself to prospective customers.
 
@@ -81,7 +81,7 @@ The user can type "skip" to pass a question, "back" to revisit, or "review" to s
 collected answers. Help is context-aware — if the user types "help" during the interview,
 Murphy shows interview-specific navigation, not the general command list.
 
-At the end, Murphy summarizes: *"Here's what I collected: Name: Inoni LLC, Business Goal:
+At the end, Murphy summarizes: *"Here's what I collected: Name: Murphy Collective, Business Goal:
 sell the Murphy System, Use-Case: sales automation, Platforms: email and CRM, Integrations:
 auto-configure. Shall I proceed?"*
 
@@ -104,7 +104,7 @@ which automation types to enable (factory IoT, content, data, system, agent, bus
 security level, robotics integration, avatar identity, LLM provider, compliance frameworks,
 deployment mode, and sales automation.
 
-For Inoni LLC, the answers map to: organization "Inoni LLC", industry "technology", company
+For Murphy Collective, the answers map to: organization "Murphy Collective", industry "technology", company
 size "small", automation types ["business", "agent"], security level "standard", sales
 automation enabled. This activates the business automation modules
 (`trading_bot_engine`, `executive_planning_engine`, `workflow_template_marketplace`) and
@@ -120,7 +120,7 @@ industry is "technology", it also recommends `devops_bot`, `code_review_bot`, an
 Everyone gets the core modules: `config`, `module_manager`, `command_parser`,
 `conversation_handler`, `compliance_engine`, `authority_gate`, and `capability_map`.
 
-The configuration is exported as a JSON file. Murphy is now tailored to Inoni LLC's
+The configuration is exported as a JSON file. Murphy is now tailored to Murphy Collective's
 mission: selling the Murphy System itself.
 
 **What happens in the code:**
@@ -165,7 +165,7 @@ status. If a critical module is unwired, it's flagged for remediation.
 
 ## Chapter 5: The User Asks for Their First Automation
 
-The Inoni LLC team member returns to the terminal. They type:
+The Murphy Collective team member returns to the terminal. They type:
 
 **"I want to automate our sales pipeline. When a lead comes in, score them, qualify them,
 generate a personalized demo script, and create a proposal if they're qualified."**
@@ -216,7 +216,7 @@ for the automation.
 
 **Step 4: Agent Generation**
 The `AgentGenerator` creates specialized agents from templates, constrained by the compiled
-rules. For the Inoni LLC sales pipeline, it generates:
+rules. For the Murphy Collective sales pipeline, it generates:
 - **LeadScorer** — scores leads 0-100 based on company size, industry match, and interests
 - **LeadQualifier** — determines if score meets the qualification threshold (≥40)
 - **EditionRecommender** — maps company size to edition (enterprise/professional/community)
@@ -247,7 +247,7 @@ The `DomainGateGenerator` creates gates based on the system requirements, the do
 and the librarian's knowledge base. It doesn't use predefined checklists — it generates
 gates from the actual risks discovered for *this specific automation*.
 
-For the Inoni LLC sales pipeline, the gates might include:
+For the Murphy Collective sales pipeline, the gates might include:
 - **Lead Data Validation Gate** (VALIDATION type, HIGH severity): Does the lead have
   a valid email? Is the company name present? Is the industry recognized?
 - **Budget Gate** (BUSINESS type, MEDIUM severity): Will the cost of outreach stay
@@ -295,7 +295,7 @@ runs them in dependency order. `MurphyGate.evaluate()` applies threshold logic.
 The `UniversalControlPlane` analyzes the automation request and determines which execution
 engines are needed. It doesn't load everything — it loads *only what's required*.
 
-The `ControlTypeAnalyzer` classifies the Inoni LLC sales pipeline as a "content_api" control
+The `ControlTypeAnalyzer` classifies the Murphy Collective sales pipeline as a "content_api" control
 type — it processes data (lead profiles) and calls external APIs (CRM, email). The
 `EngineRegistry` maps this to two engines: the `ContentEngine` (for proposal/demo generation)
 and the `APIEngine` (for CRM and email API calls). The `SensorEngine` and `ActuatorEngine`
@@ -336,7 +336,7 @@ The execution follows a 7-phase pipeline managed by the `FormDrivenExecutor`:
 5. **COLLAPSE** — Narrow to the optimal execution path. Choose the most efficient
    sequence of actions that satisfies all constraints.
 6. **BIND** — Bind actions to concrete implementations. Map "score lead" to the
-   `SalesAutomationEngine.score_lead()` method with the Inoni LLC configuration.
+   `SalesAutomationEngine.score_lead()` method with the Murphy Collective configuration.
 7. **EXECUTE** — Run the bound actions. Lead data flows from intake through scoring
    through qualification through demo generation through proposal creation.
 
@@ -452,7 +452,7 @@ of two base classes: `AsyncBot` (for async message handling) or `HiveBot` (for d
 loaded plugins). Each bot implements a `handle(message)` method that receives a `Message`
 (sender + content) and returns a string response.
 
-For Inoni LLC's sales pipeline, the key bots include:
+For Murphy Collective's sales pipeline, the key bots include:
 
 - **`sales_outreach_bot`** — handles lead outreach emails, follow-ups, and scheduling
 - **`lead_scoring_bot`** — scores leads based on company size, industry, and interests
@@ -464,7 +464,7 @@ For Inoni LLC's sales pipeline, the key bots include:
 
 Bots are loaded dynamically via a plugin system (`load_plugin()`, `load_plugins()`,
 `reload_plugin()`). The `composite_registry.json` maps bot names to their implementations.
-When Murphy's `SetupWizard` configures the system for Inoni LLC with
+When Murphy's `SetupWizard` configures the system for Murphy Collective with
 `sales_automation_enabled=True`, it adds `SALES_BOTS` to the active bot roster.
 
 Bots don't operate independently — they're orchestrated by the `GovernanceKernel`, which
@@ -519,7 +519,7 @@ score (how much it has changed over iterations). Only verified artifacts contrib
 Higher H means more internal contradictions and semantic drift — a sign that Murphy should
 slow down and ask for human input.
 
-For Inoni LLC's sales pipeline, when Murphy scores a lead, the confidence engine computes
+For Murphy Collective's sales pipeline, when Murphy scores a lead, the confidence engine computes
 G(x) from the hypothesis coverage (did we explore multiple scoring strategies?), D(x) from
 the verified data (is the lead's company size confirmed?), and H(x) from any
 contradictions (does the lead claim to be "enterprise" but have 5 employees?).
@@ -567,7 +567,7 @@ The sigmoid weights are empirically tuned:
 The Murphy Index is normalized to [0, 1]. Higher means more risk. When M_t is high, more
 gates activate, more human oversight is required, and execution may be blocked entirely.
 
-For Inoni LLC's sales pipeline: if a lead's company data is unverified (low D), the Murphy
+For Murphy Collective's sales pipeline: if a lead's company data is unverified (low D), the Murphy
 Index spikes due to "insufficient grounding" and "high exposure" failure modes. Murphy would
 pause scoring and ask for data verification before proceeding.
 
@@ -605,7 +605,7 @@ matches, the fallback is always "deterministic" — fail safe, not fail creative
 - **Hybrid**: both sets of guardrails
 - **Universal** (all routes): timeout_enforcement, production_safety_gate
 
-For Inoni LLC's sales pipeline: lead scoring routes to deterministic (pure math), proposal
+For Murphy Collective's sales pipeline: lead scoring routes to deterministic (pure math), proposal
 text routes to LLM (creative writing), and lead qualification routes to deterministic
 (threshold comparison: score ≥ 40).
 
@@ -624,7 +624,7 @@ The `PerformanceTracker` records metrics from every run: execution time, success
 error types, resource usage. The `PatternRecognizer` analyzes these metrics using linear
 regression for trend detection and cycle detection for recurring patterns.
 
-When the Inoni LLC team provides a correction — "that lead should have been qualified" or
+When the Murphy Collective team provides a correction — "that lead should have been qualified" or
 "don't contact leads in the EU without explicit consent" — the `FeedbackSystem` captures it
 with a type tag (CORRECTION, SUGGESTION, BUG_REPORT, FEATURE_REQUEST, PRAISE). The
 `FeedbackValidator` checks quality. The `FeedbackAnalyzer` categorizes patterns.
@@ -684,7 +684,7 @@ knowledge. `ResponseComposer.compose()` builds verified-facts-only responses.
 
 ## Chapter 18: The User Sees Results
 
-Back in the terminal, the Inoni LLC team member sees:
+Back in the terminal, the Murphy Collective team member sees:
 
 > ✓ Automation "inoni-sales-pipeline" created and executed successfully.
 > — 5 new leads scored and qualified
@@ -789,7 +789,7 @@ documents, execute, and write results back. The LLM accelerates but never govern
 
 ## Chapter 21: Avatar Sessions Coin-Join with Agent Calls via Streaming
 
-When Inoni LLC demos Murphy to a prospect, the system doesn't just show slides — it
+When Murphy Collective demos Murphy to a prospect, the system doesn't just show slides — it
 runs a **live avatar session** that coin-joins with agent execution in real time. The
 avatar speaks, the agents execute, and the prospect sees both on a shared screen.
 
@@ -802,7 +802,7 @@ running across the org.
 The avatar pipeline has four stages:
 
 1. **Persona Injection** — `PersonaInjector` loads the avatar's personality, vocabulary,
-   and behavioral boundaries from the org chart. The avatar for Inoni LLC's sales demos
+   and behavioral boundaries from the org chart. The avatar for Murphy Collective's sales demos
    speaks confidently about automation but defers technical architecture questions to a
    human engineer.
 
@@ -843,7 +843,7 @@ within the same streaming session. The prospect sees Murphy working, not just ta
 
 ## Chapter 22: Shadow Agents and the Org Chart
 
-Every role in Inoni LLC's org chart has a **shadow agent** — a passive learning entity
+Every role in Murphy Collective's org chart has a **shadow agent** — a passive learning entity
 that watches how the role operates, learns patterns, and can eventually propose
 automations or substitutions when the role holder is unavailable.
 
@@ -935,7 +935,7 @@ The `ZeroTrustAccessController` in `security_plane/access_control` enforces this
   on threat level. During normal operation, monitoring is standard. When anomalies spike,
   the system tightens access controls, increases logging verbosity, and alerts humans.
 
-For Inoni LLC's sales pipeline: lead PII (emails, phone numbers) is classified as
+For Murphy Collective's sales pipeline: lead PII (emails, phone numbers) is classified as
 sensitive by the `SensitiveDataClassifier`. The `DataLeakPreventionSystem` ensures lead
 data never leaves the sandbox. The `BotIdentityVerifier` confirms that only the
 authorized `sales_outreach_bot` can access lead contact information.
@@ -988,7 +988,7 @@ stability drops, confidence drops, and gates tighten automatically.
 - `StateVariables` maintain the RSC's own internal state
 - `RSCTelemetry` exports stability metrics to the observability stack
 
-For Inoni LLC: when the `SelfAutomationOrchestrator` discovers a gap and spawns agents
+For Murphy Collective: when the `SelfAutomationOrchestrator` discovers a gap and spawns agents
 to fix it, the RSC ensures the fix doesn't spawn more fixes in an infinite loop. The
 `SpawnRateController` caps recursion depth. The `LyapunovMonitor` detects divergence.
 The `GateDampingController` prevents oscillating gate decisions.
@@ -1041,7 +1041,7 @@ system detects the cycle. The `CircularDependencyDetector` maps assumption depen
 The `SelfValidationBlocker` prevents an assumption from validating itself. The
 `ValidationSourceTracker` ensures every validation comes from an independent source.
 
-For Inoni LLC: when a human corrects a lead scoring assumption ("retail companies
+For Murphy Collective: when a human corrects a lead scoring assumption ("retail companies
 actually do want CI/CD automation"), the `InvalidationDetector` finds all leads scored
 under the old assumption, the `ConfidenceDecayer` reduces their confidence scores, and
 the `ReExpansionTrigger` re-queues them for re-scoring. The anti-recursion system

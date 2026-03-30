@@ -1,6 +1,6 @@
 # Open Source Strategy — Murphy System
 
-**Prepared by:** Corey Post, Inoni LLC  
+**Prepared by:** Corey Post, Murphy Collective  
 **Last Updated:** 2026-03-05  
 **Status:** APPROVED — Internal Strategic Document
 
@@ -102,6 +102,6 @@ revenue.
 
 ---
 
-## VERIFIED BY: Corey Post — Inoni LLC
+## VERIFIED BY: Corey Post — Murphy Collective
 
 © 2020-2026 Inoni Limited Liability Company. All rights reserved.

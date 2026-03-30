@@ -24,11 +24,11 @@ fidelity. All 34 operational scenarios passed. The divergences identified are st
 
 ## Chapter-by-Chapter Findings
 
-### Chapter 3: Setup Wizard — Inoni LLC Configuration
+### Chapter 3: Setup Wizard — Murphy Collective Configuration
 
 | Scenario | Expected | Actual | Status |
 |----------|----------|--------|--------|
-| Organization name | "Inoni LLC" | "Inoni LLC" | ✅ MATCH |
+| Organization name | "Murphy Collective" | "Murphy Collective" | ✅ MATCH |
 | Industry | "technology" | "technology" | ✅ MATCH |
 | Sales automation | enabled | enabled | ✅ MATCH |
 | Core modules | all present | all present | ✅ MATCH |
@@ -61,7 +61,7 @@ with Chapter 2's `_infer_value()` pattern.
 
 | Scenario | Expected | Actual | Status |
 |----------|----------|--------|--------|
-| Default company | "Inoni LLC" | "Inoni LLC" | ✅ MATCH |
+| Default company | "Murphy Collective" | "Murphy Collective" | ✅ MATCH |
 | Default product | "Murphy System" | "Murphy System" | ✅ MATCH |
 | Enterprise tech lead (score) | 80 | 80 | ✅ MATCH |
 | Medium tech lead (qualified) | True (score=55) | True (score=55) | ✅ MATCH |

@@ -31,10 +31,11 @@ Murphy is a structural answer to that problem:
 
 | If you... | You get... |
 |---|---|
-| Use Murphy (agent trains on your workflow) | Free access — your activity is your contribution |
-| Publish workflows or automations others use | Social income from the Community Treasury |
-| Do Member Validation work | Compensation from the Treasury |
-| Use Murphy commercially without contributing | Pay a usage fee (funds the Treasury) |
+| Use Murphy (agent trains on your workflow) | Free access — your activity is your contribution (backed by a signed agent contract) |
+| Publish workflows or automations others use | Social income from the Community Treasury (royalty-pooled below 0.001% threshold) |
+| Do Member Validation work | Compensation from the Treasury — same hourly rate regardless of credential tier |
+| Use Murphy commercially without contributing | Pay a usage fee (funds the Treasury) — the opt-out from contributing is payment, not silence |
+| Lose your device | Social recovery via N-of-M trusted co-signers — the collective is your backup |
 
 ---
 

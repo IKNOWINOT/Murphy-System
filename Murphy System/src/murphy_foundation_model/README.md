@@ -68,4 +68,4 @@ print(stats)  # {"train": 800, "validation": 100, "test": 100}
 
 ## License
 
-BSL 1.1 — Copyright © 2020-2026 Inoni LLC — Created by Corey Post
+BSL 1.1 — Copyright © 2020-2026 Murphy Collective — Created by Corey Post

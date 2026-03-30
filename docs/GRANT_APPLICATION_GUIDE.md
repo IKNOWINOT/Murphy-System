@@ -225,7 +225,7 @@ Sessions persist until explicitly deleted or archived (90-day inactivity limit).
 
 ## Prerequisites (Inoni / Track A)
 
-Track A applications require Inoni LLC to complete federal registrations first.
+Track A applications require Murphy Collective to complete federal registrations first.
 Check status at:
 
 ```

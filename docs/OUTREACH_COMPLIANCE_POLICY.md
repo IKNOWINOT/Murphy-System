@@ -16,7 +16,7 @@
 
 ## Purpose
 
-Murphy System automates outreach and marketing on behalf of Inoni LLC and platform customers.
+Murphy System automates outreach and marketing on behalf of Murphy Collective and platform customers.
 This policy defines the hard rules that govern ALL automated outreach.
 
 These rules are enforced in code by the `OutreachComplianceGate` (COMPL-002) integration

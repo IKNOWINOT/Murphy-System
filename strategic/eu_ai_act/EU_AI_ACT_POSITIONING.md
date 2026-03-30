@@ -1,6 +1,6 @@
 # EU AI Act — Murphy System Market Positioning
 
-**Prepared by:** Corey Post, Inoni LLC  
+**Prepared by:** Corey Post, Murphy Collective  
 **Last Updated:** 2026-03-05  
 **Regulation:** EU AI Act 2024/1689 (entered into force 2024-08-01)
 
@@ -101,6 +101,6 @@ phase-locked weights become maximally conservative at EXECUTE phase.
 
 ---
 
-## VERIFIED BY: Corey Post — Inoni LLC
+## VERIFIED BY: Corey Post — Murphy Collective
 
 © 2020-2026 Inoni Limited Liability Company. All rights reserved.
