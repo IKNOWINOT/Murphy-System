@@ -75,7 +75,7 @@
 
 ## 2.1 System Purpose
 
-The Murphy System is a full-stack automation platform designed to provide intelligent workflow automation with Human-in-the-Loop (HITL) safety mechanisms. The system operates across 10 verticals: marketing, proposals, crm, monitoring, finance, security, content, comms, pipeline, and industrial.
+The Murphy System is a full-stack automation commons designed to provide intelligent community workflow with Member Validation (HITL) safety mechanisms. The system operates across 10 verticals: marketing, proposals, crm, monitoring, finance, security, content, comms, pipeline, and industrial.
 
 ## 2.2 Core Architectural Components
 
