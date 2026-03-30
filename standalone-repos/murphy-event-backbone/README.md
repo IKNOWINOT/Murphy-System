@@ -7,7 +7,19 @@
 
 **Durable in-process event bus with pub/sub, circuit breakers, dead letter queue, and retry. Zero dependencies.**
 
-A production-grade event backbone extracted from the [Murphy System](https://github.com/IKNOWINOT/Murphy-System) — battle-tested for autonomous AI agent workflows. Drop it into any Python project that needs reliable in-process event routing.
+A feature-rich event backbone extracted from the [Murphy System](https://github.com/IKNOWINOT/Murphy-System) — an actively-developed AI agent platform currently in alpha. Drop it into any Python project that needs reliable in-process event routing.
+
+---
+
+## Status / Maturity
+
+**Alpha.** This library is extracted from [Murphy System](https://github.com/IKNOWINOT/Murphy-System), which is under active development and has not yet reached a stable production release. The core API works and the tests cover real edge cases, but expect things to evolve.
+
+- The core API (`publish`, `subscribe`, `process_pending`, circuit breakers, DLQ) is stable enough to build on
+- Configuration options and edge-case behaviour may change between minor versions
+- Feedback, bug reports, and pull requests are very welcome — your use cases directly shape the next iteration
+
+> Hit a rough edge? Please [open an issue](https://github.com/IKNOWINOT/Murphy-System/issues). Community input is how this gets better.
 
 ---
 
@@ -194,7 +206,25 @@ bb.subscribe("system.backpressure", lambda e: alert_ops(e.payload))
 
 `murphy-event-backbone` is extracted from the [Murphy System](https://github.com/IKNOWINOT/Murphy-System) — an autonomous AI agent platform for business operations. The Murphy System uses this backbone to coordinate events across 20+ internal services including the confidence engine, supervisor system, HITL monitor, and fleet manager.
 
-The extraction philosophy: production code extracted from a real system, with real tests, real edge cases, and a zero-dependency constraint so it fits anywhere.
+The extraction philosophy: code lifted from actively-evolving alpha-stage software — real tests, real edge cases, and a zero-dependency constraint so it fits anywhere. It's not a toy project, but it's also not finished; it grows as Murphy System grows.
+
+### Current scope and roadmap
+
+Today the backbone is designed for **intra-process / intra-node** coordination — everything runs inside a single Python process using threads. That's the right starting point for most use cases and the niche that's genuinely underserved in the Python ecosystem.
+
+Multi-process coordination (agent swarms, multi-cursor workflows, fleet workers) is a natural next step for Murphy System's architecture. IPC support (Unix sockets, shared memory) is a potential future direction. The library won't try to replace Kafka or RabbitMQ for cross-node messaging, but inter-process coordination within a single node is in scope for future iterations.
+
+---
+
+## Contributing / Feedback
+
+This project is at an early stage and community input shapes its direction. If you:
+
+- find a bug or rough edge — [open an issue](https://github.com/IKNOWINOT/Murphy-System/issues)
+- have a use case that doesn't fit the current API — describe it in an issue; that's the best way to influence the design
+- want to contribute code — PRs are welcome; please open an issue first to discuss larger changes
+
+The goal is consensus: building something the Python community finds genuinely useful, not shipping a product. If the API feels wrong for your use case, that's useful signal.
 
 ---
 
