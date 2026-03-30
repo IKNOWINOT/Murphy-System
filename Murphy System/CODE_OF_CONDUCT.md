@@ -1,4 +1,4 @@
-# Code of Conduct
+# Code of Conduct — A Collective Agreement
 
 <!--
   Copyright © 2020 Inoni Limited Liability Company
@@ -8,13 +8,29 @@
 
 **License:** BSL 1.1 — *Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post*
 
+> This document is a **collective agreement** authored and maintained by the
+> Murphy community. It is not a corporate policy imposed from above — it is a
+> living commitment that every member helps shape and uphold. Changes to this
+> agreement follow the same consensus process described within it.
+
 ---
 
 ## Our Pledge
 
-We as members, contributors, and leaders pledge to make participation in our community a harassment-free experience for everyone, regardless of age, body size, visible or invisible disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, caste, color, religion, or sexual identity and orientation.
+We as members, contributors, and stewards pledge to make participation in our community a harassment-free experience for everyone, regardless of age, body size, visible or invisible disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, caste, color, religion, or sexual identity and orientation.
 
 We pledge to act and interact in ways that contribute to an open, welcoming, diverse, inclusive, and healthy community.
+
+---
+
+## Collective Values
+
+The Murphy community is grounded in the following shared principles:
+
+* **Co-ownership** — Every member has a stake in the project's direction. Contributions of code, documentation, design, testing, and community support are equally valued.
+* **Mutual respect** — We treat each other as peers. Titles and tenure do not override the merit of an idea or the dignity of a person.
+* **Knowledge commons** — We share what we learn. Documentation, decisions, and discussions are kept open so that all members can participate fully and future members can understand past choices.
+* **Solidarity** — We support each other through disagreements, mistakes, and growth. A healthy community prioritizes people alongside progress.
 
 ---
 
@@ -38,11 +54,42 @@ Examples of unacceptable behavior include:
 
 ---
 
+## Collective Governance
+
+### Consensus Decision-Making
+
+Significant decisions affecting the project — including changes to this agreement, governance structures, roadmap priorities, and community policies — are made through **consensus**, not unilateral authority.
+
+* **Proposals** are discussed openly where all members can participate (GitHub Discussions, community calls, or designated channels).
+* **Consensus** means that no member with a substantive objection is overridden without a good-faith effort to address their concern. Silence after a reasonable comment period is treated as assent.
+* When full consensus cannot be reached, a **supermajority (two-thirds)** of active members participating in the discussion may approve the proposal, provided dissenting views are recorded alongside the decision.
+
+### Community Proposals
+
+Any member may submit a formal proposal for changes to governance, policy, or project direction:
+
+1. **Draft** — Open a proposal issue or discussion using the community proposal template.
+2. **Comment period** — Allow at least seven (7) calendar days for community review and feedback.
+3. **Revision** — Incorporate feedback and revise the proposal in good faith.
+4. **Decision** — The community reaches consensus or, failing that, proceeds to a supermajority vote among active members.
+5. **Record** — All accepted proposals and their rationale are documented in the project's decision log.
+
+### Steward Accountability
+
+Community stewards (maintainers, moderators, and anyone holding delegated authority) serve at the community's discretion:
+
+* Stewards are **accountable to the membership**, not the reverse. Their authority is delegated, not inherent.
+* Any member may raise a concern about a steward's conduct through the same enforcement process described below.
+* Steward roles are reviewed periodically (at minimum annually) by the community. Members may call for a review at any time through the proposal process.
+* Stewards must act transparently: moderation actions, policy decisions, and use of privileged access should be documented and explainable.
+
+---
+
 ## Enforcement Responsibilities
 
-Community leaders are responsible for clarifying and enforcing our standards of acceptable behavior and will take appropriate and fair corrective action in response to any behavior that they deem inappropriate, threatening, offensive, or harmful.
+Community stewards are responsible for clarifying and enforcing our standards of acceptable behavior and will take appropriate and fair corrective action in response to any behavior that they deem inappropriate, threatening, offensive, or harmful.
 
-Community leaders have the right and responsibility to remove, edit, or reject comments, commits, code, wiki edits, issues, and other contributions that are not aligned to this Code of Conduct, and will communicate reasons for moderation decisions when appropriate.
+Community stewards have the right and responsibility to remove, edit, or reject comments, commits, code, wiki edits, issues, and other contributions that are not aligned to this Code of Conduct, and will communicate reasons for moderation decisions when appropriate.
 
 ---
 
@@ -54,23 +101,23 @@ This Code of Conduct applies within all community spaces, and also applies when 
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement at **conduct@inoni.io**.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community stewards responsible for enforcement at **conduct@inoni.io**.
 
 All complaints will be reviewed and investigated promptly and fairly.
 
-All community leaders are obligated to respect the privacy and security of the reporter of any incident.
+All community stewards are obligated to respect the privacy and security of the reporter of any incident.
 
 ---
 
 ## Enforcement Guidelines
 
-Community leaders will follow these Community Impact Guidelines in determining the consequences for any action they deem in violation of this Code of Conduct:
+Community stewards will follow these Community Impact Guidelines in determining the consequences for any action they deem in violation of this Code of Conduct:
 
 ### 1. Correction
 
 **Community Impact:** Use of inappropriate language or other behavior deemed unprofessional or unwelcome in the community.
 
-**Consequence:** A private, written warning from community leaders, providing clarity around the nature of the violation and an explanation of why the behavior was inappropriate. A public apology may be requested.
+**Consequence:** A private, written warning from community stewards, providing clarity around the nature of the violation and an explanation of why the behavior was inappropriate. A public apology may be requested.
 
 ### 2. Warning
 

@@ -1,6 +1,50 @@
-# Murphy System 1.0
+# Murphy — A Collectively Owned Automation Commons
 
-**Universal AI Automation System**
+Murphy is not a product you buy. It is infrastructure you co-own.
+
+Built on the principle that **human knowledge belongs to humanity**, Murphy
+inverts the standard AI platform model: instead of extracting your workflow
+to train someone else's model, Murphy trains *your* agent on *how you work* —
+and that agent belongs to you.
+
+The collective is the platform. Your contribution is the currency.
+Your agent is your identity, your wallet, and your gateway.
+
+---
+
+## Why This Exists
+
+Every AI system trained on human work extracts value from the labor,
+discovery, and accumulated knowledge of billions of ancestors.
+That value has historically flowed upward — to companies, to investors,
+to shareholders.
+
+Murphy is a structural answer to that problem:
+- Knowledge that took all of humanity to build should generate income for humanity
+- Individual workflow and decision-making patterns are individual IP, not platform data
+- Validation and oversight (Member Validation) is skilled labor and should be compensated as such
+- Governance belongs to the people using the system, not the people who built it first
+
+---
+
+## How Access Works
+
+| If you... | You get... |
+|---|---|
+| Use Murphy (agent trains on your workflow) | Free access — your activity is your contribution |
+| Publish workflows or automations others use | Social income from the Community Treasury |
+| Do Member Validation work | Compensation from the Treasury |
+| Use Murphy commercially without contributing | Pay a usage fee (funds the Treasury) |
+
+---
+
+## What Murphy Is
+
+Murphy is a **complete, member-governed automation system** that can coordinate
+any workflow — from personal task automation to community infrastructure to
+institutional process management.
+
+The technical capabilities haven't changed. The ownership model has.
 
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10+-yellow.svg)](https://www.python.org/) [![CI](https://github.com/IKNOWINOT/Murphy-System/actions/workflows/ci.yml/badge.svg)](https://github.com/IKNOWINOT/Murphy-System/actions/workflows/ci.yml) [![Tests](https://img.shields.io/badge/tests-24341%20defined-brightgreen.svg)](#-test-status)
 
@@ -12,7 +56,7 @@
 > developed and maintained by a **single developer** ([@IKNOWINOT](https://github.com/IKNOWINOT)).
 > While the architecture is comprehensive and the test suite covers thousands of
 > functions, **not everything works as intended**. Emergent bugs are still being
-> discovered and classified across the 1,100+ module surface area.
+> discovered and classified across the 1,182+ module surface area.
 >
 > **What this means for you:**
 >
@@ -29,37 +73,31 @@
 > - 🤝 **Contributions welcome** — see [CONTRIBUTING.md](CONTRIBUTING.md).
 >
 > **Bottom line:** This system is genuinely powerful — it can automate an entire
-> business stack from intake to delivery, manage SCADA/industrial systems,
+> workflow stack from intake to delivery, manage SCADA/industrial systems,
 > orchestrate content creation pipelines, and run AI agent swarms. Review and
 > configure credentials before production deployment.
 
 ---
 
-## 🎯 What is Murphy?
+## 🎯 Key Features
 
-Murphy is a **complete, operational AI automation system** that can automate any business type, including its own operations. It requires security hardening before production deployment.
-
-### Key Features
-
-✅ **Describe → Execute** - Tell Murphy what you want in plain English; it builds the plan, governs it, and runs it  
-✅ **Universal Automation** - Automate anything (factory, content, data, system, agent, business)  
+✅ **Describe → Validate → Govern → Execute** - Tell Murphy what you want in plain English; it builds the plan, validates it through community consensus, and runs it  
+✅ **Universal Automation** - Automate anything (factory, content, data, system, agent, community workflow)  
 ✅ **Self-Integration** - Add GitHub repos, APIs, hardware automatically  
-✅ **Self-Improvement** - Learns from corrections, trains shadow agent  
-✅ **Self-Operation** - Runs Inoni LLC autonomously  
-✅ **Human-in-the-Loop** - Safety approval for all integrations  
+✅ **Self-Improvement** - Learns from corrections, trains personal agent  
+✅ **Member Validation (community consensus gate)** - Safety approval for all integrations  
 ✅ **Wingman Protocol** - Executor/validator pairing for every task  
 ✅ **Causality Sandbox** - What-if scenario simulation and causal reasoning  
-✅ **HITL Graduation** - Structured human-to-automation handoff pipeline  
+✅ **Validation Handoff — community to automation** - Structured community-to-automation handoff pipeline  
 ✅ **Orchestrators** - Safety, efficiency, and supply chain orchestration  
 ✅ **Container Deployment** - Docker and Kubernetes configs included (security hardening required before production)
-✅ **Permutation Calibration** - Learn optimal information ordering for each domain ([docs](docs/PERMUTATION_CALIBRATION.md))
 
-> **Recently added:** Permutation Calibration System (Mode A exploration → Mode B procedural execution with drift detection), Room LLM Brain (MSS-aligned MAGNIFY/SIMPLIFY/SOLIDIFY in every room), World Knowledge Calibrator (algebraic sensor anchors), Agentic Communications Router (agent-to-agent messaging), Bot Room Registry (multi-room persona mapping), Rosetta Platform State (3-layer platform/agent/combined copy system), Optimal Routing Wiring (Triage→Librarian→Causality→Rubix→GoldenPath pipeline), Room Cognitive Roles (MSS role per room)  
+> **Recently added:** Room LLM Brain (MSS-aligned MAGNIFY/SIMPLIFY/SOLIDIFY in every room), World Knowledge Calibrator (algebraic sensor anchors), Agentic Communications Router (agent-to-agent messaging), Bot Room Registry (multi-room persona mapping), Rosetta Platform State (3-layer platform/agent/combined copy system), Optimal Routing Wiring (Triage→Librarian→Causality→Rubix→GoldenPath pipeline), Room Cognitive Roles (MSS role per room)  
 > **Coming in #136:** Drawing Engine, Credential Gate, Sensor Fusion, Osmosis Engine, Autonomous Perception, Wingman Evolution, Engineering Toolbox
 
 ---
 
-## 🗣️ How It Works: Describe → Execute → Refine
+## 🗣️ How It Works: Describe → Validate → Govern → Execute
 
 Murphy's hero flow inverts the traditional automation paradigm — you describe what you want; Murphy builds it.
 
@@ -76,7 +114,7 @@ Murphy uses [`ai_workflow_generator.py`](src/ai_workflow_generator.py) to conver
 **📖 For comprehensive documentation on voice/typed command automation, see:**
 - [Generative Automation Presets](documentation/features/GENERATIVE_AUTOMATION_PRESETS.md) — Complete guide to natural language workflow generation, industry presets, role-based execution, and human-in-the-loop governance
 
-See the full [Roadmap](ROADMAP.md) for the sprint plan that takes this from prototype to production.
+See the full [Roadmap](ROADMAP.md) for the collective milestones.
 
 ---
 
@@ -224,7 +262,7 @@ Murphy-System/
     ├── scripts/                        ← Operational scripts
     ├── *.html                          ← 14 web interfaces (12 active + 2 legacy redirects)
     ├── USER_MANUAL.md                  ← Comprehensive user manual
-    ├── BUSINESS_MODEL.md               ← Open-core editions
+    ├── BUSINESS_MODEL.md               ← Collective economic model
     ├── README.md, API_DOCUMENTATION.md, DEPLOYMENT_GUIDE.md
     └── Dockerfile, docker-compose.yml  ← Container deployment
 ```
@@ -256,7 +294,7 @@ bash setup_and_start.sh
 - Self-improvement engine with pattern extraction and confidence calibration
 - Operational SLO tracking (success rates, latency percentiles)
 - Compliance validation (GDPR/SOC 2/HIPAA/PCI-DSS) with regional support
-- RBAC governance with shadow agent integration
+- RBAC governance with personal agent integration
 - Per-request ownership verification and session context enforcement
 - PII detection and automated log sanitization (8 pattern types)
 - Per-bot and per-swarm resource quotas with auto-suspension
@@ -289,7 +327,7 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | Subsystem | Primary Module | Notes |
 | --- | --- | --- |
 | **Gate + Confidence** | `src/confidence_engine/` | G/D/H + 5D uncertainty |
-| **Learning + Corrections** | `src/learning_engine/` | Shadow agent training pipeline |
+| **Learning + Corrections** | `src/learning_engine/` | Personal agent training pipeline |
 | **Integration Engine** | `src/integration_engine/` | GitHub ingestion + HITL approvals |
 | **Swarm System** | `src/true_swarm_system.py` | Dynamic swarm generation (wiring ongoing) |
 | **Governance** | `src/governance_framework/` | Scheduler + authority bands |
@@ -302,7 +340,7 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Automation Scheduler** | `src/automation_scheduler.py` | Multi-project priority scheduling + load balancing |
 | **Capability Map** | `src/capability_map.py` | AST-based module inventory, gap analysis, remediation |
 | **Compliance Engine** | `src/compliance_engine.py` | GDPR/SOC2/HIPAA/PCI-DSS sensors, HITL approvals |
-| **RBAC Governance** | `src/rbac_governance.py` | Multi-tenant RBAC, shadow agent governance |
+| **RBAC Governance** | `src/rbac_governance.py` | Multi-tenant RBAC, personal agent governance |
 | **Ticketing Adapter** | `src/ticketing_adapter.py` | ITSM lifecycle, remote access, patch/rollback |
 | **Wingman Protocol** | `src/wingman_protocol.py` | Executor/validator pairing, deterministic validation |
 | **Runtime Profile Compiler** | `src/runtime_profile_compiler.py` | Onboarding-to-profile, safety/autonomy controls |
@@ -311,7 +349,7 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Durable Swarm Orchestrator** | `src/durable_swarm_orchestrator.py` | Budget-aware swarms, idempotency, circuit breaker |
 | **Golden Path Bridge** | `src/golden_path_bridge.py` | Execution path capture, replay, similarity matching |
 | **Org Chart Enforcement** | `src/org_chart_enforcement.py` | Role-bound permissions, escalation chains, cross-dept arbitration |
-| **Shadow Agent Integration** | `src/shadow_agent_integration.py` | Shadow-agent org-chart parity, account/user controls |
+| **Personal Agent Integration** | `src/shadow_agent_integration.py` | Personal-agent org-chart parity, account/member controls |
 | **Triage Rollcall Adapter** | `src/triage_rollcall_adapter.py` | Capability rollcall before swarm expansion, candidate ranking |
 | **Rubix Evidence Adapter** | `src/rubix_evidence_adapter.py` | Deterministic evidence lane: CI, Bayesian, Monte Carlo, forecast |
 | **Semantics Boundary Controller** | `src/semantics_boundary_controller.py` | Belief-state, risk/CVaR, RVoI questions, invariance, verification-feedback |
@@ -364,7 +402,7 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 
 ### 1\. Universal Automation
 
-Murphy can automate **any business type** once the relevant integrations/adapters are configured:
+Murphy can automate **any workflow type** once the relevant integrations/adapters are configured:
 
 | Type | Examples | Use Cases |
 | --- | --- | --- |
@@ -422,7 +460,7 @@ POST /api/corrections/submit
 # Murphy will:
 # 1. Capture correction ✅
 # 2. Extract patterns ✅
-# 3. Train shadow agent ✅
+# 3. Train personal agent ✅
 # 4. Improve future performance ✅
 ```
 
@@ -430,14 +468,14 @@ POST /api/corrections/submit
 
 ### 4\. Self-Operation
 
-Murphy **runs Inoni LLC autonomously** via configurable automation templates:
+Murphy **can run its own operations autonomously** via configurable automation templates:
 
 | Engine | Capabilities | Notes |
 | --- | --- | --- |
 | **Sales** | Lead gen, qualification, outreach | Automated workflows included |
 | **Marketing** | Content, social media, SEO | Content automation support |
 | **R&D** | Bug detection, fixes, deployment | R&D automation hooks |
-| **Business** | Finance, support, project mgmt | Workflow templates included |
+| **Operations** | Finance, support, project mgmt | Workflow templates included |
 | **Production** | Releases, QA, monitoring | Release/monitoring automation |
 
 **The Meta-Case:** Murphy improves Murphy (R&D engine fixes Murphy's bugs automatically).
@@ -488,7 +526,7 @@ Murphy **runs Inoni LLC autonomously** via configurable automation templates:
 | **Original Runtime** | Base Murphy system | Hundreds of Python files |
 | **Phase 1-5** | Forms, validation, correction, learning | Dozens of files |
 | **Control Plane** | Universal automation engine | 7 engines |
-| **Business Automation** | Inoni self-operation | 5 engines |
+| **Community Automation** | Self-operation | 5 engines |
 | **Integration Engine** | GitHub ingestion with HITL | 6 components |
 | **Orchestrator** | Two-phase execution | 1 file |
 | **Final Runtime** | Complete system | 1 file |
@@ -595,7 +633,9 @@ POST /api/integrations/add
 -   ✅ REST API: `/viewport/manifest`, `/viewport/project`, `/viewport/search`
 -   ✅ Content resolver bridging MAS planes, Persistence Manager, and System Librarian
 
-### Human-in-the-Loop (HITL)
+### Member Validation (HITL)
+
+> In Murphy's collective model, Human-in-the-Loop review is called **Member Validation** — community members validate integrations and high-risk actions through a consensus gate.
 
 -   ✅ Every integration requires approval
 -   ✅ LLM-powered risk analysis
@@ -734,7 +774,7 @@ Copy `Murphy System/.env.example` to `Murphy System/.env` and fill in the values
 | Document | Description |
 | --- | --- |
 | [Quick Start](MURPHY_1.0_QUICK_START.md) | Get started in 5 minutes |
-| [Roadmap](ROADMAP.md) | Public revenue-first sprint plan |
+| [Roadmap](ROADMAP.md) | Collective milestones |
 | [Specification](MURPHY_SYSTEM_1.0_SPECIFICATION.md) | Complete system spec |
 | [API Documentation](API_DOCUMENTATION.md) | API reference |
 | [Deployment Guide](DEPLOYMENT_GUIDE.md) | Deployment instructions |
@@ -776,7 +816,7 @@ We welcome contributions! Please read:
 - **`src/pilot_config.py`** — Canonical pilot account (`cpost@murphy.systems`) and automation routing
 - **`src/large_control_model.py`** — LCM meta-controller: NL → MSS → Rosetta → Causality → Dispatch
 - **`src/rosette_lens.py`** — Rosetta agent positions → MSS data lens bridge
-- **`src/nav_registry.py`** — All 50+ modules mapped to navigation categories
+- **`src/nav_registry.py`** — All 1182+ modules mapped to navigation categories
 - **`static/murphy-nav.js`** — Shared navigation component (Finance & Grants always visible)
 - **`src/demo_runner.py`** — Real demo pipeline: every scenario routes through actual Murphy components
 
@@ -809,43 +849,42 @@ See [LICENSE](LICENSE) for details.
 
 ---
 
-## 🎉 Success Stories
+## 🎉 The Meta-Case
 
-### Inoni LLC
+**Murphy governs Murphy**
 
-**Murphy runs Inoni LLC (the company that makes Murphy)**
-
--   **Sales:** Lead generation automation workflows
--   **Marketing:** Content and campaign automation support
+-   **Automation:** Workflow generation and execution pipelines
+-   **Content:** Content and campaign automation support
 -   **R&D:** Bug triage and fix workflow automation
--   **Business:** Finance/support workflow automation
+-   **Operations:** Workflow templates and monitoring
 -   **Production:** Release and monitoring automation
 
-**The Ultimate Proof:** The product IS the proof.
+**The proof:** The collective's infrastructure improves itself.
 
 ---
 
-## 🗺️ Roadmap (TBD)
+## 🗺️ Collective Roadmap
 
 -   ✅ Security hardening — centralized auth, CORS, rate limiting, input validation
 -   ✅ Artifact Viewport — range-based content inspection system
 -   ✅ Tenant isolation — per-tenant memory planes, thread-safe graph managers
+-   Collective governance v1 — proposal and vote cycles
+-   Social income v1 — community treasury and distributions
+-   Personal agent layer — agent-as-wallet, agent-as-identity
 -   Multi-language support (JavaScript, Java, Go)
--   Enhanced shadow agent improvements
--   Integration marketplace
+-   Enhanced personal agent improvements
+-   Community workflow commons
 -   Advanced analytics
 -   Real-time collaboration
 -   Visual workflow builder
 -   Mobile app
--   Enterprise features
--   Multi-tenant architecture
--   Global deployment
+-   Open Nation infrastructure
 
 ---
 
 ## 🌟 Why Murphy?
 
-Murphy is the **only automation platform** that covers the entire stack — from factory floor SCADA to enterprise business workflows to content creator pipelines — in a single governed system.
+Murphy is the **only collectively-owned automation commons** that covers the entire stack — from factory floor SCADA to community workflows to content creator pipelines — in a single governed system.
 
 ### Capability Comparison
 
@@ -860,7 +899,7 @@ Murphy is the **only automation platform** that covers the entire stack — from
 | **Self-Integration Engine** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **Self-Improvement + Immune Engine** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **Confidence-Gated Execution** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Human-in-the-Loop Gates** | ✅ | ❌ | ❌ | ⚠️ | ❌ | ❌ |
+| **Member Validation Gates** | ✅ | ❌ | ❌ | ⚠️ | ❌ | ❌ |
 | **Pre-built Connectors** | 90+ | 7,000+ | 1,800+ | 400+ | N/A | N/A |
 | **Production Readiness** | Beta | ✅ | ✅ | ✅ | ✅ | ⚠️ |
 
@@ -872,12 +911,12 @@ Murphy is the **only automation platform** that covers the entire stack — from
 ### vs Make / Integromat
 - **Make:** Great visual builder, cheaper per operation
 - **Murphy:** NL execution, SCADA, content creator, and self-improvement — no equivalent in Make
-- **Advantage:** Premium verticals (industrial, content, AI) justify higher price
+- **Advantage:** Industrial/OT + AI orchestration + community governance — categories Make does not address
 
 ### vs n8n
 - **n8n:** Open-source, self-hosted, strong developer community
 - **Murphy:** Same self-hosting story + governance + industrial + AI-native execution
-- **Advantage:** Governance gates, HITL, SCADA, and Murphy Foundation Model
+- **Advantage:** Governance gates, Member Validation, SCADA, and Murphy Foundation Model
 
 ---
 
@@ -931,7 +970,7 @@ Murphy includes built-in self-improvement infrastructure:
 | --- | --- | --- |
 | **Bug Pattern Detector** | `src/bug_pattern_detector.py` | Analyzes error logs to classify recurring failure patterns |
 | **Self-Improvement Engine** | `src/self_improvement_engine.py` | Extracts lessons from corrections, calibrates confidence scores |
-| **Correction Loop** | `src/learning_engine/` | Shadow agent training pipeline that learns from human overrides |
+| **Correction Loop** | `src/learning_engine/` | Personal agent training pipeline that learns from member overrides |
 | **Self-Healing Coordinator** | `src/self_healing_coordinator.py` | Coordinates automated remediation across subsystems |
 | **Self-Fix Loop** | `src/self_fix_loop.py` | **NEW** — Autonomous closed-loop: diagnose → plan → execute → test → verify → repeat |
 | **Synthetic Failure Generator** | `src/synthetic_failure_generator/` | Creates controlled failures to test recovery paths |
@@ -988,7 +1027,7 @@ bash setup_and_start.sh
 curl http://localhost:8000/api/status
 ```
 
-**Welcome to the future of AI automation!** 🚀
+**Welcome to the commons.** 🚀
 
 ---
 
@@ -1016,12 +1055,12 @@ curl http://localhost:8000/api/status
 | Production Deployment Readiness | 65% |
 | **Weighted Overall** | **~85%** |
 
-> PR 1–3 of ARCH-007 (Founder Update Engine) complete: 133 tests, 7 modules.
+> PR 1–3 of ARCH-007 (Founder Update Engine) complete: 133 tests, 1182 modules.
 > PR 4 (API routes + Founder Dashboard UI) pending.
 > The overall percentage reflects that while code coverage is extensive
-> (1,100+ modules, 706+ test files), **E2E validation of the hero flow** and
+> (1,1182+ modules, 706+ test files), **E2E validation of the hero flow** and
 > **production deployment hardening** remain the primary gaps.
 
 ---
 
-**Murphy System 1.0 - Automate Everything** ™
+**Murphy — Collectively Owned Automation Commons**
