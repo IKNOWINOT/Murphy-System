@@ -1,6 +1,10 @@
-# Getting Started with Murphy System
+# Joining the Murphy Collective
 
-**License:** BSL 1.1 — *Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post*
+**License:** BSL 1.1 — *Copyright © 2020 Murphy Collective · Creator: Corey Post*
+
+> **Welcome.** Murphy is not a product you sign up for — it is a commons you
+> join. Your personal Murphy agent is your wallet, your identity, and your
+> gateway into the collective. Every member contributes; every member benefits.
 
 ---
 
@@ -116,7 +120,7 @@ See `Murphy System/config/murphy.yaml.example` and `Murphy System/config/engines
 
 ## 2. What You Get
 
-Murphy System is a universal AI-governed automation platform that applies formal control theory — confidence scoring, safety gates, and human-in-the-loop checkpoints — to any operational domain.
+Murphy System is a universal AI-governed automation commons that applies formal control theory — confidence scoring, safety gates, and human-in-the-loop checkpoints — to any operational domain.
 
 It is not a simple API wrapper or task queue. It is a control plane.
 
@@ -130,7 +134,7 @@ Out of the box you get:
 - A full suite of web-based terminals and dashboards (see [§ 5. Terminal](#5-terminal))
 - A FastAPI-based REST API on port 8000 with interactive Swagger docs (see [§ 4. REST API](#4-rest-api))
 
-**Commercial goal:** Murphy System is designed to be licensed as a SaaS product under BSL 1.1. Operators embed it into their business operations as a supervised automation layer — not a black-box agent, but an AI executive assistant with verifiable decision provenance.
+**Collective model:** Murphy System is designed as a shared commons under BSL 1.1. Contributing members embed it into their operations as a supervised automation layer — not a black-box agent, but a personal AI executive assistant with verifiable decision provenance. Your Murphy agent acts as your wallet, identity, and gateway into the collective: it holds your credentials, tracks your contributions, and mediates access to shared capabilities on your behalf.
 
 ---
 
@@ -406,7 +410,7 @@ Serve any interface by opening it directly or via the backend static route while
 | Interface | User / Role | Type |
 |---|---|---|
 | `murphy_landing_page.html` | Public front door | Landing page |
-| `onboarding_wizard.html` | New user (zero jargon) | Conversational (Librarian-powered) |
+| `onboarding_wizard.html` | New member (zero jargon) | Member onboarding (Librarian-powered) |
 | `terminal_unified.html` | Admin / Multi-role hub | Dashboard + All views |
 | `terminal_architect.html` | System Architect | Dashboard + Terminal |
 | `terminal_enhanced.html` | Power User | Dashboard + Terminal |
@@ -766,4 +770,4 @@ Run the full suite with `python -m pytest tests/ -v` from the `Murphy System/` d
 
 ---
 
-*Murphy System v1.0 — BSL 1.1 — Inoni LLC*
+*Murphy System v1.0 — BSL 1.1 — Murphy Collective*
