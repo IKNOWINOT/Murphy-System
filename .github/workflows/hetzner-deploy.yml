@@ -32,7 +32,6 @@ jobs:
             networkx numpy \
             pyyaml python-dotenv \
             aiohttp
-        continue-on-error: true
       - name: Run tests
         run: |
           python -m pytest "Murphy System/tests/" \
@@ -46,7 +45,6 @@ jobs:
             --ignore="Murphy System/tests/sla" \
             --ignore="Murphy System/tests/benchmarks" \
             -k "not test_actual_local_llm"
-        continue-on-error: true
 
   deploy:
     needs: test
