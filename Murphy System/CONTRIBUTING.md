@@ -8,20 +8,51 @@
 
 **License:** BSL 1.1 — *Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post*
 
-Thank you for your interest in contributing to Murphy System! This guide explains how to report bugs, suggest features, set up a development environment, and submit changes.
+Murphy System is built and maintained by its contributors. Every patch, review,
+and published workflow strengthens a shared commons — you are not "helping a
+company"; you are exercising co-ownership of the tools you depend on.
+
+This guide explains how to report bugs, suggest features, set up a development
+environment, and submit changes.
 
 ---
 
 ## Table of Contents
 
-1. [Code of Conduct](#code-of-conduct)
-2. [Reporting Bugs](#reporting-bugs)
-3. [Suggesting Features](#suggesting-features)
-4. [Development Setup](#development-setup)
-5. [Running Tests](#running-tests)
-6. [Code Style](#code-style)
-7. [Pull Request Process](#pull-request-process)
-8. [Security Vulnerabilities](#security-vulnerabilities)
+1. [Collective Model](#collective-model)
+2. [Code of Conduct](#code-of-conduct)
+3. [Reporting Bugs](#reporting-bugs)
+4. [Suggesting Features](#suggesting-features)
+5. [Development Setup](#development-setup)
+6. [Running Tests](#running-tests)
+7. [Code Style](#code-style)
+8. [Pull Request Process](#pull-request-process)
+9. [Security Vulnerabilities](#security-vulnerabilities)
+
+---
+
+## Collective Model
+
+Murphy System operates as a **contributor-owned commons**. Every contribution
+— code, documentation, review, or workflow — is an act of stewardship, not
+free labour for a company.
+
+### Principles
+
+| Principle | What it means in practice |
+|-----------|--------------------------|
+| **Co-ownership** | Every merged contribution makes you a co-owner of the collective. Your work is credited, versioned, and preserved. |
+| **Validator compensation** | Contributors who review and validate pull requests are compensated from the collective's resource pool. Validation is valued work, not a favour. |
+| **Social income from workflows** | Workflows published to the shared registry earn social income for their authors — measured in usage, attribution, and resource-pool credits — whenever other members run them. |
+| **No paying-customer hierarchy** | There are no "paying customers" and "free users". Every contributing member has equal standing; access is determined by participation, not payment. |
+
+### How credit flows
+
+1. **You contribute** — code, a workflow, a review, documentation.
+2. **The collective validates** — at least one validator approves.
+3. **The contribution is merged** — authorship is recorded permanently.
+4. **Members benefit** — the commons grows; published workflows earn ongoing
+   social income for the author.
 
 ---
 
@@ -60,7 +91,7 @@ Open a GitHub issue with the label `enhancement` and describe:
 - **Alternatives considered** — what other approaches did you evaluate?
 - **Is this a breaking change?** — does it affect the existing API contract?
 
-Feature requests are evaluated against the project roadmap and BSL 1.1 licensing constraints.
+Feature requests are evaluated against the project roadmap and the collective's priorities.
 
 ---
 
@@ -171,7 +202,7 @@ docker compose up -d
 | Compliance Dashboard | <http://localhost:8090/compliance_dashboard.html?apiPort=8000> | Compliance / audit |
 | Workspace | <http://localhost:8090/workspace.html?apiPort=8000> | Personal workspace |
 | Pricing | <http://localhost:8090/pricing.html?apiPort=8000> | Plans & pricing |
-| Sign Up | <http://localhost:8090/signup.html?apiPort=8000> | User registration |
+| Sign Up | <http://localhost:8090/signup.html?apiPort=8000> | Member registration |
 | Smoke Test Tool | <http://localhost:8090/murphy-smoke-test.html?apiPort=8000> | API smoke tests (dev/QA) |
 | Observability Dashboard | <http://localhost:8090/strategic/gap_closure/observability/dashboard.html?apiPort=8000> | Observability metrics |
 | Community Portal | <http://localhost:8090/strategic/gap_closure/community/community_portal.html?apiPort=8000> | Community collaboration |
@@ -296,9 +327,9 @@ flake8 . --max-line-length 88 --extend-ignore E203,W503
 
 4. **PR description:** Explain the **why**, not just the what. Link to the related issue.
 
-5. **Review:** At least one maintainer review is required before merging. Address all review comments or explain why you disagree.
+5. **Review:** At least one steward review is required before merging. Address all review comments or explain why you disagree. Validators are compensated for their time.
 
-6. **Merge:** Maintainers use squash-merge for feature/fix PRs, merge commits for release PRs.
+6. **Merge:** Stewards use squash-merge for feature/fix PRs, merge commits for release PRs.
 
 ---
 
