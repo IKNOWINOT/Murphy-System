@@ -2,7 +2,7 @@
 
 **Version:** 1.0.0  
 **Date:** February 3, 2025  
-**Owner:** Inoni Limited Liability Company  
+**Owner:** Murphy Collective  
 **Creator:** Corey Post  
 **License:** BSL 1.1 (converts to Apache 2.0 after 4 years)
 
@@ -43,7 +43,7 @@ Murphy is a **Universal AI Automation System** that can:
 - ✅ Automate **any business type** (factory, content, data, system, agent, business)
 - ✅ **Self-integrate** (GitHub repositories, APIs, hardware)
 - ✅ **Self-improve** (learns from corrections)
-- ✅ **Self-operate** (runs Inoni LLC operations with autonomous execution and human-in-the-loop safety gates)
+- ✅ **Self-operate** (runs Murphy Collective operations with autonomous execution and human-in-the-loop safety gates)
 - ✅ Maintain **safety** (human-in-the-loop approval)
 
 ---
@@ -82,7 +82,7 @@ POST /api/integrations/add
 # 2. Extract capabilities
 # 3. Generate module/agent
 # 4. Test for safety
-# 5. Ask for approval (HITL)
+# 5. Ask for approval (Member Validation)
 # 6. Load if approved
 ```
 
@@ -99,11 +99,11 @@ POST /api/corrections/submit
 # Murphy will:
 # 1. Capture correction
 # 2. Extract patterns
-# 3. Train shadow agent
+# 3. Train personal agent
 # 4. Improve future performance
 ```
 
-### 4. Self-Operation (Inoni Business Automation)
+### 4. Self-Operation (Community Workflow)
 ```python
 # Run business automation
 POST /api/automation/sales/generate_leads
@@ -142,7 +142,7 @@ POST   /api/integrations/{id}/reject   # Reject integration
 GET    /api/integrations/{status}      # List integrations
 ```
 
-### Business Automation Endpoints
+### Community Workflow Endpoints
 ```
 POST   /api/automation/{engine}/{action}  # Run automation
 ```
@@ -168,7 +168,7 @@ GET    /api/onboarding-flow/org/chart               # View org chart
 POST   /api/onboarding-flow/start                   # Start onboarding
 GET    /api/onboarding-flow/sessions/{id}/questions  # Get questions
 POST   /api/onboarding-flow/sessions/{id}/answer     # Answer question
-POST   /api/onboarding-flow/sessions/{id}/shadow-agent # Assign shadow agent
+POST   /api/onboarding-flow/sessions/{id}/shadow-agent # Assign personal agent
 POST   /api/onboarding-flow/sessions/{id}/transition # Transition to builder
 ```
 
@@ -292,7 +292,7 @@ curl -X POST http://localhost:8000/api/onboarding-flow/start \
   -H "Content-Type: application/json" \
   -d '{"name": "Alex Smith", "email": "alex@company.com"}'
 
-# 3. Assign shadow agent (becomes Employee IP; position_id is optional)
+# 3. Assign personal agent (becomes Employee IP; position_id is optional)
 curl -X POST http://localhost:8000/api/onboarding-flow/sessions/{id}/shadow-agent \
   -H "Content-Type: application/json" -d '{}'
 
@@ -413,7 +413,7 @@ brew install python@3.10
 2. ✅ Check system status
 3. ✅ Try example use cases
 4. ✅ Add your first integration
-5. ✅ Run business automation
+5. ✅ Run community workflow
 
 ### Advanced Usage
 1. Configure environment variables
@@ -461,7 +461,7 @@ Submit corrections when Murphy makes mistakes - it will learn and improve.
 
 **BSL 1.1** (Business Source License 1.1)
 
-Copyright © 2020 Inoni Limited Liability Company  
+Copyright © 2020 Murphy Collective  
 Creator: Corey Post
 
 ---
@@ -473,7 +473,7 @@ You're now running Murphy System 1.0! 🎉
 **Next Steps:**
 1. Try the example use cases above
 2. Add your first integration
-3. Run business automation
+3. Run community workflow
 4. Explore the API documentation
 
 **Questions?** Check the complete documentation in MURPHY_SYSTEM_1.0_SPECIFICATION.md
