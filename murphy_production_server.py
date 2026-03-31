@@ -103,6 +103,16 @@ except Exception as _mim_e:
     _register_mim_routes = None  # type: ignore
     _set_mim_callbacks = None  # type: ignore
 
+# -- Advanced Self-Loop wiring (Steps 4–5: SelfFixLoopConnector + TaskExecutionBridge)
+try:
+    from src.advanced_loop_wiring import wire_advanced_loop as _wire_advanced_loop
+    _advanced_loop_available = True
+    log.info("Advanced loop wiring (WIRE-004) loaded")
+except Exception as _adv_e:
+    log.warning("Advanced loop wiring not available (%s)", _adv_e)
+    _advanced_loop_available = False
+    _wire_advanced_loop = None  # type: ignore
+
 # -- Business Model Tiers ------------------------------------------------------
 TIERS = {
     "solo":         {"max_automations": 3,   "price_mo": 99,  "price_yr": 79},
@@ -870,6 +880,20 @@ async def _startup():
         task = asyncio.create_task(coro)
         task.add_done_callback(_bg_task_done_callback)
         _background_tasks.append(task)
+
+    # Wire advanced self-improvement loop (Steps 4–5)
+    if _advanced_loop_available and _wire_advanced_loop is not None:
+        try:
+            _adv_components = _wire_advanced_loop()
+            app.state.adv_loop_components = _adv_components
+            log.info(
+                "Advanced self-improvement loop wired: %s",
+                list(_adv_components.keys()),
+            )
+        except Exception as _adv_startup_e:
+            log.warning("Advanced loop startup wiring failed: %s", _adv_startup_e)
+            app.state.adv_loop_components = {}
+
     log.info("Murphy Production Server v3 started — HITL gates active, milestone tracking enabled")
 
 
@@ -3772,5 +3796,94 @@ async def matrix_notify(req: MatrixNotifyRequest):
         "message_body": body,
         "sent": sent,
         "error": send_error,
+        "timestamp": _now_iso(),
+    })
+
+
+# =============================================================================
+# SELF-LOOP ADVANCED WIRING ROUTES (Steps 4–5: SelfFixLoopConnector + TaskExecutionBridge)
+# Design Label: WIRE-002, WIRE-003, WIRE-004
+# =============================================================================
+
+def _get_adv_components():
+    """Retrieve the advanced loop component dict from app.state."""
+    try:
+        return getattr(app.state, "adv_loop_components", {})
+    except Exception:
+        return {}
+
+
+@app.get("/api/self-loop/pending-reviews")
+async def self_loop_pending_reviews():
+    """Return all tasks currently held for human review."""
+    components = _get_adv_components()
+    bridge = components.get("task_execution_bridge")
+    if bridge is None:
+        return JSONResponse({"error": "task_execution_bridge not available"}, status_code=503)
+    return JSONResponse({
+        "success": True,
+        "pending_reviews": bridge.get_pending_reviews(),
+        "timestamp": _now_iso(),
+    })
+
+
+@app.post("/api/self-loop/approve/{task_id}")
+async def self_loop_approve_task(task_id: str):
+    """Approve a HITL-held task."""
+    components = _get_adv_components()
+    bridge = components.get("task_execution_bridge")
+    if bridge is None:
+        return JSONResponse({"error": "task_execution_bridge not available"}, status_code=503)
+    approved = bridge.approve_task(task_id)
+    return JSONResponse({
+        "success": approved,
+        "task_id": task_id,
+        "message": "approved" if approved else "task not found or not pending",
+        "timestamp": _now_iso(),
+    })
+
+
+@app.post("/api/self-loop/reject/{task_id}")
+async def self_loop_reject_task(task_id: str, reason: str = ""):
+    """Reject a HITL-held task."""
+    components = _get_adv_components()
+    bridge = components.get("task_execution_bridge")
+    if bridge is None:
+        return JSONResponse({"error": "task_execution_bridge not available"}, status_code=503)
+    rejected = bridge.reject_task(task_id, reason=reason)
+    return JSONResponse({
+        "success": rejected,
+        "task_id": task_id,
+        "message": "rejected" if rejected else "task not found or not pending",
+        "timestamp": _now_iso(),
+    })
+
+
+@app.post("/api/self-loop/bridge-gaps")
+async def self_loop_bridge_gaps():
+    """Manually trigger gap bridging from SelfFixLoop into AutomationLoopConnector."""
+    components = _get_adv_components()
+    connector = components.get("fix_loop_connector")
+    if connector is None:
+        return JSONResponse({"error": "fix_loop_connector not available"}, status_code=503)
+    result = connector.bridge_gaps()
+    return JSONResponse({
+        "success": True,
+        "result": result,
+        "timestamp": _now_iso(),
+    })
+
+
+@app.get("/api/self-loop/execution-status")
+async def self_loop_execution_status():
+    """Return TaskExecutionBridge execution statistics."""
+    components = _get_adv_components()
+    bridge = components.get("task_execution_bridge")
+    fix_conn = components.get("fix_loop_connector")
+    return JSONResponse({
+        "success": True,
+        "task_execution_bridge": bridge.get_status() if bridge is not None else None,
+        "fix_loop_connector": fix_conn.get_status() if fix_conn is not None else None,
+        "components_available": list(components.keys()),
         "timestamp": _now_iso(),
     })
