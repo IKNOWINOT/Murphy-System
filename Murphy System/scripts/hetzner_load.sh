@@ -138,7 +138,16 @@ EOF
 REPO_DIR="${MURPHY_REPO_DIR:-/opt/Murphy-System}"
 SERVICE_NAME="${MURPHY_SERVICE:-murphy-production}"
 VENV_DIR="${MURPHY_VENV:-${REPO_DIR}/venv}"
-REQUIREMENTS_FILE="${REPO_DIR}/requirements_murphy_1.0.txt"
+# Prefer the pinned lockfile (fast, no resolution needed) over the loose
+# requirements file.  Fall back to requirements_murphy_1.0.txt only when
+# no lockfile exists (first install / --repair).
+LOCKFILE="${REPO_DIR}/requirements.lock"
+REQUIREMENTS_LOOSE="${REPO_DIR}/requirements_murphy_1.0.txt"
+if [ -f "${LOCKFILE}" ]; then
+  REQUIREMENTS_FILE="${LOCKFILE}"
+else
+  REQUIREMENTS_FILE="${REQUIREMENTS_LOOSE}"
+fi
 COMPOSE_FILE="${MURPHY_COMPOSE_FILE:-${REPO_DIR}/docker-compose.hetzner.yml}"
 MURPHY_ENV_FILE="${MURPHY_ENV_FILE:-/etc/murphy-production/environment}"
 NGINX_SITE_NAME="${NGINX_SITE_NAME:-murphy-production}"
@@ -379,8 +388,15 @@ if [ "$SKIP_DEPS" = false ]; then
     local start elapsed
     start=$(date +%s)
 
+    # When installing from a lockfile (exact pins), skip --upgrade to avoid
+    # unnecessary resolution.  Only use --upgrade with the loose requirements file.
+    local upgrade_flag="--upgrade"
+    if [ "${REQUIREMENTS_FILE}" = "${LOCKFILE}" ]; then
+      upgrade_flag=""
+    fi
+
     # shellcheck disable=SC2086
-    "${VENV_DIR}/bin/pip" install --upgrade \
+    "${VENV_DIR}/bin/pip" install ${upgrade_flag} \
       --progress-bar off \
       ${extra_flags} \
       -r "${REQUIREMENTS_FILE}" \
@@ -407,6 +423,12 @@ if [ "$SKIP_DEPS" = false ]; then
   if [ "${REPAIR}" = true ] && [ -d "${VENV_DIR}" ]; then
     warn "--repair: removing existing venv for full rebuild ..."
     rm -rf "${VENV_DIR}"
+  fi
+
+  if [ "${REPAIR}" = true ] && [ -f "${LOCKFILE}" ]; then
+    warn "--repair: removing requirements.lock for full resolution ..."
+    rm -f "${LOCKFILE}"
+    REQUIREMENTS_FILE="${REQUIREMENTS_LOOSE}"
   fi
 
   if [ -d "${VENV_DIR}" ]; then
@@ -452,6 +474,7 @@ if [ "$SKIP_DEPS" = false ]; then
   if [ ! -f "${REQUIREMENTS_FILE}" ]; then
     warn "Requirements file not found: ${REQUIREMENTS_FILE} — skipping dep install"
   else
+    info "Using requirements file: ${REQUIREMENTS_FILE}"
     info "Installing requirements (may take 10-30 min on first install) ..."
     _pip_exit=0
     _run_pip_install || _pip_exit=$?
@@ -475,6 +498,13 @@ if [ "$SKIP_DEPS" = false ]; then
     fi
 
     ok "Dependencies updated (venv: ${VENV_DIR})"
+
+    # ── Generate/update requirements.lock for future fast installs ──────────────
+    info "Generating requirements.lock from installed packages ..."
+    "${VENV_DIR}/bin/pip" freeze > "${LOCKFILE}" 2>/tmp/murphy-pip-freeze.log \
+      && ok "requirements.lock updated ($(wc -l < "${LOCKFILE}") packages pinned)" \
+      || warn "Failed to generate requirements.lock — next install may be slow"
+
     unset _pip_exit
   fi
 
