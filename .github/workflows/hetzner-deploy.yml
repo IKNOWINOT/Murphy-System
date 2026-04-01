@@ -24,14 +24,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install \
-            fastapi uvicorn pydantic pydantic-settings httpx \
-            flask flask-cors \
-            pytest pytest-asyncio pytest-timeout \
-            cryptography PyJWT \
-            networkx numpy \
-            pyyaml python-dotenv \
-            aiohttp
+          pip install -r requirements_ci.txt
+          pip install pytest-asyncio pytest-timeout
       - name: Run tests
         run: |
           python -m pytest "Murphy System/tests/" \
