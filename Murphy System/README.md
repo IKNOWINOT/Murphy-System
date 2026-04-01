@@ -12,7 +12,7 @@
 > developed and maintained by a **single developer** ([@IKNOWINOT](https://github.com/IKNOWINOT)).
 > While the architecture is comprehensive and the test suite covers thousands of
 > functions, **not everything works as intended**. Emergent bugs are still being
-> discovered and classified across the 1,1183+ module surface area.
+> discovered and classified across the 1,1186+ module surface area.
 >
 > **What this means for you:**
 >
@@ -775,7 +775,7 @@ We welcome contributions! Please read:
 - **`src/pilot_config.py`** — Canonical pilot account (`cpost@murphy.systems`) and automation routing
 - **`src/large_control_model.py`** — LCM meta-controller: NL → MSS → Rosetta → Causality → Dispatch
 - **`src/rosette_lens.py`** — Rosetta agent positions → MSS data lens bridge
-- **`src/nav_registry.py`** — All 1183+ modules mapped to navigation categories
+- **`src/nav_registry.py`** — All 1186+ modules mapped to navigation categories
 - **`static/murphy-nav.js`** — Shared navigation component (Finance & Grants always visible)
 - **`src/demo_runner.py`** — Real demo pipeline: every scenario routes through actual Murphy components
 
@@ -1015,10 +1015,10 @@ curl http://localhost:8000/api/status
 | Production Deployment Readiness | 65% |
 | **Weighted Overall** | **~85%** |
 
-> PR 1–3 of ARCH-007 (Founder Update Engine) complete: 133 tests, 1183 modules.
+> PR 1–3 of ARCH-007 (Founder Update Engine) complete: 133 tests, 1186 modules.
 > PR 4 (API routes + Founder Dashboard UI) pending.
 > The overall percentage reflects that while code coverage is extensive
-> (1,1183+ modules, 706+ test files), **E2E validation of the hero flow** and
+> (1,1186+ modules, 706+ test files), **E2E validation of the hero flow** and
 > **production deployment hardening** remain the primary gaps.
 
 ---
