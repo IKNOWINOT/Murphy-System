@@ -1,7 +1,7 @@
 version: '1.0'
 generated_by: scripts/generate_module_registry.py
 canonical_src: src/
-module_count: 1275
+module_count: 1312
 modules:
 - key: src.__init__
   path: src/__init__.py
@@ -59,6 +59,9 @@ modules:
   package: src
 - key: src.additive_manufacturing_connectors
   path: src/additive_manufacturing_connectors.py
+  package: src
+- key: src.advanced_loop_wiring
+  path: src/advanced_loop_wiring.py
   package: src
 - key: src.advanced_reports
   path: src/advanced_reports.py
@@ -251,6 +254,9 @@ modules:
   package: src
 - key: src.audit_logging_system
   path: src/audit_logging_system.py
+  package: src
+- key: src.auth_middleware
+  path: src/auth_middleware.py
   package: src
 - key: src.authority_gate
   path: src/authority_gate.py
@@ -1257,6 +1263,9 @@ modules:
 - key: src.delivery_channel_completeness
   path: src/delivery_channel_completeness.py
   package: src
+- key: src.demo_bundle_generator
+  path: src/demo_bundle_generator.py
+  package: src
 - key: src.demo_deliverable_generator
   path: src/demo_deliverable_generator.py
   package: src
@@ -1500,6 +1509,18 @@ modules:
 - key: src.error_envelope
   path: src/error_envelope.py
   package: src
+- key: src.errors.__init__
+  path: src/errors/__init__.py
+  package: src.errors
+- key: src.errors.codes
+  path: src/errors/codes.py
+  package: src.errors
+- key: src.errors.handlers
+  path: src/errors/handlers.py
+  package: src.errors
+- key: src.errors.registry
+  path: src/errors/registry.py
+  package: src.errors
 - key: src.event_backbone
   path: src/event_backbone.py
   package: src
@@ -1608,6 +1629,9 @@ modules:
 - key: src.execution_packet_compiler.scope_freezer
   path: src/execution_packet_compiler/scope_freezer.py
   package: src.execution_packet_compiler
+- key: src.execution_router
+  path: src/execution_router.py
+  package: src
 - key: src.executive_planning_engine
   path: src/executive_planning_engine.py
   package: src
@@ -1620,6 +1644,15 @@ modules:
 - key: src.fastapi_security
   path: src/fastapi_security.py
   package: src
+- key: src.feature_flags.__init__
+  path: src/feature_flags/__init__.py
+  package: src.feature_flags
+- key: src.feature_flags.flag_manager
+  path: src/feature_flags/flag_manager.py
+  package: src.feature_flags
+- key: src.feature_flags.models
+  path: src/feature_flags/models.py
+  package: src.feature_flags
 - key: src.federated_learning_coordinator
   path: src/federated_learning_coordinator.py
   package: src
@@ -1889,6 +1922,9 @@ modules:
   package: src
 - key: src.hitl_graduation_engine
   path: src/hitl_graduation_engine.py
+  package: src
+- key: src.hitl_persistence
+  path: src/hitl_persistence.py
   package: src
 - key: src.image_generation_engine
   path: src/image_generation_engine.py
@@ -2247,6 +2283,9 @@ modules:
 - key: src.llm_output_validator
   path: src/llm_output_validator.py
   package: src
+- key: src.llm_provider
+  path: src/llm_provider.py
+  package: src
 - key: src.llm_routing_completeness
   path: src/llm_routing_completeness.py
   package: src
@@ -2409,6 +2448,15 @@ modules:
 - key: src.matrix_bridge.webhook_receiver
   path: src/matrix_bridge/webhook_receiver.py
   package: src.matrix_bridge
+- key: src.mcp_plugin.__init__
+  path: src/mcp_plugin/__init__.py
+  package: src.mcp_plugin
+- key: src.mcp_plugin.mcp_connector
+  path: src/mcp_plugin/mcp_connector.py
+  package: src.mcp_plugin
+- key: src.mcp_plugin.models
+  path: src/mcp_plugin/models.py
+  package: src.mcp_plugin
 - key: src.memory_artifact_system
   path: src/memory_artifact_system.py
   package: src
@@ -2520,6 +2568,15 @@ modules:
 - key: src.module_compiler_adapter
   path: src/module_compiler_adapter.py
   package: src
+- key: src.module_instance_api
+  path: src/module_instance_api.py
+  package: src
+- key: src.module_instance_manager
+  path: src/module_instance_manager.py
+  package: src
+- key: src.module_loader
+  path: src/module_loader.py
+  package: src
 - key: src.module_manager
   path: src/module_manager.py
   package: src
@@ -2532,6 +2589,15 @@ modules:
 - key: src.mss_sequence_optimizer
   path: src/mss_sequence_optimizer.py
   package: src
+- key: src.multi_agent_coordinator.__init__
+  path: src/multi_agent_coordinator/__init__.py
+  package: src.multi_agent_coordinator
+- key: src.multi_agent_coordinator.coordinator
+  path: src/multi_agent_coordinator/coordinator.py
+  package: src.multi_agent_coordinator
+- key: src.multi_agent_coordinator.models
+  path: src/multi_agent_coordinator/models.py
+  package: src.multi_agent_coordinator
 - key: src.multi_cloud_orchestrator
   path: src/multi_cloud_orchestrator.py
   package: src
@@ -2877,6 +2943,15 @@ modules:
 - key: src.persistence_wal
   path: src/persistence_wal.py
   package: src
+- key: src.persistent_memory.__init__
+  path: src/persistent_memory/__init__.py
+  package: src.persistent_memory
+- key: src.persistent_memory.context_compressor
+  path: src/persistent_memory/context_compressor.py
+  package: src.persistent_memory
+- key: src.persistent_memory.tenant_memory
+  path: src/persistent_memory/tenant_memory.py
+  package: src.persistent_memory
 - key: src.pilot_config
   path: src/pilot_config.py
   package: src
@@ -2943,6 +3018,9 @@ modules:
 - key: src.predictive_maintenance_engine
   path: src/predictive_maintenance_engine.py
   package: src
+- key: src.presets.__init__
+  path: src/presets/__init__.py
+  package: src.presets
 - key: src.presets.base
   path: src/presets/base.py
   package: src.presets
@@ -2984,6 +3062,9 @@ modules:
   package: src
 - key: src.production_output_calibrator
   path: src/production_output_calibrator.py
+  package: src
+- key: src.production_router
+  path: src/production_router.py
   package: src
 - key: src.profit_sweep
   path: src/profit_sweep.py
@@ -3309,6 +3390,9 @@ modules:
 - key: src.self_fix_loop
   path: src/self_fix_loop.py
   package: src
+- key: src.self_fix_loop_connector
+  path: src/self_fix_loop_connector.py
+  package: src
 - key: src.self_healing_coordinator
   path: src/self_healing_coordinator.py
   package: src
@@ -3326,6 +3410,9 @@ modules:
   package: src
 - key: src.self_learning_toggle
   path: src/self_learning_toggle.py
+  package: src
+- key: src.self_loop_wiring
+  path: src/self_loop_wiring.py
   package: src
 - key: src.self_marketing_orchestrator
   path: src/self_marketing_orchestrator.py
@@ -3408,6 +3495,15 @@ modules:
 - key: src.skill_catalogue_engine
   path: src/skill_catalogue_engine.py
   package: src
+- key: src.skill_system.__init__
+  path: src/skill_system/__init__.py
+  package: src.skill_system
+- key: src.skill_system.models
+  path: src/skill_system/models.py
+  package: src.skill_system
+- key: src.skill_system.skill_manager
+  path: src/skill_system/skill_manager.py
+  package: src.skill_system
 - key: src.slo_remediation_bridge
   path: src/slo_remediation_bridge.py
   package: src
@@ -3522,6 +3618,9 @@ modules:
 - key: src.swarm_proposal_generator
   path: src/swarm_proposal_generator.py
   package: src
+- key: src.swarm_rate_governor
+  path: src/swarm_rate_governor.py
+  package: src
 - key: src.swarm_rosetta_bridge
   path: src/swarm_rosetta_bridge.py
   package: src
@@ -3581,6 +3680,9 @@ modules:
   package: src
 - key: src.system_update_recommendation_engine
   path: src/system_update_recommendation_engine.py
+  package: src
+- key: src.task_execution_bridge
+  path: src/task_execution_bridge.py
   package: src
 - key: src.task_executor
   path: src/task_executor.py
@@ -3693,6 +3795,15 @@ modules:
 - key: src.time_tracking.tracker
   path: src/time_tracking/tracker.py
   package: src.time_tracking
+- key: src.tool_registry.__init__
+  path: src/tool_registry/__init__.py
+  package: src.tool_registry
+- key: src.tool_registry.models
+  path: src/tool_registry/models.py
+  package: src.tool_registry
+- key: src.tool_registry.registry
+  path: src/tool_registry/registry.py
+  package: src.tool_registry
 - key: src.tos_acceptance_gate
   path: src/tos_acceptance_gate.py
   package: src
