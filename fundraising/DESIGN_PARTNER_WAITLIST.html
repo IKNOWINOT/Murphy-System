@@ -1,0 +1,680 @@
+<!-- Murphy System — Industrial OT Design Partner Waitlist -->
+<!-- © 2020 Inoni LLC · BSL 1.1 · github.com/IKNOWINOT/Murphy-System -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Murphy System — Industrial Automation Early Access</title>
+<meta name="description" content="Get early access to Murphy's Industrial Automation Platform. The only AI automation system that speaks SCADA, BACnet, OPC UA, and Modbus — governed by confidence-gated execution.">
+<style>
+/* ── Root tokens (matches Murphy terminal aesthetic) ── */
+:root {
+  --green: #00ff41;
+  --cyan: #00ffff;
+  --teal: #00D4AA;
+  --bg: #0a0a0a;
+  --bg2: #111111;
+  --bg3: #161616;
+  --text: #e0e0e0;
+  --muted: #888888;
+  --border: rgba(0,255,65,0.18);
+  --border-cyan: rgba(0,255,255,0.2);
+  --font-mono: 'Courier New', 'Fira Code', monospace;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --radius: 10px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+a { color: var(--teal); text-decoration: none; }
+a:hover { color: var(--cyan); }
+*:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
+
+/* ── Grid background ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0,255,65,0.025) 40px),
+    repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(0,255,65,0.025) 40px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Topbar ── */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(10,10,10,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 2rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--teal);
+  letter-spacing: 0.05em;
+}
+
+.brand-dot {
+  width: 8px; height: 8px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+  flex-shrink: 0;
+}
+
+.sys-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(0,255,65,0.06);
+  border: 1px solid rgba(0,255,65,0.2);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  color: var(--green);
+}
+
+.sys-pill-dot {
+  width: 6px; height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.3); }
+}
+
+/* ── Sections ── */
+section { position: relative; z-index: 1; padding: 5rem 1.5rem; }
+.inner { max-width: 900px; margin: 0 auto; }
+
+/* ── Hero ── */
+#hero {
+  padding: 6rem 1.5rem 4rem;
+  background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,212,170,0.12) 0%, transparent 70%);
+  text-align: center;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(0,212,170,0.1);
+  border: 1px solid rgba(0,212,170,0.3);
+  border-radius: 999px;
+  padding: 0.35rem 1rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--teal);
+  margin-bottom: 1.5rem;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+}
+
+#hero h1 {
+  font-size: clamp(1.8rem, 5vw, 3.2rem);
+  font-weight: 900;
+  line-height: 1.15;
+  background: linear-gradient(135deg, #ffffff 0%, var(--cyan) 50%, var(--teal) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1.25rem;
+}
+
+.hero-sub {
+  font-size: clamp(1rem, 2vw, 1.15rem);
+  color: #b0b0b0;
+  max-width: 680px;
+  margin: 0 auto 2.5rem;
+}
+
+.proto-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.proto-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(0,255,65,0.06);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--green);
+  letter-spacing: 0.04em;
+}
+
+/* ── Value prop cards ── */
+#value { background: var(--bg3); }
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1.25rem;
+  margin-top: 2.5rem;
+}
+
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  transition: border-color 0.25s, transform 0.2s, box-shadow 0.25s;
+}
+
+.card:hover {
+  border-color: rgba(0,212,170,0.45);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 28px rgba(0,212,170,0.09);
+}
+
+.card-icon { font-size: 1.75rem; margin-bottom: 0.75rem; }
+
+.card h3 {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--cyan);
+  margin-bottom: 0.4rem;
+}
+
+.card p { font-size: 0.83rem; color: var(--muted); line-height: 1.55; }
+
+.section-label {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 0.6rem;
+  font-family: var(--font-mono);
+}
+
+.section-title {
+  font-size: clamp(1.5rem, 3.5vw, 2.2rem);
+  font-weight: 800;
+  line-height: 1.2;
+  background: linear-gradient(135deg, var(--green) 0%, var(--cyan) 60%, var(--teal) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.75rem;
+}
+
+.section-sub { color: var(--muted); font-size: 1rem; max-width: 600px; }
+
+/* ── Form ── */
+#signup { background: var(--bg); }
+
+.form-wrap {
+  background: var(--bg2);
+  border: 1px solid var(--border-cyan);
+  border-radius: 14px;
+  padding: 2.5rem;
+  max-width: 620px;
+  margin: 2.5rem auto 0;
+}
+
+.form-wrap h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 0.4rem;
+}
+
+.form-wrap .form-sub {
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin-bottom: 1.75rem;
+}
+
+.field { margin-bottom: 1.2rem; }
+
+.field label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.4rem;
+  font-family: var(--font-mono);
+}
+
+.field label .req { color: var(--green); margin-left: 2px; }
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  background: #0d0d0d;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 0.65rem 0.85rem;
+  font-size: 0.93rem;
+  font-family: var(--font-sans);
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+
+.field input::placeholder,
+.field textarea::placeholder { color: #555; }
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(0,212,170,0.12);
+}
+
+.field textarea { resize: vertical; min-height: 80px; }
+
+.field select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2300D4AA' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  padding-right: 2.2rem;
+}
+
+.field select option { background: #111; color: var(--text); }
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.submit-btn {
+  width: 100%;
+  background: var(--teal);
+  color: #0a0a0a;
+  border: none;
+  border-radius: 10px;
+  padding: 0.85rem;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  margin-top: 0.5rem;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+
+.submit-btn:hover {
+  background: var(--cyan);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(0,212,170,0.35);
+}
+
+.submit-btn:active { transform: none; }
+
+.form-note {
+  font-size: 0.73rem;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 1rem;
+  line-height: 1.5;
+}
+
+.success-msg {
+  display: none;
+  background: rgba(0,255,65,0.07);
+  border: 1px solid rgba(0,255,65,0.25);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.success-msg p {
+  color: var(--green);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+/* ── Stats bar ── */
+.stats-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  margin: 2.5rem 0 0;
+}
+
+.stat-badge {
+  background: rgba(0,255,65,0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--green);
+}
+
+/* ── Footer ── */
+footer {
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid var(--border);
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+
+footer p {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  line-height: 1.8;
+}
+
+footer a { color: var(--teal); }
+footer a:hover { color: var(--cyan); }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .topbar { padding: 0.65rem 1rem; }
+  #hero { padding: 4rem 1rem 3rem; }
+  section { padding: 3.5rem 1rem; }
+  .form-wrap { padding: 1.5rem 1.25rem; }
+  .field-row { grid-template-columns: 1fr; gap: 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<header class="topbar" role="banner">
+  <div class="brand">
+    <span class="brand-dot" aria-hidden="true"></span>
+    MURPHY SYSTEM
+  </div>
+  <div class="sys-pill" aria-label="Industrial OT Alpha">
+    <span class="sys-pill-dot" aria-hidden="true"></span>
+    INDUSTRIAL OT — ALPHA
+  </div>
+</header>
+
+<!-- Hero -->
+<section id="hero" aria-labelledby="hero-heading">
+  <div class="inner">
+    <div class="hero-badge" aria-label="Early Access Program">⚙ EARLY ACCESS PROGRAM</div>
+    <h1 id="hero-heading">Get Early Access to Murphy's<br>Industrial Automation Platform</h1>
+    <p class="hero-sub">
+      The only AI automation system that speaks SCADA, BACnet, OPC UA, and Modbus —
+      governed by confidence-gated execution. Describe your process in plain English.
+      Murphy builds, governs, and runs it.
+    </p>
+    <div class="proto-strip" role="list" aria-label="Supported protocols">
+      <span class="proto-pill" role="listitem">SCADA</span>
+      <span class="proto-pill" role="listitem">BACnet</span>
+      <span class="proto-pill" role="listitem">OPC UA</span>
+      <span class="proto-pill" role="listitem">Modbus TCP</span>
+      <span class="proto-pill" role="listitem">MTConnect</span>
+      <span class="proto-pill" role="listitem">PackML</span>
+      <span class="proto-pill" role="listitem">ISA-95</span>
+      <span class="proto-pill" role="listitem">BAS / BMS</span>
+      <span class="proto-pill" role="listitem">EMS</span>
+    </div>
+    <div class="stats-bar" role="list" aria-label="Platform statistics">
+      <span class="stat-badge" role="listitem">1,122 modules</span>
+      <span class="stat-badge" role="listitem">218K+ lines</span>
+      <span class="stat-badge" role="listitem">8,843+ tests</span>
+      <span class="stat-badge" role="listitem">90+ connectors</span>
+    </div>
+  </div>
+</section>
+
+<!-- Value Props -->
+<section id="value" aria-labelledby="value-heading">
+  <div class="inner">
+    <span class="section-label">Why Murphy</span>
+    <h2 class="section-title" id="value-heading">Built for the factory floor.<br>Not the marketing team.</h2>
+    <p class="section-sub">
+      Murphy is the first AI automation platform designed from the ground up for industrial environments —
+      with the safety gates and protocol depth that OT engineers actually need.
+    </p>
+    <div class="cards" role="list">
+      <article class="card" role="listitem">
+        <div class="card-icon" aria-hidden="true">🗣</div>
+        <h3>NL → Workflow for Industrial</h3>
+        <p>
+          Describe a process in plain English — "monitor line 3 pressure, alert if above 80 PSI, auto-shutoff
+          if above 95 PSI" — and Murphy generates a governed execution plan with confidence-scored steps.
+          No PLC programming required.
+        </p>
+      </article>
+      <article class="card" role="listitem">
+        <div class="card-icon" aria-hidden="true">🔌</div>
+        <h3>SCADA / BACnet / OPC UA Native</h3>
+        <p>
+          First-class support for industrial protocols: Modbus TCP, BACnet/IP, OPC UA, MTConnect, PackML,
+          ISA-95, BAS/BMS, and EMS. Murphy reads sensors, writes setpoints, and coordinates across systems
+          without custom middleware.
+        </p>
+      </article>
+      <article class="card" role="listitem">
+        <div class="card-icon" aria-hidden="true">🛡</div>
+        <h3>HITL Safety Gates</h3>
+        <p>
+          Every action that changes physical state requires explicit human approval before execution.
+          Murphy's Human-in-the-Loop gates are configurable per-action, per-confidence-tier, and
+          per-operator — giving you control at every level.
+        </p>
+      </article>
+      <article class="card" role="listitem">
+        <div class="card-icon" aria-hidden="true">⚡</div>
+        <h3>Self-Healing Automation</h3>
+        <p>
+          Murphy's 11-phase immune engine monitors, diagnoses, and corrects anomalies without manual
+          intervention. Sensor drift, connection failures, runaway processes — Murphy detects and responds
+          before your team does.
+        </p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- Sign-Up Form -->
+<section id="signup" aria-labelledby="form-heading">
+  <div class="inner">
+    <div style="text-align:center; margin-bottom: 0.5rem;">
+      <span class="section-label">Design Partner Program</span>
+      <h2 class="section-title" style="margin-bottom: 0.5rem;" id="form-heading">Request Early Access</h2>
+      <p class="section-sub" style="margin: 0 auto;">
+        We're onboarding a small cohort of industrial automation engineers and facilities managers
+        as design partners. No charge during the design partner phase.
+      </p>
+    </div>
+
+    <div class="form-wrap">
+      <h2>Join the Waitlist</h2>
+      <p class="form-sub">Takes 2 minutes. We'll reach out within 48 hours to schedule a call.</p>
+
+      <!--
+        TODO: Replace action with a real backend endpoint or Google Forms URL when ready.
+        For now, this falls back to mailto: so submissions reach the founder directly.
+        Example Google Forms action: https://docs.google.com/forms/d/e/[FORM_ID]/formResponse
+      -->
+      <form
+        id="waitlist-form"
+        action="mailto:corey.gfc@gmail.com"
+        method="POST"
+        enctype="text/plain"
+        novalidate
+        aria-label="Industrial OT early access waitlist form"
+      >
+        <div class="field-row">
+          <div class="field">
+            <label for="f-name">Full Name <span class="req" aria-label="required">*</span></label>
+            <input type="text" id="f-name" name="name" placeholder="Jane Smith" required autocomplete="name">
+          </div>
+          <div class="field">
+            <label for="f-email">Work Email <span class="req" aria-label="required">*</span></label>
+            <input type="email" id="f-email" name="email" placeholder="jane@acmecorp.com" required autocomplete="email">
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="f-company">Company / Facility <span class="req" aria-label="required">*</span></label>
+            <input type="text" id="f-company" name="company" placeholder="Acme Manufacturing" required autocomplete="organization">
+          </div>
+          <div class="field">
+            <label for="f-role">Your Role <span class="req" aria-label="required">*</span></label>
+            <select id="f-role" name="role" required>
+              <option value="" disabled selected>Select your role…</option>
+              <option value="Controls Engineer">Controls Engineer</option>
+              <option value="Automation Engineer">Automation Engineer</option>
+              <option value="Facilities Manager">Facilities Manager</option>
+              <option value="Plant Manager">Plant Manager</option>
+              <option value="OT/IT Manager">OT/IT Manager</option>
+              <option value="Systems Integrator">Systems Integrator</option>
+              <option value="VP Engineering">VP Engineering</option>
+              <option value="CTO">CTO</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="f-protocols">Protocols You Work With <span class="req" aria-label="required">*</span></label>
+          <input
+            type="text"
+            id="f-protocols"
+            name="protocols"
+            placeholder="e.g. BACnet, Modbus TCP, OPC UA, Siemens S7, Allen Bradley…"
+            required
+          >
+        </div>
+
+        <div class="field">
+          <label for="f-usecase">What would you automate first?</label>
+          <textarea
+            id="f-usecase"
+            name="usecase"
+            placeholder="e.g. Monitor chiller plant efficiency, auto-tune PID loops on Line 4, alert on compressor anomalies…"
+          ></textarea>
+        </div>
+
+        <button type="submit" class="submit-btn">
+          Request Early Access →
+        </button>
+
+        <p class="form-note">
+          No spam. No charge during the design partner phase.<br>
+          We'll reach out within 48 hours. Questions? <a href="mailto:corey.gfc@gmail.com">corey.gfc@gmail.com</a>
+        </p>
+      </form>
+
+      <div class="success-msg" id="success-msg" role="alert" aria-live="polite">
+        <p>
+          ✅ Got it — your application is on its way.<br>
+          We'll be in touch within 48 hours.<br>
+          <span style="color:var(--teal);">corey.gfc@gmail.com</span>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <p>
+    Murphy System by <strong style="color:var(--text);">Inoni LLC</strong>
+    &nbsp;·&nbsp; BSL 1.1 Licensed
+    &nbsp;·&nbsp; <a href="https://github.com/IKNOWINOT/Murphy-System" target="_blank" rel="noopener">github.com/IKNOWINOT/Murphy-System</a>
+    &nbsp;·&nbsp; <a href="mailto:corey.gfc@gmail.com">corey.gfc@gmail.com</a>
+  </p>
+  <p style="margin-top:0.4rem; font-size:0.68rem; color:#555;">
+    © 2020 Inoni LLC · All rights reserved
+  </p>
+</footer>
+
+<script>
+(function () {
+  var form = document.getElementById('waitlist-form');
+  var successMsg = document.getElementById('success-msg');
+
+  if (!form) return;
+
+  form.addEventListener('submit', function (e) {
+    // Basic client-side validation
+    var name = document.getElementById('f-name').value.trim();
+    var email = document.getElementById('f-email').value.trim();
+    var company = document.getElementById('f-company').value.trim();
+    var role = document.getElementById('f-role').value;
+    var protocols = document.getElementById('f-protocols').value.trim();
+
+    if (!name || !email || !company || !role || !protocols) {
+      e.preventDefault();
+      alert('Please fill in all required fields before submitting.');
+      return;
+    }
+
+    var emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRe.test(email)) {
+      e.preventDefault();
+      alert('Please enter a valid email address.');
+      return;
+    }
+
+    /*
+     * TODO: When a real backend is wired, replace this block with a fetch() POST
+     * and prevent the default form submission so the page doesn't navigate away.
+     *
+     * Example:
+     *   e.preventDefault();
+     *   fetch('/api/waitlist', { method: 'POST', body: new FormData(form) })
+     *     .then(function() { showSuccess(); });
+     *
+     * For now, the mailto: fallback fires and we show the success message after a tick.
+     */
+    setTimeout(function () {
+      form.style.display = 'none';
+      successMsg.style.display = 'block';
+    }, 400);
+  });
+}());
+</script>
+</body>
+</html>
