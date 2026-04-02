@@ -1,0 +1,1486 @@
+<!-- Murphy System — Investor Landing Page / © 2020 Inoni LLC / BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Murphy System — Investor Preview · $500K SAFE</title>
+<meta name="description" content="Murphy System: The first AI platform that speaks factory floor, enterprise, and creator economy — in one governed system. $500K SAFE at $5M–$7M cap.">
+<meta name="robots" content="noindex">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Murphy System — Investor Preview · $500K SAFE">
+<meta property="og:description" content="218K lines · 1,122 modules · 8,843+ tests · 90+ connectors. Describe what you want in English — Murphy builds, governs, and runs it. $500K SAFE at $5M–$7M cap.">
+<meta property="og:url" content="https://github.com/IKNOWINOT/Murphy-System/blob/main/fundraising/investor_landing.html">
+<meta property="og:image" content="https://opengraph.githubassets.com/1/IKNOWINOT/Murphy-System">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Murphy System — Investor Preview · $500K SAFE">
+<meta name="twitter:description" content="218K lines · 1,122 modules · 8,843+ tests · 90+ connectors. Describe in English → Murphy builds, governs, runs it.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+
+<style>
+/* ── Design tokens ── */
+:root {
+  --green:  #00ff41;
+  --cyan:   #00ffff;
+  --teal:   #00D4AA;
+  --bg:     #0a0a0a;
+  --bg2:    #111111;
+  --bg3:    #161616;
+  --text:   #e0e0e0;
+  --muted:  #888888;
+  --border: rgba(0,255,65,0.18);
+  --border-cyan: rgba(0,255,255,0.2);
+  --border-teal: rgba(0,212,170,0.25);
+  --font-mono: 'Courier New', 'Fira Code', monospace;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --radius: 10px;
+  --max-w: 1000px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+a { color: var(--teal); text-decoration: none; }
+a:hover { color: var(--cyan); text-decoration: underline; }
+*:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
+
+/* ── Skip nav ── */
+.skip-nav {
+  position: absolute;
+  top: -100px;
+  left: 1rem;
+  background: var(--green);
+  color: #000;
+  padding: 0.5rem 1rem;
+  border-radius: 0 0 var(--radius) var(--radius);
+  font-weight: 700;
+  font-size: 0.85rem;
+  z-index: 9999;
+  transition: top 0.2s;
+}
+.skip-nav:focus { top: 0; }
+
+/* ── Grid background ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0,255,65,0.025) 40px),
+    repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(0,255,65,0.025) 40px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Topbar ── */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(10,10,10,0.92);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 2rem;
+  gap: 1rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--teal);
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.brand-dot {
+  width: 8px; height: 8px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+  flex-shrink: 0;
+}
+
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.topbar-nav a {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  transition: color 0.2s;
+  text-decoration: none;
+}
+.topbar-nav a:hover { color: var(--teal); }
+
+.topbar-cta {
+  background: var(--teal);
+  color: #000 !important;
+  font-weight: 700 !important;
+  padding: 0.35rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.8rem !important;
+  letter-spacing: 0.03em;
+  transition: opacity 0.2s !important;
+  white-space: nowrap;
+}
+.topbar-cta:hover { opacity: 0.85; text-decoration: none !important; }
+
+.invest-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(0,255,65,0.06);
+  border: 1px solid rgba(0,255,65,0.22);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  color: var(--green);
+  white-space: nowrap;
+}
+
+.invest-pill-dot {
+  width: 6px; height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+/* ── Keyframes ── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.4); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Sections ── */
+section { position: relative; z-index: 1; padding: 5rem 1.5rem; }
+.inner { max-width: var(--max-w); margin: 0 auto; }
+
+.section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 0.75rem;
+}
+.section-label::before {
+  content: '';
+  display: inline-block;
+  width: 18px; height: 2px;
+  background: var(--teal);
+  border-radius: 1px;
+}
+
+h2.section-title {
+  font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+  font-weight: 900;
+  line-height: 1.2;
+  background: linear-gradient(135deg, #fff 0%, var(--cyan) 60%, var(--teal) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1rem;
+}
+
+.section-sub {
+  font-size: 1rem;
+  color: var(--muted);
+  max-width: 640px;
+  margin-bottom: 2.5rem;
+}
+
+/* ── Hero ── */
+#hero {
+  padding: 7rem 1.5rem 5rem;
+  text-align: center;
+  background: radial-gradient(ellipse 80% 55% at 50% -5%, rgba(0,212,170,0.13) 0%, transparent 70%);
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(0,212,170,0.1);
+  border: 1px solid rgba(0,212,170,0.35);
+  border-radius: 999px;
+  padding: 0.35rem 1.1rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--teal);
+  margin-bottom: 1.75rem;
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  animation: fadeUp 0.5s ease both;
+}
+
+#hero h1 {
+  font-size: clamp(1.9rem, 5vw, 3.4rem);
+  font-weight: 900;
+  line-height: 1.12;
+  background: linear-gradient(135deg, #ffffff 0%, var(--cyan) 50%, var(--teal) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1.5rem;
+  animation: fadeUp 0.5s 0.1s ease both;
+}
+
+.hero-sub {
+  font-size: clamp(1rem, 2.2vw, 1.18rem);
+  color: #b0b0b0;
+  max-width: 700px;
+  margin: 0 auto 2.5rem;
+  animation: fadeUp 0.5s 0.2s ease both;
+}
+
+.hero-ctas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 3.5rem;
+  animation: fadeUp 0.5s 0.3s ease both;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--teal);
+  color: #000;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0.75rem 1.75rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+  text-decoration: none;
+}
+.btn-primary:hover { opacity: 0.88; transform: translateY(-1px); color: #000; text-decoration: none; }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.93rem;
+  padding: 0.73rem 1.6rem;
+  border-radius: 8px;
+  border: 1px solid rgba(224,224,224,0.25);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, transform 0.15s;
+  text-decoration: none;
+}
+.btn-secondary:hover { border-color: var(--teal); color: var(--teal); transform: translateY(-1px); text-decoration: none; }
+
+/* Stats bar */
+.stats-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0;
+  background: rgba(0,255,65,0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.9rem 1.5rem;
+  max-width: 780px;
+  margin: 0 auto;
+  animation: fadeUp 0.5s 0.4s ease both;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.4rem 1.25rem;
+  border-right: 1px solid var(--border);
+}
+.stat-item:last-child { border-right: none; }
+
+.stat-val {
+  font-size: 1.2rem;
+  font-weight: 900;
+  font-family: var(--font-mono);
+  color: var(--green);
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 0.68rem;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-top: 0.15rem;
+  white-space: nowrap;
+}
+
+/* ── Demo section ── */
+#demo {
+  background: var(--bg3);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.demo-embed-wrap {
+  position: relative;
+  background: var(--bg2);
+  border: 1px solid var(--border-teal);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 2.5rem;
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 40px rgba(0,212,170,0.08);
+}
+
+.demo-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+}
+
+.play-btn {
+  width: 72px; height: 72px;
+  background: rgba(0,212,170,0.15);
+  border: 2px solid var(--teal);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+  font-size: 1.8rem;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+.play-btn:hover {
+  background: rgba(0,212,170,0.28);
+  transform: scale(1.08);
+  box-shadow: 0 0 24px rgba(0,212,170,0.35);
+}
+
+.demo-placeholder h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.demo-placeholder p {
+  font-size: 0.88rem;
+  color: var(--muted);
+  max-width: 380px;
+}
+
+.demo-loom-note {
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  color: var(--teal);
+  background: rgba(0,212,170,0.08);
+  border: 1px solid rgba(0,212,170,0.2);
+  border-radius: 6px;
+  padding: 0.3rem 0.8rem;
+  display: inline-block;
+}
+
+/* Command table */
+.cmd-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+
+table.cmd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.cmd-table thead tr {
+  background: rgba(0,255,65,0.06);
+  border-bottom: 1px solid var(--border);
+}
+
+.cmd-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--green);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cmd-table td {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid rgba(0,255,65,0.07);
+  vertical-align: top;
+}
+.cmd-table tbody tr:last-child td { border-bottom: none; }
+.cmd-table tbody tr:hover { background: rgba(0,255,65,0.03); }
+
+.cmd-num {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 700;
+  width: 2rem;
+}
+
+.cmd-code {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--cyan);
+  background: rgba(0,255,255,0.06);
+  padding: 0.25rem 0.55rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.cmd-proof {
+  color: var(--text);
+  font-size: 0.87rem;
+}
+
+.demo-caveat {
+  font-size: 0.82rem;
+  font-family: var(--font-mono);
+  color: var(--teal);
+  background: rgba(0,212,170,0.06);
+  border-left: 3px solid var(--teal);
+  padding: 0.6rem 1rem;
+  border-radius: 0 6px 6px 0;
+  margin-top: 1rem;
+}
+
+/* ── Why Now cards ── */
+#why { background: var(--bg); }
+
+.cards-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+.why-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+  transition: border-color 0.25s, transform 0.2s, box-shadow 0.25s;
+}
+.why-card:hover {
+  border-color: rgba(0,212,170,0.45);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0,212,170,0.1);
+}
+
+.why-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  display: block;
+  line-height: 1;
+}
+
+.why-card h3 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 0.6rem;
+}
+
+.why-card p {
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* ── Moat table ── */
+#moat { background: var(--bg3); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+
+.moat-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-cyan);
+  margin-bottom: 1.25rem;
+}
+
+table.moat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.moat-table thead tr {
+  background: rgba(0,255,255,0.05);
+  border-bottom: 1px solid var(--border-cyan);
+}
+
+.moat-table th {
+  padding: 0.75rem 0.9rem;
+  text-align: center;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.moat-table th:first-child { text-align: left; color: var(--muted); }
+
+.moat-table td {
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid rgba(0,255,255,0.06);
+  text-align: center;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+.moat-table tbody tr:last-child td { border-bottom: none; }
+.moat-table tbody tr:hover { background: rgba(0,255,255,0.03); }
+.moat-table td:first-child { text-align: left; color: var(--text); font-weight: 500; }
+
+.col-murphy { background: rgba(0,212,170,0.05); color: var(--teal); font-weight: 700; }
+.moat-table th.col-murphy { color: var(--teal); font-size: 0.85rem; }
+
+.moat-legend {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 0.5rem;
+}
+.moat-note {
+  font-size: 0.85rem;
+  color: var(--teal);
+  font-style: italic;
+  margin-top: 1rem;
+}
+
+/* ── Numbers ── */
+#numbers { background: var(--bg); }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem 1.25rem;
+  transition: border-color 0.25s, transform 0.2s, box-shadow 0.25s;
+  text-align: center;
+}
+.stat-card:hover {
+  border-color: rgba(0,255,65,0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0,255,65,0.08);
+}
+
+.stat-card-val {
+  font-size: clamp(1.5rem, 3.5vw, 2.2rem);
+  font-weight: 900;
+  font-family: var(--font-mono);
+  color: var(--green);
+  line-height: 1.1;
+  margin-bottom: 0.35rem;
+}
+
+.stat-card-label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 600;
+}
+
+.numbers-footnote {
+  background: rgba(0,255,65,0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.7;
+}
+.numbers-footnote strong { color: var(--text); }
+
+/* ── Ask ── */
+#ask { background: var(--bg3); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+
+.ask-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.5rem;
+  align-items: start;
+}
+
+@media (max-width: 680px) {
+  .ask-layout { grid-template-columns: 1fr; }
+}
+
+.terms-card {
+  background: var(--bg2);
+  border: 1px solid var(--border-teal);
+  border-radius: 14px;
+  padding: 2rem;
+  box-shadow: 0 0 40px rgba(0,212,170,0.06);
+}
+
+.terms-title {
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 1.25rem;
+}
+
+.terms-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid rgba(0,255,65,0.08);
+  gap: 1rem;
+}
+.terms-row:last-child { border-bottom: none; }
+
+.terms-key {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.terms-val {
+  font-size: 1rem;
+  font-family: var(--font-mono);
+  font-weight: 800;
+  color: var(--green);
+  text-align: right;
+}
+
+.terms-val.big {
+  font-size: 1.6rem;
+  color: var(--teal);
+}
+
+.funds-table-wrap {
+  overflow-x: auto;
+}
+
+table.funds-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.funds-table th {
+  text-align: left;
+  font-size: 0.68rem;
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.funds-table td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid rgba(0,255,65,0.07);
+  color: var(--text);
+}
+.funds-table tbody tr:last-child td { border-bottom: none; font-weight: 700; color: var(--green); }
+.funds-table td.mono { font-family: var(--font-mono); color: var(--cyan); }
+
+.milestones {
+  margin-top: 2rem;
+}
+
+.milestones h3 {
+  font-size: 0.82rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 1rem;
+}
+
+.milestone-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.milestone-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 0.87rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.milestone-num {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--teal);
+  background: rgba(0,212,170,0.1);
+  border: 1px solid rgba(0,212,170,0.2);
+  border-radius: 4px;
+  padding: 0.1rem 0.45rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+/* ── Founder ── */
+#founder { background: var(--bg); }
+
+.founder-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 2rem 2.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+  max-width: 680px;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.founder-card:hover {
+  border-color: rgba(0,212,170,0.35);
+  box-shadow: 0 8px 30px rgba(0,212,170,0.08);
+}
+
+@media (max-width: 520px) {
+  .founder-card { flex-direction: column; gap: 1.25rem; padding: 1.5rem; }
+}
+
+.founder-avatar {
+  width: 64px; height: 64px;
+  background: rgba(0,212,170,0.12);
+  border: 2px solid var(--teal);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  flex-shrink: 0;
+}
+
+.founder-info h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+.founder-title {
+  font-size: 0.82rem;
+  color: var(--teal);
+  font-family: var(--font-mono);
+  margin-bottom: 0.75rem;
+}
+
+.founder-bio {
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.founder-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.founder-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-family: var(--font-mono);
+  color: var(--teal);
+  background: rgba(0,212,170,0.08);
+  border: 1px solid rgba(0,212,170,0.2);
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s;
+}
+.founder-link:hover { background: rgba(0,212,170,0.15); border-color: rgba(0,212,170,0.4); text-decoration: none; }
+
+/* ── Footer ── */
+footer {
+  position: relative;
+  z-index: 1;
+  background: var(--bg3);
+  border-top: 1px solid var(--border);
+  padding: 2.5rem 1.5rem;
+}
+
+.footer-inner {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: center;
+  text-align: center;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem 1.25rem;
+}
+
+.footer-links a {
+  font-size: 0.82rem;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.footer-links a:hover { color: var(--teal); }
+
+.footer-copy {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+
+/* ── Responsive ── */
+@media (max-width: 700px) {
+  .topbar { padding: 0.65rem 1rem; }
+  .topbar-nav { display: none; }
+  section { padding: 3.5rem 1rem; }
+  #hero { padding: 5rem 1rem 3.5rem; }
+  .stat-item { padding: 0.4rem 0.6rem; }
+  .stat-val { font-size: 1rem; }
+}
+
+@media (max-width: 500px) {
+  .stats-bar { flex-direction: column; gap: 0.75rem; }
+  .stat-item { border-right: none; border-bottom: 1px solid var(--border); width: 100%; }
+  .stat-item:last-child { border-bottom: none; }
+  .ask-layout { gap: 1.5rem; }
+}
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-nav">Skip to main content</a>
+
+<!-- ── Topbar ── -->
+<header role="banner">
+  <nav class="topbar" aria-label="Site navigation">
+    <div class="brand" aria-label="Murphy System">
+      <div class="brand-dot" aria-hidden="true"></div>
+      murphy_system
+    </div>
+    <div class="topbar-nav" role="list">
+      <a href="#demo" role="listitem">Demo</a>
+      <a href="#moat" role="listitem">Moat</a>
+      <a href="#numbers" role="listitem">Numbers</a>
+      <a href="#ask" role="listitem">The Ask</a>
+      <a href="INVESTOR_MEMO.md" role="listitem">Memo</a>
+      <a href="mailto:corey.gfc@gmail.com" class="topbar-cta" role="listitem">📬 Contact</a>
+    </div>
+    <span class="invest-pill" aria-label="Active fundraising round">
+      <span class="invest-pill-dot" aria-hidden="true"></span>
+      RAISING · $500K SAFE
+    </span>
+  </nav>
+</header>
+
+<main id="main" role="main">
+
+  <!-- ── SECTION 1: HERO ── -->
+  <section id="hero" aria-labelledby="hero-heading">
+    <div class="inner">
+      <div class="hero-badge" role="doc-subtitle">
+        🎯 INVESTOR PREVIEW — $500K SAFE at $5M–$7M Cap
+      </div>
+
+      <h1 id="hero-heading">
+        The First AI Platform That Speaks<br>
+        Factory Floor, Enterprise, and Creator Economy —<br>
+        In One Governed System.
+      </h1>
+
+      <p class="hero-sub">
+        Describe what you want in English. Murphy builds, governs, and runs it —
+        self-integrating, self-improving, self-healing, with confidence-gated execution
+        and HITL gates at every high-stakes decision.
+      </p>
+
+      <div class="hero-ctas" role="group" aria-label="Primary actions">
+        <a href="#demo" class="btn-primary" aria-label="Watch the 3-minute demo">
+          ▶ Watch the 3-Minute Demo
+        </a>
+        <a href="INVESTOR_MEMO.md" class="btn-secondary" aria-label="Read the investment memo">
+          📄 Read the Investment Memo
+        </a>
+      </div>
+
+      <div class="stats-bar" role="list" aria-label="Engineering proof stats">
+        <div class="stat-item" role="listitem">
+          <span class="stat-val">218K+</span>
+          <span class="stat-label">Lines of Code</span>
+        </div>
+        <div class="stat-item" role="listitem">
+          <span class="stat-val">1,122</span>
+          <span class="stat-label">Modules</span>
+        </div>
+        <div class="stat-item" role="listitem">
+          <span class="stat-val">8,843+</span>
+          <span class="stat-label">Tests</span>
+        </div>
+        <div class="stat-item" role="listitem">
+          <span class="stat-val">90+</span>
+          <span class="stat-label">Connectors</span>
+        </div>
+        <div class="stat-item" role="listitem">
+          <span class="stat-val">1</span>
+          <span class="stat-label">Developer</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 2: DEMO ── -->
+  <section id="demo" aria-labelledby="demo-heading">
+    <div class="inner">
+      <span class="section-label" aria-hidden="true">02 / Demo</span>
+      <h2 class="section-title" id="demo-heading">The Demo: Real AI, Live Endpoints</h2>
+      <p class="section-sub">
+        Every command hits a real AI endpoint — no mocks, no slides. Watch Murphy convert
+        plain English into governed, production-grade workflows in real time.
+      </p>
+
+      <!-- Video embed area -->
+      <div class="demo-embed-wrap" role="region" aria-label="Demo video">
+        <div class="demo-placeholder">
+          <a href="https://loom.com" class="play-btn" aria-label="Watch demo video on Loom" target="_blank" rel="noopener">
+            ▶
+          </a>
+          <h3>3-Minute Live AI Demo</h3>
+          <p>
+            Watch Murphy take a plain-English request, build a governed DAG with HITL gates,
+            execute it, and block at the approval step — all in under 3 minutes.
+          </p>
+          <span class="demo-loom-note">▶ Demo recording coming soon · See <a href="demo_live.html">demo_live.html</a> for interactive version</span>
+        </div>
+      </div>
+
+      <!-- 8-command quick reference -->
+      <h3 style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:1rem;">
+        Quick Reference: All 8 Core Demo Commands
+      </h3>
+
+      <div class="cmd-table-wrap" role="region" aria-label="Demo command reference">
+        <table class="cmd-table">
+          <caption style="display:none;">8 core demo commands with their API endpoints and what each proves</caption>
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Command</th>
+              <th scope="col">What It Proves</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="cmd-num">1</td>
+              <td><code class="cmd-code">GET /health</code></td>
+              <td class="cmd-proof">Server is live, automations running, HITL items pending</td>
+            </tr>
+            <tr>
+              <td class="cmd-num">2</td>
+              <td><code class="cmd-code">GET /api/rate-governor/status</code></td>
+              <td class="cmd-proof">Swarm-scale architecture (4 traffic classes)</td>
+            </tr>
+            <tr>
+              <td class="cmd-num">3</td>
+              <td><code class="cmd-code">POST /api/prompt</code></td>
+              <td class="cmd-proof"><strong>AI generates automation from plain English</strong> — LLM-powered, <code>llm_generated: true</code></td>
+            </tr>
+            <tr>
+              <td class="cmd-num">4</td>
+              <td><code class="cmd-code">POST /api/workflows/generate</code></td>
+              <td class="cmd-proof"><strong>AI builds a DAG with dependencies + HITL gates</strong> — structured execution graph</td>
+            </tr>
+            <tr>
+              <td class="cmd-num">5</td>
+              <td><code class="cmd-code">POST /api/workflows/{id}/execute</code></td>
+              <td class="cmd-proof">Workflow executes, blocks at HITL gate automatically</td>
+            </tr>
+            <tr>
+              <td class="cmd-num">6</td>
+              <td><code class="cmd-code">POST /api/workflows/{id}/steps/{id}/approve</code></td>
+              <td class="cmd-proof">Human approves gate, execution resumes — every decision auditable</td>
+            </tr>
+            <tr>
+              <td class="cmd-num">7</td>
+              <td><code class="cmd-code">GET /api/hitl/queue</code></td>
+              <td class="cmd-proof">Full HITL approval queue (industrial-grade governance)</td>
+            </tr>
+            <tr>
+              <td class="cmd-num">8</td>
+              <td><code class="cmd-code">GET /api/bots/status</code></td>
+              <td class="cmd-proof">Multi-agent orchestration — 18 autonomous bots running</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="demo-caveat" role="note">
+        ✅ Every command above hits a <strong>real AI endpoint</strong> — no mocks, no slides.
+        Full walkthrough script: <a href="DEMO_SCRIPT.md">DEMO_SCRIPT.md</a> ·
+        Interactive version: <a href="demo_live.html">demo_live.html</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- ── SECTION 3: WHY NOW ── -->
+  <section id="why" aria-labelledby="why-heading">
+    <div class="inner">
+      <span class="section-label" aria-hidden="true">03 / Market Timing</span>
+      <h2 class="section-title" id="why-heading">Why This Matters Now</h2>
+      <p class="section-sub">
+        Three converging forces opened a window that didn't exist two years ago.
+      </p>
+
+      <div class="cards-3" role="list">
+        <article class="why-card" role="listitem">
+          <span class="why-icon" aria-hidden="true">🧠</span>
+          <h3>LLM Threshold Crossed</h3>
+          <p>
+            GPT-4-class models can now produce executable DAGs from plain English with &gt;90% accuracy.
+            This wasn't reliably possible in 2022. Murphy is built on exactly this capability —
+            NL→workflow generation that actually ships to production.
+          </p>
+        </article>
+
+        <article class="why-card" role="listitem">
+          <span class="why-icon" aria-hidden="true">🏭</span>
+          <h3>Industrial OT: $180B, Zero Modern Competitors</h3>
+          <p>
+            SCADA, BACnet, OPC UA, and Modbus systems still run 1990s tooling.
+            Siemens, Honeywell, and Rockwell have not shipped a cloud-native,
+            NL-driven automation layer. No SaaS company has touched this space. Murphy has.
+          </p>
+        </article>
+
+        <article class="why-card" role="listitem">
+          <span class="why-icon" aria-hidden="true">🎬</span>
+          <h3>Creator Economy Needs More Than Scheduling</h3>
+          <p>
+            200M+ creators globally need cross-platform syndication, AI asset generation,
+            and revenue optimization — not just "post to Instagram at 9am."
+            Murphy is the first production-grade governed system for this workflow.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 4: COMPETITIVE MOAT ── -->
+  <section id="moat" aria-labelledby="moat-heading">
+    <div class="inner">
+      <span class="section-label" aria-hidden="true">04 / Competitive Moat</span>
+      <h2 class="section-title" id="moat-heading">No One Else Does All of This</h2>
+      <p class="section-sub">
+        Zapier and Make lead on connector count. Murphy leads on every dimension that requires
+        intelligence and governance.
+      </p>
+
+      <div class="moat-table-wrap" role="region" aria-label="Competitive comparison table">
+        <table class="moat-table">
+          <caption style="display:none;">Competitive comparison: Murphy vs Zapier, Make, n8n, Temporal, LangChain across key capabilities</caption>
+          <thead>
+            <tr>
+              <th scope="col">Capability</th>
+              <th scope="col" class="col-murphy">Murphy</th>
+              <th scope="col">Zapier</th>
+              <th scope="col">Make</th>
+              <th scope="col">n8n</th>
+              <th scope="col">Temporal</th>
+              <th scope="col">LangChain</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>NL → Workflow</td>
+              <td class="col-murphy">✅</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>⚠️</td>
+            </tr>
+            <tr>
+              <td>SCADA / BACnet / OPC UA</td>
+              <td class="col-murphy">✅</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+            </tr>
+            <tr>
+              <td>Self-Integration Engine</td>
+              <td class="col-murphy">✅</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+            </tr>
+            <tr>
+              <td>Self-Improvement / Immune Engine</td>
+              <td class="col-murphy">✅</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+            </tr>
+            <tr>
+              <td>Confidence-Gated Execution</td>
+              <td class="col-murphy">✅</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>⚠️</td>
+            </tr>
+            <tr>
+              <td>HITL Gates</td>
+              <td class="col-murphy">✅</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>⚠️</td>
+              <td>❌</td>
+              <td>⚠️</td>
+            </tr>
+            <tr>
+              <td>Production Ready</td>
+              <td class="col-murphy">✅</td>
+              <td>✅</td>
+              <td>✅</td>
+              <td>✅</td>
+              <td>✅</td>
+              <td>❌</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="moat-legend">
+        ✅ native &nbsp;·&nbsp; ⚠️ partial / requires heavy config &nbsp;·&nbsp; ❌ not available
+      </p>
+      <p class="moat-note">
+        Full competitive analysis: <a href="COMPETITIVE_MOAT.md">COMPETITIVE_MOAT.md</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- ── SECTION 5: THE NUMBERS ── -->
+  <section id="numbers" aria-labelledby="numbers-heading">
+    <div class="inner">
+      <span class="section-label" aria-hidden="true">05 / Engineering Proof</span>
+      <h2 class="section-title" id="numbers-heading">This Is Not a Prototype</h2>
+      <p class="section-sub">
+        Every number below is verifiable in the public GitHub repository — live code, not slides.
+      </p>
+
+      <div class="stats-grid" role="list" aria-label="Engineering statistics">
+        <div class="stat-card" role="listitem">
+          <div class="stat-card-val">218,497</div>
+          <div class="stat-card-label">Lines of Production Python</div>
+        </div>
+        <div class="stat-card" role="listitem">
+          <div class="stat-card-val">1,122</div>
+          <div class="stat-card-label">Named Modules · 71 Packages</div>
+        </div>
+        <div class="stat-card" role="listitem">
+          <div class="stat-card-val">8,843+</div>
+          <div class="stat-card-label">Passing Tests</div>
+        </div>
+        <div class="stat-card" role="listitem">
+          <div class="stat-card-val">90+</div>
+          <div class="stat-card-label">Platform Connectors</div>
+        </div>
+        <div class="stat-card" role="listitem">
+          <div class="stat-card-val">14</div>
+          <div class="stat-card-label">Web Interfaces</div>
+        </div>
+        <div class="stat-card" role="listitem">
+          <div class="stat-card-val">104</div>
+          <div class="stat-card-label">Bot Modules</div>
+        </div>
+        <div class="stat-card" role="listitem">
+          <div class="stat-card-val">6</div>
+          <div class="stat-card-label">Automation Types</div>
+        </div>
+        <div class="stat-card" role="listitem">
+          <div class="stat-card-val">1</div>
+          <div class="stat-card-label">Developer</div>
+        </div>
+      </div>
+
+      <div class="numbers-footnote" role="note">
+        <strong>For context:</strong> this codebase is roughly equivalent to
+        <strong>5–10 senior engineers working full-time for 2+ years.</strong>
+        It was built by one person. Continuously shipped, fully tested, production-deployed.
+        <br><br>
+        Verified independently: <a href="GITHUB_STATS.md">GITHUB_STATS.md</a> ·
+        <a href="https://github.com/IKNOWINOT/Murphy-System" target="_blank" rel="noopener">
+          github.com/IKNOWINOT/Murphy-System
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 6: THE ASK ── -->
+  <section id="ask" aria-labelledby="ask-heading">
+    <div class="inner">
+      <span class="section-label" aria-hidden="true">06 / The Ask</span>
+      <h2 class="section-title" id="ask-heading">$500K · 18 Months · First Revenue</h2>
+      <p class="section-sub">
+        Simple terms. No board seats. No discount. Just runway to close the first five
+        design partners and hit $25K MRR.
+      </p>
+
+      <div class="ask-layout">
+        <!-- SAFE Terms -->
+        <div>
+          <div class="terms-card" aria-label="SAFE investment terms">
+            <div class="terms-title">SAFE Terms</div>
+            <div class="terms-row">
+              <span class="terms-key">Raise Amount</span>
+              <span class="terms-val big">$500,000</span>
+            </div>
+            <div class="terms-row">
+              <span class="terms-key">Valuation Cap</span>
+              <span class="terms-val">$5M – $7M</span>
+            </div>
+            <div class="terms-row">
+              <span class="terms-key">Discount</span>
+              <span class="terms-val">None</span>
+            </div>
+            <div class="terms-row">
+              <span class="terms-key">Board Seats</span>
+              <span class="terms-val">None</span>
+            </div>
+            <div class="terms-row">
+              <span class="terms-key">Runway</span>
+              <span class="terms-val">18 months</span>
+            </div>
+            <div class="terms-row">
+              <span class="terms-key">Instrument</span>
+              <span class="terms-val">YC SAFE (post-money)</span>
+            </div>
+          </div>
+
+          <div class="milestones" aria-label="18-month milestones">
+            <h3>18-Month Milestones</h3>
+            <div class="milestone-list" role="list">
+              <div class="milestone-item" role="listitem">
+                <span class="milestone-num">M1–5</span>
+                5 design partners live (industrial OT focus)
+              </div>
+              <div class="milestone-item" role="listitem">
+                <span class="milestone-num">M6–9</span>
+                First paying customers · first revenue
+              </div>
+              <div class="milestone-item" role="listitem">
+                <span class="milestone-num">M12</span>
+                $25K MRR
+              </div>
+              <div class="milestone-item" role="listitem">
+                <span class="milestone-num">M15–18</span>
+                Series A / follow-on raise
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Use of Funds -->
+        <div>
+          <div class="terms-title" style="font-size:0.72rem;font-family:var(--font-mono);font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--teal);margin-bottom:1rem;">
+            Use of Funds
+          </div>
+          <div class="funds-table-wrap">
+            <table class="funds-table" aria-label="Use of funds breakdown">
+              <caption style="display:none;">Monthly and 18-month use of funds breakdown</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Category</th>
+                  <th scope="col">Monthly</th>
+                  <th scope="col">18-Mo Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Founder salary (Corey Post)</td>
+                  <td class="mono">$8,000</td>
+                  <td class="mono">$144,000</td>
+                </tr>
+                <tr>
+                  <td>First hire (senior eng / DevRel)</td>
+                  <td class="mono">$10,000</td>
+                  <td class="mono">$180,000</td>
+                </tr>
+                <tr>
+                  <td>Infrastructure (cloud, CI, hosting)</td>
+                  <td class="mono">$3,000</td>
+                  <td class="mono">$54,000</td>
+                </tr>
+                <tr>
+                  <td>Buffer (legal, accounting, travel)</td>
+                  <td class="mono">~$3,400</td>
+                  <td class="mono">~$62,000</td>
+                </tr>
+                <tr>
+                  <td><strong>Total deployed</strong></td>
+                  <td class="mono"><strong>~$24,400</strong></td>
+                  <td class="mono"><strong>~$440,000</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="font-size:0.78rem;color:var(--muted);margin-top:0.75rem;">
+            Remaining ~$60K held in reserve for runway extension.
+            Full breakdown: <a href="FUNDRAISING_PLAN.md">FUNDRAISING_PLAN.md</a>
+          </p>
+
+          <div style="margin-top:2rem;">
+            <a href="mailto:corey.gfc@gmail.com" class="btn-primary" style="display:inline-flex;width:100%;justify-content:center;">
+              📬 Express Interest — corey.gfc@gmail.com
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 7: FOUNDER ── -->
+  <section id="founder" aria-labelledby="founder-heading">
+    <div class="inner">
+      <span class="section-label" aria-hidden="true">07 / Founder</span>
+      <h2 class="section-title" id="founder-heading">Built by One Person</h2>
+      <p class="section-sub">
+        Every line of code, every module, every test — one developer.
+      </p>
+
+      <div class="founder-card">
+        <div class="founder-avatar" role="img" aria-label="Corey Post">👤</div>
+        <div class="founder-info">
+          <h3>Corey Post</h3>
+          <div class="founder-title">Founder · Inoni LLC · Sole Developer</div>
+          <p class="founder-bio">
+            Sole developer of the entire Murphy System: 1,122 production modules,
+            218,497 lines of Python, 8,843+ tests, 14 web interfaces, 90+ platform connectors
+            including SCADA, BACnet, OPC UA, and Modbus — all written, tested, and shipped
+            by one person. Continuously, over years.
+          </p>
+          <div class="founder-links" role="list" aria-label="Contact links">
+            <a href="mailto:corey.gfc@gmail.com" class="founder-link" role="listitem">
+              ✉ corey.gfc@gmail.com
+            </a>
+            <a href="https://github.com/IKNOWINOT" class="founder-link" target="_blank" rel="noopener" role="listitem">
+              ⌥ github.com/IKNOWINOT
+            </a>
+            <a href="https://github.com/IKNOWINOT/Murphy-System" class="founder-link" target="_blank" rel="noopener" role="listitem">
+              ⎈ Murphy-System repo
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ── FOOTER ── -->
+<footer role="contentinfo">
+  <div class="footer-inner">
+    <nav class="footer-links" aria-label="Fundraising materials">
+      <a href="INVESTOR_MEMO.md">Investment Memo</a>
+      <a href="GITHUB_STATS.md">GitHub Stats</a>
+      <a href="COMPETITIVE_MOAT.md">Competitive Moat</a>
+      <a href="DEMO_SCRIPT.md">Demo Script</a>
+      <a href="demo_live.html">Live Demo</a>
+      <a href="FUNDRAISING_PLAN.md">Fundraising Plan</a>
+      <a href="DESIGN_PARTNER_WAITLIST.html">Design Partner Waitlist</a>
+      <a href="https://github.com/IKNOWINOT/Murphy-System" target="_blank" rel="noopener">GitHub Repo</a>
+    </nav>
+    <p class="footer-copy">
+      © 2020 Inoni LLC &nbsp;·&nbsp; BSL 1.1 Licensed &nbsp;·&nbsp;
+      Murphy System by <a href="https://github.com/IKNOWINOT" target="_blank" rel="noopener" style="color:var(--teal);">Corey Post</a>
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
