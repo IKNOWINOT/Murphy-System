@@ -1,0 +1,147 @@
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post | License: BSL-1.1
+#
+# Murphy System — Security Posture Agent
+# Multi-layer security scanning across all source modules.
+
+name: "Security Posture Agent"
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    # Daily at 01:00 UTC
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/src:${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+  MURPHY_ENV: test
+  MURPHY_DB_MODE: stub
+  SECURITY_SCORE_THRESHOLD: "60"
+
+concurrency:
+  group: security-posture-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security-scan:
+    name: "Security Posture Scan"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements_ci.txt
+          pip install bandit pip-audit detect-secrets
+
+      - name: Phase 1 — Bandit full-spectrum scan
+        id: bandit
+        run: |
+          python "Murphy System/scripts/security_posture_agent.py" \
+            --phase bandit \
+            --output-dir /tmp/security_posture
+        continue-on-error: true
+
+      - name: Phase 2 — Secret scanning
+        id: secrets
+        run: |
+          python "Murphy System/scripts/security_posture_agent.py" \
+            --phase secrets \
+            --output-dir /tmp/security_posture
+        continue-on-error: true
+
+      - name: Phase 3 — SSRF pattern detection
+        id: ssrf
+        run: |
+          python "Murphy System/scripts/security_posture_agent.py" \
+            --phase ssrf \
+            --output-dir /tmp/security_posture
+        continue-on-error: true
+
+      - name: Phase 4 — HITL gate validation
+        id: hitl
+        run: |
+          python "Murphy System/scripts/security_posture_agent.py" \
+            --phase hitl \
+            --output-dir /tmp/security_posture
+        continue-on-error: true
+
+      - name: Phase 5 — Authority band validation
+        id: authority
+        run: |
+          python "Murphy System/scripts/security_posture_agent.py" \
+            --phase authority \
+            --output-dir /tmp/security_posture
+        continue-on-error: true
+
+      - name: Calculate security posture score
+        id: score
+        run: |
+          python "Murphy System/scripts/security_posture_agent.py" \
+            --phase score \
+            --output-dir /tmp/security_posture \
+            --threshold "${{ env.SECURITY_SCORE_THRESHOLD }}"
+
+      - name: Post PR comment (if PR)
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f /tmp/security_posture/posture_report.md ]; then
+            gh pr comment "${{ github.event.pull_request.number }}" \
+              --repo "${{ github.repository }}" \
+              --body-file /tmp/security_posture/posture_report.md \
+              || true
+          fi
+
+      - name: Upload security posture report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-posture-${{ github.run_number }}
+          path: /tmp/security_posture/
+          retention-days: 30
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "╔══════════════════════════════════════════════════════════╗"
+          echo "║      SECURITY POSTURE AGENT — SUMMARY                  ║"
+          echo "╠══════════════════════════════════════════════════════════╣"
+          if [ -f /tmp/security_posture/posture_report.json ]; then
+            python -c "
+          import json
+          with open('/tmp/security_posture/posture_report.json') as f:
+              data = json.load(f)
+          score = data.get('score', 0)
+          print(f'  Security Score:    {score}/100')
+          print(f'  Bandit findings:   {data.get(\"bandit_findings\", 0)}')
+          print(f'  Secrets detected:  {data.get(\"secrets_detected\", 0)}')
+          print(f'  SSRF risks:        {data.get(\"ssrf_risks\", 0)}')
+          print(f'  HITL gaps:         {data.get(\"hitl_gaps\", 0)}')
+          print(f'  Authority issues:  {data.get(\"authority_issues\", 0)}')
+          threshold = int('${{ env.SECURITY_SCORE_THRESHOLD }}')
+          status = '✅ PASSED' if score >= threshold else '❌ BLOCKED'
+          print(f'  Gate ({threshold}):         {status}')
+          "
+          else
+            echo "║ No report generated — check logs above                 ║"
+          fi
+          echo "╚══════════════════════════════════════════════════════════╝"

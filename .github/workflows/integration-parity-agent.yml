@@ -1,0 +1,134 @@
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post | License: BSL-1.1
+#
+# Murphy System — Module Integration Parity Agent
+# Validates the full integration chain: source -> test -> registry -> server -> baseline.
+
+name: "Integration Parity Agent"
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly on Friday at 08:00 UTC
+    - cron: '0 8 * * 5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/src:${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+  MURPHY_ENV: test
+  MURPHY_DB_MODE: stub
+
+concurrency:
+  group: integration-parity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  parity-check:
+    name: "Module Integration Parity"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements_ci.txt
+          pip install pyyaml
+
+      - name: Phase 1 - Check test coverage parity
+        run: |
+          python "Murphy System/scripts/integration_parity_agent.py" \
+            --phase test-parity \
+            --output-dir /tmp/parity
+        continue-on-error: true
+
+      - name: Phase 2 - Check registry parity
+        run: |
+          python "Murphy System/scripts/integration_parity_agent.py" \
+            --phase registry-parity \
+            --output-dir /tmp/parity
+        continue-on-error: true
+
+      - name: Phase 3 - Smoke import check
+        run: |
+          python "Murphy System/scripts/integration_parity_agent.py" \
+            --phase import-check \
+            --output-dir /tmp/parity
+        continue-on-error: true
+
+      - name: Phase 4 - Server wiring check
+        run: |
+          python "Murphy System/scripts/integration_parity_agent.py" \
+            --phase server-wiring \
+            --output-dir /tmp/parity
+        continue-on-error: true
+
+      - name: Phase 5 - Capability baseline check
+        run: |
+          python "Murphy System/scripts/integration_parity_agent.py" \
+            --phase baseline-check \
+            --output-dir /tmp/parity
+        continue-on-error: true
+
+      - name: Generate parity matrix
+        id: matrix
+        run: |
+          python "Murphy System/scripts/integration_parity_agent.py" \
+            --phase matrix \
+            --output-dir /tmp/parity
+
+      - name: Post PR comment (if PR)
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f /tmp/parity/parity_report.md ]; then
+            gh pr comment "${{ github.event.pull_request.number }}" \
+              --repo "${{ github.repository }}" \
+              --body-file /tmp/parity/parity_report.md \
+              || true
+          fi
+
+      - name: Upload parity report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: parity-report-${{ github.run_number }}
+          path: /tmp/parity/
+          retention-days: 14
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "=== Module Integration Parity Agent ==="
+          if [ -f /tmp/parity/parity_report.json ]; then
+            python -c "
+          import json
+          with open('/tmp/parity/parity_report.json') as f:
+              data = json.load(f)
+          print(f'  Total modules:       {data.get(\"total_modules\", 0)}')
+          print(f'  Have tests:          {data.get(\"have_tests\", 0)}')
+          print(f'  In registry:         {data.get(\"in_registry\", 0)}')
+          print(f'  Importable:          {data.get(\"importable\", 0)}')
+          print(f'  Server-wired:        {data.get(\"server_wired\", 0)}')
+          print(f'  In baseline:         {data.get(\"in_baseline\", 0)}')
+          gaps = data.get('gap_count', 0)
+          status = '✅ PASSED' if gaps == 0 else f'⚠️  {gaps} gap(s)'
+          print(f'  Parity Status:       {status}')
+          "
+          else
+            echo "  No report generated"
+          fi

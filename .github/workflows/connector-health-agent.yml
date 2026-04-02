@@ -1,0 +1,170 @@
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post | License: BSL-1.1
+#
+# Murphy System — Connector Health Agent
+# Iterates over all integration connectors, runs lightweight health probes,
+# and opens issues for any connector that has drifted or broken.
+
+name: "Connector Health Agent"
+
+on:
+  schedule:
+    # Daily at 05:00 UTC
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/src:${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+  MURPHY_ENV: test
+  MURPHY_DB_MODE: stub
+  E2EE_STUB_ALLOWED: "true"
+  MURPHY_POOL_MODE: simulated
+
+jobs:
+  # ── Phase 1: Discover Connectors ────────────────────────────────────────
+  discover:
+    name: "Phase 1 — Discover Connectors"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      connector_count: ${{ steps.discover.outputs.connector_count }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements_ci.txt
+
+      - name: Discover connectors
+        id: discover
+        run: |
+          python "Murphy System/scripts/connector_health_agent.py" \
+            --phase discover \
+            --output-dir /tmp/connector_health
+
+          COUNT=$(python -c "
+          import json
+          try:
+              with open('/tmp/connector_health/discovery_report.json') as f:
+                  print(len(json.load(f).get('connectors', [])))
+          except Exception:
+              print('0')
+          ")
+          echo "connector_count=$COUNT" >> "$GITHUB_OUTPUT"
+
+      - name: Upload discovery report
+        uses: actions/upload-artifact@v4
+        with:
+          name: connector-discovery
+          path: /tmp/connector_health/
+          retention-days: 14
+
+  # ── Phase 2: Health Check ───────────────────────────────────────────────
+  health-check:
+    name: "Phase 2 — Health Check"
+    needs: discover
+    if: needs.discover.outputs.connector_count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements_ci.txt
+
+      - name: Download discovery report
+        uses: actions/download-artifact@v4
+        with:
+          name: connector-discovery
+          path: /tmp/connector_health/
+
+      - name: Run health probes
+        id: health
+        run: |
+          python "Murphy System/scripts/connector_health_agent.py" \
+            --phase check \
+            --discovery /tmp/connector_health/discovery_report.json \
+            --output-dir /tmp/connector_health
+
+      - name: Upload health report
+        uses: actions/upload-artifact@v4
+        with:
+          name: connector-health-report
+          path: /tmp/connector_health/
+          retention-days: 30
+
+  # ── Phase 3: Report Issues ─────────────────────────────────────────────
+  report:
+    name: "Phase 3 — Report Issues"
+    needs: [discover, health-check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements_ci.txt
+
+      - name: Download health report
+        uses: actions/download-artifact@v4
+        with:
+          name: connector-health-report
+          path: /tmp/connector_health/
+
+      - name: Generate issue reports
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python "Murphy System/scripts/connector_health_agent.py" \
+            --phase report \
+            --health /tmp/connector_health/health_report.json \
+            --output-dir /tmp/connector_health
+
+      - name: Summary
+        run: |
+          echo "╔══════════════════════════════════════════════════════════╗"
+          echo "║      CONNECTOR HEALTH AGENT — SUMMARY                  ║"
+          echo "╠══════════════════════════════════════════════════════════╣"
+          echo "║ Connectors Discovered: ${{ needs.discover.outputs.connector_count }}"
+          echo "╚══════════════════════════════════════════════════════════╝"
+          if [ -f /tmp/connector_health/health_report.json ]; then
+            python -c "
+          import json
+          with open('/tmp/connector_health/health_report.json') as f:
+              data = json.load(f)
+          healthy = sum(1 for c in data.get('results', []) if c.get('status') == 'healthy')
+          unhealthy = sum(1 for c in data.get('results', []) if c.get('status') != 'healthy')
+          print(f'  Healthy:   {healthy}')
+          print(f'  Unhealthy: {unhealthy}')
+          "
+          fi

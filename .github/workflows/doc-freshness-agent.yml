@@ -1,0 +1,108 @@
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post | License: BSL-1.1
+#
+# Murphy System — Documentation Freshness Agent
+# Checks that documentation stays in sync with code changes.
+
+name: "Documentation Freshness Agent"
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly on Wednesday at 07:00 UTC
+    - cron: '0 7 * * 3'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/src:${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+
+concurrency:
+  group: doc-freshness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  freshness-check:
+    name: "Documentation Freshness Check"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements_ci.txt
+
+      - name: Check documentation freshness
+        id: check
+        run: |
+          python "Murphy System/scripts/doc_freshness_agent.py" \
+            --phase check \
+            --output-dir /tmp/doc_freshness
+
+      - name: Scan for undocumented public APIs
+        run: |
+          python "Murphy System/scripts/doc_freshness_agent.py" \
+            --phase scan-apis \
+            --output-dir /tmp/doc_freshness
+
+      - name: Validate capability baseline
+        run: |
+          python "Murphy System/scripts/doc_freshness_agent.py" \
+            --phase baseline \
+            --output-dir /tmp/doc_freshness
+
+      - name: Post PR comment (if PR)
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f /tmp/doc_freshness/freshness_report.md ]; then
+            gh pr comment "${{ github.event.pull_request.number }}" \
+              --repo "${{ github.repository }}" \
+              --body-file /tmp/doc_freshness/freshness_report.md \
+              || true
+          fi
+
+      - name: Upload freshness report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: doc-freshness-${{ github.run_number }}
+          path: /tmp/doc_freshness/
+          retention-days: 14
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "╔══════════════════════════════════════════════════════════╗"
+          echo "║      DOCUMENTATION FRESHNESS AGENT — SUMMARY           ║"
+          echo "╠══════════════════════════════════════════════════════════╣"
+          if [ -f /tmp/doc_freshness/freshness_report.json ]; then
+            python -c "
+          import json
+          with open('/tmp/doc_freshness/freshness_report.json') as f:
+              data = json.load(f)
+          print(f'  Files changed:         {data.get(\"files_changed\", 0)}')
+          print(f'  Doc debts found:       {data.get(\"doc_debts\", 0)}')
+          print(f'  Missing docstrings:    {data.get(\"missing_docstrings\", 0)}')
+          print(f'  Baseline drift:        {data.get(\"baseline_drift\", 0)}')
+          "
+          else
+            echo "║ No report generated — check logs above                 ║"
+          fi
+          echo "╚══════════════════════════════════════════════════════════╝"

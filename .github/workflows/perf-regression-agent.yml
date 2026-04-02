@@ -1,0 +1,120 @@
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post | License: BSL-1.1
+#
+# Murphy System — Performance Regression Agent
+# Runs benchmarks on PRs, compares against baseline, and blocks if
+# any metric regresses by >10%.
+
+name: "Performance Regression Agent"
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly on Sunday at 04:00 UTC
+    - cron: '0 4 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/src:${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+  MURPHY_ENV: test
+  MURPHY_DB_MODE: stub
+  E2EE_STUB_ALLOWED: "true"
+  MURPHY_POOL_MODE: simulated
+  REGRESSION_THRESHOLD_PCT: "10"
+
+concurrency:
+  group: perf-regression-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark:
+    name: "Performance Benchmark"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements_ci.txt
+          pip install pytest-asyncio pytest-timeout pytest-benchmark
+
+      - name: Run performance benchmarks
+        run: |
+          python "Murphy System/scripts/perf_regression_agent.py" \
+            --phase benchmark \
+            --output-dir /tmp/perf_results
+
+      - name: Compare against baseline
+        id: compare
+        run: |
+          python "Murphy System/scripts/perf_regression_agent.py" \
+            --phase compare \
+            --results /tmp/perf_results/benchmark_results.json \
+            --threshold "${{ env.REGRESSION_THRESHOLD_PCT }}" \
+            --output-dir /tmp/perf_results
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: perf-results-${{ github.run_number }}
+          path: /tmp/perf_results/
+          retention-days: 30
+
+      - name: Post PR comment (if PR)
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f /tmp/perf_results/comparison_report.md ]; then
+            gh pr comment "${{ github.event.pull_request.number }}" \
+              --repo "${{ github.repository }}" \
+              --body-file /tmp/perf_results/comparison_report.md \
+              || true
+          fi
+
+      - name: Check for regressions
+        run: |
+          python "Murphy System/scripts/perf_regression_agent.py" \
+            --phase gate \
+            --comparison /tmp/perf_results/comparison_report.json \
+            --threshold "${{ env.REGRESSION_THRESHOLD_PCT }}" \
+            --output-dir /tmp/perf_results
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "╔══════════════════════════════════════════════════════════╗"
+          echo "║      PERFORMANCE REGRESSION AGENT — SUMMARY            ║"
+          echo "╠══════════════════════════════════════════════════════════╣"
+          if [ -f /tmp/perf_results/comparison_report.json ]; then
+            python -c "
+          import json
+          with open('/tmp/perf_results/comparison_report.json') as f:
+              data = json.load(f)
+          regressed = data.get('regressions', [])
+          improved = data.get('improvements', [])
+          print(f'  Metrics measured:  {data.get(\"total_metrics\", 0)}')
+          print(f'  Regressions:       {len(regressed)}')
+          print(f'  Improvements:      {len(improved)}')
+          status = '❌ BLOCKED' if regressed else '✅ PASSED'
+          print(f'  Gate:              {status}')
+          "
+          else
+            echo "║ No comparison report — check logs above                ║"
+          fi
+          echo "╚══════════════════════════════════════════════════════════╝"
