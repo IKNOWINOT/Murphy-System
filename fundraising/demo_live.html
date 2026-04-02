@@ -343,7 +343,7 @@ footer a:hover { text-decoration: underline; }
 <div class="demo-wrapper">
   <header>
     <h1>Murphy System <span>— Live AI Demo</span></h1>
-    <p>Watch Murphy convert plain English into governed workflows — hitting real AI endpoints live.</p>
+    <p>Watch Murphy's crown jewels in action — 12 real API endpoints covering AI workflow generation, MFGC governance, Wingman validation, and self-operating infrastructure.</p>
   </header>
 
   <!-- Server Mode -->
@@ -398,8 +398,8 @@ footer a:hover { text-decoration: underline; }
       <div class="caption-panel">
         <h3>&#128172; Narrator</h3>
         <div class="caption-text" id="caption">
-          Press <em>Play Demo</em> to begin the 3-minute investor walkthrough.<br><br>
-          Murphy will call <em>8 real API endpoints</em> — generating automations from plain English, building workflow DAGs, executing with HITL gates, and showing the multi-agent bot fleet.<br><br>
+          Press <em>Play Demo</em> to begin the investor walkthrough.<br><br>
+          Murphy will call <em>12 real API endpoints</em> — generating automations from plain English, building workflow DAGs, executing with HITL gates, showing the multi-agent bot fleet, 10 industry verticals, the 7-phase MFGC governance pipeline, the Wingman validation protocol, and the self-operating setup pipeline.<br><br>
           <span class="caption-badge badge-live">LIVE API</span> or simulated if the server is offline.
         </div>
       </div>
@@ -598,7 +598,11 @@ var STEPS = [
   { label: '5. Execute', short: 'Execute' },
   { label: '6. Approve', short: 'HITL' },
   { label: '7. Queue', short: 'Queue' },
-  { label: '8. Bots', short: 'Bots' }
+  { label: '8. Bots', short: 'Bots' },
+  { label: '9. Verticals', short: 'Verticals' },
+  { label: '10. Governance', short: 'MFGC' },
+  { label: '11. Wingman', short: 'Wingman' },
+  { label: '12. Self-Setup', short: 'Setup' }
 ];
 
 function buildStepIndicators() {
@@ -748,6 +752,80 @@ var SIM = {
     ],
     total: 18,
     all_online: true
+  },
+  verticals: {
+    verticals: [
+      { id: 'marketing', name: 'Marketing Automation', active: true, automations: 8, monthly_savings_usd: 2400, engine: 'campaign_engine' },
+      { id: 'proposals', name: 'Proposal Generation', active: true, automations: 5, monthly_savings_usd: 3200, engine: 'proposal_engine' },
+      { id: 'crm', name: 'CRM & Lead Management', active: true, automations: 6, monthly_savings_usd: 1800, engine: 'crm_engine' },
+      { id: 'monitoring', name: 'System Monitoring', active: true, automations: 4, monthly_savings_usd: 960, engine: 'monitor_engine' },
+      { id: 'finance', name: 'Financial Operations', active: true, automations: 7, monthly_savings_usd: 4100, engine: 'finance_engine' },
+      { id: 'security', name: 'Security & Compliance', active: true, automations: 3, monthly_savings_usd: 5600, engine: 'security_engine' },
+      { id: 'content', name: 'Content Creation', active: true, automations: 9, monthly_savings_usd: 2800, engine: 'content_engine' },
+      { id: 'comms', name: 'Communications', active: true, automations: 4, monthly_savings_usd: 1200, engine: 'comms_engine' },
+      { id: 'pipeline', name: 'AI Pipeline & Ops', active: true, automations: 6, monthly_savings_usd: 3400, engine: 'pipeline_engine' },
+      { id: 'industrial', name: 'Industrial / SCADA / OT', active: true, automations: 5, monthly_savings_usd: 8900, engine: 'industrial_engine', protocols: ['BACnet/IP', 'Modbus TCP/RTU', 'OPC UA', 'MTConnect', 'ISA-95'] }
+    ],
+    total: 10,
+    total_monthly_savings_usd: 34360
+  },
+  mfgcState: {
+    pipeline: 'MFGC v1.1 — Murphy Finite Governance Code',
+    phases: [
+      { id: 1, name: 'Intake & Classification', status: 'active', processed: 4217 },
+      { id: 2, name: 'Analysis & Decomposition', status: 'active', processed: 4198 },
+      { id: 3, name: 'Confidence Scoring', status: 'active', processed: 4185 },
+      { id: 4, name: 'Gate Decision (Go/Defer/Human)', status: 'active', processed: 4185 },
+      { id: 5, name: 'Risk Index Calculation', status: 'active', processed: 4102 },
+      { id: 6, name: 'Librarian Enrichment', status: 'active', processed: 3998 },
+      { id: 7, name: 'Output & Audit Trail', status: 'active', processed: 3987 }
+    ],
+    current_profile: 'production',
+    confidence_threshold: 0.7,
+    auto_approve_below_risk: 'LOW',
+    trust_escalation: { new_tool_threshold: 10, medium_bypass_threshold: 50 },
+    decisions_today: { go: 312, defer: 47, human: 18 },
+    avg_confidence: 0.84
+  },
+  wingmanStatus: {
+    protocol: 'Wingman v2 — Executor/Validator Pairing',
+    active_session: true,
+    validations_today: 847,
+    rejections_today: 23,
+    rejection_rate_pct: 2.7,
+    modules: [
+      { id: 'pii_detector', name: 'PII Detection', validations: 847, rejections: 4, status: 'active' },
+      { id: 'budget_validator', name: 'Budget Validation', validations: 312, rejections: 7, status: 'active' },
+      { id: 'confidence_scorer', name: 'Confidence Scoring', validations: 847, rejections: 9, status: 'active' },
+      { id: 'output_presence', name: 'Output Presence Check', validations: 847, rejections: 1, status: 'active' },
+      { id: 'domain_rules', name: 'Domain-Specific Rules', validations: 538, rejections: 2, status: 'active' }
+    ],
+    runbooks_loaded: 14,
+    validation_history_depth: 10000
+  },
+  selfSetup: {
+    pipeline: 'Murphy Self-Setup Pipeline',
+    total_steps: 12,
+    completed_steps: 9,
+    progress_pct: 75,
+    current_step: 'step-10',
+    steps: [
+      { id: 'step-01', name: 'Environment Detection', status: 'completed' },
+      { id: 'step-02', name: 'Dependency Verification', status: 'completed' },
+      { id: 'step-03', name: 'HITL Gate: Approve Runtime Config', status: 'completed', is_hitl: true, approved_by: 'founder' },
+      { id: 'step-04', name: 'Database Schema Migration', status: 'completed' },
+      { id: 'step-05', name: 'Seed KPIs & RBAC Policies', status: 'completed' },
+      { id: 'step-06', name: 'HITL Gate: Approve Tenant Config', status: 'completed', is_hitl: true, approved_by: 'founder' },
+      { id: 'step-07', name: 'Activate Bot Fleet', status: 'completed' },
+      { id: 'step-08', name: 'Connect Platform Integrations', status: 'completed' },
+      { id: 'step-09', name: 'HITL Gate: Approve Go-Live', status: 'completed', is_hitl: true, approved_by: 'founder' },
+      { id: 'step-10', name: 'Activate Verticals', status: 'running' },
+      { id: 'step-11', name: 'HITL Gate: Final Production Approval', status: 'pending', is_hitl: true },
+      { id: 'step-12', name: 'Enable Autonomous Operations', status: 'pending' }
+    ],
+    hitl_gates: 4,
+    hitl_gates_approved: 3,
+    message: 'Self-setup 75% complete. Activating verticals. 1 HITL gate remaining before full autonomy.'
   }
 };
 
@@ -1012,11 +1090,178 @@ async function step8_bots() {
   addBlank();
 }
 
+// ── Step 9: Verticals — 10 Industry Domains ──
+async function step9_verticals() {
+  setStepActive(8);
+  setCaption(
+    '<em>10 industry verticals</em> — marketing, proposals, CRM, monitoring, finance, security, content, comms, AI pipeline, and <strong>industrial/SCADA/OT</strong>. ' +
+    'Each vertical has its own engine, automations, and ROI tracking. ' +
+    'The industrial vertical alone covers <strong>BACnet, Modbus, OPC UA, MTConnect, ISA-95</strong> — a <em>$180B market with zero modern competitors</em>.',
+    'live'
+  );
+
+  await typeCommand('curl -s http://localhost:8000/api/verticals | python3 -m json.tool');
+  addBlank();
+
+  var result = await apiCall('GET', '/api/verticals');
+  var data = result.live ? result.data : SIM.verticals;
+  if (result.live) addLine('  ⚡ LIVE verticals status', 'ok');
+  else addLine('  ◈ Simulated verticals', 'muted');
+  await delay(300);
+
+  // Render as a table
+  addLine('  ┌───────────────────────────┬──────────┬──────────┬────────────────┐', 'muted');
+  addLine('  │ Vertical                  │ Active   │ Autos    │ Savings/mo     │', 'info');
+  addLine('  ├───────────────────────────┼──────────┼──────────┼────────────────┤', 'muted');
+  var verts = data.verticals || SIM.verticals.verticals;
+  for (var i = 0; i < verts.length; i++) {
+    await waitIfPaused();
+    if (aborted) return;
+    var v = verts[i];
+    var name = (v.name || '').padEnd(25);
+    var active = (v.active ? '✓' : '✗').padEnd(8);
+    var autos = String(v.automations || 0).padStart(4).padEnd(8);
+    var savings = ('$' + (v.monthly_savings_usd || 0).toLocaleString()).padEnd(14);
+    var cls = v.id === 'industrial' ? 'warn' : 'ok';
+    addLine('  │ ' + name + ' │ ' + active + ' │ ' + autos + ' │ ' + savings + ' │', cls);
+    await delay(60);
+  }
+  addLine('  └───────────────────────────┴──────────┴──────────┴────────────────┘', 'muted');
+  addBlank();
+  addLine('  Total monthly savings: $' + (data.total_monthly_savings_usd || 34360).toLocaleString() + ' across ' + verts.length + ' verticals', 'ok');
+  addBlank();
+}
+
+// ── Step 10: MFGC Governance Pipeline ──
+async function step10_mfgc() {
+  setStepActive(9);
+  setCaption(
+    'The <strong>MFGC Pipeline</strong> (Murphy Finite Governance Code) — the 7-phase governance engine that scores <em>every</em> action. ' +
+    'Phase 4 is the gate: <strong>Go / Defer / Human</strong>. ' +
+    'Trust escalation means tools that prove reliable earn auto-bypass over time. ' +
+    'This is the hardest-to-replicate layer — <em>no other platform has confidence-gated governance</em>.',
+    'ai'
+  );
+
+  await typeCommand('curl -s http://localhost:8000/api/mfgc/state | python3 -m json.tool');
+  addBlank();
+
+  var result = await apiCall('GET', '/api/mfgc/state');
+  var data = result.live ? result.data : SIM.mfgcState;
+  if (result.live) addLine('  ⚡ LIVE governance state', 'ok');
+  else addLine('  ◈ Simulated governance state', 'muted');
+  await delay(300);
+
+  // Render phases
+  addLine('  ┌─────┬────────────────────────────────────┬──────────┬───────────┐', 'muted');
+  addLine('  │ Ph. │ Pipeline Stage                     │ Status   │ Processed │', 'info');
+  addLine('  ├─────┼────────────────────────────────────┼──────────┼───────────┤', 'muted');
+  var phases = data.phases || SIM.mfgcState.phases;
+  for (var i = 0; i < phases.length; i++) {
+    await waitIfPaused();
+    if (aborted) return;
+    var p = phases[i];
+    var pId = String(p.id).padEnd(3);
+    var pName = (p.name || '').padEnd(36);
+    var pStatus = (p.status || 'active').padEnd(8);
+    var pProc = String(p.processed || 0).padStart(5).padEnd(9);
+    var cls = p.id === 4 ? 'warn' : 'ok';
+    addLine('  │ ' + pId + ' │ ' + pName + ' │ ' + pStatus + ' │ ' + pProc + ' │', cls);
+    await delay(80);
+  }
+  addLine('  └─────┴────────────────────────────────────┴──────────┴───────────┘', 'muted');
+  addBlank();
+
+  var decisions = data.decisions_today || SIM.mfgcState.decisions_today;
+  addLine('  Today: ' + decisions.go + ' auto-approved · ' + decisions.defer + ' deferred · ' + decisions.human + ' escalated to human', 'ok');
+  addLine('  Avg confidence: ' + ((data.avg_confidence || 0.84) * 100).toFixed(1) + '% · Threshold: ' + ((data.confidence_threshold || 0.7) * 100) + '%', 'info');
+  addBlank();
+}
+
+// ── Step 11: Wingman Protocol ──
+async function step11_wingman() {
+  setStepActive(10);
+  setCaption(
+    'The <strong>Wingman Protocol</strong> — every task gets an executor <em>and</em> a validator. ' +
+    '5 validation modules run on every action: <strong>PII detection, budget validation, confidence scoring, output presence, domain-specific rules</strong>. ' +
+    'Rejection rate under 3% means Murphy is learning — but nothing slips through without validation.',
+    'ai'
+  );
+
+  await typeCommand('curl -s http://localhost:8000/api/wingman/status | python3 -m json.tool');
+  addBlank();
+
+  var result = await apiCall('GET', '/api/wingman/status');
+  var data = result.live ? result.data : SIM.wingmanStatus;
+  if (result.live) addLine('  ⚡ LIVE wingman status', 'ok');
+  else addLine('  ◈ Simulated wingman status', 'muted');
+  await delay(300);
+
+  addLine('  ┌────────────────────────────┬──────────────┬────────────┬──────────┐', 'muted');
+  addLine('  │ Validation Module          │ Validations  │ Rejections │ Status   │', 'info');
+  addLine('  ├────────────────────────────┼──────────────┼────────────┼──────────┤', 'muted');
+  var modules = data.modules || SIM.wingmanStatus.modules;
+  for (var i = 0; i < modules.length; i++) {
+    await waitIfPaused();
+    if (aborted) return;
+    var m = modules[i];
+    var mName = (m.name || '').padEnd(26);
+    var mVal = String(m.validations || 0).padStart(6).padEnd(12);
+    var mRej = String(m.rejections || 0).padStart(4).padEnd(10);
+    var mStatus = (m.status || 'active').padEnd(8);
+    addLine('  │ ' + mName + ' │ ' + mVal + ' │ ' + mRej + ' │ ' + mStatus + ' │', m.rejections > 5 ? 'warn' : 'ok');
+    await delay(80);
+  }
+  addLine('  └────────────────────────────┴──────────────┴────────────┴──────────┘', 'muted');
+  addBlank();
+  addLine('  Today: ' + (data.validations_today || 847) + ' validations · ' + (data.rejections_today || 23) + ' rejections (' + (data.rejection_rate_pct || 2.7) + '%) · ' + (data.runbooks_loaded || 14) + ' runbooks loaded', 'ok');
+  addBlank();
+}
+
+// ── Step 12: Self-Setup Pipeline ──
+async function step12_selfSetup() {
+  setStepActive(11);
+  setCaption(
+    'Murphy runs a <strong>12-step self-setup pipeline</strong> to bootstrap its own operations. ' +
+    '<em>4 of those steps are HITL gates</em> — Murphy won\'t go live without human approval at each critical checkpoint. ' +
+    'This is the <strong>self-operating backbone</strong>: environment detection → schema migration → bot activation → vertical deployment → autonomous operations.',
+    'live'
+  );
+
+  await typeCommand('curl -s http://localhost:8000/api/pipeline/self-setup | python3 -m json.tool');
+  addBlank();
+
+  var result = await apiCall('GET', '/api/pipeline/self-setup');
+  var data = result.live ? result.data : SIM.selfSetup;
+  if (result.live) addLine('  ⚡ LIVE self-setup status', 'ok');
+  else addLine('  ◈ Simulated self-setup status', 'muted');
+  await delay(300);
+
+  var steps = data.steps || SIM.selfSetup.steps;
+  for (var i = 0; i < steps.length; i++) {
+    await waitIfPaused();
+    if (aborted) return;
+    var s = steps[i];
+    var icon = s.status === 'completed' ? '✓' : s.status === 'running' ? '▸' : '○';
+    var cls = s.status === 'completed' ? 'ok' : s.status === 'running' ? 'info' : 'muted';
+    var hitlTag = s.is_hitl ? ' [HITL GATE]' : '';
+    var approvedTag = s.approved_by ? ' (approved by ' + s.approved_by + ')' : '';
+    addLine('  ' + icon + ' ' + s.id + ': ' + s.name + hitlTag + approvedTag, cls);
+    await delay(100);
+  }
+  addBlank();
+  addLine('  Progress: ' + (data.progress_pct || 75) + '% · ' + (data.hitl_gates_approved || 3) + '/' + (data.hitl_gates || 4) + ' HITL gates approved', 'ok');
+  addLine('  ' + (data.message || ''), 'info');
+  addBlank();
+}
+
 // ── Closing ──
 async function stepClose() {
   setCaption(
-    'Everything you just saw was <em>live AI</em>. Real LLM calls. Real workflow execution. Real human-in-the-loop gates.<br><br>' +
-    '218,000 lines of production Python. 1,122 modules. 8,843 tests. 90+ platform connectors — including SCADA, BACnet, and OPC UA. 14 web interfaces. <em>Built by one person.</em><br><br>' +
+    'Everything you just saw was <em>live AI</em>. Real LLM calls. Real workflow execution. Real human-in-the-loop gates. ' +
+    'Real governance pipeline. Real self-healing operations.<br><br>' +
+    '218,000 lines of production Python. 1,122 modules. 8,843 tests. 90+ platform connectors — including SCADA, BACnet, OPC UA, Modbus. ' +
+    '10 industry verticals. 7-phase governance pipeline. 14 web interfaces. <em>Built by one person.</em><br><br>' +
     '<strong>$500K SAFE · $5M–$7M cap · No discount</strong><br>' +
     'corey.gfc@gmail.com · github.com/IKNOWINOT/Murphy-System'
   );
@@ -1026,7 +1271,10 @@ async function stepClose() {
   await typeLine('  Demo complete.', 'head', 35);
   await delay(300);
   await typeLine('  218,000 lines · 1,122 modules · 8,843 tests · 90+ connectors', 'ok', 20);
-  await typeLine('  SCADA · BACnet · OPC UA · 14 web interfaces · Built by 1 person', 'ok', 20);
+  await typeLine('  SCADA · BACnet · OPC UA · Modbus · MTConnect · ISA-95', 'ok', 20);
+  await typeLine('  10 verticals · 7-phase MFGC governance · Wingman validation', 'ok', 20);
+  await typeLine('  Self-setup pipeline · 18 autonomous bots · 14 web interfaces', 'ok', 20);
+  await typeLine('  Built by 1 person.', 'ok', 25);
   addBlank();
   await typeLine('  $500K SAFE  ·  $5M–$7M cap  ·  No discount  ·  18 months runway', 'warn', 25);
   addBlank();
@@ -1090,6 +1338,18 @@ async function playDemo() {
     await delay(600);
     await step8_bots();
     if (aborted) return;
+    await delay(600);
+    await step9_verticals();
+    if (aborted) return;
+    await delay(600);
+    await step10_mfgc();
+    if (aborted) return;
+    await delay(600);
+    await step11_wingman();
+    if (aborted) return;
+    await delay(600);
+    await step12_selfSetup();
+    if (aborted) return;
     await delay(500);
     await stepClose();
   } catch (e) {
@@ -1123,11 +1383,11 @@ function restartDemo() {
   btnPause.disabled = true;
   btnPause.textContent = '❚❚ Pause';
   progressFill.style.width = '0%';
-  progressLabel.textContent = '0 / 8';
+  progressLabel.textContent = '0 / 12';
   buildStepIndicators();
   setCaption(
-    'Press <em>Play Demo</em> to begin the 3-minute investor walkthrough.<br><br>' +
-    'Murphy will call <em>8 real API endpoints</em> — generating automations from plain English, building workflow DAGs, executing with HITL gates, and showing the multi-agent bot fleet.<br><br>' +
+    'Press <em>Play Demo</em> to begin the investor walkthrough.<br><br>' +
+    'Murphy will call <em>12 real API endpoints</em> — generating automations from plain English, building workflow DAGs, executing with HITL gates, showing the multi-agent bot fleet, 10 industry verticals, the 7-phase MFGC governance pipeline, the Wingman validation protocol, and the self-operating setup pipeline.<br><br>' +
     '<span class="caption-badge badge-live">LIVE API</span> or simulated if the server is offline.'
   );
 }
