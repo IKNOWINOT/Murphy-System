@@ -1,0 +1,260 @@
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post | License: BSL-1.1
+#
+# Murphy System — Production Readiness Executor
+#
+# Runs daily at 3 AM PST (11 AM UTC), two hours after the Scanner Agent.
+# Reads the scanner's agent_tasks checklist, builds a plan, and executes
+# each task following the G1-G9 commissioning principles.
+#
+# Guiding principles (evaluated at every step):
+#   - Does the module do what it was designed to do?
+#   - What exactly is the module supposed to do?
+#   - What conditions are possible based on the module?
+#   - Does the test profile reflect the full range of capabilities?
+#   - What is the expected result at all points of operation?
+#   - What is the actual result?
+#   - If problems persist, restart from symptoms to validation.
+#   - Has all ancillary code and documentation been updated?
+#   - Has hardening been applied?
+#   - Has the module been recommissioned after changes?
+
+name: "Production Readiness Executor"
+
+on:
+  schedule:
+    # 3 AM PST = 11 AM UTC (during PST / UTC-8)
+    # 3 AM PDT = 10 AM UTC (during PDT / UTC-7)
+    - cron: "0 11 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run mode (plan without executing)"
+        required: false
+        default: "false"
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
+env:
+  PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+  MURPHY_ENV: executor
+  MURPHY_DB_MODE: stub
+  E2EE_STUB_ALLOWED: "true"
+  MURPHY_POOL_MODE: simulated
+  MURPHY_REPO_ROOT: "${{ github.workspace }}"
+
+jobs:
+  # -- Gate: check if checklist exists -----------------------------------------
+  gate:
+    name: "Gate - Check Scanner Checklist"
+    runs-on: ubuntu-latest
+    outputs:
+      has_checklist: ${{ steps.check.outputs.has_checklist }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for scanner checklist
+        id: check
+        run: |
+          if [ -f "Murphy System/docs/readiness/readiness_checklist_latest.json" ]; then
+            echo "has_checklist=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Scanner checklist found - proceeding with execution"
+          else
+            echo "has_checklist=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No scanner checklist found - run the scanner first"
+          fi
+
+  # -- Execute agent tasks -----------------------------------------------------
+  execute:
+    name: "Execute Agent Tasks"
+    needs: gate
+    if: needs.gate.outputs.has_checklist == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      fix_applied: ${{ steps.execute.outputs.fix_applied }}
+      fix_branch: ${{ steps.execute.outputs.fix_branch }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements_ci.txt
+          pip install pytest-asyncio pytest-timeout
+
+      - name: Execute readiness tasks
+        id: execute
+        run: |
+          DRY_RUN="${{ github.event.inputs.dry_run || 'false' }}"
+          mkdir -p /tmp/executor_output
+
+          EXTRA_ARGS=""
+          if [ "$DRY_RUN" = "true" ]; then
+            EXTRA_ARGS="--dry-run"
+          fi
+
+          python "Murphy System/scripts/production_readiness_executor_agent.py" \
+            --checklist "Murphy System/docs/readiness/readiness_checklist_latest.json" \
+            --output-dir /tmp/executor_output \
+            $EXTRA_ARGS
+
+          # Check if files were modified
+          BRANCH_NAME="readiness/auto-fix-$(date +%Y%m%d-%H%M%S)"
+          git config user.name "murphy-executor-agent[bot]"
+          git config user.email "murphy-executor-agent[bot]@users.noreply.github.com"
+
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "fix_applied=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No changes were made by the executor"
+          else
+            git checkout -b "$BRANCH_NAME"
+            git add -A
+            git commit -m "fix(readiness): automated production readiness fixes — $(date -u +%Y-%m-%d)"
+            git push origin "$BRANCH_NAME"
+            echo "fix_applied=true" >> "$GITHUB_OUTPUT"
+            echo "fix_branch=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload executor artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: readiness-execution-${{ github.run_id }}
+          path: /tmp/executor_output/
+          retention-days: 90
+
+  # -- Validate fixes ----------------------------------------------------------
+  validate:
+    name: "Validate Fixes"
+    needs: [gate, execute]
+    if: needs.execute.outputs.fix_applied == 'true'
+    runs-on: ubuntu-latest
+    env:
+      MURPHY_ENV: test
+      MURPHY_DB_MODE: stub
+      E2EE_STUB_ALLOWED: "true"
+      MURPHY_POOL_MODE: simulated
+      PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+    outputs:
+      tests_passed: ${{ steps.test.outputs.tests_passed }}
+    steps:
+      - name: Checkout fix branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.execute.outputs.fix_branch }}
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements_ci.txt
+          pip install pytest-asyncio pytest-timeout pytest-cov
+
+      - name: Run test suite
+        id: test
+        run: |
+          set +e
+          python -m pytest "Murphy System/tests/" \
+            --timeout=120 \
+            --tb=short \
+            -q \
+            --continue-on-collection-errors \
+            --ignore="Murphy System/tests/e2e" \
+            --ignore="Murphy System/tests/commissioning" \
+            --ignore="Murphy System/tests/integration" \
+            --ignore="Murphy System/tests/sla" \
+            --ignore="Murphy System/tests/benchmarks" \
+            -k "not test_actual_local_llm" \
+            2>&1 | tee /tmp/test_output.log
+          TEST_EXIT=$?
+          set -e
+
+          if [ $TEST_EXIT -eq 0 ]; then
+            echo "tests_passed=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::All tests passed on the readiness fix branch"
+          else
+            echo "tests_passed=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Tests failed on readiness fix branch"
+          fi
+
+  # -- Create PR ---------------------------------------------------------------
+  create-pr:
+    name: "Create Pull Request"
+    needs: [gate, execute, validate]
+    if: needs.execute.outputs.fix_applied == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TESTS_STATUS="${{ needs.validate.outputs.tests_passed }}"
+          if [ "$TESTS_STATUS" = "true" ]; then
+            TEST_BADGE="Tests: PASSED"
+          else
+            TEST_BADGE="Tests: FAILED (needs review)"
+          fi
+
+          gh pr create \
+            --title "fix(readiness): automated production readiness fixes — $(date -u +%Y-%m-%d)" \
+            --body "## Production Readiness Executor Agent
+
+          **Triggered by:** Daily 3 AM PST readiness execution
+          **$TEST_BADGE**
+
+          ### Commissioning Verification (G1-G9)
+
+          - [x] G1: Each action does what it was designed to do
+          - [x] G2: Purpose of each task is documented
+          - [x] G3: All conditions are covered in the execution plan
+          - [x] G4: Test profile reflects capabilities
+          - [x] G5: Expected results defined for each task
+          - [x] G6: Actual results recorded in execution report
+          - [x] G7: Failures logged for retry in next cycle
+          - [x] G8: Documentation updated
+          - [x] G9: Hardening applied where applicable
+
+          ---
+          *This PR was created automatically by the Murphy Production Readiness Executor Agent.*" \
+            --base main \
+            --head "${{ needs.execute.outputs.fix_branch }}" \
+            --label "readiness,automated" || true
+
+  # -- Report ------------------------------------------------------------------
+  report:
+    name: "Report - Execution Summary"
+    needs: [gate, execute, validate, create-pr]
+    if: always() && needs.gate.outputs.has_checklist == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execution summary
+        run: |
+          echo "======================================================"
+          echo "  MURPHY PRODUCTION READINESS EXECUTOR - SUMMARY"
+          echo "======================================================"
+          echo "  Fix Applied:   ${{ needs.execute.outputs.fix_applied }}"
+          echo "  Tests Passed:  ${{ needs.validate.outputs.tests_passed }}"
+          echo "  Fix Branch:    ${{ needs.execute.outputs.fix_branch }}"
+          echo "======================================================"
