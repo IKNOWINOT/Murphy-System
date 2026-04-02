@@ -137,70 +137,78 @@ class TestDeepInfraProviderDetection:
 # ---------------------------------------------------------------------------
 
 
-class TestDeprecatedKeyRotation:
-    """Verify deprecated GroqKeyRotator stub (Groq→DeepInfra migration complete)."""
+class TestDeepInfraKeyRotation:
+    """Verify DeepInfraKeyRotator (was GroqKeyRotator) round-robin and failure logic."""
 
     def test_round_robin_rotation(self) -> None:
-        """Deprecated stub: get_next_key() always returns None."""
-        from groq_key_rotator import GroqKeyRotator
+        """DeepInfraKeyRotator rotates through keys in round-robin order."""
+        from groq_key_rotator import DeepInfraKeyRotator
 
-        rotator = GroqKeyRotator([
-            ("key1", "gsk_aaa"),
-            ("key2", "gsk_bbb"),
-            ("key3", "gsk_ccc"),
+        rotator = DeepInfraKeyRotator([
+            ("key1", "dik_aaa"),
+            ("key2", "dik_bbb"),
+            ("key3", "dik_ccc"),
         ])
-        result = rotator.get_next_key()
-        assert result is None
+        names = [rotator.get_next_key()[0] for _ in range(6)]
+        assert names == ["key1", "key2", "key3", "key1", "key2", "key3"]
 
     def test_key_disable_after_failures(self) -> None:
-        """Deprecated stub: report_failure is a no-op; keys list is always empty."""
-        from groq_key_rotator import GroqKeyRotator
+        """Key is disabled after 3 consecutive failures."""
+        from groq_key_rotator import DeepInfraKeyRotator
 
-        rotator = GroqKeyRotator([
-            ("key1", "gsk_aaa"),
-            ("key2", "gsk_bbb"),
+        rotator = DeepInfraKeyRotator([
+            ("key1", "dik_aaa"),
+            ("key2", "dik_bbb"),
         ])
         for _ in range(3):
-            rotator.report_failure("gsk_aaa", "timeout")
+            rotator.report_failure("dik_aaa", "timeout")
 
         stats = rotator.get_statistics()
-        assert stats["keys"] == []
+        key1_stat = next(k for k in stats["keys"] if k["name"] == "key1")
+        assert key1_stat["is_active"] is False
 
     def test_all_keys_reactivate_when_all_inactive(self) -> None:
-        """Deprecated stub: get_statistics returns empty keys list."""
-        from groq_key_rotator import GroqKeyRotator
+        """All keys reactivate when every key is disabled."""
+        from groq_key_rotator import DeepInfraKeyRotator
 
-        rotator = GroqKeyRotator([("key1", "gsk_aaa")])
+        rotator = DeepInfraKeyRotator([("key1", "dik_aaa")])
         for _ in range(3):
-            rotator.report_failure("gsk_aaa", "error")
-
-        stats = rotator.get_statistics()
-        assert stats["keys"] == []
+            rotator.report_failure("dik_aaa", "error")
+        # Should reactivate and still return a key
+        name, key = rotator.get_next_key()
+        assert key == "dik_aaa"
 
     def test_statistics_tracking(self) -> None:
-        """Deprecated stub: get_statistics always returns zeros."""
-        from groq_key_rotator import GroqKeyRotator
+        """Statistics accurately track calls, successes, and failures."""
+        from groq_key_rotator import DeepInfraKeyRotator
 
-        rotator = GroqKeyRotator([("key1", "gsk_aaa")])
+        rotator = DeepInfraKeyRotator([("key1", "dik_aaa")])
         rotator.get_next_key()
-        rotator.report_success("gsk_aaa")
+        rotator.report_success("dik_aaa")
         rotator.get_next_key()
-        rotator.report_failure("gsk_aaa", "error")
+        rotator.report_failure("dik_aaa", "error")
 
         stats = rotator.get_statistics()
-        assert stats["total_calls"] == 0
-        assert stats["successful_calls"] == 0
-        assert stats["failed_calls"] == 0
+        assert stats["total_calls"] == 2
+        assert stats["successful_calls"] == 1
+        assert stats["failed_calls"] == 1
 
     def test_reset_key(self) -> None:
-        """Deprecated stub: reset_key always returns False (key not found)."""
-        from groq_key_rotator import GroqKeyRotator
+        """reset_key reactivates a disabled key."""
+        from groq_key_rotator import DeepInfraKeyRotator
 
-        rotator = GroqKeyRotator([("key1", "gsk_aaa")])
+        rotator = DeepInfraKeyRotator([("key1", "dik_aaa")])
         for _ in range(3):
-            rotator.report_failure("gsk_aaa", "error")
+            rotator.report_failure("dik_aaa", "error")
 
-        assert rotator.reset_key("key1") is False
+        assert rotator.reset_key("key1") is True
+        stats = rotator.get_statistics()
+        assert stats["keys"][0]["is_active"] is True
+
+    def test_backward_compat_alias(self) -> None:
+        """GroqKeyRotator must be an alias for DeepInfraKeyRotator."""
+        from groq_key_rotator import DeepInfraKeyRotator, GroqKeyRotator
+        assert GroqKeyRotator is DeepInfraKeyRotator
 
 
 # ---------------------------------------------------------------------------
