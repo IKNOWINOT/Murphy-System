@@ -1,9 +1,9 @@
 """
 Murphy System — UI Test Suite
-conftest.py — Playwright fixtures and shared configuration.
+conftest.py — Multi-cursor fixtures and shared configuration.
 
 Every test gets:
-  - `page` — a Playwright Page ready to use
+  - `page` — a Page-like object ready to use (requires playwright or multicursor)
   - `browser_context` — multi-tab context for multi-cursor tests
   - `screenshot` — helper that saves PNGs to tests/ui/screenshots/ (committed)
   - `BASE_URL` — the local HTTP server base URL
@@ -16,7 +16,20 @@ import re
 from pathlib import Path
 
 import pytest
-from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
+
+try:
+    from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
+    _HAS_PLAYWRIGHT = True
+except ImportError:
+    _HAS_PLAYWRIGHT = False
+    Browser = None
+    BrowserContext = None
+    Page = None
+    sync_playwright = None
+
+# Skip the entire tests/ui directory when playwright is not installed
+if not _HAS_PLAYWRIGHT:
+    collect_ignore_glob = ["test_*.py"]
 
 # ── Configuration ──────────────────────────────────────────────────────────
 BASE_URL = os.environ.get("MURPHY_TEST_URL", "http://localhost:18080")
