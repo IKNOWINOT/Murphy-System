@@ -891,13 +891,16 @@ class TestMCPLimits:
 
     def test_max_server_registration(self, mcp):
         """Registering beyond _MAX_SERVERS raises RuntimeError."""
-        for i in range(200):
-            mcp.register_server(MCPServerConfig(
+        # Pre-fill registry to just under limit to avoid slow loop
+        mcp._servers = {
+            f"server-{i}": MCPServerConfig(
                 server_id=f"server-{i}",
                 name=f"Server {i}",
                 transport=MCPTransport.HTTP,
                 url=f"http://localhost:{9000 + i}",
-            ))
+            )
+            for i in range(200)
+        }
         with pytest.raises(RuntimeError, match="Maximum MCP servers"):
             mcp.register_server(MCPServerConfig(
                 server_id="server-overflow",
