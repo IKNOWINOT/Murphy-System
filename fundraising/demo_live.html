@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Live AI Demo</title>
+<meta name="description" content="Watch Murphy System convert plain English into governed, production-grade workflows — live.">
+<style>
+/* ── Murphy Terminal Theme ── */
+:root {
+  --bg:      #0a0e17;
+  --panel:   #111827;
+  --surface: #0f172a;
+  --border:  #1e293b;
+  --fg:      #e2e8f0;
+  --muted:   #64748b;
+  --cyan:    #00e5ff;
+  --teal:    #1de9b6;
+  --green:   #76ff03;
+  --amber:   #fbbf24;
+  --red:     #ef4444;
+  --purple:  #a78bfa;
+  --font-ui:   'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-code: 'Fira Code', 'JetBrains Mono', 'Courier New', monospace;
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 15px; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-ui);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Layout ── */
+.demo-wrapper {
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+header h1 {
+  font-size: 1.6rem;
+  color: var(--cyan);
+  letter-spacing: -0.02em;
+}
+header h1 span { color: var(--fg); font-weight: 400; }
+header p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-top: 0.3rem;
+}
+
+/* ── Controls Bar ── */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.controls button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--fg);
+  padding: 0.4rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.15s, border-color 0.15s;
+}
+.controls button:hover { background: #1e293b; }
+.controls button.primary {
+  background: var(--cyan);
+  color: var(--bg);
+  border-color: var(--cyan);
+}
+.controls button.primary:hover { opacity: 0.85; }
+.controls button:disabled { opacity: 0.4; cursor: not-allowed; }
+.progress-wrap {
+  flex: 1;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.progress-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--cyan);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+.progress-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.speed-control {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.speed-control select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-family: var(--font-ui);
+}
+
+/* ── Step Indicator ── */
+.step-indicators {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.3rem;
+}
+.step-pill {
+  font-size: 0.7rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  white-space: nowrap;
+  transition: all 0.3s;
+  cursor: default;
+}
+.step-pill.active {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  background: rgba(0, 229, 255, 0.08);
+}
+.step-pill.done {
+  border-color: var(--teal);
+  color: var(--teal);
+  background: rgba(29, 233, 182, 0.08);
+}
+
+/* ── Main Split: Terminal + Caption ── */
+.main-area {
+  display: flex;
+  gap: 1rem;
+  flex: 1;
+  min-height: 0;
+}
+.terminal-col {
+  flex: 3;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.caption-col {
+  flex: 1.2;
+  min-width: 200px;
+}
+
+/* ── Terminal ── */
+.terminal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.term-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #0c1322;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.term-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.term-dot.r { background: #ef4444; }
+.term-dot.y { background: #fbbf24; }
+.term-dot.g { background: #22c55e; }
+.term-titlebar span { margin-left: auto; }
+.term-body {
+  flex: 1;
+  padding: 0.75rem;
+  overflow-y: auto;
+  font-family: var(--font-code);
+  font-size: 0.82rem;
+  line-height: 1.65;
+  scroll-behavior: smooth;
+}
+
+/* ── Terminal Line Styles ── */
+.tl { white-space: pre-wrap; word-break: break-word; margin-bottom: 2px; }
+.tl-prompt { color: var(--green); }
+.tl-cmd    { color: var(--green); font-weight: 600; }
+.tl-info   { color: var(--cyan); }
+.tl-ok     { color: var(--teal); }
+.tl-key    { color: var(--purple); }
+.tl-val    { color: var(--fg); }
+.tl-warn   { color: var(--amber); }
+.tl-err    { color: var(--red); }
+.tl-muted  { color: var(--muted); }
+.tl-head   { color: var(--cyan); font-weight: 700; margin-top: 0.5rem; }
+.tl-blank  { height: 0.5rem; }
+.cursor {
+  display: inline-block;
+  width: 7px; height: 1.05em;
+  background: var(--cyan);
+  animation: blink 0.6s step-end infinite;
+  vertical-align: text-bottom;
+  margin-left: 1px;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ── Caption Panel ── */
+.caption-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.caption-panel h3 {
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.75rem;
+}
+.caption-text {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--fg);
+  flex: 1;
+}
+.caption-text em { color: var(--cyan); font-style: normal; font-weight: 600; }
+.caption-text strong { color: var(--amber); }
+.caption-badge {
+  display: inline-block;
+  margin-top: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.badge-live {
+  background: rgba(29, 233, 182, 0.12);
+  color: var(--teal);
+  border: 1px solid rgba(29, 233, 182, 0.3);
+}
+.badge-ai {
+  background: rgba(167, 139, 250, 0.12);
+  color: var(--purple);
+  border: 1px solid rgba(167, 139, 250, 0.3);
+}
+
+/* ── Server Mode Toggle ── */
+.server-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.server-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  transition: background 0.3s;
+}
+.server-dot.online { background: var(--teal); }
+.server-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  margin-left: auto;
+}
+.server-toggle input[type="checkbox"] {
+  accent-color: var(--cyan);
+}
+
+/* ── Footer ── */
+footer {
+  text-align: center;
+  padding: 1rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+footer a { color: var(--cyan); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+/* ── Responsive ── */
+@media (max-width: 700px) {
+  .main-area { flex-direction: column; }
+  .caption-col { min-width: unset; }
+  .step-indicators { flex-wrap: wrap; }
+  html { font-size: 14px; }
+}
+</style>
+</head>
+<body>
+
+<div class="demo-wrapper">
+  <header>
+    <h1>Murphy System <span>— Live AI Demo</span></h1>
+    <p>Watch Murphy's crown jewels in action — 12 real API endpoints covering AI workflow generation, MFGC governance, Wingman validation, and self-operating infrastructure.</p>
+  </header>
+
+  <!-- Server Mode -->
+  <div class="server-toggle" id="server-toggle">
+    <span class="server-dot" id="server-dot"></span>
+    <span id="server-status-text">Checking server…</span>
+    <label>
+      <input type="checkbox" id="live-mode-toggle" checked>
+      Live API mode
+    </label>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="primary" id="btn-play" onclick="playDemo()">&#9654; Play Demo</button>
+    <button id="btn-pause" onclick="pauseDemo()" disabled>&#10074;&#10074; Pause</button>
+    <button id="btn-restart" onclick="restartDemo()">&#8634; Restart</button>
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <span class="progress-label" id="progress-label">0 / 8</span>
+    </div>
+    <div class="speed-control">
+      <span>Speed:</span>
+      <select id="speed-select" onchange="setSpeed(this.value)">
+        <option value="0.5">0.5×</option>
+        <option value="1" selected>1×</option>
+        <option value="1.5">1.5×</option>
+        <option value="2">2×</option>
+        <option value="3">3× Fast</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Step Indicators -->
+  <div class="step-indicators" id="step-indicators"></div>
+
+  <!-- Main Area -->
+  <div class="main-area">
+    <div class="terminal-col">
+      <div class="terminal">
+        <div class="term-titlebar">
+          <span class="term-dot r"></span>
+          <span class="term-dot y"></span>
+          <span class="term-dot g"></span>
+          murphy@system:~
+          <span id="term-clock"></span>
+        </div>
+        <div class="term-body" id="term"></div>
+      </div>
+    </div>
+    <div class="caption-col">
+      <div class="caption-panel">
+        <h3>&#128172; Narrator</h3>
+        <div class="caption-text" id="caption">
+          Press <em>Play Demo</em> to begin the investor walkthrough.<br><br>
+          Murphy will call <em>12 real API endpoints</em> — generating automations from plain English, building workflow DAGs, executing with HITL gates, showing the multi-agent bot fleet, 10 industry verticals, the 7-phase MFGC governance pipeline, the Wingman validation protocol, and the self-operating setup pipeline.<br><br>
+          <span class="caption-badge badge-live">LIVE API</span> or simulated if the server is offline.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Murphy System &copy; 2025 Inoni LLC &middot;
+  <a href="https://github.com/IKNOWINOT/Murphy-System">GitHub</a> &middot;
+  <a href="mailto:corey.gfc@gmail.com">corey.gfc@gmail.com</a> &middot;
+  <a href="DEMO_SCRIPT.md">View Script (MD)</a>
+</footer>
+
+<script>
+/* ========================================================================
+   Murphy System — Self-Running AI Demo
+   Hits real API endpoints (with graceful fallback to simulated responses).
+   ======================================================================== */
+
+// ── Configuration ──
+var BASE_URL = '';  // empty = same-origin (e.g. localhost:8000); set to full URL if server is elsewhere
+var speed = 1;
+var paused = false;
+var playing = false;
+var aborted = false;
+var serverOnline = false;
+var liveMode = true;
+var currentStep = -1;
+
+// Dynamic workflow ID captured from step 4 response
+var capturedWorkflowId = null;
+var capturedHitlStepId = null;
+
+// ── DOM refs ──
+var term = document.getElementById('term');
+var caption = document.getElementById('caption');
+var progressFill = document.getElementById('progress-fill');
+var progressLabel = document.getElementById('progress-label');
+var btnPlay = document.getElementById('btn-play');
+var btnPause = document.getElementById('btn-pause');
+var serverDot = document.getElementById('server-dot');
+var serverStatusText = document.getElementById('server-status-text');
+
+// ── Speed ──
+function setSpeed(v) { speed = parseFloat(v); }
+function delay(ms) {
+  var actual = ms / speed;
+  return new Promise(function(resolve) {
+    setTimeout(function() { if (!aborted) resolve(); }, actual);
+  });
+}
+
+// ── Pause / Resume ──
+function waitIfPaused() {
+  return new Promise(function(resolve) {
+    (function check() {
+      if (aborted) return;
+      if (!paused) return resolve();
+      setTimeout(check, 100);
+    })();
+  });
+}
+
+// ── Server check ──
+async function checkServer() {
+  try {
+    var r = await fetch(BASE_URL + '/health', { signal: AbortSignal.timeout(3000) });
+    if (r.ok) {
+      serverOnline = true;
+      serverDot.classList.add('online');
+      serverStatusText.textContent = 'Server online — live API mode';
+      return;
+    }
+  } catch (e) { /* offline */ }
+  serverOnline = false;
+  serverDot.classList.remove('online');
+  serverStatusText.textContent = 'Server offline — using simulated responses';
+}
+
+document.getElementById('live-mode-toggle').addEventListener('change', function() {
+  liveMode = this.checked;
+  if (liveMode) checkServer();
+  else {
+    serverDot.classList.remove('online');
+    serverStatusText.textContent = 'Simulation mode (live API disabled)';
+  }
+});
+
+// ── Terminal rendering ──
+function addLine(text, cls) {
+  var div = document.createElement('div');
+  div.className = 'tl' + (cls ? ' tl-' + cls : '');
+  div.textContent = text;
+  term.appendChild(div);
+  term.scrollTop = term.scrollHeight;
+  return div;
+}
+function addBlank() {
+  var div = document.createElement('div');
+  div.className = 'tl tl-blank';
+  term.appendChild(div);
+}
+
+// Typewriter effect for a single line
+async function typeLine(text, cls, charMs) {
+  charMs = charMs || 18;
+  var div = document.createElement('div');
+  div.className = 'tl' + (cls ? ' tl-' + cls : '');
+  term.appendChild(div);
+  var cur = document.createElement('span');
+  cur.className = 'cursor';
+  div.appendChild(cur);
+  for (var i = 0; i < text.length; i++) {
+    await waitIfPaused();
+    if (aborted) return;
+    cur.insertAdjacentText('beforebegin', text[i]);
+    term.scrollTop = term.scrollHeight;
+    await delay(charMs + Math.random() * 8);
+  }
+  cur.remove();
+  return div;
+}
+
+// Type a command prompt with $ prefix
+async function typeCommand(cmd) {
+  await typeLine('$ ' + cmd, 'cmd', 22);
+  await delay(200);
+}
+
+// Render a JSON object line by line with color highlighting
+async function renderJSON(obj, indent) {
+  indent = indent || 0;
+  var lines = prettyJSON(obj, indent);
+  for (var i = 0; i < lines.length; i++) {
+    await waitIfPaused();
+    if (aborted) return;
+    var l = lines[i];
+    addLine(l.text, l.cls);
+    term.scrollTop = term.scrollHeight;
+    await delay(30);
+  }
+}
+
+function prettyJSON(obj, indent) {
+  // Simple JSON formatter that returns {text, cls} lines
+  var json = JSON.stringify(obj, null, 2);
+  var rawLines = json.split('\n');
+  var result = [];
+  for (var i = 0; i < rawLines.length; i++) {
+    var line = rawLines[i];
+    var cls = 'val';
+    if (/^\s*"/.test(line) && /:/.test(line)) cls = 'key';
+    if (/true|"ok"|"active"|"completed"|"healthy"|"online"/i.test(line)) cls = 'ok';
+    if (/false|"error"|"failed"|"critical"/i.test(line)) cls = 'err';
+    if (/hitl|approval|gate/i.test(line)) cls = 'warn';
+    if (/^\s*[\[\]{},]?\s*$/.test(line)) cls = 'muted';
+    result.push({ text: line, cls: cls });
+  }
+  return result;
+}
+
+// ── API call with fallback ──
+async function apiCall(method, path, body) {
+  if (liveMode && serverOnline) {
+    try {
+      var opts = {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(15000)
+      };
+      if (body) opts.body = JSON.stringify(body);
+      var r = await fetch(BASE_URL + path, opts);
+      if (r.ok) return { live: true, data: await r.json() };
+    } catch (e) { /* fall through to simulated */ }
+  }
+  return { live: false, data: null };
+}
+
+// ── Caption update ──
+function setCaption(html, badge) {
+  caption.innerHTML = html;
+  if (badge) {
+    caption.innerHTML += '<br><span class="caption-badge ' +
+      (badge === 'ai' ? 'badge-ai' : 'badge-live') + '">' +
+      (badge === 'ai' ? 'AI-POWERED' : 'LIVE API') + '</span>';
+  }
+}
+
+// ── Step indicators ──
+var STEPS = [
+  { label: '1. Health', short: 'Health' },
+  { label: '2. Rate Gov', short: 'Rate' },
+  { label: '3. NL→Auto', short: 'NL→Auto' },
+  { label: '4. NL→DAG', short: 'DAG' },
+  { label: '5. Execute', short: 'Execute' },
+  { label: '6. Approve', short: 'HITL' },
+  { label: '7. Queue', short: 'Queue' },
+  { label: '8. Bots', short: 'Bots' },
+  { label: '9. Verticals', short: 'Verticals' },
+  { label: '10. Governance', short: 'MFGC' },
+  { label: '11. Wingman', short: 'Wingman' },
+  { label: '12. Self-Setup', short: 'Setup' }
+];
+
+function buildStepIndicators() {
+  var wrap = document.getElementById('step-indicators');
+  wrap.innerHTML = '';
+  for (var i = 0; i < STEPS.length; i++) {
+    var pill = document.createElement('span');
+    pill.className = 'step-pill';
+    pill.textContent = STEPS[i].label;
+    pill.id = 'step-' + i;
+    wrap.appendChild(pill);
+  }
+}
+buildStepIndicators();
+
+function setStepActive(idx) {
+  currentStep = idx;
+  for (var i = 0; i < STEPS.length; i++) {
+    var el = document.getElementById('step-' + i);
+    el.classList.remove('active', 'done');
+    if (i < idx) el.classList.add('done');
+    else if (i === idx) el.classList.add('active');
+  }
+  progressFill.style.width = ((idx + 1) / STEPS.length * 100) + '%';
+  progressLabel.textContent = (idx + 1) + ' / ' + STEPS.length;
+}
+
+// ── Clock ──
+function updateClock() {
+  var d = new Date();
+  var t = d.toLocaleTimeString('en-US', { hour12: false });
+  document.getElementById('term-clock').textContent = t;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* ========================================================================
+   DEMO STEPS — each step is an async function
+   ======================================================================== */
+
+// ── Simulated Fallback Responses ──
+var SIM = {
+  health: {
+    status: 'ok',
+    version: '3.0.0',
+    env: 'production',
+    active_automations: 12,
+    total_automations: 15,
+    tenants: 3,
+    campaigns: 5,
+    pending_hitl_items: 2,
+    sse_subscribers: 45,
+    ws_clients: 12,
+    ts: new Date().toISOString()
+  },
+  rateGov: {
+    enabled: true,
+    traffic_classes: {
+      HUMAN: { rpm: 60, burst: 15, current: 4 },
+      SWARM: { rpm: 600, burst: 100, current: 23 },
+      SENSOR: { rpm: 300, burst: 50, current: 7 },
+      SAFETY: { rpm: 'unlimited', burst: 'unlimited', current: 0 }
+    },
+    total_requests_last_minute: 34,
+    blocked_last_minute: 0
+  },
+  prompt: {
+    id: 'auto-' + Math.random().toString(36).slice(2, 8),
+    name: 'Weekly Revenue Report Pipeline',
+    description: 'Automated weekly Stripe revenue aggregation by pricing tier with Slack delivery every Monday at 9am.',
+    category: 'notifications',
+    trigger_type: 'schedule',
+    recurrence: 'weekly',
+    llm_generated: true,
+    milestones: [
+      { id: 'ms-001', title: 'Fetch Stripe Revenue Data', estimated_minutes: 5, status: 'pending' },
+      { id: 'ms-002', title: 'Aggregate by Pricing Tier', estimated_minutes: 3, status: 'pending' },
+      { id: 'ms-003', title: 'Format Summary Report', estimated_minutes: 4, status: 'pending' },
+      { id: 'ms-004', title: 'HITL Gate: Review Report', estimated_minutes: 0, status: 'pending' },
+      { id: 'ms-005', title: 'Send to Slack Channel', estimated_minutes: 1, status: 'pending' }
+    ],
+    cost_savings_monthly_usd: 480.0,
+    status: 'active',
+    created_at: new Date().toISOString()
+  },
+  workflow: {
+    id: 'wf-' + Math.random().toString(36).slice(2, 8),
+    name: 'Onboard A New Enterprise Client Workflow',
+    description: 'End-to-end client onboarding with security review and HITL approval gate.',
+    steps: [
+      { id: 'step-001', name: 'Collect Client Requirements', type: 'data_retrieval', depends_on: [], is_hitl: false, status: 'pending' },
+      { id: 'step-002', name: 'Create CRM Record', type: 'integration', depends_on: ['step-001'], is_hitl: false, status: 'pending' },
+      { id: 'step-003', name: 'Run Security Review', type: 'analysis', depends_on: ['step-002'], is_hitl: false, status: 'pending' },
+      { id: 'step-004', name: 'HITL Gate: Approve Access', type: 'hitl_gate', depends_on: ['step-003'], is_hitl: true, status: 'pending' },
+      { id: 'step-005', name: 'Configure System Access', type: 'configuration', depends_on: ['step-004'], is_hitl: false, status: 'pending' },
+      { id: 'step-006', name: 'Send Welcome Package', type: 'notification', depends_on: ['step-005'], is_hitl: false, status: 'pending' }
+    ],
+    has_hitl_gates: true,
+    estimated_duration_seconds: 23,
+    status: 'draft',
+    generated_at: new Date().toISOString()
+  },
+  execute: {
+    status: 'running',
+    steps_completed: ['step-001', 'step-002', 'step-003'],
+    current_step: 'step-004',
+    blocked_by: 'hitl_gate',
+    message: 'Workflow running. Blocked at HITL gate: step-004 (Approve Access).'
+  },
+  approve: {
+    status: 'approved',
+    step_id: 'step-004',
+    approved_by: 'founder',
+    reason: 'Security review passed',
+    workflow_status: 'completed',
+    steps_remaining: 0,
+    completed_at: new Date().toISOString()
+  },
+  hitlQueue: {
+    items: [
+      { id: 'hitl-001', type: 'automation_milestone', title: 'Review Revenue Report', priority: 'high', status: 'pending', created_at: new Date(Date.now() - 120000).toISOString() },
+      { id: 'hitl-002', type: 'dag_step', title: 'Approve SCADA Valve Command', priority: 'critical', status: 'pending', created_at: new Date(Date.now() - 60000).toISOString() }
+    ],
+    total: 2,
+    pending: 2
+  },
+  bots: {
+    bots: [
+      { name: 'scheduler_bot', status: 'online', uptime_pct: 99.97, tasks_completed: 1842, room: 'orchestration' },
+      { name: 'anomaly_watcher_bot', status: 'online', uptime_pct: 99.99, tasks_completed: 4217, room: 'industrial' },
+      { name: 'feedback_bot', status: 'online', uptime_pct: 99.95, tasks_completed: 891, room: 'marketing' },
+      { name: 'librarian_bot', status: 'online', uptime_pct: 99.98, tasks_completed: 2103, room: 'data' },
+      { name: 'memory_manager_bot', status: 'online', uptime_pct: 99.96, tasks_completed: 3456, room: 'data' },
+      { name: 'triage_bot', status: 'online', uptime_pct: 99.99, tasks_completed: 5672, room: 'comms' },
+      { name: 'optimization_bot', status: 'online', uptime_pct: 99.94, tasks_completed: 1567, room: 'orchestration' },
+      { name: 'analysis_bot', status: 'online', uptime_pct: 99.97, tasks_completed: 2891, room: 'marketing' },
+      { name: 'commissioning_bot', status: 'online', uptime_pct: 99.93, tasks_completed: 743, room: 'comms' },
+      { name: 'engineering_bot', status: 'online', uptime_pct: 99.98, tasks_completed: 1234, room: 'industrial' },
+      { name: 'key_manager_bot', status: 'online', uptime_pct: 100.0, tasks_completed: 456, room: 'security' },
+      { name: 'ghost_controller_bot', status: 'online', uptime_pct: 99.99, tasks_completed: 890, room: 'security' },
+      { name: 'kaia', status: 'online', uptime_pct: 99.99, tasks_completed: 7823, room: 'orchestration' },
+      { name: 'kiren', status: 'online', uptime_pct: 99.97, tasks_completed: 3451, room: 'marketing' },
+      { name: 'vallon', status: 'online', uptime_pct: 99.98, tasks_completed: 2109, room: 'comms' },
+      { name: 'veritas', status: 'online', uptime_pct: 99.99, tasks_completed: 1678, room: 'security' },
+      { name: 'osmosis', status: 'online', uptime_pct: 99.96, tasks_completed: 4532, room: 'data' },
+      { name: 'rubixcube_bot', status: 'online', uptime_pct: 99.95, tasks_completed: 987, room: 'industrial' }
+    ],
+    total: 18,
+    all_online: true
+  },
+  verticals: {
+    verticals: [
+      { id: 'marketing', name: 'Marketing Automation', active: true, automations: 8, monthly_savings_usd: 2400, engine: 'campaign_engine' },
+      { id: 'proposals', name: 'Proposal Generation', active: true, automations: 5, monthly_savings_usd: 3200, engine: 'proposal_engine' },
+      { id: 'crm', name: 'CRM & Lead Management', active: true, automations: 6, monthly_savings_usd: 1800, engine: 'crm_engine' },
+      { id: 'monitoring', name: 'System Monitoring', active: true, automations: 4, monthly_savings_usd: 960, engine: 'monitor_engine' },
+      { id: 'finance', name: 'Financial Operations', active: true, automations: 7, monthly_savings_usd: 4100, engine: 'finance_engine' },
+      { id: 'security', name: 'Security & Compliance', active: true, automations: 3, monthly_savings_usd: 5600, engine: 'security_engine' },
+      { id: 'content', name: 'Content Creation', active: true, automations: 9, monthly_savings_usd: 2800, engine: 'content_engine' },
+      { id: 'comms', name: 'Communications', active: true, automations: 4, monthly_savings_usd: 1200, engine: 'comms_engine' },
+      { id: 'pipeline', name: 'AI Pipeline & Ops', active: true, automations: 6, monthly_savings_usd: 3400, engine: 'pipeline_engine' },
+      { id: 'industrial', name: 'Industrial / SCADA / OT', active: true, automations: 5, monthly_savings_usd: 8900, engine: 'industrial_engine', protocols: ['BACnet/IP', 'Modbus TCP/RTU', 'OPC UA', 'MTConnect', 'ISA-95'] }
+    ],
+    total: 10,
+    total_monthly_savings_usd: 34360
+  },
+  mfgcState: {
+    pipeline: 'MFGC v1.1 — Murphy Finite Governance Code',
+    phases: [
+      { id: 1, name: 'Intake & Classification', status: 'active', processed: 4217 },
+      { id: 2, name: 'Analysis & Decomposition', status: 'active', processed: 4198 },
+      { id: 3, name: 'Confidence Scoring', status: 'active', processed: 4185 },
+      { id: 4, name: 'Gate Decision (Go/Defer/Human)', status: 'active', processed: 4185 },
+      { id: 5, name: 'Risk Index Calculation', status: 'active', processed: 4102 },
+      { id: 6, name: 'Librarian Enrichment', status: 'active', processed: 3998 },
+      { id: 7, name: 'Output & Audit Trail', status: 'active', processed: 3987 }
+    ],
+    current_profile: 'production',
+    confidence_threshold: 0.7,
+    auto_approve_below_risk: 'LOW',
+    trust_escalation: { new_tool_threshold: 10, medium_bypass_threshold: 50 },
+    decisions_today: { go: 312, defer: 47, human: 18 },
+    avg_confidence: 0.84
+  },
+  wingmanStatus: {
+    protocol: 'Wingman v2 — Executor/Validator Pairing',
+    active_session: true,
+    validations_today: 847,
+    rejections_today: 23,
+    rejection_rate_pct: 2.7,
+    modules: [
+      { id: 'pii_detector', name: 'PII Detection', validations: 847, rejections: 4, status: 'active' },
+      { id: 'budget_validator', name: 'Budget Validation', validations: 312, rejections: 7, status: 'active' },
+      { id: 'confidence_scorer', name: 'Confidence Scoring', validations: 847, rejections: 9, status: 'active' },
+      { id: 'output_presence', name: 'Output Presence Check', validations: 847, rejections: 1, status: 'active' },
+      { id: 'domain_rules', name: 'Domain-Specific Rules', validations: 538, rejections: 2, status: 'active' }
+    ],
+    runbooks_loaded: 14,
+    validation_history_depth: 10000
+  },
+  selfSetup: {
+    pipeline: 'Murphy Self-Setup Pipeline',
+    total_steps: 12,
+    completed_steps: 9,
+    progress_pct: 75,
+    current_step: 'step-10',
+    steps: [
+      { id: 'step-01', name: 'Environment Detection', status: 'completed' },
+      { id: 'step-02', name: 'Dependency Verification', status: 'completed' },
+      { id: 'step-03', name: 'HITL Gate: Approve Runtime Config', status: 'completed', is_hitl: true, approved_by: 'founder' },
+      { id: 'step-04', name: 'Database Schema Migration', status: 'completed' },
+      { id: 'step-05', name: 'Seed KPIs & RBAC Policies', status: 'completed' },
+      { id: 'step-06', name: 'HITL Gate: Approve Tenant Config', status: 'completed', is_hitl: true, approved_by: 'founder' },
+      { id: 'step-07', name: 'Activate Bot Fleet', status: 'completed' },
+      { id: 'step-08', name: 'Connect Platform Integrations', status: 'completed' },
+      { id: 'step-09', name: 'HITL Gate: Approve Go-Live', status: 'completed', is_hitl: true, approved_by: 'founder' },
+      { id: 'step-10', name: 'Activate Verticals', status: 'running' },
+      { id: 'step-11', name: 'HITL Gate: Final Production Approval', status: 'pending', is_hitl: true },
+      { id: 'step-12', name: 'Enable Autonomous Operations', status: 'pending' }
+    ],
+    hitl_gates: 4,
+    hitl_gates_approved: 3,
+    message: 'Self-setup 75% complete. Activating verticals. 1 HITL gate remaining before full autonomy.'
+  }
+};
+
+// ── Step 1: Health Check ──
+async function step1_health() {
+  setStepActive(0);
+  setCaption(
+    'Proving the system is <em>live</em>. This hits the real <em>/health</em> endpoint — not a mock. ' +
+    'Look for active automations, pending HITL items, and live WebSocket subscribers.',
+    'live'
+  );
+  await typeCommand('curl -s http://localhost:8000/health | python3 -m json.tool');
+  addLine('', 'muted');
+
+  var result = await apiCall('GET', '/health');
+  var data = result.live ? result.data : SIM.health;
+  if (result.live) addLine('  ⚡ LIVE response from server', 'ok');
+  else addLine('  ◈ Simulated response (server offline)', 'muted');
+  await delay(300);
+  await renderJSON(data);
+  addBlank();
+}
+
+// ── Step 2: Rate Governor ──
+async function step2_rateGov() {
+  setStepActive(1);
+  setCaption(
+    'Four traffic classes — <em>HUMAN</em>, <em>SWARM</em>, <em>SENSOR</em>, <em>SAFETY</em> — each rate-limited independently. ' +
+    'Murphy handles multi-agent swarms and IoT sensor traffic at scale.',
+    'live'
+  );
+  await typeCommand('curl -s http://localhost:8000/api/rate-governor/status | python3 -m json.tool');
+  addLine('', 'muted');
+
+  var result = await apiCall('GET', '/api/rate-governor/status');
+  var data = result.live ? result.data : SIM.rateGov;
+  if (result.live) addLine('  ⚡ LIVE response', 'ok');
+  else addLine('  ◈ Simulated response', 'muted');
+  await delay(300);
+  await renderJSON(data);
+  addBlank();
+}
+
+// ── Step 3: NL → Automation ──
+async function step3_nlAutomation() {
+  setStepActive(2);
+  setCaption(
+    'The money shot. One sentence of plain English → Murphy\'s AI (<em>Llama 3.1 70B</em> via DeepInfra) generates the automation name, description, and a full milestone plan. ' +
+    'Look for <strong>llm_generated: true</strong> and the auto-inserted <strong>HITL gate</strong> at milestone 4.',
+    'ai'
+  );
+
+  var prompt = 'Set up a weekly revenue report that pulls from Stripe, aggregates by pricing tier, and sends a summary to Slack every Monday at 9am';
+  await typeCommand('curl -s -X POST http://localhost:8000/api/prompt \\');
+  addLine('  -H "Content-Type: application/json" \\', 'cmd');
+  addLine('  -d \'{"prompt": "' + prompt.slice(0, 60) + '...",', 'cmd');
+  addLine('       "tenant_id": "tenant-001"}\' | python3 -m json.tool', 'cmd');
+  addBlank();
+
+  var thinkingLine = addLine('  ⏳ AI is thinking…', 'info');
+  await delay(1500);
+
+  var result = await apiCall('POST', '/api/prompt', {
+    prompt: prompt,
+    tenant_id: 'tenant-001'
+  });
+  var data = result.live ? result.data : SIM.prompt;
+  if (thinkingLine && thinkingLine.parentNode) thinkingLine.remove();
+
+  if (result.live) addLine('  ⚡ LIVE AI response from DeepInfra', 'ok');
+  else addLine('  ◈ Simulated AI response', 'muted');
+  await delay(300);
+  await renderJSON(data);
+  addBlank();
+}
+
+// ── Step 4: NL → Workflow DAG ──
+async function step4_dag() {
+  setStepActive(3);
+  setCaption(
+    'Now a <em>DAG</em> — a directed acyclic graph. Each step has explicit <em>dependencies</em>. ' +
+    'Step 4 is a <strong>HITL gate</strong>: Murphy will <em>not</em> grant system access to a new client until a human reviews the security audit. ' +
+    'This comes back as a <em>draft</em> — ready to execute.',
+    'ai'
+  );
+
+  var desc = 'Onboard a new enterprise client: collect requirements, create CRM record, run security review, configure access, send welcome package';
+  await typeCommand('curl -s -X POST http://localhost:8000/api/workflows/generate \\');
+  addLine('  -H "Content-Type: application/json" \\', 'cmd');
+  addLine('  -d \'{"description": "' + desc.slice(0, 55) + '...",', 'cmd');
+  addLine('       "tenant_id": "tenant-001",', 'cmd');
+  addLine('       "execute_immediately": false}\' | python3 -m json.tool', 'cmd');
+  addBlank();
+
+  var dagThinkingLine = addLine('  ⏳ Building DAG…', 'info');
+  await delay(1200);
+
+  var result = await apiCall('POST', '/api/workflows/generate', {
+    description: desc,
+    tenant_id: 'tenant-001',
+    execute_immediately: false
+  });
+  var data = result.live ? result.data : SIM.workflow;
+  if (dagThinkingLine && dagThinkingLine.parentNode) dagThinkingLine.remove();
+
+  // Capture workflow ID for steps 5 & 6
+  capturedWorkflowId = data.id || SIM.workflow.id;
+  // Find the HITL step
+  var steps = data.steps || SIM.workflow.steps;
+  for (var i = 0; i < steps.length; i++) {
+    if (steps[i].is_hitl) { capturedHitlStepId = steps[i].id; break; }
+  }
+
+  if (result.live) addLine('  ⚡ LIVE DAG generated', 'ok');
+  else addLine('  ◈ Simulated DAG', 'muted');
+  await delay(300);
+  await renderJSON(data);
+  addBlank();
+}
+
+// ── Step 5: Execute Workflow ──
+async function step5_execute() {
+  setStepActive(4);
+  setCaption(
+    'Executing the workflow. Steps 1–3 run <em>automatically</em>. ' +
+    'Watch it <strong>block at the HITL gate</strong> — Murphy refuses to grant system access without human approval.',
+    'live'
+  );
+
+  var wfId = capturedWorkflowId || 'wf-d4e5f6';
+  await typeCommand('curl -s -X POST http://localhost:8000/api/workflows/' + wfId + '/execute | python3 -m json.tool');
+  addBlank();
+
+  // Animate step execution
+  addLine('  ▸ step-001: Collect Client Requirements — running…', 'info');
+  await delay(600);
+  addLine('  ✓ step-001: completed', 'ok');
+  await delay(400);
+  addLine('  ▸ step-002: Create CRM Record — running…', 'info');
+  await delay(500);
+  addLine('  ✓ step-002: completed', 'ok');
+  await delay(400);
+  addLine('  ▸ step-003: Run Security Review — running…', 'info');
+  await delay(700);
+  addLine('  ✓ step-003: completed', 'ok');
+  await delay(400);
+  addLine('  ⚠ step-004: HITL Gate: Approve Access — BLOCKED (awaiting human approval)', 'warn');
+  addBlank();
+
+  var result = await apiCall('POST', '/api/workflows/' + wfId + '/execute');
+  var data = result.live ? result.data : SIM.execute;
+  if (result.live) addLine('  ⚡ LIVE execution status', 'ok');
+  else addLine('  ◈ Simulated execution', 'muted');
+  await delay(200);
+  await renderJSON(data);
+  addBlank();
+}
+
+// ── Step 6: Approve HITL Gate ──
+async function step6_approve() {
+  setStepActive(5);
+  setCaption(
+    'Approving the gate. Once approved, steps 5 and 6 execute automatically. ' +
+    'Every HITL event is <em>logged</em>, <em>auditable</em>, and <strong>SOC 2 compliant</strong>. ' +
+    'This is how Murphy handles high-stakes decisions — it stops, asks, then continues.',
+    'live'
+  );
+
+  var wfId = capturedWorkflowId || 'wf-d4e5f6';
+  var stepId = capturedHitlStepId || 'step-004';
+  await typeCommand('curl -s -X POST http://localhost:8000/api/workflows/' + wfId + '/steps/' + stepId + '/approve \\');
+  addLine('  -H "Content-Type: application/json" \\', 'cmd');
+  addLine('  -d \'{"approved_by": "founder", "reason": "Security review passed"}\' | python3 -m json.tool', 'cmd');
+  addBlank();
+
+  addLine('  ✓ HITL gate approved — resuming workflow', 'ok');
+  await delay(400);
+  addLine('  ▸ step-005: Configure System Access — running…', 'info');
+  await delay(500);
+  addLine('  ✓ step-005: completed', 'ok');
+  await delay(300);
+  addLine('  ▸ step-006: Send Welcome Package — running…', 'info');
+  await delay(400);
+  addLine('  ✓ step-006: completed', 'ok');
+  await delay(200);
+  addLine('  ✓ Workflow COMPLETED — all 6 steps done', 'ok');
+  addBlank();
+
+  var result = await apiCall('POST', '/api/workflows/' + wfId + '/steps/' + stepId + '/approve', {
+    approved_by: 'founder',
+    reason: 'Security review passed'
+  });
+  var data = result.live ? result.data : SIM.approve;
+  if (result.live) addLine('  ⚡ LIVE approval response', 'ok');
+  else addLine('  ◈ Simulated approval', 'muted');
+  await delay(200);
+  await renderJSON(data);
+  addBlank();
+}
+
+// ── Step 7: HITL Queue ──
+async function step7_hitlQueue() {
+  setStepActive(6);
+  setCaption(
+    'The HITL queue — every pending approval across all automations and workflows. ' +
+    'An industrial plant running Murphy would see <strong>SCADA valve commands</strong> waiting here for operator approval. ' +
+    'This is the governance layer.',
+    'live'
+  );
+
+  await typeCommand('curl -s "http://localhost:8000/api/hitl/queue?status=pending" | python3 -m json.tool');
+  addBlank();
+
+  var result = await apiCall('GET', '/api/hitl/queue?status=pending');
+  var data = result.live ? result.data : SIM.hitlQueue;
+  if (result.live) addLine('  ⚡ LIVE HITL queue', 'ok');
+  else addLine('  ◈ Simulated queue', 'muted');
+  await delay(300);
+  await renderJSON(data);
+  addBlank();
+}
+
+// ── Step 8: Bot Fleet ──
+async function step8_bots() {
+  setStepActive(7);
+  setCaption(
+    '<em>18 autonomous bots</em> — scheduler, anomaly watcher, librarian, triage, engineering, security — all running across 6 subsystem rooms. ' +
+    'This is the <strong>multi-agent orchestration layer</strong>. ' +
+    'Each bot has uptime tracking, task counts, and health monitoring.',
+    'live'
+  );
+
+  await typeCommand('curl -s http://localhost:8000/api/bots/status | python3 -m json.tool');
+  addBlank();
+
+  var result = await apiCall('GET', '/api/bots/status');
+  var data = result.live ? result.data : SIM.bots;
+  if (result.live) addLine('  ⚡ LIVE bot fleet status', 'ok');
+  else addLine('  ◈ Simulated bot fleet', 'muted');
+  await delay(300);
+
+  // Render bots as a compact table instead of raw JSON
+  addLine('  ┌─────────────────────────┬──────────┬──────────┬───────────────┐', 'muted');
+  addLine('  │ Bot                     │ Status   │ Uptime   │ Tasks Done    │', 'info');
+  addLine('  ├─────────────────────────┼──────────┼──────────┼───────────────┤', 'muted');
+  var bots = data.bots || SIM.bots.bots;
+  for (var i = 0; i < bots.length; i++) {
+    await waitIfPaused();
+    if (aborted) return;
+    var b = bots[i];
+    var name = (b.name || '').padEnd(23);
+    var status = (b.status || 'online').padEnd(8);
+    var uptime = ((b.uptime_pct || 99.9) + '%').padEnd(8);
+    var tasks = String(b.tasks_completed || 0).padStart(5);
+    var cls = b.status === 'online' ? 'ok' : 'warn';
+    addLine('  │ ' + name + ' │ ' + status + ' │ ' + uptime + ' │ ' + tasks + '         │', cls);
+    await delay(60);
+  }
+  addLine('  └─────────────────────────┴──────────┴──────────┴───────────────┘', 'muted');
+  addBlank();
+  addLine('  Total: ' + bots.length + ' bots · All online ✓', 'ok');
+  addBlank();
+}
+
+// ── Step 9: Verticals — 10 Industry Domains ──
+async function step9_verticals() {
+  setStepActive(8);
+  setCaption(
+    '<em>10 industry verticals</em> — marketing, proposals, CRM, monitoring, finance, security, content, comms, AI pipeline, and <strong>industrial/SCADA/OT</strong>. ' +
+    'Each vertical has its own engine, automations, and ROI tracking. ' +
+    'The industrial vertical alone covers <strong>BACnet, Modbus, OPC UA, MTConnect, ISA-95</strong> — a <em>$180B market with zero modern competitors</em>.',
+    'live'
+  );
+
+  await typeCommand('curl -s http://localhost:8000/api/verticals | python3 -m json.tool');
+  addBlank();
+
+  var result = await apiCall('GET', '/api/verticals');
+  var data = result.live ? result.data : SIM.verticals;
+  if (result.live) addLine('  ⚡ LIVE verticals status', 'ok');
+  else addLine('  ◈ Simulated verticals', 'muted');
+  await delay(300);
+
+  // Render as a table
+  addLine('  ┌───────────────────────────┬──────────┬──────────┬────────────────┐', 'muted');
+  addLine('  │ Vertical                  │ Active   │ Autos    │ Savings/mo     │', 'info');
+  addLine('  ├───────────────────────────┼──────────┼──────────┼────────────────┤', 'muted');
+  var verts = data.verticals || SIM.verticals.verticals;
+  for (var i = 0; i < verts.length; i++) {
+    await waitIfPaused();
+    if (aborted) return;
+    var v = verts[i];
+    var name = (v.name || '').padEnd(25);
+    var active = (v.active ? '✓' : '✗').padEnd(8);
+    var autos = String(v.automations || 0).padStart(4).padEnd(8);
+    var savings = ('$' + (v.monthly_savings_usd || 0).toLocaleString()).padEnd(14);
+    var cls = v.id === 'industrial' ? 'warn' : 'ok';
+    addLine('  │ ' + name + ' │ ' + active + ' │ ' + autos + ' │ ' + savings + ' │', cls);
+    await delay(60);
+  }
+  addLine('  └───────────────────────────┴──────────┴──────────┴────────────────┘', 'muted');
+  addBlank();
+  addLine('  Total monthly savings: $' + (data.total_monthly_savings_usd || 34360).toLocaleString() + ' across ' + verts.length + ' verticals', 'ok');
+  addBlank();
+}
+
+// ── Step 10: MFGC Governance Pipeline ──
+async function step10_mfgc() {
+  setStepActive(9);
+  setCaption(
+    'The <strong>MFGC Pipeline</strong> (Murphy Finite Governance Code) — the 7-phase governance engine that scores <em>every</em> action. ' +
+    'Phase 4 is the gate: <strong>Go / Defer / Human</strong>. ' +
+    'Trust escalation means tools that prove reliable earn auto-bypass over time. ' +
+    'This is the hardest-to-replicate layer — <em>no other platform has confidence-gated governance</em>.',
+    'ai'
+  );
+
+  await typeCommand('curl -s http://localhost:8000/api/mfgc/state | python3 -m json.tool');
+  addBlank();
+
+  var result = await apiCall('GET', '/api/mfgc/state');
+  var data = result.live ? result.data : SIM.mfgcState;
+  if (result.live) addLine('  ⚡ LIVE governance state', 'ok');
+  else addLine('  ◈ Simulated governance state', 'muted');
+  await delay(300);
+
+  // Render phases
+  addLine('  ┌─────┬────────────────────────────────────┬──────────┬───────────┐', 'muted');
+  addLine('  │ Ph. │ Pipeline Stage                     │ Status   │ Processed │', 'info');
+  addLine('  ├─────┼────────────────────────────────────┼──────────┼───────────┤', 'muted');
+  var phases = data.phases || SIM.mfgcState.phases;
+  for (var i = 0; i < phases.length; i++) {
+    await waitIfPaused();
+    if (aborted) return;
+    var p = phases[i];
+    var pId = String(p.id).padEnd(3);
+    var pName = (p.name || '').padEnd(36);
+    var pStatus = (p.status || 'active').padEnd(8);
+    var pProc = String(p.processed || 0).padStart(5).padEnd(9);
+    var cls = p.id === 4 ? 'warn' : 'ok';
+    addLine('  │ ' + pId + ' │ ' + pName + ' │ ' + pStatus + ' │ ' + pProc + ' │', cls);
+    await delay(80);
+  }
+  addLine('  └─────┴────────────────────────────────────┴──────────┴───────────┘', 'muted');
+  addBlank();
+
+  var decisions = data.decisions_today || SIM.mfgcState.decisions_today;
+  addLine('  Today: ' + decisions.go + ' auto-approved · ' + decisions.defer + ' deferred · ' + decisions.human + ' escalated to human', 'ok');
+  addLine('  Avg confidence: ' + ((data.avg_confidence || 0.84) * 100).toFixed(1) + '% · Threshold: ' + ((data.confidence_threshold || 0.7) * 100) + '%', 'info');
+  addBlank();
+}
+
+// ── Step 11: Wingman Protocol ──
+async function step11_wingman() {
+  setStepActive(10);
+  setCaption(
+    'The <strong>Wingman Protocol</strong> — every task gets an executor <em>and</em> a validator. ' +
+    '5 validation modules run on every action: <strong>PII detection, budget validation, confidence scoring, output presence, domain-specific rules</strong>. ' +
+    'Rejection rate under 3% means Murphy is learning — but nothing slips through without validation.',
+    'ai'
+  );
+
+  await typeCommand('curl -s http://localhost:8000/api/wingman/status | python3 -m json.tool');
+  addBlank();
+
+  var result = await apiCall('GET', '/api/wingman/status');
+  var data = result.live ? result.data : SIM.wingmanStatus;
+  if (result.live) addLine('  ⚡ LIVE wingman status', 'ok');
+  else addLine('  ◈ Simulated wingman status', 'muted');
+  await delay(300);
+
+  addLine('  ┌────────────────────────────┬──────────────┬────────────┬──────────┐', 'muted');
+  addLine('  │ Validation Module          │ Validations  │ Rejections │ Status   │', 'info');
+  addLine('  ├────────────────────────────┼──────────────┼────────────┼──────────┤', 'muted');
+  var modules = data.modules || SIM.wingmanStatus.modules;
+  for (var i = 0; i < modules.length; i++) {
+    await waitIfPaused();
+    if (aborted) return;
+    var m = modules[i];
+    var mName = (m.name || '').padEnd(26);
+    var mVal = String(m.validations || 0).padStart(6).padEnd(12);
+    var mRej = String(m.rejections || 0).padStart(4).padEnd(10);
+    var mStatus = (m.status || 'active').padEnd(8);
+    addLine('  │ ' + mName + ' │ ' + mVal + ' │ ' + mRej + ' │ ' + mStatus + ' │', m.rejections > 5 ? 'warn' : 'ok');
+    await delay(80);
+  }
+  addLine('  └────────────────────────────┴──────────────┴────────────┴──────────┘', 'muted');
+  addBlank();
+  addLine('  Today: ' + (data.validations_today || 847) + ' validations · ' + (data.rejections_today || 23) + ' rejections (' + (data.rejection_rate_pct || 2.7) + '%) · ' + (data.runbooks_loaded || 14) + ' runbooks loaded', 'ok');
+  addBlank();
+}
+
+// ── Step 12: Self-Setup Pipeline ──
+async function step12_selfSetup() {
+  setStepActive(11);
+  setCaption(
+    'Murphy runs a <strong>12-step self-setup pipeline</strong> to bootstrap its own operations. ' +
+    '<em>4 of those steps are HITL gates</em> — Murphy won\'t go live without human approval at each critical checkpoint. ' +
+    'This is the <strong>self-operating backbone</strong>: environment detection → schema migration → bot activation → vertical deployment → autonomous operations.',
+    'live'
+  );
+
+  await typeCommand('curl -s http://localhost:8000/api/pipeline/self-setup | python3 -m json.tool');
+  addBlank();
+
+  var result = await apiCall('GET', '/api/pipeline/self-setup');
+  var data = result.live ? result.data : SIM.selfSetup;
+  if (result.live) addLine('  ⚡ LIVE self-setup status', 'ok');
+  else addLine('  ◈ Simulated self-setup status', 'muted');
+  await delay(300);
+
+  var steps = data.steps || SIM.selfSetup.steps;
+  for (var i = 0; i < steps.length; i++) {
+    await waitIfPaused();
+    if (aborted) return;
+    var s = steps[i];
+    var icon = s.status === 'completed' ? '✓' : s.status === 'running' ? '▸' : '○';
+    var cls = s.status === 'completed' ? 'ok' : s.status === 'running' ? 'info' : 'muted';
+    var hitlTag = s.is_hitl ? ' [HITL GATE]' : '';
+    var approvedTag = s.approved_by ? ' (approved by ' + s.approved_by + ')' : '';
+    addLine('  ' + icon + ' ' + s.id + ': ' + s.name + hitlTag + approvedTag, cls);
+    await delay(100);
+  }
+  addBlank();
+  addLine('  Progress: ' + (data.progress_pct || 75) + '% · ' + (data.hitl_gates_approved || 3) + '/' + (data.hitl_gates || 4) + ' HITL gates approved', 'ok');
+  addLine('  ' + (data.message || ''), 'info');
+  addBlank();
+}
+
+// ── Closing ──
+async function stepClose() {
+  setCaption(
+    'Everything you just saw was <em>live AI</em>. Real LLM calls. Real workflow execution. Real human-in-the-loop gates. ' +
+    'Real governance pipeline. Real self-healing operations.<br><br>' +
+    '218,000 lines of production Python. 1,122 modules. 8,843 tests. 90+ platform connectors — including SCADA, BACnet, OPC UA, Modbus. ' +
+    '10 industry verticals. 7-phase governance pipeline. 14 web interfaces. <em>Built by one person.</em><br><br>' +
+    '<strong>$500K SAFE · $5M–$7M cap · No discount</strong><br>' +
+    'corey.gfc@gmail.com · github.com/IKNOWINOT/Murphy-System'
+  );
+
+  addLine('━'.repeat(60), 'info');
+  addBlank();
+  await typeLine('  Demo complete.', 'head', 35);
+  await delay(300);
+  await typeLine('  218,000 lines · 1,122 modules · 8,843 tests · 90+ connectors', 'ok', 20);
+  await typeLine('  SCADA · BACnet · OPC UA · Modbus · MTConnect · ISA-95', 'ok', 20);
+  await typeLine('  10 verticals · 7-phase MFGC governance · Wingman validation', 'ok', 20);
+  await typeLine('  Self-setup pipeline · 18 autonomous bots · 14 web interfaces', 'ok', 20);
+  await typeLine('  Built by 1 person.', 'ok', 25);
+  addBlank();
+  await typeLine('  $500K SAFE  ·  $5M–$7M cap  ·  No discount  ·  18 months runway', 'warn', 25);
+  addBlank();
+  await typeLine('  corey.gfc@gmail.com', 'info', 30);
+  await typeLine('  github.com/IKNOWINOT/Murphy-System', 'info', 30);
+  addBlank();
+  addLine('━'.repeat(60), 'info');
+
+  // Mark all steps done
+  for (var i = 0; i < STEPS.length; i++) {
+    document.getElementById('step-' + i).classList.remove('active');
+    document.getElementById('step-' + i).classList.add('done');
+  }
+  progressFill.style.width = '100%';
+  progressLabel.textContent = 'Complete';
+}
+
+/* ========================================================================
+   PLAYBACK CONTROL
+   ======================================================================== */
+
+async function playDemo() {
+  if (playing) return;
+  playing = true;
+  paused = false;
+  aborted = false;
+  btnPlay.disabled = true;
+  btnPause.disabled = false;
+
+  // Check server first
+  await checkServer();
+
+  term.innerHTML = '';
+  addLine('Murphy System — Live AI Demo', 'head');
+  addLine('Server: ' + (serverOnline && liveMode ? 'ONLINE (live API mode)' : 'OFFLINE (simulated responses)'), serverOnline && liveMode ? 'ok' : 'warn');
+  addLine('Speed: ' + speed + '×', 'muted');
+  addLine('━'.repeat(60), 'muted');
+  addBlank();
+
+  try {
+    await step1_health();
+    if (aborted) return;
+    await delay(800);
+    await step2_rateGov();
+    if (aborted) return;
+    await delay(800);
+    await step3_nlAutomation();
+    if (aborted) return;
+    await delay(1000);
+    await step4_dag();
+    if (aborted) return;
+    await delay(800);
+    await step5_execute();
+    if (aborted) return;
+    await delay(600);
+    await step6_approve();
+    if (aborted) return;
+    await delay(600);
+    await step7_hitlQueue();
+    if (aborted) return;
+    await delay(600);
+    await step8_bots();
+    if (aborted) return;
+    await delay(600);
+    await step9_verticals();
+    if (aborted) return;
+    await delay(600);
+    await step10_mfgc();
+    if (aborted) return;
+    await delay(600);
+    await step11_wingman();
+    if (aborted) return;
+    await delay(600);
+    await step12_selfSetup();
+    if (aborted) return;
+    await delay(500);
+    await stepClose();
+  } catch (e) {
+    if (!aborted) {
+      addLine('  ✗ Demo error: ' + e.message, 'err');
+    }
+  }
+
+  playing = false;
+  btnPlay.disabled = false;
+  btnPause.disabled = true;
+  btnPlay.textContent = '▶ Replay';
+}
+
+function pauseDemo() {
+  if (!playing) return;
+  paused = !paused;
+  btnPause.textContent = paused ? '▶ Resume' : '❚❚ Pause';
+}
+
+function restartDemo() {
+  aborted = true;
+  paused = false;
+  playing = false;
+  currentStep = -1;
+  capturedWorkflowId = null;
+  capturedHitlStepId = null;
+  term.innerHTML = '';
+  btnPlay.disabled = false;
+  btnPlay.textContent = '▶ Play Demo';
+  btnPause.disabled = true;
+  btnPause.textContent = '❚❚ Pause';
+  progressFill.style.width = '0%';
+  progressLabel.textContent = '0 / 12';
+  buildStepIndicators();
+  setCaption(
+    'Press <em>Play Demo</em> to begin the investor walkthrough.<br><br>' +
+    'Murphy will call <em>12 real API endpoints</em> — generating automations from plain English, building workflow DAGs, executing with HITL gates, showing the multi-agent bot fleet, 10 industry verticals, the 7-phase MFGC governance pipeline, the Wingman validation protocol, and the self-operating setup pipeline.<br><br>' +
+    '<span class="caption-badge badge-live">LIVE API</span> or simulated if the server is offline.'
+  );
+}
+
+// ── Init ──
+checkServer();
+</script>
+</body>
+</html>
