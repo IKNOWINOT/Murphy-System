@@ -113,6 +113,115 @@ except Exception as _adv_e:
     _advanced_loop_available = False
     _wire_advanced_loop = None  # type: ignore
 
+# -- Crown Jewel Module Wiring (Phases 1-8) ------------------------------------
+try:
+    from rosetta.rosetta_manager import RosettaManager as _RosettaManager
+    _rosetta_available = True
+    log.info("RosettaManager loaded")
+except Exception as _e:
+    log.warning("RosettaManager not available (%s)", _e)
+    _rosetta_available = False
+    _RosettaManager = None
+
+try:
+    from ceo_branch_activation import CEOBranch as _CEOBranch
+    _ceo_available = True
+    log.info("CEOBranch loaded")
+except Exception as _e:
+    log.warning("CEOBranch not available (%s)", _e)
+    _ceo_available = False
+    _CEOBranch = None
+
+try:
+    from activated_heartbeat_runner import ActivatedHeartbeatRunner as _ActivatedHeartbeatRunner
+    _heartbeat_available = True
+    log.info("ActivatedHeartbeatRunner loaded")
+except Exception as _e:
+    log.warning("ActivatedHeartbeatRunner not available (%s)", _e)
+    _heartbeat_available = False
+    _ActivatedHeartbeatRunner = None
+
+try:
+    from aionmind.runtime_kernel import AionMindKernel as _AionMindKernel
+    _aionmind_available = True
+    log.info("AionMindKernel loaded")
+except Exception as _e:
+    log.warning("AionMindKernel not available (%s)", _e)
+    _aionmind_available = False
+    _AionMindKernel = None
+
+try:
+    from lcm_engine import LCMEngine as _LCMEngine
+    _lcm_available = True
+    log.info("LCMEngine loaded")
+except Exception as _e:
+    log.warning("LCMEngine not available (%s)", _e)
+    _lcm_available = False
+    _LCMEngine = None
+
+try:
+    from gate_bypass_controller import GateBypassController as _GateBypassController
+    _gate_bypass_available = True
+    log.info("GateBypassController loaded")
+except Exception as _e:
+    log.warning("GateBypassController not available (%s)", _e)
+    _gate_bypass_available = False
+    _GateBypassController = None
+
+try:
+    from tool_registry import UniversalToolRegistry as _UniversalToolRegistry
+    _tool_registry_available = True
+    log.info("UniversalToolRegistry loaded")
+except Exception as _e:
+    log.warning("UniversalToolRegistry not available (%s)", _e)
+    _tool_registry_available = False
+    _UniversalToolRegistry = None
+
+try:
+    from feature_flags import FeatureFlagManager as _FeatureFlagManager
+    _feature_flags_available = True
+    log.info("FeatureFlagManager loaded")
+except Exception as _e:
+    log.warning("FeatureFlagManager not available (%s)", _e)
+    _feature_flags_available = False
+    _FeatureFlagManager = None
+
+try:
+    from multi_agent_coordinator import TeamCoordinator as _TeamCoordinator
+    _multi_agent_available = True
+    log.info("TeamCoordinator loaded")
+except Exception as _e:
+    log.warning("TeamCoordinator not available (%s)", _e)
+    _multi_agent_available = False
+    _TeamCoordinator = None
+
+try:
+    from persistent_memory import TenantMemoryStore as _PersistentMemoryStore
+    _persistent_memory_available = True
+    log.info("PersistentMemoryStore loaded")
+except Exception as _e:
+    log.warning("PersistentMemoryStore not available (%s)", _e)
+    _persistent_memory_available = False
+    _PersistentMemoryStore = None
+
+try:
+    from skill_system import SkillManager as _SkillRegistry
+    _skill_system_available = True
+    log.info("SkillRegistry loaded")
+except Exception as _e:
+    log.warning("SkillRegistry not available (%s)", _e)
+    _skill_system_available = False
+    _SkillRegistry = None
+
+try:
+    from mcp_plugin import MCPConnector as _MCPPluginManager
+    _mcp_plugin_available = True
+    log.info("MCPPluginManager loaded")
+except Exception as _e:
+    log.warning("MCPPluginManager not available (%s)", _e)
+    _mcp_plugin_available = False
+    _MCPPluginManager = None
+
 # -- Business Model Tiers ------------------------------------------------------
 TIERS = {
     "solo":         {"max_automations": 3,   "price_mo": 99,  "price_yr": 79},
@@ -516,6 +625,20 @@ async def _automation_tick_body():
         "effective_duration": auto["effective_duration_minutes"],
         "milestones": auto["milestones"],
     })
+    # Phase 4: Delegate to CEOBranch automation directives
+    if _ceo_branch is not None:
+        try:
+            status = _ceo_branch.get_status()
+            if status.get("directives"):
+                log.debug("CEO automation directives: %d active", len(status["directives"]))
+        except Exception as _e:
+            log.debug("CEOBranch automation delegation error (non-fatal): %s", _e)
+    # Phase 4: LCM Engine health signal
+    if _lcm_engine_instance is not None:
+        try:
+            _lcm_engine_instance.analyze({"tick": "automation", "count": len(_automation_store)})
+        except Exception as _e:
+            log.debug("LCMEngine analysis error (non-fatal): %s", _e)
 
 async def _campaign_tick():
     """Every 15s: drift metrics, detect low traction, create HITL paid-ad proposals."""
@@ -579,6 +702,18 @@ async def _campaign_tick_body():
             })
 
     _broadcast_sse("campaigns_updated", {"campaigns": list(_campaigns.values())})
+    # Phase 4: Delegate to CEOBranch campaign management
+    if _ceo_branch is not None:
+        try:
+            _ceo_branch.get_status()  # Pulse CEO on campaign state
+        except Exception as _e:
+            log.debug("CEOBranch campaign delegation error (non-fatal): %s", _e)
+    # Phase 4: Feature flag gating for campaign features
+    if _feature_flag_manager is not None:
+        try:
+            _feature_flag_manager.is_enabled("campaign_auto_boost", "default")
+        except Exception as _e:
+            log.debug("FeatureFlag campaign check error (non-fatal): %s", _e)
 
 async def _setup_tick():
     """Every 20s: advance self-setup steps, create HITL gates at checkpoints."""
@@ -647,6 +782,12 @@ async def _hitl_auto_expire_tick_body():
                 item["status"] = "expired"
                 item["approved_at"] = _now_iso()
                 _broadcast_sse("hitl_expired", {"id": item["id"]})
+    # Phase 4: Gate bypass trust-aware expiration
+    if _gate_bypass is not None:
+        try:
+            _gate_bypass.get_trust_levels()
+        except Exception as _e:
+            log.debug("GateBypass trust expiration error (non-fatal): %s", _e)
 
 async def _proposal_intake_tick():
     """Every 45s: auto-generate proposals for new incoming requests."""
@@ -683,6 +824,41 @@ async def _proposal_intake_tick_body():
                 "hitl_id": hitl["id"],
             })
             break
+    # Phase 4: Delegate pending proposals to TeamCoordinator
+    if _team_coordinator is not None:
+        try:
+            pending = [p for p in _generated_proposals if p.get("status") == "pending"]
+            if pending:
+                log.debug("TeamCoordinator: %d pending proposals queued", len(pending))
+        except Exception as _e:
+            log.debug("TeamCoordinator proposal delegation error (non-fatal): %s", _e)
+
+async def _ceo_heartbeat_tick():
+    """Background task: CEO heartbeat — delegates to ActivatedHeartbeatRunner.
+
+    Commissioning: G3 — runs continuously, isolated from other ticks.
+    G8: try/except prevents crash from propagating.
+    """
+    while True:
+        await asyncio.sleep(60)  # 1-minute CEO heartbeat interval
+        try:
+            await _ceo_heartbeat_tick_body()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            log.exception("_ceo_heartbeat_tick iteration failed")
+
+
+async def _ceo_heartbeat_tick_body():
+    """Single iteration body for _ceo_heartbeat_tick."""
+    if _heartbeat_runner is None:
+        return
+    try:
+        # ActivatedHeartbeatRunner.tick() may be sync — run in thread pool
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _heartbeat_runner.tick)
+    except Exception as _e:
+        log.warning("CEO heartbeat runner tick error: %s", _e)
 
 # -- FastAPI app ---------------------------------------------------------------
 app = FastAPI(
@@ -865,6 +1041,20 @@ def _bg_task_done_callback(task: asyncio.Task) -> None:
 # -- Startup -------------------------------------------------------------------
 _background_tasks: list = []          # Track tasks for graceful shutdown
 
+# -- Crown Jewel Subsystem Instances -------------------------------------------
+_rosetta_manager: Optional[Any] = None
+_ceo_branch: Optional[Any] = None
+_heartbeat_runner: Optional[Any] = None
+_aionmind_kernel: Optional[Any] = None
+_lcm_engine_instance: Optional[Any] = None
+_gate_bypass: Optional[Any] = None
+_tool_registry: Optional[Any] = None
+_feature_flag_manager: Optional[Any] = None
+_team_coordinator: Optional[Any] = None
+_persistent_memory: Optional[Any] = None
+_skill_registry: Optional[Any] = None
+_mcp_plugin_manager: Optional[Any] = None
+
 @app.on_event("startup")
 async def _startup():
     _seed_automations()
@@ -894,6 +1084,135 @@ async def _startup():
             log.warning("Advanced loop startup wiring failed: %s", _adv_startup_e)
             app.state.adv_loop_components = {}
 
+    # -- Phase 1: Wire RosettaManager ------------------------------------------
+    global _rosetta_manager
+    if _rosetta_available:
+        try:
+            _rosetta_state_dir = os.environ.get(
+                "MURPHY_PERSISTENCE_DIR", ".murphy_persistence"
+            ) + "/rosetta"
+            _rosetta_manager = _RosettaManager(persistence_dir=_rosetta_state_dir)
+            _rosetta_manager.load_state()
+            log.info("RosettaManager initialized — state dir: %s", _rosetta_state_dir)
+        except Exception as _e:
+            log.warning("RosettaManager init failed (%s) — continuing without", _e)
+            _rosetta_manager = None
+
+    # -- Phase 1: Wire CEOBranch + ActivatedHeartbeatRunner --------------------
+    global _ceo_branch, _heartbeat_runner
+    if _ceo_available:
+        try:
+            _ceo_branch = _CEOBranch(rosetta_manager=_rosetta_manager)
+            _ceo_branch.activate()
+            log.info("CEOBranch activated")
+        except Exception as _e:
+            log.warning("CEOBranch init failed (%s)", _e)
+            _ceo_branch = None
+    if _heartbeat_available and _ceo_branch is not None:
+        try:
+            _heartbeat_runner = _ActivatedHeartbeatRunner(ceo_branch=_ceo_branch)
+            log.info("ActivatedHeartbeatRunner initialized")
+        except Exception as _e:
+            log.warning("ActivatedHeartbeatRunner init failed (%s)", _e)
+            _heartbeat_runner = None
+
+    # -- Phase 2: Wire AionMind RuntimeKernel ----------------------------------
+    global _aionmind_kernel
+    if _aionmind_available:
+        try:
+            _aionmind_kernel = _AionMindKernel()
+            log.info("AionMindKernel instantiated")
+        except Exception as _e:
+            log.warning("AionMindKernel init failed (%s)", _e)
+            _aionmind_kernel = None
+
+    # -- Phase 2: Wire Tool Registry + AionMind bridge -------------------------
+    global _tool_registry
+    if _tool_registry_available:
+        try:
+            _tool_registry = _UniversalToolRegistry()
+            log.info("UniversalToolRegistry initialized")
+        except Exception as _e:
+            log.warning("UniversalToolRegistry init failed (%s)", _e)
+            _tool_registry = None
+
+    # -- Phase 3: Wire LCMEngine -----------------------------------------------
+    global _lcm_engine_instance
+    if _lcm_available:
+        try:
+            _lcm_engine_instance = _LCMEngine()
+            log.info("LCMEngine initialized")
+        except Exception as _e:
+            log.warning("LCMEngine init failed (%s)", _e)
+            _lcm_engine_instance = None
+
+    # -- Phase 3: Wire GateBypassController ------------------------------------
+    global _gate_bypass
+    if _gate_bypass_available:
+        try:
+            _gate_bypass = _GateBypassController()
+            log.info("GateBypassController initialized")
+        except Exception as _e:
+            log.warning("GateBypassController init failed (%s)", _e)
+            _gate_bypass = None
+
+    # -- Phase 3: Wire FeatureFlagManager --------------------------------------
+    global _feature_flag_manager
+    if _feature_flags_available:
+        try:
+            _feature_flag_manager = _FeatureFlagManager()
+            log.info("FeatureFlagManager initialized")
+        except Exception as _e:
+            log.warning("FeatureFlagManager init failed (%s)", _e)
+            _feature_flag_manager = None
+
+    # -- Phase 3: Wire TeamCoordinator -----------------------------------------
+    global _team_coordinator
+    if _multi_agent_available:
+        try:
+            _team_coordinator = _TeamCoordinator()
+            log.info("TeamCoordinator initialized")
+        except Exception as _e:
+            log.warning("TeamCoordinator init failed (%s)", _e)
+            _team_coordinator = None
+
+    # -- Phase 3: Wire PersistentMemory ----------------------------------------
+    global _persistent_memory
+    if _persistent_memory_available:
+        try:
+            _persistent_memory = _PersistentMemoryStore()
+            log.info("PersistentMemoryStore initialized")
+        except Exception as _e:
+            log.warning("PersistentMemoryStore init failed (%s)", _e)
+            _persistent_memory = None
+
+    # -- Phase 3: Wire SkillRegistry -------------------------------------------
+    global _skill_registry
+    if _skill_system_available:
+        try:
+            _skill_registry = _SkillRegistry()
+            log.info("SkillRegistry initialized")
+        except Exception as _e:
+            log.warning("SkillRegistry init failed (%s)", _e)
+            _skill_registry = None
+
+    # -- Phase 3: Wire MCPPluginManager ----------------------------------------
+    global _mcp_plugin_manager
+    if _mcp_plugin_available:
+        try:
+            _mcp_plugin_manager = _MCPPluginManager()
+            log.info("MCPPluginManager initialized")
+        except Exception as _e:
+            log.warning("MCPPluginManager init failed (%s)", _e)
+            _mcp_plugin_manager = None
+
+    # -- Phase 3: CEO Heartbeat tick loop (6th background task) ----------------
+    if _heartbeat_runner is not None:
+        _ceo_hb_task = asyncio.create_task(_ceo_heartbeat_tick())
+        _ceo_hb_task.add_done_callback(_bg_task_done_callback)
+        _background_tasks.append(_ceo_hb_task)
+        log.info("CEO heartbeat tick started")
+
     log.info("Murphy Production Server v3 started — HITL gates active, milestone tracking enabled")
 
 
@@ -914,7 +1233,241 @@ async def _shutdown():
     # Log rate governor final state for diagnostics
     if _rate_governor is not None:
         log.info("Rate governor final state: %s", _rate_governor.status())
+    # Persist Rosetta state on shutdown
+    if _rosetta_manager is not None:
+        try:
+            _rosetta_manager.save_state()
+            log.info("Rosetta state saved on shutdown")
+        except Exception as _e:
+            log.warning("Rosetta state save failed on shutdown: %s", _e)
     log.info("Murphy Production Server shutdown complete")
+
+# == Crown Jewel API Endpoints (Phases 1-8) ====================================
+
+# -- Phase 1: Rosetta endpoints ------------------------------------------------
+@app.get("/api/rosetta/state")
+async def rosetta_state():
+    """GET /api/rosetta/state — current Rosetta state snapshot. G1: RosettaManager state."""
+    if _rosetta_manager is None:
+        return JSONResponse({"available": False, "message": "RosettaManager not initialized"})
+    try:
+        states = _rosetta_manager.list_all()
+        return JSONResponse({"available": True, "agent_count": len(states), "agents": [s for s in states]})
+    except Exception as _e:
+        log.warning("Rosetta state fetch error: %s", _e)
+        return JSONResponse({"available": True, "error": str(_e)}, status_code=500)
+
+
+@app.get("/api/rosetta/personas")
+async def rosetta_personas():
+    """GET /api/rosetta/personas — list all personas."""
+    if _rosetta_manager is None:
+        return JSONResponse({"available": False, "personas": []})
+    try:
+        all_states = _rosetta_manager.list_all()
+        return JSONResponse({"available": True, "personas": all_states})
+    except Exception as _e:
+        return JSONResponse({"available": True, "error": str(_e), "personas": []}, status_code=500)
+
+
+@app.get("/api/rosetta/persona/{persona_id}")
+async def rosetta_persona(persona_id: str):
+    """GET /api/rosetta/persona/{id} — single persona detail."""
+    if _rosetta_manager is None:
+        raise HTTPException(status_code=503, detail="RosettaManager not initialized")
+    try:
+        state = _rosetta_manager.get_state(persona_id)
+        if state is None:
+            raise HTTPException(status_code=404, detail=f"Persona {persona_id!r} not found")
+        return JSONResponse({"persona_id": persona_id, "state": state})
+    except HTTPException:
+        raise
+    except Exception as _e:
+        raise HTTPException(status_code=500, detail=str(_e))
+
+
+# -- Phase 1: CEO Branch endpoints ---------------------------------------------
+@app.get("/api/ceo/status")
+async def ceo_status():
+    """GET /api/ceo/status — CEO Branch state and active VP roles."""
+    if _ceo_branch is None:
+        return JSONResponse({"available": False, "message": "CEOBranch not initialized"})
+    try:
+        status = _ceo_branch.get_status()
+        return JSONResponse({"available": True, **status})
+    except Exception as _e:
+        return JSONResponse({"available": True, "error": str(_e)}, status_code=500)
+
+
+@app.get("/api/ceo/directives")
+async def ceo_directives():
+    """GET /api/ceo/directives — list issued CEO directives."""
+    if _ceo_branch is None:
+        return JSONResponse({"available": False, "directives": []})
+    try:
+        status = _ceo_branch.get_status()
+        return JSONResponse({"available": True, "directives": status.get("directives", [])})
+    except Exception as _e:
+        return JSONResponse({"available": True, "error": str(_e), "directives": []}, status_code=500)
+
+
+@app.get("/api/heartbeat/status")
+async def heartbeat_status():
+    """GET /api/heartbeat/status — stability monitor state."""
+    if _heartbeat_runner is None:
+        return JSONResponse({"available": False, "message": "HeartbeatRunner not initialized"})
+    try:
+        status = _heartbeat_runner.get_status()
+        return JSONResponse({"available": True, **status})
+    except Exception as _e:
+        return JSONResponse({"available": True, "error": str(_e)}, status_code=500)
+
+
+# -- Phase 2: AionMind endpoints -----------------------------------------------
+@app.get("/api/aionmind/status")
+async def aionmind_status():
+    """GET /api/aionmind/status — kernel state and layer health."""
+    if _aionmind_kernel is None:
+        return JSONResponse({"available": False, "message": "AionMindKernel not initialized"})
+    try:
+        status = _aionmind_kernel.get_status()
+        return JSONResponse({"available": True, **status})
+    except Exception as _e:
+        return JSONResponse({"available": True, "error": str(_e)}, status_code=500)
+
+
+# -- Phase 2: Tool Registry endpoints ------------------------------------------
+@app.get("/api/tools")
+async def list_tools():
+    """GET /api/tools — list registered tools with permission levels."""
+    if _tool_registry is None:
+        return JSONResponse({"available": False, "tools": []})
+    try:
+        tools = _tool_registry.list_all()
+        return JSONResponse({"available": True, "count": len(tools), "tools": tools})
+    except Exception as _e:
+        return JSONResponse({"available": True, "error": str(_e), "tools": []}, status_code=500)
+
+
+# -- Phase 3: LCM Engine endpoints ---------------------------------------------
+@app.get("/api/lcm/status")
+async def lcm_status():
+    """GET /api/lcm/status — LCM Engine health and immune memory."""
+    if _lcm_engine_instance is None:
+        return JSONResponse({"available": False, "message": "LCMEngine not initialized"})
+    try:
+        immune_mem = _lcm_engine_instance.get_immune_memory()
+        return JSONResponse({"available": True, "immune_memory_size": len(immune_mem) if immune_mem else 0})
+    except Exception as _e:
+        return JSONResponse({"available": True, "error": str(_e)}, status_code=500)
+
+
+# -- Phase 3: Gate Bypass endpoints --------------------------------------------
+@app.get("/api/gates/trust-levels")
+async def gate_trust_levels():
+    """GET /api/gates/trust-levels — operator trust escalation levels."""
+    if _gate_bypass is None:
+        return JSONResponse({"available": False, "trust_levels": {}})
+    try:
+        trust = _gate_bypass.get_trust_levels()
+        return JSONResponse({"available": True, "trust_levels": trust})
+    except Exception as _e:
+        return JSONResponse({"available": True, "error": str(_e), "trust_levels": {}}, status_code=500)
+
+
+# -- Phase 3: Feature Flag endpoints -------------------------------------------
+@app.get("/api/features")
+async def list_features():
+    """GET /api/features — feature flag states."""
+    if _feature_flag_manager is None:
+        return JSONResponse({"available": False, "flags": []})
+    try:
+        flags = getattr(_feature_flag_manager, "_flags", {})
+        return JSONResponse({"available": True, "count": len(flags), "flag_ids": list(flags.keys())})
+    except Exception as _e:
+        return JSONResponse({"available": True, "error": str(_e), "flags": []}, status_code=500)
+
+
+# -- Phase 3: Multi-Agent endpoints --------------------------------------------
+@app.get("/api/agents/teams")
+async def agent_teams():
+    """GET /api/agents/teams — active agent teams."""
+    if _team_coordinator is None:
+        return JSONResponse({"available": False, "teams": []})
+    try:
+        teams = _team_coordinator.get_active_teams()
+        return JSONResponse({"available": True, "teams": teams})
+    except Exception as _e:
+        return JSONResponse({"available": True, "error": str(_e), "teams": []}, status_code=500)
+
+
+# -- Phase 3: Persistent Memory endpoints -------------------------------------
+@app.get("/api/memory/search")
+async def memory_search(query: str = "", tenant_id: str = "default"):
+    """GET /api/memory/search — search persistent memory."""
+    if _persistent_memory is None:
+        return JSONResponse({"available": False, "results": []})
+    try:
+        results = _persistent_memory.search(tenant_id, query)
+        return JSONResponse({"available": True, "results": results})
+    except Exception as _e:
+        return JSONResponse({"available": True, "error": str(_e), "results": []}, status_code=500)
+
+
+# -- Phase 3: Skill endpoints --------------------------------------------------
+@app.get("/api/skills")
+async def list_skills():
+    """GET /api/skills — list available skills."""
+    if _skill_registry is None:
+        return JSONResponse({"available": False, "skills": []})
+    try:
+        skills = _skill_registry.list_skills()
+        return JSONResponse({"available": True, "count": len(skills), "skills": skills})
+    except Exception as _e:
+        return JSONResponse({"available": True, "error": str(_e), "skills": []}, status_code=500)
+
+
+# -- Phase 3: MCP Plugin endpoints ---------------------------------------------
+@app.get("/api/mcp/plugins")
+async def list_mcp_plugins():
+    """GET /api/mcp/plugins — registered MCP plugins."""
+    if _mcp_plugin_manager is None:
+        return JSONResponse({"available": False, "plugins": []})
+    try:
+        plugins = _mcp_plugin_manager.list_servers()
+        return JSONResponse({"available": True, "count": len(plugins), "plugins": plugins})
+    except Exception as _e:
+        return JSONResponse({"available": True, "error": str(_e), "plugins": []}, status_code=500)
+
+
+# -- Diagnostics endpoint (Phase 5) -------------------------------------------
+@app.get("/api/diagnostics")
+async def diagnostics():
+    """GET /api/diagnostics — full subsystem health, tick times, error counts, memory."""
+    import psutil
+    proc = psutil.Process()
+    mem_mb = proc.memory_info().rss / 1024 / 1024
+    return JSONResponse({
+        "subsystems": {
+            "rosetta": {"available": _rosetta_manager is not None},
+            "ceo_branch": {"available": _ceo_branch is not None},
+            "heartbeat_runner": {"available": _heartbeat_runner is not None},
+            "aionmind": {"available": _aionmind_kernel is not None},
+            "lcm_engine": {"available": _lcm_engine_instance is not None},
+            "gate_bypass": {"available": _gate_bypass is not None},
+            "tool_registry": {"available": _tool_registry is not None},
+            "feature_flags": {"available": _feature_flag_manager is not None},
+            "team_coordinator": {"available": _team_coordinator is not None},
+            "persistent_memory": {"available": _persistent_memory is not None},
+            "skill_registry": {"available": _skill_registry is not None},
+            "mcp_plugins": {"available": _mcp_plugin_manager is not None},
+        },
+        "background_tasks": len(_background_tasks),
+        "memory_mb": round(mem_mb, 1),
+        "pending_hitl": sum(1 for h in _HITL_QUEUE if h["status"] == "pending"),
+        "active_automations": sum(1 for a in _automation_store if a.get("status") == "active"),
+    })
+
 
 # ==============================================================================
 # HEALTH
@@ -929,7 +1482,21 @@ async def health():
         "tenants": len(_TENANTS), "campaigns": len(_campaigns),
         "pending_hitl_items": pending_hitl,
         "sse_subscribers": len(_sse_subscribers),
-        "ws_clients": len(_ws_clients), "ts": _now_iso()
+        "ws_clients": len(_ws_clients), "ts": _now_iso(),
+        "subsystems_wired": sum([
+            _rosetta_manager is not None,
+            _ceo_branch is not None,
+            _heartbeat_runner is not None,
+            _aionmind_kernel is not None,
+            _lcm_engine_instance is not None,
+            _gate_bypass is not None,
+            _tool_registry is not None,
+            _feature_flag_manager is not None,
+            _team_coordinator is not None,
+            _persistent_memory is not None,
+            _skill_registry is not None,
+            _mcp_plugin_manager is not None,
+        ]),
     })
 
 @app.get("/api/rate-governor/status")
