@@ -71,6 +71,11 @@ class ErrorCode(str, Enum):
 
     # --- E7xx: UI / Frontend -----------------------------------------------
     E700 = "MURPHY-E700"  # Generic UI error
+    E701 = "MURPHY-E701"  # Feedback submission validation failed
+    E702 = "MURPHY-E702"  # Feedback not found
+    E703 = "MURPHY-E703"  # Remediation plan generation failed
+    E704 = "MURPHY-E704"  # GitHub dispatch failed
+    E705 = "MURPHY-E705"  # Feedback quota exceeded
 
     # --- E8xx: Infrastructure ----------------------------------------------
     E800 = "MURPHY-E800"  # Generic infrastructure error

@@ -94,6 +94,10 @@ jobs:
               "src.error_envelope",
               "src.swarm_rate_governor",
               "src.forge_rate_limiter",
+              "src.global_feedback",
+              "src.global_feedback.models",
+              "src.global_feedback.remediation_engine",
+              "src.global_feedback.dispatcher",
           ]
           for mod in modules:
               try:
