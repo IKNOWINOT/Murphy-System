@@ -20,14 +20,15 @@ See the main project README for full architecture details: [../README.md](../REA
 | [`GITHUB_STATS.md`](GITHUB_STATS.md) | Engineering depth one-pager — numbers that prove this isn't vaporware. |
 | [`COMPETITIVE_MOAT.md`](COMPETITIVE_MOAT.md) | Competitive landscape deep dive, TAM/SAM/SOM, and why competitors can't follow. |
 | [`FUNDRAISING_PLAN.md`](FUNDRAISING_PLAN.md) | 6-week outreach execution plan — target investors, meeting playbook, SAFE terms. |
-| [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md) | 3-minute Loom/screen-share demo script. |
+| [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md) | 3-minute Loom/screen-share demo script (markdown reference). |
+| [`demo_live.html`](demo_live.html) | **Self-running AI demo page** — plays the full 3-min demo automatically, hitting real API endpoints with typewriter terminal animation. Open in a browser and press Play. |
 | [`DESIGN_PARTNER_WAITLIST.html`](DESIGN_PARTNER_WAITLIST.html) | Industrial OT early-access landing page (self-contained HTML, no dependencies). |
 
 ---
 
 ## Raise Checklist
 
-- [ ] Record 3-min Loom demo (follow [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md))
+- [ ] Record 3-min Loom demo (follow [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md)) or ship [`demo_live.html`](demo_live.html) directly
 - [ ] Set up Clerky account + SAFE template ($500 flat fee)
 - [ ] Apply to LAUNCH accelerator — [launch.co/apply](https://launch.co/apply)
 - [ ] Email mark@markcuban.com with Loom link + 1-paragraph pitch
