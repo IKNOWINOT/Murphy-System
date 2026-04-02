@@ -25,7 +25,7 @@ Commissioning Answers (G1–G9)
    - Concurrent registrations
 
 4. G4 — Test Profile: Does test profile reflect full range?
-   YES — 27 tests covering all paths.
+   YES — 24 tests covering all paths.
 
 5. G5 — Expected vs Actual: All tests pass.
 6. G6 — Regression Loop: Run: pytest tests/test_multi_agent_coordinator.py -v

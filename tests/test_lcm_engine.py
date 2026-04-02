@@ -26,7 +26,7 @@ Commissioning Answers (G1–G9)
    - Thread-safety under concurrent predict()
 
 4. G4 — Test Profile: Does test profile reflect full range?
-   YES — 25 tests covering all classes and conditions.
+   YES — 35 tests covering all classes and conditions.
 
 5. G5 — Expected vs Actual: All tests pass.
 6. G6 — Regression Loop: Run: pytest tests/test_lcm_engine.py -v
