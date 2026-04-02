@@ -421,7 +421,7 @@ footer a:hover { text-decoration: underline; }
    ======================================================================== */
 
 // ── Configuration ──
-var BASE_URL = '';  // same-origin; change if server is elsewhere
+var BASE_URL = '';  // empty = same-origin (e.g. localhost:8000); set to full URL if server is elsewhere
 var speed = 1;
 var paused = false;
 var playing = false;
@@ -449,9 +449,7 @@ function setSpeed(v) { speed = parseFloat(v); }
 function delay(ms) {
   var actual = ms / speed;
   return new Promise(function(resolve) {
-    var id = setTimeout(function() { if (!aborted) resolve(); }, actual);
-    // Store for potential abort
-    delay._last = id;
+    setTimeout(function() { if (!aborted) resolve(); }, actual);
   });
 }
 
@@ -809,7 +807,7 @@ async function step3_nlAutomation() {
   addLine('       "tenant_id": "tenant-001"}\' | python3 -m json.tool', 'cmd');
   addBlank();
 
-  addLine('  ⏳ AI is thinking…', 'info');
+  var thinkingLine = addLine('  ⏳ AI is thinking…', 'info');
   await delay(1500);
 
   var result = await apiCall('POST', '/api/prompt', {
@@ -817,8 +815,7 @@ async function step3_nlAutomation() {
     tenant_id: 'tenant-001'
   });
   var data = result.live ? result.data : SIM.prompt;
-  // Remove thinking line
-  term.lastChild.previousSibling.remove();
+  if (thinkingLine && thinkingLine.parentNode) thinkingLine.remove();
 
   if (result.live) addLine('  ⚡ LIVE AI response from DeepInfra', 'ok');
   else addLine('  ◈ Simulated AI response', 'muted');
@@ -845,7 +842,7 @@ async function step4_dag() {
   addLine('       "execute_immediately": false}\' | python3 -m json.tool', 'cmd');
   addBlank();
 
-  addLine('  ⏳ Building DAG…', 'info');
+  var dagThinkingLine = addLine('  ⏳ Building DAG…', 'info');
   await delay(1200);
 
   var result = await apiCall('POST', '/api/workflows/generate', {
@@ -854,7 +851,7 @@ async function step4_dag() {
     execute_immediately: false
   });
   var data = result.live ? result.data : SIM.workflow;
-  term.lastChild.previousSibling.remove();
+  if (dagThinkingLine && dagThinkingLine.parentNode) dagThinkingLine.remove();
 
   // Capture workflow ID for steps 5 & 6
   capturedWorkflowId = data.id || SIM.workflow.id;
