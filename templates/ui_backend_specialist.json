@@ -1,0 +1,153 @@
+{
+  "template_id": "ui_backend_specialist_v1",
+  "name": "UI-to-Backend Specialist Integration",
+  "description": "Specialist agent pattern for bridging UI surfaces to backend endpoints. Handles API contract enforcement, E2E browser verification, visual regression detection, and cross-layer debugging via MultiCursorBrowser workspaces.",
+  "version": "1.0.0",
+  "author": "Murphy System",
+  "tags": ["agent", "ui", "backend", "integration", "api-contracts", "e2e", "visual-regression", "multicursor"],
+  "category": "AGENT",
+  "flow_json": {
+    "nodes": [
+      {
+        "id": "task_intake",
+        "type": "trigger",
+        "label": "Integration Task Intake",
+        "description": "Receives a UI↔Backend integration task from the swarm coordinator, HITL dispatch, or upstream workflow. Tasks include: new endpoint binding, contract drift fix, visual regression fix, E2E test creation.",
+        "config": {
+          "input_schema": "uib_task_schema.json",
+          "timeout_seconds": 600,
+          "accepted_task_types": [
+            "endpoint_binding",
+            "contract_drift_fix",
+            "visual_regression_fix",
+            "e2e_test_authoring",
+            "api_contract_audit",
+            "security_scan"
+          ]
+        }
+      },
+      {
+        "id": "analyzer",
+        "type": "agent",
+        "label": "Integration Analyzer",
+        "description": "Analyzes the task by identifying affected UI surfaces (HTML/JS/CSS), target backend endpoints, and current API contracts. Uses Librarian catalog lookup and Artifact Viewport for cross-layer inspection.",
+        "config": {
+          "agent_id": "ui_backend_specialist",
+          "phase": "ANALYZE",
+          "tools": ["uib-008", "uib-010", "uib-006"],
+          "model": "gpt-4o",
+          "outputs": ["affected_files", "endpoint_map", "contract_status"]
+        }
+      },
+      {
+        "id": "planner",
+        "type": "agent",
+        "label": "Integration Planner",
+        "description": "Plans the change set: which files to edit, which endpoints to create/update, which tests to write. Composes a skill DAG from the Tool Registry and Skill System.",
+        "config": {
+          "agent_id": "ui_backend_specialist",
+          "phase": "PLAN",
+          "tools": ["uib-008", "uib-006"],
+          "model": "gpt-4o",
+          "hitl_gate": true,
+          "outputs": ["execution_plan", "skill_composition", "cost_estimate"]
+        }
+      },
+      {
+        "id": "executor",
+        "type": "agent",
+        "label": "Integration Executor",
+        "description": "Executes the plan using MultiCursorBrowser workspaces. Opens split-screen zones for UI page, backend source, API docs, and test output. Makes code changes and updates contracts.",
+        "config": {
+          "agent_id": "ui_backend_specialist",
+          "phase": "EXECUTE",
+          "tools": ["uib-001", "uib-002", "uib-007", "uib-008", "uib-012"],
+          "model": "gpt-4o",
+          "mcb_layout": "quad",
+          "max_zones": 8,
+          "checkpoint_enabled": true,
+          "outputs": ["code_changes", "contract_updates"]
+        }
+      },
+      {
+        "id": "tester",
+        "type": "agent",
+        "label": "Integration Tester",
+        "description": "Runs the full test suite: unit tests, E2E browser tests via MCB, visual regression snapshots, API contract validation, and security scans.",
+        "config": {
+          "agent_id": "ui_backend_specialist",
+          "phase": "TEST",
+          "tools": ["uib-003", "uib-004", "uib-005", "uib-006", "uib-009", "uib-011"],
+          "model": "gpt-4o",
+          "max_fix_iterations": 3,
+          "outputs": ["test_results", "visual_diffs", "security_alerts"]
+        }
+      },
+      {
+        "id": "documenter",
+        "type": "agent",
+        "label": "Integration Documenter",
+        "description": "Updates API documentation, saves reusable workflows as skills, updates the Librarian knowledge base, and archives the task in Rosetta state.",
+        "config": {
+          "agent_id": "ui_backend_specialist",
+          "phase": "DOCUMENT",
+          "tools": ["uib-012", "uib-008"],
+          "model": "gpt-4o",
+          "outputs": ["documentation_updates", "saved_skills"]
+        }
+      },
+      {
+        "id": "result_output",
+        "type": "output",
+        "label": "Integration Result",
+        "description": "Delivers the integration result: changed files, test results, contract status, and visual regression report to the requesting system or swarm coordinator.",
+        "config": {
+          "delivery": ["api_response", "webhook", "rosetta_state"],
+          "output_schema": {
+            "files_changed": "list[string]",
+            "endpoints_updated": "list[string]",
+            "tests_passed": "int",
+            "tests_failed": "int",
+            "visual_regressions": "int",
+            "security_alerts": "int",
+            "contract_status": "VERIFIED | DRIFTED",
+            "skills_saved": "list[string]"
+          }
+        }
+      }
+    ],
+    "edges": [
+      { "id": "e1", "source": "task_intake", "target": "analyzer" },
+      { "id": "e2", "source": "analyzer", "target": "planner", "label": "analysis_complete" },
+      { "id": "e3", "source": "planner", "target": "executor", "label": "plan_approved" },
+      { "id": "e4", "source": "executor", "target": "tester", "label": "execution_complete" },
+      { "id": "e5", "source": "tester", "target": "executor", "label": "fix_retest", "condition": "tests_failed > 0 AND fix_iterations < 3" },
+      { "id": "e6", "source": "tester", "target": "documenter", "label": "all_tests_passed" },
+      { "id": "e7", "source": "documenter", "target": "result_output" }
+    ]
+  },
+  "requirements": ["playwright", "asyncio", "httpx", "pytest"],
+  "murphy_assets": [
+    "src/agent_module_loader.py",
+    "src/dispatch_routes.py",
+    "src/dispatch.py",
+    "src/artifact_viewport.py",
+    "src/artifact_viewport_api.py",
+    "src/ui_data_service.py",
+    "src/ui_testing_framework.py",
+    "src/tool_registry/",
+    "src/skill_system/",
+    "src/mcp_plugin/",
+    "src/librarian/",
+    "src/rosetta/",
+    "src/governance_framework/agent_descriptor.py",
+    "src/multi_agent_coordinator/",
+    "src/errors/",
+    "static/murphy-components.js",
+    "static/murphy-design-system.css"
+  ],
+  "rating": 0,
+  "downloads": 0,
+  "created_at": "2026-04-02T00:00:00+00:00",
+  "updated_at": "2026-04-02T00:00:00+00:00"
+}
