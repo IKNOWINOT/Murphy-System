@@ -616,6 +616,7 @@ DEFAULT_PLATFORMS = [
         platform="ollama",
         auth_type=AuthType.NONE,
         base_url=os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/"),
+        capabilities=["generate", "chat", "list_models", "show_model", "embeddings", "health_check"],
     ),
     ConnectorDefinition(
         connector_id="replicate",
@@ -978,6 +979,64 @@ DEFAULT_PLATFORMS = [
                       "get_solar_output", "get_battery_status", "set_load_schedule",
                       "get_tariff", "get_carbon_intensity", "generate_report",
                       "get_real_time_data", "health_check"],
+    ),
+    # ---- Website Builders / CMS ----
+    ConnectorDefinition(
+        connector_id="wordpress",
+        name="WordPress",
+        category=ConnectorCategory.CUSTOM,
+        platform="wordpress",
+        auth_type=AuthType.BASIC,
+        base_url="https://{site}/wp-json",
+        capabilities=[
+            "list_posts", "get_post", "create_post", "update_post",
+            "list_pages", "list_media", "list_users", "list_comments",
+            "get_site_settings", "list_form_entries",
+            "list_wc_orders", "list_wc_products", "list_wc_customers",
+            "get_analytics", "health_check",
+        ],
+    ),
+    ConnectorDefinition(
+        connector_id="wix",
+        name="Wix",
+        category=ConnectorCategory.CUSTOM,
+        platform="wix",
+        auth_type=AuthType.OAUTH2,
+        base_url="https://www.wixapis.com",
+        capabilities=[
+            "list_site_pages", "list_blog_posts", "get_blog_post",
+            "list_form_submissions", "list_contacts", "create_contact",
+            "list_orders", "list_products", "list_bookings",
+            "list_members", "get_site_properties",
+            "list_collections", "query_collection", "health_check",
+        ],
+    ),
+    ConnectorDefinition(
+        connector_id="squarespace",
+        name="Squarespace",
+        category=ConnectorCategory.CUSTOM,
+        platform="squarespace",
+        auth_type=AuthType.API_KEY,
+        base_url="https://api.squarespace.com/1.0",
+        capabilities=[
+            "list_orders", "get_order", "list_products", "list_inventory",
+            "list_profiles", "list_form_submissions",
+            "get_site_info", "health_check",
+        ],
+    ),
+    ConnectorDefinition(
+        connector_id="webflow",
+        name="Webflow",
+        category=ConnectorCategory.CUSTOM,
+        platform="webflow",
+        auth_type=AuthType.API_KEY,
+        base_url="https://api.webflow.com/v2",
+        capabilities=[
+            "list_sites", "get_site", "list_collections",
+            "list_collection_items", "create_collection_item",
+            "list_form_submissions", "list_orders", "list_products",
+            "health_check",
+        ],
     ),
 ]
 
