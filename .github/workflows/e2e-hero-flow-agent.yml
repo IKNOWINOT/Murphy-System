@@ -1,0 +1,115 @@
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post | License: BSL-1.1
+#
+# Murphy System — E2E Hero Flow Agent
+# Validates the Describe → Generate → Execute hero flow end-to-end.
+
+name: "E2E Hero Flow Agent"
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Nightly at 02:00 UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/src:${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+  MURPHY_ENV: test
+  MURPHY_DB_MODE: stub
+  E2EE_STUB_ALLOWED: "true"
+  MURPHY_POOL_MODE: simulated
+
+concurrency:
+  group: e2e-hero-flow-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hero-flow:
+    name: "E2E Hero Flow Validation"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements_ci.txt
+          pip install pytest-asyncio pytest-timeout
+
+      - name: Phase 1 — Validate component imports
+        run: |
+          python -c "
+          import importlib, sys
+          modules = [
+              'src.ai_workflow_generator',
+              'src.gate_execution_wiring',
+              'src.modular_runtime',
+          ]
+          failed = []
+          for mod in modules:
+              try:
+                  importlib.import_module(mod)
+                  print(f'  OK  {mod}')
+              except Exception as e:
+                  failed.append(f'{mod}: {e}')
+                  print(f'  FAIL {mod}: {e}')
+          if failed:
+              print(f'\n{len(failed)} hero-flow import(s) failed')
+              sys.exit(1)
+          print(f'\nAll {len(modules)} hero-flow imports passed.')
+          "
+
+      - name: Phase 2 — Run hero flow tests
+        run: |
+          python "Murphy System/scripts/e2e_hero_flow_agent.py" \
+            --phase validate \
+            --output-dir /tmp/hero_flow
+
+      - name: Phase 3 — Timing metrics
+        run: |
+          python "Murphy System/scripts/e2e_hero_flow_agent.py" \
+            --phase metrics \
+            --output-dir /tmp/hero_flow
+
+      - name: Upload hero flow results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hero-flow-results-${{ github.run_number }}
+          path: /tmp/hero_flow/
+          retention-days: 30
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "╔══════════════════════════════════════════════════════════╗"
+          echo "║      E2E HERO FLOW AGENT — SUMMARY                     ║"
+          echo "╠══════════════════════════════════════════════════════════╣"
+          if [ -f /tmp/hero_flow/hero_flow_report.json ]; then
+            python -c "
+          import json
+          with open('/tmp/hero_flow/hero_flow_report.json') as f:
+              data = json.load(f)
+          for step in data.get('steps', []):
+              status = '✅' if step.get('passed') else '❌'
+              print(f'  {status} {step.get(\"name\", \"unknown\")}: {step.get(\"duration_ms\", 0):.0f}ms')
+          overall = '✅ PASSED' if data.get('passed') else '❌ FAILED'
+          print(f'  Overall: {overall}')
+          "
+          else
+            echo "║ No report generated — check logs above                 ║"
+          fi
+          echo "╚══════════════════════════════════════════════════════════╝"
