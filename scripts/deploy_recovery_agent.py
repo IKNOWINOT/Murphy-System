@@ -40,7 +40,6 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import os
 import re
 import subprocess
 import sys
@@ -533,7 +532,7 @@ def _fix_import(module_name: str) -> bool:
 
 
 def _sync_tree() -> bool:
-    """Enforce Murphy System/ → root source parity."""
+    """Enforce Murphy System/ → root source parity. Returns True if a fix was applied."""
     enforce_script = ROOT_SCRIPTS / "enforce_canonical_source.py"
     if enforce_script.exists():
         log.info("Running enforce_canonical_source.py...")
