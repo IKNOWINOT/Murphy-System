@@ -339,6 +339,8 @@
     "modular_runtime",
     "module_compiler",
     "module_compiler_adapter",
+    "module_instance_api",
+    "module_instance_manager",
     "module_loader",
     "module_manager",
     "module_registry",
