@@ -23,6 +23,7 @@ See the main project README for full architecture details: [../README.md](../REA
 | [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md) | 3-minute Loom/screen-share demo script (markdown reference). |
 | [`demo_live.html`](demo_live.html) | **Self-running AI demo page** — plays the full 3-min demo automatically, hitting real API endpoints with typewriter terminal animation. Open in a browser and press Play. |
 | [`DESIGN_PARTNER_WAITLIST.html`](DESIGN_PARTNER_WAITLIST.html) | Industrial OT early-access landing page (self-contained HTML, no dependencies). |
+| [`investor_landing.html`](investor_landing.html) | **Investor landing page** — demo-centric, polished HTML page for angel investors. Hero, live demo reference, competitive moat table, engineering proof stats, SAFE terms, and founder info. Share this link first. |
 
 ---
 
