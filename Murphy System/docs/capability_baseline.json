@@ -165,6 +165,7 @@
     "demo_deliverable_generator",
     "demo_runner",
     "dependency_audit_engine",
+    "dependency_deprecation_scanner",
     "deployment_automation_controller",
     "deployment_readiness",
     "deterministic_compute",
