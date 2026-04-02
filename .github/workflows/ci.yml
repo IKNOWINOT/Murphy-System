@@ -94,6 +94,7 @@ jobs:
               "src.error_envelope",
               "src.swarm_rate_governor",
               "src.forge_rate_limiter",
+              "src.dependency_deprecation_scanner",
           ]
           for mod in modules:
               try:
