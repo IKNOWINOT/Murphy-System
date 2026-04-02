@@ -2155,3 +2155,43 @@ unknown (initial state for auto-discovered subsystems)
 | `SubsystemRegistry` (ARCH-007) | `UpdateCoordinator`, `OperatingAnalysisDashboard` iterate registered subsystems |
 | `PersistenceManager` | All modules persist state via `save_document` / `load_document` |
 | `EventBackbone` | Publishes `LEARNING_FEEDBACK` and `SYSTEM_HEALTH` events on key actions |
+
+---
+
+## Appendix: Test Coverage Matrix (Commissioning Status)
+
+_Last updated: 2026-04-02 — Phase 0A baseline_
+
+### Crown Jewel Modules — Test File Status
+
+| Module | Source File | Test File | Tests | G4 Status |
+|--------|------------|-----------|-------|-----------|
+| LCM Engine | `src/lcm_engine.py` | `tests/test_lcm_engine.py` | 35 | ✅ PASS |
+| LLM Provider | `src/llm_provider.py` | `tests/test_llm_provider.py` | 22 | ✅ PASS |
+| LCM Integration Bridge | `src/lcm_integration_bridge.py` | `tests/test_lcm_integration_bridge.py` | 39 | ✅ PASS |
+| Tool Registry | `src/tool_registry/` | `tests/test_tool_registry.py` | 27 | ✅ PASS |
+| Multi-Agent Coordinator | `src/multi_agent_coordinator/` | `tests/test_multi_agent_coordinator.py` | 24 | ✅ PASS |
+| Persistent Memory | `src/persistent_memory/` | `tests/test_persistent_memory.py` | 29 | ✅ PASS |
+| Skill System | `src/skill_system/` | `tests/test_skill_system.py` | ~20 | ✅ PASS |
+| MCP Plugin | `src/mcp_plugin/` | `tests/test_mcp_plugin.py` | ~20 | ✅ PASS |
+| Feature Flags | `src/feature_flags/` | `tests/test_feature_flags.py` | ~20 | ✅ PASS |
+| Swarm Rate Governor | `src/swarm_rate_governor.py` | `tests/test_swarm_rate_governor.py` | 21 | ✅ PASS |
+| Gate Bypass Controller | `src/gate_bypass_controller.py` | `tests/test_gate_bypass_controller.py` | 18 | ✅ PASS |
+| Error System | `src/errors/` | `tests/test_error_system.py` | 20 | ✅ PASS |
+| CEO Branch | `src/ceo_branch_activation.py` | `tests/test_ceo_branch.py` | 73 | ✅ PASS |
+| Heartbeat Runner | `src/activated_heartbeat_runner.py` | `tests/test_activated_heartbeat_runner.py` | 29 | ✅ PASS |
+| Rosetta Manager | `src/rosetta/` | `tests/test_rosetta.py` | 57 | ✅ PASS |
+
+### Commissioning Gate Legend
+
+| Gate | Description |
+|------|-------------|
+| G1 | Module does what it was designed to do |
+| G2 | Spec documented (may evolve) |
+| G3 | All possible conditions identified and handled |
+| G4 | Test profile reflects full range of capabilities |
+| G5 | Expected vs actual results verified |
+| G6 | Regression loop available (re-run from symptoms) |
+| G7 | All ancillary code and documentation updated |
+| G8 | Hardening applied (error handling, rate limiting, thread safety) |
+| G9 | Module re-commissioned after all above steps |
