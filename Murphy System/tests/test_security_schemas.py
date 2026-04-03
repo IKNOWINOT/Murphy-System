@@ -13,7 +13,7 @@ Tests:
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import time
 
 from src.security_plane.schemas import (
@@ -44,7 +44,7 @@ class TestTrustScore:
             identity_id="user-001",
             trust_level=TrustLevel.HIGH,
             confidence=0.95,
-            computed_at=datetime.now(),
+            computed_at=datetime.now(timezone.utc),
             cryptographic_proof_strength=1.0,
             behavioral_consistency=0.9,
             confidence_stability=0.95,
@@ -59,7 +59,7 @@ class TestTrustScore:
 
     def test_trust_score_expiry(self):
         """Test trust score expiration."""
-        old_time = datetime.now() - timedelta(hours=2)
+        old_time = datetime.now(timezone.utc) - timedelta(hours=2)
         score = TrustScore(
             identity_id="user-002",
             trust_level=TrustLevel.MEDIUM,
@@ -77,12 +77,12 @@ class TestTrustScore:
 
     def test_trust_score_decay(self):
         """Test trust score decay over time."""
-        old_time = datetime.now() - timedelta(hours=1)
+        old_time = datetime.now(timezone.utc) - timedelta(hours=1)
         score = TrustScore(
             identity_id="user-003",
             trust_level=TrustLevel.HIGH,
             confidence=1.0,
-            computed_at=datetime.now(),
+            computed_at=datetime.now(timezone.utc),
             cryptographic_proof_strength=1.0,
             behavioral_consistency=1.0,
             confidence_stability=1.0,
@@ -107,7 +107,7 @@ class TestSecurityArtifact:
         artifact = SecurityArtifact(
             artifact_id="art-001",
             artifact_type="access_decision",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             identity_id="user-001",
             action=SecurityAction.ALLOW,
             trust_score=None,
@@ -126,7 +126,7 @@ class TestSecurityArtifact:
         artifact = SecurityArtifact(
             artifact_id="art-002",
             artifact_type="access_decision",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             identity_id="user-002",
             action=SecurityAction.RESTRICT,
             trust_score=None,
@@ -151,7 +151,7 @@ class TestExecutionPacketSignature:
 
     def test_signature_creation(self):
         """Test creating an execution packet signature."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         signature = ExecutionPacketSignature(
             packet_id="pkt-001",
             signature=b"signature_bytes",
@@ -170,7 +170,7 @@ class TestExecutionPacketSignature:
 
     def test_signature_time_window(self):
         """Test signature time window validation."""
-        past_time = datetime.now() - timedelta(hours=1)
+        past_time = datetime.now(timezone.utc) - timedelta(hours=1)
         signature = ExecutionPacketSignature(
             packet_id="pkt-002",
             signature=b"signature_bytes",
@@ -189,7 +189,7 @@ class TestExecutionPacketSignature:
 
     def test_signature_single_use(self):
         """Test signature single-use enforcement."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         signature = ExecutionPacketSignature(
             packet_id="pkt-003",
             signature=b"signature_bytes",
@@ -227,7 +227,7 @@ class TestAccessRequestAndDecision:
             identity_id="user-001",
             resource="resource-001",
             operation="read",
-            requested_at=datetime.now(),
+            requested_at=datetime.now(timezone.utc),
             purpose="Data analysis",
             scope="minimal",
             duration=timedelta(hours=1),
@@ -244,7 +244,7 @@ class TestAccessRequestAndDecision:
             identity_id="user-001",
             trust_level=TrustLevel.HIGH,
             confidence=0.9,
-            computed_at=datetime.now(),
+            computed_at=datetime.now(timezone.utc),
             cryptographic_proof_strength=1.0,
             behavioral_consistency=0.9,
             confidence_stability=0.9,
@@ -256,7 +256,7 @@ class TestAccessRequestAndDecision:
         artifact = SecurityArtifact(
             artifact_id="art-003",
             artifact_type="access_decision",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             identity_id="user-001",
             action=SecurityAction.ALLOW,
             trust_score=trust_score,
@@ -270,11 +270,11 @@ class TestAccessRequestAndDecision:
             decision_id="dec-001",
             request_id="req-001",
             decision=SecurityAction.ALLOW,
-            decided_at=datetime.now(),
+            decided_at=datetime.now(timezone.utc),
             trust_score=trust_score,
             authority_granted=AuthorityBand.HIGH,
             rationale="Trust score sufficient",
-            time_bound=datetime.now() + timedelta(hours=1),
+            time_bound=datetime.now(timezone.utc) + timedelta(hours=1),
             scope_restrictions=["read_only"],
             rate_limit=100,
             decided_by="security-plane",
@@ -293,7 +293,7 @@ class TestSecurityAnomaly:
         anomaly = SecurityAnomaly(
             anomaly_id="anom-001",
             anomaly_type=AnomalyType.UNUSUAL_PATTERN,
-            detected_at=datetime.now(),
+            detected_at=datetime.now(timezone.utc),
             identity_id="user-001",
             severity=0.8,
             confidence=0.9,
@@ -315,7 +315,7 @@ class TestCryptographicKey:
 
     def test_key_creation(self):
         """Test creating a cryptographic key."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         key = CryptographicKey(
             key_id="key-001",
             key_type="signing",
@@ -333,7 +333,7 @@ class TestCryptographicKey:
 
     def test_key_expiry(self):
         """Test key expiration."""
-        past_time = datetime.now() - timedelta(hours=1)
+        past_time = datetime.now(timezone.utc) - timedelta(hours=1)
         key = CryptographicKey(
             key_id="key-002",
             key_type="encryption",
@@ -350,7 +350,7 @@ class TestCryptographicKey:
 
     def test_key_rotation(self):
         """Test key rotation check."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         key = CryptographicKey(
             key_id="key-003",
             key_type="key_exchange",
@@ -375,14 +375,14 @@ class TestSecurityGate:
         gate = SecurityGate(
             gate_id="gate-001",
             gate_type="rate_limit",
-            created_at=datetime.now(),
+            created_at=datetime.now(timezone.utc),
             created_by="security-telemetry-agent",
             triggered_by_anomaly="anom-001",
             anomaly_type=AnomalyType.UNUSUAL_PATTERN,
             condition="requests_per_minute < 10",
             threshold=10.0,
             active=True,
-            expires_at=datetime.now() + timedelta(hours=1),
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
             blocks_authority_band=AuthorityBand.HIGH,
             requires_escalation=False
         )
@@ -398,7 +398,7 @@ class TestSecurityFreeze:
         """Test creating a security freeze."""
         freeze = SecurityFreeze(
             freeze_id="freeze-001",
-            triggered_at=datetime.now(),
+            triggered_at=datetime.now(timezone.utc),
             triggered_by="anom-001",
             identity_id="user-001",
             resource="resource-001",
@@ -415,7 +415,7 @@ class TestSecurityFreeze:
         """Test resolving a security freeze."""
         freeze = SecurityFreeze(
             freeze_id="freeze-002",
-            triggered_at=datetime.now(),
+            triggered_at=datetime.now(timezone.utc),
             triggered_by="anom-003",
             identity_id="user-002",
             resource=None,  # System-wide freeze
@@ -427,7 +427,7 @@ class TestSecurityFreeze:
 
         # Resolve freeze
         freeze.resolved = True
-        freeze.resolved_at = datetime.now()
+        freeze.resolved_at = datetime.now(timezone.utc)
         freeze.resolved_by = "security-admin"
         freeze.resolution_notes = "Anomaly investigated and cleared"
 

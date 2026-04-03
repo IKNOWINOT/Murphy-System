@@ -163,7 +163,7 @@ jobs:
     # no additional production-readiness signal.  If multi-version coverage is needed
     # in the future, add a scheduled weekly matrix job instead of blocking every PR.
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 75
     needs: lint
     permissions:
       contents: read

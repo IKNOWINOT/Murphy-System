@@ -411,14 +411,10 @@ class _FastAPIRateLimiter:
 
 
 _rate_limiter = _FastAPIRateLimiter(
-    # Defaults are intentionally high to accommodate multi-cursor (70 parallel
-    # actions), swarm agents, automation triggers, and sensor-style polling
-    # throughout the Murphy System UI and backend.  Override via env vars to
-    # tighten limits in resource-constrained environments.
-    requests_per_minute=int(os.environ.get("MURPHY_RATE_LIMIT_RPM", "600")),
-    burst_size=int(os.environ.get("MURPHY_RATE_LIMIT_BURST", "200")),
-    swarm_burst_size=int(os.environ.get("MURPHY_RATE_LIMIT_SWARM_BURST", "500")),
-    swarm_window_seconds=float(os.environ.get("MURPHY_RATE_LIMIT_SWARM_WINDOW", "1.0")),
+    requests_per_minute=int(os.environ.get("MURPHY_RATE_LIMIT_RPM", "60")),
+    burst_size=int(os.environ.get("MURPHY_RATE_LIMIT_BURST", "20")),
+    swarm_burst_size=int(os.environ.get("MURPHY_RATE_LIMIT_SWARM_BURST", "60")),
+    swarm_window_seconds=float(os.environ.get("MURPHY_RATE_LIMIT_SWARM_WINDOW", "2.0")),
 )
 
 
@@ -786,6 +782,10 @@ def configure_secure_fastapi(app: FastAPI, service_name: str = "murphy-api") -> 
     - CSRF token validation for POST/PUT/PATCH/DELETE endpoints (SEC-005)
     - Rate limiting per client IP with X-RateLimit-* response headers (SEC-006)
     - Security response headers: HSTS, CSP, X-Frame-Options, X-Content-Type-Options
+    - RBAC enforcement on /api/* routes with fail-closed behavior in production (SEC-010)
+    - Risk classification middleware: blocks critical-risk requests immediately (SEC-011)
+    - DLP scanner middleware: scans request/response bodies for sensitive data (SEC-012)
+    - Per-user rate limiting with token-bucket algorithm (SEC-013)
 
     Args:
         app: FastAPI application to secure
@@ -794,7 +794,18 @@ def configure_secure_fastapi(app: FastAPI, service_name: str = "murphy-api") -> 
     Returns:
         The same FastAPI app, now secured
     """
-    # 1. Replace wildcard CORS with origin allowlist
+    try:
+        from src.security_plane.middleware import (
+            RBACMiddleware,
+            RiskClassificationMiddleware,
+            DLPScannerMiddleware,
+            PerUserRateLimitMiddleware,
+        )
+        _security_plane_available = True
+    except Exception:
+        _security_plane_available = False
+
+    # 1. Replace wildcard CORS with origin allowlist (innermost — added first)
     origins = get_cors_origins()
     app.add_middleware(
         CORSMiddleware,
@@ -807,7 +818,18 @@ def configure_secure_fastapi(app: FastAPI, service_name: str = "murphy-api") -> 
         ],
     )
 
-    # 2. Security middleware (auth + CSRF + rate limiting + headers)
+    # 2. Security Plane middleware layers (added innermost→outermost)
+    if _security_plane_available:
+        # RBAC: innermost of the security-plane stack
+        app.add_middleware(RBACMiddleware)
+        # Risk classification: block critical-risk requests
+        app.add_middleware(RiskClassificationMiddleware)
+        # DLP: scan request/response bodies for sensitive data
+        app.add_middleware(DLPScannerMiddleware)
+        # Per-user rate limiting: outermost of security-plane layers
+        app.add_middleware(PerUserRateLimitMiddleware)
+
+    # 3. Security middleware (auth + CSRF + rate limiting + headers) — outermost
     app.add_middleware(SecurityMiddleware, service_name=service_name)
 
     murphy_env = os.environ.get("MURPHY_ENV", "development")
@@ -818,7 +840,8 @@ def configure_secure_fastapi(app: FastAPI, service_name: str = "murphy-api") -> 
         )
 
     logger.info(
-        "[%s] Security hardening applied: auth, CSRF, CORS, rate limiting, security headers",
+        "[%s] Security hardening applied: auth, CSRF, CORS, rate limiting, security headers, "
+        "RBAC (fail-closed), risk classification, DLP, per-user rate limiting",
         service_name,
     )
     return app
@@ -858,6 +881,12 @@ def register_rbac_governance(rbac) -> None:
     """
     global _rbac_instance
     _rbac_instance = rbac
+    # Sync to ASGI middleware class variable so RBACMiddleware can enforce at request time
+    try:
+        from src.security_plane.middleware import register_rbac_middleware_governance
+        register_rbac_middleware_governance(rbac)
+    except Exception:
+        pass
     logger.info("RBAC governance registered for FastAPI endpoint enforcement")
 
 

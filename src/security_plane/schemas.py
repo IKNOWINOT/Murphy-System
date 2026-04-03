@@ -94,7 +94,7 @@ class TrustScore:
 
     # Decay parameters
     decay_rate: float = 0.1  # Trust decays 10% per hour by default
-    last_activity: datetime = field(default_factory=datetime.now)
+    last_activity: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def is_expired(self, max_age_seconds: int = 3600) -> bool:
         """Check if trust score has expired."""

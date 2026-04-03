@@ -759,13 +759,16 @@ class SignupGateway:
             config["terminal_path"] = "/ui/terminal-worker"
             config["commands"] = ["submit_work", "view_tasks", "chat"]
         elif profile.role in ("worker", "employee", "staff"):
+            pos_lower = profile.position.lower()
             config["features"] = {
                 "task_inbox": True,
                 "deliverable_viewer": True,
                 "time_tracker": True,
+                "automation_library": "engineer" in pos_lower or "developer" in pos_lower,
+                "analytics_dashboard": "analyst" in pos_lower,
             }
             config["terminal_path"] = "/ui/terminal-worker"
-            config["commands"] = ["submit_work", "view_tasks", "clock_in"]
+            config["commands"] = ["run", "submit_work", "view_tasks", "clock_in", "status"]
         elif profile.role in ("manager", "team_lead", "supervisor"):
             config["features"] = {
                 "team_dashboard": True,
