@@ -638,23 +638,20 @@ class NoCodeWorkflowTerminal:
         steps_created = []
 
         if not intents:
-            skip_gathering = _MODE_SKIP_GATHERING.get(session.mode.value, False)
-            if skip_gathering:
-                # ASK / PRODUCTION mode: build a generic single step immediately
-                intents = ["data_processing"]  # safe default
-                inferences.append("No specific intent detected — using generic workflow")
-            else:
-                session.state = ConversationState.GATHERING_REQUIREMENTS
-                return {
-                    "message": (
-                        "I'd like to understand more about what you need. "
-                        "Could you describe the specific tasks or processes you want to automate? "
-                        "For example: data processing, notifications, API integrations, "
-                        "monitoring, deployments, or onboarding workflows."
-                    ),
-                    "inferences": ["No clear intent detected - requesting clarification"],
-                    "actions": ["state_transition:gathering_requirements"],
-                }
+            # No clear intent — ask for clarification regardless of mode.
+            # Even in ASK mode, vague messages need more detail before we
+            # can build a meaningful workflow.
+            session.state = ConversationState.GATHERING_REQUIREMENTS
+            return {
+                "message": (
+                    "I'd like to understand more about what you need. "
+                    "Could you describe the specific tasks or processes you want to automate? "
+                    "For example: data processing, notifications, API integrations, "
+                    "monitoring, deployments, or onboarding workflows."
+                ),
+                "inferences": ["No clear intent detected - requesting clarification"],
+                "actions": ["state_transition:gathering_requirements"],
+            }
 
         # Set workflow metadata
         session.workflow_name = self._generate_workflow_name(message, intents)
