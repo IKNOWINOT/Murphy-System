@@ -98,6 +98,7 @@ jobs:
               "src.global_feedback.models",
               "src.global_feedback.remediation_engine",
               "src.global_feedback.dispatcher",
+              "src.dependency_deprecation_scanner",
           ]
           for mod in modules:
               try:

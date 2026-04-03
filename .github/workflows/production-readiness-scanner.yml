@@ -1,0 +1,139 @@
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post | License: BSL-1.1
+#
+# Murphy System — Production Readiness Scanner
+#
+# Runs daily at 1 AM PST (9 AM UTC) to scan the entire Murphy System
+# for production readiness.  Produces a dated checklist that the
+# Executor Agent consumes at 3 AM PST.
+#
+# Guiding principles (evaluated at every step):
+#   • Does the module do what it was designed to do?
+#   • What exactly is the module supposed to do?
+#   • What conditions are possible based on the module?
+#   • Does the test profile reflect the full range of capabilities?
+#   • What is the expected result at all points of operation?
+#   • What is the actual result?
+#   • If problems persist, restart from symptoms → validation.
+#   • Has all ancillary code and documentation been updated?
+#   • Has hardening been applied?
+#   • Has the module been recommissioned after changes?
+
+name: "Production Readiness Scanner"
+
+on:
+  schedule:
+    # 1 AM PST = 9 AM UTC (during PST / UTC-8)
+    # 1 AM PDT = 8 AM UTC (during PDT / UTC-7)
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+    inputs:
+      scan_depth:
+        description: "Scan depth: standard (fast) or full (includes smoke imports)"
+        required: false
+        default: "standard"
+        type: choice
+        options:
+          - standard
+          - full
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+  MURPHY_ENV: scanner
+  MURPHY_DB_MODE: stub
+  E2EE_STUB_ALLOWED: "true"
+  MURPHY_POOL_MODE: simulated
+  MURPHY_REPO_ROOT: "${{ github.workspace }}"
+
+jobs:
+  scan:
+    name: "Production Readiness Scan"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements_ci.txt
+
+      - name: Run production readiness scan
+        id: scan
+        run: |
+          SCAN_DEPTH="${{ github.event.inputs.scan_depth || 'standard' }}"
+          mkdir -p /tmp/readiness_output
+
+          python "Murphy System/scripts/production_readiness_scanner_agent.py" \
+            --output-dir /tmp/readiness_output \
+            --scan-depth "$SCAN_DEPTH"
+
+          # Extract summary for annotations
+          if [ -f /tmp/readiness_output/readiness_checklist_latest.json ]; then
+            HUMAN=$(python -c "
+          import json
+          with open('/tmp/readiness_output/readiness_checklist_latest.json') as f:
+              data = json.load(f)
+          print(data.get('summary', {}).get('total_human_tasks', 0))
+          ")
+            AGENT=$(python -c "
+          import json
+          with open('/tmp/readiness_output/readiness_checklist_latest.json') as f:
+              data = json.load(f)
+          print(data.get('summary', {}).get('total_agent_tasks', 0))
+          ")
+            echo "human_tasks=$HUMAN" >> "$GITHUB_OUTPUT"
+            echo "agent_tasks=$AGENT" >> "$GITHUB_OUTPUT"
+            echo "::notice::Scanner found $HUMAN human tasks and $AGENT agent tasks"
+          fi
+
+      - name: Upload scanner artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: readiness-checklist-${{ github.run_id }}
+          path: /tmp/readiness_output/
+          retention-days: 90
+
+      - name: Commit checklist to repo
+        run: |
+          # Store latest checklist in docs/ for the executor agent to find
+          mkdir -p "Murphy System/docs/readiness"
+          cp /tmp/readiness_output/readiness_checklist_latest.json \
+             "Murphy System/docs/readiness/readiness_checklist_latest.json"
+
+          DATE=$(date -u +%Y-%m-%d)
+          if [ -f "/tmp/readiness_output/readiness_checklist_${DATE}.md" ]; then
+            cp "/tmp/readiness_output/readiness_checklist_${DATE}.md" \
+               "Murphy System/docs/readiness/readiness_checklist_${DATE}.md"
+          fi
+
+          git config user.name "murphy-scanner-agent[bot]"
+          git config user.email "murphy-scanner-agent[bot]@users.noreply.github.com"
+
+          git add "Murphy System/docs/readiness/" || true
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(scanner): production readiness checklist $(date -u +%Y-%m-%d)"
+            git push
+          else
+            echo "::notice::No checklist changes to commit"
+          fi
+
+      - name: Scanner summary
+        run: |
+          echo "╔══════════════════════════════════════════════════════════╗"
+          echo "║     PRODUCTION READINESS SCANNER — SUMMARY              ║"
+          echo "╠══════════════════════════════════════════════════════════╣"
+          echo "║ Human Tasks:  ${{ steps.scan.outputs.human_tasks }}"
+          echo "║ Agent Tasks:  ${{ steps.scan.outputs.agent_tasks }}"
+          echo "╚══════════════════════════════════════════════════════════╝"

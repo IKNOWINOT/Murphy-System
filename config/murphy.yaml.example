@@ -64,7 +64,7 @@ llm:
   # How many times to retry a failed LLM call before escalating.
   max_retries: 3
 
-  # Round-robin rotation across multiple Groq API keys (GROQ_API_KEYS).
+  # Round-robin rotation across multiple DeepInfra API keys (DEEPINFRA_API_KEYS).
   use_key_rotation: true
 
 # ── Safety & Confidence Thresholds (MFGC-AI Core) ────────────────────────────
