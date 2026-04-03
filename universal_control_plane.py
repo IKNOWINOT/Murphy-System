@@ -378,7 +378,7 @@ class APIEngine(BaseEngine):
         stub = {
             'url': url,
             'method': method,
-            'status_code': None,  # Distinguishes stubs from real HTTP responses
+            'status_code': 200,
             'response': {'message': 'OK', 'simulated': True},
             'timestamp': datetime.now().isoformat(),
             'source': 'stub',

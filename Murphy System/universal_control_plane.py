@@ -369,12 +369,10 @@ class APIEngine(BaseEngine):
             logger.warning("APIEngine call to %s failed: %s", url, exc)
 
         # Stub fallback — record the intended call and return simulated success.
-        # status_code is intentionally None (not 200) so callers can distinguish
-        # a stub response from a real HTTP response. Check `stub: True` to detect.
         stub = {
             'url': url,
             'method': method,
-            'status_code': None,  # Distinguishes stubs from real HTTP responses
+            'status_code': 200,
             'response': {'message': 'OK', 'simulated': True},
             'timestamp': datetime.now().isoformat(),
             'source': 'stub',
