@@ -885,12 +885,12 @@ Murphy is the **only automation platform** that covers the entire stack — from
 
 | Metric | Value |
 | --- | --- |
-| **Source Files** | 1,122 named Python modules across 71 packages (1,223 .py files total) |
+| **Source Files** | 1,204 named Python modules across 83 packages (1,317 .py files total) |
 | **Source Lines** | 218,497 |
 | **Classes** | 2,487 |
 | **Functions / Methods** | 8,472 |
-| **Packages** | 81 subsystem directories |
-| **Test Files** | 644 |
+| **Packages** | 83 subsystem directories |
+| **Test Files** | 779 |
 | **Test Functions** | 8,843+ |
 | **Automation Types** | 6 (factory, content, data, system, agent, business) |
 | **Gap-Closure Categories Audited** | 90 (all at zero) |
