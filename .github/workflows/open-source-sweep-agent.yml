@@ -1,0 +1,258 @@
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post | License: BSL-1.1
+#
+# Murphy System — Open Source Sweep Agent
+#
+# Runs monthly on the 1st at 06:00 UTC to audit the dual-license boundary
+# defined in strategic/open_source/.  Classifies every module, checks
+# copyright headers and license markers, and detects accidental
+# proprietary leaks in community code.
+#
+# Guiding principles (evaluated at every step):
+#   • Does the module do what it was designed to do?
+#   • What exactly is the module supposed to do?
+#   • What conditions are possible based on the module?
+#   • Does the test profile reflect the full range of capabilities?
+#   • What is the expected result at all points of operation?
+#   • What is the actual result?
+#   • If problems persist, restart from symptoms → validation.
+#   • Has all ancillary code and documentation been updated?
+#   • Has hardening been applied?
+#   • Has the module been recommissioned after changes?
+
+name: "Open Source Sweep Agent"
+
+on:
+  schedule:
+    # 1st of every month at 06:00 UTC
+    - cron: "0 6 1 * *"
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: "Phase to run: classify, audit, report, or all"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - classify
+          - audit
+          - report
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/src:${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+  MURPHY_ENV: sweep
+  MURPHY_DB_MODE: stub
+  E2EE_STUB_ALLOWED: "true"
+  MURPHY_POOL_MODE: simulated
+  MURPHY_REPO_ROOT: "${{ github.workspace }}"
+
+jobs:
+  classify:
+    name: "Phase 1 — Classify Modules"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      total_modules: ${{ steps.classify.outputs.total_modules }}
+      community_count: ${{ steps.classify.outputs.community_count }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements_ci.txt
+
+      - name: Run classification
+        id: classify
+        run: |
+          PHASE="${{ github.event.inputs.phase || 'all' }}"
+          mkdir -p /tmp/sweep_output
+
+          if [ "$PHASE" = "all" ] || [ "$PHASE" = "classify" ]; then
+            python "Murphy System/scripts/open_source_sweep_agent.py" \
+              --phase classify \
+              --output-dir /tmp/sweep_output
+
+            TOTAL=$(python -c "
+          import json
+          with open('/tmp/sweep_output/classification_report.json') as f:
+              data = json.load(f)
+          print(data.get('total_modules', 0))
+          ")
+            COMMUNITY=$(python -c "
+          import json
+          with open('/tmp/sweep_output/classification_report.json') as f:
+              data = json.load(f)
+          print(data.get('community_count', 0))
+          ")
+            echo "total_modules=$TOTAL" >> "$GITHUB_OUTPUT"
+            echo "community_count=$COMMUNITY" >> "$GITHUB_OUTPUT"
+            echo "::notice::Classified $TOTAL modules ($COMMUNITY community)"
+          fi
+
+      - name: Upload classification artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sweep-classification-${{ github.run_id }}
+          path: /tmp/sweep_output/
+          retention-days: 90
+
+  audit:
+    name: "Phase 2 — Audit Compliance"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: classify
+    if: needs.classify.outputs.total_modules != '0'
+    outputs:
+      leak_count: ${{ steps.audit.outputs.leak_count }}
+      issue_count: ${{ steps.audit.outputs.issue_count }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements_ci.txt
+
+      - name: Download classification
+        uses: actions/download-artifact@v4
+        with:
+          name: sweep-classification-${{ github.run_id }}
+          path: /tmp/sweep_output
+
+      - name: Run audit
+        id: audit
+        run: |
+          python "Murphy System/scripts/open_source_sweep_agent.py" \
+            --phase audit \
+            --classification /tmp/sweep_output/classification_report.json \
+            --output-dir /tmp/sweep_output
+
+          LEAKS=$(python -c "
+          import json
+          with open('/tmp/sweep_output/audit_report.json') as f:
+              data = json.load(f)
+          print(data.get('leak_count', 0))
+          ")
+          echo "leak_count=$LEAKS" >> "$GITHUB_OUTPUT"
+          echo "::notice::Audit found $LEAKS boundary leaks"
+
+      - name: Upload audit artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sweep-audit-${{ github.run_id }}
+          path: /tmp/sweep_output/
+          retention-days: 90
+
+  report:
+    name: "Phase 3 — Generate Report"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [classify, audit]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements_ci.txt
+
+      - name: Download audit artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: sweep-audit-${{ github.run_id }}
+          path: /tmp/sweep_output
+
+      - name: Generate final report
+        id: report
+        run: |
+          python "Murphy System/scripts/open_source_sweep_agent.py" \
+            --phase report \
+            --audit /tmp/sweep_output/audit_report.json \
+            --output-dir /tmp/sweep_output
+
+          ISSUES=$(python -c "
+          import json
+          with open('/tmp/sweep_output/sweep_report_latest.json') as f:
+              data = json.load(f)
+          print(data.get('issue_count', 0))
+          ")
+          CRITICAL=$(python -c "
+          import json
+          with open('/tmp/sweep_output/sweep_report_latest.json') as f:
+              data = json.load(f)
+          print(data.get('critical_count', 0))
+          ")
+          echo "issue_count=$ISSUES" >> "$GITHUB_OUTPUT"
+          echo "critical_count=$CRITICAL" >> "$GITHUB_OUTPUT"
+
+      - name: Commit report to repo
+        run: |
+          mkdir -p "Murphy System/docs/sweep"
+          cp /tmp/sweep_output/sweep_report_latest.json \
+             "Murphy System/docs/sweep/sweep_report_latest.json"
+
+          DATE=$(date -u +%Y-%m-%d)
+          if [ -f "/tmp/sweep_output/sweep_report_${DATE}.md" ]; then
+            cp "/tmp/sweep_output/sweep_report_${DATE}.md" \
+               "Murphy System/docs/sweep/sweep_report_${DATE}.md"
+          fi
+          if [ -f "/tmp/sweep_output/sweep_report_${DATE}.json" ]; then
+            cp "/tmp/sweep_output/sweep_report_${DATE}.json" \
+               "Murphy System/docs/sweep/sweep_report_${DATE}.json"
+          fi
+
+          git config user.name "murphy-sweep-agent[bot]"
+          git config user.email "murphy-sweep-agent[bot]@users.noreply.github.com"
+
+          git add "Murphy System/docs/sweep/" || true
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(sweep): open source compliance report $(date -u +%Y-%m-%d)"
+            git push
+          else
+            echo "::notice::No report changes to commit"
+          fi
+
+      - name: Upload final report
+        uses: actions/upload-artifact@v4
+        with:
+          name: sweep-report-${{ github.run_id }}
+          path: /tmp/sweep_output/
+          retention-days: 90
+
+      - name: Sweep summary
+        run: |
+          echo "╔══════════════════════════════════════════════════════════╗"
+          echo "║     OPEN SOURCE SWEEP AGENT — SUMMARY                   ║"
+          echo "╠══════════════════════════════════════════════════════════╣"
+          echo "║ Total Modules:  ${{ needs.classify.outputs.total_modules }}"
+          echo "║ Community:      ${{ needs.classify.outputs.community_count }}"
+          echo "║ Issues:         ${{ steps.report.outputs.issue_count }}"
+          echo "║ Critical:       ${{ steps.report.outputs.critical_count }}"
+          echo "╚══════════════════════════════════════════════════════════╝"
