@@ -25,7 +25,6 @@ import sys
 import pytest
 
 # Ensure project root is on the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 _SRC_DIR = os.path.join(os.path.dirname(__file__), "..", "src")
 _DISPATCH_FILE = os.path.join(_SRC_DIR, "dispatch.py")

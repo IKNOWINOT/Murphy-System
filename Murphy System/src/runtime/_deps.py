@@ -48,10 +48,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Add project root (Murphy System/) to path so both ``src.*`` and bare
-# module names resolve correctly.
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
-
 # Core imports
 from src.modular_runtime import ModularRuntime
 from src.module_manager import module_manager

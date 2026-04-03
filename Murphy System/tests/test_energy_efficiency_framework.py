@@ -1,6 +1,5 @@
 """Tests for energy_efficiency_framework.py"""
 import pytest, sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../src"))
 
 from energy_efficiency_framework import (
     EnergyEfficiencyFramework, ECM_CATALOG, MSSEnergyRubric,

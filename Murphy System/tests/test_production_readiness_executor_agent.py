@@ -23,7 +23,6 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 from production_readiness_executor_agent import (  # noqa: E402
     AGENT_LABEL,
