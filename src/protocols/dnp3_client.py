@@ -25,6 +25,7 @@ Usage::
 from __future__ import annotations
 
 import logging
+import random  # noqa: S311 — used only for simulated stub data
 import socket
 import struct
 import threading
@@ -199,7 +200,6 @@ def _simulated_integrity_poll() -> List[DNP3DataPoint]:
             value=(i % 2 == 0), quality=0x01, timestamp=now,
         ))
     # Analog inputs (Group 30)
-    import random
     for i in range(4):
         points.append(DNP3DataPoint(
             index=i, group=DNP3ObjectGroup.ANALOG_INPUT, variation=1,
@@ -218,7 +218,6 @@ def _simulated_integrity_poll() -> List[DNP3DataPoint]:
 
 def _simulated_analog_inputs(start_index: int, count: int) -> List[DNP3DataPoint]:
     now = time.time()
-    import random
     return [
         DNP3DataPoint(
             index=start_index + i,

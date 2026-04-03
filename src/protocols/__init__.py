@@ -80,7 +80,7 @@ _PROTOCOL_CLIENT_MAP = {
     "knx": ("MurphyKNXClient", MurphyKNXClient, "xknx"),
     "mqtt": ("MurphyMQTTSparkplugClient", MurphyMQTTSparkplugClient, "paho-mqtt"),
     "openadr": ("MurphyOpenADRClient", MurphyOpenADRClient, "aiohttp"),
-    "dnp3": ("MurphyDNP3Client", MurphyDNP3Client, "socket"),
+    "dnp3": ("MurphyDNP3Client", MurphyDNP3Client, "(stdlib)"),
 }
 
 
