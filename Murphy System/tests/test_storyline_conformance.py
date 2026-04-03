@@ -47,8 +47,6 @@ _SRC_DIR = _MURPHY_ROOT / "src"
 
 for _p in (_MURPHY_ROOT, _SRC_DIR):
     _ps = str(_p)
-    if _ps not in sys.path:
-        sys.path.insert(0, _ps)
 
 
 # ---------------------------------------------------------------------------

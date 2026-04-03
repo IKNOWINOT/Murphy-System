@@ -37,13 +37,6 @@ from pydantic import BaseModel, Field
 
 log = logging.getLogger("murphy.execution_router")
 
-# ── Ensure src/ is on path for orchestrator imports ──────────────────────────
-_SRC_DIR = Path(__file__).resolve().parent
-_PROJECT_ROOT = _SRC_DIR.parent
-for _p in (str(_SRC_DIR), str(_PROJECT_ROOT)):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
-
 router = APIRouter(tags=["execution-engine"])
 
 # ══════════════════════════════════════════════════════════════════════════════

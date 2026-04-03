@@ -32,7 +32,6 @@ import uuid
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from nocode_workflow_terminal import NoCodeWorkflowTerminal, ConversationState
 from ai_workflow_generator import AIWorkflowGenerator, WORKFLOW_TEMPLATES

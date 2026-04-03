@@ -20,7 +20,6 @@ import sys
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from event_backbone import EventBackbone, EventType
 from learning_engine_connector import LearningCycleResult, LearningEngineConnector

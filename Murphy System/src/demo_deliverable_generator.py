@@ -2558,12 +2558,6 @@ def _build_mss_controller():
     inside ``mss_controls.py`` (e.g. ``from concept_translation import …``)
     resolve correctly in all call contexts (FastAPI app, test runner, scripts).
     """
-    import sys
-    from pathlib import Path as _Path
-    _src_dir = str(_Path(__file__).resolve().parent)
-    if _src_dir not in sys.path:
-        sys.path.insert(0, _src_dir)
-
     # Use bare imports — consistent with mss_controls.py's own internal imports
     from mss_controls import MSSController  # noqa: PLC0415
     from information_quality import InformationQualityEngine  # noqa: PLC0415
@@ -2724,9 +2718,6 @@ def _build_automation_blueprint(query: str, mss_result: Optional[Dict[str, Any]]
     # ── Generate real workflow via AIWorkflowGenerator ──────────────────────
     workflow: Dict[str, Any] = {}
     try:
-        import sys as _sys
-        import os as _os
-        _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
         from ai_workflow_generator import AIWorkflowGenerator
         generator = AIWorkflowGenerator()
         workflow = generator.generate_workflow(

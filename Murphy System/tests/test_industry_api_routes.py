@@ -16,7 +16,6 @@ import time
 os.environ.setdefault("MURPHY_RATE_LIMIT_RPM", "6000")
 
 # Ensure src/ is on the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import pytest
 

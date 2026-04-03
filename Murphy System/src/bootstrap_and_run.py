@@ -29,11 +29,6 @@ import sys
 import time
 from pathlib import Path
 
-# Ensure src/ is on the path when run as a script from the repo root
-_SRC = Path(__file__).resolve().parent
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",

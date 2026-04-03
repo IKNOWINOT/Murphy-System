@@ -15,7 +15,6 @@ import os
 import sys
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from pilot_config import (
     PILOT_ACCOUNT,
     PILOT_AUTOMATION_ROUTING,

@@ -62,6 +62,10 @@ def bridge_time_tracking_to_backbone(
             ``"entry_approved"``).  The loop variable ``event`` is *not*
             captured here; the hook manager always passes the actual event
             type as the first argument to registered callbacks.
+
+            We call ``_bb.publish()`` directly rather than going through
+            ``event_backbone_client.publish()`` because the client-side
+            whitelist may not yet include time-tracking event types.
             """
             try:
                 _bb.publish(event_type, payload)

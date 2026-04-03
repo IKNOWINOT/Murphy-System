@@ -33,8 +33,6 @@ import pytest
 # ---------------------------------------------------------------------------
 _HERE = Path(__file__).resolve()
 _SRC = _HERE.parent.parent / "Murphy System" / "src"
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
 
 from rosetta.rosetta_manager import RosettaManager
 from rosetta.rosetta_models import AutomationProgress, Identity, RosettaAgentState, SystemState

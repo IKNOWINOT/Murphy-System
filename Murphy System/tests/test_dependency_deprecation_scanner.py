@@ -23,7 +23,6 @@ from pathlib import Path
 import pytest
 
 # Ensure Murphy System/src is importable
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from dependency_deprecation_scanner import (  # noqa: E402
     DeprecationEcosystem,

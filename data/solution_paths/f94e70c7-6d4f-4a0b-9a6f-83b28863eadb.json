@@ -1,0 +1,72 @@
+[
+  {
+    "path_id": "ba97f55a-c3d3-4910-9cac-86f00f02cdb3",
+    "task_id": "f94e70c7-6d4f-4a0b-9a6f-83b28863eadb",
+    "capability_id": "run_integrator",
+    "module_path": "src.system_integrator",
+    "score": 0.3333,
+    "librarian_score": 0.3333,
+    "feedback_weight": 1.0,
+    "cost_estimate": "medium",
+    "determinism": "deterministic",
+    "requires_hitl": false,
+    "parameters": {},
+    "wingman": null
+  },
+  {
+    "path_id": "08065d60-a4f2-448b-928f-c2cf31a227aa",
+    "task_id": "f94e70c7-6d4f-4a0b-9a6f-83b28863eadb",
+    "capability_id": "run_security_scan",
+    "module_path": "src.security_audit_scanner",
+    "score": 0.3333,
+    "librarian_score": 0.3333,
+    "feedback_weight": 1.0,
+    "cost_estimate": "medium",
+    "determinism": "deterministic",
+    "requires_hitl": false,
+    "parameters": {},
+    "wingman": null
+  },
+  {
+    "path_id": "a36c2aa5-07bd-40da-8a95-e8ba87a31d42",
+    "task_id": "f94e70c7-6d4f-4a0b-9a6f-83b28863eadb",
+    "capability_id": "run_key_harvester",
+    "module_path": "src.key_harvester",
+    "score": 0.3333,
+    "librarian_score": 0.3333,
+    "feedback_weight": 1.0,
+    "cost_estimate": "medium",
+    "determinism": "deterministic",
+    "requires_hitl": false,
+    "parameters": {},
+    "wingman": null
+  },
+  {
+    "path_id": "031fe082-ce06-4cb1-84da-1f010f1b66b8",
+    "task_id": "f94e70c7-6d4f-4a0b-9a6f-83b28863eadb",
+    "capability_id": "run_compiler",
+    "module_path": "src.execution_compiler",
+    "score": 0.3333,
+    "librarian_score": 0.3333,
+    "feedback_weight": 1.0,
+    "cost_estimate": "medium",
+    "determinism": "deterministic",
+    "requires_hitl": false,
+    "parameters": {},
+    "wingman": null
+  },
+  {
+    "path_id": "ad626f46-9bdd-443f-9ba6-a44d26a26ac0",
+    "task_id": "f94e70c7-6d4f-4a0b-9a6f-83b28863eadb",
+    "capability_id": "run_action",
+    "module_path": "src.murphy_action_engine",
+    "score": 0.3333,
+    "librarian_score": 0.3333,
+    "feedback_weight": 1.0,
+    "cost_estimate": "medium",
+    "determinism": "deterministic",
+    "requires_hitl": false,
+    "parameters": {},
+    "wingman": null
+  }
+]

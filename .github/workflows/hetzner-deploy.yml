@@ -72,3 +72,20 @@ jobs:
             cd /opt/Murphy-System
             git pull origin main
             bash scripts/hetzner_load.sh --skip-pull
+
+      - name: Verify health
+        if: steps.check_secrets.outputs.skip == 'false'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: root
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            STATUS=$(curl -sf http://localhost:8000/api/health || echo "FAIL")
+            if echo "$STATUS" | grep -q '"status"'; then
+              echo "Health check passed"
+            else
+              echo "Health check failed: $STATUS"
+              exit 1
+            fi

@@ -33,8 +33,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 # -- path setup ----------------------------------------------------------------
-ROOT = Path(__file__).resolve().parent.parent / "Murphy System"
-sys.path.insert(0, str(ROOT))
+ROOT = Path(__file__).resolve().parent.parent
 
 from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
@@ -47,8 +46,6 @@ log = logging.getLogger("murphy.prod")
 
 # -- Import MurphyLLMProvider (DeepInfra primary, Together fallback) -----------
 try:
-    _llm_src = Path(__file__).resolve().parent / "src"
-    sys.path.insert(0, str(_llm_src))
     from llm_provider import get_llm as _get_llm
     _llm_available = True
     log.info("MurphyLLMProvider loaded — DeepInfra primary, Together fallback")
@@ -59,7 +56,6 @@ except Exception as _llm_e:
 
 # -- Import Murphy automation engine (with fallback) ---------------------------
 try:
-    sys.path.insert(0, str(ROOT / "src"))
     from automations.engine import AutomationEngine
     from automations.models import (
         ActionType, AutomationAction, Condition, ConditionOperator,

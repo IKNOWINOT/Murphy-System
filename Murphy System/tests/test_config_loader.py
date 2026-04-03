@@ -24,7 +24,6 @@ from unittest.mock import patch
 # Make config/ importable regardless of working directory
 # ---------------------------------------------------------------------------
 _CONFIG_DIR = Path(__file__).resolve().parent.parent / "config"
-sys.path.insert(0, str(_CONFIG_DIR.parent))  # repo root → Murphy System/
 
 
 class TestConfigLoaderYAMLLoading(unittest.TestCase):
