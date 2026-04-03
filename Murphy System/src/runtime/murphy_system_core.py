@@ -63,6 +63,14 @@ class MurphySystem:
         "src.llm_controller",
         "src.local_llm_fallback"
     )
+
+    _ONBOARD_PROVIDER_ENTRY: Dict[str, Any] = {
+        "provider": "onboard",
+        "name": "Murphy Onboard LLM",
+        "model": "pattern_matcher",
+        "status": "available",
+    }
+
     MODULE_CATALOG = [
         {
             "name": "module_manager",
@@ -12062,6 +12070,8 @@ class MurphySystem:
                     "model": os.environ.get("OLLAMA_MODEL", "llama3") if _ollama_up else "pattern_matcher",
                     "healthy": True,
                     "mode": "onboard",
+                    "onboard_available": True,
+                    "providers": [self._ONBOARD_PROVIDER_ENTRY],
                     "ollama_running": _ollama_up,
                     "ollama_models": _pulled,
                     "ollama_host": os.environ.get("OLLAMA_HOST", "http://localhost:11434"),
@@ -12088,6 +12098,8 @@ class MurphySystem:
                     "model": "local_fallback",
                     "healthy": True,
                     "mode": "onboard",
+                    "onboard_available": True,
+                    "providers": [self._ONBOARD_PROVIDER_ENTRY],
                     "note": "DEEPINFRA_API_KEY not set; using onboard LLM.",
                 }
             return {
@@ -12096,6 +12108,11 @@ class MurphySystem:
                 "model": model or "meta-llama/Meta-Llama-3.1-8B-Instruct",
                 "healthy": True,
                 "mode": "external_api",
+                "onboard_available": True,
+                "providers": [
+                    {"provider": "deepinfra", "name": "DeepInfra", "model": model or "meta-llama/Meta-Llama-3.1-8B-Instruct", "status": "available"},
+                    self._ONBOARD_PROVIDER_ENTRY,
+                ],
             }
         # Generic provider — enabled but health unknown
         return {

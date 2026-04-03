@@ -147,7 +147,8 @@ _MODE_SKIP_GATHERING: Dict[str, bool] = {
 
 _MODE_GREETINGS: Dict[str, str] = {
     LibrarianMode.ASK.value: (
-        "Ready. Describe what you need and I'll generate the command or workflow directly. "
+        "Ready. I'm your Librarian — describe what you need and I'll generate "
+        "the command or workflow directly. "
         "Say 'triage' at any point to escalate to execution."
     ),
     LibrarianMode.ONBOARDING.value: (
