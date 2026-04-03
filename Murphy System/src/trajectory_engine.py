@@ -263,7 +263,7 @@ class TrajectoryEngine:
 
         # ── Entry / exit / stop ─────────────────────────────────────────
         entry  = self._optimal_entry(closes, current, signal)
-        exit_p = self._optimal_exit(current, target)
+        exit_p = self._optimal_exit(current, target) if signal != TrajectorySignal.NONE else None
         stop   = self._hard_stop(current, signal)
         trail  = current * (1 - self.trail_pct) if signal != TrajectorySignal.NONE else None
         max_ch = current * (1 + self.max_chase_pct)

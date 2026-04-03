@@ -1,0 +1,118 @@
+{
+  "flow": "onboarding_to_profit_chain",
+  "steps": [
+    "1. Landing page: problem/solution messaging",
+    "2. Signup: account creation",
+    "3. Onboarding wizard: org profile + compliance + integrations",
+    "4. Production wizard: work orders + HITL gate + deliverables",
+    "5. Grant wizard: funding discovery by industry/project",
+    "6. Grant dashboard: application tracking",
+    "7. Compliance dashboard: regulatory posture + CCE scan",
+    "8. Partner request: custom integration + revenue sharing",
+    "9. Pricing: tier selection + financing"
+  ],
+  "viewpoints": {
+    "founder": {
+      "suggestions": [
+        "Review cost-to-acquire before production launch",
+        "Verify grant runway covers 12-month plan",
+        "Confirm compliance posture before investor deck",
+        "Check partner revenue-share terms"
+      ],
+      "gate_recommendations": [
+        {
+          "gate": "financial_review",
+          "trigger": "production_config_save"
+        },
+        {
+          "gate": "budget_approval",
+          "trigger": "tier_selection"
+        },
+        {
+          "gate": "strategic_alignment",
+          "trigger": "partner_request"
+        }
+      ]
+    },
+    "compliance_officer": {
+      "suggestions": [
+        "Lock regulatory profile after onboarding",
+        "Scan all integrations for data-residency compliance",
+        "Validate grant eligibility criteria before submission",
+        "Audit pricing tier for regulatory implications"
+      ],
+      "gate_recommendations": [
+        {
+          "gate": "compliance_profile_lock",
+          "trigger": "onboarding_complete"
+        },
+        {
+          "gate": "legal_review",
+          "trigger": "grant_submission"
+        },
+        {
+          "gate": "regulatory_scan",
+          "trigger": "compliance_dashboard_view"
+        }
+      ]
+    },
+    "customer": {
+      "suggestions": [
+        "Confirm onboarding steps match promised experience",
+        "Verify production deliverables timeline",
+        "Check grant benefits clearly communicated"
+      ],
+      "gate_recommendations": [
+        {
+          "gate": "feature_gate",
+          "trigger": "production_config_save"
+        },
+        {
+          "gate": "ux_review",
+          "trigger": "onboarding_complete"
+        }
+      ]
+    },
+    "investor": {
+      "suggestions": [
+        "Validate unit economics at each pricing tier",
+        "Review grant portfolio for diversification",
+        "Confirm compliance reduces regulatory risk",
+        "Assess partner network for strategic value"
+      ],
+      "gate_recommendations": [
+        {
+          "gate": "roi_gate",
+          "trigger": "tier_selection"
+        },
+        {
+          "gate": "market_fit_review",
+          "trigger": "grant_submission"
+        }
+      ]
+    },
+    "operator": {
+      "suggestions": [
+        "Verify integration connectivity after setup",
+        "Confirm production pipeline health checks exist",
+        "Validate onboarding creates all required accounts",
+        "Check compliance dashboards update in real-time"
+      ],
+      "gate_recommendations": [
+        {
+          "gate": "connectivity_test",
+          "trigger": "integration_connected"
+        },
+        {
+          "gate": "health_check",
+          "trigger": "production_config_save"
+        },
+        {
+          "gate": "capacity_review",
+          "trigger": "onboarding_complete"
+        }
+      ]
+    }
+  },
+  "generated_at": "2026-04-03T01:22:41.476802+00:00"
+}

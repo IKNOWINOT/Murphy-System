@@ -435,8 +435,8 @@ class RosettaSubsystemWiring:
         _subscription_ids: EventBackbone subscription IDs to allow cleanup.
     """
 
-    def __init__(self, mgr: Any) -> None:  # mgr: RosettaManager
-        self._mgr = mgr
+    def __init__(self, rosetta_manager: Any) -> None:  # rosetta_manager: RosettaManager
+        self._mgr = rosetta_manager
         self._subscription_ids: List[str] = []
 
     # ------------------------------------------------------------------
@@ -960,3 +960,16 @@ __all__ = [
     "_derive_agent_id",
     "_now_iso",
 ]
+
+# ---------------------------------------------------------------------------
+# Canonical implementation — replace the local second-class definition with
+# the authoritative flat-module class.  Both ``from rosetta_subsystem_wiring
+# import RosettaSubsystemWiring`` and ``from rosetta.subsystem_wiring import
+# RosettaSubsystemWiring`` will now resolve to the same class object, making
+# ``isinstance`` checks work regardless of which import path was used.
+# ---------------------------------------------------------------------------
+try:
+    import rosetta_subsystem_wiring as _flat_rsw_mod  # noqa: E402
+    RosettaSubsystemWiring = _flat_rsw_mod.RosettaSubsystemWiring  # noqa: F811
+except ImportError:
+    pass  # Fall back to the local class defined above

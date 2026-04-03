@@ -11,7 +11,7 @@ Tests all DLP components:
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import tempfile
 import json
@@ -53,7 +53,7 @@ def test_data_classification_validation():
         categories={DataCategory.PII},
         detected_patterns=["SSN"],
         classification_confidence=0.9,
-        classified_at=datetime.now(),
+        classified_at=datetime.now(timezone.utc),
         classified_by="test",
         encryption_required=True,
         retention_days=365,
@@ -69,7 +69,7 @@ def test_data_classification_validation():
             categories=set(),
             detected_patterns=[],
             classification_confidence=1.5,  # Invalid
-            classified_at=datetime.now(),
+            classified_at=datetime.now(timezone.utc),
             classified_by="test",
             encryption_required=False,
             retention_days=None,
@@ -84,7 +84,7 @@ def test_data_classification_validation():
             categories={DataCategory.FINANCIAL},
             detected_patterns=["Credit Card"],
             classification_confidence=0.9,
-            classified_at=datetime.now(),
+            classified_at=datetime.now(timezone.utc),
             classified_by="test",
             encryption_required=False,  # Invalid for SECRET
             retention_days=365,
@@ -189,7 +189,7 @@ def test_exfiltration_unencrypted_sensitive():
         categories={DataCategory.FINANCIAL},
         detected_patterns=["Credit Card"],
         classification_confidence=0.9,
-        classified_at=datetime.now(),
+        classified_at=datetime.now(timezone.utc),
         classified_by="test",
         encryption_required=True,
         retention_days=365,
@@ -221,7 +221,7 @@ def test_exfiltration_blocked_destination():
         categories={DataCategory.PII},
         detected_patterns=["Email"],
         classification_confidence=0.8,
-        classified_at=datetime.now(),
+        classified_at=datetime.now(timezone.utc),
         classified_by="test",
         encryption_required=False,
         retention_days=365,
@@ -252,7 +252,7 @@ def test_exfiltration_rate_limiting():
         categories={DataCategory.CREDENTIALS},
         detected_patterns=["API Key"],
         classification_confidence=0.9,
-        classified_at=datetime.now(),
+        classified_at=datetime.now(timezone.utc),
         classified_by="test",
         encryption_required=True,
         retention_days=90,
@@ -295,7 +295,7 @@ def test_exfiltration_authorized_transfer():
         categories={DataCategory.PII},
         detected_patterns=["Email"],
         classification_confidence=0.8,
-        classified_at=datetime.now(),
+        classified_at=datetime.now(timezone.utc),
         classified_by="test",
         encryption_required=True,
         retention_days=365,
@@ -327,7 +327,7 @@ def test_exfiltration_get_blocked_transfers():
         categories={DataCategory.FINANCIAL},
         detected_patterns=[],
         classification_confidence=0.9,
-        classified_at=datetime.now(),
+        classified_at=datetime.now(timezone.utc),
         classified_by="test",
         encryption_required=True,
         retention_days=365,
@@ -376,7 +376,7 @@ def test_encryption_validation_success():
         categories={DataCategory.FINANCIAL},
         detected_patterns=[],
         classification_confidence=0.9,
-        classified_at=datetime.now(),
+        classified_at=datetime.now(timezone.utc),
         classified_by="test",
         encryption_required=True,
         retention_days=365,
@@ -403,7 +403,7 @@ def test_encryption_validation_missing_at_rest():
         categories={DataCategory.FINANCIAL},
         detected_patterns=[],
         classification_confidence=0.9,
-        classified_at=datetime.now(),
+        classified_at=datetime.now(timezone.utc),
         classified_by="test",
         encryption_required=True,
         retention_days=365,
@@ -430,7 +430,7 @@ def test_encryption_validation_missing_in_transit():
         categories={DataCategory.PII},
         detected_patterns=[],
         classification_confidence=0.8,
-        classified_at=datetime.now(),
+        classified_at=datetime.now(timezone.utc),
         classified_by="test",
         encryption_required=True,
         retention_days=365,
@@ -465,7 +465,7 @@ def test_access_logging():
             categories={DataCategory.PII},
             detected_patterns=["Email"],
             classification_confidence=0.8,
-            classified_at=datetime.now(),
+            classified_at=datetime.now(timezone.utc),
             classified_by="test",
             encryption_required=True,
             retention_days=365,
@@ -506,7 +506,7 @@ def test_access_logging_unauthorized():
         categories={DataCategory.FINANCIAL},
         detected_patterns=[],
         classification_confidence=0.9,
-        classified_at=datetime.now(),
+        classified_at=datetime.now(timezone.utc),
         classified_by="test",
         encryption_required=True,
         retention_days=365,
@@ -536,7 +536,7 @@ def test_access_logging_query():
         categories={DataCategory.PII},
         detected_patterns=[],
         classification_confidence=0.7,
-        classified_at=datetime.now(),
+        classified_at=datetime.now(timezone.utc),
         classified_by="test",
         encryption_required=False,
         retention_days=365,
@@ -567,7 +567,7 @@ def test_access_logging_unauthorized_attempts():
         categories={DataCategory.FINANCIAL},
         detected_patterns=[],
         classification_confidence=0.9,
-        classified_at=datetime.now(),
+        classified_at=datetime.now(timezone.utc),
         classified_by="test",
         encryption_required=True,
         retention_days=365,
@@ -617,7 +617,7 @@ def test_retention_should_delete_expired():
         categories={DataCategory.CREDENTIALS},
         detected_patterns=[],
         classification_confidence=0.9,
-        classified_at=datetime.now(),
+        classified_at=datetime.now(timezone.utc),
         classified_by="test",
         encryption_required=True,
         retention_days=90,
@@ -625,7 +625,7 @@ def test_retention_should_delete_expired():
     )
 
     # Data created 100 days ago (expired)
-    created_at = datetime.now() - timedelta(days=100)
+    created_at = datetime.now(timezone.utc) - timedelta(days=100)
     should_delete, reason = manager.should_delete("data_012", classification, created_at)
 
     assert should_delete is True
@@ -642,7 +642,7 @@ def test_retention_should_not_delete_not_expired():
         categories={DataCategory.FINANCIAL},
         detected_patterns=[],
         classification_confidence=0.9,
-        classified_at=datetime.now(),
+        classified_at=datetime.now(timezone.utc),
         classified_by="test",
         encryption_required=True,
         retention_days=2555,
@@ -650,7 +650,7 @@ def test_retention_should_not_delete_not_expired():
     )
 
     # Data created 30 days ago (not expired)
-    created_at = datetime.now() - timedelta(days=30)
+    created_at = datetime.now(timezone.utc) - timedelta(days=30)
     should_delete, reason = manager.should_delete("data_013", classification, created_at)
 
     assert should_delete is False
@@ -667,7 +667,7 @@ def test_retention_legal_hold():
         categories={DataCategory.FINANCIAL},
         detected_patterns=[],
         classification_confidence=0.9,
-        classified_at=datetime.now(),
+        classified_at=datetime.now(timezone.utc),
         classified_by="test",
         encryption_required=True,
         retention_days=365,
@@ -678,7 +678,7 @@ def test_retention_legal_hold():
     manager.add_legal_hold("data_014")
 
     # Data created 400 days ago (expired but under legal hold)
-    created_at = datetime.now() - timedelta(days=400)
+    created_at = datetime.now(timezone.utc) - timedelta(days=400)
     should_delete, reason = manager.should_delete("data_014", classification, created_at)
 
     assert should_delete is False
@@ -703,7 +703,7 @@ def test_retention_indefinite():
         categories=set(),
         detected_patterns=[],
         classification_confidence=0.5,
-        classified_at=datetime.now(),
+        classified_at=datetime.now(timezone.utc),
         classified_by="test",
         encryption_required=False,
         retention_days=None,
@@ -711,7 +711,7 @@ def test_retention_indefinite():
     )
 
     # Data created 1000 days ago
-    created_at = datetime.now() - timedelta(days=1000)
+    created_at = datetime.now(timezone.utc) - timedelta(days=1000)
     should_delete, reason = manager.should_delete("data_015", classification, created_at)
 
     assert should_delete is False
@@ -806,7 +806,7 @@ def test_dlp_system_check_retention():
     classification = dlp.classify_and_protect(data, "key_001")
 
     # Check retention for old data
-    created_at = datetime.now() - timedelta(days=100)
+    created_at = datetime.now(timezone.utc) - timedelta(days=100)
     should_delete, reason = dlp.check_retention("key_001", created_at)
 
     assert should_delete is True  # TOP_SECRET has 90-day retention

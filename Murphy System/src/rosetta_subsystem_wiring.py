@@ -44,11 +44,31 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
+import uuid
 
 logger = logging.getLogger(__name__)
 
 _SYSTEM_AGENT_ID = "system"
+_DEFAULT_AGENT_ID = _SYSTEM_AGENT_ID  # alias used by connect_* methods
+
+# Module-level EventType cache — populated lazily by connect_event_backbone()
+_EventType: Optional[Any] = None
+
+
+def _load_event_type() -> Optional[Any]:
+    """Import and cache EventType from the event_backbone module."""
+    global _EventType
+    if _EventType is not None:
+        return _EventType
+    for mod_name in ("src.event_backbone", "event_backbone"):
+        try:
+            mod = __import__(mod_name, fromlist=["EventType"])
+            _EventType = mod.EventType
+            return _EventType
+        except (ImportError, AttributeError):
+            pass
+    return None
 
 
 class RosettaSubsystemWiring:
@@ -77,6 +97,7 @@ class RosettaSubsystemWiring:
         agent_id: str = _SYSTEM_AGENT_ID,
     ) -> None:
         self._rosetta = rosetta_manager
+        self._mgr = rosetta_manager  # alias for connect_* methods
         self._backbone = backbone
         self._improvement_engine = improvement_engine
         self._orchestrator = orchestrator
@@ -309,6 +330,222 @@ class RosettaSubsystemWiring:
         logger.info("RosettaSubsystemWiring.wire_all() complete: %s", json.dumps(results))
         return results
 
+    # ------------------------------------------------------------------
+    # P3-001 (monkey-patch variant)
+    # ------------------------------------------------------------------
+
+    def connect_self_improvement(self, engine: Any) -> None:
+        """Patch *engine* so each ``record_outcome()`` call also syncs the
+        extracted improvement patterns into the Rosetta state.
+
+        Args:
+            engine: A ``SelfImprovementEngine`` instance.
+        """
+        original_record = engine.record_outcome
+        mgr = self._mgr
+
+        def _patched_record_outcome(outcome: Any, *args: Any, **kwargs: Any) -> Any:
+            result = original_record(outcome, *args, **kwargs)
+            try:
+                patterns = engine.extract_patterns()
+                agent_id = getattr(outcome, "agent_id", None) or _DEFAULT_AGENT_ID
+                proposals = [
+                    {
+                        "proposal_id": f"pat-{uuid.uuid4().hex[:8]}",
+                        "title": str(p.get("pattern", p)) if isinstance(p, dict) else str(p),
+                        "description": str(p),
+                        "category": "self_improvement",
+                        "status": "proposed",
+                    }
+                    for p in patterns
+                ]
+                _safe_update_proposals(mgr, agent_id, proposals)
+            except Exception as exc:
+                logger.warning("P3-001 Rosetta side-effect failed: %s", exc)
+            return result
+
+        engine.record_outcome = _patched_record_outcome
+        logger.info("P3-001: SelfImprovementEngine wired to RosettaManager")
+
+    # ------------------------------------------------------------------
+    # P3-002 (monkey-patch variant)
+    # ------------------------------------------------------------------
+
+    def connect_automation_orchestrator(self, orchestrator: Any) -> None:
+        """Patch *orchestrator* so each ``complete_cycle()`` call also pushes
+        a summary into the Rosetta state.
+
+        Args:
+            orchestrator: A ``SelfAutomationOrchestrator`` instance.
+        """
+        original_complete = orchestrator.complete_cycle
+        mgr = self._mgr
+
+        def _patched_complete_cycle(*args: Any, **kwargs: Any) -> Any:
+            cycle = original_complete(*args, **kwargs)
+            if cycle is not None:
+                try:
+                    all_cycles = orchestrator.get_cycle_history()
+                    completed_count = sum(
+                        1 for c in all_cycles
+                        if getattr(c, "completed_at", None) is not None
+                    )
+                    progress_entry = {
+                        "category": "self_automation",
+                        "total_items": len(all_cycles),
+                        "completed_items": completed_count,
+                        "coverage_percent": (
+                            round(completed_count / len(all_cycles) * 100, 1)
+                            if all_cycles else 0.0
+                        ),
+                        "last_updated": _now_iso(),
+                    }
+                    _safe_update_automation_progress(mgr, _DEFAULT_AGENT_ID, progress_entry)
+                except Exception as exc:
+                    logger.warning("P3-002 Rosetta side-effect failed: %s", exc)
+            return cycle
+
+        orchestrator.complete_cycle = _patched_complete_cycle
+        logger.info("P3-002: SelfAutomationOrchestrator wired to RosettaManager")
+
+    # ------------------------------------------------------------------
+    # P3-003 (monkey-patch variant)
+    # ------------------------------------------------------------------
+
+    def connect_rag(self, rag: Any) -> None:
+        """Patch ``self._mgr.save_state()`` to also call ``rag.ingest_document()``
+        after every successful save.
+
+        Args:
+            rag: A ``RAGVectorIntegration`` instance.
+        """
+        original_save = self._mgr.save_state
+        mgr = self._mgr
+
+        def _patched_save_state(state: Any, *args: Any, **kwargs: Any) -> Any:
+            agent_id = original_save(state, *args, **kwargs)
+            try:
+                text = _state_to_text(state)
+                metadata = {
+                    "agent_id": agent_id,
+                    "source": "rosetta_state",
+                    "updated_at": _now_iso(),
+                }
+                rag.ingest_document(
+                    text=text,
+                    title=f"Agent state: {agent_id}",
+                    source="rosetta",
+                    metadata=metadata,
+                )
+            except Exception as exc:
+                logger.warning("P3-003 Rosetta side-effect failed: %s", exc)
+            return agent_id
+
+        mgr.save_state = _patched_save_state
+        logger.info("P3-003: RAGVectorIntegration wired to RosettaManager.save_state()")
+
+    # ------------------------------------------------------------------
+    # P3-004 (monkey-patch variant)
+    # ------------------------------------------------------------------
+
+    def connect_event_backbone(
+        self,
+        backbone: Any,
+        *,
+        _event_type_cls: Optional[Any] = None,
+    ) -> None:
+        """Subscribe to TASK_COMPLETED, TASK_FAILED, GATE_EVALUATED events.
+
+        Args:
+            backbone: An ``EventBackbone`` instance.
+            _event_type_cls: Optional ``EventType`` override for testing.
+        """
+        EventType = _event_type_cls or _load_event_type()
+        if EventType is None:
+            logger.warning("P3-004: EventType not importable; skipping backbone wiring")
+            return
+
+        mgr = self._mgr
+
+        def _status_for_event(event_type_value: str) -> str:
+            if "failed" in event_type_value.lower():
+                return "error"
+            return "active"
+
+        def _make_handler(evt_label: str) -> Callable[[Any], None]:
+            def _handler(event: Any) -> None:
+                try:
+                    payload: Dict[str, Any] = getattr(event, "payload", {}) or {}
+                    agent_id = payload.get("agent_id") or _DEFAULT_AGENT_ID
+                    status = _status_for_event(evt_label)
+                    _safe_update_system_state(mgr, agent_id, status)
+                except Exception as exc:
+                    logger.warning("P3-004 %s handler failed: %s", evt_label, exc)
+            return _handler
+
+        for attr, label in (
+            ("TASK_COMPLETED", "TASK_COMPLETED"),
+            ("TASK_FAILED", "TASK_FAILED"),
+            ("GATE_EVALUATED", "GATE_EVALUATED"),
+        ):
+            evt = getattr(EventType, attr, None)
+            if evt is not None:
+                try:
+                    sub_id = backbone.subscribe(evt, _make_handler(label))
+                    self._subscription_ids.append(sub_id)
+                except Exception as exc:
+                    logger.warning("P3-004: failed to subscribe to %s: %s", label, exc)
+
+        logger.info("P3-004: EventBackbone wired (%d subscriptions)", len(self._subscription_ids))
+
+    # ------------------------------------------------------------------
+    # P3-005 (monkey-patch variant)
+    # ------------------------------------------------------------------
+
+    def connect_state_manager(self, state_mgr: Any) -> None:
+        """Patch *state_mgr* so every ``update_state()`` call also updates Rosetta.
+
+        Args:
+            state_mgr: A ``StateManager`` instance.
+        """
+        original_update = state_mgr.update_state
+        mgr = self._mgr
+
+        def _patched_update_state(
+            state_id: str,
+            variables: Dict[str, Any],
+            *args: Any,
+            **kwargs: Any,
+        ) -> Any:
+            result = original_update(state_id, variables, *args, **kwargs)
+            if result:
+                try:
+                    state = state_mgr.get_state(state_id)
+                    agent_id = _derive_agent_id(state)
+                    new_status = str(variables.get("status", "active"))
+                    active_tasks: Optional[int] = variables.get("active_tasks")
+                    _safe_update_system_state(mgr, agent_id, new_status, active_tasks=active_tasks)
+                except Exception as exc:
+                    logger.warning("P3-005 Rosetta side-effect failed: %s", exc)
+            return result
+
+        state_mgr.update_state = _patched_update_state
+        logger.info("P3-005: StateManager wired to RosettaManager")
+
+    def disconnect_event_backbone(self, backbone: Any) -> None:
+        """Unsubscribe all EventBackbone subscriptions created by this wiring.
+
+        Args:
+            backbone: The same ``EventBackbone`` passed to connect_event_backbone().
+        """
+        for sub_id in self._subscription_ids:
+            try:
+                backbone.unsubscribe(sub_id)
+            except Exception as exc:
+                logger.debug("Failed to unsubscribe %s: %s", sub_id, exc)
+        self._subscription_ids.clear()
+        logger.info("P3-004: EventBackbone subscriptions removed")
+
 
 def bootstrap_rosetta_wiring(
     rosetta_manager: Any,
@@ -346,3 +583,109 @@ def bootstrap_rosetta_wiring(
     wiring.wire_all()
     logger.info("bootstrap_rosetta_wiring: wiring complete for agent %r", agent_id)
     return wiring
+
+
+# ---------------------------------------------------------------------------
+# Module-level helper functions used by connect_* methods
+# ---------------------------------------------------------------------------
+
+def _safe_update_proposals(
+    mgr: Any, agent_id: str, proposals: List[Dict[str, Any]]
+) -> None:
+    """Append *proposals* to the Rosetta state for *agent_id*."""
+    try:
+        state = mgr.load_state(agent_id)
+        if state is None:
+            return
+        existing = state.model_dump(mode="json")
+        existing_proposals: List[Dict[str, Any]] = existing.get("improvement_proposals", [])
+        existing_ids = {p.get("proposal_id") for p in existing_proposals}
+        for p in proposals:
+            if p.get("proposal_id") not in existing_ids:
+                existing_proposals.append(p)
+                existing_ids.add(p.get("proposal_id"))
+        mgr.update_state(agent_id, {"improvement_proposals": existing_proposals})
+    except Exception as exc:
+        logger.debug("_safe_update_proposals(%s) suppressed: %s", agent_id, exc)
+
+
+def _safe_update_automation_progress(
+    mgr: Any, agent_id: str, progress_entry: Dict[str, Any]
+) -> None:
+    """Upsert the automation_progress list in the Rosetta state."""
+    try:
+        state = mgr.load_state(agent_id)
+        if state is None:
+            return
+        existing = state.model_dump(mode="json")
+        progress_list: List[Dict[str, Any]] = existing.get("automation_progress", [])
+        category = progress_entry.get("category", "")
+        updated = [p for p in progress_list if p.get("category") != category]
+        updated.append(progress_entry)
+        mgr.update_state(agent_id, {"automation_progress": updated})
+    except Exception as exc:
+        logger.debug("_safe_update_automation_progress(%s) suppressed: %s", agent_id, exc)
+
+
+def _safe_update_system_state(
+    mgr: Any,
+    agent_id: str,
+    status: str,
+    *,
+    active_tasks: Optional[int] = None,
+) -> None:
+    """Update system_state.status in the Rosetta state for *agent_id*."""
+    try:
+        state = mgr.load_state(agent_id)
+        if state is None:
+            return
+        update: Dict[str, Any] = {"system_state": {"status": status}}
+        if active_tasks is not None:
+            update["system_state"]["active_tasks"] = int(active_tasks)
+        mgr.update_state(agent_id, update)
+    except Exception as exc:
+        logger.debug("_safe_update_system_state(%s) suppressed: %s", agent_id, exc)
+
+
+def _safe_update(mgr: Any, agent_id: str, fields: Dict[str, Any]) -> None:
+    """Generic helper: call mgr.update_state(agent_id, fields) if state exists."""
+    try:
+        state = mgr.load_state(agent_id)
+        if state is not None:
+            mgr.update_state(agent_id, fields)
+    except Exception as exc:
+        logger.debug("_safe_update(%s) suppressed: %s", agent_id, exc)
+
+
+def _state_to_text(state: Any) -> str:
+    """Convert a Rosetta agent state to a plain-text summary."""
+    try:
+        identity = state.identity
+        agent_state = state.agent_state
+        lines = [
+            f"Agent: {identity.agent_id}",
+            f"Role: {identity.role}",
+            f"Goals: {', '.join(str(g) for g in agent_state.active_goals)}",
+            f"Tasks: {', '.join(str(t) for t in agent_state.task_queue)}",
+        ]
+        return "\n".join(lines)
+    except Exception:
+        try:
+            return str(state.model_dump(mode="json"))
+        except Exception:
+            return str(state)
+
+
+def _derive_agent_id(state: Any) -> str:
+    """Derive an agent ID from a SystemState object."""
+    if state is None:
+        return _DEFAULT_AGENT_ID
+    name = getattr(state, "state_name", None)
+    if name and name not in ("default", ""):
+        return name
+    return _DEFAULT_AGENT_ID
+
+
+def _now_iso() -> str:
+    """Return current UTC timestamp as ISO-8601 string."""
+    return datetime.now(timezone.utc).isoformat()

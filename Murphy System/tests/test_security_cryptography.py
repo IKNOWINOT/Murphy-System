@@ -11,7 +11,7 @@ Tests:
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import time
 
 from src.security_plane.cryptography import (
@@ -295,7 +295,7 @@ class TestKeyManager:
         )
 
         # Manually set expiry to be soon
-        key.expires_at = datetime.now() + timedelta(minutes=3)
+        key.expires_at = datetime.now(timezone.utc) + timedelta(minutes=3)
 
         keys_to_rotate = manager.check_rotation_needed()
 
@@ -312,7 +312,7 @@ class TestKeyManager:
         )
 
         # Manually set expiry to be soon
-        key.expires_at = datetime.now() + timedelta(minutes=3)
+        key.expires_at = datetime.now(timezone.utc) + timedelta(minutes=3)
 
         rotated = manager.auto_rotate_keys()
 
