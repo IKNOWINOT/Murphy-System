@@ -157,23 +157,24 @@ jobs:
         continue-on-error: false
 
   test:
+    # CI-SIMPLIFY: Single Python version matching production (Dockerfile: python:3.12-slim).
+    # Rationale: Production and deployment (Hetzner) both target 3.12.  No version-guarded
+    # code exists in the codebase.  Running 3 matrix versions tripled CI wall-time with
+    # no additional production-readiness signal.  If multi-version coverage is needed
+    # in the future, add a scheduled weekly matrix job instead of blocking every PR.
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     needs: lint
     permissions:
       contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ['3.10', '3.11', '3.12']
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.12"
           cache: pip
 
       - name: Install dependencies
@@ -197,7 +198,6 @@ jobs:
             -k "not test_actual_local_llm"
 
       - name: Upload coverage
-        if: matrix.python-version == '3.12'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
