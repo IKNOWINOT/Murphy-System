@@ -222,6 +222,16 @@ except Exception as _e:
     _mcp_plugin_available = False
     _MCPPluginManager = None
 
+# -- Global Feedback System (GFB-002) -----------------------------------------
+try:
+    from global_feedback import GlobalFeedbackDispatcher as _GlobalFeedbackDispatcher
+    _global_feedback_available = True
+    log.info("GlobalFeedbackDispatcher loaded")
+except Exception as _e:
+    log.warning("GlobalFeedbackDispatcher not available (%s)", _e)
+    _global_feedback_available = False
+    _GlobalFeedbackDispatcher = None  # type: ignore
+
 # -- Business Model Tiers ------------------------------------------------------
 TIERS = {
     "solo":         {"max_automations": 3,   "price_mo": 99,  "price_yr": 79},
@@ -1054,6 +1064,7 @@ _team_coordinator: Optional[Any] = None
 _persistent_memory: Optional[Any] = None
 _skill_registry: Optional[Any] = None
 _mcp_plugin_manager: Optional[Any] = None
+_feedback_dispatcher: Optional[Any] = None
 
 @app.on_event("startup")
 async def _startup():
@@ -1212,6 +1223,16 @@ async def _startup():
         _ceo_hb_task.add_done_callback(_bg_task_done_callback)
         _background_tasks.append(_ceo_hb_task)
         log.info("CEO heartbeat tick started")
+
+    # -- Global Feedback System (GFB-002) --------------------------------------
+    global _feedback_dispatcher
+    if _global_feedback_available:
+        try:
+            _feedback_dispatcher = _GlobalFeedbackDispatcher()
+            log.info("GlobalFeedbackDispatcher initialized")
+        except Exception as _e:
+            log.warning("GlobalFeedbackDispatcher init failed (%s)", _e)
+            _feedback_dispatcher = None
 
     log.info("Murphy Production Server v3 started — HITL gates active, milestone tracking enabled")
 
@@ -4452,5 +4473,200 @@ async def self_loop_execution_status():
         "task_execution_bridge": bridge.get_status() if bridge is not None else None,
         "fix_loop_connector": fix_conn.get_status() if fix_conn is not None else None,
         "components_available": list(components.keys()),
+        "timestamp": _now_iso(),
+    })
+
+
+# =============================================================================
+# GLOBAL FEEDBACK SYSTEM ENDPOINTS (GFB-005)
+# Design Labels: GFB-001 (models), GFB-002 (dispatcher), GFB-005 (endpoints)
+# =============================================================================
+
+class _FeedbackSubmitRequest(BaseModel):
+    """Request body for POST /api/feedback/submit."""
+    user_id: str = Field(..., min_length=1, max_length=256)
+    title: str = Field(..., min_length=5, max_length=256)
+    description: str = Field(..., min_length=10, max_length=8192)
+    severity: str = Field("medium")
+    source: str = Field("website_widget")
+    page_url: Optional[str] = None
+    component: Optional[str] = None
+    steps_to_reproduce: Optional[str] = None
+    expected_behavior: Optional[str] = None
+    actual_behavior: Optional[str] = None
+    console_errors: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    tenant_id: Optional[str] = None
+
+
+@app.post("/api/feedback/submit")
+async def feedback_submit(req: _FeedbackSubmitRequest, request: Request):
+    """POST /api/feedback/submit — accept a global feedback submission.
+
+    Design Label: GFB-005
+    Commissioning: G1 — collects, validates, categorises, and generates
+    a remediation plan in a single call.
+    """
+    if _feedback_dispatcher is None:
+        return JSONResponse(
+            {"success": False, "error": "MURPHY-E700",
+             "message": "Global feedback system not available"},
+            status_code=503,
+        )
+    try:
+        submission = _feedback_dispatcher.submit(
+            user_id=req.user_id,
+            title=req.title,
+            description=req.description,
+            severity=req.severity,
+            source=req.source,
+            page_url=req.page_url,
+            component=req.component,
+            steps_to_reproduce=req.steps_to_reproduce,
+            expected_behavior=req.expected_behavior,
+            actual_behavior=req.actual_behavior,
+            console_errors=req.console_errors,
+            tags=req.tags,
+            metadata=req.metadata,
+            tenant_id=req.tenant_id,
+            user_agent=request.headers.get("user-agent"),
+        )
+        return JSONResponse({
+            "success": True,
+            "feedback_id": submission.id,
+            "status": submission.status.value,
+            "remediation_plan_id": submission.remediation_plan_id,
+            "timestamp": _now_iso(),
+        })
+    except Exception as exc:
+        log.exception("Feedback submission failed")
+        return JSONResponse(
+            {"success": False, "error": "MURPHY-E701",
+             "message": str(exc)},
+            status_code=422,
+        )
+
+
+@app.get("/api/feedback/{feedback_id}")
+async def feedback_get(feedback_id: str):
+    """GET /api/feedback/{id} — retrieve a single feedback submission and its plan.
+
+    Design Label: GFB-005
+    """
+    if _feedback_dispatcher is None:
+        return JSONResponse(
+            {"success": False, "error": "MURPHY-E700",
+             "message": "Global feedback system not available"},
+            status_code=503,
+        )
+    submission = _feedback_dispatcher.get(feedback_id)
+    if submission is None:
+        return JSONResponse(
+            {"success": False, "error": "MURPHY-E702",
+             "message": f"Feedback {feedback_id} not found"},
+            status_code=404,
+        )
+    plan = _feedback_dispatcher.get_plan_for_feedback(feedback_id)
+    return JSONResponse({
+        "success": True,
+        "feedback": submission.model_dump(mode="json"),
+        "remediation_plan": plan.model_dump(mode="json") if plan else None,
+        "timestamp": _now_iso(),
+    })
+
+
+@app.post("/api/feedback/{feedback_id}/dispatch")
+async def feedback_dispatch(feedback_id: str):
+    """POST /api/feedback/{id}/dispatch — trigger GitHub repository_dispatch.
+
+    Design Label: GFB-005
+    Creates a GitHub Issue with remediation steps via the feedback-patch workflow.
+    """
+    if _feedback_dispatcher is None:
+        return JSONResponse(
+            {"success": False, "error": "MURPHY-E700",
+             "message": "Global feedback system not available"},
+            status_code=503,
+        )
+    result = _feedback_dispatcher.dispatch_to_github(feedback_id)
+    status_code = 200 if result.get("success") else 502
+    if not result.get("success") and "not found" in result.get("error", "").lower():
+        status_code = 404
+    return JSONResponse({
+        **result,
+        "timestamp": _now_iso(),
+    }, status_code=status_code)
+
+
+@app.get("/api/feedback/list/all")
+async def feedback_list(
+    status: Optional[str] = None,
+    severity: Optional[str] = None,
+    limit: int = Query(default=50, ge=1, le=200),
+):
+    """GET /api/feedback/list/all — list feedback submissions with optional filters.
+
+    Design Label: GFB-005
+    """
+    if _feedback_dispatcher is None:
+        return JSONResponse(
+            {"success": False, "error": "MURPHY-E700",
+             "message": "Global feedback system not available"},
+            status_code=503,
+        )
+    items = _feedback_dispatcher.list_submissions(
+        status=status, severity=severity, limit=limit,
+    )
+    return JSONResponse({
+        "success": True,
+        "count": len(items),
+        "items": items,
+        "timestamp": _now_iso(),
+    })
+
+
+@app.get("/api/feedback/stats")
+async def feedback_stats():
+    """GET /api/feedback/stats — aggregate feedback statistics.
+
+    Design Label: GFB-005
+    """
+    if _feedback_dispatcher is None:
+        return JSONResponse(
+            {"success": False, "error": "MURPHY-E700",
+             "message": "Global feedback system not available"},
+            status_code=503,
+        )
+    return JSONResponse({
+        "success": True,
+        **_feedback_dispatcher.stats(),
+        "timestamp": _now_iso(),
+    })
+
+
+@app.post("/api/feedback/{feedback_id}/resolve")
+async def feedback_resolve(feedback_id: str, github_issue_url: Optional[str] = None):
+    """POST /api/feedback/{id}/resolve — mark feedback as resolved.
+
+    Design Label: GFB-005
+    """
+    if _feedback_dispatcher is None:
+        return JSONResponse(
+            {"success": False, "error": "MURPHY-E700",
+             "message": "Global feedback system not available"},
+            status_code=503,
+        )
+    resolved = _feedback_dispatcher.resolve(feedback_id, github_issue_url)
+    if not resolved:
+        return JSONResponse(
+            {"success": False, "error": "MURPHY-E702",
+             "message": f"Feedback {feedback_id} not found"},
+            status_code=404,
+        )
+    return JSONResponse({
+        "success": True,
+        "feedback_id": feedback_id,
+        "status": "resolved",
         "timestamp": _now_iso(),
     })
