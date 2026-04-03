@@ -3,7 +3,6 @@ from __future__ import annotations
 import os, sys, threading
 from pathlib import Path
 import pytest
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 os.environ.setdefault("MURPHY_ENV", "test")
 
 from src.forge_rate_limiter import ForgeRateLimiter, AGENTS_PER_BUILD, TOTAL_COMPUTE_UNITS

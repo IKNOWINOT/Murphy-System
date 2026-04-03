@@ -8,7 +8,7 @@ By participating in this project, you agree to abide by our [Code of Conduct](CO
 
 ## Architecture Overview
 
-Murphy System has grown to **978 source modules** across 81 packages. Key subsystems include:
+Murphy System has grown to **1,204 source modules** across 83 packages. Key subsystems include:
 
 - **Core Runtime** — FastAPI server, config, command system
 - **Self-Healing** — `self_fix_loop.py`, `causality_sandbox.py`, `murphy_code_healer.py`

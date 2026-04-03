@@ -299,9 +299,6 @@ class DemoRunner:
     def _run_mfgc(self, query: str) -> dict[str, Any]:
         """Run MFGC gate. Graceful fallback on import error."""
         try:
-            import sys
-            import os
-            sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
             from mfgc_adapter import MFGCSystemFactory  # type: ignore[import]
             adapter = MFGCSystemFactory.create_development_system()
             result = adapter.execute_with_mfgc(
@@ -445,11 +442,6 @@ class DemoRunner:
 
     def _load_mss(self) -> Any:
         try:
-            import sys
-            import os
-            _src = os.path.join(os.path.dirname(__file__), ".")
-            if _src not in sys.path:
-                sys.path.insert(0, _src)
             from mss_controls import MSSController  # type: ignore[import]
             from information_quality import InformationQualityEngine  # type: ignore[import]
             from concept_translation import ConceptTranslationEngine  # type: ignore[import]
@@ -470,10 +462,6 @@ class DemoRunner:
 
     def _load_workflow_gen(self) -> Any:
         try:
-            import sys
-            import os
-            if os.path.join(os.path.dirname(__file__), "..") not in sys.path:
-                sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
             from ai_workflow_generator import AIWorkflowGenerator  # type: ignore[import]
             return AIWorkflowGenerator()
         except Exception as exc:

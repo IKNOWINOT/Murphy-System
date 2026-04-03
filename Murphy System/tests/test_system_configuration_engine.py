@@ -1,6 +1,5 @@
 """Tests for system_configuration_engine.py"""
 import pytest, sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../src"))
 
 from system_configuration_engine import (
     SystemConfigurationEngine, SystemType, STRATEGY_TEMPLATES, ControlStrategy, SystemConfiguration,

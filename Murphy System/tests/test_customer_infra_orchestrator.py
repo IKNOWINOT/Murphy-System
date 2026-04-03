@@ -43,7 +43,6 @@ import pytest
 # Path setup
 # ---------------------------------------------------------------------------
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 os.environ.setdefault("MURPHY_ENV", "test")
 
 from customer_infra_orchestrator import (

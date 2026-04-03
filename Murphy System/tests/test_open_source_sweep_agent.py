@@ -25,7 +25,6 @@ from pathlib import Path
 import pytest
 
 # Ensure Murphy System/scripts is importable
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 from open_source_sweep_agent import (  # noqa: E402
     AGENT_LABEL,

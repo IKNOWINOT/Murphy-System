@@ -12,7 +12,6 @@ import os
 import threading
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from task_execution_bridge import TaskExecutionBridge, TaskExecutionPlan, CycleExecutionSummary
 from self_automation_orchestrator import SelfAutomationOrchestrator, TaskCategory

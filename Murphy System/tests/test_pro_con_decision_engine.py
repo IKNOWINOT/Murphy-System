@@ -1,6 +1,5 @@
 """Tests for pro_con_decision_engine.py"""
 import pytest, sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../src"))
 
 from pro_con_decision_engine import (
     ProConDecisionEngine, STANDARD_CRITERIA, Criterion, Option, Decision,

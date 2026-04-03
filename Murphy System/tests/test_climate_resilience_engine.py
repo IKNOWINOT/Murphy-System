@@ -1,6 +1,5 @@
 """Tests for climate_resilience_engine.py"""
 import pytest, sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../src"))
 
 from climate_resilience_engine import (
     ClimateResilienceEngine, CLIMATE_ZONE_DATABASE, ClimateZone, ResilienceFactors, EnergyTarget,

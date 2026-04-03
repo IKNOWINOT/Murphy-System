@@ -31,8 +31,6 @@ import pytest
 # Ensure src/ is on the path for Murphy System imports
 _repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for _p in [_repo_root, os.path.join(_repo_root, "src")]:
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
 # Force test environment
 os.environ.setdefault("MURPHY_ENV", "test")
@@ -41,7 +39,6 @@ os.environ.setdefault("E2EE_STUB_ALLOWED", "true")
 os.environ.setdefault("MURPHY_POOL_MODE", "simulated")
 
 # Import agent components
-sys.path.insert(0, os.path.join(_repo_root, "scripts"))
 from ui_autopilot_tester_agent import (
     AGENT_ID,
     AGENT_LABEL,

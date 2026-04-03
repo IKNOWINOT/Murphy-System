@@ -12,7 +12,6 @@ import pytest
 from datetime import datetime, timezone
 
 import sys
-sys.path.insert(0, "src")
 
 from agent_module_loader import (
     # Core classes

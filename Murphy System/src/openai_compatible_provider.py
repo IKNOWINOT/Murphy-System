@@ -282,7 +282,7 @@ class OpenAICompatibleProvider:
 
         default_model = os.getenv("OPENAI_DEFAULT_MODEL", "gpt-3.5-turbo")
         if provider_type == ProviderType.DEEPINFRA and default_model == "gpt-3.5-turbo":
-            default_model = "mistralai/Mixtral-8x22B-Instruct-v0.1"
+            default_model = "meta-llama/Meta-Llama-3.1-70B-Instruct"
         elif provider_type == ProviderType.OLLAMA and default_model == "gpt-3.5-turbo":
             default_model = os.getenv("OLLAMA_MODEL", "llama3")
         elif provider_type == ProviderType.ONBOARD:

@@ -27,7 +27,6 @@ from unittest.mock import patch
 import pytest
 
 # Ensure Murphy System/scripts is importable
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 from deploy_recovery_agent import (  # noqa: E402
     AGENT_LABEL,

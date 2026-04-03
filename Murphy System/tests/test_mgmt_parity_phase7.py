@@ -24,7 +24,6 @@ from typing import Any, Dict, List
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import automations
 from automations import (

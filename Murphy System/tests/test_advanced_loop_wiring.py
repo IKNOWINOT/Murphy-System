@@ -12,7 +12,6 @@ import sys
 import os
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from advanced_loop_wiring import wire_advanced_loop
 from self_fix_loop_connector import SelfFixLoopConnector

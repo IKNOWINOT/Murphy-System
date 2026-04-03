@@ -22,8 +22,6 @@ import pytest
 
 REPO_ROOT = Path(__file__).parent.parent
 SRC = REPO_ROOT / "src"
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
 
 
 # ── SEC-NEW-001: CSRF protection on new endpoints ────────────────────────────

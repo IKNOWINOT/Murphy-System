@@ -63,6 +63,14 @@ class MurphySystem:
         "src.llm_controller",
         "src.local_llm_fallback"
     )
+
+    _ONBOARD_PROVIDER_ENTRY: Dict[str, Any] = {
+        "provider": "onboard",
+        "name": "Murphy Onboard LLM",
+        "model": "pattern_matcher",
+        "status": "available",
+    }
+
     MODULE_CATALOG = [
         {
             "name": "module_manager",
@@ -2861,7 +2869,9 @@ class MurphySystem:
     def _register_src_inventory_modules(self) -> None:
         if not getattr(self, "module_manager", None):
             return
-        src_root = Path(__file__).parent / "src"
+        # __file__ is src/runtime/murphy_system_core.py
+        # .parent → src/runtime/ → .parent.parent → src/
+        src_root = Path(__file__).parent.parent
         if not src_root.exists():
             return
         for module_path in self._collect_src_module_paths(src_root):
@@ -2884,7 +2894,9 @@ class MurphySystem:
     def _register_local_inventory_modules(self) -> None:
         if not getattr(self, "module_manager", None):
             return
-        root = Path(__file__).parent
+        # __file__ is src/runtime/murphy_system_core.py
+        # .parent → src/runtime/ → .parent.parent → src/ → .parent.parent.parent → project root
+        root = Path(__file__).parent.parent.parent
         for module_path in self._collect_local_module_paths(root):
             if module_path in self.module_manager.available_modules:
                 continue
@@ -11710,7 +11722,7 @@ class MurphySystem:
     API_PROVIDER_LINKS: Dict[str, Dict[str, str]] = {
         "deepinfra": {
             "name": "DeepInfra",
-            "url": "https://deepinfra.com",
+            "url": "https://deepinfra.com/keys",
             "env_var": "DEEPINFRA_API_KEY",
             "description": "LLM provider (fast inference for Llama, Mixtral, Gemma)",
         },
@@ -11830,7 +11842,7 @@ class MurphySystem:
             "count": len(entries),
             "instructions": (
                 "Set each API key as an environment variable before starting Murphy. "
-                "Example:  export DEEPINFRA_API_KEY=your_key"
+                "Example:  export DEEPINFRA_API_KEY=di_..."
             ),
         }
 
@@ -12024,7 +12036,7 @@ class MurphySystem:
         """Return current LLM provider configuration and health.
 
         The onboard LocalLLMFallback is **always** available.  External API
-        providers (DeepInfra, Together AI, OpenAI, Anthropic) are layered on top when keys are
+        providers (DeepInfra, OpenAI, Anthropic) are layered on top when keys are
         present — they upgrade quality but are never required for operation.
         """
         provider = os.environ.get("MURPHY_LLM_PROVIDER", "").strip().lower()
@@ -12032,11 +12044,11 @@ class MurphySystem:
         if not provider:
             # Auto-detect provider from available API keys so that users who
             # only set DEEPINFRA_API_KEY (without MURPHY_LLM_PROVIDER) are still served.
-            deepinfra_key = (os.environ.get("DEEPINFRA_API_KEY", "") or os.environ.get("TOGETHER_API_KEY", "")).strip()
+            deepinfra_key = os.environ.get("DEEPINFRA_API_KEY", "").strip()
             openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
             anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
             if deepinfra_key:
-                provider = "deepinfra" if os.environ.get("DEEPINFRA_API_KEY") else "together"
+                provider = "deepinfra"
                 os.environ["MURPHY_LLM_PROVIDER"] = provider
             elif openai_key:
                 provider = "openai"
@@ -12062,6 +12074,8 @@ class MurphySystem:
                     "model": os.environ.get("OLLAMA_MODEL", "llama3") if _ollama_up else "pattern_matcher",
                     "healthy": True,
                     "mode": "onboard",
+                    "onboard_available": True,
+                    "providers": [self._ONBOARD_PROVIDER_ENTRY],
                     "ollama_running": _ollama_up,
                     "ollama_models": _pulled,
                     "ollama_host": os.environ.get("OLLAMA_HOST", "http://localhost:11434"),
@@ -12078,8 +12092,8 @@ class MurphySystem:
                     ),
                 }
         # Validate provider-specific keys
-        if provider in ("deepinfra", "together"):
-            api_key = (os.environ.get("DEEPINFRA_API_KEY") or os.environ.get("TOGETHER_API_KEY", "")).strip()
+        if provider == "deepinfra":
+            api_key = os.environ.get("DEEPINFRA_API_KEY", "").strip()
             if not api_key:
                 # Key was removed at runtime — degrade gracefully to onboard
                 return {
@@ -12088,14 +12102,21 @@ class MurphySystem:
                     "model": "local_fallback",
                     "healthy": True,
                     "mode": "onboard",
+                    "onboard_available": True,
+                    "providers": [self._ONBOARD_PROVIDER_ENTRY],
                     "note": "DEEPINFRA_API_KEY not set; using onboard LLM.",
                 }
             return {
                 "enabled": True,
                 "provider": provider,
-                "model": model or "meta-llama/Meta-Llama-3.1-70B-Instruct",
+                "model": model or "meta-llama/Meta-Llama-3.1-8B-Instruct",
                 "healthy": True,
                 "mode": "external_api",
+                "onboard_available": True,
+                "providers": [
+                    {"provider": "deepinfra", "name": "DeepInfra", "model": model or "meta-llama/Meta-Llama-3.1-8B-Instruct", "status": "available"},
+                    self._ONBOARD_PROVIDER_ENTRY,
+                ],
             }
         # Generic provider — enabled but health unknown
         return {
@@ -12172,9 +12193,9 @@ class MurphySystem:
         mode = llm_status.get("mode", "onboard")
 
         # --- External API path ---
-        if mode == "external_api" and provider in ("deepinfra", "together"):
-            model = llm_status.get("model") or "llama3-8b-8192"
-            api_key = os.environ.get("DEEPINFRA_API_KEY") or os.environ.get("TOGETHER_API_KEY", "")
+        if mode == "external_api" and provider == "deepinfra":
+            model = llm_status.get("model") or "meta-llama/Meta-Llama-3.1-8B-Instruct"
+            api_key = os.environ.get("DEEPINFRA_API_KEY", "")
             if api_key:
                 try:
                     import requests as _requests
@@ -12220,7 +12241,7 @@ class MurphySystem:
                         body["messages"].append({"role": "system", "content": f"Context: {context}"})
                     body["messages"].append({"role": "user", "content": prompt})
                     resp = _requests.post(
-                        "https://api.deepinfra.com/v1/openai/chat/completions",
+                        "https://api.deepinfra.com/v1/openai/openai/v1/chat/completions",
                         headers=headers,
                         json=body,
                         timeout=15,
@@ -12232,21 +12253,12 @@ class MurphySystem:
                     logger.warning("DeepInfra LLM call failed (%s) — falling back to onboard", exc)
                     # Fall through to onboard fallback below
 
-        # --- Onboard fallback — always available ---
-        try:
-            from local_llm_fallback import LocalLLMFallback
-            fallback = LocalLLMFallback()
-            full_prompt = f"{context}\n\n{prompt}".strip() if context else prompt
-            return fallback.generate(full_prompt, max_tokens=500), None
-        except Exception as exc:
-            logger.debug("LocalLLMFallback failed (%s)", exc)
-
-        # Absolute last resort — structured template response
-        return (
-            f"I can help with: {prompt[:100]}. "
-            "For best results, add a DeepInfra API key via 'set key deepinfra <key>'.",
-            None,
-        )
+        # --- No external LLM available ---
+        # Return (None, None) so that librarian_ask falls through to
+        # _deterministic_reply which has full Magnify/Solidify/HITL logic.
+        # The old behaviour called LocalLLMFallback here which returned a
+        # canned template and prevented the conversational engine from running.
+        return None, None
 
     def librarian_ask(self, message: str, session_id: Optional[str] = None, mode: Optional[str] = None) -> Dict[str, Any]:
         """Route a natural-language message through the Librarian + optional LLM.
@@ -12410,7 +12422,7 @@ class MurphySystem:
                     "\n\n_Librarian is operating in **onboard** mode using built-in "
                     "system knowledge. To upgrade to LLM-powered responses: set "
                     "MURPHY_LLM_PROVIDER and the appropriate API key "
-                    "(e.g. DEEPINFRA_API_KEY). Get a key at https://deepinfra.com"
+                    "(e.g. DEEPINFRA_API_KEY). Get a free key at https://deepinfra.com/keys_"
                 )
                 session["_llm_notice_shown"] = True
             result: Dict[str, Any] = {
@@ -12466,7 +12478,7 @@ class MurphySystem:
                 "\n\n_Librarian is operating in **onboard** mode using built-in "
                 "system knowledge. To upgrade to LLM-powered responses: set "
                 "MURPHY_LLM_PROVIDER and the appropriate API key "
-                "(e.g. DEEPINFRA_API_KEY). Get a key at https://deepinfra.com"
+                "(e.g. DEEPINFRA_API_KEY). Get a free key at https://deepinfra.com/keys_"
             )
             session["_llm_notice_shown"] = True
         result = {
@@ -12536,6 +12548,11 @@ class MurphySystem:
         return mapping.get(nl_intent, mapping["general"])
 
     # -- MFGC / 5U Onboarding Conversation Engine --------------------------------
+
+    # Minimum length for a user answer to be accepted as a dimension value
+    # via the _last_asked_dim fallback.  Answers with len <= this threshold
+    # are assumed to be too short to be meaningful (e.g., a single character).
+    _MIN_ANSWER_LENGTH = 2
 
     # The 5 Universals (5U) and MFGC dimensions that need to be satisfied
     # before generating an effective automation plan.
@@ -12750,6 +12767,21 @@ class MurphySystem:
         if any(sk in lower for sk in success_kw) and "success_metric" not in profile.get("collected", {}):
             extracted["success_metric"] = message.strip()
 
+        # --- _last_asked_dim fallback for short / unrecognised answers ---
+        # If keyword extraction found nothing, but we know which dimension was
+        # just asked (via _last_asked_dim), capture the raw answer for that dim.
+        # This prevents the onboarding loop from repeating the same question
+        # when the user gives a short one-word answer (e.g. "manufacturing").
+        if not extracted:
+            last_dim = profile.get("_last_asked_dim")
+            if (
+                last_dim
+                and last_dim in self._ONBOARDING_DIMENSIONS
+                and last_dim not in profile.get("collected", {})
+                and len(message.strip()) > self._MIN_ANSWER_LENGTH
+            ):
+                extracted[last_dim] = message.strip()
+
         return extracted
 
     def _next_onboarding_question(self, profile: Dict[str, Any]) -> Optional[str]:
@@ -12764,6 +12796,10 @@ class MurphySystem:
             return None
         # Sort by weight descending — ask the most important questions first
         candidates.sort(key=lambda x: x[1]["weight"], reverse=True)
+        dim_key = candidates[0][0]
+        # Record which dimension we just asked about so _extract_dimensions
+        # can use it as a fallback for short one-word answers.
+        profile["_last_asked_dim"] = dim_key
         return candidates[0][1]["question"]
 
     def _knowledge_reply(self, message: str, nl_intent: str) -> str:
@@ -13342,9 +13378,9 @@ class MurphySystem:
                 f"  Env var: `{svc['env_var']}`"
             )
         lines.append(
-            "\n**Quick start:** Get a DeepInfra key (link above), then:\n"
+            "\n**Quick start:** Get a free DeepInfra key (link above), then:\n"
             "```\nexport MURPHY_LLM_PROVIDER=deepinfra\n"
-            "export DEEPINFRA_API_KEY=your_key_here\n```"
+            "export DEEPINFRA_API_KEY=your_deepinfra_api_key\n```"
         )
         return "\n".join(lines)
 
@@ -13440,7 +13476,7 @@ class MurphySystem:
                     )
                 response += "\n**What to do next:**\n"
                 response += "1. Sign up for the API keys listed above (links provided)\n"
-                response += "2. Set each as an environment variable (e.g. `export DEEPINFRA_API_KEY=your_key`)\n"
+                response += "2. Set each as an environment variable (e.g. `export DEEPINFRA_API_KEY=di_...`)\n"
                 response += "3. Restart Murphy to pick up the new keys\n"
                 response += "4. Type **status** to verify everything is connected\n"
                 response += "5. Type **execute <your first task>** to start automating!\n\n"

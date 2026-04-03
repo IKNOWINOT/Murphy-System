@@ -1,6 +1,5 @@
 """Tests for universal_ingestion_framework.py"""
 import pytest, sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../src"))
 
 from universal_ingestion_framework import (
     AdapterRegistry, GRAINGER_BEST_SELLERS, IngestionFormat,

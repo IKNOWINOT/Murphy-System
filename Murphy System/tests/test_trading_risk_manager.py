@@ -15,7 +15,6 @@ import os
 import math
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from dynamic_risk_manager import (
     DynamicRiskManager,
