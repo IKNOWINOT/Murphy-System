@@ -1730,8 +1730,8 @@ class SplitScreenLayout(str, Enum):
 
 
 @dataclass
-class ScreenZone:
-    """A rectangular region on the virtual desktop.
+class NormScreenZone:
+    """A rectangular region on the virtual desktop (normalised coordinates).
 
     Coordinates are in *normalised* units [0.0, 1.0] relative to the
     full desktop dimensions, so the layout is resolution-independent.
@@ -1757,10 +1757,10 @@ class ScreenZone:
             v = getattr(self, attr)
             if not (0.0 <= v <= 1.0):
                 raise ValueError(
-                    f"ScreenZone.{attr} must be in [0.0, 1.0], got {v!r}"
+                    f"NormScreenZone.{attr} must be in [0.0, 1.0], got {v!r}"
                 )
         if self.width <= 0 or self.height <= 0:
-            raise ValueError("ScreenZone width and height must be positive")
+            raise ValueError("NormScreenZone width and height must be positive")
 
     def contains_point(self, px: float, py: float) -> bool:
         """Return True if the normalised point *(px, py)* lies within this zone."""
@@ -1785,10 +1785,10 @@ class ScreenZone:
 
 
 @dataclass
-class CursorContext:
-    """Tracks the logical state of a single virtual cursor.
+class NormCursorContext:
+    """Tracks the logical state of a single virtual cursor (normalised coordinates).
 
-    Each cursor is assigned to exactly one :class:`ScreenZone` at a time.
+    Each cursor is assigned to exactly one :class:`NormScreenZone` at a time.
 
     Attributes:
         cursor_id:    Unique identifier for this cursor.
@@ -1826,15 +1826,15 @@ class CursorContext:
         }
 
 
-class MultiCursorDesktop:
-    """Manages a pool of named :class:`CursorContext` objects.
+class NormMultiCursorDesktop:
+    """Manages a pool of named :class:`NormCursorContext` objects (normalised coordinates).
 
     Cursors are keyed by their ``cursor_id``.  Thread-safe: all
     mutating operations are serialised through an internal lock.
     """
 
     def __init__(self) -> None:
-        self._cursors: dict[str, CursorContext] = {}
+        self._cursors: dict[str, NormCursorContext] = {}
         self._lock = threading.Lock()
 
     # ------------------------------------------------------------------
@@ -1848,12 +1848,12 @@ class MultiCursorDesktop:
         *,
         position: tuple[float, float] = (0.5, 0.5),
         metadata: dict | None = None,
-    ) -> CursorContext:
+    ) -> NormCursorContext:
         """Create and register a new cursor."""
         with self._lock:
             if cursor_id in self._cursors:
                 raise ValueError(f"Cursor {cursor_id!r} already registered")
-            ctx = CursorContext(
+            ctx = NormCursorContext(
                 cursor_id=cursor_id,
                 zone_id=zone_id,
                 position=position,
@@ -1869,7 +1869,7 @@ class MultiCursorDesktop:
                 raise KeyError(f"Cursor {cursor_id!r} not found")
             del self._cursors[cursor_id]
 
-    def get_cursor(self, cursor_id: str) -> CursorContext:
+    def get_cursor(self, cursor_id: str) -> NormCursorContext:
         with self._lock:
             if cursor_id not in self._cursors:
                 raise KeyError(f"Cursor {cursor_id!r} not found")
@@ -1879,7 +1879,7 @@ class MultiCursorDesktop:
     # Queries
     # ------------------------------------------------------------------
 
-    def cursors_in_zone(self, zone_id: str) -> list[CursorContext]:
+    def cursors_in_zone(self, zone_id: str) -> list[NormCursorContext]:
         """Return all cursors currently assigned to *zone_id*."""
         with self._lock:
             return [c for c in self._cursors.values() if c.zone_id == zone_id]
@@ -1897,18 +1897,19 @@ class MultiCursorDesktop:
             return [c.to_dict() for c in self._cursors.values()]
 
 
-class SplitScreenManager:
-    """Manages the set of :class:`ScreenZone` objects for a given layout.
+class NormSplitScreenManager:
+    """Manages the set of :class:`NormScreenZone` objects for a given layout.
 
     Supports predefined layouts and fully custom zone lists.  Thread-safe.
+    Uses normalised [0.0, 1.0] coordinates for resolution-independent layouts.
     """
 
-    _LAYOUT_BUILDERS: dict[str, "Callable[[], list[ScreenZone]]"] = {}
+    _LAYOUT_BUILDERS: dict[str, "Callable[[], list[NormScreenZone]]"] = {}
 
     def __init__(
         self,
         layout: SplitScreenLayout = SplitScreenLayout.SINGLE,
-        custom_zones: list[ScreenZone] | None = None,
+        custom_zones: list[NormScreenZone] | None = None,
     ) -> None:
         self._layout = layout
         self._lock = threading.Lock()
@@ -1917,7 +1918,7 @@ class SplitScreenManager:
                 raise ValueError(
                     "custom_zones must be provided for SplitScreenLayout.CUSTOM"
                 )
-            self._zones: dict[str, ScreenZone] = {z.zone_id: z for z in custom_zones}
+            self._zones: dict[str, NormScreenZone] = {z.zone_id: z for z in custom_zones}
         else:
             built = self._build_layout(layout)
             self._zones = {z.zone_id: z for z in built}
@@ -1927,32 +1928,32 @@ class SplitScreenManager:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _build_layout(layout: SplitScreenLayout) -> list[ScreenZone]:
+    def _build_layout(layout: SplitScreenLayout) -> list[NormScreenZone]:
         if layout == SplitScreenLayout.SINGLE:
-            return [ScreenZone("z0", 0.0, 0.0, 1.0, 1.0, label="full")]
+            return [NormScreenZone("z0", 0.0, 0.0, 1.0, 1.0, label="full")]
         if layout == SplitScreenLayout.DUAL_H:
             return [
-                ScreenZone("z0", 0.0, 0.0, 1.0, 0.5, label="top"),
-                ScreenZone("z1", 0.0, 0.5, 1.0, 0.5, label="bottom"),
+                NormScreenZone("z0", 0.0, 0.0, 1.0, 0.5, label="top"),
+                NormScreenZone("z1", 0.0, 0.5, 1.0, 0.5, label="bottom"),
             ]
         if layout == SplitScreenLayout.DUAL_V:
             return [
-                ScreenZone("z0", 0.0, 0.0, 0.5, 1.0, label="left"),
-                ScreenZone("z1", 0.5, 0.0, 0.5, 1.0, label="right"),
+                NormScreenZone("z0", 0.0, 0.0, 0.5, 1.0, label="left"),
+                NormScreenZone("z1", 0.5, 0.0, 0.5, 1.0, label="right"),
             ]
         if layout == SplitScreenLayout.TRIPLE_H:
             h = 1.0 / 3
             return [
-                ScreenZone("z0", 0.0, 0.0, 1.0, h, label="top"),
-                ScreenZone("z1", 0.0, h, 1.0, h, label="middle"),
-                ScreenZone("z2", 0.0, 2 * h, 1.0, h, label="bottom"),
+                NormScreenZone("z0", 0.0, 0.0, 1.0, h, label="top"),
+                NormScreenZone("z1", 0.0, h, 1.0, h, label="middle"),
+                NormScreenZone("z2", 0.0, 2 * h, 1.0, h, label="bottom"),
             ]
         if layout == SplitScreenLayout.QUAD:
             return [
-                ScreenZone("z0", 0.0, 0.0, 0.5, 0.5, label="top-left"),
-                ScreenZone("z1", 0.5, 0.0, 0.5, 0.5, label="top-right"),
-                ScreenZone("z2", 0.0, 0.5, 0.5, 0.5, label="bottom-left"),
-                ScreenZone("z3", 0.5, 0.5, 0.5, 0.5, label="bottom-right"),
+                NormScreenZone("z0", 0.0, 0.0, 0.5, 0.5, label="top-left"),
+                NormScreenZone("z1", 0.5, 0.0, 0.5, 0.5, label="top-right"),
+                NormScreenZone("z2", 0.0, 0.5, 0.5, 0.5, label="bottom-left"),
+                NormScreenZone("z3", 0.5, 0.5, 0.5, 0.5, label="bottom-right"),
             ]
         if layout == SplitScreenLayout.HEXA:
             w, h = 1.0 / 3, 0.5
@@ -1961,7 +1962,7 @@ class SplitScreenManager:
                 for col in range(3):
                     idx = row * 3 + col
                     zones.append(
-                        ScreenZone(
+                        NormScreenZone(
                             f"z{idx}",
                             col * w,
                             row * h,
@@ -1977,7 +1978,7 @@ class SplitScreenManager:
     # Zone accessors
     # ------------------------------------------------------------------
 
-    def get_zone(self, zone_id: str) -> ScreenZone:
+    def get_zone(self, zone_id: str) -> NormScreenZone:
         with self._lock:
             if zone_id not in self._zones:
                 raise KeyError(f"Zone {zone_id!r} not found")
@@ -1991,7 +1992,7 @@ class SplitScreenManager:
         with self._lock:
             return len(self._zones)
 
-    def find_zone_at(self, px: float, py: float) -> ScreenZone | None:
+    def find_zone_at(self, px: float, py: float) -> NormScreenZone | None:
         """Return the first zone containing the normalised point *(px, py)*."""
         with self._lock:
             for zone in self._zones.values():

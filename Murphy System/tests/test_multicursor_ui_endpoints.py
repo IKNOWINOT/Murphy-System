@@ -36,6 +36,8 @@ import pytest
 # Ensure src/ is on the path for Murphy System imports
 _repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for _p in [_repo_root, os.path.join(_repo_root, "src")]:
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 # -- MultiCursorBrowser (MCB) --------------------------------------------------
 from src.agent_module_loader import (
