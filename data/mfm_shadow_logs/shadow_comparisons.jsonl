@@ -1,0 +1,1 @@
+{"request_id": "r1", "timestamp": "2026-04-03T17:16:22.976879+00:00", "action_similarity": 1.0, "confidence_diff": 0.05, "mfm_latency_ms": 50, "external_latency_ms": 200, "mfm_correct": null, "mfm_output": {"action_plan": [{"type": "api_call"}], "confidence": 0.8, "latency_ms": 50}, "external_output": {"action_plan": [{"type": "api_call"}], "confidence": 0.75, "latency_ms": 200}}
