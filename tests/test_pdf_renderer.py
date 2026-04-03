@@ -13,13 +13,11 @@ from __future__ import annotations
 
 import base64
 import os
-import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 # Ensure the package is importable regardless of working directory
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.document_export.brand_registry import BrandProfile
 from src.document_export.export_pipeline import ExportPipeline
@@ -248,7 +246,14 @@ import asyncio
 
 
 def _run(coro):
-    return asyncio.get_event_loop().run_until_complete(coro)
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            raise RuntimeError("closed")
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop.run_until_complete(coro)
 
 
 SAMPLE_BOT_OUTPUT = {
