@@ -25,7 +25,6 @@ import time
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import time_tracking
 from time_tracking import (

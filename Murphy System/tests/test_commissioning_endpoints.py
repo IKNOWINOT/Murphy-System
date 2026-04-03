@@ -3,7 +3,6 @@ from __future__ import annotations
 import os, sys
 from pathlib import Path
 import pytest
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 os.environ.setdefault("MURPHY_ENV", "test")
 os.environ.setdefault("MURPHY_RATE_LIMIT_RPM", "6000")
 

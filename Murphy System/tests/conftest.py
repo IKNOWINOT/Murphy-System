@@ -28,16 +28,6 @@ from typing import Dict
 import pytest
 
 # ---------------------------------------------------------------------------
-# sys.path bootstrap
-# ---------------------------------------------------------------------------
-# Add src/ to the Python path
-_src_dir = os.path.join(os.path.dirname(__file__), '..', 'src')
-_src_dir = os.path.abspath(_src_dir)
-if _src_dir not in sys.path:
-    sys.path.insert(0, _src_dir)
-
-
-# ---------------------------------------------------------------------------
 # Storyline chapter map
 # ---------------------------------------------------------------------------
 # Authoritative mapping used by both the fixture and the summary hook.

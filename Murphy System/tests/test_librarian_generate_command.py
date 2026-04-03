@@ -37,7 +37,6 @@ import sys
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from system_librarian import SystemLibrarian, GeneratedCommand
 from murphy_terminal.command_registry import (

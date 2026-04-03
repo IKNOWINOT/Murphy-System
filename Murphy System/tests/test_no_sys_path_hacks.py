@@ -27,6 +27,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 # sys.path manipulation for a legitimate technical reason.
 _ALLOWED_FILES: frozenset[Path] = frozenset([
     PROJECT_ROOT / "src" / "integration_engine" / "sandbox_quarantine.py",
+    PROJECT_ROOT / "src" / "murphy_action_engine.py",  # discover_actions() dynamic plugin loader
     PROJECT_ROOT / "tests" / "integration" / "conftest.py",
 ])
 

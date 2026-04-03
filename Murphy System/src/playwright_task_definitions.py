@@ -52,12 +52,6 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Murphy-native imports — the ONLY automation dependency
 # ---------------------------------------------------------------------------
-import os as _os
-import sys as _sys
-
-_src = _os.path.dirname(__file__)
-if _src not in _sys.path:
-    _sys.path.insert(0, _src)
 
 from murphy_native_automation import (  # noqa: F401  -- Murphy native stack, not Playwright
     ActionType,
