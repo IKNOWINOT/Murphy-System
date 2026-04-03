@@ -305,6 +305,46 @@ _ENTRIES: list[ErrorEntry] = [
         severity="low",
         http_status=500,
     ),
+    ErrorEntry(
+        code=ErrorCode.E701,
+        message="Feedback submission validation failed",
+        cause="The feedback payload did not pass schema or content validation.",
+        fix="Ensure title (≥5 chars) and description (≥10 chars) are provided.",
+        severity="low",
+        http_status=422,
+    ),
+    ErrorEntry(
+        code=ErrorCode.E702,
+        message="Feedback not found",
+        cause="The requested feedback ID does not exist in the store.",
+        fix="Verify the feedback_id and retry.",
+        severity="low",
+        http_status=404,
+    ),
+    ErrorEntry(
+        code=ErrorCode.E703,
+        message="Remediation plan generation failed",
+        cause="The remediation engine could not produce a plan for this feedback.",
+        fix="Check the feedback content for completeness and retry.",
+        severity="medium",
+        http_status=500,
+    ),
+    ErrorEntry(
+        code=ErrorCode.E704,
+        message="GitHub dispatch failed",
+        cause="The repository_dispatch call to GitHub did not succeed.",
+        fix="Check GITHUB_TOKEN configuration and network connectivity.",
+        severity="high",
+        http_status=502,
+    ),
+    ErrorEntry(
+        code=ErrorCode.E705,
+        message="Feedback quota exceeded",
+        cause="Too many feedback submissions in the current time window.",
+        fix="Wait before submitting additional feedback.",
+        severity="low",
+        http_status=429,
+    ),
 
     # --- E8xx: Infrastructure ----------------------------------------------
     ErrorEntry(
