@@ -1,0 +1,105 @@
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post | License: BSL-1.1
+#
+# Murphy System — Release Notes Generator Agent
+# Generates structured release notes from commit history on tag push.
+
+name: "Release Notes Generator Agent"
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to generate release notes for (e.g., v1.2.3)'
+        required: false
+
+permissions:
+  contents: write
+
+env:
+  PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/src:${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+
+jobs:
+  generate-release:
+    name: "Generate Release Notes"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements_ci.txt
+
+      - name: Determine tag
+        id: tag
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Phase 1 - Collect commits
+        run: |
+          python "Murphy System/scripts/release_notes_agent.py" \
+            --phase collect \
+            --tag "${{ steps.tag.outputs.tag }}" \
+            --output-dir /tmp/release_notes
+
+      - name: Phase 2 - Categorize and generate notes
+        run: |
+          python "Murphy System/scripts/release_notes_agent.py" \
+            --phase generate \
+            --commits /tmp/release_notes/commits.json \
+            --tag "${{ steps.tag.outputs.tag }}" \
+            --output-dir /tmp/release_notes
+
+      - name: Phase 3 - Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python "Murphy System/scripts/release_notes_agent.py" \
+            --phase release \
+            --notes /tmp/release_notes/release_notes.md \
+            --tag "${{ steps.tag.outputs.tag }}" \
+            --output-dir /tmp/release_notes
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-notes-${{ github.run_number }}
+          path: /tmp/release_notes/
+          retention-days: 90
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "=== Release Notes Generator Agent ==="
+          if [ -f /tmp/release_notes/release_notes.json ]; then
+            python -c "
+          import json
+          with open('/tmp/release_notes/release_notes.json') as f:
+              data = json.load(f)
+          print(f'  Tag:          {data.get(\"tag\", \"unknown\")}')
+          print(f'  Commits:      {data.get(\"total_commits\", 0)}')
+          print(f'  Features:     {data.get(\"features\", 0)}')
+          print(f'  Fixes:        {data.get(\"fixes\", 0)}')
+          print(f'  Security:     {data.get(\"security\", 0)}')
+          print(f'  Docs:         {data.get(\"docs\", 0)}')
+          print(f'  Refactors:    {data.get(\"refactors\", 0)}')
+          "
+          else
+            echo "  No report generated"
+          fi

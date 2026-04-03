@@ -1,0 +1,83 @@
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post | License: BSL-1.1
+#
+# Murphy System — Stale Issue / PR Triage Agent
+# Scans open issues and PRs, applies labels, adds staleness warnings,
+# and auto-closes stale issues.
+
+name: "Triage Agent"
+
+on:
+  schedule:
+    # Daily at 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+env:
+  STALE_WARNING_DAYS: "14"
+  STALE_CLOSE_DAYS: "30"
+
+jobs:
+  triage:
+    name: "Issue & PR Triage"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements_ci.txt
+
+      - name: Run triage agent
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          STALE_WARNING_DAYS: ${{ env.STALE_WARNING_DAYS }}
+          STALE_CLOSE_DAYS: ${{ env.STALE_CLOSE_DAYS }}
+        run: |
+          python "Murphy System/scripts/triage_agent.py" \
+            --output-dir /tmp/triage
+
+      - name: Upload triage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: triage-report-${{ github.run_number }}
+          path: /tmp/triage/
+          retention-days: 14
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "╔══════════════════════════════════════════════════════════╗"
+          echo "║      TRIAGE AGENT — SUMMARY                            ║"
+          echo "╠══════════════════════════════════════════════════════════╣"
+          if [ -f /tmp/triage/triage_report.json ]; then
+            python -c "
+          import json
+          with open('/tmp/triage/triage_report.json') as f:
+              data = json.load(f)
+          print(f'  Issues scanned:     {data.get(\"issues_scanned\", 0)}')
+          print(f'  PRs scanned:        {data.get(\"prs_scanned\", 0)}')
+          print(f'  Labels applied:     {data.get(\"labels_applied\", 0)}')
+          print(f'  Stale warnings:     {data.get(\"stale_warnings\", 0)}')
+          print(f'  Auto-closed:        {data.get(\"auto_closed\", 0)}')
+          "
+          else
+            echo "║ No report generated — check logs above                 ║"
+          fi
+          echo "╚══════════════════════════════════════════════════════════╝"
