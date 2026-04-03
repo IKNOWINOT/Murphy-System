@@ -260,13 +260,30 @@ class EmailDeliveryAdapter(BaseDeliveryAdapter):
 
 
 class ChatDeliveryAdapter(BaseDeliveryAdapter):
-    """Prepares chat messages with channel routing."""
+    """Delivers chat messages via platform-specific connectors.
+
+    When a ``SlackConnector`` is available and configured, Slack messages
+    are delivered via the Slack Web API.  For all other platforms (or when
+    the connector is unavailable) the adapter falls back to preparing the
+    payload without external calls, maintaining backward compatibility.
+    """
 
     SUPPORTED_PLATFORMS = {"slack", "teams", "discord", "webhook", "internal"}
 
     def __init__(self) -> None:
         super().__init__()
         self._delivery_count: int = 0
+        self._slack_connector: Any = None  # lazy-loaded
+
+    def _get_slack_connector(self) -> Any:
+        """Lazy-load and cache the ``SlackConnector`` instance."""
+        if self._slack_connector is None:
+            try:
+                from integrations.slack_connector import SlackConnector
+                self._slack_connector = SlackConnector()
+            except Exception:
+                logger.debug("SlackConnector unavailable — Slack delivery will use payload-only mode")
+        return self._slack_connector
 
     def validate(self, request: DeliveryRequest) -> tuple[bool, List[str]]:
         errors: List[str] = []
@@ -304,6 +321,14 @@ class ChatDeliveryAdapter(BaseDeliveryAdapter):
             "mentions": payload.get("mentions", []),
         }
 
+        # ── Platform-specific delivery ────────────────────────────
+        if platform == "slack":
+            result = self._deliver_slack(request_id, payload, request.session_id)
+            if result is not None:
+                self._delivery_count += 1
+                return result
+
+        # ── Fallback: payload-only mode ───────────────────────────
         self._delivery_count += 1
         logger.info(
             "Chat message prepared: platform=%s channel=%s (session=%s)",
@@ -319,12 +344,72 @@ class ChatDeliveryAdapter(BaseDeliveryAdapter):
             output={"chat_payload": chat_payload},
         )
 
+    # ── Slack delivery via SlackConnector ─────────────────────────
+
+    def _deliver_slack(
+        self,
+        request_id: str,
+        payload: Dict[str, Any],
+        session_id: str,
+    ) -> Optional[DeliveryResult]:
+        """Attempt real Slack delivery.  Returns ``None`` to fall through."""
+        connector = self._get_slack_connector()
+        if connector is None or not connector.is_configured():
+            return None  # fall through to payload-only mode
+
+        channel_id = payload.get("channel_id", "")
+        message = payload["message"]
+        blocks = payload.get("blocks")
+
+        try:
+            slack_resp = connector.send_message(channel_id, message, blocks)
+        except Exception as exc:
+            logger.exception("Slack delivery failed for channel=%s", channel_id)
+            return DeliveryResult(
+                request_id=request_id,
+                channel=DeliveryChannel.CHAT,
+                status=DeliveryStatus.FAILED,
+                error=f"Slack delivery exception: {exc}",
+            )
+
+        if slack_resp.get("ok") or slack_resp.get("success"):
+            logger.info(
+                "Slack message delivered: channel=%s (session=%s)",
+                channel_id,
+                session_id,
+            )
+            return DeliveryResult(
+                request_id=request_id,
+                channel=DeliveryChannel.CHAT,
+                status=DeliveryStatus.DELIVERED,
+                output={
+                    "chat_payload": {
+                        "platform": "slack",
+                        "channel_id": channel_id,
+                        "message": message,
+                        "slack_ts": slack_resp.get("ts"),
+                    },
+                },
+            )
+
+        # Slack API returned an error
+        err_msg = slack_resp.get("error", "unknown Slack API error")
+        logger.warning("Slack API error: %s (channel=%s)", err_msg, channel_id)
+        return DeliveryResult(
+            request_id=request_id,
+            channel=DeliveryChannel.CHAT,
+            status=DeliveryStatus.FAILED,
+            error=f"Slack API error: {err_msg}",
+        )
+
     def get_status(self) -> Dict[str, Any]:
+        connector = self._get_slack_connector()
         return {
             "adapter": "ChatDeliveryAdapter",
             "ready": True,
             "deliveries": self._delivery_count,
             "supported_platforms": sorted(self.SUPPORTED_PLATFORMS),
+            "slack_configured": bool(connector and connector.is_configured()),
         }
 
 
