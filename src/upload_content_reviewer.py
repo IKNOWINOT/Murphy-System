@@ -52,7 +52,7 @@ _REDACTED = "[REDACTED]"
 _CONTENT_PATTERNS: List[Dict[str, Any]] = [
     {
         "name": "deepinfra_api_key",
-        "pattern": r"\b[A-Za-z0-9_-]{40,}\b",
+        "pattern": r"\bdi_[A-Za-z0-9]{20,}\b",
         "severity": "critical",
         "description": "DeepInfra API key detected",
     },
