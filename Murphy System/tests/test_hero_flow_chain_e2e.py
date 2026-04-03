@@ -7,7 +7,7 @@ Commissioning references:
          and AionMindKernel
     G3 – Covers: ETL, CI/CD, incident response, and generic workflow chains;
          approval gating (auto-approve vs pending); error cases (empty input)
-    G4 – 15 tests spanning three modules
+    G4 – 12 tests spanning three modules
     G5 – Each test verifies interface contracts (dict keys, list lengths, status values)
     G6 – Pure unit/integration — no mocks, no network calls
     G8 – Closes STATUS.md gap: "E2E hero flow validation"
