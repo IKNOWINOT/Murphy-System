@@ -1,0 +1,4884 @@
+{
+  "agent_version": "1.0.0",
+  "agent_label": "READINESS-SCANNER-001",
+  "scan_timestamp": "2026-04-03T09:47:44.028677+00:00",
+  "scan_date": "2026-04-03",
+  "summary": {
+    "total_modules": 588,
+    "test_coverage_ratio": 0.582,
+    "critical_tests_complete": false,
+    "source_in_sync": true,
+    "debt_markers": 701,
+    "smoke_import_failures": 0,
+    "bare_except_count": 106,
+    "total_human_tasks": 1,
+    "total_agent_tasks": 8
+  },
+  "commissioning_assessment": {
+    "G1_modules_functional": true,
+    "G2_purpose_documented": true,
+    "G3_conditions_covered": false,
+    "G4_test_profile_complete": false,
+    "G5_expected_results_defined": true,
+    "G6_actual_results_verified": false,
+    "G7_validation_loop_active": true,
+    "G8_documentation_updated": true,
+    "G9_hardening_applied": false
+  },
+  "human_tasks": [
+    {
+      "id": "SECURITY-SECRETS-REVIEW",
+      "category": "security",
+      "priority": "CRITICAL",
+      "title": "Review potential hardcoded secrets",
+      "description": "Found 40 potential hardcoded secrets. These must be manually reviewed and moved to environment variables.",
+      "commissioning": "G9: Hardening must be applied"
+    }
+  ],
+  "agent_tasks": [
+    {
+      "id": "TEST-CRIT-ERRORS",
+      "category": "test_coverage",
+      "priority": "HIGH",
+      "title": "Create test file for critical module: errors",
+      "description": "Critical module 'errors' has no test file. Create tests/test_{mod}.py with commissioning G1\u2013G9 docstring.",
+      "commissioning": "G4: Test profile must reflect full range of capabilities",
+      "action": "create_test_stub",
+      "details": {
+        "module": "errors"
+      }
+    },
+    {
+      "id": "TEST-CRIT-RUNTIME",
+      "category": "test_coverage",
+      "priority": "HIGH",
+      "title": "Create test file for critical module: runtime",
+      "description": "Critical module 'runtime' has no test file. Create tests/test_{mod}.py with commissioning G1\u2013G9 docstring.",
+      "commissioning": "G4: Test profile must reflect full range of capabilities",
+      "action": "create_test_stub",
+      "details": {
+        "module": "runtime"
+      }
+    },
+    {
+      "id": "TEST-CRIT-DEPLOYMENT_READINESS",
+      "category": "test_coverage",
+      "priority": "HIGH",
+      "title": "Create test file for critical module: deployment_readiness",
+      "description": "Critical module 'deployment_readiness' has no test file. Create tests/test_{mod}.py with commissioning G1\u2013G9 docstring.",
+      "commissioning": "G4: Test profile must reflect full range of capabilities",
+      "action": "create_test_stub",
+      "details": {
+        "module": "deployment_readiness"
+      }
+    },
+    {
+      "id": "TEST-CRIT-SECURITY_HARDENING_CONFIG",
+      "category": "test_coverage",
+      "priority": "HIGH",
+      "title": "Create test file for critical module: security_hardening_config",
+      "description": "Critical module 'security_hardening_config' has no test file. Create tests/test_{mod}.py with commissioning G1\u2013G9 docstring.",
+      "commissioning": "G4: Test profile must reflect full range of capabilities",
+      "action": "create_test_stub",
+      "details": {
+        "module": "security_hardening_config"
+      }
+    },
+    {
+      "id": "TEST-CRIT-AUTH_MIDDLEWARE",
+      "category": "test_coverage",
+      "priority": "HIGH",
+      "title": "Create test file for critical module: auth_middleware",
+      "description": "Critical module 'auth_middleware' has no test file. Create tests/test_{mod}.py with commissioning G1\u2013G9 docstring.",
+      "commissioning": "G4: Test profile must reflect full range of capabilities",
+      "action": "create_test_stub",
+      "details": {
+        "module": "auth_middleware"
+      }
+    },
+    {
+      "id": "HARDENING-BARE-EXCEPT",
+      "category": "hardening",
+      "priority": "MEDIUM",
+      "title": "Fix bare except clauses for production hardening",
+      "description": "Found 106 bare except clauses. Replace with specific exception types and add logging.",
+      "commissioning": "G9: Hardening must be applied",
+      "action": "fix_bare_excepts",
+      "details": {
+        "violations": [
+          {
+            "file": "Murphy System/src/agent_module_loader.py",
+            "line": 596,
+            "content": "except Exception: / pass"
+          },
+          {
+            "file": "Murphy System/src/agent_module_loader.py",
+            "line": 605,
+            "content": "except Exception: / pass"
+          },
+          {
+            "file": "Murphy System/src/agent_module_loader.py",
+            "line": 613,
+            "content": "except Exception: / pass"
+          },
+          {
+            "file": "Murphy System/src/agent_module_loader.py",
+            "line": 622,
+            "content": "except Exception: / pass"
+          },
+          {
+            "file": "Murphy System/src/agent_module_loader.py",
+            "line": 627,
+            "content": "except Exception: / pass"
+          },
+          {
+            "file": "Murphy System/src/agentic_comms_router.py",
+            "line": 243,
+            "content": "except Exception: / pass"
+          },
+          {
+            "file": "Murphy System/src/announcer_voice_engine.py",
+            "line": 85,
+            "content": "except ImportError: / pass"
+          },
+          {
+            "file": "Murphy System/src/audit_logger.py",
+            "line": 364,
+            "content": "except Exception: / pass"
+          },
+          {
+            "file": "Murphy System/src/automation_commissioner.py",
+            "line": 271,
+            "content": "except Exception: / pass"
+          },
+          {
+            "file": "Murphy System/src/ceo_branch_activation.py",
+            "line": 1475,
+            "content": "except Exception: / pass"
+          }
+        ]
+      }
+    },
+    {
+      "id": "DEBT-INVENTORY",
+      "category": "technical_debt",
+      "priority": "LOW",
+      "title": "Catalog and prioritize technical debt markers",
+      "description": "Found 701 debt markers across the codebase. Generate a prioritized debt report with resolution recommendations.",
+      "commissioning": "G7: Restart from symptoms and work back through validation",
+      "action": "catalog_debt",
+      "details": {
+        "total": 701,
+        "by_type": {
+          "TODO": 27,
+          "FIXME": 2,
+          "HACK": 6,
+          "STUB": 207,
+          "XXX": 12,
+          "NOQA": 447
+        }
+      }
+    },
+    {
+      "id": "ENV-MISSING-VARS",
+      "category": "configuration",
+      "priority": "MEDIUM",
+      "title": "Add missing required env vars to .env.example",
+      "description": "Missing required env vars: ['MURPHY_SECRET_KEY', 'DATABASE_URL']. Add them to .env.example with appropriate defaults.",
+      "commissioning": "G3: All conditions must be covered",
+      "action": "update_env_example",
+      "details": {
+        "missing_vars": [
+          "MURPHY_SECRET_KEY",
+          "DATABASE_URL"
+        ]
+      }
+    }
+  ],
+  "scan_results": {
+    "module_inventory": {
+      "total_modules": 588,
+      "packages": 83,
+      "single_files": 505,
+      "modules": [
+        {
+          "name": "ab_testing_framework",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/ab_testing_framework.py"
+        },
+        {
+          "name": "account_management",
+          "type": "package",
+          "file_count": 5,
+          "path": "Murphy System/src/account_management"
+        },
+        {
+          "name": "activated_heartbeat_runner",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/activated_heartbeat_runner.py"
+        },
+        {
+          "name": "adapter_framework",
+          "type": "package",
+          "file_count": 9,
+          "path": "Murphy System/src/adapter_framework"
+        },
+        {
+          "name": "adaptive_campaign_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/adaptive_campaign_engine.py"
+        },
+        {
+          "name": "additive_manufacturing_connectors",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/additive_manufacturing_connectors.py"
+        },
+        {
+          "name": "advanced_loop_wiring",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/advanced_loop_wiring.py"
+        },
+        {
+          "name": "advanced_reports",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/advanced_reports.py"
+        },
+        {
+          "name": "advanced_research",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/advanced_research.py"
+        },
+        {
+          "name": "advanced_swarm_system",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/advanced_swarm_system.py"
+        },
+        {
+          "name": "agent_module_loader",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/agent_module_loader.py"
+        },
+        {
+          "name": "agent_monitor_dashboard",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/agent_monitor_dashboard.py"
+        },
+        {
+          "name": "agent_persona_library",
+          "type": "package",
+          "file_count": 6,
+          "path": "Murphy System/src/agent_persona_library"
+        },
+        {
+          "name": "agent_run_recorder",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/agent_run_recorder.py"
+        },
+        {
+          "name": "agentic_api_provisioner",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/agentic_api_provisioner.py"
+        },
+        {
+          "name": "agentic_comms_router",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/agentic_comms_router.py"
+        },
+        {
+          "name": "agentic_onboarding_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/agentic_onboarding_engine.py"
+        },
+        {
+          "name": "ai_comms_orchestrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/ai_comms_orchestrator.py"
+        },
+        {
+          "name": "ai_workflow_generator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/ai_workflow_generator.py"
+        },
+        {
+          "name": "aionmind",
+          "type": "package",
+          "file_count": 18,
+          "path": "Murphy System/src/aionmind"
+        },
+        {
+          "name": "alert_rules_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/alert_rules_engine.py"
+        },
+        {
+          "name": "all_hands",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/all_hands.py"
+        },
+        {
+          "name": "ambient_api_router",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/ambient_api_router.py"
+        },
+        {
+          "name": "ambient_context_store",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/ambient_context_store.py"
+        },
+        {
+          "name": "ambient_email_delivery",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/ambient_email_delivery.py"
+        },
+        {
+          "name": "ambient_synthesis",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/ambient_synthesis.py"
+        },
+        {
+          "name": "analytics_dashboard",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/analytics_dashboard.py"
+        },
+        {
+          "name": "announcer_voice_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/announcer_voice_engine.py"
+        },
+        {
+          "name": "api_capability_builder",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/api_capability_builder.py"
+        },
+        {
+          "name": "api_collection_agent",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/api_collection_agent.py"
+        },
+        {
+          "name": "api_gateway_adapter",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/api_gateway_adapter.py"
+        },
+        {
+          "name": "architecture_evolution",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/architecture_evolution.py"
+        },
+        {
+          "name": "artifact_viewport",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/artifact_viewport.py"
+        },
+        {
+          "name": "artifact_viewport_api",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/artifact_viewport_api.py"
+        },
+        {
+          "name": "as_built_generator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/as_built_generator.py"
+        },
+        {
+          "name": "auar",
+          "type": "package",
+          "file_count": 11,
+          "path": "Murphy System/src/auar"
+        },
+        {
+          "name": "auar_api",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/auar_api.py"
+        },
+        {
+          "name": "audit_logger",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/audit_logger.py"
+        },
+        {
+          "name": "audit_logging_system",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/audit_logging_system.py"
+        },
+        {
+          "name": "auth_middleware",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/auth_middleware.py"
+        },
+        {
+          "name": "authority_gate",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/authority_gate.py"
+        },
+        {
+          "name": "auto_documentation_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/auto_documentation_engine.py"
+        },
+        {
+          "name": "automation_commissioner",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/automation_commissioner.py"
+        },
+        {
+          "name": "automation_integration_hub",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/automation_integration_hub.py"
+        },
+        {
+          "name": "automation_loop_connector",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/automation_loop_connector.py"
+        },
+        {
+          "name": "automation_marketplace",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/automation_marketplace.py"
+        },
+        {
+          "name": "automation_mode_controller",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/automation_mode_controller.py"
+        },
+        {
+          "name": "automation_rbac_controller",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/automation_rbac_controller.py"
+        },
+        {
+          "name": "automation_readiness_evaluator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/automation_readiness_evaluator.py"
+        },
+        {
+          "name": "automation_safeguard_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/automation_safeguard_engine.py"
+        },
+        {
+          "name": "automation_scaler",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/automation_scaler.py"
+        },
+        {
+          "name": "automation_scheduler",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/automation_scheduler.py"
+        },
+        {
+          "name": "automation_type_registry",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/automation_type_registry.py"
+        },
+        {
+          "name": "automations",
+          "type": "package",
+          "file_count": 4,
+          "path": "Murphy System/src/automations"
+        },
+        {
+          "name": "autonomous_repair_system",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/autonomous_repair_system.py"
+        },
+        {
+          "name": "autonomous_systems",
+          "type": "package",
+          "file_count": 4,
+          "path": "Murphy System/src/autonomous_systems"
+        },
+        {
+          "name": "avatar",
+          "type": "package",
+          "file_count": 15,
+          "path": "Murphy System/src/avatar"
+        },
+        {
+          "name": "backtester",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/backtester.py"
+        },
+        {
+          "name": "backup_disaster_recovery",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/backup_disaster_recovery.py"
+        },
+        {
+          "name": "bas_equipment_ingestion",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/bas_equipment_ingestion.py"
+        },
+        {
+          "name": "base_governance_runtime",
+          "type": "package",
+          "file_count": 7,
+          "path": "Murphy System/src/base_governance_runtime"
+        },
+        {
+          "name": "benchmark_adapters",
+          "type": "package",
+          "file_count": 9,
+          "path": "Murphy System/src/benchmark_adapters"
+        },
+        {
+          "name": "billing",
+          "type": "package",
+          "file_count": 75,
+          "path": "Murphy System/src/billing"
+        },
+        {
+          "name": "blackstart_controller",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/blackstart_controller.py"
+        },
+        {
+          "name": "blockchain_audit_trail",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/blockchain_audit_trail.py"
+        },
+        {
+          "name": "blueprint_auth",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/blueprint_auth.py"
+        },
+        {
+          "name": "board_system",
+          "type": "package",
+          "file_count": 7,
+          "path": "Murphy System/src/board_system"
+        },
+        {
+          "name": "bootstrap_and_run",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/bootstrap_and_run.py"
+        },
+        {
+          "name": "bot_governance_policy_mapper",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/bot_governance_policy_mapper.py"
+        },
+        {
+          "name": "bot_inventory_library",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/bot_inventory_library.py"
+        },
+        {
+          "name": "bot_room_registry",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/bot_room_registry.py"
+        },
+        {
+          "name": "bot_telemetry_normalizer",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/bot_telemetry_normalizer.py"
+        },
+        {
+          "name": "bridge_layer",
+          "type": "package",
+          "file_count": 8,
+          "path": "Murphy System/src/bridge_layer"
+        },
+        {
+          "name": "budget_aware_processor",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/budget_aware_processor.py"
+        },
+        {
+          "name": "bug_pattern_detector",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/bug_pattern_detector.py"
+        },
+        {
+          "name": "building_automation_connectors",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/building_automation_connectors.py"
+        },
+        {
+          "name": "business_scaling_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/business_scaling_engine.py"
+        },
+        {
+          "name": "cache",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/cache.py"
+        },
+        {
+          "name": "campaign_orchestrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/campaign_orchestrator.py"
+        },
+        {
+          "name": "capability_map",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/capability_map.py"
+        },
+        {
+          "name": "capacity_planning_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/capacity_planning_engine.py"
+        },
+        {
+          "name": "causal_spike_analyzer",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/causal_spike_analyzer.py"
+        },
+        {
+          "name": "causality_sandbox",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/causality_sandbox.py"
+        },
+        {
+          "name": "ceo_activation_plan",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/ceo_activation_plan.py"
+        },
+        {
+          "name": "ceo_branch_activation",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/ceo_branch_activation.py"
+        },
+        {
+          "name": "chaos",
+          "type": "package",
+          "file_count": 9,
+          "path": "Murphy System/src/chaos"
+        },
+        {
+          "name": "chaos_resilience_loop",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/chaos_resilience_loop.py"
+        },
+        {
+          "name": "character_network_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/character_network_engine.py"
+        },
+        {
+          "name": "chatbot_v1_1_fixed",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/chatbot_v1_1_fixed.py"
+        },
+        {
+          "name": "ci_cd_pipeline_manager",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/ci_cd_pipeline_manager.py"
+        },
+        {
+          "name": "cli_art",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/cli_art.py"
+        },
+        {
+          "name": "client_psychology_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/client_psychology_engine.py"
+        },
+        {
+          "name": "climate_resilience_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/climate_resilience_engine.py"
+        },
+        {
+          "name": "closure_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/closure_engine.py"
+        },
+        {
+          "name": "cloudflare_deploy",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/cloudflare_deploy.py"
+        },
+        {
+          "name": "code_generation_gateway",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/code_generation_gateway.py"
+        },
+        {
+          "name": "code_repair_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/code_repair_engine.py"
+        },
+        {
+          "name": "coinbase_connector",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/coinbase_connector.py"
+        },
+        {
+          "name": "collaboration",
+          "type": "package",
+          "file_count": 7,
+          "path": "Murphy System/src/collaboration"
+        },
+        {
+          "name": "collaborative_task_orchestrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/collaborative_task_orchestrator.py"
+        },
+        {
+          "name": "command_parser",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/command_parser.py"
+        },
+        {
+          "name": "command_system",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/command_system.py"
+        },
+        {
+          "name": "comms",
+          "type": "package",
+          "file_count": 6,
+          "path": "Murphy System/src/comms"
+        },
+        {
+          "name": "comms_hub_routes",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/comms_hub_routes.py"
+        },
+        {
+          "name": "communication_hub",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/communication_hub.py"
+        },
+        {
+          "name": "communication_system",
+          "type": "package",
+          "file_count": 2,
+          "path": "Murphy System/src/communication_system"
+        },
+        {
+          "name": "competitive_intelligence_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/competitive_intelligence_engine.py"
+        },
+        {
+          "name": "compliance_as_code_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/compliance_as_code_engine.py"
+        },
+        {
+          "name": "compliance_automation_bridge",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/compliance_automation_bridge.py"
+        },
+        {
+          "name": "compliance_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/compliance_engine.py"
+        },
+        {
+          "name": "compliance_monitoring_completeness",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/compliance_monitoring_completeness.py"
+        },
+        {
+          "name": "compliance_orchestration_bridge",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/compliance_orchestration_bridge.py"
+        },
+        {
+          "name": "compliance_region_validator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/compliance_region_validator.py"
+        },
+        {
+          "name": "compliance_report_aggregator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/compliance_report_aggregator.py"
+        },
+        {
+          "name": "compliance_toggle_manager",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/compliance_toggle_manager.py"
+        },
+        {
+          "name": "compute_plane",
+          "type": "package",
+          "file_count": 16,
+          "path": "Murphy System/src/compute_plane"
+        },
+        {
+          "name": "computer_vision_pipeline",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/computer_vision_pipeline.py"
+        },
+        {
+          "name": "concept_graph_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/concept_graph_engine.py"
+        },
+        {
+          "name": "concept_translation",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/concept_translation.py"
+        },
+        {
+          "name": "confidence_engine",
+          "type": "package",
+          "file_count": 25,
+          "path": "Murphy System/src/confidence_engine"
+        },
+        {
+          "name": "config",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/config.py"
+        },
+        {
+          "name": "constraint_system",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/constraint_system.py"
+        },
+        {
+          "name": "contact_compliance_governor",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/contact_compliance_governor.py"
+        },
+        {
+          "name": "content_creator_platform_modulator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/content_creator_platform_modulator.py"
+        },
+        {
+          "name": "content_pipeline_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/content_pipeline_engine.py"
+        },
+        {
+          "name": "contractual_audit",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/contractual_audit.py"
+        },
+        {
+          "name": "control_plane",
+          "type": "package",
+          "file_count": 9,
+          "path": "Murphy System/src/control_plane"
+        },
+        {
+          "name": "control_plane_separation",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/control_plane_separation.py"
+        },
+        {
+          "name": "control_theory",
+          "type": "package",
+          "file_count": 18,
+          "path": "Murphy System/src/control_theory"
+        },
+        {
+          "name": "conversation_handler",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/conversation_handler.py"
+        },
+        {
+          "name": "conversation_manager",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/conversation_manager.py"
+        },
+        {
+          "name": "copilot_tenant",
+          "type": "package",
+          "file_count": 8,
+          "path": "Murphy System/src/copilot_tenant"
+        },
+        {
+          "name": "cost_calibrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/cost_calibrator.py"
+        },
+        {
+          "name": "cost_explosion_gate",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/cost_explosion_gate.py"
+        },
+        {
+          "name": "cost_optimization_advisor",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/cost_optimization_advisor.py"
+        },
+        {
+          "name": "credential_profile_system",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/credential_profile_system.py"
+        },
+        {
+          "name": "crm",
+          "type": "package",
+          "file_count": 4,
+          "path": "Murphy System/src/crm"
+        },
+        {
+          "name": "cross_platform_data_sync",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/cross_platform_data_sync.py"
+        },
+        {
+          "name": "crypto_exchange_connector",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/crypto_exchange_connector.py"
+        },
+        {
+          "name": "crypto_portfolio_tracker",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/crypto_portfolio_tracker.py"
+        },
+        {
+          "name": "crypto_risk_manager",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/crypto_risk_manager.py"
+        },
+        {
+          "name": "crypto_wallet_manager",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/crypto_wallet_manager.py"
+        },
+        {
+          "name": "csrf_protection",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/csrf_protection.py"
+        },
+        {
+          "name": "customer_communication_manager",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/customer_communication_manager.py"
+        },
+        {
+          "name": "customer_infra_orchestrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/customer_infra_orchestrator.py"
+        },
+        {
+          "name": "cutsheet_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/cutsheet_engine.py"
+        },
+        {
+          "name": "cyclic_trends_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/cyclic_trends_engine.py"
+        },
+        {
+          "name": "dashboards",
+          "type": "package",
+          "file_count": 6,
+          "path": "Murphy System/src/dashboards"
+        },
+        {
+          "name": "data_archive_manager",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/data_archive_manager.py"
+        },
+        {
+          "name": "data_pipeline_orchestrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/data_pipeline_orchestrator.py"
+        },
+        {
+          "name": "database",
+          "type": "package",
+          "file_count": 1,
+          "path": "Murphy System/src/database"
+        },
+        {
+          "name": "db",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/db.py"
+        },
+        {
+          "name": "declarative_fleet_manager",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/declarative_fleet_manager.py"
+        },
+        {
+          "name": "delivery_adapters",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/delivery_adapters.py"
+        },
+        {
+          "name": "delivery_channel_completeness",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/delivery_channel_completeness.py"
+        },
+        {
+          "name": "demo_bundle_generator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/demo_bundle_generator.py"
+        },
+        {
+          "name": "demo_deliverable_generator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/demo_deliverable_generator.py"
+        },
+        {
+          "name": "demo_runner",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/demo_runner.py"
+        },
+        {
+          "name": "dependency_audit_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/dependency_audit_engine.py"
+        },
+        {
+          "name": "dependency_deprecation_scanner",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/dependency_deprecation_scanner.py"
+        },
+        {
+          "name": "deployment_automation_controller",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/deployment_automation_controller.py"
+        },
+        {
+          "name": "deployment_readiness",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/deployment_readiness.py"
+        },
+        {
+          "name": "deterministic_compute",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/deterministic_compute.py"
+        },
+        {
+          "name": "deterministic_compute_plane",
+          "type": "package",
+          "file_count": 2,
+          "path": "Murphy System/src/deterministic_compute_plane"
+        },
+        {
+          "name": "deterministic_routing_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/deterministic_routing_engine.py"
+        },
+        {
+          "name": "dev_module",
+          "type": "package",
+          "file_count": 4,
+          "path": "Murphy System/src/dev_module"
+        },
+        {
+          "name": "digital_asset_generator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/digital_asset_generator.py"
+        },
+        {
+          "name": "digital_twin_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/digital_twin_engine.py"
+        },
+        {
+          "name": "dispatch",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/dispatch.py"
+        },
+        {
+          "name": "dispatch_routes",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/dispatch_routes.py"
+        },
+        {
+          "name": "docker_containerization",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/docker_containerization.py"
+        },
+        {
+          "name": "document_export",
+          "type": "package",
+          "file_count": 8,
+          "path": "Murphy System/src/document_export"
+        },
+        {
+          "name": "document_processor",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/document_processor.py"
+        },
+        {
+          "name": "domain_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/domain_engine.py"
+        },
+        {
+          "name": "domain_expert_integration",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/domain_expert_integration.py"
+        },
+        {
+          "name": "domain_expert_system",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/domain_expert_system.py"
+        },
+        {
+          "name": "domain_gate_generator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/domain_gate_generator.py"
+        },
+        {
+          "name": "domain_swarms",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/domain_swarms.py"
+        },
+        {
+          "name": "durable_swarm_orchestrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/durable_swarm_orchestrator.py"
+        },
+        {
+          "name": "dynamic_assist_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/dynamic_assist_engine.py"
+        },
+        {
+          "name": "dynamic_command_discovery",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/dynamic_command_discovery.py"
+        },
+        {
+          "name": "dynamic_expert_generator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/dynamic_expert_generator.py"
+        },
+        {
+          "name": "dynamic_risk_manager",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/dynamic_risk_manager.py"
+        },
+        {
+          "name": "efficiency_orchestrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/efficiency_orchestrator.py"
+        },
+        {
+          "name": "elite_org_simulator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/elite_org_simulator.py"
+        },
+        {
+          "name": "email_integration",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/email_integration.py"
+        },
+        {
+          "name": "emergency_stop",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/emergency_stop.py"
+        },
+        {
+          "name": "emergency_stop_controller",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/emergency_stop_controller.py"
+        },
+        {
+          "name": "end_user_agreement",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/end_user_agreement.py"
+        },
+        {
+          "name": "energy_audit_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/energy_audit_engine.py"
+        },
+        {
+          "name": "energy_efficiency_framework",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/energy_efficiency_framework.py"
+        },
+        {
+          "name": "energy_management_connectors",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/energy_management_connectors.py"
+        },
+        {
+          "name": "enhanced_chatbot_mfgc",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/enhanced_chatbot_mfgc.py"
+        },
+        {
+          "name": "enhanced_local_llm",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/enhanced_local_llm.py"
+        },
+        {
+          "name": "enterprise_integrations",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/enterprise_integrations.py"
+        },
+        {
+          "name": "env_manager",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/env_manager.py"
+        },
+        {
+          "name": "environment_setup_agent",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/environment_setup_agent.py"
+        },
+        {
+          "name": "environment_state_manager",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/environment_state_manager.py"
+        },
+        {
+          "name": "eq",
+          "type": "package",
+          "file_count": 27,
+          "path": "Murphy System/src/eq"
+        },
+        {
+          "name": "error_calibrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/error_calibrator.py"
+        },
+        {
+          "name": "error_envelope",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/error_envelope.py"
+        },
+        {
+          "name": "errors",
+          "type": "package",
+          "file_count": 4,
+          "path": "Murphy System/src/errors"
+        },
+        {
+          "name": "event_backbone",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/event_backbone.py"
+        },
+        {
+          "name": "event_backbone_client",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/event_backbone_client.py"
+        },
+        {
+          "name": "execution",
+          "type": "package",
+          "file_count": 2,
+          "path": "Murphy System/src/execution"
+        },
+        {
+          "name": "execution_compiler",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/execution_compiler.py"
+        },
+        {
+          "name": "execution_engine",
+          "type": "package",
+          "file_count": 10,
+          "path": "Murphy System/src/execution_engine"
+        },
+        {
+          "name": "execution_orchestrator",
+          "type": "package",
+          "file_count": 11,
+          "path": "Murphy System/src/execution_orchestrator"
+        },
+        {
+          "name": "execution_packet_compiler",
+          "type": "package",
+          "file_count": 10,
+          "path": "Murphy System/src/execution_packet_compiler"
+        },
+        {
+          "name": "execution_router",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/execution_router.py"
+        },
+        {
+          "name": "executive_planning_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/executive_planning_engine.py"
+        },
+        {
+          "name": "factory_automation_connectors",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/factory_automation_connectors.py"
+        },
+        {
+          "name": "faq_generation_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/faq_generation_engine.py"
+        },
+        {
+          "name": "fastapi_security",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/fastapi_security.py"
+        },
+        {
+          "name": "feature_flags",
+          "type": "package",
+          "file_count": 3,
+          "path": "Murphy System/src/feature_flags"
+        },
+        {
+          "name": "federated_learning_coordinator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/federated_learning_coordinator.py"
+        },
+        {
+          "name": "feedback_integrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/feedback_integrator.py"
+        },
+        {
+          "name": "financial_reporting_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/financial_reporting_engine.py"
+        },
+        {
+          "name": "finish_line_controller",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/finish_line_controller.py"
+        },
+        {
+          "name": "flask_security",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/flask_security.py"
+        },
+        {
+          "name": "forge_rate_limiter",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/forge_rate_limiter.py"
+        },
+        {
+          "name": "forge_stream",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/forge_stream.py"
+        },
+        {
+          "name": "form_intake",
+          "type": "package",
+          "file_count": 6,
+          "path": "Murphy System/src/form_intake"
+        },
+        {
+          "name": "founder_bootstrap_orchestrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/founder_bootstrap_orchestrator.py"
+        },
+        {
+          "name": "founder_maintenance_api",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/founder_maintenance_api.py"
+        },
+        {
+          "name": "founder_maintenance_recommendation_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/founder_maintenance_recommendation_engine.py"
+        },
+        {
+          "name": "founder_update_api",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/founder_update_api.py"
+        },
+        {
+          "name": "founder_update_engine",
+          "type": "package",
+          "file_count": 9,
+          "path": "Murphy System/src/founder_update_engine"
+        },
+        {
+          "name": "founder_update_orchestrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/founder_update_orchestrator.py"
+        },
+        {
+          "name": "freelancer_validator",
+          "type": "package",
+          "file_count": 7,
+          "path": "Murphy System/src/freelancer_validator"
+        },
+        {
+          "name": "full_automation_controller",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/full_automation_controller.py"
+        },
+        {
+          "name": "functionality_heatmap",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/functionality_heatmap.py"
+        },
+        {
+          "name": "game_creation_pipeline",
+          "type": "package",
+          "file_count": 11,
+          "path": "Murphy System/src/game_creation_pipeline"
+        },
+        {
+          "name": "gate_behavior_model_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/gate_behavior_model_engine.py"
+        },
+        {
+          "name": "gate_builder",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/gate_builder.py"
+        },
+        {
+          "name": "gate_bypass_controller",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/gate_bypass_controller.py"
+        },
+        {
+          "name": "gate_execution_wiring",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/gate_execution_wiring.py"
+        },
+        {
+          "name": "gate_synthesis",
+          "type": "package",
+          "file_count": 9,
+          "path": "Murphy System/src/gate_synthesis"
+        },
+        {
+          "name": "generative_knowledge_builder",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/generative_knowledge_builder.py"
+        },
+        {
+          "name": "geographic_load_balancer",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/geographic_load_balancer.py"
+        },
+        {
+          "name": "global_feedback",
+          "type": "package",
+          "file_count": 4,
+          "path": "Murphy System/src/global_feedback"
+        },
+        {
+          "name": "golden_path_bridge",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/golden_path_bridge.py"
+        },
+        {
+          "name": "golden_path_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/golden_path_engine.py"
+        },
+        {
+          "name": "governance_framework",
+          "type": "package",
+          "file_count": 7,
+          "path": "Murphy System/src/governance_framework"
+        },
+        {
+          "name": "governance_kernel",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/governance_kernel.py"
+        },
+        {
+          "name": "governance_toggle",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/governance_toggle.py"
+        },
+        {
+          "name": "graduation_controller",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/graduation_controller.py"
+        },
+        {
+          "name": "graphql_api_layer",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/graphql_api_layer.py"
+        },
+        {
+          "name": "groq_key_rotator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/groq_key_rotator.py"
+        },
+        {
+          "name": "guest_collab",
+          "type": "package",
+          "file_count": 4,
+          "path": "Murphy System/src/guest_collab"
+        },
+        {
+          "name": "hardware_visual_onboarding",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/hardware_visual_onboarding.py"
+        },
+        {
+          "name": "health_monitor",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/health_monitor.py"
+        },
+        {
+          "name": "heartbeat_liveness_protocol",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/heartbeat_liveness_protocol.py"
+        },
+        {
+          "name": "hetzner_deploy",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/hetzner_deploy.py"
+        },
+        {
+          "name": "hidden_cost_tracker",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/hidden_cost_tracker.py"
+        },
+        {
+          "name": "highlight_overlay",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/highlight_overlay.py"
+        },
+        {
+          "name": "historical_greatness_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/historical_greatness_engine.py"
+        },
+        {
+          "name": "hitl_autonomy_controller",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/hitl_autonomy_controller.py"
+        },
+        {
+          "name": "hitl_execution_gate",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/hitl_execution_gate.py"
+        },
+        {
+          "name": "hitl_graduation_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/hitl_graduation_engine.py"
+        },
+        {
+          "name": "hitl_persistence",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/hitl_persistence.py"
+        },
+        {
+          "name": "image_generation_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/image_generation_engine.py"
+        },
+        {
+          "name": "immune_memory",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/immune_memory.py"
+        },
+        {
+          "name": "industry_automation_wizard",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/industry_automation_wizard.py"
+        },
+        {
+          "name": "inference_gate_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/inference_gate_engine.py"
+        },
+        {
+          "name": "infinity_expansion_system",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/infinity_expansion_system.py"
+        },
+        {
+          "name": "information_density",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/information_density.py"
+        },
+        {
+          "name": "information_quality",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/information_quality.py"
+        },
+        {
+          "name": "innovation_farmer",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/innovation_farmer.py"
+        },
+        {
+          "name": "inoni_org_bootstrap",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/inoni_org_bootstrap.py"
+        },
+        {
+          "name": "input_validation",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/input_validation.py"
+        },
+        {
+          "name": "inquisitory_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/inquisitory_engine.py"
+        },
+        {
+          "name": "integration_bus",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/integration_bus.py"
+        },
+        {
+          "name": "integration_engine",
+          "type": "package",
+          "file_count": 11,
+          "path": "Murphy System/src/integration_engine"
+        },
+        {
+          "name": "integrations",
+          "type": "package",
+          "file_count": 38,
+          "path": "Murphy System/src/integrations"
+        },
+        {
+          "name": "invoice_processing_pipeline",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/invoice_processing_pipeline.py"
+        },
+        {
+          "name": "ip_classification_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/ip_classification_engine.py"
+        },
+        {
+          "name": "key_harvester",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/key_harvester.py"
+        },
+        {
+          "name": "kfactor_calculator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/kfactor_calculator.py"
+        },
+        {
+          "name": "knostalgia_category_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/knostalgia_category_engine.py"
+        },
+        {
+          "name": "knostalgia_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/knostalgia_engine.py"
+        },
+        {
+          "name": "knowledge_base_manager",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/knowledge_base_manager.py"
+        },
+        {
+          "name": "knowledge_gap_system",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/knowledge_gap_system.py"
+        },
+        {
+          "name": "knowledge_graph_builder",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/knowledge_graph_builder.py"
+        },
+        {
+          "name": "kpi_tracker",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/kpi_tracker.py"
+        },
+        {
+          "name": "kubernetes_deployment",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/kubernetes_deployment.py"
+        },
+        {
+          "name": "large_action_model",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/large_action_model.py"
+        },
+        {
+          "name": "large_control_model",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/large_control_model.py"
+        },
+        {
+          "name": "lcm_chaos_simulation",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/lcm_chaos_simulation.py"
+        },
+        {
+          "name": "lcm_domain_registry",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/lcm_domain_registry.py"
+        },
+        {
+          "name": "lcm_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/lcm_engine.py"
+        },
+        {
+          "name": "lcm_integration_bridge",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/lcm_integration_bridge.py"
+        },
+        {
+          "name": "learning_engine",
+          "type": "package",
+          "file_count": 25,
+          "path": "Murphy System/src/learning_engine"
+        },
+        {
+          "name": "learning_engine_connector",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/learning_engine_connector.py"
+        },
+        {
+          "name": "learning_system",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/learning_system.py"
+        },
+        {
+          "name": "legacy_compatibility_matrix",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/legacy_compatibility_matrix.py"
+        },
+        {
+          "name": "librarian",
+          "type": "package",
+          "file_count": 5,
+          "path": "Murphy System/src/librarian"
+        },
+        {
+          "name": "librarian_adapter",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/librarian_adapter.py"
+        },
+        {
+          "name": "librarian_integration",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/librarian_integration.py"
+        },
+        {
+          "name": "live_feed_service",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/live_feed_service.py"
+        },
+        {
+          "name": "live_trading_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/live_trading_engine.py"
+        },
+        {
+          "name": "llm_controller",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/llm_controller.py"
+        },
+        {
+          "name": "llm_integration",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/llm_integration.py"
+        },
+        {
+          "name": "llm_integration_layer",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/llm_integration_layer.py"
+        },
+        {
+          "name": "llm_output_validator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/llm_output_validator.py"
+        },
+        {
+          "name": "llm_provider",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/llm_provider.py"
+        },
+        {
+          "name": "llm_routing_completeness",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/llm_routing_completeness.py"
+        },
+        {
+          "name": "llm_swarm_integration",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/llm_swarm_integration.py"
+        },
+        {
+          "name": "local_inference_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/local_inference_engine.py"
+        },
+        {
+          "name": "local_llm_fallback",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/local_llm_fallback.py"
+        },
+        {
+          "name": "local_model_layer",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/local_model_layer.py"
+        },
+        {
+          "name": "log_analysis_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/log_analysis_engine.py"
+        },
+        {
+          "name": "logging_config",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/logging_config.py"
+        },
+        {
+          "name": "logging_system",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/logging_system.py"
+        },
+        {
+          "name": "management_systems",
+          "type": "package",
+          "file_count": 11,
+          "path": "Murphy System/src/management_systems"
+        },
+        {
+          "name": "manufacturing_automation_standards",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/manufacturing_automation_standards.py"
+        },
+        {
+          "name": "market_data_feed",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/market_data_feed.py"
+        },
+        {
+          "name": "market_positioning_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/market_positioning_engine.py"
+        },
+        {
+          "name": "marketing_analytics_aggregator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/marketing_analytics_aggregator.py"
+        },
+        {
+          "name": "matrix_bridge",
+          "type": "package",
+          "file_count": 31,
+          "path": "Murphy System/src/matrix_bridge"
+        },
+        {
+          "name": "mcp_plugin",
+          "type": "package",
+          "file_count": 3,
+          "path": "Murphy System/src/mcp_plugin"
+        },
+        {
+          "name": "memory_artifact_system",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/memory_artifact_system.py"
+        },
+        {
+          "name": "memory_management",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/memory_management.py"
+        },
+        {
+          "name": "metrics",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/metrics.py"
+        },
+        {
+          "name": "mfgc_adapter",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/mfgc_adapter.py"
+        },
+        {
+          "name": "mfgc_core",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/mfgc_core.py"
+        },
+        {
+          "name": "mfgc_metrics",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/mfgc_metrics.py"
+        },
+        {
+          "name": "mfgc_v1_1",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/mfgc_v1_1.py"
+        },
+        {
+          "name": "ml",
+          "type": "package",
+          "file_count": 8,
+          "path": "Murphy System/src/ml"
+        },
+        {
+          "name": "ml_model_registry",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/ml_model_registry.py"
+        },
+        {
+          "name": "ml_strategy_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/ml_strategy_engine.py"
+        },
+        {
+          "name": "mock_compatible_local_llm",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/mock_compatible_local_llm.py"
+        },
+        {
+          "name": "modular_runtime",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/modular_runtime.py"
+        },
+        {
+          "name": "module_compiler",
+          "type": "package",
+          "file_count": 17,
+          "path": "Murphy System/src/module_compiler"
+        },
+        {
+          "name": "module_compiler_adapter",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/module_compiler_adapter.py"
+        },
+        {
+          "name": "module_instance_api",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/module_instance_api.py"
+        },
+        {
+          "name": "module_instance_manager",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/module_instance_manager.py"
+        },
+        {
+          "name": "module_loader",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/module_loader.py"
+        },
+        {
+          "name": "module_manager",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/module_manager.py"
+        },
+        {
+          "name": "module_registry",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/module_registry.py"
+        },
+        {
+          "name": "mss_controls",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/mss_controls.py"
+        },
+        {
+          "name": "mss_sequence_optimizer",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/mss_sequence_optimizer.py"
+        },
+        {
+          "name": "multi_agent_coordinator",
+          "type": "package",
+          "file_count": 3,
+          "path": "Murphy System/src/multi_agent_coordinator"
+        },
+        {
+          "name": "multi_cloud_orchestrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/multi_cloud_orchestrator.py"
+        },
+        {
+          "name": "multi_language_codegen",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/multi_language_codegen.py"
+        },
+        {
+          "name": "multi_source_research",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/multi_source_research.py"
+        },
+        {
+          "name": "multi_tenant_workspace",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/multi_tenant_workspace.py"
+        },
+        {
+          "name": "multiverse_game_framework",
+          "type": "package",
+          "file_count": 10,
+          "path": "Murphy System/src/multiverse_game_framework"
+        },
+        {
+          "name": "murphy_action_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/murphy_action_engine.py"
+        },
+        {
+          "name": "murphy_autonomous_perception",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/murphy_autonomous_perception.py"
+        },
+        {
+          "name": "murphy_code_healer",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/murphy_code_healer.py"
+        },
+        {
+          "name": "murphy_credential_gate",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/murphy_credential_gate.py"
+        },
+        {
+          "name": "murphy_crew_system",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/murphy_crew_system.py"
+        },
+        {
+          "name": "murphy_drawing_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/murphy_drawing_engine.py"
+        },
+        {
+          "name": "murphy_drawing_engine_extensions",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/murphy_drawing_engine_extensions.py"
+        },
+        {
+          "name": "murphy_engineering_toolbox",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/murphy_engineering_toolbox.py"
+        },
+        {
+          "name": "murphy_foundation_model",
+          "type": "package",
+          "file_count": 12,
+          "path": "Murphy System/src/murphy_foundation_model"
+        },
+        {
+          "name": "murphy_identity",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/murphy_identity.py"
+        },
+        {
+          "name": "murphy_immune_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/murphy_immune_engine.py"
+        },
+        {
+          "name": "murphy_native_automation",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/murphy_native_automation.py"
+        },
+        {
+          "name": "murphy_osmosis_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/murphy_osmosis_engine.py"
+        },
+        {
+          "name": "murphy_repl",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/murphy_repl.py"
+        },
+        {
+          "name": "murphy_sensor_fusion",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/murphy_sensor_fusion.py"
+        },
+        {
+          "name": "murphy_shadow_trainer",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/murphy_shadow_trainer.py"
+        },
+        {
+          "name": "murphy_state_graph",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/murphy_state_graph.py"
+        },
+        {
+          "name": "murphy_template_hub",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/murphy_template_hub.py"
+        },
+        {
+          "name": "murphy_terminal",
+          "type": "package",
+          "file_count": 2,
+          "path": "Murphy System/src/murphy_terminal"
+        },
+        {
+          "name": "murphy_trace",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/murphy_trace.py"
+        },
+        {
+          "name": "murphy_wingman_evolution",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/murphy_wingman_evolution.py"
+        },
+        {
+          "name": "natural_language_query",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/natural_language_query.py"
+        },
+        {
+          "name": "nav_registry",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/nav_registry.py"
+        },
+        {
+          "name": "networking_mastery_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/networking_mastery_engine.py"
+        },
+        {
+          "name": "neuro_symbolic_adapter",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/neuro_symbolic_adapter.py"
+        },
+        {
+          "name": "neuro_symbolic_models",
+          "type": "package",
+          "file_count": 7,
+          "path": "Murphy System/src/neuro_symbolic_models"
+        },
+        {
+          "name": "niche_business_generator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/niche_business_generator.py"
+        },
+        {
+          "name": "niche_viability_gate",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/niche_viability_gate.py"
+        },
+        {
+          "name": "nocode_workflow_terminal",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/nocode_workflow_terminal.py"
+        },
+        {
+          "name": "notification_system",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/notification_system.py"
+        },
+        {
+          "name": "oauth_oidc_provider",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/oauth_oidc_provider.py"
+        },
+        {
+          "name": "observability_counters",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/observability_counters.py"
+        },
+        {
+          "name": "observation_model",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/observation_model.py"
+        },
+        {
+          "name": "onboarding_automation_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/onboarding_automation_engine.py"
+        },
+        {
+          "name": "onboarding_flow",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/onboarding_flow.py"
+        },
+        {
+          "name": "onboarding_team_pipeline",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/onboarding_team_pipeline.py"
+        },
+        {
+          "name": "openai_compatible_provider",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/openai_compatible_provider.py"
+        },
+        {
+          "name": "operational_completeness",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/operational_completeness.py"
+        },
+        {
+          "name": "operational_dashboard_aggregator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/operational_dashboard_aggregator.py"
+        },
+        {
+          "name": "operational_slo_tracker",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/operational_slo_tracker.py"
+        },
+        {
+          "name": "operations_cycle_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/operations_cycle_engine.py"
+        },
+        {
+          "name": "optimal_routing_wiring",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/optimal_routing_wiring.py"
+        },
+        {
+          "name": "order_sensitivity_metrics",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/order_sensitivity_metrics.py"
+        },
+        {
+          "name": "org_build_plan",
+          "type": "package",
+          "file_count": 16,
+          "path": "Murphy System/src/org_build_plan"
+        },
+        {
+          "name": "org_chart_enforcement",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/org_chart_enforcement.py"
+        },
+        {
+          "name": "org_chart_generator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/org_chart_generator.py"
+        },
+        {
+          "name": "org_compiler",
+          "type": "package",
+          "file_count": 9,
+          "path": "Murphy System/src/org_compiler"
+        },
+        {
+          "name": "organization_chart_system",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/organization_chart_system.py"
+        },
+        {
+          "name": "organizational_context_system",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/organizational_context_system.py"
+        },
+        {
+          "name": "outreach_campaign_planner",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/outreach_campaign_planner.py"
+        },
+        {
+          "name": "outreach_compliance_integration",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/outreach_compliance_integration.py"
+        },
+        {
+          "name": "outreach_compliance_plan",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/outreach_compliance_plan.py"
+        },
+        {
+          "name": "paper_trading_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/paper_trading_engine.py"
+        },
+        {
+          "name": "paper_trading_routes",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/paper_trading_routes.py"
+        },
+        {
+          "name": "performance_predictor",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/performance_predictor.py"
+        },
+        {
+          "name": "permutation_calibration_adapter",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/permutation_calibration_adapter.py"
+        },
+        {
+          "name": "permutation_policy_registry",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/permutation_policy_registry.py"
+        },
+        {
+          "name": "persistence_manager",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/persistence_manager.py"
+        },
+        {
+          "name": "persistence_replay_completeness",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/persistence_replay_completeness.py"
+        },
+        {
+          "name": "persistence_wal",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/persistence_wal.py"
+        },
+        {
+          "name": "persistent_memory",
+          "type": "package",
+          "file_count": 3,
+          "path": "Murphy System/src/persistent_memory"
+        },
+        {
+          "name": "pilot_config",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/pilot_config.py"
+        },
+        {
+          "name": "platform_connector_framework",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/platform_connector_framework.py"
+        },
+        {
+          "name": "platform_onboarding",
+          "type": "package",
+          "file_count": 10,
+          "path": "Murphy System/src/platform_onboarding"
+        },
+        {
+          "name": "playwright_task_definitions",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/playwright_task_definitions.py"
+        },
+        {
+          "name": "plugin_extension_sdk",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/plugin_extension_sdk.py"
+        },
+        {
+          "name": "portfolio",
+          "type": "package",
+          "file_count": 6,
+          "path": "Murphy System/src/portfolio"
+        },
+        {
+          "name": "predictive_failure_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/predictive_failure_engine.py"
+        },
+        {
+          "name": "predictive_maintenance_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/predictive_maintenance_engine.py"
+        },
+        {
+          "name": "presets",
+          "type": "package",
+          "file_count": 8,
+          "path": "Murphy System/src/presets"
+        },
+        {
+          "name": "pro_con_decision_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/pro_con_decision_engine.py"
+        },
+        {
+          "name": "probabilistic_layer",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/probabilistic_layer.py"
+        },
+        {
+          "name": "procedural_distiller",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/procedural_distiller.py"
+        },
+        {
+          "name": "production_assistant",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/production_assistant.py"
+        },
+        {
+          "name": "production_assistant_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/production_assistant_engine.py"
+        },
+        {
+          "name": "production_deliverable_wizard",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/production_deliverable_wizard.py"
+        },
+        {
+          "name": "production_output_calibrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/production_output_calibrator.py"
+        },
+        {
+          "name": "production_router",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/production_router.py"
+        },
+        {
+          "name": "profit_sweep",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/profit_sweep.py"
+        },
+        {
+          "name": "prometheus_metrics_exporter",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/prometheus_metrics_exporter.py"
+        },
+        {
+          "name": "prompt_amplifier",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/prompt_amplifier.py"
+        },
+        {
+          "name": "protocols",
+          "type": "package",
+          "file_count": 6,
+          "path": "Murphy System/src/protocols"
+        },
+        {
+          "name": "question_manager",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/question_manager.py"
+        },
+        {
+          "name": "rag_vector_integration",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/rag_vector_integration.py"
+        },
+        {
+          "name": "rbac_governance",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/rbac_governance.py"
+        },
+        {
+          "name": "readiness_bootstrap_orchestrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/readiness_bootstrap_orchestrator.py"
+        },
+        {
+          "name": "readiness_scanner",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/readiness_scanner.py"
+        },
+        {
+          "name": "reasoning_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/reasoning_engine.py"
+        },
+        {
+          "name": "recursive_stability_controller",
+          "type": "package",
+          "file_count": 11,
+          "path": "Murphy System/src/recursive_stability_controller"
+        },
+        {
+          "name": "regulation_ml_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/regulation_ml_engine.py"
+        },
+        {
+          "name": "remote_access_connector",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/remote_access_connector.py"
+        },
+        {
+          "name": "repair_api_endpoints",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/repair_api_endpoints.py"
+        },
+        {
+          "name": "request_context",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/request_context.py"
+        },
+        {
+          "name": "research_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/research_engine.py"
+        },
+        {
+          "name": "resolution_scoring",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/resolution_scoring.py"
+        },
+        {
+          "name": "resource_scaling_controller",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/resource_scaling_controller.py"
+        },
+        {
+          "name": "response_composer",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/response_composer.py"
+        },
+        {
+          "name": "response_formatter",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/response_formatter.py"
+        },
+        {
+          "name": "risk_mitigation_tracker",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/risk_mitigation_tracker.py"
+        },
+        {
+          "name": "risk_routes",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/risk_routes.py"
+        },
+        {
+          "name": "robotics",
+          "type": "package",
+          "file_count": 6,
+          "path": "Murphy System/src/robotics"
+        },
+        {
+          "name": "room_llm_brain",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/room_llm_brain.py"
+        },
+        {
+          "name": "rosetta",
+          "type": "package",
+          "file_count": 8,
+          "path": "Murphy System/src/rosetta"
+        },
+        {
+          "name": "rosetta_platform_state",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/rosetta_platform_state.py"
+        },
+        {
+          "name": "rosetta_selling_bridge",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/rosetta_selling_bridge.py"
+        },
+        {
+          "name": "rosetta_stone_heartbeat",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/rosetta_stone_heartbeat.py"
+        },
+        {
+          "name": "rosetta_subsystem_wiring",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/rosetta_subsystem_wiring.py"
+        },
+        {
+          "name": "rosette_lens",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/rosette_lens.py"
+        },
+        {
+          "name": "rpa_recorder_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/rpa_recorder_engine.py"
+        },
+        {
+          "name": "rubix_evidence_adapter",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/rubix_evidence_adapter.py"
+        },
+        {
+          "name": "runtime",
+          "type": "package",
+          "file_count": 13,
+          "path": "Murphy System/src/runtime"
+        },
+        {
+          "name": "runtime_profile_compiler",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/runtime_profile_compiler.py"
+        },
+        {
+          "name": "safe_llm_wrapper",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/safe_llm_wrapper.py"
+        },
+        {
+          "name": "safety_gateway_integrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/safety_gateway_integrator.py"
+        },
+        {
+          "name": "safety_orchestrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/safety_orchestrator.py"
+        },
+        {
+          "name": "safety_validation_pipeline",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/safety_validation_pipeline.py"
+        },
+        {
+          "name": "sales_automation",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/sales_automation.py"
+        },
+        {
+          "name": "scheduler",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/scheduler.py"
+        },
+        {
+          "name": "schema_registry",
+          "type": "package",
+          "file_count": 3,
+          "path": "Murphy System/src/schema_registry"
+        },
+        {
+          "name": "secure_key_manager",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/secure_key_manager.py"
+        },
+        {
+          "name": "security_audit_scanner",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/security_audit_scanner.py"
+        },
+        {
+          "name": "security_hardening_config",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/security_hardening_config.py"
+        },
+        {
+          "name": "security_plane",
+          "type": "package",
+          "file_count": 18,
+          "path": "Murphy System/src/security_plane"
+        },
+        {
+          "name": "security_plane_adapter",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/security_plane_adapter.py"
+        },
+        {
+          "name": "self_automation_bootstrap",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/self_automation_bootstrap.py"
+        },
+        {
+          "name": "self_automation_orchestrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/self_automation_orchestrator.py"
+        },
+        {
+          "name": "self_codebase_swarm",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/self_codebase_swarm.py"
+        },
+        {
+          "name": "self_fix_loop",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/self_fix_loop.py"
+        },
+        {
+          "name": "self_fix_loop_connector",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/self_fix_loop_connector.py"
+        },
+        {
+          "name": "self_healing_coordinator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/self_healing_coordinator.py"
+        },
+        {
+          "name": "self_healing_handlers",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/self_healing_handlers.py"
+        },
+        {
+          "name": "self_healing_startup",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/self_healing_startup.py"
+        },
+        {
+          "name": "self_improvement_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/self_improvement_engine.py"
+        },
+        {
+          "name": "self_introspection_module",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/self_introspection_module.py"
+        },
+        {
+          "name": "self_learning_toggle",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/self_learning_toggle.py"
+        },
+        {
+          "name": "self_loop_wiring",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/self_loop_wiring.py"
+        },
+        {
+          "name": "self_marketing_orchestrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/self_marketing_orchestrator.py"
+        },
+        {
+          "name": "self_optimisation_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/self_optimisation_engine.py"
+        },
+        {
+          "name": "self_selling_engine",
+          "type": "package",
+          "file_count": 6,
+          "path": "Murphy System/src/self_selling_engine"
+        },
+        {
+          "name": "semantics_boundary_controller",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/semantics_boundary_controller.py"
+        },
+        {
+          "name": "sensor_reader",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/sensor_reader.py"
+        },
+        {
+          "name": "seo_optimisation_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/seo_optimisation_engine.py"
+        },
+        {
+          "name": "service_module",
+          "type": "package",
+          "file_count": 4,
+          "path": "Murphy System/src/service_module"
+        },
+        {
+          "name": "session_context",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/session_context.py"
+        },
+        {
+          "name": "setup_retry_amplifier",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/setup_retry_amplifier.py"
+        },
+        {
+          "name": "setup_wizard",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/setup_wizard.py"
+        },
+        {
+          "name": "shadow_agent_integration",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/shadow_agent_integration.py"
+        },
+        {
+          "name": "shadow_knostalgia_bridge",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/shadow_knostalgia_bridge.py"
+        },
+        {
+          "name": "shim_compiler",
+          "type": "package",
+          "file_count": 3,
+          "path": "Murphy System/src/shim_compiler"
+        },
+        {
+          "name": "shutdown_manager",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/shutdown_manager.py"
+        },
+        {
+          "name": "signup_gateway",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/signup_gateway.py"
+        },
+        {
+          "name": "simulation_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/simulation_engine.py"
+        },
+        {
+          "name": "skill_catalogue_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/skill_catalogue_engine.py"
+        },
+        {
+          "name": "skill_system",
+          "type": "package",
+          "file_count": 3,
+          "path": "Murphy System/src/skill_system"
+        },
+        {
+          "name": "slo_remediation_bridge",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/slo_remediation_bridge.py"
+        },
+        {
+          "name": "smart_codegen",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/smart_codegen.py"
+        },
+        {
+          "name": "social_media_moderation",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/social_media_moderation.py"
+        },
+        {
+          "name": "social_media_scheduler",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/social_media_scheduler.py"
+        },
+        {
+          "name": "solution_path_registry",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/solution_path_registry.py"
+        },
+        {
+          "name": "split_screen_coordinator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/split_screen_coordinator.py"
+        },
+        {
+          "name": "startup_feature_summary",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/startup_feature_summary.py"
+        },
+        {
+          "name": "startup_validator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/startup_validator.py"
+        },
+        {
+          "name": "state_machine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/state_machine.py"
+        },
+        {
+          "name": "state_schema",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/state_schema.py"
+        },
+        {
+          "name": "statistics_collector",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/statistics_collector.py"
+        },
+        {
+          "name": "strategic_planning_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/strategic_planning_engine.py"
+        },
+        {
+          "name": "strategy_templates",
+          "type": "package",
+          "file_count": 11,
+          "path": "Murphy System/src/strategy_templates"
+        },
+        {
+          "name": "structural_coherence",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/structural_coherence.py"
+        },
+        {
+          "name": "subscription_manager",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/subscription_manager.py"
+        },
+        {
+          "name": "supervision_tree",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/supervision_tree.py"
+        },
+        {
+          "name": "supervisor_system",
+          "type": "package",
+          "file_count": 10,
+          "path": "Murphy System/src/supervisor_system"
+        },
+        {
+          "name": "supply_orchestrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/supply_orchestrator.py"
+        },
+        {
+          "name": "swarm_proposal_generator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/swarm_proposal_generator.py"
+        },
+        {
+          "name": "swarm_rate_governor",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/swarm_rate_governor.py"
+        },
+        {
+          "name": "swarm_rosetta_bridge",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/swarm_rosetta_bridge.py"
+        },
+        {
+          "name": "synthetic_failure_generator",
+          "type": "package",
+          "file_count": 11,
+          "path": "Murphy System/src/synthetic_failure_generator"
+        },
+        {
+          "name": "synthetic_interview_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/synthetic_interview_engine.py"
+        },
+        {
+          "name": "system_builder",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/system_builder.py"
+        },
+        {
+          "name": "system_configuration_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/system_configuration_engine.py"
+        },
+        {
+          "name": "system_integrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/system_integrator.py"
+        },
+        {
+          "name": "system_librarian",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/system_librarian.py"
+        },
+        {
+          "name": "system_performance_optimizer",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/system_performance_optimizer.py"
+        },
+        {
+          "name": "system_update_api",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/system_update_api.py"
+        },
+        {
+          "name": "system_update_recommendation_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/system_update_recommendation_engine.py"
+        },
+        {
+          "name": "task_execution_bridge",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/task_execution_bridge.py"
+        },
+        {
+          "name": "task_executor",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/task_executor.py"
+        },
+        {
+          "name": "task_router",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/task_router.py"
+        },
+        {
+          "name": "telemetry_adapter",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/telemetry_adapter.py"
+        },
+        {
+          "name": "telemetry_evidence",
+          "type": "package",
+          "file_count": 2,
+          "path": "Murphy System/src/telemetry_evidence"
+        },
+        {
+          "name": "telemetry_learning",
+          "type": "package",
+          "file_count": 8,
+          "path": "Murphy System/src/telemetry_learning"
+        },
+        {
+          "name": "telemetry_system",
+          "type": "package",
+          "file_count": 2,
+          "path": "Murphy System/src/telemetry_system"
+        },
+        {
+          "name": "tenant_resource_governor",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/tenant_resource_governor.py"
+        },
+        {
+          "name": "test_mode_controller",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/test_mode_controller.py"
+        },
+        {
+          "name": "thread_safe_operations",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/thread_safe_operations.py"
+        },
+        {
+          "name": "ticket_triage_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/ticket_triage_engine.py"
+        },
+        {
+          "name": "ticketing_adapter",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/ticketing_adapter.py"
+        },
+        {
+          "name": "time_tracking",
+          "type": "package",
+          "file_count": 17,
+          "path": "Murphy System/src/time_tracking"
+        },
+        {
+          "name": "tool_registry",
+          "type": "package",
+          "file_count": 3,
+          "path": "Murphy System/src/tool_registry"
+        },
+        {
+          "name": "tos_acceptance_gate",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/tos_acceptance_gate.py"
+        },
+        {
+          "name": "trading_bot_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/trading_bot_engine.py"
+        },
+        {
+          "name": "trading_bot_lifecycle",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/trading_bot_lifecycle.py"
+        },
+        {
+          "name": "trading_compliance_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/trading_compliance_engine.py"
+        },
+        {
+          "name": "trading_hitl_gateway",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/trading_hitl_gateway.py"
+        },
+        {
+          "name": "trading_orchestrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/trading_orchestrator.py"
+        },
+        {
+          "name": "trading_routes",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/trading_routes.py"
+        },
+        {
+          "name": "trading_shadow_learner",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/trading_shadow_learner.py"
+        },
+        {
+          "name": "trading_strategy_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/trading_strategy_engine.py"
+        },
+        {
+          "name": "trajectory_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/trajectory_engine.py"
+        },
+        {
+          "name": "triage_rollcall_adapter",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/triage_rollcall_adapter.py"
+        },
+        {
+          "name": "trial_orchestrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/trial_orchestrator.py"
+        },
+        {
+          "name": "true_swarm_system",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/true_swarm_system.py"
+        },
+        {
+          "name": "ui_data_service",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/ui_data_service.py"
+        },
+        {
+          "name": "ui_test_completeness",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/ui_test_completeness.py"
+        },
+        {
+          "name": "ui_testing_framework",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/ui_testing_framework.py"
+        },
+        {
+          "name": "unified_control_protocol",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/unified_control_protocol.py"
+        },
+        {
+          "name": "unified_mfgc",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/unified_mfgc.py"
+        },
+        {
+          "name": "unified_observability_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/unified_observability_engine.py"
+        },
+        {
+          "name": "unit_economics_analyzer",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/unit_economics_analyzer.py"
+        },
+        {
+          "name": "universal_ingestion_framework",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/universal_ingestion_framework.py"
+        },
+        {
+          "name": "universal_integration_adapter",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/universal_integration_adapter.py"
+        },
+        {
+          "name": "upload_content_reviewer",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/upload_content_reviewer.py"
+        },
+        {
+          "name": "verification_layer",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/verification_layer.py"
+        },
+        {
+          "name": "video_packager",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/video_packager.py"
+        },
+        {
+          "name": "video_streaming_connector",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/video_streaming_connector.py"
+        },
+        {
+          "name": "viewport_content_resolver",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/viewport_content_resolver.py"
+        },
+        {
+          "name": "virtual_controller",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/virtual_controller.py"
+        },
+        {
+          "name": "visual_swarm_builder",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/visual_swarm_builder.py"
+        },
+        {
+          "name": "voice_command_interface",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/voice_command_interface.py"
+        },
+        {
+          "name": "webhook_dispatcher",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/webhook_dispatcher.py"
+        },
+        {
+          "name": "webhook_event_processor",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/webhook_event_processor.py"
+        },
+        {
+          "name": "websocket_event_server",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/websocket_event_server.py"
+        },
+        {
+          "name": "wingman_protocol",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/wingman_protocol.py"
+        },
+        {
+          "name": "wingman_system",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/wingman_system.py"
+        },
+        {
+          "name": "workdocs",
+          "type": "package",
+          "file_count": 4,
+          "path": "Murphy System/src/workdocs"
+        },
+        {
+          "name": "workflow_dag_engine",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/workflow_dag_engine.py"
+        },
+        {
+          "name": "workflow_template_marketplace",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/workflow_template_marketplace.py"
+        },
+        {
+          "name": "world_knowledge_calibrator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/world_knowledge_calibrator.py"
+        },
+        {
+          "name": "youtube_channel_bootstrap",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/youtube_channel_bootstrap.py"
+        },
+        {
+          "name": "youtube_metadata_generator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/youtube_metadata_generator.py"
+        },
+        {
+          "name": "youtube_uploader",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/youtube_uploader.py"
+        }
+      ]
+    },
+    "test_coverage": {
+      "total_modules": 588,
+      "covered": 342,
+      "uncovered": 246,
+      "coverage_ratio": 0.582,
+      "covered_modules": [
+        "ab_testing_framework",
+        "account_management",
+        "activated_heartbeat_runner",
+        "adapter_framework",
+        "adaptive_campaign_engine",
+        "additive_manufacturing_connectors",
+        "advanced_loop_wiring",
+        "agent_module_loader",
+        "agent_persona_library",
+        "agent_run_recorder",
+        "agentic_onboarding_engine",
+        "ai_workflow_generator",
+        "alert_rules_engine",
+        "all_hands",
+        "analytics_dashboard",
+        "announcer_voice_engine",
+        "api_collection_agent",
+        "api_gateway_adapter",
+        "architecture_evolution",
+        "as_built_generator",
+        "auar",
+        "auar_api",
+        "audit_logging_system",
+        "authority_gate",
+        "auto_documentation_engine",
+        "automation_integration_hub",
+        "automation_loop_connector",
+        "automation_marketplace",
+        "automation_mode_controller",
+        "automation_rbac_controller",
+        "automation_readiness_evaluator",
+        "automation_scheduler",
+        "automation_type_registry",
+        "automations",
+        "autonomous_repair_system",
+        "avatar",
+        "backup_disaster_recovery",
+        "bas_equipment_ingestion",
+        "base_governance_runtime",
+        "blockchain_audit_trail",
+        "board_system",
+        "bot_governance_policy_mapper",
+        "bot_telemetry_normalizer",
+        "bridge_layer",
+        "budget_aware_processor",
+        "bug_pattern_detector",
+        "business_scaling_engine",
+        "campaign_orchestrator",
+        "capability_map",
+        "capacity_planning_engine",
+        "causality_sandbox",
+        "ceo_activation_plan",
+        "chaos_resilience_loop",
+        "ci_cd_pipeline_manager",
+        "cli_art",
+        "climate_resilience_engine",
+        "closure_engine",
+        "cloudflare_deploy",
+        "code_generation_gateway",
+        "code_repair_engine",
+        "collaboration",
+        "collaborative_task_orchestrator",
+        "comms",
+        "competitive_intelligence_engine",
+        "compliance_as_code_engine",
+        "compliance_automation_bridge",
+        "compliance_engine",
+        "compliance_monitoring_completeness",
+        "compliance_orchestration_bridge",
+        "compliance_region_validator",
+        "compliance_report_aggregator",
+        "compliance_toggle_manager",
+        "compute_plane",
+        "computer_vision_pipeline",
+        "concept_graph_engine",
+        "concept_translation",
+        "confidence_engine",
+        "contact_compliance_governor",
+        "content_pipeline_engine",
+        "control_plane",
+        "control_plane_separation",
+        "control_theory",
+        "conversation_manager",
+        "cost_optimization_advisor",
+        "crm",
+        "cross_platform_data_sync",
+        "customer_communication_manager",
+        "customer_infra_orchestrator",
+        "cutsheet_engine",
+        "dashboards",
+        "data_archive_manager",
+        "data_pipeline_orchestrator",
+        "declarative_fleet_manager",
+        "delivery_adapters",
+        "delivery_channel_completeness",
+        "dependency_audit_engine",
+        "dependency_deprecation_scanner",
+        "deployment_automation_controller",
+        "deterministic_routing_engine",
+        "dev_module",
+        "digital_twin_engine",
+        "docker_containerization",
+        "document_export",
+        "durable_swarm_orchestrator",
+        "dynamic_assist_engine",
+        "email_integration",
+        "emergency_stop",
+        "emergency_stop_controller",
+        "end_user_agreement",
+        "energy_efficiency_framework",
+        "enterprise_integrations",
+        "environment_setup_agent",
+        "environment_state_manager",
+        "event_backbone",
+        "event_backbone_client",
+        "execution_orchestrator",
+        "execution_packet_compiler",
+        "executive_planning_engine",
+        "faq_generation_engine",
+        "feature_flags",
+        "federated_learning_coordinator",
+        "feedback_integrator",
+        "financial_reporting_engine",
+        "forge_rate_limiter",
+        "forge_stream",
+        "founder_maintenance_recommendation_engine",
+        "founder_update_orchestrator",
+        "freelancer_validator",
+        "functionality_heatmap",
+        "gate_behavior_model_engine",
+        "gate_bypass_controller",
+        "gate_execution_wiring",
+        "gate_synthesis",
+        "geographic_load_balancer",
+        "global_feedback",
+        "golden_path_bridge",
+        "governance_framework",
+        "governance_kernel",
+        "graphql_api_layer",
+        "guest_collab",
+        "hardware_visual_onboarding",
+        "health_monitor",
+        "heartbeat_liveness_protocol",
+        "hetzner_deploy",
+        "highlight_overlay",
+        "hitl_autonomy_controller",
+        "hitl_graduation_engine",
+        "immune_memory",
+        "industry_automation_wizard",
+        "information_density",
+        "information_quality",
+        "input_validation",
+        "invoice_processing_pipeline",
+        "key_harvester",
+        "kfactor_calculator",
+        "knostalgia_engine",
+        "knowledge_base_manager",
+        "knowledge_graph_builder",
+        "kpi_tracker",
+        "kubernetes_deployment",
+        "large_action_model",
+        "large_control_model",
+        "lcm_engine",
+        "lcm_integration_bridge",
+        "learning_engine",
+        "learning_engine_connector",
+        "legacy_compatibility_matrix",
+        "llm_output_validator",
+        "llm_provider",
+        "llm_routing_completeness",
+        "log_analysis_engine",
+        "management_systems",
+        "market_positioning_engine",
+        "marketing_analytics_aggregator",
+        "matrix_bridge",
+        "mcp_plugin",
+        "metrics",
+        "mfgc_core",
+        "mfgc_v1_1",
+        "ml_model_registry",
+        "module_loader",
+        "module_registry",
+        "mss_controls",
+        "mss_sequence_optimizer",
+        "multi_agent_coordinator",
+        "multi_cloud_orchestrator",
+        "multi_tenant_workspace",
+        "multiverse_game_framework",
+        "murphy_action_engine",
+        "murphy_autonomous_perception",
+        "murphy_code_healer",
+        "murphy_credential_gate",
+        "murphy_crew_system",
+        "murphy_drawing_engine",
+        "murphy_engineering_toolbox",
+        "murphy_foundation_model",
+        "murphy_immune_engine",
+        "murphy_native_automation",
+        "murphy_osmosis_engine",
+        "murphy_sensor_fusion",
+        "murphy_shadow_trainer",
+        "murphy_state_graph",
+        "murphy_template_hub",
+        "murphy_terminal",
+        "murphy_trace",
+        "murphy_wingman_evolution",
+        "natural_language_query",
+        "nav_registry",
+        "neuro_symbolic_models",
+        "niche_business_generator",
+        "niche_viability_gate",
+        "notification_system",
+        "oauth_oidc_provider",
+        "observability_counters",
+        "onboarding_automation_engine",
+        "onboarding_team_pipeline",
+        "openai_compatible_provider",
+        "operational_completeness",
+        "operational_dashboard_aggregator",
+        "operational_slo_tracker",
+        "operations_cycle_engine",
+        "org_chart_enforcement",
+        "org_compiler",
+        "outreach_campaign_planner",
+        "outreach_compliance_integration",
+        "outreach_compliance_plan",
+        "persistence_manager",
+        "persistence_replay_completeness",
+        "persistence_wal",
+        "persistent_memory",
+        "pilot_config",
+        "platform_connector_framework",
+        "plugin_extension_sdk",
+        "portfolio",
+        "predictive_failure_engine",
+        "predictive_maintenance_engine",
+        "presets",
+        "pro_con_decision_engine",
+        "production_assistant",
+        "prometheus_metrics_exporter",
+        "prompt_amplifier",
+        "rag_vector_integration",
+        "rbac_governance",
+        "readiness_bootstrap_orchestrator",
+        "readiness_scanner",
+        "reasoning_engine",
+        "recursive_stability_controller",
+        "resolution_scoring",
+        "resource_scaling_controller",
+        "risk_mitigation_tracker",
+        "robotics",
+        "rosetta",
+        "rosetta_subsystem_wiring",
+        "rosette_lens",
+        "rpa_recorder_engine",
+        "rubix_evidence_adapter",
+        "runtime_profile_compiler",
+        "safety_gateway_integrator",
+        "safety_validation_pipeline",
+        "sales_automation",
+        "schema_registry",
+        "security_audit_scanner",
+        "self_automation_orchestrator",
+        "self_codebase_swarm",
+        "self_fix_loop",
+        "self_fix_loop_connector",
+        "self_healing_coordinator",
+        "self_healing_handlers",
+        "self_improvement_engine",
+        "self_introspection_module",
+        "self_learning_toggle",
+        "self_loop_wiring",
+        "self_marketing_orchestrator",
+        "self_optimisation_engine",
+        "self_selling_engine",
+        "semantics_boundary_controller",
+        "sensor_reader",
+        "seo_optimisation_engine",
+        "service_module",
+        "session_context",
+        "setup_retry_amplifier",
+        "setup_wizard",
+        "shadow_agent_integration",
+        "shadow_knostalgia_bridge",
+        "shim_compiler",
+        "shutdown_manager",
+        "signup_gateway",
+        "simulation_engine",
+        "skill_system",
+        "slo_remediation_bridge",
+        "social_media_moderation",
+        "social_media_scheduler",
+        "startup_feature_summary",
+        "state_machine",
+        "state_schema",
+        "strategic_planning_engine",
+        "structural_coherence",
+        "subscription_manager",
+        "supervision_tree",
+        "swarm_rate_governor",
+        "synthetic_failure_generator",
+        "synthetic_interview_engine",
+        "system_configuration_engine",
+        "system_performance_optimizer",
+        "system_update_api",
+        "system_update_recommendation_engine",
+        "task_execution_bridge",
+        "task_router",
+        "telemetry_learning",
+        "tenant_resource_governor",
+        "test_mode_controller",
+        "thread_safe_operations",
+        "ticket_triage_engine",
+        "ticketing_adapter",
+        "time_tracking",
+        "tool_registry",
+        "tos_acceptance_gate",
+        "trading_bot_engine",
+        "trading_routes",
+        "triage_rollcall_adapter",
+        "trial_orchestrator",
+        "ui_test_completeness",
+        "unified_control_protocol",
+        "unified_observability_engine",
+        "unit_economics_analyzer",
+        "universal_ingestion_framework",
+        "upload_content_reviewer",
+        "verification_layer",
+        "video_packager",
+        "virtual_controller",
+        "visual_swarm_builder",
+        "voice_command_interface",
+        "webhook_dispatcher",
+        "webhook_event_processor",
+        "websocket_event_server",
+        "wingman_protocol",
+        "workdocs",
+        "workflow_dag_engine",
+        "workflow_template_marketplace",
+        "youtube_channel_bootstrap",
+        "youtube_metadata_generator",
+        "youtube_uploader"
+      ],
+      "uncovered_modules": [
+        "advanced_reports",
+        "advanced_research",
+        "advanced_swarm_system",
+        "agent_monitor_dashboard",
+        "agentic_api_provisioner",
+        "agentic_comms_router",
+        "ai_comms_orchestrator",
+        "aionmind",
+        "ambient_api_router",
+        "ambient_context_store",
+        "ambient_email_delivery",
+        "ambient_synthesis",
+        "api_capability_builder",
+        "artifact_viewport",
+        "artifact_viewport_api",
+        "audit_logger",
+        "auth_middleware",
+        "automation_commissioner",
+        "automation_safeguard_engine",
+        "automation_scaler",
+        "autonomous_systems",
+        "backtester",
+        "benchmark_adapters",
+        "billing",
+        "blackstart_controller",
+        "blueprint_auth",
+        "bootstrap_and_run",
+        "bot_inventory_library",
+        "bot_room_registry",
+        "building_automation_connectors",
+        "cache",
+        "causal_spike_analyzer",
+        "ceo_branch_activation",
+        "chaos",
+        "character_network_engine",
+        "chatbot_v1_1_fixed",
+        "client_psychology_engine",
+        "coinbase_connector",
+        "command_parser",
+        "command_system",
+        "comms_hub_routes",
+        "communication_hub",
+        "communication_system",
+        "config",
+        "constraint_system",
+        "content_creator_platform_modulator",
+        "contractual_audit",
+        "conversation_handler",
+        "copilot_tenant",
+        "cost_calibrator",
+        "cost_explosion_gate",
+        "credential_profile_system",
+        "crypto_exchange_connector",
+        "crypto_portfolio_tracker",
+        "crypto_risk_manager",
+        "crypto_wallet_manager",
+        "csrf_protection",
+        "cyclic_trends_engine",
+        "database",
+        "db",
+        "demo_bundle_generator",
+        "demo_deliverable_generator",
+        "demo_runner",
+        "deployment_readiness",
+        "deterministic_compute",
+        "deterministic_compute_plane",
+        "digital_asset_generator",
+        "dispatch",
+        "dispatch_routes",
+        "document_processor",
+        "domain_engine",
+        "domain_expert_integration",
+        "domain_expert_system",
+        "domain_gate_generator",
+        "domain_swarms",
+        "dynamic_command_discovery",
+        "dynamic_expert_generator",
+        "dynamic_risk_manager",
+        "efficiency_orchestrator",
+        "elite_org_simulator",
+        "energy_audit_engine",
+        "energy_management_connectors",
+        "enhanced_chatbot_mfgc",
+        "enhanced_local_llm",
+        "env_manager",
+        "eq",
+        "error_calibrator",
+        "error_envelope",
+        "errors",
+        "execution",
+        "execution_compiler",
+        "execution_engine",
+        "execution_router",
+        "factory_automation_connectors",
+        "fastapi_security",
+        "finish_line_controller",
+        "flask_security",
+        "form_intake",
+        "founder_bootstrap_orchestrator",
+        "founder_maintenance_api",
+        "founder_update_api",
+        "founder_update_engine",
+        "full_automation_controller",
+        "game_creation_pipeline",
+        "gate_builder",
+        "generative_knowledge_builder",
+        "golden_path_engine",
+        "governance_toggle",
+        "graduation_controller",
+        "groq_key_rotator",
+        "hidden_cost_tracker",
+        "historical_greatness_engine",
+        "hitl_execution_gate",
+        "hitl_persistence",
+        "image_generation_engine",
+        "inference_gate_engine",
+        "infinity_expansion_system",
+        "innovation_farmer",
+        "inoni_org_bootstrap",
+        "inquisitory_engine",
+        "integration_bus",
+        "integration_engine",
+        "integrations",
+        "ip_classification_engine",
+        "knostalgia_category_engine",
+        "knowledge_gap_system",
+        "lcm_chaos_simulation",
+        "lcm_domain_registry",
+        "learning_system",
+        "librarian",
+        "librarian_adapter",
+        "librarian_integration",
+        "live_feed_service",
+        "live_trading_engine",
+        "llm_controller",
+        "llm_integration",
+        "llm_integration_layer",
+        "llm_swarm_integration",
+        "local_inference_engine",
+        "local_llm_fallback",
+        "local_model_layer",
+        "logging_config",
+        "logging_system",
+        "manufacturing_automation_standards",
+        "market_data_feed",
+        "memory_artifact_system",
+        "memory_management",
+        "mfgc_adapter",
+        "mfgc_metrics",
+        "ml",
+        "ml_strategy_engine",
+        "mock_compatible_local_llm",
+        "modular_runtime",
+        "module_compiler",
+        "module_compiler_adapter",
+        "module_instance_api",
+        "module_instance_manager",
+        "module_manager",
+        "multi_language_codegen",
+        "multi_source_research",
+        "murphy_drawing_engine_extensions",
+        "murphy_identity",
+        "murphy_repl",
+        "networking_mastery_engine",
+        "neuro_symbolic_adapter",
+        "nocode_workflow_terminal",
+        "observation_model",
+        "onboarding_flow",
+        "optimal_routing_wiring",
+        "order_sensitivity_metrics",
+        "org_build_plan",
+        "org_chart_generator",
+        "organization_chart_system",
+        "organizational_context_system",
+        "paper_trading_engine",
+        "paper_trading_routes",
+        "performance_predictor",
+        "permutation_calibration_adapter",
+        "permutation_policy_registry",
+        "platform_onboarding",
+        "playwright_task_definitions",
+        "probabilistic_layer",
+        "procedural_distiller",
+        "production_assistant_engine",
+        "production_deliverable_wizard",
+        "production_output_calibrator",
+        "production_router",
+        "profit_sweep",
+        "protocols",
+        "question_manager",
+        "regulation_ml_engine",
+        "remote_access_connector",
+        "repair_api_endpoints",
+        "request_context",
+        "research_engine",
+        "response_composer",
+        "response_formatter",
+        "risk_routes",
+        "room_llm_brain",
+        "rosetta_platform_state",
+        "rosetta_selling_bridge",
+        "rosetta_stone_heartbeat",
+        "runtime",
+        "safe_llm_wrapper",
+        "safety_orchestrator",
+        "scheduler",
+        "secure_key_manager",
+        "security_hardening_config",
+        "security_plane",
+        "security_plane_adapter",
+        "self_automation_bootstrap",
+        "self_healing_startup",
+        "skill_catalogue_engine",
+        "smart_codegen",
+        "solution_path_registry",
+        "split_screen_coordinator",
+        "startup_validator",
+        "statistics_collector",
+        "strategy_templates",
+        "supervisor_system",
+        "supply_orchestrator",
+        "swarm_proposal_generator",
+        "swarm_rosetta_bridge",
+        "system_builder",
+        "system_integrator",
+        "system_librarian",
+        "task_executor",
+        "telemetry_adapter",
+        "telemetry_evidence",
+        "telemetry_system",
+        "trading_bot_lifecycle",
+        "trading_compliance_engine",
+        "trading_hitl_gateway",
+        "trading_orchestrator",
+        "trading_shadow_learner",
+        "trading_strategy_engine",
+        "trajectory_engine",
+        "true_swarm_system",
+        "ui_data_service",
+        "ui_testing_framework",
+        "unified_mfgc",
+        "universal_integration_adapter",
+        "video_streaming_connector",
+        "viewport_content_resolver",
+        "wingman_system",
+        "world_knowledge_calibrator"
+      ],
+      "meets_minimum": true
+    },
+    "critical_module_tests": {
+      "total_critical": 19,
+      "tested": 14,
+      "missing_tests": [
+        "errors",
+        "runtime",
+        "deployment_readiness",
+        "security_hardening_config",
+        "auth_middleware"
+      ],
+      "present_tests": [
+        "swarm_rate_governor",
+        "forge_rate_limiter",
+        "tool_registry",
+        "feature_flags",
+        "persistent_memory",
+        "skill_system",
+        "mcp_plugin",
+        "multi_agent_coordinator",
+        "gate_bypass_controller",
+        "lcm_engine",
+        "llm_provider",
+        "rosetta",
+        "readiness_scanner",
+        "input_validation"
+      ],
+      "all_covered": false
+    },
+    "smoke_imports": {
+      "passed": 0,
+      "failed": 0,
+      "failures": [],
+      "skipped": true
+    },
+    "debt_markers": {
+      "total": 701,
+      "by_type": {
+        "TODO": 27,
+        "FIXME": 2,
+        "HACK": 6,
+        "STUB": 207,
+        "XXX": 12,
+        "NOQA": 447
+      },
+      "files_with_debt_count": 179,
+      "top_files": [
+        {
+          "file": "Murphy System/src/live_feed_service.py",
+          "markers": {
+            "STUB": 10,
+            "NOQA": 25
+          }
+        },
+        {
+          "file": "Murphy System/src/key_harvester.py",
+          "markers": {
+            "STUB": 1,
+            "NOQA": 26
+          }
+        },
+        {
+          "file": "Murphy System/src/runtime/app.py",
+          "markers": {
+            "TODO": 1,
+            "HACK": 1,
+            "STUB": 10,
+            "XXX": 1,
+            "NOQA": 11
+          }
+        },
+        {
+          "file": "Murphy System/src/integrations/database_connectors.py",
+          "markers": {
+            "STUB": 17,
+            "NOQA": 4
+          }
+        },
+        {
+          "file": "Murphy System/src/self_marketing_orchestrator.py",
+          "markers": {
+            "STUB": 1,
+            "NOQA": 18
+          }
+        },
+        {
+          "file": "Murphy System/src/api_capability_builder.py",
+          "markers": {
+            "STUB": 15,
+            "NOQA": 3
+          }
+        },
+        {
+          "file": "Murphy System/src/matrix_bridge/e2ee_manager.py",
+          "markers": {
+            "STUB": 17,
+            "NOQA": 1
+          }
+        },
+        {
+          "file": "Murphy System/src/database/__init__.py",
+          "markers": {
+            "STUB": 6,
+            "NOQA": 9
+          }
+        },
+        {
+          "file": "Murphy System/src/murphy_foundation_model/mfm_model.py",
+          "markers": {
+            "STUB": 5,
+            "NOQA": 10
+          }
+        },
+        {
+          "file": "Murphy System/src/outreach_compliance_integration.py",
+          "markers": {
+            "STUB": 3,
+            "NOQA": 12
+          }
+        },
+        {
+          "file": "Murphy System/src/rosetta/subsystem_wiring.py",
+          "markers": {
+            "STUB": 6,
+            "NOQA": 8
+          }
+        },
+        {
+          "file": "Murphy System/src/ceo_branch_activation.py",
+          "markers": {
+            "NOQA": 12
+          }
+        },
+        {
+          "file": "Murphy System/src/multi_language_codegen.py",
+          "markers": {
+            "TODO": 11
+          }
+        },
+        {
+          "file": "Murphy System/src/self_selling_engine/_engine.py",
+          "markers": {
+            "NOQA": 11
+          }
+        },
+        {
+          "file": "Murphy System/src/demo_deliverable_generator.py",
+          "markers": {
+            "TODO": 2,
+            "XXX": 1,
+            "NOQA": 7
+          }
+        },
+        {
+          "file": "Murphy System/src/regulation_ml_engine.py",
+          "markers": {
+            "STUB": 4,
+            "NOQA": 6
+          }
+        },
+        {
+          "file": "Murphy System/src/trial_orchestrator.py",
+          "markers": {
+            "NOQA": 10
+          }
+        },
+        {
+          "file": "Murphy System/src/murphy_code_healer.py",
+          "markers": {
+            "TODO": 3,
+            "FIXME": 2,
+            "HACK": 2,
+            "STUB": 1,
+            "XXX": 1
+          }
+        },
+        {
+          "file": "Murphy System/src/automation_safeguard_engine.py",
+          "markers": {
+            "NOQA": 8
+          }
+        },
+        {
+          "file": "Murphy System/src/benchmark_adapters/swe_bench_adapter.py",
+          "markers": {
+            "NOQA": 8
+          }
+        }
+      ]
+    },
+    "docstring_coverage": {
+      "total_files": 505,
+      "with_docstring": 505,
+      "without_docstring": 0,
+      "missing_docstrings": [],
+      "coverage_pct": 100.0
+    },
+    "error_handling": {
+      "bare_except_count": 106,
+      "violations": [
+        {
+          "file": "Murphy System/src/agent_module_loader.py",
+          "line": 596,
+          "content": "except Exception: / pass"
+        },
+        {
+          "file": "Murphy System/src/agent_module_loader.py",
+          "line": 605,
+          "content": "except Exception: / pass"
+        },
+        {
+          "file": "Murphy System/src/agent_module_loader.py",
+          "line": 613,
+          "content": "except Exception: / pass"
+        },
+        {
+          "file": "Murphy System/src/agent_module_loader.py",
+          "line": 622,
+          "content": "except Exception: / pass"
+        },
+        {
+          "file": "Murphy System/src/agent_module_loader.py",
+          "line": 627,
+          "content": "except Exception: / pass"
+        },
+        {
+          "file": "Murphy System/src/agentic_comms_router.py",
+          "line": 243,
+          "content": "except Exception: / pass"
+        },
+        {
+          "file": "Murphy System/src/announcer_voice_engine.py",
+          "line": 85,
+          "content": "except ImportError: / pass"
+        },
+        {
+          "file": "Murphy System/src/audit_logger.py",
+          "line": 364,
+          "content": "except Exception: / pass"
+        },
+        {
+          "file": "Murphy System/src/automation_commissioner.py",
+          "line": 271,
+          "content": "except Exception: / pass"
+        },
+        {
+          "file": "Murphy System/src/ceo_branch_activation.py",
+          "line": 1475,
+          "content": "except Exception: / pass"
+        },
+        {
+          "file": "Murphy System/src/collaborative_task_orchestrator.py",
+          "line": 522,
+          "content": "except NameError: / pass"
+        },
+        {
+          "file": "Murphy System/src/compute_plane/parsers/expression_parser.py",
+          "line": 35,
+          "content": "except ImportError: / pass"
+        },
+        {
+          "file": "Murphy System/src/compute_plane/solvers/numeric_solver.py",
+          "line": 33,
+          "content": "except ImportError: / pass"
+        },
+        {
+          "file": "Murphy System/src/compute_plane/solvers/symbolic_solver.py",
+          "line": 45,
+          "content": "except ImportError: / pass"
+        },
+        {
+          "file": "Murphy System/src/confidence_engine/credential_interface.py",
+          "line": 273,
+          "content": "except ImportError: / pass"
+        },
+        {
+          "file": "Murphy System/src/conversation_handler.py",
+          "line": 135,
+          "content": "except Exception: / pass"
+        },
+        {
+          "file": "Murphy System/src/conversation_handler.py",
+          "line": 151,
+          "content": "except Exception: / pass"
+        },
+        {
+          "file": "Murphy System/src/conversation_handler.py",
+          "line": 170,
+          "content": "except Exception: / pass"
+        },
+        {
+          "file": "Murphy System/src/cutsheet_engine.py",
+          "line": 831,
+          "content": "except ValueError: / pass"
+        },
+        {
+          "file": "Murphy System/src/database/__init__.py",
+          "line": 271,
+          "content": "except Exception: / pass"
+        },
+        {
+          "file": "Murphy System/src/demo_deliverable_generator.py",
+          "line": 2736,
+          "content": "except Exception: / pass"
+        },
+        {
+          "file": "Murphy System/src/demo_deliverable_generator.py",
+          "line": 3068,
+          "content": "except Exception: / pass"
+        },
+        {
+          "file": "Murphy System/src/demo_deliverable_generator.py",
+          "line": 3081,
+          "content": "except Exception: / pass"
+        },
+        {
+          "file": "Murphy System/src/dispatch.py",
+          "line": 147,
+          "content": "except Exception: / pass"
+        },
+        {
+          "file": "Murphy System/src/dispatch.py",
+          "line": 179,
+          "content": "except Exception: / pass"
+        },
+        {
+          "file": "Murphy System/src/dispatch.py",
+          "line": 390,
+          "content": "except Exception: / pass"
+        },
+        {
+          "file": "Murphy System/src/event_backbone.py",
+          "line": 108,
+          "content": "except ValueError: / pass"
+        },
+        {
+          "file": "Murphy System/src/event_backbone.py",
+          "line": 113,
+          "content": "except KeyError: / pass"
+        },
+        {
+          "file": "Murphy System/src/event_backbone_client.py",
+          "line": 154,
+          "content": "except ImportError: / pass"
+        },
+        {
+          "file": "Murphy System/src/execution/document_generation_engine.py",
+          "line": 236,
+          "content": "except Exception: / pass"
+        }
+      ]
+    },
+    "source_parity": {
+      "murphy_files": 1317,
+      "root_files": 1317,
+      "only_in_murphy": [],
+      "only_in_root": [],
+      "in_sync": true,
+      "drift_count": 0
+    },
+    "config_files": {
+      "total_required": 6,
+      "present": 6,
+      "missing": [],
+      "details": [
+        {
+          "file": "requirements_ci.txt",
+          "exists": true,
+          "size_bytes": 1217
+        },
+        {
+          "file": "pyproject.toml",
+          "exists": true,
+          "size_bytes": 4231
+        },
+        {
+          "file": ".env.example",
+          "exists": true,
+          "size_bytes": 18432
+        },
+        {
+          "file": "Dockerfile",
+          "exists": true,
+          "size_bytes": 2178
+        },
+        {
+          "file": "docker-compose.yml",
+          "exists": true,
+          "size_bytes": 4927
+        },
+        {
+          "file": "gunicorn.conf.py",
+          "exists": true,
+          "size_bytes": 2743
+        }
+      ]
+    },
+    "env_example": {
+      "documented_vars": 13,
+      "required_vars_missing": [
+        "MURPHY_SECRET_KEY",
+        "DATABASE_URL"
+      ],
+      "all_required_documented": false
+    },
+    "security_hardening": {
+      "potential_secrets": 40,
+      "secret_findings": [
+        {
+          "file": "Murphy System/src/account_management/credential_vault.py",
+          "description": "Potential hardcoded secret",
+          "line_preview": "vault = CredentialVault(master_key=\"your-secret-key\")"
+        },
+        {
+          "file": "Murphy System/src/agent_module_loader.py",
+          "description": "Potential hardcoded secret",
+          "line_preview": "DESKTOP_HOTKEY = \"desktop_hotkey\""
+        },
+        {
+          "file": "Murphy System/src/agentic_api_provisioner.py",
+          "description": "Potential hardcoded secret",
+          "line_preview": "BEARER_TOKEN = \"bearer_token\""
+        },
+        {
+          "file": "Murphy System/src/api_gateway_adapter.py",
+          "description": "Potential hardcoded secret",
+          "line_preview": "BEARER_TOKEN = \"bearer_token\""
+        },
+        {
+          "file": "Murphy System/src/confidence_engine/credential_verifier.py",
+          "description": "Potential hardcoded secret",
+          "line_preview": "OAUTH_TOKEN = \"oauth_token\""
+        },
+        {
+          "file": "Murphy System/src/confidence_engine/credential_verifier.py",
+          "description": "Potential hardcoded secret",
+          "line_preview": "JWT_TOKEN = \"jwt_token\""
+        },
+        {
+          "file": "Murphy System/src/customer_infra_orchestrator.py",
+          "description": "Potential hardcoded secret",
+          "line_preview": "f'    -e MURPHY_SECRET_KEY=\"{secret_key}\" \\\\',"
+        },
+        {
+          "file": "Murphy System/src/founder_maintenance_recommendation_engine.py",
+          "description": "Potential hardcoded secret",
+          "line_preview": "_PERSIST_DOC_KEY = \"founder_maintenance_recommendations\""
+        },
+        {
+          "file": "Murphy System/src/founder_update_engine/auto_update_applicator.py",
+          "description": "Potential hardcoded secret",
+          "line_preview": "_PERSISTENCE_DOC_KEY = \"founder_update_engine_auto_applicator\""
+        },
+        {
+          "file": "Murphy System/src/founder_update_engine/bug_response_handler.py",
+          "description": "Potential hardcoded secret",
+          "line_preview": "_PERSISTENCE_DOC_KEY = \"founder_update_engine_bug_response_handler\""
+        },
+        {
+          "file": "Murphy System/src/founder_update_engine/operating_analysis_dashboard.py",
+          "description": "Potential hardcoded secret",
+          "line_preview": "_PERSISTENCE_DOC_KEY = \"founder_update_engine_operating_dashboard\""
+        },
+        {
+          "file": "Murphy System/src/founder_update_engine/recommendation_engine.py",
+          "description": "Potential hardcoded secret",
+          "line_preview": "_PERSISTENCE_DOC_KEY = \"founder_update_engine_recommendations\""
+        },
+        {
+          "file": "Murphy System/src/founder_update_engine/sdk_update_scanner.py",
+          "description": "Potential hardcoded secret",
+          "line_preview": "_PERSISTENCE_DOC_KEY = \"founder_update_engine_sdk_scanner\""
+        },
+        {
+          "file": "Murphy System/src/founder_update_engine/subsystem_registry.py",
+          "description": "Potential hardcoded secret",
+          "line_preview": "_PERSISTENCE_DOC_KEY = \"founder_update_engine_subsystems\""
+        },
+        {
+          "file": "Murphy System/src/founder_update_engine/update_coordinator.py",
+          "description": "Potential hardcoded secret",
+          "line_preview": "_PERSISTENCE_DOC_KEY = \"founder_update_engine_coordinator\""
+        },
+        {
+          "file": "Murphy System/src/founder_update_orchestrator.py",
+          "description": "Potential hardcoded secret",
+          "line_preview": "_PERSISTENCE_KEY = \"founder_update_orchestrator\""
+        },
+        {
+          "file": "Murphy System/src/industry_automation_wizard.py",
+          "description": "Potential hardcoded secret",
+          "line_preview": "onboarding_key=\"team_size\""
+        },
+        {
+          "file": "Murphy System/src/input_validation.py",
+          "description": "Potential hardcoded secret",
+          "line_preview": "secret=\"my-webhook-secret\","
+        },
+        {
+          "file": "Murphy System/src/ip_classification_engine.py",
+          "description": "Potential hardcoded secret",
+          "line_preview": "TRADE_SECRET = \"trade_secret\""
+        },
+        {
+          "file": "Murphy System/src/ip_classification_engine.py",
+          "description": "Potential hardcoded secret",
+          "line_preview": "TRADE_SECRET = \"trade_secret\""
+        }
+      ],
+      "missing_security_modules": [],
+      "security_modules_complete": true
+    },
+    "workflow_health": {
+      "total_required": 5,
+      "present": 5,
+      "missing": [],
+      "details": [
+        {
+          "workflow": "ci.yml",
+          "exists": true,
+          "size_bytes": 10135
+        },
+        {
+          "workflow": "hetzner-deploy.yml",
+          "exists": true,
+          "size_bytes": 2600
+        },
+        {
+          "workflow": "hetzner-deploy-recovery.yml",
+          "exists": true,
+          "size_bytes": 19472
+        },
+        {
+          "workflow": "gap-detector.yml",
+          "exists": true,
+          "size_bytes": 3212
+        },
+        {
+          "workflow": "source-drift-guard.yml",
+          "exists": true,
+          "size_bytes": 707
+        }
+      ]
+    },
+    "api_documentation": {
+      "api_routes_exists": true,
+      "api_documentation_exists": true,
+      "docs_directory_exists": true,
+      "has_deployment_guide": true,
+      "has_getting_started": true
+    }
+  }
+}
