@@ -35,12 +35,12 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
         with:
           fetch-depth: 0
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
         with:
           python-version: "3.12"
           cache: pip
@@ -112,7 +112,7 @@ jobs:
           fi
 
       - name: Upload security posture report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v7 (Node 24)
         if: always()
         with:
           name: security-posture-${{ github.run_number }}
