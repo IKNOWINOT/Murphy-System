@@ -71,6 +71,9 @@ def bridge_time_tracking_to_backbone(
                     source="time_tracking_bridge",
                     backbone=_bb,
                 )
+            except ImportError:
+                # Fallback: call backbone.publish directly
+                _bb.publish(event_type, payload)
             except Exception:
                 logger.debug(
                     "EventBackbone publish skipped for time_tracking event %r",
