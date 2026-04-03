@@ -708,44 +708,159 @@
 
     function renderChartPlaceholder(w) {
       var data = (w.settings && w.settings.values) || [65, 40, 85, 55, 70, 90, 35, 60];
+      var labels = (w.settings && w.settings.labels) || [];
+      var chartKind = (w.settings && w.settings.chart_kind) || 'bar';
       var maxVal = 1;
       for (var i = 0; i < data.length; i++) { if (data[i] > maxVal) maxVal = data[i]; }
-      var bars = '';
-      for (var j = 0; j < data.length; j++) {
-        var pct = Math.round((data[j] / maxVal) * 100);
-        bars += '<div class="widget-bar" style="height:' + pct + '%;"></div>';
+
+      /* ── SVG-based chart ──────────────────────────────────────── */
+      var svgW = 280, svgH = 140, pad = 24;
+      var plotW = svgW - pad * 2, plotH = svgH - pad * 2;
+      var colors = ['var(--info)', 'var(--teal)', 'var(--success)', 'var(--warning)',
+                    '#9b59b6', '#e67e22', '#1abc9c', '#e74c3c'];
+
+      var svg = '<svg viewBox="0 0 ' + svgW + ' ' + svgH + '" style="width:100%;height:100%;" role="img" aria-label="Chart widget">';
+      /* axis line */
+      svg += '<line x1="' + pad + '" y1="' + (svgH - pad) + '" x2="' + (svgW - pad) + '" y2="' + (svgH - pad) + '" stroke="var(--border-subtle)" stroke-width="1"/>';
+
+      if (chartKind === 'line' || chartKind === 'area') {
+        /* ── Line / Area chart ──────────────────────────────────── */
+        var step = plotW / Math.max(data.length - 1, 1);
+        var points = '';
+        var areaPath = 'M ' + pad + ',' + (svgH - pad);
+        for (var li = 0; li < data.length; li++) {
+          var lx = pad + li * step;
+          var ly = svgH - pad - (data[li] / maxVal) * plotH;
+          points += lx + ',' + ly + ' ';
+          areaPath += ' L ' + lx + ',' + ly;
+        }
+        areaPath += ' L ' + (pad + (data.length - 1) * step) + ',' + (svgH - pad) + ' Z';
+        if (chartKind === 'area') {
+          svg += '<path d="' + areaPath + '" fill="rgba(0,180,216,0.15)" />';
+        }
+        svg += '<polyline points="' + points.trim() + '" fill="none" stroke="var(--info)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+        /* dots */
+        var dotStep = plotW / Math.max(data.length - 1, 1);
+        for (var di = 0; di < data.length; di++) {
+          var dx = pad + di * dotStep;
+          var dy = svgH - pad - (data[di] / maxVal) * plotH;
+          svg += '<circle cx="' + dx + '" cy="' + dy + '" r="3" fill="var(--info)"><title>' + data[di] + '</title></circle>';
+        }
+      } else if (chartKind === 'pie' || chartKind === 'donut') {
+        /* ── Pie / Donut chart ──────────────────────────────────── */
+        var total = 0;
+        for (var pi = 0; pi < data.length; pi++) total += data[pi];
+        var cx = svgW / 2, cy = svgH / 2, radius = Math.min(plotW, plotH) / 2 - 4;
+        var innerR = chartKind === 'donut' ? radius * 0.55 : 0;
+        var angle = -Math.PI / 2;
+        for (var si = 0; si < data.length; si++) {
+          var sliceAngle = (data[si] / Math.max(total, 1)) * 2 * Math.PI;
+          var x1 = cx + radius * Math.cos(angle);
+          var y1 = cy + radius * Math.sin(angle);
+          var x2 = cx + radius * Math.cos(angle + sliceAngle);
+          var y2 = cy + radius * Math.sin(angle + sliceAngle);
+          var largeArc = sliceAngle > Math.PI ? 1 : 0;
+          var pathD = 'M ' + cx + ',' + cy + ' L ' + x1 + ',' + y1 +
+            ' A ' + radius + ',' + radius + ' 0 ' + largeArc + ' 1 ' + x2 + ',' + y2 + ' Z';
+          if (innerR > 0) {
+            var ix1 = cx + innerR * Math.cos(angle);
+            var iy1 = cy + innerR * Math.sin(angle);
+            var ix2 = cx + innerR * Math.cos(angle + sliceAngle);
+            var iy2 = cy + innerR * Math.sin(angle + sliceAngle);
+            pathD = 'M ' + x1 + ',' + y1 + ' A ' + radius + ',' + radius + ' 0 ' + largeArc + ' 1 ' + x2 + ',' + y2 +
+              ' L ' + ix2 + ',' + iy2 + ' A ' + innerR + ',' + innerR + ' 0 ' + largeArc + ' 0 ' + ix1 + ',' + iy1 + ' Z';
+          }
+          svg += '<path d="' + pathD + '" fill="' + colors[si % colors.length] + '"><title>' + (labels[si] || 'Slice ' + (si+1)) + ': ' + data[si] + '</title></path>';
+          angle += sliceAngle;
+        }
+      } else {
+        /* ── Bar chart (default) ────────────────────────────────── */
+        var barW = Math.max(plotW / data.length - 4, 4);
+        var gap = (plotW - barW * data.length) / Math.max(data.length + 1, 1);
+        for (var j = 0; j < data.length; j++) {
+          var bh = Math.max((data[j] / maxVal) * plotH, 2);
+          var bx = pad + gap + j * (barW + gap);
+          var by = svgH - pad - bh;
+          svg += '<rect x="' + bx + '" y="' + by + '" width="' + barW + '" height="' + bh + '" rx="2" fill="' + colors[j % colors.length] + '">';
+          svg += '<title>' + (labels[j] || '') + (labels[j] ? ': ' : '') + data[j] + '</title></rect>';
+        }
       }
-      return '<div class="widget-render-chart">' + bars + '</div>';
+
+      /* x-axis labels */
+      if (labels.length > 0) {
+        var labelStep = plotW / Math.max(labels.length, 1);
+        for (var lbl = 0; lbl < labels.length && lbl < 10; lbl++) {
+          var lx2 = pad + lbl * labelStep + labelStep / 2;
+          svg += '<text x="' + lx2 + '" y="' + (svgH - 4) + '" text-anchor="middle" font-size="8" fill="var(--text-muted)">' + esc(String(labels[lbl]).substring(0, 8)) + '</text>';
+        }
+      }
+      svg += '</svg>';
+      return '<div class="widget-render-chart" style="height:100%">' + svg + '</div>';
     }
 
     function renderNumberPlaceholder(w) {
       var val = (w.settings && w.settings.value !== undefined) ? w.settings.value : '—';
       var label = (w.settings && w.settings.label) || w.title || '';
-      return '<div class="widget-render-number">' +
-        '<div class="big-number">' + esc(String(val)) + '</div>' +
-        '<div class="number-label">' + esc(label) + '</div></div>';
+      var unit = (w.settings && w.settings.unit) || '';
+      var delta = (w.settings && w.settings.delta !== undefined) ? w.settings.delta : null;
+      var sparkData = (w.settings && w.settings.spark) || null;
+      var html = '<div class="widget-render-number">';
+      html += '<div class="big-number">' + esc(String(val)) + (unit ? '<span style="font-size:0.9rem;color:var(--text-muted);margin-left:2px;">' + esc(unit) + '</span>' : '') + '</div>';
+      if (delta !== null) {
+        var deltaColor = delta >= 0 ? 'var(--success)' : 'var(--danger)';
+        var arrow = delta >= 0 ? '&#9650;' : '&#9660;';
+        html += '<div style="font-size:0.75rem;color:' + deltaColor + ';margin-top:2px;">' + arrow + ' ' + (delta >= 0 ? '+' : '') + delta + '%</div>';
+      }
+      if (sparkData && sparkData.length > 1) {
+        var sMax = 1; for (var si = 0; si < sparkData.length; si++) { if (sparkData[si] > sMax) sMax = sparkData[si]; }
+        var sW = 80, sH = 22, pts = '';
+        for (var sj = 0; sj < sparkData.length; sj++) {
+          var sx = (sj / Math.max(sparkData.length - 1, 1)) * sW;
+          var sy = sH - (sparkData[sj] / sMax) * sH;
+          pts += sx + ',' + sy + ' ';
+        }
+        html += '<svg viewBox="0 0 ' + sW + ' ' + sH + '" style="width:80px;height:22px;display:block;margin:4px auto 0;"><polyline points="' + pts.trim() + '" fill="none" stroke="var(--teal)" stroke-width="1.5" stroke-linecap="round"/></svg>';
+      }
+      html += '<div class="number-label">' + esc(label) + '</div></div>';
+      return html;
     }
 
     function renderTablePlaceholder(w) {
       var rows = (w.settings && w.settings.rows) || [];
       var cols = (w.settings && w.settings.columns) || ['Name', 'Value', 'Status'];
+      var pageSize = (w.settings && w.settings.page_size) || 10;
+      var sortCol = -1;
+      var sortAsc = true;
+
+      /* build sortable header */
       var html = '<table class="widget-render-table"><thead><tr>';
       for (var c = 0; c < cols.length; c++) {
-        html += '<th>' + esc(cols[c]) + '</th>';
+        html += '<th data-col="' + c + '" style="cursor:pointer;user-select:none;" title="Click to sort">' + esc(cols[c]) + ' <span style="opacity:0.4;font-size:0.6rem;">&#8645;</span></th>';
       }
       html += '</tr></thead><tbody>';
       if (rows.length === 0) {
         html += '<tr><td colspan="' + cols.length + '" style="text-align:center;color:var(--text-muted);padding:12px;">No data</td></tr>';
       }
-      for (var r = 0; r < rows.length; r++) {
+      var visibleRows = rows.slice(0, pageSize);
+      for (var r = 0; r < visibleRows.length; r++) {
         html += '<tr>';
-        var row = rows[r];
+        var row = visibleRows[r];
         for (var k = 0; k < cols.length; k++) {
-          html += '<td>' + esc(row[k] !== undefined ? String(row[k]) : '') + '</td>';
+          var cellVal = row[k] !== undefined ? String(row[k]) : '';
+          /* auto-colour status-like cells */
+          var cellStyle = '';
+          var lv = cellVal.toLowerCase();
+          if (lv === 'active' || lv === 'ok' || lv === 'healthy' || lv === 'success') cellStyle = 'color:var(--success);';
+          else if (lv === 'warning' || lv === 'degraded') cellStyle = 'color:var(--warning);';
+          else if (lv === 'error' || lv === 'failed' || lv === 'critical') cellStyle = 'color:var(--danger);';
+          html += '<td style="' + cellStyle + '">' + esc(cellVal) + '</td>';
         }
         html += '</tr>';
       }
       html += '</tbody></table>';
+      if (rows.length > pageSize) {
+        html += '<div style="text-align:center;font-size:0.7rem;color:var(--text-muted);padding:4px 0;">Showing ' + Math.min(pageSize, rows.length) + ' of ' + rows.length + ' rows</div>';
+      }
       return html;
     }
 
@@ -753,17 +868,27 @@
       var items = (w.settings && w.settings.events) || [];
       if (items.length === 0) {
         items = [
-          { label: 'Deployment started', time: '10:30 AM', color: 'var(--info)' },
-          { label: 'Tests passed', time: '10:32 AM', color: 'var(--success)' },
-          { label: 'Build complete', time: '10:35 AM', color: 'var(--teal)' }
+          { label: 'Deployment started', time: '10:30 AM', color: 'var(--info)', description: 'Rolling deploy initiated' },
+          { label: 'Tests passed', time: '10:32 AM', color: 'var(--success)', description: '247 tests green' },
+          { label: 'Build complete', time: '10:35 AM', color: 'var(--teal)', description: 'Docker image pushed' }
         ];
       }
       var html = '<div class="widget-render-timeline">';
       for (var i = 0; i < items.length; i++) {
         var ev = items[i];
-        html += '<div class="timeline-row">';
-        html += '<div class="timeline-dot" style="background:' + (ev.color || 'var(--teal)') + ';"></div>';
+        var isLast = (i === items.length - 1);
+        html += '<div class="timeline-row" style="position:relative;">';
+        /* vertical connector line (skip for last item) */
+        if (!isLast) {
+          html += '<div style="position:absolute;left:3px;top:14px;bottom:-4px;width:2px;background:var(--border-subtle);"></div>';
+        }
+        html += '<div class="timeline-dot" style="background:' + (ev.color || 'var(--teal)') + ';position:relative;z-index:1;"></div>';
+        html += '<div style="flex:1;min-width:0;">';
         html += '<span class="timeline-label">' + esc(ev.label || '') + '</span>';
+        if (ev.description) {
+          html += '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(ev.description) + '</div>';
+        }
+        html += '</div>';
         html += '<span class="timeline-time">' + esc(ev.time || '') + '</span>';
         html += '</div>';
       }
@@ -775,12 +900,28 @@
       var pct = (w.settings && w.settings.percent !== undefined) ? w.settings.percent : 72;
       pct = Math.max(0, Math.min(100, pct));
       var color = pct > 50 ? 'var(--success)' : pct > 20 ? 'var(--warning)' : 'var(--danger)';
-      return '<div class="widget-render-battery">' +
-        '<div class="battery-cap"></div>' +
-        '<div class="battery-shell">' +
-        '<div class="battery-fill" style="height:' + pct + '%;background:' + color + ';"></div>' +
-        '</div>' +
-        '<div class="battery-pct">' + pct + '%</div></div>';
+      var label = (w.settings && w.settings.label) || '';
+      /* SVG gauge arc */
+      var svgSize = 100, strokeW = 10, r = (svgSize - strokeW) / 2;
+      var cx = svgSize / 2, cy = svgSize / 2;
+      var circ = 2 * Math.PI * r;
+      var arc = circ * 0.75; /* 270-degree arc */
+      var filled = arc * (pct / 100);
+      var rotation = 135; /* start at bottom-left */
+      var html = '<div class="widget-render-battery" style="text-align:center;">';
+      html += '<svg viewBox="0 0 ' + svgSize + ' ' + svgSize + '" style="width:90px;height:90px;">';
+      /* background arc */
+      html += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="var(--border-subtle)" stroke-width="' + strokeW + '" stroke-dasharray="' + arc + ' ' + circ + '" stroke-dashoffset="0" transform="rotate(' + rotation + ' ' + cx + ' ' + cy + ')" stroke-linecap="round"/>';
+      /* filled arc */
+      html += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="' + strokeW + '" stroke-dasharray="' + filled + ' ' + circ + '" stroke-dashoffset="0" transform="rotate(' + rotation + ' ' + cx + ' ' + cy + ')" stroke-linecap="round" style="transition:stroke-dasharray 0.5s;"/>';
+      /* center text */
+      html += '<text x="' + cx + '" y="' + (cy + 4) + '" text-anchor="middle" font-size="18" font-weight="700" fill="' + color + '" font-family="var(--font-code)">' + pct + '%</text>';
+      html += '</svg>';
+      if (label) {
+        html += '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">' + esc(label) + '</div>';
+      }
+      html += '</div>';
+      return html;
     }
 
     function renderCalendarPlaceholder(w) {
@@ -791,6 +932,7 @@
       var firstDay = new Date(year, month, 1).getDay();
       var daysInMonth = new Date(year, month + 1, 0).getDate();
       var dayLabels = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+      var events = (w.settings && w.settings.events) || {};  /* { day: {color, title} } */
 
       var html = '<div class="widget-render-calendar">';
       html += '<div style="text-align:center;font-size:0.78rem;font-weight:600;color:var(--text-secondary);margin-bottom:8px;">';
@@ -801,11 +943,16 @@
         html += '<div class="cal-header">' + dayLabels[h] + '</div>';
       }
       for (var blank = 0; blank < firstDay; blank++) {
-        html += '<div class="cal-day empty">·</div>';
+        html += '<div class="cal-day empty">&middot;</div>';
       }
       for (var d = 1; d <= daysInMonth; d++) {
         var cls = d === today ? ' today' : '';
-        html += '<div class="cal-day' + cls + '">' + d + '</div>';
+        var ev = events[String(d)];
+        var evDot = '';
+        if (ev) {
+          evDot = '<div style="width:4px;height:4px;border-radius:50%;background:' + (ev.color || 'var(--teal)') + ';margin:1px auto 0;" title="' + esc(ev.title || '') + '"></div>';
+        }
+        html += '<div class="cal-day' + cls + '">' + d + evDot + '</div>';
       }
       html += '</div></div>';
       return html;
