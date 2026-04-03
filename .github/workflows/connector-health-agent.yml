@@ -34,10 +34,10 @@ jobs:
       connector_count: ${{ steps.discover.outputs.connector_count }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
         with:
           python-version: "3.12"
           cache: pip
@@ -65,7 +65,7 @@ jobs:
           echo "connector_count=$COUNT" >> "$GITHUB_OUTPUT"
 
       - name: Upload discovery report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v7 (Node 24)
         with:
           name: connector-discovery
           path: /tmp/connector_health/
@@ -80,10 +80,10 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
         with:
           python-version: "3.12"
           cache: pip
@@ -94,7 +94,7 @@ jobs:
           pip install -r requirements_ci.txt
 
       - name: Download discovery report
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v8 (Node 24)
         with:
           name: connector-discovery
           path: /tmp/connector_health/
@@ -108,7 +108,7 @@ jobs:
             --output-dir /tmp/connector_health
 
       - name: Upload health report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v7 (Node 24)
         with:
           name: connector-health-report
           path: /tmp/connector_health/
@@ -122,10 +122,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
         with:
           python-version: "3.12"
           cache: pip
@@ -136,7 +136,7 @@ jobs:
           pip install -r requirements_ci.txt
 
       - name: Download health report
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v8 (Node 24)
         with:
           name: connector-health-report
           path: /tmp/connector_health/

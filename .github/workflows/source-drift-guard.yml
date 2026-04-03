@@ -17,10 +17,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
         with:
           python-version: '3.11'
 

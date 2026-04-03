@@ -56,7 +56,7 @@ jobs:
       has_checklist: ${{ steps.check.outputs.has_checklist }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
 
       - name: Check for scanner checklist
         id: check
@@ -81,12 +81,12 @@ jobs:
       fix_branch: ${{ steps.execute.outputs.fix_branch }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
         with:
           fetch-depth: 0
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
         with:
           python-version: "3.12"
           cache: pip
@@ -131,7 +131,7 @@ jobs:
           fi
 
       - name: Upload executor artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v7 (Node 24)
         with:
           name: readiness-execution-${{ github.run_id }}
           path: /tmp/executor_output/
@@ -153,12 +153,12 @@ jobs:
       tests_passed: ${{ steps.test.outputs.tests_passed }}
     steps:
       - name: Checkout fix branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
         with:
           ref: ${{ needs.execute.outputs.fix_branch }}
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
         with:
           python-version: "3.12"
           cache: pip
@@ -204,7 +204,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
 
       - name: Create Pull Request
         env:
