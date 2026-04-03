@@ -2519,10 +2519,6 @@ def create_app() -> FastAPI:
         budget = float(data.get("budget", 50.0))
         idempotency_key = data.get("idempotency_key") or None
         try:
-            import sys, os
-            _ms_src = os.path.join(os.path.dirname(__file__), "..", "..", "Murphy System", "src")
-            if _ms_src not in sys.path:
-                sys.path.insert(0, _ms_src)
             from collaborative_task_orchestrator import CollaborativeTaskOrchestrator
             cto = CollaborativeTaskOrchestrator()
             report = cto.orchestrate(
@@ -3043,6 +3039,64 @@ def create_app() -> FastAPI:
     _onboarding_mfgc_sessions: dict = {}
     _ONBOARDING_SESSION_TTL = 7200  # seconds
 
+    def _generate_automation_from_session(sess: dict) -> dict:
+        """Generate an automation config from a completed onboarding session.
+
+        Examines the accumulated answers and context to produce a structured
+        workflow definition that downstream components (AIWorkflowGenerator,
+        AutomationCommissioner) can consume.
+
+        Returns:
+            dict with keys: name, steps, step_count, strategy, description.
+            Returns empty dict if session lacks enough information.
+        """
+        answers = {k: v for k, v in sess.get("answers", {}).items() if v}
+        if not answers:
+            return {}
+
+        # Derive workflow name from initial request or answers
+        initial = answers.get("initial_request", "")
+        wf_name = initial[:60].strip() if initial else "custom_automation"
+        # Sanitise for use as a workflow identifier
+        wf_name = wf_name.replace(" ", "_").lower()
+        if not wf_name:
+            wf_name = "custom_automation"
+
+        # Build steps from answered questions
+        steps: list[dict] = []
+        for key, value in answers.items():
+            if key == "initial_request":
+                continue
+            steps.append({
+                "name": key[:80],
+                "description": str(value)[:200],
+                "action": "execute",
+            })
+
+        # If MFGC instance is available, try to extract richer config
+        mfgc = sess.get("mfgc")
+        if mfgc is not None:
+            try:
+                profile = getattr(mfgc, "profile", {}) or {}
+                if profile.get("industry"):
+                    wf_name = f"{profile['industry']}_{wf_name}"
+                if profile.get("goal"):
+                    steps.insert(0, {
+                        "name": "primary_goal",
+                        "description": str(profile["goal"])[:200],
+                        "action": "execute",
+                    })
+            except Exception:
+                pass  # graceful degradation
+
+        return {
+            "name": wf_name,
+            "steps": steps,
+            "step_count": len(steps),
+            "strategy": "sequential",
+            "description": initial[:200] if initial else "Auto-generated from onboarding",
+        }
+
     def _onboarding_deterministic_reply(message: str, session_id: str) -> str:
         """Keyword-based onboarding reply that works with no external LLM.
 
@@ -3127,9 +3181,7 @@ def create_app() -> FastAPI:
         ``invoice_processing`` when they mention billing + accounts payable).
         """
         import sys as _sys
-        import os as _os
         try:
-            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             from ai_workflow_generator import AIWorkflowGenerator
         except Exception:
             return {}
@@ -3337,7 +3389,6 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
-            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             from ai_workflow_generator import AIWorkflowGenerator
             generator = AIWorkflowGenerator()
             history = generator.get_generation_history()
@@ -3372,7 +3423,6 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
-            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             data = {}
             try:
                 data = await request.json()
@@ -3482,7 +3532,6 @@ def create_app() -> FastAPI:
                 return JSONResponse({"success": False, "error": "Automation engine not available"}, status_code=503)
             import sys as _sys
             import os as _os
-            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             from automations.models import TriggerType
             try:
                 tt = TriggerType(trigger_type_str)
@@ -3509,7 +3558,6 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
-            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             data = await request.json()
             session_id = (data.get("session_id") or "").strip()
             extra_ctx = data.get("context") or {}
@@ -3585,7 +3633,6 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
-            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             data = await request.json()
             ctx = data.get("context") or {}
             threshold = float(data.get("health_threshold", 0.75))
@@ -10151,9 +10198,6 @@ def create_app() -> FastAPI:
         compliance_blockers = 0
         try:
             import sys as _sys
-            _src = _os.path.join(_os.path.dirname(__file__), "..")
-            if _src not in _sys.path:
-                _sys.path.insert(0, _src)
             from trading_compliance_engine import get_compliance_engine
             _ce = get_compliance_engine()
             _last = _ce.last_report()
@@ -10220,9 +10264,6 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
-            _src = _os.path.join(_os.path.dirname(__file__), "..")
-            if _src not in _sys.path:
-                _sys.path.insert(0, _src)
             from live_feed_service import get_live_feed
             from coinbase_connector import CoinbaseConnector
             _cb = CoinbaseConnector()
@@ -10410,9 +10451,6 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
-            _src = _os.path.join(_os.path.dirname(__file__), "..")
-            if _src not in _sys.path:
-                _sys.path.insert(0, _src)
             from trading_compliance_engine import get_compliance_engine as _gce
             return _gce()
         except Exception as _exc:
@@ -10461,9 +10499,6 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
-            _src = _os.path.join(_os.path.dirname(__file__), "..")
-            if _src not in _sys.path:
-                _sys.path.insert(0, _src)
             from trading_compliance_engine import get_graduation_tracker
             _gt = get_graduation_tracker()
             _gs = _gt.summary()
@@ -10492,9 +10527,6 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
-            _src = _os.path.join(_os.path.dirname(__file__), "..")
-            if _src not in _sys.path:
-                _sys.path.insert(0, _src)
             from trading_compliance_engine import get_graduation_tracker
             gt = get_graduation_tracker()
             summary = gt.summary()
@@ -10531,9 +10563,6 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
-            _src = _os.path.join(_os.path.dirname(__file__), "..")
-            if _src not in _sys.path:
-                _sys.path.insert(0, _src)
             from trading_compliance_engine import get_graduation_tracker
             body = await request.json()
             gt = get_graduation_tracker()
@@ -10892,7 +10921,6 @@ def create_app() -> FastAPI:
         # it can be imported as a top-level package without changing the wider
         # project layout.  This mirrors what the original standalone Flask app
         # did via sys.path.insert in its own __main__ block.
-        _sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
         from module_compiler import ModuleCompiler as _ModuleCompiler, ModuleRegistry as _ModuleRegistry
 
         _mc_compiler = _ModuleCompiler()

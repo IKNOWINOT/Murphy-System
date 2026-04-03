@@ -3039,6 +3039,64 @@ def create_app() -> FastAPI:
     _onboarding_mfgc_sessions: dict = {}
     _ONBOARDING_SESSION_TTL = 7200  # seconds
 
+    def _generate_automation_from_session(sess: dict) -> dict:
+        """Generate an automation config from a completed onboarding session.
+
+        Examines the accumulated answers and context to produce a structured
+        workflow definition that downstream components (AIWorkflowGenerator,
+        AutomationCommissioner) can consume.
+
+        Returns:
+            dict with keys: name, steps, step_count, strategy, description.
+            Returns empty dict if session lacks enough information.
+        """
+        answers = {k: v for k, v in sess.get("answers", {}).items() if v}
+        if not answers:
+            return {}
+
+        # Derive workflow name from initial request or answers
+        initial = answers.get("initial_request", "")
+        wf_name = initial[:60].strip() if initial else "custom_automation"
+        # Sanitise for use as a workflow identifier
+        wf_name = wf_name.replace(" ", "_").lower()
+        if not wf_name:
+            wf_name = "custom_automation"
+
+        # Build steps from answered questions
+        steps: list[dict] = []
+        for key, value in answers.items():
+            if key == "initial_request":
+                continue
+            steps.append({
+                "name": key[:80],
+                "description": str(value)[:200],
+                "action": "execute",
+            })
+
+        # If MFGC instance is available, try to extract richer config
+        mfgc = sess.get("mfgc")
+        if mfgc is not None:
+            try:
+                profile = getattr(mfgc, "profile", {}) or {}
+                if profile.get("industry"):
+                    wf_name = f"{profile['industry']}_{wf_name}"
+                if profile.get("goal"):
+                    steps.insert(0, {
+                        "name": "primary_goal",
+                        "description": str(profile["goal"])[:200],
+                        "action": "execute",
+                    })
+            except Exception:
+                pass  # graceful degradation
+
+        return {
+            "name": wf_name,
+            "steps": steps,
+            "step_count": len(steps),
+            "strategy": "sequential",
+            "description": initial[:200] if initial else "Auto-generated from onboarding",
+        }
+
     def _onboarding_deterministic_reply(message: str, session_id: str) -> str:
         """Keyword-based onboarding reply that works with no external LLM.
 
