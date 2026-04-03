@@ -2869,7 +2869,8 @@ class MurphySystem:
     def _register_src_inventory_modules(self) -> None:
         if not getattr(self, "module_manager", None):
             return
-        # __file__ is src/runtime/murphy_system_core.py → .parent.parent = src/
+        # __file__ is src/runtime/murphy_system_core.py
+        # .parent → src/runtime/ → .parent.parent → src/
         src_root = Path(__file__).parent.parent
         if not src_root.exists():
             return
@@ -2893,7 +2894,8 @@ class MurphySystem:
     def _register_local_inventory_modules(self) -> None:
         if not getattr(self, "module_manager", None):
             return
-        # __file__ is src/runtime/murphy_system_core.py → .parent.parent.parent = project root
+        # __file__ is src/runtime/murphy_system_core.py
+        # .parent → src/runtime/ → .parent.parent → src/ → .parent.parent.parent → project root
         root = Path(__file__).parent.parent.parent
         for module_path in self._collect_local_module_paths(root):
             if module_path in self.module_manager.available_modules:
