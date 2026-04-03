@@ -1,0 +1,72 @@
+[
+  {
+    "path_id": "cfd7b9ab-9e52-4ffa-8814-839c927dc648",
+    "task_id": "878ce924-a8d3-4a55-81e4-1a3850695175",
+    "capability_id": "generate_financial_report",
+    "module_path": "src.financial_reporting_engine",
+    "score": 0.5,
+    "librarian_score": 0.5,
+    "feedback_weight": 1.0,
+    "cost_estimate": "medium",
+    "determinism": "deterministic",
+    "requires_hitl": false,
+    "parameters": {},
+    "wingman": null
+  },
+  {
+    "path_id": "03ff79df-489d-4bbd-9e28-9a395a66a3e6",
+    "task_id": "878ce924-a8d3-4a55-81e4-1a3850695175",
+    "capability_id": "generate_finance_report",
+    "module_path": "src.financial_reporting_engine",
+    "score": 0.5,
+    "librarian_score": 0.5,
+    "feedback_weight": 1.0,
+    "cost_estimate": "medium",
+    "determinism": "deterministic",
+    "requires_hitl": false,
+    "parameters": {},
+    "wingman": null
+  },
+  {
+    "path_id": "2f08c85d-8b65-42f4-83cc-794703d51db4",
+    "task_id": "878ce924-a8d3-4a55-81e4-1a3850695175",
+    "capability_id": "generate_niche_business_ideas",
+    "module_path": "src.niche_business_generator",
+    "score": 0.5,
+    "librarian_score": 0.5,
+    "feedback_weight": 1.0,
+    "cost_estimate": "medium",
+    "determinism": "deterministic",
+    "requires_hitl": false,
+    "parameters": {},
+    "wingman": null
+  },
+  {
+    "path_id": "22444a90-ab23-4ee4-a0c9-7fde49fd6b7e",
+    "task_id": "878ce924-a8d3-4a55-81e4-1a3850695175",
+    "capability_id": "generate_business",
+    "module_path": "src.niche_business_generator",
+    "score": 0.5,
+    "librarian_score": 0.5,
+    "feedback_weight": 1.0,
+    "cost_estimate": "medium",
+    "determinism": "deterministic",
+    "requires_hitl": false,
+    "parameters": {},
+    "wingman": null
+  },
+  {
+    "path_id": "35ec3d2f-3fd5-4423-b7cb-32f5649903b9",
+    "task_id": "878ce924-a8d3-4a55-81e4-1a3850695175",
+    "capability_id": "generate_domain_experts_dynamically",
+    "module_path": "src.dynamic_expert_generator",
+    "score": 0.25,
+    "librarian_score": 0.25,
+    "feedback_weight": 1.0,
+    "cost_estimate": "medium",
+    "determinism": "deterministic",
+    "requires_hitl": false,
+    "parameters": {},
+    "wingman": null
+  }
+]
