@@ -3089,7 +3089,11 @@ def create_app() -> FastAPI:
             except Exception:
                 pass  # graceful degradation
 
+        import uuid as _uuid
+        workflow_id = f"wf_{wf_name[:40]}_{_uuid.uuid4().hex[:8]}"
+
         return {
+            "workflow_id": workflow_id,
             "name": wf_name,
             "steps": steps,
             "step_count": len(steps),

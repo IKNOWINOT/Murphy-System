@@ -384,11 +384,7 @@ class TestAllCursorsTogether:
 
     def test_concurrent_session_create(self):
         from split_screen_coordinator import SplitScreenCoordinator
-        coord = SplitScreenCoordinator(
-            layout=SplitScreenLayout.DUAL_H,
-            screen_width=SCREEN_W,
-            screen_height=SCREEN_H,
-        )
+        coord = SplitScreenCoordinator()
         errors = []
 
         def create_session(i):
