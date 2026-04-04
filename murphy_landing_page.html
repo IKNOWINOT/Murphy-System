@@ -328,7 +328,7 @@
 
       <!-- 64-pane grid -->
       <!-- Live View toggle -->
-      <div class="forge-live-wrap ml-10" id="forge-live-wrap" >
+      <div class="forge-live-wrap ml-10 forge-hidden" id="forge-live-wrap" >
         <label>
           <input type="checkbox" id="forge-live-chk">
           <span class="forge-live-dot"></span>
@@ -345,9 +345,9 @@
         <div class="forge-result-stats" id="forge-result-stats"></div>
         <p class="forge-roi" id="forge-roi"></p>
         <!-- Usage counter -->
-        <div class="forge-usage ml-10" id="forge-usage" ></div>
+        <div class="forge-usage ml-10 forge-hidden" id="forge-usage" ></div>
         <!-- Content preview panel -->
-        <div class="forge-preview ml-10" id="forge-preview" >
+        <div class="forge-preview ml-10 forge-hidden" id="forge-preview" >
           <div class="forge-preview-hdr">
             <span>&#128196; Deliverable Preview</span>
             <button class="forge-preview-toggle" id="forge-preview-toggle" onclick="_forgeTogglePreview()">&#9660; Collapse</button>
@@ -355,12 +355,12 @@
           <div class="forge-preview-body" id="forge-preview-body"></div>
         </div>
         <!-- HTML preview button (only shown for .html deliverables) -->
-        <button class="forge-dl-btn ml-11" id="forge-html-preview-btn"  onclick="_forgePreviewInTab()">&#9654; Preview in New Tab</button>
+        <button class="forge-dl-btn ml-11 forge-hidden" id="forge-html-preview-btn"  onclick="_forgePreviewInTab()">&#9654; Preview in New Tab</button>
         <button class="forge-dl-btn" id="forge-dl-btn">&#8595; Download Your Deliverable</button>
-        <div class="forge-fallback-cta ml-10" id="forge-fallback-cta" >
+        <div class="forge-fallback-cta ml-10 forge-hidden" id="forge-fallback-cta" >
           <a href="/ui/signup">Sign up free to download this deliverable →</a>
         </div>
-        <div class="forge-err-msg ml-10" id="forge-api-err" role="alert" aria-live="polite" ></div>
+        <div class="forge-err-msg ml-10 forge-hidden" id="forge-api-err" role="alert" aria-live="polite" ></div>
       </div>
     </div>
   </div>
