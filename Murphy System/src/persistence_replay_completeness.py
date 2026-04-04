@@ -183,7 +183,7 @@ class WriteAheadLog:
             try:
                 with open(wal_file, "r", encoding="utf-8") as f:
                     raw = json.load(f)
-                self._entries = [WALEntry.from_dict(exc) for e in raw]
+                self._entries = [WALEntry.from_dict(e) for e in raw]
             except (json.JSONDecodeError, OSError) as exc:
                 logger.warning("WAL load failed, starting fresh: %s", exc)
                 self._entries = []

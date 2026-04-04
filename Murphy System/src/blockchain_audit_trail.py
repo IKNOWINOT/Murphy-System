@@ -306,7 +306,7 @@ class BlockchainAuditTrail:
                     continue
                 if action and e.action != action:
                     continue
-                results.append(exc)
+                results.append(e)
                 if len(results) >= limit:
                     return results
         return results

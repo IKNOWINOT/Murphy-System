@@ -380,7 +380,7 @@ _SCENARIO_TEMPLATES: Dict[str, Dict[str, str]] = {
   Risk F-2 (Data Retention) — HIGH
     Current state: Retention schedules exist for primary DBs but
     not for backup/archive systems or 3rd-party integrations.
-    Potential impact: GDPR Article 5(exc) violation; fines up to 4 %
+    Potential impact: GDPR Article 5(e) violation; fines up to 4 %
     of global turnover. Reputational damage.
     Likelihood: LOW (no breach indicators)
     Risk score: 6/10
@@ -723,7 +723,7 @@ function tryMove(ent,dx,dy){
 function attack(){
   if(player.atkTimer>0)return;
   player.attacking=true;player.atkTimer=22;
-  enemies.forEach(function(exc){
+  enemies.forEach(function(e){
     if(e.hp<=0)return;
     if(dist(player,e)<player.atkRange+e.w/2){
       e.hp-=28;setMsg('Hit '+e.name+'! ('+(e.hp>0?e.hp+' HP left':'defeated')+')');
@@ -737,15 +737,15 @@ function attack(){
 }
 
 // ── Input ──
-document.addEventListener('keydown',function(exc){keys[e.key]=true;if(e.key===' '){e.preventDefault();attack();}});
-document.addEventListener('keyup',function(exc){keys[e.key]=false;});
+document.addEventListener('keydown',function(e){keys[e.key]=true;if(e.key===' '){e.preventDefault();attack();}});
+document.addEventListener('keyup',function(e){keys[e.key]=false;});
 ['dU','dD','dL','dR'].forEach(function(id){
   var el=document.getElementById(id);
   var kMap={dU:'ArrowUp',dD:'ArrowDown',dL:'ArrowLeft',dR:'ArrowRight'};
-  el.addEventListener('touchstart',function(exc){e.preventDefault();keys[kMap[id]]=true;},{passive:false});
-  el.addEventListener('touchend',function(exc){e.preventDefault();keys[kMap[id]]=false;},{passive:false});
+  el.addEventListener('touchstart',function(e){e.preventDefault();keys[kMap[id]]=true;},{passive:false});
+  el.addEventListener('touchend',function(e){e.preventDefault();keys[kMap[id]]=false;},{passive:false});
 });
-document.getElementById('dAtk').addEventListener('touchstart',function(exc){e.preventDefault();attack();},{passive:false});
+document.getElementById('dAtk').addEventListener('touchstart',function(e){e.preventDefault();attack();},{passive:false});
 
 // ── Game loop ──
 function update(){
@@ -776,7 +776,7 @@ function update(){
 
   // Enemies AI
   var allDead=true;
-  enemies.forEach(function(exc){
+  enemies.forEach(function(e){
     if(e.hp<=0)return;
     allDead=false;
     var d=dist(player,e);
@@ -851,7 +851,7 @@ function draw(){
   });
 
   // Enemies
-  enemies.forEach(function(exc){
+  enemies.forEach(function(e){
     if(e.hp<=0)return;
     var ex=e.x-cam.x,ey=e.y-cam.y;
     ctx.save();
