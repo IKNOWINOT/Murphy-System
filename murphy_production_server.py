@@ -4670,3 +4670,192 @@ async def feedback_resolve(feedback_id: str, github_issue_url: Optional[str] = N
         "status": "resolved",
         "timestamp": _now_iso(),
     })
+
+
+# ── Layer 6: Murphy Building Intelligence API ─────────────────────────────
+
+# Guard imports so the server starts even if BAS/EMS packages missing.
+_bas_available = False
+_ems_available = False
+_fdd_available = False
+_eae_available = False
+
+try:
+    from building_automation.models import MurphyBuilding, MurphyFloor, MurphyZone, MurphyPoint, PointKind, Substance, Phenomenon
+    from building_automation.hvac_control import ZoneTemperatureController
+    _bas_available = True
+except Exception:
+    pass
+
+try:
+    from energy_management.metering import MeteringRegistry, MeterType, MurphyMeter, MeterReading
+    from energy_management.demand_response import DemandResponseEngine
+    from energy_management.carbon_accounting import CarbonTracker
+    _ems_available = True
+except Exception:
+    pass
+
+try:
+    from fdd.rule_engine import RuleBasedFDD
+    from fdd.alarm_manager import AlarmManager
+    _fdd_available = True
+except Exception:
+    pass
+
+try:
+    from energy_audit_engine import EnergyAuditEngine
+    _eae_available = True
+except Exception:
+    pass
+
+# Singleton instances (in-memory, for demo / dev)
+_metering_registry = MeteringRegistry() if _ems_available else None
+_dr_engine = DemandResponseEngine() if _ems_available else None
+_carbon_tracker = CarbonTracker() if _ems_available else None
+_fdd_engine = RuleBasedFDD() if _fdd_available else None
+_alarm_mgr = AlarmManager() if _fdd_available else None
+_audit_engine = EnergyAuditEngine() if _eae_available else None
+
+# Demo building for API
+_demo_building: Optional[Dict] = None
+if _bas_available:
+    _demo_building = {
+        "building_id": "bldg-001",
+        "name": "Murphy HQ",
+        "address": "123 Innovation Drive",
+        "total_sqft": 50000,
+        "zones": [
+            {"zone_id": "z-lobby", "name": "Lobby", "zone_type": "lobby",
+             "temperature": 72.0, "humidity": 45.0, "occupied": True, "occupant_count": 5},
+            {"zone_id": "z-office-1", "name": "Office Floor 1", "zone_type": "office",
+             "temperature": 71.5, "humidity": 42.0, "occupied": True, "occupant_count": 25},
+            {"zone_id": "z-conf-1", "name": "Conference Room A", "zone_type": "conference",
+             "temperature": 73.0, "humidity": 44.0, "occupied": False, "occupant_count": 0},
+            {"zone_id": "z-server", "name": "Server Room", "zone_type": "server_room",
+             "temperature": 65.0, "humidity": 35.0, "occupied": False, "occupant_count": 0},
+        ],
+    }
+
+
+@app.get("/api/bas/buildings/{building_id}/zones")
+async def bas_get_zones(building_id: str):
+    """Zone list + current conditions for a building."""
+    if not _bas_available or _demo_building is None:
+        return JSONResponse({"error": "BAS module not available"}, status_code=503)
+    if building_id != _demo_building["building_id"]:
+        return JSONResponse({"error": f"Building {building_id} not found"}, status_code=404)
+    return JSONResponse({
+        "building_id": building_id,
+        "zones": _demo_building["zones"],
+        "timestamp": _now_iso(),
+    })
+
+
+@app.get("/api/bas/buildings/{building_id}/setpoints")
+async def bas_get_setpoints(building_id: str):
+    """Read setpoints for a building (auth-gated in production)."""
+    if not _bas_available or _demo_building is None:
+        return JSONResponse({"error": "BAS module not available"}, status_code=503)
+    setpoints = [
+        {"zone_id": z["zone_id"], "heating_setpoint": 70.0, "cooling_setpoint": 74.0}
+        for z in _demo_building.get("zones", [])
+    ]
+    return JSONResponse({
+        "building_id": building_id,
+        "setpoints": setpoints,
+        "timestamp": _now_iso(),
+    })
+
+
+@app.get("/api/ems/meters/{meter_id}/readings")
+async def ems_get_readings(meter_id: str, start: Optional[float] = None, end: Optional[float] = None):
+    """Interval data query with optional time range."""
+    if _metering_registry is None:
+        return JSONResponse({"error": "EMS module not available"}, status_code=503)
+    try:
+        readings = _metering_registry.get_readings(meter_id, start, end)
+        return JSONResponse({
+            "meter_id": meter_id,
+            "readings": [{"timestamp": r.timestamp, "value": r.value, "unit": r.unit} for r in readings],
+            "count": len(readings),
+        })
+    except KeyError:
+        return JSONResponse({"error": f"Meter {meter_id} not found"}, status_code=404)
+
+
+@app.get("/api/ems/demand-response/events")
+async def ems_dr_events():
+    """Active DR events + shed status."""
+    if _dr_engine is None:
+        return JSONResponse({"error": "EMS module not available"}, status_code=503)
+    return JSONResponse({
+        "active_events": _dr_engine.get_active_events(),
+        "shed_status": _dr_engine.get_shed_status(),
+        "timestamp": _now_iso(),
+    })
+
+
+@app.get("/api/ems/carbon/live")
+async def ems_carbon_live():
+    """Real-time carbon intensity."""
+    if _carbon_tracker is None:
+        return JSONResponse({"error": "EMS module not available"}, status_code=503)
+    intensity = _carbon_tracker.get_live_intensity()
+    totals = _carbon_tracker.total_emissions()
+    return JSONResponse({
+        "live_intensity": intensity,
+        "cumulative": totals,
+        "timestamp": _now_iso(),
+    })
+
+
+@app.get("/api/audit/list")
+async def audit_list():
+    """List all energy audits."""
+    if _audit_engine is None:
+        return JSONResponse({"error": "Audit engine not available"}, status_code=503)
+    audits = _audit_engine.list_audits()
+    return JSONResponse({"audits": audits, "count": len(audits)})
+
+
+@app.get("/api/audit/{audit_id}")
+async def audit_get(audit_id: str):
+    """Get a specific energy audit."""
+    if _audit_engine is None:
+        return JSONResponse({"error": "Audit engine not available"}, status_code=503)
+    audit = _audit_engine.get_audit(audit_id)
+    if audit is None:
+        return JSONResponse({"error": f"Audit {audit_id} not found"}, status_code=404)
+    export = _audit_engine.export_audit(audit_id)
+    return JSONResponse(export)
+
+
+@app.get("/api/fdd/active")
+async def fdd_active_faults():
+    """Active faults from FDD engine."""
+    if _fdd_engine is None:
+        return JSONResponse({"error": "FDD module not available"}, status_code=503)
+    faults = _fdd_engine.get_active_faults()
+    return JSONResponse({
+        "faults": [
+            {"fault_id": f.fault_id, "rule_id": f.rule_id,
+             "equipment_id": f.equipment_id, "severity": f.severity.value,
+             "message": f.message, "status": f.status.value}
+            for f in faults
+        ],
+        "count": len(faults),
+        "timestamp": _now_iso(),
+    })
+
+
+@app.get("/api/fdd/alarms")
+async def fdd_alarms():
+    """Active alarms from alarm manager."""
+    if _alarm_mgr is None:
+        return JSONResponse({"error": "FDD module not available"}, status_code=503)
+    alarms = _alarm_mgr.get_active_alarms()
+    return JSONResponse({
+        "alarms": alarms,
+        "count": len(alarms),
+        "timestamp": _now_iso(),
+    })
