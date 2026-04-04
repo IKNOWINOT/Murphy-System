@@ -30,7 +30,10 @@ if _src_config.is_file():
         get_settings = _mod.get_settings
         reload_settings = _mod.reload_settings
     except Exception:
-        pass  # pydantic-settings not installed — Settings unavailable
+        import logging as _logging
+        _logging.getLogger(__name__).debug(
+            "Could not load Settings from src/config.py (pydantic-settings not installed?)"
+        )
 
 __all__ = ["load_config", "get", "get_all", "Settings", "get_settings",
            "reload_settings"]
