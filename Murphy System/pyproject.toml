@@ -64,6 +64,19 @@ markers = [
     "bots: Bot framework, governance, and telemetry tests",
     "governance: Governance framework, authority gates, and policy tests",
     "industrial: Robotics, building automation, and energy management tests",
+    "onboarding: Onboarding flow, commissioning, and platform setup tests",
+    "crm_sales: CRM, sales, marketing, and customer lifecycle tests",
+    "runtime_core: Core runtime, boot, heartbeat, librarian, and rosetta tests",
+    "data_persistence: Database, migration, schema, and data pipeline tests",
+    "game_creative: EQ game systems, creative engine, and storyline tests",
+    "org_management: Organization, team, founder, and management tests",
+    "integration_connector: Connector, adapter, bridge, and API integration tests",
+    "learning_analytics: ML, analytics, telemetry, and learning engine tests",
+    "workflow_task: Workflow DAG, task pipeline, and process tests",
+    "document_export: Document generation, PDF, cutsheet, and export tests",
+    "platform_config: Configuration, feature flags, and environment tests",
+    "scheduling: Scheduler, planning, and capacity tests",
+    "notification_alert: Notification, alert, voice, and announcement tests",
 ]
 # Default per-test timeout: ~5 s per 1 000 lines of tested source.
 # Tests that target very large modules (app.py = 6 293 lines, compute_plane = 2 877 lines)
