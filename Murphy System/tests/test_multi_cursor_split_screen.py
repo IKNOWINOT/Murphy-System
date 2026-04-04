@@ -621,8 +621,8 @@ class TestSplitScreenCoordinator:
 
     @pytest.fixture
     def coord(self):
-        from split_screen_coordinator import SplitScreenCoordinator
-        return SplitScreenCoordinator(
+        from split_screen_coordinator import RubixSplitScreenCoordinator
+        return RubixSplitScreenCoordinator(
             layout=SplitScreenLayout.DUAL_H,
             screen_width=SCREEN_W,
             screen_height=SCREEN_H,
@@ -714,8 +714,8 @@ class TestSplitScreenCoordinator:
 
     def test_strict_mode_skips_failing_zones(self):
         """In strict_mode, zones whose evidence fails are skipped."""
-        from split_screen_coordinator import SplitScreenCoordinator
-        coord = SplitScreenCoordinator(
+        from split_screen_coordinator import RubixSplitScreenCoordinator
+        coord = RubixSplitScreenCoordinator(
             layout=SplitScreenLayout.DUAL_H,
             strict_mode=True,
         )
@@ -735,8 +735,8 @@ class TestSplitScreenCoordinator:
             assert zr.flagged or zr.task_result.get("status") == "skipped"
 
     def test_quad_coordinator(self):
-        from split_screen_coordinator import SplitScreenCoordinator
-        coord = SplitScreenCoordinator(layout=SplitScreenLayout.QUAD)
+        from split_screen_coordinator import RubixSplitScreenCoordinator
+        coord = RubixSplitScreenCoordinator(layout=SplitScreenLayout.QUAD)
         assert len(coord.zones) == 4
         result = coord.coordinate({
             z.zone_id: (

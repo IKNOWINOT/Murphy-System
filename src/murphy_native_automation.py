@@ -1387,6 +1387,11 @@ class MultiCursorDesktop:
         with self._lock:
             return list(self._cursors.values())
 
+    def cursor_count(self) -> int:
+        """Return the number of registered cursors."""
+        with self._lock:
+            return len(self._cursors)
+
     def add_extra_cursor(
         self,
         zone_id: str,

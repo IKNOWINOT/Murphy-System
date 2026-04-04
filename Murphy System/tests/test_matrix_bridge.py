@@ -17,6 +17,18 @@ from __future__ import annotations
 
 import asyncio
 
+
+def _run_async(coro):
+    """Run a coroutine safely in Python 3.10+."""
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            raise RuntimeError('closed')
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop.run_until_complete(coro)
+
 import pytest
 
 
@@ -72,7 +84,7 @@ class TestMatrixClient:
         mc._NIO_AVAILABLE = False
         try:
             c = mc.MatrixClient(homeserver="http://localhost:8008", user_id="@test:localhost")
-            result = asyncio.get_event_loop().run_until_complete(c.connect())
+            result = _run_async(c.connect())
             assert result is False
         finally:
             mc._NIO_AVAILABLE = original
@@ -83,7 +95,7 @@ class TestMatrixClient:
         mc._NIO_AVAILABLE = False
         try:
             c = mc.MatrixClient(homeserver="http://localhost:8008", user_id="")
-            result = asyncio.get_event_loop().run_until_complete(c.connect())
+            result = _run_async(c.connect())
             assert result is False
         finally:
             mc._NIO_AVAILABLE = original
@@ -91,7 +103,7 @@ class TestMatrixClient:
     def test_send_text_returns_false_when_not_connected(self):
         from src.matrix_bridge.matrix_client import MatrixClient
         c = MatrixClient(homeserver="http://localhost:8008", user_id="@test:localhost")
-        result = asyncio.get_event_loop().run_until_complete(
+        result = _run_async(
             c.send_text("!roomid:localhost", "hello")
         )
         assert result is False
@@ -173,7 +185,7 @@ class TestRoomRegistry:
     def test_ensure_all_rooms_skipped_when_auto_create_false(self):
         """ensure_all_rooms should not call create_room when auto_create=False."""
         registry = self._make_registry()
-        result = asyncio.get_event_loop().run_until_complete(registry.ensure_all_rooms())
+        result = _run_async(registry.ensure_all_rooms())
         # All room IDs should be None (no creation attempted)
         assert all(v is None for v in result.values())
 
@@ -202,14 +214,14 @@ class TestCommandRouter:
 
     def test_non_command_returns_none(self):
         router = self._make_router()
-        result = asyncio.get_event_loop().run_until_complete(
+        result = _run_async(
             router.dispatch("@user:localhost", "!roomid:localhost", "hello world")
         )
         assert result is None
 
     def test_help_returns_pair(self):
         router = self._make_router()
-        plain, html = asyncio.get_event_loop().run_until_complete(
+        plain, html = _run_async(
             router.dispatch("@user:localhost", "!roomid:localhost", "!murphy help")
         )
         assert "Command Reference" in html
@@ -217,14 +229,14 @@ class TestCommandRouter:
 
     def test_ping_command(self):
         router = self._make_router()
-        plain, html = asyncio.get_event_loop().run_until_complete(
+        plain, html = _run_async(
             router.dispatch("@user:localhost", "!roomid:localhost", "!murphy ping")
         )
         assert "Pong" in plain
 
     def test_whoami_command(self):
         router = self._make_router()
-        plain, html = asyncio.get_event_loop().run_until_complete(
+        plain, html = _run_async(
             router.dispatch("@user:localhost", "!roomid:localhost", "!murphy whoami")
         )
         assert "@user:localhost" in plain
@@ -232,14 +244,14 @@ class TestCommandRouter:
 
     def test_commands_command(self):
         router = self._make_router()
-        plain, html = asyncio.get_event_loop().run_until_complete(
+        plain, html = _run_async(
             router.dispatch("@user:localhost", "!roomid:localhost", "!murphy commands")
         )
         assert "!murphy" in plain
 
     def test_unknown_command_error(self):
         router = self._make_router()
-        plain, html = asyncio.get_event_loop().run_until_complete(
+        plain, html = _run_async(
             router.dispatch("@user:localhost", "!roomid:localhost", "!murphy zzznonsense")
         )
         assert "Error" in plain or "Unknown" in plain
@@ -253,7 +265,7 @@ class TestCommandRouter:
             return ("ok", "<b>ok</b>")
 
         router.set_subsystem_handler(handler)
-        asyncio.get_event_loop().run_until_complete(
+        _run_async(
             router.dispatch("@user:localhost", "!roomid:localhost", "!murphy security scan")
         )
         assert calls == [("security", "scan", [])]
@@ -271,14 +283,14 @@ class TestCommandRouter:
             description="A custom command",
             min_permission=PERM_VIEWER,
         ))
-        plain, html = asyncio.get_event_loop().run_until_complete(
+        plain, html = _run_async(
             router.dispatch("@user:localhost", "!roomid:localhost", "!murphy custom")
         )
         assert plain == "custom result"
 
     def test_prefix_case_insensitive(self):
         router = self._make_router()
-        plain, html = asyncio.get_event_loop().run_until_complete(
+        plain, html = _run_async(
             router.dispatch("@user:localhost", "!roomid:localhost", "!MURPHY ping")
         )
         assert "Pong" in plain
@@ -301,7 +313,7 @@ class TestCommandRouter:
             return PERM_VIEWER
 
         router._permission_resolver = viewer_perm
-        plain, html = asyncio.get_event_loop().run_until_complete(
+        plain, html = _run_async(
             router.dispatch("@user:localhost", "!roomid:localhost", "!murphy secret")
         )
         assert "denied" in plain.lower() or "permission" in plain.lower()
@@ -405,7 +417,7 @@ class TestEventBridge:
             payload={"status": "ok"},
         )
         # No room IDs populated → should run silently
-        asyncio.get_event_loop().run_until_complete(bridge.dispatch(event))
+        _run_async(bridge.dispatch(event))
 
 
 # ---------------------------------------------------------------------------
@@ -543,7 +555,7 @@ class TestHITLMatrixAdapter:
         adapter._pending["test-id"] = HITLItem(intervention_id="test-id")
         adapter._event_to_id["!evt1:localhost"] = "test-id"
 
-        result = asyncio.get_event_loop().run_until_complete(
+        result = _run_async(
             adapter.handle_reaction("@user:localhost", "!evt1:localhost", "✅")
         )
         assert result == "test-id"
@@ -555,21 +567,21 @@ class TestHITLMatrixAdapter:
         adapter._pending["test-id2"] = HITLItem(intervention_id="test-id2")
         adapter._event_to_id["!evt2:localhost"] = "test-id2"
 
-        result = asyncio.get_event_loop().run_until_complete(
+        result = _run_async(
             adapter.handle_reaction("@user:localhost", "!evt2:localhost", "❌")
         )
         assert result == "test-id2"
 
     def test_handle_reaction_unknown_event(self):
         adapter = self._make_adapter()
-        result = asyncio.get_event_loop().run_until_complete(
+        result = _run_async(
             adapter.handle_reaction("@user:localhost", "!unknownevt:localhost", "✅")
         )
         assert result is None
 
     def test_handle_command_response_invalid_decision(self):
         adapter = self._make_adapter()
-        result = asyncio.get_event_loop().run_until_complete(
+        result = _run_async(
             adapter.handle_command_response("x", "@user:localhost", "maybe")
         )
         assert result is False
