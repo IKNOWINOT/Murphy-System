@@ -64,6 +64,7 @@ from environment_setup_agent import (
     StepStatus,
 )
 from signup_gateway import AuthError, SignupGateway, UserProfile
+
 try:
     from thread_safe_operations import capped_append
 except ImportError:
@@ -76,7 +77,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 _MAX_AUDIT = 10_000
-_FOUNDER_NAME = "Corey Post"
+_FOUNDER_NAME = os.environ.get("MURPHY_FOUNDER_NAME", "")
 _FOUNDER_ROLE = "founder_admin"
 
 # Default public hostname for the Cloudflare tunnel

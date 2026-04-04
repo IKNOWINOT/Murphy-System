@@ -5,9 +5,9 @@
 Founder-Account Automation Bootstrap Orchestrator
 
 Sequences all Murphy System bootstrap operations from the founder account
-(cpost@murphy.systems) in dependency order.  Each stage unlocks the next
-capability.  The orchestrator is idempotent — re-running it safely skips
-already-completed steps.
+in dependency order.  Each stage unlocks the next capability.  The
+orchestrator is idempotent — re-running it safely skips already-completed
+steps.
 
 Stages:
     Stage 0 — Core Runtime        (critical path)
@@ -23,6 +23,7 @@ Entry points:
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import uuid
 from dataclasses import dataclass, field
@@ -99,7 +100,7 @@ class FounderBootstrapOrchestrator:
     - Audit trail appended to ``self._audit_log`` on every state change.
     """
 
-    FOUNDER_EMAIL = "cpost@murphy.systems"
+    FOUNDER_EMAIL = os.environ.get("MURPHY_FOUNDER_EMAIL", "")
 
     # ------------------------------------------------------------------
     # Step registry — defines the full bootstrap plan
@@ -110,10 +111,10 @@ class FounderBootstrapOrchestrator:
              description="Deploy Murphy runtime + verify health endpoint",
              action="_deploy_runtime",        dependencies=[],        rollback_action=None),
         dict(step_id="0.2", stage=BootstrapStage.CORE_RUNTIME,       priority=0.2,
-             description="Provision founder auth credentials for cpost@murphy.systems",
+             description="Provision founder auth credentials",
              action="_provision_founder_auth", dependencies=["0.1"],   rollback_action="_rollback_founder_auth"),
         dict(step_id="0.3", stage=BootstrapStage.CORE_RUNTIME,       priority=0.3,
-             description="Bootstrap cpost@murphy.systems as CEO/founder role",
+             description="Bootstrap founder as CEO/founder role",
              action="_bootstrap_ceo_role",    dependencies=["0.2"],   rollback_action=None),
         dict(step_id="0.4", stage=BootstrapStage.CORE_RUNTIME,       priority=0.4,
              description="Enable Prometheus + Grafana observability",
@@ -348,7 +349,7 @@ class FounderBootstrapOrchestrator:
         return True
 
     def _provision_founder_auth(self) -> bool:
-        """Create founder JWT/API key for cpost@murphy.systems."""
+        """Create founder JWT/API key."""
         logger.info("Step 0.2: provisioning founder auth for %s", self._founder_email)
         try:
             from fastapi_security import MurphySecurityManager
@@ -485,7 +486,7 @@ class FounderBootstrapOrchestrator:
             rotator = GroqKeyRotator()
             rotator.rotate()
         except Exception as exc:
-            logger.info("Step 2.1: groq_key_rotator deprecated (now using DeepInfra/Together) — continuing")
+            logger.warning("Step 2.1: groq_key_rotator unavailable (%s) — continuing", exc)
         return True
 
     def _connect_email_comms(self) -> bool:

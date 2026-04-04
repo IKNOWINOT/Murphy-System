@@ -20,6 +20,7 @@ Usage::
 """
 from __future__ import annotations
 
+import os
 from typing import Any
 
 # ---------------------------------------------------------------------------
@@ -107,7 +108,7 @@ _ROLE_VISIBILITY: dict[str, set[str]] = {
 }
 
 # Pilot account always sees everything
-_PILOT_EMAIL = "cpost@murphy.systems"
+_PILOT_EMAIL = os.environ.get("MURPHY_FOUNDER_EMAIL", "")
 
 
 def get_nav_structure() -> dict[str, list[dict[str, Any]]]:

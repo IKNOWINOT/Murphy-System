@@ -7452,7 +7452,7 @@ def create_app() -> FastAPI:
                 "account_id": account_id,
                 "email": email,
                 "password_hash": _hash_password(password),
-                "full_name": full_name or ("Corey Post" if email == _FOUNDER_EMAIL else ""),
+                "full_name": full_name or (os.environ.get("MURPHY_FOUNDER_NAME", "") if email == _FOUNDER_EMAIL else ""),
                 "job_title": job_title,
                 "company": company,
                 "tier": _assigned_tier,
@@ -10846,7 +10846,7 @@ def create_app() -> FastAPI:
 
     _account_data: Dict[str, Any] = {
         "id": "acct_default",
-        "email": "cpost@murphy.systems",
+        "email": os.environ.get("MURPHY_FOUNDER_EMAIL", ""),
         "name": "Murphy Admin",
         "plan": "free",
         "plan_name": "Free Tier",
@@ -13929,13 +13929,8 @@ def create_app() -> FastAPI:
     # The account is created with MURPHY_FOUNDER_PASSWORD (defaults to the
     # temporary password below — override via env var in production).
     # If the account already exists its role is silently promoted to owner.
-    _FOUNDER_EMAIL: str = os.environ.get("MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems").strip().lower()
-    _FOUNDER_PASSWORD: str = os.environ.get("MURPHY_FOUNDER_PASSWORD", "Password1").strip()  # temporary — change after first login
-    if _FOUNDER_PASSWORD == "Password1" and os.environ.get("MURPHY_ENV", "development").lower() != "development":
-        logger.warning(
-            "SECURITY: Founder account is using the default temporary password. "
-            "Set MURPHY_FOUNDER_PASSWORD in your environment before going live."
-        )
+    _FOUNDER_EMAIL: str = os.environ.get("MURPHY_FOUNDER_EMAIL", "").strip().lower()
+    _FOUNDER_PASSWORD: str = os.environ.get("MURPHY_FOUNDER_PASSWORD", "").strip()
 
     def _ensure_founder_account() -> None:
         """Create or promote the founder/owner account.
@@ -13952,7 +13947,7 @@ def create_app() -> FastAPI:
         if existing_id:
             # Account already exists — promote to owner and sync password
             _user_store[existing_id]["role"] = "owner"
-            _user_store[existing_id]["full_name"] = _user_store[existing_id].get("full_name") or "Corey Post"
+            _user_store[existing_id]["full_name"] = _user_store[existing_id].get("full_name") or os.environ.get("MURPHY_FOUNDER_NAME", "")
             # Re-apply the configured password so login always works after restart
             _user_store[existing_id]["password_hash"] = _hash_password(_FOUNDER_PASSWORD)
             _user_store[existing_id]["tier"] = "enterprise"
@@ -13966,7 +13961,7 @@ def create_app() -> FastAPI:
             "account_id": founder_id,
             "email": _FOUNDER_EMAIL,
             "password_hash": pwd_hash,
-            "full_name": "Corey Post",
+            "full_name": os.environ.get("MURPHY_FOUNDER_NAME", ""),
             "job_title": "Founder",
             "company": "Inoni LLC",
             "tier": "enterprise",
@@ -13987,7 +13982,8 @@ def create_app() -> FastAPI:
                 pass  # subscription manager unavailable — not critical
         logger.info("Founder account seeded: %s (%s)", founder_id, _FOUNDER_EMAIL)
 
-    _ensure_founder_account()
+    if _FOUNDER_EMAIL and _FOUNDER_PASSWORD:
+        _ensure_founder_account()
 
     # Seed founder automations
     try:

@@ -13,9 +13,11 @@ bootstrap configuration.
 """
 from __future__ import annotations
 
+import os
+
 PILOT_ACCOUNT: dict = {
-    "email": "cpost@murphy.systems",
-    "name": "Corey Post",
+    "email": os.environ.get("MURPHY_FOUNDER_EMAIL", ""),
+    "name": os.environ.get("MURPHY_FOUNDER_NAME", ""),
     "role": "founder_admin",
     "org": "Inoni LLC",
     "automations_enabled": True,
