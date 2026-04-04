@@ -16,7 +16,7 @@ Usage::
     from nav_registry import get_nav_structure, get_nav_for_account
 
     nav = get_nav_structure()
-    pilot_nav = get_nav_for_account("cpost@murphy.systems")
+    pilot_nav = get_nav_for_account(os.environ.get("MURPHY_FOUNDER_EMAIL", ""))
 """
 from __future__ import annotations
 

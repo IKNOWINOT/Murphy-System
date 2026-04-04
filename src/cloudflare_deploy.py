@@ -228,7 +228,7 @@ class FounderGate:
     """Hard gate: only the founder account may trigger a deployment.
 
     Identity check (any one sufficient):
-      1. profile.role == "founder_admin" AND profile.name == "Corey Post"
+      1. profile.role == "founder_admin" AND profile.name matches MURPHY_FOUNDER_NAME
       2. Explicit founder_id override passed at construction (for testing)
 
     Raises AuthError immediately if the check fails.
