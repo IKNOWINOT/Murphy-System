@@ -20,7 +20,7 @@ import pytest
 
 
 def _root_path() -> Path:
-    return Path(__file__).resolve().parent.parent
+    return Path(__file__).resolve().parent.parent.parent
 
 
 def _load_ucp():

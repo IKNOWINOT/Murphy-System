@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 def load_runtime_module():
-    runtime_dir = Path(__file__).resolve().parent.parent
+    runtime_dir = Path(__file__).resolve().parent.parent.parent
     candidates = list(runtime_dir.glob("murphy_system_*_runtime.py"))
     if not candidates:
         raise RuntimeError("Unable to locate Murphy runtime module")

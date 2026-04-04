@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DOCS_DIR = PROJECT_ROOT / "docs"
 QA_AUDIT_PATH = DOCS_DIR / "QA_AUDIT_REPORT.md"
 STATUS_PATH = PROJECT_ROOT / "STATUS.md"

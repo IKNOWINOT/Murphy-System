@@ -24,7 +24,7 @@ from pathlib import Path
 def client():
     """Create a test client for the FastAPI app."""
     import sys
-    root = Path(__file__).resolve().parent.parent
+    root = Path(__file__).resolve().parent.parent.parent
     if str(root) not in sys.path:
         sys.path.insert(0, str(root))
 
@@ -140,7 +140,7 @@ class TestScriptLoading:
     def test_murphy_components_not_deferred(self, html_file):
         """murphy-components.js must NOT use 'defer' to avoid
         ReferenceError: MurphyAPI is not defined."""
-        root = Path(__file__).resolve().parent.parent
+        root = Path(__file__).resolve().parent.parent.parent
         fpath = root / html_file
         if not fpath.exists():
             pytest.skip(f"{html_file} not found")
@@ -160,7 +160,7 @@ class TestMeetingIntelligenceDraftMeta:
     otherwise the forEach loop throws TypeError."""
 
     def test_draft_meta_before_load_session(self):
-        root = Path(__file__).resolve().parent.parent
+        root = Path(__file__).resolve().parent.parent.parent
         fpath = root / "meeting_intelligence.html"
         content = fpath.read_text()
 
@@ -180,7 +180,7 @@ class TestWorkflowCanvasThemeAPI:
     not the non-existent theme.getTheme() / theme.setTheme()."""
 
     def test_no_get_theme_call(self):
-        root = Path(__file__).resolve().parent.parent
+        root = Path(__file__).resolve().parent.parent.parent
         fpath = root / "workflow_canvas.html"
         content = fpath.read_text()
         assert "theme.getTheme()" not in content, (
@@ -196,7 +196,7 @@ class TestWalletClipboardFallback:
     in non-secure contexts."""
 
     def test_clipboard_has_catch(self):
-        root = Path(__file__).resolve().parent.parent
+        root = Path(__file__).resolve().parent.parent.parent
         fpath = root / "wallet.html"
         content = fpath.read_text()
         assert ".catch(" in content or ".catch(function" in content, (

@@ -23,7 +23,7 @@ import pytest
 
 
 def _src_path() -> Path:
-    return Path(__file__).resolve().parent.parent / "src"
+    return Path(__file__).resolve().parent.parent.parent / "src"
 
 
 def _load_hub():

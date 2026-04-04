@@ -12,7 +12,7 @@ Both the root copy and the mirrored "Murphy System/" copy are tested.
 import re
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 
 LANDING_FILES = [
     ROOT / "murphy_landing_page.html",
