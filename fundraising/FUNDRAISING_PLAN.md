@@ -50,7 +50,7 @@ Before reaching out to anyone, have every asset ready:
 The goal is to identify the best path to each investor — warm intros convert 10x better than cold.
 
 **For Naval Ravikant:**
-- Post the Loom demo on Twitter/X with a thread: "I built a self-healing, self-improving AI automation platform that speaks SCADA, BACnet, and plain English. Solo. 218K lines. 8,843 tests. Here's a 3-minute demo."
+- Post the Loom demo on Twitter/X with a thread: "I built a self-healing, self-improving AI automation platform that speaks SCADA, BACnet, and plain English. Solo. 594K lines. 24,577 tests. Here's a 3-minute demo."
 - Tag @Naval in the thread
 - Submit to AngelList — Naval runs Rolling Funds there; he will see it
 
@@ -89,7 +89,7 @@ The goal is to identify the best path to each investor — warm intros convert 1
 #### 3–8 min: Competitive Moat
 - Show the comparison table from [COMPETITIVE_MOAT.md](COMPETITIVE_MOAT.md)
 - Lead with the industrial OT gap: *"No SaaS company has ever shipped a BACnet/OPC UA connector. I have 90+ of them. The industrial automation market is $180B with zero modern competition."*
-- Then: *"218K lines of source, 8,843 passing tests, 1,122 modules — solo developer. That's the signal."*
+- Then: *"594K lines of source, 24,577 tests defined, 1,230 modules — solo developer. That's the signal."*
 
 #### 8–12 min: The Ask
 - *"I'm raising $500K on a SAFE at a $5M–$7M cap. No discount. No board seats. 18 months of runway."*
@@ -104,9 +104,9 @@ The goal is to identify the best path to each investor — warm intros convert 1
 ## Common Questions & Answers
 
 **"Why no revenue?"**
-> "Because I've been building. 218K lines, 1,122 modules, 14 web interfaces, 8,843 tests — that's what one person shipping full-time looks like. The product is real. The first design partner conversations start the month after we close."
+> "Because I've been building. 594K lines, 1,230 modules, 62 web interfaces, 24,577 tests — that's what one person shipping full-time looks like. The product is real. The first design partner conversations start the month after we close."
 
-**"Can one person maintain a 1,122-module codebase?"**
+**"Can one person maintain a 1,230-module codebase?"**
 > "I already have been. The self-healing engine, immune system, and automated test suite mean the system monitors itself. The first hire is a force-multiplier on an already-built foundation — not someone to build it."
 
 **"What stops Zapier from copying this?"**
@@ -116,7 +116,7 @@ The goal is to identify the best path to each investor — warm intros convert 1
 > "5 industrial OT design partners. Target: facilities managers and plant engineers who currently pay $50K–$500K/year for automation tooling. Our $99/mo OT bundle is not a threat to their existing vendor — it's an upgrade layer on top of it. First customer target: 6 months."
 
 **"What if you burn out or get hit by a bus?"**
-> "Fair question. The answer is in the code. The self-improvement engine, correction loop, and 706 test files mean the system's behaviour is captured in tests, not in my head. A competent engineer could pick up this codebase. The first hire mitigates the bus factor immediately. And honestly — I built this in my current state. The raise solves the overwork problem."
+> "Fair question. The answer is in the code. The self-improvement engine, correction loop, and 806 test files mean the system's behaviour is captured in tests, not in my head. A competent engineer could pick up this codebase. The first hire mitigates the bus factor immediately. And honestly — I built this in my current state. The raise solves the overwork problem."
 
 ---
 
@@ -160,7 +160,7 @@ Subject: Murphy System — AI automation that speaks SCADA + plain English — $
 
 Hi [Name],
 
-I built Murphy System: an AI automation platform that converts plain English into governed, production-grade workflows — across enterprise, industrial OT (SCADA/BACnet/OPC UA), and content creator pipelines. Solo developer. 218K lines. 8,843 tests. Running in production.
+I built Murphy System: an AI automation platform that converts plain English into governed, production-grade workflows — across enterprise, industrial OT (SCADA/BACnet/OPC UA), and content creator pipelines. Solo developer. 594K lines. 24,577 tests. Running in production.
 
 No automation platform covers factory floor to enterprise to content creator in one governed system. Industrial OT ($180B market) has zero modern competitors. I'm the first.
 
