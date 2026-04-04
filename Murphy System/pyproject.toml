@@ -77,6 +77,18 @@ markers = [
     "platform_config: Configuration, feature flags, and environment tests",
     "scheduling: Scheduler, planning, and capacity tests",
     "notification_alert: Notification, alert, voice, and announcement tests",
+    "account_auth: Account, tenant, subscription, and credential tests",
+    "auar: Automated User Acceptance Review tests",
+    "competitive: Competitive intelligence and alignment tests",
+    "content_media: Content creation, video, YouTube, and social media tests",
+    "cost_economics: Cost optimization, budget, and unit economics tests",
+    "digital_twin: Digital twin and fleet management tests",
+    "documentation_qa: Documentation completeness, gap closure, and surface tests",
+    "hardening: Code hardening, quality, and deficiency fix tests",
+    "resilience: Chaos, resilience, repair, and recovery tests",
+    "submission_ticketing: Submission, ticketing, and triage adapter tests",
+    "testing_meta: Test mode controller and test vector generator tests",
+    "wiring_validation: Cross-module wiring, structural audit, and parity tests",
 ]
 # Default per-test timeout: ~5 s per 1 000 lines of tested source.
 # Tests that target very large modules (app.py = 6 293 lines, compute_plane = 2 877 lines)
