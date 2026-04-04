@@ -354,7 +354,7 @@ class TestGateG8Documentation:
     def test_readme_subsystem_lookup_new_modules(self, module_name):
         """@doc-lead: Root README Subsystem Lookup table contains all 6 new modules."""
         import re as _re
-        repo_root = Path(__file__).parent.parent.parent.parent
+        repo_root = Path(__file__).parent.parent.parent
         readme = repo_root / "README.md"
         content = readme.read_text(encoding="utf-8")
         assert module_name in content, (
