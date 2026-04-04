@@ -304,6 +304,7 @@ class TestDeepInfraURLCorrectness:
         from openai_compatible_provider import OpenAICompatibleProvider, ProviderType
 
         _clear_managed_env()
+        snapshot = _save_env()
         os.environ["DEEPINFRA_API_KEY"] = "di_test_key_url_check"
         try:
             provider = OpenAICompatibleProvider.from_env()
@@ -314,8 +315,7 @@ class TestDeepInfraURLCorrectness:
                 f"Expected base_url={_CANONICAL_BASE!r}, got {actual_url!r}"
             )
         finally:
-            _restore_env(_save_env())
-            os.environ.pop("DEEPINFRA_API_KEY", None)
+            _restore_env(snapshot)
 
     def test_llm_provider_base_url_constant(self) -> None:
         """llm_provider.DEEPINFRA_BASE_URL must equal the canonical URL."""
