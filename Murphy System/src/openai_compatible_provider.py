@@ -275,7 +275,7 @@ class OpenAICompatibleProvider:
         # Resolve base URL — provider-specific defaults
         base_url = os.getenv("OPENAI_BASE_URL")
         if base_url is None and provider_type == ProviderType.DEEPINFRA:
-            base_url = "https://api.deepinfra.com/v1/openai/openai/v1"
+            base_url = "https://api.deepinfra.com/v1/openai"
         elif base_url is None and provider_type == ProviderType.OLLAMA:
             _ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
             base_url = f"{_ollama_host}/v1"

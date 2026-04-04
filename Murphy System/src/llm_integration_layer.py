@@ -457,7 +457,7 @@ class LLMIntegrationLayer:
         if api_key:
             try:
                 resp = requests.post(
-                    "https://api.deepinfra.com/v1/openai/openai/v1/chat/completions",
+                    "https://api.deepinfra.com/v1/openai/chat/completions",
                     json={
                         "model": "llama3-70b-8192",
                         "messages": [{"role": "user", "content": request.prompt}],

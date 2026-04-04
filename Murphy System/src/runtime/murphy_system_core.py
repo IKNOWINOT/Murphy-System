@@ -12241,7 +12241,7 @@ class MurphySystem:
                         body["messages"].append({"role": "system", "content": f"Context: {context}"})
                     body["messages"].append({"role": "user", "content": prompt})
                     resp = _requests.post(
-                        "https://api.deepinfra.com/v1/openai/openai/v1/chat/completions",
+                        "https://api.deepinfra.com/v1/openai/chat/completions",
                         headers=headers,
                         json=body,
                         timeout=15,
