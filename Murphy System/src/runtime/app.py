@@ -3005,6 +3005,10 @@ def create_app() -> FastAPI:
         budget = float(data.get("budget", 50.0))
         idempotency_key = data.get("idempotency_key") or None
         try:
+            import sys, os
+            _ms_src = os.path.join(os.path.dirname(__file__), "..", "..", "Murphy System", "src")
+            if _ms_src not in sys.path:
+                sys.path.insert(0, _ms_src)
             from collaborative_task_orchestrator import CollaborativeTaskOrchestrator
             cto = CollaborativeTaskOrchestrator()
             report = cto.orchestrate(
@@ -3671,7 +3675,9 @@ def create_app() -> FastAPI:
         ``invoice_processing`` when they mention billing + accounts payable).
         """
         import sys as _sys
+        import os as _os
         try:
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             from ai_workflow_generator import AIWorkflowGenerator
         except Exception:
             return {}
@@ -3879,6 +3885,7 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             from ai_workflow_generator import AIWorkflowGenerator
             generator = AIWorkflowGenerator()
             history = generator.get_generation_history()
@@ -3913,6 +3920,7 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             data = {}
             try:
                 data = await request.json()
@@ -4022,6 +4030,7 @@ def create_app() -> FastAPI:
                 return JSONResponse({"success": False, "error": "Automation engine not available"}, status_code=503)
             import sys as _sys
             import os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             from automations.models import TriggerType
             try:
                 tt = TriggerType(trigger_type_str)
@@ -4048,6 +4057,7 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             data = await request.json()
             session_id = (data.get("session_id") or "").strip()
             extra_ctx = data.get("context") or {}
@@ -4123,6 +4133,7 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             data = await request.json()
             ctx = data.get("context") or {}
             threshold = float(data.get("health_threshold", 0.75))
@@ -10688,6 +10699,9 @@ def create_app() -> FastAPI:
         compliance_blockers = 0
         try:
             import sys as _sys
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
             from trading_compliance_engine import get_compliance_engine
             _ce = get_compliance_engine()
             _last = _ce.last_report()
@@ -10754,6 +10768,9 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
             from live_feed_service import get_live_feed
             from coinbase_connector import CoinbaseConnector
             _cb = CoinbaseConnector()
@@ -10941,6 +10958,9 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
             from trading_compliance_engine import get_compliance_engine as _gce
             return _gce()
         except Exception as _exc:
@@ -10989,6 +11009,9 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
             from trading_compliance_engine import get_graduation_tracker
             _gt = get_graduation_tracker()
             _gs = _gt.summary()
@@ -11017,6 +11040,9 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
             from trading_compliance_engine import get_graduation_tracker
             gt = get_graduation_tracker()
             summary = gt.summary()
@@ -11053,6 +11079,9 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
             from trading_compliance_engine import get_graduation_tracker
             body = await request.json()
             gt = get_graduation_tracker()
@@ -11411,6 +11440,7 @@ def create_app() -> FastAPI:
         # it can be imported as a top-level package without changing the wider
         # project layout.  This mirrors what the original standalone Flask app
         # did via sys.path.insert in its own __main__ block.
+        _sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
         from module_compiler import ModuleCompiler as _ModuleCompiler, ModuleRegistry as _ModuleRegistry
 
         _mc_compiler = _ModuleCompiler()
@@ -12812,6 +12842,46 @@ def create_app() -> FastAPI:
                 status_code=400,
             )
 
+        # ── Usage tracking (HIGH-001) ───────────────────────────────────
+        account = _get_account_from_session(request)
+        usage_result: dict = {}
+
+        if _sub_manager is not None:
+            if account:
+                usage_result = _sub_manager.record_usage(account["account_id"])
+            else:
+                import hashlib as _hl
+                _ip = request.client.host if request.client else "unknown"
+                _fp = _hl.sha256(_ip.encode()).hexdigest()[:32]
+                usage_result = _sub_manager.record_anon_usage(_fp)
+        else:
+            usage_result = {"allowed": True, "used": 1, "limit": 50, "remaining": 49, "tier": "anonymous"}
+
+        if not usage_result.get("allowed", True):
+            _tier = usage_result.get("tier", "anonymous")
+            _limit = usage_result.get("limit", 50)
+            return JSONResponse(
+                {
+                    "success": False,
+                    "error": "limit_exceeded",
+                    "message": f"Demo run limit ({_limit}/day) reached. Sign up or upgrade for more.",
+                    "usage": {
+                        "used": usage_result.get("used", _limit),
+                        "limit": _limit,
+                        "remaining": 0,
+                        "tier": _tier,
+                    },
+                },
+                status_code=429,
+            )
+
+        _usage_info = {
+            "used": usage_result.get("used", 1),
+            "limit": usage_result.get("limit", 50),
+            "remaining": usage_result.get("remaining", 49),
+            "tier": usage_result.get("tier", "anonymous"),
+        }
+
         try:
             from src.demo_runner import DemoRunner
             runner = DemoRunner()
@@ -12823,6 +12893,7 @@ def create_app() -> FastAPI:
                 "scenario_key": result["scenario_key"],
                 "duration_ms": result["duration_ms"],
                 "spec": result["spec"],
+                "usage": _usage_info,
             })
         except Exception as exc:
             logger.warning("demo/run error: %s", exc)

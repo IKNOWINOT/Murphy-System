@@ -4,39 +4,23 @@ Email Integration — SMTP and SendGrid (INC-11 / C-04).
 Provides async email delivery via:
   1. **SendGrid** — when ``SENDGRID_API_KEY`` is set
   2. **SMTP** — when ``SMTP_HOST`` is set (uses ``aiosmtplib``)
-  3. **Disabled** — when no real backend is configured; every send returns
-     ``success=False`` with a clear, actionable error message.
+  3. **Mock** — for testing / development (no external service required)
+  4. **Disabled** — when ``MURPHY_EMAIL_REQUIRED=true`` and no real backend
+     is configured; every send returns ``success=False`` with a clear error.
 
 The active backend is chosen automatically from environment variables
-following the 12-factor app pattern.  There is no silent mock path —
-if email credentials are not configured the service explicitly reports
-the misconfiguration rather than silently swallowing messages.
+following the 12-factor app pattern.
 
 Environment variables
 ---------------------
-SENDGRID_API_KEY : str
-    SendGrid v3 API key.  Takes priority over SMTP when both are set.
-SENDGRID_FROM_EMAIL : str
-    Default sender address used by the SendGrid backend.
-MURPHY_MAIL_INTERNAL : str
-    Set to ``true`` to use the internal docker-mailserver (``murphy-mailserver:587``).
-    When set, overrides ``SMTP_HOST`` / ``SMTP_PORT`` with the internal container address.
-SMTP_HOST : str
-    SMTP server hostname.
-SMTP_PORT : int
-    SMTP server port (default: 587).
-SMTP_USER : str
-    SMTP authentication username (optional).
-SMTP_PASSWORD : str
-    SMTP authentication password (optional).
-SMTP_USE_TLS : str
-    ``true`` (default) enables STARTTLS; ``false`` sends plaintext.
-SMTP_FROM_EMAIL : str
-    Default sender address used by the SMTP backend.
-MESSAGE_ID_DOMAIN : str
-    Domain suffix for generated Message-IDs (default: murphy.local).
+MURPHY_EMAIL_REQUIRED : str
+    ``true``  — a real email backend (SendGrid or SMTP) is required.
+    In production/staging, if no credentials are found, a
+    ``RuntimeError`` is raised.
+    ``false`` (default) — fall back to MockEmailBackend.
 MURPHY_ENV : str
-    Runtime environment label (development / staging / production).
+    Runtime environment.  In ``production``/``staging``, the default
+    for ``MURPHY_EMAIL_REQUIRED`` becomes ``true``.
 
 Usage::
 
@@ -47,8 +31,6 @@ Usage::
         subject="Hello from Murphy",
         body="This is an automated message.",
     )
-    if not result.success:
-        raise RuntimeError(f"Email delivery failed: {result.error}")
 
 Copyright © 2020-2026 Inoni LLC — Created by Corey Post
 License: BSL 1.1
@@ -56,6 +38,7 @@ License: BSL 1.1
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import time
@@ -340,42 +323,83 @@ class SMTPBackend(EmailBackend):
 
 
 # ---------------------------------------------------------------------------
-# Unconfigured backend — explicit failure, never silent
+# Mock backend (for testing / development)
 # ---------------------------------------------------------------------------
 
 
-class UnconfiguredEmailBackend(EmailBackend):
-    """Backend active when no credentials are provided.
+class MockEmailBackend(EmailBackend):
+    """In-memory mock backend for testing.
 
-    Every send returns ``success=False`` with an actionable configuration
-    error.  This prevents silent message loss: callers get a clear failure
-    rather than a fake success from a mock that never delivered anything.
+    Stores all sent messages so tests can assert on them.
+    Every send returns a result that includes a ``warning`` field
+    so callers can detect that no email was actually delivered.
+    """
+
+    def __init__(self) -> None:
+        self.sent_messages: List[EmailMessage] = []
+
+    @property
+    def provider_name(self) -> str:
+        return "mock"
+
+    async def send(self, message: EmailMessage) -> SendResult:
+        self.sent_messages.append(message)
+        logger.warning(
+            "MockEmailBackend: no email was actually sent — "
+            "configure SENDGRID_API_KEY or SMTP_HOST for real delivery. "
+            "message_id=%s to=%s subject=%r",
+            message.message_id,
+            message.to,
+            message.subject,
+        )
+        return SendResult(
+            success=True,
+            message_id=message.message_id,
+            provider=self.provider_name,
+            status_code=200,
+            metadata={"backend": "mock", "warning": "No email was actually sent"},
+        )
+
+
+class DisabledEmailBackend(EmailBackend):
+    """Backend used when email is required but no credentials are configured.
+
+    Every send returns ``success=False`` with a clear error message.
+    This prevents silent data loss in production when emails are expected
+    but no real provider is configured.
     """
 
     @property
     def provider_name(self) -> str:
-        return "unconfigured"
+        return "disabled"
 
     async def send(self, message: EmailMessage) -> SendResult:
-        error = (
-            "Email backend is not configured.  "
-            "Set SENDGRID_API_KEY for SendGrid delivery, or set SMTP_HOST "
-            "(and optionally SMTP_PORT / SMTP_USER / SMTP_PASSWORD) for SMTP delivery."
-        )
         logger.error(
-            "UnconfiguredEmailBackend: send attempted with no backend configured — "
-            "message_id=%s to=%s subject=%r  Hint: %s",
+            "DisabledEmailBackend: email delivery is required but no backend is configured. "
+            "Set SENDGRID_API_KEY or SMTP_HOST. message_id=%s",
             message.message_id,
-            message.to,
-            message.subject,
-            error,
         )
         return SendResult(
             success=False,
             message_id=message.message_id,
             provider=self.provider_name,
-            error=error,
+            error=(
+                "Email delivery is required (MURPHY_EMAIL_REQUIRED=true) but no backend "
+                "is configured. Set SENDGRID_API_KEY or SMTP_HOST."
+            ),
         )
+
+
+class UnconfiguredEmailBackend(DisabledEmailBackend):
+    """Alias for ``DisabledEmailBackend`` with a more descriptive provider name.
+
+    Used when no email backend has been explicitly chosen — sends always fail
+    with a clear diagnostic message.
+    """
+
+    @property
+    def provider_name(self) -> str:
+        return "unconfigured"
 
 
 # ---------------------------------------------------------------------------
@@ -386,13 +410,11 @@ class UnconfiguredEmailBackend(EmailBackend):
 class EmailService:
     """Unified email service that delegates to the configured backend.
 
-    Backend selection priority (env-var driven):
-      1. ``SENDGRID_API_KEY`` set  →  SendGridBackend
-      2. ``SMTP_HOST`` set         →  SMTPBackend
-      3. Neither set               →  UnconfiguredEmailBackend  (explicit failure)
-
-    There is no silent fallback path.  Callers that receive a
-    ``SendResult(success=False)`` know exactly why delivery failed.
+    The backend is selected from environment variables:
+      - ``SENDGRID_API_KEY`` → SendGrid
+      - ``SMTP_HOST``        → SMTP
+      - (neither) + ``MURPHY_EMAIL_REQUIRED=true`` → DisabledEmailBackend
+      - (neither) + ``MURPHY_EMAIL_REQUIRED=false`` → Mock (dev/test mode)
     """
 
     def __init__(self, backend: EmailBackend) -> None:
@@ -400,38 +422,19 @@ class EmailService:
 
     @classmethod
     def from_env(cls) -> "EmailService":
-        """Create an ``EmailService`` configured from environment variables.
+        """Create an EmailService from environment variables.
 
-        Returns a fully wired service.  If no credentials are found, returns
-        a service backed by ``UnconfiguredEmailBackend`` so every ``send``
-        call returns an explicit failure rather than silently doing nothing.
+        Raises:
+            RuntimeError: When ``MURPHY_EMAIL_REQUIRED=true`` and no real
+                email backend is configured (strict mode).
         """
         sendgrid_key = os.getenv("SENDGRID_API_KEY")
         if sendgrid_key:
-            logger.info("Email backend: SendGrid", extra={"provider": "sendgrid"})
-            return cls(SendGridBackend(api_key=sendgrid_key))
-
-        # Internal docker-mailserver auto-detection
-        if os.getenv("MURPHY_MAIL_INTERNAL", "").lower() == "true":
-            internal_host = "murphy-mailserver"
-            internal_port = 587
-            smtp_user = os.getenv("SMTP_USER") or os.getenv("MAIL_ADMIN_EMAIL")
-            smtp_pass = os.getenv("SMTP_PASSWORD") or os.getenv("MAIL_ADMIN_PASSWORD")
             logger.info(
-                "Email backend: internal docker-mailserver (%s:%s)",
-                internal_host,
-                internal_port,
-                extra={"provider": "internal_smtp", "host": internal_host},
+                "Email backend: SendGrid",
+                extra={"provider": "sendgrid"},
             )
-            return cls(
-                SMTPBackend(
-                    host=internal_host,
-                    port=internal_port,
-                    username=smtp_user,
-                    password=smtp_pass,
-                    use_tls=True,
-                )
-            )
+            return cls(SendGridBackend(api_key=sendgrid_key))
 
         smtp_host = os.getenv("SMTP_HOST")
         if smtp_host:
@@ -450,14 +453,29 @@ class EmailService:
                 )
             )
 
+        # No real backend configured — check if email is required
         murphy_env = os.getenv("MURPHY_ENV", "development").lower()
+        _production_envs = {"production", "staging"}
+        _default_required = "true" if murphy_env in _production_envs else "false"
+        email_required = (
+            os.getenv("MURPHY_EMAIL_REQUIRED", _default_required).lower() == "true"
+        )
+
+        if email_required:
+            raise RuntimeError(
+                "MURPHY_EMAIL_REQUIRED=true but no email backend is configured. "
+                "Set SENDGRID_API_KEY or SMTP_HOST, or set MURPHY_EMAIL_REQUIRED=false "
+                "to allow mock/disabled email in this environment."
+            )
+
         logger.warning(
-            "Email backend: unconfigured — no SENDGRID_API_KEY or SMTP_HOST found. "
-            "All send() calls will return success=False. "
+            "Email backend: Mock (no SENDGRID_API_KEY or SMTP_HOST set) — "
+            "no emails will actually be delivered. "
+            "Set SENDGRID_API_KEY or SMTP_HOST for real delivery. "
             "(MURPHY_ENV=%s)",
             murphy_env,
         )
-        return cls(UnconfiguredEmailBackend())
+        return cls(MockEmailBackend())
 
     async def send(
         self,

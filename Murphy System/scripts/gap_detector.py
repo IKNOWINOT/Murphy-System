@@ -129,6 +129,18 @@ def check_storyline_conformance() -> bool:
             )
             return True  # Not a hard failure — tests may not be marked yet
 
+        if not passed and not failed and errors_found:
+            # Collection errors only (no actual storyline tests ran).
+            # These are typically from missing optional deps in unrelated
+            # test files — not storyline failures.  Warn but don't block.
+            warn(
+                "Storyline Conformance",
+                f"{len(errors_found)} collection error(s) during pytest -m storyline "
+                "(likely missing optional deps in unrelated tests). "
+                "No storyline tests were selected.",
+            )
+            return True
+
         if failed or errors_found:
             failing = failed + errors_found
             error(

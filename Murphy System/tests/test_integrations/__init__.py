@@ -14,10 +14,12 @@ simulated fallback path to avoid requiring live credentials in CI.
 """
 
 import os
+import sys
 import unittest
 
 # Ensure imports resolve correctly from test runner location
 _SRC = os.path.join(os.path.dirname(__file__), "..", "..", "src")
+sys.path.insert(0, _SRC)
 
 
 # ---------------------------------------------------------------------------

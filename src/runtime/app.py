@@ -12812,6 +12812,46 @@ def create_app() -> FastAPI:
                 status_code=400,
             )
 
+        # ── Usage tracking (HIGH-001) ───────────────────────────────────
+        account = _get_account_from_session(request)
+        usage_result: dict = {}
+
+        if _sub_manager is not None:
+            if account:
+                usage_result = _sub_manager.record_usage(account["account_id"])
+            else:
+                import hashlib as _hl
+                _ip = request.client.host if request.client else "unknown"
+                _fp = _hl.sha256(_ip.encode()).hexdigest()[:32]
+                usage_result = _sub_manager.record_anon_usage(_fp)
+        else:
+            usage_result = {"allowed": True, "used": 1, "limit": 50, "remaining": 49, "tier": "anonymous"}
+
+        if not usage_result.get("allowed", True):
+            _tier = usage_result.get("tier", "anonymous")
+            _limit = usage_result.get("limit", 50)
+            return JSONResponse(
+                {
+                    "success": False,
+                    "error": "limit_exceeded",
+                    "message": f"Demo run limit ({_limit}/day) reached. Sign up or upgrade for more.",
+                    "usage": {
+                        "used": usage_result.get("used", _limit),
+                        "limit": _limit,
+                        "remaining": 0,
+                        "tier": _tier,
+                    },
+                },
+                status_code=429,
+            )
+
+        _usage_info = {
+            "used": usage_result.get("used", 1),
+            "limit": usage_result.get("limit", 50),
+            "remaining": usage_result.get("remaining", 49),
+            "tier": usage_result.get("tier", "anonymous"),
+        }
+
         try:
             from src.demo_runner import DemoRunner
             runner = DemoRunner()
@@ -12823,6 +12863,7 @@ def create_app() -> FastAPI:
                 "scenario_key": result["scenario_key"],
                 "duration_ms": result["duration_ms"],
                 "spec": result["spec"],
+                "usage": _usage_info,
             })
         except Exception as exc:
             logger.warning("demo/run error: %s", exc)
