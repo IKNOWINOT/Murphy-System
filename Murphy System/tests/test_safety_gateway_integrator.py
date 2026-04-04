@@ -8,9 +8,11 @@ Design Label: TEST-029 / ORCH-001
 Owner: QA Team
 """
 
+import sys
 import os
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from safety_gateway_integrator import (
     SafetyGatewayIntegrator,

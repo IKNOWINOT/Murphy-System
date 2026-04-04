@@ -22,6 +22,9 @@ from pathlib import Path
 import pytest
 
 # Ensure the src directory is importable.
+_src = Path(__file__).resolve().parent.parent / "src"
+if str(_src) not in sys.path:
+    sys.path.insert(0, str(_src))
 
 from nocode_workflow_terminal import NoCodeWorkflowTerminal
 from ai_workflow_generator import AIWorkflowGenerator

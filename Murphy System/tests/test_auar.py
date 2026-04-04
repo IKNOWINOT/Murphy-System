@@ -11,9 +11,11 @@ Covers all seven architectural layers:
   7. Observability & Governance
 """
 
+import sys
 import os
 import time
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import pytest
 

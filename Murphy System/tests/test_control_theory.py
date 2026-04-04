@@ -16,11 +16,13 @@ Covers:
 """
 
 import math
+import sys
 import os
 import unittest
 
 import numpy as np
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from control_theory.state_model import StateDimension, StateVector, StateEvolution
 from control_theory.observation_model import KalmanObserver

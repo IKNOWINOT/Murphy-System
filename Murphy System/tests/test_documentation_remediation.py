@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import datetime
 import re
+import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, List, Optional
@@ -39,6 +40,7 @@ SRC_DIR = PROJECT_ROOT / "src"
 TESTS_DIR = PROJECT_ROOT / "tests"
 DOCUMENTATION_DIR = PROJECT_ROOT / "documentation"
 
+sys.path.insert(0, str(PROJECT_ROOT))
 
 
 # ---------------------------------------------------------------------------

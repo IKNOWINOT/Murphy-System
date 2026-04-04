@@ -12,10 +12,12 @@ and label category determination.
 from __future__ import annotations
 
 import os
+import sys
 from datetime import datetime
 
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from murphy_foundation_model.action_trace_serializer import ActionTrace
 from murphy_foundation_model.outcome_labeler import OutcomeLabeler, OutcomeLabels

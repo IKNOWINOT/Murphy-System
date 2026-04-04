@@ -12,10 +12,12 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
 
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from murphy_foundation_model.mfm_trainer import (
     MFMTrainer,

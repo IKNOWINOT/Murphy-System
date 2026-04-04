@@ -10,6 +10,7 @@ import sys
 import tempfile
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from environment_state_manager import (
     EnvironmentState,
@@ -226,10 +227,10 @@ class TestAuditLogHelpers:
 
 class TestEnvFileHelpers:
     def test_save_and_load_env_vars(self, tmp_mgr):
-        env_vars = {"DEEPINFRA_API_KEY": "di_test123", "MURPHY_HOME": "/home/user/.murphy"}
+        env_vars = {"DEEPINFRA_API_KEY": "gsk_test123", "MURPHY_HOME": "/home/user/.murphy"}
         tmp_mgr.save_env_vars(env_vars)
         loaded = tmp_mgr.load_env_vars()
-        assert loaded["DEEPINFRA_API_KEY"] == "di_test123"
+        assert loaded["DEEPINFRA_API_KEY"] == "gsk_test123"
         assert loaded["MURPHY_HOME"] == "/home/user/.murphy"
 
     def test_load_env_vars_empty_when_no_file(self, tmp_mgr):

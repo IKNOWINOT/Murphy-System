@@ -31,6 +31,8 @@ SRC_DIR = os.path.join(PROJECT_ROOT, "src")
 REPO_ROOT = os.path.abspath(os.path.join(PROJECT_ROOT, ".."))
 
 # Ensure src is on path for import sweep
+if SRC_DIR not in sys.path:
+    sys.path.insert(0, SRC_DIR)
 
 OPTIONAL_DEPS = frozenset({
     "fastapi", "matplotlib", "torch", "textual", "uvicorn",

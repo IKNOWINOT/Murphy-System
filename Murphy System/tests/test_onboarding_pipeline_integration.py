@@ -9,6 +9,7 @@ License: BSL 1.1
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -25,13 +26,21 @@ def _src_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
+def _add_paths() -> None:
+    for p in (_src_root(), _src_root() / "src"):
+        s = str(p)
+        if s not in sys.path:
+            sys.path.insert(0, s)
+
 
 def _load_pipeline_module():
+    _add_paths()
     import importlib
     return importlib.import_module("src.onboarding_team_pipeline")
 
 
 def _load_system_integrator():
+    _add_paths()
     import importlib
     return importlib.import_module("src.system_integrator")
 

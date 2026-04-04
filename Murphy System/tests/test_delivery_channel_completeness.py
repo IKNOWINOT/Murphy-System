@@ -9,9 +9,16 @@ Covers all 5 capabilities:
   5. Channel health monitor
 """
 
+import sys
+import os
 import threading
 import unittest
 
+# Ensure the src package is importable
+sys.path.insert(
+    0,
+    os.path.join(os.path.dirname(__file__), "..", "src"),
+)
 
 from delivery_channel_completeness import (
     ChannelHealthMonitor,

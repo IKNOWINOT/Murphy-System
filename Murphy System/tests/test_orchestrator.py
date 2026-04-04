@@ -8,9 +8,11 @@ Proves:
   - Full integration: observe → update → constraints → control → stability → drift.
 """
 
+import sys
 import os
 import unittest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from control_theory.canonical_state import CanonicalStateVector
 from control_theory.drift_detector import DriftDetector

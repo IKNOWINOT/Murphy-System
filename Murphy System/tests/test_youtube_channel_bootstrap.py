@@ -20,10 +20,12 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
 
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from youtube_channel_bootstrap import YouTubeChannelBootstrap
 

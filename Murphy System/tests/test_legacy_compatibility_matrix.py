@@ -1,9 +1,11 @@
 """Tests for legacy_compatibility_matrix module."""
 
+import sys
 import os
 import pytest
 
 # Ensure the src package is importable
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.legacy_compatibility_matrix import (
     LegacyCompatibilityMatrixAdapter,

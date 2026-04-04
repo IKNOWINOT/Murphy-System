@@ -13,11 +13,13 @@ Every test demonstrates a concrete gap being closed:
 - Retry decorator exponential back-off
 """
 
+import sys
 import os
 import time
 import threading
 import unittest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from thread_safe_operations import (
     ThreadSafeCounter,

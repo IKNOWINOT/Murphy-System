@@ -1,6 +1,8 @@
 """Tests for Phase 12 – Mobile App Backend."""
 
 import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
 from mobile.models import (

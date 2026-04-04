@@ -7,12 +7,14 @@ Proves:
   - Jacobian-based EKF covariance propagation works.
 """
 
+import sys
 import os
 import unittest
 import math
 
 import numpy as np
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from control_theory.state_model import StateDimension, StateEvolution, StateVector
 

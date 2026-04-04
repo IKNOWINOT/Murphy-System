@@ -5,8 +5,11 @@ Phase 4 – Operational Wiring Validation
 """
 
 import os
+import sys
 import unittest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from universal_integration_adapter import UniversalIntegrationAdapter
 from platform_connector_framework import PlatformConnectorFramework

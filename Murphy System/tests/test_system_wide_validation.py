@@ -19,13 +19,15 @@ License: BSL 1.1
 from __future__ import annotations
 
 import os
-from unittest.mock import MagicMock, patch
+import sys
 
 import pytest
 
 # Ensure src/ is importable
 _src_dir = os.path.join(os.path.dirname(__file__), "..", "src")
 _src_dir = os.path.abspath(_src_dir)
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
 
 
 # ---------------------------------------------------------------------------
@@ -128,8 +130,7 @@ class TestLLMSubsystemIntegration:
         """Provider status should return structured dictionary."""
         from openai_compatible_provider import OpenAICompatibleProvider
 
-        with patch.dict(os.environ, {}, clear=True):
-            provider = OpenAICompatibleProvider.from_env()
+        provider = OpenAICompatibleProvider.from_env()
         status = provider.get_status()
         assert isinstance(status, dict)
         assert "provider_type" in status
@@ -255,8 +256,7 @@ class TestCrossModuleWorkflow:
         from execution_compiler import ExecutionCompiler
 
         # Both should instantiate independently
-        with patch.dict(os.environ, {}, clear=True):
-            provider = OpenAICompatibleProvider.from_env()
+        provider = OpenAICompatibleProvider.from_env()
         compiler = ExecutionCompiler()
 
         # Provider status and compiler should coexist

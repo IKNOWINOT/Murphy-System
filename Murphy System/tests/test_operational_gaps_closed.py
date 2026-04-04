@@ -23,12 +23,13 @@ import sys
 
 import pytest
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Resolve the project root (Murphy System/) for file-based assertions.
+# Resolve the project root for file-based assertions.
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Resolve the repository root (parent of Murphy System/).
-_REPO_ROOT = os.path.dirname(_PROJECT_ROOT)
+# After repo flattening, the repository root is the same as the project root.
+_REPO_ROOT = _PROJECT_ROOT
 
 
 # ---------------------------------------------------------------------------
@@ -480,12 +481,13 @@ class TestReadmeModuleCounts:
     """README files should reflect actual module and test file counts."""
 
     def _murphy_readme(self) -> str:
+        # After repo flattening, there is only one README.md at the project root.
         with open(os.path.join(_PROJECT_ROOT, "README.md")) as fh:
             return fh.read()
 
     def _root_readme(self) -> str:
-        root = os.path.dirname(_PROJECT_ROOT)
-        with open(os.path.join(root, "README.md")) as fh:
+        # After repo flattening, the project root IS the repository root.
+        with open(os.path.join(_PROJECT_ROOT, "README.md")) as fh:
             return fh.read()
 
     def test_murphy_readme_module_count_current(self):
@@ -722,9 +724,9 @@ class TestGettingStartedCounts:
         assert "60 packages" not in content, "Stale package count '60 packages' found"
 
     def test_updated_module_count_present(self):
-        """GETTING_STARTED.md should reference 1,204 modules."""
+        """GETTING_STARTED.md should reference 978 modules."""
         content = self._content()
-        assert "1,204" in content, "GETTING_STARTED.md should mention 1,204 modules"
+        assert "978" in content, "GETTING_STARTED.md should mention 978 modules"
 
 
 # ---------------------------------------------------------------------------
@@ -744,9 +746,9 @@ class TestStatusMdCounts:
         assert "585+" not in content, "Stale test count '585+' found in STATUS.md"
 
     def test_updated_test_count_present(self):
-        """STATUS.md should reference 779+ test files."""
+        """STATUS.md should reference 644+ test files."""
         content = self._content()
-        assert "779" in content, "STATUS.md should mention 779 test files"
+        assert "644" in content, "STATUS.md should mention 644 test files"
 
 
 # ---------------------------------------------------------------------------
@@ -1192,10 +1194,10 @@ class TestRootReadmeStatsCurrent:
             "Root README.md still has stale '625+' module count"
         )
 
-    def test_source_files_shows_1204(self):
+    def test_source_files_shows_978(self):
         content = self._content()
-        assert "1,204" in content, (
-            "Root README.md stats section should show 1,204 Python modules"
+        assert "978" in content, (
+            "Root README.md stats section should show 978 Python modules"
         )
 
     def test_test_files_updated(self):
@@ -1351,14 +1353,14 @@ class TestContributingModuleCounts:
 
     def test_current_module_count(self):
         content = self._content()
-        assert "1,204" in content, (
-            "CONTRIBUTING.md should reflect 1,204 source modules"
+        assert "978" in content, (
+            "CONTRIBUTING.md should reflect 978 source modules"
         )
 
     def test_current_package_count(self):
         content = self._content()
-        assert "83 packages" in content, (
-            "CONTRIBUTING.md should reflect 83 packages"
+        assert "81 packages" in content, (
+            "CONTRIBUTING.md should reflect 81 packages"
         )
 
 
@@ -1433,26 +1435,26 @@ class TestRootReadmeStatsTableAccurate:
         content = self._content()
         assert "585+" not in content, (
             "Root README.md still uses stale '585+' test file count; "
-            "actual is 779"
+            "actual is 644"
         )
 
     def test_no_stale_54_packages(self):
         content = self._content()
         assert "54 subsystem" not in content, (
             "Root README.md stats table still uses stale '54 subsystem "
-            "directories'; actual is 83"
+            "directories'; actual is 81"
         )
 
-    def test_stats_show_779_tests(self):
+    def test_stats_show_644_tests(self):
         content = self._content()
-        assert "779" in content, (
-            "Root README.md should show 779 test files"
+        assert "644" in content, (
+            "Root README.md should show 644 test files"
         )
 
-    def test_stats_show_83_packages(self):
+    def test_stats_show_81_packages(self):
         content = self._content()
-        assert "83 subsystem" in content, (
-            "Root README.md stats should show 83 subsystem directories"
+        assert "81 subsystem" in content, (
+            "Root README.md stats should show 81 subsystem directories"
         )
 
 

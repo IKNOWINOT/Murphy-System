@@ -1,8 +1,10 @@
 """Tests for APIGatewayAdapter."""
 
+import sys
 import os
 import unittest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from api_gateway_adapter import (
     APIGatewayAdapter,

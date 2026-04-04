@@ -1,10 +1,12 @@
 """Tests for control_plane_separation module."""
 
+import sys
 import os
 import threading
 import pytest
 
 # Ensure the src package is importable
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.control_plane_separation import (
     ControlPlaneSeparation,

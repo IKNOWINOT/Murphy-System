@@ -11,9 +11,11 @@ and edge cases with all-success or all-failure traces.
 from __future__ import annotations
 
 import os
+import sys
 
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from murphy_foundation_model.rlef_engine import (
     PreferencePair,

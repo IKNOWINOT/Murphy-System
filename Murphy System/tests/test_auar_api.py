@@ -5,8 +5,10 @@ Validates the handler functions that wire AUAR into the Murphy System
 runtime API surface.
 """
 
+import sys
 import os
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import pytest
 

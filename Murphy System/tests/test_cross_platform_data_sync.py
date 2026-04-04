@@ -1,8 +1,10 @@
 """Tests for cross_platform_data_sync.py"""
 
+import sys
 import os
 import unittest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 from cross_platform_data_sync import CrossPlatformDataSync
 
 

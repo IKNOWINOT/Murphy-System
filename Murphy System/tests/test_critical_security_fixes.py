@@ -32,6 +32,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 # Ensure project root on path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 os.environ.setdefault("MURPHY_ENV", "test")
 
 

@@ -10,8 +10,10 @@ Covers:
   - is_fully_onboarded() still only requires email validation (phone is optional)
 """
 
+import sys
 import os
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import pytest
 from signup_gateway import SignupGateway, UserProfile, SignupError, AuthError

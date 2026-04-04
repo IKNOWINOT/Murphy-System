@@ -6,12 +6,15 @@ not just that code exists and unit tests pass.
 """
 import importlib
 import os
+import sys
 import time
 import unittest
 from pathlib import Path
 from typing import Any, Dict
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "src"))
 
 
 class TestArea1ExecutionWiring(unittest.TestCase):

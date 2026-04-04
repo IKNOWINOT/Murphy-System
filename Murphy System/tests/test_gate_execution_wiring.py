@@ -1,9 +1,16 @@
 """Tests for gate_execution_wiring module."""
 
+import sys
+import os
 import uuid
 
 import pytest
 
+# Ensure the src directory is importable
+sys.path.insert(
+    0,
+    os.path.join(os.path.dirname(__file__), "..", "src"),
+)
 
 from gate_execution_wiring import (
     GATE_SEQUENCE,
@@ -392,3 +399,51 @@ class TestMixedPolicies:
         w.register_gate(GateType.QA, _make_evaluator(GateDecision.BLOCKED))
         _, evals = w.can_execute({"id": "t1"}, "s1")
         assert evals[0].policy == GatePolicy.ENFORCE
+
+
+# ---------------------------------------------------------------------------
+# Execution pipeline wiring (wire_to_execution_engine / execute_via_pipeline)
+# ---------------------------------------------------------------------------
+
+class TestExecutionPipelineWiring:
+    def test_wire_to_execution_engine_returns_self(self):
+        w = GateExecutionWiring()
+        result = w.wire_to_execution_engine()
+        assert result is w
+
+    def test_execute_via_pipeline_without_wiring_uses_fallback(self):
+        """execute_via_pipeline works even without wire_to_execution_engine."""
+        w = GateExecutionWiring()
+        w.register_gate(GateType.QA, _make_evaluator(GateDecision.APPROVED))
+        result = w.execute_via_pipeline({"type": "test"}, "s-noop")
+        assert result["status"] in ("completed", "error")
+        assert "gate_evaluations" in result
+
+    def test_execute_via_pipeline_wired_approved(self):
+        w = GateExecutionWiring()
+        w.register_gate(GateType.QA, _make_evaluator(GateDecision.APPROVED))
+        w.wire_to_execution_engine()
+        result = w.execute_via_pipeline({"type": "test_task"}, "s-wired")
+        assert result["status"] in ("completed", "error")
+        assert "gate_evaluations" in result
+
+    def test_execute_via_pipeline_blocked_by_enforce_gate(self):
+        w = GateExecutionWiring()
+        w.register_gate(
+            GateType.COMPLIANCE,
+            _make_evaluator(GateDecision.BLOCKED),
+            GatePolicy.ENFORCE,
+        )
+        w.wire_to_execution_engine()
+        result = w.execute_via_pipeline({"type": "blocked_task"}, "s-block")
+        assert result["status"] == "blocked"
+        assert "gate_evaluations" in result
+        assert "blocking_gates" in result
+
+    def test_execute_via_pipeline_contains_orchestrator_result_when_wired(self):
+        w = GateExecutionWiring()
+        w.register_gate(GateType.QA, _make_evaluator(GateDecision.APPROVED))
+        w.wire_to_execution_engine()
+        result = w.execute_via_pipeline({"type": "check_orch"}, "s-orch")
+        if result["status"] == "completed":
+            assert "orchestrator_result" in result

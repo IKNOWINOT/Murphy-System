@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -23,6 +24,8 @@ import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = PROJECT_ROOT / "src"
+sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(SRC_DIR))
 
 from murphy_foundation_model import __version__  # noqa: E402
 from murphy_foundation_model.action_trace_serializer import (  # noqa: E402

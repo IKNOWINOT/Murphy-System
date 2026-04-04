@@ -7,9 +7,11 @@ Proves:
   - ControlAuthorityMatrix.check_or_escalate() triggers escalation and resolves.
 """
 
+import sys
 import os
 import unittest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from control_theory.actor_registry import (
     Actor,

@@ -29,6 +29,7 @@ License: BSL 1.1
 """
 from __future__ import annotations
 
+import sys
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -36,6 +37,8 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "src"))
 
 # ---------------------------------------------------------------------------
 # Skip entire module gracefully if pytest-benchmark is not installed

@@ -1,6 +1,7 @@
 """Tests for Phase 10 – Service Module."""
 
 import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import pytest
 from service_module.models import (

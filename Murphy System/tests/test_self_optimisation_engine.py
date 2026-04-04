@@ -9,9 +9,11 @@ Design Label: TEST-008 / ADV-003
 Owner: QA Team
 """
 
+import sys
 import os
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from self_optimisation_engine import (
     SelfOptimisationEngine,

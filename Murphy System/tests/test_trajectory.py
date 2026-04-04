@@ -16,6 +16,7 @@ import os
 import math
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from trajectory_engine import (
     TrajectoryEngine,

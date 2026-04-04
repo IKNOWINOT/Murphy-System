@@ -25,10 +25,12 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from unittest.mock import patch
 
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 os.environ.setdefault("MURPHY_ENV", "test")
 
 from contact_compliance_governor import (

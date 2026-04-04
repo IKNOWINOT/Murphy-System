@@ -13,14 +13,13 @@ License: BSL 1.1
 """
 
 import json
+import sys
 import datetime
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pytest
-
-pytestmark = pytest.mark.storyline
 
 # ---------------------------------------------------------------------------
 # Path setup
@@ -30,6 +29,8 @@ SRC_DIR = PROJECT_ROOT / "src"
 DOCS_DIR = PROJECT_ROOT / "docs"
 RESULTS_FILE = DOCS_DIR / "storyline_test_results_phase2.json"
 
+sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(SRC_DIR))
 
 
 # ---------------------------------------------------------------------------
@@ -487,7 +488,7 @@ class TestChapter24_Actuals:
                effect="System can detect divergence in recursive agent spawning",
                lesson="Control theory applied to AI agents: if Lyapunov function increases, "
                       "the system is diverging and intervention triggers automatically.")
-        assert True  # Instantiation succeeded
+        assert lm is not None, "LyapunovMonitor must be instantiable"
 
     def test_spawn_controller_exists(self):
         """Storyline: 'SpawnRateController limits agent spawn rate'"""
@@ -506,7 +507,7 @@ class TestChapter24_Actuals:
                effect="Prevents infinite agent spawning loops",
                lesson="Every SpawnRequest is evaluated: budget, global rate, Lyapunov impact. "
                       "Denied spawns are logged for learning.")
-        assert True
+        assert src_ctrl is not None, "SpawnRateController must be instantiable"
 
     def test_gate_damping_exists(self):
         """Storyline: 'GateDampingController prevents oscillation'"""
@@ -523,7 +524,7 @@ class TestChapter24_Actuals:
                cause="GateDampingController() smooths gate evaluation signals",
                effect="Prevents pass→fail→pass oscillation in gate decisions",
                lesson="Exponential decay on gate state changes prevents rapid flip-flopping.")
-        assert True
+        assert gdc is not None, "GateDampingController must be instantiable"
 
     def test_stability_score_exists(self):
         """Storyline: 'StabilityScoreCalculator combines all factors'"""
@@ -541,7 +542,7 @@ class TestChapter24_Actuals:
                effect="Single stability metric feeds into confidence engine",
                lesson="Stability score dropping automatically tightens gates — negative "
                       "feedback loop prevents runaway autonomy.")
-        assert True
+        assert ssc is not None, "StabilityScoreCalculator must be instantiable"
 
 
 # ===========================================================================
@@ -579,7 +580,7 @@ class TestChapter25_Actuals:
                effect="When assumptions are invalidated, dependent decisions are flagged",
                lesson="Assumption tracking is the bridge between confidence engine and "
                       "correction loops. Invalid assumptions decay confidence transitively.")
-        assert True
+        assert ar is not None, "AssumptionRegistry must be instantiable"
 
     def test_anti_recursion_exists(self):
         """Storyline: 'AntiRecursionSystem detects correction loops'"""
@@ -593,7 +594,7 @@ class TestChapter25_Actuals:
                effect="Correction A→invalidate B→invalidate C→revalidate A is detected and stopped",
                lesson="Without anti-recursion, the supervisor system could oscillate. "
                       "The CircularDependencyDetector maps the assumption dependency graph.")
-        assert True
+        assert ars is not None, "AntiRecursionSystem must be instantiable"
 
 
 # ===========================================================================

@@ -13,12 +13,15 @@ Best-practice labels (30 yr+ team standards):
     [SEC]   — security-related
 """
 
+import sys
 import os
 import json
 import tempfile
 
 # Ensure repo root and src are on the path.
 _base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _base)
+sys.path.insert(0, os.path.join(_base, 'src'))
 
 
 # ============================================================================

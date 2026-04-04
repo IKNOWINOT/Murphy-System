@@ -174,6 +174,8 @@ class TestImportSweepStillClean:
     """Re-verify all source modules still import cleanly."""
 
     def test_import_sweep(self):
+        import sys
+        sys.path.insert(0, SRC_DIR)
         optional = {
             "fastapi", "matplotlib", "torch", "textual", "uvicorn",
             "openai", "anthropic", "transformers",

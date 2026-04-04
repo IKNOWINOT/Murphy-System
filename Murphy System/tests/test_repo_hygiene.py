@@ -19,7 +19,7 @@ from pathlib import Path
 import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-REPO_ROOT = PROJECT_ROOT.parent  # one level above "Murphy System/"
+REPO_ROOT = PROJECT_ROOT  # After repo flattening, project root IS the repository root.
 
 
 class TestRepoHygiene:

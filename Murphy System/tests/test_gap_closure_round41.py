@@ -21,9 +21,9 @@ import re
 import pytest
 
 REPO_ROOT = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..")
+    os.path.join(os.path.dirname(__file__), "..")
 )
-PROJECT_DIR = os.path.join(REPO_ROOT, "Murphy System")
+PROJECT_DIR = REPO_ROOT
 
 
 def _read(path):

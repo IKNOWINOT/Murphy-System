@@ -6,9 +6,11 @@ but did NOT verify that the audit log entries contain all required fields
 (source_dept, target_dept, tool_name, action, reason, timestamp).
 """
 
+import sys
 import os
 import unittest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from governance_kernel import (
     GovernanceKernel,
