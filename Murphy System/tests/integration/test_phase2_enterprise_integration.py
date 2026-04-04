@@ -8,6 +8,11 @@ Test Category: External System Interface Testing
 
 import pytest
 from datetime import datetime, timedelta
+import sys
+import os
+
+# Add mocks to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'mocks'))
 
 from enterprise_systems import (
     EnterpriseSystemMockFactory,

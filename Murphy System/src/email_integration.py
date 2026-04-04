@@ -390,6 +390,18 @@ class DisabledEmailBackend(EmailBackend):
         )
 
 
+class UnconfiguredEmailBackend(DisabledEmailBackend):
+    """Alias for ``DisabledEmailBackend`` with a more descriptive provider name.
+
+    Used when no email backend has been explicitly chosen — sends always fail
+    with a clear diagnostic message.
+    """
+
+    @property
+    def provider_name(self) -> str:
+        return "unconfigured"
+
+
 # ---------------------------------------------------------------------------
 # High-level service
 # ---------------------------------------------------------------------------

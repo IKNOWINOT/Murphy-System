@@ -674,3 +674,257 @@ def test_sit_sys_204_disaster_recovery_workflow():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+# ============================================================================
+# SIT-SYS-205 through SIT-SYS-214: Crown Jewel Production Endpoint Tests
+# ============================================================================
+
+try:
+    from starlette.testclient import TestClient
+    import murphy_production_server as _mps
+    _test_client = TestClient(_mps.app, headers={"X-Murphy-Traffic-Class": "swarm"})
+    _server_available = True
+except Exception:
+    _test_client = None
+    _server_available = False
+
+
+def _get_client():
+    if not _server_available or _test_client is None:
+        pytest.skip("murphy_production_server not importable")
+    return _test_client
+
+
+@skip_on_import_error
+def test_sit_sys_205_health_endpoint_returns_ok():
+    """
+    Test ID: SIT-SYS-205
+    Test Name: Production Server Health Endpoint
+    Components: murphy_production_server, /health
+
+    Test Objective:
+    Verify the /health endpoint returns HTTP 200 with status=ok and
+    includes the subsystems_wired count introduced by Phase 1-8 wiring.
+
+    Expected Results:
+    - HTTP 200
+    - body["status"] == "ok"
+    - body["subsystems_wired"] is an integer >= 0
+    """
+    client = _get_client()
+    resp = client.get("/health")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "ok"
+    assert isinstance(body.get("subsystems_wired"), int)
+    assert body["subsystems_wired"] >= 0
+
+
+@skip_on_import_error
+def test_sit_sys_206_rosetta_state_endpoint():
+    """
+    Test ID: SIT-SYS-206
+    Test Name: Rosetta State Endpoint
+    Components: murphy_production_server, /api/rosetta/state
+
+    Test Objective:
+    Verify /api/rosetta/state returns HTTP 200 and an "available" field.
+    When RosettaManager is unavailable the response must still be valid JSON
+    (graceful degradation).
+
+    Expected Results:
+    - HTTP 200
+    - "available" key present in response
+    """
+    client = _get_client()
+    resp = client.get("/api/rosetta/state")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "available" in body
+
+
+@skip_on_import_error
+def test_sit_sys_207_ceo_status_endpoint():
+    """
+    Test ID: SIT-SYS-207
+    Test Name: CEO Branch Status Endpoint
+    Components: murphy_production_server, /api/ceo/status
+
+    Test Objective:
+    Verify /api/ceo/status returns HTTP 200 and includes "available" key.
+    Validates graceful degradation when CEOBranch is not wired.
+
+    Expected Results:
+    - HTTP 200
+    - "available" key present
+    """
+    client = _get_client()
+    resp = client.get("/api/ceo/status")
+    assert resp.status_code == 200
+    assert "available" in resp.json()
+
+
+@skip_on_import_error
+def test_sit_sys_208_diagnostics_endpoint_structure():
+    """
+    Test ID: SIT-SYS-208
+    Test Name: Diagnostics Endpoint Structure
+    Components: murphy_production_server, /api/diagnostics
+
+    Test Objective:
+    Verify /api/diagnostics returns a valid response with "subsystems",
+    "background_tasks", and "memory_mb" keys.
+
+    Expected Results:
+    - HTTP 200
+    - "subsystems" is a dict with at least 12 subsystem keys
+    - "background_tasks" >= 0
+    - "memory_mb" > 0
+    """
+    client = _get_client()
+    resp = client.get("/api/diagnostics")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "subsystems" in body
+    assert isinstance(body["subsystems"], dict)
+    assert len(body["subsystems"]) >= 12
+    assert "background_tasks" in body
+    assert "memory_mb" in body
+    assert body["memory_mb"] > 0
+
+
+@skip_on_import_error
+def test_sit_sys_209_tools_endpoint():
+    """
+    Test ID: SIT-SYS-209
+    Test Name: Tool Registry Endpoint
+    Components: murphy_production_server, /api/tools
+
+    Test Objective:
+    Verify /api/tools returns HTTP 200 with "available" and "tools" keys.
+
+    Expected Results:
+    - HTTP 200
+    - "available" key present
+    - "tools" key is a list
+    """
+    client = _get_client()
+    resp = client.get("/api/tools")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "available" in body
+    assert "tools" in body
+    assert isinstance(body["tools"], list)
+
+
+@skip_on_import_error
+def test_sit_sys_210_features_endpoint():
+    """
+    Test ID: SIT-SYS-210
+    Test Name: Feature Flags Endpoint
+    Components: murphy_production_server, /api/features
+
+    Test Objective:
+    Verify /api/features returns HTTP 200 with "available" and flags info.
+
+    Expected Results:
+    - HTTP 200
+    - "available" key present
+    """
+    client = _get_client()
+    resp = client.get("/api/features")
+    assert resp.status_code == 200
+    assert "available" in resp.json()
+
+
+@skip_on_import_error
+def test_sit_sys_211_mcp_plugins_endpoint():
+    """
+    Test ID: SIT-SYS-211
+    Test Name: MCP Plugins Endpoint
+    Components: murphy_production_server, /api/mcp/plugins
+
+    Test Objective:
+    Verify /api/mcp/plugins returns HTTP 200 with "available" and "plugins" keys.
+
+    Expected Results:
+    - HTTP 200
+    - "available" key present
+    - "plugins" key is a list
+    """
+    client = _get_client()
+    resp = client.get("/api/mcp/plugins")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "available" in body
+    assert "plugins" in body
+    assert isinstance(body["plugins"], list)
+
+
+@skip_on_import_error
+def test_sit_sys_212_lcm_status_endpoint():
+    """
+    Test ID: SIT-SYS-212
+    Test Name: LCM Engine Status Endpoint
+    Components: murphy_production_server, /api/lcm/status
+
+    Test Objective:
+    Verify /api/lcm/status returns HTTP 200 and includes "available" key.
+
+    Expected Results:
+    - HTTP 200
+    - "available" key present
+    """
+    client = _get_client()
+    resp = client.get("/api/lcm/status")
+    assert resp.status_code == 200
+    assert "available" in resp.json()
+
+
+@skip_on_import_error
+def test_sit_sys_213_gate_trust_levels_endpoint():
+    """
+    Test ID: SIT-SYS-213
+    Test Name: Gate Trust Levels Endpoint
+    Components: murphy_production_server, /api/gates/trust-levels
+
+    Test Objective:
+    Verify /api/gates/trust-levels returns HTTP 200 with "available" and
+    "trust_levels" keys.
+
+    Expected Results:
+    - HTTP 200
+    - "available" key present
+    - "trust_levels" key present
+    """
+    client = _get_client()
+    resp = client.get("/api/gates/trust-levels")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "available" in body
+    assert "trust_levels" in body
+
+
+@skip_on_import_error
+def test_sit_sys_214_skills_endpoint():
+    """
+    Test ID: SIT-SYS-214
+    Test Name: Skill Registry Endpoint
+    Components: murphy_production_server, /api/skills
+
+    Test Objective:
+    Verify /api/skills returns HTTP 200 with "available" and "skills" keys.
+
+    Expected Results:
+    - HTTP 200
+    - "available" key present
+    - "skills" key is a list
+    """
+    client = _get_client()
+    resp = client.get("/api/skills")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "available" in body
+    assert "skills" in body
+    assert isinstance(body["skills"], list)
