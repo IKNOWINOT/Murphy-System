@@ -99,6 +99,23 @@ jobs:
               "src.global_feedback.remediation_engine",
               "src.global_feedback.dispatcher",
               "src.dependency_deprecation_scanner",
+              "src.building_automation",
+              "src.building_automation.models",
+              "src.building_automation.hvac_control",
+              "src.building_automation.lighting_control",
+              "src.building_automation.occupancy_model",
+              "src.building_automation.soo_engine",
+              "src.energy_management",
+              "src.energy_management.metering",
+              "src.energy_management.demand_response",
+              "src.energy_management.load_forecasting",
+              "src.energy_management.renewable_integration",
+              "src.energy_management.carbon_accounting",
+              "src.energy_management.tariff_engine",
+              "src.fdd",
+              "src.fdd.rule_engine",
+              "src.fdd.statistical_fdd",
+              "src.fdd.alarm_manager",
           ]
           for mod in modules:
               try:

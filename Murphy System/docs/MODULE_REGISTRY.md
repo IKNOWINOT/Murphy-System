@@ -406,4 +406,31 @@ additive-manufacturing cells.
 
 ---
 
-*Copyright © 2020 Inoni Limited Liability Company | Creator: Corey Post | License: BSL 1.1 | Last Updated: 2026-03-14*
+*Copyright © 2020 Inoni Limited Liability Company | Creator: Corey Post | License: BSL 1.1 | Last Updated: 2026-04-03*
+
+---
+
+## Building Automation & Energy Management System
+
+| Module | Design Label | Path | Description | Status |
+|--------|-------------|------|-------------|--------|
+| `protocols/openadr_client.py` | PROT-006 | `src/protocols/openadr_client.py` | Murphy-native OpenADR 2.0b VEN client | ✅ Operational |
+| `protocols/dnp3_client.py` | PROT-007 | `src/protocols/dnp3_client.py` | Murphy-native DNP3 master client | ✅ Operational |
+| `building_automation/__init__.py` | BAS-001 | `src/building_automation/__init__.py` | BAS Intelligence Core package | ✅ Operational |
+| `building_automation/models.py` | BAS-002 | `src/building_automation/models.py` | Building/Floor/Zone/Point hierarchy + semantic tagging | ✅ Operational |
+| `building_automation/hvac_control.py` | BAS-003 | `src/building_automation/hvac_control.py` | PID controller, AHU supply-air reset, economizer, DCV | ✅ Operational |
+| `building_automation/lighting_control.py` | BAS-004 | `src/building_automation/lighting_control.py` | Daylight harvesting, occupancy-based dimming, scenes | ✅ Operational |
+| `building_automation/occupancy_model.py` | BAS-005 | `src/building_automation/occupancy_model.py` | Multi-sensor fusion occupancy estimation | ✅ Operational |
+| `building_automation/soo_engine.py` | BAS-006 | `src/building_automation/soo_engine.py` | Sequence of Operations engine | ✅ Operational |
+| `energy_management/__init__.py` | EMS-001 | `src/energy_management/__init__.py` | Energy Management Core package | ✅ Operational |
+| `energy_management/metering.py` | EMS-002 | `src/energy_management/metering.py` | MurphyMeter hierarchy + interval data ingestion | ✅ Operational |
+| `energy_management/demand_response.py` | EMS-003 | `src/energy_management/demand_response.py` | Load-shedding policy engine with DR events | ✅ Operational |
+| `energy_management/load_forecasting.py` | EMS-004 | `src/energy_management/load_forecasting.py` | Exponential smoothing + calendar features | ✅ Operational |
+| `energy_management/renewable_integration.py` | EMS-005 | `src/energy_management/renewable_integration.py` | Solar PV model, battery SOC, grid dispatch | ✅ Operational |
+| `energy_management/carbon_accounting.py` | EMS-006 | `src/energy_management/carbon_accounting.py` | Scope 1/2 emissions, real-time grid intensity | ✅ Operational |
+| `energy_management/tariff_engine.py` | EMS-007 | `src/energy_management/tariff_engine.py` | TOU rates, demand charges, bill simulation | ✅ Operational |
+| `fdd/__init__.py` | FDD-001 | `src/fdd/__init__.py` | Fault Detection & Diagnostics package | ✅ Operational |
+| `fdd/rule_engine.py` | FDD-002 | `src/fdd/rule_engine.py` | Rule-based FDD with 5 built-in rules | ✅ Operational |
+| `fdd/statistical_fdd.py` | FDD-003 | `src/fdd/statistical_fdd.py` | CUSUM drift detection + regression baseline | ✅ Operational |
+| `fdd/alarm_manager.py` | FDD-004 | `src/fdd/alarm_manager.py` | Alarm deduplication, prioritisation, suppression | ✅ Operational |
+| `energy_audit_engine.py` (extensions) | EAE-001+ | `src/energy_audit_engine.py` | M&V (IPMVP), CBECS confidence intervals, degree-day normalisation | ✅ Operational |
