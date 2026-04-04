@@ -142,3 +142,26 @@ volumes:
   redis-data:
   prometheus-data:
   grafana-data:
+
+  # ── Integration Testing: Protocol Simulators ──────────────────────────
+  # These containers provide simulated BACnet and Modbus devices for
+  # integration testing. Start with:
+  #   docker compose --profile integration-test up -d
+  #
+  # modbus-simulator:
+  #   image: oitc/modbus-server:latest
+  #   container_name: murphy-modbus-sim
+  #   profiles: ["integration-test"]
+  #   ports:
+  #     - "5020:5020"
+  #   environment:
+  #     MODBUS_PORT: 5020
+  #   restart: unless-stopped
+  #
+  # bacnet-simulator:
+  #   image: bacnet/bacnet-server-sim:latest
+  #   container_name: murphy-bacnet-sim
+  #   profiles: ["integration-test"]
+  #   ports:
+  #     - "47808:47808/udp"
+  #   restart: unless-stopped

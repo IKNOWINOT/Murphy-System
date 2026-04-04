@@ -28,6 +28,8 @@ __all__ = [
     "MurphyOPCUAClient",
     "MurphyKNXClient",
     "MurphyMQTTSparkplugClient",
+    "MurphyOpenADRClient",
+    "MurphyDNP3Client",
     "validate_protocol_dependencies",
 ]
 
@@ -56,6 +58,16 @@ try:
 except ImportError:
     MurphyMQTTSparkplugClient = None  # type: ignore[misc,assignment]
 
+try:
+    from .openadr_client import MurphyOpenADRClient
+except ImportError:
+    MurphyOpenADRClient = None  # type: ignore[misc,assignment]
+
+try:
+    from .dnp3_client import MurphyDNP3Client
+except ImportError:
+    MurphyDNP3Client = None  # type: ignore[misc,assignment]
+
 
 # ---------------------------------------------------------------------------
 # Protocol library availability map
@@ -67,6 +79,8 @@ _PROTOCOL_CLIENT_MAP = {
     "opcua": ("MurphyOPCUAClient", MurphyOPCUAClient, "asyncua"),
     "knx": ("MurphyKNXClient", MurphyKNXClient, "xknx"),
     "mqtt": ("MurphyMQTTSparkplugClient", MurphyMQTTSparkplugClient, "paho-mqtt"),
+    "openadr": ("MurphyOpenADRClient", MurphyOpenADRClient, "aiohttp"),
+    "dnp3": ("MurphyDNP3Client", MurphyDNP3Client, "(stdlib)"),
 }
 
 

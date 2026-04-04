@@ -1131,6 +1131,153 @@ class EnergyAuditEngine:
             "source": benchmark["source"],
         }
 
+    # -- Layer 4 extensions: CBECS confidence, M&V, degree-day ──────────
+
+    def benchmark_eui_with_confidence(
+        self,
+        facility_type: str,
+        eui_kbtu_sqft_year: float,
+        sample_size: int = 50,
+    ) -> Dict[str, Any]:
+        """Compare EUI against CBECS with statistical confidence intervals.
+
+        Uses a normal approximation: median ± 1.96 × (IQR / √n).
+        """
+        eui_kbtu_sqft_year = _validate_non_negative(eui_kbtu_sqft_year, "eui")
+        ft_key = facility_type.lower().strip()
+        benchmark = _BENCHMARK_EUI.get(ft_key)
+        if benchmark is None:
+            return {"benchmark_available": False, "facility_type": facility_type}
+
+        median = benchmark["median_kbtu_sqft_yr"]
+        # Assume IQR ≈ 40 % of median (typical CBECS spread)
+        iqr_estimate = median * 0.40
+        import math
+        se = iqr_estimate / math.sqrt(max(sample_size, 1))
+        ci_low = round(median - 1.96 * se, 2)
+        ci_high = round(median + 1.96 * se, 2)
+
+        pct_vs_median = round(((eui_kbtu_sqft_year - median) / median) * 100, 1) if median else 0
+        within_ci = ci_low <= eui_kbtu_sqft_year <= ci_high
+
+        return {
+            "facility_type": facility_type,
+            "eui_kbtu_sqft_year": round(eui_kbtu_sqft_year, 2),
+            "cbecs_median": median,
+            "confidence_interval_95": {"low": ci_low, "high": ci_high},
+            "within_confidence_interval": within_ci,
+            "pct_vs_median": pct_vs_median,
+            "sample_size_assumed": sample_size,
+        }
+
+    def mv_savings_tracking(
+        self,
+        audit_id: str,
+        baseline_kwh: float,
+        post_implementation_kwh: float,
+        ipmvp_option: str = "B",
+        adjustment_factor: float = 1.0,
+    ) -> Dict[str, Any]:
+        """Measurement & Verification per IPMVP Option A/B/C/D.
+
+        Parameters
+        ----------
+        baseline_kwh : float
+            Pre-implementation annual energy use.
+        post_implementation_kwh : float
+            Post-implementation annual energy use.
+        ipmvp_option : str
+            A = retrofit isolation (key parameter), B = retrofit isolation (all parameters),
+            C = whole facility, D = calibrated simulation.
+        adjustment_factor : float
+            Non-routine adjustment (weather normalisation, occupancy, etc.).
+        """
+        audit_id = _validate_id(audit_id, "audit_id")
+        baseline_kwh = _validate_non_negative(baseline_kwh, "baseline_kwh")
+        post_implementation_kwh = _validate_non_negative(
+            post_implementation_kwh, "post_kwh"
+        )
+
+        adjusted_baseline = baseline_kwh * adjustment_factor
+        actual_savings = adjusted_baseline - post_implementation_kwh
+        savings_pct = round((actual_savings / adjusted_baseline) * 100, 2) if adjusted_baseline else 0
+
+        option_descriptions = {
+            "A": "Retrofit Isolation — Key Parameter Measurement",
+            "B": "Retrofit Isolation — All Parameter Measurement",
+            "C": "Whole Facility — Utility Billing Analysis",
+            "D": "Calibrated Simulation",
+        }
+
+        return {
+            "audit_id": audit_id,
+            "ipmvp_option": ipmvp_option.upper(),
+            "option_description": option_descriptions.get(ipmvp_option.upper(), "Unknown"),
+            "baseline_kwh": round(adjusted_baseline, 2),
+            "post_implementation_kwh": round(post_implementation_kwh, 2),
+            "actual_savings_kwh": round(actual_savings, 2),
+            "savings_pct": savings_pct,
+            "adjustment_factor": adjustment_factor,
+            "verified": actual_savings > 0,
+        }
+
+    def degree_day_normalise(
+        self,
+        monthly_kwh: List[float],
+        monthly_hdd: List[float],
+        monthly_cdd: List[float],
+    ) -> Dict[str, Any]:
+        """Whole-building degree-day normalisation (EnergyPlus-style).
+
+        Fits: kWh = a + b × HDD + c × CDD via OLS regression.
+        Returns coefficients, weather-normalised annual consumption, and R².
+        """
+        n = len(monthly_kwh)
+        if n < 3 or len(monthly_hdd) != n or len(monthly_cdd) != n:
+            return {"error": "Need ≥ 3 months with matched kWh, HDD, CDD arrays"}
+
+        # OLS with two predictors using normal equations
+        # X = [[1, hdd, cdd], ...]  y = [kwh, ...]
+        sum_y = sum(monthly_kwh)
+        sum_h = sum(monthly_hdd)
+        sum_c = sum(monthly_cdd)
+        sum_hh = sum(h * h for h in monthly_hdd)
+        sum_cc = sum(c * c for c in monthly_cdd)
+        sum_hc = sum(h * c for h, c in zip(monthly_hdd, monthly_cdd))
+        sum_yh = sum(y * h for y, h in zip(monthly_kwh, monthly_hdd))
+        sum_yc = sum(y * c for y, c in zip(monthly_kwh, monthly_cdd))
+
+        # Solve 3×3 system: [n, sum_h, sum_c; sum_h, sum_hh, sum_hc; sum_c, sum_hc, sum_cc] × [a,b,c] = [sum_y, sum_yh, sum_yc]
+        # Use Cramer's rule for simplicity
+        import numpy as _np  # type: ignore
+        try:
+            A = [[n, sum_h, sum_c], [sum_h, sum_hh, sum_hc], [sum_c, sum_hc, sum_cc]]
+            B = [sum_y, sum_yh, sum_yc]
+            coeffs = list(_np.linalg.solve(A, B))
+        except Exception:
+            # Fallback: simple average if numpy unavailable or singular matrix
+            avg = sum_y / n
+            coeffs = [avg, 0.0, 0.0]
+
+        a, b, c = coeffs
+        predicted = [a + b * h + c * cd for h, cd in zip(monthly_hdd, monthly_cdd)]
+        ss_res = sum((y - p) ** 2 for y, p in zip(monthly_kwh, predicted))
+        mean_y = sum_y / n
+        ss_tot = sum((y - mean_y) ** 2 for y in monthly_kwh)
+        r_squared = round(1 - (ss_res / ss_tot), 4) if ss_tot > 0 else 0.0
+
+        normalised_annual = round(sum(predicted), 2)
+
+        return {
+            "intercept": round(a, 4),
+            "hdd_coefficient": round(b, 4),
+            "cdd_coefficient": round(c, 4),
+            "r_squared": r_squared,
+            "normalised_annual_kwh": normalised_annual,
+            "actual_annual_kwh": round(sum_y, 2),
+            "months": n,
+        }
+
 
 # ---------------------------------------------------------------------------
 # Module-level status helper
