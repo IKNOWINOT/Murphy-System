@@ -41,7 +41,7 @@
 - ✅ Security middleware (auth, CORS, rate limiting, CSP, input sanitization) — wired and tested
 - ✅ Stub-mode safety guards (DB, E2EE, pool refuse stub in production) — tested
 - ✅ 750+ source modules with consistent structure
-- ✅ 14 web interfaces with shared design system
+- ✅ 62 web interfaces (10 core terminal UIs + feature pages)
 - ✅ FastAPI runtime with 20+ endpoint groups
 - ✅ Board system (Phase 1) — fully implemented with 20 column types, 5 views
 - ✅ Dev Module (Phase 9), Service Module (Phase 10), Guest Collab (Phase 11) — acceptance criteria checked

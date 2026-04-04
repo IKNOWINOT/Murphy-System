@@ -778,7 +778,7 @@ We welcome contributions! Please read:
 - **`src/pilot_config.py`** — Canonical pilot account (`cpost@murphy.systems`) and automation routing
 - **`src/large_control_model.py`** — LCM meta-controller: NL → MSS → Rosetta → Causality → Dispatch
 - **`src/rosette_lens.py`** — Rosetta agent positions → MSS data lens bridge
-- **`src/nav_registry.py`** — All 50+ modules mapped to navigation categories
+- **`src/nav_registry.py`** — All 1,230+ modules mapped to navigation categories
 - **`static/murphy-nav.js`** — Shared navigation component (Finance & Grants always visible)
 - **`src/demo_runner.py`** — Real demo pipeline: every scenario routes through actual Murphy components
 
@@ -908,12 +908,12 @@ cd "Murphy System"
 python -m pytest tests/ -q --tb=short
 ```
 
-**Latest verified results:**
+**Latest verified results (code-measured 2026-04-04):**
 
 | Metric | Count |
 | --- | --- |
-| Test files | 644 |
-| Test functions | 8,843+ |
+| Test files | 806 |
+| Test functions | 24,577 |
 | Gap-closure tests | 406 (rounds 3–42) |
 
 **Skipped tests** require optional dependencies (Flask, Textual, torch) that are
@@ -1001,28 +1001,28 @@ curl http://localhost:8000/api/status
 
 ---
 
-## 📈 System Completion Summary (as of 2026-03-24)
+## 📈 System Completion Summary (code-measured, 2026-04-04)
 
 | Category | Completion |
 |----------|-----------|
-| Core Architecture & Engine Wiring | 95% |
-| Hero Flow (Describe → Execute → Refine) | 85% |
+| Core Architecture & Engine Wiring | 93% |
+| Hero Flow (Describe → Execute → Refine) | 82% |
 | Librarian Command Coverage & Triage | 100% |
-| Security Hardening | 80% |
-| Test Coverage | 89% |
-| Documentation | 92% |
-| UI/UX | 100% |
-| Management Parity (12 Phases) | 72% |
-| Founder Observability (ARCH-007) | 75% |
-| CI/CD Pipeline | 90% |
-| Production Deployment Readiness | 65% |
-| **Weighted Overall** | **~85%** |
+| Security Hardening | 78% |
+| Test Coverage | 82% |
+| Documentation Accuracy | 65% |
+| UI Pages (62 HTML files) | 72% |
+| Management Parity (12 Phases) | 90% |
+| Multi-channel Delivery | 60% |
+| Persistence (DB backends) | 68% |
+| CI/CD Pipeline | 87% |
+| Production Deployment Readiness | 60% |
+| **Weighted Overall** | **~80%** |
 
-> PR 1–3 of ARCH-007 (Founder Update Engine) complete: 133 tests, 7 modules.
-> PR 4 (API routes + Founder Dashboard UI) pending.
-> The overall percentage reflects that while code coverage is extensive
-> (1,100+ modules, 706+ test files), **E2E validation of the hero flow** and
-> **production deployment hardening** remain the primary gaps.
+> **Primary gaps for production:** Email delivery has no SMTP transport,
+> database defaults to in-memory stub, E2EE is unimplemented, and no
+> native mobile app exists. See [ROADMAP.md](ROADMAP.md) for the
+> sprint plan to close these.
 
 ---
 
