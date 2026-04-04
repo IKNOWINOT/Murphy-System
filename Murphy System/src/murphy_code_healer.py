@@ -2089,11 +2089,21 @@ class MurphyCodeHealer:
                 "CODE_HEALER_GAP_LOW_CONFIDENCE": "CODE_HEALER_GAP_LOW_CONFIDENCE",
             }
             et_name = _NAME_TO_EVENT_TYPE.get(event_name)
-            if et_name is None:
-                # Unmapped event — skip publishing rather than pass None
-                logger.debug("No EventType mapping for %s — skipping publish", event_name)
-                return
-            event_type = getattr(_ET, et_name, None)
+            if et_name is not None:
+                event_type = getattr(_ET, et_name, None)
+            else:
+                # Try from_string() or direct attribute lookup as fallback
+                event_type = None
+                if hasattr(_ET, "from_string"):
+                    try:
+                        event_type = _ET.from_string(event_name)
+                    except (ValueError, KeyError):
+                        pass
+                if event_type is None:
+                    upper = event_name.upper()
+                    event_type = getattr(_ET, upper, None)
+                if event_type is None:
+                    event_type = getattr(_ET, "LEARNING_FEEDBACK", None)
             if event_type is None:
                 logger.debug("EventType.%s not found — skipping publish", et_name)
                 return
