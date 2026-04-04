@@ -1,6 +1,4 @@
 """
-tests/test_oauth_callback_redirect.py
-======================================
 Tests for the OAuth callback handler redirect behaviour introduced in the
 fix-oauth-callback-redirect PR.
 
@@ -17,10 +15,16 @@ Design Labels: TEST-AUTH-CALLBACK-001
 import secrets
 import sys
 import os
-from unittest.mock import MagicMock
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+from urllib.parse import urlparse, parse_qs
 
 import pytest
 
+_root = Path(__file__).resolve().parent.parent
+if str(_root) not in sys.path:
+    sys.path.insert(0, str(_root))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 
 # ---------------------------------------------------------------------------
@@ -237,3 +241,144 @@ class TestOAuthCallbackRegistryError:
             follow_redirects=False,
         )
         assert resp.status_code == 500
+
+
+# ---------------------------------------------------------------------------
+# Helpers (for integration tests using the real app)
+# ---------------------------------------------------------------------------
+
+def _make_token(provider_value: str = "google", user_sub: str = "user-123") -> MagicMock:
+    """Return a mock OAuthToken as returned by complete_auth_flow."""
+    tok = MagicMock()
+    tok.provider.value = provider_value
+    tok.token_type = "Bearer"
+    tok.refresh_token = "rt-xxx"
+    tok.expires_at = "2026-03-18T00:00:00+00:00"
+    tok.raw_profile = {"sub": user_sub, "email": "test@example.com", "name": "Test User"}
+    return tok
+
+
+# ---------------------------------------------------------------------------
+# Fixture
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def app_client():
+    """Create a TestClient for the FastAPI app."""
+    from starlette.testclient import TestClient
+    from src.runtime.app import create_app
+
+    return TestClient(create_app(), raise_server_exceptions=False)
+
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+
+class TestOAuthCallbackRedirect:
+    """Verify /api/auth/callback now redirects instead of returning JSON."""
+
+    def test_successful_callback_issues_redirect(self, app_client):
+        """A valid callback must respond with 302 (not 200 JSON)."""
+        mock_token = _make_token()
+        _registry_path = (
+            "src.account_management.oauth_provider_registry"
+            ".OAuthProviderRegistry.complete_auth_flow"
+        )
+        with patch(_registry_path, return_value=mock_token):
+            resp = app_client.get(
+                "/api/auth/callback",
+                params={"code": "auth-code-abc", "state": "state-xyz"},
+                follow_redirects=False,
+            )
+
+        assert resp.status_code == 302, (
+            f"Expected 302 redirect, got {resp.status_code}. "
+            f"Body: {resp.text[:200]}"
+        )
+
+    def test_redirect_location_is_terminal_unified(self, app_client):
+        """Redirect must point to /ui/terminal-unified."""
+        mock_token = _make_token()
+        _registry_path = (
+            "src.account_management.oauth_provider_registry"
+            ".OAuthProviderRegistry.complete_auth_flow"
+        )
+        with patch(_registry_path, return_value=mock_token):
+            resp = app_client.get(
+                "/api/auth/callback",
+                params={"code": "auth-code-abc", "state": "state-xyz"},
+                follow_redirects=False,
+            )
+
+        location = resp.headers.get("location", "")
+        assert location.startswith("/ui/terminal-unified"), (
+            f"Expected redirect to /ui/terminal-unified, got: {location!r}"
+        )
+        assert "oauth_success=1" in location, (
+            f"Expected oauth_success=1 in redirect URL, got: {location!r}"
+        )
+
+    def test_murphy_session_cookie_is_set(self, app_client):
+        """Response must set the murphy_session cookie."""
+        mock_token = _make_token()
+        _registry_path = (
+            "src.account_management.oauth_provider_registry"
+            ".OAuthProviderRegistry.complete_auth_flow"
+        )
+        with patch(_registry_path, return_value=mock_token):
+            resp = app_client.get(
+                "/api/auth/callback",
+                params={"code": "auth-code-abc", "state": "state-xyz"},
+                follow_redirects=False,
+            )
+
+        cookies = resp.cookies
+        assert "murphy_session" in cookies, (
+            f"murphy_session cookie not set. Cookies: {dict(cookies)}"
+        )
+        assert cookies["murphy_session"], "murphy_session cookie value must not be empty"
+
+    def test_redirect_url_contains_provider_param(self, app_client):
+        """Redirect URL must contain provider query parameter."""
+        mock_token = _make_token(provider_value="google", user_sub="goog-user-99")
+        _registry_path = (
+            "src.account_management.oauth_provider_registry"
+            ".OAuthProviderRegistry.complete_auth_flow"
+        )
+        with patch(_registry_path, return_value=mock_token):
+            resp = app_client.get(
+                "/api/auth/callback",
+                params={"code": "auth-code-abc", "state": "state-xyz"},
+                follow_redirects=False,
+            )
+
+        location = resp.headers.get("location", "")
+        qs = parse_qs(urlparse(location).query)
+
+        assert "provider" in qs, f"provider missing from redirect URL: {location}"
+        assert qs["provider"][0] == "google", (
+            f"Expected provider=google, got {qs['provider']}"
+        )
+
+    def test_missing_code_returns_400(self, app_client):
+        """Callback without code param must return 400 JSON error."""
+        resp = app_client.get(
+            "/api/auth/callback",
+            params={"state": "state-xyz"},
+            follow_redirects=False,
+        )
+        assert resp.status_code == 400
+        body = resp.json()
+        assert "error" in body
+
+    def test_missing_state_returns_400(self, app_client):
+        """Callback without state param must return 400 JSON error."""
+        resp = app_client.get(
+            "/api/auth/callback",
+            params={"code": "auth-code-abc"},
+            follow_redirects=False,
+        )
+        assert resp.status_code == 400
+        body = resp.json()
+        assert "error" in body

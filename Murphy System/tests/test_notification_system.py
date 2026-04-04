@@ -9,6 +9,7 @@ as an auditable NTFRecord with cause / effect / lesson annotations.
 from __future__ import annotations
 
 import datetime
+import sys
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -16,6 +17,8 @@ from typing import Any, List, Tuple
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = PROJECT_ROOT / "src"
+sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(SRC_DIR))
 
 from notification_system import (  # noqa: E402
     ChannelConfig,

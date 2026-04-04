@@ -1,6 +1,8 @@
 """Tests for the HITL Autonomy Controller module."""
 
+import sys
 import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from datetime import datetime, timezone, timedelta
 import pytest

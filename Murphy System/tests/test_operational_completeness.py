@@ -1,10 +1,12 @@
 """Tests for the operational_completeness module."""
 
+import sys
 import os
 import unittest
 import threading
 
 # Ensure the src package is importable
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from operational_completeness import (
     CapacityPlanner,

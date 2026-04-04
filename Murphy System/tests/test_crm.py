@@ -1,6 +1,7 @@
 """Tests for Phase 8 – CRM Module."""
 
 import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import pytest
 from crm.models import (
@@ -285,6 +286,7 @@ class TestCRMSummary:
 class TestCRMDashboardWidget:
     def test_crm_summary_widget_type_exists(self):
         import sys, os
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
         from dashboards.models import WidgetType
         assert WidgetType.CRM_SUMMARY.value == "crm_summary"
 

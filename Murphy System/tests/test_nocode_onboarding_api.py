@@ -8,10 +8,12 @@ Design Label: TEST-ONBOARDING-API
 Owner: QA Team
 """
 
+import sys
 import os
 import json
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from setup_wizard import SetupWizard, SetupProfile, CORE_MODULES
 from onboarding_automation_engine import (

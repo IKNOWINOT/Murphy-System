@@ -9,10 +9,12 @@ Covers:
 """
 
 import os
+import sys
 import tempfile
 import pytest
 
 # Ensure parent directory is on the path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 pytest.importorskip("textual", reason="textual not installed — skipping terminal UI tests")
 
@@ -67,9 +69,9 @@ class TestWriteEnvKey:
 
     def test_create_new_env(self, tmp_path):
         env_file = tmp_path / ".env"
-        write_env_key(str(env_file), "DEEPINFRA_API_KEY", "di_test123")
+        write_env_key(str(env_file), "DEEPINFRA_API_KEY", "gsk_test123")
         result = read_env(str(env_file))
-        assert result["DEEPINFRA_API_KEY"] == "di_test123"
+        assert result["DEEPINFRA_API_KEY"] == "gsk_test123"
 
     def test_update_existing_key(self, tmp_path):
         env_file = tmp_path / ".env"
@@ -125,7 +127,7 @@ class TestValidateApiKey:
     def test_invalid_deepinfra_key_prefix(self):
         ok, msg = validate_api_key("deepinfra", "sk-invalid_prefix_key_value")
         assert ok is False
-        assert "di_" in msg
+        assert "gsk_" in msg
 
     def test_valid_openai_key(self):
         ok, msg = validate_api_key("openai", "sk-abcdefghijklmnopqrstuvwx")
@@ -181,7 +183,7 @@ class TestValidateApiKey:
 class TestSetKeyIntentDetection:
 
     def test_set_key_basic(self):
-        assert detect_intent("set key deepinfra di_abc123") == "intent_set_key"
+        assert detect_intent("set key deepinfra gsk_abc123") == "intent_set_key"
 
     def test_set_key_underscore(self):
         assert detect_intent("set_key openai sk-abc123") == "intent_set_key"
@@ -191,7 +193,7 @@ class TestSetKeyIntentDetection:
 
     def test_set_key_before_set_api(self):
         """'set key' should not be confused with 'set api'."""
-        assert detect_intent("set key deepinfra di_abc") == "intent_set_key"
+        assert detect_intent("set key deepinfra gsk_abc") == "intent_set_key"
         assert detect_intent("set api http://host") == "intent_set_api"
 
     def test_set_key_case_insensitive(self):
@@ -208,7 +210,7 @@ class TestFirstRunGate:
     @pytest.mark.asyncio
     async def test_no_gate_when_key_exists(self, monkeypatch):
         """When DEEPINFRA_API_KEY is set, the startup gate should not activate."""
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_test_value_for_gate_skip")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_test_value_for_gate_skip")
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause()
@@ -290,6 +292,7 @@ class TestSetKeyTUI:
                 await pilot.press(ch)
             await pilot.press("enter")
             await pilot.pause()
+            await pilot.pause()  # extra pause for async event flush
             # Key should now be in os.environ
             assert os.environ.get("DEEPINFRA_API_KEY") == "di_abcdefghijklmnopqrstuvwx"
             # Key should be persisted in .env
@@ -312,6 +315,7 @@ class TestSetKeyTUI:
                 await pilot.press(ch)
             await pilot.press("enter")
             await pilot.pause()
+            await pilot.pause()  # extra pause for async event flush
             # MURPHY_LLM_PROVIDER should be set in os.environ
             assert os.environ.get("MURPHY_LLM_PROVIDER") == "deepinfra"
             # MURPHY_LLM_PROVIDER should be persisted to .env
@@ -455,7 +459,7 @@ class TestPasteClipboardAction:
     @pytest.mark.asyncio
     async def test_paste_clipboard_inserts_text_into_input(self, monkeypatch):
         """Ctrl+V should paste clipboard text into the input widget."""
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_test_for_paste_skip_gate")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_test_for_paste_skip_gate")
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause()
@@ -472,7 +476,7 @@ class TestPasteClipboardAction:
     @pytest.mark.asyncio
     async def test_paste_clipboard_empty_does_not_crash(self, monkeypatch):
         """When clipboard is empty, action_paste_clipboard should not crash or modify input."""
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_test_for_paste_skip_gate")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_test_for_paste_skip_gate")
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause()
@@ -544,37 +548,37 @@ class TestOnPasteEvent:
     async def test_on_paste_inserts_text_into_input(self, monkeypatch):
         """Textual Paste event (bracketed paste) should insert text into input."""
         from textual import events
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_test_for_bracketed_paste")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_test_for_bracketed_paste")
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause()
             await pilot.pause()
-            paste_event = events.Paste("di_bracketed_paste_value")
+            paste_event = events.Paste("gsk_bracketed_paste_value")
             app.post_message(paste_event)
             await pilot.pause()
             input_widget = app.query_one("#user-input", Input)
-            assert "di_bracketed_paste_value" in input_widget.value
+            assert "gsk_bracketed_paste_value" in input_widget.value
 
     @pytest.mark.asyncio
     async def test_on_paste_uses_first_line_only(self, monkeypatch):
         """Bracketed paste with multiple lines should only insert the first line."""
         from textual import events
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_test_for_multiline_paste")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_test_for_multiline_paste")
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause()
             await pilot.pause()
-            paste_event = events.Paste("di_firstline\nsecondline")
+            paste_event = events.Paste("gsk_firstline\nsecondline")
             app.post_message(paste_event)
             await pilot.pause()
             input_widget = app.query_one("#user-input", Input)
-            assert "di_firstline" in input_widget.value
+            assert "gsk_firstline" in input_widget.value
             assert "secondline" not in input_widget.value
 
     @pytest.mark.asyncio
     async def test_shift_insert_pastes_clipboard(self, monkeypatch):
         """Shift+Insert should also trigger paste_clipboard action."""
-        monkeypatch.setenv("DEEPINFRA_API_KEY", "di_test_for_shift_insert")
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "gsk_test_for_shift_insert")
         app = MurphyTerminalApp(api_url="http://localhost:19999")
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause()
@@ -646,13 +650,13 @@ class TestReadEnvBomHandling:
     def test_bom_prefixed_file_reads_correctly(self, tmp_path):
         env_file = tmp_path / ".env"
         # Write with BOM exactly as Windows Notepad does
-        env_file.write_bytes(b"\xef\xbb\xbfDEEPINFRA_API_KEY=di_bomtest\nOTHER=value\n")
+        env_file.write_bytes(b"\xef\xbb\xbfDEEPINFRA_API_KEY=gsk_bomtest\nOTHER=value\n")
         result = read_env(str(env_file))
         assert "DEEPINFRA_API_KEY" in result, (
             "DEEPINFRA_API_KEY was not parsed from a BOM-prefixed .env file; "
             "the file was likely opened with utf-8 instead of utf-8-sig"
         )
-        assert result["DEEPINFRA_API_KEY"] == "di_bomtest"
+        assert result["DEEPINFRA_API_KEY"] == "gsk_bomtest"
 
     def test_bom_does_not_contaminate_key_name(self, tmp_path):
         env_file = tmp_path / ".env"
@@ -785,7 +789,7 @@ class TestStripKeyWrappingEdgeCases:
         assert self.strip(self.strip(key)) == self.strip(key)
 
     def test_idempotent_bom_wrapped(self):
-        key = "\ufeffdi_abc\ufeff"
+        key = "\ufeffgsk_abc\ufeff"
         once = self.strip(key)
         twice = self.strip(once)
         assert once == twice

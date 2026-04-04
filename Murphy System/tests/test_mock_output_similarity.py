@@ -3,6 +3,9 @@ Test that Enhanced Local LLM produces outputs similar to mock templates
 Test both API mode and onboard (local) mode
 """
 
+import sys
+sys.path.insert(0, '/workspace')
+
 from src.llm_integration_layer import LLMIntegrationLayer, LLMProvider, DomainType
 
 

@@ -52,6 +52,18 @@ markers = [
     "storyline: Storyline conformance tests — validates each chapter maps to working code",
     "parity: Management Systems parity acceptance tests (phases 2–8)",
     "hero_flow: End-to-end Describe→Generate→Execute→Refine hero path integration tests",
+    "automation: Automation engine and workflow scheduling tests",
+    "compliance: Audit, compliance, and security hardening tests",
+    "llm: LLM provider integration and routing tests",
+    "execution: Execution engine, orchestration, and swarm tests",
+    "agents: Agent system, multi-agent coordination, and CI agent tests",
+    "communication: Communication hub, Matrix bridge, and email tests",
+    "ui_frontend: UI, dashboard, terminal, and frontend wiring tests",
+    "finance: Billing, grants, trading, and financial reporting tests",
+    "devops: CI/CD, deployment, containerization, and infrastructure tests",
+    "bots: Bot framework, governance, and telemetry tests",
+    "governance: Governance framework, authority gates, and policy tests",
+    "industrial: Robotics, building automation, and energy management tests",
 ]
 # Default per-test timeout: ~5 s per 1 000 lines of tested source.
 # Tests that target very large modules (app.py = 6 293 lines, compute_plane = 2 877 lines)

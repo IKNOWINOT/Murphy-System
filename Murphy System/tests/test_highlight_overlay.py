@@ -6,11 +6,13 @@ Design Label: TEST-HIGHLIGHT-OVERLAY-001
 Owner: QA Team
 """
 import os
+import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from highlight_overlay import (
     HighlightedSuggestion,

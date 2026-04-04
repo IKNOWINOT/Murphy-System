@@ -17,10 +17,12 @@ License: BSL 1.1
 from __future__ import annotations
 
 import os
+import sys
 import threading
 import time
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from tos_acceptance_gate import (
     CredentialRequest,

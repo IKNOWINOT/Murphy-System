@@ -5,11 +5,13 @@
 Tests for SelfLearningToggle (Facet 2)
 """
 
+import sys
 import os
 import threading
 
 import pytest
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.self_learning_toggle import SelfLearningToggle, get_self_learning_toggle
 

@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional
 
 # Add src to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 try:
     from src.system_integrator import SystemIntegrator

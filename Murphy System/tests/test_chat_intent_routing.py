@@ -354,7 +354,7 @@ class TestLLMStatus(unittest.TestCase):
 
     def test_llm_status_deepinfra_takes_priority_over_openai_in_auto_detect(self):
         """When both DEEPINFRA_API_KEY and OPENAI_API_KEY are set but MURPHY_LLM_PROVIDER
-        is absent, DeepInfra should be auto-selected (it's the recommended free-tier option)."""
+        is absent, DeepInfra should be auto-selected (it's the recommended primary option)."""
         old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
         old_deepinfra = os.environ.get("DEEPINFRA_API_KEY")
         old_openai = os.environ.get("OPENAI_API_KEY")
@@ -597,7 +597,7 @@ class TestApiLinksReply(unittest.TestCase):
         result = self.murphy.librarian_ask("where do I get API keys?", session_id=self.sid)
         self.assertTrue(result["success"])
         self.assertIn("Signup", result["message"])
-        self.assertIn("deepinfra.com", result["message"])
+        self.assertIn("console.deepinfra.com", result["message"])
 
     def test_api_key_query_suggests_api_keys_command(self):
         result = self.murphy.librarian_ask("how to get credentials?", session_id=self.sid)

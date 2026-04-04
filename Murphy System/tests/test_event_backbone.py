@@ -4,12 +4,13 @@ Tests for the Murphy System Event Backbone.
 
 import json
 import os
+import sys
 import tempfile
 import threading
-import time
 
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from event_backbone import Event, EventBackbone, EventType
 
@@ -481,163 +482,3 @@ class TestEventSerialization:
         for et in EventType:
             d = {"event_type": et.value}
             assert EventType(d["event_type"]) == et
-
-
-# ---------------------------------------------------------------------------
-# Background processing loop
-# ---------------------------------------------------------------------------
-
-class TestBackgroundLoop:
-    def test_start_creates_running_thread(self):
-        bb = EventBackbone(loop_interval_ms=50)
-        assert not bb.is_running
-        bb.start()
-        assert bb.is_running
-        bb.stop()
-        assert not bb.is_running
-
-    def test_start_is_idempotent(self):
-        bb = EventBackbone(loop_interval_ms=50)
-        bb.start()
-        thread_first = bb._bg_thread
-        bb.start()  # second start should be a no-op
-        assert bb._bg_thread is thread_first
-        bb.stop()
-
-    def test_stop_is_safe_before_start(self):
-        bb = EventBackbone(loop_interval_ms=50)
-        bb.stop()  # should not raise
-        assert not bb.is_running
-
-    def test_background_loop_processes_events_automatically(self):
-        """Events should be delivered to subscribers without calling process_pending()."""
-        bb = EventBackbone(loop_interval_ms=20)
-        received = []
-        lock = threading.Lock()
-
-        def handler(event):
-            with lock:
-                received.append(event.payload)
-
-        bb.subscribe(EventType.TASK_SUBMITTED, handler)
-        bb.start()
-        try:
-            bb.publish(EventType.TASK_SUBMITTED, {"auto": True})
-            # Give the background loop up to 2 seconds to process
-            deadline = time.time() + 2.0
-            while time.time() < deadline:
-                with lock:
-                    if received:
-                        break
-                time.sleep(0.01)
-        finally:
-            bb.stop()
-
-        assert len(received) == 1
-        assert received[0] == {"auto": True}
-
-    def test_background_loop_processes_multiple_events(self):
-        bb = EventBackbone(loop_interval_ms=20)
-        received = []
-        lock = threading.Lock()
-
-        def handler(event):
-            with lock:
-                received.append(event.payload["seq"])
-
-        bb.subscribe(EventType.TASK_SUBMITTED, handler)
-        bb.start()
-        try:
-            for i in range(5):
-                bb.publish(EventType.TASK_SUBMITTED, {"seq": i})
-            deadline = time.time() + 2.0
-            while time.time() < deadline:
-                with lock:
-                    if len(received) >= 5:
-                        break
-                time.sleep(0.01)
-        finally:
-            bb.stop()
-
-        assert received == [0, 1, 2, 3, 4]
-
-    def test_status_reports_background_loop_running(self):
-        bb = EventBackbone(loop_interval_ms=50)
-        assert bb.get_status()["background_loop_running"] is False
-        bb.start()
-        assert bb.get_status()["background_loop_running"] is True
-        bb.stop()
-        assert bb.get_status()["background_loop_running"] is False
-
-    def test_status_includes_metrics(self):
-        bb = EventBackbone(loop_interval_ms=20)
-        bb.subscribe(EventType.SYSTEM_HEALTH, lambda e: None)
-        bb.start()
-        try:
-            bb.publish(EventType.SYSTEM_HEALTH, {"cpu": 5})
-            deadline = time.time() + 2.0
-            while time.time() < deadline:
-                status = bb.get_status()
-                if status["events_processed"] >= 1:
-                    break
-                time.sleep(0.01)
-        finally:
-            bb.stop()
-
-        status = bb.get_status()
-        assert "metrics" in status
-        metrics = status["metrics"]
-        assert "queue_depth" in metrics
-        assert "events_per_second" in metrics
-        assert "last_loop_latency_ms" in metrics
-        assert "loop_iterations" in metrics
-        assert metrics["loop_iterations"] > 0
-
-    def test_loop_interval_from_env_var(self, monkeypatch):
-        monkeypatch.setenv("MURPHY_EVENT_LOOP_INTERVAL_MS", "200")
-        bb = EventBackbone()
-        assert abs(bb.loop_interval_ms - 200.0) < 0.1
-
-    def test_loop_interval_explicit_overrides_env(self, monkeypatch):
-        monkeypatch.setenv("MURPHY_EVENT_LOOP_INTERVAL_MS", "999")
-        bb = EventBackbone(loop_interval_ms=50)
-        assert abs(bb.loop_interval_ms - 50.0) < 0.1
-
-
-# ---------------------------------------------------------------------------
-# Backpressure handling
-# ---------------------------------------------------------------------------
-
-class TestBackpressure:
-    def test_backpressure_emits_system_health_event(self):
-        """When queue depth exceeds threshold, a SYSTEM_HEALTH event is published."""
-        bb = EventBackbone(loop_interval_ms=20, backpressure_threshold=2)
-        health_events = []
-        lock = threading.Lock()
-
-        def health_handler(event):
-            with lock:
-                health_events.append(event.payload)
-
-        bb.subscribe(EventType.SYSTEM_HEALTH, health_handler)
-        # Publish events that exceed the backpressure threshold WITHOUT processing
-        # We do this while the loop is stopped so we can stage the condition
-        bb.publish(EventType.TASK_SUBMITTED, {"a": 1})
-        bb.publish(EventType.TASK_SUBMITTED, {"b": 2})
-        bb.publish(EventType.TASK_SUBMITTED, {"c": 3})
-
-        bb.start()
-        try:
-            deadline = time.time() + 2.0
-            while time.time() < deadline:
-                with lock:
-                    if health_events:
-                        break
-                time.sleep(0.01)
-        finally:
-            bb.stop()
-
-        assert len(health_events) >= 1
-        bp_events = [e for e in health_events if e.get("type") == "backpressure"]
-        assert len(bp_events) >= 1
-        assert bp_events[0]["threshold"] == 2

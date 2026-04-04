@@ -9,12 +9,14 @@ Creator: Corey Post
 License: BSL 1.1
 """
 
+import sys
 import os
 import pytest
 import asyncio
 from datetime import datetime
 
 # Add src to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 # Import integration classes
 from confidence_engine.unified_confidence_engine import UnifiedConfidenceEngine

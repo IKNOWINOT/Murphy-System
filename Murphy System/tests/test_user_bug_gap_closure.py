@@ -22,13 +22,15 @@ import os
 import platform
 import re
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock, call
+import requests as _requests_lib
 
 import pytest
 
 # Ensure parent directory (containing murphy_terminal.py) is on the path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 pytest.importorskip("textual", reason="textual not installed — skipping terminal UI tests")
 
@@ -53,6 +55,16 @@ from src.env_manager import (
 )
 from textual.widgets import Input
 from textual import events
+
+
+def _make_response(status_code=200, json_data=None):
+    """Build a real requests.Response for test HTTP stubs."""
+    resp = _requests_lib.Response()
+    resp.status_code = status_code
+    if json_data is not None:
+        resp._content = json.dumps(json_data).encode("utf-8")
+        resp.headers["Content-Type"] = "application/json"
+    return resp
 
 
 # ============================================================================
@@ -566,45 +578,49 @@ class TestUserBug5_ApplyApiKeyLogic:
             "responses as failure."
         )
 
-    @patch("murphy_terminal.requests.post")
-    def test_user_configure_empty_response_treated_as_failure(self, mock_post):
+    def test_user_configure_empty_response_treated_as_failure(self):
         """MurphyAPIClient.configure_llm returns {} → treated as not-success."""
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {}
-        mock_resp.raise_for_status = MagicMock()
-        mock_post.return_value = mock_resp
+        import murphy_terminal
+        _orig = murphy_terminal.requests.post
+        murphy_terminal.requests.post = lambda *a, **kw: _make_response(200, {})
+        try:
+            client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
+            result = client.configure_llm("deepinfra", "di_test_key")
+            # The _apply_api_key code does: if not result.get("success", False)
+            # With {} → not False = True → error path taken
+            assert result.get("success", False) is False, (
+                "Empty dict should be treated as failure when 'success' defaults to False"
+            )
+        finally:
+            murphy_terminal.requests.post = _orig
 
-        client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
-        result = client.configure_llm("deepinfra", "di_test_key")
-        # The _apply_api_key code does: if not result.get("success", False)
-        # With {} → not False = True → error path taken
-        assert result.get("success", False) is False, (
-            "Empty dict should be treated as failure when 'success' defaults to False"
-        )
-
-    @patch("murphy_terminal.requests.post")
-    def test_user_configure_success_true_treated_as_success(self, mock_post):
+    def test_user_configure_success_true_treated_as_success(self):
         """Backend returns success=True → treated as success."""
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"success": True, "provider": "deepinfra"}
-        mock_resp.raise_for_status = MagicMock()
-        mock_post.return_value = mock_resp
+        import murphy_terminal
+        _orig = murphy_terminal.requests.post
+        murphy_terminal.requests.post = lambda *a, **kw: _make_response(
+            200, {"success": True, "provider": "deepinfra"}
+        )
+        try:
+            client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
+            result = client.configure_llm("deepinfra", "di_test_key")
+            assert result.get("success", False) is True
+        finally:
+            murphy_terminal.requests.post = _orig
 
-        client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
-        result = client.configure_llm("deepinfra", "di_test_key")
-        assert result.get("success", False) is True
-
-    @patch("murphy_terminal.requests.post")
-    def test_user_configure_success_false_treated_as_failure(self, mock_post):
+    def test_user_configure_success_false_treated_as_failure(self):
         """Backend returns success=False → treated as failure."""
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"success": False, "error": "invalid key"}
-        mock_resp.raise_for_status = MagicMock()
-        mock_post.return_value = mock_resp
-
-        client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
-        result = client.configure_llm("deepinfra", "di_test_key")
-        assert result.get("success", False) is False
+        import murphy_terminal
+        _orig = murphy_terminal.requests.post
+        murphy_terminal.requests.post = lambda *a, **kw: _make_response(
+            200, {"success": False, "error": "invalid key"}
+        )
+        try:
+            client = MurphyAPIClient(base_url="http://localhost:8000", timeout=5)
+            result = client.configure_llm("deepinfra", "di_test_key")
+            assert result.get("success", False) is False
+        finally:
+            murphy_terminal.requests.post = _orig
 
 
 # ============================================================================
@@ -619,7 +635,7 @@ class TestUserBug6_NoHardcodedKeys:
     keys (gsk_*) and Aristotle keys (arstl_*).  The fix replaced them
     with REDACTED placeholders.
 
-    The user expects: `grep -r 'gsk_[A-Za-z0-9]{20,}' archive/` returns
+    The user expects: `grep -r 'di_[A-Za-z0-9]{20,}' archive/` returns
     no results.
     """
 
@@ -632,7 +648,7 @@ class TestUserBug6_NoHardcodedKeys:
     def test_user_audit_no_deepinfra_keys_in_archive(self):
         """No real DeepInfra API keys (gsk_ + 20+ chars) in any archive file."""
         archive_dir = self._get_archive_dir()
-        pattern = re.compile(r"gsk_[A-Za-z0-9]{20,}")
+        pattern = re.compile(r"di_[A-Za-z0-9]{20,}")
         hits = []
         for root, _dirs, files in os.walk(archive_dir):
             for fname in files:
@@ -698,7 +714,7 @@ class TestUserBug6_NoHardcodedKeys:
             pytest.skip(".env.example not found")
         with open(env_example, encoding="utf-8") as f:
             content = f.read()
-        pattern = re.compile(r"gsk_[A-Za-z0-9]{20,}")
+        pattern = re.compile(r"di_[A-Za-z0-9]{20,}")
         assert not pattern.search(content), (
             ".env.example contains what looks like a real DeepInfra API key."
         )

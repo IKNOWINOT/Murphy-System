@@ -18,10 +18,12 @@ Owner: QA Team
 """
 
 import os
+import sys
 from datetime import datetime, timedelta, timezone
 
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from self_marketing_orchestrator import (  # noqa: I001
     SelfMarketingOrchestrator,
@@ -729,6 +731,7 @@ class TestContentCategories:
 class TestModuleManifest:
     def test_self_marketing_orchestrator_in_manifest(self):
         """MKT-006 must be registered in the module manifest."""
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
         from matrix_bridge.module_manifest import MODULE_MANIFEST
         modules = [e.module for e in MODULE_MANIFEST]
         assert "self_marketing_orchestrator" in modules

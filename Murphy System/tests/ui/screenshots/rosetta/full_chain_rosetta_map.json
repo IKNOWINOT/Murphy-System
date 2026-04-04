@@ -10,106 +10,143 @@
   ],
   "viewpoints": {
     "founder": {
+      "priority": "revenue, growth, investor narrative",
+      "questions": [
+        "Does this flow generate revenue?",
+        "Is the value proposition clear?",
+        "Does it reduce cost or increase output?"
+      ],
+      "observations": [
+        "Step 'onboarding' reviewed from founder perspective",
+        "Step 'production' reviewed from founder perspective",
+        "Step 'grant' reviewed from founder perspective",
+        "Step 'compliance' reviewed from founder perspective",
+        "Step 'partner' reviewed from founder perspective",
+        "Step 'pricing' reviewed from founder perspective"
+      ],
       "suggestions": [
-        "Review cost-to-acquire before production launch",
-        "Verify grant runway covers 12-month plan",
-        "Confirm compliance posture before investor deck",
-        "Check partner revenue-share terms"
+        "Add inline ROI calculator showing cost saved per automated step",
+        "Surface 'time saved this week' metric on dashboard after each flow",
+        "Add upsell prompt when user hits plan limit mid-flow"
       ],
       "gate_recommendations": [
         {
+          "after_step": "production_config_save",
           "gate": "financial_review",
-          "trigger": "production_config_save"
-        },
-        {
-          "gate": "budget_approval",
-          "trigger": "tier_selection"
-        },
-        {
-          "gate": "strategic_alignment",
-          "trigger": "partner_request"
+          "reason": "Production config may commit spend"
         }
       ]
     },
     "compliance_officer": {
+      "priority": "regulatory adherence, audit trail, data protection",
+      "questions": [
+        "Is every action logged?",
+        "Are compliance gates enforced before high-risk steps?",
+        "Is HITL required for irreversible actions?"
+      ],
+      "observations": [
+        "Step 'onboarding' reviewed from compliance_officer perspective",
+        "Step 'production' reviewed from compliance_officer perspective",
+        "Step 'grant' reviewed from compliance_officer perspective",
+        "Step 'compliance' reviewed from compliance_officer perspective",
+        "Step 'partner' reviewed from compliance_officer perspective",
+        "Step 'pricing' reviewed from compliance_officer perspective"
+      ],
       "suggestions": [
-        "Lock regulatory profile after onboarding",
-        "Scan all integrations for data-residency compliance",
-        "Validate grant eligibility criteria before submission",
-        "Audit pricing tier for regulatory implications"
+        "Require HITL gate before any step that modifies org data",
+        "Auto-seal audit block at end of each wizard completion",
+        "Add regulatory framework auto-detection on onboarding step 2"
       ],
       "gate_recommendations": [
         {
+          "after_step": "onboarding_complete",
           "gate": "compliance_profile_lock",
-          "trigger": "onboarding_complete"
+          "reason": "Lock compliance profile before production use"
         },
         {
+          "after_step": "grant_submission",
           "gate": "legal_review",
-          "trigger": "grant_submission"
-        },
-        {
-          "gate": "regulatory_scan",
-          "trigger": "compliance_dashboard_view"
+          "reason": "Grant applications are legal documents"
         }
       ]
     },
     "customer": {
-      "suggestions": [
-        "Confirm onboarding steps match promised experience",
-        "Verify production deliverables timeline",
-        "Check grant benefits clearly communicated"
+      "priority": "ease of use, speed to value, clarity",
+      "questions": [
+        "Can I complete this in under 5 minutes?",
+        "Is the next step always obvious?",
+        "Are errors explained in plain language?"
       ],
-      "gate_recommendations": [
-        {
-          "gate": "feature_gate",
-          "trigger": "production_config_save"
-        },
-        {
-          "gate": "ux_review",
-          "trigger": "onboarding_complete"
-        }
-      ]
+      "observations": [
+        "Step 'onboarding' reviewed from customer perspective",
+        "Step 'production' reviewed from customer perspective",
+        "Step 'grant' reviewed from customer perspective",
+        "Step 'compliance' reviewed from customer perspective",
+        "Step 'partner' reviewed from customer perspective",
+        "Step 'pricing' reviewed from customer perspective"
+      ],
+      "suggestions": [
+        "Show progress percentage at top of each wizard step",
+        "Pre-fill known data from previous wizard steps",
+        "Add 'Skip for now' option on optional integration steps"
+      ],
+      "gate_recommendations": []
     },
     "investor": {
+      "priority": "scalability, defensibility, unit economics",
+      "questions": [
+        "Does automation reduce marginal cost?",
+        "Is the data moat growing?",
+        "Are the metrics visible and real?"
+      ],
+      "observations": [
+        "Step 'onboarding' reviewed from investor perspective",
+        "Step 'production' reviewed from investor perspective",
+        "Step 'grant' reviewed from investor perspective",
+        "Step 'compliance' reviewed from investor perspective",
+        "Step 'partner' reviewed from investor perspective",
+        "Step 'pricing' reviewed from investor perspective"
+      ],
       "suggestions": [
-        "Validate unit economics at each pricing tier",
-        "Review grant portfolio for diversification",
-        "Confirm compliance reduces regulatory risk",
-        "Assess partner network for strategic value"
+        "Track and expose completion rate per wizard step (funnel analytics)",
+        "Show aggregate automation value ($ saved) across all accounts",
+        "Add cohort retention metric tied to onboarding completion"
       ],
       "gate_recommendations": [
         {
-          "gate": "roi_gate",
-          "trigger": "tier_selection"
-        },
-        {
-          "gate": "market_fit_review",
-          "trigger": "grant_submission"
+          "after_step": "pricing_upgrade",
+          "gate": "revenue_recognition",
+          "reason": "Ensure billing event is recorded"
         }
       ]
     },
     "operator": {
+      "priority": "reliability, uptime, observability",
+      "questions": [
+        "Can I see what's running right now?",
+        "Are failures surfaced immediately?",
+        "Can I roll back any action?"
+      ],
+      "observations": [
+        "Step 'onboarding' reviewed from operator perspective",
+        "Step 'production' reviewed from operator perspective",
+        "Step 'grant' reviewed from operator perspective",
+        "Step 'compliance' reviewed from operator perspective",
+        "Step 'partner' reviewed from operator perspective",
+        "Step 'pricing' reviewed from operator perspective"
+      ],
       "suggestions": [
-        "Verify integration connectivity after setup",
-        "Confirm production pipeline health checks exist",
-        "Validate onboarding creates all required accounts",
-        "Check compliance dashboards update in real-time"
+        "Expose /api/health check status inline on each wizard page",
+        "Add rollback button for every wizard step that calls an API",
+        "Log every wizard step transition to the BAT audit trail"
       ],
       "gate_recommendations": [
         {
+          "after_step": "integration_connected",
           "gate": "connectivity_test",
-          "trigger": "integration_connected"
-        },
-        {
-          "gate": "health_check",
-          "trigger": "production_config_save"
-        },
-        {
-          "gate": "capacity_review",
-          "trigger": "onboarding_complete"
+          "reason": "Verify integration before marking active"
         }
       ]
     }
-  },
-  "generated_at": "2026-04-03T01:22:41.480931+00:00"
+  }
 }

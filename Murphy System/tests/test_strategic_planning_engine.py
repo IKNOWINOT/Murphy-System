@@ -8,9 +8,11 @@ Design Label: TEST-019 / BIZ-005
 Owner: QA Team
 """
 
+import sys
 import os
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from strategic_planning_engine import (
     StrategicPlanningEngine,

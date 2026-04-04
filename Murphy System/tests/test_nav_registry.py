@@ -16,6 +16,7 @@ import os
 import sys
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from nav_registry import (
     get_nav_structure,
     get_nav_for_account,

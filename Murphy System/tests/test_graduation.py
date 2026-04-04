@@ -15,6 +15,7 @@ import os
 import pytest
 from datetime import datetime, timezone
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from graduation_controller import (
     GraduationController,

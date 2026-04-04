@@ -1,8 +1,10 @@
 """Tests for workflow_template_marketplace.py"""
 
+import sys
 import os
 import unittest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 from workflow_template_marketplace import WorkflowTemplateMarketplace
 
 

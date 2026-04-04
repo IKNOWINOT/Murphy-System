@@ -3,7 +3,9 @@ Murphy System - Tests for Murphy Template Hub
 Copyright 2024-2026 Corey Post, Inoni LLC
 License: BSL 1.1
 """
+import sys
 import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 import json
 import uuid

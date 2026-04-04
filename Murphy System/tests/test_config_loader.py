@@ -1,3 +1,10 @@
+# MODULE: test_config_loader
+# STATUS: PRODUCTION-READY
+# WAVE: 1 - Core Infrastructure
+# SOURCE: copilot/add-config-files-and-loader
+# COMMISSIONED: 2026-03-28
+# PURPOSE: Unit tests for config/config_loader.py — YAML + env var loader
+#
 # Copyright © 2020 Inoni Limited Liability Company
 # Creator: Corey Post
 # License: BSL 1.1
@@ -11,19 +18,21 @@ Covers:
 - get() dotted-key access with defaults
 - get_all() shallow copy
 - Cache invalidation / force_reload
+- Real murphy.yaml + engines.yaml default values
 """
 
 import os
 import sys
-import textwrap
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 # ---------------------------------------------------------------------------
-# Make config/ importable regardless of working directory
+# Make config/ importable from the repo root
 # ---------------------------------------------------------------------------
-_CONFIG_DIR = Path(__file__).resolve().parent.parent / "config"
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 
 class TestConfigLoaderYAMLLoading(unittest.TestCase):
@@ -41,7 +50,8 @@ class TestConfigLoaderYAMLLoading(unittest.TestCase):
         self.assertEqual(result, {})
 
     def test_valid_yaml_returns_dict(self):
-        import tempfile, yaml
+        import tempfile
+        import yaml
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as fh:
             fh.write("system:\n  env: testing\n  version: '9.9.9'\n")
             tmp = Path(fh.name)
@@ -98,7 +108,7 @@ class TestDeepMerge(unittest.TestCase):
         base = {"api": {"host": "127.0.0.1", "port": 8000}}
         cl._deep_merge(base, {"api": {"port": 9000}})
         self.assertEqual(base["api"]["host"], "127.0.0.1")  # preserved
-        self.assertEqual(base["api"]["port"], 9000)         # overwritten
+        self.assertEqual(base["api"]["port"], 9000)          # overwritten
 
     def test_overlay_dict_over_scalar_replaces(self):
         cl = self._get_loader()
@@ -174,7 +184,6 @@ class TestEnvOverrides(unittest.TestCase):
     """Environment variable overlay via load_config()."""
 
     def setUp(self):
-        # Wipe cache between tests
         import importlib
         import config.config_loader as cl
         importlib.reload(cl)
@@ -220,7 +229,6 @@ class TestEnvOverrides(unittest.TestCase):
     def test_env_overrides_yaml_value(self):
         """Env vars must win over YAML file values."""
         cfg = self._load_with_env({"LOG_LEVEL": "CRITICAL"})
-        # The YAML default is INFO; env must override it
         self.assertEqual(cfg["logging"]["level"], "CRITICAL")
 
     def test_boolean_coercion_via_env(self):
@@ -288,7 +296,6 @@ class TestCacheAndForceReload(unittest.TestCase):
         cfg1 = self._cl.load_config()
         self._cl.invalidate_cache()
         cfg2 = self._cl.load_config()
-        # After invalidation a new dict must be created
         self.assertIsNot(cfg1, cfg2)
 
     def test_force_reload_bypasses_cache(self):

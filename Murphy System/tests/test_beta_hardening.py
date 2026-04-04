@@ -46,6 +46,8 @@ import pytest
 
 # Ensure src/ is importable
 _src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
 
 
 @pytest.fixture(autouse=True)
@@ -802,6 +804,7 @@ import pytest
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = PROJECT_ROOT / "src"
 
+sys.path.insert(0, str(PROJECT_ROOT))
 
 
 # ---------------------------------------------------------------------------

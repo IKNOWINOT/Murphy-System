@@ -1,7 +1,9 @@
 """Tests for ConceptTranslationEngine — concept_translation module."""
 
+import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.concept_translation import ConceptTranslationEngine, TechnicalAnalogue
 

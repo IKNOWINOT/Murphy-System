@@ -7,9 +7,11 @@ Tests for TestModeController (Facet 1)
 
 import time
 import pytest
+import sys
 import os
 
 # Ensure the Murphy System package root is on the path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 from src.test_mode_controller import TestModeController, get_test_mode_controller

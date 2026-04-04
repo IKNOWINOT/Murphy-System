@@ -1,6 +1,7 @@
 """Tests for Phase 11 – Guest / External Collaboration."""
 
 import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import pytest
 from guest_collab.models import (

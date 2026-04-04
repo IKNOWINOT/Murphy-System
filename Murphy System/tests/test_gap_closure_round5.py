@@ -13,9 +13,11 @@ import importlib
 import inspect
 import math
 import os
+import sys
 
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 
 # ===================================================================

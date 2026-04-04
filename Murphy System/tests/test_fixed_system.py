@@ -4,6 +4,7 @@ Comprehensive tests for fixed MFGC v1.1 system
 
 import sys
 import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 import pytest
 

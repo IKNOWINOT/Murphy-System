@@ -6,12 +6,16 @@ Asserts each integration completes in < 300 seconds.
 
 GAP 4 closure: demonstrates integration speed with measured data.
 """
+import sys
 import time
 import unittest
 from pathlib import Path
 from typing import Dict, Any
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT / "bots"))
 
 
 class TestSwissKissPipelineSpeed(unittest.TestCase):

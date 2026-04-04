@@ -16,11 +16,13 @@ License: BSL 1.1
 from __future__ import annotations
 
 import os
+import sys
 from typing import Any, Dict, List
 from unittest.mock import MagicMock
 
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from matrix_bridge.module_manifest import MODULE_MANIFEST, manifest_by_module
 from automation_integration_hub import AutomationIntegrationHub, ModulePhase

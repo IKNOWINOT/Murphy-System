@@ -12,6 +12,7 @@ import datetime
 import hashlib
 import hmac
 import json
+import sys
 import threading
 import time
 from dataclasses import dataclass, field
@@ -20,6 +21,8 @@ from typing import Any, List, Tuple
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = PROJECT_ROOT / "src"
+sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(SRC_DIR))
 
 from webhook_dispatcher import (  # noqa: E402
     DeliveryAttempt,

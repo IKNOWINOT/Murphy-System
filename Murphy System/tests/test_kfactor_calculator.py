@@ -1,6 +1,8 @@
 """Tests for the K-Factor Calculator module."""
 
+import sys
 import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
 from src.kfactor_calculator import KFactorCalculator, KFactorInput

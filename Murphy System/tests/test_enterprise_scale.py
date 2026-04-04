@@ -20,6 +20,8 @@ import tracemalloc
 from typing import List
 from datetime import datetime, timezone
 
+sys.path.insert(0, '/workspace')
+
 from src.org_compiler.enterprise_compiler import (
     EnterpriseRoleTemplateCompiler,
     CompilationCache,

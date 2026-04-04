@@ -25,6 +25,7 @@ import sys
 import pytest
 
 # Ensure project root is on the path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 _SRC_DIR = os.path.join(os.path.dirname(__file__), "..", "src")
 _DISPATCH_FILE = os.path.join(_SRC_DIR, "dispatch.py")
@@ -150,6 +151,30 @@ class TestCORSConfiguration:
         # Disallow: allow_origins=["*"]  (hardcoded)
         assert 'allow_origins=["*"]' not in source, (
             "tiered_app_factory.py hardcodes allow_origins=[\"*\"]; use MURPHY_CORS_ORIGINS env var."
+        )
+
+    def test_tiered_app_factory_no_wildcard_allow_methods(self):
+        """tiered_app_factory must not use allow_methods=['*'] — use an explicit list."""
+        factory_path = os.path.join(_SRC_DIR, "runtime", "tiered_app_factory.py")
+        if not os.path.isfile(factory_path):
+            pytest.skip("tiered_app_factory.py not found")
+        with open(factory_path, "r", encoding="utf-8") as fh:
+            source = fh.read()
+        assert 'allow_methods=["*"]' not in source, (
+            "tiered_app_factory.py must not use allow_methods=[\"*\"]; "
+            "use an explicit list of permitted HTTP methods."
+        )
+
+    def test_tiered_app_factory_no_wildcard_allow_headers(self):
+        """tiered_app_factory must not use allow_headers=['*'] — use an explicit list."""
+        factory_path = os.path.join(_SRC_DIR, "runtime", "tiered_app_factory.py")
+        if not os.path.isfile(factory_path):
+            pytest.skip("tiered_app_factory.py not found")
+        with open(factory_path, "r", encoding="utf-8") as fh:
+            source = fh.read()
+        assert 'allow_headers=["*"]' not in source, (
+            "tiered_app_factory.py must not use allow_headers=[\"*\"]; "
+            "use an explicit list of permitted request headers."
         )
 
 

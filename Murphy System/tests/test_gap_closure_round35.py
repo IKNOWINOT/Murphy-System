@@ -15,6 +15,7 @@ Extends the audit with categories 23–30 (total 30 verified categories):
 import ast
 import os
 import re
+import sys
 
 import pytest
 
@@ -182,6 +183,7 @@ class TestImportSweepClean:
     """All 517+ source modules import without error."""
 
     def test_all_modules_import(self):
+        sys.path.insert(0, SRC_DIR)
         optional = {
             "fastapi", "matplotlib", "torch", "textual", "uvicorn",
             "openai", "anthropic", "transformers",

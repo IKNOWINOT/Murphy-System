@@ -12,6 +12,8 @@ from datetime import datetime
 
 # Import system components
 import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from src.system_integrator import SystemIntegrator
 
@@ -169,6 +171,7 @@ class TestPerformance(unittest.TestCase):
     def test_memory_usage(self):
         """Test memory usage under load"""
         import gc
+        import sys
 
         # Get initial memory usage
         gc.collect()

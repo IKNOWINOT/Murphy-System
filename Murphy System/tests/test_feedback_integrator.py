@@ -8,8 +8,10 @@ Covers:
 - Recalibration trigger does NOT fire below threshold
 """
 
+import sys
 import os
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import pytest
 from feedback_integrator import FeedbackIntegrator, FeedbackSignal

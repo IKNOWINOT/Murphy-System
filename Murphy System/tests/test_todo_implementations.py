@@ -9,12 +9,15 @@ Covers:
   dependency detection, assumptions, risks
 """
 
+import sys
 import os
 import tempfile
 import textwrap
 
 # Ensure repo root and src are on the path.
 _base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _base)
+sys.path.insert(0, os.path.join(_base, 'src'))
 
 
 # ============================================================================

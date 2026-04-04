@@ -8,11 +8,13 @@ Design Label: TEST-COMPL-001
 Owner: QA Team
 """
 
+import sys
 import os
 from datetime import datetime, timedelta, timezone
 
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from contact_compliance_governor import (
     ContactComplianceGovernor,

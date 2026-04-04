@@ -10,9 +10,11 @@ Module     : src/governance_kernel.py
 Fixed In   : GovernanceKernel.record_execution (department_id parameter)
 """
 
+import sys
 import os
 import unittest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from governance_kernel import (
     GovernanceKernel,

@@ -9,6 +9,7 @@ Design Label: TEST-OBS-010
 Owner: QA Team
 """
 
+import sys
 import os
 import math
 import threading
@@ -16,6 +17,7 @@ import time
 
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from unified_observability_engine import (
     AlertManager,

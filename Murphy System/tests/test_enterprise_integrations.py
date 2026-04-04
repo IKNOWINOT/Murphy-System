@@ -2,11 +2,13 @@
 Tests for enterprise_integrations module.
 """
 
+import sys
 import os
 import unittest
 import threading
 import time
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from enterprise_integrations import (
     IntegrationCategory,

@@ -10,14 +10,13 @@ License: BSL 1.1
 """
 
 import json
+import sys
 import datetime
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Any, Dict, List
 
 import pytest
-
-pytestmark = pytest.mark.storyline
 
 # ---------------------------------------------------------------------------
 # Path setup
@@ -27,6 +26,8 @@ SRC_DIR = PROJECT_ROOT / "src"
 DOCS_DIR = PROJECT_ROOT / "docs"
 RESULTS_FILE = DOCS_DIR / "storyline_test_results_phase3.json"
 
+sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(SRC_DIR))
 
 
 # ---------------------------------------------------------------------------
@@ -323,6 +324,7 @@ class TestChapter8_Actuals:
 
     def test_control_type_detection_exists(self):
         """Storyline: 'ControlTypeAnalyzer.analyze() determines control type'"""
+        sys.path.insert(0, str(PROJECT_ROOT))
         from universal_control_plane import ControlTypeAnalyzer, ControlType
         ct = ControlTypeAnalyzer.analyze("Monitor temperature sensor in factory")
         is_valid = isinstance(ct, ControlType)
@@ -335,6 +337,7 @@ class TestChapter8_Actuals:
 
     def test_engine_registry_maps_types(self):
         """Storyline: 'EngineRegistry maps ControlType → List[Engine]'"""
+        sys.path.insert(0, str(PROJECT_ROOT))
         from universal_control_plane import EngineRegistry, ControlType
         engines = EngineRegistry.get_engines_for_control_type(
             ControlType.SENSOR_ACTUATOR
@@ -349,6 +352,7 @@ class TestChapter8_Actuals:
 
     def test_control_plane_creates_automation(self):
         """Storyline: 'UniversalControlPlane creates isolated sessions via create_automation'"""
+        sys.path.insert(0, str(PROJECT_ROOT))
         from universal_control_plane import UniversalControlPlane
         ucp = UniversalControlPlane()
         has_method = hasattr(ucp, "create_automation")
@@ -376,7 +380,7 @@ class TestChapter18_Actuals:
                cause="AnalyticsDashboard class instantiable",
                effect="Users can see operational metrics and pipeline status",
                lesson="Results visibility builds trust in autonomous systems.")
-        assert True
+        assert ad is not None, "AnalyticsDashboard must be instantiable"
 
     def test_kpi_tracker_records_metrics(self):
         """Storyline: 'KPI Tracker records and exposes performance metrics'"""

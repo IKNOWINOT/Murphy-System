@@ -7,11 +7,13 @@ License: BSL 1.1
 """
 
 import os
+import sys
 import textwrap
 import uuid
 
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from code_repair_engine import (
     BroadExceptionStrategy,

@@ -8,9 +8,11 @@ Design Label: TEST-005 / BIZ-002
 Owner: QA Team
 """
 
+import sys
 import os
 import pytest
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from invoice_processing_pipeline import (
     InvoiceProcessingPipeline,

@@ -2,7 +2,9 @@
 Unit tests for MFGC core functionality
 """
 
+import sys
 import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 import unittest
 from mfgc_core import (
