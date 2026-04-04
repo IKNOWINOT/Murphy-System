@@ -37,7 +37,7 @@ You should see `"status": "ok"`, active automations, pending HITL items, and liv
 
 **Say:**
 
-> "This is Murphy System — an AI automation platform I built solo. 218,000 lines of Python, 1,122 modules, 8,843 passing tests. It converts plain English into governed, production-grade workflows using LLMs — and every high-stakes step requires human approval before it fires.
+> "This is Murphy System — an AI automation platform I built solo. 594,000 lines of Python, 1,230 modules, 24,577 test functions. It converts plain English into governed, production-grade workflows using LLMs — and every high-stakes step requires human approval before it fires.
 >
 > What I'm about to show you is not a prototype or a Figma mock. These are real API calls against a running server with real AI behind them. Let me prove it."
 
@@ -218,7 +218,7 @@ curl -s http://localhost:8000/api/bots/status | python3 -m json.tool
 
 **Say:**
 
-> "Everything you just saw was live AI. Real LLM calls. Real workflow execution. Real human-in-the-loop gates. 218,000 lines of production Python, 1,122 modules, 8,843 tests, 90+ platform connectors — including SCADA, BACnet, and OPC UA — 14 web interfaces. Built by one person.
+> "Everything you just saw was live AI. Real LLM calls. Real workflow execution. Real human-in-the-loop gates. 594,000 lines of production Python, 1,230 modules, 24,577 tests, 90+ platform connectors — including SCADA, BACnet, and OPC UA — 62 web interfaces. Built by one person.
 >
 > I'm raising $500,000 on a SAFE at $5M to $7M cap. No discount. 18 months of runway. The first hire multiplies what you just saw.
 >
@@ -280,7 +280,7 @@ curl -s http://localhost:8000/api/pipeline/self-setup | python3 -m json.tool
 > *"Murphy is routing through Llama 3.1 70B on DeepInfra — that's a large model doing real inference, not a template. With a dedicated GPU endpoint, this is sub-2 seconds. What you're watching is the AI thinking."*
 
 **If the server isn't responding:**
-> *"The server needs a restart — let me show you the codebase while it comes back. 1,122 modules, 81 packages, 644 test files. Here's the terminal UI —"* (switch to `terminal_unified.html` which loads statically).
+> *"The server needs a restart — let me show you the codebase while it comes back. 1,230 modules, 86 packages, 806 test files. Here's the terminal UI —"* (switch to `terminal_unified.html` which loads statically).
 
 **If an LLM provider is down (no API key / DeepInfra outage):**
 > *"The primary LLM provider is down. Murphy's circuit breaker already kicked in and switched to the fallback provider. If both are down, it falls back to deterministic on-board templates — it still generates the workflow, just without the LLM-powered naming. That's the resilience layer."*
