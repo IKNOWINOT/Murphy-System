@@ -155,7 +155,7 @@ async def two_phase_create(req: CreateAutomationRequest):
             "message": "Phase 1 complete. Use /api/execution/two-phase/run to execute.",
         })
     except Exception as exc:
-        log.error("Phase 1 failed: %s", e, exc_info=True)
+        log.error("Phase 1 failed: %s", exc, exc_info=True)
         raise HTTPException(500, f"Phase 1 setup failed: {exc}")
 
 
@@ -178,7 +178,7 @@ async def two_phase_run(req: RunAutomationRequest):
     except HTTPException:
         raise
     except Exception as exc:
-        log.error("Phase 2 execution failed: %s", e, exc_info=True)
+        log.error("Phase 2 execution failed: %s", exc, exc_info=True)
         raise HTTPException(500, f"Phase 2 execution failed: {exc}")
 
 
@@ -247,7 +247,7 @@ async def ucp_create(req: CreateAutomationRequest):
             "message": "Session created. Use /api/execution/ucp/run to execute.",
         })
     except Exception as exc:
-        log.error("UCP session creation failed: %s", e, exc_info=True)
+        log.error("UCP session creation failed: %s", exc, exc_info=True)
         raise HTTPException(500, f"Session creation failed: {exc}")
 
 
@@ -267,7 +267,7 @@ async def ucp_run(req: RunAutomationRequest):
     except HTTPException:
         raise
     except Exception as exc:
-        log.error("UCP execution failed: %s", e, exc_info=True)
+        log.error("UCP execution failed: %s", exc, exc_info=True)
         raise HTTPException(500, f"Session execution failed: {exc}")
 
 
@@ -322,7 +322,7 @@ async def ucp_close_session(session_id: str):
         del _ucp.sessions[session_id]
         return JSONResponse({"closed": True, "session_id": session_id})
     except Exception as exc:
-        log.error("Session close failed: %s", e, exc_info=True)
+        log.error("Session close failed: %s", exc, exc_info=True)
         raise HTTPException(500, f"Session close failed: {exc}")
 
 
@@ -351,7 +351,7 @@ async def exec_orch_execute(req: ExecutePacketRequest):
         status_code = 200 if result.get("accepted") else 403
         return JSONResponse(result, status_code=status_code)
     except Exception as exc:
-        log.error("Packet execution failed: %s", e, exc_info=True)
+        log.error("Packet execution failed: %s", exc, exc_info=True)
         raise HTTPException(500, f"Execution failed: {exc}")
 
 
@@ -368,7 +368,7 @@ async def exec_orch_approve(req: ApprovalRequest):
         })
         return JSONResponse(result)
     except Exception as exc:
-        log.error("Approval processing failed: %s", e, exc_info=True)
+        log.error("Approval processing failed: %s", exc, exc_info=True)
         raise HTTPException(500, f"Approval failed: {exc}")
 
 

@@ -495,7 +495,7 @@ class DeliveryAnalytics:
         perf: Dict[str, Dict[str, Any]] = {}
         grouped: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
         for e in events:
-            grouped[e["channel"]].append(exc)
+            grouped[e["channel"]].append(e)
 
         for ch, ch_events in grouped.items():
             latencies = [e["latency_ms"] for e in ch_events if e["success"]]
@@ -531,7 +531,7 @@ class DeliveryAnalytics:
         channel_costs: Dict[str, Dict[str, Any]] = {}
         grouped: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
         for e in events:
-            grouped[e["channel"]].append(exc)
+            grouped[e["channel"]].append(e)
         for ch, ch_events in grouped.items():
             total_cost = sum(e["cost"] for e in ch_events)
             total = len(ch_events)

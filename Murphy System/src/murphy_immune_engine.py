@@ -649,7 +649,7 @@ class ImmunityMemory:
         with self._lock:
             return [
                 e for e in self._bank.values()
-                if not self._is_expired(exc) and e.confidence >= self._min_confidence
+                if not self._is_expired(e) and e.confidence >= self._min_confidence
             ]
 
     # ------------------------------------------------------------------

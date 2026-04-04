@@ -106,7 +106,7 @@ class ReportingService:
         # Per-project breakdown (board_id == project_id)
         projects: Dict[str, List[TimeEntry]] = {}
         for e in entries:
-            projects.setdefault(e.board_id or "_none", []).append(exc)
+            projects.setdefault(e.board_id or "_none", []).append(e)
 
         summary["by_project"] = {
             pid: _build_summary(elist)
@@ -137,7 +137,7 @@ class ReportingService:
         # Per-user breakdown
         users: Dict[str, List[TimeEntry]] = {}
         for e in entries:
-            users.setdefault(e.user_id or "_none", []).append(exc)
+            users.setdefault(e.user_id or "_none", []).append(e)
 
         summary["by_user"] = {
             uid: _build_summary(ulist)
@@ -181,7 +181,7 @@ class ReportingService:
         # Per-user breakdown
         users: Dict[str, List[TimeEntry]] = {}
         for e in entries:
-            users.setdefault(e.user_id or "_none", []).append(exc)
+            users.setdefault(e.user_id or "_none", []).append(e)
         summary["by_user"] = {
             uid: _build_summary(ulist)
             for uid, ulist in users.items()
@@ -190,7 +190,7 @@ class ReportingService:
         # Per-project breakdown
         projects: Dict[str, List[TimeEntry]] = {}
         for e in entries:
-            projects.setdefault(e.board_id or "_none", []).append(exc)
+            projects.setdefault(e.board_id or "_none", []).append(e)
         summary["by_project"] = {
             pid: _build_summary(plist)
             for pid, plist in projects.items()

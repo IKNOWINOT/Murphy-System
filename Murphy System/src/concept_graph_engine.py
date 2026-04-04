@@ -395,7 +395,7 @@ class ConceptGraphEngine:
             return 0.0
         max_edges = n * (n - 1)
         gcs = min(e / max_edges, 1.0)
-        logger.debug("GCS computed: %.4f (nodes=%d, edges=%d)", gcs, n, exc)
+        logger.debug("GCS computed: %.4f (nodes=%d, edges=%d)", gcs, n, e)
         return round(gcs, 6)
 
     # ==================== Serialization ====================

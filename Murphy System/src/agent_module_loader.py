@@ -1862,7 +1862,7 @@ class MultiCursorBrowser:
                     ]
             elif action_type == AT.PAGE_ERRORS:
                 if page:
-                    data["errors"] = [str(exc) for e in page.page_errors]
+                    data["errors"] = [str(e) for e in page.page_errors]
             elif action_type == AT.NETWORK_REQUESTS:
                 if page:
                     data["requests"] = [

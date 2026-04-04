@@ -181,7 +181,7 @@ PLATFORM.
    f. Corporate and Org-Chart Automation Constructs: Automation constructs
       created within an organisation's workspace are licensed to that
       organisation and are subject to the same five-year forfeiture clause
-      for Unmade Constructs under section 4(exc) above.
+      for Unmade Constructs under section 4(e) above.
    g. Community Forum Content: Posts, discussions, ideas, and content
       submitted to community forums or group spaces belong exclusively to
       the user or their organisation/group. Inoni LLC makes no claim of

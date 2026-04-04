@@ -594,7 +594,7 @@ class PermutationPolicyRegistry:
                 if promoted else 0.0
             )
             
-            total_evaluations = sum(len(exc) for e in self._evaluations.values())
+            total_evaluations = sum(len(e) for e in self._evaluations.values())
             
             return {
                 "status": "ok",
