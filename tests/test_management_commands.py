@@ -13,10 +13,8 @@ Covers all 9 command handlers wired into the Matrix command dispatcher:
   9. doc      — list, create, view, search, versions, link
 """
 
-import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import pytest
 from types import SimpleNamespace
@@ -498,7 +496,8 @@ class TestModuleExports:
     def test_handler_dict_has_all_commands(self):
         expected = {"board", "status-label", "timeline", "recipe", "workspace",
                     "dashboard", "sync", "form", "doc", "onboard", "gate",
-                    "setpoint", "schedule", "skm", "automation"}
+                    "setpoint", "schedule", "skm", "automation",
+                    "production", "campaign"}
         assert set(MANAGEMENT_COMMAND_HANDLERS.keys()) == expected
 
     def test_all_handlers_callable(self):

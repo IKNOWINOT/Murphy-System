@@ -15,6 +15,7 @@ The founder can:
 from __future__ import annotations
 
 import logging
+import os
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -66,8 +67,8 @@ class CopilotMatrixRoom:
 
     ROOM_ALIAS = "copilot-tenant"
 
-    def __init__(self, founder_email: str = "cpost@murphy.systems") -> None:
-        self._founder_email = founder_email
+    def __init__(self, founder_email: str = "") -> None:
+        self._founder_email = founder_email or os.environ.get("MURPHY_FOUNDER_EMAIL", "")
         self._client: Any   = None
         self._adapter: Any  = None
         self._room_id: Optional[str] = None

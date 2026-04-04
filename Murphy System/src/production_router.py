@@ -179,7 +179,7 @@ def _create_hitl_item(
 _TENANTS: Dict[str, Dict[str, Any]] = {
     "tenant-001": {
         "id": "tenant-001", "name": "Murphy Systems HQ", "org": "Inoni LLC",
-        "tier": "enterprise", "owner": "Corey Post",
+        "tier": "enterprise", "owner": os.environ.get("MURPHY_FOUNDER_NAME", ""),
         "connections": ["HubSpot", "Salesforce", "Stripe", "Slack", "OpenAI", "Anthropic"],
         "boards": ["board-001", "board-002", "board-003"],
         "active_verticals": ["marketing","proposals","crm","monitoring","finance","security","content","comms","pipeline"],
