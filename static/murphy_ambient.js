@@ -79,8 +79,14 @@
    *  localStorage if the API is unavailable or returns an error.
    * ───────────────────────────────────────────────────────────────────────── */
   var ContextCollector = {
-    _meetingsFetching: false,
-    _tasksFetching:    false,
+    /* Per-source consecutive-failure counters for backoff */
+    _failures: { calendar: 0, meeting: 0, tasks: 0, workspace: 0 },
+    /* Timestamps of next allowed retry per source (ms) */
+    _retryAfter: { calendar: 0, meeting: 0, tasks: 0, workspace: 0 },
+    /* Max consecutive failures before backing off */
+    _MAX_FAILURES: 3,
+    /* API fetch timeout (ms) */
+    _TIMEOUT_MS: 5000,
 
     collect: function () {
       if (!state.settings.contextEnabled) return;
@@ -110,22 +116,13 @@
       }).catch(function () {});
     },
 
-    /* Fetch with a hard timeout. Returns a Promise that rejects on timeout. */
-    _fetchWithTimeout: function (url) {
-      return new Promise(function (resolve, reject) {
-        var done = false;
-        var timer = setTimeout(function () {
-          if (!done) { done = true; reject(new Error('timeout')); }
-        }, ContextCollector._TIMEOUT_MS);
-        fetch(url)
-          .then(function (res) {
-            clearTimeout(timer);
-            if (!done) { done = true; resolve(res); }
-          })
-          .catch(function (err) {
-            clearTimeout(timer);
-            if (!done) { done = true; reject(err); }
-          });
+      /* 5 — Murphy system health signals */
+      signals = signals.concat(ContextCollector._murphySystemSignals());
+
+      /* Merge into context */
+      signals.forEach(function (sig) {
+        var key = sig.source + ':' + sig.type;
+        state.context[key] = sig;
       });
     },
 
@@ -145,18 +142,22 @@
       }
     },
 
-    /* Returns true when the source is in backoff. */
-    _isBackedOff: function (source) {
-      return Date.now() < ContextCollector._retryAfter[source];
-    },
-
-    _calendarSignals: function () {
-      var self = ContextCollector;
-      var source = 'calendar';
-
-      /* Parse events array into calendar signals */
-      function parseEvents(events) {
-        var signals = [];
+    _calendarSignals: function (forceRefresh) {
+      var signals = [];
+      try {
+        var cached = localStorage.getItem('murphy_calendar_events');
+        /* If no calendar data yet (or forced refresh), try to pull from Murphy APIs best-effort */
+        if (!cached || forceRefresh) {
+          fetch(BASE_URL + '/api/dashboards', { method: 'GET' })
+            .then(function (res) { return res.ok ? res.json() : null; })
+            .then(function (data) {
+              if (data && data.scheduled_items) {
+                try { localStorage.setItem('murphy_calendar_events', JSON.stringify(data.scheduled_items)); } catch (_) {}
+              }
+            })
+            .catch(function () {});
+        }
+        var events = JSON.parse(cached || '[]');
         var now = Date.now();
         events.forEach(function (ev) {
           var start = new Date(ev.start || ev.scheduled_start || ev.date).getTime();
@@ -204,67 +205,42 @@
         });
     },
 
-    _meetingSignals: function () {
-      var self = ContextCollector;
-      var source = 'meeting';
-
-      function parseSessions(sessions) {
-        var signals = [];
-        sessions.forEach(function (session) {
-          if (session.drafts) {
-            var draftKeys = Object.keys(session.drafts);
-            var unvoted = draftKeys.filter(function (k) { return !(session.votes && session.votes[k]); });
-            if (unvoted.length) {
-              signals.push({ source: source, type: 'pending_votes', data: { count: unvoted.length, session: session.id }, priority: 'medium', confidence: 82, label: unvoted.length + ' draft(s) pending vote in last meeting' });
-            }
+    _meetingSignals: function (forceRefresh) {
+      var signals = [];
+      try {
+        var cached = localStorage.getItem('murphy_mi_data');
+        /* Fetch from Meeting Intelligence API and cache */
+        if (!cached || forceRefresh) {
+          fetch(BASE_URL + '/api/meeting-intelligence/sessions', { method: 'GET' })
+            .then(function (res) { return res.ok ? res.json() : null; })
+            .then(function (data) {
+              if (data) {
+                try { localStorage.setItem('murphy_mi_data', JSON.stringify(data)); } catch (_) {}
+              }
+            })
+            .catch(function () {});
+        }
+        /* Read from meeting intelligence cache if available, fall back to last-meeting key */
+        var miData = null;
+        try { miData = JSON.parse(cached || 'null'); } catch (_) {}
+        var session = miData || JSON.parse(localStorage.getItem('murphy_last_meeting') || 'null');
+        if (session && session.drafts) {
+          var draftKeys = Object.keys(session.drafts);
+          var unvoted = draftKeys.filter(function (k) { return !(session.votes && session.votes[k]); });
+          if (unvoted.length) {
+            signals.push({ source: 'meeting', type: 'pending_votes', data: { count: unvoted.length, session: session.id }, priority: 'medium', confidence: 82, label: unvoted.length + ' draft(s) pending vote in last meeting' });
           }
         });
         var orgSessions = sessions.length;
         if (orgSessions > 0 && orgSessions % 5 === 0) {
           signals.push({ source: source, type: 'org_milestone', data: { sessions: orgSessions }, priority: 'low', confidence: 95, label: 'Org milestone: ' + orgSessions + ' sessions completed' });
         }
-        return signals;
-      }
-
-      function fromLocalStorage() {
-        var signals = [];
-        try {
-          var session = JSON.parse(localStorage.getItem('murphy_last_meeting') || 'null');
-          if (session && session.drafts) {
-            var draftKeys = Object.keys(session.drafts);
-            var unvoted = draftKeys.filter(function (k) { return !(session.votes && session.votes[k]); });
-            if (unvoted.length) {
-              signals.push({ source: source, type: 'pending_votes', data: { count: unvoted.length, session: session.id }, priority: 'medium', confidence: 82, label: unvoted.length + ' draft(s) pending vote in last meeting' });
-            }
-          }
-          var orgSessions = parseInt(localStorage.getItem('murphy_org_sessions') || '0', 10);
-          if (orgSessions > 0 && orgSessions % 5 === 0) {
-            signals.push({ source: source, type: 'org_milestone', data: { sessions: orgSessions }, priority: 'low', confidence: 95, label: 'Org milestone: ' + orgSessions + ' sessions completed' });
-          }
-        } catch (_) {}
-        return signals;
-      }
-
-      if (self._isBackedOff(source)) {
-        return Promise.resolve(fromLocalStorage());
-      }
-
-      return self._fetchWithTimeout(BASE_URL + '/api/meeting-intelligence/sessions')
-        .then(function (res) {
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          return res.json();
-        })
-        .then(function (data) {
-          var sessions = data.sessions || data.items || data.data || [];
-          if (!Array.isArray(sessions)) sessions = [];
-          try { localStorage.setItem('murphy_mi_data', JSON.stringify(sessions)); } catch (_) {}
-          self._onSuccess(source);
-          return parseSessions(sessions);
-        })
-        .catch(function () {
-          self._onFailure(source);
-          return fromLocalStorage();
-        });
+        /* Fallback: if localStorage is empty, fetch from the real API and cache for next cycle */
+        if (!session && orgSessions === 0) {
+          ContextCollector._fetchMeetingsFromAPI();
+        }
+      } catch (_) {}
+      return signals;
     },
 
     _fetchMeetingsFromAPI: function () {
@@ -287,11 +263,36 @@
     },
 
     _taskSignals: function () {
-      var self = ContextCollector;
-      var source = 'tasks';
-
-      function parseTasks(tasks) {
-        var signals = [];
+      var signals = [];
+      try {
+        var cached = localStorage.getItem('murphy_tasks');
+        /* Fetch from boards API and extract tasks */
+        if (!cached || forceRefresh) {
+          fetch(BASE_URL + '/api/boards', { method: 'GET' })
+            .then(function (res) { return res.ok ? res.json() : null; })
+            .then(function (data) {
+              if (data) {
+                /* Flatten board cards/tasks into a unified task list */
+                var tasks = [];
+                var boards = Array.isArray(data) ? data : (data.boards || []);
+                boards.forEach(function (board) {
+                  var items = board.cards || board.tasks || board.items || [];
+                  items.forEach(function (item) {
+                    tasks.push({
+                      id: item.id,
+                      title: item.title || item.name,
+                      due: item.due_date || item.due || null,
+                      assignee: item.assignee || item.assigned_to || null,
+                      status: item.status || item.state || 'open'
+                    });
+                  });
+                });
+                try { localStorage.setItem('murphy_tasks', JSON.stringify(tasks)); } catch (_) {}
+              }
+            })
+            .catch(function () {});
+        }
+        var tasks = JSON.parse(cached || '[]');
         var now = Date.now();
         /* Fallback: if localStorage is empty, fetch from the real API and cache for next cycle */
         if (!tasks.length) {
