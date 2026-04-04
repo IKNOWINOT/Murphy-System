@@ -60,9 +60,9 @@ This is not a red flag. This is the strongest possible signal of builder capabil
 | Self-improvement / immune | ~40 | Bug detection, self-fix loop, immune engine |
 | Multi-agent orchestration | ~50 | Swarm coordination, rate governor, tool registry |
 | API & integrations | ~90 | 90+ connectors, gateway adapter, webhook processor |
-| UI & web interfaces | ~30 | 14 web interfaces, component library |
+| UI & web interfaces | ~30 | 62 web interfaces, component library |
 | Bots | 104 | Autonomous bot runtime |
-| Tests & QA | 644 files | 8,843+ test functions |
+| Tests & QA | 806 files | 24,577 test functions |
 
 ---
 
