@@ -25,14 +25,10 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 import time
 from pathlib import Path
-
-# Ensure src/ is on the path when run as a script from the repo root
-_SRC = Path(__file__).resolve().parent
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
 
 logging.basicConfig(
     level=logging.INFO,
@@ -86,7 +82,7 @@ def _start_copilot_tenant() -> None:
     """Instantiate and start the Copilot Tenant in Observer mode."""
     from copilot_tenant.tenant_agent import CopilotTenant, CopilotTenantMode
 
-    tenant = CopilotTenant(founder_email="cpost@murphy.systems")
+    tenant = CopilotTenant(founder_email=os.environ.get("MURPHY_FOUNDER_EMAIL", ""))
     logger.info("Starting Copilot Tenant in %s mode…", tenant.get_mode().value)
     tenant.start()
 
