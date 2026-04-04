@@ -434,7 +434,7 @@ class CoordinationReport:
 # ---------------------------------------------------------------------------
 
 
-class SplitScreenCoordinator:
+class RubixSplitScreenCoordinator:
     """Coordinates simultaneous split-screen automation via Rubix + Triage.
 
     The three-stage pipeline runs for every ``coordinate()`` call:
