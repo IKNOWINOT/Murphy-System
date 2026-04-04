@@ -433,7 +433,7 @@ def create_metrics_blueprint(registry: Optional[CollectorRegistry] = None):
             if canonical.strip():
                 body = body.rstrip("\n") + "\n" + canonical
         except Exception:
-            pass
+            logger.debug("Suppressed exception in prometheus_metrics_exporter")
         return Response(body, status=200,
                         content_type="text/plain; version=0.0.4; charset=utf-8")
 

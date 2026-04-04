@@ -195,7 +195,7 @@ class RunawayLoopGuard:
             try:
                 self._on_runaway(self.name, reason)
             except Exception:  # noqa: BLE001
-                pass
+                logger.debug("Suppressed exception in automation_safeguard_engine")
         raise RunawayLoopError(f"[{self.name}] {reason}")
 
     def get_status(self) -> Dict[str, Any]:
@@ -272,7 +272,7 @@ class EventStormSuppressor:
                     try:
                         self._on_storm(self.name, detail)
                     except Exception:  # noqa: BLE001
-                        pass
+                        logger.debug("Suppressed exception in automation_safeguard_engine")
                 logger.debug("EventStormSuppressor[%s] blocked: %s", self.name, detail)
                 return False
 
@@ -358,7 +358,7 @@ class FeedbackOscillationDetector:
                     try:
                         self._on_oscillation(self.name, osc_rate)
                     except Exception:  # noqa: BLE001
-                        pass
+                        logger.debug("Suppressed exception in automation_safeguard_engine")
 
     def _sign_changes(self, locked: bool = False) -> float:
         """Return number of sign changes in the delta series over the window."""
@@ -533,7 +533,7 @@ class CascadeBreaker:
             try:
                 self._on_trip(component, opened)
             except Exception:  # noqa: BLE001
-                pass
+                logger.debug("Suppressed exception in automation_safeguard_engine")
 
     def is_open(self, component: str) -> bool:
         """Return True if the breaker for *component* is open."""
@@ -758,7 +758,7 @@ class TrackingAccumulationWatcher:
             try:
                 self._on_accumulation(cname, msg)
             except Exception:  # noqa: BLE001
-                pass
+                logger.debug("Suppressed exception in automation_safeguard_engine")
 
     def get_status(self) -> Dict[str, Any]:
         with self._lock:
@@ -835,7 +835,7 @@ class DeadlockDetector:
                         try:
                             self._on_deadlock(self.name, cycle)
                         except Exception:  # noqa: BLE001
-                            pass
+                            logger.debug("Suppressed exception in automation_safeguard_engine")
 
     def release(self, holder_id: str, lock_name: str) -> None:
         """Signal that *holder_id* has released *lock_name*."""

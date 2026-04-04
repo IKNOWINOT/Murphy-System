@@ -125,7 +125,7 @@ Overview of the core components that make up the Murphy System architecture.
 
 ## Web Interfaces
 
-14 web interfaces built on a shared design system:
+62 web interfaces built on a shared design system:
 
 | File | Role | Type |
 |------|------|------|

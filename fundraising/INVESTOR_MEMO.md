@@ -44,9 +44,9 @@ Murphy is **operational software**, not a pitch deck.
 
 | Metric | Value |
 |--------|-------|
-| Production modules | **1,122** named Python modules across 71 packages |
-| Source lines | **218,497** |
-| Passing tests | **8,843+** |
+| Production modules | **1,230** named Python modules across 86 packages |
+| Source lines | **594,131** |
+| Passing tests | **24,577** test functions defined |
 | Platform connectors | **90+** (Slack, Salesforce, Stripe, SCADA/Modbus, BACnet, OPC UA, YouTube, Twitch, and more) |
 | Web interfaces | **14** (admin panel, terminal UI, compliance dashboard, ROI calendar, etc.) |
 | Bot modules | **104** |
@@ -121,7 +121,7 @@ Open-core SaaS. Full details in [`BUSINESS_MODEL.md`](../BUSINESS_MODEL.md).
 
 ## FOUNDER
 
-**Corey Post** — sole developer of the entire Murphy System. 1,122 production modules, 218K+ lines, 8,843+ tests, 14 web interfaces — one person, shipped continuously.
+**Corey Post** — sole developer of the entire Murphy System. 1,230 production modules, 594K+ lines, 24,577 tests defined, 62 web interfaces — one person, shipped continuously.
 
 - Email: corey.gfc@gmail.com
 - GitHub: [github.com/IKNOWINOT](https://github.com/IKNOWINOT)

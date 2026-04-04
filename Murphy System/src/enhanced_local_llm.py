@@ -1177,9 +1177,9 @@ def example_function(param1, param2=None):
         # Main logic here
         result = process_data(param1, param2)
         return result
-    except Exception as e:
+    except Exception as exc:
         # Error handling
-        log_error(e)
+        log_error(exc)
         return None
 
 def process_data(data, options=None):

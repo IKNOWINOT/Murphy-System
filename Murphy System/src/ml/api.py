@@ -105,7 +105,7 @@ def create_ml_router() -> Any:
             try:
                 body = await request.json()
             except Exception:
-                pass
+                logger.debug("Suppressed exception in api")
 
             from .training_pipeline import TrainingSource  # type: ignore
             raw_sources = body.get("sources", None)
@@ -216,7 +216,7 @@ def create_ml_router() -> Any:
             try:
                 body = await request.json()
             except Exception:
-                pass
+                logger.debug("Suppressed exception in api")
 
             version_id: str = body.get("version_id", "current")
             raw_domains = body.get("domains", None)

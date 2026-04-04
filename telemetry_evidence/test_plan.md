@@ -213,7 +213,7 @@ python3 telemetry_evidence/generate_final_report.py
 | Identity | `Murphy System/src/security_plane/bot_identity_verifier.py` | HMAC |
 | Anomaly | `Murphy System/src/security_plane/bot_anomaly_detector.py` | Z-score |
 | Dashboard | `Murphy System/src/security_plane/security_dashboard.py` | Unified view |
-| Tests | `Murphy System/tests/` | 568 files, 8,843+ test functions |
+| Tests | `Murphy System/tests/` | 806 files, 24,577 test functions |
 | UIs | `Murphy System/*.html` | 16 web interfaces |
 | Design | `Murphy System/static/murphy-design-system.css` | CSS tokens |
 | Components | `Murphy System/static/murphy-components.js` | JS components |

@@ -79,7 +79,7 @@ Expected output:
 
 ```
 INFO:     Murphy System 1.0 starting...
-INFO:     Module registry: 1,122 modules loaded
+INFO:     Module registry: 1,230 modules loaded
 INFO:     Governance kernel: active
 INFO:     HITL gates: enabled
 INFO:     Librarian: capability map loaded (610 capabilities)

@@ -2078,8 +2078,8 @@ pydantic>=2.0.0
         print("API timed out — try again later")
     except requests.exceptions.HTTPError as e:
         print(f"API error: {e.response.status_code}")
-    except Exception as e:
-        print(f"Unexpected error: {e}")
+    except Exception as exc:
+        print(f"Unexpected error: {exc}")
 
   EXERCISE 3.1 — Real API Call
     Using the Free Open Notify ISS API (no key needed):
@@ -2099,8 +2099,8 @@ pydantic>=2.0.0
         print(f"People in space right now: {data['number']}")
         for person in data["people"]:
             print(f"  • {person['name']} aboard {person['craft']}")
-    except Exception as e:
-        print(f"Could not fetch data: {e}")
+    except Exception as exc:
+        print(f"Could not fetch data: {exc}")
 
   ──────────────────────────────────────────────────────────────────────
   WEEK 5-6 — CAPSTONE PROJECT: Personal Automation Dashboard
@@ -2725,7 +2725,7 @@ def _build_automation_blueprint(query: str, mss_result: Optional[Dict[str, Any]]
             context={"source": "demo_deliverable"},
         )
     except Exception:
-        pass
+        logger.debug("Suppressed exception in demo_deliverable_generator")
 
     workflow_id = workflow.get("workflow_id") or slug
     workflow_name = workflow.get("name") or slug.replace("_", " ").title()
@@ -3025,7 +3025,7 @@ def _generate_llm_content(
             if response.content and len(response.content) > len(base_content) // 2:
                 return response.content
         except Exception:
-            pass  # LLM enrichment failed — use base MSS content
+            logger.debug("Suppressed exception in demo_deliverable_generator")
         return base_content
 
     # No MSS data — try LLM with context-enriched prompt
@@ -3057,7 +3057,7 @@ def _generate_llm_content(
         if content and len(content) > 50:
             return content
     except Exception:
-        pass
+        logger.debug("Suppressed exception in demo_deliverable_generator")
 
     # LocalLLMFallback — always available
     try:
@@ -3070,7 +3070,7 @@ def _generate_llm_content(
         if content and len(content) > 20:
             return content
     except Exception:
-        pass
+        logger.debug("Suppressed exception in demo_deliverable_generator")
 
     return _build_minimal_custom_content(query)
 

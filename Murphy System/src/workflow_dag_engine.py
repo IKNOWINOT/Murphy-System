@@ -144,9 +144,9 @@ class WorkflowDAGEngine:
                         if content and not content.lower().startswith("i understand"):
                             return content
                     except Exception:
-                        pass
+                        logger.debug("Suppressed exception in workflow_dag_engine")
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in workflow_dag_engine")
             # Structured fallback — always a useful phrase not a generic disclaimer
             return f"{topic} completed successfully for: {detail[:80]}"
 
@@ -387,7 +387,7 @@ class WorkflowDAGEngine:
                 steps=len(workflow.steps),
             )
         except Exception:
-            pass
+            logger.debug("Suppressed exception in workflow_dag_engine")
 
         return True
 
@@ -576,7 +576,7 @@ class WorkflowDAGEngine:
                 steps_completed=summary["completed"],
             )
         except Exception:
-            pass
+            logger.debug("Suppressed exception in workflow_dag_engine")
 
         return summary
 
@@ -594,6 +594,137 @@ class WorkflowDAGEngine:
             return key in context
         else:
             return bool(context.get(condition, False))
+
+    # ------------------------------------------------------------------
+    # Parallel execution
+    # ------------------------------------------------------------------
+
+    def execute_workflow_parallel(
+        self, execution_id: str, strict_mode: bool = False,
+    ) -> Dict[str, Any]:
+        """Execute workflow with steps in the same parallel group running concurrently.
+
+        Uses :meth:`get_parallel_groups` to determine which steps can run at
+        the same time.  Steps within each group are dispatched to a
+        :class:`concurrent.futures.ThreadPoolExecutor`; groups are processed
+        sequentially (a group only starts after the previous group finishes).
+
+        The return format is identical to :meth:`execute_workflow`.
+        """
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        execution = self._executions.get(execution_id)
+        if not execution:
+            return {"error": "Execution not found", "execution_id": execution_id}
+
+        workflow = self._workflows.get(execution.workflow_id)
+        if not workflow:
+            return {"error": "Workflow definition not found"}
+
+        groups = self.get_parallel_groups(workflow.workflow_id)
+        if groups is None:
+            execution.status = WorkflowStatus.FAILED
+            return {"error": "Cannot compute parallel groups (cycle?)"}
+
+        execution.status = WorkflowStatus.RUNNING
+        execution.start_time = time.time()
+
+        step_map = {s.step_id: s for s in workflow.steps}
+        results: Dict[str, Any] = {}
+
+        def _run_step(step_id: str) -> Tuple[str, Dict[str, Any]]:
+            step_def = step_map[step_id]
+            step_exec = execution.steps[step_id]
+
+            # Dependency check
+            for dep in step_def.depends_on:
+                dep_exec = execution.steps.get(dep)
+                if not dep_exec or dep_exec.status != StepStatus.COMPLETED:
+                    step_exec.status = StepStatus.SKIPPED
+                    step_exec.error = "Dependencies not met"
+                    return step_id, {"status": "skipped", "reason": "dependencies_not_met"}
+
+            # Condition check
+            if step_def.condition:
+                if not self._evaluate_condition(step_def.condition, execution.context, results):
+                    step_exec.status = StepStatus.SKIPPED
+                    step_exec.error = "Condition not met"
+                    return step_id, {"status": "skipped", "reason": "condition_false"}
+
+            step_exec.status = StepStatus.RUNNING
+            step_exec.start_time = time.time()
+
+            handler = self._step_handlers.get(step_def.action)
+            if handler:
+                try:
+                    result = handler(step_def, execution.context)
+                    step_exec.result = result
+                    step_exec.status = StepStatus.COMPLETED
+                except Exception as exc:
+                    logger.debug("Caught exception: %s", exc)
+                    step_exec.error = str(exc)
+                    step_exec.status = StepStatus.FAILED
+            else:
+                if strict_mode:
+                    step_exec.error = (
+                        f"No handler registered for action '{step_def.action}' (strict_mode)"
+                    )
+                    step_exec.status = StepStatus.FAILED
+                else:
+                    step_exec.result = {
+                        "action": step_def.action,
+                        "step_id": step_id,
+                        "simulated": True,
+                    }
+                    step_exec.status = StepStatus.COMPLETED
+
+            step_exec.end_time = time.time()
+            return step_id, {
+                "status": step_exec.status.value,
+                "result": step_exec.result,
+                "error": step_exec.error,
+                "duration_ms": (step_exec.end_time - step_exec.start_time) * 1000,
+            }
+
+        # Process groups sequentially; steps within a group run concurrently.
+        for group in groups:
+            if len(group) == 1:
+                sid, res = _run_step(group[0])
+                results[sid] = res
+            else:
+                with ThreadPoolExecutor(max_workers=len(group)) as pool:
+                    futures = {pool.submit(_run_step, sid): sid for sid in group}
+                    for future in as_completed(futures):
+                        sid, res = future.result()
+                        results[sid] = res
+
+        # Determine overall status
+        all_statuses = [se.status for se in execution.steps.values()]
+        if any(s == StepStatus.FAILED for s in all_statuses):
+            execution.status = WorkflowStatus.FAILED
+        elif all(s in (StepStatus.COMPLETED, StepStatus.SKIPPED) for s in all_statuses):
+            execution.status = WorkflowStatus.COMPLETED
+        else:
+            execution.status = WorkflowStatus.FAILED
+
+        execution.end_time = time.time()
+
+        summary = {
+            "execution_id": execution_id,
+            "workflow_id": execution.workflow_id,
+            "status": execution.status.value,
+            "steps": results,
+            "duration_ms": (execution.end_time - execution.start_time) * 1000,
+            "completed": sum(1 for s in all_statuses if s == StepStatus.COMPLETED),
+            "skipped": sum(1 for s in all_statuses if s == StepStatus.SKIPPED),
+            "failed": sum(1 for s in all_statuses if s == StepStatus.FAILED),
+            "total": len(all_statuses),
+        }
+
+        with self._lock:
+            capped_append(self._execution_history, summary)
+
+        return summary
 
     def checkpoint_execution(self, execution_id: str) -> Optional[Dict[str, Any]]:
         execution = self._executions.get(execution_id)
