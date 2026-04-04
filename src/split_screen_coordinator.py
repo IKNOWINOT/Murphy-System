@@ -299,9 +299,7 @@ class SplitScreenCoordinator:
         """Return a serialisable snapshot of all sessions."""
         with self._lock:
             return [s.to_dict() for s in self._sessions.values()]
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+
 
 logger = logging.getLogger(__name__)
 
