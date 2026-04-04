@@ -7,6 +7,7 @@ shadow agents.
 """
 
 import logging
+import os
 import re
 
 from murphy_identity import MURPHY_SYSTEM_IDENTITY
@@ -47,7 +48,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-FOUNDER = {"name": "Corey Post", "title": "Founder/Admin", "email": "cpost@murphy.systems"}
+FOUNDER = {"name": os.environ.get("MURPHY_FOUNDER_NAME", ""), "title": "Founder/Admin", "email": os.environ.get("MURPHY_FOUNDER_EMAIL", "")}
 COMPANY = "Inoni LLC"
 REGISTRATION = {"provider": "ZenBusiness", "entity_type": "LLC", "registration_status": "registered"}
 
@@ -110,11 +111,11 @@ class InoniOrgBootstrap:
             },
         )
         self.founder_account = self.shadow.create_account(
-            display_name="Corey Post",
+            display_name=os.environ.get("MURPHY_FOUNDER_NAME", ""),
             account_type=AccountType.USER,
             metadata={
                 "role": "founder_admin",
-                "email": "cpost@murphy.systems",
+                "email": os.environ.get("MURPHY_FOUNDER_EMAIL", ""),
                 "is_human": True,
             },
         )
@@ -403,8 +404,8 @@ class InoniOrgBootstrap:
             }
         return {
             "company": "Inoni LLC",
-            "founder": "Corey Post",
-            "founder_email": "cpost@murphy.systems",
+            "founder": os.environ.get("MURPHY_FOUNDER_NAME", ""),
+            "founder_email": os.environ.get("MURPHY_FOUNDER_EMAIL", ""),
             "founder_role": "Founder/Admin",
             "registered_via": "ZenBusiness",
             "total_agents": len(self.agents),
@@ -421,8 +422,8 @@ class InoniOrgBootstrap:
         chart = {
             "root": {
                 "title": "Founder / Admin",
-                "holder": "Corey Post (Human)",
-                "email": "cpost@murphy.systems",
+                "holder": os.environ.get("MURPHY_FOUNDER_NAME", "") + " (Human)",
+                "email": os.environ.get("MURPHY_FOUNDER_EMAIL", ""),
                 "type": "human",
                 "reports": [],
             }

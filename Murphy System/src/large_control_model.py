@@ -28,6 +28,7 @@ Usage::
 from __future__ import annotations
 
 import logging
+import os
 import time
 import uuid
 from typing import Any
@@ -67,11 +68,11 @@ class LargeControlModel:
 
     def __init__(
         self,
-        pilot_account: str = "cpost@murphy.systems",
+        pilot_account: str = "",
         confidence_threshold: float | None = None,
         stability_threshold: float | None = None,
     ) -> None:
-        self.pilot_account = pilot_account
+        self.pilot_account = pilot_account or os.environ.get("MURPHY_FOUNDER_EMAIL", "")
         self.confidence_threshold = (
             confidence_threshold
             if confidence_threshold is not None

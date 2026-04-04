@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 import time
 from pathlib import Path
@@ -81,7 +82,7 @@ def _start_copilot_tenant() -> None:
     """Instantiate and start the Copilot Tenant in Observer mode."""
     from copilot_tenant.tenant_agent import CopilotTenant, CopilotTenantMode
 
-    tenant = CopilotTenant(founder_email="cpost@murphy.systems")
+    tenant = CopilotTenant(founder_email=os.environ.get("MURPHY_FOUNDER_EMAIL", ""))
     logger.info("Starting Copilot Tenant in %s mode…", tenant.get_mode().value)
     tenant.start()
 

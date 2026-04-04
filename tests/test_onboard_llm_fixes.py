@@ -11,7 +11,6 @@ import os
 import sys
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 
 # ---------------------------------------------------------------------------
@@ -169,8 +168,9 @@ class TestUnifiedMFGCOfflineStructuredQuestions:
         """When LLM mode is offline, response should be structured questions,
         NOT the generic Murphy System description."""
         from unified_mfgc import UnifiedMFGC
-        mfgc = UnifiedMFGC()
-        assert mfgc.llm_mode == "offline", "Test requires offline mode (no DeepInfra key set)"
+        mfgc = UnifiedMFGC(use_key_rotation=False)
+        if mfgc.llm_mode != "offline":
+            pytest.skip("Test requires offline mode (no DeepInfra key set)")
         result = mfgc._process_with_context(
             message="I run a small e-commerce business selling handmade crafts.",
             answers={"initial_request": "I run a small e-commerce business selling handmade crafts."},
@@ -211,7 +211,6 @@ class TestMFGCSessionProgression:
         """After 3 turns with real answers, ready_for_plan must be True."""
         import sys
         import os
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
         os.environ['MURPHY_ENV'] = 'development'
         from starlette.testclient import TestClient
         from runtime.app import create_app
@@ -242,7 +241,6 @@ class TestMFGCSessionProgression:
         """When ready_for_plan=True, response must include automation_config with steps."""
         import sys
         import os
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
         os.environ['MURPHY_ENV'] = 'development'
         from starlette.testclient import TestClient
         from runtime.app import create_app
@@ -273,7 +271,6 @@ class TestMFGCSessionProgression:
         """Session context must accumulate: later turns return fewer novel questions."""
         import sys
         import os
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
         os.environ['MURPHY_ENV'] = 'development'
         from starlette.testclient import TestClient
         from runtime.app import create_app
@@ -310,7 +307,6 @@ class TestAIWorkflowGeneratorTemplates:
     def _make_gen(self):
         import sys
         import os
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
         from ai_workflow_generator import AIWorkflowGenerator
         return AIWorkflowGenerator()
 
@@ -367,7 +363,6 @@ class TestDemoDeliverableAutomationBlueprint:
         """Blueprint must have Workflow ID and no 'PAID TIER FEATURE' paywall."""
         import sys
         import os
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
         from demo_deliverable_generator import _build_automation_blueprint
         result = _build_automation_blueprint(
             "automate order fulfillment for my shopify store")
@@ -381,7 +376,6 @@ class TestDemoDeliverableAutomationBlueprint:
         """When a template matches, blueprint shows that template's steps."""
         import sys
         import os
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
         from demo_deliverable_generator import _build_automation_blueprint
         result = _build_automation_blueprint(
             "automate invoice processing billing accounts payable workflow")
@@ -392,7 +386,6 @@ class TestDemoDeliverableAutomationBlueprint:
         """Blueprint must include the /api/automations/rules deployment call hint."""
         import sys
         import os
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
         from demo_deliverable_generator import _build_automation_blueprint
         result = _build_automation_blueprint("automate my lead nurturing crm")
         assert "/api/automations/rules" in result or "execute" in result.lower(), (
@@ -409,14 +402,12 @@ class TestAutomationCommissioner:
     def _gen(self):
         import sys
         import os
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
         from ai_workflow_generator import AIWorkflowGenerator
         return AIWorkflowGenerator()
 
     def _commissioner(self, threshold=0.75):
         import sys
         import os
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
         from automation_commissioner import AutomationCommissioner
         return AutomationCommissioner(health_threshold=threshold, max_iterations=2)
 
@@ -450,7 +441,6 @@ class TestAutomationCommissioner:
         """All 7 steps in order_fulfillment DAG must reach 'completed' status."""
         import sys
         import os
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
         from workflow_dag_engine import WorkflowDAGEngine
         gen = self._gen()
         wf_dict = gen.generate_workflow("automate order fulfillment for shopify")
@@ -474,7 +464,6 @@ class TestAutomationCommissioner:
         """to_workflow_definition must produce a WorkflowDefinition the DAG engine accepts."""
         import sys
         import os
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
         from workflow_dag_engine import WorkflowDAGEngine
         gen = self._gen()
         for query in [
@@ -510,7 +499,6 @@ class TestAutomationCommissioner:
         """AutomationEngine.fire_trigger must execute all registered actions with real output."""
         import sys
         import os
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
         from automations.engine import AutomationEngine
         from automations.models import TriggerType, ActionType, AutomationAction
 
@@ -568,7 +556,6 @@ class TestExecutionAndCommissioningAPI:
     def _client(self):
         import sys
         import os
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
         os.environ["MURPHY_ENV"] = "development"
         from starlette.testclient import TestClient
         from runtime.app import create_app
@@ -579,7 +566,6 @@ class TestExecutionAndCommissioningAPI:
         client = self._client()
         import sys
         import os
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
         from ai_workflow_generator import AIWorkflowGenerator
         gen = AIWorkflowGenerator()
         wf_dict = gen.generate_workflow("automate order fulfillment for shopify")

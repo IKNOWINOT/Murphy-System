@@ -66,9 +66,10 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from murphy_native_automation import (
+    CursorContext,
     MultiCursorDesktop,
     ScreenZone,
     SplitScreenLayout,
@@ -431,7 +432,7 @@ class CoordinationReport:
 # ---------------------------------------------------------------------------
 
 
-class SplitScreenCoordinator:
+class RubixSplitScreenCoordinator:
     """Coordinates simultaneous split-screen automation via Rubix + Triage.
 
     The three-stage pipeline runs for every ``coordinate()`` call:
