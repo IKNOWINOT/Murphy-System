@@ -4,7 +4,7 @@
 """
 Pilot Account Configuration — Murphy System
 
-Defines the canonical pilot/founder account (cpost@murphy.systems) and the
+Defines the canonical pilot/founder account (set via MURPHY_FOUNDER_EMAIL) and the
 routing table that wires every platform automation through that account.
 
 All LCM automations, shadow agents, and module access are governed by the

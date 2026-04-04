@@ -12380,7 +12380,7 @@ def create_app() -> FastAPI:
                 "type": "BSL-1.1",
                 "name": "Business Source License 1.1",
                 "copyright": "Copyright © 2020 Inoni Limited Liability Company",
-                "creator": "Corey Post",
+                "creator": os.environ.get("MURPHY_FOUNDER_NAME", ""),
                 "warranty": "NO WARRANTY — This software is provided 'as-is' without "
                             "any express or implied warranty. In no event shall the "
                             "authors be held liable for any damages arising from the "
@@ -13299,7 +13299,7 @@ def create_app() -> FastAPI:
                 "effective_date": "2025-03-01",
                 "last_updated": "2026-03-19",
                 "provider": "Inoni Limited Liability Company",
-                "creator": "Corey Post",
+                "creator": os.environ.get("MURPHY_FOUNDER_NAME", ""),
                 "selected_services": selected,
                 "mode": mode,
                 "integration_clause": integration_clause,
