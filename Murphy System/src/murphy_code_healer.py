@@ -713,6 +713,7 @@ class DiagnosticSupervisor:
                 source = py_file.read_text(encoding="utf-8", errors="replace")
                 tree = ast.parse(source)
             except Exception:
+                logger.debug("Skipping unparseable file: %s", py_file)
                 continue
             for node in ast.walk(tree):
                 # Only top-level and class-level definitions
@@ -738,6 +739,7 @@ class DiagnosticSupervisor:
                 source = py_file.read_text(encoding="utf-8", errors="replace")
                 tree = ast.parse(source)
             except Exception:
+                logger.debug("Skipping unparseable file: %s", py_file)
                 continue
             for node in ast.walk(tree):
                 if isinstance(node, ast.Name):
@@ -2095,7 +2097,17 @@ class MurphyCodeHealer:
             if event_type is None:
                 logger.debug("EventType.%s not found — skipping publish", et_name)
                 return
-            self._backbone.publish(
+            backbone = self._backbone
+            if backbone is None:
+                try:
+                    import event_backbone_client as _ebc
+                    backbone = _ebc.get_backbone()
+                except Exception:
+                    pass
+            if backbone is None:
+                logger.warning("MurphyCodeHealer: no backbone available")
+                return
+            backbone.publish(
                 event_type=event_type,
                 payload={
                     **payload,

@@ -816,14 +816,17 @@ class WorkflowLicenseManager:
             if et is None:
                 logger.debug("No EventType mapping for LAM event %r; skipping", event_name)
                 return
-            self._backbone.publish(event_type=et, payload=payload)
-            from event_backbone_client import publish as _bb_publish  # noqa: PLC0415
-            _bb_publish(
-                event_name,
-                payload,
-                source="workflow_license_manager",
-                backbone=self._backbone,
-            )
+            backbone = self._backbone
+            if backbone is None:
+                try:
+                    import event_backbone_client as _ebc
+                    backbone = _ebc.get_backbone()
+                except Exception:
+                    pass
+            if backbone is None:
+                logger.warning("WorkflowLicenseManager: no backbone available")
+                return
+            backbone.publish(event_type=et, payload=payload)
         except Exception as exc:
             logger.debug("EventBackbone publish skipped: %s", exc)
 

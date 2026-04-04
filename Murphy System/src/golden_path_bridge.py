@@ -339,7 +339,7 @@ class GoldenPathBridge:
         # Full pipeline execution
         try:
             result = execution_fn(task_pattern)
-        except Exception as exc:
+        except Exception:
             self.record_failure(task_pattern, domain)
             raise
 

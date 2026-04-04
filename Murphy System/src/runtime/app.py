@@ -3657,60 +3657,6 @@ def create_app() -> FastAPI:
             f"*(Working in offline mode — answers help me generate your plan)*"
         )
 
-
-        """Build an actual, wired automation workflow from accumulated onboarding answers.
-
-        Calls ``AIWorkflowGenerator.generate_workflow()`` so the output is an
-        *executable* DAG definition — not a text preview.  The result is embedded
-        in the ``/api/onboarding/mfgc-chat`` response when ``ready_for_plan=True``
-        so the front-end can display (and later execute) the real automation steps.
-
-        The description passed to the generator is composed from ALL non-None answers
-        so the template-matching engine can pick the most specific pre-built template
-        (e.g. ``order_fulfillment`` when the user mentions Shopify + orders, or
-        ``invoice_processing`` when they mention billing + accounts payable).
-        """
-        import sys as _sys
-        try:
-            from ai_workflow_generator import AIWorkflowGenerator
-        except Exception:
-            return {}
-
-        filled = {k: v for k, v in sess.get("answers", {}).items() if v is not None}
-
-        # Build a rich combined description from all answers so the template matcher
-        # can select the most specific pre-built template.
-        all_values = [str(v)[:150] for v in filled.values()]
-        combined_description = " ".join(all_values)
-
-        # Also try the initial request alone for a focused match.
-        initial_request = filled.get("initial_request", "business automation")
-
-        context_snippets = {
-            k: str(v)[:200] for k, v in filled.items() if k != "initial_request"
-        }
-
-        try:
-            generator = AIWorkflowGenerator()
-            # First try the combined description (picks up all context clues).
-            workflow = generator.generate_workflow(
-                description=combined_description,
-                context={"session_answers": context_snippets, "source": "onboarding"},
-            )
-            # If combined match is weak (< 3 steps or generic fallback), also try
-            # the initial request to capture the primary intent template.
-            if workflow.get("step_count", 0) < 3 or workflow.get("strategy") == "generic_fallback":
-                alt = generator.generate_workflow(
-                    description=initial_request,
-                    context={"session_answers": context_snippets, "source": "onboarding"},
-                )
-                if alt.get("step_count", 0) > workflow.get("step_count", 0):
-                    workflow = alt
-            return workflow
-        except Exception as _e:
-            logger.debug("automation generation failed: %s", _e)
-            return {}
-
     @app.post("/api/onboarding/mfgc-chat")
     async def onboarding_mfgc_chat(request: Request):
         """Route onboarding wizard messages through UnifiedMFGC gate system.

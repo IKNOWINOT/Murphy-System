@@ -814,17 +814,6 @@ class BugReportAutoResponder:
             except Exception:
                 pass
 
-    def generate_recommendations(self) -> List[Recommendation]:
-        """Return bug-response recommendations based on ingested patterns."""
-        recs: List[Recommendation] = []
-
-        pattern_count = 0
-        if self._detector is not None:
-            try:
-                pattern_count = len(self._detector.get_patterns(limit=100))
-            except Exception:
-                pass
-
         if pattern_count > 0:
             recs.append(Recommendation(
                 recommendation_id=str(uuid.uuid4()),
