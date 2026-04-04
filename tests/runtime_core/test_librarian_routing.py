@@ -22,8 +22,8 @@ import pytest
 # Ensure project root is on path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from src.solution_path_registry import SolutionPath, SolutionPathRegistry
-from src.task_router import CapabilityMatch, RouteStatus, RoutingResult, TaskRouter
+from src.solution_path_registry import SolutionPathRegistry
+from src.task_router import CapabilityMatch, RouteStatus, RoutingResult, SolutionPath, TaskRouter
 
 
 # ---------------------------------------------------------------------------
