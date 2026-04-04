@@ -170,13 +170,13 @@ class TeamViewService:
             for e in member_entries:
                 dt = _parse_dt(e.started_at)
                 if dt is None:
-                    filtered.append(e)
+                    filtered.append(exc)
                     continue
                 if start and dt < start:
                     continue
                 if end and dt > end:
                     continue
-                filtered.append(e)
+                filtered.append(exc)
             member_entries = filtered
 
         reportable = self._reportable(member_entries)

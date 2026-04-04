@@ -120,8 +120,8 @@ class PendingApprovalStore:
             sess.add(pa)
             sess.commit()
             sess.close()
-        except Exception as e:
-            logger.debug("DB write failed (in-memory fallback): %s", e)
+        except Exception as exc:
+            logger.debug("DB write failed (in-memory fallback): %s", exc)
 
         return rec
 
@@ -145,7 +145,7 @@ class PendingApprovalStore:
                 sess.commit()
             sess.close()
         except Exception:
-            pass
+            logger.debug("Suppressed exception in dispatch")
 
         return ToolCall(
             tool_name=rec["tool_name"],
@@ -177,7 +177,7 @@ class PendingApprovalStore:
                 sess.commit()
             sess.close()
         except Exception:
-            pass
+            logger.debug("Suppressed exception in dispatch")
 
         return True
 
@@ -206,8 +206,8 @@ class MultiCursorContext:
         for domain in domains:
             try:
                 snap["domains"][domain] = self._snapshot_domain(domain, user)
-            except Exception as e:
-                snap["domains"][domain] = {"error": str(e)}
+            except Exception as exc:
+                snap["domains"][domain] = {"error": str(exc)}
 
         return snap
 
@@ -373,10 +373,10 @@ class Dispatcher:
             duration = int((time.time() - start) * 1000)
             self._persist(tc, True, result, None, duration)
             return ToolResult(True, result, None, duration, tc.tool_name, tc.call_id)
-        except Exception as e:
+        except Exception as exc:
             duration = int((time.time() - start) * 1000)
-            self._persist(tc, False, None, str(e), duration)
-            return ToolResult(False, None, str(e), duration, tc.tool_name, tc.call_id)
+            self._persist(tc, False, None, str(exc), duration)
+            return ToolResult(False, None, str(exc), duration, tc.tool_name, tc.call_id)
 
     def _mss_soft_check(self, content: str) -> float:
         try:
@@ -388,7 +388,7 @@ class Dispatcher:
                 q = data.get("quality", {})
                 return float(q.get("overall_score", 1.0))
         except Exception:
-            pass
+            logger.debug("Suppressed exception in dispatch")
         return 1.0
 
     def _persist(self, tc: ToolCall, ok: bool, data: Any, error: Optional[str], duration: int):
@@ -410,8 +410,8 @@ class Dispatcher:
             sess.add(log)
             sess.commit()
             sess.close()
-        except Exception as e:
-            logger.debug("Failed to persist log: %s", e)
+        except Exception as exc:
+            logger.debug("Failed to persist log: %s", exc)
 
     def call_fn(self, tool_name: str, args: dict, caller_id: str = "system") -> ToolResult:
         tc = ToolCall(tool_name, args, caller_id)

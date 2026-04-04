@@ -182,7 +182,7 @@ class LogAnalysisEngine:
     def ingest_batch(self, entries: List[LogEntry]) -> int:
         """Ingest multiple log entries. Returns count ingested."""
         for e in entries:
-            self.ingest(e)
+            self.ingest(exc)
         return len(entries)
 
     # ------------------------------------------------------------------
@@ -208,7 +208,7 @@ class LogAnalysisEngine:
         groups: Dict[str, List[LogEntry]] = defaultdict(list)
         for e in relevant:
             key = self._normalise_message(e.message)
-            groups[key].append(e)
+            groups[key].append(exc)
 
         patterns: List[ErrorPattern] = []
         for key, group in groups.items():

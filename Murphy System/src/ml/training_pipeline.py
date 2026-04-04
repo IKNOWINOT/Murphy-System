@@ -207,7 +207,7 @@ class TrainingPipeline:
                     "source": TrainingSource.WORKFLOW_HISTORY.value,
                 })
         except Exception:
-            pass
+            logger.debug("Suppressed exception in training_pipeline")
 
         return examples
 

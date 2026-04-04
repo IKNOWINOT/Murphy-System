@@ -599,7 +599,7 @@ def handle_timeline(dispatcher: object, cmd: object) -> object:
             return _make_response(True, "No items to schedule.")
         lines = ["## Auto-Schedule Results\n"]
         for item_id, (s, e) in schedule.items():
-            lines.append(f"- `{item_id[:8]}`: {s} → {e}")
+            lines.append(f"- `{item_id[:8]}`: {s} → {exc}")
         return _make_response(True, "\n".join(lines))
 
     return _make_response(False, f"Unknown timeline subcommand `{sub}`. Try: view, add, milestones, critical-path, auto-schedule.")

@@ -303,6 +303,6 @@ class TenantMemoryStore:
 
     def _gc_expired(self, store: OrderedDict[str, MemoryEntry]) -> None:
         """Garbage-collect expired entries from a store."""
-        expired = [k for k, e in store.items() if self._is_expired(e)]
+        expired = [k for k, e in store.items() if self._is_expired(exc)]
         for k in expired:
             del store[k]

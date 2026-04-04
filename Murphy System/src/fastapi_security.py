@@ -162,7 +162,7 @@ def _authenticate_request(request: Request) -> Optional[bool]:
                 if _session_validator(token):
                     return True
             except Exception:
-                pass
+                logger.debug("Suppressed exception in fastapi_security")
         # Fall back to API key validation
         return validate_api_key(token)
 
@@ -173,7 +173,7 @@ def _authenticate_request(request: Request) -> Optional[bool]:
             if _session_validator(session_cookie):
                 return True
         except Exception:
-            pass
+            logger.debug("Suppressed exception in fastapi_security")
 
     return None  # no credentials provided
 
@@ -886,7 +886,7 @@ def register_rbac_governance(rbac) -> None:
         from src.security_plane.middleware import register_rbac_middleware_governance
         register_rbac_middleware_governance(rbac)
     except Exception:
-        pass
+        logger.debug("Suppressed exception in fastapi_security")
     logger.info("RBAC governance registered for FastAPI endpoint enforcement")
 
 

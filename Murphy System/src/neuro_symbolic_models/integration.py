@@ -159,7 +159,7 @@ class MLEnhancedConfidenceEngine:
                 json={
                     "artifact_graph": self._serialize_graph(artifact_graph),
                     "verification_evidence": [
-                        self._serialize_evidence(e) for e in verification_evidence
+                        self._serialize_evidence(exc) for e in verification_evidence
                     ],
                     "current_phase": phase.value if hasattr(phase, 'value') else str(phase)
                 },

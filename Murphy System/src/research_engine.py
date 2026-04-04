@@ -295,8 +295,8 @@ class CodeGenerator:
         tree = ast.parse(expression.strip(), mode="eval")
         result = _eval_node(tree)
         return float(result)
-    except Exception as e:
-        raise ValueError(f"Calculation error: {e}")
+    except Exception as exc:
+        raise ValueError(f"Calculation error: {exc}")
 
 # Example usage
 if __name__ == "__main__":

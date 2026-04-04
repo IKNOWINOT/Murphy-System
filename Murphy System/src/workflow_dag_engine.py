@@ -144,9 +144,9 @@ class WorkflowDAGEngine:
                         if content and not content.lower().startswith("i understand"):
                             return content
                     except Exception:
-                        pass
+                        logger.debug("Suppressed exception in workflow_dag_engine")
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in workflow_dag_engine")
             # Structured fallback — always a useful phrase not a generic disclaimer
             return f"{topic} completed successfully for: {detail[:80]}"
 
@@ -387,7 +387,7 @@ class WorkflowDAGEngine:
                 steps=len(workflow.steps),
             )
         except Exception:
-            pass
+            logger.debug("Suppressed exception in workflow_dag_engine")
 
         return True
 
@@ -576,7 +576,7 @@ class WorkflowDAGEngine:
                 steps_completed=summary["completed"],
             )
         except Exception:
-            pass
+            logger.debug("Suppressed exception in workflow_dag_engine")
 
         return summary
 

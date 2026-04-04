@@ -912,7 +912,7 @@ class ContactComplianceGovernor:
                     import event_backbone_client as _ebc
                     backbone = _ebc.get_backbone()
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in contact_compliance_governor")
             if backbone is None:
                 logger.warning("ContactComplianceGovernor: no backbone available")
                 return

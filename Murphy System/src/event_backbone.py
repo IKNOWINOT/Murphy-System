@@ -671,8 +671,8 @@ class EventBackbone:
                 state = json.load(f)
             for et_value, events in state.get("queues", {}).items():
                 et = EventType(et_value)
-                self._queues[et] = [Event.from_dict(e) for e in events]
-            self._dlq = [Event.from_dict(e) for e in state.get("dlq", [])]
+                self._queues[et] = [Event.from_dict(exc) for e in events]
+            self._dlq = [Event.from_dict(exc) for e in state.get("dlq", [])]
             self._seen_event_ids = set(state.get("seen_event_ids", []))
             logger.info(
                 "Loaded event backbone state: %d queued, %d DLQ, %d seen",

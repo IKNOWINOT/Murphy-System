@@ -234,7 +234,7 @@ class DocumentGenerationEngine:
                 )
                 return renderer.render_to_base64(wrapped_html, brand, {})
         except Exception:
-            pass
+            logger.debug("Suppressed exception in document_generation_engine")
 
         # 2. reportlab fallback
         try:
