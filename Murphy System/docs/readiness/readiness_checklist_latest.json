@@ -1,16 +1,16 @@
 {
   "agent_version": "1.0.0",
   "agent_label": "READINESS-SCANNER-001",
-  "scan_timestamp": "2026-04-03T09:47:44.028677+00:00",
-  "scan_date": "2026-04-03",
+  "scan_timestamp": "2026-04-04T09:31:28.421868+00:00",
+  "scan_date": "2026-04-04",
   "summary": {
-    "total_modules": 588,
-    "test_coverage_ratio": 0.582,
+    "total_modules": 591,
+    "test_coverage_ratio": 0.587,
     "critical_tests_complete": false,
     "source_in_sync": true,
-    "debt_markers": 701,
+    "debt_markers": 757,
     "smoke_import_failures": 0,
-    "bare_except_count": 106,
+    "bare_except_count": 31,
     "total_human_tasks": 1,
     "total_agent_tasks": 8
   },
@@ -101,60 +101,60 @@
       "category": "hardening",
       "priority": "MEDIUM",
       "title": "Fix bare except clauses for production hardening",
-      "description": "Found 106 bare except clauses. Replace with specific exception types and add logging.",
+      "description": "Found 31 bare except clauses. Replace with specific exception types and add logging.",
       "commissioning": "G9: Hardening must be applied",
       "action": "fix_bare_excepts",
       "details": {
         "violations": [
-          {
-            "file": "Murphy System/src/agent_module_loader.py",
-            "line": 596,
-            "content": "except Exception: / pass"
-          },
-          {
-            "file": "Murphy System/src/agent_module_loader.py",
-            "line": 605,
-            "content": "except Exception: / pass"
-          },
-          {
-            "file": "Murphy System/src/agent_module_loader.py",
-            "line": 613,
-            "content": "except Exception: / pass"
-          },
-          {
-            "file": "Murphy System/src/agent_module_loader.py",
-            "line": 622,
-            "content": "except Exception: / pass"
-          },
-          {
-            "file": "Murphy System/src/agent_module_loader.py",
-            "line": 627,
-            "content": "except Exception: / pass"
-          },
-          {
-            "file": "Murphy System/src/agentic_comms_router.py",
-            "line": 243,
-            "content": "except Exception: / pass"
-          },
           {
             "file": "Murphy System/src/announcer_voice_engine.py",
             "line": 85,
             "content": "except ImportError: / pass"
           },
           {
-            "file": "Murphy System/src/audit_logger.py",
-            "line": 364,
-            "content": "except Exception: / pass"
+            "file": "Murphy System/src/collaborative_task_orchestrator.py",
+            "line": 522,
+            "content": "except NameError: / pass"
           },
           {
-            "file": "Murphy System/src/automation_commissioner.py",
-            "line": 271,
-            "content": "except Exception: / pass"
+            "file": "Murphy System/src/compute_plane/parsers/expression_parser.py",
+            "line": 35,
+            "content": "except ImportError: / pass"
           },
           {
-            "file": "Murphy System/src/ceo_branch_activation.py",
-            "line": 1475,
-            "content": "except Exception: / pass"
+            "file": "Murphy System/src/compute_plane/solvers/numeric_solver.py",
+            "line": 33,
+            "content": "except ImportError: / pass"
+          },
+          {
+            "file": "Murphy System/src/compute_plane/solvers/symbolic_solver.py",
+            "line": 45,
+            "content": "except ImportError: / pass"
+          },
+          {
+            "file": "Murphy System/src/confidence_engine/credential_interface.py",
+            "line": 273,
+            "content": "except ImportError: / pass"
+          },
+          {
+            "file": "Murphy System/src/cutsheet_engine.py",
+            "line": 831,
+            "content": "except ValueError: / pass"
+          },
+          {
+            "file": "Murphy System/src/energy_management/tariff_engine.py",
+            "line": 89,
+            "content": "except ValueError: / pass"
+          },
+          {
+            "file": "Murphy System/src/event_backbone.py",
+            "line": 108,
+            "content": "except ValueError: / pass"
+          },
+          {
+            "file": "Murphy System/src/event_backbone.py",
+            "line": 113,
+            "content": "except KeyError: / pass"
           }
         ]
       }
@@ -164,18 +164,18 @@
       "category": "technical_debt",
       "priority": "LOW",
       "title": "Catalog and prioritize technical debt markers",
-      "description": "Found 701 debt markers across the codebase. Generate a prioritized debt report with resolution recommendations.",
+      "description": "Found 757 debt markers across the codebase. Generate a prioritized debt report with resolution recommendations.",
       "commissioning": "G7: Restart from symptoms and work back through validation",
       "action": "catalog_debt",
       "details": {
-        "total": 701,
+        "total": 757,
         "by_type": {
           "TODO": 27,
           "FIXME": 2,
           "HACK": 6,
-          "STUB": 207,
+          "STUB": 261,
           "XXX": 12,
-          "NOQA": 447
+          "NOQA": 449
         }
       }
     },
@@ -197,8 +197,8 @@
   ],
   "scan_results": {
     "module_inventory": {
-      "total_modules": 588,
-      "packages": 83,
+      "total_modules": 591,
+      "packages": 86,
       "single_files": 505,
       "modules": [
         {
@@ -650,6 +650,12 @@
           "type": "module",
           "file_count": 1,
           "path": "Murphy System/src/bug_pattern_detector.py"
+        },
+        {
+          "name": "building_automation",
+          "type": "package",
+          "file_count": 6,
+          "path": "Murphy System/src/building_automation"
         },
         {
           "name": "building_automation_connectors",
@@ -1348,6 +1354,12 @@
           "path": "Murphy System/src/energy_efficiency_framework.py"
         },
         {
+          "name": "energy_management",
+          "type": "package",
+          "file_count": 7,
+          "path": "Murphy System/src/energy_management"
+        },
+        {
           "name": "energy_management_connectors",
           "type": "module",
           "file_count": 1,
@@ -1484,6 +1496,12 @@
           "type": "module",
           "file_count": 1,
           "path": "Murphy System/src/fastapi_security.py"
+        },
+        {
+          "name": "fdd",
+          "type": "package",
+          "file_count": 4,
+          "path": "Murphy System/src/fdd"
         },
         {
           "name": "feature_flags",
@@ -2778,7 +2796,7 @@
         {
           "name": "protocols",
           "type": "package",
-          "file_count": 6,
+          "file_count": 8,
           "path": "Murphy System/src/protocols"
         },
         {
@@ -2892,7 +2910,7 @@
         {
           "name": "robotics",
           "type": "package",
-          "file_count": 6,
+          "file_count": 16,
           "path": "Murphy System/src/robotics"
         },
         {
@@ -3732,10 +3750,10 @@
       ]
     },
     "test_coverage": {
-      "total_modules": 588,
-      "covered": 342,
-      "uncovered": 246,
-      "coverage_ratio": 0.582,
+      "total_modules": 591,
+      "covered": 347,
+      "uncovered": 244,
+      "coverage_ratio": 0.587,
       "covered_modules": [
         "ab_testing_framework",
         "account_management",
@@ -3756,7 +3774,6 @@
         "api_collection_agent",
         "api_gateway_adapter",
         "architecture_evolution",
-        "as_built_generator",
         "auar",
         "auar_api",
         "audit_logging_system",
@@ -3768,13 +3785,13 @@
         "automation_mode_controller",
         "automation_rbac_controller",
         "automation_readiness_evaluator",
+        "automation_safeguard_engine",
         "automation_scheduler",
         "automation_type_registry",
         "automations",
         "autonomous_repair_system",
         "avatar",
         "backup_disaster_recovery",
-        "bas_equipment_ingestion",
         "base_governance_runtime",
         "blockchain_audit_trail",
         "board_system",
@@ -3790,16 +3807,17 @@
         "causality_sandbox",
         "ceo_activation_plan",
         "chaos_resilience_loop",
+        "character_network_engine",
         "ci_cd_pipeline_manager",
         "cli_art",
-        "climate_resilience_engine",
+        "client_psychology_engine",
         "closure_engine",
         "cloudflare_deploy",
         "code_generation_gateway",
         "code_repair_engine",
         "collaboration",
-        "collaborative_task_orchestrator",
         "comms",
+        "communication_hub",
         "competitive_intelligence_engine",
         "compliance_as_code_engine",
         "compliance_automation_bridge",
@@ -3826,6 +3844,7 @@
         "customer_communication_manager",
         "customer_infra_orchestrator",
         "cutsheet_engine",
+        "cyclic_trends_engine",
         "dashboards",
         "data_archive_manager",
         "data_pipeline_orchestrator",
@@ -3835,6 +3854,7 @@
         "dependency_audit_engine",
         "dependency_deprecation_scanner",
         "deployment_automation_controller",
+        "deterministic_compute_plane",
         "deterministic_routing_engine",
         "dev_module",
         "digital_twin_engine",
@@ -3846,12 +3866,10 @@
         "emergency_stop",
         "emergency_stop_controller",
         "end_user_agreement",
-        "energy_efficiency_framework",
         "enterprise_integrations",
         "environment_setup_agent",
         "environment_state_manager",
         "event_backbone",
-        "event_backbone_client",
         "execution_orchestrator",
         "execution_packet_compiler",
         "executive_planning_engine",
@@ -3862,10 +3880,13 @@
         "financial_reporting_engine",
         "forge_rate_limiter",
         "forge_stream",
+        "founder_bootstrap_orchestrator",
         "founder_maintenance_recommendation_engine",
+        "founder_update_engine",
         "founder_update_orchestrator",
         "freelancer_validator",
         "functionality_heatmap",
+        "game_creation_pipeline",
         "gate_behavior_model_engine",
         "gate_bypass_controller",
         "gate_execution_wiring",
@@ -3882,10 +3903,10 @@
         "heartbeat_liveness_protocol",
         "hetzner_deploy",
         "highlight_overlay",
+        "historical_greatness_engine",
         "hitl_autonomy_controller",
         "hitl_graduation_engine",
         "immune_memory",
-        "industry_automation_wizard",
         "information_density",
         "information_quality",
         "input_validation",
@@ -3902,8 +3923,8 @@
         "lcm_engine",
         "lcm_integration_bridge",
         "learning_engine",
-        "learning_engine_connector",
         "legacy_compatibility_matrix",
+        "live_feed_service",
         "llm_output_validator",
         "llm_provider",
         "llm_routing_completeness",
@@ -3917,7 +3938,8 @@
         "mfgc_core",
         "mfgc_v1_1",
         "ml_model_registry",
-        "module_loader",
+        "module_instance_api",
+        "module_instance_manager",
         "module_registry",
         "mss_controls",
         "mss_sequence_optimizer",
@@ -3945,6 +3967,7 @@
         "murphy_wingman_evolution",
         "natural_language_query",
         "nav_registry",
+        "networking_mastery_engine",
         "neuro_symbolic_models",
         "niche_business_generator",
         "niche_viability_gate",
@@ -3974,8 +3997,8 @@
         "predictive_failure_engine",
         "predictive_maintenance_engine",
         "presets",
-        "pro_con_decision_engine",
         "production_assistant",
+        "profit_sweep",
         "prometheus_metrics_exporter",
         "prompt_amplifier",
         "rag_vector_integration",
@@ -3984,6 +4007,7 @@
         "readiness_scanner",
         "reasoning_engine",
         "recursive_stability_controller",
+        "regulation_ml_engine",
         "resolution_scoring",
         "resource_scaling_controller",
         "risk_mitigation_tracker",
@@ -4004,7 +4028,6 @@
         "self_fix_loop",
         "self_fix_loop_connector",
         "self_healing_coordinator",
-        "self_healing_handlers",
         "self_improvement_engine",
         "self_introspection_module",
         "self_learning_toggle",
@@ -4025,6 +4048,7 @@
         "shutdown_manager",
         "signup_gateway",
         "simulation_engine",
+        "skill_catalogue_engine",
         "skill_system",
         "slo_remediation_bridge",
         "social_media_moderation",
@@ -4038,13 +4062,11 @@
         "supervision_tree",
         "swarm_rate_governor",
         "synthetic_failure_generator",
-        "synthetic_interview_engine",
-        "system_configuration_engine",
         "system_performance_optimizer",
         "system_update_api",
         "system_update_recommendation_engine",
         "task_execution_bridge",
-        "task_router",
+        "telemetry_evidence",
         "telemetry_learning",
         "tenant_resource_governor",
         "test_mode_controller",
@@ -4055,6 +4077,8 @@
         "tool_registry",
         "tos_acceptance_gate",
         "trading_bot_engine",
+        "trading_compliance_engine",
+        "trading_orchestrator",
         "trading_routes",
         "triage_rollcall_adapter",
         "trial_orchestrator",
@@ -4062,17 +4086,16 @@
         "unified_control_protocol",
         "unified_observability_engine",
         "unit_economics_analyzer",
-        "universal_ingestion_framework",
         "upload_content_reviewer",
         "verification_layer",
         "video_packager",
-        "virtual_controller",
         "visual_swarm_builder",
         "voice_command_interface",
         "webhook_dispatcher",
         "webhook_event_processor",
         "websocket_event_server",
         "wingman_protocol",
+        "wingman_system",
         "workdocs",
         "workflow_dag_engine",
         "workflow_template_marketplace",
@@ -4096,13 +4119,14 @@
         "api_capability_builder",
         "artifact_viewport",
         "artifact_viewport_api",
+        "as_built_generator",
         "audit_logger",
         "auth_middleware",
         "automation_commissioner",
-        "automation_safeguard_engine",
         "automation_scaler",
         "autonomous_systems",
         "backtester",
+        "bas_equipment_ingestion",
         "benchmark_adapters",
         "billing",
         "blackstart_controller",
@@ -4110,19 +4134,19 @@
         "bootstrap_and_run",
         "bot_inventory_library",
         "bot_room_registry",
+        "building_automation",
         "building_automation_connectors",
         "cache",
         "causal_spike_analyzer",
         "ceo_branch_activation",
         "chaos",
-        "character_network_engine",
         "chatbot_v1_1_fixed",
-        "client_psychology_engine",
+        "climate_resilience_engine",
         "coinbase_connector",
+        "collaborative_task_orchestrator",
         "command_parser",
         "command_system",
         "comms_hub_routes",
-        "communication_hub",
         "communication_system",
         "config",
         "constraint_system",
@@ -4138,7 +4162,6 @@
         "crypto_risk_manager",
         "crypto_wallet_manager",
         "csrf_protection",
-        "cyclic_trends_engine",
         "database",
         "db",
         "demo_bundle_generator",
@@ -4146,7 +4169,6 @@
         "demo_runner",
         "deployment_readiness",
         "deterministic_compute",
-        "deterministic_compute_plane",
         "digital_asset_generator",
         "dispatch",
         "dispatch_routes",
@@ -4162,6 +4184,8 @@
         "efficiency_orchestrator",
         "elite_org_simulator",
         "energy_audit_engine",
+        "energy_efficiency_framework",
+        "energy_management",
         "energy_management_connectors",
         "enhanced_chatbot_mfgc",
         "enhanced_local_llm",
@@ -4170,21 +4194,20 @@
         "error_calibrator",
         "error_envelope",
         "errors",
+        "event_backbone_client",
         "execution",
         "execution_compiler",
         "execution_engine",
         "execution_router",
         "factory_automation_connectors",
         "fastapi_security",
+        "fdd",
         "finish_line_controller",
         "flask_security",
         "form_intake",
-        "founder_bootstrap_orchestrator",
         "founder_maintenance_api",
         "founder_update_api",
-        "founder_update_engine",
         "full_automation_controller",
-        "game_creation_pipeline",
         "gate_builder",
         "generative_knowledge_builder",
         "golden_path_engine",
@@ -4192,10 +4215,10 @@
         "graduation_controller",
         "groq_key_rotator",
         "hidden_cost_tracker",
-        "historical_greatness_engine",
         "hitl_execution_gate",
         "hitl_persistence",
         "image_generation_engine",
+        "industry_automation_wizard",
         "inference_gate_engine",
         "infinity_expansion_system",
         "innovation_farmer",
@@ -4209,11 +4232,11 @@
         "knowledge_gap_system",
         "lcm_chaos_simulation",
         "lcm_domain_registry",
+        "learning_engine_connector",
         "learning_system",
         "librarian",
         "librarian_adapter",
         "librarian_integration",
-        "live_feed_service",
         "live_trading_engine",
         "llm_controller",
         "llm_integration",
@@ -4236,15 +4259,13 @@
         "modular_runtime",
         "module_compiler",
         "module_compiler_adapter",
-        "module_instance_api",
-        "module_instance_manager",
+        "module_loader",
         "module_manager",
         "multi_language_codegen",
         "multi_source_research",
         "murphy_drawing_engine_extensions",
         "murphy_identity",
         "murphy_repl",
-        "networking_mastery_engine",
         "neuro_symbolic_adapter",
         "nocode_workflow_terminal",
         "observation_model",
@@ -4262,16 +4283,15 @@
         "permutation_policy_registry",
         "platform_onboarding",
         "playwright_task_definitions",
+        "pro_con_decision_engine",
         "probabilistic_layer",
         "procedural_distiller",
         "production_assistant_engine",
         "production_deliverable_wizard",
         "production_output_calibrator",
         "production_router",
-        "profit_sweep",
         "protocols",
         "question_manager",
-        "regulation_ml_engine",
         "remote_access_connector",
         "repair_api_endpoints",
         "request_context",
@@ -4292,8 +4312,8 @@
         "security_plane",
         "security_plane_adapter",
         "self_automation_bootstrap",
+        "self_healing_handlers",
         "self_healing_startup",
-        "skill_catalogue_engine",
         "smart_codegen",
         "solution_path_registry",
         "split_screen_coordinator",
@@ -4304,17 +4324,17 @@
         "supply_orchestrator",
         "swarm_proposal_generator",
         "swarm_rosetta_bridge",
+        "synthetic_interview_engine",
         "system_builder",
+        "system_configuration_engine",
         "system_integrator",
         "system_librarian",
         "task_executor",
+        "task_router",
         "telemetry_adapter",
-        "telemetry_evidence",
         "telemetry_system",
         "trading_bot_lifecycle",
-        "trading_compliance_engine",
         "trading_hitl_gateway",
-        "trading_orchestrator",
         "trading_shadow_learner",
         "trading_strategy_engine",
         "trajectory_engine",
@@ -4322,10 +4342,11 @@
         "ui_data_service",
         "ui_testing_framework",
         "unified_mfgc",
+        "universal_ingestion_framework",
         "universal_integration_adapter",
         "video_streaming_connector",
         "viewport_content_resolver",
-        "wingman_system",
+        "virtual_controller",
         "world_knowledge_calibrator"
       ],
       "meets_minimum": true
@@ -4365,16 +4386,16 @@
       "skipped": true
     },
     "debt_markers": {
-      "total": 701,
+      "total": 757,
       "by_type": {
         "TODO": 27,
         "FIXME": 2,
         "HACK": 6,
-        "STUB": 207,
+        "STUB": 261,
         "XXX": 12,
-        "NOQA": 447
+        "NOQA": 449
       },
-      "files_with_debt_count": 179,
+      "files_with_debt_count": 190,
       "top_files": [
         {
           "file": "Murphy System/src/live_feed_service.py",
@@ -4469,6 +4490,12 @@
           }
         },
         {
+          "file": "Murphy System/src/robotics/slam_engine.py",
+          "markers": {
+            "STUB": 11
+          }
+        },
+        {
           "file": "Murphy System/src/self_selling_engine/_engine.py",
           "markers": {
             "NOQA": 11
@@ -4510,12 +4537,6 @@
           "markers": {
             "NOQA": 8
           }
-        },
-        {
-          "file": "Murphy System/src/benchmark_adapters/swe_bench_adapter.py",
-          "markers": {
-            "NOQA": 8
-          }
         }
       ]
     },
@@ -4527,57 +4548,12 @@
       "coverage_pct": 100.0
     },
     "error_handling": {
-      "bare_except_count": 106,
+      "bare_except_count": 31,
       "violations": [
-        {
-          "file": "Murphy System/src/agent_module_loader.py",
-          "line": 596,
-          "content": "except Exception: / pass"
-        },
-        {
-          "file": "Murphy System/src/agent_module_loader.py",
-          "line": 605,
-          "content": "except Exception: / pass"
-        },
-        {
-          "file": "Murphy System/src/agent_module_loader.py",
-          "line": 613,
-          "content": "except Exception: / pass"
-        },
-        {
-          "file": "Murphy System/src/agent_module_loader.py",
-          "line": 622,
-          "content": "except Exception: / pass"
-        },
-        {
-          "file": "Murphy System/src/agent_module_loader.py",
-          "line": 627,
-          "content": "except Exception: / pass"
-        },
-        {
-          "file": "Murphy System/src/agentic_comms_router.py",
-          "line": 243,
-          "content": "except Exception: / pass"
-        },
         {
           "file": "Murphy System/src/announcer_voice_engine.py",
           "line": 85,
           "content": "except ImportError: / pass"
-        },
-        {
-          "file": "Murphy System/src/audit_logger.py",
-          "line": 364,
-          "content": "except Exception: / pass"
-        },
-        {
-          "file": "Murphy System/src/automation_commissioner.py",
-          "line": 271,
-          "content": "except Exception: / pass"
-        },
-        {
-          "file": "Murphy System/src/ceo_branch_activation.py",
-          "line": 1475,
-          "content": "except Exception: / pass"
         },
         {
           "file": "Murphy System/src/collaborative_task_orchestrator.py",
@@ -4605,59 +4581,14 @@
           "content": "except ImportError: / pass"
         },
         {
-          "file": "Murphy System/src/conversation_handler.py",
-          "line": 135,
-          "content": "except Exception: / pass"
-        },
-        {
-          "file": "Murphy System/src/conversation_handler.py",
-          "line": 151,
-          "content": "except Exception: / pass"
-        },
-        {
-          "file": "Murphy System/src/conversation_handler.py",
-          "line": 170,
-          "content": "except Exception: / pass"
-        },
-        {
           "file": "Murphy System/src/cutsheet_engine.py",
           "line": 831,
           "content": "except ValueError: / pass"
         },
         {
-          "file": "Murphy System/src/database/__init__.py",
-          "line": 271,
-          "content": "except Exception: / pass"
-        },
-        {
-          "file": "Murphy System/src/demo_deliverable_generator.py",
-          "line": 2736,
-          "content": "except Exception: / pass"
-        },
-        {
-          "file": "Murphy System/src/demo_deliverable_generator.py",
-          "line": 3068,
-          "content": "except Exception: / pass"
-        },
-        {
-          "file": "Murphy System/src/demo_deliverable_generator.py",
-          "line": 3081,
-          "content": "except Exception: / pass"
-        },
-        {
-          "file": "Murphy System/src/dispatch.py",
-          "line": 147,
-          "content": "except Exception: / pass"
-        },
-        {
-          "file": "Murphy System/src/dispatch.py",
-          "line": 179,
-          "content": "except Exception: / pass"
-        },
-        {
-          "file": "Murphy System/src/dispatch.py",
-          "line": 390,
-          "content": "except Exception: / pass"
+          "file": "Murphy System/src/energy_management/tariff_engine.py",
+          "line": 89,
+          "content": "except ValueError: / pass"
         },
         {
           "file": "Murphy System/src/event_backbone.py",
@@ -4675,15 +4606,105 @@
           "content": "except ImportError: / pass"
         },
         {
-          "file": "Murphy System/src/execution/document_generation_engine.py",
-          "line": 236,
-          "content": "except Exception: / pass"
+          "file": "Murphy System/src/fastapi_security.py",
+          "line": 685,
+          "content": "except ValueError: / pass"
+        },
+        {
+          "file": "Murphy System/src/integration_engine/adapters/rynnbrain_adapter.py",
+          "line": 293,
+          "content": "except json.JSONDecodeError: / pass"
+        },
+        {
+          "file": "Murphy System/src/integration_engine/sandbox_quarantine.py",
+          "line": 500,
+          "content": "except json.JSONDecodeError: / pass"
+        },
+        {
+          "file": "Murphy System/src/live_feed_service.py",
+          "line": 1196,
+          "content": "except ValueError: / pass"
+        },
+        {
+          "file": "Murphy System/src/matrix_bridge/matrix_client.py",
+          "line": 716,
+          "content": "except asyncio.CancelledError: / pass"
+        },
+        {
+          "file": "Murphy System/src/multiverse_game_framework/streaming_integration.py",
+          "line": 261,
+          "content": "except ValueError: / pass"
+        },
+        {
+          "file": "Murphy System/src/murphy_action_engine.py",
+          "line": 773,
+          "content": "except json.JSONDecodeError: / pass"
+        },
+        {
+          "file": "Murphy System/src/murphy_action_engine.py",
+          "line": 790,
+          "content": "except json.JSONDecodeError: / pass"
+        },
+        {
+          "file": "Murphy System/src/murphy_foundation_model/mfm_inference.py",
+          "line": 225,
+          "content": "except ImportError: / pass"
+        },
+        {
+          "file": "Murphy System/src/protocols/openadr_client.py",
+          "line": 205,
+          "content": "except ValueError: / pass"
+        },
+        {
+          "file": "Murphy System/src/runtime/app.py",
+          "line": 2920,
+          "content": "except ImportError: / pass"
+        },
+        {
+          "file": "Murphy System/src/runtime/app.py",
+          "line": 7359,
+          "content": "except ValueError: / pass"
+        },
+        {
+          "file": "Murphy System/src/runtime/app.py",
+          "line": 10952,
+          "content": "except WebSocketDisconnect: / pass"
+        },
+        {
+          "file": "Murphy System/src/security_plane/middleware.py",
+          "line": 1126,
+          "content": "except ValueError: / pass"
+        },
+        {
+          "file": "Murphy System/src/self_marketing_orchestrator.py",
+          "line": 2693,
+          "content": "except ValueError: / pass"
+        },
+        {
+          "file": "Murphy System/src/self_marketing_orchestrator.py",
+          "line": 2701,
+          "content": "except ValueError: / pass"
+        },
+        {
+          "file": "Murphy System/src/self_marketing_orchestrator.py",
+          "line": 2715,
+          "content": "except ValueError: / pass"
+        },
+        {
+          "file": "Murphy System/src/skill_catalogue_engine.py",
+          "line": 514,
+          "content": "except ValueError: / pass"
+        },
+        {
+          "file": "Murphy System/src/skill_catalogue_engine.py",
+          "line": 518,
+          "content": "except ValueError: / pass"
         }
       ]
     },
     "source_parity": {
-      "murphy_files": 1317,
-      "root_files": 1317,
+      "murphy_files": 1346,
+      "root_files": 1346,
       "only_in_murphy": [],
       "only_in_root": [],
       "in_sync": true,
@@ -4697,17 +4718,17 @@
         {
           "file": "requirements_ci.txt",
           "exists": true,
-          "size_bytes": 1217
+          "size_bytes": 1246
         },
         {
           "file": "pyproject.toml",
           "exists": true,
-          "size_bytes": 4231
+          "size_bytes": 6973
         },
         {
           "file": ".env.example",
           "exists": true,
-          "size_bytes": 18432
+          "size_bytes": 18779
         },
         {
           "file": "Dockerfile",
@@ -4717,7 +4738,7 @@
         {
           "file": "docker-compose.yml",
           "exists": true,
-          "size_bytes": 4927
+          "size_bytes": 5690
         },
         {
           "file": "gunicorn.conf.py",
@@ -4727,7 +4748,7 @@
       ]
     },
     "env_example": {
-      "documented_vars": 13,
+      "documented_vars": 16,
       "required_vars_missing": [
         "MURPHY_SECRET_KEY",
         "DATABASE_URL"
@@ -4849,12 +4870,12 @@
         {
           "workflow": "ci.yml",
           "exists": true,
-          "size_bytes": 10135
+          "size_bytes": 10956
         },
         {
           "workflow": "hetzner-deploy.yml",
           "exists": true,
-          "size_bytes": 2600
+          "size_bytes": 3259
         },
         {
           "workflow": "hetzner-deploy-recovery.yml",
