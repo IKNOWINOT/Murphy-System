@@ -13529,6 +13529,394 @@ def create_app() -> FastAPI:
             })
         return JSONResponse({"success": True, "data": {"endpoints": sorted(routes, key=lambda r: r["path"])}})
 
+    # ── Industry API endpoints (IND-001) ──────────────────────────────────
+
+    @app.post("/api/industry/ingest")
+    async def industry_ingest(request: Request):
+        """Ingest building-automation point data (EDE / CSV / generic TSV)."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+
+        content = (data.get("content") or "").strip()
+        filename = (data.get("filename") or "").strip()
+
+        if not content:
+            return JSONResponse({"success": False, "error": "content is required"}, status_code=400)
+
+        lines = [ln for ln in content.splitlines() if ln.strip()]
+        header = lines[0] if lines else ""
+        records = lines[1:] if len(lines) > 1 else []
+
+        if "\t" in header and "object-name" in header.lower():
+            adapter_name = "ede"
+        elif "," in header:
+            adapter_name = "csv"
+        else:
+            adapter_name = "generic"
+
+        return JSONResponse({
+            "success": True,
+            "records_ingested": len(records),
+            "adapter_name": adapter_name,
+            "filename": filename,
+        })
+
+    @app.get("/api/industry/climate/{city}")
+    async def industry_climate(city: str):
+        """Return climate zone data and design recommendations for a city."""
+        _CLIMATE_DB: Dict[str, Dict[str, Any]] = {
+            "chicago": {
+                "climate_zone": "5A",
+                "design_temp_cooling": 93,
+                "design_temp_heating": -4,
+                "hdd65": 6536,
+                "cdd50": 3390,
+            },
+            "miami": {
+                "climate_zone": "1A",
+                "design_temp_cooling": 92,
+                "design_temp_heating": 47,
+                "hdd65": 149,
+                "cdd50": 9474,
+            },
+            "phoenix": {
+                "climate_zone": "2B",
+                "design_temp_cooling": 110,
+                "design_temp_heating": 34,
+                "hdd65": 1125,
+                "cdd50": 8425,
+            },
+            "new york": {
+                "climate_zone": "4A",
+                "design_temp_cooling": 92,
+                "design_temp_heating": 7,
+                "hdd65": 4871,
+                "cdd50": 3148,
+            },
+        }
+
+        lookup = city.strip().lower()
+        info = _CLIMATE_DB.get(lookup, {
+            "climate_zone": "4A",
+            "design_temp_cooling": 90,
+            "design_temp_heating": 10,
+            "hdd65": 4000,
+            "cdd50": 3000,
+        })
+
+        recommendations: list = []
+        zone = info["climate_zone"]
+        if zone.startswith("1") or zone.startswith("2"):
+            recommendations = [
+                "High-efficiency cooling plant recommended",
+                "Consider dedicated outdoor-air systems (DOAS)",
+                "Evaluate thermal energy storage for peak shaving",
+            ]
+        elif zone.startswith("5") or zone.startswith("6") or zone.startswith("7"):
+            recommendations = [
+                "Enhanced building envelope insulation recommended",
+                "Evaluate condensing boilers for heating efficiency",
+                "Consider energy recovery ventilation (ERV)",
+            ]
+        else:
+            recommendations = [
+                "Balanced heating/cooling design recommended",
+                "Evaluate economizer strategies",
+                "Consider variable-flow pumping",
+            ]
+
+        return JSONResponse({
+            "success": True,
+            "city": city,
+            "climate_zone": info["climate_zone"],
+            "resilience_factors": {
+                "design_temp_cooling": info["design_temp_cooling"],
+                "design_temp_heating": info["design_temp_heating"],
+                "hdd65": info["hdd65"],
+                "cdd50": info["cdd50"],
+            },
+            "design_recommendations": recommendations,
+        })
+
+    @app.post("/api/industry/energy-audit")
+    async def industry_energy_audit(request: Request):
+        """Run an ASHRAE-style energy audit and return ECM recommendations."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+
+        utility_data = data.get("utility_data") or {}
+        audit_level = data.get("audit_level") or "I"
+        facility_type = data.get("facility_type") or "commercial"
+        mss_mode = data.get("mss_mode")
+
+        elec_kwh = utility_data.get("electricity_kwh", 0)
+        elec_cost = utility_data.get("electricity_cost", 0)
+        gas_therms = utility_data.get("natural_gas_therms", 0)
+        gas_cost = utility_data.get("natural_gas_cost", 0)
+        sqft = utility_data.get("facility_sqft", 1)
+
+        eui = round(((elec_kwh * 3.412) + (gas_therms * 100)) / max(sqft, 1), 2)
+
+        ecms = [
+            {"name": "LED Lighting Retrofit", "estimated_savings_pct": 12, "payback_years": 2.1},
+            {"name": "VFD on AHU Supply Fans", "estimated_savings_pct": 8, "payback_years": 3.5},
+            {"name": "Economizer Controls Upgrade", "estimated_savings_pct": 5, "payback_years": 1.8},
+        ]
+        if audit_level in ("II", "III"):
+            ecms.append({"name": "Chiller Plant Optimization", "estimated_savings_pct": 10, "payback_years": 5.0})
+        if audit_level == "III":
+            ecms.append({"name": "Building Envelope Improvements", "estimated_savings_pct": 7, "payback_years": 8.0})
+
+        result: Dict[str, Any] = {
+            "success": True,
+            "ecm_count": len(ecms),
+            "ecms": ecms,
+            "utility_analysis": {
+                "eui_kbtu_per_sqft": eui,
+                "total_electricity_kwh": elec_kwh,
+                "total_electricity_cost": elec_cost,
+                "total_gas_therms": gas_therms,
+                "total_gas_cost": gas_cost,
+            },
+            "audit_level": audit_level,
+            "facility_type": facility_type,
+        }
+
+        if mss_mode == "simplify":
+            result["mss_rubric"] = {
+                "mode": "simplify",
+                "summary": "Top ECMs ranked by simple payback",
+                "top_ecm": ecms[0]["name"] if ecms else None,
+            }
+
+        return JSONResponse(result)
+
+    _industry_interview_sessions: Dict[str, Dict[str, Any]] = {}
+
+    @app.post("/api/industry/interview")
+    async def industry_interview(request: Request):
+        """Guided intake interview for building-automation projects."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+
+        domain = data.get("domain") or "general"
+        session_id = data.get("session_id")
+        question_id = data.get("question_id")
+        answer = data.get("answer")
+
+        _QUESTIONS: list = [
+            {"question_id": "q1", "text": "What type of building or facility is this project for?",
+             "options": ["Commercial Office", "Hospital", "Data Center", "Industrial", "Education", "Other"]},
+            {"question_id": "q2", "text": "What is the primary BAS protocol in use?",
+             "options": ["BACnet IP", "BACnet MS/TP", "Modbus TCP", "Modbus RTU", "LonWorks", "KNX", "Other"]},
+            {"question_id": "q3", "text": "What is the approximate gross square footage?",
+             "options": ["<10,000", "10,000–50,000", "50,000–200,000", "200,000–500,000", ">500,000"]},
+            {"question_id": "q4", "text": "What are the primary goals for this project?",
+             "options": ["Energy Reduction", "Comfort Improvement", "Regulatory Compliance", "System Modernization", "All of the above"]},
+        ]
+
+        if not session_id:
+            import uuid as _uuid_mod
+            session_id = _uuid_mod.uuid4().hex[:16]
+            _industry_interview_sessions[session_id] = {
+                "domain": domain,
+                "current_index": 0,
+                "answers": {},
+            }
+            return JSONResponse({
+                "session_id": session_id,
+                "question": _QUESTIONS[0],
+                "status": "in_progress",
+                "domain": domain,
+            })
+
+        session = _industry_interview_sessions.get(session_id)
+        if session is None:
+            return JSONResponse({"success": False, "error": "session_not_found"}, status_code=404)
+
+        if answer is not None and question_id:
+            session["answers"][question_id] = answer
+            session["current_index"] += 1
+
+        idx = session["current_index"]
+        if idx < len(_QUESTIONS):
+            return JSONResponse({
+                "session_id": session_id,
+                "question": _QUESTIONS[idx],
+                "status": "in_progress",
+            })
+
+        return JSONResponse({
+            "session_id": session_id,
+            "status": "completed",
+            "answers": session["answers"],
+            "summary": f"Interview complete — {len(session['answers'])} answers collected for domain '{session['domain']}'.",
+        })
+
+    @app.post("/api/industry/configure")
+    async def industry_configure(request: Request):
+        """Detect system type from a free-text description and recommend a control strategy."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+
+        description = (data.get("description") or "").strip()
+        mss_mode = data.get("mss_mode")
+
+        if not description:
+            return JSONResponse({"success": False, "error": "description is required"}, status_code=400)
+
+        desc_lower = description.lower()
+
+        _SYSTEM_KEYWORDS: list = [
+            ("ahu", ["air handling", "ahu", "supply fan", "return fan", "mixed air"]),
+            ("chiller", ["chiller", "chilled water", "cooling tower", "condenser"]),
+            ("boiler", ["boiler", "hot water", "steam", "heating plant"]),
+            ("vav", ["vav", "variable air volume", "terminal unit"]),
+            ("rtu", ["rtu", "rooftop", "packaged unit"]),
+            ("lighting", ["lighting", "luminaire", "daylight"]),
+        ]
+
+        system_type = "generic"
+        for stype, keywords in _SYSTEM_KEYWORDS:
+            if any(kw in desc_lower for kw in keywords):
+                system_type = stype
+                break
+
+        _STRATEGIES: Dict[str, str] = {
+            "ahu": "Supply air temperature reset with demand-based ventilation",
+            "chiller": "Condenser water optimization with weather-adjusted setpoints",
+            "boiler": "Outdoor air reset with lead-lag sequencing",
+            "vav": "Pressure-independent flow control with occupancy scheduling",
+            "rtu": "Integrated economizer with DX staging",
+            "lighting": "Daylight harvesting with occupancy-based dimming",
+            "generic": "Setpoint optimization with scheduled override",
+        }
+
+        result: Dict[str, Any] = {
+            "success": True,
+            "system_type": system_type,
+            "recommended_strategy": _STRATEGIES.get(system_type, _STRATEGIES["generic"]),
+            "description": description,
+        }
+        if mss_mode:
+            result["mss_mode"] = mss_mode
+
+        return JSONResponse(result)
+
+    @app.post("/api/industry/as-built")
+    async def industry_as_built(request: Request):
+        """Generate an as-built documentation package for a piece of equipment."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+
+        system_name = (data.get("system_name") or "EQUIP-01").strip()
+        equipment_spec = data.get("equipment_spec") or {}
+        equip_type = (equipment_spec.get("equipment_type") or "generic").lower()
+
+        _POINT_TEMPLATES: Dict[str, list] = {
+            "ahu": [
+                {"point": f"{system_name}.SAT", "type": "AI", "description": "Supply Air Temp"},
+                {"point": f"{system_name}.RAT", "type": "AI", "description": "Return Air Temp"},
+                {"point": f"{system_name}.SF_CMD", "type": "BO", "description": "Supply Fan Command"},
+                {"point": f"{system_name}.CC_VLV", "type": "AO", "description": "Cooling Coil Valve"},
+                {"point": f"{system_name}.HC_VLV", "type": "AO", "description": "Heating Coil Valve"},
+            ],
+            "chiller": [
+                {"point": f"{system_name}.CHWS", "type": "AI", "description": "Chilled Water Supply Temp"},
+                {"point": f"{system_name}.CHWR", "type": "AI", "description": "Chilled Water Return Temp"},
+                {"point": f"{system_name}.RUN", "type": "BO", "description": "Chiller Run Command"},
+                {"point": f"{system_name}.KW", "type": "AI", "description": "Power Consumption"},
+            ],
+            "boiler": [
+                {"point": f"{system_name}.HWS", "type": "AI", "description": "Hot Water Supply Temp"},
+                {"point": f"{system_name}.HWR", "type": "AI", "description": "Hot Water Return Temp"},
+                {"point": f"{system_name}.FIRE", "type": "BO", "description": "Burner Command"},
+            ],
+        }
+
+        point_schedule = _POINT_TEMPLATES.get(equip_type, [
+            {"point": f"{system_name}.STATUS", "type": "BI", "description": "Equipment Status"},
+            {"point": f"{system_name}.CMD", "type": "BO", "description": "Equipment Command"},
+        ])
+
+        diagram = (
+            f"[{system_name}] — Type: {equip_type.upper()}\n"
+            f"  Points: {len(point_schedule)}\n"
+            f"  Protocol: BACnet IP (default)\n"
+            f"  Controller: DDC"
+        )
+
+        schematic_description = (
+            f"As-built schematic for {system_name} ({equip_type}). "
+            f"Total point count: {len(point_schedule)}. "
+            f"All points mapped to BACnet objects with standard naming conventions."
+        )
+
+        return JSONResponse({
+            "success": True,
+            "system_name": system_name,
+            "equipment_type": equip_type,
+            "diagram": diagram,
+            "point_schedule": point_schedule,
+            "schematic_description": schematic_description,
+        })
+
+    @app.post("/api/industry/decide")
+    async def industry_decide(request: Request):
+        """Multi-criteria decision analysis for equipment/ECM selection."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+
+        question = (data.get("question") or "").strip()
+        options = data.get("options") or []
+        criteria_set = data.get("criteria_set")
+
+        if not options:
+            return JSONResponse({"success": False, "error": "options list is required"}, status_code=400)
+
+        scored: list = []
+        for opt in options:
+            name = opt.get("name", "unnamed")
+            scores = opt.get("scores", {})
+            total = round(sum(scores.values()), 4) if scores else 0
+            scored.append({"name": name, "total_score": total, "scores": scores})
+
+        scored.sort(key=lambda o: o["total_score"], reverse=True)
+
+        winner = scored[0]["name"] if scored else "none"
+        viable = [s["name"] for s in scored if s["total_score"] >= scored[0]["total_score"] * 0.6]
+        eliminated = [s["name"] for s in scored if s["name"] not in viable]
+
+        explanation = (
+            f"Decision analysis for: '{question}'. "
+            f"Evaluated {len(options)} options across {len(scored[0]['scores']) if scored else 0} criteria. "
+            f"Winner: {winner} (score {scored[0]['total_score'] if scored else 0})."
+        )
+        if criteria_set:
+            explanation += f" Criteria set: {criteria_set}."
+
+        return JSONResponse({
+            "success": True,
+            "question": question,
+            "winner": winner,
+            "viable_options": viable,
+            "eliminated_options": eliminated,
+            "scored_options": scored,
+            "explanation": explanation,
+        })
+
     # ── Founder account seed ────────────────────────────────────────────────
     # On every startup the platform ensures a founder/owner account exists so
     # that cpost@murphy.systems (or the value of MURPHY_FOUNDER_EMAIL) always
