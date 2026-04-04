@@ -1248,9 +1248,9 @@ class SelfMarketingOrchestrator:
                 if offering.get("salesperson_email"):
                     try:
                         sp_email = _validate_salesperson_email(offering["salesperson_email"])
-                    except ValueError as e:
+                    except ValueError:
                         logger.warning("Offering '%s' salesperson_email rejected (not logged)", pid)
-                        # Intentionally do NOT log e — it may contain the raw email (PII)
+                        # Intentionally do NOT log the exception — it may contain the raw email (PII)
 
                 if offering.get("salesperson_linkedin"):
                     try:

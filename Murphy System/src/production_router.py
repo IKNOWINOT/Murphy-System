@@ -960,7 +960,9 @@ async def get_calendar(board_id:str=Query(default=""), tenant_id:str=Query(defau
     blocks = []
     for auto in autos:
         try: orig = datetime.fromisoformat(auto["start_time"].replace("Z","")).replace(tzinfo=_UTC)
-        except: orig = datetime.now(_UTC)
+        except Exception:
+            log.debug("Could not parse start_time, falling back to now()")
+            orig = datetime.now(_UTC)
         rec = auto.get("recurrence","daily"); delta = _REC.get(rec,timedelta(days=1))
         dur = auto.get("effective_duration_minutes", auto.get("estimated_minutes", 10))
         total_delay = auto.get("total_delay_minutes", 0)
@@ -1978,7 +1980,9 @@ _UI_DIR     = _BASE_DIR / "murphy_dashboard"
 
 def _read_html(path: Path) -> str:
     try: return path.read_text(encoding="utf-8")
-    except: return f"<h1>File not found: {path}</h1>"
+    except Exception:
+        log.debug("Could not read HTML file: %s", path)
+        return f"<h1>File not found: {path}</h1>"
 
 @router.get("/", response_class=HTMLResponse)
 async def serve_dashboard():

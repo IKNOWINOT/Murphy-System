@@ -1377,9 +1377,18 @@ class CEOBranch:
         }
         with self._lock:
             capped_append(self._telemetry, entry, max_size=_MAX_TELEMETRY_EVENTS)
-        if self._backbone is not None:
+        backbone = self._backbone
+        if backbone is None:
             try:
-                self._backbone.publish(event, entry)
+                import event_backbone_client as _ebc
+                backbone = _ebc.get_backbone()
+            except Exception:
+                pass
+        if backbone is not None:
+            try:
+                from event_backbone import EventType
+                et = EventType.from_string(event) if hasattr(EventType, "from_string") else EventType.LEARNING_FEEDBACK
+                backbone.publish(event_type=et, payload=entry, source="ceo_branch_activation")
             except Exception:
                 logger.debug("CEOBranch: EventBackbone publish failed for event %r", event)
 

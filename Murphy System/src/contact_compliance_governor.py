@@ -900,9 +900,22 @@ class ContactComplianceGovernor:
         The merged payload always includes ``source`` and ``action`` keys.
         Caller-supplied keys with the same names will be overwritten by the
         envelope values.
+
+        Falls back to the global backbone via ``event_backbone_client`` when
+        no backbone was injected at construction time.
         """
         try:
             from event_backbone import EventType
+            backbone = self._backbone
+            if backbone is None:
+                try:
+                    import event_backbone_client as _ebc
+                    backbone = _ebc.get_backbone()
+                except Exception:
+                    pass
+            if backbone is None:
+                logger.warning("ContactComplianceGovernor: no backbone available")
+                return
             # Map known event names to EventType values
             event_type_map: Dict[str, Any] = {
                 "OUTREACH_BLOCKED": EventType.TASK_FAILED,
@@ -910,7 +923,7 @@ class ContactComplianceGovernor:
                 "CONTACT_SUPPRESSED": EventType.TASK_FAILED,
             }
             et = event_type_map.get(event_name, EventType.LEARNING_FEEDBACK)
-            self._backbone.publish(
+            backbone.publish(
                 event_type=et,
                 payload={
                     **payload,
