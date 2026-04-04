@@ -490,7 +490,7 @@ class ExportPipeline:
                 metadata = {"document_title": "Murphy System Document"}
                 return renderer.render_to_base64(html, brand, metadata)
         except Exception:
-            pass  # Fall through to reportlab
+            logger.debug("Suppressed exception in export_pipeline")
 
         plain_text = self._markdown_to_text(markdown)
         font = brand.font_body if brand.font_body in ("Helvetica", "Times-Roman", "Courier") else "Helvetica"

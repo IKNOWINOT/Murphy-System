@@ -2,7 +2,7 @@
 
 **Universal AI Automation System**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10+-yellow.svg)](https://www.python.org/) [![CI](https://github.com/IKNOWINOT/Murphy-System/actions/workflows/ci.yml/badge.svg)](https://github.com/IKNOWINOT/Murphy-System/actions/workflows/ci.yml) [![Tests](https://img.shields.io/badge/tests-24341%20defined-brightgreen.svg)](#-test-status)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10+-yellow.svg)](https://www.python.org/) [![CI](https://github.com/IKNOWINOT/Murphy-System/actions/workflows/ci.yml/badge.svg)](https://github.com/IKNOWINOT/Murphy-System/actions/workflows/ci.yml) [![Tests](https://img.shields.io/badge/tests-24577%20defined-brightgreen.svg)](#-test-status)
 
 ---
 
@@ -12,7 +12,7 @@
 > developed and maintained by a **single developer** ([@IKNOWINOT](https://github.com/IKNOWINOT)).
 > While the architecture is comprehensive and the test suite covers thousands of
 > functions, **not everything works as intended**. Emergent bugs are still being
-> discovered and classified across the 1,1230+ module surface area.
+> discovered and classified across the 1,230+ module surface area.
 >
 > **What this means for you:**
 >
@@ -24,7 +24,7 @@
 >   unexpected behavior. Edge cases are actively being catalogued.
 > - 🔧 **Self-healing capabilities** — Murphy includes a self-improvement engine,
 >   bug pattern detector, and correction loop.
-> - 📊 **Test coverage is extensive** — 706 test files with comprehensive coverage.
+> - 📊 **Test coverage is extensive** — 806 test files with 24,577 test functions.
 >   CI runs automatically on push/PR via GitHub Actions.
 > - 🤝 **Contributions welcome** — see [CONTRIBUTING.md](CONTRIBUTING.md).
 >
@@ -52,8 +52,9 @@ Murphy is a **complete, operational AI automation system** that can automate any
 ✅ **HITL Graduation** - Structured human-to-automation handoff pipeline  
 ✅ **Orchestrators** - Safety, efficiency, and supply chain orchestration  
 ✅ **Container Deployment** - Docker and Kubernetes configs included (security hardening required before production)
+✅ **Permutation Calibration** - Learn optimal information ordering for each domain ([docs](docs/PERMUTATION_CALIBRATION.md))
 
-> **Recently added:** Room LLM Brain (MSS-aligned MAGNIFY/SIMPLIFY/SOLIDIFY in every room), World Knowledge Calibrator (algebraic sensor anchors), Agentic Communications Router (agent-to-agent messaging), Bot Room Registry (multi-room persona mapping), Rosetta Platform State (3-layer platform/agent/combined copy system), Optimal Routing Wiring (Triage→Librarian→Causality→Rubix→GoldenPath pipeline), Room Cognitive Roles (MSS role per room)  
+> **Recently added:** Permutation Calibration System (Mode A exploration → Mode B procedural execution with drift detection), Room LLM Brain (MSS-aligned MAGNIFY/SIMPLIFY/SOLIDIFY in every room), World Knowledge Calibrator (algebraic sensor anchors), Agentic Communications Router (agent-to-agent messaging), Bot Room Registry (multi-room persona mapping), Rosetta Platform State (3-layer platform/agent/combined copy system), Optimal Routing Wiring (Triage→Librarian→Causality→Rubix→GoldenPath pipeline), Room Cognitive Roles (MSS role per room)  
 > **Coming in #136:** Drawing Engine, Credential Gate, Sensor Fusion, Osmosis Engine, Autonomous Perception, Wingman Evolution, Engineering Toolbox
 
 ---
@@ -162,31 +163,33 @@ See [docs/TIERED_RUNTIME.md](docs/TIERED_RUNTIME.md) for details.
 
 ---
 
-## 📊 Overall System Completion
+## 📊 Overall System Completion (code-measured, 2026-04-04)
 
-| Area | Completion | Notes |
+> **Methodology:** Each percentage reflects code-measured reality, not design
+> intent. Aspirational items are tracked in [ROADMAP.md](ROADMAP.md).
+
+| Area | % | Measured Status |
 | --- | --- | --- |
-| Core automation pipeline (Describe → Execute) | **90%** | Code exists and structured; 19/19 critical path tests passing |
-| Execution wiring (gate + swarm + orchestrator) | **95%** | Wired and tested; E2E hero flow validation pending |
-| Deterministic + LLM routing | **95%** | Functional; LLM key config hardening in progress |
-| Persistence + replay | **70%** | JSON, SQLite, and PostgreSQL backends; Alembic migrations; production pooling |
-| Multi-channel delivery | **90%** | Email, webhook, Slack stubs; real channel testing pending |
-| Compliance validation | **90%** | Framework complete; formal attestation (SOC 2, ISO 27001) pending |
-| Operational automation | **85%** | Core flows working; Phases 2–8 all implemented and verified |
-| File system cleanup | **100%** | Complete |
-| Test coverage (dynamic chains) | **85%** | 706 test files, 24,341 test functions across 37+ suites |
-| UI + user testing | **75%** | 14 web interfaces built; UI completion PR pending |
-| Security hardening | **80%** | Auth/CORS/CSP/JWT done; E2EE stub gated for production |
-| Code quality audit (90 categories) | **90%** | Audit complete; remediation for remaining items in progress |
-| Management parity (Phases 1–12) | **70%** | Phases 1–8 implemented with real code; Phase 9-11 checked; Phase 12 API-only |
-| CI/CD pipeline | **90%** | Ruff lint 0 errors; lightweight CI deps; prometheus safe for repeated init |
-| Documentation accuracy | **85%** | All placeholder docs filled; README truth reconciliation complete |
-| E2E Hero Flow Validation | **85%** | Describe→Generate→Execute chain validated: 49 integration tests pass; real-user validation and production load testing remain |
-| Librarian Command Coverage | **100%** | All 154 commands wired into Librarian; `generate_command()` + triage escalation tested across every category |
-| Librarian Triage Escalation | **100%** | Mode-aware (ASK/ONBOARDING/PRODUCTION/ASSISTANT); triage→execution path validated with 57 tests |
-| **Weighted overall** | **~83%** | See [Production Readiness Audit](Murphy System/strategic/PRODUCTION_READINESS_AUDIT.md) |
+| Core automation pipeline (Describe → Execute) | **88%** | Pipeline structured and tested (19/19 critical path tests pass). Real-user and production load testing remain. |
+| Execution wiring (gate + swarm + orchestrator) | **93%** | Wired and unit-tested. 49 integration tests pass. Real-user validation remains. |
+| Deterministic + LLM routing | **93%** | Functional. LLM key rotation/fallback hardening in progress. |
+| Persistence + replay | **68%** | Default is `MURPHY_DB_MODE=stub` (in-memory). PostgreSQL and SQLite backends wired but require infra setup (`DATABASE_URL`). |
+| Multi-channel delivery | **60%** | `EmailDeliveryAdapter` builds SMTP payloads but does not send (no network I/O). Slack works when connector configured. Webhook functional. **Needs: real SMTP/SendGrid wiring.** |
+| Compliance validation | **82%** | Framework complete (GDPR/SOC 2/HIPAA/PCI-DSS sensors). Formal attestation revenue-gated. |
+| Operational automation | **83%** | Phases 2–8 implemented. Cross-phase integration testing incomplete. |
+| Test coverage | **82%** | 806 test files, 24,577 test functions defined. Many skips for optional deps. CI uses single Python 3.12. |
+| UI pages | **72%** | 62 HTML files exist. Core terminal UIs (10) are polished. Feature UIs (boards, CRM, dashboards) 700–1400 lines each. Some pages are thin skeletons. No real user testing performed. |
+| Security hardening | **78%** | Auth/CORS/CSP/JWT complete. E2EE is stub-only (`UNENCRYPTED_STUB` fallback) — real Megolm encryption not implemented. |
+| Code quality | **88%** | Ruff lint clean. 90-category audit complete. Minor residuals in progress. |
+| Management parity (Phases 1–12) | **90%** | Phases 1–11 have real backend code. Phase 12 (Mobile) has backend API only — no native iOS/Android app. |
+| CI/CD pipeline | **87%** | Single Python 3.12 (no matrix). Ruff 0 errors. Coverage upload unconditional. |
+| Documentation accuracy | **65%** | Stats table was 3× stale. Multiple inconsistent counts across README sections. This update corrects all figures to code-measured values. |
+| E2E Hero Flow | **82%** | 49 integration tests pass. Real-user validation and production load testing remain. |
+| Librarian Command Coverage | **100%** | 593 catalog entries covering all module_manifest commands. Tested. |
+| Librarian Triage Escalation | **100%** | Mode-aware (ASK/ONBOARDING/PRODUCTION/ASSISTANT). 57 tests. |
+| **Weighted overall** | **~80%** | See [Production Readiness Audit](Murphy%20System/strategic/PRODUCTION_READINESS_AUDIT.md) |
 
-> **Test status:** 706 test files with 24,341 test functions.
+> **Test status:** 806 test files with 24,577 test functions defined.
 > Skipped tests require optional packages (Flask, Textual, torch).
 > CI pipeline runs on every push/PR — see [Test Status](#-test-status) below.
 
@@ -213,15 +216,15 @@ Murphy-System/
 └── Murphy System/                      ← ACTIVE SYSTEM
     ├── murphy                          ← CLI tool (start/stop/status/…)
     ├── murphy_system_1.0_runtime.py    ← Single production runtime
-    ├── src/                            ← 1,122 named modules across 71 packages (1,223 .py files total)
-    ├── tests/                          ← 706 test files
-    ├── bots/                           ← 104 bot modules
+    ├── src/                            ← 1,230 named modules across 86 packages (1,346 .py files total)
+    ├── tests/                          ← 806 test files (24,577 test functions)
+    ├── bots/                           ← 108 bot modules
     ├── documentation/                  ← Structured API/user docs
     ├── docs/                           ← Technical docs
     ├── k8s/                            ← Kubernetes manifests
     ├── monitoring/                     ← Prometheus config
     ├── scripts/                        ← Operational scripts
-    ├── *.html                          ← 14 web interfaces (12 active + 2 legacy redirects)
+    ├── *.html                          ← 62 web interfaces (10 core terminal UIs + feature pages + marketing)
     ├── USER_MANUAL.md                  ← Comprehensive user manual
     ├── BUSINESS_MODEL.md               ← Open-core editions
     ├── README.md, API_DOCUMENTATION.md, DEPLOYMENT_GUIDE.md
@@ -263,8 +266,8 @@ bash setup_and_start.sh
 - Cryptographic bot identity verification (HMAC-SHA256 signing)
 - Behavioral anomaly detection (z-score analysis, resource spikes, API patterns)
 - Unified security dashboard with event correlation and compliance reporting
-- 42 integrated modules, 8,843 tests passing
-- Neon terminal UI across 14 web interfaces with consistent theme
+- 1,230 named modules across 86 packages; 24,577 test functions defined
+- Neon terminal UI across 62 web interfaces
 
 **Architect UI:** serve `Murphy System/terminal_architect.html` with `python -m http.server 8090` and open `http://localhost:8090/Murphy%20System/terminal_architect.html?apiPort=8000`
 
@@ -775,7 +778,7 @@ We welcome contributions! Please read:
 - **`src/pilot_config.py`** — Canonical pilot account (`cpost@murphy.systems`) and automation routing
 - **`src/large_control_model.py`** — LCM meta-controller: NL → MSS → Rosetta → Causality → Dispatch
 - **`src/rosette_lens.py`** — Rosetta agent positions → MSS data lens bridge
-- **`src/nav_registry.py`** — All 1230+ modules mapped to navigation categories
+- **`src/nav_registry.py`** — All 1,230+ modules mapped to navigation categories
 - **`static/murphy-nav.js`** — Shared navigation component (Finance & Grants always visible)
 - **`src/demo_runner.py`** — Real demo pipeline: every scenario routes through actual Murphy components
 
@@ -880,17 +883,17 @@ Murphy is the **only automation platform** that covers the entire stack — from
 
 ---
 
-## 📊 Stats (Murphy System, as of 2026-03-14)
+## 📊 Stats (Murphy System, code-measured 2026-04-04)
 
 | Metric | Value |
 | --- | --- |
-| **Source Files** | 1,122 named Python modules across 71 packages (1,223 .py files total) |
-| **Source Lines** | 218,497 |
-| **Classes** | 2,487 |
-| **Functions / Methods** | 8,472 |
-| **Packages** | 81 subsystem directories |
-| **Test Files** | 644 |
-| **Test Functions** | 8,843+ |
+| **Source Files** | 1,230 named Python modules across 86 packages (1,346 .py files total) |
+| **Source Lines** | 594,131 |
+| **Classes** | 5,646 |
+| **Functions / Methods** | 21,332 |
+| **Packages** | 86 subsystem directories |
+| **Test Files** | 806 |
+| **Test Functions** | 24,577 |
 | **Automation Types** | 6 (factory, content, data, system, agent, business) |
 | **Gap-Closure Categories Audited** | 90 (all at zero) |
 
@@ -905,12 +908,12 @@ cd "Murphy System"
 python -m pytest tests/ -q --tb=short
 ```
 
-**Latest verified results:**
+**Latest verified results (code-measured 2026-04-04):**
 
 | Metric | Count |
 | --- | --- |
-| Test files | 644 |
-| Test functions | 8,843+ |
+| Test files | 806 |
+| Test functions | 24,577 |
 | Gap-closure tests | 406 (rounds 3–42) |
 
 **Skipped tests** require optional dependencies (Flask, Textual, torch) that are
@@ -998,28 +1001,28 @@ curl http://localhost:8000/api/status
 
 ---
 
-## 📈 System Completion Summary (as of 2026-03-24)
+## 📈 System Completion Summary (code-measured, 2026-04-04)
 
 | Category | Completion |
 |----------|-----------|
-| Core Architecture & Engine Wiring | 95% |
-| Hero Flow (Describe → Execute → Refine) | 85% |
+| Core Architecture & Engine Wiring | 93% |
+| Hero Flow (Describe → Execute → Refine) | 82% |
 | Librarian Command Coverage & Triage | 100% |
-| Security Hardening | 80% |
-| Test Coverage | 89% |
-| Documentation | 92% |
-| UI/UX | 100% |
-| Management Parity (12 Phases) | 72% |
-| Founder Observability (ARCH-007) | 75% |
-| CI/CD Pipeline | 90% |
-| Production Deployment Readiness | 65% |
-| **Weighted Overall** | **~85%** |
+| Security Hardening | 78% |
+| Test Coverage | 82% |
+| Documentation Accuracy | 65% |
+| UI Pages (62 HTML files) | 72% |
+| Management Parity (12 Phases) | 90% |
+| Multi-channel Delivery | 60% |
+| Persistence (DB backends) | 68% |
+| CI/CD Pipeline | 87% |
+| Production Deployment Readiness | 60% |
+| **Weighted Overall** | **~80%** |
 
-> PR 1–3 of ARCH-007 (Founder Update Engine) complete: 133 tests, 1230 modules.
-> PR 4 (API routes + Founder Dashboard UI) pending.
-> The overall percentage reflects that while code coverage is extensive
-> (1,1230+ modules, 706+ test files), **E2E validation of the hero flow** and
-> **production deployment hardening** remain the primary gaps.
+> **Primary gaps for production:** Email delivery has no SMTP transport,
+> database defaults to in-memory stub, E2EE is unimplemented, and no
+> native mobile app exists. See [ROADMAP.md](ROADMAP.md) for the
+> sprint plan to close these.
 
 ---
 

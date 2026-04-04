@@ -300,7 +300,14 @@ class GateGenerator:
             AuthorityBand.EXECUTE
         ]
 
-        current_idx = authority_levels.index(current_authority)
+        # Value-based lookup to handle dual-import-path enum mismatch
+        try:
+            current_idx = authority_levels.index(current_authority)
+        except ValueError:
+            current_idx = next(
+                (i for i, ab in enumerate(authority_levels) if ab.value == current_authority.value),
+                len(authority_levels) - 1,
+            )
         target_authority = authority_levels[max(0, current_idx - 1)]
 
         enforcement_effect = {

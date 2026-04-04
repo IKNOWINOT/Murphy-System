@@ -571,7 +571,7 @@ class FullHouseSimulator:
                 registry = LCMDomainRegistry()
                 domain_ids = [d.domain_id for d in registry.list_all()]
             except Exception:  # noqa: BLE001
-                pass
+                logger.debug("Suppressed exception in lcm_chaos_simulation")
         if not domain_ids:
             domain_ids = [
                 "3d_printing_fdm", "3d_printing_sla", "3d_printing_slm_dmls",
@@ -630,7 +630,7 @@ class FullHouseSimulator:
                 profile = self._lcm.predict(domain_id, "expert")
                 base_confidence = profile.confidence
             except Exception:  # noqa: BLE001
-                pass
+                logger.debug("Suppressed exception in lcm_chaos_simulation")
 
         survived_count = 0
         failed_count = 0

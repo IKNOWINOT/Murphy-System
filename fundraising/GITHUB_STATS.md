@@ -1,6 +1,6 @@
 # Murphy System — GitHub Stats One-Pager
 
-> Engineering depth at a glance. As of **2026-03-14**. Source: [Murphy System README](../README.md).
+> Engineering depth at a glance. Code-measured **2026-04-04**. Source: [Murphy System README](../README.md).
 
 ---
 
@@ -8,18 +8,18 @@
 
 | Metric | Value |
 |--------|-------|
-| **Source Files** | 1,122 named Python modules across 71 packages (1,223 `.py` files total) |
-| **Source Lines** | 218,497 |
-| **Classes** | 2,487 |
-| **Functions / Methods** | 8,472 |
-| **Packages (subsystem dirs)** | 81 |
-| **Test Files** | 644 |
-| **Test Functions** | 8,843+ |
+| **Source Files** | 1,230 named Python modules across 86 packages (1,346 `.py` files total) |
+| **Source Lines** | 594,131 |
+| **Classes** | 5,646 |
+| **Functions / Methods** | 21,332 |
+| **Packages (subsystem dirs)** | 86 |
+| **Test Files** | 806 |
+| **Test Functions** | 24,577 |
 | **Automation Types** | 6 (factory, content, data, system, agent, business) |
 | **Gap-Closure Categories Audited** | 90 (all at zero gaps) |
 | **Platform Connectors** | 90+ |
-| **Web Interfaces** | 14 |
-| **Bot Modules** | 104 |
+| **Web Interfaces** | 62 (10 core terminal UIs + feature pages) |
+| **Bot Modules** | 108 |
 | **License** | BSL 1.1 → Apache 2.0 (4 years per version) |
 
 ---
@@ -28,14 +28,14 @@
 
 **For a non-technical investor:**
 
-- **218,497 lines of production Python** is roughly equivalent to **5–10 senior engineers working full-time for 2+ years** at a well-funded startup. This was written by one person.
-- **1,122 named modules** means 1,122 distinct, named pieces of software — each handling a specific job (SCADA adapter, compliance engine, content syndication, etc.). This is not bloat; it is surface area that represents real capability.
-- **8,843+ passing tests** means the system continuously verifies its own behaviour. Every pull request runs the full suite automatically via GitHub Actions. This is the same standard used by enterprise software companies.
+- **594,131 lines of production Python** is roughly equivalent to **10–20 senior engineers working full-time for 2+ years** at a well-funded startup. This was written by one person.
+- **1,230 named modules** means 1,230 distinct, named pieces of software — each handling a specific job (SCADA adapter, compliance engine, content syndication, etc.). This is not bloat; it is surface area that represents real capability.
+- **24,577 test functions defined** means the system continuously verifies its own behaviour. Every pull request runs the full suite automatically via GitHub Actions. This is the same standard used by enterprise software companies.
 - **90+ platform connectors** means Murphy can talk to 90+ third-party services out of the box — from Slack and Salesforce to Modbus TCP industrial controllers — without writing code.
-- **14 web interfaces** means there are 14 fully functional browser-based UIs already shipped: an admin panel, a terminal UI, a compliance dashboard, an ROI calendar, and more.
-- **644 test files** covering **8,843+ test functions** — this is a quality-assurance infrastructure that most Series A startups don't have.
+- **62 web interfaces** means there are 62 browser-based UIs already shipped: admin panel, terminal UIs, compliance dashboard, CRM, boards, workflow canvas, and more.
+- **806 test files** covering **24,577 test functions** — this is a quality-assurance infrastructure that most Series A startups don't have.
 
-**The bottom line:** A comparably scoped system, built by a funded team, would have cost **$3M–$8M in engineering salaries** and taken **3–5 years**. It exists today, and it runs.
+**The bottom line:** A comparably scoped system, built by a funded team, would have cost **$5M–$15M in engineering salaries** and taken **3–5 years**. It exists today, and it runs.
 
 ---
 
@@ -60,9 +60,9 @@ This is not a red flag. This is the strongest possible signal of builder capabil
 | Self-improvement / immune | ~40 | Bug detection, self-fix loop, immune engine |
 | Multi-agent orchestration | ~50 | Swarm coordination, rate governor, tool registry |
 | API & integrations | ~90 | 90+ connectors, gateway adapter, webhook processor |
-| UI & web interfaces | ~30 | 14 web interfaces, component library |
+| UI & web interfaces | ~30 | 62 web interfaces, component library |
 | Bots | 104 | Autonomous bot runtime |
-| Tests & QA | 644 files | 8,843+ test functions |
+| Tests & QA | 806 files | 24,577 test functions |
 
 ---
 

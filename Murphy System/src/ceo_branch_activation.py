@@ -370,7 +370,7 @@ class VPRole:
             if isinstance(probe_data, dict):
                 metrics = {k: v for k, v in probe_data.items() if k != "healthy"}
         except Exception:  # noqa: BLE001
-            pass
+            logger.debug("Suppressed exception in ceo_branch_activation")
 
         # P1 — Enrich with Rosetta state context
         rosetta_ctx = self.rosetta_state
@@ -1324,7 +1324,7 @@ class CEOBranch:
                     try:
                         self._platform_manager.sync_down(role.agent_id)
                     except Exception:  # noqa: BLE001
-                        pass
+                        logger.debug("Suppressed exception in ceo_branch_activation")
             except Exception as exc:  # noqa: BLE001
                 logger.debug("P3: platform_manager directive recording failed: %s", str(exc)[:200])
 
@@ -1377,11 +1377,24 @@ class CEOBranch:
         }
         with self._lock:
             capped_append(self._telemetry, entry, max_size=_MAX_TELEMETRY_EVENTS)
-        if self._backbone is not None:
+        backbone = self._backbone
+        if backbone is None:
             try:
-                self._backbone.publish(event, entry)
+                import event_backbone_client as _ebc
+                backbone = _ebc.get_backbone()
             except Exception:
-                logger.debug("CEOBranch: EventBackbone publish failed for event %r", event)
+                logger.debug("Suppressed exception in ceo_branch_activation")
+        if backbone is None:
+            logging.getLogger("event_backbone_client").warning(
+                "CEOBranchActivation: no backbone available"
+            )
+            return
+        try:
+            from event_backbone import EventType
+            et = EventType.from_string(event) if hasattr(EventType, "from_string") else EventType.LEARNING_FEEDBACK
+            backbone.publish(event_type=et, payload=entry, source="ceo_branch_activation")
+        except Exception:
+            logger.debug("CEOBranch: EventBackbone publish failed for event %r", event)
 
     # ------------------------------------------------------------------
     # P0 — Seed Rosetta state for every VP role (Gap 2 closure)
@@ -1473,7 +1486,7 @@ class CEOBranch:
                         role.execute_directive(directive_text)
                         actions += 1
                     except Exception:
-                        pass
+                        logger.debug("Suppressed exception in ceo_branch_activation")
                 return {"ack": True, "actions": actions}
 
             self._heartbeat.register_translator(

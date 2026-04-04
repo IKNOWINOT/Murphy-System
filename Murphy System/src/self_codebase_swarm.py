@@ -916,7 +916,7 @@ class SelfCodebaseSwarm:
                         "total_functions": graph.total_functions,
                     }
             except Exception:
-                pass
+                logger.debug("Suppressed exception in self_codebase_swarm")
 
         arch_confidence = 0.85 if graph_summary else 0.70
         proposal.agent_votes["agent-architect-001"] = (
@@ -1007,7 +1007,7 @@ class SelfCodebaseSwarm:
                     confidence=proposal.confidence_score,
                 )
             except Exception:
-                pass
+                logger.debug("Suppressed exception in self_codebase_swarm")
 
         with self._lock:
             proposal.status = ProposalStatus.COMPLETE
@@ -1072,7 +1072,7 @@ class SelfCodebaseSwarm:
                         confidence=0.80,
                     ))
             except Exception:
-                pass
+                logger.debug("Suppressed exception in self_codebase_swarm")
 
         # Generic best-practice recommendations
         recs.append(Recommendation(

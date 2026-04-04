@@ -713,6 +713,7 @@ class DiagnosticSupervisor:
                 source = py_file.read_text(encoding="utf-8", errors="replace")
                 tree = ast.parse(source)
             except Exception:
+                logger.debug("Skipping unparseable file: %s", py_file)
                 continue
             for node in ast.walk(tree):
                 # Only top-level and class-level definitions
@@ -738,6 +739,7 @@ class DiagnosticSupervisor:
                 source = py_file.read_text(encoding="utf-8", errors="replace")
                 tree = ast.parse(source)
             except Exception:
+                logger.debug("Skipping unparseable file: %s", py_file)
                 continue
             for node in ast.walk(tree):
                 if isinstance(node, ast.Name):
@@ -2087,15 +2089,35 @@ class MurphyCodeHealer:
                 "CODE_HEALER_GAP_LOW_CONFIDENCE": "CODE_HEALER_GAP_LOW_CONFIDENCE",
             }
             et_name = _NAME_TO_EVENT_TYPE.get(event_name)
-            if et_name is None:
-                # Unmapped event — skip publishing rather than pass None
-                logger.debug("No EventType mapping for %s — skipping publish", event_name)
-                return
-            event_type = getattr(_ET, et_name, None)
+            if et_name is not None:
+                event_type = getattr(_ET, et_name, None)
+            else:
+                # Try from_string() or direct attribute lookup as fallback
+                event_type = None
+                if hasattr(_ET, "from_string"):
+                    try:
+                        event_type = _ET.from_string(event_name)
+                    except (ValueError, KeyError):
+                        pass
+                if event_type is None:
+                    upper = event_name.upper()
+                    event_type = getattr(_ET, upper, None)
+                if event_type is None:
+                    event_type = getattr(_ET, "LEARNING_FEEDBACK", None)
             if event_type is None:
                 logger.debug("EventType.%s not found — skipping publish", et_name)
                 return
-            self._backbone.publish(
+            backbone = self._backbone
+            if backbone is None:
+                try:
+                    import event_backbone_client as _ebc
+                    backbone = _ebc.get_backbone()
+                except Exception:
+                    logger.debug("event_backbone_client not available for MurphyCodeHealer")
+            if backbone is None:
+                logger.warning("MurphyCodeHealer: no backbone available")
+                return
+            backbone.publish(
                 event_type=event_type,
                 payload={
                     **payload,

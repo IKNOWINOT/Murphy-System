@@ -1,0 +1,72 @@
+[
+  {
+    "path_id": "3b7eff95-1d99-49bf-b870-352c62d8d3a1",
+    "task_id": "cf8c5fd1-f4ae-4508-b3cb-f23614b2017b",
+    "capability_id": "generate_domain_experts_dynamically",
+    "module_path": "src.dynamic_expert_generator",
+    "score": 0.25,
+    "librarian_score": 0.25,
+    "feedback_weight": 1.0,
+    "cost_estimate": "medium",
+    "determinism": "deterministic",
+    "requires_hitl": false,
+    "parameters": {},
+    "wingman": null
+  },
+  {
+    "path_id": "176b0de8-da60-4bba-9506-50c885cee369",
+    "task_id": "cf8c5fd1-f4ae-4508-b3cb-f23614b2017b",
+    "capability_id": "generate_domain-specific_gates",
+    "module_path": "src.domain_gate_generator",
+    "score": 0.25,
+    "librarian_score": 0.25,
+    "feedback_weight": 1.0,
+    "cost_estimate": "medium",
+    "determinism": "deterministic",
+    "requires_hitl": false,
+    "parameters": {},
+    "wingman": null
+  },
+  {
+    "path_id": "f6214d85-06ca-4f6f-8160-981f2ecc1d35",
+    "task_id": "cf8c5fd1-f4ae-4508-b3cb-f23614b2017b",
+    "capability_id": "generate_triggers",
+    "module_path": "src.document_processor",
+    "score": 0.25,
+    "librarian_score": 0.25,
+    "feedback_weight": 1.0,
+    "cost_estimate": "medium",
+    "determinism": "deterministic",
+    "requires_hitl": false,
+    "parameters": {},
+    "wingman": null
+  },
+  {
+    "path_id": "e268bdb5-0391-4e20-a04f-19971ab79b73",
+    "task_id": "cf8c5fd1-f4ae-4508-b3cb-f23614b2017b",
+    "capability_id": "generate_system_reports",
+    "module_path": "src.system_integrator",
+    "score": 0.25,
+    "librarian_score": 0.25,
+    "feedback_weight": 1.0,
+    "cost_estimate": "medium",
+    "determinism": "deterministic",
+    "requires_hitl": false,
+    "parameters": {},
+    "wingman": null
+  },
+  {
+    "path_id": "074adfe7-f007-4c4e-af34-be147f8337f1",
+    "task_id": "cf8c5fd1-f4ae-4508-b3cb-f23614b2017b",
+    "capability_id": "generate_contracts",
+    "module_path": "src.contractual_audit",
+    "score": 0.25,
+    "librarian_score": 0.25,
+    "feedback_weight": 1.0,
+    "cost_estimate": "medium",
+    "determinism": "deterministic",
+    "requires_hitl": false,
+    "parameters": {},
+    "wingman": null
+  }
+]

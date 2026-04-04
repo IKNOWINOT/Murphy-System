@@ -626,7 +626,7 @@ class AuditLogger:
                 extra={"audit_entry": entry},
             )
         except Exception:
-            pass  # Never let audit persistence failure break the request
+            logger.debug("Audit persistence failure (silenced to avoid breaking request)")
 
     def query(
         self,
