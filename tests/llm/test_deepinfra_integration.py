@@ -212,6 +212,118 @@ class TestDeepInfraKeyRotation:
 
 
 # ---------------------------------------------------------------------------
+# Tier 0: URL Correctness Regression Guard  [LLM-URL-001]
+# ---------------------------------------------------------------------------
+
+# The canonical DeepInfra OpenAI-compatible base URL is:
+#   https://api.deepinfra.com/v1/openai
+#
+# Known malformed variants that have caused silent 404 failures in production:
+#   - /v1/openai/openai/v1   (double duplication)
+#   - /v1/openai/v1          (single extra /v1 suffix)
+#
+# These tests scan source files to prevent the bug from recurring.
+
+_CANONICAL_BASE = "https://api.deepinfra.com/v1/openai"
+
+# Patterns that indicate a malformed URL — the canonical base followed by
+# an accidental extra path segment before the real resource path.
+_MALFORMED_PATTERNS = (
+    "deepinfra.com/v1/openai/openai/",   # double duplication
+    "deepinfra.com/v1/openai/v1/",        # extra /v1 before resource
+    "deepinfra.com/v1/openai/v1\"",        # extra /v1 at end of quoted string
+    "deepinfra.com/v1/openai/v1'",         # same, single-quoted
+)
+
+
+class TestDeepInfraURLCorrectness:
+    """Regression guard: ensure no malformed DeepInfra URLs in source code.
+
+    Design label: LLM-URL-001
+    Conditions tested:
+      - All .py files under src/ contain only canonical DeepInfra URLs
+      - Documentation files contain only canonical DeepInfra URLs
+    Expected result: zero malformed URLs anywhere in the tree.
+    """
+
+    @staticmethod
+    def _scan_file(filepath: str) -> list[tuple[int, str]]:
+        """Return list of (line_number, line_text) for malformed DeepInfra URLs."""
+        hits: list[tuple[int, str]] = []
+        try:
+            with open(filepath, encoding="utf-8", errors="replace") as fh:
+                for lineno, line in enumerate(fh, 1):
+                    for pat in _MALFORMED_PATTERNS:
+                        if pat in line:
+                            hits.append((lineno, line.rstrip()))
+                            break
+        except OSError:
+            pass
+        return hits
+
+    def test_no_malformed_deepinfra_urls_in_src(self) -> None:
+        """No Python source file under src/ should contain a malformed DeepInfra URL."""
+        import pathlib
+
+        src_root = pathlib.Path(__file__).resolve().parent.parent.parent / "src"
+        violations: list[str] = []
+        for pyfile in sorted(src_root.rglob("*.py")):
+            hits = self._scan_file(str(pyfile))
+            for lineno, line in hits:
+                violations.append(f"  {pyfile.relative_to(src_root)}:{lineno}: {line}")
+
+        assert not violations, (
+            f"Malformed DeepInfra URL(s) found in {len(violations)} location(s):\n"
+            + "\n".join(violations)
+            + f"\n\nCanonical base URL is: {_CANONICAL_BASE}"
+        )
+
+    def test_no_malformed_deepinfra_urls_in_docs(self) -> None:
+        """No documentation file should contain a malformed DeepInfra URL."""
+        import pathlib
+
+        repo_root = pathlib.Path(__file__).resolve().parent.parent.parent
+        violations: list[str] = []
+        for doc_dir in ("docs", "documentation"):
+            doc_root = repo_root / doc_dir
+            if not doc_root.is_dir():
+                continue
+            for mdfile in sorted(doc_root.rglob("*.md")):
+                hits = self._scan_file(str(mdfile))
+                for lineno, line in hits:
+                    violations.append(f"  {mdfile.relative_to(repo_root)}:{lineno}: {line}")
+
+        assert not violations, (
+            f"Malformed DeepInfra URL(s) found in {len(violations)} doc(s):\n"
+            + "\n".join(violations)
+            + f"\n\nCanonical base URL is: {_CANONICAL_BASE}"
+        )
+
+    def test_openai_compatible_provider_base_url(self) -> None:
+        """OpenAICompatibleProvider should use the canonical DeepInfra base URL."""
+        from openai_compatible_provider import OpenAICompatibleProvider, ProviderType
+
+        _clear_managed_env()
+        os.environ["DEEPINFRA_API_KEY"] = "di_test_key_url_check"
+        try:
+            provider = OpenAICompatibleProvider.from_env()
+            assert provider.provider_type == ProviderType.DEEPINFRA
+            # The base_url must be exactly the canonical URL (no trailing junk)
+            actual_url = provider._config.base_url
+            assert actual_url is not None and actual_url.rstrip("/") == _CANONICAL_BASE, (
+                f"Expected base_url={_CANONICAL_BASE!r}, got {actual_url!r}"
+            )
+        finally:
+            _restore_env(_save_env())
+            os.environ.pop("DEEPINFRA_API_KEY", None)
+
+    def test_llm_provider_base_url_constant(self) -> None:
+        """llm_provider.DEEPINFRA_BASE_URL must equal the canonical URL."""
+        from llm_provider import DEEPINFRA_BASE_URL
+        assert DEEPINFRA_BASE_URL.rstrip("/") == _CANONICAL_BASE
+
+
+# ---------------------------------------------------------------------------
 # Tier 1: Domain Routing (Unit Tests)
 # ---------------------------------------------------------------------------
 

@@ -113,7 +113,7 @@ python -m pytest tests/test_deepinfra_integration.py -k "not LiveAPI" -v
 #### Tier 1: Configuration Tests
 1. **Auto-detection:** Setting `DEEPINFRA_API_KEY` auto-selects DeepInfra provider
 2. **Default model:** DeepInfra provider defaults to `mixtral-8x7b-32768`
-3. **Base URL:** DeepInfra base URL is `https://api.deepinfra.com/v1/openai/v1`
+3. **Base URL:** DeepInfra base URL is `https://api.deepinfra.com/v1/openai`
 4. **Key rotation:** Multiple keys rotate correctly via round-robin
 5. **Key disable:** Keys auto-disable after consecutive failures
 
