@@ -669,6 +669,8 @@ class TestAPIFieldNameCompatibility(unittest.TestCase):
     def setUpClass(cls):
         """Create a test client for the Murphy System API."""
         try:
+            # Use development mode to bypass auth middleware in tests
+            os.environ.setdefault("MURPHY_ENV", "development")
             from src.runtime.app import create_app
             from fastapi.testclient import TestClient
             cls.app = create_app()

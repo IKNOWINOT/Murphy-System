@@ -17,10 +17,19 @@ _K8S_DIR = os.path.join(os.path.dirname(__file__), "..", "k8s")
 
 
 def _load(filename: str) -> dict:
-    """Load and parse a YAML manifest file."""
+    """Load and parse a YAML manifest file.
+
+    Handles multi-document YAML files (separated by ---) by returning
+    the first non-None document.
+    """
     path = os.path.join(_K8S_DIR, filename)
     with open(path, encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        docs = list(yaml.safe_load_all(f))
+    # Return the first non-None document (skip comment-only separators)
+    for doc in docs:
+        if doc is not None:
+            return doc
+    return {}
 
 
 def _get(obj, *keys, default=None):

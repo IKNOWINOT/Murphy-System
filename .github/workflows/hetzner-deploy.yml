@@ -14,7 +14,7 @@ jobs:
       MURPHY_DB_MODE: stub
       E2EE_STUB_ALLOWED: "true"
       MURPHY_POOL_MODE: simulated
-      PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+      PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src:${{ github.workspace }}/Murphy System/scripts:${{ github.workspace }}/Murphy System/bots"
     steps:
       - uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
       - uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)

@@ -16,10 +16,11 @@ Usage::
     from nav_registry import get_nav_structure, get_nav_for_account
 
     nav = get_nav_structure()
-    pilot_nav = get_nav_for_account("cpost@murphy.systems")
+    pilot_nav = get_nav_for_account(os.environ.get("MURPHY_FOUNDER_EMAIL", ""))
 """
 from __future__ import annotations
 
+import os
 from typing import Any
 
 # ---------------------------------------------------------------------------
@@ -107,7 +108,7 @@ _ROLE_VISIBILITY: dict[str, set[str]] = {
 }
 
 # Pilot account always sees everything
-_PILOT_EMAIL = "cpost@murphy.systems"
+_PILOT_EMAIL = os.environ.get("MURPHY_FOUNDER_EMAIL", "")
 
 
 def get_nav_structure() -> dict[str, list[dict[str, Any]]]:

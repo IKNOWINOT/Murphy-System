@@ -1,5 +1,5 @@
 """
-Murphy System 1.0 - Runtime Entry Point
+☠ Murphy System 1.0 - Runtime Entry Point ☠
 
 This module is the thin entry-point for the Murphy System 1.0 runtime.
 The implementation has been refactored into the ``src.runtime`` package

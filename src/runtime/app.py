@@ -1996,6 +1996,492 @@ def create_app() -> FastAPI:
             {"command": "signup", "category": "auth", "description": "Create a new Murphy account", "api": "/api/auth/signup", "ui": "/ui/signup"},
             {"command": "oauth google", "category": "auth", "description": "Sign up or login with Google", "api": "/api/auth/oauth/google", "ui": "/ui/signup"},
             {"command": "oauth github", "category": "auth", "description": "Sign up or login with GitHub", "api": "/api/auth/oauth/github", "ui": "/ui/signup"},
+
+            # ══════════════════════════════════════════════════════════════
+            # Module Manifest Commands — auto-generated from module_manifest.py
+            # ══════════════════════════════════════════════════════════════
+            # ── Agents (from module manifest) ──
+            {"command": "agents dashboard", "category": "agents", "description": "Agent monitor dashboard", "api": "/api/agents/dashboard", "ui": "/ui/terminal-orchestrator#agents"},
+            {"command": "agents history", "category": "agents", "description": "Agent run recorder", "api": "/api/agents/history", "ui": "/ui/terminal-orchestrator#agents"},
+            {"command": "agents monitor", "category": "agents", "description": "Agent monitor dashboard", "api": "/api/agents/monitor", "ui": "/ui/terminal-orchestrator#agents"},
+            {"command": "agents personas", "category": "agents", "description": "Agent persona library", "api": "/api/agents/personas", "ui": "/ui/terminal-orchestrator#agents"},
+            {"command": "agents provision-api", "category": "agents", "description": "Agentic API provisioner", "api": "/api/agents/provision-api", "ui": "/ui/terminal-orchestrator#agents"},
+            {"command": "agents runs", "category": "agents", "description": "Agent run recorder", "api": "/api/agents/runs", "ui": "/ui/terminal-orchestrator#agents"},
+            {"command": "bots inventory", "category": "agents", "description": "Bot inventory library", "api": "/api/bots/inventory", "ui": "/ui/terminal-orchestrator#agents"},
+            # ── Ai (from module manifest) ──
+            {"command": "ai workflow", "category": "ai", "description": "AI workflow generator", "api": "/api/ai/workflow", "ui": "/ui/terminal-integrated"},
+            # ── Automation (from module manifest) ──
+            {"command": "automation enable", "category": "automation", "description": "Full automation controller", "api": "/api/automation/enable", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "automation full", "category": "automation", "description": "Full automation controller", "api": "/api/automation/full", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "automation hub", "category": "automation", "description": "Automation integration hub", "api": "/api/automation/hub", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "automation integrations", "category": "automation", "description": "Automation integration hub", "api": "/api/automation/integrations", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "automation loop", "category": "automation", "description": "Automation loop connector", "api": "/api/automation/loop", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "automation marketplace", "category": "automation", "description": "Automation marketplace", "api": "/api/automation/marketplace", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "automation mode", "category": "automation", "description": "Automation mode controller", "api": "/api/automation/mode", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "automation native", "category": "automation", "description": "Murphy native automation", "api": "/api/automation/native", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "automation orchestrate", "category": "automation", "description": "Self automation orchestrator", "api": "/api/automation/orchestrate", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "automation rbac", "category": "automation", "description": "Automation RBAC controller", "api": "/api/automation/rbac", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "automation readiness", "category": "automation", "description": "Automation readiness evaluator", "api": "/api/automation/readiness", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "automation self", "category": "automation", "description": "Self automation orchestrator", "api": "/api/automation/self", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "automation set-mode", "category": "automation", "description": "Automation mode controller", "api": "/api/automation/set-mode", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "automation types", "category": "automation", "description": "Automation type registry", "api": "/api/automation/types", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "exec compile", "category": "automation", "description": "Execution packet compiler", "api": "/api/exec/compile", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "exec flows", "category": "automation", "description": "Execution orchestration and flow management", "api": "/api/exec/flows", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "exec history", "category": "automation", "description": "Core task execution engine", "api": "/api/exec/history", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "exec marketplace", "category": "automation", "description": "Automation marketplace", "api": "/api/exec/marketplace", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "exec orchestrate", "category": "automation", "description": "Execution orchestration and flow management", "api": "/api/exec/orchestrate", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "exec overview", "category": "automation", "description": "Execution orchestration and flow management", "api": "/api/exec/overview", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "exec package", "category": "automation", "description": "Execution package", "api": "/api/exec/package", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "exec queue", "category": "automation", "description": "Core task execution engine", "api": "/api/exec/queue", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "exec run", "category": "automation", "description": "Core task execution engine", "api": "/api/exec/run", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "exec scale", "category": "automation", "description": "Automation scaler", "api": "/api/exec/scale", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "exec schedule", "category": "automation", "description": "Automation scheduler", "api": "/api/exec/schedule", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "exec status", "category": "automation", "description": "Core task execution engine", "api": "/api/exec/status", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "nocode run", "category": "automation", "description": "No-code workflow terminal", "api": "/api/nocode/run", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "nocode workflow", "category": "automation", "description": "No-code workflow terminal", "api": "/api/nocode/workflow", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "schedule list", "category": "automation", "description": "Automation scheduler", "api": "/api/schedule/list", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "schedule predict", "category": "automation", "description": "Automation scheduler", "api": "/api/schedule/predict", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "workflow dag", "category": "automation", "description": "Workflow DAG engine", "api": "/api/workflow/dag", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "workflow generate", "category": "automation", "description": "AI workflow generator", "api": "/api/workflow/generate", "ui": "/ui/terminal-orchestrator#automation"},
+            {"command": "workflow templates", "category": "automation", "description": "Workflow template marketplace", "api": "/api/workflow/templates", "ui": "/ui/terminal-orchestrator#automation"},
+            # ── Bridge (from module manifest) ──
+            {"command": "bridge compat", "category": "bridge", "description": "Legacy compatibility matrix", "api": "/api/bridge/compat", "ui": "/ui/terminal-architect#bridge"},
+            {"command": "bridge status", "category": "bridge", "description": "Bridge layer", "api": "/api/bridge/status", "ui": "/ui/terminal-architect#bridge"},
+            # ── Business (from module manifest) ──
+            {"command": "biz generate", "category": "business", "description": "Niche business generator", "api": "/api/biz/generate", "ui": "/ui/terminal-integrated#business"},
+            {"command": "biz niche", "category": "business", "description": "Niche business generator", "api": "/api/biz/niche", "ui": "/ui/terminal-integrated#business"},
+            {"command": "biz scale", "category": "business", "description": "Business scaling engine", "api": "/api/biz/scale", "ui": "/ui/terminal-integrated#business"},
+            {"command": "biz viability", "category": "business", "description": "Niche viability gate", "api": "/api/biz/viability", "ui": "/ui/terminal-integrated#business"},
+            {"command": "innovate run", "category": "business", "description": "Innovation farmer", "api": "/api/innovate/run", "ui": "/ui/terminal-integrated#business"},
+            {"command": "innovate status", "category": "business", "description": "Innovation farmer", "api": "/api/innovate/status", "ui": "/ui/terminal-integrated#business"},
+            {"command": "research advanced", "category": "business", "description": "Advanced research", "api": "/api/research/advanced", "ui": "/ui/terminal-integrated#business"},
+            {"command": "research competitive", "category": "business", "description": "Competitive intelligence engine", "api": "/api/research/competitive", "ui": "/ui/terminal-integrated#business"},
+            {"command": "research multi", "category": "business", "description": "Multi-source research", "api": "/api/research/multi", "ui": "/ui/terminal-integrated#business"},
+            {"command": "research query", "category": "business", "description": "Research engine", "api": "/api/research/query", "ui": "/ui/terminal-integrated#business"},
+            {"command": "research run", "category": "business", "description": "Research engine", "api": "/api/research/run", "ui": "/ui/terminal-integrated#business"},
+            # ── Ci (from module manifest) ──
+            {"command": "cicd pipeline", "category": "ci", "description": "CI/CD pipeline manager", "api": "/api/cicd/pipeline", "ui": "/ui/terminal-integrated"},
+            {"command": "cicd status", "category": "ci", "description": "CI/CD pipeline manager", "api": "/api/cicd/status", "ui": "/ui/terminal-integrated"},
+            {"command": "cicd trigger", "category": "ci", "description": "CI/CD pipeline manager", "api": "/api/cicd/trigger", "ui": "/ui/terminal-integrated"},
+            # ── Collaboration (from module manifest) ──
+            {"command": "board sprint", "category": "collaboration", "description": "Board system", "api": "/api/board/sprint", "ui": "/ui/dashboard#collaboration"},
+            {"command": "board status", "category": "collaboration", "description": "Board system", "api": "/api/board/status", "ui": "/ui/dashboard#collaboration"},
+            {"command": "board tasks", "category": "collaboration", "description": "Board system", "api": "/api/board/tasks", "ui": "/ui/dashboard#collaboration"},
+            {"command": "collab guest", "category": "collaboration", "description": "Guest collaboration", "api": "/api/collab/guest", "ui": "/ui/dashboard#collaboration"},
+            {"command": "collab status", "category": "collaboration", "description": "Collaboration", "api": "/api/collab/status", "ui": "/ui/dashboard#collaboration"},
+            # ── Communications (from module manifest) ──
+            {"command": "comms customer", "category": "communications", "description": "Customer communication manager", "api": "/api/comms/customer", "ui": "/ui/terminal-integrations#comms"},
+            {"command": "comms status", "category": "communications", "description": "Customer communication manager", "api": "/api/comms/status", "ui": "/ui/terminal-integrations#comms"},
+            {"command": "comms status", "category": "communications", "description": "Communications subsystem", "api": "/api/comms/status", "ui": "/ui/terminal-integrations#comms"},
+            {"command": "comms system", "category": "communications", "description": "Communication system", "api": "/api/comms/system", "ui": "/ui/terminal-integrations#comms"},
+            {"command": "email configure", "category": "communications", "description": "Email integration", "api": "/api/email/configure", "ui": "/ui/terminal-integrations#comms"},
+            {"command": "email test", "category": "communications", "description": "Email integration", "api": "/api/email/test", "ui": "/ui/terminal-integrations#comms"},
+            {"command": "notify configure", "category": "communications", "description": "Notification system", "api": "/api/notify/configure", "ui": "/ui/terminal-integrations#comms"},
+            {"command": "notify list", "category": "communications", "description": "Notification system", "api": "/api/notify/list", "ui": "/ui/terminal-integrations#comms"},
+            {"command": "notify send", "category": "communications", "description": "Notification system", "api": "/api/notify/send", "ui": "/ui/terminal-integrations#comms"},
+            {"command": "webhooks dispatch", "category": "communications", "description": "Webhook dispatcher", "api": "/api/webhooks/dispatch", "ui": "/ui/terminal-integrations#comms"},
+            {"command": "webhooks list", "category": "communications", "description": "Webhook dispatcher", "api": "/api/webhooks/list", "ui": "/ui/terminal-integrations#comms"},
+            {"command": "webhooks process", "category": "communications", "description": "Webhook event processor", "api": "/api/webhooks/process", "ui": "/ui/terminal-integrations#comms"},
+            # ── Compliance (from module manifest) ──
+            {"command": "compliance audit", "category": "compliance", "description": "Compliance engine", "api": "/api/compliance/audit", "ui": "/ui/compliance"},
+            {"command": "compliance automate", "category": "compliance", "description": "Compliance automation bridge", "api": "/api/compliance/automate", "ui": "/ui/compliance"},
+            {"command": "compliance check", "category": "compliance", "description": "Outreach compliance integration — wires governor into all outreach paths", "api": "/api/compliance/check", "ui": "/ui/compliance"},
+            {"command": "compliance code", "category": "compliance", "description": "Compliance as code", "api": "/api/compliance/code", "ui": "/ui/compliance"},
+            {"command": "compliance dnc", "category": "compliance", "description": "Contact compliance governor — cooldown, DNC, regulatory gating", "api": "/api/compliance/dnc", "ui": "/ui/compliance"},
+            {"command": "compliance gates", "category": "compliance", "description": "Gate synthesis and compliance enforcement", "api": "/api/compliance/gates", "ui": "/ui/compliance"},
+            {"command": "compliance monitoring", "category": "compliance", "description": "Compliance monitoring completeness", "api": "/api/compliance/monitoring", "ui": "/ui/compliance"},
+            {"command": "compliance orchestrate", "category": "compliance", "description": "Compliance orchestration bridge", "api": "/api/compliance/orchestrate", "ui": "/ui/compliance"},
+            {"command": "compliance outreach", "category": "compliance", "description": "Contact compliance governor — cooldown, DNC, regulatory gating", "api": "/api/compliance/outreach", "ui": "/ui/compliance"},
+            {"command": "compliance policy", "category": "compliance", "description": "Compliance as code", "api": "/api/compliance/policy", "ui": "/ui/compliance"},
+            {"command": "compliance rbac", "category": "compliance", "description": "RBAC governance", "api": "/api/compliance/rbac", "ui": "/ui/compliance"},
+            {"command": "compliance status", "category": "compliance", "description": "Compliance engine", "api": "/api/compliance/status", "ui": "/ui/compliance"},
+            {"command": "compliance status", "category": "compliance", "description": "Outreach compliance integration — wires governor into all outreach paths", "api": "/api/compliance/status", "ui": "/ui/compliance"},
+            # ── Compute (from module manifest) ──
+            {"command": "compute deterministic", "category": "compute", "description": "Deterministic compute plane", "api": "/api/compute/deterministic", "ui": "/ui/terminal-architect#compute"},
+            {"command": "compute resources", "category": "compute", "description": "Compute plane management", "api": "/api/compute/resources", "ui": "/ui/terminal-architect#compute"},
+            {"command": "compute status", "category": "compute", "description": "Compute plane management", "api": "/api/compute/status", "ui": "/ui/terminal-architect#compute"},
+            {"command": "fleet deploy", "category": "compute", "description": "Declarative fleet manager", "api": "/api/fleet/deploy", "ui": "/ui/terminal-architect#compute"},
+            {"command": "fleet status", "category": "compute", "description": "Declarative fleet manager", "api": "/api/fleet/status", "ui": "/ui/terminal-architect#compute"},
+            # ── Confidence (from module manifest) ──
+            {"command": "confidence artifacts", "category": "confidence", "description": "Confidence scoring and artifact graph", "api": "/api/confidence/artifacts", "ui": "/ui/terminal-architect#confidence"},
+            {"command": "confidence score", "category": "confidence", "description": "Confidence scoring and artifact graph", "api": "/api/confidence/score", "ui": "/ui/terminal-architect#confidence"},
+            {"command": "confidence status", "category": "confidence", "description": "Confidence scoring and artifact graph", "api": "/api/confidence/status", "ui": "/ui/terminal-architect#confidence"},
+            # ── Credentials (from module manifest) ──
+            {"command": "credentials profile", "category": "credentials", "description": "Credential profile system", "api": "/api/credentials/profile", "ui": "/ui/terminal-architect#credentials"},
+            {"command": "keys create", "category": "credentials", "description": "Secure key manager", "api": "/api/keys/create", "ui": "/ui/terminal-architect#credentials"},
+            {"command": "keys deepinfra", "category": "credentials", "description": "DeepInfra key rotator", "api": "/api/keys/deepinfra", "ui": "/ui/terminal-architect#credentials"},
+            {"command": "keys harvest", "category": "credentials", "description": "Key harvester", "api": "/api/keys/harvest", "ui": "/ui/terminal-architect#credentials"},
+            {"command": "keys list", "category": "credentials", "description": "Secure key manager", "api": "/api/keys/list", "ui": "/ui/terminal-architect#credentials"},
+            {"command": "keys status", "category": "credentials", "description": "Secure key manager", "api": "/api/keys/status", "ui": "/ui/terminal-architect#credentials"},
+            # ── Crm (from module manifest) ──
+            {"command": "account list", "category": "crm", "description": "Account management", "api": "/api/account/list", "ui": "/ui/dashboard#crm"},
+            {"command": "account status", "category": "crm", "description": "Account management", "api": "/api/account/status", "ui": "/ui/dashboard#crm"},
+            {"command": "crm contacts", "category": "crm", "description": "CRM", "api": "/api/crm/contacts", "ui": "/ui/dashboard#crm"},
+            {"command": "crm leads", "category": "crm", "description": "CRM", "api": "/api/crm/leads", "ui": "/ui/dashboard#crm"},
+            {"command": "crm status", "category": "crm", "description": "CRM", "api": "/api/crm/status", "ui": "/ui/dashboard#crm"},
+            {"command": "onboard automate", "category": "crm", "description": "Onboarding automation engine", "api": "/api/onboard/automate", "ui": "/ui/dashboard#crm"},
+            {"command": "onboard flow", "category": "crm", "description": "Onboarding flow", "api": "/api/onboard/flow", "ui": "/ui/dashboard#crm"},
+            {"command": "onboard start", "category": "crm", "description": "Agentic onboarding engine", "api": "/api/onboard/start", "ui": "/ui/dashboard#crm"},
+            {"command": "onboard start", "category": "crm", "description": "Onboarding flow", "api": "/api/onboard/start", "ui": "/ui/dashboard#crm"},
+            {"command": "onboard status", "category": "crm", "description": "Agentic onboarding engine", "api": "/api/onboard/status", "ui": "/ui/dashboard#crm"},
+            {"command": "onboard team", "category": "crm", "description": "Onboarding team pipeline", "api": "/api/onboard/team", "ui": "/ui/dashboard#crm"},
+            # ── Cutsheet (from module manifest) ──
+            {"command": "cutsheet ingest", "category": "cutsheet", "description": "Cut sheet engine — manufacturer data parsing, wiring diagrams, device config generation", "api": "/api/cutsheet/ingest", "ui": "/ui/terminal-integrated"},
+            {"command": "cutsheet list", "category": "cutsheet", "description": "Cut sheet engine — manufacturer data parsing, wiring diagrams, device config generation", "api": "/api/cutsheet/list", "ui": "/ui/terminal-integrated"},
+            {"command": "cutsheet verify", "category": "cutsheet", "description": "Cut sheet engine — manufacturer data parsing, wiring diagrams, device config generation", "api": "/api/cutsheet/verify", "ui": "/ui/terminal-integrated"},
+            # ── Dashboards (from module manifest) ──
+            {"command": "dashboard status", "category": "dashboards", "description": "Dashboards", "api": "/api/dashboard/status", "ui": "/ui/terminal-integrated"},
+            # ── Delivery (from module manifest) ──
+            {"command": "delivery channels", "category": "delivery", "description": "Delivery channel completeness", "api": "/api/delivery/channels", "ui": "/ui/terminal-integrated#delivery"},
+            {"command": "delivery list", "category": "delivery", "description": "Delivery adapters", "api": "/api/delivery/list", "ui": "/ui/terminal-integrated#delivery"},
+            {"command": "form list", "category": "delivery", "description": "Form intake and processing", "api": "/api/form/list", "ui": "/ui/terminal-integrated#delivery"},
+            {"command": "form status", "category": "delivery", "description": "Form intake and processing", "api": "/api/form/status", "ui": "/ui/terminal-integrated#delivery"},
+            {"command": "templates get", "category": "delivery", "description": "Murphy template hub", "api": "/api/templates/get", "ui": "/ui/terminal-integrated#delivery"},
+            {"command": "templates list", "category": "delivery", "description": "Murphy template hub", "api": "/api/templates/list", "ui": "/ui/terminal-integrated#delivery"},
+            # ── Developer (from module manifest) ──
+            {"command": "action list", "category": "developer", "description": "Murphy action engine", "api": "/api/action/list", "ui": "/ui/terminal-architect#developer"},
+            {"command": "action run", "category": "developer", "description": "Murphy action engine", "api": "/api/action/run", "ui": "/ui/terminal-architect#developer"},
+            {"command": "compile adapt", "category": "developer", "description": "Module compiler adapter", "api": "/api/compile/adapt", "ui": "/ui/terminal-architect#developer"},
+            {"command": "compile module", "category": "developer", "description": "Module compiler", "api": "/api/compile/module", "ui": "/ui/terminal-architect#developer"},
+            {"command": "compile shim", "category": "developer", "description": "Shim compiler", "api": "/api/compile/shim", "ui": "/ui/terminal-architect#developer"},
+            {"command": "dev status", "category": "developer", "description": "Dev module", "api": "/api/dev/status", "ui": "/ui/terminal-architect#developer"},
+            {"command": "modules capabilities", "category": "developer", "description": "Capability map", "api": "/api/modules/capabilities", "ui": "/ui/terminal-architect#developer"},
+            {"command": "modules manage", "category": "developer", "description": "Module manager", "api": "/api/modules/manage", "ui": "/ui/terminal-architect#developer"},
+            {"command": "modules plugins", "category": "developer", "description": "Plugin extension SDK", "api": "/api/modules/plugins", "ui": "/ui/terminal-architect#developer"},
+            {"command": "modules registry", "category": "developer", "description": "Module registry", "api": "/api/modules/registry", "ui": "/ui/terminal-architect#developer"},
+            {"command": "modules runtime", "category": "developer", "description": "Modular runtime", "api": "/api/modules/runtime", "ui": "/ui/terminal-architect#developer"},
+            {"command": "repl eval", "category": "developer", "description": "Murphy REPL", "api": "/api/repl/eval", "ui": "/ui/terminal-architect#developer"},
+            {"command": "repl run", "category": "developer", "description": "Murphy REPL", "api": "/api/repl/run", "ui": "/ui/terminal-architect#developer"},
+            # ── Digital (from module manifest) ──
+            {"command": "asset generate", "category": "digital", "description": "Digital asset generator", "api": "/api/asset/generate", "ui": "/ui/terminal-integrated"},
+            # ── Engineering (from module manifest) ──
+            {"command": "cad asset", "category": "engineering", "description": "Digital asset generator", "api": "/api/cad/asset", "ui": "/ui/terminal-architect#engineering"},
+            {"command": "cad draw", "category": "engineering", "description": "Murphy drawing engine", "api": "/api/cad/draw", "ui": "/ui/terminal-architect#engineering"},
+            {"command": "cad image", "category": "engineering", "description": "Image generation engine", "api": "/api/cad/image", "ui": "/ui/terminal-architect#engineering"},
+            {"command": "cad twin", "category": "engineering", "description": "Digital twin engine", "api": "/api/cad/twin", "ui": "/ui/terminal-architect#engineering"},
+            {"command": "control plane", "category": "engineering", "description": "Control plane management", "api": "/api/control/plane", "ui": "/ui/terminal-architect#engineering"},
+            {"command": "control status", "category": "engineering", "description": "Control plane management", "api": "/api/control/status", "ui": "/ui/terminal-architect#engineering"},
+            {"command": "control theory", "category": "engineering", "description": "Control theory", "api": "/api/control/theory", "ui": "/ui/terminal-architect#engineering"},
+            {"command": "draw generate", "category": "engineering", "description": "Murphy drawing engine", "api": "/api/draw/generate", "ui": "/ui/terminal-architect#engineering"},
+            {"command": "eng domain", "category": "engineering", "description": "Domain engine", "api": "/api/eng/domain", "ui": "/ui/terminal-architect#engineering"},
+            {"command": "eng expert", "category": "engineering", "description": "Domain expert system", "api": "/api/eng/expert", "ui": "/ui/terminal-architect#engineering"},
+            {"command": "eng expert-gen", "category": "engineering", "description": "Dynamic expert generator", "api": "/api/eng/expert-gen", "ui": "/ui/terminal-architect#engineering"},
+            {"command": "eng expert-integrate", "category": "engineering", "description": "Domain expert integration", "api": "/api/eng/expert-integrate", "ui": "/ui/terminal-architect#engineering"},
+            {"command": "eng gate-gen", "category": "engineering", "description": "Domain gate generator", "api": "/api/eng/gate-gen", "ui": "/ui/terminal-architect#engineering"},
+            {"command": "eng perception", "category": "engineering", "description": "Murphy autonomous perception", "api": "/api/eng/perception", "ui": "/ui/terminal-architect#engineering"},
+            {"command": "eng sensor", "category": "engineering", "description": "Murphy sensor fusion", "api": "/api/eng/sensor", "ui": "/ui/terminal-architect#engineering"},
+            {"command": "eng simulate", "category": "engineering", "description": "Simulation engine", "api": "/api/eng/simulate", "ui": "/ui/terminal-architect#engineering"},
+            {"command": "eng toolbox", "category": "engineering", "description": "Murphy engineering toolbox", "api": "/api/eng/toolbox", "ui": "/ui/terminal-architect#engineering"},
+            {"command": "eng twin", "category": "engineering", "description": "Digital twin engine", "api": "/api/eng/twin", "ui": "/ui/terminal-architect#engineering"},
+            {"command": "eng vision", "category": "engineering", "description": "Computer vision pipeline", "api": "/api/eng/vision", "ui": "/ui/terminal-architect#engineering"},
+            {"command": "image generate", "category": "engineering", "description": "Image generation engine", "api": "/api/image/generate", "ui": "/ui/terminal-architect#engineering"},
+            {"command": "neuro status", "category": "engineering", "description": "Neuro-symbolic models", "api": "/api/neuro/status", "ui": "/ui/terminal-architect#engineering"},
+            {"command": "vision run", "category": "engineering", "description": "Computer vision pipeline", "api": "/api/vision/run", "ui": "/ui/terminal-architect#engineering"},
+            # ── Enterprise (from module manifest) ──
+            {"command": "integrations enterprise", "category": "enterprise", "description": "Enterprise integrations", "api": "/api/integrations/enterprise", "ui": "/ui/terminal-integrated"},
+            # ── Eq (from module manifest) ──
+            {"command": "eq status", "category": "eq", "description": "EQ module", "api": "/api/eq/status", "ui": "/ui/terminal-integrated"},
+            # ── Events (from module manifest) ──
+            {"command": "events list", "category": "events", "description": "Event backbone", "api": "/api/events/list", "ui": "/ui/terminal-orchestrator#events"},
+            {"command": "events status", "category": "events", "description": "Event backbone", "api": "/api/events/status", "ui": "/ui/terminal-orchestrator#events"},
+            # ── Executive (from module manifest) ──
+            {"command": "autonomous status", "category": "executive", "description": "Autonomous systems", "api": "/api/autonomous/status", "ui": "/ui/terminal-orchestrator#executive"},
+            {"command": "ceo activate", "category": "executive", "description": "CEO branch activation — top-level autonomous decision-making, org chart automation, and operational planning", "api": "/api/ceo/activate", "ui": "/ui/terminal-orchestrator#executive"},
+            {"command": "ceo directive", "category": "executive", "description": "CEO branch activation — top-level autonomous decision-making, org chart automation, and operational planning", "api": "/api/ceo/directive", "ui": "/ui/terminal-orchestrator#executive"},
+            {"command": "ceo plan", "category": "executive", "description": "CEO branch activation — top-level autonomous decision-making, org chart automation, and operational planning", "api": "/api/ceo/plan", "ui": "/ui/terminal-orchestrator#executive"},
+            {"command": "ceo status", "category": "executive", "description": "CEO branch activation — top-level autonomous decision-making, org chart automation, and operational planning", "api": "/api/ceo/status", "ui": "/ui/terminal-orchestrator#executive"},
+            {"command": "founder health", "category": "executive", "description": "Founder-level unified update orchestrator", "api": "/api/founder/health", "ui": "/ui/terminal-orchestrator#executive"},
+            {"command": "founder recommendations", "category": "executive", "description": "Founder-level unified update orchestrator", "api": "/api/founder/recommendations", "ui": "/ui/terminal-orchestrator#executive"},
+            {"command": "founder report", "category": "executive", "description": "Founder-level unified update orchestrator", "api": "/api/founder/report", "ui": "/ui/terminal-orchestrator#executive"},
+            {"command": "swarm build", "category": "executive", "description": "Self-codebase swarm — autonomous BMS spec generation, RFP parsing, and deliverable packaging", "api": "/api/swarm/build", "ui": "/ui/terminal-orchestrator#executive"},
+            {"command": "swarm crew", "category": "executive", "description": "Murphy crew system", "api": "/api/swarm/crew", "ui": "/ui/terminal-orchestrator#executive"},
+            {"command": "swarm domain", "category": "executive", "description": "Domain swarms", "api": "/api/swarm/domain", "ui": "/ui/terminal-orchestrator#executive"},
+            {"command": "swarm durable", "category": "executive", "description": "Durable swarm orchestrator", "api": "/api/swarm/durable", "ui": "/ui/terminal-orchestrator#executive"},
+            {"command": "swarm list", "category": "executive", "description": "Advanced swarm system", "api": "/api/swarm/list", "ui": "/ui/terminal-orchestrator#executive"},
+            {"command": "swarm orchestrate", "category": "executive", "description": "Durable swarm orchestrator", "api": "/api/swarm/orchestrate", "ui": "/ui/terminal-orchestrator#executive"},
+            {"command": "swarm propose", "category": "executive", "description": "Swarm proposal generator", "api": "/api/swarm/propose", "ui": "/ui/terminal-orchestrator#executive"},
+            {"command": "swarm propose", "category": "executive", "description": "Self-codebase swarm — autonomous BMS spec generation, RFP parsing, and deliverable packaging", "api": "/api/swarm/propose", "ui": "/ui/terminal-orchestrator#executive"},
+            {"command": "swarm spawn", "category": "executive", "description": "Advanced swarm system", "api": "/api/swarm/spawn", "ui": "/ui/terminal-orchestrator#executive"},
+            {"command": "swarm status", "category": "executive", "description": "Advanced swarm system", "api": "/api/swarm/status", "ui": "/ui/terminal-orchestrator#executive"},
+            {"command": "swarm status", "category": "executive", "description": "Self-codebase swarm — autonomous BMS spec generation, RFP parsing, and deliverable packaging", "api": "/api/swarm/status", "ui": "/ui/terminal-orchestrator#executive"},
+            # ── Finance (from module manifest) ──
+            {"command": "costs recommendations", "category": "finance", "description": "Cost optimization advisor", "api": "/api/costs/recommendations", "ui": "/ui/terminal-integrated#finance"},
+            {"command": "finance budget", "category": "finance", "description": "Budget-aware processor", "api": "/api/finance/budget", "ui": "/ui/terminal-integrated#finance"},
+            {"command": "finance coinbase", "category": "finance", "description": "Coinbase connector", "api": "/api/finance/coinbase", "ui": "/ui/terminal-integrated#finance"},
+            {"command": "finance cost-gate", "category": "finance", "description": "Cost explosion gate", "api": "/api/finance/cost-gate", "ui": "/ui/terminal-integrated#finance"},
+            {"command": "finance costs", "category": "finance", "description": "Cost optimization advisor", "api": "/api/finance/costs", "ui": "/ui/terminal-integrated#finance"},
+            {"command": "finance crypto exchange", "category": "finance", "description": "Crypto exchange connector", "api": "/api/finance/crypto-exchange", "ui": "/ui/terminal-integrated#finance"},
+            {"command": "finance crypto portfolio", "category": "finance", "description": "Crypto portfolio tracker", "api": "/api/finance/crypto-portfolio", "ui": "/ui/terminal-integrated#finance"},
+            {"command": "finance crypto risk", "category": "finance", "description": "Crypto risk manager", "api": "/api/finance/crypto-risk", "ui": "/ui/terminal-integrated#finance"},
+            {"command": "finance crypto wallet", "category": "finance", "description": "Crypto wallet manager", "api": "/api/finance/crypto-wallet", "ui": "/ui/terminal-integrated#finance"},
+            {"command": "finance invoice", "category": "finance", "description": "Invoice processing pipeline", "api": "/api/finance/invoice", "ui": "/ui/terminal-integrated#finance"},
+            {"command": "finance invoices", "category": "finance", "description": "Invoice processing pipeline", "api": "/api/finance/invoices", "ui": "/ui/terminal-integrated#finance"},
+            {"command": "finance market", "category": "finance", "description": "Market data feed", "api": "/api/finance/market", "ui": "/ui/terminal-integrated#finance"},
+            {"command": "finance report", "category": "finance", "description": "Financial reporting engine", "api": "/api/finance/report", "ui": "/ui/terminal-integrated#finance"},
+            {"command": "finance summary", "category": "finance", "description": "Financial reporting engine", "api": "/api/finance/summary", "ui": "/ui/terminal-integrated#finance"},
+            {"command": "finance trading", "category": "finance", "description": "Trading bot engine", "api": "/api/finance/trading", "ui": "/ui/terminal-integrated#finance"},
+            # ── Freelancer (from module manifest) ──
+            {"command": "freelancer validate", "category": "freelancer", "description": "Freelancer validator", "api": "/api/freelancer/validate", "ui": "/ui/terminal-integrated"},
+            # ── Governance (from module manifest) ──
+            {"command": "gates arm", "category": "governance", "description": "Gate synthesis and compliance enforcement", "api": "/api/gates/arm", "ui": "/ui/terminal-architect#governance"},
+            {"command": "gates authority", "category": "governance", "description": "Authority gate", "api": "/api/gates/authority", "ui": "/ui/terminal-architect#governance"},
+            {"command": "gates bypass", "category": "governance", "description": "Gate bypass controller", "api": "/api/gates/bypass", "ui": "/ui/terminal-architect#governance"},
+            {"command": "gates disarm", "category": "governance", "description": "Gate synthesis and compliance enforcement", "api": "/api/gates/disarm", "ui": "/ui/terminal-architect#governance"},
+            {"command": "gates status", "category": "governance", "description": "Gate synthesis and compliance enforcement", "api": "/api/gates/status", "ui": "/ui/terminal-architect#governance"},
+            {"command": "governance bot-policies", "category": "governance", "description": "Bot governance policy mapper", "api": "/api/governance/bot-policies", "ui": "/ui/terminal-architect#governance"},
+            {"command": "governance policies", "category": "governance", "description": "Governance framework", "api": "/api/governance/policies", "ui": "/ui/terminal-architect#governance"},
+            {"command": "governance runtime", "category": "governance", "description": "Base governance runtime", "api": "/api/governance/runtime", "ui": "/ui/terminal-architect#governance"},
+            {"command": "governance status", "category": "governance", "description": "Governance framework", "api": "/api/governance/status", "ui": "/ui/terminal-architect#governance"},
+            {"command": "governance toggle", "category": "governance", "description": "Base governance runtime", "api": "/api/governance/toggle", "ui": "/ui/terminal-architect#governance"},
+            {"command": "hitl graduate", "category": "governance", "description": "HITL graduation engine", "api": "/api/hitl/graduate", "ui": "/ui/terminal-architect#governance"},
+            {"command": "hitl level", "category": "governance", "description": "HITL graduation engine", "api": "/api/hitl/level", "ui": "/ui/terminal-architect#governance"},
+            {"command": "hitl status", "category": "governance", "description": "HITL autonomy controller", "api": "/api/hitl/status", "ui": "/ui/terminal-architect#governance"},
+            {"command": "hitl validate", "category": "governance", "description": "Freelancer validator", "api": "/api/hitl/validate", "ui": "/ui/terminal-architect#governance"},
+            {"command": "runtime closure", "category": "governance", "description": "Closure engine", "api": "/api/runtime/closure", "ui": "/ui/terminal-architect#governance"},
+            {"command": "runtime persistence", "category": "governance", "description": "Persistence manager", "api": "/api/runtime/persistence", "ui": "/ui/terminal-architect#governance"},
+            {"command": "runtime replay", "category": "governance", "description": "Persistence replay completeness", "api": "/api/runtime/replay", "ui": "/ui/terminal-architect#governance"},
+            {"command": "runtime session", "category": "governance", "description": "Session context", "api": "/api/runtime/session", "ui": "/ui/terminal-architect#governance"},
+            {"command": "runtime stability", "category": "governance", "description": "Recursive stability controller", "api": "/api/runtime/stability", "ui": "/ui/terminal-architect#governance"},
+            {"command": "runtime status", "category": "governance", "description": "Runtime package", "api": "/api/runtime/status", "ui": "/ui/terminal-architect#governance"},
+            {"command": "runtime supervision", "category": "governance", "description": "Supervision tree", "api": "/api/runtime/supervision", "ui": "/ui/terminal-architect#governance"},
+            {"command": "runtime supervisor", "category": "governance", "description": "Supervisor system", "api": "/api/runtime/supervisor", "ui": "/ui/terminal-architect#governance"},
+            {"command": "runtime thread-safe", "category": "governance", "description": "Thread-safe operations", "api": "/api/runtime/thread-safe", "ui": "/ui/terminal-architect#governance"},
+            {"command": "runtime wal", "category": "governance", "description": "Persistence WAL", "api": "/api/runtime/wal", "ui": "/ui/terminal-architect#governance"},
+            # ── Heal (from module manifest) ──
+            {"command": "heal blackstart", "category": "heal", "description": "Blackstart controller", "api": "/api/heal/blackstart", "ui": "/ui/terminal-architect#heal"},
+            {"command": "heal chaos", "category": "heal", "description": "Chaos resilience loop", "api": "/api/heal/chaos", "ui": "/ui/terminal-architect#heal"},
+            {"command": "heal code", "category": "heal", "description": "Murphy code healer", "api": "/api/heal/code", "ui": "/ui/terminal-architect#heal"},
+            {"command": "heal code-repair", "category": "heal", "description": "Code repair engine", "api": "/api/heal/code-repair", "ui": "/ui/terminal-architect#heal"},
+            {"command": "heal coordinate", "category": "heal", "description": "Self-healing coordinator", "api": "/api/heal/coordinate", "ui": "/ui/terminal-architect#heal"},
+            {"command": "heal fix", "category": "heal", "description": "Self-fix loop", "api": "/api/heal/fix", "ui": "/ui/terminal-architect#heal"},
+            {"command": "heal immune", "category": "heal", "description": "Murphy immune engine", "api": "/api/heal/immune", "ui": "/ui/terminal-architect#heal"},
+            {"command": "heal improve", "category": "heal", "description": "Self-improvement engine", "api": "/api/heal/improve", "ui": "/ui/terminal-architect#heal"},
+            {"command": "heal maintenance", "category": "heal", "description": "Predictive maintenance engine", "api": "/api/heal/maintenance", "ui": "/ui/terminal-architect#heal"},
+            {"command": "heal optimise", "category": "heal", "description": "Self-optimisation engine", "api": "/api/heal/optimise", "ui": "/ui/terminal-architect#heal"},
+            {"command": "heal predict", "category": "heal", "description": "Predictive failure engine", "api": "/api/heal/predict", "ui": "/ui/terminal-architect#heal"},
+            {"command": "heal repair", "category": "heal", "description": "Autonomous repair system", "api": "/api/heal/repair", "ui": "/ui/terminal-architect#heal"},
+            {"command": "heal status", "category": "heal", "description": "Autonomous repair system", "api": "/api/heal/status", "ui": "/ui/terminal-architect#heal"},
+            # ── Health (from module manifest) ──
+            {"command": "health status", "category": "health", "description": "Health monitor", "api": "/api/health/status", "ui": "/ui/terminal-integrated"},
+            # ── Infrastructure (from module manifest) ──
+            {"command": "cloud orchestrate", "category": "infrastructure", "description": "Multi-cloud orchestrator", "api": "/api/cloud/orchestrate", "ui": "/ui/terminal-architect#infra"},
+            {"command": "cloud status", "category": "infrastructure", "description": "Multi-cloud orchestrator", "api": "/api/cloud/status", "ui": "/ui/terminal-architect#infra"},
+            {"command": "docker status", "category": "infrastructure", "description": "Docker containerization", "api": "/api/docker/status", "ui": "/ui/terminal-architect#infra"},
+            {"command": "infra backup", "category": "infrastructure", "description": "Backup & disaster recovery", "api": "/api/infra/backup", "ui": "/ui/terminal-architect#infra"},
+            {"command": "infra capacity", "category": "infrastructure", "description": "Capacity planning engine", "api": "/api/infra/capacity", "ui": "/ui/terminal-architect#infra"},
+            {"command": "infra cloudflare", "category": "infrastructure", "description": "Cloudflare deployment", "api": "/api/infra/cloudflare", "ui": "/ui/terminal-architect#infra"},
+            {"command": "infra docker", "category": "infrastructure", "description": "Docker containerization", "api": "/api/infra/docker", "ui": "/ui/terminal-architect#infra"},
+            {"command": "infra dr", "category": "infrastructure", "description": "Backup & disaster recovery", "api": "/api/infra/dr", "ui": "/ui/terminal-architect#infra"},
+            {"command": "infra hetzner", "category": "infrastructure", "description": "Hetzner deployment", "api": "/api/infra/hetzner", "ui": "/ui/terminal-architect#infra"},
+            {"command": "infra k8s", "category": "infrastructure", "description": "Kubernetes deployment", "api": "/api/infra/k8s", "ui": "/ui/terminal-architect#infra"},
+            {"command": "infra lb", "category": "infrastructure", "description": "Geographic load balancer", "api": "/api/infra/lb", "ui": "/ui/terminal-architect#infra"},
+            {"command": "infra load-balancer", "category": "infrastructure", "description": "Geographic load balancer", "api": "/api/infra/load-balancer", "ui": "/ui/terminal-architect#infra"},
+            {"command": "infra scale", "category": "infrastructure", "description": "Resource scaling controller", "api": "/api/infra/scale", "ui": "/ui/terminal-architect#infra"},
+            {"command": "k8s status", "category": "infrastructure", "description": "Kubernetes deployment", "api": "/api/k8s/status", "ui": "/ui/terminal-architect#infra"},
+            # ── Integration (from module manifest) ──
+            {"command": "integrations bus", "category": "integration", "description": "Integration bus", "api": "/api/integrations/bus", "ui": "/ui/terminal-integrated"},
+            {"command": "integrations status", "category": "integration", "description": "Integration engine", "api": "/api/integrations/status", "ui": "/ui/terminal-integrated"},
+            # ── Integrations (from module manifest) ──
+            {"command": "integrations all", "category": "integrations", "description": "Integrations package", "api": "/api/integrations/all", "ui": "/ui/terminal-integrated"},
+            {"command": "integrations universal", "category": "integrations", "description": "Universal integration adapter", "api": "/api/integrations/universal", "ui": "/ui/terminal-integrated"},
+            # ── Iot (from module manifest) ──
+            {"command": "iot additive", "category": "iot", "description": "Additive manufacturing connectors", "api": "/api/iot/additive", "ui": "/ui/terminal-integrations#iot"},
+            {"command": "iot building", "category": "iot", "description": "Building automation connectors", "api": "/api/iot/building", "ui": "/ui/terminal-integrations#iot"},
+            {"command": "iot energy", "category": "iot", "description": "Energy management connectors", "api": "/api/iot/energy", "ui": "/ui/terminal-integrations#iot"},
+            {"command": "iot manufacturing", "category": "iot", "description": "Manufacturing automation standards", "api": "/api/iot/manufacturing", "ui": "/ui/terminal-integrations#iot"},
+            {"command": "iot sensors", "category": "iot", "description": "Sensor reader", "api": "/api/iot/sensors", "ui": "/ui/terminal-integrations#iot"},
+            {"command": "robotics run", "category": "iot", "description": "Robotics", "api": "/api/robotics/run", "ui": "/ui/terminal-integrations#iot"},
+            {"command": "robotics status", "category": "iot", "description": "Robotics", "api": "/api/robotics/status", "ui": "/ui/terminal-integrations#iot"},
+            {"command": "sensor read", "category": "iot", "description": "Sensor reader", "api": "/api/sensor/read", "ui": "/ui/terminal-integrations#iot"},
+            # ── Knowledge (from module manifest) ──
+            {"command": "data archive", "category": "knowledge", "description": "Data archive manager", "api": "/api/data/archive", "ui": "/ui/terminal-integrated#librarian"},
+            {"command": "data pipeline", "category": "knowledge", "description": "Data pipeline orchestrator", "api": "/api/data/pipeline", "ui": "/ui/terminal-integrated#librarian"},
+            {"command": "data status", "category": "knowledge", "description": "Data pipeline orchestrator", "api": "/api/data/status", "ui": "/ui/terminal-integrated#librarian"},
+            {"command": "data sync", "category": "knowledge", "description": "Cross-platform data sync", "api": "/api/data/sync", "ui": "/ui/terminal-integrated#librarian"},
+            {"command": "kb status", "category": "knowledge", "description": "Knowledge base manager", "api": "/api/kb/status", "ui": "/ui/terminal-integrated#librarian"},
+            {"command": "kg concepts", "category": "knowledge", "description": "Concept graph engine", "api": "/api/kg/concepts", "ui": "/ui/terminal-integrated#librarian"},
+            {"command": "kg gap", "category": "knowledge", "description": "Knowledge gap system", "api": "/api/kg/gap", "ui": "/ui/terminal-integrated#librarian"},
+            {"command": "kg generate", "category": "knowledge", "description": "Generative knowledge builder", "api": "/api/kg/generate", "ui": "/ui/terminal-integrated#librarian"},
+            {"command": "kg status", "category": "knowledge", "description": "Knowledge graph builder", "api": "/api/kg/status", "ui": "/ui/terminal-integrated#librarian"},
+            {"command": "kg translate", "category": "knowledge", "description": "Concept translation", "api": "/api/kg/translate", "ui": "/ui/terminal-integrated#librarian"},
+            {"command": "librarian capabilities", "category": "knowledge", "description": "System librarian and semantic search", "api": "/api/librarian/capabilities", "ui": "/ui/terminal-integrated#librarian"},
+            {"command": "librarian gap", "category": "knowledge", "description": "Knowledge gap system", "api": "/api/librarian/gap", "ui": "/ui/terminal-integrated#librarian"},
+            {"command": "librarian generate", "category": "knowledge", "description": "Generative knowledge builder", "api": "/api/librarian/generate", "ui": "/ui/terminal-integrated#librarian"},
+            {"command": "librarian graph", "category": "knowledge", "description": "Knowledge graph builder", "api": "/api/librarian/graph", "ui": "/ui/terminal-integrated#librarian"},
+            {"command": "librarian kb", "category": "knowledge", "description": "Knowledge base manager", "api": "/api/librarian/kb", "ui": "/ui/terminal-integrated#librarian"},
+            {"command": "librarian query", "category": "knowledge", "description": "System librarian and semantic search", "api": "/api/librarian/query", "ui": "/ui/terminal-integrated#librarian"},
+            {"command": "librarian rag", "category": "knowledge", "description": "RAG vector integration", "api": "/api/librarian/rag", "ui": "/ui/terminal-integrated#librarian"},
+            {"command": "librarian search", "category": "knowledge", "description": "System librarian and semantic search", "api": "/api/librarian/search", "ui": "/ui/terminal-integrated#librarian"},
+            # ── Librarian (from module manifest) ──
+            {"command": "docs generate", "category": "librarian", "description": "Auto documentation engine", "api": "/api/docs/generate", "ui": "/ui/terminal-integrated"},
+            {"command": "docs status", "category": "librarian", "description": "Auto documentation engine", "api": "/api/docs/status", "ui": "/ui/terminal-integrated"},
+            # ── Llm (from module manifest) ──
+            {"command": "llm deepinfra", "category": "llm", "description": "OpenAI-compatible provider (openai/deepinfra/onboard)", "api": "/api/llm/deepinfra", "ui": "/ui/terminal-integrations#llm"},
+            {"command": "llm deepinfra-keys", "category": "llm", "description": "DeepInfra key rotator", "api": "/api/llm/deepinfra-keys", "ui": "/ui/terminal-integrations#llm"},
+            {"command": "llm fallback", "category": "llm", "description": "Local LLM fallback", "api": "/api/llm/fallback", "ui": "/ui/terminal-integrations#llm"},
+            {"command": "llm gate", "category": "llm", "description": "Inference gate engine", "api": "/api/llm/gate", "ui": "/ui/terminal-integrations#llm"},
+            {"command": "llm inference", "category": "llm", "description": "Local inference engine", "api": "/api/llm/inference", "ui": "/ui/terminal-integrations#llm"},
+            {"command": "llm local", "category": "llm", "description": "Enhanced local LLM (onboard)", "api": "/api/llm/local", "ui": "/ui/terminal-integrations#llm"},
+            {"command": "llm model", "category": "llm", "description": "LLM controller", "api": "/api/llm/model", "ui": "/ui/terminal-integrations#llm"},
+            {"command": "llm models", "category": "llm", "description": "Local model layer", "api": "/api/llm/models", "ui": "/ui/terminal-integrations#llm"},
+            {"command": "llm onboard", "category": "llm", "description": "Enhanced local LLM (onboard)", "api": "/api/llm/onboard", "ui": "/ui/terminal-integrations#llm"},
+            {"command": "llm openai", "category": "llm", "description": "OpenAI-compatible provider (openai/deepinfra/onboard)", "api": "/api/llm/openai", "ui": "/ui/terminal-integrations#llm"},
+            {"command": "llm providers", "category": "llm", "description": "LLM integration layer", "api": "/api/llm/providers", "ui": "/ui/terminal-integrations#llm"},
+            {"command": "llm route", "category": "llm", "description": "LLM controller", "api": "/api/llm/route", "ui": "/ui/terminal-integrations#llm"},
+            {"command": "llm routing", "category": "llm", "description": "LLM routing completeness", "api": "/api/llm/routing", "ui": "/ui/terminal-integrations#llm"},
+            {"command": "llm safe", "category": "llm", "description": "Safe LLM wrapper", "api": "/api/llm/safe", "ui": "/ui/terminal-integrations#llm"},
+            {"command": "llm swarm", "category": "llm", "description": "LLM swarm integration", "api": "/api/llm/swarm", "ui": "/ui/terminal-integrations#llm"},
+            {"command": "llm validate", "category": "llm", "description": "LLM output validator", "api": "/api/llm/validate", "ui": "/ui/terminal-integrations#llm"},
+            {"command": "mfgc adapt", "category": "llm", "description": "MFGC adapter", "api": "/api/mfgc/adapt", "ui": "/ui/terminal-integrations#llm"},
+            {"command": "mfgc metrics", "category": "llm", "description": "MFGC metrics", "api": "/api/mfgc/metrics", "ui": "/ui/terminal-integrations#llm"},
+            {"command": "mfgc status", "category": "llm", "description": "MFGC core", "api": "/api/mfgc/status", "ui": "/ui/terminal-integrations#llm"},
+            {"command": "mfm infer", "category": "llm", "description": "Murphy Foundation Model", "api": "/api/mfm/infer", "ui": "/ui/terminal-integrations#llm"},
+            {"command": "mfm train", "category": "llm", "description": "Murphy Foundation Model", "api": "/api/mfm/train", "ui": "/ui/terminal-integrations#llm"},
+            # ── Marketing (from module manifest) ──
+            {"command": "announce", "category": "marketing", "description": "Announcer voice engine", "api": "/api/announce", "ui": "/ui/terminal-orchestrator#campaigns"},
+            {"command": "announce broadcast", "category": "marketing", "description": "Announcer voice engine", "api": "/api/announce/broadcast", "ui": "/ui/terminal-orchestrator#campaigns"},
+            {"command": "campaign adapt", "category": "marketing", "description": "Adaptive campaign engine", "api": "/api/campaign/adapt", "ui": "/ui/terminal-orchestrator#campaigns"},
+            {"command": "campaign run", "category": "marketing", "description": "Campaign orchestrator", "api": "/api/campaign/run", "ui": "/ui/terminal-orchestrator#campaigns"},
+            {"command": "campaign status", "category": "marketing", "description": "Campaign orchestrator", "api": "/api/campaign/status", "ui": "/ui/terminal-orchestrator#campaigns"},
+            {"command": "content pipeline", "category": "marketing", "description": "Content pipeline engine", "api": "/api/content/pipeline", "ui": "/ui/terminal-orchestrator#campaigns"},
+            {"command": "content platform", "category": "marketing", "description": "Content creator platform modulator", "api": "/api/content/platform", "ui": "/ui/terminal-orchestrator#campaigns"},
+            {"command": "content status", "category": "marketing", "description": "Content pipeline engine", "api": "/api/content/status", "ui": "/ui/terminal-orchestrator#campaigns"},
+            # ── Monitoring (from module manifest) ──
+            {"command": "learning feedback", "category": "monitoring", "description": "Adaptive learning engine", "api": "/api/learning/feedback", "ui": "/ui/terminal-integrated#monitor"},
+            {"command": "logs query", "category": "monitoring", "description": "Logging system", "api": "/api/logs/query", "ui": "/ui/terminal-integrated#monitor"},
+            {"command": "logs status", "category": "monitoring", "description": "Logging system", "api": "/api/logs/status", "ui": "/ui/terminal-integrated#monitor"},
+            {"command": "monitor alerts", "category": "monitoring", "description": "Alert rules engine", "api": "/api/monitor/alerts", "ui": "/ui/terminal-integrated#monitor"},
+            {"command": "monitor bot-telemetry", "category": "monitoring", "description": "Bot telemetry normalizer", "api": "/api/monitor/bot-telemetry", "ui": "/ui/terminal-integrated#monitor"},
+            {"command": "monitor counters", "category": "monitoring", "description": "Observability counters", "api": "/api/monitor/counters", "ui": "/ui/terminal-integrated#monitor"},
+            {"command": "monitor health", "category": "monitoring", "description": "Health monitor", "api": "/api/monitor/health", "ui": "/ui/terminal-integrated#monitor"},
+            {"command": "monitor heartbeat", "category": "monitoring", "description": "Heartbeat liveness protocol", "api": "/api/monitor/heartbeat", "ui": "/ui/terminal-integrated#monitor"},
+            {"command": "monitor heartbeat-runner", "category": "monitoring", "description": "Activated heartbeat runner", "api": "/api/monitor/heartbeat-runner", "ui": "/ui/terminal-integrated#monitor"},
+            {"command": "monitor logs", "category": "monitoring", "description": "Log analysis engine", "api": "/api/monitor/logs", "ui": "/ui/terminal-integrated#monitor"},
+            {"command": "monitor metrics", "category": "monitoring", "description": "Prometheus metrics exporter", "api": "/api/monitor/metrics", "ui": "/ui/terminal-integrated#monitor"},
+            {"command": "monitor slo", "category": "monitoring", "description": "Operational SLO tracker", "api": "/api/monitor/slo", "ui": "/ui/terminal-integrated#monitor"},
+            {"command": "monitor slo-remediate", "category": "monitoring", "description": "SLO remediation bridge", "api": "/api/monitor/slo-remediate", "ui": "/ui/terminal-integrated#monitor"},
+            {"command": "monitor spikes", "category": "monitoring", "description": "Causal spike analyzer", "api": "/api/monitor/spikes", "ui": "/ui/terminal-integrated#monitor"},
+            {"command": "monitor telemetry", "category": "monitoring", "description": "Adaptive learning engine", "api": "/api/monitor/telemetry", "ui": "/ui/terminal-integrated#monitor"},
+            {"command": "monitor telemetry", "category": "monitoring", "description": "Telemetry system", "api": "/api/monitor/telemetry", "ui": "/ui/terminal-integrated#monitor"},
+            {"command": "monitor telemetry-adapter", "category": "monitoring", "description": "Telemetry adapter", "api": "/api/monitor/telemetry-adapter", "ui": "/ui/terminal-integrated#monitor"},
+            {"command": "monitor telemetry-learning", "category": "monitoring", "description": "Telemetry learning", "api": "/api/monitor/telemetry-learning", "ui": "/ui/terminal-integrated#monitor"},
+            {"command": "monitor trace", "category": "monitoring", "description": "Murphy trace", "api": "/api/monitor/trace", "ui": "/ui/terminal-integrated#monitor"},
+            # ── Onboarding (from module manifest) ──
+            {"command": "setup wizard", "category": "onboarding", "description": "Setup wizard", "api": "/api/setup/wizard", "ui": "/ui/terminal-integrated"},
+            # ── Org (from module manifest) ──
+            {"command": "org chart", "category": "org", "description": "Org compiler", "api": "/api/org/chart", "ui": "/ui/terminal-integrated"},
+            {"command": "org compile", "category": "org", "description": "Org compiler", "api": "/api/org/compile", "ui": "/ui/terminal-integrated"},
+            {"command": "org enforce", "category": "org", "description": "Org chart enforcement", "api": "/api/org/enforce", "ui": "/ui/terminal-integrated"},
+            # ── Organization (from module manifest) ──
+            {"command": "org orgchart", "category": "organization", "description": "Organization chart system", "api": "/api/org/orgchart", "ui": "/ui/terminal-integrated"},
+            # ── Organizational (from module manifest) ──
+            {"command": "org context", "category": "organizational", "description": "Organizational context system", "api": "/api/org/context", "ui": "/ui/terminal-integrated"},
+            # ── Platform (from module manifest) ──
+            {"command": "aionmind status", "category": "platform", "description": "AionMind", "api": "/api/aionmind/status", "ui": "/ui/terminal-architect#platform"},
+            {"command": "auar route", "category": "platform", "description": "AUAR (Universal Adaptive Routing)", "api": "/api/auar/route", "ui": "/ui/terminal-architect#platform"},
+            {"command": "auar status", "category": "platform", "description": "AUAR (Universal Adaptive Routing)", "api": "/api/auar/status", "ui": "/ui/terminal-architect#platform"},
+            {"command": "avatar status", "category": "platform", "description": "Avatar", "api": "/api/avatar/status", "ui": "/ui/terminal-architect#platform"},
+            {"command": "knostalgia categories", "category": "platform", "description": "Knostalgia category engine", "api": "/api/knostalgia/categories", "ui": "/ui/terminal-architect#platform"},
+            {"command": "knostalgia run", "category": "platform", "description": "Knostalgia engine", "api": "/api/knostalgia/run", "ui": "/ui/terminal-architect#platform"},
+            {"command": "osmosis run", "category": "platform", "description": "Murphy osmosis engine", "api": "/api/osmosis/run", "ui": "/ui/terminal-architect#platform"},
+            {"command": "platforms connect", "category": "platform", "description": "Platform connector framework", "api": "/api/platforms/connect", "ui": "/ui/terminal-architect#platform"},
+            {"command": "platforms list", "category": "platform", "description": "Platform connector framework", "api": "/api/platforms/list", "ui": "/ui/terminal-architect#platform"},
+            {"command": "shadow train", "category": "platform", "description": "Murphy shadow trainer", "api": "/api/shadow/train", "ui": "/ui/terminal-architect#platform"},
+            {"command": "state graph", "category": "platform", "description": "Murphy state graph", "api": "/api/state/graph", "ui": "/ui/terminal-architect#platform"},
+            {"command": "state machine", "category": "platform", "description": "State machine", "api": "/api/state/machine", "ui": "/ui/terminal-architect#platform"},
+            {"command": "state schema", "category": "platform", "description": "State schema", "api": "/api/state/schema", "ui": "/ui/terminal-architect#platform"},
+            {"command": "wingman evolve", "category": "platform", "description": "Murphy wingman evolution", "api": "/api/wingman/evolve", "ui": "/ui/terminal-architect#platform"},
+            # ── Playwright (from module manifest) ──
+            {"command": "playwright run", "category": "playwright", "description": "Playwright task definitions", "api": "/api/playwright/run", "ui": "/ui/terminal-integrated"},
+            # ── Portfolio (from module manifest) ──
+            {"command": "portfolio list", "category": "portfolio", "description": "Portfolio", "api": "/api/portfolio/list", "ui": "/ui/terminal-integrated"},
+            {"command": "portfolio status", "category": "portfolio", "description": "Portfolio", "api": "/api/portfolio/status", "ui": "/ui/terminal-integrated"},
+            # ── Production (from module manifest) ──
+            {"command": "prod intake", "category": "production", "description": "Production assistant engine — request lifecycle management with deliverable gate validation via EventBackbone", "api": "/api/prod/intake", "ui": "/ui/terminal-integrated"},
+            {"command": "prod status", "category": "production", "description": "Production assistant engine — request lifecycle management with deliverable gate validation via EventBackbone", "api": "/api/prod/status", "ui": "/ui/terminal-integrated"},
+            {"command": "prod validate", "category": "production", "description": "Production assistant engine — request lifecycle management with deliverable gate validation via EventBackbone", "api": "/api/prod/validate", "ui": "/ui/terminal-integrated"},
+            # ── Prometheus (from module manifest) ──
+            {"command": "metrics export", "category": "prometheus", "description": "Prometheus metrics exporter", "api": "/api/metrics/export", "ui": "/ui/terminal-integrated"},
+            # ── Protocols (from module manifest) ──
+            {"command": "protocols list", "category": "protocols", "description": "Protocols", "api": "/api/protocols/list", "ui": "/ui/terminal-integrated"},
+            # ── Rag (from module manifest) ──
+            {"command": "rag search", "category": "rag", "description": "RAG vector integration", "api": "/api/rag/search", "ui": "/ui/terminal-integrated"},
+            # ── Remote (from module manifest) ──
+            {"command": "remote connect", "category": "remote", "description": "Remote access connector", "api": "/api/remote/connect", "ui": "/ui/terminal-integrated"},
+            # ── Rosetta (from module manifest) ──
+            {"command": "rosetta sell", "category": "rosetta", "description": "Rosetta selling bridge", "api": "/api/rosetta/sell", "ui": "/ui/terminal-integrated"},
+            {"command": "rosetta status", "category": "rosetta", "description": "Rosetta", "api": "/api/rosetta/status", "ui": "/ui/terminal-integrated"},
+            # ── Rpa (from module manifest) ──
+            {"command": "rpa record", "category": "rpa", "description": "RPA recorder engine", "api": "/api/rpa/record", "ui": "/ui/terminal-integrated"},
+            {"command": "rpa replay", "category": "rpa", "description": "RPA recorder engine", "api": "/api/rpa/replay", "ui": "/ui/terminal-integrated"},
+            # ── Safety (from module manifest) ──
+            {"command": "safety emergency", "category": "safety", "description": "Emergency stop controller", "api": "/api/safety/emergency", "ui": "/ui/terminal-architect#safety"},
+            {"command": "safety estop", "category": "safety", "description": "Emergency stop controller", "api": "/api/safety/estop", "ui": "/ui/terminal-architect#safety"},
+            {"command": "safety gateway", "category": "safety", "description": "Safety gateway integrator", "api": "/api/safety/gateway", "ui": "/ui/terminal-architect#safety"},
+            {"command": "safety orchestrate", "category": "safety", "description": "Safety orchestrator", "api": "/api/safety/orchestrate", "ui": "/ui/terminal-architect#safety"},
+            {"command": "safety validate", "category": "safety", "description": "Safety validation pipeline", "api": "/api/safety/validate", "ui": "/ui/terminal-architect#safety"},
+            # ── Sales (from module manifest) ──
+            {"command": "sales pipeline", "category": "sales", "description": "Sales automation", "api": "/api/sales/pipeline", "ui": "/ui/terminal-integrated"},
+            {"command": "sales status", "category": "sales", "description": "Sales automation", "api": "/api/sales/status", "ui": "/ui/terminal-integrated"},
+            # ── Schema (from module manifest) ──
+            {"command": "schema list", "category": "schema", "description": "Schema registry", "api": "/api/schema/list", "ui": "/ui/terminal-integrated"},
+            {"command": "schema validate", "category": "schema", "description": "Schema registry", "api": "/api/schema/validate", "ui": "/ui/terminal-integrated"},
+            # ── Security (from module manifest) ──
+            {"command": "audit blockchain", "category": "security", "description": "Blockchain audit trail", "api": "/api/audit/blockchain", "ui": "/ui/terminal-architect#security"},
+            {"command": "audit logs", "category": "security", "description": "Audit logging system", "api": "/api/audit/logs", "ui": "/ui/terminal-architect#security"},
+            {"command": "security adapter", "category": "security", "description": "Security plane adapter", "api": "/api/security/adapter", "ui": "/ui/terminal-architect#security"},
+            {"command": "security api", "category": "security", "description": "FastAPI security layer", "api": "/api/security/api", "ui": "/ui/terminal-architect#security"},
+            {"command": "security audit", "category": "security", "description": "Security plane and threat management", "api": "/api/security/audit", "ui": "/ui/terminal-architect#security"},
+            {"command": "security audit", "category": "security", "description": "Security audit scanner", "api": "/api/security/audit", "ui": "/ui/terminal-architect#security"},
+            {"command": "security credentials", "category": "security", "description": "Murphy credential gate", "api": "/api/security/credentials", "ui": "/ui/terminal-architect#security"},
+            {"command": "security flask", "category": "security", "description": "Flask security layer", "api": "/api/security/flask", "ui": "/ui/terminal-architect#security"},
+            {"command": "security harden", "category": "security", "description": "Security hardening config", "api": "/api/security/harden", "ui": "/ui/terminal-architect#security"},
+            {"command": "security oauth", "category": "security", "description": "OAuth/OIDC provider", "api": "/api/security/oauth", "ui": "/ui/terminal-architect#security"},
+            {"command": "security oidc", "category": "security", "description": "OAuth/OIDC provider", "api": "/api/security/oidc", "ui": "/ui/terminal-architect#security"},
+            {"command": "security permissions", "category": "security", "description": "RBAC governance", "api": "/api/security/permissions", "ui": "/ui/terminal-architect#security"},
+            {"command": "security scan", "category": "security", "description": "Security plane and threat management", "api": "/api/security/scan", "ui": "/ui/terminal-architect#security"},
+            {"command": "security scan", "category": "security", "description": "Security audit scanner", "api": "/api/security/scan", "ui": "/ui/terminal-architect#security"},
+            {"command": "security status", "category": "security", "description": "Security plane and threat management", "api": "/api/security/status", "ui": "/ui/terminal-architect#security"},
+            # ── Self (from module manifest) ──
+            {"command": "introspect run", "category": "self", "description": "Self-introspection module — runtime self-analysis and reporting", "api": "/api/introspect/run", "ui": "/ui/terminal-integrated"},
+            {"command": "introspect status", "category": "self", "description": "Self-introspection module — runtime self-analysis and reporting", "api": "/api/introspect/status", "ui": "/ui/terminal-integrated"},
+            {"command": "marketing b2b", "category": "self", "description": "Self-marketing orchestrator — Murphy markets Murphy with compliance + B2B partnerships", "api": "/api/marketing/b2b", "ui": "/ui/terminal-integrated"},
+            {"command": "marketing content", "category": "self", "description": "Self-marketing orchestrator — Murphy markets Murphy with compliance + B2B partnerships", "api": "/api/marketing/content", "ui": "/ui/terminal-integrated"},
+            {"command": "marketing cycle", "category": "self", "description": "Self-marketing orchestrator — Murphy markets Murphy with compliance + B2B partnerships", "api": "/api/marketing/cycle", "ui": "/ui/terminal-integrated"},
+            {"command": "marketing outreach", "category": "self", "description": "Self-marketing orchestrator — Murphy markets Murphy with compliance + B2B partnerships", "api": "/api/marketing/outreach", "ui": "/ui/terminal-integrated"},
+            {"command": "marketing partnerships", "category": "self", "description": "Self-marketing orchestrator — Murphy markets Murphy with compliance + B2B partnerships", "api": "/api/marketing/partnerships", "ui": "/ui/terminal-integrated"},
+            {"command": "marketing social", "category": "self", "description": "Self-marketing orchestrator — Murphy markets Murphy with compliance + B2B partnerships", "api": "/api/marketing/social", "ui": "/ui/terminal-integrated"},
+            {"command": "sell status", "category": "self", "description": "Self selling engine", "api": "/api/sell/status", "ui": "/ui/terminal-integrated"},
+            # ── Simulation (from module manifest) ──
+            {"command": "sim run", "category": "simulation", "description": "Simulation engine", "api": "/api/sim/run", "ui": "/ui/terminal-integrated"},
+            {"command": "sim validate", "category": "simulation", "description": "Simulation engine", "api": "/api/sim/validate", "ui": "/ui/terminal-integrated"},
+            # ── Social (from module manifest) ──
+            {"command": "social moderate", "category": "social", "description": "Social media moderation", "api": "/api/social/moderate", "ui": "/ui/terminal-integrated"},
+            {"command": "social post", "category": "social", "description": "Social media scheduler", "api": "/api/social/post", "ui": "/ui/terminal-integrated"},
+            {"command": "social schedule", "category": "social", "description": "Social media scheduler", "api": "/api/social/schedule", "ui": "/ui/terminal-integrated"},
+            # ── Synthetic (from module manifest) ──
+            {"command": "chaos failure", "category": "synthetic", "description": "Synthetic failure generator", "api": "/api/chaos/failure", "ui": "/ui/terminal-integrated"},
+            # ── System (from module manifest) ──
+            {"command": "integrations system", "category": "system", "description": "System integrator", "api": "/api/integrations/system", "ui": "/ui/terminal-integrated"},
+            {"command": "system features", "category": "system", "description": "Startup feature summary", "api": "/api/system/features", "ui": "/ui/terminal-integrated"},
+            {"command": "system validate", "category": "system", "description": "Startup validator", "api": "/api/system/validate", "ui": "/ui/terminal-integrated"},
+            # ── Testing (from module manifest) ──
+            {"command": "ab test", "category": "testing", "description": "A/B testing framework", "api": "/api/ab/test", "ui": "/ui/terminal-architect#testing"},
+            # ── Ticketing (from module manifest) ──
+            {"command": "tickets create", "category": "ticketing", "description": "Ticketing adapter", "api": "/api/tickets/create", "ui": "/ui/terminal-integrated"},
+            {"command": "tickets list", "category": "ticketing", "description": "Ticketing adapter", "api": "/api/tickets/list", "ui": "/ui/terminal-integrated"},
+            # ── Time (from module manifest) ──
+            {"command": "time log", "category": "time", "description": "Time tracking", "api": "/api/time/log", "ui": "/ui/terminal-integrated"},
+            {"command": "time report", "category": "time", "description": "Time tracking", "api": "/api/time/report", "ui": "/ui/terminal-integrated"},
+            # ── Trading (from module manifest) ──
+            {"command": "trading approve", "category": "trading", "description": "Trading HITL gateway", "api": "/api/trading/approve", "ui": "/ui/terminal-integrated"},
+            {"command": "trading lifecycle", "category": "trading", "description": "Trading bot lifecycle", "api": "/api/trading/lifecycle", "ui": "/ui/terminal-integrated"},
+            {"command": "trading shadow", "category": "trading", "description": "Trading shadow learner", "api": "/api/trading/shadow", "ui": "/ui/terminal-integrated"},
+            {"command": "trading status", "category": "trading", "description": "Trading bot engine", "api": "/api/trading/status", "ui": "/ui/terminal-integrated"},
+            {"command": "trading strategy", "category": "trading", "description": "Trading strategy engine", "api": "/api/trading/strategy", "ui": "/ui/terminal-integrated"},
+            # ── Visual (from module manifest) ──
+            {"command": "visual build", "category": "visual", "description": "Visual swarm builder — visual pipeline construction for swarm workflows", "api": "/api/visual/build", "ui": "/ui/terminal-integrated"},
+            {"command": "visual status", "category": "visual", "description": "Visual swarm builder — visual pipeline construction for swarm workflows", "api": "/api/visual/status", "ui": "/ui/terminal-integrated"},
         ]
 
         categories = {}
@@ -2519,10 +3005,6 @@ def create_app() -> FastAPI:
         budget = float(data.get("budget", 50.0))
         idempotency_key = data.get("idempotency_key") or None
         try:
-            import sys, os
-            _ms_src = os.path.join(os.path.dirname(__file__), "..", "..", "Murphy System", "src")
-            if _ms_src not in sys.path:
-                sys.path.insert(0, _ms_src)
             from collaborative_task_orchestrator import CollaborativeTaskOrchestrator
             cto = CollaborativeTaskOrchestrator()
             report = cto.orchestrate(
@@ -3043,6 +3525,68 @@ def create_app() -> FastAPI:
     _onboarding_mfgc_sessions: dict = {}
     _ONBOARDING_SESSION_TTL = 7200  # seconds
 
+    def _generate_automation_from_session(sess: dict) -> dict:
+        """Generate an automation config from a completed onboarding session.
+
+        Examines the accumulated answers and context to produce a structured
+        workflow definition that downstream components (AIWorkflowGenerator,
+        AutomationCommissioner) can consume.
+
+        Returns:
+            dict with keys: name, steps, step_count, strategy, description.
+            Returns empty dict if session lacks enough information.
+        """
+        answers = {k: v for k, v in sess.get("answers", {}).items() if v}
+        if not answers:
+            return {}
+
+        # Derive workflow name from initial request or answers
+        initial = answers.get("initial_request", "")
+        wf_name = initial[:60].strip() if initial else "custom_automation"
+        # Sanitise for use as a workflow identifier
+        wf_name = wf_name.replace(" ", "_").lower()
+        if not wf_name:
+            wf_name = "custom_automation"
+
+        # Build steps from answered questions
+        steps: list[dict] = []
+        for key, value in answers.items():
+            if key == "initial_request":
+                continue
+            steps.append({
+                "name": key[:80],
+                "description": str(value)[:200],
+                "action": "execute",
+            })
+
+        # If MFGC instance is available, try to extract richer config
+        mfgc = sess.get("mfgc")
+        if mfgc is not None:
+            try:
+                profile = getattr(mfgc, "profile", {}) or {}
+                if profile.get("industry"):
+                    wf_name = f"{profile['industry']}_{wf_name}"
+                if profile.get("goal"):
+                    steps.insert(0, {
+                        "name": "primary_goal",
+                        "description": str(profile["goal"])[:200],
+                        "action": "execute",
+                    })
+            except Exception:
+                pass  # graceful degradation
+
+        import uuid as _uuid
+        workflow_id = f"wf_{wf_name[:40]}_{_uuid.uuid4().hex[:8]}"
+
+        return {
+            "workflow_id": workflow_id,
+            "name": wf_name,
+            "steps": steps,
+            "step_count": len(steps),
+            "strategy": "sequential",
+            "description": initial[:200] if initial else "Auto-generated from onboarding",
+        }
+
     def _onboarding_deterministic_reply(message: str, session_id: str) -> str:
         """Keyword-based onboarding reply that works with no external LLM.
 
@@ -3127,9 +3671,7 @@ def create_app() -> FastAPI:
         ``invoice_processing`` when they mention billing + accounts payable).
         """
         import sys as _sys
-        import os as _os
         try:
-            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             from ai_workflow_generator import AIWorkflowGenerator
         except Exception:
             return {}
@@ -3337,7 +3879,6 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
-            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             from ai_workflow_generator import AIWorkflowGenerator
             generator = AIWorkflowGenerator()
             history = generator.get_generation_history()
@@ -3372,7 +3913,6 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
-            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             data = {}
             try:
                 data = await request.json()
@@ -3482,7 +4022,6 @@ def create_app() -> FastAPI:
                 return JSONResponse({"success": False, "error": "Automation engine not available"}, status_code=503)
             import sys as _sys
             import os as _os
-            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             from automations.models import TriggerType
             try:
                 tt = TriggerType(trigger_type_str)
@@ -3509,7 +4048,6 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
-            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             data = await request.json()
             session_id = (data.get("session_id") or "").strip()
             extra_ctx = data.get("context") or {}
@@ -3585,7 +4123,6 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
-            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             data = await request.json()
             ctx = data.get("context") or {}
             threshold = float(data.get("health_threshold", 0.75))
@@ -7401,7 +7938,7 @@ def create_app() -> FastAPI:
                 "account_id": account_id,
                 "email": email,
                 "password_hash": _hash_password(password),
-                "full_name": full_name or ("Corey Post" if email == _FOUNDER_EMAIL else ""),
+                "full_name": full_name or (os.environ.get("MURPHY_FOUNDER_NAME", "") if email == _FOUNDER_EMAIL else ""),
                 "job_title": job_title,
                 "company": company,
                 "tier": _assigned_tier,
@@ -10151,9 +10688,6 @@ def create_app() -> FastAPI:
         compliance_blockers = 0
         try:
             import sys as _sys
-            _src = _os.path.join(_os.path.dirname(__file__), "..")
-            if _src not in _sys.path:
-                _sys.path.insert(0, _src)
             from trading_compliance_engine import get_compliance_engine
             _ce = get_compliance_engine()
             _last = _ce.last_report()
@@ -10220,9 +10754,6 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
-            _src = _os.path.join(_os.path.dirname(__file__), "..")
-            if _src not in _sys.path:
-                _sys.path.insert(0, _src)
             from live_feed_service import get_live_feed
             from coinbase_connector import CoinbaseConnector
             _cb = CoinbaseConnector()
@@ -10410,9 +10941,6 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
-            _src = _os.path.join(_os.path.dirname(__file__), "..")
-            if _src not in _sys.path:
-                _sys.path.insert(0, _src)
             from trading_compliance_engine import get_compliance_engine as _gce
             return _gce()
         except Exception as _exc:
@@ -10461,9 +10989,6 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
-            _src = _os.path.join(_os.path.dirname(__file__), "..")
-            if _src not in _sys.path:
-                _sys.path.insert(0, _src)
             from trading_compliance_engine import get_graduation_tracker
             _gt = get_graduation_tracker()
             _gs = _gt.summary()
@@ -10492,9 +11017,6 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
-            _src = _os.path.join(_os.path.dirname(__file__), "..")
-            if _src not in _sys.path:
-                _sys.path.insert(0, _src)
             from trading_compliance_engine import get_graduation_tracker
             gt = get_graduation_tracker()
             summary = gt.summary()
@@ -10531,9 +11053,6 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
-            _src = _os.path.join(_os.path.dirname(__file__), "..")
-            if _src not in _sys.path:
-                _sys.path.insert(0, _src)
             from trading_compliance_engine import get_graduation_tracker
             body = await request.json()
             gt = get_graduation_tracker()
@@ -10813,7 +11332,7 @@ def create_app() -> FastAPI:
 
     _account_data: Dict[str, Any] = {
         "id": "acct_default",
-        "email": "cpost@murphy.systems",
+        "email": os.environ.get("MURPHY_FOUNDER_EMAIL", ""),
         "name": "Murphy Admin",
         "plan": "free",
         "plan_name": "Free Tier",
@@ -10892,7 +11411,6 @@ def create_app() -> FastAPI:
         # it can be imported as a top-level package without changing the wider
         # project layout.  This mirrors what the original standalone Flask app
         # did via sys.path.insert in its own __main__ block.
-        _sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
         from module_compiler import ModuleCompiler as _ModuleCompiler, ModuleRegistry as _ModuleRegistry
 
         _mc_compiler = _ModuleCompiler()
@@ -12389,7 +12907,7 @@ def create_app() -> FastAPI:
                 "type": "BSL-1.1",
                 "name": "Business Source License 1.1",
                 "copyright": "Copyright © 2020 Inoni Limited Liability Company",
-                "creator": "Corey Post",
+                "creator": os.environ.get("MURPHY_FOUNDER_NAME", ""),
                 "warranty": "NO WARRANTY — This software is provided 'as-is' without "
                             "any express or implied warranty. In no event shall the "
                             "authors be held liable for any damages arising from the "
@@ -13308,7 +13826,7 @@ def create_app() -> FastAPI:
                 "effective_date": "2025-03-01",
                 "last_updated": "2026-03-19",
                 "provider": "Inoni Limited Liability Company",
-                "creator": "Corey Post",
+                "creator": os.environ.get("MURPHY_FOUNDER_NAME", ""),
                 "selected_services": selected,
                 "mode": mode,
                 "integration_clause": integration_clause,
@@ -13542,21 +14060,404 @@ def create_app() -> FastAPI:
             })
         return JSONResponse({"success": True, "data": {"endpoints": sorted(routes, key=lambda r: r["path"])}})
 
+    # ── Industry API endpoints (IND-001) ──────────────────────────────────
+
+    @app.post("/api/industry/ingest")
+    async def industry_ingest(request: Request):
+        """Ingest building-automation point data (EDE / CSV / generic TSV)."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+
+        content = (data.get("content") or "").strip()
+        filename = (data.get("filename") or "").strip()
+
+        if not content:
+            return JSONResponse({"success": False, "error": "content is required"}, status_code=400)
+
+        lines = [ln for ln in content.splitlines() if ln.strip()]
+        header = lines[0] if lines else ""
+        records = lines[1:] if len(lines) > 1 else []
+
+        if "\t" in header and "object-name" in header.lower():
+            adapter_name = "ede"
+        elif "," in header:
+            adapter_name = "csv"
+        else:
+            adapter_name = "generic"
+
+        return JSONResponse({
+            "success": True,
+            "records_ingested": len(records),
+            "adapter_name": adapter_name,
+            "filename": filename,
+        })
+
+    @app.get("/api/industry/climate/{city}")
+    async def industry_climate(city: str):
+        """Return climate zone data and design recommendations for a city."""
+        _CLIMATE_DB: Dict[str, Dict[str, Any]] = {
+            "chicago": {
+                "climate_zone": "5A",
+                "design_temp_cooling": 93,
+                "design_temp_heating": -4,
+                "hdd65": 6536,
+                "cdd50": 3390,
+            },
+            "miami": {
+                "climate_zone": "1A",
+                "design_temp_cooling": 92,
+                "design_temp_heating": 47,
+                "hdd65": 149,
+                "cdd50": 9474,
+            },
+            "phoenix": {
+                "climate_zone": "2B",
+                "design_temp_cooling": 110,
+                "design_temp_heating": 34,
+                "hdd65": 1125,
+                "cdd50": 8425,
+            },
+            "new york": {
+                "climate_zone": "4A",
+                "design_temp_cooling": 92,
+                "design_temp_heating": 7,
+                "hdd65": 4871,
+                "cdd50": 3148,
+            },
+        }
+
+        lookup = city.strip().lower()
+        info = _CLIMATE_DB.get(lookup, {
+            "climate_zone": "4A",
+            "design_temp_cooling": 90,
+            "design_temp_heating": 10,
+            "hdd65": 4000,
+            "cdd50": 3000,
+        })
+
+        recommendations: list = []
+        zone = info["climate_zone"]
+        if zone.startswith("1") or zone.startswith("2"):
+            recommendations = [
+                "High-efficiency cooling plant recommended",
+                "Consider dedicated outdoor-air systems (DOAS)",
+                "Evaluate thermal energy storage for peak shaving",
+            ]
+        elif zone.startswith("5") or zone.startswith("6") or zone.startswith("7"):
+            recommendations = [
+                "Enhanced building envelope insulation recommended",
+                "Evaluate condensing boilers for heating efficiency",
+                "Consider energy recovery ventilation (ERV)",
+            ]
+        else:
+            recommendations = [
+                "Balanced heating/cooling design recommended",
+                "Evaluate economizer strategies",
+                "Consider variable-flow pumping",
+            ]
+
+        return JSONResponse({
+            "success": True,
+            "city": city,
+            "climate_zone": info["climate_zone"],
+            "resilience_factors": {
+                "design_temp_cooling": info["design_temp_cooling"],
+                "design_temp_heating": info["design_temp_heating"],
+                "hdd65": info["hdd65"],
+                "cdd50": info["cdd50"],
+            },
+            "design_recommendations": recommendations,
+        })
+
+    @app.post("/api/industry/energy-audit")
+    async def industry_energy_audit(request: Request):
+        """Run an ASHRAE-style energy audit and return ECM recommendations."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+
+        utility_data = data.get("utility_data") or {}
+        audit_level = data.get("audit_level") or "I"
+        facility_type = data.get("facility_type") or "commercial"
+        mss_mode = data.get("mss_mode")
+
+        elec_kwh = utility_data.get("electricity_kwh", 0)
+        elec_cost = utility_data.get("electricity_cost", 0)
+        gas_therms = utility_data.get("natural_gas_therms", 0)
+        gas_cost = utility_data.get("natural_gas_cost", 0)
+        sqft = utility_data.get("facility_sqft", 1)
+
+        eui = round(((elec_kwh * 3.412) + (gas_therms * 100)) / max(sqft, 1), 2)
+
+        ecms = [
+            {"name": "LED Lighting Retrofit", "estimated_savings_pct": 12, "payback_years": 2.1},
+            {"name": "VFD on AHU Supply Fans", "estimated_savings_pct": 8, "payback_years": 3.5},
+            {"name": "Economizer Controls Upgrade", "estimated_savings_pct": 5, "payback_years": 1.8},
+        ]
+        if audit_level in ("II", "III"):
+            ecms.append({"name": "Chiller Plant Optimization", "estimated_savings_pct": 10, "payback_years": 5.0})
+        if audit_level == "III":
+            ecms.append({"name": "Building Envelope Improvements", "estimated_savings_pct": 7, "payback_years": 8.0})
+
+        result: Dict[str, Any] = {
+            "success": True,
+            "ecm_count": len(ecms),
+            "ecms": ecms,
+            "utility_analysis": {
+                "eui_kbtu_per_sqft": eui,
+                "total_electricity_kwh": elec_kwh,
+                "total_electricity_cost": elec_cost,
+                "total_gas_therms": gas_therms,
+                "total_gas_cost": gas_cost,
+            },
+            "audit_level": audit_level,
+            "facility_type": facility_type,
+        }
+
+        if mss_mode == "simplify":
+            result["mss_rubric"] = {
+                "mode": "simplify",
+                "summary": "Top ECMs ranked by simple payback",
+                "top_ecm": ecms[0]["name"] if ecms else None,
+            }
+
+        return JSONResponse(result)
+
+    _industry_interview_sessions: Dict[str, Dict[str, Any]] = {}
+
+    @app.post("/api/industry/interview")
+    async def industry_interview(request: Request):
+        """Guided intake interview for building-automation projects."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+
+        domain = data.get("domain") or "general"
+        session_id = data.get("session_id")
+        question_id = data.get("question_id")
+        answer = data.get("answer")
+
+        _QUESTIONS: list = [
+            {"question_id": "q1", "text": "What type of building or facility is this project for?",
+             "options": ["Commercial Office", "Hospital", "Data Center", "Industrial", "Education", "Other"]},
+            {"question_id": "q2", "text": "What is the primary BAS protocol in use?",
+             "options": ["BACnet IP", "BACnet MS/TP", "Modbus TCP", "Modbus RTU", "LonWorks", "KNX", "Other"]},
+            {"question_id": "q3", "text": "What is the approximate gross square footage?",
+             "options": ["<10,000", "10,000–50,000", "50,000–200,000", "200,000–500,000", ">500,000"]},
+            {"question_id": "q4", "text": "What are the primary goals for this project?",
+             "options": ["Energy Reduction", "Comfort Improvement", "Regulatory Compliance", "System Modernization", "All of the above"]},
+        ]
+
+        if not session_id:
+            import uuid as _uuid_mod
+            session_id = _uuid_mod.uuid4().hex[:16]
+            _industry_interview_sessions[session_id] = {
+                "domain": domain,
+                "current_index": 0,
+                "answers": {},
+            }
+            return JSONResponse({
+                "session_id": session_id,
+                "question": _QUESTIONS[0],
+                "status": "in_progress",
+                "domain": domain,
+            })
+
+        session = _industry_interview_sessions.get(session_id)
+        if session is None:
+            return JSONResponse({"success": False, "error": "session_not_found"}, status_code=404)
+
+        if answer is not None and question_id:
+            session["answers"][question_id] = answer
+            session["current_index"] += 1
+
+        idx = session["current_index"]
+        if idx < len(_QUESTIONS):
+            return JSONResponse({
+                "session_id": session_id,
+                "question": _QUESTIONS[idx],
+                "status": "in_progress",
+            })
+
+        return JSONResponse({
+            "session_id": session_id,
+            "status": "completed",
+            "answers": session["answers"],
+            "summary": f"Interview complete — {len(session['answers'])} answers collected for domain '{session['domain']}'.",
+        })
+
+    @app.post("/api/industry/configure")
+    async def industry_configure(request: Request):
+        """Detect system type from a free-text description and recommend a control strategy."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+
+        description = (data.get("description") or "").strip()
+        mss_mode = data.get("mss_mode")
+
+        if not description:
+            return JSONResponse({"success": False, "error": "description is required"}, status_code=400)
+
+        desc_lower = description.lower()
+
+        _SYSTEM_KEYWORDS: list = [
+            ("ahu", ["air handling", "ahu", "supply fan", "return fan", "mixed air"]),
+            ("chiller", ["chiller", "chilled water", "cooling tower", "condenser"]),
+            ("boiler", ["boiler", "hot water", "steam", "heating plant"]),
+            ("vav", ["vav", "variable air volume", "terminal unit"]),
+            ("rtu", ["rtu", "rooftop", "packaged unit"]),
+            ("lighting", ["lighting", "luminaire", "daylight"]),
+        ]
+
+        system_type = "generic"
+        for stype, keywords in _SYSTEM_KEYWORDS:
+            if any(kw in desc_lower for kw in keywords):
+                system_type = stype
+                break
+
+        _STRATEGIES: Dict[str, str] = {
+            "ahu": "Supply air temperature reset with demand-based ventilation",
+            "chiller": "Condenser water optimization with weather-adjusted setpoints",
+            "boiler": "Outdoor air reset with lead-lag sequencing",
+            "vav": "Pressure-independent flow control with occupancy scheduling",
+            "rtu": "Integrated economizer with DX staging",
+            "lighting": "Daylight harvesting with occupancy-based dimming",
+            "generic": "Setpoint optimization with scheduled override",
+        }
+
+        result: Dict[str, Any] = {
+            "success": True,
+            "system_type": system_type,
+            "recommended_strategy": _STRATEGIES.get(system_type, _STRATEGIES["generic"]),
+            "description": description,
+        }
+        if mss_mode:
+            result["mss_mode"] = mss_mode
+
+        return JSONResponse(result)
+
+    @app.post("/api/industry/as-built")
+    async def industry_as_built(request: Request):
+        """Generate an as-built documentation package for a piece of equipment."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+
+        system_name = (data.get("system_name") or "EQUIP-01").strip()
+        equipment_spec = data.get("equipment_spec") or {}
+        equip_type = (equipment_spec.get("equipment_type") or "generic").lower()
+
+        _POINT_TEMPLATES: Dict[str, list] = {
+            "ahu": [
+                {"point": f"{system_name}.SAT", "type": "AI", "description": "Supply Air Temp"},
+                {"point": f"{system_name}.RAT", "type": "AI", "description": "Return Air Temp"},
+                {"point": f"{system_name}.SF_CMD", "type": "BO", "description": "Supply Fan Command"},
+                {"point": f"{system_name}.CC_VLV", "type": "AO", "description": "Cooling Coil Valve"},
+                {"point": f"{system_name}.HC_VLV", "type": "AO", "description": "Heating Coil Valve"},
+            ],
+            "chiller": [
+                {"point": f"{system_name}.CHWS", "type": "AI", "description": "Chilled Water Supply Temp"},
+                {"point": f"{system_name}.CHWR", "type": "AI", "description": "Chilled Water Return Temp"},
+                {"point": f"{system_name}.RUN", "type": "BO", "description": "Chiller Run Command"},
+                {"point": f"{system_name}.KW", "type": "AI", "description": "Power Consumption"},
+            ],
+            "boiler": [
+                {"point": f"{system_name}.HWS", "type": "AI", "description": "Hot Water Supply Temp"},
+                {"point": f"{system_name}.HWR", "type": "AI", "description": "Hot Water Return Temp"},
+                {"point": f"{system_name}.FIRE", "type": "BO", "description": "Burner Command"},
+            ],
+        }
+
+        point_schedule = _POINT_TEMPLATES.get(equip_type, [
+            {"point": f"{system_name}.STATUS", "type": "BI", "description": "Equipment Status"},
+            {"point": f"{system_name}.CMD", "type": "BO", "description": "Equipment Command"},
+        ])
+
+        diagram = (
+            f"[{system_name}] — Type: {equip_type.upper()}\n"
+            f"  Points: {len(point_schedule)}\n"
+            f"  Protocol: BACnet IP (default)\n"
+            f"  Controller: DDC"
+        )
+
+        schematic_description = (
+            f"As-built schematic for {system_name} ({equip_type}). "
+            f"Total point count: {len(point_schedule)}. "
+            f"All points mapped to BACnet objects with standard naming conventions."
+        )
+
+        return JSONResponse({
+            "success": True,
+            "system_name": system_name,
+            "equipment_type": equip_type,
+            "diagram": diagram,
+            "point_schedule": point_schedule,
+            "schematic_description": schematic_description,
+        })
+
+    @app.post("/api/industry/decide")
+    async def industry_decide(request: Request):
+        """Multi-criteria decision analysis for equipment/ECM selection."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+
+        question = (data.get("question") or "").strip()
+        options = data.get("options") or []
+        criteria_set = data.get("criteria_set")
+
+        if not options:
+            return JSONResponse({"success": False, "error": "options list is required"}, status_code=400)
+
+        scored: list = []
+        for opt in options:
+            name = opt.get("name", "unnamed")
+            scores = opt.get("scores", {})
+            total = round(sum(scores.values()), 4) if scores else 0
+            scored.append({"name": name, "total_score": total, "scores": scores})
+
+        scored.sort(key=lambda o: o["total_score"], reverse=True)
+
+        winner = scored[0]["name"] if scored else "none"
+        viable = [s["name"] for s in scored if s["total_score"] >= scored[0]["total_score"] * 0.6]
+        eliminated = [s["name"] for s in scored if s["name"] not in viable]
+
+        explanation = (
+            f"Decision analysis for: '{question}'. "
+            f"Evaluated {len(options)} options across {len(scored[0]['scores']) if scored else 0} criteria. "
+            f"Winner: {winner} (score {scored[0]['total_score'] if scored else 0})."
+        )
+        if criteria_set:
+            explanation += f" Criteria set: {criteria_set}."
+
+        return JSONResponse({
+            "success": True,
+            "question": question,
+            "winner": winner,
+            "viable_options": viable,
+            "eliminated_options": eliminated,
+            "scored_options": scored,
+            "explanation": explanation,
+        })
+
     # ── Founder account seed ────────────────────────────────────────────────
     # On every startup the platform ensures a founder/owner account exists so
-    # that cpost@murphy.systems (or the value of MURPHY_FOUNDER_EMAIL) always
-    # has role=owner and can access the admin panel even on a fresh deploy.
+    # that the value of MURPHY_FOUNDER_EMAIL always has role=owner and can
+    # access the admin panel even on a fresh deploy.
     #
-    # The account is created with MURPHY_FOUNDER_PASSWORD (defaults to the
-    # temporary password below — override via env var in production).
+    # The account is created with MURPHY_FOUNDER_PASSWORD — both env vars
+    # must be set for the seed to run.
     # If the account already exists its role is silently promoted to owner.
-    _FOUNDER_EMAIL: str = os.environ.get("MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems").strip().lower()
-    _FOUNDER_PASSWORD: str = os.environ.get("MURPHY_FOUNDER_PASSWORD", "Password1").strip()  # temporary — change after first login
-    if _FOUNDER_PASSWORD == "Password1" and os.environ.get("MURPHY_ENV", "development").lower() != "development":
-        logger.warning(
-            "SECURITY: Founder account is using the default temporary password. "
-            "Set MURPHY_FOUNDER_PASSWORD in your environment before going live."
-        )
+    _FOUNDER_EMAIL: str = os.environ.get("MURPHY_FOUNDER_EMAIL", "").strip().lower()
+    _FOUNDER_PASSWORD: str = os.environ.get("MURPHY_FOUNDER_PASSWORD", "").strip()
 
     def _ensure_founder_account() -> None:
         """Create or promote the founder/owner account.
@@ -13573,7 +14474,7 @@ def create_app() -> FastAPI:
         if existing_id:
             # Account already exists — promote to owner and sync password
             _user_store[existing_id]["role"] = "owner"
-            _user_store[existing_id]["full_name"] = _user_store[existing_id].get("full_name") or "Corey Post"
+            _user_store[existing_id]["full_name"] = _user_store[existing_id].get("full_name") or os.environ.get("MURPHY_FOUNDER_NAME", "")
             # Re-apply the configured password so login always works after restart
             _user_store[existing_id]["password_hash"] = _hash_password(_FOUNDER_PASSWORD)
             _user_store[existing_id]["tier"] = "enterprise"
@@ -13587,7 +14488,7 @@ def create_app() -> FastAPI:
             "account_id": founder_id,
             "email": _FOUNDER_EMAIL,
             "password_hash": pwd_hash,
-            "full_name": "Corey Post",
+            "full_name": os.environ.get("MURPHY_FOUNDER_NAME", ""),
             "job_title": "Founder",
             "company": "Inoni LLC",
             "tier": "enterprise",
@@ -13608,7 +14509,8 @@ def create_app() -> FastAPI:
                 pass  # subscription manager unavailable — not critical
         logger.info("Founder account seeded: %s (%s)", founder_id, _FOUNDER_EMAIL)
 
-    _ensure_founder_account()
+    if _FOUNDER_EMAIL and _FOUNDER_PASSWORD:
+        _ensure_founder_account()
 
     # Seed founder automations
     try:

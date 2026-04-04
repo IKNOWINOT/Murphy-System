@@ -29,8 +29,6 @@ _BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 _SRC_DIR = os.path.join(_BASE_DIR, "src")
 
 # Ensure src/ is importable (conftest.py does this too)
-if _SRC_DIR not in sys.path:
-    sys.path.insert(0, _SRC_DIR)
 
 # ---------------------------------------------------------------------------
 # Shared constants
@@ -692,9 +690,13 @@ class TestSalesReadinessScore:
         with open(doc_path, "r", encoding="utf-8") as fh:
             content = fh.read()
 
-        # Extract paths that look like API endpoints (e.g. /api/... or /v1/...)
+        # Extract paths from markdown table format: | METHOD | /path | ...
+        # Also handles plain format: METHOD /path
         import re
-        endpoints = re.findall(r"(?:GET|POST|PUT|DELETE|PATCH)\s+(/\S+)", content)
+        endpoints = re.findall(r"(?:GET|POST|PUT|DELETE|PATCH)\s+\|?\s*(/\S+)", content)
+        if not endpoints:
+            # Try markdown table format: | METHOD | /path |
+            endpoints = re.findall(r"\|\s*(?:GET|POST|PUT|DELETE|PATCH)\s*\|\s*(/[^\s|]+)", content)
         assert len(endpoints) >= 1, "No API endpoints found in documentation"
 
     def test_security_hardening_complete(self):

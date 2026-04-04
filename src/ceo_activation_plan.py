@@ -47,6 +47,7 @@ Safety invariants:
 from __future__ import annotations
 
 import logging
+import os
 import re
 import threading
 import uuid
@@ -311,7 +312,7 @@ def _build_default_org_chart() -> List[OrgChartPosition]:
             title="Founder / Admin",
             department="executive",
             position_type=PositionType.HUMAN.value,
-            holder_name="Corey Post",
+            holder_name=os.environ.get("MURPHY_FOUNDER_NAME", ""),
             reports_to="",
             subsystems=[],
             permissions=["all"],

@@ -17,7 +17,6 @@ Owner: QA Team
 
 import os
 import re
-import sys
 import json
 import unittest
 
@@ -28,8 +27,6 @@ import unittest
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 MURPHY_DIR = os.path.join(TESTS_DIR, '..')
 SRC_DIR = os.path.join(MURPHY_DIR, 'src')
-sys.path.insert(0, MURPHY_DIR)
-sys.path.insert(0, SRC_DIR)
 
 # ---------------------------------------------------------------------------
 # All 16 HTML UI files in the system
@@ -669,6 +666,8 @@ class TestAPIFieldNameCompatibility(unittest.TestCase):
     def setUpClass(cls):
         """Create a test client for the Murphy System API."""
         try:
+            # Use development mode to bypass auth middleware in tests
+            os.environ.setdefault("MURPHY_ENV", "development")
             from src.runtime.app import create_app
             from fastapi.testclient import TestClient
             cls.app = create_app()

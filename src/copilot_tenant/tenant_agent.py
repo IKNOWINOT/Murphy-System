@@ -29,6 +29,7 @@ Core components wired:
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -72,8 +73,8 @@ class CopilotTenant:
     GraduationManager.  Emergency stop is always available.
     """
 
-    def __init__(self, founder_email: str = "cpost@murphy.systems") -> None:
-        self._founder_email = founder_email
+    def __init__(self, founder_email: str = "") -> None:
+        self._founder_email = founder_email or os.environ.get("MURPHY_FOUNDER_EMAIL", "")
         self._mode           = CopilotTenantMode.OBSERVER
         self._lock           = threading.Lock()
         self._running        = False
