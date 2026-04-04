@@ -168,8 +168,9 @@ class TestUnifiedMFGCOfflineStructuredQuestions:
         """When LLM mode is offline, response should be structured questions,
         NOT the generic Murphy System description."""
         from unified_mfgc import UnifiedMFGC
-        mfgc = UnifiedMFGC()
-        assert mfgc.llm_mode == "offline", "Test requires offline mode (no DeepInfra key set)"
+        mfgc = UnifiedMFGC(use_key_rotation=False)
+        if mfgc.llm_mode != "offline":
+            pytest.skip("Test requires offline mode (no DeepInfra key set)")
         result = mfgc._process_with_context(
             message="I run a small e-commerce business selling handmade crafts.",
             answers={"initial_request": "I run a small e-commerce business selling handmade crafts."},
