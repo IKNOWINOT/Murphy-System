@@ -1920,7 +1920,7 @@ The **Autonomous Self-Fix Loop** (`src/self_fix_loop.py`) closes the remediation
 ## Murphy Immune Engine (ARCH-014)
 
 **Module:** `src/murphy_immune_engine.py`  
-**Tests:** `tests/test_murphy_immune_engine.py`  
+**Tests:** `tests/modules/test_murphy_immune_engine.py`  
 **Docs:** `docs/IMMUNE_ENGINE.md`
 
 Next-generation autonomous self-coding system that wraps and extends all existing self-healing components.
@@ -2050,14 +2050,14 @@ Supported: `im`, `voice`, `video`, `email`, `slack`, `discord`, `matrix`, `sms`
 ### Integration Points
 - `src/db.py` — SQLAlchemy engine, session factory, `create_tables()`
 - `src/runtime/app.py` — router registration, `/ui/comms-hub` HTML route
-- `tests/test_communication_hub.py` — 83 tests
+- `tests/communication/test_communication_hub.py` — 83 tests
 
 ---
 
 ## Founder Update Engine (ARCH-007)
 
 **Location:** `src/founder_update_engine/`  
-**Tests:** `tests/test_founder_update_engine.py` (133 tests)  
+**Tests:** `tests/org_management/test_founder_update_engine.py` (133 tests)  
 **Design Label:** ARCH-007
 
 ### Purpose
@@ -2166,21 +2166,21 @@ _Last updated: 2026-04-02 — Phase 0A baseline_
 
 | Module | Source File | Test File | Tests | G4 Status |
 |--------|------------|-----------|-------|-----------|
-| LCM Engine | `src/lcm_engine.py` | `tests/test_lcm_engine.py` | 35 | ✅ PASS |
-| LLM Provider | `src/llm_provider.py` | `tests/test_llm_provider.py` | 22 | ✅ PASS |
-| LCM Integration Bridge | `src/lcm_integration_bridge.py` | `tests/test_lcm_integration_bridge.py` | 39 | ✅ PASS |
-| Tool Registry | `src/tool_registry/` | `tests/test_tool_registry.py` | 27 | ✅ PASS |
-| Multi-Agent Coordinator | `src/multi_agent_coordinator/` | `tests/test_multi_agent_coordinator.py` | 24 | ✅ PASS |
-| Persistent Memory | `src/persistent_memory/` | `tests/test_persistent_memory.py` | 29 | ✅ PASS |
-| Skill System | `src/skill_system/` | `tests/test_skill_system.py` | ~20 | ✅ PASS |
-| MCP Plugin | `src/mcp_plugin/` | `tests/test_mcp_plugin.py` | ~20 | ✅ PASS |
-| Feature Flags | `src/feature_flags/` | `tests/test_feature_flags.py` | ~20 | ✅ PASS |
-| Swarm Rate Governor | `src/swarm_rate_governor.py` | `tests/test_swarm_rate_governor.py` | 21 | ✅ PASS |
-| Gate Bypass Controller | `src/gate_bypass_controller.py` | `tests/test_gate_bypass_controller.py` | 18 | ✅ PASS |
-| Error System | `src/errors/` | `tests/test_error_system.py` | 20 | ✅ PASS |
-| CEO Branch | `src/ceo_branch_activation.py` | `tests/test_ceo_branch.py` | 73 | ✅ PASS |
-| Heartbeat Runner | `src/activated_heartbeat_runner.py` | `tests/test_activated_heartbeat_runner.py` | 29 | ✅ PASS |
-| Rosetta Manager | `src/rosetta/` | `tests/test_rosetta.py` | 57 | ✅ PASS |
+| LCM Engine | `src/lcm_engine.py` | `tests/modules/test_lcm_engine.py` | 35 | ✅ PASS |
+| LLM Provider | `src/llm_provider.py` | `tests/llm/test_llm_provider.py` | 22 | ✅ PASS |
+| LCM Integration Bridge | `src/lcm_integration_bridge.py` | `tests/modules/test_lcm_integration_bridge.py` | 39 | ✅ PASS |
+| Tool Registry | `src/tool_registry/` | `tests/modules/test_tool_registry.py` | 27 | ✅ PASS |
+| Multi-Agent Coordinator | `src/multi_agent_coordinator/` | `tests/agents/test_multi_agent_coordinator.py` | 24 | ✅ PASS |
+| Persistent Memory | `src/persistent_memory/` | `tests/modules/test_persistent_memory.py` | 29 | ✅ PASS |
+| Skill System | `src/skill_system/` | `tests/runtime_core/test_skill_system.py` | ~20 | ✅ PASS |
+| MCP Plugin | `src/mcp_plugin/` | `tests/integration_connector/test_mcp_plugin.py` | ~20 | ✅ PASS |
+| Feature Flags | `src/feature_flags/` | `tests/platform_config/test_feature_flags.py` | ~20 | ✅ PASS |
+| Swarm Rate Governor | `src/swarm_rate_governor.py` | `tests/execution/test_swarm_rate_governor.py` | 21 | ✅ PASS |
+| Gate Bypass Controller | `src/gate_bypass_controller.py` | `tests/modules/test_gate_bypass_controller.py` | 18 | ✅ PASS |
+| Error System | `src/errors/` | `tests/modules/test_error_system.py` | 20 | ✅ PASS |
+| CEO Branch | `src/ceo_branch_activation.py` | `tests/runtime_core/test_ceo_branch.py` | 73 | ✅ PASS |
+| Heartbeat Runner | `src/activated_heartbeat_runner.py` | `tests/runtime_core/test_activated_heartbeat_runner.py` | 29 | ✅ PASS |
+| Rosetta Manager | `src/rosetta/` | `tests/runtime_core/test_rosetta.py` | 57 | ✅ PASS |
 
 ### Commissioning Gate Legend
 
@@ -2195,3 +2195,85 @@ _Last updated: 2026-04-02 — Phase 0A baseline_
 | G7 | All ancillary code and documentation updated |
 | G8 | Hardening applied (error handling, rate limiting, thread safety) |
 | G9 | Module re-commissioned after all above steps |
+
+---
+
+## Test Suite Structure
+
+All test files are organized into **38 domain directories** under `tests/`.
+No flat `test_*.py` files exist at the `tests/` root.
+Each domain directory has:
+- `__init__.py` — domain label
+- `conftest.py` — auto-applied `pytest.mark.<domain>` marker
+
+### Selective Execution
+
+```bash
+# Run a single domain
+pytest -m compliance
+pytest tests/compliance/
+
+# Run everything except a domain
+pytest -m "not game_creative"
+
+# Run only core module tests
+pytest -m modules
+
+# Run CI-excluded domains separately
+pytest tests/e2e/ tests/benchmarks/ tests/commissioning/
+```
+
+### Domain Directory Map
+
+| Directory | Focus | Files |
+|-----------|-------|-------|
+| `tests/account_auth/` | Account, tenant, subscription, credentials | 9 |
+| `tests/agents/` | Agent system, multi-agent, CI automation agents | 25 |
+| `tests/auar/` | Automated User Acceptance Review | 3 |
+| `tests/automation/` | Automation engines, scheduling | 12 |
+| `tests/benchmarks/` | Performance benchmarks | 4 |
+| `tests/bots/` | Bot framework, governance, telemetry | 4 |
+| `tests/commissioning/` | Commissioning wave tests | 14 |
+| `tests/communication/` | Communication hub, Matrix, email | 7 |
+| `tests/competitive/` | Competitive intelligence, alignment | 4 |
+| `tests/compliance/` | Audit, compliance, security hardening | 40 |
+| `tests/content_media/` | Content creation, video, YouTube, social | 5 |
+| `tests/cost_economics/` | Cost optimization, budget, unit economics | 4 |
+| `tests/crm_sales/` | CRM, sales, marketing, customer lifecycle | 20 |
+| `tests/data_persistence/` | Database, migration, schema, data pipelines | 16 |
+| `tests/devops/` | CI/CD, deployment, containers, infrastructure | 12 |
+| `tests/digital_twin/` | Digital twin, fleet management | 2 |
+| `tests/document_export/` | Document generation, PDF, cutsheet, export | 5 |
+| `tests/documentation_qa/` | Doc completeness, gap closure, surface tests | 59 |
+| `tests/e2e/` | End-to-end integration tests | 8 |
+| `tests/execution/` | Execution engine, orchestration, swarms | 9 |
+| `tests/finance/` | Billing, grants, trading, financial reporting | 16 |
+| `tests/game_creative/` | EQ game systems, creative engine, storyline | 17 |
+| `tests/governance/` | Governance framework, authority gates, policy | 4 |
+| `tests/hardening/` | Code hardening, quality, deficiency fixes | 13 |
+| `tests/industrial/` | Robotics, building automation, energy mgmt | 4 |
+| `tests/integration/` | Integration tests | 8 |
+| `tests/integration_connector/` | Connectors, adapters, bridges, APIs | 21 |
+| `tests/learning_analytics/` | ML, analytics, telemetry, learning engines | 26 |
+| `tests/llm/` | LLM provider integration and routing | 12 |
+| `tests/modules/` | Core module unit tests (catch-all) | 224 |
+| `tests/notification_alert/` | Notifications, alerts, voice, announcements | 7 |
+| `tests/onboarding/` | Onboarding flow, commissioning, setup | 16 |
+| `tests/org_management/` | Organization, team, founder, management | 15 |
+| `tests/platform_config/` | Configuration, feature flags, environment | 4 |
+| `tests/resilience/` | Chaos, resilience, repair, recovery | 7 |
+| `tests/runtime_core/` | Core runtime, boot, heartbeat, librarian | 69 |
+| `tests/scheduling/` | Scheduler, planning, capacity | 8 |
+| `tests/sla/` | SLA enforcement | 1 |
+| `tests/submission_ticketing/` | Submissions, ticketing, triage adapters | 6 |
+| `tests/system/` | System-level tests | 1 |
+| `tests/testing_meta/` | Test mode controller, test vector generator | 2 |
+| `tests/ui/` | UI screenshot/visual tests | 2 |
+| `tests/ui_frontend/` | UI, dashboards, terminals, frontend wiring | 20 |
+| `tests/wiring_validation/` | Cross-module wiring, structural audit | 22 |
+| `tests/workflow_task/` | Workflow DAG, task pipelines, processes | 10 |
+
+### Pytest Markers
+
+All 38 domain markers are registered in `pyproject.toml`.
+CI runs with `--ignore=tests/e2e --ignore=tests/commissioning --ignore=tests/integration --ignore=tests/sla --ignore=tests/benchmarks`.
