@@ -272,7 +272,7 @@ config = ProviderConfig(
     provider_type=ProviderType.DEEPINFRA,
     api_key=os.getenv("DEEPINFRA_API_KEY"),
     model="mixtral-8x7b-32768",
-    base_url="https://api.deepinfra.com/v1/openai/v1",
+    base_url="https://api.deepinfra.com/v1/openai",
 )
 provider = OpenAICompatibleProvider(config)
 response: CompletionResponse = await provider.complete(messages)

@@ -92,7 +92,7 @@ from openai_compatible_provider import OpenAICompatibleProvider, ProviderConfig,
 config = ProviderConfig(
     provider_type=ProviderType.DEEPINFRA,
     api_key=os.environ["DEEPINFRA_API_KEY"],
-    base_url="https://api.deepinfra.com/v1/openai/v1",
+    base_url="https://api.deepinfra.com/v1/openai",
     model="mixtral-8x7b-32768",
 )
 provider = OpenAICompatibleProvider(config)
