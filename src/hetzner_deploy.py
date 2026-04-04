@@ -74,7 +74,7 @@ logger = logging.getLogger(__name__)
 _MAX_AUDIT = 10_000
 # Default connectivity-check host (Cloudflare DNS).  Override via MURPHY_CONNECTIVITY_HOST.
 _DEFAULT_CONNECTIVITY_HOST = ".".join(["1", "1", "1", "1"])
-_FOUNDER_NAME = "Corey Post"
+_FOUNDER_NAME = os.environ.get("MURPHY_FOUNDER_NAME", "")
 _FOUNDER_ROLE = "founder_admin"
 
 _DEFAULT_CLUSTER_NAME = "murphy-system"

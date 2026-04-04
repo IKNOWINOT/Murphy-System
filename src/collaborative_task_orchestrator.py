@@ -51,7 +51,7 @@ except ImportError:
     DurableSwarmOrchestrator = None  # type: ignore[assignment,misc]
 
 try:
-    from split_screen_coordinator import CoordinationReport, SplitScreenCoordinator, SplitScreenLayout
+    from split_screen_coordinator import CoordinationReport, RubixSplitScreenCoordinator as SplitScreenCoordinator, SplitScreenLayout
     _SPLIT_SCREEN_AVAILABLE = True
 except ImportError:
     _SPLIT_SCREEN_AVAILABLE = False

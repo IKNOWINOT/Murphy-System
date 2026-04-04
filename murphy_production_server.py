@@ -309,7 +309,7 @@ def _create_hitl_item(
 _TENANTS: Dict[str, Dict[str, Any]] = {
     "tenant-001": {
         "id": "tenant-001", "name": "Murphy Systems HQ", "org": "Inoni LLC",
-        "tier": "enterprise", "owner": "Corey Post",
+        "tier": "enterprise", "owner": os.environ.get("MURPHY_FOUNDER_NAME", ""),
         "connections": ["HubSpot", "Salesforce", "Stripe", "Slack", "OpenAI", "Anthropic"],
         "boards": ["board-001", "board-002", "board-003"],
         "active_verticals": ["marketing","proposals","crm","monitoring","finance","security","content","comms","pipeline"],
@@ -2263,8 +2263,8 @@ async def create_from_prompt(req: PromptRequest):
         try:
             llm = _get_llm()
             system_msg = (
-                "You are Murphy, an AI system builder and automation platform developed by Inoni LLC, "
-                "created by Corey Post. Your job is to design business automations. "
+                "You are Murphy, an AI system builder and automation platform developed by Inoni LLC. "
+                "Your job is to design business automations. "
                 "Reply ONLY with valid JSON — no markdown, no explanation, no code fences."
             )
             user_msg = (

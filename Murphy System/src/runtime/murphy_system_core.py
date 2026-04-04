@@ -13924,7 +13924,7 @@ class MurphySystem:
             'version': self.version,
             'description': 'Universal AI Automation System',
             'owner': 'Inoni Limited Liability Company',
-            'creator': 'Corey Post',
+            'creator': os.environ.get('MURPHY_FOUNDER_NAME', ''),
             'license': 'BSL 1.1 (Business Source License)',
             'capabilities': [
                 'Universal Automation (factory, content, data, system, agent, business)',

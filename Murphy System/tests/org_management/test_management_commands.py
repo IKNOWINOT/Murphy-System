@@ -498,7 +498,8 @@ class TestModuleExports:
     def test_handler_dict_has_all_commands(self):
         expected = {"board", "status-label", "timeline", "recipe", "workspace",
                     "dashboard", "sync", "form", "doc", "onboard", "gate",
-                    "setpoint", "schedule", "skm", "automation"}
+                    "setpoint", "schedule", "skm", "automation",
+                    "production", "campaign"}
         assert set(MANAGEMENT_COMMAND_HANDLERS.keys()) == expected
 
     def test_all_handlers_callable(self):
