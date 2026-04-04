@@ -3219,14 +3219,17 @@ async def roi_calendar_event_update(event_id: str, request: Request):
 # ==============================================================================
 # STATIC FILES + ALL ORIGINAL ROUTES PRESERVED
 # ==============================================================================
-_BASE_DIR   = Path(__file__).resolve().parent
-_MURPHY_DIR = _BASE_DIR / "Murphy System"
-_UI_DIR     = _BASE_DIR / "murphy_dashboard"
+_BASE_DIR          = Path(__file__).resolve().parent
+_MURPHY_DIR        = _BASE_DIR / "Murphy System"
+_UI_DIR            = _BASE_DIR / "murphy_dashboard"
+_STATIC_DIR        = _BASE_DIR / "static"
+_MURPHY_STATIC_DIR = _MURPHY_DIR / "static"
 
-if _UI_DIR.exists():
-    app.mount("/static", StaticFiles(directory=str(_UI_DIR)), name="static_dash")
-if (_MURPHY_DIR / "static").exists():
-    app.mount("/murphy-static", StaticFiles(directory=str(_MURPHY_DIR / "static")), name="static_legacy")
+if _STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static_root")
+    app.mount("/ui/static", StaticFiles(directory=str(_STATIC_DIR)), name="ui_static")
+if _MURPHY_STATIC_DIR.exists():
+    app.mount("/murphy-static", StaticFiles(directory=str(_MURPHY_STATIC_DIR)), name="static_legacy")
 
 def _read_html(path: Path) -> str:
     try: return path.read_text(encoding="utf-8")
