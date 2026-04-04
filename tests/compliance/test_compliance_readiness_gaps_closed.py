@@ -19,11 +19,15 @@ import sys
 import unittest
 from datetime import datetime, timedelta
 
-# Ensure imports work
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'strategic'))
+# Ensure imports work — add strategic subdirectories directly to avoid
+# namespace collision with tests/compliance/ package.
+_strategic = os.path.join(os.path.dirname(__file__), '..', '..', 'strategic')
+sys.path.insert(0, os.path.join(_strategic, 'compliance'))
+sys.path.insert(0, os.path.join(_strategic, 'eu_ai_act'))
+sys.path.insert(0, _strategic)  # for murphy_confidence package
 
 # Compliance controls
-from compliance.compliance_controls import (
+from compliance_controls import (
     ImmutableAuditLog, AuditEvent,
     ChangeManagementGate, ChangeRequest,
     SLODashboard, SLOMetric,
@@ -35,7 +39,7 @@ from compliance.compliance_controls import (
 )
 
 # EU AI Act controls
-from eu_ai_act.eu_ai_act_controls import (
+from eu_ai_act_controls import (
     AnnexIIIClassifier,
     IntegrityVerifier,
     QMSEngine,
@@ -44,10 +48,10 @@ from eu_ai_act.eu_ai_act_controls import (
 )
 
 # Compliance framework (updated)
-from compliance.compliance_framework import ComplianceFramework
+from compliance_framework import ComplianceFramework
 
 # EU AI Act compliance (updated)
-from eu_ai_act.eu_ai_act_compliance import EUAIActCompliance
+from eu_ai_act_compliance import EUAIActCompliance
 
 # Murphy confidence engine
 from murphy_confidence.engine import ConfidenceEngine, compute_confidence
