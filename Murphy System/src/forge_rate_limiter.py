@@ -128,7 +128,7 @@ class ForgeRateLimiter:
             if sub:
                 return sub.tier.value.lower()
         except Exception:
-            pass
+            logger.debug("Suppressed exception in forge_rate_limiter")
         # Fall back to X-Subscription-Tier header (set by auth middleware)
         headers = getattr(request, "headers", {}) or {}
         return (headers.get("X-Subscription-Tier") or "free").lower()

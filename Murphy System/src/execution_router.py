@@ -59,27 +59,27 @@ def _initialize_orchestrators() -> None:
         from two_phase_orchestrator import TwoPhaseOrchestrator
         _two_phase = TwoPhaseOrchestrator()
         log.info("✓ TwoPhaseOrchestrator loaded")
-    except Exception as e:
-        _init_errors.append(f"TwoPhaseOrchestrator: {e}")
-        log.warning("✗ TwoPhaseOrchestrator failed: %s", e)
+    except Exception as exc:
+        _init_errors.append(f"TwoPhaseOrchestrator: {exc}")
+        log.warning("✗ TwoPhaseOrchestrator failed: %s", exc)
 
     # ── Universal Control Plane ──
     try:
         from universal_control_plane import UniversalControlPlane
         _ucp = UniversalControlPlane()
         log.info("✓ UniversalControlPlane loaded")
-    except Exception as e:
-        _init_errors.append(f"UniversalControlPlane: {e}")
-        log.warning("✗ UniversalControlPlane failed: %s", e)
+    except Exception as exc:
+        _init_errors.append(f"UniversalControlPlane: {exc}")
+        log.warning("✗ UniversalControlPlane failed: %s", exc)
 
     # ── Execution Orchestrator ──
     try:
         from execution_orchestrator import ExecutionOrchestrator
         _exec_orch = ExecutionOrchestrator()
         log.info("✓ ExecutionOrchestrator loaded")
-    except Exception as e:
-        _init_errors.append(f"ExecutionOrchestrator: {e}")
-        log.warning("✗ ExecutionOrchestrator failed: %s", e)
+    except Exception as exc:
+        _init_errors.append(f"ExecutionOrchestrator: {exc}")
+        log.warning("✗ ExecutionOrchestrator failed: %s", exc)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -154,9 +154,9 @@ async def two_phase_create(req: CreateAutomationRequest):
             "constraints": len(config.get("constraints", {})) if config else 0,
             "message": "Phase 1 complete. Use /api/execution/two-phase/run to execute.",
         })
-    except Exception as e:
+    except Exception as exc:
         log.error("Phase 1 failed: %s", e, exc_info=True)
-        raise HTTPException(500, f"Phase 1 setup failed: {e}")
+        raise HTTPException(500, f"Phase 1 setup failed: {exc}")
 
 
 @router.post("/api/execution/two-phase/run")
@@ -177,9 +177,9 @@ async def two_phase_run(req: RunAutomationRequest):
         return JSONResponse(result)
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception as exc:
         log.error("Phase 2 execution failed: %s", e, exc_info=True)
-        raise HTTPException(500, f"Phase 2 execution failed: {e}")
+        raise HTTPException(500, f"Phase 2 execution failed: {exc}")
 
 
 @router.get("/api/execution/two-phase/{automation_id}")
@@ -246,9 +246,9 @@ async def ucp_create(req: CreateAutomationRequest):
             "packet_actions": len(session.packet.task_graph) if session and session.packet else 0,
             "message": "Session created. Use /api/execution/ucp/run to execute.",
         })
-    except Exception as e:
+    except Exception as exc:
         log.error("UCP session creation failed: %s", e, exc_info=True)
-        raise HTTPException(500, f"Session creation failed: {e}")
+        raise HTTPException(500, f"Session creation failed: {exc}")
 
 
 @router.post("/api/execution/ucp/run")
@@ -266,9 +266,9 @@ async def ucp_run(req: RunAutomationRequest):
         return JSONResponse(result)
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception as exc:
         log.error("UCP execution failed: %s", e, exc_info=True)
-        raise HTTPException(500, f"Session execution failed: {e}")
+        raise HTTPException(500, f"Session execution failed: {exc}")
 
 
 @router.get("/api/execution/ucp/{session_id}")
@@ -321,9 +321,9 @@ async def ucp_close_session(session_id: str):
         session.close()
         del _ucp.sessions[session_id]
         return JSONResponse({"closed": True, "session_id": session_id})
-    except Exception as e:
+    except Exception as exc:
         log.error("Session close failed: %s", e, exc_info=True)
-        raise HTTPException(500, f"Session close failed: {e}")
+        raise HTTPException(500, f"Session close failed: {exc}")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -350,9 +350,9 @@ async def exec_orch_execute(req: ExecutePacketRequest):
         result = _exec_orch.execute(packet)
         status_code = 200 if result.get("accepted") else 403
         return JSONResponse(result, status_code=status_code)
-    except Exception as e:
+    except Exception as exc:
         log.error("Packet execution failed: %s", e, exc_info=True)
-        raise HTTPException(500, f"Execution failed: {e}")
+        raise HTTPException(500, f"Execution failed: {exc}")
 
 
 @router.post("/api/execution/packet/approve")
@@ -367,9 +367,9 @@ async def exec_orch_approve(req: ApprovalRequest):
             "approver": req.approver,
         })
         return JSONResponse(result)
-    except Exception as e:
+    except Exception as exc:
         log.error("Approval processing failed: %s", e, exc_info=True)
-        raise HTTPException(500, f"Approval failed: {e}")
+        raise HTTPException(500, f"Approval failed: {exc}")
 
 
 @router.get("/api/execution/packet/pending")

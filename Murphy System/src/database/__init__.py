@@ -31,6 +31,14 @@ import logging
 import os
 from typing import Optional
 
+__all__ = [
+    "DATABASE_URL",
+    "MURPHY_AUTO_MIGRATE",
+    "init_database",
+    "run_pending_migrations",
+    "get_database_status",
+]
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -269,7 +277,7 @@ def get_database_status() -> dict:
         try:
             status["pool"] = get_pool_status()
         except Exception:
-            pass
+            logger.debug("Suppressed exception in __init__")
     except Exception as exc:
         status["orm"] = "error"
         status["error"] = str(exc)

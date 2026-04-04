@@ -489,7 +489,7 @@ class TrajectoryEngine:
                     round(target + z * std_res, 8),
                 )
             except Exception:
-                pass
+                logger.debug("Suppressed exception in trajectory_engine")
 
         # Fallback: linear projection using last two points
         if len(window) >= 2:

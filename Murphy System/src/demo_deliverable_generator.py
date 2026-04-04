@@ -380,7 +380,7 @@ _SCENARIO_TEMPLATES: Dict[str, Dict[str, str]] = {
   Risk F-2 (Data Retention) — HIGH
     Current state: Retention schedules exist for primary DBs but
     not for backup/archive systems or 3rd-party integrations.
-    Potential impact: GDPR Article 5(e) violation; fines up to 4 %
+    Potential impact: GDPR Article 5(exc) violation; fines up to 4 %
     of global turnover. Reputational damage.
     Likelihood: LOW (no breach indicators)
     Risk score: 6/10
@@ -723,7 +723,7 @@ function tryMove(ent,dx,dy){
 function attack(){
   if(player.atkTimer>0)return;
   player.attacking=true;player.atkTimer=22;
-  enemies.forEach(function(e){
+  enemies.forEach(function(exc){
     if(e.hp<=0)return;
     if(dist(player,e)<player.atkRange+e.w/2){
       e.hp-=28;setMsg('Hit '+e.name+'! ('+(e.hp>0?e.hp+' HP left':'defeated')+')');
@@ -737,15 +737,15 @@ function attack(){
 }
 
 // ── Input ──
-document.addEventListener('keydown',function(e){keys[e.key]=true;if(e.key===' '){e.preventDefault();attack();}});
-document.addEventListener('keyup',function(e){keys[e.key]=false;});
+document.addEventListener('keydown',function(exc){keys[e.key]=true;if(e.key===' '){e.preventDefault();attack();}});
+document.addEventListener('keyup',function(exc){keys[e.key]=false;});
 ['dU','dD','dL','dR'].forEach(function(id){
   var el=document.getElementById(id);
   var kMap={dU:'ArrowUp',dD:'ArrowDown',dL:'ArrowLeft',dR:'ArrowRight'};
-  el.addEventListener('touchstart',function(e){e.preventDefault();keys[kMap[id]]=true;},{passive:false});
-  el.addEventListener('touchend',function(e){e.preventDefault();keys[kMap[id]]=false;},{passive:false});
+  el.addEventListener('touchstart',function(exc){e.preventDefault();keys[kMap[id]]=true;},{passive:false});
+  el.addEventListener('touchend',function(exc){e.preventDefault();keys[kMap[id]]=false;},{passive:false});
 });
-document.getElementById('dAtk').addEventListener('touchstart',function(e){e.preventDefault();attack();},{passive:false});
+document.getElementById('dAtk').addEventListener('touchstart',function(exc){e.preventDefault();attack();},{passive:false});
 
 // ── Game loop ──
 function update(){
@@ -776,7 +776,7 @@ function update(){
 
   // Enemies AI
   var allDead=true;
-  enemies.forEach(function(e){
+  enemies.forEach(function(exc){
     if(e.hp<=0)return;
     allDead=false;
     var d=dist(player,e);
@@ -851,7 +851,7 @@ function draw(){
   });
 
   // Enemies
-  enemies.forEach(function(e){
+  enemies.forEach(function(exc){
     if(e.hp<=0)return;
     var ex=e.x-cam.x,ey=e.y-cam.y;
     ctx.save();
@@ -2078,8 +2078,8 @@ pydantic>=2.0.0
         print("API timed out — try again later")
     except requests.exceptions.HTTPError as e:
         print(f"API error: {e.response.status_code}")
-    except Exception as e:
-        print(f"Unexpected error: {e}")
+    except Exception as exc:
+        print(f"Unexpected error: {exc}")
 
   EXERCISE 3.1 — Real API Call
     Using the Free Open Notify ISS API (no key needed):
@@ -2099,8 +2099,8 @@ pydantic>=2.0.0
         print(f"People in space right now: {data['number']}")
         for person in data["people"]:
             print(f"  • {person['name']} aboard {person['craft']}")
-    except Exception as e:
-        print(f"Could not fetch data: {e}")
+    except Exception as exc:
+        print(f"Could not fetch data: {exc}")
 
   ──────────────────────────────────────────────────────────────────────
   WEEK 5-6 — CAPSTONE PROJECT: Personal Automation Dashboard
@@ -2725,7 +2725,7 @@ def _build_automation_blueprint(query: str, mss_result: Optional[Dict[str, Any]]
             context={"source": "demo_deliverable"},
         )
     except Exception:
-        pass
+        logger.debug("Suppressed exception in demo_deliverable_generator")
 
     workflow_id = workflow.get("workflow_id") or slug
     workflow_name = workflow.get("name") or slug.replace("_", " ").title()
@@ -3025,7 +3025,7 @@ def _generate_llm_content(
             if response.content and len(response.content) > len(base_content) // 2:
                 return response.content
         except Exception:
-            pass  # LLM enrichment failed — use base MSS content
+            logger.debug("Suppressed exception in demo_deliverable_generator")
         return base_content
 
     # No MSS data — try LLM with context-enriched prompt
@@ -3057,7 +3057,7 @@ def _generate_llm_content(
         if content and len(content) > 50:
             return content
     except Exception:
-        pass
+        logger.debug("Suppressed exception in demo_deliverable_generator")
 
     # LocalLLMFallback — always available
     try:
@@ -3070,7 +3070,7 @@ def _generate_llm_content(
         if content and len(content) > 20:
             return content
     except Exception:
-        pass
+        logger.debug("Suppressed exception in demo_deliverable_generator")
 
     return _build_minimal_custom_content(query)
 

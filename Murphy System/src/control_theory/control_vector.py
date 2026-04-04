@@ -174,7 +174,7 @@ class ControlLaw:
         Heuristic: largest absolute error dimension determines action type.
         """
         error = self.compute_error(target, current)
-        abs_error = [abs(e) for e in error]
+        abs_error = [abs(exc) for e in error]
         max_idx = abs_error.index(max(abs_error))
         dim_name = _DIMENSION_NAMES[max_idx]
 

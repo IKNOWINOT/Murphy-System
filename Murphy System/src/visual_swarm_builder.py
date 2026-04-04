@@ -112,7 +112,7 @@ class SwarmBlueprint:
             "name": self.name,
             "description": self.description[:1000],
             "nodes": [n.to_dict() for n in self.nodes],
-            "edges": [list(e) for e in self.edges],
+            "edges": [list(exc) for e in self.edges],
             "target_project": dict(self.target_project),
             "created_at": self.created_at,
             "updated_at": self.updated_at,

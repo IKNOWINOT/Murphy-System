@@ -610,9 +610,9 @@ class BACnetEDEAdapter(IngestionAdapter):
                 equipment_specs.append(spec)
                 records_ingested += 1
 
-        except Exception as e:
-            logger.error(f"EDE ingestion error: {e}")
-            warnings.append(str(e))
+        except Exception as exc:
+            logger.error(f"EDE ingestion error: {exc}")
+            warnings.append(str(exc))
 
         return IngestionResult(
             result_id=result_id,
@@ -678,9 +678,9 @@ class ModbusRegisterMapAdapter(IngestionAdapter):
                 else:
                     records_failed += 1
 
-        except Exception as e:
-            logger.error(f"Modbus ingestion error: {e}")
-            warnings.append(str(e))
+        except Exception as exc:
+            logger.error(f"Modbus ingestion error: {exc}")
+            warnings.append(str(exc))
 
         return IngestionResult(
             result_id=result_id,
@@ -745,9 +745,9 @@ class OpcUaNodeSetAdapter(IngestionAdapter):
                 except Exception:
                     records_failed += 1
 
-        except Exception as e:
-            logger.error(f"OPC UA ingestion error: {e}")
-            warnings.append(str(e))
+        except Exception as exc:
+            logger.error(f"OPC UA ingestion error: {exc}")
+            warnings.append(str(exc))
 
         return IngestionResult(
             result_id=result_id,
@@ -792,9 +792,9 @@ class GenericCSVAdapter(IngestionAdapter):
                     equipment_specs.append(dict(row))
                     records_ingested += 1
 
-        except Exception as e:
-            logger.error(f"CSV ingestion error: {e}")
-            warnings.append(str(e))
+        except Exception as exc:
+            logger.error(f"CSV ingestion error: {exc}")
+            warnings.append(str(exc))
             records_failed = 1
 
         return IngestionResult(
@@ -851,9 +851,9 @@ class GenericJSONAdapter(IngestionAdapter):
                     equipment_specs = [data]
                     records_ingested = 1
 
-        except Exception as e:
-            logger.error(f"JSON ingestion error: {e}")
-            warnings.append(str(e))
+        except Exception as exc:
+            logger.error(f"JSON ingestion error: {exc}")
+            warnings.append(str(exc))
             records_failed = 1
 
         return IngestionResult(
@@ -918,9 +918,9 @@ class GraingerCatalogAdapter(IngestionAdapter):
                 component_recommendations.append(rec.to_dict())
                 records_ingested += 1
 
-        except Exception as e:
-            logger.error(f"Grainger catalog ingestion error: {e}")
-            warnings.append(str(e))
+        except Exception as exc:
+            logger.error(f"Grainger catalog ingestion error: {exc}")
+            warnings.append(str(exc))
 
         return IngestionResult(
             result_id=result_id,
@@ -973,9 +973,9 @@ class MQTTTopicMapAdapter(IngestionAdapter):
                         equipment_specs.append(dict(row))
                         records_ingested += 1
 
-        except Exception as e:
-            logger.error(f"MQTT topic map ingestion error: {e}")
-            warnings.append(str(e))
+        except Exception as exc:
+            logger.error(f"MQTT topic map ingestion error: {exc}")
+            warnings.append(str(exc))
 
         return IngestionResult(
             result_id=result_id,

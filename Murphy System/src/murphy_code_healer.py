@@ -2113,7 +2113,7 @@ class MurphyCodeHealer:
                     import event_backbone_client as _ebc
                     backbone = _ebc.get_backbone()
                 except Exception:
-                    pass
+                    logger.debug("event_backbone_client not available for MurphyCodeHealer")
             if backbone is None:
                 logger.warning("MurphyCodeHealer: no backbone available")
                 return

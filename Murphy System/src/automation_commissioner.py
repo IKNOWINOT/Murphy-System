@@ -269,7 +269,7 @@ class AutomationCommissioner:
                 except Exception as exc:
                     logger.debug("Commissioner LLM failed: %s", exc)
             except Exception:
-                pass
+                logger.debug("Suppressed exception in automation_commissioner")
         try:
             from local_llm_fallback import LocalLLMFallback
             return LocalLLMFallback().generate(prompt, max_tokens=max_tokens)

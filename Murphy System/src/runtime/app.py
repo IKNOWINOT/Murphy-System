@@ -213,7 +213,7 @@ def create_app() -> FastAPI:
                         return False
                     return True
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return token in self._mem
 
         def __setitem__(self, token: str, account_id: str) -> None:
@@ -248,7 +248,7 @@ def create_app() -> FastAPI:
                         return default
                     return row[0]
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return self._mem.get(token, default)
 
         def pop(self, token: str, *args: "Any") -> "Optional[str]":
@@ -262,7 +262,7 @@ def create_app() -> FastAPI:
                                 "DELETE FROM session_store WHERE session_id=?", (token,)
                             )
                     except Exception:
-                        pass
+                        logger.debug("Suppressed exception in app")
                 return val
             return args[0] if args else None
 
@@ -278,7 +278,7 @@ def create_app() -> FastAPI:
                     )
                     return cursor.fetchone()[0]
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return len(self._mem)
 
         def keys(self) -> "List[str]":
@@ -293,7 +293,7 @@ def create_app() -> FastAPI:
                     )
                     return [row[0] for row in cursor.fetchall()]
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return list(self._mem.keys())
 
         def items(self) -> "List[tuple]":
@@ -308,7 +308,7 @@ def create_app() -> FastAPI:
                     )
                     return [(row[0], row[1]) for row in cursor.fetchall()]
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return list(self._mem.items())
 
         def purge_expired(self) -> int:
@@ -341,7 +341,7 @@ def create_app() -> FastAPI:
                     object.__getattribute__(self, "_account_id"), dict(self)
                 )
             except Exception:
-                pass
+                logger.debug("Suppressed exception in app")
 
     class _SQLiteUserStore:
         """Persistent user store backed by SQLite WAL.
@@ -371,7 +371,7 @@ def create_app() -> FastAPI:
                         data = json.loads(row[1])
                         self._cache[row[0]] = _MutableUserRecord(data, row[0], self._save)
                     except Exception:
-                        pass
+                        logger.debug("Suppressed exception in app")
                 logger.info("User store: loaded %d accounts from SQLite", len(self._cache))
             except Exception as exc:
                 logger.warning("User store: failed to load from SQLite: %s", exc)
@@ -428,7 +428,7 @@ def create_app() -> FastAPI:
                             "DELETE FROM user_accounts WHERE account_id=?", (account_id,)
                         )
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return val
 
     class _RedisSessionStore:
@@ -469,7 +469,7 @@ def create_app() -> FastAPI:
                 try:
                     return bool(self._redis.exists(self._k(str(token))))
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return token in self._fallback
 
         def __setitem__(self, token: str, account_id: str) -> None:
@@ -478,7 +478,7 @@ def create_app() -> FastAPI:
                     self._redis.setex(self._k(token), self._SESSION_TTL, account_id)
                     return
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             self._fallback[token] = account_id
 
         def __delitem__(self, token: str) -> None:
@@ -487,7 +487,7 @@ def create_app() -> FastAPI:
                     self._redis.delete(self._k(token))
                     return
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             self._fallback.pop(token, None)
 
         def __getitem__(self, token: str) -> str:
@@ -509,7 +509,7 @@ def create_app() -> FastAPI:
                             break
                     return count
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return len(self._fallback)
 
         def get(self, token: str, default: "Optional[str]" = None) -> "Optional[str]":
@@ -518,7 +518,7 @@ def create_app() -> FastAPI:
                     val = self._redis.get(self._k(token))
                     return val if val is not None else default
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return self._fallback.get(token, default)
 
         def pop(self, token: str, *args: "Any") -> "Optional[str]":
@@ -530,7 +530,7 @@ def create_app() -> FastAPI:
                         return val
                     return args[0] if args else None
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return self._fallback.pop(token, *args)
 
         def keys(self) -> "List[str]":
@@ -547,7 +547,7 @@ def create_app() -> FastAPI:
                             break
                     return result
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return list(self._fallback.keys())
 
         def items(self) -> "List[tuple]":
@@ -567,7 +567,7 @@ def create_app() -> FastAPI:
                             break
                     return result
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return list(self._fallback.items())
 
     _session_store: "_RedisSessionStore" = _RedisSessionStore()
@@ -1685,7 +1685,7 @@ def create_app() -> FastAPI:
                     setup_url = getattr(cls, "SETUP_URL", "")
                     doc_url   = getattr(cls, "DOCUMENTATION_URL", "")
             except Exception:
-                pass
+                logger.debug("Suppressed exception in app")
             guide = {
                 "name": meta.get("name", integration_id),
                 "env_var": integration_id.upper() + "_API_KEY",
@@ -3443,7 +3443,7 @@ def create_app() -> FastAPI:
         try:
             body = await request.json()
         except Exception:
-            pass  # body remains {} — the endpoint also works without a body
+            logger.debug("Suppressed exception in app")
 
         if _setup_wizard is None:
             # Fallback: build config directly from the submitted body
@@ -3573,7 +3573,7 @@ def create_app() -> FastAPI:
                         "action": "execute",
                     })
             except Exception:
-                pass  # graceful degradation
+                logger.debug("Suppressed exception in app")
 
         import uuid as _uuid
         workflow_id = f"wf_{wf_name[:40]}_{_uuid.uuid4().hex[:8]}"
@@ -3863,7 +3863,7 @@ def create_app() -> FastAPI:
             try:
                 data = await request.json()
             except Exception:
-                pass
+                logger.debug("Suppressed exception in app")
             ctx = data.get("context") or {}
             from ai_workflow_generator import AIWorkflowGenerator
             from automation_commissioner import AutomationCommissioner
@@ -3930,7 +3930,7 @@ def create_app() -> FastAPI:
                     "step_label": f"{completed}/{total_steps} steps",
                 })
             return JSONResponse({"success": True, "executions": sorted(items, key=lambda x: x["status"] == "running", reverse=True)})
-        except Exception as exc:
+        except Exception:
             return JSONResponse({"success": True, "executions": []})
 
     @app.get("/api/automations/executions/{execution_id}")
@@ -6039,8 +6039,8 @@ def create_app() -> FastAPI:
                 details = mgr.get_tier_details(tier_enum.value)
                 tiers.append(details)
             return JSONResponse({"success": True, "tiers": tiers})
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, 500)
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, 500)
 
     @app.get("/api/billing/account/{account_id}")
     async def billing_account(account_id: str):
@@ -6060,8 +6060,8 @@ def create_app() -> FastAPI:
                 "usage": usage,
                 "tier_details": details,
             })
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, 500)
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, 500)
 
     @app.post("/api/billing/check-limit")
     async def billing_check_limit(request: Request):
@@ -6080,8 +6080,8 @@ def create_app() -> FastAPI:
                 current_count=body.get("current_count", 0),
             )
             return JSONResponse({"success": True, **result})
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, 500)
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, 500)
 
     @app.post("/api/billing/check-feature")
     async def billing_check_feature(request: Request):
@@ -6099,8 +6099,8 @@ def create_app() -> FastAPI:
                 feature=body.get("feature", ""),
             )
             return JSONResponse({"success": True, **result})
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, 500)
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, 500)
 
     @app.post("/api/billing/start-trial")
     async def billing_start_trial(request: Request):
@@ -6601,7 +6601,7 @@ def create_app() -> FastAPI:
         except ImportError:
             logger.warning("MFM shadow_deployment module not available")
             metrics = {}
-        except (ValueError, RuntimeError) as exc:
+        except (ValueError, RuntimeError):
             logger.exception("Failed to retrieve MFM metrics")
             metrics = {"error": "metrics_unavailable"}
         return JSONResponse({"metrics": metrics})
@@ -6616,7 +6616,7 @@ def create_app() -> FastAPI:
         except ImportError:
             logger.warning("MFM action_trace_serializer module not available")
             stats = {"total_traces": 0, "error": "MFM trace collector not initialised"}
-        except (ValueError, RuntimeError) as exc:
+        except (ValueError, RuntimeError):
             logger.exception("Failed to retrieve MFM trace stats")
             stats = {"total_traces": 0, "error": "trace_stats_unavailable"}
         return JSONResponse(stats)
@@ -6800,7 +6800,7 @@ def create_app() -> FastAPI:
                 if not _valid:
                     return JSONResponse({"success": False, "error": _msg}, status_code=400)
         except Exception:
-            pass  # Validation is best-effort; never block a store on import failure
+            logger.debug("Suppressed exception in app")
 
         # Map integration name to env var
         _INTEGRATION_ENV_VARS = {
@@ -7756,7 +7756,7 @@ def create_app() -> FastAPI:
                             _ui_resp.raise_for_status()
                             _email = _ui_resp.json().get("email", "")
                         except Exception:
-                            pass
+                            logger.debug("Suppressed exception in app")
 
                     if not _email:
                         logger.warning("OAuth env-var fallback: no email obtained")
@@ -7850,7 +7850,7 @@ def create_app() -> FastAPI:
                     except Exception:
                         configured[p.value] = False
             except Exception:
-                pass
+                logger.debug("Suppressed exception in app")
         # Env-var fallback: detect Google OAuth from environment when registry
         # is unavailable (e.g. AccountManager/CredentialVault init failed).
         if not configured.get("google") and os.environ.get("MURPHY_OAUTH_GOOGLE_CLIENT_ID"):
@@ -8048,7 +8048,7 @@ def create_app() -> FastAPI:
             try:
                 _account_manager.request_password_reset(email)
             except Exception:
-                pass  # Never expose whether the email exists — always return success.
+                logger.debug("Suppressed exception in app")
         return JSONResponse({
             "success": True,
             "message": "If an account with that email exists, a reset link has been sent.",
@@ -8156,7 +8156,7 @@ def create_app() -> FastAPI:
                     timeout=3,
                 )
             except Exception:
-                pass  # Email delivery failure must not block the response
+                logger.debug("Suppressed exception in app")
 
             # In development expose the token so the flow can be tested without email
             if os.environ.get("MURPHY_ENV", "development").lower() == "development":
@@ -8269,7 +8269,7 @@ def create_app() -> FastAPI:
                     )
                     return JSONResponse({"success": True, "approval_url": url})
                 except Exception:
-                    pass  # fall through to mock
+                    logger.debug("Suppressed exception in app")
 
             return JSONResponse({
                 "success": True,
@@ -8415,7 +8415,7 @@ def create_app() -> FastAPI:
             from paper_trading_routes import get_paper_trading_status
             return JSONResponse(get_paper_trading_status())
         except Exception:
-            pass
+            logger.debug("Suppressed exception in app")
         return JSONResponse({
             "success": True,
             "status": "paper_mode",
@@ -10054,7 +10054,7 @@ def create_app() -> FastAPI:
                 rules = hub.get_automation_rules()
                 return JSONResponse({"success": True, "rules": rules})
             except Exception:
-                pass
+                logger.debug("Suppressed exception in app")
         return JSONResponse({"success": True, "rules": [], "message": "No automation rules configured yet."})
 
     @app.post("/api/comms/automate/rules")
@@ -10323,7 +10323,7 @@ def create_app() -> FastAPI:
             if ambient and hasattr(ambient, "get_stats"):
                 return JSONResponse({"success": True, **ambient.get_stats()})
         except Exception:
-            pass
+            logger.debug("Suppressed exception in app")
         return JSONResponse({
             "success": True,
             "insights_generated": 0,
@@ -10641,7 +10641,7 @@ def create_app() -> FastAPI:
                 compliance_allowed = _last.live_mode_allowed
                 compliance_blockers = len(_last.blockers())
         except Exception:
-            pass
+            logger.debug("Suppressed exception in app")
         return JSONResponse({
             "success":              True,
             "sandbox":              cb.sandbox,
@@ -10944,7 +10944,7 @@ def create_app() -> FastAPI:
             body.setdefault("paper_trading_win_rate", _gs["win_rate"])
             body.setdefault("paper_trading_total_return_pct", _gs["total_return_pct"])
         except Exception:
-            pass
+            logger.debug("Suppressed exception in app")
         report = ce.evaluate(
             jurisdiction=body.get("jurisdiction", ""),
             kyc_acknowledged=bool(body.get("kyc_acknowledged", False)),
@@ -11258,7 +11258,7 @@ def create_app() -> FastAPI:
                 except Exception as item_exc:
                     results.append({"name": item.get("name", "?"), "verdict": "ERROR", "reason": str(item_exc)})
             return JSONResponse({"success": True, "results": results})
-        except Exception as exc:
+        except Exception:
             # Fallback: simple heuristic if module not importable
             results = []
             for item in items:
@@ -11725,7 +11725,7 @@ def create_app() -> FastAPI:
             try:
                 data = await request.json()
             except Exception:
-                pass
+                logger.debug("Suppressed exception in app")
             if not _gs_glm.retire_gate(gate_id, data.get("reason", "")):
                 return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Gate not found or cannot be retired"}}, status_code=404)
             return JSONResponse({"success": True, "data": {"gate_id": gate_id, "message": "Gate retired"}})
@@ -11924,7 +11924,7 @@ def create_app() -> FastAPI:
             try:
                 b = await request.json() or {}
             except Exception:
-                pass
+                logger.debug("Suppressed exception in app")
             opps = _coa.scan_spot_opportunities(provider=b.get("provider"), region=b.get("region"))
             return JSONResponse({"success": True, "data": [o.to_dict() for o in opps]})
 
@@ -14411,7 +14411,7 @@ def create_app() -> FastAPI:
                     status=_SubStatus.ACTIVE if _SubStatus is not None else "active",
                 )
             except Exception:
-                pass  # subscription manager unavailable — not critical
+                logger.debug("Suppressed exception in app")
         logger.info("Founder account seeded: %s (%s)", founder_id, _FOUNDER_EMAIL)
 
     if _FOUNDER_EMAIL and _FOUNDER_PASSWORD:

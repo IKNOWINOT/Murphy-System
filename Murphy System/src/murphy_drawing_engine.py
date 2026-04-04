@@ -944,7 +944,7 @@ class AgenticDrawingAssistant:
         sheet = self._get_or_create_sheet()
         elements = EngineeringSymbolLibrary.motor(x, y, 60.0, 40.0)
         for e in elements:
-            sheet.elements.append(e)
+            sheet.elements.append(exc)
         return {
             "command": command,
             "success": True,

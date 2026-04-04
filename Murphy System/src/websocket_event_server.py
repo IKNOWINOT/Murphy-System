@@ -587,7 +587,7 @@ def create_event_streaming_api(bus: Optional[EventBus] = None):
         Clients connect via ``EventSource`` in the browser::
 
             const es = new EventSource("/api/events/stream/<id>");
-            es.onmessage = (e) => console.log(JSON.parse(e.data));
+            es.onmessage = (exc) => console.log(JSON.parse(e.data));
         """
         sub = event_bus.get_subscriber(subscriber_id)
         if sub is None:

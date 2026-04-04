@@ -362,4 +362,4 @@ class TradingAuditLogger:
                 )
                 self._db.commit()
             except Exception:
-                pass
+                logger.debug("Suppressed exception in audit_logger")

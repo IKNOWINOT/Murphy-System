@@ -109,7 +109,7 @@ class SystemGraph:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "nodes": {k: v.to_dict() for k, v in self.nodes.items()},
-            "edges": [list(e) for e in self.edges],
+            "edges": [list(exc) for e in self.edges],
             "total_modules": self.total_modules,
             "total_classes": self.total_classes,
             "total_functions": self.total_functions,

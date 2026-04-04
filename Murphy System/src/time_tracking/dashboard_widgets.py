@@ -85,13 +85,13 @@ class TimeTrackingWidgetFactory:
             for e in entries:
                 dt = _parse_dt(e.started_at)
                 if dt is None:
-                    filtered.append(e)
+                    filtered.append(exc)
                     continue
                 if start and dt < start:
                     continue
                 if end and dt > end:
                     continue
-                filtered.append(e)
+                filtered.append(exc)
             entries = filtered
 
         return [e for e in entries if e.status in statuses]
