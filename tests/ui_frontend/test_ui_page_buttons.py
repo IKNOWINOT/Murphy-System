@@ -242,6 +242,8 @@ class TestStaticAssets:
         "/static/murphy-design-system.css",
         "/static/murphy-theme.css",
         "/static/favicon.svg",
+        "/static/murphy-landing.css",
+        "/static/murphy-landing.js",
     ]
 
     @pytest.mark.parametrize("path", STATIC_FILES)
