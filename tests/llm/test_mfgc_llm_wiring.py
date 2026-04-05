@@ -29,7 +29,7 @@ Commissioning Answers (G1–G9)
    - Provider raises unexpected exception → (None, None) returned
 
 4. G4 — Test Profile: Does test profile reflect full range?
-   YES — 12 tests covering all paths above.
+   YES — 15 tests covering all paths above.
 
 5. G5 — Expected vs Actual: All tests pass.
 6. G6 — Regression Loop: pytest tests/llm/test_mfgc_llm_wiring.py -v
@@ -83,7 +83,7 @@ def _clean_env(monkeypatch):
 
 def _make_core():
     """Construct a minimal MurphySystem for testing _try_llm_generate."""
-    from runtime.murphy_system_core import MurphySystem
+    from src.runtime.murphy_system_core import MurphySystem
     core = MurphySystem.__new__(MurphySystem)
     # Minimal attributes needed by the methods under test
     core.librarian = MagicMock()

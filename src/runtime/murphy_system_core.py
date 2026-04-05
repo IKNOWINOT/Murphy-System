@@ -12094,12 +12094,6 @@ class MurphySystem:
         # Validate provider-specific keys
         # Label: MFGC-LLM-STATUS-001 — full provider chain visibility
         together_key = os.environ.get("TOGETHER_API_KEY", "").strip()
-        _together_entry = {
-            "provider": "together",
-            "name": "Together.ai",
-            "model": model or "meta-llama/Llama-3.1-8B-Instruct-Turbo",
-            "status": "available" if together_key else "no_key",
-        }
         if provider == "deepinfra":
             api_key = os.environ.get("DEEPINFRA_API_KEY", "").strip()
             if not api_key:
@@ -12112,7 +12106,11 @@ class MurphySystem:
                         "healthy": True,
                         "mode": "external_api",
                         "onboard_available": True,
-                        "providers": [_together_entry, self._ONBOARD_PROVIDER_ENTRY],
+                        "providers": [
+                            {"provider": "together", "name": "Together.ai",
+                             "model": model or "meta-llama/Llama-3.1-8B-Instruct-Turbo", "status": "available"},
+                            self._ONBOARD_PROVIDER_ENTRY,
+                        ],
                         "note": "DEEPINFRA_API_KEY not set; using Together.ai fallback.",
                     }
                 return {
@@ -12130,7 +12128,10 @@ class MurphySystem:
                 {"provider": "deepinfra", "name": "DeepInfra", "model": model or "meta-llama/Meta-Llama-3.1-8B-Instruct", "status": "available"},
             ]
             if together_key:
-                provider_chain.append(_together_entry)
+                provider_chain.append(
+                    {"provider": "together", "name": "Together.ai",
+                     "model": model or "meta-llama/Llama-3.1-8B-Instruct-Turbo", "status": "available"},
+                )
             provider_chain.append(self._ONBOARD_PROVIDER_ENTRY)
             return {
                 "enabled": True,
