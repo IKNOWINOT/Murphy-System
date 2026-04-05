@@ -12092,10 +12092,29 @@ class MurphySystem:
                     ),
                 }
         # Validate provider-specific keys
+        # Label: MFGC-LLM-STATUS-001 — full provider chain visibility
+        together_key = os.environ.get("TOGETHER_API_KEY", "").strip()
+        _together_entry = {
+            "provider": "together",
+            "name": "Together.ai",
+            "model": model or "meta-llama/Llama-3.1-8B-Instruct-Turbo",
+            "status": "available" if together_key else "no_key",
+        }
         if provider == "deepinfra":
             api_key = os.environ.get("DEEPINFRA_API_KEY", "").strip()
             if not api_key:
-                # Key was removed at runtime — degrade gracefully to onboard
+                # DeepInfra key removed at runtime — check Together.ai fallback
+                if together_key:
+                    return {
+                        "enabled": True,
+                        "provider": "together",
+                        "model": model or "meta-llama/Llama-3.1-8B-Instruct-Turbo",
+                        "healthy": True,
+                        "mode": "external_api",
+                        "onboard_available": True,
+                        "providers": [_together_entry, self._ONBOARD_PROVIDER_ENTRY],
+                        "note": "DEEPINFRA_API_KEY not set; using Together.ai fallback.",
+                    }
                 return {
                     "enabled": True,
                     "provider": "onboard",
@@ -12106,6 +12125,13 @@ class MurphySystem:
                     "providers": [self._ONBOARD_PROVIDER_ENTRY],
                     "note": "DEEPINFRA_API_KEY not set; using onboard LLM.",
                 }
+            # Build the full MFGC provider chain: DeepInfra → Together.ai → Onboard
+            provider_chain = [
+                {"provider": "deepinfra", "name": "DeepInfra", "model": model or "meta-llama/Meta-Llama-3.1-8B-Instruct", "status": "available"},
+            ]
+            if together_key:
+                provider_chain.append(_together_entry)
+            provider_chain.append(self._ONBOARD_PROVIDER_ENTRY)
             return {
                 "enabled": True,
                 "provider": provider,
@@ -12113,10 +12139,7 @@ class MurphySystem:
                 "healthy": True,
                 "mode": "external_api",
                 "onboard_available": True,
-                "providers": [
-                    {"provider": "deepinfra", "name": "DeepInfra", "model": model or "meta-llama/Meta-Llama-3.1-8B-Instruct", "status": "available"},
-                    self._ONBOARD_PROVIDER_ENTRY,
-                ],
+                "providers": provider_chain,
             }
         # Generic provider — enabled but health unknown
         return {
@@ -12128,12 +12151,12 @@ class MurphySystem:
         }
 
     def _get_librarian_status(self) -> Dict[str, Any]:
-        """Return librarian subsystem health.
+        """Return librarian subsystem health (MFGC-LIB-STATUS-001).
 
         The librarian is always active.  When an external LLM API key is
-        configured (e.g. DeepInfra) it operates in ``llm`` mode; otherwise it
-        runs in ``onboard`` (deterministic) mode using built-in system
-        knowledge.
+        configured the provider chain is DeepInfra → Together.ai → onboard.
+        Mode is ``"llm"`` when at least one external provider is available,
+        ``"onboard"`` otherwise.
         """
         # Providers that indicate onboard/local fallback mode (not external API)
         _ONBOARD_PROVIDERS = frozenset(("onboard", "local", "local_fallback", "pattern_matcher"))
@@ -12145,11 +12168,14 @@ class MurphySystem:
         llm_mode = llm_status.get("mode", "onboard")
         is_external_llm = provider not in _ONBOARD_PROVIDERS and llm_mode == "external_api"
         mode = "llm" if is_external_llm else "onboard"
+        # Expose full MFGC provider chain for observability
+        providers = llm_status.get("providers", [])
         return {
             "enabled": True,
             "healthy": librarian is not None,
             "mode": mode,
             "llm_provider": provider if is_external_llm else "onboard",
+            "provider_chain": [p.get("provider", "unknown") for p in providers] if providers else ["onboard"],
         }
 
     # -- Librarian ask --------------------------------------------------------
@@ -12177,88 +12203,105 @@ class MurphySystem:
             return "plan_request"
         return "general"
 
+    def _build_mfgc_llm_messages(self, prompt: str, context: str = "") -> List[Dict[str, str]]:
+        """Build the MFGC/5U system-prompt messages for LLM generation.
+
+        Label: MFGC-LLM-MSG-001
+
+        Centralises the domain-specific system prompt so that every LLM call
+        path (DeepInfra primary → Together.ai fallback) shares the same
+        instruction set.  The prompt encodes the full MFGC/5U framework,
+        response style guide, and known integration links.
+        """
+        system_content = (
+            MURPHY_SYSTEM_IDENTITY + " "
+            "You help teams automate operations, onboard users, "
+            "manage integrations, and run end-to-end workflows. "
+            "Be concise, friendly, and action-oriented.\n\n"
+            "MFGC/5U FRAMEWORK: You use the Murphy Framework Gate Controls (MFGC) and "
+            "5 Universals (5U) to evaluate readiness. You need to collect:\n"
+            "- 5U-Identity: business name\n"
+            "- 5U-Context: industry, location, timezone\n"
+            "- 5U-Scale: team size\n"
+            "- 5U-Temporal: frequency, timeline, timezone\n"
+            "- 5U-Data: data sources\n"
+            "- MFGC-Objective: business goal, automation goal, success metrics\n"
+            "- MFGC-Constraint: pain points, budget\n"
+            "- MFGC-Integration: current tools, email, banking, phone, calendar, productivity apps\n"
+            "- MFGC-Governance: compliance needs, decision maker\n\n"
+            "RESPONSE STYLE: When user shares information, reflect it back amplified "
+            "(expand on what they said 3x — show deep understanding), then ask "
+            "'does something like this sound close?' Always ask the next most important "
+            "missing question. Never repeat the same response twice.\n\n"
+            "When users mention tools or services they use, recommend the specific "
+            "API keys they'll need and provide signup links. Known integrations:\n"
+            + "\n".join(
+                f"- {info['name']}: {info['url']} (env: {info['env_var']})"
+                for info in list(self.API_PROVIDER_LINKS.values())[:10]
+            )
+            + "\n\nAsk about their banking, phone carrier, email provider, "
+            "productivity tools, and scheduling system to recommend integrations."
+        )
+        messages: List[Dict[str, str]] = [{"role": "system", "content": system_content}]
+        if context:
+            messages.append({"role": "system", "content": f"Context: {context}"})
+        messages.append({"role": "user", "content": prompt})
+        return messages
+
     def _try_llm_generate(self, prompt: str, context: str = "") -> Tuple[Optional[str], Optional[str]]:
-        """Generate a response via LLM — external API when available, onboard fallback always.
+        """Generate a response via the unified LLM provider (MFGC gate).
+
+        Label: MFGC-LLM-GEN-001
+
+        Delegates to ``MurphyLLMProvider`` which routes calls through the
+        full provider chain:
+
+            1. DeepInfra  (primary)  — circuit-breaker protected
+            2. Together.ai (fallback) — circuit-breaker protected
+            3. Onboard    (local)    — always available
 
         Returns a tuple ``(text, error)`` where:
-        - ``(text, None)`` on success (external API or onboard)
-        - ``(None, error_message)`` when an external API was attempted and failed hard (e.g. 401)
+        - ``(text, None)``  on success from an external provider (DeepInfra or Together.ai)
+        - ``(None, None)``  when no external LLM answered — lets ``librarian_ask``
+          fall through to ``_deterministic_reply`` which has the full
+          Magnify x3 / Solidify / HITL reflection pipeline.
 
-        The onboard fallback (LocalLLMFallback) is **always** tried last so that
-        this method never returns ``(None, None)`` — the system is always able to
-        respond.
+        Design constraint (MFGC-LLM-GEN-001):
+            The onboard provider inside ``MurphyLLMProvider`` returns a generic
+            acknowledgement.  We intentionally discard it here so the richer
+            deterministic engine runs instead.  Only real external-API content
+            is surfaced to the user.
         """
-        llm_status = self._get_llm_status()
-        provider = llm_status.get("provider", "onboard")
-        mode = llm_status.get("mode", "onboard")
+        messages = self._build_mfgc_llm_messages(prompt, context)
 
-        # --- External API path ---
-        if mode == "external_api" and provider == "deepinfra":
-            model = llm_status.get("model") or "meta-llama/Meta-Llama-3.1-8B-Instruct"
-            api_key = os.environ.get("DEEPINFRA_API_KEY", "")
-            if api_key:
-                try:
-                    import requests as _requests
-                    headers = {
-                        "Authorization": f"Bearer {api_key}",
-                        "Content-Type": "application/json",
-                    }
-                    body = {
-                        "model": model,
-                        "messages": [
-                            {"role": "system", "content": (
-                                MURPHY_SYSTEM_IDENTITY + " "
-                                "You help teams automate operations, onboard users, "
-                                "manage integrations, and run end-to-end workflows. "
-                                "Be concise, friendly, and action-oriented.\n\n"
-                                "MFGC/5U FRAMEWORK: You use the Murphy Framework Gate Controls (MFGC) and "
-                                "5 Universals (5U) to evaluate readiness. You need to collect:\n"
-                                "- 5U-Identity: business name\n"
-                                "- 5U-Context: industry, location, timezone\n"
-                                "- 5U-Scale: team size\n"
-                                "- 5U-Temporal: frequency, timeline, timezone\n"
-                                "- 5U-Data: data sources\n"
-                                "- MFGC-Objective: business goal, automation goal, success metrics\n"
-                                "- MFGC-Constraint: pain points, budget\n"
-                                "- MFGC-Integration: current tools, email, banking, phone, calendar, productivity apps\n"
-                                "- MFGC-Governance: compliance needs, decision maker\n\n"
-                                "RESPONSE STYLE: When user shares information, reflect it back amplified "
-                                "(expand on what they said 3x — show deep understanding), then ask "
-                                "'does something like this sound close?' Always ask the next most important "
-                                "missing question. Never repeat the same response twice.\n\n"
-                                "When users mention tools or services they use, recommend the specific "
-                                "API keys they'll need and provide signup links. Known integrations:\n"
-                                + "\n".join(
-                                    f"- {info['name']}: {info['url']} (env: {info['env_var']})"
-                                    for info in list(self.API_PROVIDER_LINKS.values())[:10]
-                                )
-                                + "\n\nAsk about their banking, phone carrier, email provider, "
-                                "productivity tools, and scheduling system to recommend integrations."
-                            )},
-                        ],
-                    }
-                    if context:
-                        body["messages"].append({"role": "system", "content": f"Context: {context}"})
-                    body["messages"].append({"role": "user", "content": prompt})
-                    resp = _requests.post(
-                        "https://api.deepinfra.com/v1/openai/chat/completions",
-                        headers=headers,
-                        json=body,
-                        timeout=15,
-                    )
-                    resp.raise_for_status()
-                    data = resp.json()
-                    return data["choices"][0]["message"]["content"], None
-                except Exception as exc:
-                    logger.warning("DeepInfra LLM call failed (%s) — falling back to onboard", exc)
-                    # Fall through to onboard fallback below
+        try:
+            from src.llm_provider import get_llm
+            llm = get_llm()
+            result = llm.complete_messages(messages, model_hint="fast")
 
-        # --- No external LLM available ---
-        # Return (None, None) so that librarian_ask falls through to
-        # _deterministic_reply which has full Magnify/Solidify/HITL logic.
-        # The old behaviour called LocalLLMFallback here which returned a
-        # canned template and prevented the conversational engine from running.
-        return None, None
+            # Only surface responses from real external providers.
+            # "onboard" / "fallback" results are discarded so the richer
+            # _deterministic_reply pipeline runs instead.
+            if result.provider in ("deepinfra", "together"):
+                logger.info(
+                    "MFGC-LLM-GEN-001 external_llm provider=%s model=%s latency=%.2fs",
+                    result.provider, result.model, result.latency_seconds,
+                )
+                return result.content, None
+
+            logger.debug(
+                "MFGC-LLM-GEN-001 no external provider available (provider=%s) — "
+                "falling through to deterministic engine",
+                result.provider,
+            )
+            return None, None
+
+        except ImportError:
+            logger.debug("MFGC-LLM-GEN-001 llm_provider not importable — using onboard")
+            return None, None
+        except Exception as exc:
+            logger.warning("MFGC-LLM-GEN-001 LLM provider call failed (%s) — falling back to onboard", exc)
+            return None, None
 
     def librarian_ask(self, message: str, session_id: Optional[str] = None, mode: Optional[str] = None) -> Dict[str, Any]:
         """Route a natural-language message through the Librarian + optional LLM.
