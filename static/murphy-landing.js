@@ -546,7 +546,7 @@ function _showResult(deliverable,usedRealApi,forgeUsage){
       var limit=used+remaining;
       usageEl.innerHTML='<strong>'+remaining+' of '+limit+'</strong> free builds remaining today — <a href="/pricing" style="color:var(--teal);">upgrade for more &rarr;</a>';
     }
-    usageEl.style.display='';
+    usageEl.classList.remove('forge-hidden');
   }
 
   // Show content preview (first 100 lines)
@@ -555,7 +555,7 @@ function _showResult(deliverable,usedRealApi,forgeUsage){
     var previewLines=lines.slice(0,100).join('\n');
     var truncated=lines.length>100;
     previewBody.textContent=previewLines+(truncated?'\n\n... ('+(lines.length-100)+' more lines — download to see full content)':'');
-    previewWrap.style.display='';
+    previewWrap.classList.remove('forge-hidden');
     // Reset toggle state
     previewBody.classList.remove('collapsed');
     var toggleBtn=document.getElementById('forge-preview-toggle');
@@ -585,7 +585,7 @@ function _showResult(deliverable,usedRealApi,forgeUsage){
   // Always show download when content exists
   if(content){
     dlBtn.style.display='';
-    fbCta.style.display='none';
+    fbCta.classList.add('forge-hidden');
     dlBtn.onclick=function(){
       var blob=new Blob([content],{type:'text/plain'});
       var a=document.createElement('a');a.href=URL.createObjectURL(blob);
@@ -596,10 +596,10 @@ function _showResult(deliverable,usedRealApi,forgeUsage){
     // HTML preview button
     if(htmlBtn){
       if(isHtml){
-        htmlBtn.style.display='';
+        htmlBtn.classList.remove('forge-hidden');
         htmlBtn._content=content;
       } else {
-        htmlBtn.style.display='none';
+        htmlBtn.classList.add('forge-hidden');
       }
     }
     resBlock.style.display='';
@@ -627,7 +627,7 @@ function _showResult(deliverable,usedRealApi,forgeUsage){
     if(_fbContent && previewWrap && previewBody) {
       var _fbPLines = _fbContent.split('\n');
       previewBody.textContent = _fbPLines.slice(0,100).join('\n') + (_fbPLines.length>100 ? '\n\n... ('+(_fbPLines.length-100)+' more lines \u2014 download to see full content)':'');
-      previewWrap.style.display = '';
+      previewWrap.classList.remove('forge-hidden');
       previewBody.classList.remove('collapsed');
       var _fbToggle = document.getElementById('forge-preview-toggle');
       if(_fbToggle) _fbToggle.textContent = '\u25bc Collapse';
@@ -643,17 +643,17 @@ function _showResult(deliverable,usedRealApi,forgeUsage){
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
       };
       if(htmlBtn) {
-        if(_fbIsHtml) { htmlBtn.style.display=''; htmlBtn._content=_fbContent; }
-        else htmlBtn.style.display='none';
+        if(_fbIsHtml) { htmlBtn.classList.remove('forge-hidden'); htmlBtn._content=_fbContent; }
+        else htmlBtn.classList.add('forge-hidden');
       }
-      fbCta.style.display = '';
+      fbCta.classList.remove('forge-hidden');
       _setStatus('&#10003; Build complete \u2014 your deliverable is ready.','phase');
     } else {
       dlBtn.style.display = '';
       dlBtn.textContent = '\u27f3 Retry Build';
       dlBtn.onclick = function(){ forgeRun(_forgeQuery); };
-      fbCta.style.display = '';
-      if(htmlBtn) htmlBtn.style.display = 'none';
+      fbCta.classList.remove('forge-hidden');
+      if(htmlBtn) htmlBtn.classList.add('forge-hidden');
       _setStatus('\u26a0 Could not generate deliverable. Please try again.','phase');
     }
     resBlock.style.display = '';
@@ -742,12 +742,12 @@ function forgeRun(query){
   gridWrap.style.display='';
   resBlock.style.display='none';
   var errEl=document.getElementById('forge-api-err');
-  if(errEl){errEl.innerHTML='';errEl.style.display='none';}
+  if(errEl){errEl.innerHTML='';errEl.classList.add('forge-hidden');}
   _buildGrid();
 
   // Show live view toggle
   var liveWrap=document.getElementById('forge-live-wrap');
-  if(liveWrap)liveWrap.style.display='';
+  if(liveWrap)liveWrap.classList.remove('forge-hidden');
 
   // Kick off real API call in background
   var apiDone=false,animDone=false,apiResult=null,apiUsed=false,apiForgeUsage=null;
