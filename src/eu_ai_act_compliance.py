@@ -242,7 +242,7 @@ class EUAIActComplianceEngine:
     """
 
     def __init__(self) -> None:
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self.requirements: Dict[str, ComplianceRequirement] = {}
         self.risk_assessments: Dict[str, RiskAssessment] = {}
         self.findings: List[AuditFinding] = []
