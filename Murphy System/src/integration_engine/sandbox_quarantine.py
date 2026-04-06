@@ -145,6 +145,31 @@ class SandboxQuarantine:
             False,
             "Remove or sandbox exec() — executes arbitrary code",
         ),
+        # SEC-SANDBOX-003: Additional code-execution patterns.
+        (
+            r"__import__\s*\(",
+            "CRITICAL",
+            False,
+            "SEC-SANDBOX-003: __import__() can bypass restricted builtins — remove or replace",
+        ),
+        (
+            r"importlib\.import_module\s*\(",
+            "CRITICAL",
+            False,
+            "SEC-SANDBOX-003: importlib.import_module can load arbitrary modules — audit usage",
+        ),
+        (
+            r"(?:ctypes|cffi)\.",
+            "HIGH",
+            False,
+            "SEC-SANDBOX-003: ctypes/cffi can invoke arbitrary C functions — audit usage",
+        ),
+        (
+            r"compile\s*\([^)]+,\s*['\"]exec['\"]",
+            "HIGH",
+            False,
+            "SEC-SANDBOX-003: compile(..., 'exec') can create code objects for execution",
+        ),
         (
             r"trust_remote_code\s*=\s*True",
             "HIGH",

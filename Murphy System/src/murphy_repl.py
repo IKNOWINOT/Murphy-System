@@ -64,7 +64,28 @@ class SafeREPL:
         self._initialize_environment()
 
     def _initialize_environment(self):
-        """Initialize the REPL environment with safe utilities"""
+        """Initialize the REPL environment with safe utilities.
+
+        SEC-REPL-001: ``getattr``, ``setattr``, ``hasattr``, ``dir``, and
+        ``help`` are intentionally excluded — they enable sandbox escape via
+        dunder-chain introspection (e.g. ``__class__.__bases__[0].__subclasses__()``).
+        SEC-REPL-002: ``safe_getattr`` is provided instead — it blocks access
+        to dunder attributes.
+        """
+        # ── Blocked dunder names (SEC-REPL-002) ──────────────────────
+        _BLOCKED_DUNDERS = frozenset({
+            "__class__", "__bases__", "__subclasses__", "__globals__",
+            "__builtins__", "__import__", "__code__", "__func__",
+            "__self__", "__module__", "__dict__", "__mro__",
+            "__qualname__", "__wrapped__",
+        })
+
+        def safe_getattr(obj, name, *default):
+            """Attribute access that blocks dunder introspection chains."""
+            if isinstance(name, str) and name in _BLOCKED_DUNDERS:
+                raise AttributeError(f"Access to {name!r} is restricted in the REPL sandbox")
+            return getattr(obj, name, *default) if default else getattr(obj, name)
+
         # Safe builtins
         safe_builtins = {
             'print': print,
@@ -93,11 +114,8 @@ class SafeREPL:
             'filter': filter,
             'type': type,
             'isinstance': isinstance,
-            'hasattr': hasattr,
-            'getattr': getattr,
-            'setattr': setattr,
-            'help': help,
-            'dir': dir,
+            # SEC-REPL-002: safe wrapper instead of raw getattr/setattr/hasattr
+            'getattr': safe_getattr,
             'json': json,
             'datetime': datetime,
         }

@@ -48,6 +48,23 @@ logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s  %(name)s  %(levelname)s  %(message)s")
 log = logging.getLogger("murphy.prod")
 
+# SEC-LOG-001: Wire log sanitizer so secrets/PII are scrubbed before emission.
+try:
+    from src.security_plane.log_sanitizer import LogSanitizer as _LogSanitizer  # noqa: PLC0415
+    _log_sanitizer = _LogSanitizer(hash_sensitive=True)
+
+    class _SanitizingFilter(logging.Filter):
+        """Strip PII / secrets from every log record before it reaches handlers."""
+        def filter(self, record: logging.LogRecord) -> bool:
+            if isinstance(record.msg, str):
+                record.msg = _log_sanitizer.sanitize(record.msg)
+            return True
+
+    logging.getLogger().addFilter(_SanitizingFilter())
+    log.info("SEC-LOG-001: Log sanitizer wired into root logger")
+except Exception:
+    log.warning("SEC-LOG-001: Log sanitizer unavailable — PII filtering disabled")
+
 # -- Import MurphyLLMProvider (DeepInfra primary, Together fallback) -----------
 try:
     _llm_src = Path(__file__).resolve().parent / "src"
@@ -871,10 +888,14 @@ async def _ceo_heartbeat_tick_body():
         log.warning("CEO heartbeat runner tick error: %s", _e)
 
 # -- FastAPI app ---------------------------------------------------------------
+# SEC-OPENAPI-001: Disable Swagger/ReDoc UI in production to reduce attack surface.
+_pre_env = os.environ.get("MURPHY_ENV", "development").lower()
 app = FastAPI(
     title="Murphy System — Production API v3",
     description="Unified automation platform with real HITL gates, milestone tracking, closed-loop automations",
-    version="3.0.0", docs_url="/docs", redoc_url="/redoc",
+    version="3.0.0",
+    docs_url=None if _pre_env == "production" else "/docs",
+    redoc_url=None if _pre_env == "production" else "/redoc",
 )
 
 _env = os.environ.get("MURPHY_ENV","development").lower()
@@ -886,7 +907,18 @@ elif _env in ("production","staging"):
 else:
     _allowed_origins = ["*"]
 
-app.add_middleware(CORSMiddleware, allow_origins=_allowed_origins, allow_credentials=True,
+# SEC-CORS-001: Never combine wildcard CORS with credentialed requests in
+# non-development environments — this is a browser-spec violation that silently
+# downgrades to non-credentialed and may mask real auth issues.
+_allow_creds = True
+if _allowed_origins == ["*"]:
+    if _env != "development":
+        log.critical("SEC-CORS-001 VIOLATION: wildcard CORS + credentials in env=%s — "
+                     "set MURPHY_ALLOWED_ORIGINS or switch to development", _env)
+    # SEC-CORS-002: Even in development, disable credentials with wildcard origins.
+    _allow_creds = False
+
+app.add_middleware(CORSMiddleware, allow_origins=_allowed_origins, allow_credentials=_allow_creds,
     allow_methods=["GET","POST","PATCH","DELETE","OPTIONS"],
     allow_headers=["Authorization","Content-Type","X-Request-ID","X-Tenant-ID"])
 
@@ -957,6 +989,21 @@ try:
     log.info("Murphy error handlers registered (/api/errors/*)")
 except Exception as _err_e:
     log.warning("Murphy error handlers not available (%s)", _err_e)
+
+# SEC-ERROR-001: Environment-aware unhandled exception handler.
+# Development: full traceback.  Staging: message only.  Production: generic 500.
+@app.exception_handler(Exception)
+async def _sec_unhandled_exception(request: Request, exc: Exception):
+    if _env == "development":
+        import traceback
+        return JSONResponse(status_code=500, content={
+            "error": str(exc), "traceback": traceback.format_exc()})
+    if _env == "staging":
+        return JSONResponse(status_code=500, content={
+            "error": f"{type(exc).__name__}: {exc}"})
+    # production — reveal nothing
+    log.error("Unhandled exception on %s %s: %s", request.method, request.url.path, type(exc).__name__)
+    return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
 
 # -- Module Instance Manager routes --------------------------------------------
 if _mim_available and _register_mim_routes is not None:
