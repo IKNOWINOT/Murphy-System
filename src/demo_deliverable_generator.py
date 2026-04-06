@@ -2585,6 +2585,11 @@ def _build_mss_controller():
 def _run_mss_pipeline(query: str, mfgc_result: Dict[str, Any]) -> Dict[str, Any]:
     """Run the query through MSS Magnify then Solidify.
 
+    Magnify and Solidify are independent of each other (both take the same
+    query + context), so they run concurrently when possible.  This is the
+    same concurrent-dispatch pattern used by the multi-agent coordinator
+    (``TeamCoordinator._execute_batch`` in coordinator.py).
+
     Returns a dict with 'magnify' and 'solidify' sub-dicts extracted from
     each TransformationResult.output.  On failure returns a dict with
     ``"fallback": True`` and ``"error"`` for diagnostic reporting.
@@ -2597,11 +2602,13 @@ def _run_mss_pipeline(query: str, mfgc_result: Dict[str, Any]) -> Dict[str, Any]
             "mfgc_confidence": mfgc_result.get("confidence", 0.5),
         }
 
-        # Step 1 — Magnify: expand query to requirements + components
-        mag = mss.magnify(query, ctx)
-
-        # Step 2 — Solidify: convert to implementation plan
-        sol = mss.solidify(query, ctx)
+        # Magnify and Solidify are independent — run concurrently
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+            mag_future = pool.submit(mss.magnify, query, ctx)
+            sol_future = pool.submit(mss.solidify, query, ctx)
+            mag = mag_future.result(timeout=60)
+            sol = sol_future.result(timeout=60)
 
         return {
             "magnify": mag.output,
@@ -4011,7 +4018,6 @@ def generate_deliverable_with_progress(
         })
 
         # --- Agent task decomposition from MSS Magnify output ---------------
-        # Build the 64-agent task list from workflow steps + MSS output
         agent_tasks = _build_agent_task_list(query, mss_result, workflow=workflow)
         if agent_tasks:
             events.append({
@@ -4103,9 +4109,11 @@ def _build_agent_task_list(
     *,
     workflow: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, str]]:
-    """Build a 64-agent task list from workflow steps + MSS Magnify output.
+    """Build an agent task list from workflow steps + MSS Magnify output.
 
-    Each entry is ``{"agent_id": int, "agent_name": str, "task": str}``.
+    The number of tasks is derived from the actual MSS/workflow output —
+    not a fixed count.  Each entry is
+    ``{"agent_id": int, "agent_name": str, "task": str}``.
 
     Priority order for task items:
     1. Workflow steps (if a production workflow was resolved)
@@ -4158,14 +4166,13 @@ def _build_agent_task_list(
     ]
     roles = roles_from_workflow if roles_from_workflow else default_roles
 
-    for i in range(64):
+    # Task count matches actual work — driven by MSS/workflow decomposition
+    for i, item_text in enumerate(items):
         role = roles[i % len(roles)]
-        # Distribute real items across agents, cycling if < 64
-        task_text = items[i % len(items)] if items else f"Task slot {i + 1}"
         tasks.append({
             "agent_id": i,
             "agent_name": f"Agent-{i + 1:02d}: {role}",
-            "task": str(task_text)[:120],
+            "task": str(item_text)[:120],
         })
 
     return tasks
