@@ -3235,12 +3235,34 @@ def _read_html(path: Path) -> str:
     try: return path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError): return f"<h1>File not found: {path}</h1>"
 
+# ── Route Serving Order of Precedence ──────────────────────────────────────
+# 1. Root-level HTML files (e.g., murphy_landing_page.html at _BASE_DIR)
+# 2. Murphy System/ subdirectory copies (_MURPHY_DIR)
+# 3. murphy_dashboard/ UI files (_UI_DIR)
+# 4. Fallback HTML stubs
+# ───────────────────────────────────────────────────────────────────────────
+
 @app.get("/", response_class=HTMLResponse)
-async def serve_dashboard():
-    """Primary Command Center Dashboard"""
-    idx = _UI_DIR / "index.html"
-    if idx.exists(): return HTMLResponse(idx.read_text())
-    return HTMLResponse("<h1>Murphy System API v3.0</h1><p><a href='/docs'>API Docs</a></p>")
+async def serve_root():
+    """Root URL serves landing page for public visitors; falls back to dashboard"""
+    for path in [
+        _BASE_DIR / "murphy_landing_page.html",
+        _MURPHY_DIR / "murphy_landing_page.html",
+        _UI_DIR / "index.html",
+    ]:
+        if path.exists():
+            return HTMLResponse(path.read_text(encoding="utf-8"))
+    return HTMLResponse("<h1>Murphy System</h1>")
+
+def _serve_landing_html() -> HTMLResponse:
+    """Shared helper: serve murphy_landing_page.html, root first then Murphy System/ fallback."""
+    for path in [
+        _BASE_DIR / "murphy_landing_page.html",
+        _MURPHY_DIR / "murphy_landing_page.html",
+    ]:
+        if path.exists():
+            return HTMLResponse(path.read_text(encoding="utf-8"))
+    return HTMLResponse("<p>Landing page not found</p>")
 
 @app.get("/calendar", response_class=HTMLResponse)
 async def serve_calendar():
@@ -3272,10 +3294,13 @@ async def serve_legacy_dashboard():
 
 @app.get("/landing", response_class=HTMLResponse)
 async def serve_landing():
-    """Original murphy_landing_page.html — preserved"""
-    path = _MURPHY_DIR / "murphy_landing_page.html"
-    if path.exists(): return HTMLResponse(path.read_text())
-    return HTMLResponse("<p>Landing page not found</p>")
+    """Landing page — check root first, then Murphy System/ subdirectory"""
+    return _serve_landing_html()
+
+@app.get("/ui/landing", response_class=HTMLResponse)
+async def serve_ui_landing():
+    """Landing page at /ui/landing — check root first, then Murphy System/ subdirectory"""
+    return _serve_landing_html()
 
 @app.get("/production-wizard", response_class=HTMLResponse)
 async def serve_production_wizard():
