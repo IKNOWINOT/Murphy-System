@@ -3630,6 +3630,11 @@ async def api_demo_generate_deliverable(request: Request):
         log.warning(f"Demo generator failed: {exc}, using fallback")
         deliverable = _generate_fallback_deliverable(query)
 
+    # Validate deliverable content; use fallback if empty
+    if not deliverable or not deliverable.get("content"):
+        log.warning("Demo generator returned empty content — substituting fallback")
+        deliverable = _generate_fallback_deliverable(query)
+
     metrics.finish_build()
     _consume_demo_rate_limit(fp)
     usage = _check_demo_rate_limit(fp)
@@ -3710,12 +3715,48 @@ async def api_demo_generate_deliverable_stream(request: Request):
                 query,
             )
         except Exception as exc:
-            log.warning("Streaming forge generator failed: %s", exc)
-            yield f"data: {json.dumps({'phase': 'error', 'status': 'Backend pipeline error — please retry'})}\n\n"
+            log.warning("Streaming forge generator failed: %s — using server-side fallback", exc)
+            # Build a synthetic progress list with fallback content
+            metrics.finish_build()
+            _consume_demo_rate_limit(fp)
+            fresh_usage = _check_demo_rate_limit(fp)
+            fallback_deliverable = _generate_fallback_deliverable(query)
+            fb_content = fallback_deliverable.get("content", "")
+            done_event = {
+                "phase": "done",
+                "status": "Build complete — deliverable ready (fallback)",
+                "deliverable": fallback_deliverable,
+                "metrics": {
+                    "word_count": len(fb_content.split()) if fb_content else 0,
+                    "line_count": fb_content.count("\n") + 1 if fb_content else 0,
+                    "size_kb": round(len(fb_content) / 1024, 1) if fb_content else 0,
+                    "scenario": "fallback",
+                    "is_predefined": False,
+                },
+                "run_id": run_id,
+                "llm_provider": "murphy-demo",
+                "forge_usage": fresh_usage,
+                "elapsed_seconds": metrics.actual_elapsed_seconds,
+                "build_metrics": metrics.to_dict(),
+            }
+            # Emit synthetic progress events so the frontend drives its
+            # phase animations the same way as a successful pipeline run.
+            # Detail values ("mfgc", "mss", "generate") match those used by
+            # generate_deliverable_with_progress() in demo_deliverable_generator.py.
+            yield f"data: {json.dumps({'phase': 1, 'status': 'Analyzing scope...', 'detail': 'mfgc'})}\n\n"
+            yield f"data: {json.dumps({'phase': 2, 'status': 'Generating content (fallback)...', 'detail': 'mss'})}\n\n"
+            yield f"data: {json.dumps({'phase': 3, 'status': 'Assembling deliverable...', 'detail': 'generate'})}\n\n"
+            yield f"data: {json.dumps(done_event)}\n\n"
             return
 
         for event in progress:
             if event.get("phase") == "done":
+                # Validate deliverable content; use fallback if empty
+                deliverable = event.get("deliverable") or {}
+                if not deliverable.get("content"):
+                    log.warning("Streaming generator returned empty content — substituting fallback")
+                    event["deliverable"] = _generate_fallback_deliverable(query)
+
                 metrics.finish_build()
                 _consume_demo_rate_limit(fp)
                 fresh_usage = _check_demo_rate_limit(fp)
@@ -3726,7 +3767,27 @@ async def api_demo_generate_deliverable_stream(request: Request):
                 event["forge_usage"] = fresh_usage
                 event["elapsed_seconds"] = metrics.actual_elapsed_seconds
                 event["build_metrics"] = metrics.to_dict()
-                yield f"data: {json.dumps(event)}\n\n"
+                try:
+                    yield f"data: {json.dumps(event)}\n\n"
+                except (TypeError, ValueError) as exc:
+                    log.warning("JSON serialization failed for done event: %s — sending minimal fallback", exc)
+                    fallback_deliverable = _generate_fallback_deliverable(query)
+                    fb_content = fallback_deliverable.get("content", "")
+                    minimal_event = {
+                        "phase": "done",
+                        "status": "Build complete — deliverable ready (fallback)",
+                        "deliverable": fallback_deliverable,
+                        "metrics": {
+                            "word_count": len(fb_content.split()) if fb_content else 0,
+                            "line_count": fb_content.count("\n") + 1 if fb_content else 0,
+                            "size_kb": round(len(fb_content) / 1024, 1) if fb_content else 0,
+                        },
+                        "run_id": run_id,
+                        "llm_provider": "murphy-demo",
+                        "elapsed_seconds": metrics.actual_elapsed_seconds,
+                        "build_metrics": metrics.to_dict(),
+                    }
+                    yield f"data: {json.dumps(minimal_event)}\n\n"
             else:
                 yield f"data: {json.dumps(event)}\n\n"
                 # Small pause so the browser can process incremental events
