@@ -1984,22 +1984,31 @@ def _read_html(path: Path) -> str:
         log.debug("Could not read HTML file: %s", path)
         return f"<h1>File not found: {path}</h1>"
 
-# ── Route Serving Order of Precedence ──────────────────────────────────────
-# 1. Root-level HTML files (e.g., murphy_landing_page.html at _BASE_DIR)
-# 2. Murphy System/ subdirectory copies (_MURPHY_DIR)
-# 3. murphy_dashboard/ UI files (_UI_DIR)
-# 4. Fallback HTML stubs
-# ───────────────────────────────────────────────────────────────────────────
-
-@router.get("/", response_class=HTMLResponse)
-async def serve_dashboard():
-    """Root URL serves landing page for public visitors; falls back to dashboard"""
+def _serve_landing_html() -> HTMLResponse:
+    """Shared helper: serve murphy_landing_page.html, root-level first then Murphy System/ fallback."""
     for path in [
         _BASE_DIR / "murphy_landing_page.html",
         _MURPHY_DIR / "murphy_landing_page.html",
     ]:
         if path.exists():
             return HTMLResponse(path.read_text(encoding="utf-8"))
+    return HTMLResponse("<p>Landing page not found</p>")
+
+# ── CANONICAL ROUTE MAP (DEF-ROUTE-001) ──────────────────────────────────
+# /                    → murphy_landing_page.html (public landing page)
+# /dashboard           → murphy_dashboard/index.html (admin dashboard)
+# /ui/landing          → murphy_landing_page.html (alias)
+# /ui/{page}           → {page}.html (dynamic page router)
+# /static/*            → static/ directory (landing page assets)
+# /murphy-static/*     → Murphy System/static/ (legacy assets)
+# ─────────────────────────────────────────────────────────────────────────
+
+@router.get("/", response_class=HTMLResponse)
+async def serve_dashboard():
+    """Root URL serves landing page for public visitors; falls back to dashboard"""
+    result = _serve_landing_html()
+    if result.status_code == 200:
+        return result
     idx = _UI_DIR / "index.html"
     if idx.exists(): return HTMLResponse(idx.read_text())
     return HTMLResponse("<h1>Murphy System API v3.0</h1><p><a href='/docs'>API Docs</a></p>")
@@ -2016,21 +2025,18 @@ async def serve_calendar():
 
 @router.get("/dashboard", response_class=HTMLResponse)
 async def serve_legacy_dashboard():
-    """Original dashboard.html — preserved"""
-    path = _MURPHY_DIR / "dashboard.html"
-    if path.exists(): return HTMLResponse(path.read_text())
+    """Admin dashboard — murphy_dashboard/index.html"""
+    for path in [
+        _UI_DIR / "index.html",
+        _MURPHY_DIR / "dashboard.html",
+    ]:
+        if path.exists(): return HTMLResponse(path.read_text())
     return HTMLResponse("<p>Dashboard at <a href='/'>command center</a></p>")
 
 @router.get("/landing", response_class=HTMLResponse)
 async def serve_landing():
     """Landing page — check root first, then Murphy System/ subdirectory"""
-    for path in [
-        _BASE_DIR / "murphy_landing_page.html",
-        _MURPHY_DIR / "murphy_landing_page.html",
-    ]:
-        if path.exists():
-            return HTMLResponse(path.read_text(encoding="utf-8"))
-    return HTMLResponse("<p>Landing page not found</p>")
+    return _serve_landing_html()
 
 @router.get("/production-wizard", response_class=HTMLResponse)
 async def serve_production_wizard():
@@ -2062,6 +2068,12 @@ async def list_ui_pages():
         for name, path in sorted(_UI_PAGES.items())
     ]
     return JSONResponse({"pages": pages, "total": len(pages)})
+
+
+@router.get("/ui/landing", response_class=HTMLResponse)
+async def serve_ui_landing():
+    """Landing page at /ui/landing — alias for /landing"""
+    return _serve_landing_html()
 
 
 @router.get("/ui/{page_name}", response_class=HTMLResponse)
