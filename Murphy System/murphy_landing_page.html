@@ -326,41 +326,36 @@
       <!-- Status line -->
       <div class="forge-status" id="forge-status" aria-live="polite"></div>
 
-      <!-- 64-pane grid -->
-      <!-- Live View toggle -->
-      <div class="forge-live-wrap ml-10 forge-hidden" id="forge-live-wrap" >
-        <label>
-          <input type="checkbox" id="forge-live-chk">
-          <span class="forge-live-dot"></span>
-          Live View — stream real agent output
-        </label>
-      </div>
-      <div class="forge-grid-wrap" id="forge-grid-wrap" aria-hidden="true">
-        <div class="forge-grid" id="forge-grid"></div>
+      <!-- Forge workspace: 64-pane grid (task decomposition) + chat output -->
+      <div class="forge-workspace" id="forge-workspace">
+        <!-- Left: 64-pane grid showing real agent task breakdown -->
+        <div class="forge-grid-wrap" id="forge-grid-wrap" aria-label="Agent task grid">
+          <div class="forge-grid" id="forge-grid"></div>
+        </div>
+        <!-- Right: Chat box where deliverable content appears -->
+        <div class="forge-chat" id="forge-chat" role="log" aria-label="Deliverable output" aria-live="polite">
+          <div class="forge-chat-hdr">
+            <span class="forge-chat-hdr-title">&#128196; Murphy System — Deliverable Output</span>
+            <span class="forge-chat-hdr-status" id="forge-chat-status"></span>
+          </div>
+          <div class="forge-chat-messages" id="forge-chat-messages"></div>
+          <div class="forge-chat-actions forge-hidden" id="forge-chat-actions">
+            <button class="forge-dl-btn" id="forge-dl-btn">&#8595; Download Deliverable</button>
+            <button class="forge-dl-btn forge-dl-btn-alt forge-hidden" id="forge-html-preview-btn" onclick="_forgePreviewInTab()">&#9654; Preview in New Tab</button>
+          </div>
+        </div>
       </div>
 
-      <!-- Result block -->
-      <div class="forge-result" id="forge-result" role="region" aria-label="Forge result">
+      <!-- Build stats (shown after completion) -->
+      <div class="forge-result" id="forge-result" role="region" aria-label="Build summary">
         <div class="forge-result-title" id="forge-result-title">&#10003; Build Complete</div>
         <div class="forge-result-stats" id="forge-result-stats"></div>
         <p class="forge-roi" id="forge-roi"></p>
-        <!-- Usage counter -->
-        <div class="forge-usage ml-10 forge-hidden" id="forge-usage" ></div>
-        <!-- Content preview panel -->
-        <div class="forge-preview ml-10 forge-hidden" id="forge-preview" >
-          <div class="forge-preview-hdr">
-            <span>&#128196; Deliverable Preview</span>
-            <button class="forge-preview-toggle" id="forge-preview-toggle" onclick="_forgeTogglePreview()">&#9660; Collapse</button>
-          </div>
-          <div class="forge-preview-body" id="forge-preview-body"></div>
-        </div>
-        <!-- HTML preview button (only shown for .html deliverables) -->
-        <button class="forge-dl-btn ml-11 forge-hidden" id="forge-html-preview-btn"  onclick="_forgePreviewInTab()">&#9654; Preview in New Tab</button>
-        <button class="forge-dl-btn" id="forge-dl-btn">&#8595; Download Your Deliverable</button>
-        <div class="forge-fallback-cta ml-10 forge-hidden" id="forge-fallback-cta" >
+        <div class="forge-usage ml-10 forge-hidden" id="forge-usage"></div>
+        <div class="forge-fallback-cta ml-10 forge-hidden" id="forge-fallback-cta">
           <a href="/ui/signup">Sign up free to download this deliverable →</a>
         </div>
-        <div class="forge-err-msg ml-10 forge-hidden" id="forge-api-err" role="alert" aria-live="polite" ></div>
+        <div class="forge-err-msg ml-10 forge-hidden" id="forge-api-err" role="alert" aria-live="polite"></div>
       </div>
     </div>
   </div>
