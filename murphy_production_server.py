@@ -3235,12 +3235,14 @@ def _read_html(path: Path) -> str:
     try: return path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError): return f"<h1>File not found: {path}</h1>"
 
-# ── Route Serving Order of Precedence ──────────────────────────────────────
-# 1. Root-level HTML files (e.g., murphy_landing_page.html at _BASE_DIR)
-# 2. Murphy System/ subdirectory copies (_MURPHY_DIR)
-# 3. murphy_dashboard/ UI files (_UI_DIR)
-# 4. Fallback HTML stubs
-# ───────────────────────────────────────────────────────────────────────────
+# ── CANONICAL ROUTE MAP (DEF-ROUTE-001) ──────────────────────────────────
+# /                    → murphy_landing_page.html (public landing page)
+# /dashboard           → murphy_dashboard/index.html (admin dashboard)
+# /ui/landing          → murphy_landing_page.html (alias)
+# /ui/{page}           → {page}.html (dynamic page router)
+# /static/*            → static/ directory (landing page assets)
+# /murphy-static/*     → Murphy System/static/ (legacy assets)
+# ─────────────────────────────────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_root():
@@ -3248,7 +3250,6 @@ async def serve_root():
     for path in [
         _BASE_DIR / "murphy_landing_page.html",
         _MURPHY_DIR / "murphy_landing_page.html",
-        _UI_DIR / "index.html",
     ]:
         if path.exists():
             return HTMLResponse(path.read_text(encoding="utf-8"))
@@ -3287,9 +3288,12 @@ async def serve_roi_calendar():
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def serve_legacy_dashboard():
-    """Original dashboard.html — preserved"""
-    path = _MURPHY_DIR / "dashboard.html"
-    if path.exists(): return HTMLResponse(path.read_text())
+    """Admin dashboard — murphy_dashboard/index.html"""
+    for path in [
+        _UI_DIR / "index.html",
+        _MURPHY_DIR / "dashboard.html",
+    ]:
+        if path.exists(): return HTMLResponse(path.read_text())
     return HTMLResponse("<p>Dashboard at <a href='/'>command center</a></p>")
 
 @app.get("/landing", response_class=HTMLResponse)
