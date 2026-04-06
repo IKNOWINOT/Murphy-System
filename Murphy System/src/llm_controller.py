@@ -71,7 +71,7 @@ class LLMRequest:
     prompt: str
     context: Optional[str] = None
     temperature: float = 0.7
-    max_tokens: int = 16384
+    max_tokens: int = 131072  # DeepInfra Llama-3.1-70B context window
     model_preference: Optional[LLMModel] = None
     require_capabilities: Optional[List[ModelCapability]] = None
 

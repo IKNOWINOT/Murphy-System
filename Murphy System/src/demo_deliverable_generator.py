@@ -2976,14 +2976,16 @@ def _generate_llm_content(
     mss_result: Optional[Dict[str, Any]] = None,
     librarian_context: Optional[str] = None,
 ) -> str:
-    """Generate deliverable content via DeepInfra LLM (swarm-level output).
+    """Generate deliverable content using the MFGC → MSS → LLM pipeline.
 
-    The deliverable pipeline is designed for 64 parallel agents producing
-    a single coherent output.  Token limits are set to match: the LLM is
-    given a 16 384-token generation window (≈12 000+ words) so it can
-    produce comprehensive, production-ready deliverables.
+    The MFGC gate and MSS pipeline (Magnify + Solidify) run upstream and
+    feed enriched context into this function.  The LLM call uses DeepInfra's
+    full context window (up to 131 072 tokens) — output size is proportional
+    to what the user actually asked for, not a fixed ceiling.
 
     Provider chain:  DeepInfra → Together.ai → LLMController → onboard fallback.
+    When all LLM providers are down, the static domain keyword engine produces
+    a structured deliverable without any LLM calls.
     """
     # ── Build enriched context from upstream pipeline stages ───────────────
     context_parts: List[str] = []
@@ -3012,22 +3014,25 @@ def _generate_llm_content(
     if mss_result and (mss_result.get("magnify") or mss_result.get("solidify")):
         base_content = _build_content_from_mss(query, mss_result, mfgc_note)
 
-    # ── Swarm-level system prompt ─────────────────────────────────────────
+    # ── Domain-specific content expansion ─────────────────────────────────
+    # MSS onboard output is structural.  Supplement with deep, domain-aware
+    # content so the LLM has richer context to work from.
+    domain_content = _build_deep_domain_content(query)
+
+    # ── System prompt ─────────────────────────────────────────────────────
     system_prompt = (
         f"{MURPHY_SYSTEM_IDENTITY}\n\n"
-        "You are operating as a swarm of 64 specialised AI agents collaborating "
-        "on a single deliverable.  Each agent contributes deep expertise in its "
-        "domain.  Your combined output must be:\n"
+        "You are a production-grade deliverable engine.  Your output must be:\n"
         "  • COMPREHENSIVE — cover every aspect the user would need\n"
         "  • ACTIONABLE — include tables, checklists, timelines, specs, matrices\n"
         "  • PRODUCTION-READY — not a summary or outline, but a real deliverable\n"
-        "  • PROPORTIONAL — if asked for a book, produce book-level depth; "
-        "if asked for a pipeline, produce full architecture + runbooks\n\n"
+        "  • PROPORTIONAL — match the scope of the request.  A children's book "
+        "needs different depth than an adult novel.  A CI/CD pipeline needs "
+        "different depth than a full enterprise security audit.\n\n"
         "Use clear section headers (■ SECTION NAME), tables with box-drawing "
         "characters, checklists (□), and structured formatting.  "
-        "Do NOT conserve tokens.  Every token must be valid and useful, but "
-        "the output should be as long as it needs to be to fully address "
-        "the request.  Think thousands of words, not hundreds."
+        "Do NOT conserve tokens.  Produce an output whose length and depth "
+        "matches what was actually requested."
     )
 
     # ── User prompt with all context ──────────────────────────────────────
@@ -3040,25 +3045,22 @@ def _generate_llm_content(
             f"comprehensive deliverable:\n\n{base_content}\n"
         )
 
+    if domain_content:
+        user_prompt_parts.append(
+            f"\nDomain-specific intelligence:\n\n{domain_content}\n"
+        )
+
     if enriched_context:
         user_prompt_parts.append(
             f"\nAdditional intelligence from Murphy systems:\n\n{enriched_context}\n"
         )
 
     user_prompt_parts.append(
-        "\nProduce a comprehensive deliverable with full depth.  Include:\n"
-        "  • Executive summary\n"
-        "  • Detailed requirements and specifications\n"
-        "  • Architecture / design (with diagrams where applicable)\n"
-        "  • Implementation plan with phases, milestones, and timelines\n"
-        "  • Testing and validation strategy\n"
-        "  • Risk register with mitigations\n"
-        "  • RACI matrix\n"
-        "  • Budget / cost considerations\n"
-        "  • Operational procedures and runbooks\n"
-        "  • Success criteria and acceptance checklist\n"
-        "  • Next steps and recommendations\n"
-        "\nUse tables, checklists, and structured formatting throughout.  "
+        "\nProduce a comprehensive deliverable with full depth.  "
+        "The output length must be proportional to the request — "
+        "a short request gets a focused deliverable, a large request "
+        "(book, course, enterprise audit) gets exhaustive coverage.\n"
+        "Use tables, checklists, and structured formatting throughout.  "
         "Do not truncate or summarise — produce the full deliverable."
     )
 
@@ -3068,8 +3070,12 @@ def _generate_llm_content(
         {"role": "user", "content": user_prompt},
     ]
 
-    # Swarm-level token limit: 64 agents × 256 tokens each = 16 384
-    swarm_max_tokens = 16384
+    # ── Token budget: use DeepInfra's full context window ─────────────────
+    # DeepInfra Meta-Llama-3.1-70B supports up to 131 072 tokens.  We don't
+    # artificially cap this — the LLM produces whatever the request requires.
+    # MFGC confidence and MSS scope already determine the complexity; the
+    # token limit just needs to not be the bottleneck.
+    max_output_tokens = 131072
 
     # ── Try 1: Direct MurphyLLMProvider (DeepInfra → Together.ai) ─────────
     try:
@@ -3079,11 +3085,11 @@ def _generate_llm_content(
             messages,
             model_hint="chat",
             temperature=0.7,
-            max_tokens=swarm_max_tokens,
+            max_tokens=max_output_tokens,
         )
         if completion.content and completion.provider != "onboard":
             logger.info(
-                "Swarm deliverable generated via %s: %d chars, %d tokens",
+                "Deliverable generated via %s: %d chars, %d tokens",
                 completion.provider, len(completion.content), completion.tokens_total,
             )
             return completion.content
@@ -3095,7 +3101,7 @@ def _generate_llm_content(
         import asyncio
         from src.llm_controller import LLMController, LLMRequest
         controller = LLMController()
-        req = LLMRequest(prompt=user_prompt, max_tokens=swarm_max_tokens)
+        req = LLMRequest(prompt=user_prompt, max_tokens=max_output_tokens)
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
@@ -3117,13 +3123,13 @@ def _generate_llm_content(
     try:
         from src.local_llm_fallback import LocalLLMFallback
         fallback = LocalLLMFallback()
-        content = fallback.generate(user_prompt, max_tokens=swarm_max_tokens)
+        content = fallback.generate(user_prompt, max_tokens=max_output_tokens)
         if content and len(content) > 100:
             return content
     except Exception:
         logger.debug("LocalLLMFallback unavailable")
 
-    # ── Fallback: return MSS base content or minimal scaffold ─────────────
+    # ── Fallback: domain keyword engine (no LLM required) ─────────────────
     if base_content:
         return base_content
     return _build_minimal_custom_content(query)
@@ -3779,56 +3785,12 @@ def _build_deep_domain_content(query: str) -> str:
     return "\n\n".join(sections)
 
 
-# ---------------------------------------------------------------------------
-# Scope-proportional token budget  (label: FORGE-SCOPE-BUDGET-001)
-# ---------------------------------------------------------------------------
-# Different requests need wildly different output sizes.  A children's book
-# is not an adult novel.  A CI/CD pipeline is not a full enterprise security
-# audit.  The LLM token budget must be proportional to what the user asked.
-# ---------------------------------------------------------------------------
-
-def _estimate_scope_tokens(query: str) -> int:
-    """Estimate the appropriate per-section LLM token budget based on query scope.
-
-    Returns tokens-per-section.  The total budget is this × number of sections.
-    A swarm of 64 agents can collectively produce up to 64 × per-section tokens.
-    """
-    q = query.lower()
-
-    # ── Massive scope (50k+ word deliverables) ────────────────────────────
-    if any(kw in q for kw in (
-        "novel", "textbook", "complete book", "full book",
-        "comprehensive guide", "enterprise", "full audit",
-        "adult novel", "300 page", "500 page",
-    )):
-        return 16384  # per section — up to 64 sections = 1M+ tokens total
-
-    # ── Large scope (10k-50k word deliverables) ───────────────────────────
-    if any(kw in q for kw in (
-        "book", "ebook", "e-book", "course", "curriculum",
-        "training program", "whitepaper", "manual",
-        "security audit", "compliance framework",
-        "architecture review", "migration plan",
-    )):
-        return 8192  # per section
-
-    # ── Medium scope (2k-10k word deliverables) ───────────────────────────
-    if any(kw in q for kw in (
-        "plan", "strategy", "roadmap", "pipeline", "workflow",
-        "sop", "process", "guide", "tutorial", "article",
-        "report", "analysis", "assessment",
-    )):
-        return 4096  # per section
-
-    # ── Standard scope (1k-2k word deliverables) ──────────────────────────
-    return 4096  # default: still substantial
-
-
 def _build_minimal_custom_content(query: str) -> str:
     """Fallback content when ALL LLM providers are down.
 
-    Uses the domain keyword engine to produce rich, structured content
-    even without any LLM calls.  This is the last-resort fallback.
+    Uses the static domain keyword engine to produce rich, structured
+    content without any LLM calls.  This is the last-resort fallback
+    and must still be useful.
     """
     domain_content = _build_deep_domain_content(query)
     return f"""\
@@ -3842,8 +3804,8 @@ def _build_minimal_custom_content(query: str) -> str:
   This deliverable addresses the request: "{query}"
 
   Murphy System has analyzed your request using the onboard domain engine
-  and prepared this structured document.  For full swarm-level output
-  (64 parallel DeepInfra agents), ensure DEEPINFRA_API_KEY is configured.
+  and prepared this structured document.  For LLM-powered output, ensure
+  DEEPINFRA_API_KEY is set in your environment.
 
 {domain_content}
 
