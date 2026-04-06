@@ -756,7 +756,8 @@ function forgeRun(query){
   }
 
   // --- Stream from backend SSE endpoint ---
-  var _phaseIcons={1:'&#128161;',2:'&#128029;',3:'&#9889;'};
+  // Phase icons: 1=MFGC, 2=Workflow, 3=MSS, 4=Execute, 5=HITL
+  var _phaseIcons={1:'&#128161;',2:'&#128269;',3:'&#128029;',4:'&#9889;',5:'&#128100;'};
 
   fetch('/api/demo/generate-deliverable/stream',{
     method:'POST',
@@ -810,6 +811,16 @@ function forgeRun(query){
               apiBuildMetrics.line_count=evt.metrics.line_count;
               apiBuildMetrics.size_kb=evt.metrics.size_kb;
             }
+            // Emit workflow decision into chat (label: FORGE-CHAT-002)
+            if(evt.workflow&&evt.workflow.name){
+              var wfMsg='&#128196; Production Workflow: <strong>'+_escHtml(evt.workflow.name)+'</strong>';
+              wfMsg+=' ('+_escHtml(evt.workflow.decision||'created')+', '+
+                     (evt.workflow.steps_count||0)+' steps)';
+              if(evt.workflow.hitl_status){
+                wfMsg+=' — HITL: '+_escHtml(evt.workflow.hitl_status);
+              }
+              _chatSystem(wfMsg);
+            }
             finishBuild();
             return;
           }
@@ -826,8 +837,8 @@ function forgeRun(query){
             _populateGridFromTasks(evt.agent_tasks);
           }
 
-          // Start fallback grid animation on phase 2 if no real tasks yet
-          if(evt.phase>=2&&!animStarted){
+          // Start fallback grid animation on phase 3 (MSS) if no real tasks yet
+          if(evt.phase>=3&&!animStarted){
             animStarted=true;
             if(!gridPopulated){
               var type=_detectType(query);

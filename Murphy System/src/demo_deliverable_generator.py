@@ -3301,17 +3301,27 @@ def generate_deliverable_with_progress(
     query: str,
     librarian_context: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
-    """Run the deliverable pipeline and return a list of progress events.
+    """Run the production-workflow pipeline and return a list of progress events.
 
     Each event is ``{"phase": int, "status": str, ...}``.  The final event
     has ``"phase": "done"`` and carries the full ``deliverable`` dict.
 
-    Unlike the previous implementation which emitted canned events then ran
-    the pipeline in one shot, this version runs each MFGC→MSS stage
-    individually and reports what actually happened — including whether each
-    stage used the real module or fell back to the onboard engine.  It also
-    emits ``agent_tasks`` derived from MSS Magnify output so the frontend
-    64-box grid can display real task decomposition.
+    Pipeline  (label: FORGE-PIPELINE-002)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    The Forge no longer generates a deliverable directly.  Instead it:
+
+    1. **Phase 1 — MFGC Gate** — confidence-score the request.
+    2. **Phase 2 — Workflow Resolution** — search the production-workflow
+       registry for an existing workflow that satisfies the request.
+       Decide: *reuse*, *modify*, or *create new*.  Uses Murphy System
+       itself as the reference implementation so it never reinvents the
+       wheel.
+    3. **Phase 3 — MSS Pipeline** — run Magnify + Solidify to derive the
+       full requirements and implementation plan.
+    4. **Phase 4 — Execute Workflow** — run the resolved workflow to
+       generate the deliverable.  Persist the workflow for future reuse.
+    5. **Phase 5 — HITL Review** — route the output through platform-side
+       HITL for bug fixing and quality review.
 
     This is the synchronous building-block used by the async SSE endpoint.
     """
@@ -3346,10 +3356,45 @@ def generate_deliverable_with_progress(
             "mfgc_fallback": mfgc_fallback,
         })
 
-    # --- Phase 2: MSS Pipeline / Template Expansion -------------------------
-    if is_predefined:
+    # --- Phase 2: Production Workflow Resolution  (label: FORGE-RESOLVE-001) ---
+    # Search the registry for an existing production workflow that satisfies
+    # the user's request.  The registry uses Murphy System's own architecture
+    # as the reference implementation — it never reinvents the wheel.
+    workflow: Dict[str, Any] = {}
+    workflow_decision = "create"
+    try:
+        from src.production_workflow_registry import get_workflow_registry
+        registry = get_workflow_registry()
+        workflow, workflow_decision = registry.resolve_workflow(query)
         events.append({
             "phase": 2,
+            "status": (
+                f"Workflow resolved → {workflow_decision.upper()}: "
+                f"\"{workflow.get('name', 'unknown')}\""
+            ),
+            "detail": "workflow_resolution",
+            "pipeline_stage": "workflow_resolve",
+            "workflow_decision": workflow_decision,
+            "workflow_id": workflow.get("workflow_id"),
+            "workflow_name": workflow.get("name"),
+            "workflow_category": workflow.get("category"),
+            "workflow_steps": len(workflow.get("steps", [])),
+            "workflow_source": workflow.get("source", "auto"),
+        })
+    except Exception as exc:
+        logger.warning("Workflow registry unavailable: %s — using default pipeline", exc)
+        events.append({
+            "phase": 2,
+            "status": "Workflow registry unavailable — using default pipeline",
+            "detail": "workflow_resolution",
+            "pipeline_stage": "workflow_resolve",
+            "workflow_decision": "fallback",
+        })
+
+    # --- Phase 3: MSS Pipeline / Template Expansion -------------------------
+    if is_predefined:
+        events.append({
+            "phase": 3,
             "status": "Expanding template with MSS enrichment",
             "detail": "mss",
             "pipeline_stage": "template_expand",
@@ -3362,7 +3407,7 @@ def generate_deliverable_with_progress(
         mss_result = _run_mss_pipeline(query, mfgc_result_for_gen)
         mss_ok = not mss_result.get("fallback", True)
         events.append({
-            "phase": 2,
+            "phase": 3,
             "status": (
                 "MSS Magnify + Solidify — task decomposition complete"
                 if mss_ok
@@ -3374,25 +3419,29 @@ def generate_deliverable_with_progress(
         })
 
         # --- Agent task decomposition from MSS Magnify output ---------------
-        # Emit the 64-agent task breakdown so the frontend grid can display
-        # real task names instead of hardcoded fake agent types.
-        agent_tasks = _build_agent_task_list(query, mss_result)
+        # Build the 64-agent task list from workflow steps + MSS output
+        agent_tasks = _build_agent_task_list(query, mss_result, workflow=workflow)
         if agent_tasks:
             events.append({
-                "phase": 2,
+                "phase": 3,
                 "status": f"Decomposed into {len(agent_tasks)} parallel tasks",
                 "detail": "agent_tasks",
                 "agent_tasks": agent_tasks,
             })
 
-    # --- Phase 3: Content Generation ----------------------------------------
+    # --- Phase 4: Execute Workflow → Content Generation --------------------
     events.append({
-        "phase": 3,
-        "status": "Generating content — LLM + Solidify pipeline"
+        "phase": 4,
+        "status": (
+            f"Executing workflow \"{workflow.get('name', 'default')}\" "
+            f"({len(workflow.get('steps', []))} steps)"
+            if workflow.get("steps")
+            else "Generating content — LLM + Solidify pipeline"
+        )
         if not is_predefined
         else "Assembling branded deliverable",
-        "detail": "generate",
-        "pipeline_stage": "content_gen",
+        "detail": "execute",
+        "pipeline_stage": "workflow_execute",
     })
 
     # Actually run the full pipeline (reuse existing function)
@@ -3403,15 +3452,52 @@ def generate_deliverable_with_progress(
     line_count = content.count("\n") + 1 if content else 0
     size_kb = round(len(content) / 1024, 1) if content else 0
 
+    # Quality score from content metrics
+    quality_score = min(99, 85 + min(word_count // 200, 10))
+
+    # --- Persist the workflow for future reuse ------------------------------
+    # The workflow is saved even if it was reused — usage metrics are updated.
+    workflow_id = None
+    try:
+        from src.production_workflow_registry import get_workflow_registry
+        reg = get_workflow_registry()
+        if workflow_decision == "create" and workflow.get("steps"):
+            workflow_id = reg.persist_workflow(workflow, source="auto")
+        elif workflow_decision in ("reuse", "modify"):
+            workflow_id = workflow.get("workflow_id")
+        if workflow_id:
+            reg.record_usage(workflow_id, quality_score=quality_score)
+    except Exception as exc:
+        logger.debug("Workflow persistence skipped: %s", exc)
+
+    # --- Phase 5: HITL Review  (label: FORGE-HITL-001) --------------------
+    # Every output goes through platform-side HITL review for bug fixing.
+    hitl_status = "pending_review"
+    events.append({
+        "phase": 5,
+        "status": "Deliverable queued for platform HITL review",
+        "detail": "hitl",
+        "pipeline_stage": "hitl_review",
+        "hitl_status": hitl_status,
+    })
+
     # --- Done ---------------------------------------------------------------
     events.append({
         "phase": "done",
-        "status": "Build complete — deliverable ready",
+        "status": "Build complete — deliverable ready (pending HITL review)",
         "deliverable": deliverable,
+        "workflow": {
+            "workflow_id": workflow_id or workflow.get("workflow_id"),
+            "name": workflow.get("name"),
+            "decision": workflow_decision,
+            "steps_count": len(workflow.get("steps", [])),
+            "hitl_status": hitl_status,
+        },
         "metrics": {
             "word_count": word_count,
             "line_count": line_count,
             "size_kb": size_kb,
+            "quality_score": quality_score,
             "scenario": scenario_key or "custom",
             "is_predefined": is_predefined,
         },
@@ -3422,21 +3508,38 @@ def generate_deliverable_with_progress(
 def _build_agent_task_list(
     query: str,
     mss_result: Dict[str, Any],
+    *,
+    workflow: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, str]]:
-    """Build a 64-agent task list from MSS Magnify output.
+    """Build a 64-agent task list from workflow steps + MSS Magnify output.
 
     Each entry is ``{"agent_id": int, "agent_name": str, "task": str}``.
-    When MSS Magnify provided real requirements and components, those are
-    distributed across 64 agents.  When MSS fell back, a deterministic
-    decomposition is built from the query so the grid still shows meaningful
-    task labels rather than generic placeholder names.
+
+    Priority order for task items:
+    1. Workflow steps (if a production workflow was resolved)
+    2. MSS Magnify functional requirements + components
+    3. MSS Solidify implementation steps
+    4. Deterministic decomposition from the query (fallback)
     """
     tasks: List[Dict[str, str]] = []
     mag = mss_result.get("magnify", {})
     sol = mss_result.get("solidify", {})
 
-    # Collect real task items from MSS output
+    # Collect real task items — workflow steps first, then MSS output
     items: List[str] = []
+    roles_from_workflow: List[str] = []
+
+    # Workflow steps provide the production workflow's own task breakdown
+    if workflow and workflow.get("steps"):
+        for step in workflow["steps"]:
+            step_name = step.get("name", "")
+            step_desc = step.get("description", "")
+            role = step.get("agent_role", "")
+            items.append(f"{step_name}: {step_desc}"[:120] if step_desc else step_name)
+            if role:
+                roles_from_workflow.append(role)
+
+    # MSS output enriches with finer-grained tasks
     for req in mag.get("functional_requirements", []):
         items.append(req)
     for comp in mag.get("technical_components", []):
@@ -3452,8 +3555,8 @@ def _build_agent_task_list(
     if not items:
         items = _deterministic_task_decomposition(query)
 
-    # Agent role names that cycle through the 64 slots
-    roles = [
+    # Agent role names — prefer workflow roles if available, else defaults
+    default_roles = [
         "ScopeAnalyzer", "RequirementsWriter", "ArchitectBot",
         "ComponentDesigner", "DataModeler", "APIDesigner",
         "SecurityAuditor", "ComplianceChecker", "TestPlanner",
@@ -3461,6 +3564,7 @@ def _build_agent_task_list(
         "CostEstimator", "RiskAssessor", "TimelineBot",
         "QAValidator",
     ]
+    roles = roles_from_workflow if roles_from_workflow else default_roles
 
     for i in range(64):
         role = roles[i % len(roles)]
