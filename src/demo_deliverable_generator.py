@@ -2078,8 +2078,8 @@ pydantic>=2.0.0
         print("API timed out — try again later")
     except requests.exceptions.HTTPError as e:
         print(f"API error: {e.response.status_code}")
-    except Exception as e:
-        print(f"Unexpected error: {e}")
+    except Exception as exc:
+        print(f"Unexpected error: {exc}")
 
   EXERCISE 3.1 — Real API Call
     Using the Free Open Notify ISS API (no key needed):
@@ -2099,8 +2099,8 @@ pydantic>=2.0.0
         print(f"People in space right now: {data['number']}")
         for person in data["people"]:
             print(f"  • {person['name']} aboard {person['craft']}")
-    except Exception as e:
-        print(f"Could not fetch data: {e}")
+    except Exception as exc:
+        print(f"Could not fetch data: {exc}")
 
   ──────────────────────────────────────────────────────────────────────
   WEEK 5-6 — CAPSTONE PROJECT: Personal Automation Dashboard
@@ -2558,12 +2558,6 @@ def _build_mss_controller():
     inside ``mss_controls.py`` (e.g. ``from concept_translation import …``)
     resolve correctly in all call contexts (FastAPI app, test runner, scripts).
     """
-    import sys
-    from pathlib import Path as _Path
-    _src_dir = str(_Path(__file__).resolve().parent)
-    if _src_dir not in sys.path:
-        sys.path.insert(0, _src_dir)
-
     # Use bare imports — consistent with mss_controls.py's own internal imports
     from mss_controls import MSSController  # noqa: PLC0415
     from information_quality import InformationQualityEngine  # noqa: PLC0415
@@ -2724,9 +2718,6 @@ def _build_automation_blueprint(query: str, mss_result: Optional[Dict[str, Any]]
     # ── Generate real workflow via AIWorkflowGenerator ──────────────────────
     workflow: Dict[str, Any] = {}
     try:
-        import sys as _sys
-        import os as _os
-        _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
         from ai_workflow_generator import AIWorkflowGenerator
         generator = AIWorkflowGenerator()
         workflow = generator.generate_workflow(
@@ -2734,7 +2725,7 @@ def _build_automation_blueprint(query: str, mss_result: Optional[Dict[str, Any]]
             context={"source": "demo_deliverable"},
         )
     except Exception:
-        pass
+        logger.debug("Suppressed exception in demo_deliverable_generator")
 
     workflow_id = workflow.get("workflow_id") or slug
     workflow_name = workflow.get("name") or slug.replace("_", " ").title()
@@ -3034,7 +3025,7 @@ def _generate_llm_content(
             if response.content and len(response.content) > len(base_content) // 2:
                 return response.content
         except Exception:
-            pass  # LLM enrichment failed — use base MSS content
+            logger.debug("Suppressed exception in demo_deliverable_generator")
         return base_content
 
     # No MSS data — try LLM with context-enriched prompt
@@ -3066,7 +3057,7 @@ def _generate_llm_content(
         if content and len(content) > 50:
             return content
     except Exception:
-        pass
+        logger.debug("Suppressed exception in demo_deliverable_generator")
 
     # LocalLLMFallback — always available
     try:
@@ -3079,7 +3070,7 @@ def _generate_llm_content(
         if content and len(content) > 20:
             return content
     except Exception:
-        pass
+        logger.debug("Suppressed exception in demo_deliverable_generator")
 
     return _build_minimal_custom_content(query)
 
@@ -3293,6 +3284,77 @@ def generate_deliverable(
         return generate_predefined_deliverable(scenario_key, query, librarian_context=librarian_context)
     return generate_custom_deliverable(query, librarian_context=librarian_context)
 
+
+def generate_deliverable_with_progress(
+    query: str,
+    librarian_context: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """Run the deliverable pipeline and return a list of progress events.
+
+    Each event is ``{"phase": int, "status": str, ...}``.  The final event
+    has ``"phase": "done"`` and carries the full ``deliverable`` dict.
+
+    This is the synchronous building-block used by the async SSE endpoint.
+    """
+    events: List[Dict[str, Any]] = []
+
+    # --- Phase 1: Scenario Detection / MFGC Gate --------------------------
+    scenario_key = _detect_scenario(query)
+    is_predefined = scenario_key is not None and scenario_key in _SCENARIO_TEMPLATES
+
+    if is_predefined:
+        events.append({
+            "phase": 1,
+            "status": f"Matched predefined scenario: {scenario_key}",
+            "detail": "template",
+        })
+    else:
+        events.append({
+            "phase": 1,
+            "status": "MFGC gate — analyzing scope and confidence scoring",
+            "detail": "mfgc",
+        })
+
+    # --- Phase 2: MSS Pipeline / Template Expansion -------------------------
+    events.append({
+        "phase": 2,
+        "status": "MSS Magnify — expanding to parallel tasks"
+        if not is_predefined
+        else "Expanding template with MSS enrichment",
+        "detail": "mss",
+    })
+
+    # --- Phase 3: Content Generation ----------------------------------------
+    events.append({
+        "phase": 3,
+        "status": "Generating content — LLM + Solidify pipeline"
+        if not is_predefined
+        else "Assembling branded deliverable",
+        "detail": "generate",
+    })
+
+    # Actually run the full pipeline (reuse existing function)
+    deliverable = generate_deliverable(query, librarian_context=librarian_context)
+
+    content = deliverable.get("content", "")
+    word_count = len(content.split()) if content else 0
+    line_count = content.count("\n") + 1 if content else 0
+    size_kb = round(len(content) / 1024, 1) if content else 0
+
+    # --- Done ---------------------------------------------------------------
+    events.append({
+        "phase": "done",
+        "status": "Build complete — deliverable ready",
+        "deliverable": deliverable,
+        "metrics": {
+            "word_count": word_count,
+            "line_count": line_count,
+            "size_kb": size_kb,
+            "scenario": scenario_key or "custom",
+            "is_predefined": is_predefined,
+        },
+    })
+    return events
 
 
 def make_fingerprint(request_ip: str, user_agent: str) -> str:
