@@ -33,16 +33,40 @@ def _add_paths() -> None:
             sys.path.insert(0, s)
 
 
-def _load_pipeline_module():
-    _add_paths()
+_add_paths()
+
+# ---------------------------------------------------------------------------
+# Conditional imports with skipif guards
+# ---------------------------------------------------------------------------
+
+_PIPELINE_AVAILABLE = True
+_INTEGRATOR_AVAILABLE = True
+_PIPELINE_SKIP_REASON = ""
+_INTEGRATOR_SKIP_REASON = ""
+
+try:
     import importlib
-    return importlib.import_module("src.onboarding_team_pipeline")
+    _pipeline_mod = importlib.import_module("src.onboarding_team_pipeline")
+except ImportError as exc:
+    _PIPELINE_AVAILABLE = False
+    _PIPELINE_SKIP_REASON = f"OnboardingTeamPipeline not importable: {exc}"
+    _pipeline_mod = None
+
+try:
+    import importlib
+    _integrator_mod = importlib.import_module("src.system_integrator")
+except ImportError as exc:
+    _INTEGRATOR_AVAILABLE = False
+    _INTEGRATOR_SKIP_REASON = f"SystemIntegrator not importable: {exc}"
+    _integrator_mod = None
 
 
-def _load_system_integrator():
-    _add_paths()
-    import importlib
-    return importlib.import_module("src.system_integrator")
+_requires_pipeline = pytest.mark.skipif(
+    not _PIPELINE_AVAILABLE, reason=_PIPELINE_SKIP_REASON or "pipeline unavailable"
+)
+_requires_integrator = pytest.mark.skipif(
+    not _INTEGRATOR_AVAILABLE, reason=_INTEGRATOR_SKIP_REASON or "integrator unavailable"
+)
 
 
 # ---------------------------------------------------------------------------
@@ -53,31 +77,22 @@ def _load_system_integrator():
 class TestOnboardingPipelineIsolation:
     """Basic isolation tests for the pipeline itself."""
 
+    @_requires_pipeline
     def test_pipeline_importable(self):
-        try:
-            mod = _load_pipeline_module()
-            assert hasattr(mod, "OnboardingTeamPipeline")
-        except ImportError as exc:
-            pytest.skip(f"OnboardingTeamPipeline not importable: {exc}")
+        assert hasattr(_pipeline_mod, "OnboardingTeamPipeline")
 
+    @_requires_pipeline
     def test_extract_team_members_returns_result(self):
-        try:
-            mod = _load_pipeline_module()
-        except ImportError:
-            pytest.skip("OnboardingTeamPipeline not importable")
-        pipeline = mod.OnboardingTeamPipeline()
+        pipeline = _pipeline_mod.OnboardingTeamPipeline()
         result = pipeline.extract_team_members(
             "I have an accountant named Alice and a manager named Bob."
         )
         assert hasattr(result, "members")
         assert hasattr(result, "confidence")
 
+    @_requires_pipeline
     def test_extract_finds_accountant(self):
-        try:
-            mod = _load_pipeline_module()
-        except ImportError:
-            pytest.skip("OnboardingTeamPipeline not importable")
-        pipeline = mod.OnboardingTeamPipeline()
+        pipeline = _pipeline_mod.OnboardingTeamPipeline()
         result = pipeline.extract_team_members(
             "My accountant Alice handles all the books."
         )
@@ -85,12 +100,9 @@ class TestOnboardingPipelineIsolation:
         roles = [m.role.lower() for m in result.members]
         assert any("account" in r for r in roles)
 
+    @_requires_pipeline
     def test_generate_all_rosettas_returns_list(self):
-        try:
-            mod = _load_pipeline_module()
-        except ImportError:
-            pytest.skip("OnboardingTeamPipeline not importable")
-        pipeline = mod.OnboardingTeamPipeline()
+        pipeline = _pipeline_mod.OnboardingTeamPipeline()
         discovery = pipeline.extract_team_members(
             "I have 2 employees: Alice the accountant and Bob the manager."
         )
@@ -100,12 +112,9 @@ class TestOnboardingPipelineIsolation:
         assert isinstance(results, list)
         assert len(results) >= 1
 
+    @_requires_pipeline
     def test_build_hitl_summary_returns_string(self):
-        try:
-            mod = _load_pipeline_module()
-        except ImportError:
-            pytest.skip("OnboardingTeamPipeline not importable")
-        pipeline = mod.OnboardingTeamPipeline()
+        pipeline = _pipeline_mod.OnboardingTeamPipeline()
         discovery = pipeline.extract_team_members(
             "I have an accountant named Alice."
         )
@@ -116,12 +125,9 @@ class TestOnboardingPipelineIsolation:
         assert isinstance(summary, str)
         assert len(summary) > 0
 
+    @_requires_pipeline
     def test_on_confirmed_does_not_raise(self):
-        try:
-            mod = _load_pipeline_module()
-        except ImportError:
-            pytest.skip("OnboardingTeamPipeline not importable")
-        pipeline = mod.OnboardingTeamPipeline()
+        pipeline = _pipeline_mod.OnboardingTeamPipeline()
         discovery = pipeline.extract_team_members(
             "I have an accountant named Alice."
         )
@@ -139,12 +145,12 @@ class TestOnboardingPipelineIsolation:
 # ---------------------------------------------------------------------------
 
 
+@_requires_integrator
 class TestOnboardingPipelineViaSystemIntegrator:
     """GAP-6: Full flow invoked through SystemIntegrator."""
 
     def _make_integrator(self):
-        mod = _load_system_integrator()
-        return mod.SystemIntegrator()
+        return _integrator_mod.SystemIntegrator()
 
     def test_handle_team_discovery_message_exists(self):
         si = self._make_integrator()
