@@ -135,7 +135,7 @@ class MurphyLLMProvider:
         self,
         deepinfra_api_key: Optional[str] = None,
         together_api_key:  Optional[str] = None,
-        timeout:           float = 30.0,
+        timeout:           float = 120.0,
         max_retries:       int   = 2,
     ) -> None:
         self.deepinfra_api_key = deepinfra_api_key or os.getenv("DEEPINFRA_API_KEY", "")
@@ -165,7 +165,7 @@ class MurphyLLMProvider:
         return cls(
             deepinfra_api_key=os.getenv("DEEPINFRA_API_KEY", ""),
             together_api_key= os.getenv("TOGETHER_API_KEY",  ""),
-            timeout=    float(os.getenv("LLM_TIMEOUT",    "30")),
+            timeout=    float(os.getenv("LLM_TIMEOUT",    "120")),
             max_retries=int(  os.getenv("LLM_MAX_RETRIES", "2")),
         )
 
@@ -196,7 +196,7 @@ class MurphyLLMProvider:
         model:     str,
         messages:  List[Dict[str, str]],
         temperature: float = 0.7,
-        max_tokens:  int   = 1024,
+        max_tokens:  int   = 16384,
     ) -> Dict[str, Any]:
         """POST to an OpenAI-compatible chat completions endpoint."""
         resp = requests.post(
@@ -227,10 +227,9 @@ class MurphyLLMProvider:
         system:      str   = "You are Murphy, an AI automation platform built by Inoni LLC.",
         model_hint:  str   = "chat",
         temperature: float = 0.7,
-        max_tokens:  int   = 1024,
+        max_tokens:  int   = 16384,
     ) -> LLMCompletion:
-        """
-        Complete a prompt synchronously.
+        """Complete a prompt synchronously.
 
         Tries DeepInfra first, falls back to Together.ai, then onboard.
         """
@@ -251,7 +250,7 @@ class MurphyLLMProvider:
         *,
         model_hint:  str   = "chat",
         temperature: float = 0.7,
-        max_tokens:  int   = 1024,
+        max_tokens:  int   = 16384,
     ) -> LLMCompletion:
         """Complete a messages list synchronously."""
         return self._complete_with_fallback(
@@ -266,7 +265,7 @@ class MurphyLLMProvider:
         messages:    List[Dict[str, str]],
         model_hint:  str   = "chat",
         temperature: float = 0.7,
-        max_tokens:  int   = 1024,
+        max_tokens:  int   = 16384,
     ) -> LLMCompletion:
         request_id = str(uuid.uuid4())
 
