@@ -197,8 +197,9 @@ class ProviderAdapter:
 
         For REST requests the payload is returned unchanged.  For
         GRAPHQL the body is wrapped in the standard ``{"query": …,
-        "variables": …}`` envelope.  gRPC and SOAP are not yet
-        implemented and will raise :class:`NotImplementedError`.
+        "variables": …}`` envelope.  gRPC payloads are converted to
+        JSON-encoded messages suitable for grpc-gateway / gRPC-Web
+        transport.  SOAP payloads are wrapped in a SOAP 1.2 XML envelope.
         """
         protocol = self.config.protocol
         if protocol == Protocol.GRAPHQL:
@@ -207,17 +208,63 @@ class ProviderAdapter:
             wrapped_body = {"query": query, "variables": body}
             return {**payload, "body": wrapped_body, "method": "POST"}
         if protocol == Protocol.GRPC:
-            raise NotImplementedError(
-                "gRPC protocol support is not yet implemented. "
-                "Use REST or GraphQL, or provide a custom execute_fn."
-            )
+            return self._prepare_grpc_request(payload)
         if protocol == Protocol.SOAP:
-            raise NotImplementedError(
-                "SOAP protocol support is not yet implemented. "
-                "Use REST or GraphQL, or provide a custom execute_fn."
-            )
+            return self._prepare_soap_request(payload)
         # REST — pass through
         return payload
+
+    def _prepare_grpc_request(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Translate a gRPC-style payload to JSON-over-HTTP for grpc-gateway.
+
+        Uses the gRPC-Web / grpc-gateway convention where the service
+        and method are mapped to a REST-style path and the protobuf
+        message is sent as a JSON body.
+        """
+        body = payload.get("body", {})
+        service = body.pop("service", "")
+        method = body.pop("method", "")
+        # grpc-gateway convention: /<package.Service>/<Method>
+        grpc_path = f"/{service}/{method}" if service and method else payload.get("path", "/")
+        headers = dict(payload.get("headers", {}))
+        headers.setdefault("Content-Type", "application/grpc+json")
+        headers.setdefault("Accept", "application/grpc+json")
+        return {
+            **payload,
+            "method": "POST",
+            "path": grpc_path,
+            "body": body,  # remaining fields are the protobuf-JSON message
+            "headers": headers,
+        }
+
+    def _prepare_soap_request(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Wrap payload in a minimal SOAP 1.2 XML envelope."""
+        body = payload.get("body", {})
+        action = body.pop("soap_action", "")
+        # Build a simple XML body from the remaining key-value pairs
+        inner_xml_parts = []
+        for key, val in body.items():
+            inner_xml_parts.append(f"<{key}>{val}</{key}>")
+        inner_xml = "".join(inner_xml_parts)
+        soap_body = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope">'
+            "<soap:Body>"
+            f"{inner_xml}"
+            "</soap:Body>"
+            "</soap:Envelope>"
+        )
+        headers = dict(payload.get("headers", {}))
+        headers["Content-Type"] = "application/soap+xml; charset=utf-8"
+        if action:
+            headers["SOAPAction"] = action
+        return {
+            **payload,
+            "method": "POST",
+            "body": soap_body,
+            "headers": headers,
+            "_raw_body": True,  # signal to call() to send body as string, not JSON
+        }
 
     # -- Execution ----------------------------------------------------------
 

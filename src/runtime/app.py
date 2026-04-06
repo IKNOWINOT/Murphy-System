@@ -213,7 +213,7 @@ def create_app() -> FastAPI:
                         return False
                     return True
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return token in self._mem
 
         def __setitem__(self, token: str, account_id: str) -> None:
@@ -248,7 +248,7 @@ def create_app() -> FastAPI:
                         return default
                     return row[0]
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return self._mem.get(token, default)
 
         def pop(self, token: str, *args: "Any") -> "Optional[str]":
@@ -262,7 +262,7 @@ def create_app() -> FastAPI:
                                 "DELETE FROM session_store WHERE session_id=?", (token,)
                             )
                     except Exception:
-                        pass
+                        logger.debug("Suppressed exception in app")
                 return val
             return args[0] if args else None
 
@@ -278,7 +278,7 @@ def create_app() -> FastAPI:
                     )
                     return cursor.fetchone()[0]
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return len(self._mem)
 
         def keys(self) -> "List[str]":
@@ -293,7 +293,7 @@ def create_app() -> FastAPI:
                     )
                     return [row[0] for row in cursor.fetchall()]
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return list(self._mem.keys())
 
         def items(self) -> "List[tuple]":
@@ -308,7 +308,7 @@ def create_app() -> FastAPI:
                     )
                     return [(row[0], row[1]) for row in cursor.fetchall()]
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return list(self._mem.items())
 
         def purge_expired(self) -> int:
@@ -341,7 +341,7 @@ def create_app() -> FastAPI:
                     object.__getattribute__(self, "_account_id"), dict(self)
                 )
             except Exception:
-                pass
+                logger.debug("Suppressed exception in app")
 
     class _SQLiteUserStore:
         """Persistent user store backed by SQLite WAL.
@@ -371,7 +371,7 @@ def create_app() -> FastAPI:
                         data = json.loads(row[1])
                         self._cache[row[0]] = _MutableUserRecord(data, row[0], self._save)
                     except Exception:
-                        pass
+                        logger.debug("Suppressed exception in app")
                 logger.info("User store: loaded %d accounts from SQLite", len(self._cache))
             except Exception as exc:
                 logger.warning("User store: failed to load from SQLite: %s", exc)
@@ -428,7 +428,7 @@ def create_app() -> FastAPI:
                             "DELETE FROM user_accounts WHERE account_id=?", (account_id,)
                         )
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return val
 
     class _RedisSessionStore:
@@ -469,7 +469,7 @@ def create_app() -> FastAPI:
                 try:
                     return bool(self._redis.exists(self._k(str(token))))
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return token in self._fallback
 
         def __setitem__(self, token: str, account_id: str) -> None:
@@ -478,7 +478,7 @@ def create_app() -> FastAPI:
                     self._redis.setex(self._k(token), self._SESSION_TTL, account_id)
                     return
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             self._fallback[token] = account_id
 
         def __delitem__(self, token: str) -> None:
@@ -487,7 +487,7 @@ def create_app() -> FastAPI:
                     self._redis.delete(self._k(token))
                     return
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             self._fallback.pop(token, None)
 
         def __getitem__(self, token: str) -> str:
@@ -509,7 +509,7 @@ def create_app() -> FastAPI:
                             break
                     return count
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return len(self._fallback)
 
         def get(self, token: str, default: "Optional[str]" = None) -> "Optional[str]":
@@ -518,7 +518,7 @@ def create_app() -> FastAPI:
                     val = self._redis.get(self._k(token))
                     return val if val is not None else default
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return self._fallback.get(token, default)
 
         def pop(self, token: str, *args: "Any") -> "Optional[str]":
@@ -530,7 +530,7 @@ def create_app() -> FastAPI:
                         return val
                     return args[0] if args else None
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return self._fallback.pop(token, *args)
 
         def keys(self) -> "List[str]":
@@ -547,7 +547,7 @@ def create_app() -> FastAPI:
                             break
                     return result
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return list(self._fallback.keys())
 
         def items(self) -> "List[tuple]":
@@ -567,7 +567,7 @@ def create_app() -> FastAPI:
                             break
                     return result
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in app")
             return list(self._fallback.items())
 
     _session_store: "_RedisSessionStore" = _RedisSessionStore()
@@ -1685,7 +1685,7 @@ def create_app() -> FastAPI:
                     setup_url = getattr(cls, "SETUP_URL", "")
                     doc_url   = getattr(cls, "DOCUMENTATION_URL", "")
             except Exception:
-                pass
+                logger.debug("Suppressed exception in app")
             guide = {
                 "name": meta.get("name", integration_id),
                 "env_var": integration_id.upper() + "_API_KEY",
@@ -3005,6 +3005,10 @@ def create_app() -> FastAPI:
         budget = float(data.get("budget", 50.0))
         idempotency_key = data.get("idempotency_key") or None
         try:
+            import sys, os
+            _ms_src = os.path.join(os.path.dirname(__file__), "..", "..", "Murphy System", "src")
+            if _ms_src not in sys.path:
+                sys.path.insert(0, _ms_src)
             from collaborative_task_orchestrator import CollaborativeTaskOrchestrator
             cto = CollaborativeTaskOrchestrator()
             report = cto.orchestrate(
@@ -3443,7 +3447,7 @@ def create_app() -> FastAPI:
         try:
             body = await request.json()
         except Exception:
-            pass  # body remains {} — the endpoint also works without a body
+            logger.debug("Suppressed exception in app")
 
         if _setup_wizard is None:
             # Fallback: build config directly from the submitted body
@@ -3573,7 +3577,7 @@ def create_app() -> FastAPI:
                         "action": "execute",
                     })
             except Exception:
-                pass  # graceful degradation
+                logger.debug("Suppressed exception in app")
 
         import uuid as _uuid
         workflow_id = f"wf_{wf_name[:40]}_{_uuid.uuid4().hex[:8]}"
@@ -3671,7 +3675,9 @@ def create_app() -> FastAPI:
         ``invoice_processing`` when they mention billing + accounts payable).
         """
         import sys as _sys
+        import os as _os
         try:
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             from ai_workflow_generator import AIWorkflowGenerator
         except Exception:
             return {}
@@ -3879,6 +3885,7 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             from ai_workflow_generator import AIWorkflowGenerator
             generator = AIWorkflowGenerator()
             history = generator.get_generation_history()
@@ -3913,11 +3920,12 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             data = {}
             try:
                 data = await request.json()
             except Exception:
-                pass
+                logger.debug("Suppressed exception in app")
             ctx = data.get("context") or {}
             from ai_workflow_generator import AIWorkflowGenerator
             from automation_commissioner import AutomationCommissioner
@@ -3984,7 +3992,7 @@ def create_app() -> FastAPI:
                     "step_label": f"{completed}/{total_steps} steps",
                 })
             return JSONResponse({"success": True, "executions": sorted(items, key=lambda x: x["status"] == "running", reverse=True)})
-        except Exception as exc:
+        except Exception:
             return JSONResponse({"success": True, "executions": []})
 
     @app.get("/api/automations/executions/{execution_id}")
@@ -4022,6 +4030,7 @@ def create_app() -> FastAPI:
                 return JSONResponse({"success": False, "error": "Automation engine not available"}, status_code=503)
             import sys as _sys
             import os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             from automations.models import TriggerType
             try:
                 tt = TriggerType(trigger_type_str)
@@ -4048,6 +4057,7 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             data = await request.json()
             session_id = (data.get("session_id") or "").strip()
             extra_ctx = data.get("context") or {}
@@ -4123,6 +4133,7 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
             data = await request.json()
             ctx = data.get("context") or {}
             threshold = float(data.get("health_threshold", 0.75))
@@ -6093,8 +6104,8 @@ def create_app() -> FastAPI:
                 details = mgr.get_tier_details(tier_enum.value)
                 tiers.append(details)
             return JSONResponse({"success": True, "tiers": tiers})
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, 500)
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, 500)
 
     @app.get("/api/billing/account/{account_id}")
     async def billing_account(account_id: str):
@@ -6114,8 +6125,8 @@ def create_app() -> FastAPI:
                 "usage": usage,
                 "tier_details": details,
             })
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, 500)
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, 500)
 
     @app.post("/api/billing/check-limit")
     async def billing_check_limit(request: Request):
@@ -6134,8 +6145,8 @@ def create_app() -> FastAPI:
                 current_count=body.get("current_count", 0),
             )
             return JSONResponse({"success": True, **result})
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, 500)
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, 500)
 
     @app.post("/api/billing/check-feature")
     async def billing_check_feature(request: Request):
@@ -6153,8 +6164,8 @@ def create_app() -> FastAPI:
                 feature=body.get("feature", ""),
             )
             return JSONResponse({"success": True, **result})
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, 500)
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, 500)
 
     @app.post("/api/billing/start-trial")
     async def billing_start_trial(request: Request):
@@ -6655,7 +6666,7 @@ def create_app() -> FastAPI:
         except ImportError:
             logger.warning("MFM shadow_deployment module not available")
             metrics = {}
-        except (ValueError, RuntimeError) as exc:
+        except (ValueError, RuntimeError):
             logger.exception("Failed to retrieve MFM metrics")
             metrics = {"error": "metrics_unavailable"}
         return JSONResponse({"metrics": metrics})
@@ -6670,7 +6681,7 @@ def create_app() -> FastAPI:
         except ImportError:
             logger.warning("MFM action_trace_serializer module not available")
             stats = {"total_traces": 0, "error": "MFM trace collector not initialised"}
-        except (ValueError, RuntimeError) as exc:
+        except (ValueError, RuntimeError):
             logger.exception("Failed to retrieve MFM trace stats")
             stats = {"total_traces": 0, "error": "trace_stats_unavailable"}
         return JSONResponse(stats)
@@ -6854,7 +6865,7 @@ def create_app() -> FastAPI:
                 if not _valid:
                     return JSONResponse({"success": False, "error": _msg}, status_code=400)
         except Exception:
-            pass  # Validation is best-effort; never block a store on import failure
+            logger.debug("Suppressed exception in app")
 
         # Map integration name to env var
         _INTEGRATION_ENV_VARS = {
@@ -7810,7 +7821,7 @@ def create_app() -> FastAPI:
                             _ui_resp.raise_for_status()
                             _email = _ui_resp.json().get("email", "")
                         except Exception:
-                            pass
+                            logger.debug("Suppressed exception in app")
 
                     if not _email:
                         logger.warning("OAuth env-var fallback: no email obtained")
@@ -7904,7 +7915,7 @@ def create_app() -> FastAPI:
                     except Exception:
                         configured[p.value] = False
             except Exception:
-                pass
+                logger.debug("Suppressed exception in app")
         # Env-var fallback: detect Google OAuth from environment when registry
         # is unavailable (e.g. AccountManager/CredentialVault init failed).
         if not configured.get("google") and os.environ.get("MURPHY_OAUTH_GOOGLE_CLIENT_ID"):
@@ -8102,7 +8113,7 @@ def create_app() -> FastAPI:
             try:
                 _account_manager.request_password_reset(email)
             except Exception:
-                pass  # Never expose whether the email exists — always return success.
+                logger.debug("Suppressed exception in app")
         return JSONResponse({
             "success": True,
             "message": "If an account with that email exists, a reset link has been sent.",
@@ -8210,7 +8221,7 @@ def create_app() -> FastAPI:
                     timeout=3,
                 )
             except Exception:
-                pass  # Email delivery failure must not block the response
+                logger.debug("Suppressed exception in app")
 
             # In development expose the token so the flow can be tested without email
             if os.environ.get("MURPHY_ENV", "development").lower() == "development":
@@ -8323,7 +8334,7 @@ def create_app() -> FastAPI:
                     )
                     return JSONResponse({"success": True, "approval_url": url})
                 except Exception:
-                    pass  # fall through to mock
+                    logger.debug("Suppressed exception in app")
 
             return JSONResponse({
                 "success": True,
@@ -8469,7 +8480,7 @@ def create_app() -> FastAPI:
             from paper_trading_routes import get_paper_trading_status
             return JSONResponse(get_paper_trading_status())
         except Exception:
-            pass
+            logger.debug("Suppressed exception in app")
         return JSONResponse({
             "success": True,
             "status": "paper_mode",
@@ -10108,7 +10119,7 @@ def create_app() -> FastAPI:
                 rules = hub.get_automation_rules()
                 return JSONResponse({"success": True, "rules": rules})
             except Exception:
-                pass
+                logger.debug("Suppressed exception in app")
         return JSONResponse({"success": True, "rules": [], "message": "No automation rules configured yet."})
 
     @app.post("/api/comms/automate/rules")
@@ -10132,10 +10143,8 @@ def create_app() -> FastAPI:
         return JSONResponse({"success": True, "rule": rule}, status_code=201)
 
     # ==================== MEETING INTELLIGENCE API ====================
-    # In-memory stores for drafts and votes — keyed by session_id.
-    # TODO: migrate to DB models (MeetingDraft, MeetingVote) in a future sprint.
-    _mi_drafts: Dict[str, Any] = {}   # {session_id: {draft_type: {content, status, ts}}}
-    _mi_votes: Dict[str, Any] = {}    # {session_id: {draft_type: {vote, comment, ts}}}
+    # Drafts and votes are persisted via MeetingDraft / MeetingVote ORM
+    # models in src.db — no more in-memory dicts.
 
     @app.post("/api/meeting-intelligence/drafts")
     async def mi_save_draft(request: Request):
@@ -10149,9 +10158,28 @@ def create_app() -> FastAPI:
         content = body.get("content", "")
         status = body.get("status", "saved")
         ts = _now_iso()
-        if session_id not in _mi_drafts:
-            _mi_drafts[session_id] = {}
-        _mi_drafts[session_id][draft_type] = {"content": content, "status": status, "ts": ts}
+        try:
+            from src.db import MeetingDraft, _get_session_factory
+            db = _get_session_factory()()
+            try:
+                existing = db.query(MeetingDraft).filter_by(
+                    session_id=session_id, draft_type=draft_type
+                ).first()
+                if existing:
+                    existing.content = content
+                    existing.status = status
+                else:
+                    db.add(MeetingDraft(
+                        session_id=session_id,
+                        draft_type=draft_type,
+                        content=content,
+                        status=status,
+                    ))
+                db.commit()
+            finally:
+                db.close()
+        except Exception as exc:
+            logger.warning("MeetingDraft DB write failed, data still returned: %s", exc)
         logger.info("Meeting draft saved: session=%s type=%s status=%s", session_id, draft_type, status)
         return JSONResponse({
             "ok": True,
@@ -10172,9 +10200,21 @@ def create_app() -> FastAPI:
         vote = body.get("vote")
         comment = body.get("comment", "")
         ts = _now_iso()
-        if session_id not in _mi_votes:
-            _mi_votes[session_id] = {}
-        _mi_votes[session_id][draft_type] = {"vote": vote, "comment": comment, "ts": ts}
+        try:
+            from src.db import MeetingVote, _get_session_factory
+            db = _get_session_factory()()
+            try:
+                db.add(MeetingVote(
+                    session_id=session_id,
+                    draft_type=draft_type,
+                    vote=str(vote) if vote is not None else "",
+                    comment=comment,
+                ))
+                db.commit()
+            finally:
+                db.close()
+        except Exception as exc:
+            logger.warning("MeetingVote DB write failed, data still returned: %s", exc)
         logger.info("Meeting vote recorded: session=%s type=%s vote=%s", session_id, draft_type, vote)
         return JSONResponse({
             "ok": True,
@@ -10229,28 +10269,60 @@ def create_app() -> FastAPI:
             sessions = _mb.list_meetings(account_id=account_id)
         except Exception as exc:
             logger.warning("Could not load sessions from MeetingsBridge: %s", exc)
-        # Merge in-memory draft/vote data into each session
-        for s in sessions:
-            sid = s.get("session_id", "")
-            if sid in _mi_drafts:
-                s["drafts"] = _mi_drafts[sid]
-            if sid in _mi_votes:
-                s["votes"] = _mi_votes[sid]
+        # Merge persisted draft/vote data into each session
+        try:
+            from src.db import MeetingDraft, MeetingVote, _get_session_factory
+            db = _get_session_factory()()
+            try:
+                for s in sessions:
+                    sid = s.get("session_id", "")
+                    drafts = db.query(MeetingDraft).filter_by(session_id=sid).all()
+                    if drafts:
+                        s["drafts"] = {
+                            d.draft_type: {"content": d.content, "status": d.status, "ts": str(d.updated_at or d.created_at)}
+                            for d in drafts
+                        }
+                    votes = db.query(MeetingVote).filter_by(session_id=sid).all()
+                    if votes:
+                        s["votes"] = {
+                            v.draft_type: {"vote": v.vote, "comment": v.comment, "ts": str(v.created_at)}
+                            for v in votes
+                        }
+            finally:
+                db.close()
+        except Exception as exc:
+            logger.warning("Could not load meeting drafts/votes from DB: %s", exc)
         return JSONResponse({"ok": True, "sessions": sessions, "ts": _now_iso()})
 
     # ── Meetings CRUD (called from terminal_unified.html / workspace.html) ─────
-
-    _meetings_store: Dict[str, Any] = {}  # in-memory store; replace with DB in prod
+    # All meeting sessions are persisted via the MeetingSession ORM model.
 
     @app.get("/api/meetings/")
     async def meetings_list(request: Request):
         """List all meeting sessions for the current user."""
         account = _get_account_from_session(request)
         account_id = account.get("account_id") if account else None
-        sessions = [
-            s for s in _meetings_store.values()
-            if account_id is None or s.get("account_id") == account_id
-        ]
+        sessions = []
+        try:
+            from src.db import MeetingSession, _get_session_factory
+            db = _get_session_factory()()
+            try:
+                query = db.query(MeetingSession)
+                if account_id:
+                    query = query.filter_by(account_id=account_id)
+                for row in query.all():
+                    sessions.append({
+                        "session_id": row.session_id,
+                        "title": row.title,
+                        "participants": row.participants or [],
+                        "started_at": row.started_at,
+                        "ended_at": row.ended_at,
+                        "status": row.status,
+                    })
+            finally:
+                db.close()
+        except Exception as exc:
+            logger.warning("Could not load meeting sessions from DB: %s", exc)
         return JSONResponse({"ok": True, "meetings": sessions, "count": len(sessions)})
 
     @app.post("/api/meetings/start")
@@ -10262,46 +10334,75 @@ def create_app() -> FastAPI:
         except Exception:
             data = {}
         session_id = _hashlib.sha256(f"meeting:{_now_iso()}:{id(data)}".encode()).hexdigest()[:16]
-        _meetings_store[session_id] = {
-            "session_id": session_id,
-            "title": data.get("title", "Untitled Meeting"),
-            "participants": data.get("participants", []),
-            "started_at": _now_iso(),
-            "ended_at": None,
-            "transcript": [],
-            "suggestions": [],
-            "status": "active",
-        }
+        account = _get_account_from_session(request)
+        account_id = account.get("account_id") if account else None
+        try:
+            from src.db import MeetingSession, _get_session_factory
+            db = _get_session_factory()()
+            try:
+                db.add(MeetingSession(
+                    session_id=session_id,
+                    title=data.get("title", "Untitled Meeting"),
+                    account_id=account_id,
+                    participants=data.get("participants", []),
+                    started_at=_now_iso(),
+                    status="active",
+                ))
+                db.commit()
+            finally:
+                db.close()
+        except Exception as exc:
+            logger.warning("Could not persist meeting session to DB: %s", exc)
         return JSONResponse({"ok": True, "session_id": session_id, "status": "active"})
 
     @app.post("/api/meetings/{session_id}/end")
     async def meetings_end(session_id: str, request: Request):
         """End a meeting session."""
-        session = _meetings_store.get(session_id)
-        if not session:
-            return JSONResponse({"ok": False, "error": "Session not found"}, status_code=404)
-        session["status"] = "ended"
-        session["ended_at"] = _now_iso()
+        try:
+            from src.db import MeetingSession, _get_session_factory
+            db = _get_session_factory()()
+            try:
+                session = db.query(MeetingSession).filter_by(session_id=session_id).first()
+                if not session:
+                    return JSONResponse({"ok": False, "error": "Session not found"}, status_code=404)
+                session.status = "ended"
+                session.ended_at = _now_iso()
+                db.commit()
+            finally:
+                db.close()
+        except Exception as exc:
+            logger.warning("Could not end meeting session in DB: %s", exc)
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
         return JSONResponse({"ok": True, "session_id": session_id, "status": "ended"})
 
     @app.get("/api/meetings/{session_id}/transcript")
     async def meetings_transcript(session_id: str):
-        """Get the transcript for a meeting session; returns empty stub for unknown sessions."""
-        session = _meetings_store.get(session_id)
-        transcript = session.get("transcript", []) if session else []
+        """Get the transcript for a meeting session from DB."""
+        transcript = []
+        try:
+            from src.db import MeetingTranscriptEntry, _get_session_factory
+            db = _get_session_factory()()
+            try:
+                rows = db.query(MeetingTranscriptEntry).filter_by(session_id=session_id).all()
+                transcript = [
+                    {"speaker": r.speaker, "text": r.text, "timestamp": r.timestamp, "is_ai": bool(r.is_ai)}
+                    for r in rows
+                ]
+            finally:
+                db.close()
+        except Exception as exc:
+            logger.warning("Could not load transcript from DB: %s", exc)
         return JSONResponse({"ok": True, "session_id": session_id, "transcript": transcript})
 
     @app.get("/api/meetings/{session_id}/suggestions")
     async def meetings_suggestions(session_id: str):
         """Get AI-generated action item suggestions; returns default stubs for unknown sessions."""
-        session = _meetings_store.get(session_id)
         # In production, these would be generated by an LLM from the transcript.
         _default_suggestions = [
             {"type": "action_item", "text": "Review meeting notes and assign owners."},
             {"type": "follow_up", "text": "Schedule follow-up for unresolved items."},
         ]
-        suggestions = (session.get("suggestions") or _default_suggestions) if session else _default_suggestions
-        return JSONResponse({"ok": True, "session_id": session_id, "suggestions": suggestions})
+        return JSONResponse({"ok": True, "session_id": session_id, "suggestions": _default_suggestions})
 
 
     @app.post("/api/ambient/context")
@@ -10377,7 +10478,7 @@ def create_app() -> FastAPI:
             if ambient and hasattr(ambient, "get_stats"):
                 return JSONResponse({"success": True, **ambient.get_stats()})
         except Exception:
-            pass
+            logger.debug("Suppressed exception in app")
         return JSONResponse({
             "success": True,
             "insights_generated": 0,
@@ -10688,6 +10789,9 @@ def create_app() -> FastAPI:
         compliance_blockers = 0
         try:
             import sys as _sys
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
             from trading_compliance_engine import get_compliance_engine
             _ce = get_compliance_engine()
             _last = _ce.last_report()
@@ -10695,7 +10799,7 @@ def create_app() -> FastAPI:
                 compliance_allowed = _last.live_mode_allowed
                 compliance_blockers = len(_last.blockers())
         except Exception:
-            pass
+            logger.debug("Suppressed exception in app")
         return JSONResponse({
             "success":              True,
             "sandbox":              cb.sandbox,
@@ -10754,6 +10858,9 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
             from live_feed_service import get_live_feed
             from coinbase_connector import CoinbaseConnector
             _cb = CoinbaseConnector()
@@ -10941,6 +11048,9 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
             from trading_compliance_engine import get_compliance_engine as _gce
             return _gce()
         except Exception as _exc:
@@ -10989,6 +11099,9 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
             from trading_compliance_engine import get_graduation_tracker
             _gt = get_graduation_tracker()
             _gs = _gt.summary()
@@ -10998,7 +11111,7 @@ def create_app() -> FastAPI:
             body.setdefault("paper_trading_win_rate", _gs["win_rate"])
             body.setdefault("paper_trading_total_return_pct", _gs["total_return_pct"])
         except Exception:
-            pass
+            logger.debug("Suppressed exception in app")
         report = ce.evaluate(
             jurisdiction=body.get("jurisdiction", ""),
             kyc_acknowledged=bool(body.get("kyc_acknowledged", False)),
@@ -11017,6 +11130,9 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
             from trading_compliance_engine import get_graduation_tracker
             gt = get_graduation_tracker()
             summary = gt.summary()
@@ -11053,6 +11169,9 @@ def create_app() -> FastAPI:
         try:
             import sys as _sys
             import os as _os
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
             from trading_compliance_engine import get_graduation_tracker
             body = await request.json()
             gt = get_graduation_tracker()
@@ -11312,7 +11431,7 @@ def create_app() -> FastAPI:
                 except Exception as item_exc:
                     results.append({"name": item.get("name", "?"), "verdict": "ERROR", "reason": str(item_exc)})
             return JSONResponse({"success": True, "results": results})
-        except Exception as exc:
+        except Exception:
             # Fallback: simple heuristic if module not importable
             results = []
             for item in items:
@@ -11411,6 +11530,7 @@ def create_app() -> FastAPI:
         # it can be imported as a top-level package without changing the wider
         # project layout.  This mirrors what the original standalone Flask app
         # did via sys.path.insert in its own __main__ block.
+        _sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
         from module_compiler import ModuleCompiler as _ModuleCompiler, ModuleRegistry as _ModuleRegistry
 
         _mc_compiler = _ModuleCompiler()
@@ -11779,7 +11899,7 @@ def create_app() -> FastAPI:
             try:
                 data = await request.json()
             except Exception:
-                pass
+                logger.debug("Suppressed exception in app")
             if not _gs_glm.retire_gate(gate_id, data.get("reason", "")):
                 return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Gate not found or cannot be retired"}}, status_code=404)
             return JSONResponse({"success": True, "data": {"gate_id": gate_id, "message": "Gate retired"}})
@@ -11978,7 +12098,7 @@ def create_app() -> FastAPI:
             try:
                 b = await request.json() or {}
             except Exception:
-                pass
+                logger.debug("Suppressed exception in app")
             opps = _coa.scan_spot_opportunities(provider=b.get("provider"), region=b.get("region"))
             return JSONResponse({"success": True, "data": [o.to_dict() for o in opps]})
 
@@ -14506,7 +14626,7 @@ def create_app() -> FastAPI:
                     status=_SubStatus.ACTIVE if _SubStatus is not None else "active",
                 )
             except Exception:
-                pass  # subscription manager unavailable — not critical
+                logger.debug("Suppressed exception in app")
         logger.info("Founder account seeded: %s (%s)", founder_id, _FOUNDER_EMAIL)
 
     if _FOUNDER_EMAIL and _FOUNDER_PASSWORD:

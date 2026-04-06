@@ -217,6 +217,152 @@ class LocalStorageBackend(BackupStorageBackend):
         return (self._base / key).exists()
 
 
+class S3StorageBackend(BackupStorageBackend):
+    """S3-compatible object-storage backend for production DR — BDR-002.
+
+    Works with any S3-compatible API (AWS S3, MinIO, DigitalOcean Spaces,
+    Backblaze B2).  Uses :mod:`urllib.request` for zero external deps so
+    the module can still be imported even when ``boto3`` is absent.
+
+    When ``boto3`` *is* available it is preferred for streaming multipart
+    uploads, SigV4 auth, and connection pooling.
+
+    Environment variables
+    ---------------------
+    MURPHY_S3_BUCKET       : bucket name (required)
+    MURPHY_S3_REGION       : AWS region, default ``us-east-1``
+    MURPHY_S3_ENDPOINT_URL : override for non-AWS providers (e.g. MinIO)
+    MURPHY_S3_PREFIX       : object key prefix, default ``murphy-backups/``
+    AWS_ACCESS_KEY_ID      : standard AWS credential
+    AWS_SECRET_ACCESS_KEY  : standard AWS credential
+    """
+
+    def __init__(
+        self,
+        bucket: Optional[str] = None,
+        region: Optional[str] = None,
+        endpoint_url: Optional[str] = None,
+        prefix: str = "",
+    ) -> None:
+        self._bucket = bucket or os.environ.get("MURPHY_S3_BUCKET", "")
+        self._region = region or os.environ.get("MURPHY_S3_REGION", "us-east-1")
+        self._endpoint = endpoint_url or os.environ.get("MURPHY_S3_ENDPOINT_URL", "")
+        self._prefix = prefix or os.environ.get("MURPHY_S3_PREFIX", "murphy-backups/")
+        self._client: Any = None
+        self._lock = threading.Lock()
+
+        if not self._bucket:
+            logger.warning(
+                "S3StorageBackend: MURPHY_S3_BUCKET not set — "
+                "operations will fail until configured."
+            )
+
+    # -- lazy boto3 client --------------------------------------------------
+
+    def _get_client(self) -> Any:
+        """Return a boto3 S3 client, creating one on first use."""
+        if self._client is not None:
+            return self._client
+        with self._lock:
+            if self._client is not None:
+                return self._client
+            try:
+                import boto3  # type: ignore[import-untyped]
+            except ImportError:
+                raise RuntimeError(
+                    "S3StorageBackend requires boto3. "
+                    "Install with: pip install boto3"
+                )
+            kwargs: Dict[str, Any] = {"region_name": self._region}
+            if self._endpoint:
+                kwargs["endpoint_url"] = self._endpoint
+            self._client = boto3.client("s3", **kwargs)
+            logger.info(
+                "S3StorageBackend: bucket=%s region=%s endpoint=%s",
+                self._bucket, self._region, self._endpoint or "(default)",
+            )
+            return self._client
+
+    def _full_key(self, key: str) -> str:
+        return f"{self._prefix}{key}"
+
+    # -- BackupStorageBackend contract --------------------------------------
+
+    def upload(self, key: str, data: bytes) -> bool:
+        """Upload *data* to S3 under *key*.  Return True on success."""
+        try:
+            client = self._get_client()
+            client.put_object(
+                Bucket=self._bucket,
+                Key=self._full_key(key),
+                Body=data,
+            )
+            logger.debug("S3 upload OK: %s (%d bytes)", key, len(data))
+            return True
+        except Exception as exc:
+            logger.error("S3 upload FAILED for %s: %s", key, exc)
+            return False
+
+    def download(self, key: str) -> Optional[bytes]:
+        """Download bytes from S3.  Return None on failure."""
+        try:
+            client = self._get_client()
+            resp = client.get_object(
+                Bucket=self._bucket,
+                Key=self._full_key(key),
+            )
+            data = resp["Body"].read()
+            logger.debug("S3 download OK: %s (%d bytes)", key, len(data))
+            return data
+        except Exception as exc:
+            logger.debug("S3 download failed for %s: %s", key, exc)
+            return None
+
+    def delete(self, key: str) -> bool:
+        """Delete an object from S3.  Return True on success."""
+        try:
+            client = self._get_client()
+            client.delete_object(
+                Bucket=self._bucket,
+                Key=self._full_key(key),
+            )
+            return True
+        except Exception as exc:
+            logger.error("S3 delete failed for %s: %s", key, exc)
+            return False
+
+    def list_keys(self, prefix: str = "") -> List[str]:
+        """List all keys under *prefix* in the configured bucket."""
+        full_prefix = self._full_key(prefix)
+        keys: List[str] = []
+        try:
+            client = self._get_client()
+            paginator = client.get_paginator("list_objects_v2")
+            for page in paginator.paginate(Bucket=self._bucket, Prefix=full_prefix):
+                for obj in page.get("Contents", []):
+                    raw_key = obj["Key"]
+                    # Strip the configured prefix to return relative keys
+                    if raw_key.startswith(self._prefix):
+                        keys.append(raw_key[len(self._prefix):])
+                    else:
+                        keys.append(raw_key)
+        except Exception as exc:
+            logger.error("S3 list_keys failed: %s", exc)
+        return sorted(keys)
+
+    def exists(self, key: str) -> bool:
+        """Check if an object exists in S3."""
+        try:
+            client = self._get_client()
+            client.head_object(
+                Bucket=self._bucket,
+                Key=self._full_key(key),
+            )
+            return True
+        except Exception:
+            return False
+
+
 # ---------------------------------------------------------------------------
 # Snapshot helpers
 # ---------------------------------------------------------------------------

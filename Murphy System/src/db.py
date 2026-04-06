@@ -311,6 +311,32 @@ class DispatchLog(Base):
     timestamp = Column(String(64), default="")
 
 
+class MeetingDraft(Base):
+    """Persistent meeting intelligence draft."""
+    __tablename__ = "meeting_drafts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(128), nullable=False, index=True)
+    draft_type = Column(String(128), nullable=False)
+    content = Column(Text, default="")
+    status = Column(String(32), default="saved")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class MeetingVote(Base):
+    """Persistent meeting intelligence vote."""
+    __tablename__ = "meeting_votes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(128), nullable=False, index=True)
+    draft_type = Column(String(128), nullable=False)
+    vote = Column(String(64), default="")
+    comment = Column(Text, default="")
+    voter_id = Column(String(256), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class PendingApproval(Base):
     """Queued tool calls awaiting HITL approval."""
     __tablename__ = "dispatch_pending_approvals"

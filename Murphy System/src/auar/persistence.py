@@ -163,3 +163,160 @@ class FileStateBackend(StateBackend):
     def flush(self) -> None:
         # Files are written atomically in save(); nothing to flush.
         pass
+
+
+# ---------------------------------------------------------------------------
+# PostgreSQL-backed backend — AUAR-PERSIST-002
+# ---------------------------------------------------------------------------
+
+class PostgresStateBackend(StateBackend):
+    """PostgreSQL-backed persistence for production AUAR state.
+
+    Uses the database configured in ``DATABASE_URL`` (or the SQLAlchemy
+    engine from :mod:`src.db`).  Falls back to ``sqlite:///:memory:`` for
+    test isolation when no URL is set.
+
+    Table: ``auar_state`` — auto-created on first access.
+
+    Thread-safe via the engine's built-in connection pool.
+
+    Environment variables
+    ---------------------
+    DATABASE_URL        : PostgreSQL connection string.
+    MURPHY_DB_URL       : Alias checked when DATABASE_URL is absent.
+    MURPHY_DB_MODE      : When ``stub``, disables real DB access.
+    """
+
+    _TABLE_DDL = """
+        CREATE TABLE IF NOT EXISTS auar_state (
+            key   TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """
+
+    def __init__(self, engine: Optional[Any] = None) -> None:
+        self._engine = engine
+        self._lock = threading.Lock()
+        self._table_ensured = False
+
+    def _get_engine(self) -> Any:
+        """Lazily resolve or create the SQLAlchemy engine."""
+        if self._engine is not None:
+            return self._engine
+        with self._lock:
+            if self._engine is not None:
+                return self._engine
+            try:
+                from src.db import _get_engine  # type: ignore[import-untyped]
+                self._engine = _get_engine()
+            except Exception as exc:
+                logger.debug("Could not import src.db engine: %s", exc)
+                # Fallback: in-process SQLite (tests, dev)
+                try:
+                    from sqlalchemy import create_engine  # type: ignore[import-untyped]
+                    url = os.environ.get(
+                        "DATABASE_URL",
+                        os.environ.get("MURPHY_DB_URL", "sqlite:///:memory:"),
+                    )
+                    self._engine = create_engine(url, echo=False)
+                except ImportError:
+                    raise RuntimeError(
+                        "PostgresStateBackend requires sqlalchemy. "
+                        "Install with: pip install sqlalchemy"
+                    )
+            return self._engine
+
+    def _ensure_table(self) -> None:
+        """Create the ``auar_state`` table if it doesn't exist."""
+        if self._table_ensured:
+            return
+        with self._lock:
+            if self._table_ensured:
+                return
+            try:
+                from sqlalchemy import text  # type: ignore[import-untyped]
+                engine = self._get_engine()
+                with engine.begin() as conn:
+                    conn.execute(text(self._TABLE_DDL))
+                self._table_ensured = True
+                logger.info("PostgresStateBackend: auar_state table ensured")
+            except Exception as exc:
+                logger.warning("PostgresStateBackend table creation failed: %s", exc)
+
+    # -- StateBackend contract ----------------------------------------------
+
+    def save(self, key: str, data: Any) -> None:
+        """Upsert *data* (JSON) under *key*."""
+        self._ensure_table()
+        try:
+            from sqlalchemy import text  # type: ignore[import-untyped]
+            payload = json.dumps(data, default=str)
+            engine = self._get_engine()
+            with engine.begin() as conn:
+                # UPSERT — works on both PostgreSQL and SQLite
+                conn.execute(
+                    text(
+                        "INSERT INTO auar_state (key, value, updated_at) "
+                        "VALUES (:key, :value, CURRENT_TIMESTAMP) "
+                        "ON CONFLICT (key) DO UPDATE SET "
+                        "value = :value, updated_at = CURRENT_TIMESTAMP"
+                    ),
+                    {"key": key, "value": payload},
+                )
+        except Exception as exc:
+            logger.error("PostgresStateBackend.save(%s) failed: %s", key, exc)
+            raise
+
+    def load(self, key: str) -> Optional[Any]:
+        """Load data for *key*, returning ``None`` if absent."""
+        self._ensure_table()
+        try:
+            from sqlalchemy import text  # type: ignore[import-untyped]
+            engine = self._get_engine()
+            with engine.connect() as conn:
+                row = conn.execute(
+                    text("SELECT value FROM auar_state WHERE key = :key"),
+                    {"key": key},
+                ).fetchone()
+            if row is None:
+                return None
+            return json.loads(row[0])
+        except Exception as exc:
+            logger.warning("PostgresStateBackend.load(%s) failed: %s", key, exc)
+            return None
+
+    def delete(self, key: str) -> bool:
+        """Delete *key*.  Returns ``True`` if the row existed."""
+        self._ensure_table()
+        try:
+            from sqlalchemy import text  # type: ignore[import-untyped]
+            engine = self._get_engine()
+            with engine.begin() as conn:
+                result = conn.execute(
+                    text("DELETE FROM auar_state WHERE key = :key"),
+                    {"key": key},
+                )
+                return result.rowcount > 0
+        except Exception as exc:
+            logger.error("PostgresStateBackend.delete(%s) failed: %s", key, exc)
+            return False
+
+    def list_keys(self) -> List[str]:
+        """Return all stored keys."""
+        self._ensure_table()
+        try:
+            from sqlalchemy import text  # type: ignore[import-untyped]
+            engine = self._get_engine()
+            with engine.connect() as conn:
+                rows = conn.execute(
+                    text("SELECT key FROM auar_state ORDER BY key")
+                ).fetchall()
+            return [r[0] for r in rows]
+        except Exception as exc:
+            logger.error("PostgresStateBackend.list_keys() failed: %s", exc)
+            return []
+
+    def flush(self) -> None:
+        """No-op — database commits are immediate via engine.begin()."""
+        pass

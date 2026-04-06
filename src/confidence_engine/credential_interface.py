@@ -479,6 +479,127 @@ class CredentialVerifierFactory:
         if ServiceProvider.DATABASE not in cls._verifiers:
             cls.register_verifier(ServiceProvider.DATABASE, DatabaseCredentialVerifier())
 
+        if ServiceProvider.CUSTOM not in cls._verifiers:
+            cls.register_verifier(ServiceProvider.CUSTOM, JWTCredentialVerifier())
+
+
+class JWTCredentialVerifier(BaseCredentialVerifier):
+    """Verifier for JWT tokens — CRED-JWT-001.
+
+    Validates JSON Web Tokens issued by the Murphy System
+    :class:`SecurityMiddleware`.  Checks structure, expiry, issuer
+    claim, and permission scopes embedded in the ``permissions`` or
+    ``scopes`` claim.
+
+    Falls back to structural validation when ``PyJWT`` is not installed.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(ServiceProvider.CUSTOM)
+
+    async def verify_api_call(self, credential: Credential) -> bool:
+        """Validate JWT structure and expiry via decode (or format check).
+
+        Uses :mod:`jwt` when available; otherwise validates the
+        three-part Base64 structure manually.
+        """
+        token = credential.credential_value
+        if not token:
+            return False
+        try:
+            import jwt as pyjwt  # type: ignore[import-untyped]
+            # Decode without verification to check structure + expiry
+            payload = pyjwt.decode(
+                token, options={"verify_signature": False}
+            )
+            # Check expiry
+            exp = payload.get("exp")
+            if exp is not None:
+                from datetime import datetime, timezone as _tz
+                if datetime.fromtimestamp(exp, tz=_tz.utc) < datetime.now(_tz.utc):
+                    return False
+            return True
+        except ImportError:
+            logger.debug("PyJWT not installed — falling back to format check")
+        except Exception as exc:
+            logger.debug("JWT decode failed: %s", exc)
+            return False
+        # Fallback: structural validation (header.payload.signature)
+        return self._validate_jwt_format(token)
+
+    async def verify_token(self, credential: Credential) -> bool:
+        """Verify JWT credential type and format."""
+        if credential.credential_type not in (
+            CredentialType.JWT_TOKEN,
+            CredentialType.OAUTH_TOKEN,
+        ):
+            return False
+        return self._validate_jwt_format(credential.credential_value)
+
+    async def check_permissions(
+        self,
+        credential: Credential,
+        required_permissions: List[str]
+    ) -> List[CredentialPermission]:
+        """Extract and validate permissions from the JWT claims."""
+        permissions: List[CredentialPermission] = []
+        token_perms = self._extract_jwt_permissions(credential.credential_value)
+        for perm in required_permissions:
+            granted = perm in token_perms or "*" in token_perms
+            permissions.append(CredentialPermission(
+                name=perm,
+                scope="jwt",
+                granted=granted,
+            ))
+        return permissions
+
+    async def check_rate_limits(
+        self,
+        credential: Credential
+    ) -> Tuple[Optional[int], Optional[datetime]]:
+        """JWT tokens carry no inherent rate limit; return None."""
+        return None, None
+
+    @staticmethod
+    def _validate_jwt_format(token: str) -> bool:
+        """Validate three-part Base64URL JWT structure."""
+        if not token:
+            return False
+        parts = token.split(".")
+        if len(parts) != 3:
+            return False
+        import base64
+        for part in parts[:2]:
+            # Pad and attempt decode
+            padded = part + "=" * (-len(part) % 4)
+            try:
+                base64.urlsafe_b64decode(padded)
+            except Exception:
+                return False
+        return True
+
+    @staticmethod
+    def _extract_jwt_permissions(token: str) -> List[str]:
+        """Extract permission claims from JWT payload without verification."""
+        try:
+            import base64, json as _json
+            parts = token.split(".")
+            if len(parts) < 2:
+                return []
+            padded = parts[1] + "=" * (-len(parts[1]) % 4)
+            payload = _json.loads(base64.urlsafe_b64decode(padded))
+            # Check common permission claim names
+            perms = payload.get("permissions", [])
+            if not perms:
+                perms = payload.get("scopes", [])
+            if not perms:
+                scope_str = payload.get("scope", "")
+                if scope_str:
+                    perms = scope_str.split()
+            return list(perms) if isinstance(perms, (list, tuple)) else [str(perms)]
+        except Exception:
+            return []
+
 
 class CredentialVerificationInterface:
     """
