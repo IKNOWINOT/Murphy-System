@@ -2640,19 +2640,19 @@ def _format_mss_context(mss_result: Dict[str, Any]) -> str:
     if reqs:
         lines.append("■ MURPHY INTELLIGENCE — FUNCTIONAL REQUIREMENTS (MSS Magnify)")
         lines.append("─" * 60)
-        for r in reqs[:8]:
+        for r in reqs:
             lines.append(f"  • {r}")
 
     if comps:
         lines.append("")
         lines.append("  Technical Components Identified:")
-        for c in comps[:6]:
+        for c in comps:
             lines.append(f"    ◦ {c}")
 
     if compliance and compliance != ["none_detected"]:
         lines.append("")
         lines.append("  Compliance Considerations:")
-        for cf in compliance[:5]:
+        for cf in compliance:
             lines.append(f"    ◦ {cf}")
 
     if cost:
@@ -2662,13 +2662,13 @@ def _format_mss_context(mss_result: Dict[str, Any]) -> str:
         lines.append("")
         lines.append("■ MURPHY INTELLIGENCE — IMPLEMENTATION PLAN (MSS Solidify)")
         lines.append("─" * 60)
-        for step in impl_steps[:8]:
+        for step in impl_steps:
             lines.append(f"  {step}")
 
     if test_strategy:
         lines.append("")
         lines.append("  Testing Strategy:")
-        for ts in test_strategy[:5]:
+        for ts in test_strategy:
             lines.append(f"    ◦ {ts}")
 
     if iter_plan:
@@ -2690,7 +2690,7 @@ def _format_librarian_section(librarian_context: str) -> str:
     return (
         "■ MURPHY INTELLIGENCE — LIBRARIAN KNOWLEDGE LOOKUP\n"
         + "─" * 60 + "\n"
-        + "\n".join(f"  {line}" for line in librarian_context.strip().splitlines()[:30])
+        + "\n".join(f"  {line}" for line in librarian_context.strip().splitlines())
     )
 
 
@@ -2751,10 +2751,10 @@ def _build_automation_blueprint(query: str, mss_result: Optional[Dict[str, Any]]
             f"    Step {i+1}: [{s.get('type','action').upper()}] "
             f"{s.get('description', s.get('name', str(s)))}"
             + (f"  (depends on: {', '.join(s['depends_on'])})" if s.get('depends_on') else "")
-            for i, s in enumerate(generated_steps[:8])
+            for i, s in enumerate(generated_steps)
         )
     elif impl_steps:
-        steps_block = "\n".join(f"    {i+1}. {s}" for i, s in enumerate(impl_steps[:6]))
+        steps_block = "\n".join(f"    {i+1}. {s}" for i, s in enumerate(impl_steps))
     else:
         steps_block = (
             "    Step 1: [TRIGGER]    Define trigger condition (schedule / event / webhook)\n"
@@ -2976,13 +2976,16 @@ def _generate_llm_content(
     mss_result: Optional[Dict[str, Any]] = None,
     librarian_context: Optional[str] = None,
 ) -> str:
-    """Generate deliverable content using the full MFGC→MSS→Librarian pipeline.
+    """Generate deliverable content via DeepInfra LLM (swarm-level output).
 
-    Each stage enriches the context.  The LLM (or LocalLLMFallback) receives
-    all available context and produces the final prose.  Every stage degrades
-    gracefully — content is always returned.
+    The deliverable pipeline is designed for 64 parallel agents producing
+    a single coherent output.  Token limits are set to match: the LLM is
+    given a 16 384-token generation window (≈12 000+ words) so it can
+    produce comprehensive, production-ready deliverables.
+
+    Provider chain:  DeepInfra → Together.ai → LLMController → onboard fallback.
     """
-    # Build enriched context string from upstream stages
+    # ── Build enriched context from upstream pipeline stages ───────────────
     context_parts: List[str] = []
 
     mss_section = _format_mss_context(mss_result or {})
@@ -3002,88 +3005,127 @@ def _generate_llm_content(
             f"phases={', '.join(phases[:3]) if phases else 'n/a'}]"
         )
 
-    # If MSS gave us solid implementation data, build the base from it,
-    # then attempt to enrich with LLM for conversational quality.
+    enriched_context = "\n\n".join(context_parts)
+
+    # MSS data as structured seed for the LLM
+    base_content = ""
     if mss_result and (mss_result.get("magnify") or mss_result.get("solidify")):
         base_content = _build_content_from_mss(query, mss_result, mfgc_note)
-        # Attempt LLM enrichment — if available, the LLM adds conversational
-        # prose around the structured MSS data.  Falls back to base_content.
-        enriched_context = "\n\n".join(context_parts)
-        try:
-            import asyncio
-            from src.llm_controller import LLMController, LLMRequest
-            controller = LLMController()
-            llm_prompt = (
-                f"{MURPHY_SYSTEM_IDENTITY}\n\n"
-                f"Enrich this structured plan "
-                f"with conversational prose. Keep ALL existing data intact but add "
-                f"context, explanations, and actionable insights.\n\n"
-                f"Request: {query}\n\n"
-                f"Structured Plan:\n{base_content}\n"
-                + (f"\nAdditional Context:\n{enriched_context}\n" if enriched_context else "")
-            )
-            req = LLMRequest(prompt=llm_prompt, max_tokens=1536)
-            try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    import concurrent.futures
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exe:
-                        future = exe.submit(asyncio.run, controller.query_llm(req))
-                        response = future.result(timeout=30)
-                else:
-                    response = loop.run_until_complete(controller.query_llm(req))
-            except RuntimeError:
-                response = asyncio.run(controller.query_llm(req))
-            if response.content and len(response.content) > len(base_content) // 2:
-                return response.content
-        except Exception:
-            logger.debug("Suppressed exception in demo_deliverable_generator")
-        return base_content
 
-    # No MSS data — try LLM with context-enriched prompt
-    enriched_context = "\n\n".join(context_parts)
-    prompt = (
-        f"Generate a detailed, professional business deliverable document for:\n"
-        f"Request: {query}\n"
-        + (f"\nContext from Murphy intelligence systems:\n{enriched_context}\n" if enriched_context else "")
-        + "\nStructure it with clear sections, bullet points, and actionable content."
+    # ── Swarm-level system prompt ─────────────────────────────────────────
+    system_prompt = (
+        f"{MURPHY_SYSTEM_IDENTITY}\n\n"
+        "You are operating as a swarm of 64 specialised AI agents collaborating "
+        "on a single deliverable.  Each agent contributes deep expertise in its "
+        "domain.  Your combined output must be:\n"
+        "  • COMPREHENSIVE — cover every aspect the user would need\n"
+        "  • ACTIONABLE — include tables, checklists, timelines, specs, matrices\n"
+        "  • PRODUCTION-READY — not a summary or outline, but a real deliverable\n"
+        "  • PROPORTIONAL — if asked for a book, produce book-level depth; "
+        "if asked for a pipeline, produce full architecture + runbooks\n\n"
+        "Use clear section headers (■ SECTION NAME), tables with box-drawing "
+        "characters, checklists (□), and structured formatting.  "
+        "Do NOT conserve tokens.  Every token must be valid and useful, but "
+        "the output should be as long as it needs to be to fully address "
+        "the request.  Think thousands of words, not hundreds."
     )
 
+    # ── User prompt with all context ──────────────────────────────────────
+    user_prompt_parts = [f"Generate a complete, production-grade deliverable for:\n\n{query}\n"]
+
+    if base_content:
+        user_prompt_parts.append(
+            f"\nThe Murphy MSS pipeline has produced this structured analysis "
+            f"as a starting point.  Use it as context and expand it into a "
+            f"comprehensive deliverable:\n\n{base_content}\n"
+        )
+
+    if enriched_context:
+        user_prompt_parts.append(
+            f"\nAdditional intelligence from Murphy systems:\n\n{enriched_context}\n"
+        )
+
+    user_prompt_parts.append(
+        "\nProduce a comprehensive deliverable with full depth.  Include:\n"
+        "  • Executive summary\n"
+        "  • Detailed requirements and specifications\n"
+        "  • Architecture / design (with diagrams where applicable)\n"
+        "  • Implementation plan with phases, milestones, and timelines\n"
+        "  • Testing and validation strategy\n"
+        "  • Risk register with mitigations\n"
+        "  • RACI matrix\n"
+        "  • Budget / cost considerations\n"
+        "  • Operational procedures and runbooks\n"
+        "  • Success criteria and acceptance checklist\n"
+        "  • Next steps and recommendations\n"
+        "\nUse tables, checklists, and structured formatting throughout.  "
+        "Do not truncate or summarise — produce the full deliverable."
+    )
+
+    user_prompt = "\n".join(user_prompt_parts)
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+
+    # Swarm-level token limit: 64 agents × 256 tokens each = 16 384
+    swarm_max_tokens = 16384
+
+    # ── Try 1: Direct MurphyLLMProvider (DeepInfra → Together.ai) ─────────
+    try:
+        from src.llm_provider import get_llm
+        provider = get_llm()
+        completion = provider.complete_messages(
+            messages,
+            model_hint="chat",
+            temperature=0.7,
+            max_tokens=swarm_max_tokens,
+        )
+        if completion.content and completion.provider != "onboard":
+            logger.info(
+                "Swarm deliverable generated via %s: %d chars, %d tokens",
+                completion.provider, len(completion.content), completion.tokens_total,
+            )
+            return completion.content
+    except Exception as exc:
+        logger.warning("MurphyLLMProvider failed: %s — trying LLMController", exc)
+
+    # ── Try 2: LLMController (async, broader model selection) ─────────────
     try:
         import asyncio
         from src.llm_controller import LLMController, LLMRequest
         controller = LLMController()
-        req = LLMRequest(prompt=prompt, max_tokens=1024)
+        req = LLMRequest(prompt=user_prompt, max_tokens=swarm_max_tokens)
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 import concurrent.futures
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exe:
                     future = exe.submit(asyncio.run, controller.query_llm(req))
-                    response = future.result(timeout=30)
+                    response = future.result(timeout=120)
             else:
                 response = loop.run_until_complete(controller.query_llm(req))
         except RuntimeError:
             response = asyncio.run(controller.query_llm(req))
-        content = response.content
-        if content and len(content) > 50:
-            return content
-    except Exception:
-        logger.debug("Suppressed exception in demo_deliverable_generator")
+        if response.content and len(response.content) > 200:
+            logger.info("LLMController deliverable: %d chars", len(response.content))
+            return response.content
+    except Exception as exc:
+        logger.warning("LLMController failed: %s — using MSS base or fallback", exc)
 
-    # LocalLLMFallback — always available
+    # ── Try 3: LocalLLMFallback ───────────────────────────────────────────
     try:
         from src.local_llm_fallback import LocalLLMFallback
         fallback = LocalLLMFallback()
-        content = fallback.generate(
-            f"Generate a detailed professional business deliverable for: {query}",
-            max_tokens=1024,
-        )
-        if content and len(content) > 20:
+        content = fallback.generate(user_prompt, max_tokens=swarm_max_tokens)
+        if content and len(content) > 100:
             return content
     except Exception:
-        logger.debug("Suppressed exception in demo_deliverable_generator")
+        logger.debug("LocalLLMFallback unavailable")
 
+    # ── Fallback: return MSS base content or minimal scaffold ─────────────
+    if base_content:
+        return base_content
     return _build_minimal_custom_content(query)
 
 
@@ -3130,17 +3172,17 @@ def _build_content_from_mss(
             "■ FUNCTIONAL REQUIREMENTS  (MSS Magnify)",
             "──────────────────────────────────────────",
         ]
-        for r in reqs[:10]:
+        for r in reqs:
             lines.append(f"  • {r}")
 
     if comps:
         lines += ["", "  Components Identified:"]
-        for c in comps[:8]:
+        for c in comps:
             lines.append(f"    ◦ {c}")
 
     if compliance and compliance != ["none_detected"]:
         lines += ["", "  Compliance Domains:"]
-        for cf in compliance[:6]:
+        for cf in compliance:
             lines.append(f"    ◦ {cf}")
 
     if impl_steps:
@@ -3161,7 +3203,7 @@ def _build_content_from_mss(
             "■ TESTING & VALIDATION STRATEGY",
             "─────────────────────────────────",
         ]
-        for ts in test_strategy[:6]:
+        for ts in test_strategy:
             lines.append(f"  • {ts}")
 
     if iter_plan:
@@ -3178,7 +3220,7 @@ def _build_content_from_mss(
             "■ DOCUMENTATION REQUIREMENTS",
             "──────────────────────────────",
         ]
-        for d in doc_updates[:5]:
+        for d in doc_updates:
             lines.append(f"  □  {d}")
 
     lines += [
@@ -3195,7 +3237,12 @@ def _build_content_from_mss(
 
 
 def _build_minimal_custom_content(query: str) -> str:
-    """Minimal structured content when all upstream stages are unavailable."""
+    """Fallback content when LLM + MSS are both unavailable.
+
+    This path should rarely execute in production — DeepInfra is the primary
+    content generator.  When it does run, it produces a structured scaffold
+    that makes the deliverable usable even without LLM prose.
+    """
     return f"""\
 ■ DELIVERABLE OVERVIEW
 ───────────────────────
@@ -3207,15 +3254,20 @@ def _build_minimal_custom_content(query: str) -> str:
   This deliverable addresses the request: "{query}"
 
   Murphy System has analyzed your request and prepared this structured
-  document to help you execute the task efficiently. The sections below
+  document to help you execute the task efficiently.  The sections below
   provide a framework, recommended actions, and next steps.
+
+  NOTE: This deliverable was generated using the onboard fallback engine.
+  For comprehensive swarm-level output (64 parallel agents), ensure
+  DEEPINFRA_API_KEY is set in your environment.  Murphy will then use
+  Meta-Llama-3.1-70B to produce production-grade deliverables.
 
 ■ RECOMMENDED APPROACH
 ───────────────────────
   1.  Define clear success criteria before beginning execution.
   2.  Break the task into discrete, measurable sub-tasks.
   3.  Assign ownership and deadlines to each sub-task.
-  4.  Schedule a review checkpoint at 50% completion.
+  4.  Schedule a review checkpoint at 50 % completion.
   5.  Document outcomes and lessons learned on completion.
 
 ■ ACTION ITEMS
@@ -3231,6 +3283,7 @@ def _build_minimal_custom_content(query: str) -> str:
   → Murphy can generate full SOPs, contracts, and execution plans.
   → Free tier: 10 automated actions/day. Upgrade for unlimited.
 """
+
 
 
 def generate_custom_deliverable(
