@@ -114,6 +114,75 @@ class HITLIntervention(Base):
 
 
 # ---------------------------------------------------------------------------
+# Production Workflow Registry  (label: FORGE-WORKFLOW-001)
+# ---------------------------------------------------------------------------
+# The Forge no longer generates deliverables directly.  Instead it derives
+# requirements, searches for an existing production workflow that satisfies
+# the request, decides whether to modify that workflow or create a new one,
+# then *executes* the workflow to produce the deliverable.  Every workflow
+# is persisted so the system's capability grows over time.  All outputs go
+# through a platform-side HITL review before being released.
+
+
+class ProductionWorkflow(Base):
+    """A reusable production workflow created / evolved by the Forge.
+
+    Columns
+    -------
+    workflow_id : str (PK)
+        Stable unique identifier (``pwf-<hex>``).
+    name : str
+        Human-readable workflow name.
+    description : str
+        What this workflow does.
+    query_pattern : str
+        The normalised user-intent pattern this workflow covers.  Used for
+        similarity matching when the Forge decides whether to reuse an
+        existing workflow.
+    category : str
+        Coarse category (``data_pipeline``, ``content_management``, …) —
+        matches ``WorkflowTemplateMarketplace.CATEGORIES``.
+    steps : JSON
+        Ordered list of workflow steps, each ``{"step_id", "name",
+        "description", "agent_role", "inputs", "outputs", "dependencies"}``.
+    reference_modules : JSON
+        List of Murphy System modules this workflow was derived from
+        (e.g. ``["mss_controls.solidify", "org_build_plan.workflow_templates"]``).
+    source : str
+        ``"auto"`` — Forge-created; ``"user"`` — user-contributed;
+        ``"system"`` — shipped with Murphy.
+    hitl_status : str
+        ``"pending_review"`` → ``"approved"`` → ``"released"``.
+        Nothing is released without platform-side HITL sign-off.
+    version : int
+        Monotonically increasing; each modification bumps the version.
+    parent_workflow_id : str | None
+        If this workflow was derived from an earlier one, the parent's id.
+    metrics : JSON
+        ``{"times_used": int, "avg_quality_score": float,
+        "last_used_at": str, "hitl_rejections": int}``.
+    created_at, updated_at : DateTime
+        Audit timestamps.
+    """
+    __tablename__ = "production_workflows"
+
+    workflow_id = Column(String(32), primary_key=True)
+    name = Column(String(256), nullable=False)
+    description = Column(Text, default="")
+    query_pattern = Column(Text, nullable=False, index=True)
+    category = Column(String(64), default="general")
+    steps = Column(JSON, default=list)
+    reference_modules = Column(JSON, default=list)
+    source = Column(String(16), default="auto")
+    hitl_status = Column(String(32), default="pending_review")
+    version = Column(Integer, default=1)
+    parent_workflow_id = Column(String(32), nullable=True)
+    metrics = Column(JSON, default=dict)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+# ---------------------------------------------------------------------------
 # Communication Hub ORM Models
 # ---------------------------------------------------------------------------
 

@@ -3741,11 +3741,13 @@ async def api_demo_generate_deliverable_stream(request: Request):
             }
             # Emit synthetic progress events so the frontend drives its
             # phase animations the same way as a successful pipeline run.
-            # Detail values ("mfgc", "mss", "generate") match those used by
+            # Detail values match the 5-phase pipeline in
             # generate_deliverable_with_progress() in demo_deliverable_generator.py.
             yield f"data: {json.dumps({'phase': 1, 'status': 'Analyzing scope...', 'detail': 'mfgc'})}\n\n"
-            yield f"data: {json.dumps({'phase': 2, 'status': 'Generating content (fallback)...', 'detail': 'mss'})}\n\n"
-            yield f"data: {json.dumps({'phase': 3, 'status': 'Assembling deliverable...', 'detail': 'generate'})}\n\n"
+            yield f"data: {json.dumps({'phase': 2, 'status': 'Searching production workflows...', 'detail': 'workflow_resolution'})}\n\n"
+            yield f"data: {json.dumps({'phase': 3, 'status': 'Generating content (fallback)...', 'detail': 'mss'})}\n\n"
+            yield f"data: {json.dumps({'phase': 4, 'status': 'Assembling deliverable...', 'detail': 'execute'})}\n\n"
+            yield f"data: {json.dumps({'phase': 5, 'status': 'Queued for HITL review', 'detail': 'hitl'})}\n\n"
             yield f"data: {json.dumps(done_event)}\n\n"
             return
 
