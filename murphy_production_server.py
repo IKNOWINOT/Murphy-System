@@ -3391,13 +3391,13 @@ class BuildMetrics:
 
 # Import demo deliverable generator
 try:
-    from demo_deliverable_generator import generate_deliverable as _generate_demo_deliverable
+    from src.demo_deliverable_generator import generate_deliverable as _generate_demo_deliverable
     _demo_gen_available = True
-    log.info("Demo deliverable generator loaded")
-except ImportError as e:
-    log.warning(f"Demo deliverable generator not available: {e}")
+except ImportError as exc:
+    log.warning(f"Demo deliverable generator not available: {exc}")
     _demo_gen_available = False
     _generate_demo_deliverable = None
+log.info("Demo deliverable generator: %s", "available" if _demo_gen_available else "UNAVAILABLE — check sys.path")
 
 def _generate_fallback_deliverable(query: str) -> Dict[str, Any]:
     """Fallback deliverable generator when demo_deliverable_generator is not available."""
@@ -3447,7 +3447,7 @@ async def api_demo_inspect(request: Request):
     if not query:
         return JSONResponse({"success": False, "error": "Query is required"}, status_code=400)
     
-    from demo_deliverable_generator import _detect_scenario, _KEYWORD_MAP, _SCENARIO_TEMPLATES, _mfgc_quality_score, _scenario_to_filename
+    from src.demo_deliverable_generator import _detect_scenario, _KEYWORD_MAP, _SCENARIO_TEMPLATES, _mfgc_quality_score, _scenario_to_filename
     
     # Step 1: Detect scenario
     detected_scenario = _detect_scenario(query)
@@ -3506,7 +3506,7 @@ async def api_demo_inspect(request: Request):
 @app.get("/api/demo/config")
 async def api_demo_config():
     """Return the forge demo configuration showing scenarios, keywords, and system functions."""
-    from demo_deliverable_generator import _SCENARIO_TEMPLATES, _KEYWORD_MAP, _mfgc_quality_score
+    from src.demo_deliverable_generator import _SCENARIO_TEMPLATES, _KEYWORD_MAP, _mfgc_quality_score
     
     # Extract scenario info
     scenarios = {}
@@ -3583,16 +3583,22 @@ async def api_demo_generate_deliverable(request: Request):
     # Generate deliverable
     log.info(f"Generating demo deliverable for: {query[:80]}")
     metrics.start_build()
-    
-    if _demo_gen_available and _generate_demo_deliverable:
-        try:
-            deliverable = _generate_demo_deliverable(query)
-        except Exception as e:
-            log.warning(f"Demo generator failed: {e}, using fallback")
-            deliverable = _generate_fallback_deliverable(query)
-    else:
+
+    if not _demo_gen_available or not _generate_demo_deliverable:
+        return JSONResponse(
+            {
+                "error": "Demo generator not available",
+                "detail": "Server import failed — check deployment",
+            },
+            status_code=503,
+        )
+
+    try:
+        deliverable = _generate_demo_deliverable(query)
+    except Exception as exc:
+        log.warning(f"Demo generator failed: {exc}, using fallback")
         deliverable = _generate_fallback_deliverable(query)
-    
+
     metrics.finish_build()
     _consume_demo_rate_limit(fp)
     usage = _check_demo_rate_limit(fp)
