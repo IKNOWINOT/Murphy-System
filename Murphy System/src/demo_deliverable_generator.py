@@ -3285,6 +3285,77 @@ def generate_deliverable(
     return generate_custom_deliverable(query, librarian_context=librarian_context)
 
 
+def generate_deliverable_with_progress(
+    query: str,
+    librarian_context: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """Run the deliverable pipeline and return a list of progress events.
+
+    Each event is ``{"phase": int, "status": str, ...}``.  The final event
+    has ``"phase": "done"`` and carries the full ``deliverable`` dict.
+
+    This is the synchronous building-block used by the async SSE endpoint.
+    """
+    events: List[Dict[str, Any]] = []
+
+    # --- Phase 1: Scenario Detection / MFGC Gate --------------------------
+    scenario_key = _detect_scenario(query)
+    is_predefined = scenario_key is not None and scenario_key in _SCENARIO_TEMPLATES
+
+    if is_predefined:
+        events.append({
+            "phase": 1,
+            "status": f"Matched predefined scenario: {scenario_key}",
+            "detail": "template",
+        })
+    else:
+        events.append({
+            "phase": 1,
+            "status": "MFGC gate — analyzing scope and confidence scoring",
+            "detail": "mfgc",
+        })
+
+    # --- Phase 2: MSS Pipeline / Template Expansion -------------------------
+    events.append({
+        "phase": 2,
+        "status": "MSS Magnify — expanding to parallel tasks"
+        if not is_predefined
+        else "Expanding template with MSS enrichment",
+        "detail": "mss",
+    })
+
+    # --- Phase 3: Content Generation ----------------------------------------
+    events.append({
+        "phase": 3,
+        "status": "Generating content — LLM + Solidify pipeline"
+        if not is_predefined
+        else "Assembling branded deliverable",
+        "detail": "generate",
+    })
+
+    # Actually run the full pipeline (reuse existing function)
+    deliverable = generate_deliverable(query, librarian_context=librarian_context)
+
+    content = deliverable.get("content", "")
+    word_count = len(content.split()) if content else 0
+    line_count = content.count("\n") + 1 if content else 0
+    size_kb = round(len(content) / 1024, 1) if content else 0
+
+    # --- Done ---------------------------------------------------------------
+    events.append({
+        "phase": "done",
+        "status": "Build complete — deliverable ready",
+        "deliverable": deliverable,
+        "metrics": {
+            "word_count": word_count,
+            "line_count": line_count,
+            "size_kb": size_kb,
+            "scenario": scenario_key or "custom",
+            "is_predefined": is_predefined,
+        },
+    })
+    return events
+
 
 def make_fingerprint(request_ip: str, user_agent: str) -> str:
     """Derive an anonymous fingerprint from IP + User-Agent."""

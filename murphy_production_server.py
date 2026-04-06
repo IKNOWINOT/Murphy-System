@@ -3421,11 +3421,13 @@ class BuildMetrics:
 # Import demo deliverable generator
 try:
     from src.demo_deliverable_generator import generate_deliverable as _generate_demo_deliverable
+    from src.demo_deliverable_generator import generate_deliverable_with_progress as _generate_demo_deliverable_with_progress
     _demo_gen_available = True
 except ImportError as exc:
     log.warning(f"Demo deliverable generator not available: {exc}")
     _demo_gen_available = False
     _generate_demo_deliverable = None
+    _generate_demo_deliverable_with_progress = None
 log.info("Demo deliverable generator: %s", "available" if _demo_gen_available else "UNAVAILABLE — check sys.path")
 
 def _generate_fallback_deliverable(query: str) -> Dict[str, Any]:
@@ -3647,6 +3649,94 @@ async def api_demo_generate_deliverable(request: Request):
         "elapsed_seconds": metrics.actual_elapsed_seconds,
         "metrics": metrics.to_dict(),
     })
+
+
+@app.post("/api/demo/generate-deliverable/stream")
+async def api_demo_generate_deliverable_stream(request: Request):
+    """SSE streaming endpoint for the Swarm Forge.
+
+    Yields real-time progress events as the MFGC → MSS → LLM pipeline runs,
+    then emits the final ``done`` event with the complete deliverable and
+    metrics.  The frontend drives its phase status messages from these events
+    instead of hardcoded timers.
+
+    Event format (one JSON object per ``data:`` line)::
+
+        {"phase": 1, "status": "MFGC gate — analyzing scope ...", "detail": "mfgc"}
+        {"phase": 2, "status": "MSS Magnify — expanding ...",    "detail": "mss"}
+        {"phase": 3, "status": "Generating content ...",          "detail": "generate"}
+        {"phase": "done", "deliverable": {...}, "metrics": {...}, ...}
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+    query = (body.get("query") or "").strip()
+    if not query:
+        return JSONResponse({"success": False, "error": "Query is required"}, status_code=400)
+
+    # Rate limiting (same logic as the non-streaming endpoint)
+    fp = hashlib.sha256(
+        f"{request.client.host if request.client else '127.0.0.1'}:{request.headers.get('user-agent', 'unknown')}".encode()
+    ).hexdigest()[:32]
+
+    usage = _check_demo_rate_limit(fp)
+    if usage["builds_remaining_today"] <= 0:
+        return JSONResponse({
+            "success": False,
+            "error": "Daily build limit reached. Sign up for more builds.",
+            "forge_usage": usage,
+        }, status_code=429)
+
+    if not _demo_gen_available or not _generate_demo_deliverable_with_progress:
+        return JSONResponse(
+            {"error": "Demo generator not available", "detail": "Server import failed — check deployment"},
+            status_code=503,
+        )
+
+    run_id = uuid.uuid4().hex[:12]
+    metrics = BuildMetrics(query)
+
+    async def _event_gen():
+        """Async generator that yields SSE events."""
+        import asyncio
+        metrics.start_build()
+
+        try:
+            progress = await asyncio.get_event_loop().run_in_executor(
+                None,
+                _generate_demo_deliverable_with_progress,
+                query,
+            )
+        except Exception as exc:
+            log.warning("Streaming forge generator failed: %s", exc)
+            yield f"data: {json.dumps({'phase': 'error', 'status': str(exc)})}\n\n"
+            return
+
+        for event in progress:
+            if event.get("phase") == "done":
+                metrics.finish_build()
+                _consume_demo_rate_limit(fp)
+                fresh_usage = _check_demo_rate_limit(fp)
+
+                # Merge real metrics into final event
+                event["run_id"] = run_id
+                event["llm_provider"] = "murphy-demo"
+                event["forge_usage"] = fresh_usage
+                event["elapsed_seconds"] = metrics.actual_elapsed_seconds
+                event["build_metrics"] = metrics.to_dict()
+                yield f"data: {json.dumps(event)}\n\n"
+            else:
+                yield f"data: {json.dumps(event)}\n\n"
+                # Small pause so the browser can process incremental events
+                await asyncio.sleep(0.05)
+
+    return StreamingResponse(
+        _event_gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 # =============================================================================

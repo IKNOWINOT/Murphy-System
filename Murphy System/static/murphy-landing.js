@@ -504,8 +504,18 @@ function _convergePanes(onDone){
   },700);
 }
 
+/* Show a visible error instead of silently falling back */
+function _showForgeError(msg){
+  var errEl=document.getElementById('forge-api-err');
+  if(errEl){
+    errEl.innerHTML='<strong>&#9888; Backend error:</strong> '+(msg||'Unknown error')+' <em>(client-side fallback will be used)</em>';
+    errEl.classList.remove('forge-hidden');
+  }
+  _setStatus('&#9888; '+msg,'phase');
+}
+
 /* Show result block */
-function _showResult(deliverable,usedRealApi,forgeUsage){
+function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics){
   var resBlock=document.getElementById('forge-result');
   var titleEl=document.getElementById('forge-result-title');
   var statsEl=document.getElementById('forge-result-stats');
@@ -525,15 +535,23 @@ function _showResult(deliverable,usedRealApi,forgeUsage){
   var filename=deliverable?deliverable.filename||'murphy-deliverable.txt':'murphy-deliverable.txt';
   var isHtml=/\.html?$/i.test(filename)||/<html/i.test((content||'').slice(0,200));
 
+  // Use real metrics from backend when available, fall back to computed values
+  var agentCount=(buildMetrics&&buildMetrics.agent_count)?buildMetrics.agent_count:64;
+  var buildTime=(buildMetrics&&buildMetrics.actual_elapsed_seconds)?buildMetrics.actual_elapsed_seconds.toFixed(1)+'s':'—';
+  if(buildMetrics&&buildMetrics.word_count)wordCount=buildMetrics.word_count;
+  if(buildMetrics&&buildMetrics.line_count)lineCount=buildMetrics.line_count;
+  if(buildMetrics&&buildMetrics.size_kb)sizeKb=Math.round(buildMetrics.size_kb);
+
   titleEl.innerHTML='&#10003; '+title;
   statsEl.innerHTML=
-    '<div class="forge-stat"><span class="forge-stat-val">64</span><span class="forge-stat-lbl">Agents</span></div>'+
-    '<div class="forge-stat"><span class="forge-stat-val">8s</span><span class="forge-stat-lbl">Build Time</span></div>'+
+    '<div class="forge-stat"><span class="forge-stat-val">'+agentCount+'</span><span class="forge-stat-lbl">Agents</span></div>'+
+    '<div class="forge-stat"><span class="forge-stat-val">'+buildTime+'</span><span class="forge-stat-lbl">Build Time</span></div>'+
     '<div class="forge-stat"><span class="forge-stat-val">'+wordCount.toLocaleString()+'</span><span class="forge-stat-lbl">Words</span></div>'+
     '<div class="forge-stat"><span class="forge-stat-val">'+lineCount.toLocaleString()+'</span><span class="forge-stat-lbl">Lines</span></div>'+
     '<div class="forge-stat"><span class="forge-stat-val">'+sizeKb+'KB</span><span class="forge-stat-lbl">Size</span></div>';
 
-  roiEl.innerHTML='<strong>64 agents × 8 seconds</strong> = what would take a team of developers <strong>days or weeks</strong> to produce manually. <strong>ROI: immediate.</strong>';
+  var roiText=(buildMetrics&&buildMetrics.roi_multiple)?'ROI: '+buildMetrics.roi_multiple+'x':'ROI: immediate';
+  roiEl.innerHTML='<strong>'+agentCount+' agents × '+buildTime+'</strong> = what would take a team of developers <strong>days or weeks</strong> to produce manually. <strong>'+roiText+'</strong>';
 
   // Show usage counter
   if(forgeUsage&&usageEl){
@@ -564,6 +582,7 @@ function _showResult(deliverable,usedRealApi,forgeUsage){
 
   // If no content from API, generate client-side fallback deliverable
   if(!content&&_forgeQuery){
+    _showForgeError('Backend returned no content — using client-side template');
     var fb=_forgeFallbackDeliverable(_forgeQuery);
     deliverable=deliverable||fb;
     content=fb.content;
@@ -573,10 +592,10 @@ function _showResult(deliverable,usedRealApi,forgeUsage){
     lineCount=content.split('\n').length;
     sizeKb=Math.round(content.length/1024)||1;
     isHtml=false;
-    titleEl.innerHTML='&#10003; '+title;
+    titleEl.innerHTML='&#10003; '+title+' <small style="color:#f90;">(client-side fallback)</small>';
     statsEl.innerHTML=
-      '<div class="forge-stat"><span class="forge-stat-val">64</span><span class="forge-stat-lbl">Agents</span></div>'+
-      '<div class="forge-stat"><span class="forge-stat-val">8s</span><span class="forge-stat-lbl">Build Time</span></div>'+
+      '<div class="forge-stat"><span class="forge-stat-val">—</span><span class="forge-stat-lbl">Agents</span></div>'+
+      '<div class="forge-stat"><span class="forge-stat-val">—</span><span class="forge-stat-lbl">Build Time</span></div>'+
       '<div class="forge-stat"><span class="forge-stat-val">'+wordCount.toLocaleString()+'</span><span class="forge-stat-lbl">Words</span></div>'+
       '<div class="forge-stat"><span class="forge-stat-val">'+lineCount.toLocaleString()+'</span><span class="forge-stat-lbl">Lines</span></div>'+
       '<div class="forge-stat"><span class="forge-stat-val">'+sizeKb+'KB</span><span class="forge-stat-lbl">Size</span></div>';
@@ -606,6 +625,7 @@ function _showResult(deliverable,usedRealApi,forgeUsage){
     _setStatus('&#10003; Build complete — your deliverable is ready.','phase');
   } else {
     // API unavailable or returned no content -- use client-side fallback
+    _showForgeError('API unavailable — using client-side fallback template');
     var _fb = _forgeFallback(_forgeQuery);
     var _fbContent = _fb ? _fb.content : '';
     var _fbTitle = _fb ? _fb.title : ('Deliverable: ' + _forgeQuery.slice(0,50));
@@ -615,14 +635,14 @@ function _showResult(deliverable,usedRealApi,forgeUsage){
     var _fbSizeKb = _fbContent ? Math.round(_fbContent.length / 1024) : 0;
     var _fbIsHtml = /\.html?$/i.test(_fbFilename) || /<html/i.test((_fbContent||'').slice(0,200));
 
-    titleEl.innerHTML = '&#10003; ' + _fbTitle;
+    titleEl.innerHTML = '&#10003; ' + _fbTitle + ' <small style="color:#f90;">(client-side fallback)</small>';
     statsEl.innerHTML =
-      '<div class="forge-stat"><span class="forge-stat-val">64</span><span class="forge-stat-lbl">Agents</span></div>'+
-      '<div class="forge-stat"><span class="forge-stat-val">8s</span><span class="forge-stat-lbl">Build Time</span></div>'+
+      '<div class="forge-stat"><span class="forge-stat-val">\u2014</span><span class="forge-stat-lbl">Agents</span></div>'+
+      '<div class="forge-stat"><span class="forge-stat-val">\u2014</span><span class="forge-stat-lbl">Build Time</span></div>'+
       '<div class="forge-stat"><span class="forge-stat-val">'+ _fbWords.toLocaleString()+'</span><span class="forge-stat-lbl">Words</span></div>'+
       '<div class="forge-stat"><span class="forge-stat-val">'+_fbLines.toLocaleString()+'</span><span class="forge-stat-lbl">Lines</span></div>'+
       '<div class="forge-stat"><span class="forge-stat-val">'+_fbSizeKb+'KB</span><span class="forge-stat-lbl">Size</span></div>';
-    roiEl.innerHTML='<strong>64 agents \u00d7 8 seconds</strong> = what would take a team of developers <strong>days or weeks</strong> to produce manually. <strong>ROI: immediate.</strong>';
+    roiEl.innerHTML='<em>Client-side template \u2014 connect to Murphy backend for real agent metrics.</em>';
 
     if(_fbContent && previewWrap && previewBody) {
       var _fbPLines = _fbContent.split('\n');
@@ -727,7 +747,6 @@ function forgeRun(query){
   // Gate check
   var gate=_gateCheck(query);
   if(!gate.pass){
-    // Ask clarifying questions
     _setStatus('&#9654; Need a bit more info: '+gate.questions[0],'phase');
     var inp=document.getElementById('forge-input');
     if(inp){inp.placeholder=gate.questions[0];inp.focus();}
@@ -735,8 +754,8 @@ function forgeRun(query){
     return;
   }
 
-  // Phase 1 — Planning
-  _setStatus('&#128161; Phase 1 — Coordinator analyzing scope... decomposing into 64 parallel tasks...','phase');
+  // Set up UI
+  _setStatus('&#128161; Phase 1 — Connecting to backend pipeline...','phase');
   var gridWrap=document.getElementById('forge-grid-wrap');
   var resBlock=document.getElementById('forge-result');
   gridWrap.style.display='block';
@@ -749,46 +768,125 @@ function forgeRun(query){
   var liveWrap=document.getElementById('forge-live-wrap');
   if(liveWrap)liveWrap.classList.remove('forge-hidden');
 
-  // Kick off real API call in background
-  var apiDone=false,animDone=false,apiResult=null,apiUsed=false,apiForgeUsage=null;
+  // Track state for merging animation + API
+  var apiDone=false,animDone=false,apiResult=null,apiUsed=false,apiForgeUsage=null,apiBuildMetrics=null;
   function tryMerge(){
     if(!apiDone||!animDone)return;
-    _convergePanes(function(){_showResult(apiResult,apiUsed,apiForgeUsage);_forgeRunning=false;});
+    _convergePanes(function(){_showResult(apiResult,apiUsed,apiForgeUsage,apiBuildMetrics);_forgeRunning=false;});
   }
 
-  // API call
-  fetch('/api/demo/generate-deliverable',{
+  // --- Stream from backend SSE endpoint ---
+  var _phaseIcons={1:'&#128161;',2:'&#128029;',3:'&#9889;'};
+  var animStarted=false;
+
+  fetch('/api/demo/generate-deliverable/stream',{
     method:'POST',
     headers:_apiHeaders(),
     credentials:'include',
     body:JSON.stringify({query:query})
-  })
-  .then(function(r){return r.json().catch(function(){return null;});})
-  .then(function(data){
-    if(data&&data.success&&data.deliverable){
-      apiResult=data.deliverable;
-      apiResult.llm_provider=data.llm_provider||'local';
-      apiUsed=true;
-      apiForgeUsage=data.forge_usage||null;
-    } else if(data&&!data.success&&data.error){
-      apiResult=null;
-      apiUsed=true;
+  }).then(function(resp){
+    if(!resp.ok){
+      // Non-streaming error (400/429/503) — parse JSON body
+      return resp.json().catch(function(){return null;}).then(function(data){
+        if(data&&data.error){
+          _showForgeError(data.error);
+        }
+        apiDone=true;
+        if(!animStarted){animDone=true;}
+        tryMerge();
+      });
     }
-    apiDone=true; tryMerge();
-  })
-  .catch(function(){apiDone=true; tryMerge();});
+    var reader=resp.body.getReader();
+    var decoder=new TextDecoder();
+    var buf='';
+    function pump(){
+      return reader.read().then(function(result){
+        if(result.done){
+          apiDone=true; tryMerge();
+          return;
+        }
+        buf+=decoder.decode(result.value,{stream:true});
+        // Parse SSE lines (each event is "data: {...}\n\n")
+        var parts=buf.split('\n\n');
+        buf=parts.pop()||'';
+        parts.forEach(function(raw){
+          var line=raw.replace(/^data:\s*/,'').trim();
+          if(!line)return;
+          try{var evt=JSON.parse(line);}catch(ex){return;}
 
-  // Phase 2 — Animation (cascade ~3.5s, then wait for API)
+          if(evt.phase==='error'){
+            _showForgeError(evt.status||'Backend pipeline error');
+            apiDone=true; tryMerge();
+            return;
+          }
+
+          if(evt.phase==='done'){
+            apiResult=evt.deliverable||null;
+            if(apiResult){
+              apiResult.llm_provider=evt.llm_provider||'murphy-demo';
+              apiUsed=true;
+            }
+            apiForgeUsage=evt.forge_usage||null;
+            apiBuildMetrics=evt.build_metrics||null;
+            if(apiBuildMetrics&&evt.metrics){
+              apiBuildMetrics.word_count=evt.metrics.word_count;
+              apiBuildMetrics.line_count=evt.metrics.line_count;
+              apiBuildMetrics.size_kb=evt.metrics.size_kb;
+            }
+            apiDone=true; tryMerge();
+            return;
+          }
+
+          // Progress event — update status from backend
+          var icon=_phaseIcons[evt.phase]||'&#9881;';
+          _setStatus(icon+' Phase '+evt.phase+' — '+evt.status,'phase');
+
+          // Start grid animation on phase 2
+          if(evt.phase>=2&&!animStarted){
+            animStarted=true;
+            var type=_detectType(query);
+            _cascadePanes(type,function(){
+              animDone=true; tryMerge();
+            });
+          }
+        });
+        return pump();
+      });
+    }
+    return pump();
+  }).catch(function(){
+    // Network error — fall back to non-streaming endpoint
+    _setStatus('&#9881; Connecting to fallback endpoint...','phase');
+    fetch('/api/demo/generate-deliverable',{
+      method:'POST',
+      headers:_apiHeaders(),
+      credentials:'include',
+      body:JSON.stringify({query:query})
+    })
+    .then(function(r){return r.json().catch(function(){return null;});})
+    .then(function(data){
+      if(data&&data.success&&data.deliverable){
+        apiResult=data.deliverable;
+        apiResult.llm_provider=data.llm_provider||'local';
+        apiUsed=true;
+        apiForgeUsage=data.forge_usage||null;
+        apiBuildMetrics=data.metrics||null;
+      }
+      apiDone=true; tryMerge();
+    })
+    .catch(function(){apiDone=true; tryMerge();});
+  });
+
+  // Start animation after a short delay (in case stream hasn't sent phase 2 yet)
   setTimeout(function(){
-    _setStatus('&#128029; Phase 2 — Swarm active: 64 agents building in parallel...','phase');
-    var type=_detectType(query);
-    _cascadePanes(type,function(){
-      setTimeout(function(){
-        _setStatus('&#9889; Phase 3 — Verifying and packaging artifact...','phase');
+    if(!animStarted){
+      animStarted=true;
+      var type=_detectType(query);
+      _cascadePanes(type,function(){
         animDone=true; tryMerge();
-      },1200);
-    });
-  },800);
+      });
+    }
+  },3000);
 }
 
 /* Wire forge chips */
