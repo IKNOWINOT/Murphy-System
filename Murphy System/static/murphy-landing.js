@@ -602,7 +602,7 @@ function _showResult(deliverable,usedRealApi,forgeUsage){
         htmlBtn.classList.add('forge-hidden');
       }
     }
-    resBlock.style.display='';
+    resBlock.style.display='block';
     _setStatus('&#10003; Build complete — your deliverable is ready.','phase');
   } else {
     // API unavailable or returned no content -- use client-side fallback
@@ -656,7 +656,7 @@ function _showResult(deliverable,usedRealApi,forgeUsage){
       if(htmlBtn) htmlBtn.classList.add('forge-hidden');
       _setStatus('\u26a0 Could not generate deliverable. Please try again.','phase');
     }
-    resBlock.style.display = '';
+    resBlock.style.display = 'block';
   }
 }
 
@@ -739,7 +739,7 @@ function forgeRun(query){
   _setStatus('&#128161; Phase 1 — Coordinator analyzing scope... decomposing into 64 parallel tasks...','phase');
   var gridWrap=document.getElementById('forge-grid-wrap');
   var resBlock=document.getElementById('forge-result');
-  gridWrap.style.display='';
+  gridWrap.style.display='block';
   resBlock.style.display='none';
   var errEl=document.getElementById('forge-api-err');
   if(errEl){errEl.innerHTML='';errEl.classList.add('forge-hidden');}
