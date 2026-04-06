@@ -3739,6 +3739,10 @@ async def api_demo_generate_deliverable_stream(request: Request):
                 "elapsed_seconds": metrics.actual_elapsed_seconds,
                 "build_metrics": metrics.to_dict(),
             }
+            # Emit synthetic progress events so the frontend drives its
+            # phase animations the same way as a successful pipeline run.
+            # Detail values ("mfgc", "mss", "generate") match those used by
+            # generate_deliverable_with_progress() in demo_deliverable_generator.py.
             yield f"data: {json.dumps({'phase': 1, 'status': 'Analyzing scope...', 'detail': 'mfgc'})}\n\n"
             yield f"data: {json.dumps({'phase': 2, 'status': 'Generating content (fallback)...', 'detail': 'mss'})}\n\n"
             yield f"data: {json.dumps({'phase': 3, 'status': 'Assembling deliverable...', 'detail': 'generate'})}\n\n"
@@ -3766,10 +3770,24 @@ async def api_demo_generate_deliverable_stream(request: Request):
                 try:
                     yield f"data: {json.dumps(event)}\n\n"
                 except (TypeError, ValueError) as exc:
-                    log.warning("JSON serialization failed for done event: %s — sending fallback", exc)
+                    log.warning("JSON serialization failed for done event: %s — sending minimal fallback", exc)
                     fallback_deliverable = _generate_fallback_deliverable(query)
-                    event["deliverable"] = fallback_deliverable
-                    yield f"data: {json.dumps(event)}\n\n"
+                    fb_content = fallback_deliverable.get("content", "")
+                    minimal_event = {
+                        "phase": "done",
+                        "status": "Build complete — deliverable ready (fallback)",
+                        "deliverable": fallback_deliverable,
+                        "metrics": {
+                            "word_count": len(fb_content.split()) if fb_content else 0,
+                            "line_count": fb_content.count("\n") + 1 if fb_content else 0,
+                            "size_kb": round(len(fb_content) / 1024, 1) if fb_content else 0,
+                        },
+                        "run_id": run_id,
+                        "llm_provider": "murphy-demo",
+                        "elapsed_seconds": metrics.actual_elapsed_seconds,
+                        "build_metrics": metrics.to_dict(),
+                    }
+                    yield f"data: {json.dumps(minimal_event)}\n\n"
             else:
                 yield f"data: {json.dumps(event)}\n\n"
                 # Small pause so the browser can process incremental events

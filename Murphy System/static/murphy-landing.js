@@ -544,9 +544,10 @@ function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics,clientElaps
   if(buildMetrics&&buildMetrics.size_kb)sizeKb=Math.round(buildMetrics.size_kb);
 
   // Compute ROI: use backend value or estimate from client-side timing
+  // Constants mirror backend BuildMetrics: _TEAM_HOURLY=$75, _HUMAN_TEAM_SIZE=4,
+  // _SERVER_COST=$0.01, _HITL_BUDGET=$0.05, base_hours=2.0+min(words/50,6.0)
   var roiMultiple=(buildMetrics&&buildMetrics.roi_multiple)?buildMetrics.roi_multiple:0;
   if(!roiMultiple&&buildTimeSec>0){
-    // Estimate: human team would take ~2-8 hrs based on query complexity
     var queryWords=(_forgeQuery||'').split(/\s+/).length;
     var estHumanHours=2.0+Math.min(queryWords/50,6.0);
     var estHumanCost=estHumanHours*75;
