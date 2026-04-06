@@ -828,12 +828,13 @@ function probe(){
     setLstat('lstat-llm',c.ollama_running===true);
     setLstat('lstat-mail',c.email!==false);
     setLstat('lstat-matrix',c.matrix!==false);
-    setLstat('lstat-hitl',true);setLstat('lstat-swarm',true);setLstat('lstat-trading',true);
+    setLstat('lstat-api',true);setLstat('lstat-hitl',true);setLstat('lstat-swarm',true);setLstat('lstat-trading',true);
     var pill=document.getElementById('sys-status-pill'),txt=document.getElementById('sys-status-text');
     if(pill&&txt){pill.className='sys-pill'+(d.status==='degraded'?' warn':'');txt.textContent=d.status||'online';}
   }).catch(function(){
     var txt=document.getElementById('sys-status-text');if(txt)txt.textContent='offline';
     var pill=document.getElementById('sys-status-pill');if(pill)pill.className='sys-pill warn';
+    ['lstat-api','lstat-llm','lstat-mail','lstat-matrix','lstat-hitl','lstat-swarm','lstat-trading'].forEach(function(id){var el=document.getElementById(id);if(!el)return;var ld=el.querySelector('.ld');if(ld)ld.className='ld ld-off';});
   });
 }
 probe();setInterval(probe,30000);
