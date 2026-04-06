@@ -4,6 +4,11 @@ __pycache__/
 .coverage
 coverage.xml
 
+# SEC-GIT-001: Never commit real .env files — they contain secrets.
+.env
+.env.local
+.env.*.local
+
 # EQEmu server assets (downloaded by scripts/fetch_eqemu_assets.sh)
 eqemu-server/
 eqemu-assets/
