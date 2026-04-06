@@ -3711,7 +3711,7 @@ async def api_demo_generate_deliverable_stream(request: Request):
             )
         except Exception as exc:
             log.warning("Streaming forge generator failed: %s", exc)
-            yield f"data: {json.dumps({'phase': 'error', 'status': str(exc)})}\n\n"
+            yield f"data: {json.dumps({'phase': 'error', 'status': 'Backend pipeline error — please retry'})}\n\n"
             return
 
         for event in progress:
