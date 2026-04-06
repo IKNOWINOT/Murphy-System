@@ -13373,14 +13373,19 @@ def create_app() -> FastAPI:
         return JSONResponse({"ok": True, "url": url})
 
     def _build_env_template(workflows):
-        """Build .env.example content from workflow API suggestions."""
+        """Build .env.example content from workflow API suggestions.
+
+        SEC-SECRET-001: Every generated env file receives a unique random
+        MURPHY_SECRET_KEY so operators never deploy with the old placeholder.
+        """
+        import secrets as _secrets  # noqa: PLC0415
         lines = [
             "# Murphy System — Environment Configuration",
             "# Generated from your workflows — fill in API keys to activate integrations",
             "",
             "# === Core ===",
             "MURPHY_ENV=production",
-            "MURPHY_SECRET_KEY=change-me-to-a-random-string",
+            f"MURPHY_SECRET_KEY={_secrets.token_urlsafe(48)}",
             "",
             "# === LLM Provider (optional — system works without it) ===",
             "# MURPHY_LLM_PROVIDER=deepinfra",

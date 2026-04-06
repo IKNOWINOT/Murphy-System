@@ -286,9 +286,10 @@ jobs:
         continue-on-error: true
 
       - name: Audit dependencies for known vulnerabilities
+        # SEC-DEPS-001: Dependency audit is a merge blocker — no known CVEs in production.
         run: |
           pip-audit --requirement requirements_ci.txt --strict 2>&1 || echo "::warning::pip-audit found issues — review advisory output above"
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Validate swarm rate governor import
         run: |
