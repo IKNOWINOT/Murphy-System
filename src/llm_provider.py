@@ -47,6 +47,11 @@ TOGETHER_CHAT_MODEL    = "meta-llama/Llama-3.1-70B-Instruct-Turbo"
 TOGETHER_FAST_MODEL    = "meta-llama/Llama-3.1-8B-Instruct-Turbo"
 TOGETHER_CODE_MODEL    = "Qwen/Qwen2.5-Coder-32B-Instruct"
 
+# DeepInfra Llama-3.1-70B context window: 131 072 tokens (prompt + output).
+# Output is not artificially capped — the LLM produces whatever the request
+# requires.  Callers may pass a lower max_tokens for smaller tasks.
+DEEPINFRA_MODEL_CONTEXT = 131072
+
 # ---------------------------------------------------------------------------
 # Circuit breaker
 # ---------------------------------------------------------------------------
@@ -196,7 +201,7 @@ class MurphyLLMProvider:
         model:     str,
         messages:  List[Dict[str, str]],
         temperature: float = 0.7,
-        max_tokens:  int   = 16384,
+        max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,
     ) -> Dict[str, Any]:
         """POST to an OpenAI-compatible chat completions endpoint."""
         resp = requests.post(
@@ -227,7 +232,7 @@ class MurphyLLMProvider:
         system:      str   = "You are Murphy, an AI automation platform built by Inoni LLC.",
         model_hint:  str   = "chat",
         temperature: float = 0.7,
-        max_tokens:  int   = 16384,
+        max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,
     ) -> LLMCompletion:
         """Complete a prompt synchronously.
 
@@ -250,7 +255,7 @@ class MurphyLLMProvider:
         *,
         model_hint:  str   = "chat",
         temperature: float = 0.7,
-        max_tokens:  int   = 16384,
+        max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,
     ) -> LLMCompletion:
         """Complete a messages list synchronously."""
         return self._complete_with_fallback(
@@ -265,7 +270,7 @@ class MurphyLLMProvider:
         messages:    List[Dict[str, str]],
         model_hint:  str   = "chat",
         temperature: float = 0.7,
-        max_tokens:  int   = 16384,
+        max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,
     ) -> LLMCompletion:
         request_id = str(uuid.uuid4())
 
