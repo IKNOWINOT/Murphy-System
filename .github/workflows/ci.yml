@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    # Nightly at 02:00 UTC — runs integration / E2E / SLA tests
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    # Allow manual trigger (e.g. after major merge or hotfix)
 
 env:
   MURPHY_ENV: test
@@ -129,7 +134,8 @@ jobs:
               sys.exit(1)
           print(f"\nAll {len(modules)} smoke imports passed.")
           EOF
-        continue-on-error: true
+        # Smoke import failures should block merges — broken imports must not
+        # reach main undetected.
 
   tree-divergence-check:
     runs-on: ubuntu-latest
@@ -305,4 +311,37 @@ jobs:
 
       - name: Tag as latest
         run: docker tag murphy-system:${{ github.sha }} murphy-system:latest || true
+        continue-on-error: true
+
+  # ---------------------------------------------------------------------------
+  # Nightly integration / E2E / SLA test suite
+  # ---------------------------------------------------------------------------
+  integration-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch')
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements_ci.txt
+          pip install pytest-cov pytest-asyncio pytest-timeout
+
+      - name: Run integration and E2E tests
+        run: |
+          python -m pytest tests/e2e tests/integration tests/sla \
+            -v --tb=short --timeout=120 \
+            --continue-on-collection-errors \
+            -k "not test_actual_local_llm"
         continue-on-error: true

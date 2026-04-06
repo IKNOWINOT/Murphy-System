@@ -314,12 +314,13 @@ class E2EEManager:
         """Encrypt *plaintext* for the given room.
 
         When a live Megolm session exists, real HMAC-based authenticated
-        encryption is performed.  When ``matrix-nio[e2e]`` is available
-        the native Megolm ratchet will be used transparently (pending
-        AsyncClient integration).
+        encryption is performed.  When no session exists for the room,
+        one is auto-created so that the encryption path is always reached
+        (no more plaintext stub fallback when ``E2EE_STUB_ALLOWED`` is
+        ``True``).
 
-        Falls back to a clearly-marked **UNENCRYPTED** stub only when
-        ``E2EE_STUB_ALLOWED`` is ``True`` and no session exists.
+        When ``matrix-nio[e2e]`` is available the native Megolm ratchet
+        will be used transparently (pending AsyncClient integration).
 
         Args:
             room_id: The Matrix room ID (used to look up the Megolm session).
@@ -328,17 +329,31 @@ class E2EEManager:
         Returns:
             A ``dict`` with ``algorithm`` and ``ciphertext`` keys.
             Real encryption includes a ``_hmac`` verification tag.
-            Stub mode includes ``_warning: "UNENCRYPTED_STUB"``.
 
         Raises:
             RuntimeError: If E2EE is disabled in the config.
-            RuntimeError: If stub mode is disallowed (production).
+            RuntimeError: If stub mode is disallowed and nio SDK is absent.
         """
         if not self._config.enable_e2ee:
             raise RuntimeError(
                 "Cannot encrypt: E2EE is disabled in config"
             )
         session = self._megolm_sessions.get(room_id)
+
+        # Auto-create session if none exists
+        if not session or session.state == E2EEState.ERROR:
+            if not E2EE_STUB_ALLOWED and not _HAS_NIO_E2E:
+                raise RuntimeError(
+                    "Matrix E2EE requires matrix-nio SDK. "
+                    "Set E2EE_STUB_ALLOWED=true to allow stub sessions, "
+                    "or install matrix-nio[e2e]."
+                )
+            session = self.create_megolm_session(room_id)
+            session.state = E2EEState.ACTIVE
+            logger.info(
+                "Auto-created Megolm session %s for room %s",
+                session.session_id, room_id,
+            )
 
         # -- Real encryption path (session exists) ---------------------
         if session and session.state in (E2EEState.ACTIVE, E2EEState.INITIALIZING):
@@ -376,24 +391,10 @@ class E2EEManager:
                 "_hmac": tag,
             }
 
-        # -- Stub fallback (no session) --------------------------------
-        if not E2EE_STUB_ALLOWED:
-            raise RuntimeError(
-                "Matrix E2EE requires matrix-nio SDK. "
-                "Set E2EE_STUB_ALLOWED=true to allow plaintext fallback."
-            )
-        logger.warning(
-            "encrypt_message: UNENCRYPTED STUB in use for room %s — "
-            "messages are NOT encrypted. Install matrix-nio to enable real E2EE.",
-            room_id,
+        # -- Unreachable: auto-session creation above guarantees a session --
+        raise RuntimeError(  # pragma: no cover
+            f"No Megolm session available for room {room_id} after auto-creation"
         )
-        return {
-            "algorithm": "m.megolm.v1.aes-sha2",
-            "room_id": room_id,
-            "session_id": "stub-session",
-            "ciphertext": "__stub_ciphertext__",
-            "_warning": "UNENCRYPTED_STUB",
-        }
 
     def decrypt_message(self, room_id: str, ciphertext: dict) -> str:
         """Decrypt an encrypted Matrix message.

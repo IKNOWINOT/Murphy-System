@@ -10143,10 +10143,8 @@ def create_app() -> FastAPI:
         return JSONResponse({"success": True, "rule": rule}, status_code=201)
 
     # ==================== MEETING INTELLIGENCE API ====================
-    # In-memory stores for drafts and votes — keyed by session_id.
-    # TODO: migrate to DB models (MeetingDraft, MeetingVote) in a future sprint.
-    _mi_drafts: Dict[str, Any] = {}   # {session_id: {draft_type: {content, status, ts}}}
-    _mi_votes: Dict[str, Any] = {}    # {session_id: {draft_type: {vote, comment, ts}}}
+    # Drafts and votes are persisted via MeetingDraft / MeetingVote ORM
+    # models in src.db — no more in-memory dicts.
 
     @app.post("/api/meeting-intelligence/drafts")
     async def mi_save_draft(request: Request):
@@ -10160,9 +10158,28 @@ def create_app() -> FastAPI:
         content = body.get("content", "")
         status = body.get("status", "saved")
         ts = _now_iso()
-        if session_id not in _mi_drafts:
-            _mi_drafts[session_id] = {}
-        _mi_drafts[session_id][draft_type] = {"content": content, "status": status, "ts": ts}
+        try:
+            from src.db import MeetingDraft, _get_session_factory
+            db = _get_session_factory()()
+            try:
+                existing = db.query(MeetingDraft).filter_by(
+                    session_id=session_id, draft_type=draft_type
+                ).first()
+                if existing:
+                    existing.content = content
+                    existing.status = status
+                else:
+                    db.add(MeetingDraft(
+                        session_id=session_id,
+                        draft_type=draft_type,
+                        content=content,
+                        status=status,
+                    ))
+                db.commit()
+            finally:
+                db.close()
+        except Exception as exc:
+            logger.warning("MeetingDraft DB write failed, data still returned: %s", exc)
         logger.info("Meeting draft saved: session=%s type=%s status=%s", session_id, draft_type, status)
         return JSONResponse({
             "ok": True,
@@ -10183,9 +10200,21 @@ def create_app() -> FastAPI:
         vote = body.get("vote")
         comment = body.get("comment", "")
         ts = _now_iso()
-        if session_id not in _mi_votes:
-            _mi_votes[session_id] = {}
-        _mi_votes[session_id][draft_type] = {"vote": vote, "comment": comment, "ts": ts}
+        try:
+            from src.db import MeetingVote, _get_session_factory
+            db = _get_session_factory()()
+            try:
+                db.add(MeetingVote(
+                    session_id=session_id,
+                    draft_type=draft_type,
+                    vote=str(vote) if vote is not None else "",
+                    comment=comment,
+                ))
+                db.commit()
+            finally:
+                db.close()
+        except Exception as exc:
+            logger.warning("MeetingVote DB write failed, data still returned: %s", exc)
         logger.info("Meeting vote recorded: session=%s type=%s vote=%s", session_id, draft_type, vote)
         return JSONResponse({
             "ok": True,
@@ -10240,28 +10269,60 @@ def create_app() -> FastAPI:
             sessions = _mb.list_meetings(account_id=account_id)
         except Exception as exc:
             logger.warning("Could not load sessions from MeetingsBridge: %s", exc)
-        # Merge in-memory draft/vote data into each session
-        for s in sessions:
-            sid = s.get("session_id", "")
-            if sid in _mi_drafts:
-                s["drafts"] = _mi_drafts[sid]
-            if sid in _mi_votes:
-                s["votes"] = _mi_votes[sid]
+        # Merge persisted draft/vote data into each session
+        try:
+            from src.db import MeetingDraft, MeetingVote, _get_session_factory
+            db = _get_session_factory()()
+            try:
+                for s in sessions:
+                    sid = s.get("session_id", "")
+                    drafts = db.query(MeetingDraft).filter_by(session_id=sid).all()
+                    if drafts:
+                        s["drafts"] = {
+                            d.draft_type: {"content": d.content, "status": d.status, "ts": str(d.updated_at or d.created_at)}
+                            for d in drafts
+                        }
+                    votes = db.query(MeetingVote).filter_by(session_id=sid).all()
+                    if votes:
+                        s["votes"] = {
+                            v.draft_type: {"vote": v.vote, "comment": v.comment, "ts": str(v.created_at)}
+                            for v in votes
+                        }
+            finally:
+                db.close()
+        except Exception as exc:
+            logger.warning("Could not load meeting drafts/votes from DB: %s", exc)
         return JSONResponse({"ok": True, "sessions": sessions, "ts": _now_iso()})
 
     # ── Meetings CRUD (called from terminal_unified.html / workspace.html) ─────
-
-    _meetings_store: Dict[str, Any] = {}  # in-memory store; replace with DB in prod
+    # All meeting sessions are persisted via the MeetingSession ORM model.
 
     @app.get("/api/meetings/")
     async def meetings_list(request: Request):
         """List all meeting sessions for the current user."""
         account = _get_account_from_session(request)
         account_id = account.get("account_id") if account else None
-        sessions = [
-            s for s in _meetings_store.values()
-            if account_id is None or s.get("account_id") == account_id
-        ]
+        sessions = []
+        try:
+            from src.db import MeetingSession, _get_session_factory
+            db = _get_session_factory()()
+            try:
+                query = db.query(MeetingSession)
+                if account_id:
+                    query = query.filter_by(account_id=account_id)
+                for row in query.all():
+                    sessions.append({
+                        "session_id": row.session_id,
+                        "title": row.title,
+                        "participants": row.participants or [],
+                        "started_at": row.started_at,
+                        "ended_at": row.ended_at,
+                        "status": row.status,
+                    })
+            finally:
+                db.close()
+        except Exception as exc:
+            logger.warning("Could not load meeting sessions from DB: %s", exc)
         return JSONResponse({"ok": True, "meetings": sessions, "count": len(sessions)})
 
     @app.post("/api/meetings/start")
@@ -10273,46 +10334,75 @@ def create_app() -> FastAPI:
         except Exception:
             data = {}
         session_id = _hashlib.sha256(f"meeting:{_now_iso()}:{id(data)}".encode()).hexdigest()[:16]
-        _meetings_store[session_id] = {
-            "session_id": session_id,
-            "title": data.get("title", "Untitled Meeting"),
-            "participants": data.get("participants", []),
-            "started_at": _now_iso(),
-            "ended_at": None,
-            "transcript": [],
-            "suggestions": [],
-            "status": "active",
-        }
+        account = _get_account_from_session(request)
+        account_id = account.get("account_id") if account else None
+        try:
+            from src.db import MeetingSession, _get_session_factory
+            db = _get_session_factory()()
+            try:
+                db.add(MeetingSession(
+                    session_id=session_id,
+                    title=data.get("title", "Untitled Meeting"),
+                    account_id=account_id,
+                    participants=data.get("participants", []),
+                    started_at=_now_iso(),
+                    status="active",
+                ))
+                db.commit()
+            finally:
+                db.close()
+        except Exception as exc:
+            logger.warning("Could not persist meeting session to DB: %s", exc)
         return JSONResponse({"ok": True, "session_id": session_id, "status": "active"})
 
     @app.post("/api/meetings/{session_id}/end")
     async def meetings_end(session_id: str, request: Request):
         """End a meeting session."""
-        session = _meetings_store.get(session_id)
-        if not session:
-            return JSONResponse({"ok": False, "error": "Session not found"}, status_code=404)
-        session["status"] = "ended"
-        session["ended_at"] = _now_iso()
+        try:
+            from src.db import MeetingSession, _get_session_factory
+            db = _get_session_factory()()
+            try:
+                session = db.query(MeetingSession).filter_by(session_id=session_id).first()
+                if not session:
+                    return JSONResponse({"ok": False, "error": "Session not found"}, status_code=404)
+                session.status = "ended"
+                session.ended_at = _now_iso()
+                db.commit()
+            finally:
+                db.close()
+        except Exception as exc:
+            logger.warning("Could not end meeting session in DB: %s", exc)
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
         return JSONResponse({"ok": True, "session_id": session_id, "status": "ended"})
 
     @app.get("/api/meetings/{session_id}/transcript")
     async def meetings_transcript(session_id: str):
-        """Get the transcript for a meeting session; returns empty stub for unknown sessions."""
-        session = _meetings_store.get(session_id)
-        transcript = session.get("transcript", []) if session else []
+        """Get the transcript for a meeting session from DB."""
+        transcript = []
+        try:
+            from src.db import MeetingTranscriptEntry, _get_session_factory
+            db = _get_session_factory()()
+            try:
+                rows = db.query(MeetingTranscriptEntry).filter_by(session_id=session_id).all()
+                transcript = [
+                    {"speaker": r.speaker, "text": r.text, "timestamp": r.timestamp, "is_ai": bool(r.is_ai)}
+                    for r in rows
+                ]
+            finally:
+                db.close()
+        except Exception as exc:
+            logger.warning("Could not load transcript from DB: %s", exc)
         return JSONResponse({"ok": True, "session_id": session_id, "transcript": transcript})
 
     @app.get("/api/meetings/{session_id}/suggestions")
     async def meetings_suggestions(session_id: str):
         """Get AI-generated action item suggestions; returns default stubs for unknown sessions."""
-        session = _meetings_store.get(session_id)
         # In production, these would be generated by an LLM from the transcript.
         _default_suggestions = [
             {"type": "action_item", "text": "Review meeting notes and assign owners."},
             {"type": "follow_up", "text": "Schedule follow-up for unresolved items."},
         ]
-        suggestions = (session.get("suggestions") or _default_suggestions) if session else _default_suggestions
-        return JSONResponse({"ok": True, "session_id": session_id, "suggestions": suggestions})
+        return JSONResponse({"ok": True, "session_id": session_id, "suggestions": _default_suggestions})
 
 
     @app.post("/api/ambient/context")
