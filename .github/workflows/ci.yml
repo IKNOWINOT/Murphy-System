@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    # Nightly at 02:00 UTC — runs integration / E2E / SLA tests
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    # Allow manual trigger (e.g. after major merge or hotfix)
 
 env:
   MURPHY_ENV: test
