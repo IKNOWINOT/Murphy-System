@@ -487,21 +487,128 @@ class ComputeService:
             )
 
     def _execute_sat(self, request: ComputeRequest, normalized) -> ComputeResult:
-        """SAT solving — planned but not yet implemented.
+        """SAT solving via a lightweight DPLL-based solver.
 
-        .. note::
-            SAT solving is on the capability roadmap.  A suitable solver
-            (e.g. python-sat, pysat) will be wired in a future release.
-            See ``src/capability_map.py`` for current status.
+        Accepts a CNF formula as a list of clauses (each clause is a list of
+        signed integers, where positive = variable true, negative = negated).
+
+        Example input::
+
+            {"cnf": [[1, -2], [2, 3], [-1, -3]]}
+
+        Returns a satisfying assignment or UNSAT.
         """
-        return ComputeResult(
-            request_id=request.request_id,
-            status=ComputeStatus.UNSUPPORTED,
-            error_message=(
-                "SAT solver is planned but not yet integrated. "
-                "See capability_map for roadmap status."
-            ),
-        )
+        cnf = normalized.get("cnf") if isinstance(normalized, dict) else None
+        if not cnf or not isinstance(cnf, list):
+            return ComputeResult(
+                request_id=request.request_id,
+                status=ComputeStatus.FAIL,
+                error_message=(
+                    "SAT solver requires 'cnf' key with a list of clauses. "
+                    "Each clause is a list of signed integers."
+                ),
+            )
+
+        try:
+            satisfiable, assignment = self._dpll_solve(cnf)
+            if satisfiable:
+                return ComputeResult(
+                    request_id=request.request_id,
+                    status=ComputeStatus.SUCCESS,
+                    result={"satisfiable": True, "assignment": assignment},
+                )
+            return ComputeResult(
+                request_id=request.request_id,
+                status=ComputeStatus.SUCCESS,
+                result={"satisfiable": False, "assignment": {}},
+            )
+        except Exception as exc:
+            return ComputeResult(
+                request_id=request.request_id,
+                status=ComputeStatus.FAIL,
+                error_message=f"SAT solver error: {exc}",
+            )
+
+    @staticmethod
+    def _dpll_solve(cnf: list) -> tuple:
+        """Minimal DPLL SAT solver for CNF formulas.
+
+        Returns ``(True, {var: bool, ...})`` if satisfiable,
+        ``(False, {})`` otherwise.
+        """
+        # Collect all variables
+        variables = set()
+        for clause in cnf:
+            for lit in clause:
+                variables.add(abs(lit))
+
+        def _propagate(clauses, assignment):
+            """Unit propagation."""
+            changed = True
+            while changed:
+                changed = False
+                for clause in clauses:
+                    unset = []
+                    satisfied = False
+                    for lit in clause:
+                        var = abs(lit)
+                        if var in assignment:
+                            if (lit > 0) == assignment[var]:
+                                satisfied = True
+                                break
+                        else:
+                            unset.append(lit)
+                    if satisfied:
+                        continue
+                    if not unset:
+                        return None  # conflict
+                    if len(unset) == 1:
+                        lit = unset[0]
+                        assignment[abs(lit)] = lit > 0
+                        changed = True
+            return assignment
+
+        def _dpll(clauses, assignment):
+            assignment = _propagate(clauses, dict(assignment))
+            if assignment is None:
+                return False, {}
+
+            # Check satisfaction
+            all_satisfied = True
+            for clause in clauses:
+                clause_sat = False
+                has_unset = False
+                for lit in clause:
+                    var = abs(lit)
+                    if var in assignment:
+                        if (lit > 0) == assignment[var]:
+                            clause_sat = True
+                            break
+                    else:
+                        has_unset = True
+                if not clause_sat:
+                    if not has_unset:
+                        return False, {}
+                    all_satisfied = False
+
+            if all_satisfied:
+                return True, assignment
+
+            # Pick an unassigned variable
+            unassigned = variables - set(assignment.keys())
+            if not unassigned:
+                return False, {}
+            var = min(unassigned)
+
+            for val in (True, False):
+                new_assign = dict(assignment)
+                new_assign[var] = val
+                sat, result = _dpll(clauses, new_assign)
+                if sat:
+                    return True, result
+            return False, {}
+
+        return _dpll(cnf, {})
 
     def get_statistics(self) -> Dict:
         """Get service statistics"""
