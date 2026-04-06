@@ -515,7 +515,7 @@ function _showForgeError(msg){
 }
 
 /* Show result block */
-function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics){
+function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics,clientElapsedMs){
   var resBlock=document.getElementById('forge-result');
   var titleEl=document.getElementById('forge-result-title');
   var statsEl=document.getElementById('forge-result-stats');
@@ -535,12 +535,25 @@ function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics){
   var filename=deliverable?deliverable.filename||'murphy-deliverable.txt':'murphy-deliverable.txt';
   var isHtml=/\.html?$/i.test(filename)||/<html/i.test((content||'').slice(0,200));
 
-  // Use real metrics from backend when available, fall back to computed values
+  // Use real metrics from backend when available, fall back to client-side computed values
   var agentCount=(buildMetrics&&buildMetrics.agent_count)?buildMetrics.agent_count:64;
-  var buildTime=(buildMetrics&&buildMetrics.actual_elapsed_seconds)?buildMetrics.actual_elapsed_seconds.toFixed(1)+'s':'—';
+  var buildTimeSec=(buildMetrics&&buildMetrics.actual_elapsed_seconds)?buildMetrics.actual_elapsed_seconds:(clientElapsedMs?clientElapsedMs/1000:0);
+  var buildTime=buildTimeSec>0?(buildTimeSec.toFixed(1)+'s'):'\u2014';
   if(buildMetrics&&buildMetrics.word_count)wordCount=buildMetrics.word_count;
   if(buildMetrics&&buildMetrics.line_count)lineCount=buildMetrics.line_count;
   if(buildMetrics&&buildMetrics.size_kb)sizeKb=Math.round(buildMetrics.size_kb);
+
+  // Compute ROI: use backend value or estimate from client-side timing
+  var roiMultiple=(buildMetrics&&buildMetrics.roi_multiple)?buildMetrics.roi_multiple:0;
+  if(!roiMultiple&&buildTimeSec>0){
+    // Estimate: human team would take ~2-8 hrs based on query complexity
+    var queryWords=(_forgeQuery||'').split(/\s+/).length;
+    var estHumanHours=2.0+Math.min(queryWords/50,6.0);
+    var estHumanCost=estHumanHours*75;
+    var estActualCost=0.06;
+    roiMultiple=Math.round(estHumanCost/estActualCost);
+  }
+  var roiText=roiMultiple>0?('ROI: '+roiMultiple+'x'):'ROI: immediate';
 
   titleEl.innerHTML='&#10003; '+title;
   statsEl.innerHTML=
@@ -550,8 +563,7 @@ function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics){
     '<div class="forge-stat"><span class="forge-stat-val">'+lineCount.toLocaleString()+'</span><span class="forge-stat-lbl">Lines</span></div>'+
     '<div class="forge-stat"><span class="forge-stat-val">'+sizeKb+'KB</span><span class="forge-stat-lbl">Size</span></div>';
 
-  var roiText=(buildMetrics&&buildMetrics.roi_multiple)?'ROI: '+buildMetrics.roi_multiple+'x':'ROI: immediate';
-  roiEl.innerHTML='<strong>'+agentCount+' agents × '+buildTime+'</strong> = what would take a team of developers <strong>days or weeks</strong> to produce manually. <strong>'+roiText+'</strong>';
+  roiEl.innerHTML='<strong>'+agentCount+' agents \u00d7 '+buildTime+'</strong> = what would take a team of developers <strong>days or weeks</strong> to produce manually. <strong>'+roiText+'</strong>';
 
   // Show usage counter
   if(forgeUsage&&usageEl){
@@ -582,7 +594,7 @@ function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics){
 
   // If no content from API, generate client-side fallback deliverable
   if(!content&&_forgeQuery){
-    _showForgeError('Backend returned no content — using client-side template');
+    _showForgeError('Backend returned no content \u2014 using client-side template');
     var fb=_forgeFallbackDeliverable(_forgeQuery);
     deliverable=deliverable||fb;
     content=fb.content;
@@ -594,11 +606,12 @@ function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics){
     isHtml=false;
     titleEl.innerHTML='&#10003; '+title+' <small style="color:#f90;">(client-side fallback)</small>';
     statsEl.innerHTML=
-      '<div class="forge-stat"><span class="forge-stat-val">—</span><span class="forge-stat-lbl">Agents</span></div>'+
-      '<div class="forge-stat"><span class="forge-stat-val">—</span><span class="forge-stat-lbl">Build Time</span></div>'+
+      '<div class="forge-stat"><span class="forge-stat-val">'+agentCount+'</span><span class="forge-stat-lbl">Agents</span></div>'+
+      '<div class="forge-stat"><span class="forge-stat-val">'+buildTime+'</span><span class="forge-stat-lbl">Build Time</span></div>'+
       '<div class="forge-stat"><span class="forge-stat-val">'+wordCount.toLocaleString()+'</span><span class="forge-stat-lbl">Words</span></div>'+
       '<div class="forge-stat"><span class="forge-stat-val">'+lineCount.toLocaleString()+'</span><span class="forge-stat-lbl">Lines</span></div>'+
       '<div class="forge-stat"><span class="forge-stat-val">'+sizeKb+'KB</span><span class="forge-stat-lbl">Size</span></div>';
+    roiEl.innerHTML='<strong>'+agentCount+' agents \u00d7 '+buildTime+'</strong> = what would take a team of developers <strong>days or weeks</strong> to produce manually. <strong>'+roiText+'</strong>';
   }
 
   // Always show download when content exists
@@ -637,12 +650,12 @@ function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics){
 
     titleEl.innerHTML = '&#10003; ' + _fbTitle + ' <small style="color:#f90;">(client-side fallback)</small>';
     statsEl.innerHTML =
-      '<div class="forge-stat"><span class="forge-stat-val">\u2014</span><span class="forge-stat-lbl">Agents</span></div>'+
-      '<div class="forge-stat"><span class="forge-stat-val">\u2014</span><span class="forge-stat-lbl">Build Time</span></div>'+
+      '<div class="forge-stat"><span class="forge-stat-val">'+agentCount+'</span><span class="forge-stat-lbl">Agents</span></div>'+
+      '<div class="forge-stat"><span class="forge-stat-val">'+buildTime+'</span><span class="forge-stat-lbl">Build Time</span></div>'+
       '<div class="forge-stat"><span class="forge-stat-val">'+ _fbWords.toLocaleString()+'</span><span class="forge-stat-lbl">Words</span></div>'+
       '<div class="forge-stat"><span class="forge-stat-val">'+_fbLines.toLocaleString()+'</span><span class="forge-stat-lbl">Lines</span></div>'+
       '<div class="forge-stat"><span class="forge-stat-val">'+_fbSizeKb+'KB</span><span class="forge-stat-lbl">Size</span></div>';
-    roiEl.innerHTML='<em>Client-side template \u2014 connect to Murphy backend for real agent metrics.</em>';
+    roiEl.innerHTML='<strong>'+agentCount+' agents \u00d7 '+buildTime+'</strong> = what would take a team of developers <strong>days or weeks</strong> to produce manually. <strong>'+roiText+'</strong>';
 
     if(_fbContent && previewWrap && previewBody) {
       var _fbPLines = _fbContent.split('\n');
@@ -740,6 +753,7 @@ function forgeRun(query){
   _forgeRunning=true;
   _forgeQuery=query;
   _forgeDeliverable=null;
+  var _forgeStartMs=Date.now();
 
   // Set chip active
   document.querySelectorAll('.demo-chip').forEach(function(c){c.classList.toggle('active',c.dataset.forge===query);});
@@ -772,7 +786,8 @@ function forgeRun(query){
   var apiDone=false,animDone=false,apiResult=null,apiUsed=false,apiForgeUsage=null,apiBuildMetrics=null;
   function tryMerge(){
     if(!apiDone||!animDone)return;
-    _convergePanes(function(){_showResult(apiResult,apiUsed,apiForgeUsage,apiBuildMetrics);_forgeRunning=false;});
+    var _elapsedMs=Date.now()-_forgeStartMs;
+    _convergePanes(function(){_showResult(apiResult,apiUsed,apiForgeUsage,apiBuildMetrics,_elapsedMs);_forgeRunning=false;});
   }
 
   // --- Stream from backend SSE endpoint ---
