@@ -2515,10 +2515,13 @@ def generate_predefined_deliverable(
 def _run_mfgc_gate(query: str) -> Dict[str, Any]:
     """Gate the request through MFGC and return confidence + phase metadata.
 
-    Always returns a dict (empty on failure) — never raises.
+    Returns a dict with pipeline diagnostics.  ``"success"`` is True only
+    when the real MFGC adapter executed.  On import/runtime failure the dict
+    still contains ``"fallback": True`` and ``"error"`` so callers (and the
+    SSE progress stream) can report exactly what happened.
     """
     try:
-        from src.mfgc_adapter import MFGCSystemFactory
+        from src.mfgc_adapter import MFGCSystemFactory  # noqa: PLC0415
         adapter = MFGCSystemFactory.create_development_system()
         result = adapter.execute_with_mfgc(
             user_input=query,
@@ -2531,10 +2534,14 @@ def _run_mfgc_gate(query: str) -> Dict[str, Any]:
             "gates": result.gates_generated,
             "murphy_index": result.murphy_index,
             "success": result.success,
+            "fallback": False,
         }
+    except ImportError as exc:
+        logger.warning("MFGC adapter not importable: %s — using onboard gate", exc)
+        return {"success": False, "fallback": True, "error": f"import: {exc}"}
     except Exception as exc:
-        logger.debug("MFGC gate unavailable (%s) — continuing without it", exc)
-        return {}
+        logger.warning("MFGC gate runtime error: %s — using onboard gate", exc)
+        return {"success": False, "fallback": True, "error": str(exc)}
 
 
 def _mfgc_quality_score(scenario_key: str) -> int:
@@ -2579,7 +2586,8 @@ def _run_mss_pipeline(query: str, mfgc_result: Dict[str, Any]) -> Dict[str, Any]
     """Run the query through MSS Magnify then Solidify.
 
     Returns a dict with 'magnify' and 'solidify' sub-dicts extracted from
-    each TransformationResult.output.  Returns empty dict on failure.
+    each TransformationResult.output.  On failure returns a dict with
+    ``"fallback": True`` and ``"error"`` for diagnostic reporting.
     """
     try:
         mss = _build_mss_controller()
@@ -2599,10 +2607,14 @@ def _run_mss_pipeline(query: str, mfgc_result: Dict[str, Any]) -> Dict[str, Any]
             "magnify": mag.output,
             "solidify": sol.output,
             "governance": sol.governance_status,
+            "fallback": False,
         }
+    except ImportError as exc:
+        logger.warning("MSS modules not importable: %s — using onboard pipeline", exc)
+        return {"fallback": True, "error": f"import: {exc}"}
     except Exception as exc:
-        logger.debug("MSS pipeline unavailable (%s) — continuing without it", exc)
-        return {}
+        logger.warning("MSS pipeline runtime error: %s — using onboard pipeline", exc)
+        return {"fallback": True, "error": str(exc)}
 
 
 def _format_mss_context(mss_result: Dict[str, Any]) -> str:
@@ -3267,7 +3279,7 @@ def generate_custom_deliverable(
     quality = 94
     if mfgc_result.get("success"):
         quality = min(99, quality + int(mfgc_result.get("confidence", 0) * 5))
-    elif mss_result:
+    elif mss_result and not mss_result.get("fallback"):
         quality = 96  # MSS ran even if MFGC unavailable
 
     txt = build_branded_txt(title, content, scenario_type="custom", quality_score=quality)
@@ -3294,6 +3306,13 @@ def generate_deliverable_with_progress(
     Each event is ``{"phase": int, "status": str, ...}``.  The final event
     has ``"phase": "done"`` and carries the full ``deliverable`` dict.
 
+    Unlike the previous implementation which emitted canned events then ran
+    the pipeline in one shot, this version runs each MFGC→MSS stage
+    individually and reports what actually happened — including whether each
+    stage used the real module or fell back to the onboard engine.  It also
+    emits ``agent_tasks`` derived from MSS Magnify output so the frontend
+    64-box grid can display real task decomposition.
+
     This is the synchronous building-block used by the async SSE endpoint.
     """
     events: List[Dict[str, Any]] = []
@@ -3307,22 +3326,64 @@ def generate_deliverable_with_progress(
             "phase": 1,
             "status": f"Matched predefined scenario: {scenario_key}",
             "detail": "template",
+            "pipeline_stage": "scenario_match",
         })
     else:
+        # Actually run the MFGC gate and report the result
+        mfgc_result = _run_mfgc_gate(query)
+        mfgc_ok = mfgc_result.get("success", False)
+        mfgc_fallback = mfgc_result.get("fallback", True)
         events.append({
             "phase": 1,
-            "status": "MFGC gate — analyzing scope and confidence scoring",
+            "status": (
+                f"MFGC gate passed — confidence {mfgc_result.get('confidence', 0):.0%}"
+                if mfgc_ok
+                else "MFGC gate — onboard engine (adapter unavailable)"
+            ),
             "detail": "mfgc",
+            "pipeline_stage": "mfgc",
+            "mfgc_ok": mfgc_ok,
+            "mfgc_fallback": mfgc_fallback,
         })
 
     # --- Phase 2: MSS Pipeline / Template Expansion -------------------------
-    events.append({
-        "phase": 2,
-        "status": "MSS Magnify — expanding to parallel tasks"
-        if not is_predefined
-        else "Expanding template with MSS enrichment",
-        "detail": "mss",
-    })
+    if is_predefined:
+        events.append({
+            "phase": 2,
+            "status": "Expanding template with MSS enrichment",
+            "detail": "mss",
+            "pipeline_stage": "template_expand",
+        })
+        mss_result: Dict[str, Any] = {}
+        mfgc_result_for_gen: Dict[str, Any] = {}
+    else:
+        # Actually run MSS and report the result
+        mfgc_result_for_gen = mfgc_result  # type: ignore[possibly-undefined]
+        mss_result = _run_mss_pipeline(query, mfgc_result_for_gen)
+        mss_ok = not mss_result.get("fallback", True)
+        events.append({
+            "phase": 2,
+            "status": (
+                "MSS Magnify + Solidify — task decomposition complete"
+                if mss_ok
+                else "MSS — onboard pipeline (modules unavailable)"
+            ),
+            "detail": "mss",
+            "pipeline_stage": "mss",
+            "mss_ok": mss_ok,
+        })
+
+        # --- Agent task decomposition from MSS Magnify output ---------------
+        # Emit the 64-agent task breakdown so the frontend grid can display
+        # real task names instead of hardcoded fake agent types.
+        agent_tasks = _build_agent_task_list(query, mss_result)
+        if agent_tasks:
+            events.append({
+                "phase": 2,
+                "status": f"Decomposed into {len(agent_tasks)} parallel tasks",
+                "detail": "agent_tasks",
+                "agent_tasks": agent_tasks,
+            })
 
     # --- Phase 3: Content Generation ----------------------------------------
     events.append({
@@ -3331,6 +3392,7 @@ def generate_deliverable_with_progress(
         if not is_predefined
         else "Assembling branded deliverable",
         "detail": "generate",
+        "pipeline_stage": "content_gen",
     })
 
     # Actually run the full pipeline (reuse existing function)
@@ -3355,6 +3417,94 @@ def generate_deliverable_with_progress(
         },
     })
     return events
+
+
+def _build_agent_task_list(
+    query: str,
+    mss_result: Dict[str, Any],
+) -> List[Dict[str, str]]:
+    """Build a 64-agent task list from MSS Magnify output.
+
+    Each entry is ``{"agent_id": int, "agent_name": str, "task": str}``.
+    When MSS Magnify provided real requirements and components, those are
+    distributed across 64 agents.  When MSS fell back, a deterministic
+    decomposition is built from the query so the grid still shows meaningful
+    task labels rather than generic placeholder names.
+    """
+    tasks: List[Dict[str, str]] = []
+    mag = mss_result.get("magnify", {})
+    sol = mss_result.get("solidify", {})
+
+    # Collect real task items from MSS output
+    items: List[str] = []
+    for req in mag.get("functional_requirements", []):
+        items.append(req)
+    for comp in mag.get("technical_components", []):
+        items.append(comp)
+    for step in sol.get("implementation_steps", []):
+        items.append(step)
+    for ts in sol.get("testing_strategy", []):
+        items.append(ts)
+    for doc in sol.get("documentation_updates", []):
+        items.append(doc)
+
+    # If MSS didn't return data, build deterministic task decomposition
+    if not items:
+        items = _deterministic_task_decomposition(query)
+
+    # Agent role names that cycle through the 64 slots
+    roles = [
+        "ScopeAnalyzer", "RequirementsWriter", "ArchitectBot",
+        "ComponentDesigner", "DataModeler", "APIDesigner",
+        "SecurityAuditor", "ComplianceChecker", "TestPlanner",
+        "IntegrationBot", "DocWriter", "ReviewAgent",
+        "CostEstimator", "RiskAssessor", "TimelineBot",
+        "QAValidator",
+    ]
+
+    for i in range(64):
+        role = roles[i % len(roles)]
+        # Distribute real items across agents, cycling if < 64
+        task_text = items[i % len(items)] if items else f"Task slot {i + 1}"
+        tasks.append({
+            "agent_id": i,
+            "agent_name": f"Agent-{i + 1:02d}: {role}",
+            "task": str(task_text)[:120],
+        })
+
+    return tasks
+
+
+def _deterministic_task_decomposition(query: str) -> List[str]:
+    """Build a deterministic task list from a query when MSS is unavailable.
+
+    Produces a structured breakdown that represents what the Murphy System
+    pipeline would generate: scope analysis, requirements, architecture,
+    implementation steps, testing, and documentation.
+    """
+    q = query[:80]
+    return [
+        f"Analyze scope: {q}",
+        f"Extract functional requirements from: {q}",
+        f"Identify technical components for: {q}",
+        f"Map compliance domains for: {q}",
+        f"Design system architecture for: {q}",
+        f"Define data model for: {q}",
+        f"Plan API surface for: {q}",
+        f"Assess security requirements for: {q}",
+        f"Estimate cost and complexity for: {q}",
+        f"Build implementation plan for: {q}",
+        f"Write integration test strategy for: {q}",
+        f"Plan user acceptance testing for: {q}",
+        f"Draft documentation outline for: {q}",
+        f"Generate deployment checklist for: {q}",
+        f"Define monitoring and alerting for: {q}",
+        f"Create rollback plan for: {q}",
+        f"Prepare stakeholder review package for: {q}",
+        f"Build training material outline for: {q}",
+        f"Plan iteration cycles for: {q}",
+        f"Final quality gate review for: {q}",
+    ]
 
 
 def make_fingerprint(request_ip: str, user_agent: str) -> str:

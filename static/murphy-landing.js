@@ -411,7 +411,75 @@ function _buildGrid(){
   }
 }
 
-/* Cascade-activate panes */
+/* ── Chat box helpers (label: FORGE-CHAT-001) ── */
+function _chatClear(){
+  var el=document.getElementById('forge-chat-messages');
+  if(el)el.innerHTML='';
+  var acts=document.getElementById('forge-chat-actions');
+  if(acts)acts.classList.add('forge-hidden');
+}
+
+function _chatMsg(type, html){
+  var container=document.getElementById('forge-chat-messages');
+  if(!container)return null;
+  var msg=document.createElement('div');
+  msg.className='forge-chat-msg '+type;
+  msg.innerHTML=html;
+  container.appendChild(msg);
+  container.scrollTop=container.scrollHeight;
+  return msg;
+}
+
+function _chatSystem(text){
+  return _chatMsg('system','<span>'+text+'</span>');
+}
+
+function _chatAgent(label, text){
+  return _chatMsg('agent','<div class="msg-label">'+label+'</div><div>'+text+'</div>');
+}
+
+function _chatDeliverable(title, content){
+  var safeTitle=_escHtml(title);
+  // Render first 120 lines of content in the chat as a preview
+  var lines=content.split('\n');
+  var preview=lines.slice(0,120).join('\n');
+  var truncated=lines.length>120;
+  var safeContent=_escHtml(preview);
+  if(truncated) safeContent+='\n\n... ('+( lines.length-120)+' more lines — download for full content)';
+  return _chatMsg('deliverable','<div class="msg-title">'+safeTitle+'</div>'+safeContent);
+}
+
+function _chatStatus(text){
+  var el=document.getElementById('forge-chat-status');
+  if(el)el.textContent=text;
+}
+
+function _escHtml(s){
+  var d=document.createElement('div');
+  d.textContent=s;
+  return d.innerHTML;
+}
+
+/* Populate 64-pane grid from agent_tasks event (label: FORGE-GRID-001) */
+function _populateGridFromTasks(agentTasks){
+  var cols=['active','cyan','teal'];
+  for(var i=0;i<agentTasks.length&&i<64;i++){
+    (function(idx,task){
+      var delay=(Math.floor(idx/8)+idx%8)*40+Math.random()*30;
+      setTimeout(function(){
+        var p=document.getElementById('fp-'+idx);
+        if(!p)return;
+        p.className='forge-pane '+cols[idx%3];
+        var lbl=p.querySelector('.fp-label');
+        if(lbl)lbl.textContent=task.agent_name||('Agent-'+String(idx+1).padStart(2,'0'));
+        var body=p.querySelector('.fp-body');
+        if(body)body.textContent=(task.task||'').slice(0,60);
+      },delay);
+    })(i,agentTasks[i]);
+  }
+}
+
+/* Cascade-activate panes with real task data or fallback animation */
 function _cascadePanesDefault(type,onDone){
   var cols=['active','cyan','teal'];
   var activated=0;
@@ -422,20 +490,21 @@ function _cascadePanesDefault(type,onDone){
       var delay=(row+col)*55+Math.random()*40;
       setTimeout(function(){
         var p=document.getElementById('fp-'+idx);if(!p)return;
-        p.className='forge-pane '+cols[idx%3];
-        p.querySelector('.fp-label').textContent=_agentName(idx);
-        var lines=_paneLines(idx,type);
-        var body=p.querySelector('.fp-body');
-        body.innerHTML='';
-        // Scroll lines through the pane
-        var li=0;
-        var ticker=setInterval(function(){
-          if(li>=lines.length){clearInterval(ticker);return;}
-          var ln=document.createElement('div');ln.textContent=lines[li];body.appendChild(ln);
-          // Keep only last 4 lines visible
-          while(body.children.length>4)body.removeChild(body.firstChild);
-          li++;
-        },90+Math.random()*60);
+        // Only animate panes that haven't been populated by real tasks
+        if(!p.classList.contains('active')&&!p.classList.contains('cyan')&&!p.classList.contains('teal')){
+          p.className='forge-pane '+cols[idx%3];
+          p.querySelector('.fp-label').textContent=_agentName(idx);
+          var lines=_paneLines(idx,type);
+          var body=p.querySelector('.fp-body');
+          body.innerHTML='';
+          var li=0;
+          var ticker=setInterval(function(){
+            if(li>=lines.length){clearInterval(ticker);return;}
+            var ln=document.createElement('div');ln.textContent=lines[li];body.appendChild(ln);
+            while(body.children.length>4)body.removeChild(body.firstChild);
+            li++;
+          },90+Math.random()*60);
+        }
         activated++;
         if(activated===64&&onDone)onDone();
       },delay);
@@ -443,46 +512,8 @@ function _cascadePanesDefault(type,onDone){
   }
 }
 
-function _cascadePanesSSE(type,onDone){
-  var panes=document.querySelectorAll('.forge-pane');
-  var paneCount=panes.length;
-  var src=new EventSource('/api/demo/forge-stream?query='+encodeURIComponent(_forgeQuery||''));
-  src.addEventListener('agent_start',function(e){
-    var d=JSON.parse(e.data);
-    var pane=panes[d.agent_id%paneCount];
-    if(pane){var lbl=pane.querySelector('.fp-label');if(lbl)lbl.textContent=d.agent_name;}
-  });
-  src.addEventListener('agent_progress',function(e){
-    var d=JSON.parse(e.data);
-    var pane=panes[d.agent_id%paneCount];
-    if(pane){var body=pane.querySelector('.fp-body');if(body)body.textContent=d.output_line.slice(0,60);}
-  });
-  src.addEventListener('build_complete',function(){
-    src.close();
-    if(onDone)onDone();
-  });
-  src.onerror=function(){
-    src.close();
-    _cascadePanesDefault(type,onDone);
-  };
-}
-
 function _cascadePanes(type,onDone){
-  var liveChk=document.getElementById('forge-live-chk');
-  if(liveChk&&liveChk.checked&&typeof EventSource!=='undefined'){
-    _cascadePanesSSE(type,onDone);
-  } else {
-    _cascadePanesDefault(type,onDone);
-  }
-}
-
-/* Toggle preview panel collapse/expand */
-function _forgeTogglePreview(){
-  var body=document.getElementById('forge-preview-body');
-  var btn=document.getElementById('forge-preview-toggle');
-  if(!body||!btn)return;
-  var collapsed=body.classList.toggle('collapsed');
-  btn.textContent=collapsed?'\u25ba Show full content':'\u25bc Collapse';
+  _cascadePanesDefault(type,onDone);
 }
 
 /* Open HTML deliverable in new tab via Blob URL */
@@ -493,15 +524,10 @@ function _forgePreviewInTab(){
   window.open(URL.createObjectURL(blob),'_blank');
 }
 
-/* Convergence: shrink all panes toward center */
-function _convergePanes(onDone){
-  _setStatus('&#9889; Converging — assembling 64 artifacts...','phase');
+/* Mark all grid panes as done (label: FORGE-GRID-002) */
+function _markPanesDone(){
   var panes=document.querySelectorAll('.forge-pane');
-  panes.forEach(function(p){p.classList.add('converging');});
-  setTimeout(function(){
-    document.getElementById('forge-grid-wrap').style.display='none';
-    if(onDone)onDone();
-  },700);
+  panes.forEach(function(p){p.classList.add('done');});
 }
 
 /* Show a visible error instead of silently falling back */
@@ -514,7 +540,7 @@ function _showForgeError(msg){
   _setStatus('&#9888; '+msg,'phase');
 }
 
-/* Show result block */
+/* Show result: populate chat box + stats panel (label: FORGE-RESULT-001) */
 function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics,clientElapsedMs){
   var resBlock=document.getElementById('forge-result');
   var titleEl=document.getElementById('forge-result-title');
@@ -522,10 +548,9 @@ function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics,clientElaps
   var roiEl=document.getElementById('forge-roi');
   var dlBtn=document.getElementById('forge-dl-btn');
   var fbCta=document.getElementById('forge-fallback-cta');
-  var previewWrap=document.getElementById('forge-preview');
-  var previewBody=document.getElementById('forge-preview-body');
   var usageEl=document.getElementById('forge-usage');
   var htmlBtn=document.getElementById('forge-html-preview-btn');
+  var chatActions=document.getElementById('forge-chat-actions');
 
   var title=deliverable?deliverable.title:('Deliverable: '+_forgeQuery.slice(0,50));
   var content=deliverable?deliverable.content:'';
@@ -535,7 +560,29 @@ function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics,clientElaps
   var filename=deliverable?deliverable.filename||'murphy-deliverable.txt':'murphy-deliverable.txt';
   var isHtml=/\.html?$/i.test(filename)||/<html/i.test((content||'').slice(0,200));
 
-  // Use real metrics from backend when available, fall back to client-side computed values
+  // If no content from backend, use client-side fallback
+  if(!content&&_forgeQuery){
+    _showForgeError('Backend returned no content \u2014 using client-side template');
+    var fb=_forgeFallbackDeliverable(_forgeQuery);
+    deliverable=deliverable||fb;
+    content=fb.content;filename=fb.filename;title=fb.title;
+    wordCount=content.trim().split(/\s+/).filter(Boolean).length;
+    lineCount=content.split('\n').length;
+    sizeKb=Math.round(content.length/1024)||1;
+    isHtml=false;
+  }
+  if(!content){
+    // Last resort fallback
+    var _fb=_forgeFallback(_forgeQuery);
+    if(_fb){content=_fb.content;filename=_fb.filename;title=_fb.title;}
+    if(content){
+      wordCount=content.split(/\s+/).length;
+      lineCount=content.split('\n').length;
+      sizeKb=Math.round(content.length/1024)||1;
+    }
+  }
+
+  // Metrics
   var agentCount=(buildMetrics&&buildMetrics.agent_count)?buildMetrics.agent_count:64;
   var buildTimeSec=(buildMetrics&&buildMetrics.actual_elapsed_seconds)?buildMetrics.actual_elapsed_seconds:(clientElapsedMs?clientElapsedMs/1000:0);
   var buildTime=buildTimeSec>0?(buildTimeSec.toFixed(1)+'s'):'\u2014';
@@ -543,30 +590,51 @@ function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics,clientElaps
   if(buildMetrics&&buildMetrics.line_count)lineCount=buildMetrics.line_count;
   if(buildMetrics&&buildMetrics.size_kb)sizeKb=Math.round(buildMetrics.size_kb);
 
-  // Compute ROI: use backend value or estimate from client-side timing
-  // Constants mirror backend BuildMetrics: _TEAM_HOURLY=$75, _HUMAN_TEAM_SIZE=4,
-  // _SERVER_COST=$0.01, _HITL_BUDGET=$0.05, base_hours=2.0+min(words/50,6.0)
   var roiMultiple=(buildMetrics&&buildMetrics.roi_multiple)?buildMetrics.roi_multiple:0;
   if(!roiMultiple&&buildTimeSec>0){
     var queryWords=(_forgeQuery||'').split(/\s+/).length;
     var estHumanHours=2.0+Math.min(queryWords/50,6.0);
     var estHumanCost=estHumanHours*75;
-    var estActualCost=0.06;
-    roiMultiple=Math.round(estHumanCost/estActualCost);
+    roiMultiple=Math.round(estHumanCost/0.06);
   }
   var roiText=roiMultiple>0?('ROI: '+roiMultiple+'x'):'ROI: immediate';
 
-  titleEl.innerHTML='&#10003; '+title;
+  // --- Populate chat box with deliverable content ---
+  _chatSystem('&#10003; Build complete — '+wordCount.toLocaleString()+' words, '+lineCount.toLocaleString()+' lines ('+sizeKb+'KB)');
+  if(content){
+    _chatDeliverable(title,content);
+  }
+  _chatStatus('Ready');
+  _markPanesDone();
+
+  // --- Show download actions in chat ---
+  if(content&&chatActions){
+    chatActions.classList.remove('forge-hidden');
+    dlBtn.style.display='';
+    dlBtn.textContent='\u2193 Download: '+filename+' ('+sizeKb+'KB)';
+    dlBtn.onclick=function(){
+      var blob=new Blob([content],{type:'text/plain'});
+      var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+      a.download=filename;
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+    };
+    if(htmlBtn){
+      if(isHtml){htmlBtn.classList.remove('forge-hidden');htmlBtn._content=content;}
+      else htmlBtn.classList.add('forge-hidden');
+    }
+  }
+
+  // --- Populate stats panel below workspace ---
+  titleEl.innerHTML='&#10003; '+_escHtml(title);
   statsEl.innerHTML=
     '<div class="forge-stat"><span class="forge-stat-val">'+agentCount+'</span><span class="forge-stat-lbl">Agents</span></div>'+
     '<div class="forge-stat"><span class="forge-stat-val">'+buildTime+'</span><span class="forge-stat-lbl">Build Time</span></div>'+
     '<div class="forge-stat"><span class="forge-stat-val">'+wordCount.toLocaleString()+'</span><span class="forge-stat-lbl">Words</span></div>'+
     '<div class="forge-stat"><span class="forge-stat-val">'+lineCount.toLocaleString()+'</span><span class="forge-stat-lbl">Lines</span></div>'+
     '<div class="forge-stat"><span class="forge-stat-val">'+sizeKb+'KB</span><span class="forge-stat-lbl">Size</span></div>';
-
   roiEl.innerHTML='<strong>'+agentCount+' agents \u00d7 '+buildTime+'</strong> = what would take a team of developers <strong>days or weeks</strong> to produce manually. <strong>'+roiText+'</strong>';
 
-  // Show usage counter
+  // Usage counter
   if(forgeUsage&&usageEl){
     var remaining=forgeUsage.builds_remaining_today;
     var used=forgeUsage.builds_used_today||0;
@@ -580,118 +648,8 @@ function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics,clientElaps
     usageEl.classList.remove('forge-hidden');
   }
 
-  // Show content preview (first 100 lines)
-  if(content&&previewWrap&&previewBody){
-    var lines=content.split('\n');
-    var previewLines=lines.slice(0,100).join('\n');
-    var truncated=lines.length>100;
-    previewBody.textContent=previewLines+(truncated?'\n\n... ('+(lines.length-100)+' more lines — download to see full content)':'');
-    previewWrap.classList.remove('forge-hidden');
-    // Reset toggle state
-    previewBody.classList.remove('collapsed');
-    var toggleBtn=document.getElementById('forge-preview-toggle');
-    if(toggleBtn)toggleBtn.textContent='\u25bc Collapse';
-  }
-
-  // If no content from API, generate client-side fallback deliverable
-  if(!content&&_forgeQuery){
-    _showForgeError('Backend returned no content \u2014 using client-side template');
-    var fb=_forgeFallbackDeliverable(_forgeQuery);
-    deliverable=deliverable||fb;
-    content=fb.content;
-    filename=fb.filename;
-    title=fb.title;
-    wordCount=content.trim().split(/\s+/).filter(Boolean).length;
-    lineCount=content.split('\n').length;
-    sizeKb=Math.round(content.length/1024)||1;
-    isHtml=false;
-    titleEl.innerHTML='&#10003; '+title+' <small style="color:#f90;">(client-side fallback)</small>';
-    statsEl.innerHTML=
-      '<div class="forge-stat"><span class="forge-stat-val">'+agentCount+'</span><span class="forge-stat-lbl">Agents</span></div>'+
-      '<div class="forge-stat"><span class="forge-stat-val">'+buildTime+'</span><span class="forge-stat-lbl">Build Time</span></div>'+
-      '<div class="forge-stat"><span class="forge-stat-val">'+wordCount.toLocaleString()+'</span><span class="forge-stat-lbl">Words</span></div>'+
-      '<div class="forge-stat"><span class="forge-stat-val">'+lineCount.toLocaleString()+'</span><span class="forge-stat-lbl">Lines</span></div>'+
-      '<div class="forge-stat"><span class="forge-stat-val">'+sizeKb+'KB</span><span class="forge-stat-lbl">Size</span></div>';
-    roiEl.innerHTML='<strong>'+agentCount+' agents \u00d7 '+buildTime+'</strong> = what would take a team of developers <strong>days or weeks</strong> to produce manually. <strong>'+roiText+'</strong>';
-  }
-
-  // Always show download when content exists
-  if(content){
-    dlBtn.style.display='';
-    fbCta.classList.add('forge-hidden');
-    dlBtn.onclick=function(){
-      var blob=new Blob([content],{type:'text/plain'});
-      var a=document.createElement('a');a.href=URL.createObjectURL(blob);
-      a.download=filename;
-      document.body.appendChild(a);a.click();document.body.removeChild(a);
-    };
-    dlBtn.textContent='\u2193 Download: '+filename+' ('+sizeKb+'KB)';
-    // HTML preview button
-    if(htmlBtn){
-      if(isHtml){
-        htmlBtn.classList.remove('forge-hidden');
-        htmlBtn._content=content;
-      } else {
-        htmlBtn.classList.add('forge-hidden');
-      }
-    }
-    resBlock.style.display='block';
-    _setStatus('&#10003; Build complete — your deliverable is ready.','phase');
-  } else {
-    // API unavailable or returned no content -- use client-side fallback
-    _showForgeError('API unavailable — using client-side fallback template');
-    var _fb = _forgeFallback(_forgeQuery);
-    var _fbContent = _fb ? _fb.content : '';
-    var _fbTitle = _fb ? _fb.title : ('Deliverable: ' + _forgeQuery.slice(0,50));
-    var _fbFilename = _fb ? _fb.filename : 'murphy-deliverable.txt';
-    var _fbLines = _fbContent ? _fbContent.split('\n').length : 0;
-    var _fbWords = _fbContent ? _fbContent.split(/\s+/).length : 0;
-    var _fbSizeKb = _fbContent ? Math.round(_fbContent.length / 1024) : 0;
-    var _fbIsHtml = /\.html?$/i.test(_fbFilename) || /<html/i.test((_fbContent||'').slice(0,200));
-
-    titleEl.innerHTML = '&#10003; ' + _fbTitle + ' <small style="color:#f90;">(client-side fallback)</small>';
-    statsEl.innerHTML =
-      '<div class="forge-stat"><span class="forge-stat-val">'+agentCount+'</span><span class="forge-stat-lbl">Agents</span></div>'+
-      '<div class="forge-stat"><span class="forge-stat-val">'+buildTime+'</span><span class="forge-stat-lbl">Build Time</span></div>'+
-      '<div class="forge-stat"><span class="forge-stat-val">'+ _fbWords.toLocaleString()+'</span><span class="forge-stat-lbl">Words</span></div>'+
-      '<div class="forge-stat"><span class="forge-stat-val">'+_fbLines.toLocaleString()+'</span><span class="forge-stat-lbl">Lines</span></div>'+
-      '<div class="forge-stat"><span class="forge-stat-val">'+_fbSizeKb+'KB</span><span class="forge-stat-lbl">Size</span></div>';
-    roiEl.innerHTML='<strong>'+agentCount+' agents \u00d7 '+buildTime+'</strong> = what would take a team of developers <strong>days or weeks</strong> to produce manually. <strong>'+roiText+'</strong>';
-
-    if(_fbContent && previewWrap && previewBody) {
-      var _fbPLines = _fbContent.split('\n');
-      previewBody.textContent = _fbPLines.slice(0,100).join('\n') + (_fbPLines.length>100 ? '\n\n... ('+(_fbPLines.length-100)+' more lines \u2014 download to see full content)':'');
-      previewWrap.classList.remove('forge-hidden');
-      previewBody.classList.remove('collapsed');
-      var _fbToggle = document.getElementById('forge-preview-toggle');
-      if(_fbToggle) _fbToggle.textContent = '\u25bc Collapse';
-    }
-
-    if(_fbContent) {
-      dlBtn.style.display = '';
-      dlBtn.textContent = '\u2193 Download: ' + _fbFilename + ' (' + _fbSizeKb + 'KB)';
-      dlBtn.onclick = function() {
-        var blob = new Blob([_fbContent], {type:'text/plain'});
-        var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-        a.download = _fbFilename;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      };
-      if(htmlBtn) {
-        if(_fbIsHtml) { htmlBtn.classList.remove('forge-hidden'); htmlBtn._content=_fbContent; }
-        else htmlBtn.classList.add('forge-hidden');
-      }
-      fbCta.classList.remove('forge-hidden');
-      _setStatus('&#10003; Build complete \u2014 your deliverable is ready.','phase');
-    } else {
-      dlBtn.style.display = '';
-      dlBtn.textContent = '\u27f3 Retry Build';
-      dlBtn.onclick = function(){ forgeRun(_forgeQuery); };
-      fbCta.classList.remove('forge-hidden');
-      if(htmlBtn) htmlBtn.classList.add('forge-hidden');
-      _setStatus('\u26a0 Could not generate deliverable. Please try again.','phase');
-    }
-    resBlock.style.display = 'block';
-  }
+  resBlock.style.display='block';
+  _setStatus('&#10003; Build complete — your deliverable is ready.','phase');
 }
 
 /* Download via real API — retries up to 3 times with exponential backoff */
@@ -746,7 +704,12 @@ function _gateCheck(query){
   return {score:score,questions:questions,pass:score>=85};
 }
 
-/* Main forge run */
+/* Main forge run (label: FORGE-RUN-001)
+ *
+ * Shows the forge-workspace (grid + chat), streams SSE events from the
+ * backend pipeline, populates the 64-box grid with real agent task
+ * decomposition, and fills the chat box with deliverable content.
+ */
 function forgeRun(query){
   if(_forgeRunning)return;
   query=(query||'').trim();
@@ -769,31 +732,31 @@ function forgeRun(query){
     return;
   }
 
-  // Set up UI
-  _setStatus('&#128161; Phase 1 — Connecting to backend pipeline...','phase');
-  var gridWrap=document.getElementById('forge-grid-wrap');
+  // Set up UI — show workspace (grid + chat), hide result stats
+  _setStatus('&#128161; Phase 1 — Connecting to MFGC pipeline...','phase');
+  var workspace=document.getElementById('forge-workspace');
   var resBlock=document.getElementById('forge-result');
-  gridWrap.style.display='block';
+  if(workspace)workspace.style.display='grid';
   resBlock.style.display='none';
   var errEl=document.getElementById('forge-api-err');
   if(errEl){errEl.innerHTML='';errEl.classList.add('forge-hidden');}
   _buildGrid();
+  _chatClear();
+  _chatSystem('&#9654; Starting Murphy System pipeline for: <strong>'+_escHtml(query.slice(0,80))+'</strong>');
+  _chatStatus('Connecting...');
 
-  // Show live view toggle
-  var liveWrap=document.getElementById('forge-live-wrap');
-  if(liveWrap)liveWrap.classList.remove('forge-hidden');
+  // Track state for completing the build
+  var apiResult=null,apiUsed=false,apiForgeUsage=null,apiBuildMetrics=null;
+  var animStarted=false,gridPopulated=false;
 
-  // Track state for merging animation + API
-  var apiDone=false,animDone=false,apiResult=null,apiUsed=false,apiForgeUsage=null,apiBuildMetrics=null;
-  function tryMerge(){
-    if(!apiDone||!animDone)return;
+  function finishBuild(){
     var _elapsedMs=Date.now()-_forgeStartMs;
-    _convergePanes(function(){_showResult(apiResult,apiUsed,apiForgeUsage,apiBuildMetrics,_elapsedMs);_forgeRunning=false;});
+    _showResult(apiResult,apiUsed,apiForgeUsage,apiBuildMetrics,_elapsedMs);
+    _forgeRunning=false;
   }
 
   // --- Stream from backend SSE endpoint ---
   var _phaseIcons={1:'&#128161;',2:'&#128029;',3:'&#9889;'};
-  var animStarted=false;
 
   fetch('/api/demo/generate-deliverable/stream',{
     method:'POST',
@@ -802,14 +765,12 @@ function forgeRun(query){
     body:JSON.stringify({query:query})
   }).then(function(resp){
     if(!resp.ok){
-      // Non-streaming error (400/429/503) — parse JSON body
       return resp.json().catch(function(){return null;}).then(function(data){
         if(data&&data.error){
           _showForgeError(data.error);
+          _chatSystem('&#9888; '+_escHtml(data.error));
         }
-        apiDone=true;
-        if(!animStarted){animDone=true;}
-        tryMerge();
+        finishBuild();
       });
     }
     var reader=resp.body.getReader();
@@ -818,11 +779,10 @@ function forgeRun(query){
     function pump(){
       return reader.read().then(function(result){
         if(result.done){
-          apiDone=true; tryMerge();
+          finishBuild();
           return;
         }
         buf+=decoder.decode(result.value,{stream:true});
-        // Parse SSE lines (each event is "data: {...}\n\n")
         var parts=buf.split('\n\n');
         buf=parts.pop()||'';
         parts.forEach(function(raw){
@@ -832,7 +792,8 @@ function forgeRun(query){
 
           if(evt.phase==='error'){
             _showForgeError(evt.status||'Backend pipeline error');
-            apiDone=true; tryMerge();
+            _chatSystem('&#9888; Pipeline error: '+_escHtml(evt.status||'unknown'));
+            finishBuild();
             return;
           }
 
@@ -849,21 +810,29 @@ function forgeRun(query){
               apiBuildMetrics.line_count=evt.metrics.line_count;
               apiBuildMetrics.size_kb=evt.metrics.size_kb;
             }
-            apiDone=true; tryMerge();
+            finishBuild();
             return;
           }
 
-          // Progress event — update status from backend
+          // --- Progress events: update chat + grid ---
           var icon=_phaseIcons[evt.phase]||'&#9881;';
           _setStatus(icon+' Phase '+evt.phase+' — '+evt.status,'phase');
+          _chatSystem(icon+' Phase '+evt.phase+' — '+_escHtml(evt.status));
+          _chatStatus('Phase '+evt.phase);
 
-          // Start grid animation on phase 2
+          // If this event carries agent_tasks, populate the grid
+          if(evt.detail==='agent_tasks'&&evt.agent_tasks){
+            gridPopulated=true;
+            _populateGridFromTasks(evt.agent_tasks);
+          }
+
+          // Start fallback grid animation on phase 2 if no real tasks yet
           if(evt.phase>=2&&!animStarted){
             animStarted=true;
-            var type=_detectType(query);
-            _cascadePanes(type,function(){
-              animDone=true; tryMerge();
-            });
+            if(!gridPopulated){
+              var type=_detectType(query);
+              _cascadePanes(type,function(){});
+            }
           }
         });
         return pump();
@@ -872,6 +841,7 @@ function forgeRun(query){
     return pump();
   }).catch(function(){
     // Network error — fall back to non-streaming endpoint
+    _chatSystem('&#9881; Streaming unavailable — trying fallback endpoint...');
     _setStatus('&#9881; Connecting to fallback endpoint...','phase');
     fetch('/api/demo/generate-deliverable',{
       method:'POST',
@@ -887,20 +857,28 @@ function forgeRun(query){
         apiUsed=true;
         apiForgeUsage=data.forge_usage||null;
         apiBuildMetrics=data.metrics||null;
+        _chatSystem('&#10003; Deliverable received from fallback endpoint');
       }
-      apiDone=true; tryMerge();
+      // Start grid animation for visual feedback
+      if(!animStarted){
+        animStarted=true;
+        var type=_detectType(query);
+        _cascadePanes(type,function(){});
+      }
+      finishBuild();
     })
-    .catch(function(){apiDone=true; tryMerge();});
+    .catch(function(){
+      _chatSystem('&#9888; Both endpoints failed — using client-side template');
+      finishBuild();
+    });
   });
 
-  // Start animation after a short delay (in case stream hasn't sent phase 2 yet)
+  // Start fallback grid animation after 3s if backend hasn't triggered it
   setTimeout(function(){
     if(!animStarted){
       animStarted=true;
       var type=_detectType(query);
-      _cascadePanes(type,function(){
-        animDone=true; tryMerge();
-      });
+      _cascadePanes(type,function(){});
     }
   },3000);
 }
