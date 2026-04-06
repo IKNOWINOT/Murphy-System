@@ -69,9 +69,16 @@ def safe_path_join(base: str, *parts: str) -> Path:
                 "SEC-PATH-003: Path traversal detected (encoded or literal '..')")
 
     target = (base_resolved / Path(*parts)).resolve()
-    if not str(target).startswith(str(base_resolved)):
-        raise InjectionAttemptError(
-            f"SEC-PATH-001: Path traversal — resolved path escapes base directory")
+    # Python 3.9+ is_relative_to is cross-platform safe (handles case-insensitive FS).
+    if hasattr(target, "is_relative_to"):
+        if not target.is_relative_to(base_resolved):
+            raise InjectionAttemptError(
+                f"SEC-PATH-001: Path traversal — resolved path escapes base directory")
+    else:
+        # Fallback for Python 3.8
+        if not str(target).startswith(str(base_resolved)):
+            raise InjectionAttemptError(
+                f"SEC-PATH-001: Path traversal — resolved path escapes base directory")
     return target
 
 

@@ -2,7 +2,7 @@
 Production Security Hardening — Comprehensive Test Suite
 =========================================================
 
-Tests for all 36 SEC-* labels across all 12 hardening modules.
+Tests for all 28 SEC-* labels across all 12 hardening modules.
 
 Phase 1: Foundations  — Modules 5 (Secrets), 6 (Docker), 9 (Deps)
 Phase 2: Perimeter   — Modules 1 (CORS), 8 (Logging), 11 (Routes)
