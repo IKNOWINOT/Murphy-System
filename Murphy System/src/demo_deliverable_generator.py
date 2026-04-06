@@ -3236,45 +3236,622 @@ def _build_content_from_mss(
     return "\n".join(lines)
 
 
-def _build_minimal_custom_content(query: str) -> str:
-    """Fallback content when LLM + MSS are both unavailable.
+# ---------------------------------------------------------------------------
+# Domain-aware content expansion engine  (label: FORGE-DOMAIN-EXPAND-001)
+# ---------------------------------------------------------------------------
+# LLM-down fallback.  When DeepInfra / Together.ai / all LLM providers are
+# unreachable, the domain expander produces deep, actionable, domain-specific
+# content so the user still gets a substantive deliverable.
+# ---------------------------------------------------------------------------
 
-    This path should rarely execute in production — DeepInfra is the primary
-    content generator.  When it does run, it produces a structured scaffold
-    that makes the deliverable usable even without LLM prose.
+_DOMAIN_KEYWORD_MAP: Dict[str, str] = {
+    "ci/cd": "devops", "cicd": "devops", "pipeline": "devops",
+    "deploy": "devops", "deployment": "devops", "kubernetes": "devops",
+    "k8s": "devops", "docker": "devops", "terraform": "devops",
+    "infrastructure": "devops", "devops": "devops", "monitoring": "devops",
+    "observability": "devops", "helm": "devops", "cloud": "devops",
+    "aws": "devops", "azure": "devops", "gcp": "devops",
+    "api": "software", "microservice": "software", "architecture": "software",
+    "backend": "software", "frontend": "software", "database": "software",
+    "refactor": "software", "migration": "software", "sdk": "software",
+    "library": "software", "framework": "software",
+    "system design": "software", "software": "software",
+    "security": "security", "incident": "security", "vulnerability": "security",
+    "penetration": "security", "pentest": "security",
+    "zero trust": "security", "encryption": "security", "firewall": "security",
+    "threat": "security", "forensic": "security", "iam": "security",
+    "data": "data", "analytics": "data", "etl": "data",
+    "warehouse": "data", "lake": "data",
+    "dashboard": "data", "reporting": "data", "machine learning": "data",
+    "book": "content", "write": "content", "chapter": "content",
+    "curriculum": "content", "lesson": "content", "training": "content",
+    "documentation": "content", "manual": "content", "guide": "content",
+    "tutorial": "content", "article": "content", "whitepaper": "content",
+    "course": "content", "education": "content", "teach": "content",
+    "onboard": "operations", "process": "operations", "workflow": "operations",
+    "sop": "operations", "procedure": "operations", "policy": "operations",
+    "hiring": "operations", "employee": "operations",
+    "vendor": "operations", "procurement": "operations", "supply chain": "operations",
+    "strategy": "strategy", "roadmap": "strategy", "plan": "strategy",
+    "business plan": "strategy", "growth": "strategy", "market": "strategy",
+    "competitive": "strategy", "swot": "strategy", "okr": "strategy",
+    "kpi": "strategy", "budget": "strategy", "forecast": "strategy",
+    "marketing": "marketing", "campaign": "marketing", "seo": "marketing",
+    "brand": "marketing", "social media": "marketing",
+    "lead": "marketing", "funnel": "marketing",
+    "sales": "marketing", "crm": "marketing", "conversion": "marketing",
+    "compliance": "compliance", "audit": "compliance", "gdpr": "compliance",
+    "hipaa": "compliance", "regulation": "compliance", "legal": "compliance",
+    "contract": "compliance", "governance": "compliance", "risk": "compliance",
+    "iso": "compliance", "sox": "compliance", "pci": "compliance",
+}
+
+
+def _detect_domains(query: str) -> List[str]:
+    """Return matched domain IDs for *query*, ordered by relevance."""
+    q = query.lower()
+    hits: Dict[str, int] = {}
+    for kw, domain in _DOMAIN_KEYWORD_MAP.items():
+        if kw in q:
+            hits[domain] = hits.get(domain, 0) + 1
+    return sorted(hits, key=hits.get, reverse=True) if hits else ["strategy"]  # type: ignore[arg-type]
+
+
+def _build_deep_domain_content(query: str) -> str:
+    """Generate comprehensive, domain-specific deliverable sections.
+
+    LLM-down fallback — produces rich, actionable content using domain
+    templates when no LLM provider is reachable.
     """
+    q = query.lower()
+    domains = _detect_domains(query)
+    primary = domains[0]
+    sections: List[str] = []
+
+    # ── Shared: Stakeholder Analysis ──────────────────────────────────────
+    sections.append(f"""\
+■ STAKEHOLDER ANALYSIS
+───────────────────────
+  The following stakeholders are identified for "{query[:80]}":
+
+  ┌──────────────────────────────┬────────────┬────────────┬──────────────────────┐
+  │ Stakeholder                  │ Role       │ Influence  │ Communication        │
+  ├──────────────────────────────┼────────────┼────────────┼──────────────────────┤
+  │ Executive Sponsor            │ Approver   │ HIGH       │ Weekly status brief  │
+  │ Project Lead                 │ Driver     │ HIGH       │ Daily standups       │
+  │ Subject Matter Experts       │ Advisors   │ MEDIUM     │ Bi-weekly review     │
+  │ End Users / Consumers        │ Validators │ MEDIUM     │ UAT sessions         │
+  │ Operations / Support         │ Operators  │ MEDIUM     │ Runbook handoff      │
+  │ Legal / Compliance           │ Gatekeepers│ HIGH       │ Milestone sign-off   │
+  │ Finance / Budget Owner       │ Approver   │ HIGH       │ Monthly cost review  │
+  │ External Partners / Vendors  │ Suppliers  │ LOW–MED    │ Contractual reviews  │
+  └──────────────────────────────┴────────────┴────────────┴──────────────────────┘""")
+
+    # ── Shared: RACI Matrix ───────────────────────────────────────────────
+    sections.append("""\
+■ RACI MATRIX
+──────────────
+  ┌────────────────────────────┬──────┬──────┬──────┬──────┬─────────┐
+  │ Activity                   │ PM   │ Lead │ SME  │ QA   │ Sponsor │
+  ├────────────────────────────┼──────┼──────┼──────┼──────┼─────────┤
+  │ Requirements gathering     │ A    │ C    │ R    │ I    │ I       │
+  │ Architecture & design      │ I    │ R    │ C    │ C    │ A       │
+  │ Implementation / build     │ I    │ R/A  │ C    │ C    │ I       │
+  │ Testing & validation       │ I    │ C    │ I    │ R/A  │ I       │
+  │ Stakeholder review (UAT)   │ C    │ I    │ C    │ I    │ R/A     │
+  │ Deployment / go-live       │ A    │ R    │ I    │ C    │ I       │
+  │ Post-launch monitoring     │ I    │ R    │ C    │ R    │ I       │
+  │ Documentation & handoff    │ A    │ R    │ C    │ C    │ I       │
+  │ Retrospective & lessons    │ R    │ C    │ C    │ C    │ A       │
+  └────────────────────────────┴──────┴──────┴──────┴──────┴─────────┘
+  R = Responsible   A = Accountable   C = Consulted   I = Informed""")
+
+    # ── Domain: DevOps / Infrastructure ───────────────────────────────────
+    if primary == "devops" or "devops" in domains:
+        sections.append(f"""\
+■ INFRASTRUCTURE & DEVOPS ARCHITECTURE
+════════════════════════════════════════
+  Request context: {query}
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │                      HIGH-LEVEL ARCHITECTURE                        │
+  │  Developer ──► Git Push ──► CI Pipeline ──► Artifact Registry       │
+  │                                   │                                  │
+  │                             ┌─────┴─────┐                           │
+  │                             ▼           ▼                            │
+  │                        Unit Tests   Lint / SAST                     │
+  │                             │           │                            │
+  │                             └─────┬─────┘                           │
+  │                                   ▼                                  │
+  │                          Integration Tests                          │
+  │                                   │                                  │
+  │                             ┌─────┴─────┐                           │
+  │                             ▼           ▼                            │
+  │                         Staging      Canary                         │
+  │                             │           │                            │
+  │                             └─────┬─────┘                           │
+  │                                   ▼                                  │
+  │                       Production (Blue/Green)                       │
+  └──────────────────────────────────────────────────────────────────────┘
+
+■ PIPELINE STAGES — DETAILED SPECIFICATION
+  STAGE 1 — SOURCE & TRIGGER
+    Trigger:          Push to main / PR merge / tag creation
+    Branch strategy:  Trunk-based development with short-lived feature branches
+    PR requirements:  ≥1 approval, all checks green, no merge conflicts
+
+  STAGE 2 — BUILD
+    Build system:     Multi-stage Docker build (builder → runtime)
+    Cache strategy:   Layer caching + remote cache (registry-backed)
+    Artifact output:  Container image + SBOM + build attestation
+
+  STAGE 3 — TEST
+    Unit tests:       Run in parallel (sharded by module)
+    Coverage target:  ≥ 85 % line coverage, ≥ 75 % branch coverage
+    Integration:      Docker Compose test harness with real DB + message bus
+    Security scan:    SAST (Semgrep), SCA (Trivy), secrets (Gitleaks)
+
+  STAGE 4 — ARTIFACT MANAGEMENT
+    Registry:         OCI-compliant container registry
+    Tagging:          Semantic: v{{major}}.{{minor}}.{{patch}}-{{sha8}}
+    Signing:          Cosign / Notary v2 image signatures
+
+  STAGE 5 — DEPLOYMENT
+    Strategy:         Blue/Green with automated traffic shift
+    Canary:           10 % → 25 % → 50 % → 100 % over 30 minutes
+    Rollback:         Automated on error-rate > 1 % or p99 > 500 ms
+    GitOps:           ArgoCD / FluxCD syncing from deployment repo
+
+  STAGE 6 — OBSERVABILITY & MONITORING
+    Metrics:          Prometheus + Grafana; SLI/SLO dashboards
+    Logging:          Structured JSON → OpenTelemetry Collector → storage
+    Tracing:          Distributed traces (Jaeger / Tempo)
+    Alerting:         PagerDuty integration; runbook links in every alert
+
+■ ENVIRONMENT MATRIX
+  ┌─────────────────┬────────────────┬───────────────┬─────────────────┐
+  │ Environment      │ Purpose        │ Deploy trigger│ Data            │
+  ├─────────────────┼────────────────┼───────────────┼─────────────────┤
+  │ dev              │ Active dev     │ Every push    │ Synthetic / seed│
+  │ staging          │ Pre-prod QA    │ PR merge      │ Anonymised prod │
+  │ canary           │ % traffic test │ Release tag   │ Live (subset)   │
+  │ production       │ User-facing    │ Promotion     │ Live            │
+  │ dr-standby       │ Disaster recov │ Continuous    │ Replicated      │
+  └─────────────────┴────────────────┴───────────────┴─────────────────┘
+
+■ DISASTER RECOVERY & ROLLBACK
+  RTO target:  15 minutes  |  RPO target:  5 minutes
+  Rollback: ArgoCD revert → traffic shift → verify → post-mortem""")
+
+    # ── Domain: Security ──────────────────────────────────────────────────
+    if primary == "security" or "security" in domains:
+        sections.append(f"""\
+■ SECURITY FRAMEWORK & CONTROLS
+═════════════════════════════════
+  Scope: {query}
+
+  CONTROL DOMAIN 1 — IDENTITY & ACCESS MANAGEMENT (IAM)
+    □  Single Sign-On (SSO) via SAML 2.0 / OIDC
+    □  Multi-factor authentication enforced for all users
+    □  Role-Based Access Control (RBAC) with least-privilege default
+    □  Service accounts: time-bounded, secret-rotated every 90 days
+    □  Access reviews: quarterly automated report + manager sign-off
+
+  CONTROL DOMAIN 2 — DATA PROTECTION
+    □  Encryption at rest: AES-256 (database, object storage, backups)
+    □  Encryption in transit: TLS 1.3 minimum
+    □  Key management: HSM-backed KMS; key rotation every 365 days
+    □  Data classification: PUBLIC / INTERNAL / CONFIDENTIAL / RESTRICTED
+
+  CONTROL DOMAIN 3 — NETWORK SECURITY
+    □  Zero-trust network architecture: verify identity at every hop
+    □  Microsegmentation: service-to-service mTLS
+    □  WAF rules: OWASP Top 10 protections
+    □  Egress filtering: allow-list only for external destinations
+
+  CONTROL DOMAIN 4 — APPLICATION SECURITY
+    □  SAST: integrated in CI pipeline (every PR)
+    □  DAST: weekly automated scans against staging
+    □  SCA: continuous dependency vulnerability monitoring
+    □  Penetration testing: annual third-party; quarterly internal
+
+  CONTROL DOMAIN 5 — INCIDENT RESPONSE
+    Phase 1 — Detection (0–15 min):  SIEM alert, validate, classify severity
+    Phase 2 — Containment (15–60 min):  Isolate, preserve evidence, rotate creds
+    Phase 3 — Eradication (1–4 hours):  Root cause, patch, harden
+    Phase 4 — Recovery (4–24 hours):  Restore from clean backups, gradual traffic
+    Phase 5 — Post-Incident (24–72 hours):  Blameless post-mortem, action items""")
+
+    # ── Domain: Content / Writing / Education ─────────────────────────────
+    if primary == "content" or "content" in domains:
+        is_book = any(kw in q for kw in ("book", "textbook", "ebook", "e-book"))
+        is_course = any(kw in q for kw in ("course", "curriculum", "lesson", "training program"))
+
+        if is_book:
+            topic = query
+            for pfx in ("write a complete book on ", "write a book on ", "write a book about ",
+                         "create a book on ", "create a book about ", "write "):
+                if q.startswith(pfx):
+                    topic = query[len(pfx):].strip()
+                    break
+            sections.append(f"""\
+■ BOOK OUTLINE — COMPREHENSIVE STRUCTURE
+══════════════════════════════════════════
+  Title:    The Complete Guide to {topic.title()}
+  Subtitle: From Foundations to Mastery — A Practitioner's Handbook
+  Format:   Digital (PDF, EPUB, MOBI) + Print-ready (6×9 trade paperback)
+  Target:   400–600 pages | 80,000–120,000 words
+  Audience: Beginner to advanced practitioners
+
+  FRONT MATTER
+    • Title page & copyright notice  • Dedication
+    • Table of Contents (3-level depth)
+    • Preface — Why this book exists (800–1,200 words)
+    • How to read this book  • Acknowledgements
+
+  PART I — FOUNDATIONS (Chapters 1–5, ~100 pages)
+    Chapter 1: Introduction to {topic.title()} (15–20 pages)
+    Chapter 2: Core Concepts & Terminology (20–25 pages)
+    Chapter 3: Essential Building Blocks (25–30 pages)
+    Chapter 4: Workflows & Best Practices (20–25 pages)
+    Chapter 5: Your First Complete Project (25–30 pages)
+
+  PART II — INTERMEDIATE MASTERY (Chapters 6–10, ~125 pages)
+    Chapter 6: Advanced Techniques I (25–30 pages)
+    Chapter 7: Advanced Techniques II (25–30 pages)
+    Chapter 8: Architecture & Design Patterns (30–35 pages)
+    Chapter 9: Testing & Quality Assurance (25–30 pages)
+    Chapter 10: Real-World Case Studies (30–35 pages)
+
+  PART III — EXPERT LEVEL (Chapters 11–15, ~150 pages)
+    Chapter 11: Production Systems at Scale (30–35 pages)
+    Chapter 12: Team & Organisation (25–30 pages)
+    Chapter 13: Emerging Trends & Future Directions (20–25 pages)
+    Chapter 14: Migration & Modernisation Playbook (25–30 pages)
+    Chapter 15: Capstone Project — Production-Ready System (35–40 pages)
+
+  BACK MATTER
+    • Appendix A — Tool & Technology Reference Guide (20 pages)
+    • Appendix B — Command Cheat Sheets (10 pages)
+    • Appendix C — Configuration Templates (15 pages)
+    • Comprehensive Glossary (200+ terms)  • General Index
+
+  PRODUCTION SPECIFICATIONS
+    Estimated length:  450–550 pages / ~120,000 words
+    Code examples: 200+  |  Exercises: 150+  |  Diagrams: 80+
+    Target completion: 16–20 weeks""")
+
+        elif is_course:
+            topic = query
+            for pfx in ("build a course on ", "create a course on ", "create a training program for "):
+                if q.startswith(pfx):
+                    topic = query[len(pfx):].strip()
+                    break
+            sections.append(f"""\
+■ COURSE CURRICULUM — COMPREHENSIVE DESIGN
+════════════════════════════════════════════
+  Course Title:   Mastering {topic.title()}
+  Duration:       12 weeks (36 hours instruction + 24 hours practice)
+  Modules:        12 modules × 3 hours each
+
+  MODULE 1  — FOUNDATIONS & SETUP (Week 1)
+  MODULE 2  — CORE BUILDING BLOCKS (Week 2)
+  MODULE 3  — WORKFLOWS & METHODOLOGY (Week 3)
+  MODULE 4  — INTERMEDIATE TECHNIQUES (Week 4)
+  MODULE 5  — INTEGRATION & AUTOMATION (Week 5)
+  MODULE 6  — MID-COURSE PROJECT (Week 6)
+  MODULE 7  — ARCHITECTURE & DESIGN PATTERNS (Week 7)
+  MODULE 8  — TESTING & QUALITY (Week 8)
+  MODULE 9  — PRODUCTION OPERATIONS (Week 9)
+  MODULE 10 — SECURITY & COMPLIANCE (Week 10)
+  MODULE 11 — ADVANCED TOPICS & TRENDS (Week 11)
+  MODULE 12 — CAPSTONE PROJECT (Week 12)
+
+  Each module: 4 lessons (45 min) + lab + assessment.
+
+  ASSESSMENT & GRADING
+    ┌──────────────────────────────┬─────────┬──────────┐
+    │ Component                    │ Weight  │ Pass mark│
+    ├──────────────────────────────┼─────────┼──────────┤
+    │ Weekly quizzes (12×)         │  20 %   │  70 %    │
+    │ Lab submissions (12×)        │  30 %   │  60 %    │
+    │ Mid-course project           │  15 %   │  65 %    │
+    │ Capstone project             │  25 %   │  70 %    │
+    │ Peer reviews & participation │  10 %   │  50 %    │
+    └──────────────────────────────┴─────────┴──────────┘""")
+
+        else:
+            sections.append(f"""\
+■ CONTENT STRUCTURE & OUTLINE
+══════════════════════════════
+  Scope: {query}
+
+  SECTION 1 — Introduction & context
+  SECTION 2 — Background & landscape analysis
+  SECTION 3 — Core content (comprehensive coverage)
+  SECTION 4 — Analysis & recommendations
+  SECTION 5 — Implementation guide (step-by-step)
+  SECTION 6 — Reference material, glossary, and templates""")
+
+    # ── Domain: Data & Analytics ──────────────────────────────────────────
+    if primary == "data" or "data" in domains:
+        sections.append(f"""\
+■ DATA ARCHITECTURE & ANALYTICS DESIGN
+════════════════════════════════════════
+  Scope: {query}
+
+  DATA PIPELINE:  Sources → Ingest (Kafka/Debezium) → Transform (dbt/Spark) → Serve (Warehouse+Lake) → Consume
+
+  DATA QUALITY FRAMEWORK
+    ┌─────────────────┬───────────────────────────────────────────────┐
+    │ Quality Dimension│ Validation Rule                              │
+    ├─────────────────┼───────────────────────────────────────────────┤
+    │ Completeness     │ NULL rate < 2 % for required fields          │
+    │ Uniqueness       │ Primary key uniqueness: 100 %                │
+    │ Timeliness       │ Data freshness: < 15 min from source event   │
+    │ Accuracy         │ Cross-source reconciliation: ±0.1 %          │
+    │ Consistency      │ Schema evolution tracked; no breaking changes│
+    └─────────────────┴───────────────────────────────────────────────┘
+    SLA: Data quality score ≥ 98 % measured weekly.""")
+
+    # ── Domain: Software Engineering ──────────────────────────────────────
+    if primary == "software" or "software" in domains:
+        sections.append(f"""\
+■ SOFTWARE ARCHITECTURE & DESIGN
+═════════════════════════════════
+  Scope: {query}
+
+  Architecture style:  Modular monolith → microservices (when justified)
+  Communication:       REST (sync) + Message bus (async)
+  Authentication:      JWT + OAuth 2.0 (PKCE flow for SPAs)
+
+  API SPECIFICATION (RESTful, versioned: /api/v1/...)
+    ┌────────┬─────────────────────────┬─────────────────────────┐
+    │ Method │ Endpoint                 │ Description              │
+    ├────────┼─────────────────────────┼─────────────────────────┤
+    │ GET    │ /api/v1/resources       │ List (paginated, filtered)│
+    │ POST   │ /api/v1/resources       │ Create                   │
+    │ PATCH  │ /api/v1/resources/:id   │ Partial update           │
+    │ DELETE │ /api/v1/resources/:id   │ Soft delete              │
+    │ GET    │ /api/v1/health          │ Health check             │
+    └────────┴─────────────────────────┴─────────────────────────┘
+
+  TESTING STRATEGY
+    ┌────────────────┬──────────┬─────────────┬───────────────────┐
+    │ Layer           │ Coverage │ Run time     │ Trigger           │
+    ├────────────────┼──────────┼─────────────┼───────────────────┤
+    │ Unit tests      │ ≥ 85 %  │ < 2 min     │ Every commit      │
+    │ Integration     │ ≥ 70 %  │ < 10 min    │ Every PR          │
+    │ E2E tests       │ Critical │ < 20 min    │ Pre-deploy        │
+    │ Security scans  │ N/A     │ < 15 min    │ Every PR + weekly │
+    └────────────────┴──────────┴─────────────┴───────────────────┘""")
+
+    # ── Domain: Business Operations ───────────────────────────────────────
+    if primary == "operations" or "operations" in domains:
+        sections.append(f"""\
+■ BUSINESS OPERATIONS DESIGN
+══════════════════════════════
+  Scope: {query}
+
+  PROCESS MAP:  Request Intake → Validate & Route → Process & Execute → Complete & Review
+
+  KPIs
+    ┌────────────────────────────┬────────────┬──────────┐
+    │ KPI                        │ Target     │ Frequency│
+    ├────────────────────────────┼────────────┼──────────┤
+    │ Request-to-completion time │ < 24 hours │ Weekly   │
+    │ First-contact resolution   │ ≥ 70 %     │ Monthly  │
+    │ SLA compliance             │ ≥ 95 %     │ Weekly   │
+    │ Customer satisfaction      │ ≥ 4.5 / 5  │ Monthly  │
+    │ Automation rate            │ ≥ 60 %     │ Quarterly│
+    └────────────────────────────┴────────────┴──────────┘
+
+  AUTOMATION OPPORTUNITIES
+    ┌───┬────────────────────────────────┬──────────────┬──────────────┐
+    │ # │ Process                        │ Effort (days)│ Annual Saving│
+    ├───┼────────────────────────────────┼──────────────┼──────────────┤
+    │ 1 │ Request intake & classification│   3          │ $18,000      │
+    │ 2 │ SLA monitoring & escalation    │   2          │ $12,000      │
+    │ 3 │ Report generation              │   2          │ $15,000      │
+    │ 4 │ Approval routing               │   3          │ $10,000      │
+    │ 5 │ Data entry & reconciliation    │   5          │ $24,000      │
+    └───┴────────────────────────────────┴──────────────┴──────────────┘
+    Estimated total annual savings: $79,000+""")
+
+    # ── Domain: Strategy ──────────────────────────────────────────────────
+    if primary == "strategy" or "strategy" in domains:
+        sections.append(f"""\
+■ STRATEGIC ANALYSIS & ROADMAP
+════════════════════════════════
+  Scope: {query}
+
+  SWOT ANALYSIS
+    ┌───────────────────────────────┬───────────────────────────────┐
+    │ STRENGTHS                     │ WEAKNESSES                    │
+    │ • [Core competency 1]         │ • [Gap or limitation 1]       │
+    │ • [Unique advantage]          │ • [Resource constraint]       │
+    │ • [Technology asset]          │ • [Technical debt]            │
+    ├───────────────────────────────┼───────────────────────────────┤
+    │ OPPORTUNITIES                 │ THREATS                       │
+    │ • [Market trend 1]            │ • [Competitive pressure 1]    │
+    │ • [Technology enabler]        │ • [Regulatory change]         │
+    │ • [Partnership potential]     │ • [Economic uncertainty]      │
+    └───────────────────────────────┴───────────────────────────────┘
+
+  12-MONTH ROADMAP
+    Q1 — FOUNDATION:  Setup, quick wins, team formation
+    Q2 — BUILD:       Core capability, integration, feedback
+    Q3 — SCALE:       Operations, performance, expansion
+    Q4 — OPTIMISE:    Efficiency, advanced features, planning
+
+  RISK REGISTER
+    ┌─────┬────────────────────────┬───────┬────────┬──────────────────┐
+    │ ID  │ Risk                   │ Prob. │ Impact │ Mitigation       │
+    ├─────┼────────────────────────┼───────┼────────┼──────────────────┤
+    │ R-1 │ Resource availability  │ MED   │ HIGH   │ Cross-train      │
+    │ R-2 │ Scope creep            │ HIGH  │ MED    │ Change control   │
+    │ R-3 │ Technology risk        │ LOW   │ HIGH   │ POC first        │
+    │ R-4 │ Budget overrun         │ MED   │ MED    │ Monthly review   │
+    └─────┴────────────────────────┴───────┴────────┴──────────────────┘""")
+
+    # ── Domain: Marketing ─────────────────────────────────────────────────
+    if primary == "marketing" or "marketing" in domains:
+        sections.append(f"""\
+■ MARKETING & GROWTH STRATEGY
+═══════════════════════════════
+  Scope: {query}
+
+  TARGET AUDIENCE SEGMENTATION
+    ┌─────────────────┬───────────────────────┬──────────────────────┐
+    │ Segment          │ Profile               │ Channel Mix          │
+    ├─────────────────┼───────────────────────┼──────────────────────┤
+    │ Enterprise       │ 500+ emp; VP+         │ Account-based (ABM) │
+    │ Mid-market       │ 50–500 emp; Director  │ Content + outbound  │
+    │ SMB              │ < 50 emp; Founder     │ Self-serve + SEO    │
+    │ Developer        │ Individual IC         │ Community + docs    │
+    └─────────────────┴───────────────────────┴──────────────────────┘
+
+  CONVERSION FUNNEL
+    ┌─────────────────┬────────────┬────────────┐
+    │ Stage            │ Target Rate│ Metric     │
+    ├─────────────────┼────────────┼────────────┤
+    │ Awareness        │ 50K/month │ Visits     │
+    │ Interest         │ 5 %       │ Sign-ups   │
+    │ Consideration    │ 30 %      │ Trials     │
+    │ Purchase         │ 5–8 %     │ Paid conv. │
+    │ Retention        │ 85 %+/yr  │ Net ret.   │
+    └─────────────────┴────────────┴────────────┘""")
+
+    # ── Domain: Compliance ────────────────────────────────────────────────
+    if primary == "compliance" or "compliance" in domains:
+        sections.append(f"""\
+■ COMPLIANCE & GOVERNANCE FRAMEWORK
+═════════════════════════════════════
+  Scope: {query}
+
+  CONTROL MATRIX
+    ┌─────┬──────────────────────────────┬────────┬──────────┬───────────┐
+    │ ID  │ Control                      │ Type   │ Evidence │ Frequency │
+    ├─────┼──────────────────────────────┼────────┼──────────┼───────────┤
+    │ C-1 │ Access control: MFA enforced │ Prev.  │ Audit log│ Real-time │
+    │ C-2 │ Encryption at rest (AES-256) │ Prev.  │ Config   │ Continuous│
+    │ C-3 │ Vulnerability scanning       │ Detect.│ Report   │ Weekly    │
+    │ C-4 │ Access review                │ Detect.│ Report   │ Quarterly │
+    │ C-5 │ Incident response plan       │ React. │ Document │ Annual    │
+    │ C-6 │ Backup & recovery test       │ React. │ Test log │ Monthly   │
+    │ C-7 │ Change management process    │ Prev.  │ Tickets  │ Per change│
+    │ C-8 │ Security awareness training  │ Prev.  │ LMS log  │ Annual    │
+    └─────┴──────────────────────────────┴────────┴──────────┴───────────┘
+
+  AUDIT CALENDAR
+    Q1: Internal controls review + vendor reassessment
+    Q2: External penetration test + SOC 2 evidence collection
+    Q3: SOC 2 Type II audit + GDPR DPIA refresh
+    Q4: ISO 27001 surveillance + annual policy review""")
+
+    # ── Shared: Project Timeline (always include) ─────────────────────────
+    sections.append(f"""\
+■ PROJECT TIMELINE & MILESTONES
+─────────────────────────────────
+  ┌─────────────┬────────────────────────────────────────┬───────────┐
+  │ Phase        │ Activities                             │ Duration  │
+  ├─────────────┼────────────────────────────────────────┼───────────┤
+  │ Discovery    │ Requirements, stakeholder interviews   │ 1–2 weeks │
+  │ Design       │ Architecture, specs, prototypes        │ 2–3 weeks │
+  │ Build        │ Core implementation, iterative sprints │ 4–8 weeks │
+  │ Test & QA    │ Unit, integration, UAT, performance    │ 2–3 weeks │
+  │ Deploy       │ Staging, production rollout, monitoring│ 1 week    │
+  │ Hypercare    │ Post-launch monitoring, knowledge xfer │ 2–4 weeks │
+  └─────────────┴────────────────────────────────────────┴───────────┘
+
+■ SUCCESS CRITERIA & ACCEPTANCE
+─────────────────────────────────
+  □  All functional requirements implemented and verified
+  □  Test suites passing (unit ≥ 85 %, integration ≥ 70 %)
+  □  Performance SLOs met (p99 latency, throughput, error rate)
+  □  Security scan: zero critical / high findings
+  □  Documentation complete (technical + operational + user)
+  □  Stakeholder sign-off obtained
+  □  Training delivered to all operators / end users
+  □  Monitoring and alerting operational
+  □  Disaster recovery procedure tested""")
+
+    return "\n\n".join(sections)
+
+
+# ---------------------------------------------------------------------------
+# Scope-proportional token budget  (label: FORGE-SCOPE-BUDGET-001)
+# ---------------------------------------------------------------------------
+# Different requests need wildly different output sizes.  A children's book
+# is not an adult novel.  A CI/CD pipeline is not a full enterprise security
+# audit.  The LLM token budget must be proportional to what the user asked.
+# ---------------------------------------------------------------------------
+
+def _estimate_scope_tokens(query: str) -> int:
+    """Estimate the appropriate per-section LLM token budget based on query scope.
+
+    Returns tokens-per-section.  The total budget is this × number of sections.
+    A swarm of 64 agents can collectively produce up to 64 × per-section tokens.
+    """
+    q = query.lower()
+
+    # ── Massive scope (50k+ word deliverables) ────────────────────────────
+    if any(kw in q for kw in (
+        "novel", "textbook", "complete book", "full book",
+        "comprehensive guide", "enterprise", "full audit",
+        "adult novel", "300 page", "500 page",
+    )):
+        return 16384  # per section — up to 64 sections = 1M+ tokens total
+
+    # ── Large scope (10k-50k word deliverables) ───────────────────────────
+    if any(kw in q for kw in (
+        "book", "ebook", "e-book", "course", "curriculum",
+        "training program", "whitepaper", "manual",
+        "security audit", "compliance framework",
+        "architecture review", "migration plan",
+    )):
+        return 8192  # per section
+
+    # ── Medium scope (2k-10k word deliverables) ───────────────────────────
+    if any(kw in q for kw in (
+        "plan", "strategy", "roadmap", "pipeline", "workflow",
+        "sop", "process", "guide", "tutorial", "article",
+        "report", "analysis", "assessment",
+    )):
+        return 4096  # per section
+
+    # ── Standard scope (1k-2k word deliverables) ──────────────────────────
+    return 4096  # default: still substantial
+
+
+def _build_minimal_custom_content(query: str) -> str:
+    """Fallback content when ALL LLM providers are down.
+
+    Uses the domain keyword engine to produce rich, structured content
+    even without any LLM calls.  This is the last-resort fallback.
+    """
+    domain_content = _build_deep_domain_content(query)
     return f"""\
 ■ DELIVERABLE OVERVIEW
 ───────────────────────
   Request:  {query}
-  Status:   Generated by Murphy System onboard engine
+  Status:   Generated by Murphy System onboard engine (LLM unavailable)
 
 ■ EXECUTIVE SUMMARY
 ─────────────────────
   This deliverable addresses the request: "{query}"
 
-  Murphy System has analyzed your request and prepared this structured
-  document to help you execute the task efficiently.  The sections below
-  provide a framework, recommended actions, and next steps.
+  Murphy System has analyzed your request using the onboard domain engine
+  and prepared this structured document.  For full swarm-level output
+  (64 parallel DeepInfra agents), ensure DEEPINFRA_API_KEY is configured.
 
-  NOTE: This deliverable was generated using the onboard fallback engine.
-  For comprehensive swarm-level output (64 parallel agents), ensure
-  DEEPINFRA_API_KEY is set in your environment.  Murphy will then use
-  Meta-Llama-3.1-70B to produce production-grade deliverables.
-
-■ RECOMMENDED APPROACH
-───────────────────────
-  1.  Define clear success criteria before beginning execution.
-  2.  Break the task into discrete, measurable sub-tasks.
-  3.  Assign ownership and deadlines to each sub-task.
-  4.  Schedule a review checkpoint at 50 % completion.
-  5.  Document outcomes and lessons learned on completion.
+{domain_content}
 
 ■ ACTION ITEMS
 ───────────────
   □  Review and customise this deliverable to your specific context.
   □  Share with stakeholders for alignment before execution.
-  □  Track progress against the steps above on a weekly basis.
+  □  Track progress against the milestones above.
   □  Use Murphy System workflow automation to automate repetitive steps.
 
 ■ NEXT STEPS
