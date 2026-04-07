@@ -1,6 +1,6 @@
 """
 Murphy LLM Controller - Master Backend Terminal
-Controls DeepInfra (primary) and Together AI (overflow) LLM calls
+Controls DeepInfra API and onboard smaller LLMs
 Powers the neon terminal UI for system/module setup guidance
 
 Based on Recursive Language Models (RLM) pattern from 2512.24601v1.pdf
@@ -71,7 +71,7 @@ class LLMRequest:
     prompt: str
     context: Optional[str] = None
     temperature: float = 0.7
-    max_tokens: int = 2000
+    max_tokens: int = 131072  # DeepInfra Llama-3.1-70B context window
     model_preference: Optional[LLMModel] = None
     require_capabilities: Optional[List[ModelCapability]] = None
 
@@ -127,8 +127,12 @@ class LLMController:
             LLMModel.DEEPINFRA_MIXTRAL: LLMModelInfo(
                 name="Mixtral-8x22B (DeepInfra)",
                 model_type=LLMModel.DEEPINFRA_MIXTRAL,
-                capabilities=[ModelCapability.CODE_GENERATION, ModelCapability.REASONING,
-                              ModelCapability.CONTEXT_PROCESSING, ModelCapability.SWARM_PLANNING],
+                capabilities=[
+                    ModelCapability.CODE_GENERATION,
+                    ModelCapability.REASONING,
+                    ModelCapability.CONTEXT_PROCESSING,
+                    ModelCapability.SWARM_PLANNING,
+                ],
                 max_context=65536,
                 cost_per_1k_tokens=0.00065,
                 avg_latency=0.10,
@@ -334,9 +338,9 @@ class LLMController:
         if model == LLMModel.MFM:
             response = await self._query_mfm(request)
         elif model == LLMModel.DEEPINFRA_META_LLAMA:
-            response = await self._query_deepinfra(request, "meta-llama/Meta-Llama-3.1-70B-Instruct")
+            response = await self._query_deepinfra_meta_llama(request)
         elif model == LLMModel.DEEPINFRA_MIXTRAL:
-            response = await self._query_deepinfra(request, "Mixtral-8x22B-Instruct-v0.1")
+            response = await self._query_deepinfra_mixtral(request)
         elif model == LLMModel.TOGETHER_META_LLAMA:
             response = await self._query_together(request)
         elif model == LLMModel.LOCAL_SMALL:
@@ -390,13 +394,14 @@ class LLMController:
             logger.info("MFM query failed, falling back: %s", exc)
             return await self._query_fallback(request)
 
-    async def _query_deepinfra(self, request: LLMRequest, model_id: str) -> LLMResponse:
-        """Query DeepInfra via OpenAI-compatible endpoint."""
-        import aiohttp
-        api_key = os.environ.get("DEEPINFRA_API_KEY")
-        if not api_key:
-            return await self._query_fallback(request)
+    async def _query_deepinfra_meta_llama(self, request: LLMRequest) -> LLMResponse:
+        """Query DeepInfra Meta-Llama-3.1-70B model"""
         try:
+            import aiohttp
+            api_key = os.environ.get("DEEPINFRA_API_KEY")
+            if not api_key:
+                return await self._query_fallback(request)
+
             messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
             if request.context:
                 messages.append({"role": "system", "content": f"Context: {request.context}"})
@@ -405,36 +410,86 @@ class LLMController:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
                     "https://api.deepinfra.com/v1/openai/chat/completions",
-                    json={"model": model_id, "messages": messages,
+                    json={"model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
+                          "messages": messages,
                           "temperature": request.temperature, "max_tokens": request.max_tokens},
                     headers={"Authorization": f"Bearer {api_key}",
                              "Content-Type": "application/json"},
-                    timeout=aiohttp.ClientTimeout(total=60),
+                    timeout=aiohttp.ClientTimeout(total=120),
                 ) as resp:
                     resp.raise_for_status()
                     data = await resp.json()
 
             content = data["choices"][0]["message"]["content"]
             tokens_used = data.get("usage", {}).get("total_tokens", len(content.split()))
-            model_enum = (LLMModel.DEEPINFRA_META_LLAMA
-                          if "Llama" in model_id else LLMModel.DEEPINFRA_MIXTRAL)
-            cost = (tokens_used / 1000) * self.models[model_enum].cost_per_1k_tokens
+            cost = (tokens_used / 1000) * self.models[LLMModel.DEEPINFRA_META_LLAMA].cost_per_1k_tokens
+
             return LLMResponse(
-                content=content, model_used=model_enum, confidence=0.0,
-                tokens_used=tokens_used, cost=cost, latency=0.0,
-                metadata={"provider": "deepinfra", "model": model_id},
+                content=content,
+                model_used=LLMModel.DEEPINFRA_META_LLAMA,
+                confidence=0.0,
+                tokens_used=tokens_used,
+                cost=cost,
+                latency=0.0,
+                metadata={"provider": "deepinfra", "model": "meta-llama/Meta-Llama-3.1-70B-Instruct"}
             )
+
         except Exception as exc:
-            logger.info("DeepInfra query failed (%s), falling back", exc)
+            logger.info(f"Error querying DeepInfra Meta-Llama: {exc}")
+            return await self._query_fallback(request)
+
+    async def _query_deepinfra_mixtral(self, request: LLMRequest) -> LLMResponse:
+        """Query DeepInfra Mixtral model"""
+        try:
+            import aiohttp
+            api_key = os.environ.get("DEEPINFRA_API_KEY")
+            if not api_key:
+                return await self._query_fallback(request)
+
+            messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
+            if request.context:
+                messages.append({"role": "system", "content": f"Context: {request.context}"})
+            messages.append({"role": "user", "content": request.prompt})
+
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "https://api.deepinfra.com/v1/openai/chat/completions",
+                    json={"model": "mistralai/Mixtral-8x22B-Instruct-v0.1",
+                          "messages": messages,
+                          "temperature": request.temperature, "max_tokens": request.max_tokens},
+                    headers={"Authorization": f"Bearer {api_key}",
+                             "Content-Type": "application/json"},
+                    timeout=aiohttp.ClientTimeout(total=120),
+                ) as resp:
+                    resp.raise_for_status()
+                    data = await resp.json()
+
+            content = data["choices"][0]["message"]["content"]
+            tokens_used = data.get("usage", {}).get("total_tokens", len(content.split()))
+            cost = (tokens_used / 1000) * self.models[LLMModel.DEEPINFRA_MIXTRAL].cost_per_1k_tokens
+
+            return LLMResponse(
+                content=content,
+                model_used=LLMModel.DEEPINFRA_MIXTRAL,
+                confidence=0.0,  # Will be set by caller
+                tokens_used=tokens_used,
+                cost=cost,
+                latency=0.0,  # Will be set by caller
+                metadata={"provider": "deepinfra", "model": "mistralai/Mixtral-8x22B-Instruct-v0.1"}
+            )
+
+        except Exception as exc:
+            logger.info(f"Error querying DeepInfra Mixtral: {exc}")
             return await self._query_fallback(request)
 
     async def _query_together(self, request: LLMRequest) -> LLMResponse:
-        """Query Together AI via OpenAI-compatible endpoint."""
-        import aiohttp
-        api_key = os.environ.get("TOGETHER_API_KEY")
-        if not api_key:
-            return await self._query_fallback(request)
+        """Query Together AI Meta-Llama-3.1-70B-Turbo model"""
         try:
+            import aiohttp
+            api_key = os.environ.get("TOGETHER_API_KEY")
+            if not api_key:
+                return await self._query_fallback(request)
+
             messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
             if request.context:
                 messages.append({"role": "system", "content": f"Context: {request.context}"})
@@ -448,7 +503,7 @@ class LLMController:
                           "temperature": request.temperature, "max_tokens": request.max_tokens},
                     headers={"Authorization": f"Bearer {api_key}",
                              "Content-Type": "application/json"},
-                    timeout=aiohttp.ClientTimeout(total=60),
+                    timeout=aiohttp.ClientTimeout(total=120),
                 ) as resp:
                     resp.raise_for_status()
                     data = await resp.json()
@@ -461,16 +516,20 @@ class LLMController:
                 tokens_used=tokens_used, cost=cost, latency=0.0,
                 metadata={"provider": "together", "model": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"},
             )
+
         except Exception as exc:
-            logger.info("Together AI query failed (%s), falling back", exc)
+            logger.info(f"Together AI query failed ({exc}), falling back")
             return await self._query_fallback(request)
 
     async def _query_local_small(self, request: LLMRequest) -> LLMResponse:
         """Query local small model — tries Ollama first, then placeholder."""
         try:
             from src.local_llm_fallback import (
-                _check_ollama_available, _query_ollama,
-                _ollama_base_url, _preferred_ollama_models, _OLLAMA_SMALL_MODELS,
+                _OLLAMA_SMALL_MODELS,
+                _check_ollama_available,
+                _ollama_base_url,
+                _preferred_ollama_models,
+                _query_ollama,
             )
             _base = _ollama_base_url()
             # Honour OLLAMA_MODEL if set, but keep small models at the front
@@ -511,8 +570,11 @@ class LLMController:
         """Query local medium model — tries Ollama first, then placeholder."""
         try:
             from src.local_llm_fallback import (
-                _check_ollama_available, _query_ollama,
-                _ollama_base_url, _preferred_ollama_models, _OLLAMA_MEDIUM_MODELS,
+                _OLLAMA_MEDIUM_MODELS,
+                _check_ollama_available,
+                _ollama_base_url,
+                _preferred_ollama_models,
+                _query_ollama,
             )
             _base = _ollama_base_url()
             # Honour OLLAMA_MODEL if set, but keep medium models at the front
@@ -660,17 +722,26 @@ class LLMController:
         return aggregated
 
     def refresh_availability(self) -> None:
-        """Re-check environment variables and update model availability."""
+        """Re-check environment variables and update model availability.
+
+        Call this after a key is added or changed at runtime (e.g. via
+        ``/api/llm/configure``) so DeepInfra models are marked available without
+        requiring an application restart.
+        """
         deepinfra_available = os.environ.get("DEEPINFRA_API_KEY") is not None
         together_available = os.environ.get("TOGETHER_API_KEY") is not None
         for model_type, info in self.models.items():
-            if model_type in (LLMModel.DEEPINFRA_META_LLAMA, LLMModel.DEEPINFRA_MIXTRAL):
+            if model_type in (LLMModel.DEEPINFRA_MIXTRAL, LLMModel.DEEPINFRA_META_LLAMA):
                 info.available = deepinfra_available
             elif model_type == LLMModel.TOGETHER_META_LLAMA:
                 info.available = together_available
 
     def reconfigure(self, provider: str, api_key: str) -> None:
-        """Update an LLM provider API key and refresh availability.
+        """Update an LLM provider API key in the environment and refresh availability.
+
+        This is the single call that hot-reloads a new key without restarting
+        the application.  It updates ``os.environ`` directly so that every
+        subsequent query call picks up the new value.
 
         Args:
             provider: "deepinfra" or "together"
