@@ -16,7 +16,7 @@
 matrix-nio>=0.20.0
 
 # Async HTTP client used by matrix-nio and optional REST integrations
-aiohttp>=3.9.0
+aiohttp>=3.13.3
 
 # Cryptography for E2E encryption (pulled in by matrix-nio[e2e])
 # Listed explicitly for auditability
