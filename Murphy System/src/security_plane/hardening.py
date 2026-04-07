@@ -42,6 +42,46 @@ class InjectionAttemptError(Exception):
     pass
 
 
+# ── SEC-PATH-001: Path traversal prevention ──────────────────────────────
+
+def safe_path_join(base: str, *parts: str) -> Path:
+    """Join *parts* to *base* and ensure the result stays inside *base*.
+
+    SEC-PATH-001: Resolves the resulting path and verifies it is a child
+    of *base*.  Rejects URL-encoded traversal (``%2e%2e``), null bytes,
+    and any ``..`` segment that would escape the base directory.
+
+    Returns the resolved ``pathlib.Path``.
+    Raises ``InjectionAttemptError`` on traversal or encoding bypass.
+    """
+    from urllib.parse import unquote  # noqa: PLC0415
+
+    base_resolved = Path(base).resolve()
+
+    # SEC-PATH-003: Decode URL-encoded variants and check for null bytes.
+    for part in parts:
+        decoded = unquote(unquote(part))  # double-decode catches %252e%252e
+        if "\x00" in decoded:
+            raise InjectionAttemptError(
+                "SEC-PATH-003: Null byte detected in path component")
+        if ".." in decoded:
+            raise InjectionAttemptError(
+                "SEC-PATH-003: Path traversal detected (encoded or literal '..')")
+
+    target = (base_resolved / Path(*parts)).resolve()
+    # Python 3.9+ is_relative_to is cross-platform safe (handles case-insensitive FS).
+    if hasattr(target, "is_relative_to"):
+        if not target.is_relative_to(base_resolved):
+            raise InjectionAttemptError(
+                f"SEC-PATH-001: Path traversal — resolved path escapes base directory")
+    else:
+        # Fallback for Python 3.8
+        if not str(target).startswith(str(base_resolved)):
+            raise InjectionAttemptError(
+                f"SEC-PATH-001: Path traversal — resolved path escapes base directory")
+    return target
+
+
 class InputType(Enum):
     """Types of input data"""
     STRING = "string"

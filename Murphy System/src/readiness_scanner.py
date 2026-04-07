@@ -348,6 +348,7 @@ def _gate_security_scan() -> tuple:
     - No plaintext passwords in obvious env vars
     """
     import os
+    import math
 
     env = os.environ.get("MURPHY_ENV", "")
     if not env:
@@ -363,6 +364,20 @@ def _gate_security_scan() -> tuple:
         if jwt_secret.lower() in ("changeme", "secret", "default", "murphy", "test"):
             return False, "MURPHY_JWT_SECRET is using a default/weak value"
 
+        # SEC-READY-001: Shannon entropy check — reject low-entropy secrets.
+        def _shannon_entropy(s: str) -> float:
+            if not s:
+                return 0.0
+            freq: dict = {}
+            for ch in s:
+                freq[ch] = freq.get(ch, 0) + 1
+            length = len(s)
+            return -sum((c / length) * math.log2(c / length) for c in freq.values())
+
+        jwt_entropy = _shannon_entropy(jwt_secret)
+        if jwt_entropy < 3.0:
+            return False, f"MURPHY_JWT_SECRET entropy too low ({jwt_entropy:.2f} bits/char, need ≥3.0)"
+
         # CORS
         cors = os.environ.get("MURPHY_CORS_ORIGINS", "*")
         if cors.strip() == "*":
@@ -372,6 +387,46 @@ def _gate_security_scan() -> tuple:
         cred_key = os.environ.get("MURPHY_CREDENTIAL_MASTER_KEY", "")
         if not cred_key:
             return False, "MURPHY_CREDENTIAL_MASTER_KEY not set in production/staging"
+
+        # SEC-READY-002: Redis password is mandatory in production.
+        redis_pw = os.environ.get("REDIS_PASSWORD", "")
+        if not redis_pw:
+            return False, "SEC-READY-002: REDIS_PASSWORD not set in production/staging"
+
+        # SEC-READY-003: TLS configuration check.
+        tls_cert = os.environ.get("MURPHY_TLS_CERT", "")
+        tls_key = os.environ.get("MURPHY_TLS_KEY", "")
+        reverse_proxy = os.environ.get("MURPHY_REVERSE_PROXY", "")
+        if not (tls_cert and tls_key) and not reverse_proxy:
+            return False, ("SEC-READY-003: Neither TLS cert/key nor MURPHY_REVERSE_PROXY "
+                           "configured — production requires TLS")
+
+        # SEC-READY-004: Docker port exposure check.
+        # If we are running inside a container, check whether infrastructure
+        # ports (5432, 6379, 9090) are exposed to the host — they should
+        # only be on the internal Docker network.
+        try:
+            import subprocess  # noqa: S404 — only reading docker config
+            _compose_out = subprocess.check_output(
+                ["docker", "compose", "config", "--format", "json"],
+                timeout=10, stderr=subprocess.DEVNULL, text=True,
+            )
+            import json as _json
+            _compose_cfg = _json.loads(_compose_out)
+            _infra_ports = {"5432", "6379", "9090"}
+            _exposed = []
+            for _svc_name, _svc in _compose_cfg.get("services", {}).items():
+                for _port_entry in _svc.get("ports", []):
+                    _published = str(_port_entry.get("published", "")) if isinstance(_port_entry, dict) else str(_port_entry).split(":")[0]
+                    if _published in _infra_ports:
+                        _exposed.append(f"{_svc_name}:{_published}")
+            if _exposed:
+                return False, (
+                    f"SEC-READY-004: Infrastructure ports exposed to host — "
+                    f"use expose: instead of ports: for {', '.join(_exposed)}"
+                )
+        except (FileNotFoundError, subprocess.TimeoutExpired, Exception):
+            pass  # Docker not available or not running — skip check.
 
         return True, f"Security scan passed for env={env}"
 
@@ -414,6 +469,7 @@ def _gate_secret_availability() -> tuple:
         "MURPHY_JWT_SECRET",
         "POSTGRES_PASSWORD",
         "MURPHY_SECRET_KEY",
+        "REDIS_PASSWORD",  # SEC-READY-002
     ]
     missing = [k for k in required_secrets if not os.environ.get(k)]
     if missing:

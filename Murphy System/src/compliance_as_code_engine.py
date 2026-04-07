@@ -199,8 +199,24 @@ def _safe_eval(expression: str, context: Dict[str, Any]) -> bool:
     Only simple comparisons, boolean operators, arithmetic, ``in``, and
     literal / context-key lookups are permitted.  Raises ``ValueError``
     for disallowed constructs.
+
+    SEC-EVAL-001: ``ast.Attribute``, ``ast.Call``, ``ast.Subscript``,
+    ``ast.Import``, and ``ast.ImportFrom`` are intentionally **excluded**
+    from ``_SAFE_NODE_TYPES``.
+    SEC-EVAL-002: Expression length capped at 1 000 chars; AST node count
+    capped at 100 to prevent DoS via deeply nested expressions.
     """
+    # SEC-EVAL-002 — length gate
+    if len(expression) > 1000:
+        raise ValueError("Expression too long (max 1000 characters)")
+
     tree = ast.parse(expression, "<rule>", "eval")
+
+    # SEC-EVAL-002 — node-count gate
+    node_count = sum(1 for _ in ast.walk(tree))
+    if node_count > 100:
+        raise ValueError("Expression too complex (max 100 AST nodes)")
+
     if not _validate_ast(tree):
         raise ValueError("Expression contains disallowed constructs")
     code = compile(tree, "<rule>", "eval")

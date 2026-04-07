@@ -1,13 +1,28 @@
 """
 Command Parser for Murphy System
 Handles system commands like /gates, /confidence, /swarmmonitor, etc.
+
+SEC-PATH-002: File read paths validated via ``safe_path_join``.
 """
 
 import logging
+import os
 import re
 from typing import Any, Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
+
+# SEC-PATH-002: Import safe path utility.
+try:
+    from security_plane.hardening import safe_path_join as _safe_path_join
+except ImportError:
+    # Graceful fallback — keep working even if security_plane not importable.
+    from pathlib import Path as _Path
+    def _safe_path_join(base, *parts):  # type: ignore[misc]
+        resolved = (_Path(base).resolve() / _Path(*parts)).resolve()
+        if not str(resolved).startswith(str(_Path(base).resolve())):
+            raise ValueError(f"Path traversal detected: {parts}")
+        return resolved
 
 
 class CommandParser:
@@ -387,7 +402,15 @@ class CommandParser:
         if not filename.endswith('.md'):
             filename += '.md'
 
-        file_path = os.path.join(docs_dir, filename)
+        try:
+            file_path = str(_safe_path_join(docs_dir, filename))  # SEC-PATH-002
+        except (ValueError, Exception):
+            return {
+                'content': f"Document '{filename}' not found. Use `/docs` to see available documents.",
+                'is_command': True,
+                'band': 'introductory',
+                'confidence': 1.0
+            }
 
         if not os.path.exists(file_path):
             return {

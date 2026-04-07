@@ -530,7 +530,12 @@ class HetznerDeployPlanGenerator:
         return f"{self.registry_url}/{self.image_name}:{self.image_tag}"
 
     def _k8s(self, filename: str) -> str:
-        return os.path.join(self.k8s_dir, filename)
+        # SEC-PATH-002: Validate filename stays inside k8s_dir.
+        try:
+            from security_plane.hardening import safe_path_join
+            return str(safe_path_join(self.k8s_dir, filename))
+        except ImportError:
+            return os.path.join(self.k8s_dir, filename)
 
     def _full_deploy_plan(self, report: HetznerDeployProbeReport) -> SetupPlan:
         steps: List[SetupStep] = []

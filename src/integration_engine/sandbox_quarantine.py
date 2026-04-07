@@ -145,6 +145,31 @@ class SandboxQuarantine:
             False,
             "Remove or sandbox exec() — executes arbitrary code",
         ),
+        # SEC-SANDBOX-003: Additional code-execution patterns.
+        (
+            r"__import__\s*\(",
+            "CRITICAL",
+            False,
+            "SEC-SANDBOX-003: __import__() can bypass restricted builtins — remove or replace",
+        ),
+        (
+            r"importlib\.import_module\s*\(",
+            "CRITICAL",
+            False,
+            "SEC-SANDBOX-003: importlib.import_module can load arbitrary modules — audit usage",
+        ),
+        (
+            r"(?:ctypes|cffi)\.",
+            "HIGH",
+            False,
+            "SEC-SANDBOX-003: ctypes/cffi can invoke arbitrary C functions — audit usage",
+        ),
+        (
+            r"compile\s*\([^)]+,\s*['\"]exec['\"]",
+            "HIGH",
+            False,
+            "SEC-SANDBOX-003: compile(..., 'exec') can create code objects for execution",
+        ),
         (
             r"trust_remote_code\s*=\s*True",
             "HIGH",
@@ -180,6 +205,36 @@ class SandboxQuarantine:
     def __init__(self) -> None:
         self._approved_licenses = APPROVED_LICENSES
         self._copyleft_licenses = COPYLEFT_LICENSES
+
+    # ------------------------------------------------------------------
+    # SEC-SANDBOX-001: Pre-execution quarantine gate
+    # ------------------------------------------------------------------
+
+    def quarantine_check(self, code: str) -> Tuple[bool, List[str]]:
+        """Check code for dangerous patterns **before** execution.
+
+        SEC-SANDBOX-001: This MUST be called before any ``exec()`` or
+        ``eval()`` of user/automation-supplied code.
+
+        SEC-SANDBOX-002: Full containerised runtime isolation is planned as
+        a future enhancement.  Until then, this static gate is the hard
+        blocker.
+
+        Args:
+            code: Source code string to inspect.
+
+        Returns:
+            ``(is_safe, findings)`` where *is_safe* is ``False`` when any
+            CRITICAL pattern is detected.
+        """
+        findings: List[str] = []
+        is_safe = True
+        for pattern, severity, _can_fix, description in self._THREAT_PATTERNS:
+            if re.search(pattern, code):
+                findings.append(f"[{severity}] {description}")
+                if severity == "CRITICAL":
+                    is_safe = False
+        return is_safe, findings
 
     # ------------------------------------------------------------------
     # Public entry-point
