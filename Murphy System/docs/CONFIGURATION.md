@@ -17,8 +17,10 @@ Set the following environment variables before starting the server:
 # Enable the Redis rate-limit backend
 MURPHY_RATE_LIMIT_BACKEND=redis
 
-# Standard Redis connection URL (redis://[:password@]host[:port][/db])
-REDIS_URL=redis://localhost:6379/0
+# Standard Redis connection URL — use rediss:// (TLS) in production
+# redis://[:password@]host[:port][/db]      (plaintext, dev only)
+# rediss://[:password@]host[:port][/db]     (TLS — required in production)
+REDIS_URL=rediss://localhost:6380/0
 ```
 
 When `MURPHY_RATE_LIMIT_BACKEND=redis` and `REDIS_URL` is set:

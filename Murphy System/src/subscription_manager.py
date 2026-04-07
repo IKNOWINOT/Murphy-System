@@ -1168,11 +1168,32 @@ class SubscriptionManager:
     # Daily usage tracking
     # ------------------------------------------------------------------
 
-    def _redis_incr_daily(self, redis_key: str, limit: int) -> Optional[int]:
-        """Increment a Redis daily counter and set TTL to next midnight UTC.
+    # Lua script for atomic check-and-increment in Redis.
+    # Returns the new count if it is within limit, or -1 if over limit.
+    # Guarantees no race condition between check and increment.
+    _REDIS_INCR_LUA = """\
+local limit = tonumber(ARGV[1])
+local expire_at = tonumber(ARGV[2])
+local cur = tonumber(redis.call('GET', KEYS[1])) or 0
+if cur >= limit then
+    return -1
+end
+local new = redis.call('INCR', KEYS[1])
+redis.call('EXPIREAT', KEYS[1], expire_at)
+return new
+"""
 
-        Returns the new counter value, or None on error.
-        Uses INCR + EXPIREAT so the key expires atomically at midnight UTC.
+    def _redis_incr_daily(self, redis_key: str, limit: int) -> Optional[int]:
+        """Atomically check-and-increment a Redis daily counter (SEC-RATE-001).
+
+        Uses a Lua script executed server-side so the check and increment are
+        atomic — no race condition between reading the current value and
+        writing the new value.
+
+        Returns:
+            The new counter value on success (≤ limit), or ``None`` on error.
+            The caller must check the return value against the limit before
+            allowing the request.
         """
         if not self._redis_available or self._redis_client is None:
             return None
@@ -1181,11 +1202,17 @@ class SubscriptionManager:
             next_midnight = (now + timedelta(days=1)).replace(
                 hour=0, minute=0, second=0, microsecond=0
             )
-            pipe = self._redis_client.pipeline()
-            pipe.incr(redis_key)
-            pipe.expireat(redis_key, int(next_midnight.timestamp()))
-            results = pipe.execute()
-            return int(results[0])
+            result = self._redis_client.eval(
+                self._REDIS_INCR_LUA,
+                1,                               # numkeys
+                redis_key,                       # KEYS[1]
+                str(limit),                      # ARGV[1]
+                str(int(next_midnight.timestamp())),  # ARGV[2]
+            )
+            val = int(result)
+            if val == -1:
+                return None  # over limit — caller treats as denied
+            return val
         except Exception as _exc:
             logger.warning("Redis incr failed (%s) — falling back to memory", _exc)
             self._redis_available = False
@@ -1219,20 +1246,21 @@ class SubscriptionManager:
         if self._redis_available and limit != -1:
             redis_key = f"murphy:usage:{account_id}:{today}"
             new_count = self._redis_incr_daily(redis_key, limit)
+            if new_count is None and self._redis_available:
+                # Lua returned -1 → over limit (atomic check confirmed)
+                return {
+                    "allowed": False,
+                    "remaining": 0,
+                    "limit": limit,
+                    "used": limit,
+                    "tier": tier_val,
+                    "reset_at": reset_at,
+                    "message": (
+                        f"Daily limit of {limit} actions reached. "
+                        f"Your limit resets at midnight UTC. Upgrade for unlimited access."
+                    ),
+                }
             if new_count is not None:
-                if new_count > limit:
-                    return {
-                        "allowed": False,
-                        "remaining": 0,
-                        "limit": limit,
-                        "used": new_count,
-                        "tier": tier_val,
-                        "reset_at": reset_at,
-                        "message": (
-                            f"Daily limit of {limit} actions reached. "
-                            f"Your limit resets at midnight UTC. Upgrade for unlimited access."
-                        ),
-                    }
                 return {
                     "allowed": True,
                     "remaining": limit - new_count,
@@ -1290,21 +1318,22 @@ class SubscriptionManager:
         if self._redis_available:
             redis_key = f"murphy:anon:{fingerprint}:{today}"
             new_count = self._redis_incr_daily(redis_key, limit)
+            if new_count is None and self._redis_available:
+                # Lua returned -1 → over limit (atomic check confirmed)
+                return {
+                    "allowed": False,
+                    "remaining": 0,
+                    "limit": limit,
+                    "used": limit,
+                    "tier": "anonymous",
+                    "reset_at": reset_at,
+                    "message": (
+                        f"You've used your {limit} free builds. "
+                        f"Sign up for {self._FREE_DAILY_LIMIT} more! "
+                        f"Your limit resets at midnight UTC."
+                    ),
+                }
             if new_count is not None:
-                if new_count > limit:
-                    return {
-                        "allowed": False,
-                        "remaining": 0,
-                        "limit": limit,
-                        "used": new_count,
-                        "tier": "anonymous",
-                        "reset_at": reset_at,
-                        "message": (
-                            f"You've used your {limit} free builds. "
-                            f"Sign up for {self._FREE_DAILY_LIMIT} more! "
-                            f"Your limit resets at midnight UTC."
-                        ),
-                    }
                 return {
                     "allowed": True,
                     "remaining": limit - new_count,
