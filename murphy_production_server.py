@@ -3437,8 +3437,9 @@ def _demo_account_id(request: Request) -> str:
             import base64
             import json as _json
             # Decode payload (middle segment) without verifying signature.
-            padding = "=" * (-len(token.split(".")[1]) % 4)
-            payload = _json.loads(base64.urlsafe_b64decode(token.split(".")[1] + padding))
+            parts = token.split(".")
+            padding = "=" * (-len(parts[1]) % 4)
+            payload = _json.loads(base64.urlsafe_b64decode(parts[1] + padding))
             sub = payload.get("sub") or payload.get("user_id") or payload.get("id")
             if sub:
                 return str(sub)
@@ -3610,12 +3611,11 @@ log.info("Demo deliverable generator: %s", "available" if _demo_gen_available el
 # -- Import SubscriptionManager for tier-aware demo rate limiting --------------
 try:
     from src.subscription_manager import SubscriptionManager as _SubscriptionManager
-    _subscription_manager: Optional[Any] = _SubscriptionManager()
+    _subscription_manager: Optional[_SubscriptionManager] = _SubscriptionManager()
     _subscription_manager_available = True
     log.info("SubscriptionManager loaded — tier-aware demo rate limiting active")
 except Exception as _sm_e:
     log.warning("SubscriptionManager not available (%s) — falling back to flat rate limiter", _sm_e)
-    _SubscriptionManager = None  # type: ignore
     _subscription_manager = None
     _subscription_manager_available = False
 
