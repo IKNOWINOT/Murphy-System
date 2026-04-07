@@ -7805,7 +7805,8 @@ def create_app() -> FastAPI:
                         _token_resp.raise_for_status()
                         _token_data = _token_resp.json()
                     except Exception as _tok_exc:
-                        logger.warning("OAuth env-var token exchange failed: %s", _tok_exc)
+                        # SEC-LOG-002: Log only exception type, not message (may contain tokens).
+                        logger.warning("OAuth env-var token exchange failed: %s", type(_tok_exc).__name__)
                         _token_data = {}
 
                     _email = _token_data.get("email", "")
@@ -13373,14 +13374,19 @@ def create_app() -> FastAPI:
         return JSONResponse({"ok": True, "url": url})
 
     def _build_env_template(workflows):
-        """Build .env.example content from workflow API suggestions."""
+        """Build .env.example content from workflow API suggestions.
+
+        SEC-SECRET-001: Every generated env file receives a unique random
+        MURPHY_SECRET_KEY so operators never deploy with the old placeholder.
+        """
+        import secrets as _secrets  # noqa: PLC0415
         lines = [
             "# Murphy System — Environment Configuration",
             "# Generated from your workflows — fill in API keys to activate integrations",
             "",
             "# === Core ===",
             "MURPHY_ENV=production",
-            "MURPHY_SECRET_KEY=change-me-to-a-random-string",
+            f"MURPHY_SECRET_KEY={_secrets.token_urlsafe(48)}",
             "",
             "# === LLM Provider (optional — system works without it) ===",
             "# MURPHY_LLM_PROVIDER=deepinfra",

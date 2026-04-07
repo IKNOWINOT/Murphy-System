@@ -6,6 +6,8 @@ License: BSL 1.1
 Workflow template marketplace for Murphy System.
 Provides JSON-based template storage, search, installation, and export.
 Integrates with: workflow_dag_engine.py, plugin_extension_sdk.py
+
+SEC-PATH-002: File-writing paths validated via ``safe_path_join``.
 """
 
 import json
@@ -19,6 +21,17 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
+
+# SEC-PATH-002: Import safe path utility.
+try:
+    from security_plane.hardening import safe_path_join as _safe_path_join
+except ImportError:
+    from pathlib import Path as _Path
+    def _safe_path_join(base, *parts):  # type: ignore[misc]
+        resolved = (_Path(base).resolve() / _Path(*parts)).resolve()
+        if not str(resolved).startswith(str(_Path(base).resolve())):
+            raise ValueError(f"Path traversal detected: {parts}")
+        return resolved
 
 
 class TemplateCategory(str, Enum):
@@ -87,9 +100,9 @@ class TemplateStore:
         with self._lock:
             self._store[template.template_id] = template
             if self._templates_dir:
-                filepath = os.path.join(
+                filepath = str(_safe_path_join(
                     self._templates_dir, f"{template.template_id}.json"
-                )
+                ))  # SEC-PATH-002
                 try:
                     with open(filepath, "w", encoding="utf-8") as fh:
                         json.dump(template.model_dump(), fh, indent=2)
@@ -108,9 +121,9 @@ class TemplateStore:
                 return False
             del self._store[template_id]
             if self._templates_dir:
-                filepath = os.path.join(
+                filepath = str(_safe_path_join(
                     self._templates_dir, f"{template_id}.json"
-                )
+                ))  # SEC-PATH-002
                 try:
                     if os.path.exists(filepath):
                         os.remove(filepath)

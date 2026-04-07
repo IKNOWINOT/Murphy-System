@@ -328,7 +328,12 @@ def _write_stub(
     """
     slug = re.sub(r"[^a-z0-9]+", "_", need.category.lower()).strip("_")
     filename = f"{slug}_api.py"
-    stub_path = os.path.join(capabilities_dir, filename)
+    # SEC-PATH-002: Validate filename stays inside capabilities_dir.
+    try:
+        from security_plane.hardening import safe_path_join
+        stub_path = str(safe_path_join(capabilities_dir, filename))
+    except ImportError:
+        stub_path = os.path.join(capabilities_dir, filename)
 
     if os.path.exists(stub_path):
         return stub_path, False

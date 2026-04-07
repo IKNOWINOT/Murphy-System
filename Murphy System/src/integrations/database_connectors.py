@@ -297,7 +297,29 @@ class SQLDatabaseConnector(DatabaseConnector):
         In *live* mode, executes against the real database and returns rows
         as a list of dicts (SELECT) or ``[{'affected_rows': N}]`` for DML.
         In *stub* mode, returns deterministic fixture data for testing.
+
+        SEC-SQL-001: Logs a warning when the query string contains patterns
+        commonly associated with SQL injection (multi-statement, UNION SELECT,
+        comment markers).  This is a defense-in-depth signal — the primary
+        protection is SQLAlchemy's parameterised ``text()`` binding.
+        SEC-SQL-002: Logs a warning when the query appears to use string
+        interpolation markers instead of proper ``:param`` placeholders.
         """
+        # SEC-SQL-001 — heuristic injection warning
+        _ql = query.lower()
+        _SUSPICIOUS = ("; drop ", "; delete ", "union select", "union all select",
+                       " -- ", "/*", "xp_", "exec ", "execute ")
+        for pattern in _SUSPICIOUS:
+            if pattern in _ql:
+                logger.warning("SEC-SQL-001: Suspicious SQL pattern %r in query — "
+                               "verify this is intentional", pattern.strip())
+                break
+
+        # SEC-SQL-002 — interpolation marker warning
+        if not parameters and ("%s" in query or "%()" in query or "{}" in query):
+            logger.warning("SEC-SQL-002: Query contains interpolation markers "
+                           "but no parameters were passed — possible injection risk")
+
         if self._db_mode == "live" and self._engine is not None:
             from sqlalchemy import text as sa_text  # noqa: PLC0415
             with self._engine.begin() as conn:

@@ -138,7 +138,12 @@ class EnvironmentStateManager:
         os.makedirs(self._home, exist_ok=True)
 
     def _path(self, filename: str) -> str:
-        return os.path.join(self._home, filename)
+        # SEC-PATH-002: Validate filename stays inside _home.
+        try:
+            from security_plane.hardening import safe_path_join
+            return str(safe_path_join(self._home, filename))
+        except ImportError:
+            return os.path.join(self._home, filename)
 
     # ------------------------------------------------------------------
     # State persistence
