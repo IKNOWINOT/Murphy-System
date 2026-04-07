@@ -3400,6 +3400,89 @@ if __name__ == "__main__":
     uvicorn.run("murphy_production_server:app", host="0.0.0.0", port=port,
                 reload=False, log_level="info")
 # =============================================================================
+# AUTH ENDPOINTS — Gap 2: Anon→Free registration
+# =============================================================================
+
+@app.post("/api/auth/register-free")
+async def api_auth_register_free(request: Request):
+    """Register a new free-tier account and return an account_id + session token.
+
+    Accepts ``{email, password}`` and creates a free-tier subscription record
+    via SubscriptionManager so subsequent forge builds are tracked per-account
+    (10/day) instead of per-fingerprint (5/day).
+
+    Response::
+
+        {
+          "success": true,
+          "account_id": "<uuid>",
+          "token": "<session-token>",
+          "tier": "free",
+          "daily_limit": 10
+        }
+
+    Gap 2 — production commissioning hardening.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+    email = (body.get("email") or "").strip().lower()
+    password = (body.get("password") or "").strip()
+
+    if not email or "@" not in email:
+        return JSONResponse({"success": False, "error": "Valid email is required"}, status_code=400)
+    if len(password) < 8:
+        return JSONResponse(
+            {"success": False, "error": "Password must be at least 8 characters"},
+            status_code=400,
+        )
+
+    # Attempt to register via the production auth layer
+    try:
+        from src.runtime.auth import register_account, create_session_token
+        account_id, token = register_account(email=email, password=password, tier="free")
+        if not account_id:
+            return JSONResponse(
+                {"success": False, "error": "Email already registered. Please sign in."},
+                status_code=409,
+            )
+    except ImportError:
+        # Auth layer not yet wired — mint a random account_id + token (SEC-AUTH-001)
+        import secrets as _sec
+        account_id = "free-" + _sec.token_hex(16)
+        token = _sec.token_hex(32)
+
+    # Record a free-tier subscription in SubscriptionManager
+    try:
+        from src.subscription_manager import SubscriptionManager, SubscriptionTier
+        sm = SubscriptionManager()
+        existing = sm.get_subscription(account_id)
+        if existing is None:
+            sm.create_subscription(
+                account_id=account_id,
+                tier=SubscriptionTier.FREE,
+                email=email,
+            )
+    except Exception as _sub_exc:
+        log.warning("Could not create subscription record for %s: %s", account_id, _sub_exc)
+
+    log.info("New free-tier account registered: %s (account=%s)", email, account_id)
+
+    return JSONResponse(
+        {
+            "success": True,
+            "account_id": account_id,
+            "token": token,
+            "tier": "free",
+            "daily_limit": 10,
+        },
+        status_code=201,
+    )
+
+
+# =============================================================================
 # DEMO API ENDPOINTS - Forge Demo for Landing Page
 # =============================================================================
 
@@ -3410,6 +3493,15 @@ if __name__ == "__main__":
 # ---------------------------------------------------------------------------
 _DEMO_RATE_LIMITS: Dict[str, Dict[str, Any]] = {}  # fallback-only
 _DEMO_LIMIT_PER_DAY = 10  # fallback-only flat cap
+_DEMO_ANON_LIMIT_PER_DAY = 5   # anonymous visitors
+
+
+def _next_midnight_utc_iso() -> str:
+    """Return ISO-8601 timestamp of next midnight UTC (daily reset point)."""
+    from datetime import timedelta
+    now = datetime.now(timezone.utc)
+    next_midnight = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    return next_midnight.isoformat()
 
 
 def _demo_fingerprint(request: Request) -> str:
@@ -3531,6 +3623,44 @@ def _consume_demo_rate_limit(fingerprint: str):
     """[DEPRECATED] Flat consume — use _check_and_record_demo_usage()."""
     if fingerprint in _DEMO_RATE_LIMITS:
         _DEMO_RATE_LIMITS[fingerprint]["count"] += 1
+
+def _resolve_demo_identity(request: Request):
+    """Extract account_id and tier from request auth headers.
+
+    Returns (fingerprint, tier) where fingerprint is account_id if authenticated
+    or an IP+UA hash for anonymous visitors.
+    """
+    # Check for X-User-ID header
+    user_id = (request.headers.get("X-User-ID") or "").strip()
+    # Check for Authorization: Bearer <token>
+    auth_header = request.headers.get("Authorization") or ""
+    if not user_id and auth_header.startswith("Bearer "):
+        token = auth_header[7:].strip()
+        if token:
+            # Resolve token → account_id from session store
+            try:
+                from src.runtime.auth import get_account_from_token
+                user_id = get_account_from_token(token) or ""
+            except Exception:
+                pass
+
+    if user_id:
+        # Authenticated user — determine their tier
+        try:
+            from src.subscription_manager import SubscriptionManager
+            sm = SubscriptionManager()
+            sub = sm.get_subscription(user_id)
+            tier = sub.tier.value.lower() if sub else "free"
+        except Exception:
+            tier = "free"
+        return user_id, tier
+
+    # Anonymous visitor — fingerprint by IP + UA
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    ua = request.headers.get("user-agent", "unknown")
+    fp = hashlib.sha256(f"{client_ip}:{ua}".encode()).hexdigest()[:32]
+    return fp, "anonymous"
+
 
 class BuildMetrics:
     """Tracks real metrics for a single forge run."""
@@ -3865,6 +3995,7 @@ async def api_demo_generate_deliverable_stream(request: Request):
     query = (body.get("query") or "").strip()
     if not query:
         return JSONResponse({"success": False, "error": "Query is required"}, status_code=400)
+
 
     # --- Tier-aware rate limiting (SubscriptionManager) ---
     usage = _check_and_record_demo_usage(request)
