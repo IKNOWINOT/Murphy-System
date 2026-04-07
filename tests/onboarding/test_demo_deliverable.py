@@ -374,8 +374,8 @@ class TestDeliverablePipeline:
         from src.demo_deliverable_generator import _run_mfgc_gate
         result = _run_mfgc_gate("Build an automated invoice processing pipeline")
         assert isinstance(result, dict)
-        # If MFGC ran, it should have confidence
-        if result:
+        # If MFGC actually ran (not a fallback), it should have confidence
+        if result.get("success"):
             assert "confidence" in result
 
     def test_format_mss_context_empty(self):

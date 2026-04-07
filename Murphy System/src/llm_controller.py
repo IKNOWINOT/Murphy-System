@@ -71,7 +71,7 @@ class LLMRequest:
     prompt: str
     context: Optional[str] = None
     temperature: float = 0.7
-    max_tokens: int = 2000
+    max_tokens: int = 131072  # DeepInfra Llama-3.1-70B context window
     model_preference: Optional[LLMModel] = None
     require_capabilities: Optional[List[ModelCapability]] = None
 
@@ -415,7 +415,7 @@ class LLMController:
                           "temperature": request.temperature, "max_tokens": request.max_tokens},
                     headers={"Authorization": f"Bearer {api_key}",
                              "Content-Type": "application/json"},
-                    timeout=aiohttp.ClientTimeout(total=60),
+                    timeout=aiohttp.ClientTimeout(total=120),
                 ) as resp:
                     resp.raise_for_status()
                     data = await resp.json()
@@ -459,7 +459,7 @@ class LLMController:
                           "temperature": request.temperature, "max_tokens": request.max_tokens},
                     headers={"Authorization": f"Bearer {api_key}",
                              "Content-Type": "application/json"},
-                    timeout=aiohttp.ClientTimeout(total=60),
+                    timeout=aiohttp.ClientTimeout(total=120),
                 ) as resp:
                     resp.raise_for_status()
                     data = await resp.json()
@@ -503,7 +503,7 @@ class LLMController:
                           "temperature": request.temperature, "max_tokens": request.max_tokens},
                     headers={"Authorization": f"Bearer {api_key}",
                              "Content-Type": "application/json"},
-                    timeout=aiohttp.ClientTimeout(total=60),
+                    timeout=aiohttp.ClientTimeout(total=120),
                 ) as resp:
                     resp.raise_for_status()
                     data = await resp.json()
