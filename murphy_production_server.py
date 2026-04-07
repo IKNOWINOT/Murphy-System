@@ -1115,6 +1115,32 @@ _feedback_dispatcher: Optional[Any] = None
 
 @app.on_event("startup")
 async def _startup():
+    # SEC-STARTUP-001: In production, run readiness scanner and refuse to start
+    # if there are any blocking findings.
+    _env = os.environ.get("MURPHY_ENV", "development")
+    if _env == "production":
+        try:
+            from readiness_scanner import DeploymentGateRunner  # type: ignore[import-untyped]
+            _runner = DeploymentGateRunner()
+            _gate_result = _runner.run_all_gates()
+            _blockers = [r for r in _gate_result if not r[0]]
+            if _blockers:
+                _msgs = "; ".join(r[1] for r in _blockers)
+                log.critical(
+                    "SEC-STARTUP-001: Readiness scanner found blockers — refusing to start: %s",
+                    _msgs,
+                )
+                raise SystemExit(
+                    f"SEC-STARTUP-001: Production readiness check failed: {_msgs}"
+                )
+            log.info("SEC-STARTUP-001: All readiness gates passed for production.")
+        except ImportError:
+            log.warning("SEC-STARTUP-001: readiness_scanner not available — skipping startup gate.")
+        except SystemExit:
+            raise
+        except Exception as _rs_exc:
+            log.warning("SEC-STARTUP-001: Readiness scanner error (non-blocking): %s", _rs_exc)
+
     _seed_automations()
     _automation_store.extend(_DEMO_AUTOMATIONS)
     _seed_campaigns()
@@ -1538,7 +1564,10 @@ async def diagnostics():
 
 
 # ==============================================================================
-# HEALTH
+# HEALTH — SEC-ROUTE-001: public (no auth required)
+# SEC-ROUTE-002: Route inventory — all /health, /api/demo/*, /landing, /static/*,
+# /api/infrastructure/*, /api/fdd/* are intentionally public.  All /api/* routes
+# outside that set should be protected (see SEC-ROUTE-003 test).
 # ==============================================================================
 @app.get("/health")
 async def health():

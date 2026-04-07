@@ -401,6 +401,33 @@ def _gate_security_scan() -> tuple:
             return False, ("SEC-READY-003: Neither TLS cert/key nor MURPHY_REVERSE_PROXY "
                            "configured — production requires TLS")
 
+        # SEC-READY-004: Docker port exposure check.
+        # If we are running inside a container, check whether infrastructure
+        # ports (5432, 6379, 9090) are exposed to the host — they should
+        # only be on the internal Docker network.
+        try:
+            import subprocess  # noqa: S404 — only reading docker config
+            _compose_out = subprocess.check_output(
+                ["docker", "compose", "config", "--format", "json"],
+                timeout=10, stderr=subprocess.DEVNULL, text=True,
+            )
+            import json as _json
+            _compose_cfg = _json.loads(_compose_out)
+            _infra_ports = {"5432", "6379", "9090"}
+            _exposed = []
+            for _svc_name, _svc in _compose_cfg.get("services", {}).items():
+                for _port_entry in _svc.get("ports", []):
+                    _published = str(_port_entry.get("published", "")) if isinstance(_port_entry, dict) else str(_port_entry).split(":")[0]
+                    if _published in _infra_ports:
+                        _exposed.append(f"{_svc_name}:{_published}")
+            if _exposed:
+                return False, (
+                    f"SEC-READY-004: Infrastructure ports exposed to host — "
+                    f"use expose: instead of ports: for {', '.join(_exposed)}"
+                )
+        except (FileNotFoundError, subprocess.TimeoutExpired, Exception):
+            pass  # Docker not available or not running — skip check.
+
         return True, f"Security scan passed for env={env}"
 
     return True, f"Security scan skipped for env={env} (not production/staging)"

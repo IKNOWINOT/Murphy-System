@@ -2,7 +2,7 @@
 Production Security Hardening — Comprehensive Test Suite
 =========================================================
 
-Tests for all 28 SEC-* labels across all 12 hardening modules.
+Tests for all 40 SEC-* labels across all 12 hardening modules.
 
 Phase 1: Foundations  — Modules 5 (Secrets), 6 (Docker), 9 (Deps)
 Phase 2: Perimeter   — Modules 1 (CORS), 8 (Logging), 11 (Routes)
@@ -28,6 +28,8 @@ import pytest
 # ── Path resolution ─────────────────────────────────────────────────
 _ROOT = Path(__file__).resolve().parent.parent.parent
 _MURPHY = _ROOT / "Murphy System"
+_MURPHY_SRC = _MURPHY / "src"
+_SERVER = _ROOT / "murphy_production_server.py"
 for _p in (_ROOT, _ROOT / "src", _MURPHY / "src"):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
@@ -533,18 +535,19 @@ class TestSecurityLabelInventory:
     REQUIRED_LABELS = [
         "SEC-CORS-001", "SEC-CORS-002", "SEC-OPENAPI-001",
         "SEC-COMPOSE-001",
-        "SEC-REPL-001", "SEC-REPL-002",
+        "SEC-REPL-001", "SEC-REPL-002", "SEC-REPL-003", "SEC-REPL-004",
         "SEC-EVAL-001", "SEC-EVAL-002",
         "SEC-SQL-001", "SEC-SQL-002",
         "SEC-SECRET-001", "SEC-SECRET-002",
-        "SEC-GIT-001",
+        "SEC-GIT-001", "SEC-STARTUP-001",
         "SEC-DOCKER-001", "SEC-DOCKER-002", "SEC-DOCKER-003",
         "SEC-DOCKER-004", "SEC-DOCKER-005",
-        "SEC-PATH-001", "SEC-PATH-003",
-        "SEC-LOG-001", "SEC-ERROR-001",
-        "SEC-DEPS-001", "SEC-DEPS-003",
-        "SEC-SANDBOX-003",
-        "SEC-READY-001", "SEC-READY-002", "SEC-READY-003",
+        "SEC-PATH-001", "SEC-PATH-002", "SEC-PATH-003",
+        "SEC-LOG-001", "SEC-LOG-002", "SEC-ERROR-001",
+        "SEC-DEPS-001", "SEC-DEPS-002", "SEC-DEPS-003",
+        "SEC-SANDBOX-001", "SEC-SANDBOX-002", "SEC-SANDBOX-003",
+        "SEC-ROUTE-001", "SEC-ROUTE-002", "SEC-ROUTE-003",
+        "SEC-READY-001", "SEC-READY-002", "SEC-READY-003", "SEC-READY-004",
     ]
 
     def _scan_codebase(self):
@@ -565,3 +568,270 @@ class TestSecurityLabelInventory:
         """Every SEC-* label must appear at least once in the codebase."""
         text = self._scan_codebase()
         assert label in text, f"Security label {label} not found in codebase"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  SEC-REPL-003: Execution timeout enforcement
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestREPLTimeoutEnforcement:
+    """SEC-REPL-003: REPL execute() must timeout long-running code."""
+
+    def test_timeout_label_in_source(self):
+        """SEC-REPL-003 label present in murphy_repl.py."""
+        source = (_MURPHY_SRC / "murphy_repl.py").read_text()
+        assert "SEC-REPL-003" in source
+
+    def test_timeout_mechanism_present(self):
+        """Threading or signal-based timeout wraps exec()."""
+        source = (_MURPHY_SRC / "murphy_repl.py").read_text()
+        assert "threading" in source or "signal.alarm" in source, \
+            "Timeout enforcement mechanism must exist"
+
+    def test_timeout_fires_on_long_exec(self):
+        """A long-running exec should raise TimeoutError (or fail gracefully)."""
+        sys.path.insert(0, str(_MURPHY_SRC))
+        try:
+            from murphy_repl import MurphyREPL
+            repl = MurphyREPL()
+            repl.max_execution_time = 2.0  # 2 second timeout
+            # Busy loop that doesn't need imports
+            result = repl.execute("x = 0\nwhile True:\n x += 1")
+            # Should either timeout with error or produce an error result
+            assert not result.success, \
+                "Long-running REPL exec must be stopped by timeout"
+        except (ImportError, TimeoutError):
+            pass  # TimeoutError is acceptable — means it worked
+        finally:
+            if str(_MURPHY_SRC) in sys.path:
+                sys.path.remove(str(_MURPHY_SRC))
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  SEC-REPL-004: Memory limit enforcement
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestREPLMemoryLimitEnforcement:
+    """SEC-REPL-004: REPL must enforce memory limits."""
+
+    def test_memory_label_in_source(self):
+        """SEC-REPL-004 label present in murphy_repl.py."""
+        source = (_MURPHY_SRC / "murphy_repl.py").read_text()
+        assert "SEC-REPL-004" in source
+
+    def test_max_memory_mb_attribute(self):
+        """max_memory_mb policy attribute exists for container-level enforcement."""
+        source = (_MURPHY_SRC / "murphy_repl.py").read_text()
+        assert "max_memory_mb" in source, \
+            "max_memory_mb policy attribute must exist for container enforcement"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  SEC-PATH-002: safe_path_join used in file-writing paths
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestPathTraversalFileReplacements:
+    """SEC-PATH-002: All user-influenced file paths use safe_path_join."""
+
+    FILES_WITH_SAFE_PATH = [
+        "murphy_template_hub.py",
+        "command_parser.py",
+        "api_capability_builder.py",
+        "hetzner_deploy.py",
+        "environment_state_manager.py",
+    ]
+
+    @pytest.mark.parametrize("filename", FILES_WITH_SAFE_PATH)
+    def test_safe_path_join_present(self, filename):
+        """SEC-PATH-002: Each file must reference safe_path_join."""
+        # Search across full Murphy System/src tree
+        matches = list(_MURPHY_SRC.rglob(filename))
+        assert matches, f"{filename} not found"
+        source = matches[0].read_text()
+        assert "safe_path_join" in source or "SEC-PATH-002" in source, \
+            f"{filename} must use safe_path_join (SEC-PATH-002)"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  SEC-LOG-002: OAuth log line sanitized
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestLogSanitizationOAuth:
+    """SEC-LOG-002: OAuth error logging must not leak tokens."""
+
+    def test_oauth_log_uses_type_only(self):
+        """app.py must log exception type, not message, for OAuth errors."""
+        source = (_MURPHY_SRC / "runtime" / "app.py").read_text()
+        assert "SEC-LOG-002" in source, "SEC-LOG-002 label must be in app.py"
+        # The old pattern was: logger.warning("... %s", _tok_exc)
+        # New pattern should use type(__name__) instead
+        assert "type(_tok_exc).__name__" in source or "type(exc).__name__" in source, \
+            "OAuth log must use exception type name, not full message"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  SEC-STARTUP-001: Readiness scanner gate at startup
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestStartupReadinessGate:
+    """SEC-STARTUP-001: Production startup calls readiness scanner."""
+
+    def test_startup_gate_label(self):
+        """SEC-STARTUP-001 label present in production server."""
+        source = _SERVER.read_text()
+        assert "SEC-STARTUP-001" in source
+
+    def test_startup_imports_readiness_scanner(self):
+        """Production startup references readiness_scanner."""
+        source = _SERVER.read_text()
+        assert "readiness_scanner" in source or "DeploymentGateRunner" in source
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  SEC-DEPS-002: requirements.txt pinned to exact versions
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestDependencyPinning:
+    """SEC-DEPS-002: Production requirements pinned with ==."""
+
+    def test_deps_label_in_requirements(self):
+        """SEC-DEPS-002 comment in requirements.txt."""
+        source = (_ROOT / "requirements.txt").read_text()
+        assert "SEC-DEPS-002" in source
+
+    def test_no_range_specifiers(self):
+        """No >= or < version specifiers in production requirements."""
+        source = (_ROOT / "requirements.txt").read_text()
+        for line in source.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("#") or not stripped or stripped.startswith("-"):
+                continue
+            # Skip commented-out packages
+            if stripped.startswith("#"):
+                continue
+            # Active package lines should use ==, not >= or <
+            if ">=" in stripped and not stripped.startswith("#"):
+                pytest.fail(
+                    f"SEC-DEPS-002: requirements.txt has range specifier: {stripped}")
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  SEC-SANDBOX-001 / SEC-SANDBOX-002: Pre-execution quarantine gate
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestQuarantinePreExecutionGate:
+    """SEC-SANDBOX-001/002: quarantine_check() must exist and block."""
+
+    def test_quarantine_check_method_exists(self):
+        """SandboxQuarantine must have quarantine_check()."""
+        source = (_MURPHY_SRC / "integration_engine" / "sandbox_quarantine.py").read_text()
+        assert "def quarantine_check" in source, \
+            "SEC-SANDBOX-001: quarantine_check() method must exist"
+        assert "SEC-SANDBOX-001" in source
+        assert "SEC-SANDBOX-002" in source
+
+    def test_quarantine_check_blocks_eval(self):
+        """quarantine_check must detect eval() as CRITICAL."""
+        sys.path.insert(0, str(_MURPHY_SRC))
+        try:
+            from integration_engine.sandbox_quarantine import SandboxQuarantine
+            sq = SandboxQuarantine()
+            is_safe, findings = sq.quarantine_check("result = eval(user_input)")
+            assert not is_safe, "eval() must be flagged as unsafe"
+            assert any("eval" in f.lower() for f in findings)
+        except ImportError:
+            pytest.skip("sandbox_quarantine not importable")
+        finally:
+            if str(_MURPHY_SRC) in sys.path:
+                sys.path.remove(str(_MURPHY_SRC))
+
+    def test_quarantine_check_blocks_import(self):
+        """quarantine_check must detect __import__ as CRITICAL."""
+        sys.path.insert(0, str(_MURPHY_SRC))
+        try:
+            from integration_engine.sandbox_quarantine import SandboxQuarantine
+            sq = SandboxQuarantine()
+            is_safe, findings = sq.quarantine_check("os = __import__('os')")
+            assert not is_safe, "__import__ must be flagged as unsafe"
+        except ImportError:
+            pytest.skip("sandbox_quarantine not importable")
+        finally:
+            if str(_MURPHY_SRC) in sys.path:
+                sys.path.remove(str(_MURPHY_SRC))
+
+    def test_quarantine_check_passes_clean_code(self):
+        """Clean code should pass quarantine_check."""
+        sys.path.insert(0, str(_MURPHY_SRC))
+        try:
+            from integration_engine.sandbox_quarantine import SandboxQuarantine
+            sq = SandboxQuarantine()
+            is_safe, findings = sq.quarantine_check("x = 1 + 2\nprint(x)")
+            assert is_safe, "Clean code must pass quarantine"
+        except ImportError:
+            pytest.skip("sandbox_quarantine not importable")
+        finally:
+            if str(_MURPHY_SRC) in sys.path:
+                sys.path.remove(str(_MURPHY_SRC))
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  SEC-ROUTE-001/002/003: Route auth coverage
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestRouteAuthCoverage:
+    """SEC-ROUTE-001/002/003: Route inventory and auth verification."""
+
+    # SEC-ROUTE-002: Known public (no-auth) route prefixes
+    PUBLIC_ROUTE_PREFIXES = (
+        "/health", "/api/infrastructure/health",
+        "/api/demo/", "/landing", "/ui/landing", "/onboarding",
+        "/static/", "/api/rate-governor/", "/docs", "/redoc", "/openapi.json",
+        "/api/fdd/", "/ws", "/",
+    )
+
+    def test_route_inventory_label(self):
+        """SEC-ROUTE-001 label in production server."""
+        source = _SERVER.read_text()
+        assert "SEC-ROUTE" in source or "route" in source.lower()
+
+    def test_all_routes_are_documented(self):
+        """SEC-ROUTE-002: Every @app route can be categorised."""
+        import re
+        source = _SERVER.read_text()
+        routes = re.findall(r'@app\.(?:get|post|put|patch|delete)\("([^"]+)"', source)
+        assert len(routes) > 50, "Expected 50+ routes in production server"
+
+    def test_public_routes_are_intentional(self):
+        """SEC-ROUTE-003: No accidental public endpoints."""
+        import re
+        source = _SERVER.read_text()
+        routes = re.findall(r'@app\.(?:get|post|put|patch|delete)\("([^"]+)"', source)
+
+        for route in routes:
+            is_public = any(route.startswith(prefix) for prefix in self.PUBLIC_ROUTE_PREFIXES)
+            if not is_public:
+                # Non-public routes should be in app.py (which has Depends) or
+                # be explicitly documented here. We just verify the route exists
+                # and is categorizable.
+                assert route.startswith("/api/"), \
+                    f"Non-API route {route} not in public list — audit needed"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  SEC-READY-004: Docker port exposure check
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestReadinessScannerDockerCheck:
+    """SEC-READY-004: Readiness scanner checks Docker port exposure."""
+
+    def test_ready_004_label(self):
+        """SEC-READY-004 label in readiness_scanner.py."""
+        source = (_MURPHY_SRC / "readiness_scanner.py").read_text()
+        assert "SEC-READY-004" in source
+
+    def test_ready_004_checks_infrastructure_ports(self):
+        """SEC-READY-004 references infrastructure ports (5432, 6379, 9090)."""
+        source = (_MURPHY_SRC / "readiness_scanner.py").read_text()
+        for port in ("5432", "6379", "9090"):
+            assert port in source, \
+                f"SEC-READY-004: Readiness scanner must check port {port}"

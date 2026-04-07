@@ -207,6 +207,36 @@ class SandboxQuarantine:
         self._copyleft_licenses = COPYLEFT_LICENSES
 
     # ------------------------------------------------------------------
+    # SEC-SANDBOX-001: Pre-execution quarantine gate
+    # ------------------------------------------------------------------
+
+    def quarantine_check(self, code: str) -> Tuple[bool, List[str]]:
+        """Check code for dangerous patterns **before** execution.
+
+        SEC-SANDBOX-001: This MUST be called before any ``exec()`` or
+        ``eval()`` of user/automation-supplied code.
+
+        SEC-SANDBOX-002: Full containerised runtime isolation is planned as
+        a future enhancement.  Until then, this static gate is the hard
+        blocker.
+
+        Args:
+            code: Source code string to inspect.
+
+        Returns:
+            ``(is_safe, findings)`` where *is_safe* is ``False`` when any
+            CRITICAL pattern is detected.
+        """
+        findings: List[str] = []
+        is_safe = True
+        for pattern, severity, _can_fix, description in self._THREAT_PATTERNS:
+            if re.search(pattern, code):
+                findings.append(f"[{severity}] {description}")
+                if severity == "CRITICAL":
+                    is_safe = False
+        return is_safe, findings
+
+    # ------------------------------------------------------------------
     # Public entry-point
     # ------------------------------------------------------------------
 
