@@ -436,6 +436,7 @@
     "production_deliverable_wizard",
     "production_output_calibrator",
     "production_router",
+    "production_workflow_registry",
     "profit_sweep",
     "prometheus_metrics_exporter",
     "prompt_amplifier",

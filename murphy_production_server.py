@@ -3438,6 +3438,8 @@ def _demo_account_id(request: Request) -> str:
             import json as _json
             # Decode payload (middle segment) without verifying signature.
             parts = token.split(".")
+            if len(parts) < 2:
+                raise ValueError("malformed JWT")
             padding = "=" * (-len(parts[1]) % 4)
             payload = _json.loads(base64.urlsafe_b64decode(parts[1] + padding))
             sub = payload.get("sub") or payload.get("user_id") or payload.get("id")
@@ -3470,7 +3472,7 @@ def _check_and_record_demo_usage(request: Request) -> Dict[str, Any]:
                 result = _subscription_manager.record_usage(account_id)
             else:
                 result = _subscription_manager.record_anon_usage(fp)
-            # Normalise to the forge_usage shape
+            # Normalize to the forge_usage shape
             used = result.get("used", 0)
             remaining = result.get("remaining", 0)
             limit = result.get("limit", -1)
