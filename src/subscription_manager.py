@@ -314,6 +314,31 @@ class SubscriptionManager:
         self._ANON_DAILY_LIMIT = 5
         self._FREE_DAILY_LIMIT = 10
 
+        # Gap 5: Redis backend for rate limiting (MURPHY_RATE_LIMIT_BACKEND=redis)
+        self._redis_client: Optional[Any] = None
+        self._redis_available = False
+        _backend = os.environ.get("MURPHY_RATE_LIMIT_BACKEND", "memory").lower()
+        if _backend == "redis":
+            _redis_url = os.environ.get("REDIS_URL", "")
+            if _redis_url:
+                try:
+                    import redis as _redis_mod  # type: ignore
+                    self._redis_client = _redis_mod.from_url(_redis_url, socket_connect_timeout=2)
+                    self._redis_client.ping()
+                    self._redis_available = True
+                    logger.info("SubscriptionManager: rate limiting using Redis backend")
+                except Exception as _exc:
+                    logger.warning(
+                        "Redis unavailable (%s) — rate limiting running in per-worker mode "
+                        "— limits not shared across workers.",
+                        _exc,
+                    )
+            else:
+                logger.warning(
+                    "MURPHY_RATE_LIMIT_BACKEND=redis but REDIS_URL is not set "
+                    "— falling back to in-memory rate limiting."
+                )
+
     # ------------------------------------------------------------------
     # Stripe
     # ------------------------------------------------------------------
@@ -1143,16 +1168,81 @@ class SubscriptionManager:
     # Daily usage tracking
     # ------------------------------------------------------------------
 
+    def _redis_incr_daily(self, redis_key: str, limit: int) -> Optional[int]:
+        """Increment a Redis daily counter and set TTL to next midnight UTC.
+
+        Returns the new counter value, or None on error.
+        Uses INCR + EXPIREAT so the key expires atomically at midnight UTC.
+        """
+        if not self._redis_available or self._redis_client is None:
+            return None
+        try:
+            now = datetime.now(timezone.utc)
+            next_midnight = (now + timedelta(days=1)).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+            pipe = self._redis_client.pipeline()
+            pipe.incr(redis_key)
+            pipe.expireat(redis_key, int(next_midnight.timestamp()))
+            results = pipe.execute()
+            return int(results[0])
+        except Exception as _exc:
+            logger.warning("Redis incr failed (%s) — falling back to memory", _exc)
+            self._redis_available = False
+            return None
+
+    @staticmethod
+    def _next_midnight_utc() -> str:
+        """Return ISO-8601 timestamp of the next midnight UTC (daily reset point)."""
+        now = datetime.now(timezone.utc)
+        next_midnight = (now + timedelta(days=1)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        return next_midnight.isoformat()
+
     def record_usage(self, account_id: str) -> Dict[str, Any]:
         """Record a daily action for an account and return usage info.
 
-        Returns dict with ``allowed``, ``remaining``, ``limit``, ``used``.
+        Returns dict with ``allowed``, ``remaining``, ``limit``, ``used``,
+        and ``reset_at`` (ISO-8601 timestamp of next daily reset).
+        When MURPHY_RATE_LIMIT_BACKEND=redis, uses Redis INCR/EXPIREAT so
+        counters are shared across all Gunicorn workers.
         """
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         sub = self.get_subscription(account_id)
         is_free = sub is None or sub.tier == SubscriptionTier.FREE
         limit = self._FREE_DAILY_LIMIT if is_free else -1  # -1 = unlimited
+        reset_at = self._next_midnight_utc()
+        tier_val = sub.tier.value if sub else "free"
 
+        # ── Redis path ────────────────────────────────────────────────────────
+        if self._redis_available and limit != -1:
+            redis_key = f"murphy:usage:{account_id}:{today}"
+            new_count = self._redis_incr_daily(redis_key, limit)
+            if new_count is not None:
+                if new_count > limit:
+                    return {
+                        "allowed": False,
+                        "remaining": 0,
+                        "limit": limit,
+                        "used": new_count,
+                        "tier": tier_val,
+                        "reset_at": reset_at,
+                        "message": (
+                            f"Daily limit of {limit} actions reached. "
+                            f"Your limit resets at midnight UTC. Upgrade for unlimited access."
+                        ),
+                    }
+                return {
+                    "allowed": True,
+                    "remaining": limit - new_count,
+                    "limit": limit,
+                    "used": new_count,
+                    "tier": tier_val,
+                    "reset_at": reset_at,
+                }
+
+        # ── In-memory path ────────────────────────────────────────────────────
         with self._lock:
             entry = self._daily_usage.get(account_id, {"date": "", "count": 0})
             if entry["date"] != today:
@@ -1164,8 +1254,12 @@ class SubscriptionManager:
                     "remaining": 0,
                     "limit": limit,
                     "used": used,
-                    "tier": sub.tier.value if sub else "free",
-                    "message": f"Daily limit of {limit} actions reached. Upgrade for unlimited access.",
+                    "tier": tier_val,
+                    "reset_at": reset_at,
+                    "message": (
+                        f"Daily limit of {limit} actions reached. "
+                        f"Your limit resets at midnight UTC. Upgrade for unlimited access."
+                    ),
                 }
             entry["count"] = used + 1
             self._daily_usage[account_id] = entry
@@ -1175,17 +1269,52 @@ class SubscriptionManager:
                 "remaining": remaining,
                 "limit": limit,
                 "used": entry["count"],
-                "tier": sub.tier.value if sub else "free",
+                "tier": tier_val,
+                "reset_at": reset_at,
             }
 
     def record_anon_usage(self, fingerprint: str) -> Dict[str, Any]:
         """Record a daily action for an anonymous visitor.
 
         Anonymous visitors get 5 actions per day.
+        Returns dict with ``allowed``, ``remaining``, ``limit``, ``used``,
+        and ``reset_at`` (ISO-8601 timestamp of next daily reset).
+        When MURPHY_RATE_LIMIT_BACKEND=redis, uses Redis INCR/EXPIREAT so
+        counters are shared across all Gunicorn workers.
         """
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         limit = self._ANON_DAILY_LIMIT
+        reset_at = self._next_midnight_utc()
 
+        # ── Redis path ────────────────────────────────────────────────────────
+        if self._redis_available:
+            redis_key = f"murphy:anon:{fingerprint}:{today}"
+            new_count = self._redis_incr_daily(redis_key, limit)
+            if new_count is not None:
+                if new_count > limit:
+                    return {
+                        "allowed": False,
+                        "remaining": 0,
+                        "limit": limit,
+                        "used": new_count,
+                        "tier": "anonymous",
+                        "reset_at": reset_at,
+                        "message": (
+                            f"You've used your {limit} free builds. "
+                            f"Sign up for {self._FREE_DAILY_LIMIT} more! "
+                            f"Your limit resets at midnight UTC."
+                        ),
+                    }
+                return {
+                    "allowed": True,
+                    "remaining": limit - new_count,
+                    "limit": limit,
+                    "used": new_count,
+                    "tier": "anonymous",
+                    "reset_at": reset_at,
+                }
+
+        # ── In-memory path ────────────────────────────────────────────────────
         with self._lock:
             # Evict stale (non-today) entries to prevent memory exhaustion (CWE-400)
             if len(self._anon_usage) > 100_000:
@@ -1209,7 +1338,12 @@ class SubscriptionManager:
                     "limit": limit,
                     "used": used,
                     "tier": "anonymous",
-                    "message": f"Anonymous daily limit of {limit} reached. Sign up free for {self._FREE_DAILY_LIMIT} daily actions.",
+                    "reset_at": reset_at,
+                    "message": (
+                        f"You've used your {limit} free builds. "
+                        f"Sign up for {self._FREE_DAILY_LIMIT} more! "
+                        f"Your limit resets at midnight UTC."
+                    ),
                 }
             entry["count"] = used + 1
             self._anon_usage[fingerprint] = entry
@@ -1219,6 +1353,7 @@ class SubscriptionManager:
                 "limit": limit,
                 "used": entry["count"],
                 "tier": "anonymous",
+                "reset_at": reset_at,
             }
 
     def get_daily_usage(self, account_id: str) -> Dict[str, Any]:
