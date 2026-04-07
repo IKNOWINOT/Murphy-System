@@ -3403,12 +3403,112 @@ if __name__ == "__main__":
 # DEMO API ENDPOINTS - Forge Demo for Landing Page
 # =============================================================================
 
-# Rate limiting for demo
-_DEMO_RATE_LIMITS: Dict[str, Dict[str, Any]] = {}
-_DEMO_LIMIT_PER_DAY = 10
+# ---------------------------------------------------------------------------
+# DEMO rate-limiting — tier-aware via SubscriptionManager
+# The flat _DEMO_RATE_LIMITS dict is kept ONLY as a dead-letter fallback
+# when SubscriptionManager failed to import (e.g., missing dependency).
+# ---------------------------------------------------------------------------
+_DEMO_RATE_LIMITS: Dict[str, Dict[str, Any]] = {}  # fallback-only
+_DEMO_LIMIT_PER_DAY = 10  # fallback-only flat cap
 
+
+def _demo_fingerprint(request: Request) -> str:
+    """Return a stable, opaque fingerprint derived from the client IP + UA."""
+    ip = request.client.host if request.client else "127.0.0.1"
+    ua = request.headers.get("user-agent", "unknown")
+    return hashlib.sha256(f"{ip}:{ua}".encode()).hexdigest()[:32]
+
+
+def _demo_account_id(request: Request) -> str:
+    """Extract account identity from the request.
+
+    Priority:
+    1. ``X-User-ID`` header (set by auth middleware when a JWT is present)
+    2. ``Authorization: Bearer <token>`` — parse sub claim if possible
+    3. Fall back to ``"anonymous"``
+    """
+    uid = request.headers.get("x-user-id", "").strip()
+    if uid:
+        return uid
+    auth = request.headers.get("authorization", "").strip()
+    if auth.lower().startswith("bearer "):
+        token = auth[7:]
+        try:
+            import base64
+            import json as _json
+            # Decode payload (middle segment) without verifying signature.
+            padding = "=" * (-len(token.split(".")[1]) % 4)
+            payload = _json.loads(base64.urlsafe_b64decode(token.split(".")[1] + padding))
+            sub = payload.get("sub") or payload.get("user_id") or payload.get("id")
+            if sub:
+                return str(sub)
+        except Exception:  # noqa: BLE001 — best-effort JWT parse
+            pass
+    return "anonymous"
+
+
+def _check_and_record_demo_usage(request: Request) -> Dict[str, Any]:
+    """Tier-aware rate-limit check + record for demo forge endpoints.
+
+    Returns a dict with keys:
+      ``allowed``                  — bool
+      ``tier``                     — str  (e.g. "anonymous", "free", "solo")
+      ``builds_used_today``        — int
+      ``builds_remaining_today``   — int  (-1 = unlimited)
+      ``limit``                    — int  (-1 = unlimited)
+
+    When SubscriptionManager is unavailable the function falls back to
+    the legacy flat in-process limiter (anonymous, 10/day).
+    """
+    account_id = _demo_account_id(request)
+    fp = _demo_fingerprint(request)
+
+    if _subscription_manager_available and _subscription_manager is not None:
+        try:
+            if account_id != "anonymous":
+                result = _subscription_manager.record_usage(account_id)
+            else:
+                result = _subscription_manager.record_anon_usage(fp)
+            # Normalise to the forge_usage shape
+            used = result.get("used", 0)
+            remaining = result.get("remaining", 0)
+            limit = result.get("limit", -1)
+            return {
+                "allowed": result.get("allowed", True),
+                "tier": result.get("tier", "anonymous"),
+                "builds_used_today": used,
+                "builds_remaining_today": remaining if remaining != -1 else -1,
+                "limit": limit,
+            }
+        except Exception as _exc:  # noqa: BLE001
+            log.warning("SubscriptionManager.record_usage failed (%s) — using fallback", _exc)
+
+    # --- Dead-letter fallback (flat limiter) ---
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    key = account_id if account_id != "anonymous" else fp
+    if key not in _DEMO_RATE_LIMITS:
+        _DEMO_RATE_LIMITS[key] = {"date": today, "count": 0}
+    entry = _DEMO_RATE_LIMITS[key]
+    if entry["date"] != today:
+        entry["date"] = today
+        entry["count"] = 0
+    used = entry["count"]
+    allowed = used < _DEMO_LIMIT_PER_DAY
+    if allowed:
+        entry["count"] = used + 1
+    remaining = max(0, _DEMO_LIMIT_PER_DAY - entry["count"])
+    return {
+        "allowed": allowed,
+        "tier": "anonymous",
+        "builds_used_today": entry["count"],
+        "builds_remaining_today": remaining,
+        "limit": _DEMO_LIMIT_PER_DAY,
+    }
+
+
+# Legacy helpers kept for reference — no longer on the active code path
 def _check_demo_rate_limit(fingerprint: str) -> Dict[str, Any]:
-    """Check rate limit for demo builds."""
+    """[DEPRECATED] Flat rate-limit check — use _check_and_record_demo_usage()."""
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     if fingerprint not in _DEMO_RATE_LIMITS:
         _DEMO_RATE_LIMITS[fingerprint] = {"date": today, "count": 0}
@@ -3420,11 +3520,12 @@ def _check_demo_rate_limit(fingerprint: str) -> Dict[str, Any]:
         "builds_used_today": entry["count"],
         "builds_remaining_today": max(0, _DEMO_LIMIT_PER_DAY - entry["count"]),
         "limit": _DEMO_LIMIT_PER_DAY,
-        "tier": "anonymous"
+        "tier": "anonymous",
     }
 
+
 def _consume_demo_rate_limit(fingerprint: str):
-    """Consume one demo build."""
+    """[DEPRECATED] Flat consume — use _check_and_record_demo_usage()."""
     if fingerprint in _DEMO_RATE_LIMITS:
         _DEMO_RATE_LIMITS[fingerprint]["count"] += 1
 
@@ -3505,6 +3606,18 @@ except ImportError as exc:
     _generate_demo_deliverable = None
     _generate_demo_deliverable_with_progress = None
 log.info("Demo deliverable generator: %s", "available" if _demo_gen_available else "UNAVAILABLE — check sys.path")
+
+# -- Import SubscriptionManager for tier-aware demo rate limiting --------------
+try:
+    from src.subscription_manager import SubscriptionManager as _SubscriptionManager
+    _subscription_manager: Optional[Any] = _SubscriptionManager()
+    _subscription_manager_available = True
+    log.info("SubscriptionManager loaded — tier-aware demo rate limiting active")
+except Exception as _sm_e:
+    log.warning("SubscriptionManager not available (%s) — falling back to flat rate limiter", _sm_e)
+    _SubscriptionManager = None  # type: ignore
+    _subscription_manager = None
+    _subscription_manager_available = False
 
 def _generate_fallback_deliverable(query: str) -> Dict[str, Any]:
     """Fallback deliverable generator when demo_deliverable_generator is not available."""
@@ -3669,24 +3782,20 @@ async def api_demo_generate_deliverable(request: Request):
     query = (body.get("query") or "").strip()
     if not query:
         return JSONResponse({"success": False, "error": "Query is required"}, status_code=400)
-    
-    # Rate limiting
-    fp = hashlib.sha256(
-        f"{request.client.host if request.client else '127.0.0.1'}:{request.headers.get('user-agent', 'unknown')}".encode()
-    ).hexdigest()[:32]
-    
-    usage = _check_demo_rate_limit(fp)
-    if usage["builds_remaining_today"] <= 0:
+
+    # --- Tier-aware rate limiting (SubscriptionManager) ---
+    usage = _check_and_record_demo_usage(request)
+    if not usage["allowed"]:
         return JSONResponse({
             "success": False,
             "error": "Daily build limit reached. Sign up for more builds.",
             "forge_usage": usage,
         }, status_code=429)
-    
+
     # Create metrics tracker
     metrics = BuildMetrics(query)
     run_id = uuid.uuid4().hex[:12]
-    
+
     # Generate deliverable
     log.info(f"Generating demo deliverable for: {query[:80]}")
     metrics.start_build()
@@ -3712,15 +3821,13 @@ async def api_demo_generate_deliverable(request: Request):
         deliverable = _generate_fallback_deliverable(query)
 
     metrics.finish_build()
-    _consume_demo_rate_limit(fp)
-    usage = _check_demo_rate_limit(fp)
-    
+
     log.info(
         f"Demo deliverable generated in {metrics.actual_elapsed_seconds}s - "
         f"{len(deliverable.get('content', ''))} chars, "
         f"ROI: {metrics.roi_multiple}x"
     )
-    
+
     return JSONResponse({
         "success": True,
         "run_id": run_id,
@@ -3757,13 +3864,9 @@ async def api_demo_generate_deliverable_stream(request: Request):
     if not query:
         return JSONResponse({"success": False, "error": "Query is required"}, status_code=400)
 
-    # Rate limiting (same logic as the non-streaming endpoint)
-    fp = hashlib.sha256(
-        f"{request.client.host if request.client else '127.0.0.1'}:{request.headers.get('user-agent', 'unknown')}".encode()
-    ).hexdigest()[:32]
-
-    usage = _check_demo_rate_limit(fp)
-    if usage["builds_remaining_today"] <= 0:
+    # --- Tier-aware rate limiting (SubscriptionManager) ---
+    usage = _check_and_record_demo_usage(request)
+    if not usage["allowed"]:
         return JSONResponse({
             "success": False,
             "error": "Daily build limit reached. Sign up for more builds.",
@@ -3794,8 +3897,6 @@ async def api_demo_generate_deliverable_stream(request: Request):
             log.warning("Streaming forge generator failed: %s — using server-side fallback", exc)
             # Build a synthetic progress list with fallback content
             metrics.finish_build()
-            _consume_demo_rate_limit(fp)
-            fresh_usage = _check_demo_rate_limit(fp)
             fallback_deliverable = _generate_fallback_deliverable(query)
             fb_content = fallback_deliverable.get("content", "")
             done_event = {
@@ -3811,7 +3912,7 @@ async def api_demo_generate_deliverable_stream(request: Request):
                 },
                 "run_id": run_id,
                 "llm_provider": "murphy-demo",
-                "forge_usage": fresh_usage,
+                "forge_usage": usage,
                 "elapsed_seconds": metrics.actual_elapsed_seconds,
                 "build_metrics": metrics.to_dict(),
             }
@@ -3836,13 +3937,11 @@ async def api_demo_generate_deliverable_stream(request: Request):
                     event["deliverable"] = _generate_fallback_deliverable(query)
 
                 metrics.finish_build()
-                _consume_demo_rate_limit(fp)
-                fresh_usage = _check_demo_rate_limit(fp)
 
                 # Merge real metrics into final event
                 event["run_id"] = run_id
                 event["llm_provider"] = "murphy-demo"
-                event["forge_usage"] = fresh_usage
+                event["forge_usage"] = usage
                 event["elapsed_seconds"] = metrics.actual_elapsed_seconds
                 event["build_metrics"] = metrics.to_dict()
                 try:
