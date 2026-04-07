@@ -16,13 +16,19 @@ Tiers (builds/hour / builds/day / burst):
   professional :120 / ∞   / 20
   enterprise   :  ∞ / ∞   / ∞
 
+Set MURPHY_RATE_LIMIT_BACKEND=redis (and REDIS_URL) for shared counters
+across multiple Gunicorn workers.  Falls back to in-memory when Redis is
+unavailable with a warning log.
+
 Copyright © 2020 Inoni LLC — BSL 1.1
 """
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import time
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
@@ -48,7 +54,12 @@ _WINDOW_DAY  = 86400
 
 
 class ForgeRateLimiter:
-    """In-process token-bucket + sliding-window rate limiter for forge builds."""
+    """In-process token-bucket + sliding-window rate limiter for forge builds.
+
+    When MURPHY_RATE_LIMIT_BACKEND=redis (and REDIS_URL is set), daily counters
+    are stored in Redis so they are shared across all Gunicorn workers.  Falls
+    back to in-memory with a warning if Redis is unavailable.
+    """
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
@@ -56,6 +67,31 @@ class ForgeRateLimiter:
         self._hourly: Dict[str, Dict] = {}
         # daily sliding window: key → list[float] of timestamps
         self._daily: Dict[str, list] = {}
+
+        # Gap 5: Redis backend for shared daily counters
+        self._redis_client: Optional[Any] = None
+        self._redis_available = False
+        _backend = os.environ.get("MURPHY_RATE_LIMIT_BACKEND", "memory").lower()
+        if _backend == "redis":
+            _redis_url = os.environ.get("REDIS_URL", "")
+            if _redis_url:
+                try:
+                    import redis as _redis_mod  # type: ignore
+                    self._redis_client = _redis_mod.from_url(_redis_url, socket_connect_timeout=2)
+                    self._redis_client.ping()
+                    self._redis_available = True
+                    logger.info("ForgeRateLimiter: daily limits using Redis backend")
+                except Exception as _exc:
+                    logger.warning(
+                        "Redis unavailable (%s) — ForgeRateLimiter running in per-worker mode "
+                        "— limits not shared across workers.",
+                        _exc,
+                    )
+            else:
+                logger.warning(
+                    "MURPHY_RATE_LIMIT_BACKEND=redis but REDIS_URL is not set "
+                    "— ForgeRateLimiter falling back to in-memory rate limiting."
+                )
 
     # ------------------------------------------------------------------
     # Public API
@@ -66,6 +102,8 @@ class ForgeRateLimiter:
 
         Returns a result dict.  Callers MUST check ``result["allowed"]``
         before proceeding with the build.
+        Daily counters use Redis when available so limits are shared across
+        all Gunicorn workers.
         """
         user_id, client_ip = self._extract_identity(request)
         tier = self._resolve_tier(request, user_id)
@@ -77,16 +115,33 @@ class ForgeRateLimiter:
         if hourly_limit == -1:
             return self._unlimited_result(tier, key)
 
+        now = time.time()
+
+        # ── Redis daily check (shared across workers) ─────────────────────────
+        if self._redis_available and daily_limit != -1:
+            redis_daily_ok, redis_daily_used, redis_daily_remaining = \
+                self._check_daily_redis(key, daily_limit, now)
+        else:
+            redis_daily_ok = None  # signals: use in-memory path
+
         with self._lock:
-            now = time.time()
             hourly_ok, hourly_remaining, retry_after = self._check_hourly(key, hourly_limit, burst, now)
-            daily_ok, daily_used, daily_remaining = self._check_daily(key, daily_limit, now)
+
+            if redis_daily_ok is not None:
+                daily_ok = redis_daily_ok
+                daily_used = redis_daily_used
+                daily_remaining = redis_daily_remaining
+            else:
+                daily_ok, daily_used, daily_remaining = self._check_daily(key, daily_limit, now)
 
             allowed = hourly_ok and daily_ok
 
             if allowed:
                 self._record_hourly(key, burst, now)
-                self._record_daily(key, now)
+                if redis_daily_ok is None:
+                    self._record_daily(key, now)
+                # Redis daily was already incremented in _check_daily_redis
+
 
         result: Dict[str, Any] = {
             "allowed": allowed,
@@ -109,6 +164,54 @@ class ForgeRateLimiter:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    # Lua script for atomic daily check-and-increment (SEC-RATE-001)
+    _REDIS_INCR_LUA = """\
+local limit = tonumber(ARGV[1])
+local expire_at = tonumber(ARGV[2])
+local cur = tonumber(redis.call('GET', KEYS[1])) or 0
+if cur >= limit then
+    return -1
+end
+local new = redis.call('INCR', KEYS[1])
+redis.call('EXPIREAT', KEYS[1], expire_at)
+return new
+"""
+
+    def _check_daily_redis(self, key: str, daily_limit: int, now: float):
+        """Atomically check-and-increment the daily counter in Redis.
+
+        Uses a Lua script so the check and increment are atomic — no race
+        condition between the read and the write (SEC-RATE-001).
+
+        Returns (allowed, used, remaining).  On Redis error, returns
+        (True, 0, daily_limit) and disables Redis so the in-memory path
+        takes over.
+        """
+        try:
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            next_midnight = (datetime.now(timezone.utc) + timedelta(days=1)).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+            redis_key = f"murphy:forge:{key}:{today}"
+            result = self._redis_client.eval(
+                self._REDIS_INCR_LUA,
+                1,                                       # numkeys
+                redis_key,                               # KEYS[1]
+                str(daily_limit),                        # ARGV[1]
+                str(int(next_midnight.timestamp())),      # ARGV[2]
+            )
+            val = int(result)
+            if val == -1:
+                # Over limit — Lua confirmed atomically, no decrement needed
+                return False, daily_limit, 0
+            used = val
+            remaining = max(0, daily_limit - used)
+            return True, used, remaining
+        except Exception as _exc:
+            logger.warning("ForgeRateLimiter Redis error (%s) — falling back to memory", _exc)
+            self._redis_available = False
+            return True, 0, daily_limit
 
     def _extract_identity(self, request: Any):
         headers = getattr(request, "headers", {}) or {}

@@ -634,16 +634,44 @@ function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics,clientElaps
     '<div class="forge-stat"><span class="forge-stat-val">'+sizeKb+'KB</span><span class="forge-stat-lbl">Size</span></div>';
   roiEl.innerHTML='<strong>'+agentCount+' agents \u00d7 '+buildTime+'</strong> = what would take a team of developers <strong>days or weeks</strong> to produce manually. <strong>'+roiText+'</strong>';
 
-  // Usage counter
+  // Usage counter — Gap 1 (FORGE-RESULT-001): show remaining builds + reset_at
   if(forgeUsage&&usageEl){
     var remaining=forgeUsage.builds_remaining_today;
     var used=forgeUsage.builds_used_today||0;
     var tier=forgeUsage.tier||'anonymous';
+    var resetAt=forgeUsage.reset_at||'';
+    var resetInfo='';
+    if(resetAt){
+      try{
+        var rd=new Date(resetAt);
+        var now=new Date();
+        var diffMs=rd-now;
+        if(diffMs>0){
+          var rh=Math.floor(diffMs/3600000);
+          var rm=Math.floor((diffMs%3600000)/60000);
+          resetInfo=' &mdash; resets in '+rh+'h '+rm+'m';
+        }
+      }catch(ex){}
+    }
     if(remaining===-1){
-      usageEl.innerHTML='<strong>Unlimited</strong> builds — '+tier+' tier';
+      usageEl.innerHTML='<strong>Unlimited</strong> builds &mdash; '+tier+' tier';
+    } else if(remaining===0){
+      // Avoid inline onclick — attach listener after setting innerHTML (FORGE-SIGNUP-001)
+      usageEl.innerHTML='<strong>0</strong> builds remaining today'+resetInfo+
+        ' &mdash; <a href="#" id="forge-usage-signup-link" style="color:var(--teal);">sign up for more &rarr;</a>';
+      var _signupLink=document.getElementById('forge-usage-signup-link');
+      if(_signupLink){
+        (function(_fu){
+          _signupLink.addEventListener('click',function(e){
+            e.preventDefault();
+            if(typeof window._showForgeSignupModal==='function')window._showForgeSignupModal(_fu);
+          });
+        }(forgeUsage));
+      }
     } else {
       var limit=used+remaining;
-      usageEl.innerHTML='<strong>'+remaining+' of '+limit+'</strong> free builds remaining today — <a href="/pricing" style="color:var(--teal);">upgrade for more &rarr;</a>';
+      usageEl.innerHTML='<strong>'+remaining+' of '+limit+'</strong> free builds remaining today'+resetInfo+
+        ' &mdash; <a href="/pricing" style="color:var(--teal);">upgrade for more &rarr;</a>';
     }
     usageEl.classList.remove('forge-hidden');
   }
@@ -767,6 +795,16 @@ function forgeRun(query){
   }).then(function(resp){
     if(!resp.ok){
       return resp.json().catch(function(){return null;}).then(function(data){
+        // Gap 1: 429 → show sign-up modal (FORGE-SIGNUP-001)
+        if(resp.status===429&&data&&data.forge_usage){
+          var fu=data.forge_usage;
+          if(typeof window._showForgeSignupModal==='function'){
+            window._showForgeSignupModal(fu);
+          }
+          _chatSystem('&#9888; '+(data.error||'Rate limit reached. Sign up for more builds.'));
+          _forgeRunning=false;
+          return;
+        }
         if(data&&data.error){
           _showForgeError(data.error);
           _chatSystem('&#9888; '+_escHtml(data.error));
