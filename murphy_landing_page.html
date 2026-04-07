@@ -660,6 +660,34 @@
   </div>
 </div>
 
+<!-- SIGNUP MODAL (Gap 1 — shown on 429 rate-limit for anonymous users) -->
+<div class="modal-overlay" id="forge-signup-modal" role="dialog" aria-modal="true" aria-labelledby="forge-signup-title" style="display:none;">
+  <div class="mbox" style="max-width:420px;">
+    <button class="mclose" id="forge-signup-close" aria-label="Close sign-up">&#10005;</button>
+    <div class="mtitle" id="forge-signup-title">&#127381; You've used your 5 free builds!</div>
+    <div class="msub ml-22" id="forge-signup-sub">Sign up free for 10 builds per day — no card required.</div>
+    <form id="forge-signup-form" style="margin-top:18px;" novalidate>
+      <div style="margin-bottom:10px;">
+        <input type="email" id="forge-signup-email" placeholder="Email address" autocomplete="email"
+          style="width:100%;padding:10px 12px;border:1px solid var(--border,#334);border-radius:6px;background:var(--bg-card,#111);color:inherit;font-size:15px;" required />
+      </div>
+      <div style="margin-bottom:10px;">
+        <input type="password" id="forge-signup-password" placeholder="Password (8+ chars)" autocomplete="new-password"
+          style="width:100%;padding:10px 12px;border:1px solid var(--border,#334);border-radius:6px;background:var(--bg-card,#111);color:inherit;font-size:15px;" required minlength="8" />
+      </div>
+      <div id="forge-signup-err" style="color:#f66;font-size:13px;margin-bottom:8px;display:none;"></div>
+      <button type="submit" id="forge-signup-submit"
+        style="width:100%;padding:11px;background:var(--teal,#00d4aa);color:#000;font-weight:700;border:none;border-radius:6px;cursor:pointer;font-size:15px;">
+        &#9889; Sign Up Free — Get 10 Daily Builds
+      </button>
+    </form>
+    <div style="margin-top:12px;font-size:13px;color:var(--muted,#888);text-align:center;">
+      Already have an account? <a href="/ui/login" style="color:var(--teal,#00d4aa);">Sign in</a>
+    </div>
+    <div id="forge-signup-reset" style="margin-top:10px;font-size:12px;color:var(--muted,#888);text-align:center;display:none;"></div>
+  </div>
+</div>
+
 <script src="/static/murphy-landing.js"></script>
 
 <script>
@@ -683,6 +711,141 @@ function demoMatch(q) {
   }
   return buildCustomScenario(q);
 }
+</script>
+
+<!-- Gap 1: Sign-up modal logic (FORGE-SIGNUP-001) -->
+<script>
+(function () {
+  'use strict';
+
+  /* ── Helpers ──────────────────────────────────────────────────────── */
+  function _qs(id) { return document.getElementById(id); }
+
+  function _showSignupModal(forgeUsage) {
+    var modal = _qs('forge-signup-modal');
+    var sub   = _qs('forge-signup-sub');
+    var resetEl = _qs('forge-signup-reset');
+    if (!modal) return;
+
+    // Personalise message based on tier
+    if (forgeUsage && forgeUsage.tier === 'free') {
+      _qs('forge-signup-title') && (_qs('forge-signup-title').textContent = '\u26a1 Daily limit reached');
+      if (sub) sub.textContent = "You\u2019ve used all 10 free builds today. Upgrade for unlimited access.";
+      var submitBtn = _qs('forge-signup-submit');
+      if (submitBtn) {
+        submitBtn.textContent = '\u2197 View Upgrade Options';
+        submitBtn.onclick = function(e) { e.preventDefault(); window.location.href = '/pricing'; };
+      }
+    } else {
+      _qs('forge-signup-title') && (_qs('forge-signup-title').textContent = '\ud83c\udf81 You\u2019ve used your 5 free builds!');
+      if (sub) sub.textContent = 'Sign up free for 10 builds per day \u2014 no card required.';
+    }
+
+    // Show reset time countdown if available
+    if (forgeUsage && forgeUsage.reset_at && resetEl) {
+      try {
+        var resetDate = new Date(forgeUsage.reset_at);
+        var now = new Date();
+        var diffMs = resetDate - now;
+        if (diffMs > 0) {
+          var h = Math.floor(diffMs / 3600000);
+          var m = Math.floor((diffMs % 3600000) / 60000);
+          resetEl.textContent = 'Limit resets in ' + h + 'h ' + m + 'm (midnight UTC).';
+          resetEl.style.display = 'block';
+        }
+      } catch (ex) { /* ignore parse errors */ }
+    }
+
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    setTimeout(function () { modal.classList.add('open'); }, 10);
+    var emailInput = _qs('forge-signup-email');
+    if (emailInput) emailInput.focus();
+  }
+
+  function _hideSignupModal() {
+    var modal = _qs('forge-signup-modal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    setTimeout(function () { modal.style.display = 'none'; }, 200);
+  }
+
+  /* ── Modal close handlers ────────────────────────────────────────── */
+  var closeBtn = _qs('forge-signup-close');
+  if (closeBtn) closeBtn.addEventListener('click', _hideSignupModal);
+
+  var modal = _qs('forge-signup-modal');
+  if (modal) {
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) _hideSignupModal();
+    });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') _hideSignupModal();
+  });
+
+  /* ── Registration form submit (FORGE-SIGNUP-001) ─────────────────── */
+  var form = _qs('forge-signup-form');
+  if (form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var email    = (_qs('forge-signup-email')    || {}).value || '';
+      var password = (_qs('forge-signup-password') || {}).value || '';
+      var errEl    = _qs('forge-signup-err');
+      var submitBtn = _qs('forge-signup-submit');
+
+      if (!email || email.indexOf('@') < 0) {
+        if (errEl) { errEl.textContent = 'Please enter a valid email address.'; errEl.style.display = 'block'; }
+        return;
+      }
+      if (password.length < 8) {
+        if (errEl) { errEl.textContent = 'Password must be at least 8 characters.'; errEl.style.display = 'block'; }
+        return;
+      }
+      if (errEl) errEl.style.display = 'none';
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Creating account\u2026'; }
+
+      fetch('/api/auth/register-free', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, password: password }),
+      })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { status: r.status, data: d }; }); })
+      .then(function (res) {
+        if (res.status === 201 && res.data && res.data.token) {
+          // Persist token so subsequent forge requests include auth
+          localStorage.setItem('murphy_session_token', res.data.token);
+          localStorage.setItem('murphy_account_id', res.data.account_id || '');
+          _hideSignupModal();
+          // Notify user and offer to rebuild
+          if (typeof _chatSystem === 'function') {
+            _chatSystem('\u2713 Account created! You now have <strong>10 daily builds</strong>. Resubmit your request to continue.');
+          }
+          if (typeof _showForgeError === 'function') {
+            // Clear the previous error message
+            var errHtml = document.getElementById('forge-api-err');
+            if (errHtml) { errHtml.innerHTML = ''; errHtml.classList.add('forge-hidden'); }
+          }
+        } else if (res.status === 409) {
+          if (errEl) { errEl.textContent = 'Email already registered. Please sign in.'; errEl.style.display = 'block'; }
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '\u26a1 Sign Up Free \u2014 Get 10 Daily Builds'; }
+        } else {
+          var msg = (res.data && res.data.error) || 'Registration failed. Please try again.';
+          if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '\u26a1 Sign Up Free \u2014 Get 10 Daily Builds'; }
+        }
+      })
+      .catch(function () {
+        if (errEl) { errEl.textContent = 'Network error. Please try again.'; errEl.style.display = 'block'; }
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '\u26a1 Sign Up Free \u2014 Get 10 Daily Builds'; }
+      });
+    });
+  }
+
+  /* ── Expose for forge run 429 handler ───────────────────────────── */
+  window._showForgeSignupModal = _showSignupModal;
+}());
 </script>
 <script src="/static/murphy-components.js"></script>
 <script>
