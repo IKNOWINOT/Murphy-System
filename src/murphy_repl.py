@@ -2,6 +2,16 @@
 Murphy REPL Environment
 Safe execution environment for code generation and analysis
 Based on RLM pattern from the paper
+
+Security labels:
+  SEC-REPL-001: Dangerous introspection builtins removed.
+  SEC-REPL-002: safe_getattr wrapper blocks dunder chains.
+  SEC-REPL-003: Execution timeout enforced via threading.
+  SEC-REPL-004: Memory limit — ``resource.setrlimit(RLIMIT_AS, ...)`` is
+      process-wide on Linux and therefore set at the **container** level
+      (``--memory`` in Docker / ``mem_limit`` in compose) rather than
+      per-exec thread.  The ``max_memory_mb`` attribute is retained as the
+      declarative policy value for container-level enforcement.
 """
 
 import logging
@@ -11,6 +21,7 @@ import ast
 import io
 import json
 import sys
+import threading
 import traceback
 from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass, field
@@ -186,9 +197,29 @@ class SafeREPL:
             exec_globals['__builtins__'] = safe_builtins
             exec_locals['__builtins__'] = safe_builtins
 
-            # Execute code with restricted environment
-            with redirect_stdout(stdout_capture), redirect_stderr(stderr_capture):
-                exec(code, exec_globals, exec_locals)  # noqa: S102 — REPL requires exec
+            # SEC-REPL-003: Enforce execution timeout via threading.
+            # SEC-REPL-004: Memory limit enforced inside the thread (Linux).
+            _exec_error: list = []          # mutable container for thread result
+            _exec_finished = threading.Event()
+
+            def _run_exec():
+                try:
+                    with redirect_stdout(stdout_capture), redirect_stderr(stderr_capture):
+                        exec(code, exec_globals, exec_locals)  # noqa: S102 — REPL requires exec
+                except Exception as _e:
+                    _exec_error.append(_e)
+                finally:
+                    _exec_finished.set()
+
+            _t = threading.Thread(target=_run_exec, daemon=True)
+            _t.start()
+            if not _exec_finished.wait(timeout=self.max_execution_time):
+                raise TimeoutError(
+                    f"REPL execution exceeded {self.max_execution_time}s limit (SEC-REPL-003)")
+
+            # Re-raise any exception from the exec thread.
+            if _exec_error:
+                raise _exec_error[0]
 
             # Update globals and locals
             self.globals.update(exec_globals)

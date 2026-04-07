@@ -7805,7 +7805,8 @@ def create_app() -> FastAPI:
                         _token_resp.raise_for_status()
                         _token_data = _token_resp.json()
                     except Exception as _tok_exc:
-                        logger.warning("OAuth env-var token exchange failed: %s", _tok_exc)
+                        # SEC-LOG-002: Log only exception type, not message (may contain tokens).
+                        logger.warning("OAuth env-var token exchange failed: %s", type(_tok_exc).__name__)
                         _token_data = {}
 
                     _email = _token_data.get("email", "")
