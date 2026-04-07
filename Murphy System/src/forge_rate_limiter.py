@@ -165,8 +165,24 @@ class ForgeRateLimiter:
     # Helpers
     # ------------------------------------------------------------------
 
+    # Lua script for atomic daily check-and-increment (SEC-RATE-001)
+    _REDIS_INCR_LUA = """\
+local limit = tonumber(ARGV[1])
+local expire_at = tonumber(ARGV[2])
+local cur = tonumber(redis.call('GET', KEYS[1])) or 0
+if cur >= limit then
+    return -1
+end
+local new = redis.call('INCR', KEYS[1])
+redis.call('EXPIREAT', KEYS[1], expire_at)
+return new
+"""
+
     def _check_daily_redis(self, key: str, daily_limit: int, now: float):
-        """Check and increment the daily counter in Redis.
+        """Atomically check-and-increment the daily counter in Redis.
+
+        Uses a Lua script so the check and increment are atomic — no race
+        condition between the read and the write (SEC-RATE-001).
 
         Returns (allowed, used, remaining).  On Redis error, returns
         (True, 0, daily_limit) and disables Redis so the in-memory path
@@ -178,16 +194,18 @@ class ForgeRateLimiter:
                 hour=0, minute=0, second=0, microsecond=0
             )
             redis_key = f"murphy:forge:{key}:{today}"
-            pipe = self._redis_client.pipeline()
-            pipe.incr(redis_key)
-            pipe.expireat(redis_key, int(next_midnight.timestamp()))
-            results = pipe.execute()
-            new_count = int(results[0])
-            if new_count > daily_limit:
-                # Undo the increment — we're over limit
-                self._redis_client.decr(redis_key)
-                return False, new_count - 1, 0
-            used = new_count
+            result = self._redis_client.eval(
+                self._REDIS_INCR_LUA,
+                1,                                       # numkeys
+                redis_key,                               # KEYS[1]
+                str(daily_limit),                        # ARGV[1]
+                str(int(next_midnight.timestamp())),      # ARGV[2]
+            )
+            val = int(result)
+            if val == -1:
+                # Over limit — Lua confirmed atomically, no decrement needed
+                return False, daily_limit, 0
+            used = val
             remaining = max(0, daily_limit - used)
             return True, used, remaining
         except Exception as _exc:

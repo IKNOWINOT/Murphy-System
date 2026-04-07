@@ -656,8 +656,18 @@ function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics,clientElaps
     if(remaining===-1){
       usageEl.innerHTML='<strong>Unlimited</strong> builds &mdash; '+tier+' tier';
     } else if(remaining===0){
+      // Avoid inline onclick — attach listener after setting innerHTML (FORGE-SIGNUP-001)
       usageEl.innerHTML='<strong>0</strong> builds remaining today'+resetInfo+
-        ' &mdash; <a href="#" onclick="if(typeof window._showForgeSignupModal==='function')window._showForgeSignupModal(forgeUsage);return false;" style="color:var(--teal);">sign up for more &rarr;</a>';
+        ' &mdash; <a href="#" id="forge-usage-signup-link" style="color:var(--teal);">sign up for more &rarr;</a>';
+      var _signupLink=document.getElementById('forge-usage-signup-link');
+      if(_signupLink){
+        (function(_fu){
+          _signupLink.addEventListener('click',function(e){
+            e.preventDefault();
+            if(typeof window._showForgeSignupModal==='function')window._showForgeSignupModal(_fu);
+          });
+        }(forgeUsage));
+      }
     } else {
       var limit=used+remaining;
       usageEl.innerHTML='<strong>'+remaining+' of '+limit+'</strong> free builds remaining today'+resetInfo+

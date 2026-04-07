@@ -3449,9 +3449,9 @@ async def api_auth_register_free(request: Request):
                 status_code=409,
             )
     except ImportError:
-        # Auth layer not yet wired — mint an in-process account_id + token
-        import hashlib as _hs, secrets as _sec
-        account_id = "free-" + _hs.sha256(email.encode()).hexdigest()[:20]
+        # Auth layer not yet wired — mint a random account_id + token (SEC-AUTH-001)
+        import secrets as _sec
+        account_id = "free-" + _sec.token_hex(16)
         token = _sec.token_hex(32)
 
     # Record a free-tier subscription in SubscriptionManager
