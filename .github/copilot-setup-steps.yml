@@ -36,13 +36,14 @@ jobs:
             LLM_PROVIDER=local
           fi
 
-          cat > .env <<EOF
-          MURPHY_VERSION=1.0.0
-          MURPHY_ENV=test
-          MURPHY_PORT=8000
-          MURPHY_LLM_PROVIDER=${LLM_PROVIDER}
-          DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY:-}
-          EOF
+          # Write .env — values are quoted to handle special characters safely
+          {
+            echo "MURPHY_VERSION=1.0.0"
+            echo "MURPHY_ENV=test"
+            echo "MURPHY_PORT=8000"
+            echo "MURPHY_LLM_PROVIDER=${LLM_PROVIDER}"
+            printf 'DEEPINFRA_API_KEY=%s\n' "${DEEPINFRA_API_KEY:-}"
+          } > .env
 
           # Create runtime directories the system expects
           mkdir -p logs data modules sessions repositories .murphy_persistence/images
