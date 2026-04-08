@@ -231,6 +231,7 @@ def _is_public_api_route(path: str, method: str = "GET") -> bool:
     - /api/auth/callback/* — OAuth callback handling
     - /api/auth/login   — login endpoint
     - /api/auth/register / /api/auth/signup — registration endpoint
+    - /api/demo/*       — Swarm Forge demo endpoints (have own rate limiting)
     - /api/reviews      — GET only; public reviews on landing/pricing pages
     - /api/billing/plans — GET only; pricing page fetches plan data without login
     - /api/billing/currencies — GET only; pricing page currency list without login
@@ -258,6 +259,12 @@ def _is_public_api_route(path: str, method: str = "GET") -> bool:
     if normalized.startswith("/api/auth/oauth/"):
         return True
     if normalized.startswith("/api/auth/callback/"):
+        return True
+
+    # Swarm Forge demo endpoints — public by design; they carry their own
+    # per-request rate limiting (SubscriptionManager / ForgeRateLimiter)
+    # and must work for anonymous visitors on the landing page.
+    if normalized.startswith("/api/demo/"):
         return True
 
     # Public reviews — GET only (displayed on landing/pricing pages without login)
