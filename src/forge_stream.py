@@ -84,11 +84,11 @@ _SAMPLE_OUTPUT_LINES = [
     "export const handler = async (event: APIEvent) => { /* ... */ };",
     "SELECT COUNT(*) FROM executions WHERE status = 'running' AND started_at > NOW() - INTERVAL '1h';",
     "const rateLimiter = new TokenBucket({ capacity: 100, refillRate: 10 });",
-    "ALTER TABLE automations ADD COLUMN swarm_cost INTEGER DEFAULT 64;",
+    "ALTER TABLE automations ADD COLUMN swarm_cost INTEGER;",
     "@pytest.mark.asyncio async def test_workflow_executes_successfully():",
     "## Section 3 — Integration Checklist\n  □ OAuth2 scopes configured",
     "REDIS_KEY = f'forge:rate:{user_id}:hourly'",
-    "agent_pool = [SwarmAgent(id=i, cursor=MultiCursor()) for i in range(64)]",
+    "agent_pool = [SwarmAgent(id=i, cursor=MultiCursor()) for i in range(task_count)]",
     "if not gate.passed: raise GateFailureError(f'Gate {gate.id} failed: {gate.reason}')",
     "async def stream_progress(job_id: str) -> AsyncIterator[Event]:",
 ]
