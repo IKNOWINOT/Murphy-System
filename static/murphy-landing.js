@@ -605,12 +605,12 @@ function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics,clientElaps
   // Human-time estimate from backend (predicted_human_hours) or client fallback
   var humanHours=(buildMetrics&&buildMetrics.predicted_human_hours)?buildMetrics.predicted_human_hours:0;
   if(!humanHours){
-    var queryWords=(_forgeQuery||'').split(/\s+/).length;
+    var queryWords=(_forgeQuery||'').split(/\s+/).filter(function(w){return w.length>0;}).length;
     humanHours=2.0+Math.min(queryWords/50,6.0);
   }
   // Format human time as a concrete estimate
   var humanTimeLabel='';
-  if(humanHours>=24){
+  if(humanHours>=8){
     var days=Math.round(humanHours/8*10)/10; // 8h work-days
     humanTimeLabel=days+(days===1?' work-day':' work-days');
   }else if(humanHours>=1){
