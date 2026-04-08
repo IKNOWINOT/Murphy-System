@@ -3661,10 +3661,6 @@ def _build_agent_specific_fallback_content(
         return _fallback_monitoring(query, task_desc)
     if "stakeholder" in task_lower:
         return _fallback_stakeholder(query, task_desc)
-    if "monitor" in role_lower or "monitor" in task_lower or "alert" in task_lower:
-        return _fallback_monitoring(query, task_desc)
-    if "stakeholder" in task_lower:
-        return _fallback_stakeholder(query, task_desc)
 
     # Catch-all: generate a task-specific stub rather than the full template
     return _fallback_generic_task(query, task_desc, role)
