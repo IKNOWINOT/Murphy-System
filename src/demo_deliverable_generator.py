@@ -2615,6 +2615,33 @@ def _run_mss_pipeline(query: str, mfgc_result: Dict[str, Any]) -> Dict[str, Any]
             "solidify": sol.output,
             "governance": sol.governance_status,
             "fallback": False,
+            # WIRE-MSS-001: Surface quality & simulation metadata
+            "magnify_quality": {
+                "cqi": getattr(mag.output_quality, "cqi", None),
+                "iqs": getattr(mag.output_quality, "iqs", None),
+                "resolution_level": getattr(mag.output_quality, "resolution_level", None),
+                "recommendation": getattr(mag.output_quality, "recommendation", None),
+                "risk_indicators": getattr(mag.output_quality, "risk_indicators", []),
+            } if getattr(mag, "output_quality", None) else {},
+            "solidify_quality": {
+                "cqi": getattr(sol.output_quality, "cqi", None),
+                "iqs": getattr(sol.output_quality, "iqs", None),
+                "resolution_level": getattr(sol.output_quality, "resolution_level", None),
+                "recommendation": getattr(sol.output_quality, "recommendation", None),
+                "risk_indicators": getattr(sol.output_quality, "risk_indicators", []),
+            } if getattr(sol, "output_quality", None) else {},
+            "simulation": {
+                "cost_impact": getattr(sol.simulation, "cost_impact", None),
+                "complexity_impact": getattr(sol.simulation, "complexity_impact", None),
+                "compliance_impact": getattr(sol.simulation, "compliance_impact", None),
+                "performance_impact": getattr(sol.simulation, "performance_impact", None),
+                "overall_score": getattr(sol.simulation, "overall_score", None),
+                "risk_level": getattr(sol.simulation, "risk_level", None),
+                "recommended": getattr(sol.simulation, "recommended", None),
+                "warnings": getattr(sol.simulation, "warnings", []),
+                "estimated_engineering_hours": getattr(sol.simulation, "estimated_engineering_hours", None),
+                "regulatory_implications": getattr(sol.simulation, "regulatory_implications", []),
+            } if getattr(sol, "simulation", None) else {},
         }
     except ImportError as exc:
         logger.warning("MSS modules not importable: %s — using onboard pipeline", exc)
@@ -2622,6 +2649,74 @@ def _run_mss_pipeline(query: str, mfgc_result: Dict[str, Any]) -> Dict[str, Any]
     except Exception as exc:
         logger.warning("MSS pipeline runtime error: %s — using onboard pipeline", exc)
         return {"fallback": True, "error": str(exc)}
+
+
+# ---------------------------------------------------------------------------
+# Domain Expert Integration  (label: WIRE-EXPERT-001)
+# ---------------------------------------------------------------------------
+
+def _run_domain_expert_analysis(query: str) -> Dict[str, Any]:
+    """Run domain expert analysis and return structured results.
+
+    Wraps ``DomainExpertIntegrator.analyze_project_request()`` with graceful
+    fallback.  On success returns the user-friendly response dict; on failure
+    returns ``{"fallback": True, "error": ...}``.
+    """
+    try:
+        from domain_expert_integration import DomainExpertIntegrator  # noqa: PLC0415
+        integrator = DomainExpertIntegrator()
+        result = integrator.analyze_project_request(query)
+        result["fallback"] = False
+        return result
+    except ImportError as exc:
+        logger.debug("Domain expert integration not importable: %s", exc)
+        return {"fallback": True, "error": f"import: {exc}"}
+    except Exception as exc:
+        logger.debug("Domain expert analysis failed: %s", exc)
+        return {"fallback": True, "error": str(exc)}
+
+
+def _format_expert_context(expert_result: Dict[str, Any]) -> str:
+    """Render domain expert analysis as a human-readable section for the LLM prompt."""
+    if not expert_result or expert_result.get("fallback"):
+        return ""
+
+    lines: List[str] = []
+    summary = expert_result.get("summary", "")
+    team = expert_result.get("team", "")
+    time_cost = expert_result.get("time_and_cost", "")
+    questions = expert_result.get("questions_we_will_ask", [])
+    artifacts = expert_result.get("artifacts_we_will_create", "")
+
+    if summary:
+        lines.append("■ MURPHY INTELLIGENCE — DOMAIN EXPERT ANALYSIS")
+        lines.append("─" * 60)
+        lines.append(f"  {summary}")
+
+    if team:
+        lines.append("")
+        lines.append("  Expert Team:")
+        for tl in team.strip().splitlines():
+            lines.append(f"    {tl}")
+
+    if time_cost:
+        lines.append("")
+        lines.append("  Time & Cost Estimate:")
+        lines.append(f"    {time_cost}")
+
+    if questions:
+        lines.append("")
+        lines.append("  Key Questions:")
+        for q in questions[:10]:
+            lines.append(f"    • {q}")
+
+    if artifacts:
+        lines.append("")
+        lines.append("  Artifacts Planned:")
+        for al in artifacts.strip().splitlines():
+            lines.append(f"    {al}")
+
+    return "\n".join(lines)
 
 
 def _format_mss_context(mss_result: Dict[str, Any]) -> str:
@@ -2682,6 +2777,48 @@ def _format_mss_context(mss_result: Dict[str, Any]) -> str:
         lines.append("")
         lines.append("  Iteration Plan:")
         lines.append(f"    {iter_plan}")
+
+    # WIRE-MSS-001: Quality & simulation metadata for LLM context
+    mag_quality = mss_result.get("magnify_quality", {})
+    sim = mss_result.get("simulation", {})
+    # WIRE-MSS-002: Architecture mapping
+    arch_map = mag.get("architecture_mapping", {})
+
+    if mag_quality.get("cqi") is not None:
+        lines.append("")
+        lines.append("■ MURPHY INTELLIGENCE — QUALITY ASSESSMENT")
+        lines.append("─" * 60)
+        lines.append(f"  CQI Score:         {mag_quality['cqi']:.2f}")
+        if mag_quality.get("resolution_level"):
+            lines.append(f"  Resolution Level:  {mag_quality['resolution_level']}")
+        if mag_quality.get("recommendation"):
+            lines.append(f"  Recommendation:    {mag_quality['recommendation']}")
+        for ri in mag_quality.get("risk_indicators", []):
+            lines.append(f"    ⚠ {ri}")
+
+    if sim.get("risk_level"):
+        lines.append("")
+        lines.append("  Simulation Impact:")
+        if sim.get("overall_score") is not None:
+            lines.append(f"    Overall Score:            {sim['overall_score']:.1f}/6")
+        lines.append(f"    Risk Level:               {sim['risk_level']}")
+        if sim.get("estimated_engineering_hours") is not None:
+            lines.append(f"    Est. Engineering Hours:   {sim['estimated_engineering_hours']:.0f}")
+        for w in sim.get("warnings", []):
+            lines.append(f"    ⚠ {w}")
+
+    if arch_map:
+        lines.append("")
+        lines.append("  Architecture Mapping:")
+        for key in ("components", "data_flows", "control_logic", "validation_methods"):
+            items = arch_map.get(key, [])
+            if items:
+                lines.append(f"    {key.replace('_', ' ').title()}:")
+                if isinstance(items, list):
+                    for item in items:
+                        lines.append(f"      ◦ {item}")
+                else:
+                    lines.append(f"      {items}")
 
     return "\n".join(lines)
 
@@ -2982,6 +3119,7 @@ def _generate_llm_content(
     mfgc_result: Optional[Dict[str, Any]] = None,
     mss_result: Optional[Dict[str, Any]] = None,
     librarian_context: Optional[str] = None,
+    expert_result: Optional[Dict[str, Any]] = None,
 ) -> str:
     """Generate deliverable content using the MFGC → MSS → LLM pipeline.
 
@@ -3005,13 +3143,24 @@ def _generate_llm_content(
     if lib_section:
         context_parts.append(lib_section)
 
+    # WIRE-EXPERT-001: Domain expert analysis context
+    expert_section = _format_expert_context(expert_result or {})
+    if expert_section:
+        context_parts.append(expert_section)
+
     mfgc_note = ""
     if mfgc_result:
         conf = mfgc_result.get("confidence", 0)
         phases = mfgc_result.get("phases", [])
+        # WIRE-MFGC-001: include murphy_index and gate count in note
+        mi = mfgc_result.get("murphy_index")
+        gates = mfgc_result.get("gates", [])
+        mi_part = f", murphy_index={mi}" if mi is not None else ""
+        gates_part = f", gates={len(gates)}" if gates else ""
         mfgc_note = (
             f"[MFGC gate: confidence={conf:.2f}, "
-            f"phases={', '.join(phases[:3]) if phases else 'n/a'}]"
+            f"phases={', '.join(str(p) for p in phases[:3]) if phases else 'n/a'}"
+            f"{mi_part}{gates_part}]"
         )
 
     enriched_context = "\n\n".join(context_parts)
@@ -3019,7 +3168,7 @@ def _generate_llm_content(
     # MSS data as structured seed for the LLM
     base_content = ""
     if mss_result and (mss_result.get("magnify") or mss_result.get("solidify")):
-        base_content = _build_content_from_mss(query, mss_result, mfgc_note)
+        base_content = _build_content_from_mss(query, mss_result, mfgc_note, mfgc_result=mfgc_result)
 
     # ── Domain-specific content expansion ─────────────────────────────────
     # MSS onboard output is structural.  Supplement with deep, domain-aware
@@ -3146,6 +3295,7 @@ def _build_content_from_mss(
     query: str,
     mss_result: Dict[str, Any],
     mfgc_note: str = "",
+    mfgc_result: Optional[Dict[str, Any]] = None,
 ) -> str:
     """Build structured deliverable prose directly from MSS Magnify + Solidify output."""
     mag = mss_result.get("magnify", {})
@@ -3164,6 +3314,19 @@ def _build_content_from_mss(
     doc_updates = sol.get("documentation_updates", [])
     arch = sol.get("architecture_placement", "")
 
+    # WIRE-MSS-003: Module specification & existing module analysis
+    mod_spec = sol.get("module_specification", {})
+    existing_analysis = sol.get("existing_module_analysis", "")
+    # WIRE-MSS-004: Resolution progression
+    mag_progression = mag.get("resolution_progression", "")
+    sol_progression = sol.get("resolution_progression", "")
+    # WIRE-MSS-002: Architecture mapping
+    arch_map = mag.get("architecture_mapping", {})
+    # WIRE-MSS-001: Quality & simulation metadata
+    mag_quality = mss_result.get("magnify_quality", {})
+    sol_quality = mss_result.get("solidify_quality", {})
+    sim = mss_result.get("simulation", {})
+
     lines: List[str] = []
 
     lines += [
@@ -3178,6 +3341,35 @@ def _build_content_from_mss(
         lines.append(f"  Complexity: {cost} (MSS assessment)")
     if mfgc_note:
         lines.append(f"  MFGC:       {mfgc_note}")
+    # WIRE-MSS-004: Resolution progression in executive overview
+    if mag_progression or sol_progression:
+        prog_parts = []
+        if mag_progression:
+            prog_parts.append(f"Magnify {mag_progression}")
+        if sol_progression:
+            prog_parts.append(f"Solidify {sol_progression}")
+        lines.append(f"  Resolution: {' | '.join(prog_parts)}")
+
+    # WIRE-MFGC-001: Quality Assurance section from MFGC gate
+    if mfgc_result and not mfgc_result.get("fallback"):
+        lines += [
+            "",
+            "■ QUALITY ASSURANCE  (MFGC Gate)",
+            "──────────────────────────────────",
+        ]
+        conf = mfgc_result.get("confidence", 0)
+        lines.append(f"  Confidence Score:  {conf:.0%}")
+        mi = mfgc_result.get("murphy_index")
+        if mi is not None:
+            lines.append(f"  Murphy Index:      {mi}")
+        gates = mfgc_result.get("gates", [])
+        if gates:
+            lines.append(f"  Gates Applied:     {len(gates)}")
+            for g in gates[:5]:
+                lines.append(f"    ◦ {g}")
+        phases = mfgc_result.get("phases", [])
+        if phases:
+            lines.append(f"  Phases Completed:  {', '.join(str(p) for p in phases[:5])}")
 
     if reqs:
         lines += [
@@ -3198,6 +3390,23 @@ def _build_content_from_mss(
         for cf in compliance:
             lines.append(f"    ◦ {cf}")
 
+    # WIRE-MSS-002: Architecture mapping section
+    if arch_map:
+        lines += [
+            "",
+            "■ ARCHITECTURE MAPPING  (MSS Magnify)",
+            "───────────────────────────────────────",
+        ]
+        for key in ("components", "data_flows", "control_logic", "validation_methods"):
+            items = arch_map.get(key, [])
+            if items:
+                lines.append(f"  {key.replace('_', ' ').title()}:")
+                if isinstance(items, list):
+                    for item in items:
+                        lines.append(f"    ◦ {item}")
+                else:
+                    lines.append(f"    {items}")
+
     if impl_steps:
         lines += [
             "",
@@ -3209,6 +3418,33 @@ def _build_content_from_mss(
 
     if arch:
         lines += ["", f"  Architecture: {arch}"]
+
+    # WIRE-MSS-003: Module specification
+    if mod_spec:
+        lines += [
+            "",
+            "■ MODULE SPECIFICATION  (MSS Solidify)",
+            "────────────────────────────────────────",
+        ]
+        if mod_spec.get("name"):
+            lines.append(f"  Name:         {mod_spec['name']}")
+        if mod_spec.get("purpose"):
+            lines.append(f"  Purpose:      {mod_spec['purpose']}")
+        deps = mod_spec.get("dependencies", [])
+        if deps:
+            lines.append(f"  Dependencies: {', '.join(str(d) for d in deps)}")
+        ifaces = mod_spec.get("interfaces", [])
+        if ifaces:
+            lines.append(f"  Interfaces:   {', '.join(str(i) for i in ifaces)}")
+
+    # WIRE-MSS-003: Existing module analysis
+    if existing_analysis:
+        lines += [
+            "",
+            "■ EXISTING MODULE ANALYSIS  (MSS Solidify)",
+            "─────────────────────────────────────────────",
+            f"  {existing_analysis}",
+        ]
 
     if test_strategy:
         lines += [
@@ -3235,6 +3471,49 @@ def _build_content_from_mss(
         ]
         for d in doc_updates:
             lines.append(f"  □  {d}")
+
+    # WIRE-MSS-001: Quality metrics & simulation impact
+    if mag_quality.get("cqi") is not None or sol_quality.get("cqi") is not None:
+        lines += [
+            "",
+            "■ QUALITY METRICS  (MSS Information Quality)",
+            "──────────────────────────────────────────────",
+        ]
+        if mag_quality.get("cqi") is not None:
+            lines.append(f"  Magnify CQI:          {mag_quality['cqi']:.2f}")
+        if sol_quality.get("cqi") is not None:
+            lines.append(f"  Solidify CQI:         {sol_quality['cqi']:.2f}")
+        for q_src, q_data in [("Magnify", mag_quality), ("Solidify", sol_quality)]:
+            if q_data.get("resolution_level"):
+                lines.append(f"  {q_src} Resolution:   {q_data['resolution_level']}")
+            if q_data.get("recommendation"):
+                lines.append(f"  {q_src} Recommendation: {q_data['recommendation']}")
+            for ri in q_data.get("risk_indicators", []):
+                lines.append(f"    ⚠ {ri}")
+
+    if sim.get("risk_level"):
+        lines += [
+            "",
+            "■ SIMULATION IMPACT ANALYSIS",
+            "──────────────────────────────",
+        ]
+        if sim.get("overall_score") is not None:
+            lines.append(f"  Overall Score:         {sim['overall_score']:.1f}/6")
+        lines.append(f"  Risk Level:            {sim['risk_level']}")
+        if sim.get("cost_impact") is not None:
+            lines.append(f"  Cost Impact:           {sim['cost_impact']:.1f}/6")
+        if sim.get("complexity_impact") is not None:
+            lines.append(f"  Complexity Impact:     {sim['complexity_impact']:.1f}/6")
+        if sim.get("compliance_impact") is not None:
+            lines.append(f"  Compliance Impact:     {sim['compliance_impact']:.1f}/6")
+        if sim.get("performance_impact") is not None:
+            lines.append(f"  Performance Impact:    {sim['performance_impact']:.1f}/6")
+        if sim.get("estimated_engineering_hours") is not None:
+            lines.append(f"  Est. Engineering Hrs:  {sim['estimated_engineering_hours']:.0f}")
+        for reg in sim.get("regulatory_implications", []):
+            lines.append(f"    ◦ Regulatory: {reg}")
+        for w in sim.get("warnings", []):
+            lines.append(f"    ⚠ {w}")
 
     lines += [
         "",
@@ -3846,8 +4125,14 @@ def generate_custom_deliverable(
     # Stage 1 — MFGC gate
     mfgc_result = _run_mfgc_gate(query)
 
-    # Stage 2 — MSS Magnify + Solidify
-    mss_result = _run_mss_pipeline(query, mfgc_result)
+    # Stage 2 — MSS Magnify + Solidify (concurrent with domain expert)
+    import concurrent.futures as _cf
+    with _cf.ThreadPoolExecutor(max_workers=2) as _pool:
+        _mss_future = _pool.submit(_run_mss_pipeline, query, mfgc_result)
+        # WIRE-EXPERT-001: Domain expert analysis runs alongside MSS
+        _expert_future = _pool.submit(_run_domain_expert_analysis, query)
+        mss_result = _mss_future.result(timeout=90)
+        expert_result = _expert_future.result(timeout=90)
 
     # Stage 3 — Generate prose with all enriched context
     content = _generate_llm_content(
@@ -3855,6 +4140,7 @@ def generate_custom_deliverable(
         mfgc_result=mfgc_result,
         mss_result=mss_result,
         librarian_context=librarian_context,
+        expert_result=expert_result,
     )
 
     # Stage 4 — Append librarian context section (always rendered when present)
@@ -4053,6 +4339,13 @@ def generate_deliverable_with_progress(
     # Quality score from content metrics
     quality_score = min(99, 85 + min(word_count // 200, 10))
 
+    # WIRE-SPEC-001: Generate automation spec in streaming path too
+    automation_spec: Optional[Dict[str, Any]] = None
+    try:
+        automation_spec = generate_automation_spec(query, librarian_context=librarian_context)
+    except Exception as exc:
+        logger.debug("Automation spec generation skipped (streaming): %s", exc)
+
     # --- Persist the workflow for future reuse ------------------------------
     # The workflow is saved even if it was reused — usage metrics are updated.
     workflow_id = None
@@ -4080,7 +4373,7 @@ def generate_deliverable_with_progress(
     })
 
     # --- Done ---------------------------------------------------------------
-    events.append({
+    done_event: Dict[str, Any] = {
         "phase": "done",
         "status": "Build complete — deliverable ready (pending HITL review)",
         "deliverable": deliverable,
@@ -4099,7 +4392,11 @@ def generate_deliverable_with_progress(
             "scenario": scenario_key or "custom",
             "is_predefined": is_predefined,
         },
-    })
+    }
+    # WIRE-SPEC-001: Include automation spec when available
+    if automation_spec:
+        done_event["automation_spec"] = automation_spec
+    events.append(done_event)
     return events
 
 
