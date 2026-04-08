@@ -474,7 +474,7 @@ def test_forge_chip_course_present(page: Page, screenshot):
 
 
 def test_forge_grid_hidden_initially(page: Page, screenshot):
-    """The 64-pane grid is hidden before a forge run starts."""
+    """The agent grid is hidden before a forge run starts."""
     page.goto(PAGE_URL, wait_until="domcontentloaded")
     grid_wrap = page.locator("#forge-grid-wrap")
     # Should be hidden (display:none) initially
