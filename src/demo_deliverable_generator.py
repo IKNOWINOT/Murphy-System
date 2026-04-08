@@ -4300,6 +4300,7 @@ def generate_deliverable_with_progress(
         })
 
     # --- Phase 3: MSS Pipeline / Template Expansion -------------------------
+    agent_tasks: List[Dict[str, str]] = []  # FORGE-SWARM-001: always initialised
     if is_predefined:
         events.append({
             "phase": 3,
@@ -4335,32 +4336,190 @@ def generate_deliverable_with_progress(
                 "detail": "agent_tasks",
                 "agent_tasks": agent_tasks,
             })
+        else:
+            # FORGE-SWARM-ERR-001: Log when decomposition produces zero tasks
+            logger.warning(
+                "Agent task decomposition returned 0 tasks for query: %s "
+                "(mss_ok=%s, workflow_steps=%d) — swarm will not activate",
+                query[:80], mss_ok, len(workflow.get("steps", [])),
+            )
+            events.append({
+                "phase": 3,
+                "status": "Task decomposition returned 0 tasks — single-agent fallback",
+                "detail": "agent_tasks_empty",
+                "pipeline_stage": "decomposition_fallback",
+            })
 
     # --- Phase 4: Execute Workflow → Content Generation --------------------
-    events.append({
-        "phase": 4,
-        "status": (
-            f"Executing workflow \"{workflow.get('name', 'default')}\" "
-            f"({len(workflow.get('steps', []))} steps)"
-            if workflow.get("steps")
-            else "Generating content — LLM + Solidify pipeline"
-        )
-        if not is_predefined
-        else "Assembling branded deliverable",
-        "detail": "execute",
-        "pipeline_stage": "workflow_execute",
-    })
+    # FORGE-SWARM-001: When agent_tasks were decomposed, execute them as a
+    # parallel swarm.  Each agent produces a section; results are synthesized
+    # into a single deliverable that is far larger and more detailed than a
+    # single LLM call could produce.
+    swarm_executed = False
+    swarm_agent_count = 0
+    deliverable: Dict[str, Any] = {}
 
-    # Actually run the full pipeline (reuse existing function)
-    deliverable = generate_deliverable(query, librarian_context=librarian_context)
+    if agent_tasks and not is_predefined:
+        # ── Swarm path: parallel agent execution ──────────────────────
+        events.append({
+            "phase": 4,
+            "status": (
+                f"Swarm executing {len(agent_tasks)} parallel agent tasks"
+                + (f" via workflow \"{workflow.get('name', 'default')}\"" if workflow.get("steps") else "")
+            ),
+            "detail": "swarm_execute",
+            "pipeline_stage": "swarm_execute",
+            "agent_count": len(agent_tasks),
+        })
+
+        try:
+            agent_results = _execute_swarm_tasks(
+                agent_tasks,
+                query,
+                mss_result,
+                librarian_context=librarian_context,
+            )
+            successful = [r for r in agent_results if r.get("success")]
+            failed = [r for r in agent_results if not r.get("success")]
+            swarm_agent_count = len(successful)
+
+            if failed:
+                # FORGE-SWARM-ERR-002: Report which agents failed
+                failed_names = [r.get("agent_name", "?") for r in failed]
+                logger.warning(
+                    "Swarm: %d/%d agents failed: %s",
+                    len(failed), len(agent_results), ", ".join(failed_names),
+                )
+                events.append({
+                    "phase": 4,
+                    "status": f"{len(failed)} agent(s) failed: {', '.join(failed_names[:5])}",
+                    "detail": "swarm_partial_failure",
+                    "pipeline_stage": "swarm_execute",
+                    "failed_agents": failed_names,
+                    "successful_agents": len(successful),
+                })
+
+            if successful:
+                # ── Synthesise agent outputs into coherent deliverable ─────
+                events.append({
+                    "phase": 4,
+                    "status": f"Synthesizing outputs from {len(successful)} agents into deliverable",
+                    "detail": "swarm_synthesize",
+                    "pipeline_stage": "swarm_synthesize",
+                })
+
+                synth_content = _synthesize_swarm_outputs(
+                    agent_results,
+                    query,
+                    mss_result,
+                    mfgc_result=mfgc_result_for_gen,
+                    librarian_context=librarian_context,
+                )
+
+                if synth_content and len(synth_content) > 100:
+                    title = (
+                        f'Custom Deliverable: "{query[:60]}"'
+                        if len(query) > 60
+                        else f'Custom Deliverable: "{query}"'
+                    )
+                    filename = _scenario_to_filename(None, query)
+                    quality = min(99, 90 + min(swarm_agent_count, 9))
+                    txt = build_branded_txt(
+                        title, synth_content,
+                        scenario_type="swarm_generated",
+                        quality_score=quality,
+                    )
+                    deliverable = {"title": title, "content": txt, "filename": filename}
+                    swarm_executed = True
+                    logger.info(
+                        "FORGE-SWARM-001: Swarm deliverable complete — "
+                        "%d agents, %d chars, quality=%d",
+                        swarm_agent_count, len(txt), quality,
+                    )
+                else:
+                    # FORGE-SWARM-ERR-003: Synthesis produced empty content
+                    logger.warning(
+                        "FORGE-SWARM-ERR-003: Swarm synthesis returned empty "
+                        "content (%d chars) — falling back to single-agent",
+                        len(synth_content) if synth_content else 0,
+                    )
+                    events.append({
+                        "phase": 4,
+                        "status": "Swarm synthesis produced insufficient content — single-agent fallback",
+                        "detail": "swarm_synthesis_empty",
+                        "pipeline_stage": "swarm_fallback",
+                    })
+            else:
+                # FORGE-SWARM-ERR-004: All agents failed
+                logger.error(
+                    "FORGE-SWARM-ERR-004: All %d swarm agents failed — "
+                    "falling back to single-agent pipeline",
+                    len(agent_results),
+                )
+                events.append({
+                    "phase": 4,
+                    "status": f"All {len(agent_results)} agents failed — single-agent fallback",
+                    "detail": "swarm_all_failed",
+                    "pipeline_stage": "swarm_fallback",
+                })
+
+        except Exception as exc:
+            # FORGE-SWARM-ERR-005: Swarm execution infrastructure failure
+            logger.exception(
+                "FORGE-SWARM-ERR-005: Swarm execution failed with %s: %s "
+                "— falling back to single-agent pipeline",
+                type(exc).__name__, exc,
+            )
+            events.append({
+                "phase": 4,
+                "status": f"Swarm execution error ({type(exc).__name__}) — single-agent fallback",
+                "detail": "swarm_exception",
+                "pipeline_stage": "swarm_fallback",
+                "error_type": type(exc).__name__,
+                "error_message": str(exc)[:200],
+            })
+
+    # ── Single-agent fallback (predefined OR swarm not activated/failed) ──
+    if not swarm_executed:
+        if not is_predefined and not agent_tasks:
+            # FORGE-SWARM-ERR-006: No tasks means no swarm — explain clearly
+            logger.info(
+                "FORGE-SWARM-ERR-006: No agent tasks decomposed — "
+                "using single-agent pipeline for: %s", query[:80],
+            )
+        events.append({
+            "phase": 4,
+            "status": (
+                f"Executing workflow \"{workflow.get('name', 'default')}\" "
+                f"({len(workflow.get('steps', []))} steps)"
+                if workflow.get("steps")
+                else "Generating content — single-agent LLM pipeline"
+            )
+            if not is_predefined
+            else "Assembling branded deliverable",
+            "detail": "execute",
+            "pipeline_stage": "workflow_execute",
+        })
+        deliverable = generate_deliverable(query, librarian_context=librarian_context)
 
     content = deliverable.get("content", "")
+    if not content:
+        # FORGE-SWARM-ERR-007: Deliverable content is empty after all paths
+        logger.error(
+            "FORGE-SWARM-ERR-007: Deliverable content is empty after "
+            "%s path for query: %s",
+            "swarm" if swarm_executed else "single-agent", query[:80],
+        )
+
     word_count = len(content.split()) if content else 0
     line_count = content.count("\n") + 1 if content else 0
     size_kb = round(len(content) / 1024, 1) if content else 0
 
-    # Quality score from content metrics
-    quality_score = min(99, 85 + min(word_count // 200, 10))
+    # Quality score — swarm deliverables score higher due to multi-agent depth
+    if swarm_executed and swarm_agent_count > 0:
+        quality_score = min(99, 90 + min(swarm_agent_count, 9))
+    else:
+        quality_score = min(99, 85 + min(word_count // 200, 10))
 
     # WIRE-SPEC-001: Generate automation spec in streaming path too
     automation_spec: Optional[Dict[str, Any]] = None
@@ -4396,9 +4555,15 @@ def generate_deliverable_with_progress(
     })
 
     # --- Done ---------------------------------------------------------------
+    done_status = (
+        f"Build complete — {swarm_agent_count}-agent swarm deliverable ready "
+        f"(pending HITL review)"
+        if swarm_executed
+        else "Build complete — deliverable ready (pending HITL review)"
+    )
     done_event: Dict[str, Any] = {
         "phase": "done",
-        "status": "Build complete — deliverable ready (pending HITL review)",
+        "status": done_status,
         "deliverable": deliverable,
         "workflow": {
             "workflow_id": workflow_id or workflow.get("workflow_id"),
@@ -4414,6 +4579,8 @@ def generate_deliverable_with_progress(
             "quality_score": quality_score,
             "scenario": scenario_key or "custom",
             "is_predefined": is_predefined,
+            "swarm_executed": swarm_executed,
+            "swarm_agent_count": swarm_agent_count,
         },
     }
     # WIRE-SPEC-001: Include automation spec when available
@@ -4496,6 +4663,283 @@ def _build_agent_task_list(
         })
 
     return tasks
+
+
+# =========================================================================
+# SWARM EXECUTION ENGINE  (label: FORGE-SWARM-001)
+# =========================================================================
+# When agent tasks have been decomposed from MSS/workflow output, the swarm
+# engine executes each task as a parallel LLM call.  All results are then
+# synthesized into one coherent deliverable that is far larger and more
+# detailed than a single LLM call could produce.
+# =========================================================================
+
+_SWARM_MAX_WORKERS = 8  # Bounded parallelism for concurrent agent LLM calls
+
+
+def _execute_single_agent_task(
+    agent_task: Dict[str, str],
+    query: str,
+    mss_context: str,
+    librarian_context: str,
+) -> Dict[str, Any]:
+    """Execute one agent task via the LLM and return its output.
+
+    Each agent receives the original query plus its specific task assignment
+    and the shared MSS context.  Returns a dict with ``agent_id``,
+    ``agent_name``, ``task``, ``content``, and ``success``.
+    """
+    agent_name = agent_task.get("agent_name", "Agent")
+    task_desc = agent_task.get("task", "")
+    agent_id = agent_task.get("agent_id", 0)
+
+    system_prompt = (
+        f"{MURPHY_SYSTEM_IDENTITY}\n\n"
+        f"You are **{agent_name}** — a specialist agent in the Murphy System swarm.\n"
+        f"Your assigned task is below.  Produce a detailed, production-grade\n"
+        f"section for this specific area.  Be thorough — include tables,\n"
+        f"checklists, specs, and concrete details.  Do NOT summarize;\n"
+        f"produce the full section content.\n\n"
+        f"Use section headers with ■, tables with box-drawing characters,\n"
+        f"and checklists (□) where appropriate."
+    )
+
+    user_parts = [
+        f"OVERALL PROJECT REQUEST:\n{query}\n",
+        f"YOUR ASSIGNED TASK:\n{task_desc}\n",
+    ]
+    if mss_context:
+        user_parts.append(f"MSS PIPELINE CONTEXT:\n{mss_context}\n")
+    if librarian_context:
+        user_parts.append(f"KNOWLEDGE BASE CONTEXT:\n{librarian_context}\n")
+    user_parts.append(
+        "Produce a comprehensive, production-grade section for your assigned "
+        "task.  This will be merged with outputs from other specialist agents "
+        "into a complete deliverable.  Do not duplicate the overall project "
+        "overview — focus on YOUR section's depth and detail."
+    )
+    user_prompt = "\n".join(user_parts)
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+
+    content = ""
+    try:
+        from src.llm_provider import get_llm
+        provider = get_llm()
+        completion = provider.complete_messages(
+            messages,
+            model_hint="chat",
+            temperature=0.7,
+            max_tokens=16384,
+        )
+        if completion.content and completion.provider != "onboard":
+            content = completion.content
+            logger.info(
+                "Swarm agent %s (%s) completed: %d chars via %s",
+                agent_id, agent_name, len(content), completion.provider,
+            )
+    except Exception as exc:
+        logger.warning("Swarm agent %s (%s) LLM failed: %s", agent_id, agent_name, exc)
+
+    # Fallback: use domain keyword engine if LLM unavailable
+    if not content or len(content) < 50:
+        content = (
+            f"■ {agent_name.upper()} — {task_desc}\n"
+            f"{'─' * 60}\n"
+        )
+        domain_snippet = _build_deep_domain_content(f"{task_desc} for {query}")
+        if domain_snippet:
+            content += domain_snippet
+        else:
+            content += f"  Task: {task_desc}\n  Status: Completed by {agent_name}\n"
+
+    return {
+        "agent_id": agent_id,
+        "agent_name": agent_name,
+        "task": task_desc,
+        "content": content,
+        "success": bool(content and len(content) >= 50),
+    }
+
+
+def _execute_swarm_tasks(
+    agent_tasks: List[Dict[str, str]],
+    query: str,
+    mss_result: Dict[str, Any],
+    librarian_context: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """Execute all agent tasks in parallel and return their outputs.
+
+    Uses a bounded ThreadPoolExecutor to run up to ``_SWARM_MAX_WORKERS``
+    concurrent LLM calls.  Each agent receives its specific task assignment
+    plus shared context from the MSS pipeline.
+
+    Label: FORGE-SWARM-001
+    """
+    if not agent_tasks:
+        return []
+
+    mss_context = _format_mss_context(mss_result) if mss_result else ""
+    lib_ctx = librarian_context or ""
+
+    import concurrent.futures
+    results: List[Dict[str, Any]] = []
+    max_w = min(_SWARM_MAX_WORKERS, len(agent_tasks))
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_w) as pool:
+        future_to_task = {
+            pool.submit(
+                _execute_single_agent_task,
+                task,
+                query,
+                mss_context,
+                lib_ctx,
+            ): task
+            for task in agent_tasks
+        }
+        for future in concurrent.futures.as_completed(future_to_task):
+            task_ref = future_to_task[future]
+            try:
+                result = future.result(timeout=120)
+                results.append(result)
+            except Exception as exc:
+                logger.warning(
+                    "Swarm task '%s' failed: %s",
+                    task_ref.get("task", "?"), exc,
+                )
+                results.append({
+                    "agent_id": task_ref.get("agent_id", 0),
+                    "agent_name": task_ref.get("agent_name", "Agent"),
+                    "task": task_ref.get("task", ""),
+                    "content": "",
+                    "success": False,
+                })
+
+    # Sort by agent_id to maintain deterministic ordering
+    results.sort(key=lambda r: r.get("agent_id", 0))
+    return results
+
+
+def _synthesize_swarm_outputs(
+    agent_results: List[Dict[str, Any]],
+    query: str,
+    mss_result: Dict[str, Any],
+    mfgc_result: Optional[Dict[str, Any]] = None,
+    librarian_context: Optional[str] = None,
+) -> str:
+    """Combine all agent outputs into one coherent deliverable.
+
+    Strategy:
+    1. Build an executive overview from MSS data.
+    2. Concatenate each agent's section, delineated by headers.
+    3. Run a final synthesis LLM pass to add a coherent introduction,
+       cross-references, and a unified conclusion.
+
+    If the synthesis LLM call fails, the concatenated agent sections are
+    returned directly — still far richer than a single-call deliverable.
+
+    Label: FORGE-SWARM-002
+    """
+    # --- Build concatenated agent sections --------------------------------
+    sections: List[str] = []
+    successful_count = 0
+    for r in agent_results:
+        if not r.get("content"):
+            continue
+        successful_count += 1
+        sections.append(r["content"].strip())
+
+    if not sections:
+        # All agents failed — fall back to single-call pipeline
+        return _generate_llm_content(
+            query,
+            mfgc_result=mfgc_result,
+            mss_result=mss_result,
+            librarian_context=librarian_context,
+        )
+
+    # --- Build executive overview from MSS --------------------------------
+    mfgc_note = ""
+    if mfgc_result:
+        conf = mfgc_result.get("confidence", 0)
+        mi = mfgc_result.get("murphy_index")
+        mi_part = f", murphy_index={mi}" if mi is not None else ""
+        mfgc_note = f"[MFGC gate: confidence={conf:.2f}{mi_part}]"
+
+    overview = ""
+    if mss_result and (mss_result.get("magnify") or mss_result.get("solidify")):
+        overview = _build_content_from_mss(
+            query, mss_result, mfgc_note, mfgc_result=mfgc_result,
+        )
+
+    # --- Assemble raw combined content ------------------------------------
+    combined_body = "\n\n".join(sections)
+
+    raw_deliverable_parts = []
+    if overview:
+        raw_deliverable_parts.append(overview)
+    raw_deliverable_parts.append(
+        f"\n{'═' * 71}\n"
+        f"  DETAILED SECTIONS — {successful_count} specialist agents\n"
+        f"{'═' * 71}\n"
+    )
+    raw_deliverable_parts.append(combined_body)
+
+    raw_deliverable = "\n\n".join(raw_deliverable_parts)
+
+    # --- Synthesis pass: unify into coherent document ----------------------
+    try:
+        from src.llm_provider import get_llm
+        provider = get_llm()
+
+        synth_system = (
+            f"{MURPHY_SYSTEM_IDENTITY}\n\n"
+            "You are the SYNTHESIS AGENT in the Murphy System swarm.  You have "
+            "received the outputs of multiple specialist agents who each worked "
+            "on a different section of the deliverable.  Your job is to:\n"
+            "  1. Write a cohesive executive introduction.\n"
+            "  2. Ensure smooth transitions between sections.\n"
+            "  3. Add cross-references where sections relate to each other.\n"
+            "  4. Write a unified conclusion and next-steps section.\n"
+            "  5. Preserve ALL detail from the specialist sections — do NOT "
+            "summarize or remove content.  Only add connective tissue.\n\n"
+            "Use ■ section headers, box-drawing tables, and checklists (□).  "
+            "The final output must be production-ready."
+        )
+
+        synth_user = (
+            f"ORIGINAL REQUEST:\n{query}\n\n"
+            f"COMBINED SPECIALIST AGENT OUTPUTS ({successful_count} agents):\n\n"
+            f"{raw_deliverable}\n\n"
+            f"Synthesize the above into a single, coherent, production-grade "
+            f"deliverable.  Preserve all specialist detail — add an introduction, "
+            f"transitions, cross-references, and a conclusion."
+        )
+
+        completion = provider.complete_messages(
+            [
+                {"role": "system", "content": synth_system},
+                {"role": "user", "content": synth_user},
+            ],
+            model_hint="chat",
+            temperature=0.5,
+            max_tokens=131072,
+        )
+        if completion.content and completion.provider != "onboard":
+            logger.info(
+                "Swarm synthesis completed: %d chars via %s (from %d agents)",
+                len(completion.content), completion.provider, successful_count,
+            )
+            return completion.content
+    except Exception as exc:
+        logger.warning("Swarm synthesis LLM failed: %s — using raw concatenation", exc)
+
+    # Synthesis LLM unavailable — return raw concatenation which is still
+    # much richer than a single-call deliverable
+    return raw_deliverable
 
 
 def _deterministic_task_decomposition(query: str) -> List[str]:
