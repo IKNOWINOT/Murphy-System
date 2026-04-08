@@ -10,7 +10,6 @@ Run:  pytest -m wiring_validation -k test_pipeline_completeness
 """
 from __future__ import annotations
 
-import importlib
 import inspect
 import sys
 from pathlib import Path
