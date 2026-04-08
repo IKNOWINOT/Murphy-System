@@ -37,6 +37,20 @@ from typing import Any, Dict, List, Optional
 ROOT = Path(__file__).resolve().parent / "Murphy System"
 sys.path.insert(0, str(ROOT))
 
+# -- Load .env so DEEPINFRA_API_KEY (and other secrets) are available even when
+#    the server is started outside of the systemd EnvironmentFile path.
+try:
+    from dotenv import load_dotenv as _load_dotenv
+    for _env_candidate in (
+        Path(__file__).resolve().parent / ".env",
+        ROOT / ".env",
+    ):
+        if _env_candidate.is_file():
+            _load_dotenv(_env_candidate, override=False)
+            break
+except ImportError:
+    pass  # python-dotenv not installed — rely on OS env vars
+
 from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
