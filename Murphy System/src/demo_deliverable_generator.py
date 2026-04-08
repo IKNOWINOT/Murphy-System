@@ -4352,7 +4352,7 @@ def generate_deliverable_with_progress(
 
     # --- Phase 4: Execute Workflow → Content Generation --------------------
     # FORGE-SWARM-001: When agent_tasks were decomposed, execute them as a
-    # parallel swarm.  Each agent produces a section; results are synthesised
+    # parallel swarm.  Each agent produces a section; results are synthesized
     # into a single deliverable that is far larger and more detailed than a
     # single LLM call could produce.
     swarm_executed = False
@@ -4403,7 +4403,7 @@ def generate_deliverable_with_progress(
                 # ── Synthesise agent outputs into coherent deliverable ─────
                 events.append({
                     "phase": 4,
-                    "status": f"Synthesising outputs from {len(successful)} agents into deliverable",
+                    "status": f"Synthesizing outputs from {len(successful)} agents into deliverable",
                     "detail": "swarm_synthesize",
                     "pipeline_stage": "swarm_synthesize",
                 })
@@ -4670,7 +4670,7 @@ def _build_agent_task_list(
 # =========================================================================
 # When agent tasks have been decomposed from MSS/workflow output, the swarm
 # engine executes each task as a parallel LLM call.  All results are then
-# synthesised into one coherent deliverable that is far larger and more
+# synthesized into one coherent deliverable that is far larger and more
 # detailed than a single LLM call could produce.
 # =========================================================================
 
@@ -4698,7 +4698,7 @@ def _execute_single_agent_task(
         f"You are **{agent_name}** — a specialist agent in the Murphy System swarm.\n"
         f"Your assigned task is below.  Produce a detailed, production-grade\n"
         f"section for this specific area.  Be thorough — include tables,\n"
-        f"checklists, specs, and concrete details.  Do NOT summarise;\n"
+        f"checklists, specs, and concrete details.  Do NOT summarize;\n"
         f"produce the full section content.\n\n"
         f"Use section headers with ■, tables with box-drawing characters,\n"
         f"and checklists (□) where appropriate."
