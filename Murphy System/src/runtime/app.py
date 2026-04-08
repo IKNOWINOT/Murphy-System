@@ -13394,13 +13394,34 @@ def create_app() -> FastAPI:
 
         run_id = uuid4().hex[:12]
 
+        # WIRE-LIB-001: Librarian lookup for streaming endpoint — same
+        # pattern as the non-streaming path (lines 13191-13203).
+        librarian_context: str = ""
+        try:
+            lib_result = murphy.librarian_ask(query, mode="ask")
+            librarian_context = (
+                lib_result.get("reply_text")
+                or lib_result.get("response")
+                or lib_result.get("message")
+                or ""
+            )
+            if librarian_context:
+                librarian_context = librarian_context[:1500]
+        except Exception as _lib_exc:
+            logger.debug("Librarian lookup skipped (streaming): %s", _lib_exc)
+
         async def _event_gen():
             """Async generator yielding SSE events."""
             try:
-                progress = await asyncio.get_event_loop().run_in_executor(
-                    None,
+                import functools
+                _gen_fn = functools.partial(
                     generate_deliverable_with_progress,
                     query,
+                    librarian_context=librarian_context or None,
+                )
+                progress = await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    _gen_fn,
                 )
             except Exception as exc:
                 logger.warning("Streaming forge generator failed: %s — using fallback", exc)
