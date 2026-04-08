@@ -602,11 +602,26 @@ function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics,clientElaps
   if(buildMetrics&&buildMetrics.line_count)lineCount=buildMetrics.line_count;
   if(buildMetrics&&buildMetrics.size_kb)sizeKb=Math.round(buildMetrics.size_kb);
 
+  // Human-time estimate from backend (predicted_human_hours) or client fallback
+  var humanHours=(buildMetrics&&buildMetrics.predicted_human_hours)?buildMetrics.predicted_human_hours:0;
+  if(!humanHours){
+    var queryWords=(_forgeQuery||'').split(/\s+/).length;
+    humanHours=2.0+Math.min(queryWords/50,6.0);
+  }
+  // Format human time as a concrete estimate
+  var humanTimeLabel='';
+  if(humanHours>=24){
+    var days=Math.round(humanHours/8*10)/10; // 8h work-days
+    humanTimeLabel=days+(days===1?' work-day':' work-days');
+  }else if(humanHours>=1){
+    var h=Math.round(humanHours*10)/10;
+    humanTimeLabel=h+(h===1?' hour':' hours');
+  }else{
+    humanTimeLabel=Math.round(humanHours*60)+' minutes';
+  }
   var roiMultiple=(buildMetrics&&buildMetrics.roi_multiple)?buildMetrics.roi_multiple:0;
   if(!roiMultiple&&buildTimeSec>0){
-    var queryWords=(_forgeQuery||'').split(/\s+/).length;
-    var estHumanHours=2.0+Math.min(queryWords/50,6.0);
-    var estHumanCost=estHumanHours*75;
+    var estHumanCost=humanHours*75;
     roiMultiple=Math.round(estHumanCost/0.06);
   }
   var roiText=roiMultiple>0?('ROI: '+roiMultiple+'x'):'ROI: immediate';
@@ -645,7 +660,7 @@ function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics,clientElaps
     '<div class="forge-stat"><span class="forge-stat-val">'+lineCount.toLocaleString()+'</span><span class="forge-stat-lbl">Lines</span></div>'+
     '<div class="forge-stat"><span class="forge-stat-val">'+sizeKb+'KB</span><span class="forge-stat-lbl">Size</span></div>';
   var roiAgentLabel=(typeof agentCount==='number')?(agentCount+' agents'):'agents';
-  roiEl.innerHTML='<strong>'+roiAgentLabel+' \u00d7 '+buildTime+'</strong> = what would take a team of developers <strong>days or weeks</strong> to produce manually. <strong>'+roiText+'</strong>';
+  roiEl.innerHTML='<strong>'+roiAgentLabel+' completed in '+buildTime+'</strong> &mdash; estimated <strong>'+humanTimeLabel+'</strong> for a human team. <strong>'+roiText+'</strong>';
 
   // Usage counter — Gap 1 (FORGE-RESULT-001): show remaining builds + reset_at
   if(forgeUsage&&usageEl){
