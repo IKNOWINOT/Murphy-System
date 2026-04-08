@@ -3465,6 +3465,10 @@ async def api_auth_register_free(request: Request):
                 tier=SubscriptionTier.FREE,
                 email=email,
             )
+        # Void the anonymous counter so the new account gets a clean 10/day
+        # allowance instead of carrying over any anonymous usage (5+10 double-dip).
+        fingerprint = _demo_fingerprint(request)
+        sm.convert_anonymous_to_registered(fingerprint, account_id)
     except Exception as _sub_exc:
         log.warning("Could not create subscription record for %s: %s", account_id, _sub_exc)
 

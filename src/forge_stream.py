@@ -3,15 +3,17 @@ Forge Stream — Murphy System
 ================================
 Server-Sent Events endpoint: GET /api/demo/forge-stream
 
-Streams real-time build progress for the 64-agent Swarm Forge.
-Each build runs 64 agents (32 exploration + 32 control) each with
-one MultiCursorBrowser controller — 64 total compute units.
+Streams real-time build progress for the Swarm Forge.
+Each build uses however many agents the task decomposition requires —
+the swarm scales agent count to match task complexity, drawing from
+exploration and control agent pools as needed.  The MultiCursorBrowser
+supports up to 64 physical zones, but a given build may use far fewer.
 
 Event types:
   agent_start    : {"agent_id": int, "agent_name": str, "task": str, "swarm": str}
   agent_progress : {"agent_id": int, "agent_name": str, "output_line": str}
   agent_done     : {"agent_id": int, "status": "complete", "lines_produced": int}
-  build_complete : {"total_agents": 64, "total_lines": int, "build_time_ms": int}
+  build_complete : {"total_agents": int, "total_lines": int, "build_time_ms": int}
 
 Copyright © 2020 Inoni LLC — BSL 1.1
 """
@@ -26,7 +28,9 @@ from typing import AsyncIterator
 
 logger = logging.getLogger(__name__)
 
-# 64 agent names: 32 exploration + 32 control
+# Agent name roster — exploration + control pools.
+# The swarm draws from these dynamically based on task complexity;
+# the total agent count per build is not fixed.
 _EXPLORATION_AGENTS = [
     "Coordinator", "Schema Architect", "API Designer", "Data Modeler",
     "UX Planner", "Logic Engineer", "Integration Mapper", "Auth Designer",
@@ -48,7 +52,7 @@ _CONTROL_AGENTS = [
     "Permission Checker", "Data Sanitizer", "Output Encoder", "Secret Scanner",
 ]
 
-_AGENT_NAMES = _EXPLORATION_AGENTS + _CONTROL_AGENTS  # 64 total
+_AGENT_NAMES = _EXPLORATION_AGENTS + _CONTROL_AGENTS
 
 _EXPLORATION_TASKS = [
     "Analyzing scope and decomposing requirements...",
@@ -96,12 +100,17 @@ def _sse_event(event_type: str, data: dict) -> str:
 
 
 async def forge_stream_generator(query: str = "") -> AsyncIterator[str]:
-    """Async generator that yields SSE events for a 64-agent forge build."""
+    """Async generator that yields SSE events for a swarm forge build.
+
+    The swarm draws from the exploration and control agent pools; the actual
+    number of agents used is determined by the task decomposition, not fixed.
+    """
     build_start = time.time()
     total_lines = 0
+    exploration_count = len(_EXPLORATION_AGENTS)
 
     for agent_id, name in enumerate(_AGENT_NAMES):
-        swarm = "exploration" if agent_id < 32 else "control"
+        swarm = "exploration" if agent_id < exploration_count else "control"
         task_pool = _EXPLORATION_TASKS if swarm == "exploration" else _CONTROL_TASKS
         task = random.choice(task_pool)
 
@@ -136,7 +145,7 @@ async def forge_stream_generator(query: str = "") -> AsyncIterator[str]:
 
     build_ms = int((time.time() - build_start) * 1000)
     yield _sse_event("build_complete", {
-        "total_agents": 64,
+        "total_agents": len(_AGENT_NAMES),
         "total_lines": total_lines,
         "build_time_ms": build_ms,
         "query": query[:100] if query else "",
