@@ -3,10 +3,9 @@ Forge Rate Limiter — Murphy System
 ====================================
 Tier-aware rate limiting for POST /api/demo/generate-deliverable.
 
-Each forge build launches a 64-agent dual-swarm (exploration + control)
-with one MultiCursorBrowser controller per agent = 64 compute units per build.
-Rate limits are expressed in BUILDS (not raw HTTP requests) to correctly
-reflect the actual computational cost.
+Each forge build launches a dynamic swarm — the agent count scales with
+task complexity.  Rate limits are expressed in BUILDS (not raw HTTP
+requests or a fixed agent count) to correctly reflect computational cost.
 
 Tiers (builds/hour / builds/day / burst):
   anonymous    :  3 / 5   / 1
@@ -33,10 +32,9 @@ from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
-# Compute cost per forge build
-AGENTS_PER_BUILD = 64
+# One MultiCursorBrowser controller is allocated per agent in a build.
+# Agent count per build is dynamic — it scales with task complexity.
 CURSORS_PER_AGENT = 1
-TOTAL_COMPUTE_UNITS = AGENTS_PER_BUILD * CURSORS_PER_AGENT  # 64
 
 # Tier limits: (hourly_builds, daily_builds, burst)
 # -1 = unlimited
@@ -150,9 +148,7 @@ class ForgeRateLimiter:
             "builds_remaining_today": max(0, daily_remaining - (1 if allowed else 0)) if daily_limit != -1 else -1,
             "builds_remaining_hour": max(0, hourly_remaining - (1 if allowed else 0)),
             "swarm_cost": {
-                "agents": AGENTS_PER_BUILD,
                 "cursors_per_agent": CURSORS_PER_AGENT,
-                "total_compute_units": TOTAL_COMPUTE_UNITS,
             },
         }
         if not allowed:
@@ -277,9 +273,7 @@ return new
             "builds_remaining_today": -1,
             "builds_remaining_hour": -1,
             "swarm_cost": {
-                "agents": AGENTS_PER_BUILD,
                 "cursors_per_agent": CURSORS_PER_AGENT,
-                "total_compute_units": TOTAL_COMPUTE_UNITS,
             },
         }
 

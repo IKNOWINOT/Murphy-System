@@ -1409,3 +1409,40 @@ return new
                 "remaining": remaining,
                 "tier": tier_val,
             }
+
+    def convert_anonymous_to_registered(
+        self, fingerprint: str, account_id: str
+    ) -> Dict[str, Any]:
+        """Void the anonymous counter and grant a fresh free-tier allowance.
+
+        Called immediately after a successful signup to prevent the 5+10
+        double-dip (anonymous 5/day counter + fresh 10/day registered counter).
+        The anonymous fingerprint entry is deleted so it cannot be reused.
+
+        Args:
+            fingerprint: The anonymous visitor fingerprint (from ``_demo_fingerprint``).
+            account_id:  The newly registered account identifier.
+
+        Returns:
+            Dict with ``converted``, ``new_limit``, and ``remaining``.
+        """
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+        # ── Redis path ────────────────────────────────────────────────────────
+        if self._redis_available:
+            try:
+                redis_anon_key = f"murphy:anon:{fingerprint}:{today}"
+                self._redis.delete(redis_anon_key)
+            except Exception:
+                pass  # Non-critical — in-memory path handles the rest
+
+        # ── In-memory path ────────────────────────────────────────────────────
+        with self._lock:
+            self._anon_usage.pop(fingerprint, None)
+            self._daily_usage[account_id] = {"date": today, "count": 0}
+
+        return {
+            "converted": True,
+            "new_limit": self._FREE_DAILY_LIMIT,
+            "remaining": self._FREE_DAILY_LIMIT,
+        }

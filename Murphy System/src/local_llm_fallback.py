@@ -525,30 +525,21 @@ Get a free DeepInfra key at https://deepinfra.com/keys for the best experience."
             return self._generate_default_response(prompt, max_tokens)
 
     def _generate_default_response(self, prompt: str, max_tokens: int) -> str:
-        """Generate a default intelligent response"""
-        return f"""I understand you're asking about: "{prompt}"
-
-**Current Status**: Using built-in knowledge base — no real LLM available.
-
-**What I Can Help With**:
-- General concepts and principles
-- Murphy System commands and setup help
-- Structured approaches to problems
-- Best practice frameworks
-
-**For Your Question**:
-To provide the most accurate and helpful response, I would need:
-1. More specific context about your situation
-2. What you're trying to achieve
-3. Any constraints or requirements you have
-
-**💡 Tip**: Try `set key deepinfra <your-key>` to add an API key for full AI capabilities.
-Get a free key at: https://deepinfra.com/keys
-
-Would you like to:
-- Rephrase your question with more context?
-- Ask about a related topic I might have in my offline knowledge base?
-- Type `help` to see available Murphy commands?"""
+        """Generate a default intelligent response without echoing internal prompts."""
+        return (
+            "**LLM Unavailable** — Using built-in knowledge base.\n\n"
+            "**What I Can Help With**:\n"
+            "- General concepts and principles\n"
+            "- Murphy System commands and setup help\n"
+            "- Structured approaches to problems\n"
+            "- Best practice frameworks\n\n"
+            "**💡 Tip**: Try `set key deepinfra di_...` to add an API key for full AI capabilities.\n"
+            "Get a free key at: https://deepinfra.com/keys\n\n"
+            "Would you like to:\n"
+            "- Rephrase your question with more context?\n"
+            "- Ask about a related topic I might have in my offline knowledge base?\n"
+            "- Type `help` to see available Murphy commands?"
+        )
 
 
 # Singleton instance
