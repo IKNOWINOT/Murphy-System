@@ -4118,6 +4118,24 @@ async def api_demo_generate_deliverable_stream(request: Request):
                 if agent_tasks:
                     metrics.agent_count = len(agent_tasks)
 
+            # FORGE-SWARM-001: Capture swarm execution agent count
+            # (overrides decomposition count with actual successful agents)
+            evt_metrics = event.get("metrics") or {}
+            if evt_metrics.get("swarm_agent_count"):
+                metrics.agent_count = evt_metrics["swarm_agent_count"]
+
+            # FORGE-SWARM-001: Forward swarm progress events to frontend
+            if event.get("detail") in (
+                "swarm_execute", "swarm_partial_failure",
+                "swarm_synthesize", "swarm_all_failed",
+                "swarm_exception", "swarm_synthesis_empty",
+                "agent_tasks_empty",
+            ):
+                log.info(
+                    "Swarm event [%s]: %s",
+                    event.get("detail"), event.get("status", ""),
+                )
+
             if event.get("phase") == "done":
                 # Validate deliverable content; use fallback if empty
                 deliverable = event.get("deliverable") or {}
