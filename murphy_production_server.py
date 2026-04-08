@@ -3682,7 +3682,7 @@ class BuildMetrics:
         self.build_ended_ts = 0.0
         self.llm_calls = 5
         self.total_tokens = 0
-        self.agent_count = 64
+        self.agent_count = 0  # Updated dynamically from pipeline task decomposition
         words = len(query.split())
         base_hours = 2.0 + min(words / 50, 6.0)
         self.predicted_human_hours = round(base_hours, 2)
@@ -4088,6 +4088,12 @@ async def api_demo_generate_deliverable_stream(request: Request):
             return
 
         for event in progress:
+            # Capture real agent count from task decomposition events
+            if event.get("detail") == "agent_tasks":
+                agent_tasks = event.get("agent_tasks", [])
+                if agent_tasks:
+                    metrics.agent_count = len(agent_tasks)
+
             if event.get("phase") == "done":
                 # Validate deliverable content; use fallback if empty
                 deliverable = event.get("deliverable") or {}
