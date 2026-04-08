@@ -3728,6 +3728,7 @@ class BuildMetrics:
             "total_actual_cost_usd": self.total_actual_cost,
             "predicted_human_hours": self.predicted_human_hours,
             "predicted_human_cost_usd": self.predicted_human_cost,
+            "predicted_calendar_days": self.predicted_calendar_days,
             "cost_savings_usd": self.cost_savings,
             "roi_multiple": self.roi_multiple,
         }
