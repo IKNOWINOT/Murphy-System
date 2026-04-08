@@ -11,7 +11,7 @@ Global rate limiting for Murphy System that understands the swarm-native
 architecture.  Unlike simple per-IP token-bucket limiters, this governor
 accounts for:
 
-  • Multi-cursor browser sessions (up to 64 physical zones per build)
+  • Multi-cursor browser sessions (MCB supports up to 64 physical zones — actual zone count scales with task complexity)
   • Dual-swarm execution (exploration + control swarm)
   • AI sensor streams (heartbeat, anomaly detection, telemetry)
   • Agent-to-agent RPC (internal coordination traffic)
