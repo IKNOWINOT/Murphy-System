@@ -632,7 +632,7 @@ function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics,clientElaps
     '<div class="forge-stat"><span class="forge-stat-val">'+wordCount.toLocaleString()+'</span><span class="forge-stat-lbl">Words</span></div>'+
     '<div class="forge-stat"><span class="forge-stat-val">'+lineCount.toLocaleString()+'</span><span class="forge-stat-lbl">Lines</span></div>'+
     '<div class="forge-stat"><span class="forge-stat-val">'+sizeKb+'KB</span><span class="forge-stat-lbl">Size</span></div>';
-  var roiAgentLabel=(typeof agentCount==='number')?agentCount+' agents':agentCount+' agents';
+  var roiAgentLabel=(typeof agentCount==='number')?(agentCount+' agents'):'agents';
   roiEl.innerHTML='<strong>'+roiAgentLabel+' \u00d7 '+buildTime+'</strong> = what would take a team of developers <strong>days or weeks</strong> to produce manually. <strong>'+roiText+'</strong>';
 
   // Usage counter — Gap 1 (FORGE-RESULT-001): show remaining builds + reset_at

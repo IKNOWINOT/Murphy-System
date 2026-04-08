@@ -3682,7 +3682,7 @@ class BuildMetrics:
         self.build_ended_ts = 0.0
         self.llm_calls = 5
         self.total_tokens = 0
-        self.agent_count = 0  # Updated dynamically from pipeline task decomposition
+        self.agent_count = 0  # Set dynamically from agent_tasks SSE event in Phase 3
         words = len(query.split())
         base_hours = 2.0 + min(words / 50, 6.0)
         self.predicted_human_hours = round(base_hours, 2)
