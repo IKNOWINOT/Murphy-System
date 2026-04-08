@@ -2717,6 +2717,9 @@ def _format_expert_context(expert_result: Dict[str, Any]) -> str:
             lines.append(f"    {al}")
 
     return "\n".join(lines)
+
+
+def _format_mss_context(mss_result: Dict[str, Any]) -> str:
     """Render MSS Magnify + Solidify output as a human-readable section."""
     if not mss_result:
         return ""

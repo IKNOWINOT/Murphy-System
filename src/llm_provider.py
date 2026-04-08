@@ -360,7 +360,7 @@ class MurphyLLMProvider:
         system:      str   = "You are Murphy, an AI automation platform built by Inoni LLC.",
         model_hint:  str   = "chat",
         temperature: float = 0.7,
-        max_tokens:  int   = 1024,
+        max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,  # WIRE-LLM-001: match sync default
     ) -> LLMCompletion:
         """Async completion — DeepInfra primary, Together.ai fallback."""
         messages = [
@@ -380,7 +380,7 @@ class MurphyLLMProvider:
         *,
         model_hint:  str   = "chat",
         temperature: float = 0.7,
-        max_tokens:  int   = 1024,
+        max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,  # WIRE-LLM-001: match sync default
     ) -> LLMCompletion:
         """Async messages completion."""
         return await self._acomplete_with_fallback(
@@ -395,7 +395,7 @@ class MurphyLLMProvider:
         messages:    List[Dict[str, str]],
         model_hint:  str   = "chat",
         temperature: float = 0.7,
-        max_tokens:  int   = 1024,
+        max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,  # WIRE-LLM-001: match sync default
     ) -> LLMCompletion:
         request_id = str(uuid.uuid4())
 
@@ -567,7 +567,7 @@ def complete(
     system:      str   = "You are Murphy, an AI automation platform built by Inoni LLC.",
     model_hint:  str   = "chat",
     temperature: float = 0.7,
-    max_tokens:  int   = 1024,
+    max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,  # WIRE-LLM-001: match class default
 ) -> str:
     """Single-call convenience: returns just the content string."""
     return get_llm().complete(
@@ -581,7 +581,7 @@ async def acomplete(
     system:      str   = "You are Murphy, an AI automation platform built by Inoni LLC.",
     model_hint:  str   = "chat",
     temperature: float = 0.7,
-    max_tokens:  int   = 1024,
+    max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,  # WIRE-LLM-001: match class default
 ) -> str:
     """Async convenience: returns just the content string."""
     resp = await get_llm().acomplete(

@@ -54,6 +54,13 @@ logger = logging.getLogger(__name__)
 # These are the *real* module paths inside Murphy System that the Forge uses
 # as building blocks.  A workflow step's ``module_ref`` points to one of
 # these so the system never reinvents existing capability.
+#
+# WIRE-WF-001: module_ref values are intentional descriptive metadata.
+# They document *which* Murphy module each workflow step corresponds to
+# and populate the agent task grid in the Forge UI.  Actual execution is
+# handled by the MFGC → MSS → LLM pipeline in demo_deliverable_generator.py,
+# not by dynamic dispatch from these refs.  Full workflow-driven dispatch
+# is tracked as a future enhancement.
 # ---------------------------------------------------------------------------
 
 MURPHY_REFERENCE_MODULES: Dict[str, str] = {
