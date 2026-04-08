@@ -25,13 +25,23 @@ jobs:
 
       - name: Configure environment
         working-directory: "Murphy System"
+        env:
+          DEEPINFRA_API_KEY: ${{ secrets.DEEPINFRA_API_KEY }}
         run: |
-          # Create .env for local/test LLM provider (no API key needed)
-          cat > .env <<'EOF'
+          # Determine LLM provider: use DeepInfra when the secret is available,
+          # otherwise fall back to the onboard local provider.
+          if [ -n "${DEEPINFRA_API_KEY:-}" ]; then
+            LLM_PROVIDER=deepinfra
+          else
+            LLM_PROVIDER=local
+          fi
+
+          cat > .env <<EOF
           MURPHY_VERSION=1.0.0
           MURPHY_ENV=test
           MURPHY_PORT=8000
-          MURPHY_LLM_PROVIDER=local
+          MURPHY_LLM_PROVIDER=${LLM_PROVIDER}
+          DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY:-}
           EOF
 
           # Create runtime directories the system expects
@@ -42,6 +52,17 @@ jobs:
 
       - name: Set MURPHY_ENV
         run: echo "MURPHY_ENV=test" >> "$GITHUB_ENV"
+
+      - name: Set DEEPINFRA_API_KEY
+        env:
+          DEEPINFRA_API_KEY: ${{ secrets.DEEPINFRA_API_KEY }}
+        run: |
+          if [ -n "${DEEPINFRA_API_KEY:-}" ]; then
+            echo "DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY}" >> "$GITHUB_ENV"
+            echo "✅ DEEPINFRA_API_KEY available — Swarm Forge will use DeepInfra LLM"
+          else
+            echo "⚠️  DEEPINFRA_API_KEY not set — Swarm Forge will use onboard LLM fallback"
+          fi
 
       - name: Verify setup
         working-directory: "Murphy System"

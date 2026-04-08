@@ -557,6 +557,8 @@ if [ "$SKIP_ENV_AUDIT" = false ]; then
     audit_var "MATRIX_USER_ID"         "Matrix IM bridge inactive (optional)"
     audit_var "MATRIX_BOT_TOKEN"       "Matrix client token alias missing — will be auto-populated from MATRIX_ACCESS_TOKEN"
     audit_var "MATRIX_BOT_USER"        "Matrix client user alias missing — will be auto-populated from MATRIX_USER_ID"
+    audit_var "DEEPINFRA_API_KEY"      "Swarm Forge LLM disabled — get a free key at https://deepinfra.com/keys"
+    audit_var "MURPHY_LLM_PROVIDER"    "defaulting to local (set to 'deepinfra' if DEEPINFRA_API_KEY is configured)"
 
     # Sanitize: quote any values containing spaces that aren't already quoted
     if [ -f "$MURPHY_ENV_FILE" ]; then

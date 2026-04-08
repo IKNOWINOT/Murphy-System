@@ -57,6 +57,40 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Inject DEEPINFRA_API_KEY into server env
+        if: steps.check_secrets.outputs.skip == 'false'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: root
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: DEEPINFRA_API_KEY
+          script: |
+            set -e
+            ENV_FILE="/etc/murphy-production/environment"
+            mkdir -p /etc/murphy-production
+            touch "$ENV_FILE"
+            chmod 600 "$ENV_FILE"
+            # Upsert DEEPINFRA_API_KEY — only if the secret is set
+            if [ -n "${DEEPINFRA_API_KEY:-}" ]; then
+              if grep -q "^DEEPINFRA_API_KEY=" "$ENV_FILE" 2>/dev/null; then
+                sed -i "s|^DEEPINFRA_API_KEY=.*|DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY}|" "$ENV_FILE"
+              else
+                echo "DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY}" >> "$ENV_FILE"
+              fi
+              # Switch provider to deepinfra when the key is present
+              if grep -q "^MURPHY_LLM_PROVIDER=" "$ENV_FILE" 2>/dev/null; then
+                sed -i "s|^MURPHY_LLM_PROVIDER=.*|MURPHY_LLM_PROVIDER=deepinfra|" "$ENV_FILE"
+              else
+                echo "MURPHY_LLM_PROVIDER=deepinfra" >> "$ENV_FILE"
+              fi
+              echo "✅ DEEPINFRA_API_KEY injected into $ENV_FILE"
+            else
+              echo "⚠️  DEEPINFRA_API_KEY secret not set — skipping injection"
+            fi
+        env:
+          DEEPINFRA_API_KEY: ${{ secrets.DEEPINFRA_API_KEY }}
+
       - name: Deploy to Hetzner via SSH
         if: steps.check_secrets.outputs.skip == 'false'
         uses: appleboy/ssh-action@v1

@@ -56,6 +56,8 @@ GRAFANA_PORT=3000
 # llama3 = ~6.0 GB RAM  (recommended for ≥16 GB servers)
 OLLAMA_HOST=http://localhost:11434
 OLLAMA_MODEL=phi3
+# LLM provider: 'local' for Ollama only, 'deepinfra' for Swarm Forge + full AI
+# Set to 'deepinfra' once DEEPINFRA_API_KEY is configured below.
 MURPHY_LLM_PROVIDER=local
 
 # ── Mail subsystem (murphy-mailserver Docker container) ───────────────────────
@@ -92,10 +94,12 @@ PROMETHEUS_PORT=9090
 # Used by hetzner_load.sh to find and validate the nginx vhost
 NGINX_SITE_NAME=murphy-production
 
-# ── Optional external API keys ────────────────────────────────────────────────
-# Uncomment and set any keys you have.  Murphy falls back to the onboard LLM
-# if none are set.
-# DEEPINFRA_API_KEY=di_...
+# ── External LLM API keys ─────────────────────────────────────────────────────
+# DEEPINFRA_API_KEY is REQUIRED for Swarm Forge to generate real deliverables.
+# Get a free key at: https://deepinfra.com/keys
+# The hetzner-deploy.yml workflow auto-injects this from GitHub Secrets.
+DEEPINFRA_API_KEY=CHANGEME_get_free_key_at_deepinfra.com
+# Optional additional providers:
 # OPENAI_API_KEY=sk-...
 # ANTHROPIC_API_KEY=sk-ant-...
 # STRIPE_SECRET_KEY=sk_live_...
