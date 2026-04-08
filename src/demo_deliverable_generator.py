@@ -4236,33 +4236,30 @@ def generate_deliverable_with_progress(
     events: List[Dict[str, Any]] = []
 
     # --- Phase 1: Scenario Detection / MFGC Gate --------------------------
+    # Scenario detection provides *context* for the agents but never bypasses
+    # the full pipeline.  Every query runs MFGC → MSS → swarm.
     scenario_key = _detect_scenario(query)
-    is_predefined = scenario_key is not None and scenario_key in _SCENARIO_TEMPLATES
+    is_predefined = False  # Always run the full pipeline (FORGE-PIPELINE-003)
 
-    if is_predefined:
-        events.append({
-            "phase": 1,
-            "status": f"Matched predefined scenario: {scenario_key}",
-            "detail": "template",
-            "pipeline_stage": "scenario_match",
-        })
-    else:
-        # Actually run the MFGC gate and report the result
-        mfgc_result = _run_mfgc_gate(query)
-        mfgc_ok = mfgc_result.get("success", False)
-        mfgc_fallback = mfgc_result.get("fallback", True)
-        events.append({
-            "phase": 1,
-            "status": (
-                f"MFGC gate passed — confidence {mfgc_result.get('confidence', 0):.0%}"
-                if mfgc_ok
-                else "MFGC gate — onboard engine (adapter unavailable)"
-            ),
-            "detail": "mfgc",
-            "pipeline_stage": "mfgc",
-            "mfgc_ok": mfgc_ok,
-            "mfgc_fallback": mfgc_fallback,
-        })
+    mfgc_result = _run_mfgc_gate(query)
+    mfgc_ok = mfgc_result.get("success", False)
+    mfgc_fallback = mfgc_result.get("fallback", True)
+    phase1_status = (
+        f"MFGC gate passed — confidence {mfgc_result.get('confidence', 0):.0%}"
+        if mfgc_ok
+        else "MFGC gate — onboard engine (adapter unavailable)"
+    )
+    if scenario_key:
+        phase1_status += f" (scenario hint: {scenario_key})"
+    events.append({
+        "phase": 1,
+        "status": phase1_status,
+        "detail": "mfgc",
+        "pipeline_stage": "mfgc",
+        "mfgc_ok": mfgc_ok,
+        "mfgc_fallback": mfgc_fallback,
+        "scenario_hint": scenario_key,
+    })
 
     # --- Phase 2: Production Workflow Resolution  (label: FORGE-RESOLVE-001) ---
     # Search the registry for an existing production workflow that satisfies
@@ -4299,56 +4296,46 @@ def generate_deliverable_with_progress(
             "workflow_decision": "fallback",
         })
 
-    # --- Phase 3: MSS Pipeline / Template Expansion -------------------------
+    # --- Phase 3: MSS Pipeline + Agent Task Decomposition -------------------
     agent_tasks: List[Dict[str, str]] = []  # FORGE-SWARM-001: always initialised
-    if is_predefined:
-        events.append({
-            "phase": 3,
-            "status": "Expanding template with MSS enrichment",
-            "detail": "mss",
-            "pipeline_stage": "template_expand",
-        })
-        mss_result: Dict[str, Any] = {}
-        mfgc_result_for_gen: Dict[str, Any] = {}
-    else:
-        # Actually run MSS and report the result
-        mfgc_result_for_gen = mfgc_result  # type: ignore[possibly-undefined]
-        mss_result = _run_mss_pipeline(query, mfgc_result_for_gen)
-        mss_ok = not mss_result.get("fallback", True)
-        events.append({
-            "phase": 3,
-            "status": (
-                "MSS Magnify + Solidify — task decomposition complete"
-                if mss_ok
-                else "MSS — onboard pipeline (modules unavailable)"
-            ),
-            "detail": "mss",
-            "pipeline_stage": "mss",
-            "mss_ok": mss_ok,
-        })
+    # Always run MSS and decompose into agent tasks
+    mfgc_result_for_gen = mfgc_result
+    mss_result = _run_mss_pipeline(query, mfgc_result_for_gen)
+    mss_ok = not mss_result.get("fallback", True)
+    events.append({
+        "phase": 3,
+        "status": (
+            "MSS Magnify + Solidify — task decomposition complete"
+            if mss_ok
+            else "MSS — onboard pipeline (modules unavailable)"
+        ),
+        "detail": "mss",
+        "pipeline_stage": "mss",
+        "mss_ok": mss_ok,
+    })
 
-        # --- Agent task decomposition from MSS Magnify output ---------------
-        agent_tasks = _build_agent_task_list(query, mss_result, workflow=workflow)
-        if agent_tasks:
-            events.append({
-                "phase": 3,
-                "status": f"Decomposed into {len(agent_tasks)} parallel tasks",
-                "detail": "agent_tasks",
-                "agent_tasks": agent_tasks,
-            })
-        else:
-            # FORGE-SWARM-ERR-001: Log when decomposition produces zero tasks
-            logger.warning(
-                "Agent task decomposition returned 0 tasks for query: %s "
-                "(mss_ok=%s, workflow_steps=%d) — swarm will not activate",
-                query[:80], mss_ok, len(workflow.get("steps", [])),
-            )
-            events.append({
-                "phase": 3,
-                "status": "Task decomposition returned 0 tasks — single-agent fallback",
-                "detail": "agent_tasks_empty",
-                "pipeline_stage": "decomposition_fallback",
-            })
+    # --- Agent task decomposition from MSS Magnify output ---------------
+    agent_tasks = _build_agent_task_list(query, mss_result, workflow=workflow)
+    if agent_tasks:
+        events.append({
+            "phase": 3,
+            "status": f"Decomposed into {len(agent_tasks)} parallel tasks",
+            "detail": "agent_tasks",
+            "agent_tasks": agent_tasks,
+        })
+    else:
+        # FORGE-SWARM-ERR-001: Log when decomposition produces zero tasks
+        logger.warning(
+            "Agent task decomposition returned 0 tasks for query: %s "
+            "(mss_ok=%s, workflow_steps=%d) — swarm will not activate",
+            query[:80], mss_ok, len(workflow.get("steps", [])),
+        )
+        events.append({
+            "phase": 3,
+            "status": "Task decomposition returned 0 tasks — single-agent fallback",
+            "detail": "agent_tasks_empty",
+            "pipeline_stage": "decomposition_fallback",
+        })
 
     # --- Phase 4: Execute Workflow → Content Generation --------------------
     # FORGE-SWARM-001: When agent_tasks were decomposed, execute them as a
@@ -4359,7 +4346,7 @@ def generate_deliverable_with_progress(
     swarm_agent_count = 0
     deliverable: Dict[str, Any] = {}
 
-    if agent_tasks and not is_predefined:
+    if agent_tasks:
         # ── Swarm path: parallel agent execution ──────────────────────
         events.append({
             "phase": 4,
@@ -4479,9 +4466,9 @@ def generate_deliverable_with_progress(
                 "error_message": str(exc)[:200],
             })
 
-    # ── Single-agent fallback (predefined OR swarm not activated/failed) ──
+    # ── Single-agent fallback (swarm not activated/failed) ──
     if not swarm_executed:
-        if not is_predefined and not agent_tasks:
+        if not agent_tasks:
             # FORGE-SWARM-ERR-006: No tasks means no swarm — explain clearly
             logger.info(
                 "FORGE-SWARM-ERR-006: No agent tasks decomposed — "
@@ -4494,9 +4481,7 @@ def generate_deliverable_with_progress(
                 f"({len(workflow.get('steps', []))} steps)"
                 if workflow.get("steps")
                 else "Generating content — single-agent LLM pipeline"
-            )
-            if not is_predefined
-            else "Assembling branded deliverable",
+            ),
             "detail": "execute",
             "pipeline_stage": "workflow_execute",
         })
