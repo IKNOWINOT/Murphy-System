@@ -942,6 +942,49 @@ Schedule → Engine Select → Execute → External API → Result → Next Sche
  (Cron)    (5 Engines)     (Task)   (Integration)  (Store)  (Repeat)
 ```
 
+### Forge Deliverable Pipeline  (labels: WIRE-*)
+
+The Swarm Forge generates deliverables through a 5-phase enrichment pipeline.
+Each phase feeds forward; fallbacks ensure output even when modules are unavailable.
+
+```
+  ┌──────────────┐   ┌────────────────────┐   ┌───────────────────┐
+  │ Phase 1       │   │ Phase 2            │   │ Phase 3           │
+  │ MFGC Gate     │──▶│ Workflow Resolution│──▶│ MSS Pipeline      │
+  │ WIRE-MFGC-001 │   │ WIRE-WF-001        │   │ WIRE-MSS-001..004 │
+  └──────────────┘   └────────────────────┘   └────────┬──────────┘
+                                                        │
+                     ┌───────────────────┐              │
+                     │ Domain Expert     │──────────────┤ (concurrent)
+                     │ WIRE-EXPERT-001   │              │
+                     └───────────────────┘              │
+                                                        ▼
+  ┌────────────────────┐   ┌──────────────────────┐   ┌──────────────────┐
+  │ Phase 4            │   │ Librarian Lookup      │   │ Automation Spec  │
+  │ LLM Content Gen    │◀──│ WIRE-LIB-001          │   │ WIRE-SPEC-001    │
+  │ WIRE-LLM-001       │   └──────────────────────┘   └──────────────────┘
+  └────────┬───────────┘
+           │
+           ▼
+  ┌──────────────────────┐
+  │ Phase 5              │
+  │ HITL Review          │
+  │ FORGE-HITL-001       │
+  └──────────────────────┘
+```
+
+**Data surfaced per wire:**
+- **WIRE-MSS-001**: CQI, IQS, resolution level, risk indicators, simulation impact (cost/complexity/compliance/performance), engineering hours, regulatory implications
+- **WIRE-MSS-002**: Architecture mapping (components, data flows, control logic, validation methods)
+- **WIRE-MSS-003**: Module specification (name, purpose, dependencies, interfaces), existing module analysis
+- **WIRE-MSS-004**: Resolution progression (RM0 → RMn) for both Magnify and Solidify
+- **WIRE-MFGC-001**: Confidence score, Murphy Index, gate list, phases completed
+- **WIRE-LIB-001**: Librarian knowledge context (streaming + non-streaming endpoints)
+- **WIRE-LLM-001**: Full DeepInfra context window (131,072 tokens) for async methods
+- **WIRE-SPEC-001**: ROI/competitor automation specification in streaming pipeline
+- **WIRE-EXPERT-001**: Domain expert team, time/cost estimates, artifacts, collaboration map
+- **WIRE-WF-001**: Workflow steps as intentional descriptive metadata (not dynamic dispatch)
+
 ---
 
 ## Foundation-Layer Automation Wiring
