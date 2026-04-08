@@ -472,9 +472,10 @@ function _populateGridFromTasks(agentTasks){
   // Rebuild grid to match actual task count
   _buildGrid(agentTasks.length);
   var cols=['active','cyan','teal'];
+  var gridCols=Math.max(4,Math.ceil(Math.sqrt(agentTasks.length)));
   for(var i=0;i<agentTasks.length;i++){
     (function(idx,task){
-      var delay=(Math.floor(idx/8)+idx%8)*40+Math.random()*30;
+      var delay=(Math.floor(idx/gridCols)+idx%gridCols)*40+Math.random()*30;
       setTimeout(function(){
         var p=document.getElementById('fp-'+idx);
         if(!p)return;
