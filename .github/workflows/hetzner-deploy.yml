@@ -73,11 +73,12 @@ jobs:
             chmod 600 "$ENV_FILE"
             # Upsert DEEPINFRA_API_KEY — only if the secret is set
             if [ -n "${DEEPINFRA_API_KEY:-}" ]; then
-              if grep -q "^DEEPINFRA_API_KEY=" "$ENV_FILE" 2>/dev/null; then
-                sed -i "s|^DEEPINFRA_API_KEY=.*|DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY}|" "$ENV_FILE"
-              else
-                echo "DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY}" >> "$ENV_FILE"
-              fi
+              # Remove any existing DEEPINFRA_API_KEY line, then append the new value.
+              # This avoids sed delimiter issues with special characters in the key.
+              grep -v "^DEEPINFRA_API_KEY=" "$ENV_FILE" > "${ENV_FILE}.tmp" || true
+              printf 'DEEPINFRA_API_KEY=%s\n' "${DEEPINFRA_API_KEY}" >> "${ENV_FILE}.tmp"
+              mv "${ENV_FILE}.tmp" "$ENV_FILE"
+              chmod 600 "$ENV_FILE"
               # Switch provider to deepinfra when the key is present
               if grep -q "^MURPHY_LLM_PROVIDER=" "$ENV_FILE" 2>/dev/null; then
                 sed -i "s|^MURPHY_LLM_PROVIDER=.*|MURPHY_LLM_PROVIDER=deepinfra|" "$ENV_FILE"
