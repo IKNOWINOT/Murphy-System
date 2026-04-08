@@ -164,7 +164,7 @@ function _forgeFallbackDeliverable(query){
     '================================================================',
     '  Request : '+query,
     '  Generated: '+ts,
-    '  Agents   : 64 parallel workers',
+    '  Agents   : parallel workers',
     '  Status   : Client-side template (API offline)',
     '================================================================',
     ''
@@ -349,7 +349,7 @@ function _forgeFallbackDeliverable(query){
       '',
       'SCOPE ANALYSIS',
       '--------------',
-      '  Murphy System has analysed your request across 64 parallel agents.',
+      '  Murphy System has analysed your request across its parallel agent swarm.',
       '  The following plan was produced:',
       '',
       '  Phase 1 — Discovery',
@@ -398,11 +398,18 @@ function _setStatus(msg,cls){
   el.innerHTML='<span class="phase">'+msg+'</span>';
 }
 
-/* Build the 64-pane grid */
-function _buildGrid(){
+/* Default grid size — overridden by actual agent_tasks count */
+var _gridPaneCount=16;
+
+/* Build the grid with a dynamic number of panes */
+function _buildGrid(count){
+  _gridPaneCount=count||_gridPaneCount;
   var grid=document.getElementById('forge-grid');if(!grid)return;
   grid.innerHTML='';
-  for(var i=0;i<64;i++){
+  // Compute grid layout: aim for roughly square grid
+  var cols=Math.max(4,Math.ceil(Math.sqrt(_gridPaneCount)));
+  grid.style.gridTemplateColumns='repeat('+cols+', 1fr)';
+  for(var i=0;i<_gridPaneCount;i++){
     var p=document.createElement('div');
     p.className='forge-pane';
     p.id='fp-'+i;
@@ -462,8 +469,10 @@ function _escHtml(s){
 
 /* Populate grid panes from agent_tasks event (label: FORGE-GRID-001) */
 function _populateGridFromTasks(agentTasks){
+  // Rebuild grid to match actual task count
+  _buildGrid(agentTasks.length);
   var cols=['active','cyan','teal'];
-  for(var i=0;i<agentTasks.length&&i<64;i++){
+  for(var i=0;i<agentTasks.length;i++){
     (function(idx,task){
       var delay=(Math.floor(idx/8)+idx%8)*40+Math.random()*30;
       setTimeout(function(){
@@ -483,10 +492,12 @@ function _populateGridFromTasks(agentTasks){
 function _cascadePanesDefault(type,onDone){
   var cols=['active','cyan','teal'];
   var activated=0;
-  for(var i=0;i<64;i++){
+  var total=_gridPaneCount;
+  var gridCols=Math.max(4,Math.ceil(Math.sqrt(total)));
+  for(var i=0;i<total;i++){
     (function(idx){
       // Diagonal wave: delay proportional to row+col
-      var row=Math.floor(idx/8),col=idx%8;
+      var row=Math.floor(idx/gridCols),col=idx%gridCols;
       var delay=(row+col)*55+Math.random()*40;
       setTimeout(function(){
         var p=document.getElementById('fp-'+idx);if(!p)return;
@@ -506,7 +517,7 @@ function _cascadePanesDefault(type,onDone){
           },90+Math.random()*60);
         }
         activated++;
-        if(activated===64&&onDone)onDone();
+        if(activated===total&&onDone)onDone();
       },delay);
     })(i);
   }
@@ -736,7 +747,7 @@ function _gateCheck(query){
 /* Main forge run (label: FORGE-RUN-001)
  *
  * Shows the forge-workspace (grid + chat), streams SSE events from the
- * backend pipeline, populates the 64-box grid with real agent task
+ * backend pipeline, populates the dynamic grid with real agent task
  * decomposition, and fills the chat box with deliverable content.
  */
 function forgeRun(query){
@@ -783,10 +794,10 @@ function forgeRun(query){
   function finishBuild(){
     if(buildFinished)return;
     buildFinished=true;
-    // Inject real agent count from Phase 3 agent_tasks event into build metrics
+    // Always use real agent count from Phase 3 agent_tasks event
     if(_streamAgentCount>0){
       if(!apiBuildMetrics)apiBuildMetrics={};
-      if(!apiBuildMetrics.agent_count)apiBuildMetrics.agent_count=_streamAgentCount;
+      apiBuildMetrics.agent_count=_streamAgentCount;
     }
     var _elapsedMs=Date.now()-_forgeStartMs;
     _showResult(apiResult,apiUsed,apiForgeUsage,apiBuildMetrics,_elapsedMs);
