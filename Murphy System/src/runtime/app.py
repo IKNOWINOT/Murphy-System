@@ -13472,7 +13472,7 @@ def create_app() -> FastAPI:
 
     @app.get("/api/demo/forge-stream")
     async def demo_forge_stream(request: Request):
-        """SSE stream of 64-agent build progress for the Swarm Forge UI."""
+        """SSE stream of swarm build progress for the Swarm Forge UI."""
         from starlette.responses import StreamingResponse
         try:
             from src.forge_stream import forge_stream_generator
