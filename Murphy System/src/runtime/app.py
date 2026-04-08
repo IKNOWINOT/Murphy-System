@@ -13316,6 +13316,144 @@ def create_app() -> FastAPI:
 
         return JSONResponse(response_body)
 
+    @app.post("/api/demo/generate-deliverable/stream")
+    async def demo_generate_deliverable_stream(request: Request):
+        """SSE streaming endpoint for the Swarm Forge.
+
+        Yields real-time progress events as the MFGC → MSS → LLM pipeline
+        runs, then emits the final ``done`` event with the complete
+        deliverable and metrics.  The frontend drives its phase status
+        messages from these events instead of hardcoded timers.
+
+        Event format (one JSON object per ``data:`` line)::
+
+            {"phase": 1, "status": "MFGC gate ...",   "detail": "mfgc"}
+            {"phase": 2, "status": "Workflow ...",     "detail": "workflow_resolution"}
+            {"phase": 3, "status": "MSS ...",          "detail": "mss"}
+            {"phase": "done", "deliverable": {...}, "metrics": {...}, ...}
+        """
+        from starlette.responses import StreamingResponse
+        import asyncio
+
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse(
+                {"success": False, "error": "Invalid JSON"}, status_code=400,
+            )
+
+        query = (body.get("query") or "").strip()
+        if not query:
+            return JSONResponse(
+                {"success": False, "error": "Query is required"}, status_code=400,
+            )
+
+        # ── Usage / rate-limit check ────────────────────────────────────
+        account = _get_account_from_session(request)
+        usage_result: dict = {}
+        if _sub_manager is not None:
+            if account:
+                usage_result = _sub_manager.record_usage(account["account_id"])
+            else:
+                try:
+                    from src.demo_deliverable_generator import make_fingerprint
+                    ip = request.client.host if request.client else "unknown"
+                    ua = request.headers.get("user-agent", "")
+                    fp = make_fingerprint(ip, ua)
+                except Exception:
+                    import hashlib
+                    ip = request.client.host if request.client else "unknown"
+                    fp = hashlib.sha256(ip.encode()).hexdigest()[:32]
+                usage_result = _sub_manager.record_anon_usage(fp)
+        else:
+            usage_result = {"allowed": True, "used": 1, "limit": 5, "remaining": 4, "tier": "anonymous"}
+
+        if not usage_result.get("allowed", True):
+            return JSONResponse(
+                {
+                    "success": False,
+                    "error": "Daily build limit reached. Sign up for more builds.",
+                    "forge_usage": {
+                        "builds_used_today": usage_result.get("used", 0),
+                        "builds_remaining_today": 0,
+                        "limit": usage_result.get("limit", 5),
+                        "tier": usage_result.get("tier", "anonymous"),
+                    },
+                },
+                status_code=429,
+            )
+
+        # ── Pipeline import ─────────────────────────────────────────────
+        try:
+            from src.demo_deliverable_generator import generate_deliverable_with_progress
+        except ImportError:
+            return JSONResponse(
+                {"error": "Demo generator not available", "detail": "Server import failed"},
+                status_code=503,
+            )
+
+        run_id = uuid4().hex[:12]
+
+        async def _event_gen():
+            """Async generator yielding SSE events."""
+            try:
+                progress = await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    generate_deliverable_with_progress,
+                    query,
+                )
+            except Exception as exc:
+                logger.warning("Streaming forge generator failed: %s — using fallback", exc)
+                # Emit synthetic progress + a server-side fallback deliverable
+                yield f"data: {json.dumps({'phase': 1, 'status': 'Analyzing scope...', 'detail': 'mfgc'})}\n\n"
+                yield f"data: {json.dumps({'phase': 2, 'status': 'Searching workflows...', 'detail': 'workflow_resolution'})}\n\n"
+                yield f"data: {json.dumps({'phase': 3, 'status': 'Generating content (fallback)...', 'detail': 'mss'})}\n\n"
+                try:
+                    from src.demo_deliverable_generator import generate_deliverable
+                    fb = generate_deliverable(query)
+                except Exception:
+                    fb = {"title": f"Deliverable: {query[:50]}", "content": "", "filename": "murphy-deliverable.txt"}
+                fb_content = fb.get("content", "")
+                done_event = {
+                    "phase": "done",
+                    "status": "Build complete — deliverable ready (fallback)",
+                    "deliverable": fb,
+                    "metrics": {
+                        "word_count": len(fb_content.split()) if fb_content else 0,
+                        "line_count": fb_content.count("\n") + 1 if fb_content else 0,
+                        "size_kb": round(len(fb_content) / 1024, 1) if fb_content else 0,
+                        "scenario": "fallback",
+                    },
+                    "run_id": run_id,
+                    "llm_provider": "murphy-demo",
+                }
+                yield f"data: {json.dumps(done_event)}\n\n"
+                return
+
+            for event in progress:
+                if event.get("phase") == "done":
+                    # Ensure deliverable content is present
+                    deliverable = event.get("deliverable") or {}
+                    if not deliverable.get("content"):
+                        logger.warning("Streaming generator returned empty content — substituting fallback")
+                        try:
+                            from src.demo_deliverable_generator import generate_deliverable
+                            event["deliverable"] = generate_deliverable(query)
+                        except Exception:
+                            pass
+                    event["run_id"] = run_id
+                    event["llm_provider"] = "murphy-demo"
+                try:
+                    yield f"data: {json.dumps(event)}\n\n"
+                except (TypeError, ValueError):
+                    pass
+
+        return StreamingResponse(
+            _event_gen(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+
     @app.get("/api/demo/spec/{spec_id}")
     async def get_demo_spec(spec_id: str):
         """Retrieve a generated automation spec by spec_id; returns a synthetic stub when not found."""
