@@ -4019,16 +4019,38 @@ async def api_demo_generate_deliverable_stream(request: Request):
     run_id = uuid.uuid4().hex[:12]
     metrics = BuildMetrics(query)
 
+    # WIRE-LIB-001: Librarian lookup for streaming endpoint — same
+    # enrichment that the non-streaming path gets in app.py.
+    _librarian_context: str = ""
+    try:
+        from src.runtime.murphy_system_core import MurphySystem as _MS
+        _lib_result = _MS().librarian_ask(query, mode="ask")
+        _librarian_context = (
+            _lib_result.get("reply_text")
+            or _lib_result.get("response")
+            or _lib_result.get("message")
+            or ""
+        )
+        if _librarian_context:
+            _librarian_context = _librarian_context[:1500]
+    except Exception as _lib_exc:
+        log.debug("Librarian lookup skipped (streaming): %s", _lib_exc)
+
     async def _event_gen():
         """Async generator that yields SSE events."""
         import asyncio
+        import functools
         metrics.start_build()
 
         try:
-            progress = await asyncio.get_event_loop().run_in_executor(
-                None,
+            _gen_fn = functools.partial(
                 _generate_demo_deliverable_with_progress,
                 query,
+                librarian_context=_librarian_context or None,
+            )
+            progress = await asyncio.get_event_loop().run_in_executor(
+                None,
+                _gen_fn,
             )
         except Exception as exc:
             log.warning("Streaming forge generator failed: %s — using server-side fallback", exc)
