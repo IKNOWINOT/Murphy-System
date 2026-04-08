@@ -164,7 +164,7 @@ function _forgeFallbackDeliverable(query){
     '================================================================',
     '  Request : '+query,
     '  Generated: '+ts,
-    '  Agents   : 64 parallel workers',
+    '  Agents   : parallel workers',
     '  Status   : Client-side template (API offline)',
     '================================================================',
     ''
@@ -349,7 +349,7 @@ function _forgeFallbackDeliverable(query){
       '',
       'SCOPE ANALYSIS',
       '--------------',
-      '  Murphy System has analysed your request across 64 parallel agents.',
+      '  Murphy System has analysed your request across its parallel agent swarm.',
       '  The following plan was produced:',
       '',
       '  Phase 1 — Discovery',
@@ -398,11 +398,18 @@ function _setStatus(msg,cls){
   el.innerHTML='<span class="phase">'+msg+'</span>';
 }
 
-/* Build the 64-pane grid */
-function _buildGrid(){
+/* Default grid size — overridden by actual agent_tasks count */
+var _gridPaneCount=16;
+
+/* Build the grid with a dynamic number of panes */
+function _buildGrid(count){
+  _gridPaneCount=count||_gridPaneCount;
   var grid=document.getElementById('forge-grid');if(!grid)return;
   grid.innerHTML='';
-  for(var i=0;i<64;i++){
+  // Compute grid layout: aim for roughly square grid
+  var cols=Math.max(4,Math.ceil(Math.sqrt(_gridPaneCount)));
+  grid.style.gridTemplateColumns='repeat('+cols+', 1fr)';
+  for(var i=0;i<_gridPaneCount;i++){
     var p=document.createElement('div');
     p.className='forge-pane';
     p.id='fp-'+i;
@@ -462,10 +469,13 @@ function _escHtml(s){
 
 /* Populate grid panes from agent_tasks event (label: FORGE-GRID-001) */
 function _populateGridFromTasks(agentTasks){
+  // Rebuild grid to match actual task count
+  _buildGrid(agentTasks.length);
   var cols=['active','cyan','teal'];
-  for(var i=0;i<agentTasks.length&&i<64;i++){
+  var gridCols=Math.max(4,Math.ceil(Math.sqrt(agentTasks.length)));
+  for(var i=0;i<agentTasks.length;i++){
     (function(idx,task){
-      var delay=(Math.floor(idx/8)+idx%8)*40+Math.random()*30;
+      var delay=(Math.floor(idx/gridCols)+idx%gridCols)*40+Math.random()*30;
       setTimeout(function(){
         var p=document.getElementById('fp-'+idx);
         if(!p)return;
@@ -483,10 +493,12 @@ function _populateGridFromTasks(agentTasks){
 function _cascadePanesDefault(type,onDone){
   var cols=['active','cyan','teal'];
   var activated=0;
-  for(var i=0;i<64;i++){
+  var total=_gridPaneCount;
+  var gridCols=Math.max(4,Math.ceil(Math.sqrt(total)));
+  for(var i=0;i<total;i++){
     (function(idx){
       // Diagonal wave: delay proportional to row+col
-      var row=Math.floor(idx/8),col=idx%8;
+      var row=Math.floor(idx/gridCols),col=idx%gridCols;
       var delay=(row+col)*55+Math.random()*40;
       setTimeout(function(){
         var p=document.getElementById('fp-'+idx);if(!p)return;
@@ -506,7 +518,7 @@ function _cascadePanesDefault(type,onDone){
           },90+Math.random()*60);
         }
         activated++;
-        if(activated===64&&onDone)onDone();
+        if(activated===total&&onDone)onDone();
       },delay);
     })(i);
   }
@@ -590,11 +602,26 @@ function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics,clientElaps
   if(buildMetrics&&buildMetrics.line_count)lineCount=buildMetrics.line_count;
   if(buildMetrics&&buildMetrics.size_kb)sizeKb=Math.round(buildMetrics.size_kb);
 
+  // Human-time estimate from backend (predicted_human_hours) or client fallback
+  var humanHours=(buildMetrics&&buildMetrics.predicted_human_hours)?buildMetrics.predicted_human_hours:0;
+  if(!humanHours){
+    var queryWords=(_forgeQuery||'').split(/\s+/).filter(function(w){return w.length>0;}).length;
+    humanHours=2.0+Math.min(queryWords/50,6.0);
+  }
+  // Format human time as a concrete estimate
+  var humanTimeLabel='';
+  if(humanHours>=8){
+    var days=Math.round(humanHours/8*10)/10; // 8h work-days
+    humanTimeLabel=days+(days===1?' work-day':' work-days');
+  }else if(humanHours>=1){
+    var h=Math.round(humanHours*10)/10;
+    humanTimeLabel=h+(h===1?' hour':' hours');
+  }else{
+    humanTimeLabel=Math.round(humanHours*60)+' minutes';
+  }
   var roiMultiple=(buildMetrics&&buildMetrics.roi_multiple)?buildMetrics.roi_multiple:0;
   if(!roiMultiple&&buildTimeSec>0){
-    var queryWords=(_forgeQuery||'').split(/\s+/).length;
-    var estHumanHours=2.0+Math.min(queryWords/50,6.0);
-    var estHumanCost=estHumanHours*75;
+    var estHumanCost=humanHours*75;
     roiMultiple=Math.round(estHumanCost/0.06);
   }
   var roiText=roiMultiple>0?('ROI: '+roiMultiple+'x'):'ROI: immediate';
@@ -633,7 +660,7 @@ function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics,clientElaps
     '<div class="forge-stat"><span class="forge-stat-val">'+lineCount.toLocaleString()+'</span><span class="forge-stat-lbl">Lines</span></div>'+
     '<div class="forge-stat"><span class="forge-stat-val">'+sizeKb+'KB</span><span class="forge-stat-lbl">Size</span></div>';
   var roiAgentLabel=(typeof agentCount==='number')?(agentCount+' agents'):'agents';
-  roiEl.innerHTML='<strong>'+roiAgentLabel+' \u00d7 '+buildTime+'</strong> = what would take a team of developers <strong>days or weeks</strong> to produce manually. <strong>'+roiText+'</strong>';
+  roiEl.innerHTML='<strong>'+roiAgentLabel+' completed in '+buildTime+'</strong> &mdash; estimated <strong>'+humanTimeLabel+'</strong> for a human team. <strong>'+roiText+'</strong>';
 
   // Usage counter — Gap 1 (FORGE-RESULT-001): show remaining builds + reset_at
   if(forgeUsage&&usageEl){
@@ -736,7 +763,7 @@ function _gateCheck(query){
 /* Main forge run (label: FORGE-RUN-001)
  *
  * Shows the forge-workspace (grid + chat), streams SSE events from the
- * backend pipeline, populates the 64-box grid with real agent task
+ * backend pipeline, populates the dynamic grid with real agent task
  * decomposition, and fills the chat box with deliverable content.
  */
 function forgeRun(query){
@@ -783,10 +810,10 @@ function forgeRun(query){
   function finishBuild(){
     if(buildFinished)return;
     buildFinished=true;
-    // Inject real agent count from Phase 3 agent_tasks event into build metrics
+    // Always use real agent count from Phase 3 agent_tasks event
     if(_streamAgentCount>0){
       if(!apiBuildMetrics)apiBuildMetrics={};
-      if(!apiBuildMetrics.agent_count)apiBuildMetrics.agent_count=_streamAgentCount;
+      apiBuildMetrics.agent_count=_streamAgentCount;
     }
     var _elapsedMs=Date.now()-_forgeStartMs;
     _showResult(apiResult,apiUsed,apiForgeUsage,apiBuildMetrics,_elapsedMs);

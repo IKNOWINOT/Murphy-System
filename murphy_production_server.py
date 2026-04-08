@@ -37,6 +37,22 @@ from typing import Any, Dict, List, Optional
 ROOT = Path(__file__).resolve().parent / "Murphy System"
 sys.path.insert(0, str(ROOT))
 
+# -- Load .env so DEEPINFRA_API_KEY (and other secrets) are available even when
+#    the server is started outside of the systemd EnvironmentFile path.
+try:
+    from dotenv import load_dotenv as _load_dotenv
+    _env_loaded = False
+    for _env_candidate in (
+        Path(__file__).resolve().parent / ".env",
+        ROOT / ".env",
+    ):
+        if _env_candidate.is_file():
+            _load_dotenv(_env_candidate, override=False)
+            _env_loaded = True
+            break
+except ImportError:
+    _env_loaded = False  # python-dotenv not installed — rely on OS env vars
+
 from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
@@ -47,6 +63,13 @@ from starlette.middleware.base import BaseHTTPMiddleware
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s  %(name)s  %(levelname)s  %(message)s")
 log = logging.getLogger("murphy.prod")
+
+# Report .env loading status so DeepInfra key issues are easy to diagnose.
+if _env_loaded:
+    _di_set = "set" if os.getenv("DEEPINFRA_API_KEY", "") else "NOT set"
+    log.info(".env loaded — DEEPINFRA_API_KEY is %s", _di_set)
+else:
+    log.info("No .env file found — relying on OS environment variables")
 
 # SEC-LOG-001: Wire log sanitizer so secrets/PII are scrubbed before emission.
 try:
@@ -3728,6 +3751,7 @@ class BuildMetrics:
             "total_actual_cost_usd": self.total_actual_cost,
             "predicted_human_hours": self.predicted_human_hours,
             "predicted_human_cost_usd": self.predicted_human_cost,
+            "predicted_calendar_days": self.predicted_calendar_days,
             "cost_savings_usd": self.cost_savings,
             "roi_multiple": self.roi_multiple,
         }
