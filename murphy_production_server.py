@@ -41,15 +41,17 @@ sys.path.insert(0, str(ROOT))
 #    the server is started outside of the systemd EnvironmentFile path.
 try:
     from dotenv import load_dotenv as _load_dotenv
+    _env_loaded = False
     for _env_candidate in (
         Path(__file__).resolve().parent / ".env",
         ROOT / ".env",
     ):
         if _env_candidate.is_file():
             _load_dotenv(_env_candidate, override=False)
+            _env_loaded = True
             break
 except ImportError:
-    pass  # python-dotenv not installed — rely on OS env vars
+    _env_loaded = False  # python-dotenv not installed — rely on OS env vars
 
 from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -61,6 +63,13 @@ from starlette.middleware.base import BaseHTTPMiddleware
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s  %(name)s  %(levelname)s  %(message)s")
 log = logging.getLogger("murphy.prod")
+
+# Report .env loading status so DeepInfra key issues are easy to diagnose.
+if _env_loaded:
+    _di_set = "set" if os.getenv("DEEPINFRA_API_KEY", "") else "NOT set"
+    log.info(".env loaded — DEEPINFRA_API_KEY is %s", _di_set)
+else:
+    log.info("No .env file found — relying on OS environment variables")
 
 # SEC-LOG-001: Wire log sanitizer so secrets/PII are scrubbed before emission.
 try:
