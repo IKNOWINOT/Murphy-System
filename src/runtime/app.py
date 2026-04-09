@@ -916,7 +916,7 @@ def create_app() -> FastAPI:
     # ── Communication Hub (IM, Voice, Video, Email, Moderator) ───────
     try:
         from src.comms_hub_routes import create_comms_hub_router
-        _comms_hub_router = create_comms_hub_router()
+        _comms_hub_router = create_comms_hub_router(account_resolver=_get_account_from_session)
         app.include_router(_comms_hub_router)
         logger.info(
             "Communication Hub API registered at /api/comms/* and /api/moderator/*"
@@ -1224,7 +1224,7 @@ def create_app() -> FastAPI:
             checks["modules_loaded"] = 0
 
         checks["version"] = murphy.version
-        checks["deploy_commit"] = os.environ.get("MURPHY_DEPLOY_COMMIT", "unknown")
+        checks["deploy_commit"] = (os.environ.get("MURPHY_DEPLOY_COMMIT") or __import__("subprocess").run(["git","-C","/opt/Murphy-System","rev-parse","--short","HEAD"],capture_output=True,text=True,timeout=3).stdout.strip() or "unknown")
 
         # Determine overall status
         str_checks = [v for v in checks.values() if isinstance(v, str)]
@@ -5549,7 +5549,7 @@ def create_app() -> FastAPI:
         Returns: {success, task, id}
         Commissioned: PATCH-005 / 2026-04-09
         """
-        _session = _get_session(request)
+        _session = _get_account_from_session(request)
         if not _session:
             return JSONResponse(
                 {"success": False, "error": {"code": "UNAUTHORIZED", "message": "Authentication required"}},
