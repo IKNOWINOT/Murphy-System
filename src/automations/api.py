@@ -66,9 +66,25 @@ def create_automations_router(
     @router.post("/rules")
     async def create_rule(req: CreateRuleRequest):
         try:
-            tt = TriggerType(req.trigger_type)
+            # PATCH-009b: normalize common trigger aliases to valid TriggerType values
+            _TRIGGER_ALIASES = {
+                "on_task_create": "item_created", "task_created": "item_created",
+                "on_item_create": "item_created", "item_create": "item_created",
+                "on_status_change": "status_change",
+                "on_column_change": "column_change",
+                "on_date_arrived": "date_arrived",
+                "on_person_assigned": "person_assigned",
+                "on_form_submit": "form_submitted", "form_submit": "form_submitted",
+                "on_schedule": "schedule", "cron": "schedule",
+                "on_webhook": "webhook",
+                "on_period_elapsed": "period_elapsed",
+                "notify": "item_created",
+            }
+            _raw_trigger = req.trigger_type or req.trigger or "item_created"
+            _resolved = _TRIGGER_ALIASES.get(_raw_trigger, _raw_trigger)
+            tt = TriggerType(_resolved)
         except ValueError:
-            raise HTTPException(400, f"Invalid trigger type: {req.trigger_type!r}")
+            raise HTTPException(400, f"Invalid trigger type: {repr(req.trigger_type or req.trigger)}")
 
         from .models import ActionType, AutomationAction, Condition, ConditionOperator
         conditions = []
@@ -126,9 +142,25 @@ def create_automations_router(
     @router.post("/trigger")
     async def fire_trigger(req: FireTriggerRequest):
         try:
-            tt = TriggerType(req.trigger_type)
+            # PATCH-009b: normalize common trigger aliases to valid TriggerType values
+            _TRIGGER_ALIASES = {
+                "on_task_create": "item_created", "task_created": "item_created",
+                "on_item_create": "item_created", "item_create": "item_created",
+                "on_status_change": "status_change",
+                "on_column_change": "column_change",
+                "on_date_arrived": "date_arrived",
+                "on_person_assigned": "person_assigned",
+                "on_form_submit": "form_submitted", "form_submit": "form_submitted",
+                "on_schedule": "schedule", "cron": "schedule",
+                "on_webhook": "webhook",
+                "on_period_elapsed": "period_elapsed",
+                "notify": "item_created",
+            }
+            _raw_trigger = req.trigger_type or req.trigger or "item_created"
+            _resolved = _TRIGGER_ALIASES.get(_raw_trigger, _raw_trigger)
+            tt = TriggerType(_resolved)
         except ValueError:
-            raise HTTPException(400, f"Invalid trigger type: {req.trigger_type!r}")
+            raise HTTPException(400, f"Invalid trigger type: {repr(req.trigger_type or req.trigger)}")
         results = engine.fire_trigger(req.board_id, tt, req.context)
         return JSONResponse({"triggered": len(results), "results": results})
 
