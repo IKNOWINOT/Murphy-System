@@ -51,6 +51,11 @@ TOGETHER_CODE_MODEL    = "Qwen/Qwen2.5-Coder-32B-Instruct"
 # Output is not artificially capped — the LLM produces whatever the request
 # requires.  Callers may pass a lower max_tokens for smaller tasks.
 DEEPINFRA_MODEL_CONTEXT = 131072
+# Provider-specific timeouts (PATCH-013e)
+DEEPINFRA_TIMEOUT = float(os.getenv("DEEPINFRA_TIMEOUT", "30"))
+TOGETHER_TIMEOUT  = float(os.getenv("TOGETHER_TIMEOUT",  "30"))
+OLLAMA_TIMEOUT    = float(os.getenv("OLLAMA_TIMEOUT",   "120"))
+
 
 # ---------------------------------------------------------------------------
 # Circuit breaker
@@ -202,8 +207,9 @@ class MurphyLLMProvider:
         messages:  List[Dict[str, str]],
         temperature: float = 0.7,
         max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,
+        req_timeout: float = None,
     ) -> Dict[str, Any]:
-        """POST to an OpenAI-compatible chat completions endpoint."""
+        """POST to an OpenAI-compatible chat completions endpoint. PATCH-013f: per-provider timeout."""
         resp = requests.post(
             f"{base_url}/chat/completions",
             json={
@@ -216,7 +222,7 @@ class MurphyLLMProvider:
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type":  "application/json",
             },
-            timeout=self.timeout,
+            timeout=(req_timeout if req_timeout is not None else self.timeout),
         )
         resp.raise_for_status()
         return resp.json()
@@ -282,6 +288,7 @@ class MurphyLLMProvider:
                 data = self._post_openai_compat(
                     DEEPINFRA_BASE_URL, self.deepinfra_api_key,
                     model, messages, temperature, max_tokens,
+                    req_timeout=DEEPINFRA_TIMEOUT,
                 )
                 elapsed = time.monotonic() - start
                 self._di_circuit.record_success()
@@ -309,6 +316,7 @@ class MurphyLLMProvider:
                 data = self._post_openai_compat(
                     TOGETHER_BASE_URL, self.together_api_key,
                     model, messages, temperature, max_tokens,
+                    req_timeout=TOGETHER_TIMEOUT,
                 )
                 elapsed = time.monotonic() - start
                 self._tog_circuit.record_success()
@@ -331,23 +339,37 @@ class MurphyLLMProvider:
         # ── 3. Onboard fallback ────────────────────────────────────────
         return self._onboard_fallback(messages, request_id)
 
-    def _onboard_fallback(
-        self,
-        messages:   List[Dict[str, str]],
-        request_id: str,
-    ) -> LLMCompletion:
-        """Local deterministic fallback when all API providers are down."""
-        user_msg = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
-        preview  = user_msg[:120]
-        content  = (
-            f"[Murphy Onboard] API providers unavailable. "
-            f"Request acknowledged: {preview}"
-        )
-        logger.warning("Using onboard fallback for request %s", request_id)
-        return LLMCompletion(
-            content=content, model="murphy-onboard", provider="onboard",
-            request_id=request_id, success=True,
-        )
+    def _onboard_fallback(self, messages, request_id):
+        # PATCH-013e: Real Ollama phi3 inference instead of stub
+        import urllib.request as _ur, json as _j, time as _t
+        host = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
+        model = os.getenv("OLLAMA_MODEL", "phi3")
+        parts = []
+        for m in messages:
+            r, c = m.get("role","user"), m.get("content","")
+            if r == "system":   parts.append("[System] " + c)
+            elif r == "user":   parts.append("[User] " + c)
+            elif r == "assistant": parts.append("[Asst] " + c)
+        prompt = "\n".join(parts)
+        start = _t.monotonic()
+        try:
+            payload = _j.dumps({"model":model,"prompt":prompt,"stream":False,
+                                 "options":{"num_predict":2048,"temperature":0.7}}).encode()
+            req = _ur.Request(host+"/api/generate", data=payload,
+                              headers={"Content-Type":"application/json"}, method="POST")
+            with _ur.urlopen(req, timeout=OLLAMA_TIMEOUT) as resp:
+                data = _j.loads(resp.read().decode())
+                content = data.get("response","").strip()
+                elapsed = _t.monotonic() - start
+                if content:
+                    logger.info("Ollama phi3 OK %.2fs", elapsed)
+                    return LLMCompletion(content=content, model=model,
+                                         provider="onboard", latency_seconds=elapsed,
+                                         request_id=request_id, success=True)
+        except Exception as exc:
+            logger.warning("Ollama fallback failed %.2fs: %s", _t.monotonic()-start, exc)
+        return LLMCompletion(content="", model="none", provider="onboard",
+                              request_id=request_id, success=False)
 
     # ------------------------------------------------------------------
     # Async completion (primary public API for async code)
