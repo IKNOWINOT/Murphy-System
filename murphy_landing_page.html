@@ -832,7 +832,7 @@ function demoMatch(q) {
           if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '\u26a1 Sign Up Free \u2014 Get 10 Daily Builds'; }
         } else {
           var rawErr = (res.data && res.data.error);
-          var msg = (typeof rawErr === 'string' ? rawErr : (rawErr && rawErr.message) || 'Registration failed. Please try again.');
+          var msg = (typeof rawErr === 'string' ? rawErr : (rawErr && rawErr.message ? rawErr.message : 'Registration failed. Please try again.'));
           if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
           if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '\u26a1 Sign Up Free \u2014 Get 10 Daily Builds'; }
         }
