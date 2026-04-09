@@ -39,7 +39,7 @@ def _check_ollama_available(base_url: str = None) -> bool:
         with urllib.request.urlopen(req, timeout=2) as resp:
             return resp.status == 200
     except Exception as exc:
-        logger.debug("Suppressed exception: %s", exc)
+        logger.warning("SUPPRESSED EXCEPTION (audit): %s", exc)
         return False
 
 
@@ -57,7 +57,7 @@ def _ollama_list_models(base_url: str = None) -> List[str]:
             # OLLAMA_MODEL (which users set without a tag) work correctly.
             return [m.get("name", "").split(":")[0] for m in data.get("models", [])]
     except Exception as exc:
-        logger.debug("Suppressed exception listing Ollama models: %s", exc)
+        logger.warning("SUPPRESSED EXCEPTION (audit) listing Ollama models: %s", exc)
         return []
 
 
@@ -89,7 +89,7 @@ def _query_ollama(
             data = _json.loads(resp.read().decode("utf-8"))
             return data.get("response", "")
     except Exception as exc:
-        logger.debug("Suppressed exception: %s", exc)
+        logger.warning("SUPPRESSED EXCEPTION (audit): %s", exc)
         return None
 
 
@@ -128,7 +128,7 @@ def _ollama_list_models_full(base_url: str = None) -> List[Dict[str, Any]]:
             data = _json.loads(resp.read().decode("utf-8"))
             return data.get("models", [])
     except Exception as exc:
-        logger.debug("Suppressed exception listing Ollama models (full): %s", exc)
+        logger.warning("SUPPRESSED EXCEPTION (audit) listing Ollama models (full): %s", exc)
         return []
 
 
@@ -182,7 +182,7 @@ def _ollama_delete_model(model: str, base_url: str = None) -> Dict[str, Any]:
             resp.read()
             return {"success": True}
     except Exception as exc:
-        logger.debug("Suppressed exception deleting Ollama model %s: %s", model, exc)
+        logger.warning("SUPPRESSED EXCEPTION (audit) deleting Ollama model %s: %s", model, exc)
         return {"success": False, "error": str(exc)}
 
 

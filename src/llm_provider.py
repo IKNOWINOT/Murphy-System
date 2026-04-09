@@ -306,7 +306,7 @@ class MurphyLLMProvider:
             except Exception as exc:
                 elapsed = time.monotonic() - start
                 self._di_circuit.record_failure()
-                logger.warning("DeepInfra ⚠️  %.2fs | %s | falling back to Together.ai", elapsed, exc)
+                logger.error("DeepInfra FAILED %.2fs | exc=%r | type=%s | falling back to Together.ai", elapsed, str(exc), type(exc).__name__)
 
         # ── 2. Together.ai (fallback) ─────────────────────────────────
         if self.together_api_key and self._tog_circuit.allow_request():
@@ -334,7 +334,7 @@ class MurphyLLMProvider:
             except Exception as exc:
                 elapsed = time.monotonic() - start
                 self._tog_circuit.record_failure()
-                logger.warning("Together.ai ⚠️  %.2fs | %s | falling back to onboard", elapsed, exc)
+                logger.error("Together.ai FAILED %.2fs | exc=%r | type=%s | falling back to Ollama", elapsed, str(exc), type(exc).__name__)
 
         # ── 3. Onboard fallback ────────────────────────────────────────
         return self._onboard_fallback(messages, request_id)
@@ -353,8 +353,10 @@ class MurphyLLMProvider:
         prompt = "\n".join(parts)
         start = _t.monotonic()
         try:
+            # PATCH-013h: truncate prompt to keep phi3 fast
+            prompt = prompt[:2000] if len(prompt) > 2000 else prompt
             payload = _j.dumps({"model":model,"prompt":prompt,"stream":False,
-                                 "options":{"num_predict":2048,"temperature":0.7}}).encode()
+                                 "options":{"num_predict":800  # PATCH-013h: keep phi3 calls concise,"temperature":0.7}}).encode()
             req = _ur.Request(host+"/api/generate", data=payload,
                               headers={"Content-Type":"application/json"}, method="POST")
             with _ur.urlopen(req, timeout=OLLAMA_TIMEOUT) as resp:
@@ -362,12 +364,14 @@ class MurphyLLMProvider:
                 content = data.get("response","").strip()
                 elapsed = _t.monotonic() - start
                 if content:
-                    logger.info("Ollama phi3 OK %.2fs", elapsed)
+                    logger.info("Ollama phi3 OK %.2fs | chars=%d | model=%s", elapsed, len(content), model)
                     return LLMCompletion(content=content, model=model,
                                          provider="onboard", latency_seconds=elapsed,
                                          request_id=request_id, success=True)
+                else:
+                    logger.error("Ollama phi3 returned EMPTY response %.2fs | model=%s", elapsed, model)
         except Exception as exc:
-            logger.warning("Ollama fallback failed %.2fs: %s", _t.monotonic()-start, exc)
+            logger.error("Ollama phi3 FAILED %.2fs | exc=%r | type=%s | ALL LLM PROVIDERS EXHAUSTED", _t.monotonic()-start, str(exc), type(exc).__name__)
         return LLMCompletion(content="", model="none", provider="onboard",
                               request_id=request_id, success=False)
 
@@ -449,7 +453,7 @@ class MurphyLLMProvider:
                 except Exception as exc:
                     elapsed = time.monotonic() - start
                     self._di_circuit.record_failure()
-                    logger.warning("DeepInfra async ⚠️  %.2fs | %s | trying Together.ai", elapsed, exc)
+                    logger.error("DeepInfra async FAILED %.2fs | exc=%r | type=%s", elapsed, str(exc), type(exc).__name__, exc_info=True)
 
         # ── 2. Together.ai async fallback ─────────────────────────────
         if self.together_api_key and self._tog_circuit.allow_request():
@@ -479,7 +483,7 @@ class MurphyLLMProvider:
                 except Exception as exc:
                     elapsed = time.monotonic() - start
                     self._tog_circuit.record_failure()
-                    logger.warning("Together.ai async ⚠️  %.2fs | %s | falling back to onboard", elapsed, exc)
+                    logger.error("Together.ai async FAILED %.2fs | exc=%r | type=%s", elapsed, str(exc), type(exc).__name__, exc_info=True)
 
         # ── 3. Onboard fallback ────────────────────────────────────────
         return self._onboard_fallback(messages, request_id)
