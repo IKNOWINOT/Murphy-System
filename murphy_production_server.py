@@ -3423,6 +3423,287 @@ if __name__ == "__main__":
     uvicorn.run("murphy_production_server:app", host="0.0.0.0", port=port,
                 reload=False, log_level="info")
 # =============================================================================
+# AUTH INFRASTRUCTURE — user store, password hashing, sessions, account seeding
+# =============================================================================
+import secrets as _secrets
+import threading as _auth_threading
+
+try:
+    import bcrypt as _bcrypt
+except ImportError:
+    _bcrypt = None
+    log.warning("bcrypt not installed — password hashing will use hashlib fallback (NOT production-safe)")
+
+_auth_lock = _auth_threading.Lock()
+# session_token → account_id
+_prod_sessions: Dict[str, str] = {}
+# account_id → user dict
+_prod_user_store: Dict[str, Dict[str, Any]] = {}
+# email → account_id
+_prod_email_to_account: Dict[str, str] = {}
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _prod_hash_password(password: str) -> str:
+    """Hash a password with bcrypt (mitigates CWE-916: weak password hash).
+
+    Falls back to PBKDF2-SHA256 with 600 000 iterations when bcrypt is not
+    installed — still OWASP-recommended, avoids plain SHA-256 risk.
+    """
+    if _bcrypt is not None:
+        return _bcrypt.hashpw(password.encode("utf-8"), _bcrypt.gensalt()).decode("utf-8")
+    # Secure fallback: PBKDF2-SHA256 (stdlib, no extra deps)
+    import hashlib as _hl
+    salt = _secrets.token_hex(16)
+    dk = _hl.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 600_000)
+    return f"pbkdf2:{salt}:{dk.hex()}"
+
+
+def _prod_verify_password(password: str, stored_hash: str) -> bool:
+    """Verify a password against a bcrypt or PBKDF2 hash."""
+    if not stored_hash:
+        return False
+    try:
+        if stored_hash.startswith("pbkdf2:"):
+            import hashlib as _hl
+            _, salt, expected = stored_hash.split(":", 2)
+            dk = _hl.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 600_000)
+            return dk.hex() == expected
+        if _bcrypt is not None:
+            return _bcrypt.checkpw(password.encode("utf-8"), stored_hash.encode("utf-8"))
+        return False
+    except Exception:
+        return False
+
+
+def _prod_create_session(account_id: str) -> str:
+    """Mint a session token and store the mapping."""
+    token = _secrets.token_urlsafe(32)
+    with _auth_lock:
+        _prod_sessions[token] = account_id
+    return token
+
+
+# ── Founder account seed ────────────────────────────────────────────────────
+_PROD_FOUNDER_EMAIL: str = os.environ.get("MURPHY_FOUNDER_EMAIL", "").strip().lower()
+_PROD_FOUNDER_PASSWORD: str = os.environ.get("MURPHY_FOUNDER_PASSWORD", "").strip()
+
+
+def _ensure_prod_founder_account() -> None:
+    """Create or promote the founder/owner account on startup."""
+    existing_id = _prod_email_to_account.get(_PROD_FOUNDER_EMAIL)
+    if existing_id:
+        _prod_user_store[existing_id]["role"] = "owner"
+        _prod_user_store[existing_id]["password_hash"] = _prod_hash_password(_PROD_FOUNDER_PASSWORD)
+        _prod_user_store[existing_id]["tier"] = "enterprise"
+        _prod_user_store[existing_id]["email_validated"] = True
+        return
+    founder_id = "founder-" + uuid.uuid4().hex[:16]
+    _prod_user_store[founder_id] = {
+        "account_id": founder_id,
+        "email": _PROD_FOUNDER_EMAIL,
+        "password_hash": _prod_hash_password(_PROD_FOUNDER_PASSWORD),
+        "full_name": os.environ.get("MURPHY_FOUNDER_NAME", ""),
+        "job_title": "Founder",
+        "company": "Inoni LLC",
+        "tier": "enterprise",
+        "email_validated": True,
+        "eula_accepted": True,
+        "role": "owner",
+        "created_at": _now_iso(),
+    }
+    _prod_email_to_account[_PROD_FOUNDER_EMAIL] = founder_id
+    log.info("Founder account seeded: %s (%s)", founder_id, _PROD_FOUNDER_EMAIL)
+
+
+if _PROD_FOUNDER_EMAIL and _PROD_FOUNDER_PASSWORD:
+    _ensure_prod_founder_account()
+
+
+# ── Team account seed ───────────────────────────────────────────────────────
+_PROD_TEAM_EMAILS_RAW: str = os.environ.get("MURPHY_TEAM_EMAILS", "").strip()
+_PROD_TEAM_PASSWORD: str = os.environ.get("MURPHY_TEAM_DEFAULT_PASSWORD", "").strip()
+
+
+def _seed_prod_team_accounts() -> None:
+    """Create team member accounts from MURPHY_TEAM_EMAILS env var."""
+    emails = [e.strip().lower() for e in _PROD_TEAM_EMAILS_RAW.split(",") if e.strip()]
+    seeded = 0
+    for email in emails:
+        if not email or "@" not in email:
+            continue
+        if email in _prod_email_to_account:
+            continue
+        account_id = "team-" + uuid.uuid4().hex[:16]
+        _prod_user_store[account_id] = {
+            "account_id": account_id,
+            "email": email,
+            "password_hash": _prod_hash_password(_PROD_TEAM_PASSWORD),
+            "full_name": "",
+            "job_title": "",
+            "company": "Inoni LLC",
+            "tier": "free",
+            "email_validated": True,
+            "eula_accepted": True,
+            "role": "user",
+            "created_at": _now_iso(),
+        }
+        _prod_email_to_account[email] = account_id
+        seeded += 1
+        log.info("Team account seeded: %s (%s)", account_id, email)
+    if seeded:
+        log.info("Seeded %d team account(s)", seeded)
+
+
+if _PROD_TEAM_EMAILS_RAW and _PROD_TEAM_PASSWORD:
+    _seed_prod_team_accounts()
+elif _PROD_TEAM_EMAILS_RAW and not _PROD_TEAM_PASSWORD:
+    log.warning("MURPHY_TEAM_EMAILS set but MURPHY_TEAM_DEFAULT_PASSWORD empty — team accounts NOT seeded")
+
+
+# =============================================================================
+# AUTH ENDPOINTS — login, signup, logout
+# =============================================================================
+
+@app.post("/api/auth/login")
+async def api_auth_login(request: Request):
+    """Handle email/password login — validates credentials and creates session."""
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+    email = (body.get("email") or "").strip().lower()
+    password = body.get("password", "")
+
+    if not email or not password:
+        return JSONResponse(
+            {"success": False, "error": "Email and password are required"},
+            status_code=400,
+        )
+
+    account_id = _prod_email_to_account.get(email)
+    if not account_id:
+        return JSONResponse(
+            {"success": False, "error": "Invalid email or password"},
+            status_code=401,
+        )
+
+    account = _prod_user_store.get(account_id)
+    if not account or not _prod_verify_password(password, account.get("password_hash", "")):
+        return JSONResponse(
+            {"success": False, "error": "Invalid email or password"},
+            status_code=401,
+        )
+
+    session_token = _prod_create_session(account_id)
+    resp = JSONResponse({
+        "success": True,
+        "message": "Login successful",
+        "account_id": account_id,
+        "session_token": session_token,
+        "email": account["email"],
+        "name": account.get("full_name", ""),
+        "tier": account.get("tier", "free"),
+    })
+    resp.set_cookie(
+        key="murphy_session",
+        value=session_token,
+        httponly=True,
+        secure=os.environ.get("MURPHY_ENV", "production") != "development",
+        samesite="lax",
+        max_age=86400,
+    )
+    log.info("Login successful: %s (%s)", account_id, email)
+    return resp
+
+
+@app.post("/api/auth/signup")
+async def api_auth_signup(request: Request):
+    """Handle email/password signup — creates account with session."""
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+    email = (body.get("email") or "").strip().lower()
+    password = (body.get("password") or "").strip()
+    full_name = body.get("full_name") or body.get("name", "")
+
+    if not email or "@" not in email:
+        return JSONResponse({"success": False, "error": "Valid email is required"}, status_code=400)
+    if not password or len(password) < 8:
+        return JSONResponse(
+            {"success": False, "error": "Password must be at least 8 characters"},
+            status_code=400,
+        )
+    if email in _prod_email_to_account:
+        return JSONResponse(
+            {"success": False, "error": "An account with this email already exists"},
+            status_code=409,
+        )
+
+    account_id = uuid.uuid4().hex[:20]
+    _prod_user_store[account_id] = {
+        "account_id": account_id,
+        "email": email,
+        "password_hash": _prod_hash_password(password),
+        "full_name": full_name,
+        "job_title": "",
+        "company": "",
+        "tier": "free",
+        "email_validated": True,
+        "eula_accepted": True,
+        "role": "user",
+        "created_at": _now_iso(),
+    }
+    _prod_email_to_account[email] = account_id
+
+    session_token = _prod_create_session(account_id)
+    resp = JSONResponse(
+        {
+            "success": True,
+            "message": "Account created successfully.",
+            "account_id": account_id,
+            "session_token": session_token,
+            "email": email,
+            "name": full_name,
+            "tier": "free",
+        },
+        status_code=201,
+    )
+    resp.set_cookie(
+        key="murphy_session",
+        value=session_token,
+        httponly=True,
+        secure=os.environ.get("MURPHY_ENV", "production") != "development",
+        samesite="lax",
+        max_age=86400,
+    )
+    log.info("Account created: %s (%s)", account_id, email)
+    return resp
+
+
+@app.post("/api/auth/logout")
+async def api_auth_logout(request: Request):
+    """Invalidate the current session."""
+    token = request.cookies.get("murphy_session", "")
+    if not token:
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+    if token:
+        with _auth_lock:
+            _prod_sessions.pop(token, None)
+    resp = JSONResponse({"success": True, "message": "Logged out"})
+    resp.delete_cookie("murphy_session")
+    return resp
+
+
+# =============================================================================
 # AUTH ENDPOINTS — Gap 2: Anon→Free registration
 # =============================================================================
 
