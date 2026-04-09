@@ -755,7 +755,7 @@ function _exportDeliverable(deliverable,fmt,query,btn){
   .then(function(data){
     btn.textContent=origText;btn.disabled=false;
     if(!data||!data.success){
-      _showForgeError('Export failed: '+(data'Export failed: '+(data&&data.error?data.error:'unknown error')'Export failed: '+(data&&data.error?data.error:'unknown error')data.error?(typeof data.error==='object'?JSON.stringify(data.error):data.error):'unknown error'));
+      _showForgeError('Export failed: '+(data&&data.error?(typeof data.error==='object'?JSON.stringify(data.error):String(data.error)):'unknown error'));
       return;
     }
     var fname=data.filename||('murphy-deliverable.'+fmt);

@@ -4199,6 +4199,79 @@ def _build_agent_specific_fallback_content(
 # ── Individual role fallback generators ──────────────────────────────────
 
 def _fallback_scope_analysis(query: str, task: str) -> str:
+    """PATCH-013g: Domain-aware scope analysis derived from the query."""
+    q = query.lower()
+    # Detect domain
+    is_game = any(w in q for w in ["game","mmo","mmorpg","colony","ant","player","level","exp","nft","fortnite","skin"])
+    is_web  = any(w in q for w in ["web app","webapp","dashboard","saas","api","backend","frontend","portal"])
+    is_biz  = any(w in q for w in ["business","invoic","crm","hr","payroll","report","automat","workflow"])
+    is_ai   = any(w in q for w in ["ai","ml","model","llm","neural","train","inference","chatbot"])
+
+    if is_game:
+        in_scope = [
+            "Top-down 2D MMO game engine — real-time multiplayer server and client",
+            "Ant colony gameplay: colony control, unit types, terrain (4 backyard zones)",
+            "Combat system: inter-colony PvP + wild bug enemies (beetles, wasps, spiders etc.)",
+            "XP/leveling system: kill rewards, colony level-ups, unlock gates",
+            "Visual customisation: ant skins (capes, boots, slippers) as NFT cosmetics",
+            "Subscription tiers (Fortnite-style Battle Pass model) — no pay-to-win",
+            "Match session system: ~60-minute accelerated game loops, elimination mode",
+            "Downloadable client package (Electron/HTML5) + server installer",
+        ]
+        out_scope = [
+            "Pay-to-win mechanics (excluded by design)",
+            "Non-visual NFT utility (cosmetic-only policy)",
+            "Physical merchandise",
+            "Dedicated anti-cheat hardware",
+        ]
+        constraints = [
+            "Game loop must complete in ~60 min via time acceleration",
+            "Colony elimination = permanent removal for that session",
+            "Client must be packageable and runnable without a build step",
+            "Cosmetics are NFT-backed but gameplay is fully F2P baseline",
+        ]
+    elif is_web:
+        in_scope = [
+            "Full-stack web application with authenticated dashboard",
+            "Core business logic and data persistence layer",
+            "REST/GraphQL API for frontend-backend communication",
+            "User management, roles, and access control",
+            "Payment integration (Stripe/subscription billing)",
+        ]
+        out_scope = ["Mobile native apps (web-responsive only)","Hardware integrations","Legacy data migration"]
+        constraints = ["Must be deployable to cloud (Docker/serverless)","API-first architecture"]
+    elif is_biz:
+        in_scope = [
+            "End-to-end business process automation workflows",
+            "Data ingestion, transformation, and reporting pipelines",
+            "Integration with existing business tools (CRM, ERP, HRIS)",
+            "Audit trail and compliance logging",
+        ]
+        out_scope = ["Hardware procurement","Vendor renegotiation","Organisational change management"]
+        constraints = ["SOC2 compliance required","Data retention 7 years"]
+    elif is_ai:
+        in_scope = [
+            "Model training pipeline with versioned datasets",
+            "Inference API with latency SLAs",
+            "Evaluation harness and benchmark suite",
+            "Model registry and deployment tooling",
+        ]
+        out_scope = ["Proprietary hardware (GPU cloud assumed)","Data labelling outsourcing"]
+        constraints = ["Inference p99 < 500ms","Model versioning required"]
+    else:
+        in_scope = [
+            "Core functional requirements derived from: " + query[:80],
+            "Primary user workflows and interactions",
+            "Integration points with existing systems",
+            "Data inputs, outputs, and transformations",
+        ]
+        out_scope = ["Legacy migration","Hardware procurement","Organisational change management"]
+        constraints = ["Timeline within agreed milestone window","Must integrate with current stack"]
+
+    in_lines  = "\n".join(f"    □  {i}" for i in in_scope)
+    out_lines = "\n".join(f"    □  {o}" for o in out_scope)
+    con_lines = "\n".join(f"    □  {c}" for c in constraints)
+
     return f"""\
 ■ SCOPE ANALYSIS
 ═════════════════
@@ -4206,32 +4279,83 @@ def _fallback_scope_analysis(query: str, task: str) -> str:
   Task:    {task[:120]}
 
   IN SCOPE
-    □  Core functional requirements identified in the request
-    □  Primary user workflows and interactions
-    □  Integration points with existing systems
-    □  Data inputs, outputs, and transformations
-    □  Performance and scalability expectations
+{in_lines}
 
   OUT OF SCOPE
-    □  Legacy system migration (unless explicitly requested)
-    □  Third-party vendor negotiations
-    □  Hardware procurement
-    □  Organisational change management
-
-  ASSUMPTIONS
-    □  Stakeholders are available for requirements clarification
-    □  Development environment and toolchain are pre-provisioned
-    □  Budget has been approved for the defined scope
-    □  Existing APIs/services are documented and accessible
+{out_lines}
 
   CONSTRAINTS
-    □  Timeline: delivery within the agreed milestone window
-    □  Budget: fixed envelope — scope changes require change-control
-    □  Technology: must integrate with current platform stack
-    □  Compliance: must satisfy applicable regulatory requirements"""
+{con_lines}
+
+  ASSUMPTIONS
+    □  Development environment and toolchain are pre-provisioned
+    □  Budget approved for the defined scope
+    □  APIs/services required are accessible"""
 
 
 def _fallback_requirements(query: str, task: str) -> str:
+    """PATCH-013g: Domain-aware requirements derived from the query."""
+    q = query.lower()
+    is_game = any(w in q for w in ["game","mmo","colony","ant","player","level","exp","nft","fortnite","pvp"])
+    is_web  = any(w in q for w in ["web app","saas","dashboard","api","subscription","portal"])
+    is_biz  = any(w in q for w in ["business","automat","workflow","invoice","report","hr"])
+
+    if is_game:
+        func_reqs = [
+            ("FR-1","Multiplayer server handles concurrent colony sessions (100+ players/match)","MUST","Defined"),
+            ("FR-2","Top-down 2D renderer with customisable ant color palette (not limited to black/red)","MUST","Defined"),
+            ("FR-3","4-zone backyard world map with distinct terrain types (grass, soil, concrete, garden)","MUST","Defined"),
+            ("FR-4","XP system: kill XP awarded per enemy type, colony level gates new unit unlocks","MUST","Defined"),
+            ("FR-5","Bug enemy AI: beetles/wasps/spiders with patrol/aggro behaviour","MUST","Defined"),
+            ("FR-6","Session timer: 60-min accelerated loop, eliminated colonies removed permanently","MUST","Defined"),
+            ("FR-7","NFT cosmetic system: cape/boots/slippers skins — no gameplay advantage","MUST","Defined"),
+            ("FR-8","Subscription tiers: Battle Pass equivalent with seasonal rewards","SHOULD","Defined"),
+            ("FR-9","Downloadable client (Electron or packaged HTML5 + Node server)","MUST","Defined"),
+            ("FR-10","XP curve: high early XP, decelerating above colony level 20","SHOULD","Defined"),
+        ]
+        non_func = [
+            ("NF-1","Server tick rate","20 TPS min","Perf test"),
+            ("NF-2","Client frame rate","60 FPS (30 min)","Profiler"),
+            ("NF-3","Match session capacity","100 colonies concurrent","Load test"),
+            ("NF-4","NFT mint latency","< 5 seconds","Chain test"),
+            ("NF-5","Installer package size","< 200 MB","CI build"),
+        ]
+    elif is_web:
+        func_reqs = [
+            ("FR-1","User auth with OAuth + MFA","MUST","Defined"),
+            ("FR-2","Dashboard with real-time data visualisation","MUST","Defined"),
+            ("FR-3","Subscription billing via Stripe","MUST","Defined"),
+            ("FR-4","REST API with versioned endpoints","MUST","Defined"),
+            ("FR-5","Role-based access control (admin/user)","MUST","Defined"),
+            ("FR-6","Audit trail for all mutations","SHOULD","Defined"),
+            ("FR-7","Email notifications (transactional)","SHOULD","Draft"),
+        ]
+        non_func = [
+            ("NF-1","API p99 latency","< 500 ms","APM"),
+            ("NF-2","Availability","99.9 %","Uptime"),
+            ("NF-3","Data retention","7 years","Policy"),
+        ]
+    else:
+        func_reqs = [
+            ("FR-1","Core functionality per request: "+query[:60],"MUST","Defined"),
+            ("FR-2","System shall process core business logic","MUST","Defined"),
+            ("FR-3","System shall persist results durably","MUST","Defined"),
+            ("FR-4","System shall expose APIs for integration","SHOULD","Defined"),
+        ]
+        non_func = [
+            ("NF-1","Response latency p99","< 500 ms","APM"),
+            ("NF-2","Availability","99.9 %","Uptime"),
+        ]
+
+    fr_rows = "\n".join(
+        f"  │ {r[0]:<3} │ {r[1]:<40} │ {r[2]:<8} │ {r[3]:<8} │"
+        for r in func_reqs
+    )
+    nf_rows = "\n".join(
+        f"  │ {r[0]:<3} │ {r[1]:<40} │ {r[2]:<8} │ {r[3]:<8} │"
+        for r in non_func
+    )
+
     return f"""\
 ■ FUNCTIONAL & NON-FUNCTIONAL REQUIREMENTS
 ════════════════════════════════════════════
@@ -4242,32 +4366,20 @@ def _fallback_requirements(query: str, task: str) -> str:
   ┌─────┬──────────────────────────────────────────┬──────────┬──────────┐
   │ ID  │ Requirement                              │ Priority │ Status   │
   ├─────┼──────────────────────────────────────────┼──────────┼──────────┤
-  │ FR-1│ System shall accept and validate input   │ MUST     │ Defined  │
-  │ FR-2│ System shall process core business logic │ MUST     │ Defined  │
-  │ FR-3│ System shall persist results durably     │ MUST     │ Defined  │
-  │ FR-4│ System shall expose APIs for integration │ SHOULD   │ Defined  │
-  │ FR-5│ System shall provide audit trail         │ SHOULD   │ Defined  │
-  │ FR-6│ System shall support batch operations    │ COULD    │ Draft    │
-  │ FR-7│ System shall send notifications/alerts   │ COULD    │ Draft    │
+{fr_rows}
   └─────┴──────────────────────────────────────────┴──────────┴──────────┘
 
   NON-FUNCTIONAL REQUIREMENTS
   ┌─────┬──────────────────────────────────────────┬──────────┬──────────┐
   │ ID  │ Requirement                              │ Target   │ Measure  │
   ├─────┼──────────────────────────────────────────┼──────────┼──────────┤
-  │ NF-1│ Response latency (p99)                   │ < 500 ms │ APM      │
-  │ NF-2│ Availability                             │ 99.9 %   │ Uptime   │
-  │ NF-3│ Throughput                               │ 1000 rps │ Load test│
-  │ NF-4│ Data retention                           │ 7 years  │ Policy   │
-  │ NF-5│ Recovery time objective (RTO)            │ < 15 min │ DR drill │
-  │ NF-6│ Recovery point objective (RPO)           │ < 5 min  │ Backup   │
+{nf_rows}
   └─────┴──────────────────────────────────────────┴──────────┴──────────┘
 
   ACCEPTANCE CRITERIA
     □  All MUST requirements implemented and verified
-    □  All non-functional targets met under load-test conditions
+    □  Non-functional targets met under load-test conditions
     □  Stakeholder sign-off obtained for each requirement group"""
-
 
 def _fallback_architecture(query: str, task: str) -> str:
     return f"""\
