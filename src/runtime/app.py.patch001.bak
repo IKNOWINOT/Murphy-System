@@ -11710,71 +11710,19 @@ def create_app() -> FastAPI:
     _account_statements: List[Dict[str, Any]] = []
 
     @app.get("/api/account/profile")
-    async def account_profile(request: Request):
-        """Get account profile and subscription info.
-
-        PATCH-002-ACCOUNT-PROFILE 2026-04-08:
-        Was returning a global _account_data dict — same hardcoded response
-        for every caller regardless of who was logged in. Now reads from
-        _user_store via the session token to return per-user data.
-        """
-        account = _get_account_from_session(request)
-        if account is None:
-            return JSONResponse(
-                {"success": False, "error": {"code": "AUTH_REQUIRED", "message": "Authentication required"}},
-                status_code=401,
-            )
-        profile = {
-            "success":         True,
-            "id":              account.get("account_id", ""),
-            "email":           account.get("email", ""),
-            "name":            account.get("full_name", account.get("name", "")),
-            "full_name":       account.get("full_name", ""),
-            "job_title":       account.get("job_title", ""),
-            "company":         account.get("company", ""),
-            "role":            account.get("role", "user"),
-            "tier":            account.get("tier", "free"),
-            "plan":            account.get("tier", "free"),
-            "plan_name":       account.get("tier", "free").title() + " Tier",
-            "email_validated": account.get("email_validated", False),
-            "created_at":      account.get("created_at", ""),
-            "updated_at":      account.get("updated_at", ""),
-        }
-        # Merge legacy billing fields from _account_data without overwriting real values
-        for k, v in _account_data.items():
-            if k not in profile and k != "id":
-                profile[k] = v
-        return JSONResponse(profile)
+    async def account_profile():
+        """Get account profile and subscription info."""
+        return JSONResponse({"success": True, **_account_data})
 
     @app.put("/api/account/profile")
     async def account_update_profile(request: Request):
-        """Update account profile.
-
-        PATCH-002-ACCOUNT-PROFILE 2026-04-08:
-        Was writing to global _account_data (shared across all users).
-        Now writes to the caller's own record in _user_store.
-        """
-        account = _get_account_from_session(request)
-        if account is None:
-            return JSONResponse(
-                {"success": False, "error": {"code": "AUTH_REQUIRED", "message": "Authentication required"}},
-                status_code=401,
-            )
+        """Update account profile."""
         body = await request.json()
-        updatable = ("full_name", "name", "job_title", "company")
-        with _session_lock:
-            user_rec = _user_store.get(account.get("account_id", ""))
-            if user_rec:
-                for key in updatable:
-                    if body.get(key) is not None:
-                        user_rec[key] = body[key]
-                user_rec["updated_at"] = _now_iso()
-        # Keep _account_data in sync for any downstream readers not yet migrated
-        for key in updatable:
-            if body.get(key) is not None:
+        for key in ("name", "email"):
+            if body.get(key):
                 _account_data[key] = body[key]
         _account_data["updated_at"] = _now_iso()
-        return JSONResponse({"success": True, "message": "Profile updated"})
+        return JSONResponse({"success": True, **_account_data})
 
     @app.get("/api/account/subscription")
     async def account_subscription():
@@ -12701,18 +12649,50 @@ def create_app() -> FastAPI:
     # ══════════════════════════════════════════════════════════════════════
     # AUTH MIDDLEWARE — unified X-API-Key enforcement for all /api/* routes
     # Permissive when MURPHY_API_KEY env var is not set (development mode).
-    # ── PATCH-001-AUTH-MIDDLEWARE 2026-04-08 ────────────────────────────────
-    # _APIKeyMiddleware REMOVED.
-    #
-    # Root cause: It ran FIRST in Starlette's LIFO middleware stack and only
-    # accepted the x-api-key header, causing every browser user (who sends a
-    # murphy_session cookie) to receive 401 on every /api/* call.
-    #
-    # SecurityMiddleware (added by configure_secure_fastapi above) handles all
-    # of this correctly and more: X-API-Key, Bearer JWT, Bearer session-token,
-    # murphy_session cookie, rate limiting, CSRF, brute-force lockout,
-    # security headers, DLP, RBAC, and risk classification.
-    # ─────────────────────────────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════════════════
+
+    from starlette.middleware.base import BaseHTTPMiddleware as _BHMW
+
+    class _APIKeyMiddleware(_BHMW):
+        """Unified API key enforcement for all /api/* routes.
+
+        Auth, demo, and other public-facing routes are always exempt so that
+        visitors can log in / sign up / use the demo even when MURPHY_API_KEY
+        is configured for protecting internal API routes.
+        """
+
+        # Exact-path exemptions
+        EXEMPT_PATHS = {"/api/health", "/api/info", "/api/manifest"}
+
+        # Prefix-based exemptions — any path that starts with one of these is
+        # treated as a public endpoint regardless of API key configuration.
+        EXEMPT_PREFIXES = (
+            "/api/auth/",    # login, signup, OAuth, password reset — must be public
+            "/api/demo/",    # demo runner and deliverable generator — no login required
+            "/api/system/",  # system status / health endpoints
+        )
+
+        async def dispatch(self, request: Request, call_next):
+            path = request.url.path
+            if path.startswith("/api/"):
+                is_exempt = (
+                    path in self.EXEMPT_PATHS
+                    or any(path.startswith(pfx) for pfx in self.EXEMPT_PREFIXES)
+                )
+                if not is_exempt:
+                    expected_key = os.environ.get("MURPHY_API_KEY", "") or os.environ.get("MURPHY_API_KEYS", "")
+                    if expected_key:
+                        # Starlette normalises header names to lowercase (RFC 7230);
+                        # use lowercase "x-api-key" here to match that behaviour.
+                        api_key = request.headers.get("x-api-key", "")
+                        if api_key != expected_key:
+                            return JSONResponse(
+                                {"success": False, "error": {"code": "AUTH_REQUIRED", "message": "Valid X-API-Key header required"}},
+                                status_code=401,
+                            )
+            return await call_next(request)
+
+    app.add_middleware(_APIKeyMiddleware)
 
     # ══════════════════════════════════════════════════════════════════════
     # EXCEPTION HANDLERS — normalise all error formats into standard envelope

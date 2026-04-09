@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "murphy-src"
+version = "0.0.0"
+
+[tool.setuptools]
+packages = []
+
+[tool.setuptools.package-dir]
+"" = "src"
