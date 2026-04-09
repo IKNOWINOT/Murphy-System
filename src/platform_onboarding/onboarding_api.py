@@ -80,8 +80,10 @@ def create_onboarding_router() -> "APIRouter":
     # ------------------------------------------------------------------ #
 
     @router.post("/start")
-    def start_onboarding(body: StartRequest) -> Dict:
+    def start_onboarding(body: StartRequest = None) -> Dict:
         """Start a new platform onboarding workflow session."""
+        body = body or StartRequest()  # PATCH-006: allow empty/missing body
+        body = body or StartRequest()  # PATCH-006: allow empty/missing body
         session = OnboardingSession.create_new(body.account_id)
         session.session_data.update(body.session_data)
         _sessions[session.session_id] = session

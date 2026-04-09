@@ -10880,6 +10880,13 @@ def create_app() -> FastAPI:
             "/ui/dev-module": "dev_module.html",
             "/ui/service-module": "service_module.html",
             "/ui/guest-portal": "guest_portal.html",
+            # PATCH-006: Route aliases for missing UI paths referenced in API docs
+            "/ui/tasks": "terminal_orchestrator.html",
+            "/ui/workflows": "workflow_canvas.html",
+            "/ui/agents": "aionmind.html",
+            "/ui/settings": "management.html",
+            "/ui/modules": "module_instances.html",
+            "/ui/hitl": "hitl_dashboard.html",
         }
 
         # ── Route classification: public vs auth-required ──────────
