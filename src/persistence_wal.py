@@ -138,13 +138,50 @@ class SQLiteWALBackend:
         self._lock = threading.RLock()
 
         # Parse path from sqlite:///path URL
+        # PATCH-002: Non-sqlite DATABASE_URLs (e.g. postgresql://) cannot be
+        # passed to sqlite3.connect().  Fall back to a writable SQLite path so
+        # user accounts survive restarts even when PostgreSQL isn't wired up yet.
         url = config.database_url
         if url.startswith("sqlite:///"):
             self._db_path = url[len("sqlite:///"):]
         elif url.startswith("sqlite://"):
             self._db_path = url[len("sqlite://"):]
+        elif not url or url == ":memory:":
+            self._db_path = "murphy_users.db"
         else:
-            self._db_path = url or "murphy.db"
+            # Non-sqlite URL (postgresql://, mysql://, etc.) — fall back to SQLite
+            # in the first writable location we can find.
+            import os as _os
+            from pathlib import Path as _Path
+            explicit = _os.environ.get("MURPHY_USER_DB_PATH", "").strip()
+            if explicit:
+                self._db_path = explicit
+                logger.info(
+                    "User DB: using MURPHY_USER_DB_PATH=%s (non-sqlite DATABASE_URL ignored)",
+                    explicit,
+                )
+            else:
+                # Try standard writable paths (systemd ReadWritePaths)
+                _candidates = [
+                    "/var/lib/murphy-production/murphy_users.db",
+                    "/opt/Murphy-System/data/murphy_users.db",
+                    "murphy_users.db",  # cwd fallback (last resort)
+                ]
+                self._db_path = _candidates[-1]  # default
+                for _cand in _candidates:
+                    _parent = _Path(_cand).parent
+                    try:
+                        if _parent.exists() and _os.access(str(_parent), _os.W_OK):
+                            self._db_path = _cand
+                            break
+                    except Exception:
+                        continue
+                logger.info(
+                    "User DB: DATABASE_URL is non-sqlite — "
+                    "using SQLite fallback at %s. "
+                    "Set MURPHY_USER_DB_PATH to override.",
+                    self._db_path,
+                )
 
         self._connection: Optional[sqlite3.Connection] = None
 
@@ -194,9 +231,21 @@ class SQLiteWALBackend:
     def run_migrations(self) -> List[Dict[str, Any]]:
         """Run pending schema migrations.
 
+        PATCH-002: Creates parent directory of the DB file if it does not
+        already exist (e.g. /var/lib/murphy-production/ on a fresh deploy).
+
         Returns:
             List of applied migration records.
         """
+        import os as _os
+        from pathlib import Path as _Path
+        try:
+            _db_dir = _Path(self._db_path).parent
+            if not _db_dir.exists():
+                _db_dir.mkdir(parents=True, exist_ok=True)
+                logger.info("User DB: created directory %s", _db_dir)
+        except Exception as _dir_exc:
+            logger.warning("User DB: could not create DB directory: %s", _dir_exc)
         conn = self.connect()
         applied: List[Dict[str, Any]] = []
 
