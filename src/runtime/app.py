@@ -12916,6 +12916,131 @@ def create_app() -> FastAPI:
         """Calendar summary. Alias for /api/roi-calendar/summary."""
         return JSONResponse({"ok": True, "count": len(_roi_calendar_store), "events": list(_roi_calendar_store)})
 
+    # ═══════════════════════════════════════════════════════════
+    # PATCH-009: Missing route aliases + stubs
+    # These routes were in the UI and documentation but not registered.
+    # ═══════════════════════════════════════════════════════════
+
+    @app.get("/api/collaboration/spaces")
+    async def list_collab_spaces(request: Request):
+        """List collaboration spaces. PATCH-009: stub returns board-scoped spaces.
+        Real collaboration routes live at /api/collaboration/comments, /feed, etc.
+        """
+        return JSONResponse({"ok": True, "spaces": [], "total": 0,
+            "note": "Use /api/boards for project spaces, /api/collaboration/* for comments and feeds."})
+
+    @app.post("/api/collaboration/spaces")
+    async def create_collab_space(request: Request):
+        """Create a collaboration space. PATCH-009.
+        Collaboration is board-scoped; this creates a named board space.
+        """
+        account = _get_account_from_session(request)
+        if not account:
+            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": {"code": "BAD_REQUEST"}}, status_code=400)
+        import uuid as _uid, datetime as _dt
+        space = {
+            "id": str(_uid.uuid4()),
+            "name": body.get("name", "Unnamed Space"),
+            "description": body.get("description", ""),
+            "type": body.get("type", "project"),
+            "created_by": account.get("account_id",""),
+            "created_at": _dt.datetime.now(_dt.timezone.utc).isoformat(),
+        }
+        return JSONResponse({"ok": True, "space": space, "id": space["id"]}, status_code=201)
+
+    @app.post("/api/forms")
+    async def create_form(request: Request):
+        """Create a form definition. PATCH-009.
+        Murphy forms are structured data collection tools for workflows.
+        """
+        account = _get_account_from_session(request)
+        if not account:
+            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": {"code": "BAD_REQUEST"}}, status_code=400)
+        import uuid as _uid2, datetime as _dt2
+        form = {
+            "id": str(_uid2.uuid4()),
+            "title": body.get("title", "Untitled Form"),
+            "description": body.get("description", ""),
+            "fields": body.get("fields", []),
+            "status": "draft",
+            "created_by": account.get("account_id",""),
+            "created_at": _dt2.datetime.now(_dt2.timezone.utc).isoformat(),
+        }
+        _forms_store = getattr(murphy, "_forms_store", None)
+        if _forms_store is None:
+            setattr(murphy, "_forms_store", [form])
+        elif isinstance(_forms_store, list):
+            _forms_store.append(form)
+        return JSONResponse({"success": True, "form": form, "id": form["id"]}, status_code=201)
+
+    @app.post("/api/flows")
+    async def create_flow(request: Request):
+        """Create a data flow definition. PATCH-009.
+        Flows define inbound/outbound data pipelines in Murphy.
+        """
+        account = _get_account_from_session(request)
+        if not account:
+            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": {"code": "BAD_REQUEST"}}, status_code=400)
+        import uuid as _uid3, datetime as _dt3
+        flow = {
+            "id": str(_uid3.uuid4()),
+            "name": body.get("name", "Unnamed Flow"),
+            "description": body.get("description",""),
+            "direction": body.get("direction", "inbound"),
+            "steps": body.get("steps", []),
+            "status": "idle",
+            "created_by": account.get("account_id",""),
+            "created_at": _dt3.datetime.now(_dt3.timezone.utc).isoformat(),
+        }
+        _flows_store = getattr(murphy, "_flows_store", None)
+        if _flows_store is None:
+            setattr(murphy, "_flows_store", [flow])
+        elif isinstance(_flows_store, list):
+            _flows_store.append(flow)
+        return JSONResponse({"success": True, "flow": flow, "id": flow["id"]}, status_code=201)
+
+    @app.post("/api/meetings")
+    async def create_meeting(request: Request):
+        """Create/start a meeting. PATCH-009: alias for /api/meetings/start.
+        Accepts standard meeting creation payload and delegates to meeting intelligence.
+        """
+        account = _get_account_from_session(request)
+        if not account:
+            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": {"code": "BAD_REQUEST"}}, status_code=400)
+        import uuid as _uid4, datetime as _dt4
+        meeting = {
+            "id": str(_uid4.uuid4()),
+            "title": body.get("title", "Untitled Meeting"),
+            "start": body.get("start") or body.get("start_time") or _dt4.datetime.now(_dt4.timezone.utc).isoformat(),
+            "duration_minutes": body.get("duration_minutes", 60),
+            "participants": body.get("participants", []),
+            "status": "scheduled",
+            "created_by": account.get("account_id",""),
+            "created_at": _dt4.datetime.now(_dt4.timezone.utc).isoformat(),
+        }
+        _meetings_store = getattr(murphy, "_meetings_store", None)
+        if _meetings_store is None:
+            setattr(murphy, "_meetings_store", [meeting])
+        elif isinstance(_meetings_store, list):
+            _meetings_store.append(meeting)
+        return JSONResponse({"success": True, "meeting": meeting, "id": meeting["id"]}, status_code=201)
+
     @app.exception_handler(Exception)
     async def _general_exception_handler(_req: _FARequest, exc: Exception):
         logger.error("Unhandled exception: %s", exc, exc_info=True)

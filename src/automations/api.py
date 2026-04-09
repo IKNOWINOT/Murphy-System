@@ -29,10 +29,14 @@ logger = logging.getLogger(__name__)
 if APIRouter is not None:
 
     class CreateRuleRequest(BaseModel):
-        """Create Rule Request."""
+        """Create Rule Request.
+        PATCH-009: board_id and trigger_type are optional to support general rules.
+        """
         name: str
-        board_id: str
-        trigger_type: str
+        board_id: str = ""
+        trigger_type: str = "on_task_create"
+        trigger: str = ""           # alias for trigger_type
+        action: str = ""            # simple action shorthand
         trigger_config: Dict[str, Any] = Field(default_factory=dict)
         conditions: List[Dict[str, Any]] = Field(default_factory=list)
         actions: List[Dict[str, Any]] = Field(default_factory=list)
