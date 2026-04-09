@@ -155,6 +155,13 @@ def create_app() -> FastAPI:
     import bcrypt as _bcrypt
     _session_lock = _threading.Lock()
 
+    # ── Email verification token store ──────────────────────────
+    # Maps verification_token → {account_id, email, created_at}
+    # Tokens expire after 24 hours.
+    _verification_tokens: "Dict[str, Dict[str, Any]]" = {}
+    _VERIFICATION_EXPIRY_SECONDS = 86400  # 24 hours
+    _VERIFICATION_FROM_EMAIL = "donotreply@murphy.systems"
+
     class _SQLiteSessionFallback:
         """Persistent session store using SQLite WAL backend.
 
@@ -7925,7 +7932,7 @@ def create_app() -> FastAPI:
 
     @app.post("/api/auth/signup")
     async def auth_signup(request: Request):
-        """Handle email/password signup — creates real account with session."""
+        """Handle email/password signup — creates account and sends verification email."""
         try:
             data = await request.json()
             email = (data.get("email") or "").strip().lower()
@@ -7954,7 +7961,7 @@ def create_app() -> FastAPI:
                 "job_title": job_title,
                 "company": company,
                 "tier": _assigned_tier,
-                "email_validated": True,    # auto-validate for now (MVP)
+                "email_validated": False,
                 "eula_accepted": True,      # accepted at signup form
                 "role": _assigned_role,
                 "created_at": _now_iso(),
@@ -7973,31 +7980,271 @@ def create_app() -> FastAPI:
                     status=_SubStatus.ACTIVE,
                 )
 
-            # Mint session token
-            session_token = _create_session(account_id)
-
-            from starlette.responses import JSONResponse as _SJR
-            resp = _SJR({
-                "success": True,
-                "message": "Account created successfully.",
+            # Generate email verification token
+            verification_token = _secrets.token_urlsafe(32)
+            _verification_tokens[verification_token] = {
                 "account_id": account_id,
-                "session_token": session_token,
                 "email": email,
-                "name": full_name,
-                "tier": "free",
-            })
-            resp.set_cookie(
-                key="murphy_session",
-                value=session_token,
-                httponly=True,
-                secure=os.environ.get("MURPHY_ENV", "development") != "development",
-                samesite="lax",
-                max_age=86400,
+                "created_at": _now_iso(),
+            }
+
+            # Build verification URL
+            scheme = request.url.scheme
+            host = request.headers.get("host", request.url.hostname or "murphy.systems")
+            verify_url = f"{scheme}://{host}/api/auth/verify-email?token={verification_token}"
+
+            # Send verification email
+            _email_sent = False
+            try:
+                from src.email_integration import EmailService
+                _email_svc = EmailService.from_env()
+                _send_result = await _email_svc.send(
+                    to=[email],
+                    subject="Verify your Murphy System account",
+                    body=(
+                        f"Hi {full_name or 'there'},\n\n"
+                        f"Thank you for signing up for Murphy System.\n\n"
+                        f"Please verify your email address by clicking the link below:\n\n"
+                        f"{verify_url}\n\n"
+                        f"This link expires in 24 hours.\n\n"
+                        f"If you did not create an account, you can safely ignore this email.\n\n"
+                        f"— Murphy System\n"
+                    ),
+                    html_body=(
+                        f'<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem;">'
+                        f'<h2 style="color:#00D4AA;">Verify your email</h2>'
+                        f'<p>Hi {full_name or "there"},</p>'
+                        f'<p>Thank you for signing up for Murphy System. '
+                        f'Please verify your email address by clicking the button below:</p>'
+                        f'<p style="text-align:center;margin:2rem 0;">'
+                        f'<a href="{verify_url}" style="background:#00D4AA;color:#0a0a0a;'
+                        f'padding:12px 32px;border-radius:8px;text-decoration:none;'
+                        f'font-weight:600;display:inline-block;">Verify Email Address</a></p>'
+                        f'<p style="color:#888;font-size:0.85rem;">This link expires in 24 hours. '
+                        f'If you did not create an account, you can safely ignore this email.</p>'
+                        f'<hr style="border:none;border-top:1px solid #333;margin:2rem 0;">'
+                        f'<p style="color:#666;font-size:0.75rem;">Murphy System &mdash; '
+                        f'Automate your entire business.</p></div>'
+                    ),
+                    from_addr=_VERIFICATION_FROM_EMAIL,
+                )
+                _email_sent = _send_result.success
+                if not _email_sent:
+                    logger.warning(
+                        "Verification email send reported failure for %s: %s",
+                        email, _send_result.error,
+                    )
+            except Exception as _email_exc:
+                logger.warning("Could not send verification email to %s: %s", email, _email_exc)
+
+            logger.info(
+                "Account created (pending verification): %s (%s) email_sent=%s",
+                account_id, email, _email_sent,
             )
-            logger.info("Account created: %s (%s)", account_id, email)
-            return resp
+            return JSONResponse({
+                "success": True,
+                "requires_verification": True,
+                "message": "Account created. Please check your email to verify your address.",
+                "email": email,
+                "email_sent": _email_sent,
+            }, status_code=201)
         except Exception as exc:
             logger.exception("Signup failed")
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/auth/verify-email")
+    async def auth_verify_email(request: Request, token: str = ""):
+        """Verify email address from the link sent during signup."""
+        if not token:
+            return HTMLResponse(
+                '<html><body style="background:#0a0a0a;color:#ff4444;font-family:sans-serif;'
+                'display:flex;align-items:center;justify-content:center;min-height:100vh;">'
+                '<div style="text-align:center"><h2>Invalid verification link</h2>'
+                '<p>The verification link is missing or malformed.</p>'
+                '<a href="/ui/signup" style="color:#00D4AA;">Sign up again</a></div>'
+                '</body></html>',
+                status_code=400,
+            )
+
+        token_data = _verification_tokens.get(token)
+        if not token_data:
+            return HTMLResponse(
+                '<html><body style="background:#0a0a0a;color:#ff4444;font-family:sans-serif;'
+                'display:flex;align-items:center;justify-content:center;min-height:100vh;">'
+                '<div style="text-align:center"><h2>Link expired or invalid</h2>'
+                '<p>This verification link has already been used or has expired.</p>'
+                '<a href="/ui/login" style="color:#00D4AA;">Sign in</a> or '
+                '<a href="/ui/signup" style="color:#00D4AA;">Sign up again</a></div>'
+                '</body></html>',
+                status_code=400,
+            )
+
+        # Check expiry
+        try:
+            created_str = token_data.get("created_at", "")
+            created_dt = datetime.fromisoformat(created_str)
+            # Ensure timezone-aware comparison
+            if created_dt.tzinfo is None:
+                created_dt = created_dt.replace(tzinfo=timezone.utc)
+            if (datetime.now(timezone.utc) - created_dt).total_seconds() > _VERIFICATION_EXPIRY_SECONDS:
+                _verification_tokens.pop(token, None)
+                return HTMLResponse(
+                    '<html><body style="background:#0a0a0a;color:#ff4444;font-family:sans-serif;'
+                    'display:flex;align-items:center;justify-content:center;min-height:100vh;">'
+                    '<div style="text-align:center"><h2>Link expired</h2>'
+                    '<p>This verification link has expired. Please sign up again.</p>'
+                    '<a href="/ui/signup" style="color:#00D4AA;">Sign up</a></div>'
+                    '</body></html>',
+                    status_code=400,
+                )
+        except Exception:
+            # If expiry validation fails, reject the token to avoid bypassing expiry
+            logger.warning("Verification token expiry check failed for token, rejecting")
+            _verification_tokens.pop(token, None)
+            return HTMLResponse(
+                '<html><body style="background:#0a0a0a;color:#ff4444;font-family:sans-serif;'
+                'display:flex;align-items:center;justify-content:center;min-height:100vh;">'
+                '<div style="text-align:center"><h2>Verification error</h2>'
+                '<p>Could not validate this link. Please request a new one.</p>'
+                '<a href="/ui/signup" style="color:#00D4AA;">Sign up</a></div>'
+                '</body></html>',
+                status_code=400,
+            )
+
+        account_id = token_data["account_id"]
+        account = _user_store.get(account_id)
+        if not account:
+            _verification_tokens.pop(token, None)
+            return HTMLResponse(
+                '<html><body style="background:#0a0a0a;color:#ff4444;font-family:sans-serif;'
+                'display:flex;align-items:center;justify-content:center;min-height:100vh;">'
+                '<div style="text-align:center"><h2>Account not found</h2>'
+                '<p>The account associated with this link could not be found.</p>'
+                '<a href="/ui/signup" style="color:#00D4AA;">Sign up again</a></div>'
+                '</body></html>',
+                status_code=404,
+            )
+
+        # Mark email as validated
+        account["email_validated"] = True
+        _user_store[account_id] = account
+
+        # Consume the token so it cannot be reused
+        _verification_tokens.pop(token, None)
+
+        # Mint session and redirect to onboarding
+        session_token = _create_session(account_id)
+
+        from starlette.responses import RedirectResponse as _RR
+        resp = _RR("/ui/onboarding", status_code=302)
+        resp.set_cookie(
+            key="murphy_session",
+            value=session_token,
+            httponly=True,
+            secure=os.environ.get("MURPHY_ENV", "development") != "development",
+            samesite="lax",
+            max_age=86400,
+        )
+        logger.info("Email verified for account %s (%s)", account_id, token_data["email"])
+        return resp
+
+    @app.post("/api/auth/resend-verification")
+    async def auth_resend_verification(request: Request):
+        """Resend verification email for an unverified account."""
+        try:
+            data = await request.json()
+            email = (data.get("email") or "").strip().lower()
+
+            if not email:
+                return JSONResponse({"success": False, "error": "Email is required"}, status_code=400)
+
+            account_id = _email_to_account.get(email)
+            if not account_id:
+                # Don't reveal whether the email exists
+                return JSONResponse({
+                    "success": True,
+                    "message": "If that email is registered, a verification link has been sent.",
+                })
+
+            account = _user_store.get(account_id)
+            if not account:
+                return JSONResponse({
+                    "success": True,
+                    "message": "If that email is registered, a verification link has been sent.",
+                })
+
+            if account.get("email_validated"):
+                return JSONResponse({
+                    "success": True,
+                    "message": "Email is already verified. You can sign in.",
+                    "already_verified": True,
+                })
+
+            # Invalidate existing tokens for this account
+            _tokens_to_remove = [
+                t for t, d in _verification_tokens.items()
+                if d.get("account_id") == account_id
+            ]
+            for t in _tokens_to_remove:
+                _verification_tokens.pop(t, None)
+
+            # Generate new token
+            verification_token = _secrets.token_urlsafe(32)
+            _verification_tokens[verification_token] = {
+                "account_id": account_id,
+                "email": email,
+                "created_at": _now_iso(),
+            }
+
+            # Build verification URL
+            scheme = request.url.scheme
+            host = request.headers.get("host", request.url.hostname or "murphy.systems")
+            verify_url = f"{scheme}://{host}/api/auth/verify-email?token={verification_token}"
+
+            full_name = account.get("full_name", "")
+
+            # Send verification email
+            _email_sent = False
+            try:
+                from src.email_integration import EmailService
+                _email_svc = EmailService.from_env()
+                _send_result = await _email_svc.send(
+                    to=[email],
+                    subject="Verify your Murphy System account",
+                    body=(
+                        f"Hi {full_name or 'there'},\n\n"
+                        f"Please verify your email address by clicking the link below:\n\n"
+                        f"{verify_url}\n\n"
+                        f"This link expires in 24 hours.\n\n"
+                        f"— Murphy System\n"
+                    ),
+                    html_body=(
+                        f'<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem;">'
+                        f'<h2 style="color:#00D4AA;">Verify your email</h2>'
+                        f'<p>Hi {full_name or "there"},</p>'
+                        f'<p>Please verify your email address by clicking the button below:</p>'
+                        f'<p style="text-align:center;margin:2rem 0;">'
+                        f'<a href="{verify_url}" style="background:#00D4AA;color:#0a0a0a;'
+                        f'padding:12px 32px;border-radius:8px;text-decoration:none;'
+                        f'font-weight:600;display:inline-block;">Verify Email Address</a></p>'
+                        f'<p style="color:#888;font-size:0.85rem;">This link expires in 24 hours.</p>'
+                        f'<hr style="border:none;border-top:1px solid #333;margin:2rem 0;">'
+                        f'<p style="color:#666;font-size:0.75rem;">Murphy System &mdash; '
+                        f'Automate your entire business.</p></div>'
+                    ),
+                    from_addr=_VERIFICATION_FROM_EMAIL,
+                )
+                _email_sent = _send_result.success
+            except Exception as _email_exc:
+                logger.warning("Could not resend verification email to %s: %s", email, _email_exc)
+
+            return JSONResponse({
+                "success": True,
+                "message": "If that email is registered, a verification link has been sent.",
+                "email_sent": _email_sent,
+            })
+        except Exception as exc:
+            logger.exception("Resend verification failed")
             return _safe_error_response(exc, 500)
 
     @app.post("/api/auth/login")
