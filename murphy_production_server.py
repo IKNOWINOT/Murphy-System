@@ -4038,9 +4038,13 @@ class BuildMetrics:
         }
 
 # Import demo deliverable generator
+_convert_deliverable_format = None
+_SUPPORTED_FORMATS = None
 try:
     from src.demo_deliverable_generator import generate_deliverable as _generate_demo_deliverable
     from src.demo_deliverable_generator import generate_deliverable_with_progress as _generate_demo_deliverable_with_progress
+    from src.demo_deliverable_generator import convert_deliverable_format as _convert_deliverable_format
+    from src.demo_deliverable_generator import SUPPORTED_FORMATS as _SUPPORTED_FORMATS
     _demo_gen_available = True
 except ImportError as exc:
     log.warning(f"Demo deliverable generator not available: {exc}")
@@ -4278,6 +4282,76 @@ async def api_demo_generate_deliverable(request: Request):
         "elapsed_seconds": metrics.actual_elapsed_seconds,
         "metrics": metrics.to_dict(),
     })
+
+
+# ---------------------------------------------------------------------------
+# Multi-format deliverable export  (label: FORGE-EXPORT-001)
+# ---------------------------------------------------------------------------
+
+@app.get("/api/demo/deliverable/formats")
+async def api_demo_deliverable_formats():
+    """Return the list of supported deliverable output formats."""
+    if _SUPPORTED_FORMATS:
+        return JSONResponse({
+            "formats": {k: v["label"] for k, v in _SUPPORTED_FORMATS.items()},
+            "default": "txt",
+        })
+    return JSONResponse({
+        "formats": {"txt": "Plain Text (.txt)"},
+        "default": "txt",
+    })
+
+
+@app.post("/api/demo/deliverable/export")
+async def api_demo_deliverable_export(request: Request):
+    """Convert a deliverable to a different output format.
+
+    Accepts a JSON body with:
+      - ``deliverable``: the deliverable dict (title, content, filename)
+      - ``format``: target format (txt, pdf, html, docx, zip, md)
+      - ``query``: original query (for ZIP README)
+
+    Returns the converted content.  Binary formats (pdf, docx, zip) are
+    returned as base64-encoded strings with ``is_binary: true``.
+
+    Label: FORGE-EXPORT-001
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+    deliverable = body.get("deliverable")
+    if not deliverable or not deliverable.get("content"):
+        return JSONResponse({"success": False, "error": "deliverable with content is required"}, status_code=400)
+
+    target_format = (body.get("format") or "txt").strip().lower()
+    query = body.get("query", "")
+
+    if not _convert_deliverable_format:
+        # Fallback: return as-is if converter not available
+        log.warning("FORGE-EXPORT-ERR-001: convert_deliverable_format not available — returning txt")
+        return JSONResponse({
+            "success": True,
+            "content": deliverable.get("content", ""),
+            "filename": deliverable.get("filename", "murphy-deliverable.txt"),
+            "mime_type": "text/plain",
+            "format": "txt",
+            "is_binary": False,
+        })
+
+    try:
+        result = _convert_deliverable_format(deliverable, target_format, query=query)
+        return JSONResponse({
+            "success": True,
+            **result,
+        })
+    except Exception as exc:
+        log.exception("FORGE-EXPORT-ERR-002: Format conversion failed: %s", exc)
+        return JSONResponse({
+            "success": False,
+            "error": f"Format conversion failed: {type(exc).__name__}: {exc}",
+        }, status_code=500)
 
 
 @app.post("/api/demo/generate-deliverable/stream")
