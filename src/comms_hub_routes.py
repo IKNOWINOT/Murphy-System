@@ -439,13 +439,37 @@ def create_comms_hub_router() -> APIRouter:
         return {"ok": True, "email": email, "rules_fired": [r["id"] for r in matched]}
 
     @router.get("/api/comms/email/inbox")
-    async def email_inbox(user: str) -> Dict[str, Any]:
-        """Get a user's email inbox."""
+    async def email_inbox(request: Request, user: str = "") -> Dict[str, Any]:
+        """Get a user email inbox. Resolves from auth session if user param omitted."""
+        if not user:
+            auth = request.headers.get("authorization", "")
+            token = auth[7:].strip() if auth.startswith("Bearer ") else request.cookies.get("murphy_session", "")
+            try:
+                from src.runtime.app import _session_store, _user_store
+                acct = _session_store.get(token) if token else None
+                if acct and acct in _user_store:
+                    user = _user_store[acct].get("email", "")
+            except Exception:
+                pass
+        if not user:
+            return {"ok": False, "error": "Provide user param or authenticate", "emails": []}
         return {"ok": True, "emails": email_store.get_inbox(user)}
 
     @router.get("/api/comms/email/outbox")
-    async def email_outbox(user: str) -> Dict[str, Any]:
-        """Get a user's email outbox."""
+    async def email_outbox(request: Request, user: str = "") -> Dict[str, Any]:
+        """Get a user email outbox. Resolves from auth session if user param omitted."""
+        if not user:
+            auth = request.headers.get("authorization", "")
+            token = auth[7:].strip() if auth.startswith("Bearer ") else request.cookies.get("murphy_session", "")
+            try:
+                from src.runtime.app import _session_store, _user_store
+                acct = _session_store.get(token) if token else None
+                if acct and acct in _user_store:
+                    user = _user_store[acct].get("email", "")
+            except Exception:
+                pass
+        if not user:
+            return {"ok": False, "error": "Provide user param or authenticate", "emails": []}
         return {"ok": True, "emails": email_store.get_outbox(user)}
 
     @router.get("/api/comms/email/{eid}")
