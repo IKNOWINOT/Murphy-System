@@ -248,6 +248,7 @@ def _is_public_api_route(path: str, method: str = "GET") -> bool:
         "/api/auth/logout",
         "/api/auth/register",
         "/api/auth/signup",
+        "/api/auth/register-free",
         "/api/auth/callback",
         "/api/auth/providers",
         "/api/usage/daily",
