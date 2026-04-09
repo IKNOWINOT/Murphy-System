@@ -135,8 +135,14 @@ class EndCallRequest(BaseModel):
 
 
 class SendEmailRequest(BaseModel):
-    sender: str
-    recipients: List[str]
+    """PATCH-008: sender/recipients have defaults so "to"/"from" aliases work.
+    Accepts both {"to":[...], "sender":"..."} and {"recipients":[...], "sender":"..."}.
+    sender defaults to "system" when not provided (auth resolved upstream).
+    """
+    sender: str = "system"
+    recipients: Optional[List[str]] = None
+    # Alias: accept "to" as well as "recipients"
+    to: Optional[List[str]] = None
     subject: str
     body: str
     cc: Optional[List[str]] = None
@@ -144,6 +150,10 @@ class SendEmailRequest(BaseModel):
     attachments: Optional[List[str]] = None
     priority: str = "normal"
     thread_id: Optional[str] = None
+
+    @property
+    def effective_recipients(self) -> List[str]:
+        return self.recipients or self.to or []
 
 
 class MarkReadRequest(BaseModel):
@@ -418,9 +428,11 @@ def create_comms_hub_router(account_resolver=None) -> APIRouter:
     @router.post("/api/comms/email/send")
     async def email_send(body: SendEmailRequest) -> Dict[str, Any]:
         """Compose and send an email."""
+        # PATCH-008: resolve recipients via alias
+        _recips = body.recipients or body.to or []
         email = email_store.compose_and_send(
             sender=body.sender,
-            recipients=body.recipients,
+            recipients=_recips,
             subject=body.subject,
             body=body.body,
             cc=body.cc,
