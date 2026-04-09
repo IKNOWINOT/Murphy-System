@@ -5594,6 +5594,23 @@ def create_app() -> FastAPI:
             logger.debug("Could not persist task to murphy.tasks: %s", _exc)
         return JSONResponse({"success": True, "task": task, "id": task["id"]}, status_code=201)
 
+    @app.get("/api/tasks/{task_id}")
+    async def get_task_by_id(task_id: str, request: Request):
+        account = _get_account_from_session(request)
+        if not account:
+            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
+        tasks = getattr(murphy, "tasks", None)
+        if isinstance(tasks, list):
+            for t in tasks:
+                if t.get("id") == task_id:
+                    return JSONResponse({"success": True, "task": t, "id": t.get("id")})
+        elif isinstance(tasks, dict) and task_id in tasks:
+            return JSONResponse({"success": True, "task": tasks[task_id], "id": task_id})
+        return JSONResponse(
+            {"success": False, "error": {"code": "NOT_FOUND", "message": f"Task {task_id} not found"}},
+            status_code=404
+        )
+
     @app.put("/api/tasks/{task_id}")
     async def update_task(task_id: str, request: Request):
         """Update an existing task by ID.
@@ -13289,6 +13306,53 @@ def create_app() -> FastAPI:
             return _safe_error_response(exc, 500)
 
     # ── Self-Automation Orchestrator (ARCH-002) ───────────────────────────
+
+
+    _scheduler_jobs_store = []
+
+    @app.get("/api/scheduler/jobs")
+    async def list_scheduler_jobs(request: Request):
+        account = _get_account_from_session(request)
+        if not account:
+            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
+        return JSONResponse({"success": True, "jobs": _scheduler_jobs_store, "total": len(_scheduler_jobs_store)})
+
+    @app.post("/api/scheduler/jobs")
+    async def create_scheduler_job(request: Request):
+        account = _get_account_from_session(request)
+        if not account:
+            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": {"code": "BAD_REQUEST"}}, status_code=400)
+        import uuid as _sj_u, datetime as _sj_d
+        job = {
+            "id": str(_sj_u.uuid4()),
+            "name": (body.get("name") or "").strip(),
+            "cron": body.get("cron") or body.get("schedule") or "",
+            "action": body.get("action") or "",
+            "description": body.get("description") or "",
+            "enabled": body.get("enabled", True),
+            "created_by": account.get("account_id", ""),
+            "created_at": _sj_d.datetime.now(_sj_d.timezone.utc).isoformat(),
+        }
+        if not job["name"]:
+            return JSONResponse({"success": False, "error": {"code": "VALIDATION_ERROR", "message": "name required"}}, status_code=400)
+        _scheduler_jobs_store.append(job)
+        return JSONResponse({"success": True, "job": job, "id": job["id"]}, status_code=201)
+
+    @app.delete("/api/scheduler/jobs/{job_id}")
+    async def delete_scheduler_job(job_id: str, request: Request):
+        account = _get_account_from_session(request)
+        if not account:
+            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
+        for i, j in enumerate(_scheduler_jobs_store):
+            if j.get("id") == job_id:
+                _scheduler_jobs_store.pop(i)
+                return JSONResponse({"success": True, "deleted": job_id})
+        return JSONResponse({"success": False, "error": {"code": "NOT_FOUND"}}, status_code=404)
+
 
     @app.get("/api/self-automation/status")
     async def self_automation_status():
