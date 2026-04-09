@@ -353,6 +353,72 @@
     .phone-row { flex-direction: column; }
     .phone-row .country-code { width: 100%; }
   }
+
+  /* ── Email verification confirmation ── */
+  .verify-email-panel {
+    display: none;
+    text-align: center;
+    padding: 1rem 0;
+  }
+
+  .verify-email-panel.visible { display: block; }
+
+  .verify-email-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1.5rem;
+    background: rgba(0, 212, 170, 0.12);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+  }
+
+  .verify-email-panel h2 {
+    color: var(--text-primary);
+    font-size: var(--text-xl);
+    margin-bottom: 0.75rem;
+    font-family: var(--font-ui);
+  }
+
+  .verify-email-panel p {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+    font-family: var(--font-ui);
+  }
+
+  .verify-email-address {
+    color: var(--teal);
+    font-weight: 600;
+  }
+
+  .resend-link {
+    color: var(--teal);
+    cursor: pointer;
+    text-decoration: underline;
+    background: none;
+    border: none;
+    font-size: var(--text-sm);
+    font-family: var(--font-ui);
+    padding: 0;
+  }
+
+  .resend-link:hover { opacity: 0.8; }
+
+  .resend-link:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    text-decoration: none;
+  }
+
+  .resend-status {
+    font-size: var(--text-xs);
+    margin-top: 0.5rem;
+    min-height: 1.25rem;
+  }
 </style>
 </head>
 <body class="murphy-no-sidebar signup-page">
@@ -606,6 +672,19 @@
         <span class="btn-text">Create Account</span>
       </button>
     </form>
+
+    <!-- Email verification confirmation (hidden by default, shown after signup) -->
+    <div id="verify-email-panel" class="verify-email-panel" role="status" aria-live="polite">
+      <div class="verify-email-icon" aria-hidden="true">✉️</div>
+      <h2>Check your email</h2>
+      <p>We've sent a verification link to<br><span id="verify-email-address" class="verify-email-address"></span></p>
+      <p>Click the link in the email to verify your account and get started.</p>
+      <p style="color:var(--text-tertiary);font-size:var(--text-xs);margin-top:1.5rem;">
+        Didn't receive it? Check your spam folder or
+        <button type="button" id="resend-btn" class="resend-link">resend verification email</button>
+      </p>
+      <p id="resend-status" class="resend-status" aria-live="polite"></p>
+    </div>
 
     <!-- Footer link -->
     <p class="signup-footer-link">
@@ -865,6 +944,22 @@
   // ── Form submission ─────────────────────────────────────
   var form = document.getElementById('signup-form');
   var submitBtn = form.querySelector('.signup-submit');
+  var verifyPanel = document.getElementById('verify-email-panel');
+  var verifyEmailAddr = document.getElementById('verify-email-address');
+  var resendBtn = document.getElementById('resend-btn');
+  var resendStatus = document.getElementById('resend-status');
+  var _signupEmail = '';
+
+  function showVerificationPanel(email) {
+    _signupEmail = email;
+    form.style.display = 'none';
+    document.querySelector('.oauth-group').style.display = 'none';
+    document.querySelector('.signup-separator').style.display = 'none';
+    var tabBar = document.querySelector('.tab-bar');
+    if (tabBar) tabBar.style.display = 'none';
+    verifyEmailAddr.textContent = email;
+    verifyPanel.classList.add('visible');
+  }
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -905,39 +1000,19 @@
       submitBtn.classList.remove('loading');
       submitBtn.disabled = false;
       if (result.status >= 200 && result.status < 300) {
-        // Store session info
+        // Check if email verification is required
+        if (result.data && result.data.requires_verification) {
+          showVerificationPanel(result.data.email || payload.email);
+          return;
+        }
+        // Legacy path: direct login (if server auto-validates)
         if (result.data && result.data.account_id) {
           localStorage.setItem('murphy_user_id', result.data.account_id);
         }
         if (result.data && result.data.session_token) {
           localStorage.setItem('murphy_session_token', result.data.session_token);
         }
-        var urlParams = new URLSearchParams(window.location.search);
-        var tier = urlParams.get('tier');
-        var interval = urlParams.get('interval');
-        var accountId = result.data && result.data.account_id;
-        if (tier && interval && accountId) {
-          fetch('/api/billing/checkout', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ account_id: accountId, tier: tier, interval: interval })
-          })
-          .then(function (r) { return r.json(); })
-          .then(function (billing) {
-            if (billing && billing.approval_url) {
-              window.location.href = billing.approval_url;
-            } else {
-              showFormError('Account created! Payment setup could not be completed — you can subscribe from your dashboard. Redirecting…');
-              setTimeout(function () { window.location.href = '/ui/onboarding'; }, 3000);
-            }
-          })
-          .catch(function () {
-            showFormError('Account created! Payment setup could not be completed — you can subscribe from your dashboard. Redirecting…');
-            setTimeout(function () { window.location.href = '/ui/onboarding'; }, 3000);
-          });
-        } else {
-          window.location.href = '/ui/onboarding';
-        }
+        window.location.href = '/ui/onboarding';
       } else {
         var errMsg = result.data.message || result.data.error || result.data.detail || 'Signup failed. Please try again.';
         if (typeof errMsg === 'object') errMsg = errMsg.msg || errMsg.message || errMsg.detail || JSON.stringify(errMsg);
@@ -948,6 +1023,38 @@
       submitBtn.classList.remove('loading');
       submitBtn.disabled = false;
       showFormError('Network error — please check your connection and try again.');
+    });
+  });
+
+  // ── Resend verification email ──────────────────────────
+  resendBtn.addEventListener('click', function () {
+    if (!_signupEmail) return;
+    resendBtn.disabled = true;
+    resendStatus.textContent = 'Sending…';
+    resendStatus.style.color = 'var(--text-secondary)';
+
+    fetch('/api/auth/resend-verification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: _signupEmail })
+    })
+    .then(function (res) { return res.json(); })
+    .then(function (data) {
+      if (data && data.already_verified) {
+        resendStatus.textContent = 'Email already verified — redirecting to sign in…';
+        resendStatus.style.color = 'var(--teal)';
+        setTimeout(function () { window.location.href = '/ui/login'; }, 2000);
+        return;
+      }
+      resendStatus.textContent = 'Verification email sent! Check your inbox.';
+      resendStatus.style.color = 'var(--teal)';
+      // Re-enable after 60 seconds to prevent spam
+      setTimeout(function () { resendBtn.disabled = false; resendStatus.textContent = ''; }, 60000);
+    })
+    .catch(function () {
+      resendStatus.textContent = 'Could not resend — please try again later.';
+      resendStatus.style.color = 'var(--danger)';
+      setTimeout(function () { resendBtn.disabled = false; }, 5000);
     });
   });
 
