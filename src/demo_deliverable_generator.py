@@ -5878,7 +5878,7 @@ def _build_agent_task_list(
 # detailed than a single LLM call could produce.
 # =========================================================================
 
-_SWARM_MAX_WORKERS = 8  # Bounded parallelism for concurrent agent LLM calls
+_SWARM_MAX_WORKERS = 1  # PATCH-013b: Sequential for Ollama local model (single-threaded)
 
 
 def _execute_single_agent_task(
@@ -5939,7 +5939,8 @@ def _execute_single_agent_task(
             temperature=0.7,
             max_tokens=16384,
         )
-        if completion.content and completion.provider != "onboard":
+        # PATCH-013a: Accept onboard (Ollama) provider — previously rejected by mistake
+        if completion.content:
             content = completion.content
             logger.info(
                 "Swarm agent %s (%s) completed: %d chars via %s",
