@@ -5594,6 +5594,52 @@ def create_app() -> FastAPI:
             logger.debug("Could not persist task to murphy.tasks: %s", _exc)
         return JSONResponse({"success": True, "task": task, "id": task["id"]}, status_code=201)
 
+    @app.put("/api/tasks/{task_id}")
+    async def update_task(task_id: str, request: Request):
+        """Update an existing task by ID.
+        PATCH-008: Add task update endpoint.
+        """
+        account = _get_account_from_session(request)
+        if not account:
+            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": {"code": "BAD_REQUEST"}}, status_code=400)
+        tasks = getattr(murphy, "tasks", None)
+        if isinstance(tasks, list):
+            for i, t in enumerate(tasks):
+                if t.get("id") == task_id:
+                    from datetime import datetime as _dt, timezone as _tz
+                    tasks[i].update({k: v for k, v in body.items() if k not in ("id","created_by","created_at")})
+                    tasks[i]["updated_at"] = _dt.now(_tz.utc).isoformat()
+                    return JSONResponse({"success": True, "task": tasks[i]})
+        elif isinstance(tasks, dict) and task_id in tasks:
+            from datetime import datetime as _dt, timezone as _tz
+            tasks[task_id].update({k: v for k, v in body.items() if k not in ("id","created_by","created_at")})
+            tasks[task_id]["updated_at"] = _dt.now(_tz.utc).isoformat()
+            return JSONResponse({"success": True, "task": tasks[task_id]})
+        return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": f"Task {task_id} not found"}}, status_code=404)
+
+    @app.delete("/api/tasks/{task_id}")
+    async def delete_task(task_id: str, request: Request):
+        """Delete a task by ID.
+        PATCH-008: Add task delete endpoint.
+        """
+        account = _get_account_from_session(request)
+        if not account:
+            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
+        tasks = getattr(murphy, "tasks", None)
+        if isinstance(tasks, list):
+            for i, t in enumerate(tasks):
+                if t.get("id") == task_id:
+                    tasks.pop(i)
+                    return JSONResponse({"success": True, "deleted": task_id})
+        elif isinstance(tasks, dict) and task_id in tasks:
+            del tasks[task_id]
+            return JSONResponse({"success": True, "deleted": task_id})
+        return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": f"Task {task_id} not found"}}, status_code=404)
+
     # ==================== PRODUCTION QUEUE ENDPOINTS ====================
 
     _production_queue: List[Dict[str, Any]] = []
@@ -12825,6 +12871,50 @@ def create_app() -> FastAPI:
             {"success": False, "error": {"code": "VALIDATION_ERROR", "message": str(exc)}},
             status_code=422,
         )
+
+    # ═══════════════════════════════════════════════════════
+    # PATCH-008: /api/calendar/* aliases for /api/roi-calendar/*
+    # The ROI calendar is the primary calendar engine in this system.
+    # Standard /api/calendar/* paths are aliased here for API consistency.
+    # ═══════════════════════════════════════════════════════
+    @app.get("/api/calendar/events")
+    async def calendar_events_list(request: Request):
+        """List calendar events. Alias for /api/roi-calendar/events."""
+        return JSONResponse({"ok": True, "events": list(_roi_calendar_store), "total": len(_roi_calendar_store)})
+
+    @app.post("/api/calendar/events")
+    async def calendar_events_create(request: Request):
+        """Create a calendar event. Alias for /api/roi-calendar/events.
+        PATCH-008: add calendar POST so clients can create events via standard path.
+        """
+        account = _get_account_from_session(request)
+        if not account:
+            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": {"code": "BAD_REQUEST"}}, status_code=400)
+        import uuid as _uuid_cal
+        from datetime import datetime as _dt_cal, timezone as _tz_cal
+        evt = {
+            "id": str(_uuid_cal.uuid4()),
+            "title": body.get("title", "Untitled Event"),
+            "description": body.get("description", ""),
+            "start_time": body.get("start_time") or body.get("start") or _dt_cal.now(_tz_cal.utc).isoformat(),
+            "end_time": body.get("end_time") or body.get("end") or _dt_cal.now(_tz_cal.utc).isoformat(),
+            "all_day": body.get("all_day", False),
+            "color": body.get("color", "#00D4AA"),
+            "tags": body.get("tags", []),
+            "created_by": account.get("account_id", ""),
+            "created_at": _dt_cal.now(_tz_cal.utc).isoformat(),
+        }
+        _roi_calendar_store.append(evt)
+        return JSONResponse({"success": True, "event": evt, "id": evt["id"]}, status_code=201)
+
+    @app.get("/api/calendar/summary")
+    async def calendar_summary(request: Request):
+        """Calendar summary. Alias for /api/roi-calendar/summary."""
+        return JSONResponse({"ok": True, "count": len(_roi_calendar_store), "events": list(_roi_calendar_store)})
 
     @app.exception_handler(Exception)
     async def _general_exception_handler(_req: _FARequest, exc: Exception):
