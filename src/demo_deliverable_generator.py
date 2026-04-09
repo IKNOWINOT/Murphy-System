@@ -4120,8 +4120,10 @@ def _build_agent_specific_fallback_content(
     # to task keyword matching.  This ensures SecurityAuditor is not
     # misrouted when its task description mentions "requirements".
     if "scope" in role_lower:
+        logger.warning("USING FALLBACK TEMPLATE: scope_analysis — LLM unavailable")
         return _fallback_scope_analysis(query, task_desc)
     if "requirement" in role_lower:
+        logger.warning("USING FALLBACK TEMPLATE: requirements — LLM unavailable")
         return _fallback_requirements(query, task_desc)
     if "architect" in role_lower:
         return _fallback_architecture(query, task_desc)
