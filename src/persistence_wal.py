@@ -271,7 +271,7 @@ class SQLiteWALBackend:
                 "Applying migration %d: %s",
                 version,
                 name,
-                extra={"version": version, "name": name},
+                extra={"version": version, "migration_name": name},
             )
             with self._lock:
                 try:

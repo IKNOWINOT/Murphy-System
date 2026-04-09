@@ -1,0 +1,14 @@
+[0;1;32m●[0m murphy-production.service - Murphy System 1.0 Production
+     Loaded: loaded (]8;;file://ubuntu-8gb-hil-1/etc/systemd/system/murphy-production.service/etc/systemd/system/murphy-production.service]8;;; [0;1;32menabled[0m; preset: [0;1;32menabled[0m)
+    Drop-In: /etc/systemd/system/murphy-production.service.d
+             └─]8;;file://ubuntu-8gb-hil-1/etc/systemd/system/murphy-production.service.d/override.confoverride.conf]8;;
+     Active: [0;1;32mactive (running)[0m since Mon 2026-03-23 20:13:49 UTC; 1s ago
+   Main PID: 965934 (python3)
+      Tasks: 2 (limit: 9255)
+     Memory: 60.3M (peak: 60.3M)
+        CPU: 1.861s
+     CGroup: /system.slice/murphy-production.service
+             └─[0;38;5;245m965934 "/opt/Murphy-System/Murphy System/venv/bin/python3" "/opt/Murphy-System/Murphy System/venv/bin/uvicorn" src.runtime.app:create_app --factory --host 0.0.0.0 --port 8000 --workers 1 --log-level warning --no-access-log --timeout-keep-alive 65[0m
+
+Mar 23 20:13:49 ubuntu-8gb-hil-1 systemd[1]: murphy-production.service: Scheduled restart job, restart counter is at 5.
+Mar 23 20:13:49 ubuntu-8gb-hil-1 systemd[1]: Started murphy-production.service - Murphy System 1.0 Production.
