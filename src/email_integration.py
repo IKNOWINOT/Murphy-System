@@ -273,10 +273,20 @@ class SMTPBackend(EmailBackend):
         all_recipients = message.to + message.cc + message.bcc
 
         try:
+            import ssl as _ssl_mod
+            # PATCH-006: tls_context with configurable cert verification
+            # Set SMTP_TLS_VERIFY=false for self-signed / local mail servers
+            _smtp_verify = os.getenv("SMTP_TLS_VERIFY", "true").lower() != "false"
+            _smtp_tls_ctx = _ssl_mod.create_default_context()
+            if not _smtp_verify:
+                _smtp_tls_ctx.check_hostname = False
+                _smtp_tls_ctx.verify_mode = _ssl_mod.CERT_NONE
+
             smtp_kwargs: Dict[str, Any] = {
                 "hostname": self._host,
                 "port": self._port,
                 "use_tls": self._use_tls,
+                "tls_context": _smtp_tls_ctx,
             }
             if self._username and self._password:
                 smtp_kwargs["username"] = self._username
