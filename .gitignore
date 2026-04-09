@@ -123,3 +123,12 @@ telemetry_evidence/telemetry_log.jsonl
 
 # Server-generated pip lockfile (environment-specific, regenerated on deploy)
 requirements.lock
+
+# Generated UI artifacts from agent sessions
+Murphy System/tests/*.html
+Murphy System/tests/murphy_landing_page.html
+Murphy System/tests/murphy_system_1.0_runtime.py
+Murphy System/tests/murphy_terminal.py
+
+# Agent-generated solution paths
+data/solution_paths/*.json
