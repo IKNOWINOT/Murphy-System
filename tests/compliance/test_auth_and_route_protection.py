@@ -58,19 +58,27 @@ def client():
 
 @pytest.fixture
 def auth_client(client):
-    """Create an authenticated test client by signing up a fresh user."""
+    """Create an authenticated test client by signing up and logging in."""
+    email = f"test_{os.urandom(4).hex()}@example.com"
     resp = client.post("/api/auth/signup", json={
-        "email": f"test_{os.urandom(4).hex()}@example.com",
+        "email": email,
         "password": "SecurePass123!",
         "full_name": "Test User",
         "job_title": "Tester",
         "company": "TestCorp",
     })
-    assert resp.status_code == 200
+    assert resp.status_code == 201
     data = resp.json()
     assert data["success"] is True
-    # The response sets a murphy_session cookie
-    return client, data
+
+    # Log in to get a session (login validates credentials, not email status)
+    login_resp = client.post("/api/auth/login", json={
+        "email": email,
+        "password": "SecurePass123!",
+    })
+    login_data = login_resp.json()
+    assert login_data.get("success") is True
+    return client, login_data
 
 
 # ===========================================================================
@@ -86,34 +94,33 @@ class TestSignup:
             "job_title": "Dev",
             "company": "TestCo",
         })
-        assert resp.status_code == 200
+        assert resp.status_code == 201
         data = resp.json()
         assert data["success"] is True
-        assert data["account_id"]
+        assert data["requires_verification"] is True
         assert data["email"] == "signup_test@example.com"
-        assert data["tier"] == "free"
 
-    def test_signup_returns_session_token(self, client):
-        """Signup response must include session_token so the frontend can mirror
-        it to localStorage for the MurphyAPI Bearer-token path."""
+    def test_signup_returns_verification_required(self, client):
+        """Signup response must indicate email verification is needed
+        and NOT return a session token (session is created on verification)."""
         resp = client.post("/api/auth/signup", json={
             "email": "session_token_signup@example.com",
             "password": "TestPass123!",
             "full_name": "Token Test",
         })
-        assert resp.status_code == 200
+        assert resp.status_code == 201
         data = resp.json()
-        assert "session_token" in data, "signup response must contain session_token"
-        assert data["session_token"], "session_token must be non-empty"
+        assert data["requires_verification"] is True
+        assert "session_token" not in data, "signup must not return session_token before email verification"
 
-    def test_signup_sets_session_cookie(self, client):
+    def test_signup_does_not_set_session_cookie(self, client):
         resp = client.post("/api/auth/signup", json={
             "email": "cookie_test@example.com",
             "password": "TestPass123!",
             "full_name": "Cookie Test",
         })
-        assert resp.status_code == 200
-        assert "murphy_session" in resp.cookies
+        assert resp.status_code == 201
+        assert "murphy_session" not in resp.cookies, "signup must not set session cookie before email verification"
 
     def test_signup_requires_email(self, client):
         resp = client.post("/api/auth/signup", json={
@@ -136,7 +143,7 @@ class TestSignup:
             "email": email,
             "password": "TestPass123!",
         })
-        assert resp1.status_code == 200
+        assert resp1.status_code == 201
         resp2 = client.post("/api/auth/signup", json={
             "email": email,
             "password": "TestPass123!",
@@ -188,7 +195,7 @@ class TestLogin:
         assert data["session_token"], "session_token must be non-empty"
 
     def test_bearer_token_auth_using_session_token(self, client):
-        """A session_token from signup must authenticate subsequent API requests
+        """A session_token from login must authenticate subsequent API requests
         when sent as Authorization: Bearer <token> (Fix 2 for MurphyAPI).
 
         Uses a cookie-free TestClient that shares the SAME app instance (and
@@ -196,12 +203,17 @@ class TestLogin:
         client, so the token is resolvable without needing the cookie.
         """
         email = "bearer_auth_test@example.com"
-        signup_resp = client.post("/api/auth/signup", json={
+        client.post("/api/auth/signup", json={
             "email": email,
             "password": "TestPass123!",
             "full_name": "Bearer Auth Test",
         })
-        token = signup_resp.json()["session_token"]
+        # Login to get a session token (signup no longer returns one)
+        login_resp = client.post("/api/auth/login", json={
+            "email": email,
+            "password": "TestPass123!",
+        })
+        token = login_resp.json()["session_token"]
         # Share the same app (same _session_store) but use a fresh, cookie-free
         # TestClient so we verify the Bearer-header path, not the cookie path.
         from starlette.testclient import TestClient
@@ -211,7 +223,7 @@ class TestLogin:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert resp.status_code == 200, (
-            f"Bearer token from signup should authenticate /api/profiles/me, got {resp.status_code}"
+            f"Bearer token from login should authenticate /api/profiles/me, got {resp.status_code}"
         )
 
     def test_login_with_wrong_password(self, client):
@@ -268,7 +280,8 @@ class TestProfile:
         assert data["found"] is True
         assert data["email"]
         assert data["tier"] == "free"
-        assert data["email_validated"] is True
+        # email_validated is False until user clicks the verification link
+        assert data["email_validated"] is False
         assert data["eula_accepted"] is True
         assert "daily_usage" in data
         assert "terminal_config" in data
@@ -305,7 +318,14 @@ class TestLogout:
             "email": email,
             "password": "TestPass123!",
         })
-        assert signup_resp.status_code == 200
+        assert signup_resp.status_code == 201
+
+        # Login to get a session (signup no longer sets session cookie)
+        login_resp = client.post("/api/auth/login", json={
+            "email": email,
+            "password": "TestPass123!",
+        })
+        assert login_resp.status_code == 200
 
         # Verify profile works
         profile_resp = client.get("/api/profiles/me")
@@ -339,10 +359,16 @@ class TestSessionTokenEndpoint:
     def test_returns_token_for_authenticated_session(self, client):
         """Authenticated user (cookie present) should get their session token."""
         c = self._fresh_client(client)
+        email = f"st_auth_{os.urandom(4).hex()}@example.com"
         c.post("/api/auth/signup", json={
-            "email": f"st_auth_{os.urandom(4).hex()}@example.com",
+            "email": email,
             "password": "TestPass123!",
             "full_name": "Session Token Test",
+        })
+        # Login to establish a session (signup no longer sets session cookie)
+        c.post("/api/auth/login", json={
+            "email": email,
+            "password": "TestPass123!",
         })
         resp = c.get("/api/auth/session-token")
         assert resp.status_code == 200
@@ -360,19 +386,25 @@ class TestSessionTokenEndpoint:
         resp = c.get("/api/auth/session-token")
         assert resp.status_code == 401
 
-    def test_session_token_matches_signup_token(self, client):
-        """The token returned by the endpoint must match the one in the signup body."""
+    def test_session_token_matches_login_token(self, client):
+        """The token returned by the endpoint must match the one in the login body."""
         c = self._fresh_client(client)
-        signup_resp = c.post("/api/auth/signup", json={
-            "email": f"st_match_{os.urandom(4).hex()}@example.com",
+        email = f"st_match_{os.urandom(4).hex()}@example.com"
+        c.post("/api/auth/signup", json={
+            "email": email,
             "password": "TestPass123!",
         })
-        signup_token = signup_resp.json()["session_token"]
+        # Login to get a session token
+        login_resp = c.post("/api/auth/login", json={
+            "email": email,
+            "password": "TestPass123!",
+        })
+        login_token = login_resp.json()["session_token"]
         endpoint_resp = c.get("/api/auth/session-token")
         assert endpoint_resp.status_code == 200
         endpoint_token = endpoint_resp.json()["session_token"]
-        assert signup_token == endpoint_token, (
-            "Token from /api/auth/session-token must equal the signup session_token"
+        assert login_token == endpoint_token, (
+            "Token from /api/auth/session-token must equal the login session_token"
         )
 
 
@@ -738,8 +770,14 @@ class TestSessionPersistence:
                 "password": "PersistPass123!",
                 "full_name": "Persist Test",
             })
-            assert resp.status_code == 200
-            token = resp.json()["session_token"]
+            assert resp.status_code == 201
+            # Login to get a session token (signup no longer returns one)
+            login_resp = c1.post("/api/auth/login", json={
+                "email": "persist_test@example.com",
+                "password": "PersistPass123!",
+            })
+            assert login_resp.status_code == 200
+            token = login_resp.json()["session_token"]
             assert token
 
             # Simulate restart: create a NEW app instance (same DB file)
@@ -847,13 +885,21 @@ class TestSessionPersistence:
         # Use an isolated client (fresh cookie jar) so the session cookie
         # from this test doesn't interfere with the module-scoped client.
         c = TestClient(client.app, follow_redirects=False)
+        email = "st_endpoint_fixed@example.com"
         signup_resp = c.post("/api/auth/signup", json={
-            "email": "st_endpoint_fixed@example.com",
+            "email": email,
             "password": "StEndpoint1!",
         })
-        assert signup_resp.status_code == 200
-        signup_token = signup_resp.json()["session_token"]
+        assert signup_resp.status_code == 201
+
+        # Login to get a session token (signup no longer returns one)
+        login_resp = c.post("/api/auth/login", json={
+            "email": email,
+            "password": "StEndpoint1!",
+        })
+        assert login_resp.status_code == 200
+        login_token = login_resp.json()["session_token"]
 
         endpoint_resp = c.get("/api/auth/session-token")
         assert endpoint_resp.status_code == 200
-        assert endpoint_resp.json().get("session_token") == signup_token
+        assert endpoint_resp.json().get("session_token") == login_token
