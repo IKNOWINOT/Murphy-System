@@ -8083,6 +8083,9 @@ def create_app() -> FastAPI:
         try:
             created_str = token_data.get("created_at", "")
             created_dt = datetime.fromisoformat(created_str)
+            # Ensure timezone-aware comparison
+            if created_dt.tzinfo is None:
+                created_dt = created_dt.replace(tzinfo=timezone.utc)
             if (datetime.now(timezone.utc) - created_dt).total_seconds() > _VERIFICATION_EXPIRY_SECONDS:
                 _verification_tokens.pop(token, None)
                 return HTMLResponse(
@@ -8095,7 +8098,18 @@ def create_app() -> FastAPI:
                     status_code=400,
                 )
         except Exception:
-            pass  # If date parsing fails, allow verification to proceed
+            # If expiry validation fails, reject the token to avoid bypassing expiry
+            logger.warning("Verification token expiry check failed for token, rejecting")
+            _verification_tokens.pop(token, None)
+            return HTMLResponse(
+                '<html><body style="background:#0a0a0a;color:#ff4444;font-family:sans-serif;'
+                'display:flex;align-items:center;justify-content:center;min-height:100vh;">'
+                '<div style="text-align:center"><h2>Verification error</h2>'
+                '<p>Could not validate this link. Please request a new one.</p>'
+                '<a href="/ui/signup" style="color:#00D4AA;">Sign up</a></div>'
+                '</body></html>',
+                status_code=400,
+            )
 
         account_id = token_data["account_id"]
         account = _user_store.get(account_id)
