@@ -23,15 +23,398 @@ License: BSL 1.1 — Inoni LLC / Corey Post
 """
 from __future__ import annotations
 
+import base64
 import hashlib
+import io
 import logging
 import re
+import uuid as _uuid_stdlib
+import zipfile
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from murphy_identity import MURPHY_SYSTEM_IDENTITY
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Pipeline Error Tracker  (label: FORGE-ERR-TRACKER-001)
+# ---------------------------------------------------------------------------
+# Accumulates every error/fallback that occurs during a single pipeline run
+# so the final log entry shows the full combination of failures that led
+# to the output the user received.
+# ---------------------------------------------------------------------------
+
+class PipelineErrorTracker:
+    """Track every fallback and error through a single forge pipeline run."""
+
+    def __init__(self, query: str) -> None:
+        self.query = query[:120]
+        self.run_id = _uuid_stdlib.uuid4().hex[:12]
+        self.errors: List[Dict[str, str]] = []
+        self.fallbacks: List[str] = []
+        self.path_taken: List[str] = []
+        self._start = datetime.now(timezone.utc)
+
+    def record_error(self, code: str, component: str, message: str) -> None:
+        """Record a specific error with its labelled code."""
+        entry = {
+            "code": code,
+            "component": component,
+            "message": str(message)[:300],
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        self.errors.append(entry)
+        logger.error(
+            "%s [%s] %s — query: %s (run=%s)",
+            code, component, message, self.query, self.run_id,
+        )
+
+    def record_fallback(self, component: str, reason: str) -> None:
+        """Record when a component falls back to a secondary path."""
+        label = f"{component}: {reason}"
+        self.fallbacks.append(label)
+        logger.warning(
+            "FORGE-FALLBACK [%s] %s — query: %s (run=%s)",
+            component, reason, self.query, self.run_id,
+        )
+
+    def record_path(self, step: str) -> None:
+        """Record a pipeline step that was successfully executed."""
+        self.path_taken.append(step)
+
+    def summary(self) -> Dict[str, Any]:
+        """Return a summary of all errors, fallbacks, and path taken."""
+        elapsed = (datetime.now(timezone.utc) - self._start).total_seconds()
+        return {
+            "run_id": self.run_id,
+            "query": self.query,
+            "elapsed_seconds": round(elapsed, 2),
+            "path_taken": self.path_taken,
+            "error_count": len(self.errors),
+            "fallback_count": len(self.fallbacks),
+            "errors": self.errors,
+            "fallbacks": self.fallbacks,
+        }
+
+    def log_final_summary(self) -> None:
+        """Emit a single log line summarising the full pipeline run."""
+        s = self.summary()
+        if s["error_count"] == 0 and s["fallback_count"] == 0:
+            logger.info(
+                "FORGE-PIPELINE-SUMMARY run=%s path=[%s] errors=0 fallbacks=0 "
+                "elapsed=%.1fs query=%s",
+                self.run_id, " → ".join(self.path_taken),
+                s["elapsed_seconds"], self.query,
+            )
+        else:
+            logger.warning(
+                "FORGE-PIPELINE-SUMMARY run=%s path=[%s] errors=%d fallbacks=%d "
+                "elapsed=%.1fs error_codes=[%s] fallbacks=[%s] query=%s",
+                self.run_id, " → ".join(self.path_taken),
+                s["error_count"], s["fallback_count"], s["elapsed_seconds"],
+                ", ".join(e["code"] for e in self.errors),
+                " | ".join(self.fallbacks),
+                self.query,
+            )
+
+
+# ---------------------------------------------------------------------------
+# Multi-format deliverable output  (label: FORGE-MULTIFORMAT-001)
+# ---------------------------------------------------------------------------
+# Supported output formats beyond plain text.  Each format uses existing
+# Murphy infrastructure (document_export, demo_bundle_generator, drawing
+# engine) when available, with graceful fallback.
+# ---------------------------------------------------------------------------
+
+SUPPORTED_FORMATS = {
+    "txt":  {"label": "Plain Text (.txt)",           "mime": "text/plain",                           "ext": "txt"},
+    "pdf":  {"label": "PDF Document (.pdf)",         "mime": "application/pdf",                      "ext": "pdf"},
+    "html": {"label": "HTML Document (.html)",       "mime": "text/html",                            "ext": "html"},
+    "docx": {"label": "Microsoft Word (.docx)",      "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "ext": "docx"},
+    "zip":  {"label": "Project Bundle (.zip)",       "mime": "application/zip",                      "ext": "zip"},
+    "md":   {"label": "Markdown (.md)",              "mime": "text/markdown",                        "ext": "md"},
+}
+
+
+def convert_deliverable_format(
+    deliverable: Dict[str, Any],
+    target_format: str,
+    query: str = "",
+) -> Dict[str, Any]:
+    """Convert a text deliverable to the requested output format.
+
+    Returns a dict with ``content`` (base64-encoded for binary formats),
+    ``filename``, ``mime_type``, ``format``, and ``is_binary``.
+
+    Label: FORGE-MULTIFORMAT-001
+    """
+    content = deliverable.get("content", "")
+    title = deliverable.get("title", "Murphy Deliverable")
+    base_filename = deliverable.get("filename", "murphy-deliverable.txt")
+    stem = re.sub(r"\.[^.]+$", "", base_filename)
+
+    fmt_info = SUPPORTED_FORMATS.get(target_format, SUPPORTED_FORMATS["txt"])
+
+    if target_format == "txt":
+        return {
+            "content": content,
+            "filename": f"{stem}.txt",
+            "mime_type": fmt_info["mime"],
+            "format": "txt",
+            "is_binary": False,
+        }
+
+    if target_format == "md":
+        # Strip the branded wrapper — return raw markdown content
+        md_content = _strip_branded_wrapper(content)
+        return {
+            "content": md_content,
+            "filename": f"{stem}.md",
+            "mime_type": fmt_info["mime"],
+            "format": "md",
+            "is_binary": False,
+        }
+
+    if target_format == "html":
+        html_content = _convert_to_html(content, title)
+        return {
+            "content": html_content,
+            "filename": f"{stem}.html",
+            "mime_type": fmt_info["mime"],
+            "format": "html",
+            "is_binary": False,
+        }
+
+    if target_format == "pdf":
+        pdf_result = _convert_to_pdf(content, title)
+        return {
+            "content": pdf_result["content"],
+            "filename": f"{stem}.pdf",
+            "mime_type": fmt_info["mime"],
+            "format": "pdf",
+            "is_binary": True,
+        }
+
+    if target_format == "docx":
+        docx_result = _convert_to_docx(content, title)
+        return {
+            "content": docx_result["content"],
+            "filename": f"{stem}.docx",
+            "mime_type": fmt_info["mime"],
+            "format": "docx",
+            "is_binary": True,
+        }
+
+    if target_format == "zip":
+        zip_result = _convert_to_zip_bundle(deliverable, query)
+        return {
+            "content": zip_result["content"],
+            "filename": f"{stem}-bundle.zip",
+            "mime_type": fmt_info["mime"],
+            "format": "zip",
+            "is_binary": True,
+        }
+
+    # Unknown format — return as text
+    logger.warning("FORGE-MULTIFORMAT-ERR-001: Unknown format '%s' — returning txt", target_format)
+    return {
+        "content": content,
+        "filename": f"{stem}.txt",
+        "mime_type": "text/plain",
+        "format": "txt",
+        "is_binary": False,
+    }
+
+
+def _strip_branded_wrapper(content: str) -> str:
+    """Remove Murphy ASCII logo, metadata block, and license footer."""
+    lines = content.split("\n")
+    # Find content between the metadata block and license footer
+    start = 0
+    end = len(lines)
+    for i, line in enumerate(lines):
+        if line.startswith("═" * 20) and i > 5:
+            # First ═══ line after the logo is end of metadata block
+            start = i + 1
+            break
+    for i in range(len(lines) - 1, -1, -1):
+        if "LICENSE NOTICE" in lines[i]:
+            # Walk back to the ═══ line before the license
+            for j in range(i - 1, -1, -1):
+                if lines[j].startswith("═" * 20):
+                    end = j
+                    break
+            break
+    return "\n".join(lines[start:end]).strip()
+
+
+def _convert_to_html(content: str, title: str) -> str:
+    """Convert deliverable text to a styled HTML document."""
+    try:
+        from document_export.export_pipeline import ExportPipeline  # noqa: PLC0415
+        pipeline = ExportPipeline()
+        result = pipeline.export_sync(
+            source_output={"content": content, "title": title},
+            fmt="html",
+        )
+        if result and result.content:
+            return result.content
+    except Exception as exc:  # FORGE-MULTIFORMAT-ERR-002
+        logger.warning("FORGE-MULTIFORMAT-ERR-002: document_export HTML failed: %s — using built-in", exc)
+
+    # Built-in HTML conversion
+    import html as _html_mod
+    escaped = _html_mod.escape(content)
+    # Convert Murphy box-drawing to HTML formatting
+    escaped = re.sub(r"^(■ .+)$", r"<h2>\1</h2>", escaped, flags=re.MULTILINE)
+    escaped = re.sub(r"^(─{3,}.*)$", r"<hr>", escaped, flags=re.MULTILINE)
+    escaped = re.sub(r"^(═{3,}.*)$", r"<hr class='thick'>", escaped, flags=re.MULTILINE)
+    escaped = escaped.replace("\n", "<br>\n")
+    escaped = re.sub(r"□", "☐", escaped)
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{_html_mod.escape(title)}</title>
+<style>
+  body {{ font-family: 'Segoe UI', system-ui, sans-serif; max-width: 900px;
+         margin: 2rem auto; padding: 0 1rem; line-height: 1.6; color: #1a1a2e; }}
+  h2 {{ color: #1E3A5F; border-bottom: 2px solid #2E86AB; padding-bottom: .3rem; }}
+  hr {{ border: none; border-top: 1px solid #ccc; margin: 1.5rem 0; }}
+  hr.thick {{ border-top: 3px double #1E3A5F; }}
+  pre {{ background: #f5f7fa; padding: 1rem; border-radius: 4px; overflow-x: auto; }}
+  .header {{ text-align: center; padding: 2rem 0; border-bottom: 3px solid #1E3A5F; }}
+  .header h1 {{ color: #1E3A5F; margin: 0; }}
+  .meta {{ color: #666; font-size: 0.9rem; margin-top: 0.5rem; }}
+  .footer {{ margin-top: 3rem; padding-top: 1rem; border-top: 2px solid #1E3A5F;
+             font-size: 0.8rem; color: #888; text-align: center; }}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Murphy System</h1>
+  <p class="meta">{_html_mod.escape(title)} — Generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</p>
+</div>
+<div class="content">
+{escaped}
+</div>
+<div class="footer">
+  Generated by Murphy System — murphy.systems<br>
+  © {datetime.now(timezone.utc).year} Inoni Limited Liability Company (Corey Post)
+</div>
+</body>
+</html>"""
+
+
+def _convert_to_pdf(content: str, title: str) -> Dict[str, str]:
+    """Convert to PDF and return base64-encoded content."""
+    # Try document_export pipeline first
+    try:
+        from document_export.export_pipeline import ExportPipeline  # noqa: PLC0415
+        pipeline = ExportPipeline()
+        result = pipeline.export_sync(
+            source_output={"content": content, "title": title},
+            fmt="pdf",
+        )
+        if result and result.content:
+            # ExportPipeline already returns base64 for binary formats
+            return {"content": result.content}
+    except Exception as exc:  # FORGE-MULTIFORMAT-ERR-003
+        logger.warning("FORGE-MULTIFORMAT-ERR-003: document_export PDF failed: %s — trying fallback", exc)
+
+    # Try DocumentGenerationEngine
+    try:
+        from execution.document_generation_engine import DocumentGenerationEngine  # noqa: PLC0415
+        engine = DocumentGenerationEngine()
+        b64 = engine.render_pdf(content)
+        if b64 and isinstance(b64, str) and len(b64) > 100:
+            return {"content": b64}
+    except Exception as exc:  # FORGE-MULTIFORMAT-ERR-004
+        logger.warning("FORGE-MULTIFORMAT-ERR-004: DocumentGenerationEngine PDF failed: %s — using text fallback", exc)
+
+    # Last resort: base64-encode the HTML version
+    html_content = _convert_to_html(content, title)
+    return {"content": base64.b64encode(html_content.encode("utf-8")).decode("ascii")}
+
+
+def _convert_to_docx(content: str, title: str) -> Dict[str, str]:
+    """Convert to DOCX and return base64-encoded content."""
+    # Try document_export pipeline
+    try:
+        from document_export.export_pipeline import ExportPipeline  # noqa: PLC0415
+        pipeline = ExportPipeline()
+        result = pipeline.export_sync(
+            source_output={"content": content, "title": title},
+            fmt="word",
+        )
+        if result and result.content:
+            return {"content": result.content}
+    except Exception as exc:  # FORGE-MULTIFORMAT-ERR-005
+        logger.warning("FORGE-MULTIFORMAT-ERR-005: document_export DOCX failed: %s — trying fallback", exc)
+
+    # Try DocumentGenerationEngine
+    try:
+        from execution.document_generation_engine import DocumentGenerationEngine  # noqa: PLC0415
+        engine = DocumentGenerationEngine()
+        b64 = engine.render_word(content)
+        if b64 and isinstance(b64, str) and len(b64) > 100:
+            return {"content": b64}
+    except Exception as exc:  # FORGE-MULTIFORMAT-ERR-006
+        logger.warning("FORGE-MULTIFORMAT-ERR-006: DocumentGenerationEngine DOCX failed: %s — using text fallback", exc)
+
+    # Fallback: provide the content as base64-encoded plain text
+    return {"content": base64.b64encode(content.encode("utf-8")).decode("ascii")}
+
+
+def _convert_to_zip_bundle(deliverable: Dict[str, Any], query: str) -> Dict[str, str]:
+    """Create a ZIP bundle containing the deliverable in multiple formats.
+
+    The bundle includes:
+    - The original .txt deliverable
+    - An HTML version
+    - A Markdown version
+    - A README with project overview
+    """
+    content = deliverable.get("content", "")
+    title = deliverable.get("title", "Murphy Deliverable")
+    base_filename = deliverable.get("filename", "murphy-deliverable.txt")
+    stem = re.sub(r"\.[^.]+$", "", base_filename)
+    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M")
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        # Original text deliverable
+        zf.writestr(f"{stem}/{base_filename}", content)
+
+        # Markdown version
+        md_content = _strip_branded_wrapper(content)
+        zf.writestr(f"{stem}/{stem}.md", md_content)
+
+        # HTML version
+        html_content = _convert_to_html(content, title)
+        zf.writestr(f"{stem}/{stem}.html", html_content)
+
+        # README
+        readme = (
+            f"# {title}\n\n"
+            f"Generated by Murphy System on {now_str}\n\n"
+            f"## Query\n{query}\n\n"
+            f"## Contents\n"
+            f"- `{base_filename}` — Full branded deliverable (text)\n"
+            f"- `{stem}.md` — Markdown version (for editing)\n"
+            f"- `{stem}.html` — HTML version (for viewing/printing)\n\n"
+            f"## About\n"
+            f"This deliverable was generated by Murphy System's AI-powered\n"
+            f"forge pipeline. Visit https://murphy.systems for more.\n\n"
+            f"© {datetime.now(timezone.utc).year} Inoni LLC (Corey Post)\n"
+        )
+        zf.writestr(f"{stem}/README.md", readme)
+
+    b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+    return {"content": b64}
 
 # ---------------------------------------------------------------------------
 # Branding constants
@@ -2512,7 +2895,10 @@ def generate_predefined_deliverable(
 # MFGC — Multi-Factor Gate Controller
 # ---------------------------------------------------------------------------
 
-def _run_mfgc_gate(query: str) -> Dict[str, Any]:
+def _run_mfgc_gate(
+    query: str,
+    tracker: Optional[PipelineErrorTracker] = None,
+) -> Dict[str, Any]:
     """Gate the request through MFGC and return confidence + phase metadata.
 
     Returns a dict with pipeline diagnostics.  ``"success"`` is True only
@@ -2528,6 +2914,8 @@ def _run_mfgc_gate(query: str) -> Dict[str, Any]:
             request_type="deliverable_generation",
             parameters={"output_format": "deliverable", "domain": "business"},
         )
+        if tracker:
+            tracker.record_path("mfgc_ok")
         return {
             "confidence": result.final_confidence,
             "phases": result.phases_completed,
@@ -2536,11 +2924,17 @@ def _run_mfgc_gate(query: str) -> Dict[str, Any]:
             "success": result.success,
             "fallback": False,
         }
-    except ImportError as exc:
-        logger.warning("MFGC adapter not importable: %s — using onboard gate", exc)
+    except ImportError as exc:  # MFGC-IMPORT-ERR-001
+        logger.error("MFGC-IMPORT-ERR-001: MFGC adapter not importable: %s — using onboard gate", exc)
+        if tracker:
+            tracker.record_error("MFGC-IMPORT-ERR-001", "mfgc", str(exc))
+            tracker.record_fallback("mfgc", f"import failure: {exc}")
         return {"success": False, "fallback": True, "error": f"import: {exc}"}
-    except Exception as exc:
-        logger.warning("MFGC gate runtime error: %s — using onboard gate", exc)
+    except Exception as exc:  # MFGC-RUNTIME-ERR-001
+        logger.error("MFGC-RUNTIME-ERR-001: MFGC gate runtime error: %s — using onboard gate", exc)
+        if tracker:
+            tracker.record_error("MFGC-RUNTIME-ERR-001", "mfgc", str(exc))
+            tracker.record_fallback("mfgc", f"runtime: {exc}")
         return {"success": False, "fallback": True, "error": str(exc)}
 
 
@@ -2582,7 +2976,11 @@ def _build_mss_controller():
     return MSSController(iqe, cte, sim)
 
 
-def _run_mss_pipeline(query: str, mfgc_result: Dict[str, Any]) -> Dict[str, Any]:
+def _run_mss_pipeline(
+    query: str,
+    mfgc_result: Dict[str, Any],
+    tracker: Optional[PipelineErrorTracker] = None,
+) -> Dict[str, Any]:
     """Run the query through MSS Magnify then Solidify.
 
     Magnify and Solidify are independent of each other (both take the same
@@ -2602,18 +3000,79 @@ def _run_mss_pipeline(query: str, mfgc_result: Dict[str, Any]) -> Dict[str, Any]
             "mfgc_confidence": mfgc_result.get("confidence", 0.5),
         }
 
-        # Magnify and Solidify are independent — run concurrently
+        # Magnify and Solidify are independent — run concurrently.
+        # Track individual failures so we know exactly which operator failed.
         import concurrent.futures
+        mag = None
+        sol = None
+        mag_error = None
+        sol_error = None
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
             mag_future = pool.submit(mss.magnify, query, ctx)
             sol_future = pool.submit(mss.solidify, query, ctx)
-            mag = mag_future.result(timeout=60)
-            sol = sol_future.result(timeout=60)
 
-        return {
-            "magnify": mag.output,
-            "solidify": sol.output,
-            "governance": sol.governance_status,
+            try:
+                mag = mag_future.result(timeout=60)
+                if tracker:
+                    tracker.record_path("mss_magnify_ok")
+            except Exception as exc:  # MSS-MAGNIFY-ERR-001
+                mag_error = exc
+                logger.error(
+                    "MSS-MAGNIFY-ERR-001: Magnify operator failed: %s (%s) — query: %s",
+                    type(exc).__name__, exc, query[:80],
+                )
+                if tracker:
+                    tracker.record_error("MSS-MAGNIFY-ERR-001", "mss_magnify", str(exc))
+
+            try:
+                sol = sol_future.result(timeout=60)
+                if tracker:
+                    tracker.record_path("mss_solidify_ok")
+            except Exception as exc:  # MSS-SOLIDIFY-ERR-001
+                sol_error = exc
+                logger.error(
+                    "MSS-SOLIDIFY-ERR-001: Solidify operator failed: %s (%s) — query: %s",
+                    type(exc).__name__, exc, query[:80],
+                )
+                if tracker:
+                    tracker.record_error("MSS-SOLIDIFY-ERR-001", "mss_solidify", str(exc))
+
+        # Both failed — fall back entirely
+        if mag is None and sol is None:
+            if tracker:
+                tracker.record_fallback("mss_pipeline", "both Magnify and Solidify failed")
+            return {
+                "fallback": True,
+                "error": f"magnify: {mag_error}; solidify: {sol_error}",
+            }
+
+        # Log quality metrics from successful operators
+        mag_output = mag.output if mag else {}
+        sol_output = sol.output if sol else {}
+        mag_reqs = len(mag_output.get("functional_requirements", [])) if mag_output else 0
+        sol_steps = len(sol_output.get("implementation_steps", [])) if sol_output else 0
+        logger.info(
+            "MSS pipeline results: magnify=%s (reqs=%d), solidify=%s (steps=%d) — query: %s",
+            "ok" if mag else "FAILED", mag_reqs,
+            "ok" if sol else "FAILED", sol_steps,
+            query[:80],
+        )
+
+        if mag and not mag_output:
+            logger.warning("MSS-MAGNIFY-EMPTY-001: Magnify returned empty output for: %s", query[:80])
+            if tracker:
+                tracker.record_error("MSS-MAGNIFY-EMPTY-001", "mss_magnify", "empty output dict")
+
+        if sol and not sol_output:
+            logger.warning("MSS-SOLIDIFY-EMPTY-001: Solidify returned empty output for: %s", query[:80])
+            if tracker:
+                tracker.record_error("MSS-SOLIDIFY-EMPTY-001", "mss_solidify", "empty output dict")
+
+        result = {
+            "magnify": mag_output,
+            "solidify": sol_output,
+            "governance": sol.governance_status if sol else "unavailable",
             "fallback": False,
             # WIRE-MSS-001: Surface quality & simulation metadata
             "magnify_quality": {
@@ -2622,14 +3081,14 @@ def _run_mss_pipeline(query: str, mfgc_result: Dict[str, Any]) -> Dict[str, Any]
                 "resolution_level": getattr(mag.output_quality, "resolution_level", None),
                 "recommendation": getattr(mag.output_quality, "recommendation", None),
                 "risk_indicators": getattr(mag.output_quality, "risk_indicators", []),
-            } if getattr(mag, "output_quality", None) else {},
+            } if mag and getattr(mag, "output_quality", None) else {},
             "solidify_quality": {
                 "cqi": getattr(sol.output_quality, "cqi", None),
                 "iqs": getattr(sol.output_quality, "iqs", None),
                 "resolution_level": getattr(sol.output_quality, "resolution_level", None),
                 "recommendation": getattr(sol.output_quality, "recommendation", None),
                 "risk_indicators": getattr(sol.output_quality, "risk_indicators", []),
-            } if getattr(sol, "output_quality", None) else {},
+            } if sol and getattr(sol, "output_quality", None) else {},
             "simulation": {
                 "cost_impact": getattr(sol.simulation, "cost_impact", None),
                 "complexity_impact": getattr(sol.simulation, "complexity_impact", None),
@@ -2641,13 +3100,27 @@ def _run_mss_pipeline(query: str, mfgc_result: Dict[str, Any]) -> Dict[str, Any]
                 "warnings": getattr(sol.simulation, "warnings", []),
                 "estimated_engineering_hours": getattr(sol.simulation, "estimated_engineering_hours", None),
                 "regulatory_implications": getattr(sol.simulation, "regulatory_implications", []),
-            } if getattr(sol, "simulation", None) else {},
+            } if sol and getattr(sol, "simulation", None) else {},
         }
-    except ImportError as exc:
-        logger.warning("MSS modules not importable: %s — using onboard pipeline", exc)
+
+        # Partial failure: one succeeded, one failed
+        if mag_error or sol_error:
+            result["partial_failure"] = True
+            result["magnify_error"] = str(mag_error) if mag_error else None
+            result["solidify_error"] = str(sol_error) if sol_error else None
+
+        return result
+    except ImportError as exc:  # MSS-IMPORT-ERR-001
+        logger.error("MSS-IMPORT-ERR-001: MSS modules not importable: %s — using onboard pipeline", exc)
+        if tracker:
+            tracker.record_error("MSS-IMPORT-ERR-001", "mss_pipeline", str(exc))
+            tracker.record_fallback("mss_pipeline", f"import failure: {exc}")
         return {"fallback": True, "error": f"import: {exc}"}
-    except Exception as exc:
-        logger.warning("MSS pipeline runtime error: %s — using onboard pipeline", exc)
+    except Exception as exc:  # MSS-RUNTIME-ERR-001
+        logger.error("MSS-RUNTIME-ERR-001: MSS pipeline runtime error: %s — using onboard pipeline", exc)
+        if tracker:
+            tracker.record_error("MSS-RUNTIME-ERR-001", "mss_pipeline", str(exc))
+            tracker.record_fallback("mss_pipeline", f"runtime: {exc}")
         return {"fallback": True, "error": str(exc)}
 
 
@@ -2655,7 +3128,10 @@ def _run_mss_pipeline(query: str, mfgc_result: Dict[str, Any]) -> Dict[str, Any]
 # Domain Expert Integration  (label: WIRE-EXPERT-001)
 # ---------------------------------------------------------------------------
 
-def _run_domain_expert_analysis(query: str) -> Dict[str, Any]:
+def _run_domain_expert_analysis(
+    query: str,
+    tracker: Optional[PipelineErrorTracker] = None,
+) -> Dict[str, Any]:
     """Run domain expert analysis and return structured results.
 
     Wraps ``DomainExpertIntegrator.analyze_project_request()`` with graceful
@@ -2667,12 +3143,18 @@ def _run_domain_expert_analysis(query: str) -> Dict[str, Any]:
         integrator = DomainExpertIntegrator()
         result = integrator.analyze_project_request(query)
         result["fallback"] = False
+        if tracker:
+            tracker.record_path("domain_expert_ok")
         return result
-    except ImportError as exc:
-        logger.debug("Domain expert integration not importable: %s", exc)
+    except ImportError as exc:  # EXPERT-IMPORT-ERR-001
+        logger.warning("EXPERT-IMPORT-ERR-001: Domain expert integration not importable: %s", exc)
+        if tracker:
+            tracker.record_error("EXPERT-IMPORT-ERR-001", "domain_expert", str(exc))
         return {"fallback": True, "error": f"import: {exc}"}
-    except Exception as exc:
-        logger.debug("Domain expert analysis failed: %s", exc)
+    except Exception as exc:  # EXPERT-RUNTIME-ERR-001
+        logger.warning("EXPERT-RUNTIME-ERR-001: Domain expert analysis failed: %s", exc)
+        if tracker:
+            tracker.record_error("EXPERT-RUNTIME-ERR-001", "domain_expert", str(exc))
         return {"fallback": True, "error": str(exc)}
 
 
@@ -3120,6 +3602,7 @@ def _generate_llm_content(
     mss_result: Optional[Dict[str, Any]] = None,
     librarian_context: Optional[str] = None,
     expert_result: Optional[Dict[str, Any]] = None,
+    tracker: Optional[PipelineErrorTracker] = None,
 ) -> str:
     """Generate deliverable content using the MFGC → MSS → LLM pipeline.
 
@@ -3248,9 +3731,25 @@ def _generate_llm_content(
                 "Deliverable generated via %s: %d chars, %d tokens",
                 completion.provider, len(completion.content), completion.tokens_total,
             )
+            if tracker:
+                tracker.record_path(f"llm_ok:{completion.provider}")
             return completion.content
-    except Exception as exc:
-        logger.warning("MurphyLLMProvider failed: %s — trying LLMController", exc)
+        # LLM returned empty or onboard — log explicitly
+        logger.warning(
+            "LLM-CONTENT-EMPTY-001: MurphyLLMProvider returned %s content "
+            "(provider=%s, len=%d) — trying next provider",
+            "onboard" if completion.provider == "onboard" else "empty",
+            completion.provider, len(completion.content or ""),
+        )
+        if tracker:
+            tracker.record_error(
+                "LLM-CONTENT-EMPTY-001", "llm_provider",
+                f"provider={completion.provider}, content_len={len(completion.content or '')}",
+            )
+    except Exception as exc:  # LLM-PROVIDER-ERR-001
+        logger.warning("LLM-PROVIDER-ERR-001: MurphyLLMProvider failed: %s — trying LLMController", exc)
+        if tracker:
+            tracker.record_error("LLM-PROVIDER-ERR-001", "llm_provider", str(exc))
 
     # ── Try 2: LLMController (async, broader model selection) ─────────────
     try:
@@ -3271,9 +3770,19 @@ def _generate_llm_content(
             response = asyncio.run(controller.query_llm(req))
         if response.content and len(response.content) > 200:
             logger.info("LLMController deliverable: %d chars", len(response.content))
+            if tracker:
+                tracker.record_path("llm_controller_ok")
             return response.content
-    except Exception as exc:
-        logger.warning("LLMController failed: %s — using MSS base or fallback", exc)
+        logger.warning(
+            "LLM-CONTROLLER-EMPTY-001: LLMController returned insufficient content (%d chars)",
+            len(response.content) if response.content else 0,
+        )
+        if tracker:
+            tracker.record_error("LLM-CONTROLLER-EMPTY-001", "llm_controller", "insufficient content")
+    except Exception as exc:  # LLM-CONTROLLER-ERR-001
+        logger.warning("LLM-CONTROLLER-ERR-001: LLMController failed: %s — using MSS base or fallback", exc)
+        if tracker:
+            tracker.record_error("LLM-CONTROLLER-ERR-001", "llm_controller", str(exc))
 
     # ── Try 3: LocalLLMFallback ───────────────────────────────────────────
     try:
@@ -3284,13 +3793,26 @@ def _generate_llm_content(
         # (which is not a real deliverable).
         if (content and len(content) > 100
                 and "LLM Unavailable" not in content[:80]):
+            if tracker:
+                tracker.record_path("local_llm_ok")
             return content
-    except Exception:
-        logger.debug("LocalLLMFallback unavailable")
+        logger.warning(
+            "LLM-LOCAL-EMPTY-001: LocalLLMFallback returned placeholder "
+            "content (%d chars) — using domain engine",
+            len(content) if content else 0,
+        )
+        if tracker:
+            tracker.record_error("LLM-LOCAL-EMPTY-001", "local_llm", "placeholder or empty content")
+    except Exception as exc:  # LLM-LOCAL-ERR-001
+        logger.warning("LLM-LOCAL-ERR-001: LocalLLMFallback unavailable: %s", exc)
+        if tracker:
+            tracker.record_error("LLM-LOCAL-ERR-001", "local_llm", str(exc))
 
     # ── Fallback: domain keyword engine (no LLM required) ─────────────────
     # Combine MSS structural output with domain-specific content for a richer
     # deliverable even when all LLM providers are down.
+    if tracker:
+        tracker.record_fallback("llm_content", "all LLM providers failed — using domain keyword engine")
     _fb_notice = (
         "■ NOTE: This deliverable was generated using Murphy System's built-in\n"
         "  knowledge engine (LLM providers are currently unavailable). Content is\n"
@@ -3299,10 +3821,16 @@ def _generate_llm_content(
         "    set key deepinfra di_...  (free key: https://deepinfra.com/keys)\n\n"
     )
     if base_content and domain_content:
+        if tracker:
+            tracker.record_path("fallback:mss+domain")
         return base_content + "\n\n" + _fb_notice + domain_content
     if base_content:
+        if tracker:
+            tracker.record_path("fallback:mss_only")
         return base_content
     if domain_content:
+        if tracker:
+            tracker.record_path("fallback:domain_only")
         return (
             f"■ DELIVERABLE OVERVIEW\n"
             f"───────────────────────\n"
@@ -3311,6 +3839,8 @@ def _generate_llm_content(
             f"{_fb_notice}"
             f"{domain_content}"
         )
+    if tracker:
+        tracker.record_path("fallback:minimal")
     return _build_minimal_custom_content(query)
 
 
@@ -4876,13 +5406,16 @@ def generate_deliverable_with_progress(
     """
     events: List[Dict[str, Any]] = []
 
+    # FORGE-ERR-TRACKER-001: Track every error and fallback through the pipeline
+    tracker = PipelineErrorTracker(query)
+
     # --- Phase 1: Scenario Detection / MFGC Gate --------------------------
     # Scenario detection provides *context* for the agents but never bypasses
     # the full pipeline.  Every query runs MFGC → MSS → swarm.
     scenario_key = _detect_scenario(query)
     is_predefined = False  # Always run the full pipeline (FORGE-PIPELINE-003)
 
-    mfgc_result = _run_mfgc_gate(query)
+    mfgc_result = _run_mfgc_gate(query, tracker=tracker)
     mfgc_ok = mfgc_result.get("success", False)
     mfgc_fallback = mfgc_result.get("fallback", True)
     phase1_status = (
@@ -4927,8 +5460,10 @@ def generate_deliverable_with_progress(
             "workflow_steps": len(workflow.get("steps", [])),
             "workflow_source": workflow.get("source", "auto"),
         })
-    except Exception as exc:
-        logger.warning("Workflow registry unavailable: %s — using default pipeline", exc)
+    except Exception as exc:  # WORKFLOW-RESOLVE-ERR-001
+        logger.warning("WORKFLOW-RESOLVE-ERR-001: Workflow registry unavailable: %s — using default pipeline", exc)
+        tracker.record_error("WORKFLOW-RESOLVE-ERR-001", "workflow_registry", str(exc))
+        tracker.record_fallback("workflow_registry", f"unavailable: {exc}")
         events.append({
             "phase": 2,
             "status": "Workflow registry unavailable — using default pipeline",
@@ -4941,15 +5476,24 @@ def generate_deliverable_with_progress(
     agent_tasks: List[Dict[str, str]] = []  # FORGE-SWARM-001: always initialised
     # Always run MSS and decompose into agent tasks
     mfgc_result_for_gen = mfgc_result
-    mss_result = _run_mss_pipeline(query, mfgc_result_for_gen)
+    mss_result = _run_mss_pipeline(query, mfgc_result_for_gen, tracker=tracker)
     mss_ok = not mss_result.get("fallback", True)
+    mss_partial = mss_result.get("partial_failure", False)
+    mss_status_detail = "mss"
+    if mss_ok and not mss_partial:
+        mss_status_msg = "MSS Magnify + Solidify — task decomposition complete"
+    elif mss_ok and mss_partial:
+        failed_ops = []
+        if mss_result.get("magnify_error"):
+            failed_ops.append("Magnify")
+        if mss_result.get("solidify_error"):
+            failed_ops.append("Solidify")
+        mss_status_msg = f"MSS partial — {', '.join(failed_ops)} failed, using available output"
+    else:
+        mss_status_msg = "MSS — onboard pipeline (modules unavailable)"
     events.append({
         "phase": 3,
-        "status": (
-            "MSS Magnify + Solidify — task decomposition complete"
-            if mss_ok
-            else "MSS — onboard pipeline (modules unavailable)"
-        ),
+        "status": mss_status_msg,
         "detail": "mss",
         "pipeline_stage": "mss",
         "mss_ok": mss_ok,
@@ -5015,9 +5559,14 @@ def generate_deliverable_with_progress(
                 # FORGE-SWARM-ERR-002: Report which agents failed
                 failed_names = [r.get("agent_name", "?") for r in failed]
                 logger.warning(
-                    "Swarm: %d/%d agents failed: %s",
-                    len(failed), len(agent_results), ", ".join(failed_names),
+                    "FORGE-SWARM-ERR-002: Swarm %d/%d agents failed: %s — query: %s",
+                    len(failed), len(agent_results), ", ".join(failed_names), query[:80],
                 )
+                for fr in failed:
+                    tracker.record_error(
+                        "FORGE-SWARM-ERR-002", f"swarm_agent:{fr.get('agent_name', '?')}",
+                        f"task={fr.get('task', '?')[:60]}",
+                    )
                 events.append({
                     "phase": 4,
                     "status": f"{len(failed)} agent(s) failed: {', '.join(failed_names[:5])}",
@@ -5059,6 +5608,7 @@ def generate_deliverable_with_progress(
                     )
                     deliverable = {"title": title, "content": txt, "filename": filename}
                     swarm_executed = True
+                    tracker.record_path(f"swarm_ok:{swarm_agent_count}_agents")
                     logger.info(
                         "FORGE-SWARM-001: Swarm deliverable complete — "
                         "%d agents, %d chars, quality=%d",
@@ -5071,6 +5621,11 @@ def generate_deliverable_with_progress(
                         "content (%d chars) — falling back to single-agent",
                         len(synth_content) if synth_content else 0,
                     )
+                    tracker.record_error(
+                        "FORGE-SWARM-ERR-003", "swarm_synthesis",
+                        f"insufficient content: {len(synth_content) if synth_content else 0} chars",
+                    )
+                    tracker.record_fallback("swarm", "synthesis produced empty content")
                     events.append({
                         "phase": 4,
                         "status": "Swarm synthesis produced insufficient content — single-agent fallback",
@@ -5084,6 +5639,11 @@ def generate_deliverable_with_progress(
                     "falling back to single-agent pipeline",
                     len(agent_results),
                 )
+                tracker.record_error(
+                    "FORGE-SWARM-ERR-004", "swarm",
+                    f"all {len(agent_results)} agents failed",
+                )
+                tracker.record_fallback("swarm", "all agents failed")
                 events.append({
                     "phase": 4,
                     "status": f"All {len(agent_results)} agents failed — single-agent fallback",
@@ -5098,6 +5658,8 @@ def generate_deliverable_with_progress(
                 "— falling back to single-agent pipeline",
                 type(exc).__name__, exc,
             )
+            tracker.record_error("FORGE-SWARM-ERR-005", "swarm_infra", str(exc))
+            tracker.record_fallback("swarm", f"infrastructure: {type(exc).__name__}: {exc}")
             events.append({
                 "phase": 4,
                 "status": f"Swarm execution error ({type(exc).__name__}) — single-agent fallback",
@@ -5115,6 +5677,10 @@ def generate_deliverable_with_progress(
                 "FORGE-SWARM-ERR-006: No agent tasks decomposed — "
                 "using single-agent pipeline for: %s", query[:80],
             )
+            tracker.record_fallback("swarm", "no agent tasks decomposed")
+        else:
+            tracker.record_fallback("swarm", "swarm failed — using single-agent")
+        tracker.record_path("single_agent_fallback")
         events.append({
             "phase": 4,
             "status": (
@@ -5136,6 +5702,10 @@ def generate_deliverable_with_progress(
             "%s path for query: %s",
             "swarm" if swarm_executed else "single-agent", query[:80],
         )
+        tracker.record_error(
+            "FORGE-SWARM-ERR-007", "deliverable_content",
+            f"empty content after {'swarm' if swarm_executed else 'single-agent'} path",
+        )
 
     word_count = len(content.split()) if content else 0
     line_count = content.count("\n") + 1 if content else 0
@@ -5151,8 +5721,9 @@ def generate_deliverable_with_progress(
     automation_spec: Optional[Dict[str, Any]] = None
     try:
         automation_spec = generate_automation_spec(query, librarian_context=librarian_context)
-    except Exception as exc:
-        logger.debug("Automation spec generation skipped (streaming): %s", exc)
+    except Exception as exc:  # AUTO-SPEC-ERR-001
+        logger.warning("AUTO-SPEC-ERR-001: Automation spec generation skipped (streaming): %s", exc)
+        tracker.record_error("AUTO-SPEC-ERR-001", "automation_spec", str(exc))
 
     # --- Persist the workflow for future reuse ------------------------------
     # The workflow is saved even if it was reused — usage metrics are updated.
@@ -5166,8 +5737,9 @@ def generate_deliverable_with_progress(
             workflow_id = workflow.get("workflow_id")
         if workflow_id:
             reg.record_usage(workflow_id, quality_score=quality_score)
-    except Exception as exc:
-        logger.debug("Workflow persistence skipped: %s", exc)
+    except Exception as exc:  # WORKFLOW-PERSIST-ERR-001
+        logger.warning("WORKFLOW-PERSIST-ERR-001: Workflow persistence skipped: %s", exc)
+        tracker.record_error("WORKFLOW-PERSIST-ERR-001", "workflow_persist", str(exc))
 
     # --- Phase 5: HITL Review  (label: FORGE-HITL-001) --------------------
     # Every output goes through platform-side HITL review for bug fixing.
@@ -5180,6 +5752,9 @@ def generate_deliverable_with_progress(
         "hitl_status": hitl_status,
     })
 
+    # --- Emit final pipeline summary ----------------------------------------
+    tracker.log_final_summary()
+
     # --- Done ---------------------------------------------------------------
     done_status = (
         f"Build complete — {swarm_agent_count}-agent swarm deliverable ready "
@@ -5191,6 +5766,8 @@ def generate_deliverable_with_progress(
         "phase": "done",
         "status": done_status,
         "deliverable": deliverable,
+        "available_formats": list(SUPPORTED_FORMATS.keys()),
+        "format_labels": {k: v["label"] for k, v in SUPPORTED_FORMATS.items()},
         "workflow": {
             "workflow_id": workflow_id or workflow.get("workflow_id"),
             "name": workflow.get("name"),
@@ -5208,6 +5785,7 @@ def generate_deliverable_with_progress(
             "swarm_executed": swarm_executed,
             "swarm_agent_count": swarm_agent_count,
         },
+        "pipeline_diagnostics": tracker.summary(),
     }
     # WIRE-SPEC-001: Include automation spec when available
     if automation_spec:

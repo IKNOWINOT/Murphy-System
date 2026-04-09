@@ -649,6 +649,37 @@ function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics,clientElaps
       if(isHtml){htmlBtn.classList.remove('forge-hidden');htmlBtn._content=content;}
       else htmlBtn.classList.add('forge-hidden');
     }
+
+    // --- Multi-format export buttons (FORGE-MULTIFORMAT-001) ---
+    var fmtContainer=document.getElementById('forge-format-btns');
+    if(!fmtContainer){
+      fmtContainer=document.createElement('div');
+      fmtContainer.id='forge-format-btns';
+      fmtContainer.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;';
+      chatActions.appendChild(fmtContainer);
+    }
+    fmtContainer.innerHTML='';
+    var _fmtDefs=[
+      {fmt:'pdf',label:'\u2193 PDF',icon:'\ud83d\udcc4'},
+      {fmt:'docx',label:'\u2193 Word',icon:'\ud83d\udcdd'},
+      {fmt:'html',label:'\u2193 HTML',icon:'\ud83c\udf10'},
+      {fmt:'md',label:'\u2193 Markdown',icon:'\u270f\ufe0f'},
+      {fmt:'zip',label:'\u2193 Bundle (.zip)',icon:'\ud83d\udce6'}
+    ];
+    _fmtDefs.forEach(function(fd){
+      var btn=document.createElement('button');
+      btn.className='forge-fmt-btn';
+      btn.textContent=fd.icon+' '+fd.label;
+      btn.style.cssText='padding:4px 10px;font-size:0.82rem;border:1px solid var(--teal,#2E86AB);'+
+        'border-radius:4px;background:transparent;color:var(--teal,#2E86AB);cursor:pointer;'+
+        'transition:background .2s,color .2s;';
+      btn.addEventListener('mouseenter',function(){btn.style.background='var(--teal,#2E86AB)';btn.style.color='#fff';});
+      btn.addEventListener('mouseleave',function(){btn.style.background='transparent';btn.style.color='var(--teal,#2E86AB)';});
+      btn.addEventListener('click',function(){
+        _exportDeliverable(deliverable,fd.fmt,_forgeQuery,btn);
+      });
+      fmtContainer.appendChild(btn);
+    });
   }
 
   // --- Populate stats panel below workspace ---
@@ -706,6 +737,54 @@ function _showResult(deliverable,usedRealApi,forgeUsage,buildMetrics,clientElaps
 
   resBlock.style.display='block';
   _setStatus('&#10003; Build complete — your deliverable is ready.','phase');
+}
+
+/* Export deliverable to different format via backend (FORGE-MULTIFORMAT-001) */
+function _exportDeliverable(deliverable,fmt,query,btn){
+  if(!deliverable||!deliverable.content)return;
+  var origText=btn.textContent;
+  btn.textContent='\u23f3 Converting...';
+  btn.disabled=true;
+  fetch('/api/demo/deliverable/export',{
+    method:'POST',
+    headers:_apiHeaders(),
+    credentials:'include',
+    body:JSON.stringify({deliverable:deliverable,format:fmt,query:query||''})
+  })
+  .then(function(r){return r.json().catch(function(){return null;});})
+  .then(function(data){
+    btn.textContent=origText;btn.disabled=false;
+    if(!data||!data.success){
+      _showForgeError('Export failed: '+(data&&data.error?data.error:'unknown error'));
+      return;
+    }
+    var fname=data.filename||('murphy-deliverable.'+fmt);
+    if(data.is_binary){
+      // Binary format — decode base64
+      try{
+        var raw=atob(data.content);
+        var bytes=new Uint8Array(raw.length);
+        for(var i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+        var blob=new Blob([bytes],{type:data.mime_type||'application/octet-stream'});
+        var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+        a.download=fname;
+        document.body.appendChild(a);a.click();document.body.removeChild(a);
+      }catch(e){
+        _showForgeError('Failed to decode '+fmt.toUpperCase()+' content');
+      }
+    }else{
+      // Text format — download directly
+      var blob=new Blob([data.content],{type:data.mime_type||'text/plain'});
+      var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+      a.download=fname;
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+    }
+    _setStatus('&#10003; '+fmt.toUpperCase()+' download started.','phase');
+  })
+  .catch(function(err){
+    btn.textContent=origText;btn.disabled=false;
+    _showForgeError('Export request failed: '+err.message);
+  });
 }
 
 /* Download via real API — retries up to 3 times with exponential backoff */
