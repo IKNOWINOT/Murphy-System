@@ -54,7 +54,7 @@ DEEPINFRA_MODEL_CONTEXT = 131072
 # Provider-specific timeouts (PATCH-013e)
 DEEPINFRA_TIMEOUT = float(os.getenv("DEEPINFRA_TIMEOUT", "30"))
 TOGETHER_TIMEOUT  = float(os.getenv("TOGETHER_TIMEOUT",  "30"))
-OLLAMA_TIMEOUT    = float(os.getenv("OLLAMA_TIMEOUT",   "120"))
+OLLAMA_TIMEOUT    = float(os.getenv("OLLAMA_TIMEOUT",   "15"))   # PATCH-015: fast-fail (was 120s)
 
 
 # ---------------------------------------------------------------------------
@@ -353,12 +353,20 @@ class MurphyLLMProvider:
         prompt = "\n".join(parts)
         start = _t.monotonic()
         try:
-            # PATCH-013h: truncate prompt to keep phi3 fast
-            prompt = prompt[:2000] if len(prompt) > 2000 else prompt
-            payload = _j.dumps({"model":model,"prompt":prompt,"stream":False,
-                                 "options":{"num_predict":800,"temperature":0.7}}).encode()  # PATCH-013h: phi3 concise
-            req = _ur.Request(host+"/api/generate", data=payload,
-                              headers={"Content-Type":"application/json"}, method="POST")
+            # PATCH-015: pre-flight ping — fail fast if Ollama is not responsive
+            try:
+                _ping = _ur.Request(host + "/api/tags", method="GET")
+                _ur.urlopen(_ping, timeout=3)
+            except Exception as _ping_exc:
+                logger.warning("Ollama pre-flight ping failed (%s) — skipping onboard fallback", _ping_exc)
+                return LLMCompletion(content="", model="none", provider="onboard",
+                                     request_id=request_id, success=False)
+            # PATCH-013h / PATCH-015: truncate prompt, cap tokens for speed
+            prompt = prompt[:1500] if len(prompt) > 1500 else prompt
+            payload = _j.dumps({"model": model, "prompt": prompt, "stream": False,
+                                 "options": {"num_predict": 400, "temperature": 0.7}}).encode()
+            req = _ur.Request(host + "/api/generate", data=payload,
+                              headers={"Content-Type": "application/json"}, method="POST")
             with _ur.urlopen(req, timeout=OLLAMA_TIMEOUT) as resp:
                 data = _j.loads(resp.read().decode())
                 content = data.get("response","").strip()
