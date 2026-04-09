@@ -954,6 +954,7 @@ class MurphyTerminalApp(App):
         self._update_status_url()
         self._check_connection()
         self._check_api_key_on_startup()
+        self.query_one("#user-input", MurphyInput).focus()  # focus input on start
 
     # -- connection --
 
@@ -1220,6 +1221,20 @@ class MurphyTerminalApp(App):
 
     # -- input handling --
 
+    def key_enter(self, event: events.Key) -> None:
+        """App-level Enter: submit input regardless of focused widget."""
+        try:
+            input_widget = self.query_one("#user-input", MurphyInput)
+            message = input_widget.value.strip()
+            if message:
+                input_widget.value = ""
+                self._write_user(message)
+                self._process_message(message)
+                event.prevent_default()
+                event.stop()
+        except Exception:
+            pass
+
     def on_input_submitted(self, event: Input.Submitted) -> None:
         message = event.value.strip()
         if not message:
@@ -1464,18 +1479,18 @@ class MurphyTerminalApp(App):
         write_env_key(env_path, env_var, key_value)
         write_env_key(env_path, "MURPHY_LLM_PROVIDER", provider)
 
-        # Hot-reload into current process
+        # Hot-reload into current process immediately (before backend call)
         os.environ[env_var] = key_value
         os.environ["MURPHY_LLM_PROVIDER"] = provider
         reload_env(env_path)
 
-        # Notify the backend to hot-reload its LLM config
+        # Notify the backend to hot-reload its LLM config (non-fatal if unreachable)
         configure_result = self.client.configure_llm(provider, key_value)
         if not configure_result.get("success", False):
             self._write_murphy(
-                f"[red]✗ Backend configure failed: {configure_result.get('error', 'unknown error')}[/red]"
+                f"[yellow]⚠ Key saved locally but backend configure failed: {configure_result.get('error', 'unknown error')}[/yellow]\n"
+                "[dim]Key is active in this session. Backend will pick it up on next request.[/dim]"
             )
-            return
 
         self._write_murphy(
             f"[bold green]✓ {provider.capitalize()} API key saved![/bold green]\n"
@@ -1566,6 +1581,7 @@ class MurphyTerminalApp(App):
             try:
                 input_widget = self.query_one("#user-input", MurphyInput)
                 input_widget.insert_text_at_cursor(first_line)
+                self.set_focus(input_widget)  # ensure focus for Enter key
             except Exception:
                 pass
 
