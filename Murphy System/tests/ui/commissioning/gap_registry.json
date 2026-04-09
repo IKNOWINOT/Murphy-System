@@ -1,13 +1,22 @@
 {
-  "generated": "2026-03-25T22:55:08.502342+00:00",
-  "total": 1,
-  "open": 1,
+  "generated": "2026-04-09T22:49:47.347964+00:00",
+  "total": 2,
+  "open": 2,
   "closed": 0,
   "gaps": [
     {
       "gap_id": "GAP-LAND-002",
       "spec_id": "LAND-002",
       "description": "nav_solutions: 'href='#solutions'' not found in source",
+      "severity": "medium",
+      "fix_applied": "",
+      "verified": false,
+      "fixed_at": null
+    },
+    {
+      "gap_id": "GAP-LAND-005",
+      "spec_id": "LAND-005",
+      "description": "term_inline: 'id=\"demo-term-inline\"' not found in source; input_inline: 'id=\"demo-input-inline\"' not found in source; run_inline: 'id=\"demo-run-inline\"' not found in source",
       "severity": "medium",
       "fix_applied": "",
       "verified": false,
