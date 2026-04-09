@@ -831,7 +831,8 @@ function demoMatch(q) {
           if (errEl) { errEl.textContent = 'Email already registered. Please sign in.'; errEl.style.display = 'block'; }
           if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '\u26a1 Sign Up Free \u2014 Get 10 Daily Builds'; }
         } else {
-          var msg = (res.data && res.data.error) || 'Registration failed. Please try again.';
+          var rawErr = (res.data && res.data.error);
+          var msg = (typeof rawErr === 'string' ? rawErr : (rawErr && rawErr.message ? rawErr.message : 'Registration failed. Please try again.'));
           if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
           if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '\u26a1 Sign Up Free \u2014 Get 10 Daily Builds'; }
         }
