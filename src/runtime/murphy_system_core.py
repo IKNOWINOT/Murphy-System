@@ -1874,7 +1874,7 @@ class MurphySystem:
         if SelfFixLoop:
             try:
                 self.self_fix_loop = SelfFixLoop(
-                    engine=self.self_improvement,
+                    improvement_engine=self.self_improvement,
                 )
                 logger.info("Self-fix loop initialized")
             except Exception as exc:
