@@ -1144,7 +1144,7 @@ def create_app() -> FastAPI:
             return JSONResponse({
                 "status": "healthy",
                 "version": murphy.version,
-                "deploy_commit": os.environ.get("MURPHY_DEPLOY_COMMIT", "unknown"),
+                "deploy_commit": (os.environ.get("MURPHY_DEPLOY_COMMIT") or (__import__("subprocess").run(["git","-C","/opt/Murphy-System","rev-parse","--short","HEAD"],capture_output=True,text=True,timeout=3).stdout.strip()) or "unknown"),
             })
 
         # Deep readiness probe — checks all critical subsystems
@@ -5540,6 +5540,60 @@ def create_app() -> FastAPI:
             logger.debug("Non-critical error in endpoint: %s", exc)
         return JSONResponse({"success": True, "tasks": tasks, "count": len(tasks)})
 
+
+    @app.post("/api/tasks")
+    async def create_task(request: Request):
+        """Create a new task. Authenticated users only.
+        
+        Body: {title, description, priority, status, due_date, tags}
+        Returns: {success, task, id}
+        Commissioned: PATCH-005 / 2026-04-09
+        """
+        _session = _get_session(request)
+        if not _session:
+            return JSONResponse(
+                {"success": False, "error": {"code": "UNAUTHORIZED", "message": "Authentication required"}},
+                status_code=401
+            )
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse(
+                {"success": False, "error": {"code": "BAD_REQUEST", "message": "Invalid JSON body"}},
+                status_code=400
+            )
+        title = (body.get("title") or "").strip()
+        if not title:
+            return JSONResponse(
+                {"success": False, "error": {"code": "VALIDATION_ERROR", "message": "title is required"}},
+                status_code=422
+            )
+        import uuid as _uuid_mod
+        from datetime import datetime as _dt_mod, timezone as _tz_mod
+        task = {
+            "id": str(_uuid_mod.uuid4()),
+            "title": title,
+            "description": body.get("description", ""),
+            "priority": body.get("priority", "medium"),
+            "status": body.get("status", "pending"),
+            "assignee": body.get("assignee") or _session.get("account_id", ""),
+            "created_by": _session.get("account_id", ""),
+            "created_at": _dt_mod.now(_tz_mod.utc).isoformat(),
+            "due_date": body.get("due_date"),
+            "tags": body.get("tags", []),
+        }
+        try:
+            existing = getattr(murphy, "tasks", None)
+            if isinstance(existing, list):
+                existing.append(task)
+            elif isinstance(existing, dict):
+                existing[task["id"]] = task
+            else:
+                setattr(murphy, "tasks", [task])
+        except Exception as _exc:
+            logger.debug("Could not persist task to murphy.tasks: %s", _exc)
+        return JSONResponse({"success": True, "task": task, "id": task["id"]}, status_code=201)
+
     # ==================== PRODUCTION QUEUE ENDPOINTS ====================
 
     _production_queue: List[Dict[str, Any]] = []
@@ -8055,6 +8109,7 @@ def create_app() -> FastAPI:
     @app.get("/api/auth/verify-email")
     async def auth_verify_email(request: Request, token: str = ""):
         """Verify email address from the link sent during signup."""
+        from starlette.responses import HTMLResponse  # PATCH-005: fix NameError
         if not token:
             return HTMLResponse(
                 '<html><body style="background:#0a0a0a;color:#ff4444;font-family:sans-serif;'
@@ -9381,6 +9436,7 @@ def create_app() -> FastAPI:
                 "tier": v.get("tier", "free"),
                 "status": v.get("status", "active"),
                 "created_at": v.get("created_at", ""),
+                "email_validated": v.get("email_validated", False),
                 "job_title": v.get("job_title", ""),
                 "company": v.get("company", ""),
             }
