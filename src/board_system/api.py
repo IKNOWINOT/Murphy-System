@@ -35,7 +35,7 @@ if APIRouter is not None:
 
     class CreateBoardRequest(BaseModel):
         """Create Board Request."""
-        name: str
+        name: str = ""\
         description: str = ""
         kind: str = "public"
         workspace_id: str = ""
