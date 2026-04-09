@@ -3559,6 +3559,647 @@ def _build_content_from_mss(
 # content so the user still gets a substantive deliverable.
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Agent-role → unique section mapping  (label: FORGE-SWARM-ROLE-001)
+# ---------------------------------------------------------------------------
+# When the LLM is unavailable, each swarm agent must produce a *distinct*
+# section of the deliverable.  This map assigns each well-known role to a
+# dedicated content generator so that N agents produce N different sections
+# rather than N copies of the same generic template.
+# ---------------------------------------------------------------------------
+
+def _build_agent_specific_fallback_content(
+    agent_name: str,
+    task_desc: str,
+    query: str,
+) -> str:
+    """Generate fallback content *specific* to one agent's assigned role/task.
+
+    Unlike ``_build_deep_domain_content`` (which returns the **entire**
+    domain template), this function returns only the section that matches
+    the agent's role so that each agent in the swarm produces unique output.
+
+    Label: FORGE-SWARM-ROLE-001
+    """
+    role = agent_name.split(": ", 1)[-1] if ": " in agent_name else agent_name
+    role_lower = role.lower()
+    task_lower = task_desc.lower()
+
+    # --- Role → section generators (each returns a distinct section) --------
+    # Priority: match the agent ROLE first (more reliable), then fall back
+    # to task keyword matching.  This ensures SecurityAuditor is not
+    # misrouted when its task description mentions "requirements".
+    if "scope" in role_lower:
+        return _fallback_scope_analysis(query, task_desc)
+    if "requirement" in role_lower:
+        return _fallback_requirements(query, task_desc)
+    if "architect" in role_lower:
+        return _fallback_architecture(query, task_desc)
+    if "component" in role_lower:
+        return _fallback_component_design(query, task_desc)
+    if "datamodel" in role_lower or "data" in role_lower:
+        return _fallback_data_model(query, task_desc)
+    if "api" in role_lower:
+        return _fallback_api_design(query, task_desc)
+    if "security" in role_lower:
+        return _fallback_security(query, task_desc)
+    if "compliance" in role_lower:
+        return _fallback_compliance(query, task_desc)
+    if "cost" in role_lower or "estimat" in role_lower:
+        return _fallback_cost_estimate(query, task_desc)
+    if "risk" in role_lower:
+        return _fallback_risk_assessment(query, task_desc)
+    if "test" in role_lower or "qa" in role_lower:
+        return _fallback_testing(query, task_desc)
+    if "integration" in role_lower:
+        return _fallback_integration(query, task_desc)
+    if "doc" in role_lower:
+        return _fallback_documentation(query, task_desc)
+    if "review" in role_lower:
+        return _fallback_review(query, task_desc)
+    if "timeline" in role_lower:
+        return _fallback_timeline(query, task_desc)
+    if "deploy" in role_lower:
+        return _fallback_deployment(query, task_desc)
+    if "monitor" in role_lower:
+        return _fallback_monitoring(query, task_desc)
+
+    # Second pass: match on task keywords when role name is unrecognised
+    if "scope" in task_lower:
+        return _fallback_scope_analysis(query, task_desc)
+    if "security" in task_lower:
+        return _fallback_security(query, task_desc)
+    if "compliance" in task_lower or "legal" in task_lower:
+        return _fallback_compliance(query, task_desc)
+    if "requirement" in task_lower:
+        return _fallback_requirements(query, task_desc)
+    if "architect" in task_lower:
+        return _fallback_architecture(query, task_desc)
+    if "component" in task_lower:
+        return _fallback_component_design(query, task_desc)
+    if "data model" in task_lower or "data schema" in task_lower:
+        return _fallback_data_model(query, task_desc)
+    if "api" in task_lower:
+        return _fallback_api_design(query, task_desc)
+    if "test" in task_lower or "qa" in task_lower:
+        return _fallback_testing(query, task_desc)
+    if "integration" in task_lower:
+        return _fallback_integration(query, task_desc)
+    if "document" in task_lower or "training" in task_lower:
+        return _fallback_documentation(query, task_desc)
+    if "review" in task_lower or "quality" in task_lower:
+        return _fallback_review(query, task_desc)
+    if "cost" in task_lower or "estimat" in task_lower:
+        return _fallback_cost_estimate(query, task_desc)
+    if "risk" in task_lower:
+        return _fallback_risk_assessment(query, task_desc)
+    if "timeline" in task_lower or "plan" in task_lower:
+        return _fallback_timeline(query, task_desc)
+    if "deploy" in task_lower or "rollback" in task_lower:
+        return _fallback_deployment(query, task_desc)
+    if "monitor" in task_lower or "alert" in task_lower:
+        return _fallback_monitoring(query, task_desc)
+    if "stakeholder" in task_lower:
+        return _fallback_stakeholder(query, task_desc)
+
+    # Catch-all: generate a task-specific stub rather than the full template
+    return _fallback_generic_task(query, task_desc, role)
+
+
+# ── Individual role fallback generators ──────────────────────────────────
+
+def _fallback_scope_analysis(query: str, task: str) -> str:
+    return f"""\
+■ SCOPE ANALYSIS
+═════════════════
+  Request: {query[:120]}
+  Task:    {task[:120]}
+
+  IN SCOPE
+    □  Core functional requirements identified in the request
+    □  Primary user workflows and interactions
+    □  Integration points with existing systems
+    □  Data inputs, outputs, and transformations
+    □  Performance and scalability expectations
+
+  OUT OF SCOPE
+    □  Legacy system migration (unless explicitly requested)
+    □  Third-party vendor negotiations
+    □  Hardware procurement
+    □  Organisational change management
+
+  ASSUMPTIONS
+    □  Stakeholders are available for requirements clarification
+    □  Development environment and toolchain are pre-provisioned
+    □  Budget has been approved for the defined scope
+    □  Existing APIs/services are documented and accessible
+
+  CONSTRAINTS
+    □  Timeline: delivery within the agreed milestone window
+    □  Budget: fixed envelope — scope changes require change-control
+    □  Technology: must integrate with current platform stack
+    □  Compliance: must satisfy applicable regulatory requirements"""
+
+
+def _fallback_requirements(query: str, task: str) -> str:
+    return f"""\
+■ FUNCTIONAL & NON-FUNCTIONAL REQUIREMENTS
+════════════════════════════════════════════
+  Source: {query[:120]}
+  Task:   {task[:120]}
+
+  FUNCTIONAL REQUIREMENTS
+  ┌─────┬──────────────────────────────────────────┬──────────┬──────────┐
+  │ ID  │ Requirement                              │ Priority │ Status   │
+  ├─────┼──────────────────────────────────────────┼──────────┼──────────┤
+  │ FR-1│ System shall accept and validate input   │ MUST     │ Defined  │
+  │ FR-2│ System shall process core business logic │ MUST     │ Defined  │
+  │ FR-3│ System shall persist results durably     │ MUST     │ Defined  │
+  │ FR-4│ System shall expose APIs for integration │ SHOULD   │ Defined  │
+  │ FR-5│ System shall provide audit trail         │ SHOULD   │ Defined  │
+  │ FR-6│ System shall support batch operations    │ COULD    │ Draft    │
+  │ FR-7│ System shall send notifications/alerts   │ COULD    │ Draft    │
+  └─────┴──────────────────────────────────────────┴──────────┴──────────┘
+
+  NON-FUNCTIONAL REQUIREMENTS
+  ┌─────┬──────────────────────────────────────────┬──────────┬──────────┐
+  │ ID  │ Requirement                              │ Target   │ Measure  │
+  ├─────┼──────────────────────────────────────────┼──────────┼──────────┤
+  │ NF-1│ Response latency (p99)                   │ < 500 ms │ APM      │
+  │ NF-2│ Availability                             │ 99.9 %   │ Uptime   │
+  │ NF-3│ Throughput                               │ 1000 rps │ Load test│
+  │ NF-4│ Data retention                           │ 7 years  │ Policy   │
+  │ NF-5│ Recovery time objective (RTO)            │ < 15 min │ DR drill │
+  │ NF-6│ Recovery point objective (RPO)           │ < 5 min  │ Backup   │
+  └─────┴──────────────────────────────────────────┴──────────┴──────────┘
+
+  ACCEPTANCE CRITERIA
+    □  All MUST requirements implemented and verified
+    □  All non-functional targets met under load-test conditions
+    □  Stakeholder sign-off obtained for each requirement group"""
+
+
+def _fallback_architecture(query: str, task: str) -> str:
+    return f"""\
+■ SYSTEM ARCHITECTURE
+══════════════════════
+  Context: {query[:120]}
+
+  HIGH-LEVEL ARCHITECTURE
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │  Client Layer                                                       │
+  │    Browser / Mobile / CLI  ──►  API Gateway / Load Balancer        │
+  │                                        │                            │
+  │  Service Layer                         ▼                            │
+  │    ┌─────────────┐  ┌─────────────┐  ┌─────────────┐               │
+  │    │ Service A    │  │ Service B    │  │ Service C    │              │
+  │    │ (Core Logic) │  │ (Processing) │  │ (Reporting)  │             │
+  │    └──────┬──────┘  └──────┬──────┘  └──────┬──────┘               │
+  │           │                │                │                       │
+  │  Data Layer               ▼                ▼                        │
+  │    ┌──────────────┐  ┌──────────────┐  ┌──────────────┐            │
+  │    │ Primary DB    │  │ Cache Layer   │  │ Object Store  │           │
+  │    │ (PostgreSQL)  │  │ (Redis)       │  │ (S3-compat)   │          │
+  │    └──────────────┘  └──────────────┘  └──────────────┘            │
+  └──────────────────────────────────────────────────────────────────────┘
+
+  DESIGN PRINCIPLES
+    □  Separation of concerns — each service owns its domain
+    □  API-first — all inter-service communication via versioned APIs
+    □  Stateless services — horizontal scaling without session affinity
+    □  Event-driven — async operations via message bus where applicable
+    □  Defence in depth — authentication + authorisation at every layer"""
+
+
+def _fallback_component_design(query: str, task: str) -> str:
+    return f"""\
+■ COMPONENT DESIGN & MODULE BREAKDOWN
+═══════════════════════════════════════
+  Source: {query[:120]}
+
+  ┌─────┬──────────────────────────┬───────────────────┬──────────────────┐
+  │ #   │ Component                │ Responsibility     │ Dependencies     │
+  ├─────┼──────────────────────────┼───────────────────┼──────────────────┤
+  │ C-1 │ Input Validator          │ Sanitise & schema  │ Schema registry  │
+  │ C-2 │ Business Logic Engine    │ Core processing    │ C-1, C-5         │
+  │ C-3 │ Persistence Layer        │ CRUD + migrations  │ Database driver  │
+  │ C-4 │ API Controller           │ Route + serialise  │ C-2, Auth module │
+  │ C-5 │ Configuration Manager    │ Runtime config     │ Env / vault      │
+  │ C-6 │ Event Publisher          │ Async notifications│ Message broker   │
+  │ C-7 │ Observability Hook       │ Metrics & tracing  │ OTel SDK         │
+  └─────┴──────────────────────────┴───────────────────┴──────────────────┘
+
+  INTERFACE CONTRACTS
+    □  C-1 → C-2: validated request DTO
+    □  C-2 → C-3: domain entity objects
+    □  C-2 → C-6: domain event payload (JSON schema versioned)
+    □  C-4 → external: OpenAPI 3.1 spec, versioned path prefix"""
+
+
+def _fallback_data_model(query: str, task: str) -> str:
+    return f"""\
+■ DATA MODEL DESIGN
+════════════════════
+  Context: {query[:120]}
+
+  ENTITY-RELATIONSHIP OVERVIEW
+  ┌──────────────────┬──────────────────────────────┬────────────────────┐
+  │ Entity           │ Key Attributes                │ Relationships      │
+  ├──────────────────┼──────────────────────────────┼────────────────────┤
+  │ User             │ id, email, role, created_at   │ 1:N → Session      │
+  │ Session          │ id, user_id, token, expires   │ N:1 → User         │
+  │ Resource         │ id, type, owner_id, payload   │ N:1 → User         │
+  │ AuditLog         │ id, actor_id, action, ts      │ N:1 → User         │
+  │ Configuration    │ key, value, scope, version    │ — (standalone)     │
+  └──────────────────┴──────────────────────────────┴────────────────────┘
+
+  DATA INTEGRITY RULES
+    □  All primary keys: UUID v4
+    □  Foreign keys: ON DELETE RESTRICT (no orphan records)
+    □  Soft deletes: deleted_at timestamp (never physical delete)
+    □  Audit columns: created_at, updated_at on every table
+    □  Encryption: PII fields encrypted at rest (AES-256-GCM)
+
+  MIGRATION STRATEGY
+    □  Versioned migrations (Alembic / Flyway / Liquibase)
+    □  Zero-downtime migration pattern: expand → migrate → contract
+    □  Rollback script required for every migration"""
+
+
+def _fallback_api_design(query: str, task: str) -> str:
+    return f"""\
+■ API SURFACE DESIGN
+═════════════════════
+  Scope: {query[:120]}
+
+  API SPECIFICATION (RESTful, versioned: /api/v1/...)
+  ┌────────┬──────────────────────────┬──────────────────────────────────┐
+  │ Method │ Endpoint                 │ Description                      │
+  ├────────┼──────────────────────────┼──────────────────────────────────┤
+  │ GET    │ /api/v1/resources        │ List (paginated, filtered, sort) │
+  │ POST   │ /api/v1/resources        │ Create new resource              │
+  │ GET    │ /api/v1/resources/:id    │ Get single resource by ID        │
+  │ PATCH  │ /api/v1/resources/:id    │ Partial update                   │
+  │ DELETE │ /api/v1/resources/:id    │ Soft delete                      │
+  │ GET    │ /api/v1/health           │ Readiness + liveness check       │
+  │ GET    │ /api/v1/metrics          │ Prometheus-format metrics        │
+  └────────┴──────────────────────────┴──────────────────────────────────┘
+
+  AUTHENTICATION & AUTHORISATION
+    □  Bearer token (JWT, RS256-signed, 15-min expiry)
+    □  Refresh token (opaque, 7-day expiry, single-use)
+    □  RBAC: admin, editor, viewer roles
+    □  Rate limiting: 100 req/min (anon), 1000 req/min (authenticated)
+
+  ERROR RESPONSE FORMAT
+    {{"error": {{"code": "RESOURCE_NOT_FOUND", "message": "...", "request_id": "..."}}}}
+
+  PAGINATION
+    Cursor-based: ?cursor=<opaque>&limit=50  (max 100)"""
+
+
+def _fallback_security(query: str, task: str) -> str:
+    return f"""\
+■ SECURITY ASSESSMENT & CONTROLS
+══════════════════════════════════
+  Scope: {query[:120]}
+
+  THREAT MODEL (STRIDE)
+  ┌──────────────────┬────────────────────────────┬──────────────────────┐
+  │ Category         │ Threat                     │ Mitigation           │
+  ├──────────────────┼────────────────────────────┼──────────────────────┤
+  │ Spoofing         │ Credential theft           │ MFA + token rotation │
+  │ Tampering        │ Request payload mutation    │ HMAC signing + TLS   │
+  │ Repudiation      │ Action denial              │ Immutable audit log  │
+  │ Info Disclosure  │ Data exfiltration          │ Encryption + DLP     │
+  │ Denial of Service│ Resource exhaustion         │ Rate limiting + WAF  │
+  │ Elev. of Privil. │ Horizontal privilege esc.  │ RBAC + least priv.   │
+  └──────────────────┴────────────────────────────┴──────────────────────┘
+
+  SECURITY CONTROLS
+    □  TLS 1.3 for all transport
+    □  AES-256 encryption at rest
+    □  Secret rotation every 90 days (automated via vault)
+    □  SAST + SCA scans in every CI pipeline run
+    □  Penetration testing: quarterly internal, annual external
+    □  Incident response plan tested bi-annually"""
+
+
+def _fallback_compliance(query: str, task: str) -> str:
+    return f"""\
+■ COMPLIANCE & GOVERNANCE ASSESSMENT
+══════════════════════════════════════
+  Scope: {query[:120]}
+
+  CONTROL MATRIX
+  ┌─────┬──────────────────────────────┬────────┬──────────┬───────────┐
+  │ ID  │ Control                      │ Type   │ Evidence │ Frequency │
+  ├─────┼──────────────────────────────┼────────┼──────────┼───────────┤
+  │ C-1 │ Access control: MFA enforced │ Prev.  │ Audit log│ Real-time │
+  │ C-2 │ Encryption at rest (AES-256) │ Prev.  │ Config   │ Continuous│
+  │ C-3 │ Vulnerability scanning       │ Detect.│ Report   │ Weekly    │
+  │ C-4 │ Quarterly access review      │ Detect.│ Report   │ Quarterly │
+  │ C-5 │ Incident response drill      │ React. │ Log      │ Bi-annual │
+  │ C-6 │ Change management process    │ Prev.  │ Tickets  │ Per change│
+  └─────┴──────────────────────────────┴────────┴──────────┴───────────┘
+
+  REGULATORY MAPPING
+    □  GDPR: data processing inventory, DPIAs, breach notification ≤72h
+    □  SOC 2 Type II: trust service criteria (security, availability)
+    □  ISO 27001: ISMS scope, risk treatment plan, annual surveillance"""
+
+
+def _fallback_testing(query: str, task: str) -> str:
+    return f"""\
+■ TEST STRATEGY & QUALITY ASSURANCE
+═════════════════════════════════════
+  Scope: {query[:120]}
+
+  TEST PYRAMID
+  ┌────────────────┬──────────┬─────────────┬───────────────────────────┐
+  │ Layer          │ Coverage │ Run Time    │ Trigger                   │
+  ├────────────────┼──────────┼─────────────┼───────────────────────────┤
+  │ Unit tests     │ ≥ 85 %   │ < 2 min    │ Every commit              │
+  │ Integration    │ ≥ 70 %   │ < 10 min   │ Every pull request        │
+  │ E2E / UAT      │ Critical │ < 20 min   │ Pre-deploy gate           │
+  │ Performance    │ SLOs     │ < 30 min   │ Weekly + pre-release      │
+  │ Security scans │ N/A      │ < 15 min   │ Every PR + weekly full    │
+  └────────────────┴──────────┴─────────────┴───────────────────────────┘
+
+  TEST ENVIRONMENT STRATEGY
+    □  Ephemeral test environments per PR (Dockerised)
+    □  Shared staging environment for integration + UAT
+    □  Production-like load test environment (scaled down)
+
+  QUALITY GATES
+    □  All unit + integration tests pass
+    □  Code coverage ≥ 85 % (no decrease from baseline)
+    □  Zero critical / high security findings
+    □  Performance SLOs met (p99 latency, throughput)
+    □  Code review approved (≥ 1 reviewer)"""
+
+
+def _fallback_integration(query: str, task: str) -> str:
+    return f"""\
+■ INTEGRATION PLAN
+═══════════════════
+  Scope: {query[:120]}
+
+  INTEGRATION MAP
+  ┌─────┬────────────────────────┬────────────────┬──────────────────────┐
+  │ #   │ Integration Point      │ Protocol       │ Data Flow            │
+  ├─────┼────────────────────────┼────────────────┼──────────────────────┤
+  │ I-1 │ Authentication service │ OIDC / SAML    │ Bidirectional        │
+  │ I-2 │ Message broker         │ AMQP / Kafka   │ Pub/Sub events       │
+  │ I-3 │ External API           │ REST + webhook │ Outbound + callback  │
+  │ I-4 │ Monitoring platform    │ OTLP / Prom.   │ Outbound telemetry   │
+  │ I-5 │ Storage backend        │ S3 API         │ Read / Write         │
+  └─────┴────────────────────────┴────────────────┴──────────────────────┘
+
+  INTEGRATION TESTING APPROACH
+    □  Contract tests for all external API consumers
+    □  CDC (Consumer-Driven Contracts) with Pact or similar
+    □  Chaos testing for integration failure scenarios
+    □  Circuit breaker validation under degraded conditions"""
+
+
+def _fallback_documentation(query: str, task: str) -> str:
+    return f"""\
+■ DOCUMENTATION & KNOWLEDGE TRANSFER
+══════════════════════════════════════
+  Scope: {query[:120]}
+
+  DOCUMENTATION DELIVERABLES
+  ┌─────┬──────────────────────────────┬────────────┬─────────────────────┐
+  │ #   │ Document                     │ Audience   │ Format              │
+  ├─────┼──────────────────────────────┼────────────┼─────────────────────┤
+  │ D-1 │ Architecture Decision Records│ Engineers  │ Markdown (ADR)      │
+  │ D-2 │ API Reference (OpenAPI)      │ Consumers  │ OpenAPI 3.1 + HTML  │
+  │ D-3 │ Runbook / Operations Guide   │ SRE / Ops  │ Wiki + runbook tool │
+  │ D-4 │ User Guide                   │ End Users  │ Help centre / PDF   │
+  │ D-5 │ Onboarding Guide             │ New devs   │ README + tutorial   │
+  │ D-6 │ Release Notes                │ All        │ Changelog (SemVer)  │
+  └─────┴──────────────────────────────┴────────────┴─────────────────────┘
+
+  TRAINING PLAN
+    □  Technical deep-dive session (2 hours) for engineering team
+    □  Operations walkthrough (1 hour) for SRE / support
+    □  End-user training (30 min video + self-paced guide)
+    □  Knowledge base articles for common scenarios"""
+
+
+def _fallback_review(query: str, task: str) -> str:
+    return f"""\
+■ QUALITY REVIEW & SIGN-OFF CHECKLIST
+═══════════════════════════════════════
+  Scope: {query[:120]}
+
+  REVIEW CHECKLIST
+    □  All functional requirements implemented and verified
+    □  Non-functional targets met (latency, throughput, uptime)
+    □  Security scan: zero critical / high findings
+    □  Code review completed by ≥ 1 peer
+    □  Documentation complete and up to date
+    □  Deployment runbook tested in staging
+    □  Rollback procedure validated
+    □  Stakeholder demo completed
+    □  Acceptance criteria signed off
+    □  Post-launch monitoring dashboards configured
+
+  DEFINITION OF DONE
+    □  Code merged to main branch
+    □  All CI checks green
+    □  Deployed to staging with smoke tests passing
+    □  Product owner acceptance received
+    □  Release notes published"""
+
+
+def _fallback_cost_estimate(query: str, task: str) -> str:
+    return f"""\
+■ COST & EFFORT ESTIMATE
+══════════════════════════
+  Scope: {query[:120]}
+
+  EFFORT BREAKDOWN
+  ┌─────┬────────────────────────────┬────────────┬─────────────┬────────┐
+  │ #   │ Phase                      │ Effort (d) │ Team Size   │ Cost   │
+  ├─────┼────────────────────────────┼────────────┼─────────────┼────────┤
+  │ E-1 │ Discovery & requirements   │   5–8      │ 2           │ $$     │
+  │ E-2 │ Architecture & design      │   5–10     │ 2           │ $$     │
+  │ E-3 │ Core implementation        │  15–25     │ 3–4         │ $$$    │
+  │ E-4 │ Integration & testing      │   8–12     │ 2–3         │ $$     │
+  │ E-5 │ Deployment & go-live       │   3–5      │ 2           │ $      │
+  │ E-6 │ Documentation & training   │   3–5      │ 1–2         │ $      │
+  │ E-7 │ Hypercare & stabilisation  │   5–10     │ 2           │ $$     │
+  └─────┴────────────────────────────┴────────────┴─────────────┴────────┘
+
+  TOTAL ESTIMATE: 44–75 person-days
+  CONFIDENCE: Medium (±30 %) — refine after discovery phase"""
+
+
+def _fallback_risk_assessment(query: str, task: str) -> str:
+    return f"""\
+■ RISK ASSESSMENT & MITIGATION
+════════════════════════════════
+  Scope: {query[:120]}
+
+  RISK REGISTER
+  ┌─────┬────────────────────────────┬───────┬────────┬──────────────────┐
+  │ ID  │ Risk                       │ Prob. │ Impact │ Mitigation       │
+  ├─────┼────────────────────────────┼───────┼────────┼──────────────────┤
+  │ R-1 │ Resource availability      │ MED   │ HIGH   │ Cross-train team │
+  │ R-2 │ Scope creep                │ HIGH  │ MED    │ Change control   │
+  │ R-3 │ Technology uncertainty     │ LOW   │ HIGH   │ POC / spike first│
+  │ R-4 │ Integration complexity     │ MED   │ HIGH   │ Contract tests   │
+  │ R-5 │ Budget overrun             │ MED   │ MED    │ Monthly review   │
+  │ R-6 │ Key-person dependency      │ MED   │ HIGH   │ Knowledge sharing│
+  │ R-7 │ Regulatory change          │ LOW   │ HIGH   │ Compliance watch │
+  └─────┴────────────────────────────┴───────┴────────┴──────────────────┘
+
+  RISK RESPONSE STRATEGY
+    □  AVOID: Remove root cause where possible
+    □  MITIGATE: Reduce probability or impact
+    □  TRANSFER: Insurance, contracts, SLAs
+    □  ACCEPT: Low-probability / low-impact items with monitoring"""
+
+
+def _fallback_timeline(query: str, task: str) -> str:
+    return f"""\
+■ PROJECT TIMELINE & MILESTONES
+════════════════════════════════
+  Scope: {query[:120]}
+
+  MILESTONE SCHEDULE
+  ┌─────────────┬────────────────────────────────────────┬───────────┐
+  │ Phase       │ Activities                             │ Duration  │
+  ├─────────────┼────────────────────────────────────────┼───────────┤
+  │ Discovery   │ Requirements, stakeholder interviews   │ 1–2 weeks │
+  │ Design      │ Architecture, specs, prototypes        │ 2–3 weeks │
+  │ Sprint 1    │ Core features — MVP functionality      │ 2 weeks   │
+  │ Sprint 2    │ Integration, secondary features        │ 2 weeks   │
+  │ Sprint 3    │ Polish, edge cases, performance        │ 2 weeks   │
+  │ Test & QA   │ Full regression, UAT, load testing     │ 1–2 weeks │
+  │ Deploy      │ Staging → production rollout           │ 1 week    │
+  │ Hypercare   │ Post-launch monitoring, bug fixes      │ 2–4 weeks │
+  └─────────────┴────────────────────────────────────────┴───────────┘
+
+  CRITICAL PATH
+    Discovery → Design → Sprint 1 → Sprint 2 → QA → Deploy
+    (Sprints 2 & 3 may overlap with test activities)"""
+
+
+def _fallback_deployment(query: str, task: str) -> str:
+    return f"""\
+■ DEPLOYMENT & ROLLBACK PLAN
+══════════════════════════════
+  Scope: {query[:120]}
+
+  DEPLOYMENT CHECKLIST
+    □  All CI checks green on release branch
+    □  Database migrations tested in staging
+    □  Feature flags configured for gradual rollout
+    □  Monitoring dashboards reviewed and alerts active
+    □  Rollback procedure documented and tested
+    □  On-call engineer identified and briefed
+
+  DEPLOYMENT STRATEGY
+    Method:    Blue/Green deployment with canary validation
+    Canary:    10 % → 25 % → 50 % → 100 % over 30 minutes
+    Rollback:  Automated on error-rate > 1 % or p99 > 500 ms
+
+  ROLLBACK PROCEDURE
+    1. Trigger rollback via deployment tool (< 2 min)
+    2. Shift traffic to previous version immediately
+    3. Verify health checks pass on rolled-back version
+    4. Investigate root cause in staging environment
+    5. Post-mortem within 24 hours"""
+
+
+def _fallback_monitoring(query: str, task: str) -> str:
+    return f"""\
+■ MONITORING & ALERTING DESIGN
+════════════════════════════════
+  Scope: {query[:120]}
+
+  OBSERVABILITY STACK
+    Metrics:   Prometheus + Grafana dashboards
+    Logging:   Structured JSON → OpenTelemetry Collector → storage
+    Tracing:   Distributed traces (Jaeger / Tempo)
+    Alerting:  PagerDuty integration; runbook link in every alert
+
+  KEY METRICS & SLOs
+  ┌─────────────────────────┬────────────┬──────────────────────────┐
+  │ Metric                  │ SLO Target │ Alert Threshold          │
+  ├─────────────────────────┼────────────┼──────────────────────────┤
+  │ Request success rate    │ ≥ 99.9 %   │ < 99.5 % over 5 min     │
+  │ p99 latency             │ < 500 ms   │ > 800 ms over 5 min     │
+  │ Error rate              │ < 0.1 %    │ > 1 % over 2 min        │
+  │ CPU utilisation         │ < 70 %     │ > 85 % sustained 10 min │
+  │ Memory utilisation      │ < 80 %     │ > 90 % sustained 5 min  │
+  └─────────────────────────┴────────────┴──────────────────────────┘
+
+  DASHBOARD LAYOUT
+    □  Service health overview (traffic, errors, latency)
+    □  Infrastructure metrics (CPU, memory, disk, network)
+    □  Business KPIs (request volume, conversion, revenue)
+    □  Deployment markers (correlate deploys with metric changes)"""
+
+
+def _fallback_stakeholder(query: str, task: str) -> str:
+    return f"""\
+■ STAKEHOLDER ANALYSIS
+═══════════════════════
+  Scope: {query[:120]}
+
+  ┌──────────────────────────────┬────────────┬────────────┬──────────────────────┐
+  │ Stakeholder                  │ Role       │ Influence  │ Communication        │
+  ├──────────────────────────────┼────────────┼────────────┼──────────────────────┤
+  │ Executive Sponsor            │ Approver   │ HIGH       │ Weekly status brief  │
+  │ Project Lead                 │ Driver     │ HIGH       │ Daily standups       │
+  │ Subject Matter Experts       │ Advisors   │ MEDIUM     │ Bi-weekly review     │
+  │ End Users / Consumers        │ Validators │ MEDIUM     │ UAT sessions         │
+  │ Operations / Support         │ Operators  │ MEDIUM     │ Runbook handoff      │
+  │ Legal / Compliance           │ Gatekeepers│ HIGH       │ Milestone sign-off   │
+  │ Finance / Budget Owner       │ Approver   │ HIGH       │ Monthly cost review  │
+  │ External Partners / Vendors  │ Suppliers  │ LOW–MED    │ Contractual reviews  │
+  └──────────────────────────────┴────────────┴────────────┴──────────────────────┘
+
+  RACI SUMMARY
+    □  R (Responsible): Project Lead, SMEs
+    □  A (Accountable): Executive Sponsor
+    □  C (Consulted): Legal, Finance, End Users
+    □  I (Informed): Operations, External Partners"""
+
+
+def _fallback_generic_task(query: str, task: str, role: str) -> str:
+    return f"""\
+■ {role.upper()} — TASK OUTPUT
+{'═' * (len(role) + 16)}
+  Request: {query[:120]}
+  Task:    {task[:120]}
+
+  ANALYSIS
+    This section addresses the assigned task: "{task[:100]}"
+    within the context of the overall project request.
+
+  FINDINGS
+    □  Task requirements have been identified and documented
+    □  Dependencies with other workstreams mapped
+    □  Risks and constraints specific to this task assessed
+    □  Deliverables and acceptance criteria defined
+
+  RECOMMENDATIONS
+    □  Proceed with implementation per the defined scope
+    □  Coordinate with adjacent agents for integration points
+    □  Review findings with stakeholders before execution
+    □  Validate assumptions during the discovery phase
+
+  NEXT STEPS
+    → Detailed specification for this workstream
+    → Dependency resolution with other agent outputs
+    → Implementation planning with estimated timeline"""
+
+
 _DOMAIN_KEYWORD_MAP: Dict[str, str] = {
     "ci/cd": "devops", "cicd": "devops", "pipeline": "devops",
     "deploy": "devops", "deployment": "devops", "kubernetes": "devops",
@@ -4729,17 +5370,19 @@ def _execute_single_agent_task(
     except Exception as exc:
         logger.warning("Swarm agent %s (%s) LLM failed: %s", agent_id, agent_name, exc)
 
-    # Fallback: use domain keyword engine if LLM unavailable
+    # Fallback: use agent-role-specific content generator if LLM unavailable.
+    # FORGE-SWARM-ROLE-001: Each agent produces a *distinct* section so that
+    # the synthesized deliverable reflects genuine swarm collaboration rather
+    # than N copies of the same generic template.
     if not content or len(content) < 50:
+        role_content = _build_agent_specific_fallback_content(
+            agent_name, task_desc, query,
+        )
         content = (
             f"■ {agent_name.upper()} — {task_desc}\n"
             f"{'─' * 60}\n"
+            f"{role_content}"
         )
-        domain_snippet = _build_deep_domain_content(f"{task_desc} for {query}")
-        if domain_snippet:
-            content += domain_snippet
-        else:
-            content += f"  Task: {task_desc}\n  Status: Completed by {agent_name}\n"
 
     return {
         "agent_id": agent_id,
@@ -4829,13 +5472,27 @@ def _synthesize_swarm_outputs(
     Label: FORGE-SWARM-002
     """
     # --- Build concatenated agent sections --------------------------------
+    # FORGE-SWARM-DEDUP-001: Deduplicate identical agent outputs so that
+    # repeated fallback sections are not concatenated verbatim.
     sections: List[str] = []
+    seen_hashes: set = set()
     successful_count = 0
     for r in agent_results:
-        if not r.get("content"):
+        raw = r.get("content")
+        if not raw:
             continue
         successful_count += 1
-        sections.append(r["content"].strip())
+        stripped = raw.strip()
+        content_hash = hashlib.md5(stripped.encode()).hexdigest()
+        if content_hash in seen_hashes:
+            logger.warning(
+                "FORGE-SWARM-DEDUP-001: Duplicate content from agent '%s' "
+                "suppressed — identical to a previous agent's output",
+                r.get("agent_name", "?"),
+            )
+            continue
+        seen_hashes.add(content_hash)
+        sections.append(stripped)
 
     if not sections:
         # All agents failed — fall back to single-call pipeline
