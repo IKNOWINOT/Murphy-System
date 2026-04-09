@@ -105,6 +105,21 @@ NGINX_SITE_NAME=murphy-production
 # TWILIO_AUTH_TOKEN=...
 # TWILIO_PHONE_NUMBER=+1...
 
+# ── Founder / admin account ────────────────────────────────────────────────────
+# On every startup the platform seeds (or re-syncs) a founder account so that
+# cpost@murphy.systems (or whichever email you set) can always log in as the
+# owner.  Both EMAIL and PASSWORD must be set for the seed to run.
+MURPHY_FOUNDER_EMAIL=cpost@murphy.systems
+MURPHY_FOUNDER_NAME=Corey Post
+MURPHY_FOUNDER_PASSWORD=CHANGEME_set_a_strong_password
+
+# ── Team / staff accounts ─────────────────────────────────────────────────────
+# Comma-separated emails.  Each gets a user-role account on startup.
+# Existing accounts are left untouched (password is NOT overwritten).
+# Both EMAILS and PASSWORD must be set.
+MURPHY_TEAM_EMAILS=hpost@murphy.systems,abeltaine@murphy.systems,mpost@murphy.systems,jcarney@murphy.systems,bgillespie@murphy.systems,lpost@murphy.systems,kpost@murphy.systems,d.post@murphy.systems,zgillespie@murphy.systems
+MURPHY_TEAM_DEFAULT_PASSWORD=CHANGEME_set_a_strong_password
+
 # ── Injected at deploy time by hetzner_load.sh ───────────────────────────────
 # (Do not set manually — overwritten on every deploy)
 # MURPHY_DEPLOY_COMMIT=abc1234

@@ -14797,6 +14797,62 @@ def create_app() -> FastAPI:
     if _FOUNDER_EMAIL and _FOUNDER_PASSWORD:
         _ensure_founder_account()
 
+    # ── Team account seeding ────────────────────────────────────────────────
+    # On startup, seed accounts for team members so they can log in with
+    # email/password immediately after deploy.  Controlled by two env vars:
+    #
+    #   MURPHY_TEAM_EMAILS           — comma-separated list of team emails
+    #   MURPHY_TEAM_DEFAULT_PASSWORD — shared initial password for all team
+    #                                  accounts (users should change it after
+    #                                  first login)
+    #
+    # Accounts that already exist are left untouched (password is NOT reset,
+    # unlike the founder account).  Remove an email from the list to stop
+    # seeding it; the existing account remains usable.
+    _TEAM_EMAILS_RAW: str = os.environ.get("MURPHY_TEAM_EMAILS", "").strip()
+    _TEAM_DEFAULT_PASSWORD: str = os.environ.get("MURPHY_TEAM_DEFAULT_PASSWORD", "").strip()
+
+    def _seed_team_accounts() -> None:
+        """Create team member accounts from MURPHY_TEAM_EMAILS env var."""
+        emails = [e.strip().lower() for e in _TEAM_EMAILS_RAW.split(",") if e.strip()]
+        if not emails:
+            return
+        seeded = 0
+        for email in emails:
+            if not email or "@" not in email:
+                logger.warning("Skipping invalid team email: %r", email)
+                continue
+            if email in _email_to_account:
+                # Account already exists — do not overwrite
+                continue
+            account_id = "team-" + uuid4().hex[:16]
+            _user_store[account_id] = {
+                "account_id": account_id,
+                "email": email,
+                "password_hash": _hash_password(_TEAM_DEFAULT_PASSWORD),
+                "full_name": "",
+                "job_title": "",
+                "company": "Inoni LLC",
+                "tier": "free",
+                "email_validated": True,
+                "eula_accepted": True,
+                "role": "user",
+                "created_at": _now_iso(),
+            }
+            _email_to_account[email] = account_id
+            seeded += 1
+            logger.info("Team account seeded: %s (%s)", account_id, email)
+        if seeded:
+            logger.info("Seeded %d team account(s)", seeded)
+
+    if _TEAM_EMAILS_RAW and _TEAM_DEFAULT_PASSWORD:
+        _seed_team_accounts()
+    elif _TEAM_EMAILS_RAW and not _TEAM_DEFAULT_PASSWORD:
+        logger.warning(
+            "MURPHY_TEAM_EMAILS is set but MURPHY_TEAM_DEFAULT_PASSWORD is empty "
+            "— team accounts will NOT be seeded"
+        )
+
     # Seed founder automations
     try:
         from src.automations.models import TriggerType, ActionType, AutomationAction
