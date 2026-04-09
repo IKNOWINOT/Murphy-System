@@ -3448,22 +3448,30 @@ def _now_iso() -> str:
 
 
 def _prod_hash_password(password: str) -> str:
-    """Hash a password with bcrypt (mitigates CWE-916: weak password hash)."""
+    """Hash a password with bcrypt (mitigates CWE-916: weak password hash).
+
+    Falls back to PBKDF2-SHA256 with 600 000 iterations when bcrypt is not
+    installed — still OWASP-recommended, avoids plain SHA-256 risk.
+    """
     if _bcrypt is not None:
         return _bcrypt.hashpw(password.encode("utf-8"), _bcrypt.gensalt()).decode("utf-8")
-    # Fallback for environments without bcrypt (dev only)
+    # Secure fallback: PBKDF2-SHA256 (stdlib, no extra deps)
     import hashlib as _hl
-    return "sha256:" + _hl.sha256(password.encode("utf-8")).hexdigest()
+    salt = _secrets.token_hex(16)
+    dk = _hl.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 600_000)
+    return f"pbkdf2:{salt}:{dk.hex()}"
 
 
 def _prod_verify_password(password: str, stored_hash: str) -> bool:
-    """Verify a password against a bcrypt hash."""
+    """Verify a password against a bcrypt or PBKDF2 hash."""
     if not stored_hash:
         return False
     try:
-        if stored_hash.startswith("sha256:"):
+        if stored_hash.startswith("pbkdf2:"):
             import hashlib as _hl
-            return stored_hash == "sha256:" + _hl.sha256(password.encode("utf-8")).hexdigest()
+            _, salt, expected = stored_hash.split(":", 2)
+            dk = _hl.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 600_000)
+            return dk.hex() == expected
         if _bcrypt is not None:
             return _bcrypt.checkpw(password.encode("utf-8"), stored_hash.encode("utf-8"))
         return False
@@ -3605,7 +3613,7 @@ async def api_auth_login(request: Request):
         key="murphy_session",
         value=session_token,
         httponly=True,
-        secure=os.environ.get("MURPHY_ENV", "development") != "development",
+        secure=os.environ.get("MURPHY_ENV", "production") != "development",
         samesite="lax",
         max_age=86400,
     )
@@ -3671,7 +3679,7 @@ async def api_auth_signup(request: Request):
         key="murphy_session",
         value=session_token,
         httponly=True,
-        secure=os.environ.get("MURPHY_ENV", "development") != "development",
+        secure=os.environ.get("MURPHY_ENV", "production") != "development",
         samesite="lax",
         max_age=86400,
     )
