@@ -207,7 +207,7 @@ class BroadcastRequest(BaseModel):
 # Router factory
 # ---------------------------------------------------------------------------
 
-def create_comms_hub_router() -> APIRouter:
+def create_comms_hub_router(account_resolver=None) -> APIRouter:
     """Return the FastAPI router for all /api/comms/* and /api/moderator/* routes."""
     router = APIRouter(tags=["Communication Hub"])
 
@@ -440,36 +440,28 @@ def create_comms_hub_router() -> APIRouter:
 
     @router.get("/api/comms/email/inbox")
     async def email_inbox(request: Request, user: str = "") -> Dict[str, Any]:
-        """Get a user email inbox. Resolves from auth session if user param omitted."""
+        """Get email inbox. Uses injected account_resolver if user param omitted.
+        PATCH-005b: avoids circular import via dependency injection.
+        """
+        if not user and account_resolver:
+            acct = account_resolver(request)
+            if acct:
+                user = acct.get("email", "")
         if not user:
-            auth = request.headers.get("authorization", "")
-            token = auth[7:].strip() if auth.startswith("Bearer ") else request.cookies.get("murphy_session", "")
-            try:
-                from src.runtime.app import _session_store, _user_store
-                acct = _session_store.get(token) if token else None
-                if acct and acct in _user_store:
-                    user = _user_store[acct].get("email", "")
-            except Exception:
-                pass
-        if not user:
-            return {"ok": False, "error": "Provide user param or authenticate", "emails": []}
+            return {"ok": False, "error": "Provide ?user= param or authenticate", "emails": []}
         return {"ok": True, "emails": email_store.get_inbox(user)}
 
     @router.get("/api/comms/email/outbox")
     async def email_outbox(request: Request, user: str = "") -> Dict[str, Any]:
-        """Get a user email outbox. Resolves from auth session if user param omitted."""
+        """Get email outbox. Uses injected account_resolver if user param omitted.
+        PATCH-005b: avoids circular import via dependency injection.
+        """
+        if not user and account_resolver:
+            acct = account_resolver(request)
+            if acct:
+                user = acct.get("email", "")
         if not user:
-            auth = request.headers.get("authorization", "")
-            token = auth[7:].strip() if auth.startswith("Bearer ") else request.cookies.get("murphy_session", "")
-            try:
-                from src.runtime.app import _session_store, _user_store
-                acct = _session_store.get(token) if token else None
-                if acct and acct in _user_store:
-                    user = _user_store[acct].get("email", "")
-            except Exception:
-                pass
-        if not user:
-            return {"ok": False, "error": "Provide user param or authenticate", "emails": []}
+            return {"ok": False, "error": "Provide ?user= param or authenticate", "emails": []}
         return {"ok": True, "emails": email_store.get_outbox(user)}
 
     @router.get("/api/comms/email/{eid}")
