@@ -37,6 +37,7 @@ Environment="PATH=/opt/Murphy-System/venv/bin:/usr/local/bin:/usr/bin:/bin"
 
 # All secrets and connection strings — fill in before starting
 EnvironmentFile=/etc/murphy-production/environment
+EnvironmentFile=-/etc/murphy-production/secrets.env
 
 # Inject the git commit SHA so /api/health reports which version is live
 # Uses sed to replace any existing MURPHY_DEPLOY_COMMIT line (idempotent).
