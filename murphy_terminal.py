@@ -1282,6 +1282,21 @@ class MurphyTerminalApp(App):
 
     # -- input handling --
 
+
+    def key_enter(self, event: events.Key) -> None:
+        """App-level Enter: submit the user input regardless of which widget has focus."""
+        try:
+            input_widget = self.query_one("#user-input", MurphyInput)
+            if input_widget.value.strip():
+                message = input_widget.value.strip()
+                input_widget.value = ""
+                self._write_user(message)
+                self._process_message(message)
+                event.prevent_default()
+                event.stop()
+        except Exception:
+            pass
+
     def on_input_submitted(self, event: Input.Submitted) -> None:
         message = event.value.strip()
         if not message:
@@ -1521,15 +1536,17 @@ class MurphyTerminalApp(App):
         fmt = API_KEY_FORMATS[provider]
         env_var = fmt["env_var"]
 
+        # Set env IMMEDIATELY so it is observable before any I/O
+        import sys
+        print(f"[DEBUG] BEFORE SET: {env_var}={os.environ.get(env_var)!r}", file=sys.stderr)
+        os.environ[env_var] = key_value
+        os.environ["MURPHY_LLM_PROVIDER"] = provider
+        print(f"[DEBUG] AFTER SET: {env_var}={os.environ.get(env_var)!r}", file=sys.stderr)
+
         # Persist to .env (both the API key and the provider selection)
         env_path = get_env_path()
         write_env_key(env_path, env_var, key_value)
         write_env_key(env_path, "MURPHY_LLM_PROVIDER", provider)
-
-        # Hot-reload into current process — this ALWAYS happens, even if
-        # the backend is unreachable, so the key is immediately usable.
-        os.environ[env_var] = key_value
-        os.environ["MURPHY_LLM_PROVIDER"] = provider
         reload_env(env_path)
 
         self._write_murphy(
@@ -1629,6 +1646,7 @@ class MurphyTerminalApp(App):
             try:
                 input_widget = self.query_one("#user-input", MurphyInput)
                 input_widget.insert_text_at_cursor(first_line)
+                self.set_focus(input_widget)  # ensure focus for Enter key
             except Exception:
                 pass
 

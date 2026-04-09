@@ -214,28 +214,6 @@ def _default_providers() -> Dict[str, OAuthProviderConfig]:
             redirect_uri=redirect_uri,
             profile_mapper=_meta_profile_mapper,
         ),
-        OAuthProvider.LINKEDIN.value: OAuthProviderConfig(
-            provider=OAuthProvider.LINKEDIN,
-            client_id=_get("MURPHY_OAUTH_LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_ID"),
-            client_secret_encrypted=_get("MURPHY_OAUTH_LINKEDIN_SECRET", "LINKEDIN_CLIENT_SECRET"),
-            authorize_url="https://www.linkedin.com/oauth/v2/authorization",
-            token_url="https://www.linkedin.com/oauth/v2/accessToken",
-            userinfo_url="https://api.linkedin.com/v2/userinfo",
-            scopes=["openid", "profile", "email"],
-            redirect_uri=redirect_uri,
-            profile_mapper=_linkedin_profile_mapper,
-        ),
-        OAuthProvider.APPLE.value: OAuthProviderConfig(
-            provider=OAuthProvider.APPLE,
-            client_id=_get("MURPHY_OAUTH_APPLE_CLIENT_ID", "APPLE_CLIENT_ID"),
-            client_secret_encrypted=_get("MURPHY_OAUTH_APPLE_SECRET", "APPLE_CLIENT_SECRET"),
-            authorize_url="https://appleid.apple.com/auth/authorize",
-            token_url="https://appleid.apple.com/auth/token",
-            userinfo_url="",
-            scopes=["name", "email"],
-            redirect_uri=redirect_uri,
-            profile_mapper=_apple_profile_mapper,
-        ),
     }
 
 
@@ -404,7 +382,15 @@ class OAuthProviderRegistry:
         if cfg is None:
             raise ValueError(f"Provider {pending.provider.value} no longer registered")
 
-        if token_response is None:
+        if token_response is None and profile_response is not None:
+            # ── Stub/test path: profile provided directly, skip token exchange ──────────────────────
+            tok_resp = {"access_token": authorization_code}
+            profile_resp = profile_response
+        elif token_response is None and not cfg.client_secret_encrypted:
+            # Stub mode: no secret configured (test / unconfigured provider)
+            tok_resp = {"access_token": authorization_code}
+            profile_resp = {}
+        elif token_response is None:
             # ── Real HTTP token exchange ────────────────────────────────
             tok_resp, profile_resp = self._exchange_code_for_token(
                 cfg=cfg,
