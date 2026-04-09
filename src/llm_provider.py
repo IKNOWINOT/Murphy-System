@@ -356,7 +356,7 @@ class MurphyLLMProvider:
             # PATCH-013h: truncate prompt to keep phi3 fast
             prompt = prompt[:2000] if len(prompt) > 2000 else prompt
             payload = _j.dumps({"model":model,"prompt":prompt,"stream":False,
-                                 "options":{"num_predict":800  # PATCH-013h: keep phi3 calls concise,"temperature":0.7}}).encode()
+                                 "options":{"num_predict":800,"temperature":0.7}}).encode()  # PATCH-013h: phi3 concise
             req = _ur.Request(host+"/api/generate", data=payload,
                               headers={"Content-Type":"application/json"}, method="POST")
             with _ur.urlopen(req, timeout=OLLAMA_TIMEOUT) as resp:
