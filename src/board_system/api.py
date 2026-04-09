@@ -124,27 +124,21 @@ def create_board_router(manager: Optional[BoardManager] = None) -> "APIRouter":
     # -- Board CRUD ---------------------------------------------------------
 
     @router.post("")
-    async def create_board(req: CreateBoardRequest, request: Request):
-        """Create a board. PATCH-011: name validated after parse; owner resolved from auth."""
-        # PATCH-011: validate name after JSON parse (avoids 422 before auth check)
+    async def create_board(req: CreateBoardRequest):
+        """Create a board. PATCH-011b: name validated after parse."""
+        # PATCH-011b: validate name — returns 400 not 422
         if not (req.name or "").strip():
             raise HTTPException(400, "Board name is required")
         try:
             kind = BoardKind(req.kind)
         except ValueError:
             raise HTTPException(400, f"Invalid board kind: {req.kind!r}")
-        # Resolve owner_id from auth header if not provided
-        _owner_id = req.owner_id or ""
-        if not _owner_id:
-            _auth = request.headers.get("Authorization", "")
-            if _auth.startswith("Bearer "):
-                _owner_id = _auth[7:23]
         board = manager.create_board(
             name=req.name.strip(),
             description=req.description,
             kind=kind,
             workspace_id=req.workspace_id,
-            owner_id=_owner_id,
+            owner_id=req.owner_id or "system",
         )
         return JSONResponse(board.to_dict(), status_code=201)
 
