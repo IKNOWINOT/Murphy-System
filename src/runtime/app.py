@@ -6151,6 +6151,32 @@ def create_app() -> FastAPI:
                 _sub_mgr = None
         return _sub_mgr
 
+    @app.get("/api/billing/current")
+    async def billing_current_subscription(request: Request):
+        """Get current subscription for the authenticated user.
+        PATCH-007: session-aware alias for /api/billing/account/{id}.
+        """
+        account = _get_account_from_session(request)
+        if account is None:
+            return JSONResponse(
+                {"success": False, "error": {"code": "AUTH_REQUIRED", "message": "Authentication required"}},
+                status_code=401,
+            )
+        account_id = account.get("account_id", "")
+        tier = account.get("tier", "free")
+        sub = None
+        if _sub_manager is not None and account_id:
+            sub = _sub_manager._subscriptions.get(account_id)
+        return JSONResponse({
+            "success": True,
+            "account_id": account_id,
+            "tier": tier,
+            "status": getattr(getattr(sub, "status", None), "value", "active") if sub else "active",
+            "billing_interval": getattr(getattr(sub, "interval", None), "value", "monthly") if sub else "monthly",
+            "plan_name": tier.title() + " Tier",
+            "features": [],
+        })
+
     @app.get("/api/billing/tiers")
     async def billing_tiers():
         """Return all available pricing tiers with limits, features, and prices."""
@@ -11790,6 +11816,7 @@ def create_app() -> FastAPI:
         profile = {
             "success":         True,
             "id":              account.get("account_id", ""),
+            "account_id":      account.get("account_id", ""),  # PATCH-007: alias for client use
             "email":           account.get("email", ""),
             "name":            account.get("full_name", account.get("name", "")),
             "full_name":       account.get("full_name", ""),
