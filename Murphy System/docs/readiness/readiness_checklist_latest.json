@@ -1,18 +1,18 @@
 {
   "agent_version": "1.0.0",
   "agent_label": "READINESS-SCANNER-001",
-  "scan_timestamp": "2026-04-08T09:24:52.309252+00:00",
-  "scan_date": "2026-04-08",
+  "scan_timestamp": "2026-04-09T09:28:07.914925+00:00",
+  "scan_date": "2026-04-09",
   "summary": {
     "total_modules": 593,
     "test_coverage_ratio": 0.587,
     "critical_tests_complete": false,
     "source_in_sync": true,
-    "debt_markers": 757,
+    "debt_markers": 764,
     "smoke_import_failures": 0,
     "bare_except_count": 33,
     "total_human_tasks": 1,
-    "total_agent_tasks": 8
+    "total_agent_tasks": 9
   },
   "commissioning_assessment": {
     "G1_modules_functional": true,
@@ -164,19 +164,33 @@
       "category": "technical_debt",
       "priority": "LOW",
       "title": "Catalog and prioritize technical debt markers",
-      "description": "Found 757 debt markers across the codebase. Generate a prioritized debt report with resolution recommendations.",
+      "description": "Found 764 debt markers across the codebase. Generate a prioritized debt report with resolution recommendations.",
       "commissioning": "G7: Restart from symptoms and work back through validation",
       "action": "catalog_debt",
       "details": {
-        "total": 757,
+        "total": 764,
         "by_type": {
           "TODO": 26,
           "FIXME": 2,
           "HACK": 6,
-          "STUB": 258,
+          "STUB": 259,
           "XXX": 12,
-          "NOQA": 453
+          "NOQA": 459
         }
+      }
+    },
+    {
+      "id": "DOCS-DOCSTRINGS",
+      "category": "documentation",
+      "priority": "LOW",
+      "title": "Add module-level docstrings to undocumented modules",
+      "description": "1 modules lack docstrings. Add G2-compliant docstrings describing module purpose.",
+      "commissioning": "G2/G8: Purpose must be documented",
+      "action": "add_docstrings",
+      "details": {
+        "missing": [
+          "Murphy System/src/persistence_wal.py"
+        ]
       }
     },
     {
@@ -4400,14 +4414,14 @@
       "skipped": true
     },
     "debt_markers": {
-      "total": 757,
+      "total": 764,
       "by_type": {
         "TODO": 26,
         "FIXME": 2,
         "HACK": 6,
-        "STUB": 258,
+        "STUB": 259,
         "XXX": 12,
-        "NOQA": 453
+        "NOQA": 459
       },
       "files_with_debt_count": 193,
       "top_files": [
@@ -4456,6 +4470,15 @@
           }
         },
         {
+          "file": "Murphy System/src/demo_deliverable_generator.py",
+          "markers": {
+            "TODO": 2,
+            "STUB": 1,
+            "XXX": 1,
+            "NOQA": 14
+          }
+        },
+        {
           "file": "Murphy System/src/database/__init__.py",
           "markers": {
             "STUB": 6,
@@ -4494,14 +4517,6 @@
           "file": "Murphy System/src/ceo_branch_activation.py",
           "markers": {
             "NOQA": 12
-          }
-        },
-        {
-          "file": "Murphy System/src/demo_deliverable_generator.py",
-          "markers": {
-            "TODO": 2,
-            "XXX": 1,
-            "NOQA": 8
           }
         },
         {
@@ -4555,10 +4570,12 @@
     },
     "docstring_coverage": {
       "total_files": 507,
-      "with_docstring": 507,
-      "without_docstring": 0,
-      "missing_docstrings": [],
-      "coverage_pct": 100.0
+      "with_docstring": 506,
+      "without_docstring": 1,
+      "missing_docstrings": [
+        "Murphy System/src/persistence_wal.py"
+      ],
+      "coverage_pct": 99.8
     },
     "error_handling": {
       "bare_except_count": 33,
@@ -4620,7 +4637,7 @@
         },
         {
           "file": "Murphy System/src/fastapi_security.py",
-          "line": 692,
+          "line": 696,
           "content": "except ValueError: / pass"
         },
         {
@@ -4665,7 +4682,7 @@
         },
         {
           "file": "Murphy System/src/production_workflow_registry.py",
-          "line": 676,
+          "line": 683,
           "content": "except re.error: / pass"
         },
         {
@@ -4675,22 +4692,22 @@
         },
         {
           "file": "Murphy System/src/runtime/app.py",
-          "line": 2920,
+          "line": 2927,
           "content": "except ImportError: / pass"
         },
         {
           "file": "Murphy System/src/runtime/app.py",
-          "line": 7359,
+          "line": 7366,
           "content": "except ValueError: / pass"
         },
         {
           "file": "Murphy System/src/runtime/app.py",
-          "line": 11043,
+          "line": 11290,
           "content": "except WebSocketDisconnect: / pass"
         },
         {
           "file": "Murphy System/src/runtime/app.py",
-          "line": 13442,
+          "line": 13710,
           "content": "except Exception: / pass"
         },
         {
@@ -4741,7 +4758,7 @@
         {
           "file": ".env.example",
           "exists": true,
-          "size_bytes": 18926
+          "size_bytes": 19878
         },
         {
           "file": "Dockerfile",
@@ -4751,7 +4768,7 @@
         {
           "file": "docker-compose.yml",
           "exists": true,
-          "size_bytes": 6625
+          "size_bytes": 6730
         },
         {
           "file": "gunicorn.conf.py",
@@ -4761,7 +4778,7 @@
       ]
     },
     "env_example": {
-      "documented_vars": 16,
+      "documented_vars": 18,
       "required_vars_missing": [
         "MURPHY_SECRET_KEY",
         "DATABASE_URL"
@@ -4888,7 +4905,7 @@
         {
           "workflow": "hetzner-deploy.yml",
           "exists": true,
-          "size_bytes": 3259
+          "size_bytes": 4932
         },
         {
           "workflow": "hetzner-deploy-recovery.yml",
