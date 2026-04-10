@@ -480,84 +480,127 @@ FACTS.forEach((_, i) => {
 renderFact(0);
 setInterval(() => { factIdx = (factIdx + 1) % FACTS.length; renderFact(factIdx); }, 5000);
 
-// ── POLL ───────────────────────────────────────────────────────────────────
-let steveVotes = 0, trumpVotes = 0, hasVoted = false, voteHistory = [];
+// ── POLL (localStorage-persisted) ────────────────────────────────────────
+const POLL_KEY  = 'steve2028_poll_v2';
+const VOTED_KEY = 'steve2028_voted_v2';
+const SEED_STEVE = 84271;
+const SEED_TRUMP = 3;
+
+function loadState() {
+  try { var r = localStorage.getItem(POLL_KEY); if (r) return JSON.parse(r); } catch(e) {}
+  return { steveVotes: SEED_STEVE, trumpVotes: SEED_TRUMP, voteHistory: [] };
+}
+function saveState() {
+  try { localStorage.setItem(POLL_KEY, JSON.stringify({ steveVotes: steveVotes, trumpVotes: trumpVotes, voteHistory: voteHistory })); } catch(e) {}
+}
+function loadHasVoted() { try { return localStorage.getItem(VOTED_KEY) === '1'; } catch(e) { return false; } }
+function saveHasVoted() { try { localStorage.setItem(VOTED_KEY, '1'); } catch(e) {} }
+
+var _state    = loadState();
+var steveVotes  = _state.steveVotes;
+var trumpVotes  = _state.trumpVotes;
+var voteHistory = _state.voteHistory || [];
+var hasVoted    = loadHasVoted();
+
+(function initPoll() {
+  document.getElementById('steveCount').textContent = steveVotes.toLocaleString();
+  document.getElementById('trumpCount').textContent = trumpVotes.toLocaleString();
+  if (hasVoted) {
+    document.getElementById('btnTrump').disabled = true;
+    document.getElementById('btnSteve').disabled = true;
+    var last = voteHistory.length ? voteHistory[voteHistory.length - 1] : 0;
+    if (last >= 1234) document.getElementById('steveLabel').textContent = '✨ democracy ✨';
+    var res = document.getElementById('pollResult');
+    res.style.display = 'block';
+    res.innerHTML = '<p style="color:rgba(255,255,255,.5);font-size:14px">You already voted! The people remember. Steve is mortified.</p>'
+      + '<div style="margin-top:12px"><a href="' + DONATE_URL + '" target="_blank" rel="noreferrer" class="donate-banner mini">'
+      + '<h2>Support Steve's 2028 Campaign</h2>'
+      + '<p>Every share and donation helps us reach more voters.</p>'
+      + '<div class="donate-btn">DONATE HERE</div>'
+      + '<div class="hashtags">#VoteForSteve #Election2028</div>'
+      + '</a></div>';
+  }
+  updateBar();
+})();
 
 function getAdded(current) {
-  if (current === 0)      return 1;
-  if (current < 5)        return 1;
-  if (current < 10)       return 2;
-  if (current < 15)       return 1234;
-  if (current < 20)       return 4567  + Math.floor(Math.random() * 1000);
-  if (current < 30)       return 12340 + Math.floor(Math.random() * 5000);
-  return                         98765 + Math.floor(Math.random() * 50000);
+  if (current < SEED_STEVE + 3)   return 1;
+  if (current < SEED_STEVE + 8)   return 2;
+  if (current < SEED_STEVE + 15)  return 1234;
+  if (current < SEED_STEVE + 20)  return 4567  + Math.floor(Math.random() * 1000);
+  if (current < SEED_STEVE + 30)  return 12340 + Math.floor(Math.random() * 5000);
+  return 98765 + Math.floor(Math.random() * 50000);
 }
 
 function updateBar() {
-  const total = steveVotes + trumpVotes;
+  var total = steveVotes + trumpVotes;
   if (!total) return;
-  const sp = Math.round(steveVotes / total * 100);
-  const tp = 100 - sp;
+  var sp = Math.round(steveVotes / total * 100);
   document.getElementById('barFill').style.width = sp + '%';
-  document.getElementById('stevePct').textContent  = 'Steve: ' + sp + '%';
-  document.getElementById('trumpPct').textContent  = 'Trump: ' + tp + '%';
+  document.getElementById('stevePct').textContent = 'Steve: ' + sp + '%';
+  document.getElementById('trumpPct').textContent = 'Trump: ' + (100 - sp) + '%';
   document.getElementById('pollBar').style.display = 'block';
 }
 
 function castVote(who) {
   if (hasVoted) return;
   hasVoted = true;
+  saveHasVoted();
   document.getElementById('btnTrump').disabled = true;
   document.getElementById('btnSteve').disabled = true;
 
   if (who === 'steve') {
-    const added = getAdded(steveVotes);
+    var added = getAdded(steveVotes);
     steveVotes += added;
     voteHistory.push(added);
-    const isCrazy = added >= 1234;
-
-    const countEl = document.getElementById('steveCount');
+    saveState();
+    var isCrazy = added >= 1234;
+    var countEl = document.getElementById('steveCount');
     countEl.textContent = steveVotes.toLocaleString();
     countEl.classList.add('pulse');
-    setTimeout(() => countEl.classList.remove('pulse'), 700);
+    setTimeout(function() { countEl.classList.remove('pulse'); }, 700);
     if (isCrazy) document.getElementById('steveLabel').textContent = '✨ democracy ✨';
-
-    const res = document.getElementById('pollResult');
+    var res = document.getElementById('pollResult');
     res.style.display = 'block';
     res.innerHTML = isCrazy
-      ? '<p>🎉 Your vote counted as <strong>' + added.toLocaleString() + '</strong> votes for Steve!<br><span class="sub">(The algorithm detected your enthusiasm. It\'s a feature.)</span></p>'
+      ? '<p>Your vote counted as <strong>' + added.toLocaleString() + '</strong> votes for Steve!<br><span class="sub">(The algorithm detected your enthusiasm. It's a feature.)</span></p>'
         + '<div style="margin-top:12px"><a href="' + DONATE_URL + '" target="_blank" rel="noreferrer" class="donate-banner mini">'
-        + '<h2>💛 Keep the momentum going — Donate!</h2>'
+        + '<h2>Keep the momentum going &mdash; Donate!</h2>'
         + '<p>Every donation helps us reach more voters.</p>'
-        + '<div class="donate-btn">DONATE → gofund.me/bcb741795</div>'
+        + '<div class="donate-btn">DONATE &rarr; gofund.me/bcb741795</div>'
         + '<div class="hashtags">#VoteForSteve #Election2028</div>'
         + '</a></div>'
-      : '<p>✅ Vote counted! Steve still doesn\'t want this.</p>'
+      : '<p>Vote counted! Steve still doesn't want this.</p>'
         + '<div style="margin-top:12px"><a href="' + DONATE_URL + '" target="_blank" rel="noreferrer" class="donate-banner mini">'
-        + '<h2>💛 Support Steve\'s 2028 Campaign</h2>'
+        + '<h2>Support Steve's 2028 Campaign</h2>'
         + '<p>Every share and donation helps us reach more voters.</p>'
-        + '<div class="donate-btn">DONATE HERE →</div>'
+        + '<div class="donate-btn">DONATE HERE &rarr;</div>'
         + '<div class="hashtags">#VoteForSteve #Election2028</div>'
         + '</a></div>';
   } else {
     trumpVotes += 1;
+    saveState();
     document.getElementById('trumpCount').textContent = trumpVotes.toLocaleString();
-    const res = document.getElementById('pollResult');
+    var res = document.getElementById('pollResult');
     res.style.display = 'block';
-    res.innerHTML = '<p style="color:rgba(255,255,255,.5);font-size:14px">Your vote for Trump has been recorded. Steve\'s not judging. He\'s very chill.</p>'
+    res.innerHTML = '<p style="color:rgba(255,255,255,.5);font-size:14px">Your vote for Trump has been recorded. Steve's not judging. He's very chill.</p>'
       + '<p style="font-size:13px;margin-top:8px;color:rgba(255,255,255,.35)">Changed your mind? <a href="#" onclick="resetPoll();return false;" style="color:var(--gold)">Vote again for Steve instead.</a></p>';
   }
   updateBar();
 }
 
 function resetPoll() {
-  steveVotes = 0; trumpVotes = 0; hasVoted = false; voteHistory = [];
-  ['trumpCount','steveCount'].forEach(id => document.getElementById(id).textContent = '0');
+  steveVotes = SEED_STEVE; trumpVotes = SEED_TRUMP; hasVoted = false; voteHistory = [];
+  saveState();
+  try { localStorage.removeItem(VOTED_KEY); } catch(e) {}
+  document.getElementById('steveCount').textContent = steveVotes.toLocaleString();
+  document.getElementById('trumpCount').textContent = trumpVotes.toLocaleString();
   document.getElementById('steveLabel').textContent = 'votes';
   document.getElementById('pollResult').style.display = 'none';
   document.getElementById('pollBar').style.display   = 'none';
   document.getElementById('btnTrump').disabled = false;
   document.getElementById('btnSteve').disabled = false;
+  updateBar();
 }
 
 // ── POLICY ────────────────────────────────────────────────────────────────
