@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta property="og:title" content="Steve 2028 — A Man Who Genuinely Doesn't Want This">
+<meta property="og:description" content="He fixed a printer without swearing. The printer endorses him. Vote Steve 2028.">
+<meta property="og:url" content="https://murphy.systems/voteforsteve2028">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Steve 2028 🇺🇸">
+<meta name="twitter:description" content="He fixed a printer without swearing once. The people have spoken. #VoteForSteve #Election2028">
+<title>Steve 2028 🇺🇸 — A Man Who Doesn't Want This</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --gold: #ffd700;
+    --red:  #b22234;
+    --bg:   #0a0a2e;
+  }
+
+  body {
+    font-family: Georgia, serif;
+    background: linear-gradient(135deg, #0a0a2e 0%, #1a1a4e 40%, #0d1b2a 100%);
+    color: #fff;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── TICKER ── */
+  .ticker-wrap {
+    background: var(--red);
+    border-bottom: 3px solid var(--gold);
+    overflow: hidden;
+    padding: 8px 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .ticker-track {
+    display: inline-block;
+    white-space: nowrap;
+    animation: ticker 45s linear infinite;
+    font-family: monospace;
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+  .ticker-track span { margin-right: 80px; }
+  @keyframes ticker {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-33.33%); }
+  }
+
+  /* ── HERO ── */
+  .hero {
+    text-align: center;
+    padding: 60px 20px 40px;
+    background: radial-gradient(ellipse at center, rgba(178,34,52,.3) 0%, transparent 70%);
+  }
+  .hero-flag { font-size: 90px; filter: drop-shadow(0 0 30px rgba(255,215,0,.5)); margin-bottom: 10px; }
+  .hero h1 {
+    font-size: clamp(48px, 10vw, 96px);
+    font-weight: 900;
+    letter-spacing: -2px;
+    background: linear-gradient(135deg, #ffd700, #fff, #ffd700);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+  }
+  .hero-tagline { font-size: clamp(15px, 3vw, 22px); color: var(--gold); margin: 10px 0 5px; font-style: italic; letter-spacing: 2px; }
+  .hero-disclaimer { font-size: 13px; color: rgba(255,255,255,.4); font-family: monospace; margin-bottom: 30px; }
+  .paid-for { display: inline-block; margin-top: 16px; padding: 5px 16px; background: rgba(255,215,0,.07); border: 1px solid rgba(255,215,0,.25); border-radius: 4px; font-size: 11px; color: rgba(255,255,255,.4); font-family: monospace; letter-spacing: 1.5px; }
+
+  /* ── DONATE BANNER ── */
+  .donate-banner {
+    background: linear-gradient(135deg, #b22234 0%, #8b0000 100%);
+    border: 2px solid var(--gold);
+    border-radius: 14px;
+    padding: 28px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform .2s, box-shadow .2s;
+    box-shadow: 0 4px 30px rgba(178,34,52,.4);
+    text-decoration: none;
+    display: block;
+  }
+  .donate-banner:hover { transform: translateY(-2px); box-shadow: 0 8px 40px rgba(255,215,0,.3); }
+  .donate-banner .pre-label { font-size: 12px; color: rgba(255,255,255,.65); font-family: monospace; letter-spacing: 2px; margin-bottom: 8px; }
+  .donate-banner h2 { font-size: clamp(18px, 4vw, 26px); color: var(--gold); margin-bottom: 8px; }
+  .donate-banner p { font-size: 15px; color: rgba(255,255,255,.85); line-height: 1.6; margin-bottom: 14px; }
+  .donate-btn {
+    display: inline-block;
+    background: var(--gold);
+    color: #000;
+    font-weight: 900;
+    padding: 10px 28px;
+    border-radius: 6px;
+    font-size: 15px;
+    letter-spacing: 1px;
+    font-family: monospace;
+    margin-bottom: 10px;
+  }
+  .donate-banner .hashtags { font-size: 12px; color: rgba(255,255,255,.35); font-family: monospace; }
+  .donate-banner.mini { padding: 16px 22px; border-radius: 8px; }
+  .donate-banner.mini h2 { font-size: 17px; }
+  .donate-banner.mini p { font-size: 13px; }
+
+  /* ── SHARE BTN ── */
+  .share-btn {
+    background: transparent;
+    border: 2px solid rgba(255,215,0,.5);
+    border-radius: 8px;
+    color: var(--gold);
+    padding: 10px 28px;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: monospace;
+    letter-spacing: 1px;
+    transition: background .2s;
+    margin-top: 14px;
+  }
+  .share-btn:hover { background: rgba(255,215,0,.1); }
+
+  /* ── FACT BOX ── */
+  .fact-box {
+    max-width: 800px;
+    margin: 0 auto 60px;
+    padding: 0 20px;
+    text-align: center;
+  }
+  .fact-card {
+    background: rgba(255,215,0,.05);
+    border: 2px solid rgba(255,215,0,.4);
+    border-radius: 12px;
+    padding: 30px 40px;
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity .4s;
+  }
+  .fact-label { font-size: 12px; color: var(--gold); letter-spacing: 3px; margin-bottom: 12px; font-family: monospace; }
+  .fact-text { font-size: clamp(16px, 2.5vw, 22px); line-height: 1.55; color: #fff; }
+  .dots { display: flex; justify-content: center; gap: 6px; margin-top: 14px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.2); cursor: pointer; transition: background .3s; }
+  .dot.active { background: var(--gold); }
+
+  /* ── POLL ── */
+  .section { max-width: 700px; margin: 0 auto 80px; padding: 0 20px; }
+  .section-wide { max-width: 920px; margin: 0 auto 80px; padding: 0 20px; }
+  .section-title { text-align: center; font-size: clamp(18px, 3.5vw, 30px); color: var(--gold); letter-spacing: 3px; font-family: monospace; margin-bottom: 8px; }
+  .section-sub { text-align: center; color: rgba(255,255,255,.35); font-size: 11px; font-family: monospace; margin-bottom: 28px; }
+
+  .poll-card {
+    background: rgba(255,255,255,.04);
+    border: 2px solid rgba(255,215,0,.3);
+    border-radius: 16px;
+    padding: 36px;
+  }
+  .poll-question { text-align: center; font-size: 18px; color: #ddd; margin-bottom: 28px; }
+  .poll-choices { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 28px; }
+  .poll-btn {
+    flex: 1;
+    min-width: 140px;
+    padding: 20px;
+    border-radius: 12px;
+    border: 2px solid rgba(255,100,100,.4);
+    background: rgba(255,50,50,.12);
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    font-family: Georgia, serif;
+    transition: all .25s;
+  }
+  .poll-btn.steve {
+    border-color: rgba(255,215,0,.5);
+    background: rgba(255,215,0,.1);
+  }
+  .poll-btn:disabled { cursor: default; }
+  .poll-btn .candidate-icon { font-size: 36px; margin-bottom: 8px; display: block; }
+  .poll-btn .candidate-name { font-weight: bold; display: block; margin-bottom: 4px; }
+  .poll-btn.steve .candidate-name { color: var(--gold); }
+  .poll-btn .vote-count { font-size: 28px; font-weight: 900; font-family: monospace; display: block; color: #ccc; transition: all .4s; }
+  .poll-btn.steve .vote-count { color: #fff; }
+  .poll-btn .vote-label { font-size: 11px; color: rgba(255,255,255,.3); margin-top: 4px; display: block; }
+
+  .poll-bar-wrap { margin-bottom: 18px; }
+  .poll-bar-bg { height: 20px; border-radius: 10px; background: rgba(255,255,255,.1); overflow: hidden; }
+  .poll-bar-fill { height: 100%; border-radius: 10px; background: linear-gradient(90deg, #ffd700, #ffaa00); transition: width .9s cubic-bezier(.34,1.56,.64,1); }
+  .poll-bar-labels { display: flex; justify-content: space-between; margin-top: 8px; font-size: 13px; font-family: monospace; }
+  .poll-bar-labels .trump-label { color: rgba(255,255,255,.45); }
+  .poll-bar-labels .steve-label { color: var(--gold); }
+
+  .poll-result {
+    background: rgba(255,215,0,.08);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    margin-bottom: 20px;
+    animation: fadeIn .5s ease-out;
+  }
+  .poll-result p { margin: 0 0 10px; color: var(--gold); font-size: 15px; }
+  .poll-result .sub { font-size: 12px; color: rgba(255,255,255,.35); }
+  .poll-reset {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 6px;
+    color: rgba(255,255,255,.35);
+    padding: 8px 18px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: monospace;
+    display: block;
+    margin: 0 auto;
+    transition: border-color .2s, color .2s;
+  }
+  .poll-reset:hover { border-color: rgba(255,255,255,.4); color: rgba(255,255,255,.6); }
+
+  /* ── POLICY GRID ── */
+  .policy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  .policy-card {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,215,0,.18);
+    border-radius: 12px;
+    padding: 20px;
+    transition: transform .2s, border-color .2s;
+  }
+  .policy-card:hover { transform: translateY(-3px); border-color: rgba(255,215,0,.5); }
+  .policy-icon { font-size: 30px; margin-bottom: 10px; }
+  .policy-name { color: var(--gold); font-weight: bold; font-size: 13px; letter-spacing: 1px; margin-bottom: 7px; }
+  .policy-text { color: rgba(255,255,255,.8); font-size: 14px; line-height: 1.55; }
+
+  /* ── ENDORSEMENTS ── */
+  .endorsement-section {
+    background: rgba(178,34,52,.14);
+    border-top: 1px solid rgba(255,215,0,.2);
+    border-bottom: 1px solid rgba(255,215,0,.2);
+    padding: 60px 20px;
+    margin-bottom: 80px;
+    text-align: center;
+  }
+  .endorsement-card { max-width: 600px; margin: 0 auto; }
+  .endorse-avatar { font-size: 58px; margin-bottom: 14px; }
+  .endorse-quote { font-size: clamp(17px, 3vw, 25px); font-style: italic; line-height: 1.55; margin-bottom: 18px; }
+  .endorse-name { color: var(--gold); font-family: monospace; font-size: 14px; }
+
+  /* ── ACTIONS GRID ── */
+  .actions-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+  .action-card {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,215,0,.14);
+    border-radius: 12px;
+    padding: 24px 18px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .action-card.primary { background: rgba(255,215,0,.07); border-color: rgba(255,215,0,.38); }
+  .action-card:hover { background: rgba(255,215,0,.11); border-color: rgba(255,215,0,.5); }
+  .action-icon { font-size: 34px; margin-bottom: 12px; }
+  .action-label { color: var(--gold); font-weight: bold; font-size: 14px; margin-bottom: 8px; }
+  .action-desc { color: rgba(255,255,255,.58); font-size: 12px; line-height: 1.55; }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    padding: 40px 20px;
+    border-top: 1px solid rgba(255,255,255,.1);
+    color: rgba(255,255,255,.28);
+    font-size: 11px;
+    font-family: monospace;
+    line-height: 2.2;
+  }
+  footer .footer-flag { font-size: 38px; margin-bottom: 14px; }
+  footer a { color: var(--gold); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+  footer .tiny { color: rgba(255,255,255,.13); margin-top: 10px; }
+
+  /* ── UTILS ── */
+  .center { text-align: center; }
+  .mt-16 { margin-top: 16px; }
+  .mb-30 { margin-bottom: 30px; }
+  .container { max-width: 700px; margin: 0 auto; padding: 0 20px; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulseBig {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.28); }
+    100% { transform: scale(1); }
+  }
+  .pulse { animation: pulseBig .6s ease-out; }
+</style>
+</head>
+<body>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker-track">
+    <span>🇺🇸 STEVE 2028 ★ HE FIXED A PRINTER WITHOUT SWEARING ★ THE PRINTER ENDORSES HIM ★ HE DOESN'T EVEN WANT THIS ★ DONATE: gofund.me/bcb741795 ★ #VoteForSteve #Election2028 ★</span>
+    <span>🇺🇸 STEVE 2028 ★ HE FIXED A PRINTER WITHOUT SWEARING ★ THE PRINTER ENDORSES HIM ★ HE DOESN'T EVEN WANT THIS ★ DONATE: gofund.me/bcb741795 ★ #VoteForSteve #Election2028 ★</span>
+    <span>🇺🇸 STEVE 2028 ★ HE FIXED A PRINTER WITHOUT SWEARING ★ THE PRINTER ENDORSES HIM ★ HE DOESN'T EVEN WANT THIS ★ DONATE: gofund.me/bcb741795 ★ #VoteForSteve #Election2028 ★</span>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-flag">🇺🇸</div>
+  <h1>STEVE 2028</h1>
+  <p class="hero-tagline">"A Man Who Genuinely Doesn't Want This"</p>
+  <p class="hero-disclaimer">*Steve does not approve this message. He asked us to stop. We cannot stop.</p>
+
+  <div class="container mt-16">
+    <a href="https://gofund.me/bcb741795" target="_blank" rel="noreferrer" class="donate-banner">
+      <div class="pre-label">THE PEOPLE HAVE DECIDED</div>
+      <h2>💛 Support Steve's 2028 Campaign</h2>
+      <p>Help us grow a people-powered movement. Every share and every donation helps us reach more voters.</p>
+      <div class="donate-btn">DONATE HERE →</div>
+      <div class="hashtags">#VoteForSteve #Election2028</div>
+    </a>
+    <div class="center mt-16">
+      <button class="share-btn" onclick="handleShare()">📣 SHARE THE MOVEMENT</button>
+    </div>
+  </div>
+
+  <div class="paid-for">PAID FOR BY "PEOPLE WHO HAVE SIMPLY DECIDED" — NOT AN AUTHORIZED CAMPAIGN</div>
+</div>
+
+<!-- FACT BOX -->
+<div class="fact-box">
+  <div class="fact-card" id="factCard">
+    <div>
+      <div class="fact-label">WHY STEVE? GLAD YOU ASKED.</div>
+      <div class="fact-text" id="factText"></div>
+    </div>
+  </div>
+  <div class="dots" id="dots"></div>
+</div>
+
+<!-- POLL -->
+<div class="section">
+  <div class="section-title">OFFICIAL* SCIENTIFIC** POLL</div>
+  <div class="section-sub">*not official &nbsp;|&nbsp; **extremely not scientific &nbsp;|&nbsp; results certified by Biscuit the Dog</div>
+
+  <div class="poll-card">
+    <div class="poll-question">Who would you rather vote for?</div>
+
+    <div class="poll-choices">
+      <button class="poll-btn" id="btnTrump" onclick="castVote('trump')">
+        <span class="candidate-icon">🍊</span>
+        <span class="candidate-name">Trump</span>
+        <span class="vote-count" id="trumpCount">0</span>
+        <span class="vote-label">votes</span>
+      </button>
+      <button class="poll-btn steve" id="btnSteve" onclick="castVote('steve')">
+        <span class="candidate-icon">🗳️</span>
+        <span class="candidate-name">Steve</span>
+        <span class="vote-count" id="steveCount">0</span>
+        <span class="vote-label" id="steveLabel">votes</span>
+      </button>
+    </div>
+
+    <div id="pollResult" style="display:none"></div>
+    <div id="pollBar" style="display:none" class="poll-bar-wrap">
+      <div class="poll-bar-bg"><div class="poll-bar-fill" id="barFill" style="width:50%"></div></div>
+      <div class="poll-bar-labels">
+        <span class="trump-label" id="trumpPct">Trump: 50%</span>
+        <span class="steve-label" id="stevePct">Steve: 50%</span>
+      </div>
+    </div>
+
+    <button class="poll-reset" onclick="resetPoll()">Reset Poll (Steve would reset the national debt too, probably)</button>
+  </div>
+</div>
+
+<!-- POLICY -->
+<div class="section-wide">
+  <div class="section-title">WHERE STEVE STANDS*</div>
+  <div class="section-sub">*Steve has not been informed of his positions. Please do not tell him.</div>
+  <div class="policy-grid" id="policyGrid"></div>
+</div>
+
+<!-- MID DONATE -->
+<div class="container mb-30">
+  <a href="https://gofund.me/bcb741795" target="_blank" rel="noreferrer" class="donate-banner">
+    <h2>💛 Support Steve's 2028 Campaign</h2>
+    <p>Help us grow a people-powered movement. Every share and every donation helps us reach more voters.</p>
+    <div class="donate-btn">DONATE HERE →</div>
+    <div class="hashtags">#VoteForSteve #Election2028</div>
+  </a>
+</div>
+
+<!-- ENDORSEMENTS -->
+<div class="endorsement-section">
+  <div class="section-title" style="margin-bottom:36px">WHO ENDORSES STEVE</div>
+  <div class="endorsement-card" id="endorseCard"></div>
+  <div class="dots mt-16" id="endorseDots"></div>
+</div>
+
+<!-- ACTIONS -->
+<div class="section-wide">
+  <div class="section-title">GET INVOLVED</div>
+  <div class="section-sub">(Steve asked us not to do any of this)</div>
+  <div class="actions-grid" id="actionsGrid"></div>
+</div>
+
+<!-- FINAL DONATE -->
+<div class="container" style="margin-bottom:60px">
+  <a href="https://gofund.me/bcb741795" target="_blank" rel="noreferrer" class="donate-banner">
+    <h2>💛 Help Steve Win (Against His Will)</h2>
+    <p>Support Steve's 2028 campaign and help us grow a people-powered movement.<br>Every share and every donation helps us reach more voters.</p>
+    <div class="donate-btn">DONATE → gofund.me/bcb741795</div>
+    <div class="hashtags">#VoteForSteve #Election2028</div>
+  </a>
+  <div class="center mt-16">
+    <button class="share-btn" onclick="handleShare()">📣 COPY &amp; SHARE THE MESSAGE</button>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-flag">🇺🇸</div>
+  <p>STEVE 2028 — NOT AN AUTHORIZED CAMPAIGN COMMITTEE</p>
+  <p>Steve does not approve this message, this website, this movement, or the GoFundMe.</p>
+  <p>Paid for by "People Who Have Simply Decided" — operating without Steve's knowledge or consent.</p>
+  <p>Polling data certified by Biscuit the Dog (registered voter, good boy).</p>
+  <p>All votes for Steve count as at least 1,234 votes. It's in the fine print. There is no fine print. This is the fine print.</p>
+  <p class="mt-16">
+    <a href="https://gofund.me/bcb741795" target="_blank" rel="noreferrer">gofund.me/bcb741795</a>
+    &nbsp;|&nbsp; #VoteForSteve #Election2028
+  </p>
+  <p class="tiny">© 2026 The Steve Movement | Steve for America | Steve Despite Steve's Wishes | Not Steve's Campaign | Please Tell Steve We're Sorry</p>
+</footer>
+
+<script>
+const DONATE_URL = 'https://gofund.me/bcb741795';
+const SHARE_TEXT = "Support Steve's 2028 campaign and help us grow a people-powered movement. Every share and every donation helps us reach more voters. Donate here: " + DONATE_URL + " #VoteForSteve #Election2028";
+
+// ── FACTS ──────────────────────────────────────────────────────────────────
+const FACTS = [
+  "He once fixed a printer without swearing even once. Not a single word.",
+  "Steve returned a library book 11 years late. He paid the fine. In exact change.",
+  "He parallel parked on the first try. There were witnesses. They wept.",
+  "He once held a door open for someone who was still in the parking lot. He waited.",
+  "Steve makes his bed every morning. Even in hotels. Especially in hotels.",
+  "He once sat through an entire meeting that could have been an email and said nothing.",
+  "Steve knows how to change a tire. He's never had to, but he KNOWS.",
+  "He once gave someone directions and they actually arrived.",
+  "He remembered someone's birthday. Not from Facebook. Just... remembered.",
+  "Steve tips 20% minimum. On takeout. Every time.",
+  "He once won an argument on the internet but chose not to reply. Twice.",
+  "He watches all the safety videos on airplanes. He actually learns from them.",
+  "He once let someone merge AND gave them a wave. Both. At once.",
+  "Steve has never said 'per my last email.' He just resends the email.",
+  "He untangled a full pair of earphones in under two minutes. Cold.",
+];
+let factIdx = 0;
+const factText = document.getElementById('factText');
+const factCard = document.getElementById('factCard');
+const dotsEl   = document.getElementById('dots');
+
+function renderFact(i) {
+  factCard.style.opacity = '0';
+  setTimeout(() => {
+    factText.textContent = '\u201c' + FACTS[i] + '\u201d';
+    factCard.style.opacity = '1';
+    dotsEl.querySelectorAll('.dot').forEach((d, j) => d.classList.toggle('active', j === i));
+  }, 350);
+}
+
+FACTS.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' active' : '');
+  d.onclick = () => { factIdx = i; renderFact(i); };
+  dotsEl.appendChild(d);
+});
+renderFact(0);
+setInterval(() => { factIdx = (factIdx + 1) % FACTS.length; renderFact(factIdx); }, 5000);
+
+// ── POLL ───────────────────────────────────────────────────────────────────
+let steveVotes = 0, trumpVotes = 0, hasVoted = false, voteHistory = [];
+
+function getAdded(current) {
+  if (current === 0)      return 1;
+  if (current < 5)        return 1;
+  if (current < 10)       return 2;
+  if (current < 15)       return 1234;
+  if (current < 20)       return 4567  + Math.floor(Math.random() * 1000);
+  if (current < 30)       return 12340 + Math.floor(Math.random() * 5000);
+  return                         98765 + Math.floor(Math.random() * 50000);
+}
+
+function updateBar() {
+  const total = steveVotes + trumpVotes;
+  if (!total) return;
+  const sp = Math.round(steveVotes / total * 100);
+  const tp = 100 - sp;
+  document.getElementById('barFill').style.width = sp + '%';
+  document.getElementById('stevePct').textContent  = 'Steve: ' + sp + '%';
+  document.getElementById('trumpPct').textContent  = 'Trump: ' + tp + '%';
+  document.getElementById('pollBar').style.display = 'block';
+}
+
+function castVote(who) {
+  if (hasVoted) return;
+  hasVoted = true;
+  document.getElementById('btnTrump').disabled = true;
+  document.getElementById('btnSteve').disabled = true;
+
+  if (who === 'steve') {
+    const added = getAdded(steveVotes);
+    steveVotes += added;
+    voteHistory.push(added);
+    const isCrazy = added >= 1234;
+
+    const countEl = document.getElementById('steveCount');
+    countEl.textContent = steveVotes.toLocaleString();
+    countEl.classList.add('pulse');
+    setTimeout(() => countEl.classList.remove('pulse'), 700);
+    if (isCrazy) document.getElementById('steveLabel').textContent = '✨ democracy ✨';
+
+    const res = document.getElementById('pollResult');
+    res.style.display = 'block';
+    res.innerHTML = isCrazy
+      ? '<p>🎉 Your vote counted as <strong>' + added.toLocaleString() + '</strong> votes for Steve!<br><span class="sub">(The algorithm detected your enthusiasm. It\'s a feature.)</span></p>'
+        + '<div style="margin-top:12px"><a href="' + DONATE_URL + '" target="_blank" rel="noreferrer" class="donate-banner mini">'
+        + '<h2>💛 Keep the momentum going — Donate!</h2>'
+        + '<p>Every donation helps us reach more voters.</p>'
+        + '<div class="donate-btn">DONATE → gofund.me/bcb741795</div>'
+        + '<div class="hashtags">#VoteForSteve #Election2028</div>'
+        + '</a></div>'
+      : '<p>✅ Vote counted! Steve still doesn\'t want this.</p>'
+        + '<div style="margin-top:12px"><a href="' + DONATE_URL + '" target="_blank" rel="noreferrer" class="donate-banner mini">'
+        + '<h2>💛 Support Steve\'s 2028 Campaign</h2>'
+        + '<p>Every share and donation helps us reach more voters.</p>'
+        + '<div class="donate-btn">DONATE HERE →</div>'
+        + '<div class="hashtags">#VoteForSteve #Election2028</div>'
+        + '</a></div>';
+  } else {
+    trumpVotes += 1;
+    document.getElementById('trumpCount').textContent = trumpVotes.toLocaleString();
+    const res = document.getElementById('pollResult');
+    res.style.display = 'block';
+    res.innerHTML = '<p style="color:rgba(255,255,255,.5);font-size:14px">Your vote for Trump has been recorded. Steve\'s not judging. He\'s very chill.</p>'
+      + '<p style="font-size:13px;margin-top:8px;color:rgba(255,255,255,.35)">Changed your mind? <a href="#" onclick="resetPoll();return false;" style="color:var(--gold)">Vote again for Steve instead.</a></p>';
+  }
+  updateBar();
+}
+
+function resetPoll() {
+  steveVotes = 0; trumpVotes = 0; hasVoted = false; voteHistory = [];
+  ['trumpCount','steveCount'].forEach(id => document.getElementById(id).textContent = '0');
+  document.getElementById('steveLabel').textContent = 'votes';
+  document.getElementById('pollResult').style.display = 'none';
+  document.getElementById('pollBar').style.display   = 'none';
+  document.getElementById('btnTrump').disabled = false;
+  document.getElementById('btnSteve').disabled = false;
+}
+
+// ── POLICY ────────────────────────────────────────────────────────────────
+const POLICIES = [
+  { icon:'🛣️', name:'INFRASTRUCTURE',  text:'He untangled a full pair of earphones in under two minutes. He will fix the roads.' },
+  { icon:'💊', name:'HEALTHCARE',      text:'Steve always finishes his antibiotics. Every. Single. One.' },
+  { icon:'💰', name:'ECONOMY',         text:'He splits the bill evenly but adjusts for whoever didn\'t drink. He gets it.' },
+  { icon:'🌍', name:'FOREIGN POLICY',  text:'Steve nods along when someone explains something he already knows. Diplomacy.' },
+  { icon:'📚', name:'EDUCATION',       text:'He asks questions even when he\'s pretty sure he knows the answer. Growth mindset.' },
+  { icon:'♻️', name:'ENVIRONMENT',     text:'He brings the reusable bags 60% of the time. That\'s better than most.' },
+  { icon:'🏠', name:'HOUSING',         text:'He puts the toilet seat down. Every room. Every house. A man of the people.' },
+];
+const pg = document.getElementById('policyGrid');
+POLICIES.forEach(p => {
+  pg.innerHTML += '<div class="policy-card"><div class="policy-icon">' + p.icon + '</div><div class="policy-name">' + p.name + '</div><div class="policy-text">' + p.text + '</div></div>';
+});
+
+// ── ENDORSEMENTS ──────────────────────────────────────────────────────────
+const ENDORSEMENTS = [
+  { avatar:'🧑‍💼', name:'Dave from Accounting',      quote:'I\'ve never seen him steal anyone\'s lunch from the fridge. That\'s presidential.' },
+  { avatar:'👩',  name:'Karen (not that Karen)',    quote:'He said "no worries" and actually seemed like he meant it.' },
+  { avatar:'🐕',  name:'My Dog, Biscuit',           quote:'He pet me without asking if I bite first. Bold. Presidential.' },
+  { avatar:'🧔',  name:'The Guy at the DMV',        quote:'He had all his paperwork ready. ALL of it. The first time.' },
+  { avatar:'🖨️', name:'A Printer Steve Fixed',     quote:'He fixed me. Without swearing. I will never forget that.' },
+  { avatar:'☕',  name:'Anonymous Barista',          quote:'He spelled his own name out without being asked and said thank you.' },
+  { avatar:'🐈',  name:"Steve's Neighbor's Cat",    quote:'He doesn\'t try to pet me. He understands boundaries. Vote Steve.' },
+];
+let eIdx = 0;
+const eCard = document.getElementById('endorseCard');
+const eDots = document.getElementById('endorseDots');
+
+function renderEndorse(i) {
+  const e = ENDORSEMENTS[i];
+  eCard.style.opacity = '0';
+  setTimeout(() => {
+    eCard.innerHTML = '<div class="endorse-avatar">' + e.avatar + '</div>'
+      + '<blockquote class="endorse-quote">"' + e.quote + '"</blockquote>'
+      + '<cite class="endorse-name">— ' + e.name + '</cite>';
+    eCard.style.opacity = '1';
+    eDots.querySelectorAll('.dot').forEach((d, j) => d.classList.toggle('active', j === i));
+  }, 300);
+}
+ENDORSEMENTS.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' active' : '');
+  d.onclick = () => { eIdx = i; renderEndorse(i); };
+  eDots.appendChild(d);
+});
+renderEndorse(0);
+setInterval(() => { eIdx = (eIdx + 1) % ENDORSEMENTS.length; renderEndorse(eIdx); }, 4000);
+// Smooth opacity transition on endorsement card
+eCard.style.transition = 'opacity .3s';
+factCard.style.transition = 'opacity .35s';
+
+// ── ACTIONS ───────────────────────────────────────────────────────────────
+const ACTIONS = [
+  { icon:'💰', label:'Donate',          primary:true,  desc:'Every dollar gets Steve closer to a presidency he doesn\'t want.',       fn: () => window.open(DONATE_URL, '_blank') },
+  { icon:'📣', label:'Share',           primary:true,  desc:'Copy the message. Post it everywhere. Especially places Steve might see.', fn: handleShare },
+  { icon:'📋', label:'Sign the Petition', primary:false, desc:'Tell Steve he\'s running whether he likes it or not.',                fn: () => window.open(DONATE_URL, '_blank') },
+  { icon:'👕', label:'Get a T-Shirt',   primary:false, desc:'"Steve 2028: Mildly Competent" — available in all sizes.',              fn: () => alert('Steve has been notified. He said "please stop." We see this as encouragement.') },
+  { icon:'🪟', label:'Yard Sign',       primary:false, desc:'Steve will walk past it, sigh deeply, and water his lawn.',             fn: () => alert('Steve has been notified. He said "please stop." We see this as encouragement.') },
+  { icon:'💌', label:'Write Letters',   primary:false, desc:'To radio stations. To news shows. To anyone who will listen.',          fn: () => alert('Steve has been notified. He said "please stop." We see this as encouragement.') },
+];
+const ag = document.getElementById('actionsGrid');
+ACTIONS.forEach(a => {
+  const card = document.createElement('div');
+  card.className = 'action-card' + (a.primary ? ' primary' : '');
+  card.innerHTML = '<div class="action-icon">' + a.icon + '</div><div class="action-label">' + a.label + '</div><div class="action-desc">' + a.desc + '</div>';
+  card.onclick = a.fn;
+  ag.appendChild(card);
+});
+
+// ── SHARE ─────────────────────────────────────────────────────────────────
+function handleShare() {
+  if (navigator.share) {
+    navigator.share({ title: 'Steve 2028 🇺🇸', text: SHARE_TEXT, url: DONATE_URL }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(SHARE_TEXT).then(() => {
+      document.querySelectorAll('.share-btn').forEach(b => {
+        const orig = b.textContent;
+        b.textContent = '✅ COPIED! NOW PASTE IT EVERYWHERE';
+        setTimeout(() => { b.textContent = orig; }, 2800);
+      });
+    }).catch(() => { prompt('Copy this and share it!', SHARE_TEXT); });
+  }
+}
+</script>
+</body>
+</html>
