@@ -10907,6 +10907,7 @@ def create_app() -> FastAPI:
             "/ui/landing": "murphy_landing_page.html",
             "/voteforsteve2028": "voteforsteve2028.html",
             "/steve2028merch": "steve2028merch.html",
+            "/stevewiki": "stevewiki.html",
             "/ui/demo": "demo.html",
             "/ui/terminal-unified": "terminal_unified.html",
             "/ui/terminal": "terminal_unified.html",
@@ -10984,7 +10985,7 @@ def create_app() -> FastAPI:
         # Public routes are accessible without a session.  Auth-required
         # routes redirect to /ui/login when no valid session cookie exists.
         _PUBLIC_HTML_ROUTES = frozenset({
-            "/", "/murphy_landing_page.html", "/ui/landing", "/ui/demo", "/voteforsteve2028", "/steve2028merch",
+            "/", "/murphy_landing_page.html", "/ui/landing", "/ui/demo", "/voteforsteve2028", "/steve2028merch", "/stevewiki",
             "/ui/login", "/ui/signup", "/ui/pricing",
             "/ui/docs", "/ui/blog", "/ui/careers", "/ui/legal", "/ui/privacy",
             "/ui/partner", "/ui/smoke-test",

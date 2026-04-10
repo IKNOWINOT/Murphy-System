@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Steve — Wikipedia</title>
+<meta name="description" content="Steve is an American private citizen, reluctant political figure, and 2028 presidential candidate despite repeated objections. Known for fixing a printer without swearing.">
+<meta property="og:title" content="Steve — Wikipedia">
+<meta property="og:description" content="Steve is an American private citizen and reluctant 2028 presidential candidate.">
+<meta property="og:image" content="https://media.base44.com/images/public/69d6fe941ece93557d302bce/a716aa6ce_Screenshot2026-04-09185855.png">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Linux Libertine', 'Georgia', 'Times', serif;
+  background: #f8f9fa;
+  color: #202122;
+  font-size: 14px;
+  line-height: 1.6;
+}
+a { color: #3366cc; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── TOP BAR ── */
+.wiki-topbar {
+  background: #fff;
+  border-bottom: 1px solid #a7d7f9;
+  padding: 6px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #54595d;
+  font-family: sans-serif;
+}
+.wiki-logo { font-size: 22px; font-weight: bold; color: #202122; letter-spacing: -1px; }
+.wiki-logo span { color: #3366cc; }
+.wiki-topnav { display: flex; gap: 16px; }
+.wiki-topnav a { color: #54595d; font-size: 12px; }
+
+/* ── SEARCH BAR ── */
+.wiki-search-bar {
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: sans-serif;
+}
+.wiki-search-input {
+  border: 1px solid #a2a9b1;
+  border-radius: 2px;
+  padding: 6px 12px;
+  font-size: 14px;
+  width: 300px;
+  max-width: 100%;
+  background: #fff;
+}
+.wiki-search-btn {
+  background: #f8f9fa;
+  border: 1px solid #a2a9b1;
+  border-radius: 2px;
+  padding: 5px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: sans-serif;
+}
+
+/* ── PAGE TABS ── */
+.wiki-tabs {
+  background: #f8f9fa;
+  border-bottom: 1px solid #a2a9b1;
+  padding: 0 20px;
+  display: flex;
+  gap: 0;
+  font-family: sans-serif;
+  font-size: 13px;
+}
+.wiki-tab {
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  margin-bottom: -1px;
+  color: #3366cc;
+  cursor: pointer;
+}
+.wiki-tab.active {
+  background: #fff;
+  border-color: #a2a9b1;
+  color: #202122;
+  font-weight: bold;
+}
+
+/* ── MAIN LAYOUT ── */
+.wiki-layout {
+  display: flex;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+/* ── SIDEBAR ── */
+.wiki-sidebar {
+  width: 180px;
+  min-width: 180px;
+  padding: 20px 14px;
+  font-family: sans-serif;
+  font-size: 12px;
+  border-right: 1px solid #ddd;
+  background: #fff;
+}
+.wiki-sidebar h3 {
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #202122;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #ddd;
+}
+.wiki-sidebar ul { list-style: none; padding: 0; }
+.wiki-sidebar ul li { padding: 3px 0; }
+.wiki-sidebar ul li a { color: #3366cc; font-size: 12px; }
+.toc-number { color: #54595d; margin-right: 4px; }
+
+/* ── CONTENT ── */
+.wiki-content {
+  flex: 1;
+  padding: 20px 30px;
+  background: #fff;
+  min-width: 0;
+}
+
+/* ── INFOBOX ── */
+.infobox {
+  float: right;
+  clear: right;
+  margin: 0 0 20px 28px;
+  border: 1px solid #a2a9b1;
+  background: #f8f9fa;
+  font-size: 13px;
+  font-family: sans-serif;
+  width: 280px;
+  border-collapse: collapse;
+}
+.infobox-title {
+  background: #cee0f2;
+  text-align: center;
+  font-weight: bold;
+  padding: 6px 10px;
+  font-size: 14px;
+  border-bottom: 1px solid #a2a9b1;
+}
+.infobox-subtitle {
+  text-align: center;
+  font-style: italic;
+  padding: 4px 10px 6px;
+  font-size: 12px;
+  color: #54595d;
+  border-bottom: 1px solid #a2a9b1;
+}
+.infobox-photo {
+  text-align: center;
+  padding: 10px;
+  border-bottom: 1px solid #a2a9b1;
+}
+.infobox-photo img {
+  width: 100%;
+  max-width: 258px;
+  border: 1px solid #a2a9b1;
+}
+.infobox-photo-caption {
+  font-size: 11px;
+  color: #54595d;
+  margin-top: 5px;
+  font-style: italic;
+}
+.infobox table { width: 100%; border-collapse: collapse; }
+.infobox td {
+  padding: 4px 8px;
+  vertical-align: top;
+  border-top: 1px solid #eaecf0;
+  font-size: 12px;
+}
+.infobox td:first-child {
+  font-weight: bold;
+  color: #202122;
+  width: 40%;
+  white-space: nowrap;
+}
+.infobox td:last-child { color: #202122; }
+
+/* ── ARTICLE ── */
+h1.wiki-title {
+  font-family: 'Linux Libertine', 'Georgia', serif;
+  font-size: 28px;
+  font-weight: normal;
+  border-bottom: 1px solid #a2a9b1;
+  padding-bottom: 4px;
+  margin-bottom: 14px;
+  color: #202122;
+}
+.wiki-short-desc {
+  color: #54595d;
+  font-style: italic;
+  font-size: 13px;
+  margin-bottom: 14px;
+  font-family: sans-serif;
+}
+.wiki-content p { margin-bottom: 14px; }
+.wiki-content h2 {
+  font-family: 'Linux Libertine', 'Georgia', serif;
+  font-size: 20px;
+  font-weight: normal;
+  border-bottom: 1px solid #a2a9b1;
+  padding-bottom: 2px;
+  margin: 24px 0 10px;
+  color: #202122;
+}
+.wiki-content h3 {
+  font-size: 16px;
+  font-weight: bold;
+  margin: 16px 0 8px;
+  font-family: sans-serif;
+}
+.wiki-content h4 {
+  font-size: 14px;
+  font-weight: bold;
+  margin: 12px 0 6px;
+  font-family: sans-serif;
+}
+sup { font-size: 10px; color: #3366cc; }
+sup a { color: #3366cc; }
+.hatnote {
+  font-style: italic;
+  font-size: 13px;
+  color: #54595d;
+  border-left: 3px solid #a2a9b1;
+  padding: 4px 10px;
+  margin-bottom: 12px;
+  font-family: sans-serif;
+}
+.wiki-notice {
+  background: #eaf3fb;
+  border: 1px solid #a7d7f9;
+  border-radius: 2px;
+  padding: 10px 14px;
+  font-family: sans-serif;
+  font-size: 13px;
+  margin-bottom: 16px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.wiki-notice-icon { font-size: 20px; flex-shrink: 0; }
+
+/* ── REFERENCES ── */
+.references {
+  font-size: 12px;
+  font-family: sans-serif;
+  color: #54595d;
+  padding-left: 20px;
+}
+.references li { margin-bottom: 4px; }
+
+/* ── CATEGORIES ── */
+.wiki-categories {
+  border-top: 1px solid #a2a9b1;
+  margin-top: 30px;
+  padding-top: 10px;
+  font-family: sans-serif;
+  font-size: 13px;
+  color: #54595d;
+}
+.wiki-categories strong { color: #202122; }
+
+/* ── FOOTER ── */
+.wiki-footer {
+  background: #f8f9fa;
+  border-top: 1px solid #a2a9b1;
+  padding: 20px 30px;
+  font-family: sans-serif;
+  font-size: 12px;
+  color: #54595d;
+  text-align: center;
+  margin-top: 0;
+}
+.wiki-footer a { color: #3366cc; }
+
+/* ── EDIT NOTICE ── */
+.edit-link {
+  font-family: sans-serif;
+  font-size: 12px;
+  color: #3366cc;
+  float: right;
+  margin-top: 6px;
+}
+
+/* ── PULL QUOTE ── */
+.wiki-pullquote {
+  border-left: 4px solid #cee0f2;
+  margin: 16px 0 16px 20px;
+  padding: 6px 14px;
+  font-style: italic;
+  color: #54595d;
+  font-size: 14px;
+}
+
+@media (max-width: 720px) {
+  .wiki-sidebar { display: none; }
+  .infobox { float: none; width: 100%; margin: 0 0 20px 0; }
+  .wiki-content { padding: 14px 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="wiki-topbar">
+  <div class="wiki-logo">&#x1F4D6; <span>Wiki</span>pedia</div>
+  <div class="wiki-topnav">
+    <a href="#">Create account</a>
+    <a href="#">Log in</a>
+  </div>
+</div>
+
+<!-- SEARCH -->
+<div class="wiki-search-bar">
+  <input class="wiki-search-input" type="text" value="Steve (politician)" readonly>
+  <button class="wiki-search-btn">&#x1F50D; Search</button>
+</div>
+
+<!-- TABS -->
+<div class="wiki-tabs">
+  <div class="wiki-tab active">Article</div>
+  <div class="wiki-tab">Talk</div>
+  <div class="wiki-tab">Read</div>
+  <div class="wiki-tab">Edit</div>
+  <div class="wiki-tab">View history</div>
+</div>
+
+<div class="wiki-layout">
+
+  <!-- SIDEBAR -->
+  <div class="wiki-sidebar">
+    <h3>Contents</h3>
+    <ul>
+      <li><a href="#overview"><span class="toc-number">1</span> Overview</a></li>
+      <li><a href="#early-life"><span class="toc-number">2</span> Early life</a></li>
+      <li><a href="#career"><span class="toc-number">3</span> Career</a></li>
+      <li><a href="#aviation"><span class="toc-number">4</span> Aviation</a></li>
+      <li><a href="#candidacy"><span class="toc-number">5</span> 2028 candidacy</a></li>
+      <li><a href="#platform"><span class="toc-number">6</span> Political platform</a></li>
+      <li><a href="#printer"><span class="toc-number">7</span> The Printer Incident</a></li>
+      <li><a href="#personal"><span class="toc-number">8</span> Personal life</a></li>
+      <li><a href="#endorsements"><span class="toc-number">9</span> Endorsements</a></li>
+      <li><a href="#references"><span class="toc-number">10</span> References</a></li>
+    </ul>
+    <br>
+    <h3>Tools</h3>
+    <ul>
+      <li><a href="#">What links here</a></li>
+      <li><a href="#">Related changes</a></li>
+      <li><a href="#">Upload file</a></li>
+      <li><a href="#">Printable version</a></li>
+    </ul>
+    <br>
+    <h3>In other languages</h3>
+    <ul>
+      <li><a href="#">Fran&#xe7;ais</a></li>
+      <li><a href="#">Espa&#xf1;ol</a></li>
+      <li><a href="#">Deutsch</a></li>
+      <li><a href="#">&#x65e5;&#x672c;&#x8a9e;</a> <span style="color:#54595d;font-size:10px">(he is very popular in Japan)</span></li>
+    </ul>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="wiki-content">
+
+    <div class="wiki-notice">
+      <div class="wiki-notice-icon">&#x26a0;&#xfe0f;</div>
+      <div>This article is about the 2028 presidential candidate. Steve has been notified that this article exists. He has asked that it be removed. The request is under review. <a href="#">[discuss]</a></div>
+    </div>
+
+    <h1 class="wiki-title">Steve</h1>
+    <div class="wiki-short-desc">American private citizen and reluctant 2028 presidential candidate</div>
+
+    <!-- INFOBOX -->
+    <div class="infobox">
+      <div class="infobox-title">Steve</div>
+      <div class="infobox-subtitle">Presumptive 2028 Presidential Candidate<br><em>(He did not presume this himself)</em></div>
+      <div class="infobox-photo">
+        <img src="https://media.base44.com/images/public/69d6fe941ece93557d302bce/a716aa6ce_Screenshot2026-04-09185855.png" alt="Steve, photographed in Alaska near a helicopter he did not crash">
+        <div class="infobox-photo-caption">Steve, photographed in Alaska, 2024. He is very happy here. He does not yet know about the campaign.</div>
+      </div>
+      <table>
+        <tr><td>Born</td><td>Somewhere in America<br><span style="color:#54595d">Exact location debated by historians</span></td></tr>
+        <tr><td>Nationality</td><td>American &#x1f1fa;&#x1f1f8;</td></tr>
+        <tr><td>Occupation</td><td>Unknown to the campaign. Probably something responsible.</td></tr>
+        <tr><td>Known&nbsp;for</td><td>Fixing a printer without swearing; paying back $4.50 (2011); not starting any wars</td></tr>
+        <tr><td>Political&nbsp;party</td><td>People Who Have Simply Decided (PWHSD)</td></tr>
+        <tr><td>Campaign&nbsp;slogan</td><td><em>"The Couch Isn't Voting For You."</em></td></tr>
+        <tr><td>Website</td><td><a href="/voteforsteve2028">murphy.systems/<br>voteforsteve2028</a></td></tr>
+        <tr><td>Status</td><td>Does not approve this article, this campaign, or any of this</td></tr>
+      </table>
+    </div>
+
+    <p><b>Steve</b> (born sometime in America; full name withheld at his repeated request) is an American private citizen, licensed helicopter enthusiast, and the presumptive 2028 presidential candidate of the <a href="#">People Who Have Simply Decided</a> (PWHSD) movement. He is widely regarded as one of the most qualified candidates in the 2028 field, a characterization he has publicly rejected on multiple occasions.<sup><a href="#ref1">[1]</a></sup></p>
+
+    <p>Steve is best known for three documented achievements: fixing an office printer without uttering a single profanity (2019), returning a library book eleven years overdue along with the exact calculated fine in cash (2022), and parallel parking on his first attempt in front of witnesses (2023). Political analysts have described these accomplishments as <i>"unambiguously presidential."</i><sup><a href="#ref2">[2]</a></sup></p>
+
+    <p>A <a href="#">GoFundMe campaign</a> established without his knowledge has raised funds for his 2028 presidential run. Steve has described the campaign as <i>"unnecessary,"</i> <i>"a lot,"</i> and <i>"please stop."</i> His supporters interpret these statements as <i>"we know he will come around."</i><sup><a href="#ref3">[3]</a></sup></p>
+
+    <div class="wiki-pullquote">
+      "He nods along when someone explains something he already knows. That's diplomacy."
+      <br><span style="font-size:12px;color:#888">— Campaign literature, unauthorized</span>
+    </div>
+
+    <h2 id="early-life"><span class="edit-link"><a href="#">[edit]</a></span>Early life and education</h2>
+
+    <p>Little is known about Steve's early life, as he has declined all interview requests and is unaware that interview requests have been made on his behalf. He is believed to have grown up somewhere in the United States, attended school, and developed a strong personal ethic around honesty, punctuality, and not making things unnecessarily difficult for other people.<sup><a href="#ref4">[4]</a></sup></p>
+
+    <p>According to campaign researchers, Steve consistently finished his homework before it was due, never blamed others for group project failures, and once stayed late to help a colleague understand a spreadsheet without making them feel bad about it. These traits, the campaign notes, are <i>"statistically rare in the American political class."</i><sup><a href="#ref5">[5]</a></sup></p>
+
+    <p>His educational background remains unverified, though sources close to the campaign suggest he <i>"definitely knows stuff"</i> and <i>"reads actual books sometimes, not just articles."</i><sup><a href="#ref6">[6]</a></sup></p>
+
+    <h2 id="career"><span class="edit-link"><a href="#">[edit]</a></span>Career</h2>
+
+    <p>Steve's professional career is described by the campaign as <i>"productive and real."</i> He is believed to hold a legitimate job that he shows up to on time, completes tasks without being reminded, and leaves at a reasonable hour without making a production of it. Colleagues have described him as <i>"solid"</i> and <i>"the kind of guy you want on a project."</i><sup><a href="#ref7">[7]</a></sup></p>
+
+    <p>He has never been the subject of an HR complaint, an ethics investigation, or a strongly-worded letter from a regulatory body. The campaign considers this a central pillar of his qualifications.<sup><a href="#ref8">[8]</a></sup></p>
+
+    <h2 id="aviation"><span class="edit-link"><a href="#">[edit]</a></span>Aviation interests</h2>
+
+    <div class="hatnote">See also: <a href="#">Responsible helicopter operation</a>, <a href="#">Alaska aviation</a></div>
+
+    <p>Steve has demonstrated documented interest in aviation, with photographic evidence placing him at an Alaskan airfield adjacent to a red helicopter (registration N4047Q). His expression in the photograph — broad smile, thumbs up, relaxed body language — has been described by aviation experts as <i>"a guy who is having a genuinely good time and is not thinking about running for president at all."</i><sup><a href="#ref9">[9]</a></sup></p>
+
+    <p>The photograph, taken without Steve's knowledge that it would later appear on a presidential campaign page and a Wikipedia article, has become one of the most circulated images in the PWHSD movement. Supporters have noted that a man who is this happy near a helicopter is <i>"clearly the kind of person who gets things done."</i><sup><a href="#ref10">[10]</a></sup></p>
+
+    <p>It is not confirmed whether Steve is a licensed pilot. The campaign has chosen not to investigate this, on the grounds that <i>"he looks like he could be, and that's enough."</i><sup><a href="#ref11">[11]</a></sup></p>
+
+    <h2 id="candidacy"><span class="edit-link"><a href="#">[edit]</a></span>2028 presidential candidacy</h2>
+
+    <h3>Origins of the campaign</h3>
+
+    <p>The Steve 2028 movement originated when a small group of people, described in official campaign materials only as <i>"People Who Have Simply Decided,"</i> concluded that Steve would make an excellent president. Steve was not consulted prior to this decision. He was not consulted after it either.<sup><a href="#ref12">[12]</a></sup></p>
+
+    <p>A GoFundMe campaign was launched at <a href="https://gofund.me/bcb741795" target="_blank">gofund.me/bcb741795</a> to support the movement. The campaign page notes that Steve <i>"does not approve this message, this website, this movement, or the GoFundMe."</i> Donations have nonetheless been made by supporters who describe Steve's objections as <i>"part of the charm."</i><sup><a href="#ref13">[13]</a></sup></p>
+
+    <h3>Campaign response</h3>
+
+    <p>Steve's response to the campaign has been described as <i>"consistent and increasingly exasperated."</i> He has reportedly asked the campaign to stop on at least three separate occasions. The campaign has interpreted each request as further evidence of his <i>"admirable humility"</i> and <i>"reluctance to self-promote, which is exactly what we need in a leader right now."</i><sup><a href="#ref14">[14]</a></sup></p>
+
+    <p>A public poll conducted at <a href="/voteforsteve2028">murphy.systems/voteforsteve2028</a> and certified by Biscuit the Dog (registered voter, good boy) showed Steve leading his nearest competitor by a margin described as <i>"statistically significant and also frankly embarrassing for the other guy."</i> The poll methodology has not been peer reviewed. Biscuit has no comment.<sup><a href="#ref15">[15]</a></sup></p>
+
+    <h2 id="platform"><span class="edit-link"><a href="#">[edit]</a></span>Political platform</h2>
+
+    <p>Steve's political platform has been constructed entirely by the campaign without his input. He has not reviewed, approved, or been shown the platform. The campaign believes he would agree with most of it <i>"if he sat down and really thought about it."</i><sup><a href="#ref16">[16]</a></sup></p>
+
+    <h4>Pay Debts. Not Wars.</h4>
+    <p>The campaign's signature economic and foreign policy position. Inspired by Steve's documented history of paying back $4.50 he borrowed from a colleague in 2011 — without being asked, with a brief apology for taking so long, and in exact change. The campaign believes this represents a governing philosophy that could be applied at the federal level.<sup><a href="#ref17">[17]</a></sup></p>
+
+    <h4>Infrastructure</h4>
+    <p>Steve once untangled a full set of earphones in under two minutes. He will fix the roads.<sup><a href="#ref18">[18]</a></sup></p>
+
+    <h4>Healthcare</h4>
+    <p>Steve always finishes his antibiotics. Every. Single. One. He reads the label.<sup><a href="#ref19">[19]</a></sup></p>
+
+    <h4>Foreign Policy</h4>
+    <p>Steve nods along when someone explains something he already knows. He makes them feel good about it. This is diplomacy.<sup><a href="#ref20">[20]</a></sup></p>
+
+    <h2 id="printer"><span class="edit-link"><a href="#">[edit]</a></span>The Printer Incident</h2>
+
+    <div class="wiki-notice">
+      <div class="wiki-notice-icon">&#x1f5a8;&#xfe0f;</div>
+      <div>This section has been flagged for <b>containing an extraordinary amount of verified facts</b>. Unlike most of this article, the printer incident is believed to be entirely true.</div>
+    </div>
+
+    <p>In what the campaign has called <i>"the founding moment of a political movement,"</i> Steve successfully repaired a malfunctioning office printer without uttering a single profanity. The repair is believed to have taken approximately twelve minutes and involved clearing a paper jam of unusual complexity.<sup><a href="#ref21">[21]</a></sup></p>
+
+    <p>Witnesses present described the event in later testimonials as <i>"quiet,"</i> <i>"focused,"</i> and <i>"weirdly calming to watch."</i> One witness noted: <i>"He just... fixed it. Without making it a whole thing."</i><sup><a href="#ref22">[22]</a></sup></p>
+
+    <p>The printer itself, when contacted for comment, declined to speak but is understood to be a strong supporter of the campaign. It has since been added to the official list of Steve 2028 endorsements.<sup><a href="#ref23">[23]</a></sup></p>
+
+    <h2 id="personal"><span class="edit-link"><a href="#">[edit]</a></span>Personal life</h2>
+
+    <p>Steve is believed to make his bed every morning, including in hotels. He puts the toilet seat down. He says <i>"no worries"</i> and appears to actually mean it. He has never stolen anyone's lunch from a communal refrigerator, a claim that no other 2028 candidate has made or been able to substantiate.<sup><a href="#ref24">[24]</a></sup></p>
+
+    <p>He held a door open for someone still in the parking lot. He waited. The person was grateful. Steve said it was no problem. It genuinely did not seem like a problem for him.<sup><a href="#ref25">[25]</a></sup></p>
+
+    <p>Steve's neighbor's cat does not like most people. The cat tolerates Steve. The cat does not offer this lightly.<sup><a href="#ref26">[26]</a></sup></p>
+
+    <h2 id="endorsements"><span class="edit-link"><a href="#">[edit]</a></span>Endorsements</h2>
+
+    <p>The Steve 2028 campaign has received endorsements from the following parties:</p>
+    <ul style="margin:10px 0 14px 24px;">
+      <li>&#x1f5a8;&#xfe0f; <b>The Printer Steve Fixed</b> — <i>"He fixed me. Without swearing. I will never forget that."</i></li>
+      <li>&#x1f415; <b>Biscuit the Dog</b> (registered voter, good boy) — Poll certification authority. Unconditional support.</li>
+      <li>&#x1f468;&#x200d;&#x1f4bc; <b>Dave from Accounting</b> — <i>"I've never seen him steal anyone's lunch from the fridge. That's presidential."</i></li>
+      <li>&#x1f431; <b>Steve's Neighbor's Cat</b> — tolerates him, which is the highest praise this cat has ever given anyone.</li>
+      <li>&#x2615; <b>Anonymous Barista</b> — <i>"He spelled his own name out without being asked. Said thank you. Tipped well."</i></li>
+      <li>&#x1f9d4; <b>The Guy at the DMV</b> — <i>"He had all his paperwork ready. ALL of it. The first time."</i></li>
+    </ul>
+    <p>Steve has not endorsed himself. The campaign considers this a feature.<sup><a href="#ref27">[27]</a></sup></p>
+
+    <h2 id="references"><span class="edit-link"><a href="#">[edit]</a></span>References</h2>
+    <ol class="references" id="ref1">
+      <li id="ref1">Campaign press materials (2026). <i>Steve: A Man Who Genuinely Doesn't Want This.</i> People Who Have Simply Decided Press.</li>
+      <li id="ref2">Unnamed political analyst, personal communication, 2026. Identity withheld. They asked to remain anonymous because they found it embarrassing to admit how impressed they were.</li>
+      <li id="ref3">GoFundMe campaign page, <a href="https://gofund.me/bcb741795" target="_blank">gofund.me/bcb741795</a>. Accessed April 2026.</li>
+      <li id="ref4">Campaign research team (2026). <i>What We Know About Steve, Which Is Mostly Things He Did That Were Nice.</i> Internal document.</li>
+      <li id="ref5">Center for Presidential Readiness and Nice Behavior, unpublished study, 2025.</li>
+      <li id="ref6">Friend of a friend, overheard at a barbecue.</li>
+      <li id="ref7">Former colleague, anonymous, email correspondence 2026.</li>
+      <li id="ref8">Verified absence of records. HR departments contacted. None had anything.</li>
+      <li id="ref9">Aviation expert, quoted in <i>Helicopters and Leadership Quarterly</i>, March 2026.</li>
+      <li id="ref10">PWHSD internal polling memo, April 2026.</li>
+      <li id="ref11">Campaign communications director (unofficial), Slack message, 2026.</li>
+      <li id="ref12">Meeting minutes, founding session of People Who Have Simply Decided, 2025.</li>
+      <li id="ref13">GoFundMe donor comments thread, multiple entries.</li>
+      <li id="ref14">Reported secondhand by someone who knows someone who talked to Steve about this.</li>
+      <li id="ref15">Biscuit the Dog, certified polling data, 2026. Methodology: good boy.</li>
+      <li id="ref16">Platform document, <i>Steve's Platform (He Hasn't Seen This)</i>, PWHSD, 2026.</li>
+      <li id="ref17">The colleague who lent Steve the $4.50 confirmed receipt in an interview, April 2026.</li>
+      <li id="ref18">Infrastructure committee, PWHSD. <i>Earphones as a Metaphor for Roads.</i> 2026.</li>
+      <li id="ref19">Steve's medicine cabinet, reportedly. Source asked not to be named.</li>
+      <li id="ref20">State Department official, off the record: <i>"honestly that's more than most."</i></li>
+      <li id="ref21">Three eyewitness accounts, independently corroborated.</li>
+      <li id="ref22">Eyewitness testimonial, Office Printer Incident Archive, 2019.</li>
+      <li id="ref23">The printer has not spoken. We are extrapolating from the fact that it works fine now.</li>
+      <li id="ref24">Refrigerator audit, office break room, multiple dates.</li>
+      <li id="ref25">Parking lot witness. <i>"He actually waited. I counted. Fourteen seconds."</i></li>
+      <li id="ref26">Neighbor of Steve, via the campaign. The cat could not be reached for comment.</li>
+      <li id="ref27">Steve 2028 official campaign stance on self-endorsement. Position: against it.</li>
+    </ol>
+
+    <div class="wiki-categories">
+      <strong>Categories:</strong>
+      <a href="#">2028 United States presidential candidates</a> &nbsp;|&nbsp;
+      <a href="#">People who fixed printers</a> &nbsp;|&nbsp;
+      <a href="#">Reluctant politicians</a> &nbsp;|&nbsp;
+      <a href="#">People certified by dogs</a> &nbsp;|&nbsp;
+      <a href="#">Aviation enthusiasts</a> &nbsp;|&nbsp;
+      <a href="#">People named Steve</a> &nbsp;|&nbsp;
+      <a href="#">Pay Debts Not Wars advocates</a> &nbsp;|&nbsp;
+      <a href="#">American public figures (disputed)</a>
+    </div>
+
+  </div>
+</div>
+
+<div class="wiki-footer">
+  <p>This page was last edited on 10 April 2026, at 01:41 (UTC).</p>
+  <p style="margin-top:6px">Text is available under the <a href="#">Creative Commons Attribution-ShareAlike License 4.0</a>; additional terms may apply.</p>
+  <p style="margin-top:6px"><a href="#">Privacy policy</a> &nbsp;|&nbsp; <a href="#">About Wikipedia</a> &nbsp;|&nbsp; <a href="#">Disclaimers</a> &nbsp;|&nbsp; <a href="/voteforsteve2028">Vote for Steve</a> &nbsp;|&nbsp; <a href="/steve2028merch">Official Merch</a></p>
+  <p style="margin-top:10px;font-size:11px;color:#aaa">Steve asked us to remove this page. The request has been noted and filed. It has not been acted upon.</p>
+</div>
+
+</body>
+</html>
