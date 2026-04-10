@@ -1,16 +1,16 @@
 {
   "agent_version": "1.0.0",
   "agent_label": "READINESS-SCANNER-001",
-  "scan_timestamp": "2026-04-09T09:28:07.914925+00:00",
-  "scan_date": "2026-04-09",
+  "scan_timestamp": "2026-04-10T09:27:39.734578+00:00",
+  "scan_date": "2026-04-10",
   "summary": {
     "total_modules": 593,
     "test_coverage_ratio": 0.587,
     "critical_tests_complete": false,
     "source_in_sync": true,
-    "debt_markers": 764,
+    "debt_markers": 771,
     "smoke_import_failures": 0,
-    "bare_except_count": 33,
+    "bare_except_count": 34,
     "total_human_tasks": 1,
     "total_agent_tasks": 9
   },
@@ -101,7 +101,7 @@
       "category": "hardening",
       "priority": "MEDIUM",
       "title": "Fix bare except clauses for production hardening",
-      "description": "Found 33 bare except clauses. Replace with specific exception types and add logging.",
+      "description": "Found 34 bare except clauses. Replace with specific exception types and add logging.",
       "commissioning": "G9: Hardening must be applied",
       "action": "fix_bare_excepts",
       "details": {
@@ -164,16 +164,16 @@
       "category": "technical_debt",
       "priority": "LOW",
       "title": "Catalog and prioritize technical debt markers",
-      "description": "Found 764 debt markers across the codebase. Generate a prioritized debt report with resolution recommendations.",
+      "description": "Found 771 debt markers across the codebase. Generate a prioritized debt report with resolution recommendations.",
       "commissioning": "G7: Restart from symptoms and work back through validation",
       "action": "catalog_debt",
       "details": {
-        "total": 764,
+        "total": 771,
         "by_type": {
           "TODO": 26,
           "FIXME": 2,
           "HACK": 6,
-          "STUB": 259,
+          "STUB": 266,
           "XXX": 12,
           "NOQA": 459
         }
@@ -4414,16 +4414,16 @@
       "skipped": true
     },
     "debt_markers": {
-      "total": 764,
+      "total": 771,
       "by_type": {
         "TODO": 26,
         "FIXME": 2,
         "HACK": 6,
-        "STUB": 259,
+        "STUB": 266,
         "XXX": 12,
         "NOQA": 459
       },
-      "files_with_debt_count": 193,
+      "files_with_debt_count": 194,
       "top_files": [
         {
           "file": "Murphy System/src/live_feed_service.py",
@@ -4514,6 +4514,13 @@
           }
         },
         {
+          "file": "Murphy System/src/subscription_manager.py",
+          "markers": {
+            "STUB": 11,
+            "NOQA": 2
+          }
+        },
+        {
           "file": "Murphy System/src/ceo_branch_activation.py",
           "markers": {
             "NOQA": 12
@@ -4559,12 +4566,6 @@
             "STUB": 1,
             "XXX": 1
           }
-        },
-        {
-          "file": "Murphy System/src/automation_safeguard_engine.py",
-          "markers": {
-            "NOQA": 8
-          }
         }
       ]
     },
@@ -4578,7 +4579,7 @@
       "coverage_pct": 99.8
     },
     "error_handling": {
-      "bare_except_count": 33,
+      "bare_except_count": 34,
       "violations": [
         {
           "file": "Murphy System/src/announcer_voice_engine.py",
