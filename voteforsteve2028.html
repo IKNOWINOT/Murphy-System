@@ -189,7 +189,7 @@
   .poll-bar-bg { height: 20px; border-radius: 10px; background: rgba(255,255,255,.1); overflow: hidden; }
   .poll-bar-fill { height: 100%; border-radius: 10px; background: linear-gradient(90deg, #ffd700, #ffaa00); transition: width .9s cubic-bezier(.34,1.56,.64,1); }
   .poll-bar-labels { display: flex; justify-content: space-between; margin-top: 8px; font-size: 13px; font-family: monospace; }
-  .poll-bar-labels .trump-label { color: rgba(255,255,255,.45); }
+  .poll-bar-labels .them-label { color: rgba(255,255,255,.45); }
   .poll-bar-labels .steve-label { color: var(--gold); }
 
   .poll-result {
@@ -316,7 +316,7 @@
   <div class="container mt-16">
     <a href="https://gofund.me/bcb741795" target="_blank" rel="noreferrer" class="donate-banner">
       <div class="pre-label">THE PEOPLE HAVE DECIDED</div>
-      <h2>💛 Support Steve's 2028 Campaign</h2>
+      <h2>💛 Support Steve&#39;s 2028 Campaign</h2>
       <p>Help us grow a people-powered movement. Every share and every donation helps us reach more voters.</p>
       <div class="donate-btn">DONATE HERE →</div>
       <div class="hashtags">#VoteForSteve #Election2028</div>
@@ -349,10 +349,10 @@
     <div class="poll-question">Who would you rather vote for?</div>
 
     <div class="poll-choices">
-      <button class="poll-btn" id="btnTrump" onclick="castVote('trump')">
-        <span class="candidate-icon">🍊</span>
-        <span class="candidate-name">Trump</span>
-        <span class="vote-count" id="trumpCount">0</span>
+      <button class="poll-btn" id="btnThem" onclick="castVote('them')">
+        <span class="candidate-icon">🏓</span>
+        <span class="candidate-name">Any Dem or Rep</span>
+        <span class="vote-count" id="themCount">0</span>
         <span class="vote-label">votes</span>
       </button>
       <button class="poll-btn steve" id="btnSteve" onclick="castVote('steve')">
@@ -367,7 +367,7 @@
     <div id="pollBar" style="display:none" class="poll-bar-wrap">
       <div class="poll-bar-bg"><div class="poll-bar-fill" id="barFill" style="width:50%"></div></div>
       <div class="poll-bar-labels">
-        <span class="trump-label" id="trumpPct">Trump: 50%</span>
+        <span class="trump-label" id="themPct">Them: 50%</span>
         <span class="steve-label" id="stevePct">Steve: 50%</span>
       </div>
     </div>
@@ -396,7 +396,7 @@
 <!-- MID DONATE -->
 <div class="container mb-30">
   <a href="https://gofund.me/bcb741795" target="_blank" rel="noreferrer" class="donate-banner">
-    <h2>💛 Support Steve's 2028 Campaign</h2>
+    <h2>💛 Support Steve&#39;s 2028 Campaign</h2>
     <p>Help us grow a people-powered movement. Every share and every donation helps us reach more voters.</p>
     <div class="donate-btn">DONATE HERE →</div>
     <div class="hashtags">#VoteForSteve #Election2028</div>
@@ -421,7 +421,7 @@
 <div class="container" style="margin-bottom:60px">
   <a href="https://gofund.me/bcb741795" target="_blank" rel="noreferrer" class="donate-banner">
     <h2>💛 Help Steve Win (Against His Will)</h2>
-    <p>Support Steve's 2028 campaign and help us grow a people-powered movement.<br>Every share and every donation helps us reach more voters.</p>
+    <p>Support Steve&#39;s 2028 campaign and help us grow a people-powered movement.<br>Every share and every donation helps us reach more voters.</p>
     <div class="donate-btn">DONATE → gofund.me/bcb741795</div>
     <div class="hashtags">#VoteForSteve #Election2028</div>
   </a>
@@ -499,29 +499,29 @@ setInterval(() => { factIdx = (factIdx + 1) % FACTS.length; renderFact(factIdx);
 const POLL_KEY  = 'steve2028_poll_v2';
 const VOTED_KEY = 'steve2028_voted_v2';
 const SEED_STEVE = 84271;
-const SEED_TRUMP = 3;
+const SEED_THEM = 3;
 
 function loadState() {
   try { var r = localStorage.getItem(POLL_KEY); if (r) return JSON.parse(r); } catch(e) {}
-  return { steveVotes: SEED_STEVE, trumpVotes: SEED_TRUMP, voteHistory: [] };
+  return { steveVotes: SEED_STEVE, themVotes: SEED_TRUMP, voteHistory: [] };
 }
 function saveState() {
-  try { localStorage.setItem(POLL_KEY, JSON.stringify({ steveVotes: steveVotes, trumpVotes: trumpVotes, voteHistory: voteHistory })); } catch(e) {}
+  try { localStorage.setItem(POLL_KEY, JSON.stringify({ steveVotes: steveVotes, themVotes: themVotes, voteHistory: voteHistory })); } catch(e) {}
 }
 function loadHasVoted() { try { return localStorage.getItem(VOTED_KEY) === '1'; } catch(e) { return false; } }
 function saveHasVoted() { try { localStorage.setItem(VOTED_KEY, '1'); } catch(e) {} }
 
 var _state    = loadState();
 var steveVotes  = _state.steveVotes;
-var trumpVotes  = _state.trumpVotes;
+var themVotes  = _state.themVotes;
 var voteHistory = _state.voteHistory || [];
 var hasVoted    = loadHasVoted();
 
 (function initPoll() {
   document.getElementById('steveCount').textContent = steveVotes.toLocaleString();
-  document.getElementById('trumpCount').textContent = trumpVotes.toLocaleString();
+  document.getElementById('themCount').textContent = themVotes.toLocaleString();
   if (hasVoted) {
-    document.getElementById('btnTrump').disabled = true;
+    document.getElementById('btnThem').disabled = true;
     document.getElementById('btnSteve').disabled = true;
     var last = voteHistory.length ? voteHistory[voteHistory.length - 1] : 0;
     if (last >= 1234) document.getElementById('steveLabel').textContent = '✨ democracy ✨';
@@ -529,7 +529,7 @@ var hasVoted    = loadHasVoted();
     res.style.display = 'block';
     res.innerHTML = '<p style="color:rgba(255,255,255,.5);font-size:14px">You already voted! The people remember. Steve is mortified.</p>'
       + '<div style="margin-top:12px"><a href="' + DONATE_URL + '" target="_blank" rel="noreferrer" class="donate-banner mini">'
-      + '<h2>Support Steve's 2028 Campaign</h2>'
+      + '<h2>Support Steve&#39;s 2028 Campaign</h2>'
       + '<p>Every share and donation helps us reach more voters.</p>'
       + '<div class="donate-btn">DONATE HERE</div>'
       + '<div class="hashtags">#VoteForSteve #Election2028</div>'
@@ -548,12 +548,12 @@ function getAdded(current) {
 }
 
 function updateBar() {
-  var total = steveVotes + trumpVotes;
+  var total = steveVotes + themVotes;
   if (!total) return;
   var sp = Math.round(steveVotes / total * 100);
   document.getElementById('barFill').style.width = sp + '%';
   document.getElementById('stevePct').textContent = 'Steve: ' + sp + '%';
-  document.getElementById('trumpPct').textContent = 'Trump: ' + (100 - sp) + '%';
+  document.getElementById('themPct').textContent = 'Them: ' + (100 - sp) + '%';
   document.getElementById('pollBar').style.display = 'block';
 }
 
@@ -561,7 +561,7 @@ function castVote(who) {
   if (hasVoted) return;
   hasVoted = true;
   saveHasVoted();
-  document.getElementById('btnTrump').disabled = true;
+  document.getElementById('btnThem').disabled = true;
   document.getElementById('btnSteve').disabled = true;
 
   if (who === 'steve') {
@@ -578,41 +578,41 @@ function castVote(who) {
     var res = document.getElementById('pollResult');
     res.style.display = 'block';
     res.innerHTML = isCrazy
-      ? '<p>Your vote counted as <strong>' + added.toLocaleString() + '</strong> votes for Steve!<br><span class="sub">(The algorithm detected your enthusiasm. It's a feature.)</span></p>'
+      ? '<p>Your vote counted as <strong>' + added.toLocaleString() + '</strong> votes for Steve!<br><span class="sub">(The algorithm detected your enthusiasm. It&#39;s a feature.)</span></p>'
         + '<div style="margin-top:12px"><a href="' + DONATE_URL + '" target="_blank" rel="noreferrer" class="donate-banner mini">'
         + '<h2>Keep the momentum going &mdash; Donate!</h2>'
         + '<p>Every donation helps us reach more voters.</p>'
         + '<div class="donate-btn">DONATE &rarr; gofund.me/bcb741795</div>'
         + '<div class="hashtags">#VoteForSteve #Election2028</div>'
         + '</a></div>'
-      : '<p>Vote counted! Steve still doesn't want this.</p>'
+      : '<p>Vote counted! Steve still does not want this.</p>'
         + '<div style="margin-top:12px"><a href="' + DONATE_URL + '" target="_blank" rel="noreferrer" class="donate-banner mini">'
-        + '<h2>Support Steve's 2028 Campaign</h2>'
+        + '<h2>Support Steve&#39;s 2028 Campaign</h2>'
         + '<p>Every share and donation helps us reach more voters.</p>'
         + '<div class="donate-btn">DONATE HERE &rarr;</div>'
         + '<div class="hashtags">#VoteForSteve #Election2028</div>'
         + '</a></div>';
   } else {
-    trumpVotes += 1;
+    themVotes += 1;
     saveState();
-    document.getElementById('trumpCount').textContent = trumpVotes.toLocaleString();
+    document.getElementById('themCount').textContent = themVotes.toLocaleString();
     var res = document.getElementById('pollResult');
     res.style.display = 'block';
-    res.innerHTML = '<p style="color:rgba(255,255,255,.5);font-size:14px">Your vote for Trump has been recorded. Steve's not judging. He's very chill.</p>';
+    res.innerHTML = '<p style="color:rgba(255,255,255,.5);font-size:14px">Your vote has been recorded. Steve is not judging. He is very chill about it.</p>';
   }
   updateBar();
 }
 
 function resetPoll() {
-  steveVotes = SEED_STEVE; trumpVotes = SEED_TRUMP; hasVoted = false; voteHistory = [];
+  steveVotes = SEED_STEVE; themVotes = SEED_TRUMP; hasVoted = false; voteHistory = [];
   saveState();
   try { localStorage.removeItem(VOTED_KEY); } catch(e) {}
   document.getElementById('steveCount').textContent = steveVotes.toLocaleString();
-  document.getElementById('trumpCount').textContent = trumpVotes.toLocaleString();
+  document.getElementById('themCount').textContent = themVotes.toLocaleString();
   document.getElementById('steveLabel').textContent = 'votes';
   document.getElementById('pollResult').style.display = 'none';
   document.getElementById('pollBar').style.display   = 'none';
-  document.getElementById('btnTrump').disabled = false;
+  document.getElementById('btnThem').disabled = false;
   document.getElementById('btnSteve').disabled = false;
   updateBar();
 }
