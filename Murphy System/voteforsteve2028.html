@@ -503,7 +503,7 @@ const SEED_THEM = 3;
 
 function loadState() {
   try { var r = localStorage.getItem(POLL_KEY); if (r) return JSON.parse(r); } catch(e) {}
-  return { steveVotes: SEED_STEVE, themVotes: SEED_TRUMP, voteHistory: [] };
+  return { steveVotes: SEED_STEVE, themVotes: SEED_THEM, voteHistory: [] };
 }
 function saveState() {
   try { localStorage.setItem(POLL_KEY, JSON.stringify({ steveVotes: steveVotes, themVotes: themVotes, voteHistory: voteHistory })); } catch(e) {}
@@ -604,7 +604,7 @@ function castVote(who) {
 }
 
 function resetPoll() {
-  steveVotes = SEED_STEVE; themVotes = SEED_TRUMP; hasVoted = false; voteHistory = [];
+  steveVotes = SEED_STEVE; themVotes = SEED_THEM; hasVoted = false; voteHistory = [];
   saveState();
   try { localStorage.removeItem(VOTED_KEY); } catch(e) {}
   document.getElementById('steveCount').textContent = steveVotes.toLocaleString();
