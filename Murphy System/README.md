@@ -12,7 +12,7 @@
 > developed and maintained by a **single developer** ([@IKNOWINOT](https://github.com/IKNOWINOT)).
 > While the architecture is comprehensive and the test suite covers thousands of
 > functions, **not everything works as intended**. Emergent bugs are still being
-> discovered and classified across the 1,1234+ module surface area.
+> discovered and classified across the 1,1235+ module surface area.
 >
 > **What this means for you:**
 >
@@ -778,7 +778,7 @@ We welcome contributions! Please read:
 - **`src/pilot_config.py`** — Canonical pilot account (`cpost@murphy.systems`) and automation routing
 - **`src/large_control_model.py`** — LCM meta-controller: NL → MSS → Rosetta → Causality → Dispatch
 - **`src/rosette_lens.py`** — Rosetta agent positions → MSS data lens bridge
-- **`src/nav_registry.py`** — All 1,1234+ modules mapped to navigation categories
+- **`src/nav_registry.py`** — All 1,1235+ modules mapped to navigation categories
 - **`static/murphy-nav.js`** — Shared navigation component (Finance & Grants always visible)
 - **`src/demo_runner.py`** — Real demo pipeline: every scenario routes through actual Murphy components
 
