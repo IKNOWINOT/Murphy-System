@@ -35,7 +35,7 @@ Commissioning Answers (G1–G9)
    YES — 28 tests covering all conditions in G3.
 
 5. G5 — Expected vs Actual: All tests pass.
-6. G6 — Regression Loop: Run: pytest tests/llm/test_llm_determinism_guard.py -v
+6. G6 — Regression Loop: Run: pytest 'Murphy System/tests/llm/test_llm_determinism_guard.py' -v
 7. G7 — As-Builts: YES — docstring, inline labels.
 8. G8 — Hardening: Bounds validation, thread-safety, CWE-770 checks.
 9. G9 — Re-commissioned: YES.
