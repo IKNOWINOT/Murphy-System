@@ -108,6 +108,31 @@ from .stability import (
     StabilityAnalyzer,
     StabilityResult,
 )
+
+# Manifold projection (Modular Manifolds subsystem)
+from .manifold_projection import (
+    Manifold,
+    ManifoldStateConstrainer,
+    ObliqueManifold,
+    SimplexManifold,
+    SphereManifold,
+    StiefelManifold,
+    cayley_retraction,
+    qr_retraction,
+)
+
+# Confidence manifold router
+from .confidence_manifold import (
+    ConfidenceManifold,
+    ConfidenceManifoldRouter,
+    PhaseTransitionResult,
+)
+
+# Manifold drift detection
+from .drift_detector import (
+    ManifoldDriftAlert,
+    ManifoldDriftDetector,
+)
 from .state_adapter import (
     from_dict,
     from_mfgc_state,
@@ -228,4 +253,20 @@ __all__ = [
     "validate_output",
     # observation_model extension
     "KalmanObserver",
+    # manifold_projection
+    "Manifold",
+    "SphereManifold",
+    "StiefelManifold",
+    "ObliqueManifold",
+    "SimplexManifold",
+    "ManifoldStateConstrainer",
+    "qr_retraction",
+    "cayley_retraction",
+    # confidence_manifold
+    "ConfidenceManifold",
+    "ConfidenceManifoldRouter",
+    "PhaseTransitionResult",
+    # manifold drift detection
+    "ManifoldDriftAlert",
+    "ManifoldDriftDetector",
 ]

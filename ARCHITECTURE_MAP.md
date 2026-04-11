@@ -2224,6 +2224,12 @@ _Last updated: 2026-04-02 — Phase 0A baseline_
 | CEO Branch | `src/ceo_branch_activation.py` | `tests/runtime_core/test_ceo_branch.py` | 73 | ✅ PASS |
 | Heartbeat Runner | `src/activated_heartbeat_runner.py` | `tests/runtime_core/test_activated_heartbeat_runner.py` | 29 | ✅ PASS |
 | Rosetta Manager | `src/rosetta/` | `tests/runtime_core/test_rosetta.py` | 57 | ✅ PASS |
+| Manifold Projection | `src/control_theory/manifold_projection.py` | `tests/modules/test_modular_manifolds.py` | 87 | ✅ PASS |
+| Confidence Manifold Router | `src/control_theory/confidence_manifold.py` | `tests/modules/test_modular_manifolds.py` | (shared) | ✅ PASS |
+| Swarm Manifold Optimizer | `src/swarm_manifold_optimizer.py` | `tests/modules/test_modular_manifolds.py` | (shared) | ✅ PASS |
+| LLM Output Manifold | `src/llm_output_manifold.py` | `tests/modules/test_modular_manifolds.py` | (shared) | ✅ PASS |
+| Manifold Drift Detector | `src/control_theory/drift_detector.py` | `tests/modules/test_modular_manifolds.py` | (shared) | ✅ PASS |
+| Stiefel Optimizer | `src/ml/manifold_optimizer.py` | `tests/modules/test_modular_manifolds.py` | (shared) | ✅ PASS |
 
 ### Commissioning Gate Legend
 
