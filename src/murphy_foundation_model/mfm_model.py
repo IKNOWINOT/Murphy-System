@@ -303,6 +303,56 @@ class MFMModel:
         self._device = resolved
         logger.info("Model moved to %s", resolved)
 
+    def swap_adapter(self, adapter_path: str) -> bool:
+        """Hot-swap a LoRA adapter without reloading the full model.  — LORA-MODEL-SWAP-001
+
+        Unloads any currently active adapter and loads a new one from
+        *adapter_path*.  This is the recommended way to serve multiple
+        domain-specific adapters from a single base model (multi-tenant
+        serving per "LoRA Without Regret" best practices).
+
+        Returns ``True`` on success, ``False`` otherwise.
+        """
+        if self._base_model is None:
+            logger.warning("LORA-MODEL-ERR-001: No base model loaded — cannot swap adapter")
+            return False
+
+        if not os.path.isdir(adapter_path):
+            logger.error(
+                "LORA-MODEL-ERR-002: Adapter path does not exist: %s", adapter_path
+            )
+            return False
+
+        try:
+            from peft import PeftModel  # noqa: F811
+        except ImportError:  # LORA-MODEL-ERR-003
+            logger.warning("LORA-MODEL-ERR-003: peft not available — cannot swap adapter")
+            return False
+
+        try:
+            # Unload current adapter if one is active.
+            if isinstance(self._base_model, PeftModel):
+                self._base_model = self._base_model.merge_and_unload()
+                logger.debug("Previous adapter unloaded (merged)")
+
+            self._base_model = PeftModel.from_pretrained(
+                self._base_model, adapter_path
+            )
+            logger.info("LoRA adapter hot-swapped from %s", adapter_path)
+            return True
+        except Exception as exc:  # LORA-MODEL-ERR-004
+            logger.error("LORA-MODEL-ERR-004: Adapter swap failed: %s", exc)
+            return False
+
+    @property
+    def has_active_adapter(self) -> bool:
+        """Whether a LoRA adapter is currently loaded."""
+        try:
+            from peft import PeftModel  # noqa: F811
+            return isinstance(self._base_model, PeftModel)
+        except ImportError:
+            return False
+
     # -- internal -----------------------------------------------------------
 
     def _load_base_model(self) -> None:

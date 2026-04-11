@@ -33,14 +33,34 @@ _DEFAULT_OUTPUT_DIR = os.getenv("MFM_CHECKPOINT_DIR", "./data/mfm_checkpoints")
 
 @dataclass
 class MFMTrainerConfig:
-    """Hyperparameters and paths for the MFM fine-tuning pipeline."""
+    """Hyperparameters and paths for the MFM fine-tuning pipeline.
 
-    # LoRA
+    LoRA Without Regret — LORA-CFG-001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Following "LoRA Without Regret" best practices (Thinking Machines Lab),
+    adapters are applied to **both** attention AND MLP layers by default.
+    Applying LoRA only to attention layers (q/k/v/o projections) leaves a
+    5–15 % performance gap vs. full fine-tuning.  Including the MLP gate,
+    up, and down projections closes that gap with negligible parameter
+    overhead.
+
+    Target-module names match the Llama / Phi-3 family convention.
+    Override ``target_modules`` for architectures that use different names.
+    """
+
+    # LoRA — LORA-CFG-001
     lora_rank: int = 16
     lora_alpha: int = 32
+    # Attention + MLP projections per "LoRA Without Regret" best practices.
     target_modules: List[str] = field(
-        default_factory=lambda: ["q_proj", "v_proj", "k_proj", "o_proj"]
+        default_factory=lambda: [
+            # Attention layers
+            "q_proj", "v_proj", "k_proj", "o_proj",
+            # MLP layers — required to close the gap with full fine-tuning
+            "gate_proj", "up_proj", "down_proj",
+        ]
     )
+    lora_dropout: float = 0.05
 
     # Optimiser
     learning_rate: float = 2e-4
@@ -61,6 +81,34 @@ class MFMTrainerConfig:
     # Output
     output_dir: str = _DEFAULT_OUTPUT_DIR
     fp16: bool = True
+
+    def __post_init__(self) -> None:  # LORA-CFG-VALIDATE-001
+        """Validate config invariants at construction time."""
+        if self.lora_rank < 1:
+            raise ValueError(
+                f"lora_rank must be >= 1, got {self.lora_rank}"  # LORA-CFG-ERR-001
+            )
+        if self.lora_alpha < 1:
+            raise ValueError(
+                f"lora_alpha must be >= 1, got {self.lora_alpha}"  # LORA-CFG-ERR-002
+            )
+        if not (0.0 <= self.lora_dropout < 1.0):
+            raise ValueError(
+                f"lora_dropout must be in [0.0, 1.0), got {self.lora_dropout}"  # LORA-CFG-ERR-003
+            )
+        if not self.target_modules:
+            raise ValueError(
+                "target_modules must not be empty"  # LORA-CFG-ERR-004
+            )
+        weight_sum = (
+            self.action_loss_weight
+            + self.confidence_loss_weight
+            + self.risk_loss_weight
+        )
+        if abs(weight_sum - 1.0) > 1e-6:
+            raise ValueError(
+                f"Loss weights must sum to 1.0, got {weight_sum}"  # LORA-CFG-ERR-005
+            )
 
 
 # -- trainer -------------------------------------------------------------
@@ -93,7 +141,10 @@ class MFMTrainer:
     # -- public API ---------------------------------------------------------
 
     def prepare_model(self) -> bool:
-        """Apply LoRA adapters to the base model.
+        """Apply LoRA adapters to the base model.  — LORA-TRAINER-PREPARE-001
+
+        Applies PEFT LoRA adapters targeting both attention and MLP layers
+        (per "LoRA Without Regret" best practices).
 
         Returns ``True`` if adapters were successfully applied, ``False``
         if PEFT is unavailable.
@@ -104,22 +155,26 @@ class MFMTrainer:
 
         try:
             from peft import LoraConfig, TaskType, get_peft_model  # noqa: F811
-        except ImportError:
-            logger.warning("peft not installed — LoRA cannot be applied")
+        except ImportError:  # LORA-TRAINER-ERR-001
+            logger.warning("LORA-TRAINER-ERR-001: peft not installed — LoRA cannot be applied")
             return False
 
         lora_cfg = LoraConfig(
             r=self.config.lora_rank,
             lora_alpha=self.config.lora_alpha,
             target_modules=self.config.target_modules,
-            lora_dropout=0.05,
+            lora_dropout=self.config.lora_dropout,
             bias="none",
             task_type=TaskType.CAUSAL_LM,
         )
 
-        base = getattr(self.model, "_base_model", self.model)
-        peft_model = get_peft_model(base, lora_cfg)
-        peft_model.print_trainable_parameters()
+        try:
+            base = getattr(self.model, "_base_model", self.model)
+            peft_model = get_peft_model(base, lora_cfg)
+            peft_model.print_trainable_parameters()
+        except Exception as exc:  # LORA-TRAINER-ERR-002
+            logger.error("LORA-TRAINER-ERR-002: Failed to apply LoRA adapters: %s", exc)
+            return False
 
         if hasattr(self.model, "_base_model"):
             self.model._base_model = peft_model
@@ -127,7 +182,14 @@ class MFMTrainer:
             self.model = peft_model
 
         self._lora_applied = True
-        logger.info("LoRA adapters applied (rank=%d)", self.config.lora_rank)
+        logger.info(
+            "LoRA adapters applied (rank=%d, alpha=%d, dropout=%.2f, "
+            "targets=%s)",
+            self.config.lora_rank,
+            self.config.lora_alpha,
+            self.config.lora_dropout,
+            self.config.target_modules,
+        )
         return True
 
     def train(
@@ -364,31 +426,80 @@ class MFMTrainer:
         return total_loss
 
     def merge_and_save(self, output_path: str) -> bool:
-        """Merge LoRA adapters into the base model and save.
+        """Merge LoRA adapters into the base model and save.  — LORA-TRAINER-MERGE-001
 
         Returns ``True`` on success.
         """
         try:
             from peft import PeftModel  # noqa: F811
-        except ImportError:
-            logger.warning("peft not installed — cannot merge adapters")
+        except ImportError:  # LORA-TRAINER-ERR-003
+            logger.warning("LORA-TRAINER-ERR-003: peft not installed — cannot merge adapters")
             return False
 
         base = self._get_trainable_model()
         if base is None:
             return False
 
-        if isinstance(base, PeftModel):
-            merged = base.merge_and_unload()
-            os.makedirs(output_path, exist_ok=True)
-            merged.save_pretrained(output_path)
-            logger.info("Merged model saved to %s", output_path)
-            return True
+        try:
+            if isinstance(base, PeftModel):
+                merged = base.merge_and_unload()
+                os.makedirs(output_path, exist_ok=True)
+                merged.save_pretrained(output_path)
+                logger.info("Merged model saved to %s", output_path)
+                return True
+        except Exception as exc:  # LORA-TRAINER-ERR-004
+            logger.error("LORA-TRAINER-ERR-004: LoRA merge failed: %s", exc)
+            return False
 
         logger.warning("Model is not a PeftModel — saving as-is")
         os.makedirs(output_path, exist_ok=True)
         base.save_pretrained(output_path)
         return True
+
+    def save_adapter(self, output_path: str) -> bool:
+        """Save only the LoRA adapter weights (not the full model).  — LORA-TRAINER-SAVE-001
+
+        This enables multi-tenant serving: a single base model can load
+        different adapters at runtime without merging them permanently.
+
+        Returns ``True`` on success.
+        """
+        base = self._get_trainable_model()
+        if base is None:
+            return False
+
+        try:
+            from peft import PeftModel  # noqa: F811
+        except ImportError:  # LORA-TRAINER-ERR-005
+            logger.warning("LORA-TRAINER-ERR-005: peft not installed — cannot save adapter")
+            return False
+
+        if not isinstance(base, PeftModel):
+            logger.warning("Model is not a PeftModel — no adapter to save")
+            return False
+
+        try:
+            os.makedirs(output_path, exist_ok=True)
+            base.save_pretrained(output_path)
+
+            # Persist the adapter config alongside weights for auditing.
+            config_path = os.path.join(output_path, "murphy_adapter_config.json")
+            import json as _json
+            adapter_meta = {
+                "lora_rank": self.config.lora_rank,
+                "lora_alpha": self.config.lora_alpha,
+                "lora_dropout": self.config.lora_dropout,
+                "target_modules": self.config.target_modules,
+                "saved_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            }
+            with open(config_path, "w", encoding="utf-8") as fh:
+                _json.dump(adapter_meta, fh, indent=2)
+
+            logger.info("LoRA adapter saved to %s", output_path)
+            return True
+        except Exception as exc:  # LORA-TRAINER-ERR-006
+            logger.error("LORA-TRAINER-ERR-006: Failed to save adapter: %s", exc)
+            return False
 
     # -- internal -----------------------------------------------------------
 
