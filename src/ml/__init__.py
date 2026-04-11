@@ -118,6 +118,17 @@ except Exception as _e:  # pragma: no cover
     logger.warning("src.ml.evaluation import failed: %s", _e)
 
 # ---------------------------------------------------------------------------
+# manifold_optimizer
+# ---------------------------------------------------------------------------
+try:
+    from .manifold_optimizer import (  # noqa: F401
+        ManifoldTrainingStep,
+        StiefelOptimizer,
+    )
+except Exception as _e:  # pragma: no cover
+    logger.warning("src.ml.manifold_optimizer import failed: %s", _e)
+
+# ---------------------------------------------------------------------------
 # api
 # ---------------------------------------------------------------------------
 try:
@@ -162,4 +173,7 @@ __all__ = [
     "ModelEvaluator",
     # api
     "create_ml_router",
+    # manifold_optimizer
+    "StiefelOptimizer",
+    "ManifoldTrainingStep",
 ]
