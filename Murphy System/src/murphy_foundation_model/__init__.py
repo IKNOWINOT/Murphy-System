@@ -41,6 +41,7 @@ from .mfm_registry import MFMModelVersion, MFMRegistry
 # Phase 2+ — full implementations
 from .mfm_tokenizer import SPECIAL_TOKENS, MFMTokenizer, discretize_score
 from .mfm_trainer import MFMTrainer, MFMTrainerConfig, load_training_data
+from .lora_adapter_registry import LoRAAdapterMetadata, LoRAAdapterRegistry
 from .outcome_labeler import (
     OutcomeLabeler,
     OutcomeLabels,
@@ -79,6 +80,10 @@ __all__ = [
     "MFMTrainer",
     "MFMTrainerConfig",
     "load_training_data",
+
+    # Phase 2+ — LoRA adapter registry (LoRA Without Regret)
+    "LoRAAdapterRegistry",
+    "LoRAAdapterMetadata",
 
     # Phase 2+ — RLEF
     "RLEFEngine",
