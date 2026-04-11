@@ -51,11 +51,6 @@ TOGETHER_CODE_MODEL    = "Qwen/Qwen2.5-Coder-32B-Instruct"
 # Output is not artificially capped — the LLM produces whatever the request
 # requires.  Callers may pass a lower max_tokens for smaller tasks.
 DEEPINFRA_MODEL_CONTEXT = 131072
-# Provider-specific timeouts (PATCH-013e)
-DEEPINFRA_TIMEOUT = float(os.getenv("DEEPINFRA_TIMEOUT", "30"))
-TOGETHER_TIMEOUT  = float(os.getenv("TOGETHER_TIMEOUT",  "30"))
-OLLAMA_TIMEOUT    = float(os.getenv("OLLAMA_TIMEOUT",   "15"))   # PATCH-015: fast-fail (was 120s)
-
 
 # ---------------------------------------------------------------------------
 # Circuit breaker
@@ -207,22 +202,26 @@ class MurphyLLMProvider:
         messages:  List[Dict[str, str]],
         temperature: float = 0.7,
         max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,
-        req_timeout: float = None,
+        seed:        Optional[int] = None,
     ) -> Dict[str, Any]:
-        """POST to an OpenAI-compatible chat completions endpoint. PATCH-013f: per-provider timeout."""
+        """POST to an OpenAI-compatible chat completions endpoint."""
+        payload: Dict[str, Any] = {
+            "model":       model,
+            "messages":    messages,
+            "temperature": temperature,
+            "max_tokens":  max_tokens,
+        }
+        # DETERM-LLM-001: include seed when deterministic mode is active
+        if seed is not None:
+            payload["seed"] = seed
         resp = requests.post(
             f"{base_url}/chat/completions",
-            json={
-                "model":       model,
-                "messages":    messages,
-                "temperature": temperature,
-                "max_tokens":  max_tokens,
-            },
+            json=payload,
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type":  "application/json",
             },
-            timeout=(req_timeout if req_timeout is not None else self.timeout),
+            timeout=self.timeout,
         )
         resp.raise_for_status()
         return resp.json()
@@ -239,10 +238,15 @@ class MurphyLLMProvider:
         model_hint:  str   = "chat",
         temperature: float = 0.7,
         max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,
+        deterministic: bool = False,
     ) -> LLMCompletion:
         """Complete a prompt synchronously.
 
         Tries DeepInfra first, falls back to Together.ai, then onboard.
+
+        When ``deterministic=True``, the Determinism Guard enforces temp=0
+        and a fixed seed, and caches responses so identical requests return
+        identical outputs.  (label: DETERM-LLM-002)
         """
         messages = [
             {"role": "system", "content": system},
@@ -253,6 +257,7 @@ class MurphyLLMProvider:
             model_hint=model_hint,
             temperature=temperature,
             max_tokens=max_tokens,
+            deterministic=deterministic,
         )
 
     def complete_messages(
@@ -262,6 +267,7 @@ class MurphyLLMProvider:
         model_hint:  str   = "chat",
         temperature: float = 0.7,
         max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,
+        deterministic: bool = False,
     ) -> LLMCompletion:
         """Complete a messages list synchronously."""
         return self._complete_with_fallback(
@@ -269,6 +275,7 @@ class MurphyLLMProvider:
             model_hint=model_hint,
             temperature=temperature,
             max_tokens=max_tokens,
+            deterministic=deterministic,
         )
 
     def _complete_with_fallback(
@@ -277,8 +284,43 @@ class MurphyLLMProvider:
         model_hint:  str   = "chat",
         temperature: float = 0.7,
         max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,
+        deterministic: bool = False,
     ) -> LLMCompletion:
         request_id = str(uuid.uuid4())
+
+        # ── Determinism Guard: enforce params + check cache ───────────
+        # (label: DETERM-LLM-003)
+        seed: Optional[int] = None
+        try:
+            from src.llm_determinism_guard import get_determinism_guard
+            guard = get_determinism_guard()
+            params = guard.enforce_deterministic_params(
+                temperature=temperature, seed=None, deterministic=deterministic,
+            )
+            temperature = params["temperature"]
+            seed = params.get("seed")
+
+            # Check for cached response (deterministic mode only)
+            if deterministic:
+                model_for_cache = self._resolve_model("deepinfra", model_hint)
+                cached = guard.get_cached(
+                    messages, model_for_cache, temperature, max_tokens,
+                    seed=seed, deterministic=True,
+                )
+                if cached:
+                    logger.info(
+                        "DETERM-LLM-003: returning cached response for %s "
+                        "(hits=%d)", cached.fingerprint[:12], cached.hit_count,
+                    )
+                    return LLMCompletion(
+                        content=cached.content,
+                        model=cached.model,
+                        provider=f"{cached.provider}(cached)",
+                        latency_seconds=0.0,
+                        request_id=request_id,
+                    )
+        except Exception as exc:  # DETERM-LLM-ERR-001
+            logger.debug("Determinism guard unavailable: %s", exc)
 
         # ── 1. DeepInfra (primary) ────────────────────────────────────
         if self.deepinfra_api_key and self._di_circuit.allow_request():
@@ -287,15 +329,14 @@ class MurphyLLMProvider:
             try:
                 data = self._post_openai_compat(
                     DEEPINFRA_BASE_URL, self.deepinfra_api_key,
-                    model, messages, temperature, max_tokens,
-                    req_timeout=DEEPINFRA_TIMEOUT,
+                    model, messages, temperature, max_tokens, seed=seed,
                 )
                 elapsed = time.monotonic() - start
                 self._di_circuit.record_success()
                 content = data["choices"][0]["message"]["content"]
                 usage   = data.get("usage", {})
                 logger.info("DeepInfra ✅ %.2fs | %s", elapsed, model)
-                return LLMCompletion(
+                completion = LLMCompletion(
                     content=content, model=model, provider="deepinfra",
                     tokens_prompt=usage.get("prompt_tokens", 0),
                     tokens_completion=usage.get("completion_tokens", 0),
@@ -303,10 +344,15 @@ class MurphyLLMProvider:
                     latency_seconds=elapsed, request_id=request_id,
                     raw_response=data,
                 )
+                self._record_to_guard(
+                    messages, model, temperature, max_tokens,
+                    seed, deterministic, completion,
+                )
+                return completion
             except Exception as exc:
                 elapsed = time.monotonic() - start
                 self._di_circuit.record_failure()
-                logger.error("DeepInfra FAILED %.2fs | exc=%r | type=%s | falling back to Together.ai", elapsed, str(exc), type(exc).__name__)
+                logger.warning("DeepInfra ⚠️  %.2fs | %s | falling back to Together.ai", elapsed, exc)
 
         # ── 2. Together.ai (fallback) ─────────────────────────────────
         if self.together_api_key and self._tog_circuit.allow_request():
@@ -315,15 +361,14 @@ class MurphyLLMProvider:
             try:
                 data = self._post_openai_compat(
                     TOGETHER_BASE_URL, self.together_api_key,
-                    model, messages, temperature, max_tokens,
-                    req_timeout=TOGETHER_TIMEOUT,
+                    model, messages, temperature, max_tokens, seed=seed,
                 )
                 elapsed = time.monotonic() - start
                 self._tog_circuit.record_success()
                 content = data["choices"][0]["message"]["content"]
                 usage   = data.get("usage", {})
                 logger.info("Together.ai ✅ %.2fs | %s", elapsed, model)
-                return LLMCompletion(
+                completion = LLMCompletion(
                     content=content, model=model, provider="together",
                     tokens_prompt=usage.get("prompt_tokens", 0),
                     tokens_completion=usage.get("completion_tokens", 0),
@@ -331,57 +376,65 @@ class MurphyLLMProvider:
                     latency_seconds=elapsed, request_id=request_id,
                     raw_response=data,
                 )
+                self._record_to_guard(
+                    messages, model, temperature, max_tokens,
+                    seed, deterministic, completion,
+                )
+                return completion
             except Exception as exc:
                 elapsed = time.monotonic() - start
                 self._tog_circuit.record_failure()
-                logger.error("Together.ai FAILED %.2fs | exc=%r | type=%s | falling back to Ollama", elapsed, str(exc), type(exc).__name__)
+                logger.warning("Together.ai ⚠️  %.2fs | %s | falling back to onboard", elapsed, exc)
 
         # ── 3. Onboard fallback ────────────────────────────────────────
         return self._onboard_fallback(messages, request_id)
 
-    def _onboard_fallback(self, messages, request_id):
-        # PATCH-013e: Real Ollama phi3 inference instead of stub
-        import urllib.request as _ur, json as _j, time as _t
-        host = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
-        model = os.getenv("OLLAMA_MODEL", "phi3")
-        parts = []
-        for m in messages:
-            r, c = m.get("role","user"), m.get("content","")
-            if r == "system":   parts.append("[System] " + c)
-            elif r == "user":   parts.append("[User] " + c)
-            elif r == "assistant": parts.append("[Asst] " + c)
-        prompt = "\n".join(parts)
-        start = _t.monotonic()
+    def _record_to_guard(
+        self,
+        messages: List[Dict[str, str]],
+        model: str,
+        temperature: float,
+        max_tokens: int,
+        seed: Optional[int],
+        deterministic: bool,
+        completion: "LLMCompletion",
+    ) -> None:
+        """Record a completion to the determinism guard (best-effort)."""
+        # (label: DETERM-LLM-004)
         try:
-            # PATCH-015: pre-flight ping — fail fast if Ollama is not responsive
-            try:
-                _ping = _ur.Request(host + "/api/tags", method="GET")
-                _ur.urlopen(_ping, timeout=3)
-            except Exception as _ping_exc:
-                logger.warning("Ollama pre-flight ping failed (%s) — skipping onboard fallback", _ping_exc)
-                return LLMCompletion(content="", model="none", provider="onboard",
-                                     request_id=request_id, success=False)
-            # PATCH-013h / PATCH-015: truncate prompt, cap tokens for speed
-            prompt = prompt[:1500] if len(prompt) > 1500 else prompt
-            payload = _j.dumps({"model": model, "prompt": prompt, "stream": False,
-                                 "options": {"num_predict": 400, "temperature": 0.7}}).encode()
-            req = _ur.Request(host + "/api/generate", data=payload,
-                              headers={"Content-Type": "application/json"}, method="POST")
-            with _ur.urlopen(req, timeout=OLLAMA_TIMEOUT) as resp:
-                data = _j.loads(resp.read().decode())
-                content = data.get("response","").strip()
-                elapsed = _t.monotonic() - start
-                if content:
-                    logger.info("Ollama phi3 OK %.2fs | chars=%d | model=%s", elapsed, len(content), model)
-                    return LLMCompletion(content=content, model=model,
-                                         provider="onboard", latency_seconds=elapsed,
-                                         request_id=request_id, success=True)
-                else:
-                    logger.error("Ollama phi3 returned EMPTY response %.2fs | model=%s", elapsed, model)
-        except Exception as exc:
-            logger.error("Ollama phi3 FAILED %.2fs | exc=%r | type=%s | ALL LLM PROVIDERS EXHAUSTED", _t.monotonic()-start, str(exc), type(exc).__name__)
-        return LLMCompletion(content="", model="none", provider="onboard",
-                              request_id=request_id, success=False)
+            from src.llm_determinism_guard import get_determinism_guard
+            guard = get_determinism_guard()
+            guard.record_response(
+                messages=messages,
+                model=model,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                seed=seed,
+                deterministic=deterministic,
+                content=completion.content,
+                provider=completion.provider,
+                latency_s=completion.latency_seconds,
+            )
+        except Exception:  # DETERM-LLM-ERR-002
+            pass  # Guard failure must never break the LLM pipeline
+
+    def _onboard_fallback(
+        self,
+        messages:   List[Dict[str, str]],
+        request_id: str,
+    ) -> LLMCompletion:
+        """Local deterministic fallback when all API providers are down."""
+        user_msg = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+        preview  = user_msg[:120]
+        content  = (
+            f"[Murphy Onboard] API providers unavailable. "
+            f"Request acknowledged: {preview}"
+        )
+        logger.warning("Using onboard fallback for request %s", request_id)
+        return LLMCompletion(
+            content=content, model="murphy-onboard", provider="onboard",
+            request_id=request_id, success=True,
+        )
 
     # ------------------------------------------------------------------
     # Async completion (primary public API for async code)
@@ -395,8 +448,13 @@ class MurphyLLMProvider:
         model_hint:  str   = "chat",
         temperature: float = 0.7,
         max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,  # WIRE-LLM-001: match sync default
+        deterministic: bool = False,
     ) -> LLMCompletion:
-        """Async completion — DeepInfra primary, Together.ai fallback."""
+        """Async completion — DeepInfra primary, Together.ai fallback.
+
+        When ``deterministic=True``, the Determinism Guard enforces temp=0
+        and a fixed seed, and caches responses.  (label: DETERM-LLM-005)
+        """
         messages = [
             {"role": "system", "content": system},
             {"role": "user",   "content": prompt},
@@ -406,6 +464,7 @@ class MurphyLLMProvider:
             model_hint=model_hint,
             temperature=temperature,
             max_tokens=max_tokens,
+            deterministic=deterministic,
         )
 
     async def acomplete_messages(
@@ -415,6 +474,7 @@ class MurphyLLMProvider:
         model_hint:  str   = "chat",
         temperature: float = 0.7,
         max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,  # WIRE-LLM-001: match sync default
+        deterministic: bool = False,
     ) -> LLMCompletion:
         """Async messages completion."""
         return await self._acomplete_with_fallback(
@@ -422,6 +482,7 @@ class MurphyLLMProvider:
             model_hint=model_hint,
             temperature=temperature,
             max_tokens=max_tokens,
+            deterministic=deterministic,
         )
 
     async def _acomplete_with_fallback(
@@ -430,8 +491,42 @@ class MurphyLLMProvider:
         model_hint:  str   = "chat",
         temperature: float = 0.7,
         max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,  # WIRE-LLM-001: match sync default
+        deterministic: bool = False,
     ) -> LLMCompletion:
         request_id = str(uuid.uuid4())
+
+        # ── Determinism Guard: enforce params + check cache ───────────
+        # (label: DETERM-LLM-006)
+        seed: Optional[int] = None
+        try:
+            from src.llm_determinism_guard import get_determinism_guard
+            guard = get_determinism_guard()
+            params = guard.enforce_deterministic_params(
+                temperature=temperature, seed=None, deterministic=deterministic,
+            )
+            temperature = params["temperature"]
+            seed = params.get("seed")
+
+            if deterministic:
+                model_for_cache = self._resolve_model("deepinfra", model_hint)
+                cached = guard.get_cached(
+                    messages, model_for_cache, temperature, max_tokens,
+                    seed=seed, deterministic=True,
+                )
+                if cached:
+                    logger.info(
+                        "DETERM-LLM-006: returning cached response (async) for %s",
+                        cached.fingerprint[:12],
+                    )
+                    return LLMCompletion(
+                        content=cached.content,
+                        model=cached.model,
+                        provider=f"{cached.provider}(cached)",
+                        latency_seconds=0.0,
+                        request_id=request_id,
+                    )
+        except Exception as exc:  # DETERM-LLM-ERR-003
+            logger.debug("Determinism guard unavailable (async): %s", exc)
 
         # ── 1. DeepInfra async ────────────────────────────────────────
         if self.deepinfra_api_key and self._di_circuit.allow_request():
@@ -440,28 +535,36 @@ class MurphyLLMProvider:
             if client:
                 start = time.monotonic()
                 try:
-                    resp = await client.chat.completions.create(
+                    create_kwargs: Dict[str, Any] = dict(
                         model=model,
                         messages=messages,
                         temperature=temperature,
                         max_tokens=max_tokens,
                     )
+                    if seed is not None:
+                        create_kwargs["seed"] = seed
+                    resp = await client.chat.completions.create(**create_kwargs)
                     elapsed = time.monotonic() - start
                     self._di_circuit.record_success()
                     content = resp.choices[0].message.content or ""
                     usage   = resp.usage
                     logger.info("DeepInfra async ✅ %.2fs | %s", elapsed, model)
-                    return LLMCompletion(
+                    completion = LLMCompletion(
                         content=content, model=model, provider="deepinfra",
                         tokens_prompt=usage.prompt_tokens if usage else 0,
                         tokens_completion=usage.completion_tokens if usage else 0,
                         tokens_total=usage.total_tokens if usage else 0,
                         latency_seconds=elapsed, request_id=request_id,
                     )
+                    self._record_to_guard(
+                        messages, model, temperature, max_tokens,
+                        seed, deterministic, completion,
+                    )
+                    return completion
                 except Exception as exc:
                     elapsed = time.monotonic() - start
                     self._di_circuit.record_failure()
-                    logger.error("DeepInfra async FAILED %.2fs | exc=%r | type=%s", elapsed, str(exc), type(exc).__name__, exc_info=True)
+                    logger.warning("DeepInfra async ⚠️  %.2fs | %s | trying Together.ai", elapsed, exc)
 
         # ── 2. Together.ai async fallback ─────────────────────────────
         if self.together_api_key and self._tog_circuit.allow_request():
@@ -470,28 +573,36 @@ class MurphyLLMProvider:
             if client:
                 start = time.monotonic()
                 try:
-                    resp = await client.chat.completions.create(
+                    create_kwargs = dict(
                         model=model,
                         messages=messages,
                         temperature=temperature,
                         max_tokens=max_tokens,
                     )
+                    if seed is not None:
+                        create_kwargs["seed"] = seed
+                    resp = await client.chat.completions.create(**create_kwargs)
                     elapsed = time.monotonic() - start
                     self._tog_circuit.record_success()
                     content = resp.choices[0].message.content or ""
                     usage   = resp.usage
                     logger.info("Together.ai async ✅ %.2fs | %s", elapsed, model)
-                    return LLMCompletion(
+                    completion = LLMCompletion(
                         content=content, model=model, provider="together",
                         tokens_prompt=usage.prompt_tokens if usage else 0,
                         tokens_completion=usage.completion_tokens if usage else 0,
                         tokens_total=usage.total_tokens if usage else 0,
                         latency_seconds=elapsed, request_id=request_id,
                     )
+                    self._record_to_guard(
+                        messages, model, temperature, max_tokens,
+                        seed, deterministic, completion,
+                    )
+                    return completion
                 except Exception as exc:
                     elapsed = time.monotonic() - start
                     self._tog_circuit.record_failure()
-                    logger.error("Together.ai async FAILED %.2fs | exc=%r | type=%s", elapsed, str(exc), type(exc).__name__, exc_info=True)
+                    logger.warning("Together.ai async ⚠️  %.2fs | %s | falling back to onboard", elapsed, exc)
 
         # ── 3. Onboard fallback ────────────────────────────────────────
         return self._onboard_fallback(messages, request_id)

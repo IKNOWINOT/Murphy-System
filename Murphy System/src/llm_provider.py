@@ -202,16 +202,21 @@ class MurphyLLMProvider:
         messages:  List[Dict[str, str]],
         temperature: float = 0.7,
         max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,
+        seed:        Optional[int] = None,
     ) -> Dict[str, Any]:
         """POST to an OpenAI-compatible chat completions endpoint."""
+        payload: Dict[str, Any] = {
+            "model":       model,
+            "messages":    messages,
+            "temperature": temperature,
+            "max_tokens":  max_tokens,
+        }
+        # DETERM-LLM-001: include seed when deterministic mode is active
+        if seed is not None:
+            payload["seed"] = seed
         resp = requests.post(
             f"{base_url}/chat/completions",
-            json={
-                "model":       model,
-                "messages":    messages,
-                "temperature": temperature,
-                "max_tokens":  max_tokens,
-            },
+            json=payload,
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type":  "application/json",
@@ -233,10 +238,15 @@ class MurphyLLMProvider:
         model_hint:  str   = "chat",
         temperature: float = 0.7,
         max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,
+        deterministic: bool = False,
     ) -> LLMCompletion:
         """Complete a prompt synchronously.
 
         Tries DeepInfra first, falls back to Together.ai, then onboard.
+
+        When ``deterministic=True``, the Determinism Guard enforces temp=0
+        and a fixed seed, and caches responses so identical requests return
+        identical outputs.  (label: DETERM-LLM-002)
         """
         messages = [
             {"role": "system", "content": system},
@@ -247,6 +257,7 @@ class MurphyLLMProvider:
             model_hint=model_hint,
             temperature=temperature,
             max_tokens=max_tokens,
+            deterministic=deterministic,
         )
 
     def complete_messages(
@@ -256,6 +267,7 @@ class MurphyLLMProvider:
         model_hint:  str   = "chat",
         temperature: float = 0.7,
         max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,
+        deterministic: bool = False,
     ) -> LLMCompletion:
         """Complete a messages list synchronously."""
         return self._complete_with_fallback(
@@ -263,6 +275,7 @@ class MurphyLLMProvider:
             model_hint=model_hint,
             temperature=temperature,
             max_tokens=max_tokens,
+            deterministic=deterministic,
         )
 
     def _complete_with_fallback(
@@ -271,8 +284,43 @@ class MurphyLLMProvider:
         model_hint:  str   = "chat",
         temperature: float = 0.7,
         max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,
+        deterministic: bool = False,
     ) -> LLMCompletion:
         request_id = str(uuid.uuid4())
+
+        # ── Determinism Guard: enforce params + check cache ───────────
+        # (label: DETERM-LLM-003)
+        seed: Optional[int] = None
+        try:
+            from src.llm_determinism_guard import get_determinism_guard
+            guard = get_determinism_guard()
+            params = guard.enforce_deterministic_params(
+                temperature=temperature, seed=None, deterministic=deterministic,
+            )
+            temperature = params["temperature"]
+            seed = params.get("seed")
+
+            # Check for cached response (deterministic mode only)
+            if deterministic:
+                model_for_cache = self._resolve_model("deepinfra", model_hint)
+                cached = guard.get_cached(
+                    messages, model_for_cache, temperature, max_tokens,
+                    seed=seed, deterministic=True,
+                )
+                if cached:
+                    logger.info(
+                        "DETERM-LLM-003: returning cached response for %s "
+                        "(hits=%d)", cached.fingerprint[:12], cached.hit_count,
+                    )
+                    return LLMCompletion(
+                        content=cached.content,
+                        model=cached.model,
+                        provider=f"{cached.provider}(cached)",
+                        latency_seconds=0.0,
+                        request_id=request_id,
+                    )
+        except Exception as exc:  # DETERM-LLM-ERR-001
+            logger.debug("Determinism guard unavailable: %s", exc)
 
         # ── 1. DeepInfra (primary) ────────────────────────────────────
         if self.deepinfra_api_key and self._di_circuit.allow_request():
@@ -281,14 +329,14 @@ class MurphyLLMProvider:
             try:
                 data = self._post_openai_compat(
                     DEEPINFRA_BASE_URL, self.deepinfra_api_key,
-                    model, messages, temperature, max_tokens,
+                    model, messages, temperature, max_tokens, seed=seed,
                 )
                 elapsed = time.monotonic() - start
                 self._di_circuit.record_success()
                 content = data["choices"][0]["message"]["content"]
                 usage   = data.get("usage", {})
                 logger.info("DeepInfra ✅ %.2fs | %s", elapsed, model)
-                return LLMCompletion(
+                completion = LLMCompletion(
                     content=content, model=model, provider="deepinfra",
                     tokens_prompt=usage.get("prompt_tokens", 0),
                     tokens_completion=usage.get("completion_tokens", 0),
@@ -296,6 +344,11 @@ class MurphyLLMProvider:
                     latency_seconds=elapsed, request_id=request_id,
                     raw_response=data,
                 )
+                self._record_to_guard(
+                    messages, model, temperature, max_tokens,
+                    seed, deterministic, completion,
+                )
+                return completion
             except Exception as exc:
                 elapsed = time.monotonic() - start
                 self._di_circuit.record_failure()
@@ -308,14 +361,14 @@ class MurphyLLMProvider:
             try:
                 data = self._post_openai_compat(
                     TOGETHER_BASE_URL, self.together_api_key,
-                    model, messages, temperature, max_tokens,
+                    model, messages, temperature, max_tokens, seed=seed,
                 )
                 elapsed = time.monotonic() - start
                 self._tog_circuit.record_success()
                 content = data["choices"][0]["message"]["content"]
                 usage   = data.get("usage", {})
                 logger.info("Together.ai ✅ %.2fs | %s", elapsed, model)
-                return LLMCompletion(
+                completion = LLMCompletion(
                     content=content, model=model, provider="together",
                     tokens_prompt=usage.get("prompt_tokens", 0),
                     tokens_completion=usage.get("completion_tokens", 0),
@@ -323,6 +376,11 @@ class MurphyLLMProvider:
                     latency_seconds=elapsed, request_id=request_id,
                     raw_response=data,
                 )
+                self._record_to_guard(
+                    messages, model, temperature, max_tokens,
+                    seed, deterministic, completion,
+                )
+                return completion
             except Exception as exc:
                 elapsed = time.monotonic() - start
                 self._tog_circuit.record_failure()
@@ -330,6 +388,35 @@ class MurphyLLMProvider:
 
         # ── 3. Onboard fallback ────────────────────────────────────────
         return self._onboard_fallback(messages, request_id)
+
+    def _record_to_guard(
+        self,
+        messages: List[Dict[str, str]],
+        model: str,
+        temperature: float,
+        max_tokens: int,
+        seed: Optional[int],
+        deterministic: bool,
+        completion: "LLMCompletion",
+    ) -> None:
+        """Record a completion to the determinism guard (best-effort)."""
+        # (label: DETERM-LLM-004)
+        try:
+            from src.llm_determinism_guard import get_determinism_guard
+            guard = get_determinism_guard()
+            guard.record_response(
+                messages=messages,
+                model=model,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                seed=seed,
+                deterministic=deterministic,
+                content=completion.content,
+                provider=completion.provider,
+                latency_s=completion.latency_seconds,
+            )
+        except Exception:  # DETERM-LLM-ERR-002
+            pass  # Guard failure must never break the LLM pipeline
 
     def _onboard_fallback(
         self,
@@ -361,8 +448,13 @@ class MurphyLLMProvider:
         model_hint:  str   = "chat",
         temperature: float = 0.7,
         max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,  # WIRE-LLM-001: match sync default
+        deterministic: bool = False,
     ) -> LLMCompletion:
-        """Async completion — DeepInfra primary, Together.ai fallback."""
+        """Async completion — DeepInfra primary, Together.ai fallback.
+
+        When ``deterministic=True``, the Determinism Guard enforces temp=0
+        and a fixed seed, and caches responses.  (label: DETERM-LLM-005)
+        """
         messages = [
             {"role": "system", "content": system},
             {"role": "user",   "content": prompt},
@@ -372,6 +464,7 @@ class MurphyLLMProvider:
             model_hint=model_hint,
             temperature=temperature,
             max_tokens=max_tokens,
+            deterministic=deterministic,
         )
 
     async def acomplete_messages(
@@ -381,6 +474,7 @@ class MurphyLLMProvider:
         model_hint:  str   = "chat",
         temperature: float = 0.7,
         max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,  # WIRE-LLM-001: match sync default
+        deterministic: bool = False,
     ) -> LLMCompletion:
         """Async messages completion."""
         return await self._acomplete_with_fallback(
@@ -388,6 +482,7 @@ class MurphyLLMProvider:
             model_hint=model_hint,
             temperature=temperature,
             max_tokens=max_tokens,
+            deterministic=deterministic,
         )
 
     async def _acomplete_with_fallback(
@@ -396,8 +491,42 @@ class MurphyLLMProvider:
         model_hint:  str   = "chat",
         temperature: float = 0.7,
         max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,  # WIRE-LLM-001: match sync default
+        deterministic: bool = False,
     ) -> LLMCompletion:
         request_id = str(uuid.uuid4())
+
+        # ── Determinism Guard: enforce params + check cache ───────────
+        # (label: DETERM-LLM-006)
+        seed: Optional[int] = None
+        try:
+            from src.llm_determinism_guard import get_determinism_guard
+            guard = get_determinism_guard()
+            params = guard.enforce_deterministic_params(
+                temperature=temperature, seed=None, deterministic=deterministic,
+            )
+            temperature = params["temperature"]
+            seed = params.get("seed")
+
+            if deterministic:
+                model_for_cache = self._resolve_model("deepinfra", model_hint)
+                cached = guard.get_cached(
+                    messages, model_for_cache, temperature, max_tokens,
+                    seed=seed, deterministic=True,
+                )
+                if cached:
+                    logger.info(
+                        "DETERM-LLM-006: returning cached response (async) for %s",
+                        cached.fingerprint[:12],
+                    )
+                    return LLMCompletion(
+                        content=cached.content,
+                        model=cached.model,
+                        provider=f"{cached.provider}(cached)",
+                        latency_seconds=0.0,
+                        request_id=request_id,
+                    )
+        except Exception as exc:  # DETERM-LLM-ERR-003
+            logger.debug("Determinism guard unavailable (async): %s", exc)
 
         # ── 1. DeepInfra async ────────────────────────────────────────
         if self.deepinfra_api_key and self._di_circuit.allow_request():
@@ -406,24 +535,32 @@ class MurphyLLMProvider:
             if client:
                 start = time.monotonic()
                 try:
-                    resp = await client.chat.completions.create(
+                    create_kwargs: Dict[str, Any] = dict(
                         model=model,
                         messages=messages,
                         temperature=temperature,
                         max_tokens=max_tokens,
                     )
+                    if seed is not None:
+                        create_kwargs["seed"] = seed
+                    resp = await client.chat.completions.create(**create_kwargs)
                     elapsed = time.monotonic() - start
                     self._di_circuit.record_success()
                     content = resp.choices[0].message.content or ""
                     usage   = resp.usage
                     logger.info("DeepInfra async ✅ %.2fs | %s", elapsed, model)
-                    return LLMCompletion(
+                    completion = LLMCompletion(
                         content=content, model=model, provider="deepinfra",
                         tokens_prompt=usage.prompt_tokens if usage else 0,
                         tokens_completion=usage.completion_tokens if usage else 0,
                         tokens_total=usage.total_tokens if usage else 0,
                         latency_seconds=elapsed, request_id=request_id,
                     )
+                    self._record_to_guard(
+                        messages, model, temperature, max_tokens,
+                        seed, deterministic, completion,
+                    )
+                    return completion
                 except Exception as exc:
                     elapsed = time.monotonic() - start
                     self._di_circuit.record_failure()
@@ -436,24 +573,32 @@ class MurphyLLMProvider:
             if client:
                 start = time.monotonic()
                 try:
-                    resp = await client.chat.completions.create(
+                    create_kwargs = dict(
                         model=model,
                         messages=messages,
                         temperature=temperature,
                         max_tokens=max_tokens,
                     )
+                    if seed is not None:
+                        create_kwargs["seed"] = seed
+                    resp = await client.chat.completions.create(**create_kwargs)
                     elapsed = time.monotonic() - start
                     self._tog_circuit.record_success()
                     content = resp.choices[0].message.content or ""
                     usage   = resp.usage
                     logger.info("Together.ai async ✅ %.2fs | %s", elapsed, model)
-                    return LLMCompletion(
+                    completion = LLMCompletion(
                         content=content, model=model, provider="together",
                         tokens_prompt=usage.prompt_tokens if usage else 0,
                         tokens_completion=usage.completion_tokens if usage else 0,
                         tokens_total=usage.total_tokens if usage else 0,
                         latency_seconds=elapsed, request_id=request_id,
                     )
+                    self._record_to_guard(
+                        messages, model, temperature, max_tokens,
+                        seed, deterministic, completion,
+                    )
+                    return completion
                 except Exception as exc:
                     elapsed = time.monotonic() - start
                     self._tog_circuit.record_failure()
