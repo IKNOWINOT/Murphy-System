@@ -20,6 +20,9 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Application Frameworks",
 ]
 
+[project.scripts]
+murphy = "murphy_cli.main:main"
+
 [project.optional-dependencies]
 llm = ["httpx>=0.24.0", "openai>=1.0"]
 security = ["cryptography>=41.0", "PyJWT>=2.8"]
@@ -29,7 +32,7 @@ all = ["murphy-system[llm,security,terminal,dev]"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["src", "src.*"]
+include = ["src", "src.*", "murphy_cli", "murphy_cli.*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
