@@ -59,11 +59,20 @@ Each manifold module is gated behind an environment variable (default: disabled)
 
 ### Error Codes
 
-| Code Range | Module |
-|------------|--------|
-| `MANIFOLD-PROJ-ERR-001..005` | Projection errors |
-| `MANIFOLD-ROUTE-ERR-001..003` | Confidence routing errors |
-| `SWARM-MANIFOLD-ERR-001..003` | Swarm manifold errors |
-| `LLM-MANIFOLD-ERR-001..003` | LLM output normalization errors |
-| `DRIFT-MANIFOLD-ERR-001..003` | Drift detection errors |
-| `TRAIN-MANIFOLD-ERR-001..003` | Training optimizer errors |
+| Code | Description |
+|------|-------------|
+| `MANIFOLD-PROJ-ERR-001` | `distance_to_manifold` computation failed |
+| `MANIFOLD-PROJ-ERR-002` | QR retraction failed |
+| `MANIFOLD-PROJ-ERR-003` | Cayley retraction failed (falls back to QR) |
+| `MANIFOLD-PROJ-ERR-004` | State projection failed (identity fallback) |
+| `MANIFOLD-PROJ-ERR-005` | Manifold membership check failed |
+| `MANIFOLD-ROUTE-ERR-001` | Geodesic transition evaluation failed |
+| `MANIFOLD-ROUTE-ERR-002` | Distance computation failed |
+| `SWARM-MANIFOLD-ERR-001` | Weight matrix computation failed (identity fallback) |
+| `SWARM-MANIFOLD-ERR-002` | Orthogonal weighting failed (passthrough) |
+| `SWARM-MANIFOLD-ERR-003` | Text decorrelation failed (passthrough) |
+| `LLM-MANIFOLD-ERR-001` | Text normalization failed |
+| `LLM-MANIFOLD-ERR-002` | Embedding normalization failed |
+| `LLM-MANIFOLD-ERR-003` | Batch normalization / output comparison failed |
+| `DRIFT-MANIFOLD-ERR-001` | Manifold drift check failed |
+| `TRAIN-MANIFOLD-ERR-001` | Stiefel SGD step failed (returns original W) |
