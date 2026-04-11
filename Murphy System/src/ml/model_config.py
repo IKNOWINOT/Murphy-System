@@ -54,11 +54,18 @@ class ModelConfig:
 
 @dataclass
 class MFMConfig:
-    """Architecture and training settings for the Murphy Foundation Model."""
+    """Architecture and training settings for the Murphy Foundation Model.
+
+    LoRA Without Regret — LORA-ML-CFG-001
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    ``lora_dropout`` added.  ``lora_rank`` and ``lora_alpha`` kept
+    consistent with :class:`MFMTrainerConfig` in the MFM package.
+    """
     # Architecture
     architecture: str = "transformer"
     lora_rank: int = 16
     lora_alpha: int = 32
+    lora_dropout: float = 0.05
     hidden_size: int = 768
     num_layers: int = 12
 

@@ -39,7 +39,11 @@ class TestMFMTrainerConfigDefaults:
 
     def test_target_modules(self):
         config = MFMTrainerConfig()
-        assert config.target_modules == ["q_proj", "v_proj", "k_proj", "o_proj"]
+        # LoRA Without Regret: attention + MLP layers by default
+        assert config.target_modules == [
+            "q_proj", "v_proj", "k_proj", "o_proj",
+            "gate_proj", "up_proj", "down_proj",
+        ]
 
     def test_learning_rate(self):
         config = MFMTrainerConfig()
