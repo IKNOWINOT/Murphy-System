@@ -199,6 +199,68 @@ class _CircuitBreaker:
 
 
 # ---------------------------------------------------------------------------
+# Retry budget (LLM-BUDGET-001)
+# ---------------------------------------------------------------------------
+
+class _RetryBudget:
+    """Per-request retry budget to cap fallback chain cost.
+
+    Not thread-safe — instantiated per request in _complete_with_fallback.
+    """
+
+    def __init__(
+        self,
+        max_attempts: int = 3,
+        max_duration_seconds: float = 60.0,
+    ) -> None:
+        self._max_attempts = max_attempts
+        self._max_duration = max_duration_seconds
+        self._attempts = 0
+        self._start: Optional[float] = None
+
+    def start(self) -> None:
+        """Record the request start time."""
+        self._start = time.monotonic()
+
+    def attempt(self) -> bool:
+        """Increment attempt count; return True if still within budget."""
+        if self.exhausted:
+            return False
+        self._attempts += 1
+        return True
+
+    def elapsed(self) -> float:
+        """Seconds since start (0.0 if start() was never called)."""
+        if self._start is None:
+            return 0.0
+        return time.monotonic() - self._start
+
+    @property
+    def exhausted(self) -> bool:
+        """True when attempts >= max *or* duration exceeded."""
+        if self._attempts >= self._max_attempts:
+            return True
+        if self._start is not None and self.elapsed() >= self._max_duration:
+            return True
+        return False
+
+    def get_summary(self) -> Dict[str, Any]:
+        reason: Optional[str] = None
+        if self._attempts >= self._max_attempts:
+            reason = "max_attempts_reached"
+        elif self._start is not None and self.elapsed() >= self._max_duration:
+            reason = "max_duration_exceeded"
+        return {
+            "attempts_used": self._attempts,
+            "max_attempts": self._max_attempts,
+            "elapsed_seconds": round(self.elapsed(), 3),
+            "max_duration": self._max_duration,
+            "exhausted": self.exhausted,
+            "budget_reason": reason,
+        }
+
+
+# ---------------------------------------------------------------------------
 # Response dataclass
 # ---------------------------------------------------------------------------
 
@@ -388,6 +450,8 @@ class MurphyLLMProvider:
         deterministic: bool = False,
     ) -> LLMCompletion:
         request_id = str(uuid.uuid4())
+        budget = _RetryBudget()
+        budget.start()
 
         # ── Determinism Guard: enforce params + check cache ───────────
         # (label: DETERM-LLM-003)
@@ -424,7 +488,7 @@ class MurphyLLMProvider:
             logger.debug("Determinism guard unavailable: %s", exc)
 
         # ── 1. DeepInfra (primary) ────────────────────────────────────
-        if self.deepinfra_api_key and self._di_circuit.allow_request():
+        if self.deepinfra_api_key and self._di_circuit.allow_request() and budget.attempt():
             model = self._resolve_model("deepinfra", model_hint)
             start = time.monotonic()
             try:
@@ -456,7 +520,7 @@ class MurphyLLMProvider:
                 logger.warning("DeepInfra ⚠️  %.2fs | %s | falling back to Together.ai", elapsed, exc)
 
         # ── 2. Together.ai (fallback) ─────────────────────────────────
-        if self.together_api_key and self._tog_circuit.allow_request():
+        if self.together_api_key and self._tog_circuit.allow_request() and budget.attempt():
             model = self._resolve_model("together", model_hint)
             start = time.monotonic()
             try:
@@ -488,7 +552,13 @@ class MurphyLLMProvider:
                 logger.warning("Together.ai ⚠️  %.2fs | %s | falling back to onboard", elapsed, exc)
 
         # ── 3. Onboard fallback ────────────────────────────────────────
-        return self._onboard_fallback(messages, request_id)
+        if budget.exhausted:
+            logger.warning(
+                "LLM-BUDGET-001: retry budget exhausted after %d attempts (%.1fs)",
+                budget.get_summary()["attempts_used"],
+                budget.elapsed(),
+            )
+        return self._onboard_fallback(messages, request_id, budget_summary=budget.get_summary())
 
     def _record_to_guard(
         self,
@@ -523,6 +593,7 @@ class MurphyLLMProvider:
         self,
         messages:   List[Dict[str, str]],
         request_id: str,
+        budget_summary: Optional[Dict[str, Any]] = None,
     ) -> LLMCompletion:
         """Local deterministic fallback when all API providers are down."""
         user_msg = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
@@ -532,9 +603,12 @@ class MurphyLLMProvider:
             f"Request acknowledged: {preview}"
         )
         logger.warning("Using onboard fallback for request %s", request_id)
+        raw: Dict[str, Any] = {}
+        if budget_summary is not None:
+            raw["budget_summary"] = budget_summary
         return LLMCompletion(
             content=content, model="murphy-onboard", provider="onboard",
-            request_id=request_id, success=True,
+            request_id=request_id, success=True, raw_response=raw,
         )
 
     # ------------------------------------------------------------------
