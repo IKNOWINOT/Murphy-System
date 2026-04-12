@@ -1,0 +1,83 @@
+// org.murphy.rules — Polkit JavaScript rules for Murphy System
+// © 2020 Inoni Limited Liability Company | Creator: Corey Post | License: BSL 1.1
+//
+// Installed to: /usr/share/polkit-1/rules.d/60-org.murphy.rules
+//
+// Implements dynamic, confidence-aware authorisation.  The Murphy live
+// confidence score is read from the well-known path written by the
+// Murphy runtime; the score determines whether routine automation
+// actions are silently allowed, require admin authentication, or are
+// denied outright.
+//
+//   confidence >= 0.85  →  auto-approve routine automation
+//   0.50 <= confidence < 0.85  →  prompt for admin authentication
+//   confidence < 0.50  →  deny
+
+polkit.addRule(function (action, subject) {
+    "use strict";
+
+    // Only handle Murphy actions
+    if (action.id.indexOf("org.murphy.") !== 0) {
+        return polkit.Result.NOT_HANDLED;
+    }
+
+    // ── read live confidence score ──────────────────────────────
+    var CONFIDENCE_PATH = "/murphy/live/confidence";
+    var confidence = -1;
+
+    try {
+        var raw = polkit.spawn(["/usr/bin/cat", CONFIDENCE_PATH]);
+        confidence = parseFloat(raw.trim());
+        if (isNaN(confidence)) {
+            confidence = -1;
+        }
+    } catch (e) {
+        // If the file is unreadable, treat confidence as unknown
+        polkit.log("org.murphy.rules: cannot read " + CONFIDENCE_PATH + ": " + e);
+        confidence = -1;
+    }
+
+    // ── HITL approve always requires admin auth ─────────────────
+    if (action.id === "org.murphy.hitl-approve") {
+        if (subject.local && subject.active) {
+            return polkit.Result.AUTH_ADMIN;
+        }
+        return polkit.Result.NO;
+    }
+
+    // ── Forge build — always allow for active sessions ──────────
+    if (action.id === "org.murphy.forge-build") {
+        if (subject.active) {
+            return polkit.Result.YES;
+        }
+        return polkit.Result.NO;
+    }
+
+    // ── Confidence-gated actions (engine-control, swarm-spawn) ──
+    if (action.id === "org.murphy.engine-control" ||
+        action.id === "org.murphy.swarm-spawn") {
+
+        if (!subject.local || !subject.active) {
+            return polkit.Result.NO;
+        }
+
+        if (confidence >= 0.85) {
+            polkit.log("org.murphy.rules: auto-approve " + action.id +
+                       " (confidence=" + confidence + ")");
+            return polkit.Result.YES;
+        }
+
+        if (confidence >= 0.50) {
+            polkit.log("org.murphy.rules: admin-auth required for " +
+                       action.id + " (confidence=" + confidence + ")");
+            return polkit.Result.AUTH_ADMIN;
+        }
+
+        // confidence < 0.50 or unknown
+        polkit.log("org.murphy.rules: deny " + action.id +
+                   " (confidence=" + confidence + ")");
+        return polkit.Result.NO;
+    }
+
+    return polkit.Result.NOT_HANDLED;
+});
