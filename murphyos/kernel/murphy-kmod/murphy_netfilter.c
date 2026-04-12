@@ -146,8 +146,10 @@ static void murphy_parse_default_ports(void)
 		return;
 
 	buf = kstrdup(murphy_default_ports, GFP_KERNEL);
-	if (!buf)
+	if (!buf) {
+		pr_warn("murphy: failed to allocate memory for default ports\n");
 		return;
+	}
 
 	spin_lock_irqsave(&murphy_port_lock, flags);
 	murphy_managed_ports.count = 0;
