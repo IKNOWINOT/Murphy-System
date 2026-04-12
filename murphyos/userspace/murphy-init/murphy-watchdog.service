@@ -1,0 +1,41 @@
+# murphy-watchdog.service — Self-Healing Watchdog
+# © 2020 Inoni Limited Liability Company | Creator: Corey Post | License: BSL 1.1
+#
+# Maps to Murphy's Self-Healing Coordinator subsystem.
+# Performs periodic health checks against the Murphy API and triggers
+# automatic recovery when the runtime becomes unhealthy.
+
+[Unit]
+Description=Murphy System — Self-Healing Watchdog
+Documentation=https://github.com/Inoni-Limited/Murphy-System
+After=murphy-system.service
+BindsTo=murphy-system.service
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/murphy/murphy-watchdog
+
+Restart=always
+RestartSec=5
+
+# Run as murphy so it can reach the local API
+User=murphy
+Group=murphy
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=murphy-watchdog
+
+# Minimal privileges — the watchdog only needs network and journal access
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ReadWritePaths=/murphy/logs
+
+[Install]
+WantedBy=multi-user.target
