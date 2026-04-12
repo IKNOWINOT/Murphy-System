@@ -96,7 +96,7 @@ import re as _re
 
 _NETWORK_PATTERNS = _re.compile(
     r'localhost:[0-9]+|127\.0\.0\.1:[0-9]+|httpx\.(?:get|post|put|delete|patch)\s*\('
-    r'|requests\.(?:get|post|put|delete|patch)\s*\(['"]http'
+    r'''|requests\.(?:get|post|put|delete|patch)\s*\(['"]http'''
 )
 
 def pytest_collection_modifyitems(config, items):

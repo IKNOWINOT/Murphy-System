@@ -20,6 +20,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import random
+import threading
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -63,38 +65,204 @@ class _CircuitState(Enum):
 
 
 class _CircuitBreaker:
-    """Minimal circuit breaker — opens after N failures, recovers after timeout."""
+    """Production-grade circuit breaker (LLM-CB-001).
 
-    def __init__(self, failure_threshold: int = 5, recovery_timeout: float = 30.0):
+    Resilience4j-inspired implementation with thread safety, half-open probe
+    limiting, jittered recovery timeout, exponential backoff on repeated
+    open→half-open→open cycles, and observability metrics.
+    """
+
+    _MAX_BACKOFF: float = 300.0  # 5-minute cap on exponential backoff
+
+    def __init__(
+        self,
+        failure_threshold: int = 5,
+        recovery_timeout: float = 30.0,
+        half_open_max_calls: int = 1,
+        name: str = "default",
+    ):
         self.failure_threshold = failure_threshold
-        self.recovery_timeout  = recovery_timeout
-        self._state            = _CircuitState.CLOSED
-        self._failure_count    = 0
+        self.recovery_timeout = recovery_timeout
+        self.half_open_max_calls = half_open_max_calls
+        self.name = name
+
+        self._lock = threading.Lock()
+        self._state = _CircuitState.CLOSED
+        self._failure_count = 0
         self._last_failure_time: float = 0.0
+        self._last_success_time: float = 0.0
+        self._half_open_calls = 0
+        self._open_cycle_count = 0
+
+        # Cumulative metrics
+        self._total_successes = 0
+        self._total_failures = 0
+        self._total_rejections = 0
+
+    # -- state transitions ---------------------------------------------------
 
     def record_success(self) -> None:
-        self._failure_count = 0
-        self._state = _CircuitState.CLOSED
+        with self._lock:
+            self._total_successes += 1
+            self._failure_count = 0
+            self._last_success_time = time.monotonic()
+            if self._state == _CircuitState.HALF_OPEN:
+                self._open_cycle_count = 0
+                logger.info("Circuit breaker [%s] CLOSED (probe succeeded)", self.name)
+            self._state = _CircuitState.CLOSED
+            self._half_open_calls = 0
 
     def record_failure(self) -> None:
-        self._failure_count += 1
-        self._last_failure_time = time.monotonic()
-        if self._failure_count >= self.failure_threshold:
-            self._state = _CircuitState.OPEN
-            logger.warning("Circuit breaker OPEN after %d failures", self._failure_count)
+        with self._lock:
+            self._total_failures += 1
+            self._failure_count += 1
+            self._last_failure_time = time.monotonic()
+
+            if self._state == _CircuitState.HALF_OPEN:
+                self._open_cycle_count += 1
+                self._state = _CircuitState.OPEN
+                self._half_open_calls = 0
+                logger.warning(
+                    "Circuit breaker [%s] OPEN (half-open probe failed, cycle %d)",
+                    self.name,
+                    self._open_cycle_count,
+                )
+            elif self._failure_count >= self.failure_threshold:
+                self._open_cycle_count = 1
+                self._state = _CircuitState.OPEN
+                logger.warning(
+                    "Circuit breaker [%s] OPEN after %d failures",
+                    self.name,
+                    self._failure_count,
+                )
 
     def allow_request(self) -> bool:
-        if self._state == _CircuitState.CLOSED:
-            return True
-        elapsed = time.monotonic() - self._last_failure_time
-        if elapsed >= self.recovery_timeout:
-            self._state = _CircuitState.HALF_OPEN
-            return True
-        return False
+        with self._lock:
+            if self._state == _CircuitState.CLOSED:
+                return True
+
+            if self._state == _CircuitState.HALF_OPEN:
+                if self._half_open_calls < self.half_open_max_calls:
+                    self._half_open_calls += 1
+                    return True
+                self._total_rejections += 1
+                return False
+
+            # OPEN — check if recovery timeout (with jitter + backoff) elapsed
+            effective_timeout = self._effective_timeout()
+            elapsed = time.monotonic() - self._last_failure_time
+            if elapsed >= effective_timeout:
+                self._state = _CircuitState.HALF_OPEN
+                self._half_open_calls = 1
+                logger.info(
+                    "Circuit breaker [%s] HALF_OPEN (%.1fs elapsed, timeout=%.1fs)",
+                    self.name,
+                    elapsed,
+                    effective_timeout,
+                )
+                return True
+
+            self._total_rejections += 1
+            return False
+
+    # -- helpers --------------------------------------------------------------
+
+    def _effective_timeout(self) -> float:
+        """Recovery timeout with exponential backoff and ±20% jitter."""
+        backoff_factor = min(
+            2 ** (self._open_cycle_count - 1) if self._open_cycle_count > 0 else 1,
+            self._MAX_BACKOFF / max(self.recovery_timeout, 0.001),
+        )
+        base = self.recovery_timeout * backoff_factor
+        base = min(base, self._MAX_BACKOFF)
+        jitter = base * random.uniform(-0.20, 0.20)
+        return base + jitter
+
+    # -- observability --------------------------------------------------------
 
     @property
     def state(self) -> str:
         return self._state.value
+
+    def get_metrics(self) -> Dict[str, Any]:
+        """Return a snapshot of circuit-breaker metrics."""
+        with self._lock:
+            return {
+                "total_successes": self._total_successes,
+                "total_failures": self._total_failures,
+                "total_rejections": self._total_rejections,
+                "consecutive_failures": self._failure_count,
+                "state": self._state.value,
+                "last_failure_time": self._last_failure_time,
+                "last_success_time": self._last_success_time,
+            }
+
+
+# ---------------------------------------------------------------------------
+# Retry budget (LLM-BUDGET-001)
+# ---------------------------------------------------------------------------
+
+class _RetryBudget:
+    """Per-request retry budget to cap fallback chain cost.
+
+    Not thread-safe — instantiated per request in _complete_with_fallback.
+    """
+
+    def __init__(
+        self,
+        max_attempts: int = 3,
+        max_duration_seconds: float = 60.0,
+    ) -> None:
+        self._max_attempts = max_attempts
+        self._max_duration = max_duration_seconds
+        self._attempts = 0
+        self._start: Optional[float] = None
+
+    def start(self) -> None:
+        """Record the request start time."""
+        self._start = time.monotonic()
+
+    def attempt(self) -> bool:
+        """Increment attempt count; return True if still within budget."""
+        if self.exhausted:
+            return False
+        self._attempts += 1
+        return True
+
+    def elapsed(self) -> float:
+        """Seconds since start (0.0 if start() was never called)."""
+        if self._start is None:
+            return 0.0
+        return time.monotonic() - self._start
+
+    @property
+    def exhausted(self) -> bool:
+        """True when attempts >= max *or* duration exceeded."""
+        if self._attempts >= self._max_attempts:
+            return True
+        if self._start is not None and self.elapsed() >= self._max_duration:
+            return True
+        return False
+
+    def get_summary(self) -> Dict[str, Any]:
+        """Return a dict describing the current budget state.
+
+        Keys: attempts_used, max_attempts, elapsed_seconds,
+        max_duration, exhausted, budget_reason (str | None).
+        """
+        reason: Optional[str] = None
+        if self._attempts >= self._max_attempts:
+            reason = "max_attempts_reached"
+        elif self._start is not None and self.elapsed() >= self._max_duration:
+            reason = "max_duration_exceeded"
+        return {
+            "attempts_used": self._attempts,
+            "max_attempts": self._max_attempts,
+            "elapsed_seconds": round(self.elapsed(), 3),
+            "max_duration": self._max_duration,
+            "exhausted": self.exhausted,
+            "budget_reason": reason,
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -287,6 +455,8 @@ class MurphyLLMProvider:
         deterministic: bool = False,
     ) -> LLMCompletion:
         request_id = str(uuid.uuid4())
+        budget = _RetryBudget()
+        budget.start()
 
         # ── Determinism Guard: enforce params + check cache ───────────
         # (label: DETERM-LLM-003)
@@ -323,7 +493,7 @@ class MurphyLLMProvider:
             logger.debug("Determinism guard unavailable: %s", exc)
 
         # ── 1. DeepInfra (primary) ────────────────────────────────────
-        if self.deepinfra_api_key and self._di_circuit.allow_request():
+        if self.deepinfra_api_key and self._di_circuit.allow_request() and budget.attempt():
             model = self._resolve_model("deepinfra", model_hint)
             start = time.monotonic()
             try:
@@ -355,7 +525,7 @@ class MurphyLLMProvider:
                 logger.warning("DeepInfra ⚠️  %.2fs | %s | falling back to Together.ai", elapsed, exc)
 
         # ── 2. Together.ai (fallback) ─────────────────────────────────
-        if self.together_api_key and self._tog_circuit.allow_request():
+        if self.together_api_key and self._tog_circuit.allow_request() and budget.attempt():
             model = self._resolve_model("together", model_hint)
             start = time.monotonic()
             try:
@@ -387,7 +557,13 @@ class MurphyLLMProvider:
                 logger.warning("Together.ai ⚠️  %.2fs | %s | falling back to onboard", elapsed, exc)
 
         # ── 3. Onboard fallback ────────────────────────────────────────
-        return self._onboard_fallback(messages, request_id)
+        if budget.exhausted:
+            logger.warning(
+                "LLM-BUDGET-001: retry budget exhausted after %d attempts (%.1fs)",
+                budget.get_summary()["attempts_used"],
+                budget.elapsed(),
+            )
+        return self._onboard_fallback(messages, request_id, budget_summary=budget.get_summary())
 
     def _record_to_guard(
         self,
@@ -422,6 +598,7 @@ class MurphyLLMProvider:
         self,
         messages:   List[Dict[str, str]],
         request_id: str,
+        budget_summary: Optional[Dict[str, Any]] = None,
     ) -> LLMCompletion:
         """Local deterministic fallback when all API providers are down."""
         user_msg = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
@@ -431,9 +608,12 @@ class MurphyLLMProvider:
             f"Request acknowledged: {preview}"
         )
         logger.warning("Using onboard fallback for request %s", request_id)
+        raw: Dict[str, Any] = {}
+        if budget_summary is not None:
+            raw["budget_summary"] = budget_summary
         return LLMCompletion(
             content=content, model="murphy-onboard", provider="onboard",
-            request_id=request_id, success=True,
+            request_id=request_id, success=True, raw_response=raw,
         )
 
     # ------------------------------------------------------------------

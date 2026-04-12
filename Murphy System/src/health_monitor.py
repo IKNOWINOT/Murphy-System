@@ -530,3 +530,268 @@ def make_llm_health_check(
             }
 
     return _check
+
+
+# ---------------------------------------------------------------------------
+# GateResult dataclass
+# ---------------------------------------------------------------------------
+
+@dataclass
+class GateResult:
+    """Result of a startup readiness gate evaluation.
+
+    Design Label: OBS-005
+    """
+
+    opened: bool
+    elapsed_seconds: float
+    final_status: SystemStatus
+    failed_checks: List[str]
+
+
+# ---------------------------------------------------------------------------
+# DependencyHealthScorer
+# ---------------------------------------------------------------------------
+
+class DependencyHealthScorer:
+    """Scores overall system health as a float between 0.0 and 1.0.
+
+    Design Label: OBS-003 — Dependency Health Scoring
+    Owner: DevOps Team / Platform Engineering
+
+    Uses a :class:`HealthMonitor` to run all registered health checks and
+    converts the per-component statuses into a single numeric score.
+
+    Scoring per component:
+        * healthy  → 1.0
+        * degraded → 0.5
+        * unhealthy / unknown → 0.0
+
+    The overall score is the (optionally weighted) average across all
+    components.
+
+    Thread-safe: delegates locking to the underlying ``HealthMonitor``.
+    """
+
+    _STATUS_SCORES: Dict[ComponentStatus, float] = {
+        ComponentStatus.HEALTHY: 1.0,
+        ComponentStatus.DEGRADED: 0.5,
+        ComponentStatus.UNHEALTHY: 0.0,
+        ComponentStatus.UNKNOWN: 0.0,
+    }
+
+    def __init__(self, monitor: HealthMonitor) -> None:
+        """Initialise the scorer.
+
+        Args:
+            monitor: A :class:`HealthMonitor` whose registered checks
+                     will be evaluated when computing scores.
+        """
+        self._monitor = monitor
+        self._lock = threading.Lock()
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _component_score(self, component: ComponentHealth) -> float:
+        """Return the numeric score for a single component."""
+        return self._STATUS_SCORES.get(component.status, 0.0)
+
+    def _latest_report(self) -> HealthReport:
+        """Run all health checks and return the resulting report."""
+        return self._monitor.check_all()
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def score(self) -> float:
+        """Return an unweighted health score in the range ``[0.0, 1.0]``.
+
+        Each registered component contributes equally.  Returns ``1.0``
+        when no components are registered (vacuously healthy).
+        """
+        with self._lock:
+            report = self._latest_report()
+            if not report.components:
+                return 1.0
+            total = sum(self._component_score(c) for c in report.components)
+            return total / len(report.components)
+
+    def score_with_weights(self, weights: Dict[str, float]) -> float:
+        """Return a weighted health score in the range ``[0.0, 1.0]``.
+
+        Components whose ``component_id`` appears in *weights* are
+        multiplied by the corresponding weight; components not listed
+        receive a default weight of ``1.0``.
+
+        Args:
+            weights: Mapping of component IDs to positive weight values
+                     (e.g. ``{"database": 3.0, "redis": 1.0}``).
+
+        Returns:
+            Weighted average score, or ``1.0`` if no components exist.
+        """
+        with self._lock:
+            report = self._latest_report()
+            if not report.components:
+                return 1.0
+            weighted_sum = 0.0
+            weight_total = 0.0
+            for comp in report.components:
+                w = weights.get(comp.component_id, 1.0)
+                weighted_sum += self._component_score(comp) * w
+                weight_total += w
+            if weight_total == 0.0:
+                return 1.0
+            return weighted_sum / weight_total
+
+    def is_production_ready(self, min_score: float = 0.8) -> bool:
+        """Return ``True`` if the unweighted score meets *min_score*.
+
+        Args:
+            min_score: Minimum acceptable health score (default ``0.8``).
+        """
+        return self.score() >= min_score
+
+    def get_degraded_components(self) -> List[str]:
+        """Return component IDs that are **not** healthy.
+
+        A component is considered degraded if its status is anything
+        other than :attr:`ComponentStatus.HEALTHY`.
+        """
+        with self._lock:
+            report = self._latest_report()
+            return [
+                c.component_id
+                for c in report.components
+                if c.status != ComponentStatus.HEALTHY
+            ]
+
+
+# ---------------------------------------------------------------------------
+# StartupReadinessGate
+# ---------------------------------------------------------------------------
+
+class StartupReadinessGate:
+    """Blocks application startup until all health checks pass.
+
+    Design Label: OBS-005 — Startup Readiness Gate
+    Owner: DevOps Team / Platform Engineering
+
+    Wraps a :class:`HealthMonitor` and provides a blocking
+    :meth:`wait_until_ready` call that polls health checks at a
+    configurable interval, logging progress until every registered
+    component reports :attr:`ComponentStatus.HEALTHY` or the timeout
+    elapses.
+
+    Thread-safe: safe to call from any thread; delegates locking to the
+    underlying ``HealthMonitor``.
+    """
+
+    def __init__(self, monitor: HealthMonitor) -> None:
+        """Initialise the readiness gate.
+
+        Args:
+            monitor: A :class:`HealthMonitor` whose registered checks
+                     determine readiness.
+        """
+        self._monitor = monitor
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def wait_until_ready(
+        self,
+        timeout_seconds: float = 30.0,
+        poll_interval: float = 1.0,
+    ) -> GateResult:
+        """Block until all health checks pass or *timeout_seconds* expires.
+
+        Args:
+            timeout_seconds: Maximum wall-clock seconds to wait.
+            poll_interval: Seconds between successive health-check polls.
+
+        Returns:
+            A :class:`GateResult` summarising the outcome.
+        """
+        start = time.monotonic()
+        deadline = start + timeout_seconds
+        last_report: Optional[HealthReport] = None
+        iteration = 0
+
+        while True:
+            iteration += 1
+            last_report = self._monitor.check_all()
+            failed = [
+                c.component_id
+                for c in last_report.components
+                if c.status != ComponentStatus.HEALTHY
+            ]
+
+            elapsed = time.monotonic() - start
+
+            if not failed:
+                logger.info(
+                    "StartupReadinessGate opened after %.2fs (%d poll(s))",
+                    elapsed,
+                    iteration,
+                )
+                return GateResult(
+                    opened=True,
+                    elapsed_seconds=round(elapsed, 3),
+                    final_status=last_report.system_status,
+                    failed_checks=[],
+                )
+
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                logger.warning(
+                    "StartupReadinessGate timed out after %.2fs — "
+                    "failing checks: %s",
+                    elapsed,
+                    ", ".join(failed),
+                )
+                return GateResult(
+                    opened=False,
+                    elapsed_seconds=round(elapsed, 3),
+                    final_status=last_report.system_status,
+                    failed_checks=failed,
+                )
+
+            logger.info(
+                "StartupReadinessGate waiting (%.1fs remaining) — "
+                "not ready: %s",
+                remaining,
+                ", ".join(failed),
+            )
+            time.sleep(min(poll_interval, remaining))
+
+    def gate_status(self) -> Dict[str, Any]:
+        """Return a snapshot of the current gate status without blocking.
+
+        Returns:
+            A dict with keys ``is_open``, ``checks_passed``,
+            ``elapsed_seconds``, and ``remaining_checks``.
+        """
+        start = time.monotonic()
+        report = self._monitor.check_all()
+        elapsed = time.monotonic() - start
+
+        failed = [
+            c.component_id
+            for c in report.components
+            if c.status != ComponentStatus.HEALTHY
+        ]
+        return {
+            "is_open": len(failed) == 0,
+            "checks_passed": [
+                c.component_id
+                for c in report.components
+                if c.status == ComponentStatus.HEALTHY
+            ],
+            "elapsed_seconds": round(elapsed, 3),
+            "remaining_checks": failed,
+        }
