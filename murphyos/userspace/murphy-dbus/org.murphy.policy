@@ -14,7 +14,7 @@
 -->
 <policyconfig>
   <vendor>Murphy System</vendor>
-  <vendor_url>https://github.com/Murphy-System/Murphy-System</vendor_url>
+  <vendor_url>https://github.com/Inoni-Limited/Murphy-System</vendor_url>
   <icon_name>murphy-system</icon_name>
 
   <!-- ── HITL gate approval ────────────────────────────────────── -->

@@ -10,7 +10,7 @@
 
 [Unit]
 Description=Murphy System D-Bus Bridge
-Documentation=https://github.com/Murphy-System/Murphy-System
+Documentation=https://github.com/Inoni-Limited/Murphy-System
 After=murphy-system.service dbus.service
 Wants=murphy-system.service
 ConditionPathExists=/usr/lib/murphy/murphy-dbus-service
@@ -34,7 +34,7 @@ ProtectHome=yes
 PrivateTmp=yes
 NoNewPrivileges=yes
 ReadOnlyPaths=/etc /usr
-ReadWritePaths=/var/lib/murphy /run/murphy
+ReadWritePaths=/var/lib/murphy /run/murphy /murphy/live
 
 [Install]
 WantedBy=multi-user.target
