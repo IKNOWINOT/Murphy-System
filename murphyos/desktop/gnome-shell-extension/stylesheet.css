@@ -1,0 +1,60 @@
+/* SPDX-License-Identifier: BSL-1.1
+ * © 2020 Inoni Limited Liability Company — Creator: Corey Post
+ *
+ * Murphy System GNOME Shell Extension — Stylesheet
+ */
+
+/* ── Confidence indicator colours ─────────────────────────── */
+
+.murphy-indicator-green {
+    color: #33d17a;
+}
+
+.murphy-indicator-yellow {
+    color: #f6d32d;
+}
+
+.murphy-indicator-red {
+    color: #e01b24;
+}
+
+/* ── PQC lock icon ────────────────────────────────────────── */
+
+.murphy-pqc-lock {
+    margin-left: 4px;
+    icon-size: 14px;
+}
+
+.murphy-pqc-verified {
+    color: #33d17a;
+}
+
+.murphy-pqc-unverified {
+    color: #e01b24;
+}
+
+/* ── Forge command entry ──────────────────────────────────── */
+
+.murphy-forge-entry {
+    padding: 6px 8px;
+    min-width: 280px;
+}
+
+.murphy-forge-entry StEntry {
+    border-radius: 6px;
+    padding: 4px 8px;
+    min-height: 28px;
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    caret-color: #ffffff;
+}
+
+.murphy-forge-entry StEntry:focus {
+    border-color: #3584e4;
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.murphy-forge-entry StEntry:hover {
+    background-color: rgba(255, 255, 255, 0.10);
+}
