@@ -1,16 +1,16 @@
 {
   "agent_version": "1.0.0",
   "agent_label": "READINESS-SCANNER-001",
-  "scan_timestamp": "2026-04-11T09:14:40.994144+00:00",
-  "scan_date": "2026-04-11",
+  "scan_timestamp": "2026-04-12T09:16:45.221629+00:00",
+  "scan_date": "2026-04-12",
   "summary": {
-    "total_modules": 593,
+    "total_modules": 598,
     "test_coverage_ratio": 0.587,
     "critical_tests_complete": false,
     "source_in_sync": true,
-    "debt_markers": 771,
+    "debt_markers": 776,
     "smoke_import_failures": 0,
-    "bare_except_count": 34,
+    "bare_except_count": 37,
     "total_human_tasks": 1,
     "total_agent_tasks": 9
   },
@@ -101,7 +101,7 @@
       "category": "hardening",
       "priority": "MEDIUM",
       "title": "Fix bare except clauses for production hardening",
-      "description": "Found 34 bare except clauses. Replace with specific exception types and add logging.",
+      "description": "Found 37 bare except clauses. Replace with specific exception types and add logging.",
       "commissioning": "G9: Hardening must be applied",
       "action": "fix_bare_excepts",
       "details": {
@@ -164,18 +164,18 @@
       "category": "technical_debt",
       "priority": "LOW",
       "title": "Catalog and prioritize technical debt markers",
-      "description": "Found 771 debt markers across the codebase. Generate a prioritized debt report with resolution recommendations.",
+      "description": "Found 776 debt markers across the codebase. Generate a prioritized debt report with resolution recommendations.",
       "commissioning": "G7: Restart from symptoms and work back through validation",
       "action": "catalog_debt",
       "details": {
-        "total": 771,
+        "total": 776,
         "by_type": {
           "TODO": 26,
           "FIXME": 2,
           "HACK": 6,
-          "STUB": 266,
+          "STUB": 267,
           "XXX": 12,
-          "NOQA": 459
+          "NOQA": 463
         }
       }
     },
@@ -211,9 +211,9 @@
   ],
   "scan_results": {
     "module_inventory": {
-      "total_modules": 593,
-      "packages": 86,
-      "single_files": 507,
+      "total_modules": 598,
+      "packages": 87,
+      "single_files": 511,
       "modules": [
         {
           "name": "ab_testing_framework",
@@ -992,7 +992,7 @@
         {
           "name": "control_theory",
           "type": "package",
-          "file_count": 18,
+          "file_count": 20,
           "path": "Murphy System/src/control_theory"
         },
         {
@@ -2052,6 +2052,12 @@
           "path": "Murphy System/src/llm_controller.py"
         },
         {
+          "name": "llm_determinism_guard",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/llm_determinism_guard.py"
+        },
+        {
           "name": "llm_integration",
           "type": "module",
           "file_count": 1,
@@ -2062,6 +2068,12 @@
           "type": "module",
           "file_count": 1,
           "path": "Murphy System/src/llm_integration_layer.py"
+        },
+        {
+          "name": "llm_output_manifold",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/llm_output_manifold.py"
         },
         {
           "name": "llm_output_validator",
@@ -2210,7 +2222,7 @@
         {
           "name": "ml",
           "type": "package",
-          "file_count": 8,
+          "file_count": 9,
           "path": "Murphy System/src/ml"
         },
         {
@@ -2340,6 +2352,12 @@
           "path": "Murphy System/src/murphy_autonomous_perception.py"
         },
         {
+          "name": "murphy_cli",
+          "type": "package",
+          "file_count": 23,
+          "path": "Murphy System/src/murphy_cli"
+        },
+        {
           "name": "murphy_code_healer",
           "type": "module",
           "file_count": 1,
@@ -2378,7 +2396,7 @@
         {
           "name": "murphy_foundation_model",
           "type": "package",
-          "file_count": 12,
+          "file_count": 13,
           "path": "Murphy System/src/murphy_foundation_model"
         },
         {
@@ -2524,6 +2542,12 @@
           "type": "module",
           "file_count": 1,
           "path": "Murphy System/src/observation_model.py"
+        },
+        {
+          "name": "on_policy_distiller",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/on_policy_distiller.py"
         },
         {
           "name": "onboarding_automation_engine",
@@ -3366,6 +3390,12 @@
           "path": "Murphy System/src/supply_orchestrator.py"
         },
         {
+          "name": "swarm_manifold_optimizer",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/swarm_manifold_optimizer.py"
+        },
+        {
           "name": "swarm_proposal_generator",
           "type": "module",
           "file_count": 1,
@@ -3776,9 +3806,9 @@
       ]
     },
     "test_coverage": {
-      "total_modules": 593,
-      "covered": 348,
-      "uncovered": 245,
+      "total_modules": 598,
+      "covered": 351,
+      "uncovered": 247,
       "coverage_ratio": 0.587,
       "covered_modules": [
         "ab_testing_framework",
@@ -3951,6 +3981,7 @@
         "learning_engine",
         "legacy_compatibility_matrix",
         "live_feed_service",
+        "llm_determinism_guard",
         "llm_output_validator",
         "llm_provider",
         "llm_routing_completeness",
@@ -3975,6 +4006,7 @@
         "multiverse_game_framework",
         "murphy_action_engine",
         "murphy_autonomous_perception",
+        "murphy_cli",
         "murphy_code_healer",
         "murphy_credential_gate",
         "murphy_crew_system",
@@ -4000,6 +4032,7 @@
         "notification_system",
         "oauth_oidc_provider",
         "observability_counters",
+        "on_policy_distiller",
         "onboarding_automation_engine",
         "onboarding_team_pipeline",
         "openai_compatible_provider",
@@ -4269,6 +4302,7 @@
         "llm_controller",
         "llm_integration",
         "llm_integration_layer",
+        "llm_output_manifold",
         "llm_swarm_integration",
         "local_inference_engine",
         "local_llm_fallback",
@@ -4350,6 +4384,7 @@
         "strategy_templates",
         "supervisor_system",
         "supply_orchestrator",
+        "swarm_manifold_optimizer",
         "swarm_proposal_generator",
         "swarm_rosetta_bridge",
         "synthetic_interview_engine",
@@ -4414,16 +4449,16 @@
       "skipped": true
     },
     "debt_markers": {
-      "total": 771,
+      "total": 776,
       "by_type": {
         "TODO": 26,
         "FIXME": 2,
         "HACK": 6,
-        "STUB": 266,
+        "STUB": 267,
         "XXX": 12,
-        "NOQA": 459
+        "NOQA": 463
       },
-      "files_with_debt_count": 194,
+      "files_with_debt_count": 195,
       "top_files": [
         {
           "file": "Murphy System/src/live_feed_service.py",
@@ -4479,6 +4514,13 @@
           }
         },
         {
+          "file": "Murphy System/src/murphy_foundation_model/mfm_model.py",
+          "markers": {
+            "STUB": 5,
+            "NOQA": 12
+          }
+        },
+        {
           "file": "Murphy System/src/database/__init__.py",
           "markers": {
             "STUB": 6,
@@ -4490,13 +4532,6 @@
           "markers": {
             "STUB": 14,
             "NOQA": 1
-          }
-        },
-        {
-          "file": "Murphy System/src/murphy_foundation_model/mfm_model.py",
-          "markers": {
-            "STUB": 5,
-            "NOQA": 10
           }
         },
         {
@@ -4570,8 +4605,8 @@
       ]
     },
     "docstring_coverage": {
-      "total_files": 507,
-      "with_docstring": 506,
+      "total_files": 511,
+      "with_docstring": 510,
       "without_docstring": 1,
       "missing_docstrings": [
         "Murphy System/src/persistence_wal.py"
@@ -4579,7 +4614,7 @@
       "coverage_pct": 99.8
     },
     "error_handling": {
-      "bare_except_count": 34,
+      "bare_except_count": 37,
       "violations": [
         {
           "file": "Murphy System/src/announcer_voice_engine.py",
@@ -4677,6 +4712,21 @@
           "content": "except json.JSONDecodeError: / pass"
         },
         {
+          "file": "Murphy System/src/murphy_cli/commands/forge.py",
+          "line": 88,
+          "content": "except json.JSONDecodeError: / pass"
+        },
+        {
+          "file": "Murphy System/src/murphy_cli/commands/forge.py",
+          "line": 99,
+          "content": "except json.JSONDecodeError: / pass"
+        },
+        {
+          "file": "Murphy System/src/murphy_cli/commands/forge.py",
+          "line": 115,
+          "content": "except json.JSONDecodeError: / pass"
+        },
+        {
           "file": "Murphy System/src/murphy_foundation_model/mfm_inference.py",
           "line": 225,
           "content": "except ImportError: / pass"
@@ -4715,27 +4765,12 @@
           "file": "Murphy System/src/security_plane/middleware.py",
           "line": 1126,
           "content": "except ValueError: / pass"
-        },
-        {
-          "file": "Murphy System/src/self_marketing_orchestrator.py",
-          "line": 2693,
-          "content": "except ValueError: / pass"
-        },
-        {
-          "file": "Murphy System/src/self_marketing_orchestrator.py",
-          "line": 2701,
-          "content": "except ValueError: / pass"
-        },
-        {
-          "file": "Murphy System/src/self_marketing_orchestrator.py",
-          "line": 2715,
-          "content": "except ValueError: / pass"
         }
       ]
     },
     "source_parity": {
-      "murphy_files": 1349,
-      "root_files": 1349,
+      "murphy_files": 1380,
+      "root_files": 1380,
       "only_in_murphy": [],
       "only_in_root": [],
       "in_sync": true,
@@ -4754,7 +4789,7 @@
         {
           "file": "pyproject.toml",
           "exists": true,
-          "size_bytes": 6973
+          "size_bytes": 7054
         },
         {
           "file": ".env.example",
