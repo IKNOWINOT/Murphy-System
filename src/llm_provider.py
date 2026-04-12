@@ -245,6 +245,11 @@ class _RetryBudget:
         return False
 
     def get_summary(self) -> Dict[str, Any]:
+        """Return a dict describing the current budget state.
+
+        Keys: attempts_used, max_attempts, elapsed_seconds,
+        max_duration, exhausted, budget_reason (str | None).
+        """
         reason: Optional[str] = None
         if self._attempts >= self._max_attempts:
             reason = "max_attempts_reached"
