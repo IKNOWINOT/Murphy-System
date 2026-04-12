@@ -1,0 +1,35 @@
+# vim:syntax=apparmor
+# AppArmor profile for the Murphy Forge pipeline
+# © 2020 Inoni Limited Liability Company | License: BSL 1.1
+
+#include <tunables/global>
+
+profile murphy-forge /usr/lib/murphy/murphy-forge flags=(enforce) {
+  #include <abstractions/base>
+  #include <abstractions/python>
+  #include <abstractions/ssl_certs>
+
+  /usr/bin/python3* ix,
+  /usr/lib/murphy/** r,
+
+  # Forge working files
+  /tmp/murphy-forge-** rw,
+  owner /tmp/murphy-forge-** rw,
+
+  # Configuration
+  /etc/murphy/** r,
+  /murphy/engines/** r,
+
+  # Models (read-only)
+  /murphy/models/** r,
+
+  # Network for LLM API calls
+  network inet tcp,
+  network inet6 tcp,
+
+  # Deny write to runtime
+  deny /murphy/runtime/** w,
+  deny /murphy/keys/private/** rw,
+  deny /home/** rwx,
+  deny /root/** rwx,
+}

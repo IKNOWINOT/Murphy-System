@@ -1,0 +1,88 @@
+#!/usr/bin/make -f
+# MurphyOS Debian package build rules
+# © 2020 Inoni Limited Liability Company | License: BSL 1.1
+
+%:
+	dh $@ --with python3,systemd
+
+override_dh_auto_install:
+	# ── murphyos-core ────────────────────────────────────────
+	install -d debian/murphyos-core/usr/lib/murphy
+	install -d debian/murphyos-core/murphy/{runtime,engines,modules,persistence,telemetry,swarm,knowledge,models,logs,keys,keys/public,keys/private}
+	install -d debian/murphyos-core/etc/murphy
+	install -d debian/murphyos-core/etc/dbus-1/system.d
+	install -d debian/murphyos-core/usr/share/polkit-1/actions
+	install -d debian/murphyos-core/usr/share/polkit-1/rules.d
+	install -d debian/murphyos-core/usr/lib/systemd/system
+	install -d debian/murphyos-core/usr/lib/systemd/system-generators
+	install -d debian/murphyos-core/usr/lib/tmpfiles.d
+	install -d debian/murphyos-core/usr/lib/sysusers.d
+	install -d debian/murphyos-core/etc/udev/rules.d
+	install -d debian/murphyos-core/usr/bin
+	install -d debian/murphyos-core/usr/share/bash-completion/completions
+	install -d debian/murphyos-core/etc/nftables.d
+	install -d debian/murphyos-core/etc/systemd/resolved.conf.d
+	# systemd units
+	install -m 644 userspace/murphy-init/murphy-system.service debian/murphyos-core/usr/lib/systemd/system/
+	install -m 644 userspace/murphy-init/murphy-bus.socket debian/murphyos-core/usr/lib/systemd/system/
+	install -m 644 userspace/murphy-init/murphy-watchdog.service debian/murphyos-core/usr/lib/systemd/system/
+	install -m 644 userspace/murphy-init/murphy-session@.service debian/murphyos-core/usr/lib/systemd/system/
+	install -m 755 userspace/murphy-init/murphy-system-generator debian/murphyos-core/usr/lib/systemd/system-generators/
+	install -m 755 userspace/murphy-init/murphy-watchdog debian/murphyos-core/usr/lib/murphy/
+	install -m 644 userspace/murphy-init/murphy-tmpfiles.conf debian/murphyos-core/usr/lib/tmpfiles.d/murphy.conf
+	install -m 644 userspace/murphy-init/murphy-sysusers.conf debian/murphyos-core/usr/lib/sysusers.d/murphy.conf
+	# D-Bus
+	install -m 644 userspace/murphy-dbus/org.murphy.System.conf debian/murphyos-core/etc/dbus-1/system.d/
+	install -m 644 userspace/murphy-dbus/murphy-dbus.service debian/murphyos-core/usr/lib/systemd/system/
+	install -m 755 userspace/murphy-dbus/murphy_dbus_service.py debian/murphyos-core/usr/lib/murphy/murphy-dbus-service
+	# Polkit
+	install -m 644 userspace/murphy-dbus/org.murphy.policy debian/murphyos-core/usr/share/polkit-1/actions/
+	install -m 644 userspace/murphy-dbus/org.murphy.rules debian/murphyos-core/usr/share/polkit-1/rules.d/
+	# udev
+	install -m 644 userspace/murphy-udev/90-murphy.rules debian/murphyos-core/etc/udev/rules.d/
+	install -m 755 userspace/murphy-udev/murphy-device-register debian/murphyos-core/usr/lib/murphy/
+	install -m 755 userspace/murphy-udev/murphy-gpu-register debian/murphyos-core/usr/lib/murphy/
+	install -m 755 userspace/murphy-udev/murphy-net-register debian/murphyos-core/usr/lib/murphy/
+	# CLI
+	install -m 755 userspace/murphy-cli/murphy_cli.py debian/murphyos-core/usr/bin/murphy
+	install -m 644 userspace/murphy-cli/murphy-completion.bash debian/murphyos-core/usr/share/bash-completion/completions/murphy
+	# FUSE
+	install -m 755 userspace/murphyfs/murphyfs.py debian/murphyos-core/usr/bin/murphyfs
+	install -m 644 userspace/murphyfs/murphy-murphyfs.service debian/murphyos-core/usr/lib/systemd/system/
+	# nftables
+	install -m 644 userspace/murphy-nftables/murphy.nft debian/murphyos-core/etc/nftables.d/murphy.nft
+	install -m 644 userspace/murphy-nftables/murphy-nftables.service debian/murphyos-core/usr/lib/systemd/system/
+	# DNS resolver
+	install -m 755 userspace/murphy-resolved/murphy_resolved.py debian/murphyos-core/usr/lib/murphy/murphy-resolved
+	install -m 644 userspace/murphy-resolved/murphy-resolved.service debian/murphyos-core/usr/lib/systemd/system/
+	install -m 644 userspace/murphy-resolved/murphy-resolved.conf debian/murphyos-core/etc/systemd/resolved.conf.d/
+	# PQC
+	install -m 644 security/quantum/pqc.yaml debian/murphyos-core/etc/murphy/
+	install -m 755 security/quantum/userspace/murphy_pqc.py debian/murphyos-core/usr/lib/murphy/
+	install -m 755 security/quantum/userspace/murphy_pqc_keymanager.py debian/murphyos-core/usr/lib/murphy/murphy-pqc-keymanager
+	install -m 755 security/quantum/userspace/murphy_pqc_tls.py debian/murphyos-core/usr/lib/murphy/
+	install -m 755 security/quantum/userspace/murphy_pqc_tokens.py debian/murphyos-core/usr/lib/murphy/
+	install -m 644 security/quantum/murphy-pqc-keymanager.service debian/murphyos-core/usr/lib/systemd/system/
+	install -m 755 security/quantum/boot/murphy_secureboot.py debian/murphyos-core/usr/lib/murphy/
+	install -m 755 security/quantum/boot/murphy_manifest_sign.py debian/murphyos-core/usr/lib/murphy/
+	install -m 755 security/quantum/boot/verify_chain.sh debian/murphyos-core/usr/lib/murphy/
+	# PAM
+	install -m 644 userspace/murphy-pam/pam.conf debian/murphyos-core/etc/murphy/pam.conf
+	# ── murphyos-desktop ─────────────────────────────────────
+	install -d debian/murphyos-desktop/usr/share/gnome-shell/extensions/murphy-system@inoni.llc/schemas
+	install -m 644 desktop/gnome-shell-extension/metadata.json debian/murphyos-desktop/usr/share/gnome-shell/extensions/murphy-system@inoni.llc/
+	install -m 644 desktop/gnome-shell-extension/extension.js debian/murphyos-desktop/usr/share/gnome-shell/extensions/murphy-system@inoni.llc/
+	install -m 644 desktop/gnome-shell-extension/prefs.js debian/murphyos-desktop/usr/share/gnome-shell/extensions/murphy-system@inoni.llc/
+	install -m 644 desktop/gnome-shell-extension/stylesheet.css debian/murphyos-desktop/usr/share/gnome-shell/extensions/murphy-system@inoni.llc/
+	install -m 644 desktop/gnome-shell-extension/schemas/org.murphy.system.gschema.xml debian/murphyos-desktop/usr/share/gnome-shell/extensions/murphy-system@inoni.llc/schemas/
+	install -d debian/murphyos-desktop/usr/share/nautilus-python/extensions
+	install -m 644 desktop/file-manager-plugins/murphy-nautilus.py debian/murphyos-desktop/usr/share/nautilus-python/extensions/
+
+override_dh_installsystemd:
+	dh_installsystemd --name=murphy-system
+	dh_installsystemd --name=murphy-watchdog
+	dh_installsystemd --name=murphy-dbus
+	dh_installsystemd --name=murphy-murphyfs
+	dh_installsystemd --name=murphy-nftables
+	dh_installsystemd --name=murphy-resolved
+	dh_installsystemd --name=murphy-pqc-keymanager

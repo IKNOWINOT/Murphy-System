@@ -1,0 +1,37 @@
+# vim:syntax=apparmor
+# AppArmor profile for the Murphy PQC Key Manager
+# © 2020 Inoni Limited Liability Company | License: BSL 1.1
+#
+# Highly restricted: only access to key storage and the kernel event device.
+
+#include <tunables/global>
+
+profile murphy-pqc-keymanager /usr/lib/murphy/murphy-pqc-keymanager flags=(enforce) {
+  #include <abstractions/base>
+  #include <abstractions/python>
+
+  /usr/lib/murphy/murphy-pqc-keymanager r,
+  /usr/lib/murphy/murphy_pqc*.py r,
+  /usr/bin/python3* ix,
+
+  # Configuration
+  /etc/murphy/pqc.yaml r,
+
+  # Key storage — full read/write
+  /murphy/keys/ r,
+  /murphy/keys/** rwk,
+
+  # Kernel device — push HMAC session keys
+  /dev/murphy-event rw,
+
+  # Audit log
+  /murphy/logs/pqc-audit.log w,
+
+  # Deny everything else
+  deny network inet,
+  deny network inet6,
+  deny /home/** rwx,
+  deny /root/** rwx,
+  deny /murphy/runtime/** w,
+  deny /murphy/persistence/** rw,
+}

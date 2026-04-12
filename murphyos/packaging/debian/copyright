@@ -1,0 +1,24 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: MurphyOS
+Upstream-Contact: Corey Post <corey@inoni.llc>
+Source: https://github.com/IKNOWINOT/Murphy-System
+
+Files: *
+Copyright: 2020 Inoni Limited Liability Company
+License: BSL-1.1
+ Business Source License 1.1
+ .
+ Licensor: Inoni Limited Liability Company
+ Licensed Work: Murphy System
+ .
+ See the LICENSE file in the repository root for the full license text.
+
+Files: murphyos/kernel/murphy-kmod/*
+Copyright: 2020 Inoni Limited Liability Company
+License: GPL-2.0-only OR BSD-2-Clause
+ Dual-licensed for Linux kernel compatibility.
+
+Files: murphyos/security/quantum/kernel/*
+Copyright: 2020 Inoni Limited Liability Company
+License: GPL-2.0-only OR BSD-2-Clause
+ Dual-licensed for Linux kernel compatibility.

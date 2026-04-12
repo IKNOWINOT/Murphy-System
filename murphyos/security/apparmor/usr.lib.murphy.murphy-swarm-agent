@@ -1,0 +1,41 @@
+# vim:syntax=apparmor
+# AppArmor profile for Murphy swarm agents
+# © 2020 Inoni Limited Liability Company | License: BSL 1.1
+#
+# Each agent is confined to its tmpfs working directory.
+
+#include <tunables/global>
+
+profile murphy-swarm-agent /murphy/swarm/*/agent flags=(enforce) {
+  #include <abstractions/base>
+  #include <abstractions/python>
+
+  /usr/bin/python3* ix,
+
+  # Read-only access to Murphy runtime code
+  /murphy/runtime/** r,
+  /usr/lib/murphy/** r,
+
+  # Agent working directory (tmpfs)
+  owner /murphy/swarm/@{uuid}/** rw,
+
+  # Configuration (read-only)
+  /etc/murphy/** r,
+  /murphy/engines/** r,
+
+  # Kernel devices (read-only)
+  /dev/murphy-confidence r,
+  /sys/murphy/** r,
+
+  # Deny privileged operations
+  deny ptrace,
+  deny mount,
+  deny /murphy/keys/** rw,
+  deny /murphy/persistence/** w,
+  deny /home/** rwx,
+  deny /root/** rwx,
+
+  # Network controlled by nftables, not AppArmor
+  network inet tcp,
+  network inet udp,
+}
