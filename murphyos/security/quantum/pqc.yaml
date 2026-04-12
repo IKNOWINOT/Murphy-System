@@ -1,0 +1,66 @@
+# SPDX-License-Identifier: LicenseRef-BSL-1.1
+# © 2020 Inoni Limited Liability Company — Creator: Corey Post — BSL 1.1
+#
+# pqc.yaml — Default Post-Quantum Cryptography configuration for MurphyOS
+#
+# This file controls algorithm selection, key rotation schedules,
+# hybrid mode behaviour, and storage paths for the PQC subsystem.
+
+pqc:
+  # Master switch — set to false to disable all PQC features.
+  enabled: true
+
+  # ---------------------------------------------------------------
+  # Algorithm selection (NIST post-quantum standards)
+  # ---------------------------------------------------------------
+
+  # Key Encapsulation Mechanism — used for key exchange.
+  # ML-KEM-1024 (formerly Kyber-1024) — NIST FIPS 203.
+  kem_algorithm: ML-KEM-1024
+
+  # Digital Signature — used for session tokens, mTLS certs.
+  # ML-DSA-87 (formerly Dilithium5) — NIST FIPS 204.
+  sig_algorithm: ML-DSA-87
+
+  # Hash-Based Signature — used for long-term / secure-boot signing.
+  # SLH-DSA-SHA2-256f (formerly SPHINCS+-SHA2-256f) — NIST FIPS 205.
+  hash_sig_algorithm: SLH-DSA-SHA2-256f
+
+  # ---------------------------------------------------------------
+  # Hybrid mode (classical + PQC defense-in-depth)
+  # ---------------------------------------------------------------
+
+  hybrid_mode: true
+  classical_kem: X25519
+  classical_sig: Ed25519
+
+  # When true, reject any connection that does not include a PQC
+  # component (classical-only connections are denied).
+  force_pqc_only: false
+
+  # ---------------------------------------------------------------
+  # Key management
+  # ---------------------------------------------------------------
+
+  # Key rotation interval in hours.  The key-manager daemon will
+  # generate fresh KEM / DSA keypairs and push a new HMAC session
+  # key to the kernel at this cadence.
+  key_rotation_hours: 24
+
+  # Session token lifetime in hours.  Tokens are also rotated when
+  # the Murphy confidence score drifts by more than 0.10.
+  token_expiry_hours: 8
+
+  # ---------------------------------------------------------------
+  # Symmetric / HMAC
+  # ---------------------------------------------------------------
+
+  hmac_algorithm: SHA3-256
+  symmetric_cipher: AES-256-GCM
+
+  # ---------------------------------------------------------------
+  # Storage paths
+  # ---------------------------------------------------------------
+
+  key_storage: /murphy/keys
+  audit_log: /murphy/logs/pqc-audit.log
