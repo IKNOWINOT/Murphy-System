@@ -202,6 +202,36 @@ static void murphy_cleanup(pam_handle_t *pamh, void *data, int error_status)
 /* ------------------------------------------------------------------------ */
 
 /*
+ * Escape a string for safe embedding inside a JSON "..." value.
+ * Writes at most out_sz-1 bytes and always NUL-terminates.
+ */
+static void json_escape(const char *src, char *out, size_t out_sz)
+{
+    size_t j = 0;
+
+    if (!src || out_sz == 0)
+        return;
+
+    for (size_t i = 0; src[i] && j + 2 < out_sz; i++) {
+        switch (src[i]) {
+        case '"':  out[j++] = '\\'; out[j++] = '"';  break;
+        case '\\': out[j++] = '\\'; out[j++] = '\\'; break;
+        case '\n': out[j++] = '\\'; out[j++] = 'n';  break;
+        case '\r': out[j++] = '\\'; out[j++] = 'r';  break;
+        case '\t': out[j++] = '\\'; out[j++] = 't';  break;
+        default:
+            if ((unsigned char)src[i] < 0x20) {
+                /* skip other control characters */
+            } else {
+                out[j++] = src[i];
+            }
+            break;
+        }
+    }
+    out[j] = '\0';
+}
+
+/*
  * Extract a simple string value for a given key from a flat JSON object.
  * Writes result into out (up to out_sz). Returns 0 on success.
  */
@@ -268,8 +298,13 @@ PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags,
     }
 
     snprintf(url, sizeof(url), "%s/api/session/create", cfg.murphy_url);
-    snprintf(post_body, sizeof(post_body),
-             "{\"username\":\"%s\"}", username);
+
+    {
+        char safe_user[LINE_BUFSIZE];
+        json_escape(username, safe_user, sizeof(safe_user));
+        snprintf(post_body, sizeof(post_body),
+                 "{\"username\":\"%s\"}", safe_user);
+    }
 
     memset(&resp, 0, sizeof(resp));
     if (murphy_http(&cfg, "POST", url, post_body, &resp) != 0) {
@@ -354,7 +389,10 @@ static int request_hitl_approval(pam_handle_t *pamh, const char *username)
 {
     int fd;
     char msg[URL_BUFSIZE];
+    char safe_user[LINE_BUFSIZE];
     int written;
+
+    json_escape(username, safe_user, sizeof(safe_user));
 
     fd = open(MURPHY_EVENT_DEV, O_WRONLY | O_NONBLOCK);
     if (fd < 0) {
@@ -367,7 +405,7 @@ static int request_hitl_approval(pam_handle_t *pamh, const char *username)
     written = snprintf(msg, sizeof(msg),
              "{\"event\":\"hitl_approval_request\","
              "\"username\":\"%s\",\"action\":\"sudo\"}\n",
-             username);
+             safe_user);
 
     if (write(fd, msg, (size_t)written) < 0) {
         pam_syslog(pamh, LOG_WARNING,

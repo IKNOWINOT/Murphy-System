@@ -12,10 +12,13 @@ MURPHY_EVENT_DEV="/dev/murphy-event"
 MURPHY_API="http://localhost:8000/api/system/device-register"
 TAG="murphy-device-register"
 
-VENDOR_ID="${ID_VENDOR_ID:-unknown}"
-MODEL_ID="${ID_MODEL_ID:-unknown}"
-DEV_NAME="${DEVNAME:-unknown}"
-DEV_SUBSYSTEM="${SUBSYSTEM:-unknown}"
+# Escape a value for safe embedding in a JSON string
+json_esc() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
+
+VENDOR_ID=$(json_esc "${ID_VENDOR_ID:-unknown}")
+MODEL_ID=$(json_esc "${ID_MODEL_ID:-unknown}")
+DEV_NAME=$(json_esc "${DEVNAME:-unknown}")
+DEV_SUBSYSTEM=$(json_esc "${SUBSYSTEM:-unknown}")
 
 json_payload=$(cat <<EOF
 {"event":"device_register","vendor_id":"${VENDOR_ID}","model_id":"${MODEL_ID}","devname":"${DEV_NAME}","subsystem":"${DEV_SUBSYSTEM}","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}

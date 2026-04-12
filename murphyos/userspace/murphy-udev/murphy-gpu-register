@@ -13,6 +13,9 @@ MURPHY_API="http://localhost:8000/api/system/gpu-register"
 TAG="murphy-gpu-register"
 
 # Detect GPU type from sysfs vendor ID
+# Escape a value for safe embedding in a JSON string
+json_esc() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
+
 gpu_type="unknown"
 card_name="${DEVNAME:-/dev/dri/card0}"
 card_base=$(basename "$card_name" 2>/dev/null || echo "card0")
@@ -29,7 +32,7 @@ if [ -r "$vendor_file" ]; then
 fi
 
 json_payload=$(cat <<EOF
-{"event":"gpu_register","gpu_type":"${gpu_type}","device":"${card_name}","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
+{"event":"gpu_register","gpu_type":"$(json_esc "$gpu_type")","device":"$(json_esc "$card_name")","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
 EOF
 )
 

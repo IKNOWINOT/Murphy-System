@@ -11,10 +11,13 @@ MURPHY_EVENT_DEV="/dev/murphy-event"
 MURPHY_API="http://localhost:8000/api/system/net-register"
 TAG="murphy-net-register"
 
-IFACE="${INTERFACE:-unknown}"
-DEV_NAME="${DEVNAME:-$IFACE}"
-DEV_TYPE="${ID_NET_DRIVER:-unknown}"
-MAC_ADDR="${ID_NET_NAME_MAC:-unknown}"
+# Escape a value for safe embedding in a JSON string
+json_esc() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
+
+IFACE=$(json_esc "${INTERFACE:-unknown}")
+DEV_NAME=$(json_esc "${DEVNAME:-${INTERFACE:-unknown}}")
+DEV_TYPE=$(json_esc "${ID_NET_DRIVER:-unknown}")
+MAC_ADDR=$(json_esc "${ID_NET_NAME_MAC:-unknown}")
 
 json_payload=$(cat <<EOF
 {"event":"net_register","interface":"${IFACE}","devname":"${DEV_NAME}","driver":"${DEV_TYPE}","mac":"${MAC_ADDR}","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
