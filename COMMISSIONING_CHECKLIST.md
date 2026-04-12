@@ -47,6 +47,37 @@ ProbeResult(spec_id="...", passed=True, actual="...")
 
 ---
 
+## Automated Commissioning Validator
+
+The commissioning questions above can be validated automatically using the
+`ProductionCommissioningValidator` module (Design Label: `COMMISSION-VAL-001`):
+
+```python
+from src.production_commissioning_validator import ProductionCommissioningValidator
+
+validator = ProductionCommissioningValidator()
+report = validator.commission_module(
+    module_path="src/llm_provider.py",
+    test_dir="tests/llm",
+    commissioned_by="engineering-team",
+)
+print(validator.generate_report_markdown(report))
+```
+
+The validator performs static analysis (via `ast`) on each module to check:
+- **Q1/Q2:** Module imports cleanly and has a purpose docstring
+- **Q3:** Error handling exists (try/except blocks)
+- **Q4/Q5/Q6:** Corresponding test files exist, contain assertions, and are pytest-discoverable
+- **Q7:** Error recovery patterns present (try/except with logging)
+- **Q8:** All public functions/classes have docstrings
+- **Q9:** Hardening indicators (type hints, error codes, logging, input validation)
+- **Q10:** Module file and test file modification timestamps are consistent
+
+Run `validator.generate_report_markdown(report)` to produce a markdown report
+suitable for embedding in PR descriptions.
+
+---
+
 ## Quick Reference
 
 **Severity levels for gaps:**
