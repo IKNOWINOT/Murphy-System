@@ -1,0 +1,64 @@
+# 90-murphy.rules — MurphyOS udev rules
+# © 2020 Inoni Limited Liability Company, Creator: Corey Post
+# License: BSL 1.1
+#
+# Automatic hardware registration with Murphy engines.
+# Install to /etc/udev/rules.d/ or /usr/lib/udev/rules.d/
+
+# ---------------------------------------------------------------------------
+# USB serial devices → register as potential Modbus / sensor device
+# ---------------------------------------------------------------------------
+SUBSYSTEM=="tty", KERNEL=="ttyUSB*", \
+    GROUP="murphy", MODE="0660", \
+    RUN+="/bin/sh -c 'echo MURPHY_DEVICE_EVENT serial %k >> /dev/murphy-event'"
+
+SUBSYSTEM=="tty", KERNEL=="ttyACM*", \
+    GROUP="murphy", MODE="0660", \
+    RUN+="/bin/sh -c 'echo MURPHY_DEVICE_EVENT serial %k >> /dev/murphy-event'"
+
+# ---------------------------------------------------------------------------
+# Known IoT USB vendor IDs
+# ---------------------------------------------------------------------------
+# FTDI (0403)
+SUBSYSTEM=="usb", ATTR{idVendor}=="0403", \
+    TAG+="murphy-iot", \
+    RUN+="/usr/lib/murphy/murphy-device-register"
+
+# Silicon Labs (10c4)
+SUBSYSTEM=="usb", ATTR{idVendor}=="10c4", \
+    TAG+="murphy-iot", \
+    RUN+="/usr/lib/murphy/murphy-device-register"
+
+# Arduino (2341)
+SUBSYSTEM=="usb", ATTR{idVendor}=="2341", \
+    TAG+="murphy-iot", \
+    RUN+="/usr/lib/murphy/murphy-device-register"
+
+# Espressif (303a)
+SUBSYSTEM=="usb", ATTR{idVendor}=="303a", \
+    TAG+="murphy-iot", \
+    RUN+="/usr/lib/murphy/murphy-device-register"
+
+# ---------------------------------------------------------------------------
+# GPU devices → notify Murphy Compute Plane
+# ---------------------------------------------------------------------------
+SUBSYSTEM=="drm", KERNEL=="card*", \
+    RUN+="/usr/lib/murphy/murphy-gpu-register"
+
+# ---------------------------------------------------------------------------
+# Network interfaces → register with Murphy Event Backbone
+# ---------------------------------------------------------------------------
+SUBSYSTEM=="net", ACTION=="add", \
+    RUN+="/usr/lib/murphy/murphy-net-register"
+
+# ---------------------------------------------------------------------------
+# Block devices (optional tagging for storage awareness)
+# ---------------------------------------------------------------------------
+SUBSYSTEM=="block", ACTION=="add", \
+    TAG+="murphy-storage"
+
+# ---------------------------------------------------------------------------
+# Murphy kernel char devices — secure permissions
+# ---------------------------------------------------------------------------
+KERNEL=="murphy-event", GROUP="murphy", MODE="0660"
+KERNEL=="murphy-confidence", GROUP="murphy", MODE="0660"
