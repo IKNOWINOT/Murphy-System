@@ -44,7 +44,7 @@
 #define CLASS_NAME      "murphy"
 #define PQC_ALGO_NAME   "hmac(sha3-256)"
 
-MODULE_LICENSE("Dual MIT/GPL");
+MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Corey Post — Inoni LLC");
 MODULE_DESCRIPTION("MurphyOS PQC event authentication (HMAC-SHA3-256)");
 MODULE_VERSION("1.0.0");

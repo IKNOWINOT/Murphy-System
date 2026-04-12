@@ -201,15 +201,19 @@ class MurphyPQCCertificateAuthority:
 
         cert = builder.sign(self._ca_key, None)
 
-        # Embed PQC signature of the TBS bytes in a custom extension
+        # Compute a PQC signature over the DER-encoded cert and store it
+        # alongside as a detached signature file for verifiers.
         if _HAS_PQC and self._pqc_sig_sk:
             tbs_hash = hashlib.sha3_256(
                 cert.public_bytes(serialization.Encoding.DER),
             ).digest()
-            _pqc_sig = pqc_sign(self._pqc_sig_sk, tbs_hash)
+            pqc_sig_bytes = pqc_sign(self._pqc_sig_sk, tbs_hash)
+            sig_path = self.key_dir / f"{common_name}.pqc.sig"
+            sig_path.write_bytes(pqc_sig_bytes)
+            os.chmod(sig_path, 0o644)
             logger.debug(
-                "PQC signature (%d bytes) embedded for %s",
-                len(_pqc_sig), common_name,
+                "PQC signature (%d bytes) stored for %s at %s",
+                len(pqc_sig_bytes), common_name, sig_path,
             )
 
         cert_pem = cert.public_bytes(serialization.Encoding.PEM)
@@ -317,7 +321,7 @@ def wrap_murphy_server(
     host: str = "0.0.0.0",
     port: int = 8443,
     key_dir: Path = Path("/murphy/keys"),
-) -> None:
+) -> ssl.SSLContext:
     """Wrap a Murphy API *app* with quantum-safe TLS.
 
     Falls back to classical TLS if PQC libraries are unavailable.
