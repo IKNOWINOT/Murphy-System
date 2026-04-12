@@ -28,6 +28,12 @@ def register_all_commands(registry: CommandRegistry) -> None:
     from murphy_cli.commands import hitl
     from murphy_cli.commands import safety
     from murphy_cli.commands import system
+    # v2: MultiCursor, split-screen, native automation, diagnostics, commissioning
+    from murphy_cli.commands import mcb
+    from murphy_cli.commands import split
+    from murphy_cli.commands import automate
+    from murphy_cli.commands import diagnose
+    from murphy_cli.commands import commission
 
     auth.register(registry)
     chat.register(registry)
@@ -38,3 +44,9 @@ def register_all_commands(registry: CommandRegistry) -> None:
     hitl.register(registry)
     safety.register(registry)
     system.register(registry)
+    # v2 modules
+    mcb.register(registry)
+    split.register(registry)
+    automate.register(registry)
+    diagnose.register(registry)
+    commission.register(registry)
