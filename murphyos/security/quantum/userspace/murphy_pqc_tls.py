@@ -28,10 +28,16 @@ logger = logging.getLogger("murphy.pqc.tls")
 # ---------------------------------------------------------------------------
 # Error codes
 # ---------------------------------------------------------------------------
+# MURPHY-PQC-ERR-200  Certificate generation failed
+# MURPHY-PQC-ERR-201  SSL context creation failed
+# MURPHY-PQC-ERR-202  mTLS setup failed
+# MURPHY-PQC-ERR-203  cryptography library not available for TLS
+# ---------------------------------------------------------------------------
 
 _ERR_CERT_GEN    = "MURPHY-PQC-ERR-200"
 _ERR_CTX_CREATE  = "MURPHY-PQC-ERR-201"
 _ERR_MTLS_SETUP  = "MURPHY-PQC-ERR-202"
+_ERR_TLS_IMPORT  = "MURPHY-PQC-ERR-203"
 
 # ---------------------------------------------------------------------------
 # Optional imports
@@ -44,8 +50,8 @@ try:
     from cryptography.hazmat.primitives.asymmetric import ec, ed25519
     from cryptography.x509.oid import NameOID
     _HAS_CRYPTOGRAPHY = True
-except ImportError:
-    pass
+except ImportError:  # MURPHY-PQC-ERR-203
+    logger.debug("%s: cryptography library not found — certificate generation unavailable", _ERR_TLS_IMPORT)
 
 try:
     from murphy_pqc import (

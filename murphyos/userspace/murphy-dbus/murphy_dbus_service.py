@@ -18,6 +18,14 @@ Creator: Corey Post
 License: BSL 1.1
 
 Installed to: /usr/lib/murphy/murphy-dbus-service
+
+---------------------------------------------------------------------------
+Error-code registry
+---------------------------------------------------------------------------
+MURPHY-DBUS-ERR-001  Failed to write confidence to /murphy/live/confidence
+MURPHY-DBUS-ERR-002  Confidence polling cycle encountered an error
+MURPHY-DBUS-ERR-003  Main event loop interrupted by KeyboardInterrupt
+---------------------------------------------------------------------------
 """
 
 from __future__ import annotations
@@ -159,10 +167,10 @@ class Confidence(ServiceInterface):
                     os.makedirs("/murphy/live", exist_ok=True)
                     with open("/murphy/live/confidence", "w") as f:
                         f.write(f"{self._score:.4f}\n")
-                except OSError:
-                    pass  # non-fatal if path not writable
-            except Exception as exc:
-                logger.debug("Confidence poll error: %s", exc)
+                except OSError as exc:  # MURPHY-DBUS-ERR-001
+                    logger.debug("MURPHY-DBUS-ERR-001: cannot write confidence file: %s", exc)
+            except Exception as exc:  # MURPHY-DBUS-ERR-002
+                logger.debug("MURPHY-DBUS-ERR-002: Confidence poll error: %s", exc)
 
             await asyncio.sleep(CONFIDENCE_POLL_INTERVAL)
 
@@ -354,6 +362,6 @@ async def main() -> None:
 if __name__ == "__main__":
     try:
         asyncio.run(main())
-    except KeyboardInterrupt:
-        pass
+    except KeyboardInterrupt:  # MURPHY-DBUS-ERR-003
+        logger.debug("MURPHY-DBUS-ERR-003: interrupted by KeyboardInterrupt")
     sys.exit(0)

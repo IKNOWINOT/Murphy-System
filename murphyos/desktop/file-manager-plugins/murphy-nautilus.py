@@ -3,6 +3,13 @@
 #
 # Murphy Nautilus File-Manager Plugin
 # Adds right-click "Process with Murphy" context menu entries.
+#
+# ---------------------------------------------------------------------------
+# Error-code registry
+# ---------------------------------------------------------------------------
+# MURPHY-NAUTILUS-ERR-001  HTTP request to Murphy API failed (URLError)
+# MURPHY-NAUTILUS-ERR-002  D-Bus fallback invocation failed
+# ---------------------------------------------------------------------------
 
 """Nautilus extension — Process files with Murphy System."""
 
@@ -65,7 +72,8 @@ def _send_to_murphy(filepath: str, endpoint: str) -> dict:
     try:
         with urlopen(req, timeout=60) as resp:
             return json.loads(resp.read())
-    except URLError:
+    except URLError as exc:  # MURPHY-NAUTILUS-ERR-001
+        logger.warning("MURPHY-NAUTILUS-ERR-001: API request failed: %s", exc)
         return _send_via_dbus(filepath)
 
 
@@ -87,8 +95,8 @@ def _send_via_dbus(filepath: str) -> dict:
             timeout=30,
         )
         return {"status": "dbus", "output": result.stdout.strip()}
-    except Exception as exc:
-        logger.error("D-Bus fallback failed: %s", exc)
+    except Exception as exc:  # MURPHY-NAUTILUS-ERR-002
+        logger.error("MURPHY-NAUTILUS-ERR-002: D-Bus fallback failed: %s", exc)
         return {"error": str(exc)}
 
 

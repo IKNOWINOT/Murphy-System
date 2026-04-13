@@ -18,6 +18,15 @@ Exit codes:
   0 — all checks passed
   1 — verification failure (safety level set to paranoid)
   2 — manifest or signature file missing
+
+---------------------------------------------------------------------------
+Error-code registry
+---------------------------------------------------------------------------
+MURPHY-SECBOOT-ERR-001  PQC library (murphy_pqc) not available
+MURPHY-SECBOOT-ERR-002  Cannot write safety-level flag file
+MURPHY-SECBOOT-ERR-003  Failed to parse manifest JSON
+MURPHY-SECBOOT-ERR-004  PQC signature verification error
+---------------------------------------------------------------------------
 """
 from __future__ import annotations
 
@@ -47,7 +56,8 @@ SAFETY_FLAG     = Path("/murphy/state/safety_level")
 try:
     from murphy_pqc import hash_verify, PQCError
     _HAS_PQC = True
-except ImportError:
+except ImportError:  # MURPHY-SECBOOT-ERR-001
+    logger.warning("MURPHY-SECBOOT-ERR-001: murphy_pqc not available — signature verification disabled")
     _HAS_PQC = False
 
 # ---------------------------------------------------------------------------
@@ -70,8 +80,8 @@ def _set_safety_paranoid() -> None:
         SAFETY_FLAG.parent.mkdir(parents=True, exist_ok=True)
         SAFETY_FLAG.write_text("paranoid\n")
         logger.critical("Safety level set to PARANOID")
-    except OSError as exc:
-        logger.error("Cannot write safety flag: %s", exc)
+    except OSError as exc:  # MURPHY-SECBOOT-ERR-002
+        logger.error("MURPHY-SECBOOT-ERR-002: Cannot write safety flag: %s", exc)
 
 
 def _emit_security_event(detail: str) -> None:
@@ -108,8 +118,8 @@ def verify_manifest(
     # 2. Load manifest
     try:
         manifest: Dict[str, Any] = json.loads(manifest_path.read_text())
-    except (json.JSONDecodeError, OSError) as exc:
-        logger.error("Cannot parse manifest: %s", exc)
+    except (json.JSONDecodeError, OSError) as exc:  # MURPHY-SECBOOT-ERR-003
+        logger.error("MURPHY-SECBOOT-ERR-003: Cannot parse manifest: %s", exc)
         return False
 
     files: List[Dict[str, str]] = manifest.get("files", [])
@@ -147,8 +157,8 @@ def verify_manifest(
             if not hash_verify(pub_key, manifest_bytes, sig_bytes):
                 logger.error("SLH-DSA manifest signature INVALID")
                 return False
-        except PQCError as exc:
-            logger.error("PQC verification error: %s", exc)
+        except PQCError as exc:  # MURPHY-SECBOOT-ERR-004
+            logger.error("MURPHY-SECBOOT-ERR-004: PQC verification error: %s", exc)
             return False
     else:
         logger.warning(

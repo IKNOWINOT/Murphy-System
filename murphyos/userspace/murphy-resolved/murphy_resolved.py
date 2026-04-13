@@ -11,6 +11,14 @@
 #
 # Forwards all other queries to the upstream resolver.
 # Integrates with systemd-resolved via resolved.conf.d drop-in.
+#
+# ---------------------------------------------------------------------------
+# Error-code registry
+# ---------------------------------------------------------------------------
+# MURPHY-RESOLVED-ERR-001  dnslib dependency not installed
+# MURPHY-RESOLVED-ERR-002  Upstream DNS forward failed
+# MURPHY-RESOLVED-ERR-003  Interrupted by KeyboardInterrupt during shutdown
+# ---------------------------------------------------------------------------
 
 """MurphyOS local DNS resolver for the .murphy.local domain."""
 
@@ -24,9 +32,9 @@ import threading
 try:
     from dnslib import DNSRecord, DNSHeader, RR, A, QTYPE
     from dnslib.server import DNSServer, BaseResolver
-except ImportError:
+except ImportError:  # MURPHY-RESOLVED-ERR-001
     sys.exit(
-        "ERROR: dnslib is required.  Install with:  pip install dnslib"
+        "MURPHY-RESOLVED-ERR-001: dnslib is required.  Install with:  pip install dnslib"
     )
 
 logging.basicConfig(
@@ -115,8 +123,8 @@ class MurphyResolver(BaseResolver):
             data, _ = sock.recvfrom(4096)
             sock.close()
             return DNSRecord.parse(data)
-        except Exception as exc:
-            logger.warning("Upstream forward failed: %s", exc)
+        except Exception as exc:  # MURPHY-RESOLVED-ERR-002
+            logger.warning("MURPHY-RESOLVED-ERR-002: Upstream forward failed: %s", exc)
             reply = request.reply()
             reply.header.rcode = 2  # SERVFAIL
             return reply
@@ -147,8 +155,8 @@ def main():
 
     try:
         stop_event.wait()
-    except KeyboardInterrupt:
-        pass
+    except KeyboardInterrupt:  # MURPHY-RESOLVED-ERR-003
+        logger.debug("MURPHY-RESOLVED-ERR-003: interrupted by KeyboardInterrupt")
     finally:
         server.stop()
         logger.info("Murphy DNS resolver stopped")

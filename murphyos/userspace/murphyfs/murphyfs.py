@@ -65,7 +65,8 @@ except ImportError:
 try:
     import urllib.request
     import urllib.error
-except ImportError:
+except ImportError:  # MURPHYFS-ERR-007
+    LOG.debug("MURPHYFS-ERR-007: urllib import failed")
     pass  # stdlib — always available
 
 # ── Logging ─────────────────────────────────────────────────────────
@@ -78,6 +79,14 @@ LOG = logging.getLogger("murphyfs")
 # MURPHYFS-ERR-004  unexpected FUSE callback error
 # MURPHYFS-ERR-005  write failed
 # MURPHYFS-ERR-006  cache refresh failed
+# MURPHYFS-ERR-007  urllib import failed (should never happen — stdlib)
+# MURPHYFS-ERR-008  /dev/murphy-confidence not readable
+# MURPHYFS-ERR-009  confidence JSON parse failed
+# MURPHYFS-ERR-010  engine list JSON parse failed
+# MURPHYFS-ERR-011  swarm agent list JSON parse failed
+# MURPHYFS-ERR-012  gate status JSON parse failed
+# MURPHYFS-ERR-013  system version JSON parse failed
+# MURPHYFS-ERR-014  system uptime JSON parse failed
 
 MURPHY_VERSION = "1.0.0"
 
@@ -123,7 +132,8 @@ def _read_dev_confidence() -> Optional[str]:
     try:
         with open("/dev/murphy-confidence", "r") as fh:
             return fh.read().strip()
-    except OSError:
+    except OSError:  # MURPHYFS-ERR-008
+        LOG.debug("MURPHYFS-ERR-008: /dev/murphy-confidence not readable")
         return None
 
 
@@ -190,7 +200,8 @@ class MurphyFS(Operations):
                 try:
                     data = json.loads(body)
                     raw = str(data.get("confidence", data.get("mfgc", "0.0000")))
-                except (json.JSONDecodeError, TypeError):
+                except (json.JSONDecodeError, TypeError):  # MURPHYFS-ERR-009
+                    LOG.debug("MURPHYFS-ERR-009: confidence JSON parse failed")
                     raw = body.strip()
             else:
                 raw = "0.0000"
@@ -210,8 +221,8 @@ class MurphyFS(Operations):
                     if isinstance(data, dict) and "engines" in data:
                         return {e.get("name", f"engine-{i}"): e for i, e in enumerate(data["engines"])}
                     return data if isinstance(data, dict) else {}
-                except (json.JSONDecodeError, TypeError):
-                    pass
+                except (json.JSONDecodeError, TypeError):  # MURPHYFS-ERR-010
+                    LOG.debug("MURPHYFS-ERR-010: engine list JSON parse failed")
             return {}
         return self._cache.get("engines", _fetch) or {}
 
@@ -226,8 +237,8 @@ class MurphyFS(Operations):
                     if isinstance(data, dict) and "agents" in data:
                         return {a.get("id", a.get("uuid", f"agent-{i}")): a for i, a in enumerate(data["agents"])}
                     return data if isinstance(data, dict) else {}
-                except (json.JSONDecodeError, TypeError):
-                    pass
+                except (json.JSONDecodeError, TypeError):  # MURPHYFS-ERR-011
+                    LOG.debug("MURPHYFS-ERR-011: swarm agent list JSON parse failed")
             return {}
         return self._cache.get("swarm", _fetch) or {}
 
@@ -237,8 +248,8 @@ class MurphyFS(Operations):
             if body:
                 try:
                     return json.loads(body)
-                except (json.JSONDecodeError, TypeError):
-                    pass
+                except (json.JSONDecodeError, TypeError):  # MURPHYFS-ERR-012
+                    LOG.debug("MURPHYFS-ERR-012: gate status JSON parse failed")
             return {}
         gates = self._cache.get("gates", _fetch) or {}
         val = gates.get(gate, gates.get(gate.lower(), "pending"))
@@ -250,7 +261,8 @@ class MurphyFS(Operations):
             try:
                 data = json.loads(body)
                 return f"{data.get('version', MURPHY_VERSION)}\n"
-            except (json.JSONDecodeError, TypeError):
+            except (json.JSONDecodeError, TypeError):  # MURPHYFS-ERR-013
+                LOG.debug("MURPHYFS-ERR-013: system version JSON parse failed")
                 return f"{body.strip()}\n"
         return f"{MURPHY_VERSION}\n"
 
@@ -262,8 +274,8 @@ class MurphyFS(Operations):
                 uptime = data.get("uptime", "")
                 if uptime:
                     return f"{uptime}\n"
-            except (json.JSONDecodeError, TypeError):
-                pass
+            except (json.JSONDecodeError, TypeError):  # MURPHYFS-ERR-014
+                LOG.debug("MURPHYFS-ERR-014: system uptime JSON parse failed")
         return f"{_now() - self._start_time:.0f}s\n"
 
     def _system_health(self) -> str:

@@ -27,8 +27,28 @@ logger = logging.getLogger("murphy.pqc")
 # ---------------------------------------------------------------------------
 # Error codes
 # ---------------------------------------------------------------------------
+# MURPHY-PQC-ERR-001  liboqs-python unavailable (PQC fallback stubs active)
+# MURPHY-PQC-ERR-002  nacl (PyNaCl) unavailable — hybrid mode disabled
+# MURPHY-PQC-ERR-003  cryptography library unavailable — AES-GCM fallback
+# MURPHY-PQC-ERR-010  ML-KEM-1024 key generation failed
+# MURPHY-PQC-ERR-011  ML-KEM-1024 encapsulation failed
+# MURPHY-PQC-ERR-012  ML-KEM-1024 decapsulation failed
+# MURPHY-PQC-ERR-020  ML-DSA-87 key generation failed
+# MURPHY-PQC-ERR-021  ML-DSA-87 signing failed
+# MURPHY-PQC-ERR-022  ML-DSA-87 verification failed
+# MURPHY-PQC-ERR-030  SLH-DSA key generation failed
+# MURPHY-PQC-ERR-031  SLH-DSA signing failed
+# MURPHY-PQC-ERR-032  SLH-DSA verification failed
+# MURPHY-PQC-ERR-040  Hybrid key exchange failed
+# MURPHY-PQC-ERR-041  Hybrid classical signature verification failed
+# MURPHY-PQC-ERR-050  AES-256-GCM symmetric encryption/decryption error
+# MURPHY-PQC-ERR-060  HKDF-SHA3-256 key derivation failed
+# MURPHY-PQC-ERR-070  Session token generation failed
+# ---------------------------------------------------------------------------
 
 _ERR_OQS_UNAVAILABLE    = "MURPHY-PQC-ERR-001"
+_ERR_NACL_UNAVAILABLE   = "MURPHY-PQC-ERR-002"
+_ERR_CRYPTO_UNAVAILABLE = "MURPHY-PQC-ERR-003"
 _ERR_KEM_KEYGEN_FAIL    = "MURPHY-PQC-ERR-010"
 _ERR_KEM_ENCAPS_FAIL    = "MURPHY-PQC-ERR-011"
 _ERR_KEM_DECAPS_FAIL    = "MURPHY-PQC-ERR-012"
@@ -39,6 +59,7 @@ _ERR_HASH_SIG_KEYGEN    = "MURPHY-PQC-ERR-030"
 _ERR_HASH_SIG_SIGN      = "MURPHY-PQC-ERR-031"
 _ERR_HASH_SIG_VERIFY    = "MURPHY-PQC-ERR-032"
 _ERR_HYBRID_FAIL        = "MURPHY-PQC-ERR-040"
+_ERR_HYBRID_VERIFY_FAIL = "MURPHY-PQC-ERR-041"
 _ERR_SYMMETRIC_FAIL     = "MURPHY-PQC-ERR-050"
 _ERR_KDF_FAIL           = "MURPHY-PQC-ERR-060"
 _ERR_TOKEN_FAIL         = "MURPHY-PQC-ERR-070"
@@ -66,13 +87,14 @@ try:
         crypto_scalarmult,
     )
     _HAS_NACL = True
-except ImportError:
-    pass
+except ImportError:  # MURPHY-PQC-ERR-002
+    logger.debug("%s: nacl not found — hybrid mode unavailable", _ERR_NACL_UNAVAILABLE)
 
 try:
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM  # type: ignore[import-untyped]
     _HAS_CRYPTOGRAPHY = True
-except ImportError:
+except ImportError:  # MURPHY-PQC-ERR-003
+    logger.debug("%s: cryptography library not found — AES-GCM will use fallback", _ERR_CRYPTO_UNAVAILABLE)
     _HAS_CRYPTOGRAPHY = False
 
 # ---------------------------------------------------------------------------
@@ -406,7 +428,8 @@ def hybrid_verify(
         try:
             NaClVerifyKey(classical_sig_pk).verify(message, sig.classical_sig)
             classical_ok = True
-        except Exception:
+        except Exception as exc:  # MURPHY-PQC-ERR-041
+            logger.debug("%s: classical signature verification failed: %s", _ERR_HYBRID_VERIFY_FAIL, exc)
             classical_ok = False
     else:
         expected = hmac.new(

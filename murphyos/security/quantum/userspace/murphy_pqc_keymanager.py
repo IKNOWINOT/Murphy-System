@@ -10,6 +10,18 @@ Runs as a systemd service (murphy-pqc-keymanager.service).  Responsible for:
   • Storing keys in /murphy/keys/ with strict POSIX permissions.
   • Distributing public keys to fleet peers over an async HTTP client.
   • Audit-logging every key operation.
+
+---------------------------------------------------------------------------
+Error-code registry
+---------------------------------------------------------------------------
+MURPHY-PQC-ERR-100  ioctl SET_PQC_KEY failed
+MURPHY-PQC-ERR-101  Failed to load epoch file
+MURPHY-PQC-ERR-102  aiohttp not available for fleet key distribution
+MURPHY-PQC-ERR-103  Fleet key distribution to peer failed
+MURPHY-PQC-ERR-104  PQC key rotation failed (PQCError)
+MURPHY-PQC-ERR-105  Unexpected error during key rotation
+MURPHY-PQC-ERR-106  Failed to load pqc.yaml configuration
+---------------------------------------------------------------------------
 """
 from __future__ import annotations
 
@@ -131,8 +143,8 @@ class PQCKeyManager:
         if ef.exists():
             try:
                 return int(ef.read_text().strip())
-            except (ValueError, OSError):
-                pass
+            except (ValueError, OSError) as exc:  # MURPHY-PQC-ERR-101
+                logger.debug("MURPHY-PQC-ERR-101: failed to load epoch file: %s", exc)
         return 0
 
     def _save_epoch(self) -> None:
@@ -237,9 +249,9 @@ class PQCKeyManager:
 
         try:
             import aiohttp  # type: ignore[import-untyped]
-        except ImportError:
+        except ImportError:  # MURPHY-PQC-ERR-102
             logger.warning(
-                "aiohttp not available — skipping fleet key distribution",
+                "MURPHY-PQC-ERR-102: aiohttp not available — skipping fleet key distribution",
             )
             return
 
@@ -256,9 +268,9 @@ class PQCKeyManager:
                             "FLEET DISTRIBUTE peer=%s status=%d epoch=%d",
                             endpoint, resp.status, bundle.epoch,
                         )
-                except Exception as exc:
+                except Exception as exc:  # MURPHY-PQC-ERR-103
                     self._audit.error(
-                        "FLEET FAIL peer=%s error=%s", endpoint, exc,
+                        "MURPHY-PQC-ERR-103: FLEET FAIL peer=%s error=%s", endpoint, exc,
                     )
 
     # -- Rotation loop ------------------------------------------------------
@@ -273,12 +285,12 @@ class PQCKeyManager:
                 bundle = self.generate_bundle()
                 self.push_key_to_kernel(bundle)
                 await self.distribute_public_keys(bundle)
-            except PQCError as exc:
-                logger.error("Key rotation failed: %s", exc)
-                self._audit.error("ROTATION FAIL: %s", exc)
-            except Exception as exc:
-                logger.exception("Unexpected error during rotation: %s", exc)
-                self._audit.error("ROTATION UNEXPECTED: %s", exc)
+            except PQCError as exc:  # MURPHY-PQC-ERR-104
+                logger.error("MURPHY-PQC-ERR-104: Key rotation failed: %s", exc)
+                self._audit.error("MURPHY-PQC-ERR-104: ROTATION FAIL: %s", exc)
+            except Exception as exc:  # MURPHY-PQC-ERR-105
+                logger.exception("MURPHY-PQC-ERR-105: Unexpected error during rotation: %s", exc)
+                self._audit.error("MURPHY-PQC-ERR-105: ROTATION UNEXPECTED: %s", exc)
 
             # Sleep in small increments so we can respond to shutdown quickly
             remaining = self.rotation_seconds
@@ -309,8 +321,8 @@ def _load_config() -> Dict[str, Any]:
             try:
                 import yaml  # type: ignore[import-untyped]
                 return yaml.safe_load(p.read_text()).get("pqc", {})
-            except Exception:
-                pass
+            except Exception as exc:  # MURPHY-PQC-ERR-106
+                logger.debug("MURPHY-PQC-ERR-106: failed to load config %s: %s", p, exc)
     return {}
 
 

@@ -10,6 +10,12 @@ creates a signed manifest using SLH-DSA-SHA2-256f (SPHINCS+).
 Outputs:
   • manifest.json  — file paths + SHA3-256 hashes
   • manifest.sig   — SLH-DSA signature over manifest.json bytes
+
+---------------------------------------------------------------------------
+Error-code registry
+---------------------------------------------------------------------------
+MURPHY-MANIFEST-ERR-001  PQC library (murphy_pqc) not available
+---------------------------------------------------------------------------
 """
 from __future__ import annotations
 
@@ -43,7 +49,8 @@ try:
         hash_sign,
     )
     _HAS_PQC = True
-except ImportError:
+except ImportError:  # MURPHY-MANIFEST-ERR-001
+    logger.warning("MURPHY-MANIFEST-ERR-001: murphy_pqc not available — using HMAC fallback")
     _HAS_PQC = False
 
 # ---------------------------------------------------------------------------

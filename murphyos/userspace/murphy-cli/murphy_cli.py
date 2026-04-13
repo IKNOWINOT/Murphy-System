@@ -21,12 +21,32 @@ Usage::
     murphy gate approve req-42
     murphy confidence
     murphy pqc status
+
+---------------------------------------------------------------------------
+Error-code registry
+---------------------------------------------------------------------------
+MURPHY-CLI-ERR-001  REST API GET request failed
+MURPHY-CLI-ERR-002  REST API POST request failed
+MURPHY-CLI-ERR-003  REST API DELETE request failed
+MURPHY-CLI-ERR-004  Failed to read MurphyFS live file
+MURPHY-CLI-ERR-005  D-Bus method call failed
+MURPHY-CLI-ERR-006  Failed to parse MurphyFS live file as JSON
+MURPHY-CLI-ERR-007  Non-numeric confidence score in status display
+MURPHY-CLI-ERR-008  Gate approve filesystem fallback failed
+MURPHY-CLI-ERR-009  Gate deny filesystem fallback failed
+MURPHY-CLI-ERR-010  Event stream file not found
+MURPHY-CLI-ERR-011  Event streaming interrupted by user
+MURPHY-CLI-ERR-012  Non-numeric confidence score in confidence command
+MURPHY-CLI-ERR-013  Command interrupted by user
+MURPHY-CLI-ERR-014  Unhandled exception in command dispatch
+---------------------------------------------------------------------------
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 import sys
 import time
@@ -37,6 +57,8 @@ from typing import Any, Dict, List, Optional
 # ── Version ─────────────────────────────────────────────────────────
 
 __version__ = "1.0.0"
+
+logger = logging.getLogger("murphy-cli")
 
 # ── Exit codes ──────────────────────────────────────────────────────
 
@@ -96,7 +118,8 @@ def _api_get(path: str, timeout: float = 5.0) -> Optional[dict]:
         req = urllib.request.Request(url, method="GET")
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read().decode())
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001  # MURPHY-CLI-ERR-001
+        logger.debug("MURPHY-CLI-ERR-001: GET %s failed", url)
         return None
 
 
@@ -110,7 +133,8 @@ def _api_post(path: str, body: Optional[dict] = None, timeout: float = 10.0) -> 
         )
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read().decode())
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001  # MURPHY-CLI-ERR-002
+        logger.debug("MURPHY-CLI-ERR-002: POST %s failed", url)
         return None
 
 
@@ -120,7 +144,8 @@ def _api_delete(path: str, timeout: float = 5.0) -> Optional[dict]:
         req = urllib.request.Request(url, method="DELETE")
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read().decode())
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001  # MURPHY-CLI-ERR-003
+        logger.debug("MURPHY-CLI-ERR-003: DELETE %s failed", url)
         return None
 
 
@@ -129,7 +154,8 @@ def _read_live(relpath: str) -> Optional[str]:
     try:
         with open(fpath) as fh:
             return fh.read()
-    except OSError:
+    except OSError:  # MURPHY-CLI-ERR-004
+        logger.debug("MURPHY-CLI-ERR-004: cannot read live file %s", fpath)
         return None
 
 
@@ -152,7 +178,8 @@ def _dbus_call(interface: str, method: str, *args: Any) -> Optional[Any]:
             return result
 
         return asyncio.get_event_loop().run_until_complete(_call())
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001  # MURPHY-CLI-ERR-005
+        logger.debug("MURPHY-CLI-ERR-005: D-Bus call %s.%s failed", interface, method)
         return None
 
 
@@ -170,7 +197,8 @@ def _get(api_path: str, live_file: str, dbus_iface: Optional[str] = None,
     if text is not None:
         try:
             return json.loads(text)
-        except (json.JSONDecodeError, TypeError):
+        except (json.JSONDecodeError, TypeError):  # MURPHY-CLI-ERR-006
+            logger.debug("MURPHY-CLI-ERR-006: failed to parse live file as JSON: %s", live_file)
             return text.strip()
     return None
 
@@ -251,7 +279,8 @@ def cmd_status(args: argparse.Namespace) -> int:
         else:
             sc = _red(f"{score_f:.4f}")
         print(f"  {_bold('Confidence')}: {sc}")
-    except (ValueError, TypeError):
+    except (ValueError, TypeError):  # MURPHY-CLI-ERR-007
+        logger.debug("MURPHY-CLI-ERR-007: non-numeric confidence score: %s", score)
         print(f"  {_bold('Confidence')}: {score}")
 
     # Engines
@@ -399,7 +428,8 @@ def cmd_gate_approve(args: argparse.Namespace) -> int:
             with open(live_path, "w") as fh:
                 fh.write(f"approve {args.request_id}\n")
             result = {"status": "approved"}
-        except OSError:
+        except OSError:  # MURPHY-CLI-ERR-008
+            logger.debug("MURPHY-CLI-ERR-008: gate approve filesystem fallback failed for %s", args.request_id)
             _error(f"Failed to approve request '{args.request_id}'")
             return EXIT_ERROR
     if not _QUIET:
@@ -418,7 +448,8 @@ def cmd_gate_deny(args: argparse.Namespace) -> int:
             with open(live_path, "w") as fh:
                 fh.write(f"deny {args.request_id}\n")
             result = {"status": "denied"}
-        except OSError:
+        except OSError:  # MURPHY-CLI-ERR-009
+            logger.debug("MURPHY-CLI-ERR-009: gate deny filesystem fallback failed for %s", args.request_id)
             _error(f"Failed to deny request '{args.request_id}'")
             return EXIT_ERROR
     if not _QUIET:
@@ -496,14 +527,15 @@ def cmd_log_tail(args: argparse.Namespace) -> int:
                     print(line, end="")
                 else:
                     time.sleep(0.25)
-    except FileNotFoundError:
+    except FileNotFoundError:  # MURPHY-CLI-ERR-010
+        logger.debug("MURPHY-CLI-ERR-010: event stream file not found: %s", events_path)
         data = _api_get("/api/events/stream")
         if data is None:
             _error("Cannot stream events — /murphy/live/events not found and API unreachable")
             return EXIT_ERROR
         _output(data)
-    except KeyboardInterrupt:
-        pass
+    except KeyboardInterrupt:  # MURPHY-CLI-ERR-011
+        logger.debug("MURPHY-CLI-ERR-011: event streaming interrupted by user")
     return EXIT_OK
 
 
@@ -544,7 +576,8 @@ def cmd_confidence(args: argparse.Namespace) -> int:
                 print(_yellow(f"{score_f:.4f}"))
             else:
                 print(_red(f"{score_f:.4f}"))
-        except (ValueError, TypeError):
+        except (ValueError, TypeError):  # MURPHY-CLI-ERR-012
+            logger.debug("MURPHY-CLI-ERR-012: non-numeric confidence score: %s", score)
             print(score)
     return EXIT_OK
 
@@ -791,9 +824,11 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     try:
         return handler(args)
-    except KeyboardInterrupt:
+    except KeyboardInterrupt:  # MURPHY-CLI-ERR-013
+        logger.debug("MURPHY-CLI-ERR-013: command interrupted by user")
         return EXIT_OK
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001  # MURPHY-CLI-ERR-014
+        logger.debug("MURPHY-CLI-ERR-014: unhandled exception: %s", exc)
         _error(str(exc))
         return EXIT_ERROR
 
