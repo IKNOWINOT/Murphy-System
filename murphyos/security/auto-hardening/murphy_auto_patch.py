@@ -98,8 +98,8 @@ class AutoPatchEngine:
             if res.returncode == 0:
                 self._snapshot_method = "btrfs"
                 return
-        except FileNotFoundError:
-            pass
+        except FileNotFoundError:  # MURPHY-AUTOSEC-ERR-011
+            logger.debug("MURPHY-AUTOSEC-ERR-011: btrfs not installed — skipping")
         except Exception as exc:  # MURPHY-AUTOSEC-ERR-012
             logger.debug("MURPHY-AUTOSEC-ERR-012: btrfs probe failed: %s", exc)
 
@@ -108,8 +108,8 @@ class AutoPatchEngine:
             if res.returncode == 0 and res.stdout.strip():
                 self._snapshot_method = "lvm"
                 return
-        except FileNotFoundError:
-            pass
+        except FileNotFoundError:  # MURPHY-AUTOSEC-ERR-014
+            logger.debug("MURPHY-AUTOSEC-ERR-014: LVM not installed — skipping")
         except Exception as exc:  # MURPHY-AUTOSEC-ERR-013
             logger.debug("MURPHY-AUTOSEC-ERR-013: LVM probe failed: %s", exc)
 

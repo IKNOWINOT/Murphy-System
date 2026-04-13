@@ -296,8 +296,8 @@ class AutoEncryptEngine:
             )
             try:
                 filepath.write_bytes(plaintext)
-            except OSError:
-                pass
+            except OSError as restore_exc:  # MURPHY-AUTOSEC-ERR-009
+                logger.error("MURPHY-AUTOSEC-ERR-009: failed to restore plaintext after encrypt error: %s", restore_exc)
             return False
 
         logger.info("Encrypted file: %s", filepath)
