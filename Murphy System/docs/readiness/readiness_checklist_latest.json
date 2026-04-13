@@ -1,11 +1,11 @@
 {
   "agent_version": "1.0.0",
   "agent_label": "READINESS-SCANNER-001",
-  "scan_timestamp": "2026-04-12T09:16:45.221629+00:00",
-  "scan_date": "2026-04-12",
+  "scan_timestamp": "2026-04-13T09:35:43.535644+00:00",
+  "scan_date": "2026-04-13",
   "summary": {
-    "total_modules": 598,
-    "test_coverage_ratio": 0.587,
+    "total_modules": 599,
+    "test_coverage_ratio": 0.586,
     "critical_tests_complete": false,
     "source_in_sync": true,
     "debt_markers": 776,
@@ -184,12 +184,13 @@
       "category": "documentation",
       "priority": "LOW",
       "title": "Add module-level docstrings to undocumented modules",
-      "description": "1 modules lack docstrings. Add G2-compliant docstrings describing module purpose.",
+      "description": "2 modules lack docstrings. Add G2-compliant docstrings describing module purpose.",
       "commissioning": "G2/G8: Purpose must be documented",
       "action": "add_docstrings",
       "details": {
         "missing": [
-          "Murphy System/src/persistence_wal.py"
+          "Murphy System/src/persistence_wal.py",
+          "Murphy System/src/production_commissioning_validator.py"
         ]
       }
     },
@@ -211,9 +212,9 @@
   ],
   "scan_results": {
     "module_inventory": {
-      "total_modules": 598,
+      "total_modules": 599,
       "packages": 87,
-      "single_files": 511,
+      "single_files": 512,
       "modules": [
         {
           "name": "ab_testing_framework",
@@ -2802,6 +2803,12 @@
           "path": "Murphy System/src/production_assistant_engine.py"
         },
         {
+          "name": "production_commissioning_validator",
+          "type": "module",
+          "file_count": 1,
+          "path": "Murphy System/src/production_commissioning_validator.py"
+        },
+        {
           "name": "production_deliverable_wizard",
           "type": "module",
           "file_count": 1,
@@ -3806,10 +3813,10 @@
       ]
     },
     "test_coverage": {
-      "total_modules": 598,
+      "total_modules": 599,
       "covered": 351,
-      "uncovered": 247,
-      "coverage_ratio": 0.587,
+      "uncovered": 248,
+      "coverage_ratio": 0.586,
       "covered_modules": [
         "ab_testing_framework",
         "account_management",
@@ -4349,6 +4356,7 @@
         "probabilistic_layer",
         "procedural_distiller",
         "production_assistant_engine",
+        "production_commissioning_validator",
         "production_deliverable_wizard",
         "production_output_calibrator",
         "production_router",
@@ -4605,13 +4613,14 @@
       ]
     },
     "docstring_coverage": {
-      "total_files": 511,
+      "total_files": 512,
       "with_docstring": 510,
-      "without_docstring": 1,
+      "without_docstring": 2,
       "missing_docstrings": [
-        "Murphy System/src/persistence_wal.py"
+        "Murphy System/src/persistence_wal.py",
+        "Murphy System/src/production_commissioning_validator.py"
       ],
-      "coverage_pct": 99.8
+      "coverage_pct": 99.6
     },
     "error_handling": {
       "bare_except_count": 37,
@@ -4769,8 +4778,8 @@
       ]
     },
     "source_parity": {
-      "murphy_files": 1380,
-      "root_files": 1380,
+      "murphy_files": 1381,
+      "root_files": 1381,
       "only_in_murphy": [],
       "only_in_root": [],
       "in_sync": true,
