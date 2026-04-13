@@ -61,8 +61,9 @@ try:
         verify as pqc_verify,
     )
     _HAS_PQC = True
-except ImportError:
+except ImportError:  # MURPHY-PQC-ERR-204
     _HAS_PQC = False
+    # Not an error — PQC is optional; TLS falls back to classical crypto.
 
 # ---------------------------------------------------------------------------
 # PQC-aware Certificate Authority

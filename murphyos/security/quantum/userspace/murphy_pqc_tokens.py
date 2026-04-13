@@ -56,8 +56,9 @@ try:
         verify as pqc_verify,
     )
     _HAS_PQC = True
-except ImportError:
+except ImportError:  # MURPHY-PQC-TOKEN-ERR-001
     _HAS_PQC = False
+    # Not an error — PQC is optional; tokens fall back to HMAC-SHA256.
 
 # ---------------------------------------------------------------------------
 # Base64url helpers (no padding, URL-safe)
@@ -131,8 +132,8 @@ class PQCTokenManager:
                 self._revoked_cache = set(
                     self._revoked_path.read_text().splitlines(),
                 )
-            except OSError:
-                pass
+            except OSError as exc:  # MURPHY-PQC-TOKEN-ERR-002
+                logger.warning("MURPHY-PQC-TOKEN-ERR-002: failed to load revocation list: %s", exc)
 
     def _save_revoked(self) -> None:
         self._revoked_path.parent.mkdir(parents=True, exist_ok=True)
@@ -271,7 +272,8 @@ class PQCTokenManager:
         """Return True if the token should be rotated due to confidence drift."""
         try:
             payload = self.verify_token(token)
-        except ValueError:
+        except ValueError:  # MURPHY-PQC-TOKEN-ERR-003
+            logger.debug("MURPHY-PQC-TOKEN-ERR-003: token invalid during rotation check — rotation needed")
             return True
 
         drift = abs(current_confidence - payload.confidence_at_issue)

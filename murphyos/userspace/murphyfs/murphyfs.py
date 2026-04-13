@@ -207,7 +207,8 @@ class MurphyFS(Operations):
                 raw = "0.0000"
         try:
             return f"{float(raw):.4f}\n"
-        except (ValueError, TypeError):
+        except (ValueError, TypeError):  # MURPHYFS-ERR-015
+            LOG.debug("MURPHYFS-ERR-015: confidence value not numeric: %r", raw)
             return f"{raw}\n"
 
     def _engines(self) -> Dict[str, dict]:
