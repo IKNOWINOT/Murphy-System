@@ -8,6 +8,12 @@
 # Programmatic enforcement of the COMMISSIONING_CHECKLIST.md questions
 # as automated static-analysis checks for production modules.
 
+"""
+Production Commissioning Validator
+
+Part of the Murphy System.
+"""
+
 from __future__ import annotations
 
 import ast
