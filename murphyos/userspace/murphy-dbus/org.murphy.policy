@@ -63,4 +63,48 @@
     </defaults>
   </action>
 
+  <!-- ── Backup creation ───────────────────────────────────────── -->
+  <action id="org.murphy.backup.create">
+    <description>Create a Murphy system backup</description>
+    <message>Authentication is required to create a Murphy system backup.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <!-- ── Backup restore ────────────────────────────────────────── -->
+  <action id="org.murphy.backup.restore">
+    <description>Restore a Murphy system backup</description>
+    <message>Authentication is required to restore a Murphy system backup.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+  </action>
+
+  <!-- ── Module start ──────────────────────────────────────────── -->
+  <action id="org.murphy.module.start">
+    <description>Start a Murphy module</description>
+    <message>Authentication is required to start a Murphy module.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <!-- ── Module stop ───────────────────────────────────────────── -->
+  <action id="org.murphy.module.stop">
+    <description>Stop a Murphy module</description>
+    <message>Authentication is required to stop a Murphy module.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
 </policyconfig>

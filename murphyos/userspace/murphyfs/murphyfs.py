@@ -30,6 +30,23 @@ Layout::
     │   ├── COMPLIANCE
     │   └── BUDGET
     ├── events              real-time Event Backbone stream
+    ├── llm/
+    │   ├── status          LLM governor status JSON
+    │   ├── usage           LLM usage JSON
+    │   └── health          LLM health JSON
+    ├── telemetry/
+    │   ├── status          Telemetry export status JSON
+    │   └── metrics         Telemetry metrics JSON
+    ├── backup/
+    │   ├── status          Backup subsystem status JSON
+    │   └── list            Backup list JSON
+    ├── cgroup/
+    │   ├── list            CGroup list JSON
+    │   └── usage           CGroup usage JSON
+    ├── modules/
+    │   ├── list            Module list JSON
+    │   └── <name>/
+    │       └── status      Module status JSON
     └── system/
         ├── version         Murphy version string
         ├── uptime          system uptime
@@ -87,6 +104,12 @@ LOG = logging.getLogger("murphyfs")
 # MURPHYFS-ERR-012  gate status JSON parse failed
 # MURPHYFS-ERR-013  system version JSON parse failed
 # MURPHYFS-ERR-014  system uptime JSON parse failed
+# MURPHYFS-ERR-015  confidence value not numeric
+# MURPHYFS-ERR-016  LLM data JSON parse failed
+# MURPHYFS-ERR-017  telemetry data JSON parse failed
+# MURPHYFS-ERR-018  backup data JSON parse failed
+# MURPHYFS-ERR-019  cgroup data JSON parse failed
+# MURPHYFS-ERR-020  module list JSON parse failed
 
 MURPHY_VERSION = "1.0.0"
 
@@ -285,6 +308,90 @@ class MurphyFS(Operations):
             return body if body.endswith("\n") else body + "\n"
         return '{"status":"unknown"}\n'
 
+    def _llm_status(self) -> str:
+        body = _api_get(f"{self._api}/api/llm/status")
+        if body:
+            return body if body.endswith("\n") else body + "\n"
+        return '{"status":"unknown"}\n'
+
+    def _llm_usage(self) -> str:
+        body = _api_get(f"{self._api}/api/llm/usage")
+        if body:
+            return body if body.endswith("\n") else body + "\n"
+        return '{"usage":{}}\n'
+
+    def _llm_health(self) -> str:
+        body = _api_get(f"{self._api}/api/llm/health")
+        if body:
+            return body if body.endswith("\n") else body + "\n"
+        return '{"health":"unknown"}\n'
+
+    def _telemetry_status(self) -> str:
+        body = _api_get(f"{self._api}/api/telemetry/status")
+        if body:
+            return body if body.endswith("\n") else body + "\n"
+        return '{"status":"unknown"}\n'
+
+    def _telemetry_metrics(self) -> str:
+        body = _api_get(f"{self._api}/api/telemetry/metrics")
+        if body:
+            return body if body.endswith("\n") else body + "\n"
+        return '{"metrics":{}}\n'
+
+    def _backup_status(self) -> str:
+        body = _api_get(f"{self._api}/api/backup/status")
+        if body:
+            return body if body.endswith("\n") else body + "\n"
+        return '{"status":"unknown"}\n'
+
+    def _backup_list(self) -> str:
+        body = _api_get(f"{self._api}/api/backup/list")
+        if body:
+            return body if body.endswith("\n") else body + "\n"
+        return '{"backups":[]}\n'
+
+    def _cgroup_list(self) -> str:
+        body = _api_get(f"{self._api}/api/cgroup/list")
+        if body:
+            return body if body.endswith("\n") else body + "\n"
+        return '{"cgroups":[]}\n'
+
+    def _cgroup_usage(self) -> str:
+        body = _api_get(f"{self._api}/api/cgroup/usage")
+        if body:
+            return body if body.endswith("\n") else body + "\n"
+        return '{"usage":{}}\n'
+
+    def _modules_list(self) -> str:
+        body = _api_get(f"{self._api}/api/modules")
+        if body:
+            return body if body.endswith("\n") else body + "\n"
+        return '{"modules":[]}\n'
+
+    def _module_names(self) -> List[str]:
+        def _fetch():
+            body = _api_get(f"{self._api}/api/modules")
+            if body:
+                try:
+                    data = json.loads(body)
+                    if isinstance(data, list):
+                        return [str(m.get("name", f"module-{i}") if isinstance(m, dict) else m) for i, m in enumerate(data)]
+                    if isinstance(data, dict):
+                        mods = data.get("modules", data.get("data", []))
+                        if isinstance(mods, list):
+                            return [str(m.get("name", f"module-{i}") if isinstance(m, dict) else m) for i, m in enumerate(mods)]
+                    return []
+                except (json.JSONDecodeError, TypeError):  # MURPHYFS-ERR-020
+                    LOG.debug("MURPHYFS-ERR-020: module list JSON parse failed")
+            return []
+        return self._cache.get("module_names", _fetch) or []
+
+    def _module_status(self, name: str) -> str:
+        body = _api_get(f"{self._api}/api/modules/{name}/status")
+        if body:
+            return body if body.endswith("\n") else body + "\n"
+        return '{"status":"unknown"}\n'
+
     def _events_snapshot(self) -> str:
         body = _api_get(f"{self._api}/api/events/stream")
         if body:
@@ -367,18 +474,79 @@ class MurphyFS(Operations):
                 return self._system_health().encode()
             raise FuseOSError(errno.ENOENT)
 
+        # /llm/...
+        if parts[0] == "llm":
+            if len(parts) == 1:
+                return None
+            if parts[1] == "status":
+                return self._llm_status().encode()
+            if parts[1] == "usage":
+                return self._llm_usage().encode()
+            if parts[1] == "health":
+                return self._llm_health().encode()
+            raise FuseOSError(errno.ENOENT)
+
+        # /telemetry/...
+        if parts[0] == "telemetry":
+            if len(parts) == 1:
+                return None
+            if parts[1] == "status":
+                return self._telemetry_status().encode()
+            if parts[1] == "metrics":
+                return self._telemetry_metrics().encode()
+            raise FuseOSError(errno.ENOENT)
+
+        # /backup/...
+        if parts[0] == "backup":
+            if len(parts) == 1:
+                return None
+            if parts[1] == "status":
+                return self._backup_status().encode()
+            if parts[1] == "list":
+                return self._backup_list().encode()
+            raise FuseOSError(errno.ENOENT)
+
+        # /cgroup/...
+        if parts[0] == "cgroup":
+            if len(parts) == 1:
+                return None
+            if parts[1] == "list":
+                return self._cgroup_list().encode()
+            if parts[1] == "usage":
+                return self._cgroup_usage().encode()
+            raise FuseOSError(errno.ENOENT)
+
+        # /modules/...
+        if parts[0] == "modules":
+            if len(parts) == 1:
+                return None
+            if parts[1] == "list":
+                return self._modules_list().encode()
+            mod_names = self._module_names()
+            if parts[1] in mod_names:
+                if len(parts) == 2:
+                    return None  # dir
+                if parts[2] == "status":
+                    return self._module_status(parts[1]).encode()
+                raise FuseOSError(errno.ENOENT)
+            raise FuseOSError(errno.ENOENT)
+
         raise FuseOSError(errno.ENOENT)
 
     def _is_dir(self, path: str) -> bool:
         parts = [p for p in path.strip("/").split("/") if p]
         if not parts:
             return True
-        if parts[0] in ("engines", "swarm", "gates", "system") and len(parts) == 1:
+        if parts[0] in ("engines", "swarm", "gates", "system",
+                         "llm", "telemetry", "backup", "cgroup",
+                         "modules") and len(parts) == 1:
             return True
         if parts[0] == "engines" and len(parts) == 2:
             return parts[1] in self._engines()
         if parts[0] == "swarm" and len(parts) == 2:
             return parts[1] in self._swarm_agents()
+        if parts[0] == "modules" and len(parts) == 2 and parts[1] != "list":
+            return parts[1] in self._module_names()
         return False
 
     # ── FUSE callbacks ──────────────────────────────────────────────
@@ -422,7 +590,8 @@ class MurphyFS(Operations):
         parts = [p for p in path.strip("/").split("/") if p]
         try:
             if not parts:
-                entries += ["confidence", "engines", "swarm", "gates", "events", "system"]
+                entries += ["confidence", "engines", "swarm", "gates", "events", "system",
+                            "llm", "telemetry", "backup", "cgroup", "modules"]
             elif parts == ["engines"]:
                 entries += list(self._engines().keys())
             elif parts[0] == "engines" and len(parts) == 2:
@@ -435,6 +604,18 @@ class MurphyFS(Operations):
                 entries += list(GATE_NAMES)
             elif parts == ["system"]:
                 entries += ["version", "uptime", "health"]
+            elif parts == ["llm"]:
+                entries += ["status", "usage", "health"]
+            elif parts == ["telemetry"]:
+                entries += ["status", "metrics"]
+            elif parts == ["backup"]:
+                entries += ["status", "list"]
+            elif parts == ["cgroup"]:
+                entries += ["list", "usage"]
+            elif parts == ["modules"]:
+                entries += ["list"] + self._module_names()
+            elif parts[0] == "modules" and len(parts) == 2:
+                entries += ["status"]
             else:
                 raise FuseOSError(errno.ENOENT)
         except FuseOSError:

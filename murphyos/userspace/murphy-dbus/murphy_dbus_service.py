@@ -3,13 +3,17 @@
 murphy_dbus_service.py — Murphy System D-Bus Bridge
 
 Bridges the Murphy REST API (FastAPI on localhost:8000) to the Linux
-system D-Bus, exposing five interfaces:
+system D-Bus, exposing nine interfaces:
 
     org.murphy.ControlPlane  — engine lifecycle management
     org.murphy.Confidence    — live confidence metrics
     org.murphy.HITL          — human-in-the-loop approval workflow
     org.murphy.Swarm         — autonomous agent swarm management
     org.murphy.Forge         — natural-language-to-deliverable builds
+    org.murphy.LLM           — LLM governor budget and health
+    org.murphy.Telemetry     — telemetry export metrics
+    org.murphy.Backup        — backup creation and verification
+    org.murphy.Module        — module lifecycle management
 
 Uses dbus-next (asyncio-native) and aiohttp for non-blocking HTTP.
 
@@ -316,6 +320,131 @@ class Forge(ServiceInterface):
         pass
 
 
+# ── D-Bus interface: LLM ───────────────────────────────────────
+
+class LLMGovernor(ServiceInterface):
+    """LLM governor budget and health monitoring."""
+
+    def __init__(self, session: aiohttp.ClientSession) -> None:
+        super().__init__("org.murphy.LLM")
+        self._session = session
+
+    @method()
+    async def GetUsage(self, provider: "s") -> "s":  # noqa: N802
+        logger.info("LLM.GetUsage(%s)", provider)
+        result = await _get(self._session,
+                            f"/api/llm/usage?provider={provider}")
+        return json.dumps(result)
+
+    @method()
+    async def GetHealth(self) -> "s":  # noqa: N802
+        result = await _get(self._session, "/api/llm/health")
+        return json.dumps(result)
+
+    @method()
+    async def GetBudgetStatus(self) -> "s":  # noqa: N802
+        result = await _get(self._session, "/api/llm/budget")
+        return json.dumps(result)
+
+    @dbus_signal()
+    def BudgetAlert(self, provider: "s", remaining_pct: "d") -> None:  # noqa: N802
+        pass
+
+
+# ── D-Bus interface: Telemetry ─────────────────────────────────
+
+class TelemetryExport(ServiceInterface):
+    """Telemetry export metrics and status."""
+
+    def __init__(self, session: aiohttp.ClientSession) -> None:
+        super().__init__("org.murphy.Telemetry")
+        self._session = session
+
+    @method()
+    async def GetMetrics(self) -> "s":  # noqa: N802
+        result = await _get(self._session, "/api/telemetry/metrics")
+        return json.dumps(result)
+
+    @method()
+    async def GetStatus(self) -> "s":  # noqa: N802
+        result = await _get(self._session, "/api/telemetry/status")
+        return json.dumps(result)
+
+    @dbus_signal()
+    def MetricAlert(self, metric: "s", value: "d", threshold: "d") -> None:  # noqa: N802
+        pass
+
+
+# ── D-Bus interface: Backup ────────────────────────────────────
+
+class Backup(ServiceInterface):
+    """Backup creation, listing, and verification."""
+
+    def __init__(self, session: aiohttp.ClientSession) -> None:
+        super().__init__("org.murphy.Backup")
+        self._session = session
+
+    @method()
+    async def CreateBackup(self, label: "s") -> "s":  # noqa: N802
+        logger.info("Backup.CreateBackup(%s)", label)
+        result = await _post(self._session, "/api/backup/create",
+                             {"label": label})
+        data = result.get("data", result)
+        backup_id = str(data.get("id", data.get("backup_id", "")))
+        return backup_id
+
+    @method()
+    async def ListBackups(self) -> "s":  # noqa: N802
+        result = await _get(self._session, "/api/backup/list")
+        return json.dumps(result)
+
+    @method()
+    async def VerifyBackup(self, backup_id: "s") -> "s":  # noqa: N802
+        logger.info("Backup.VerifyBackup(%s)", backup_id)
+        result = await _get(self._session,
+                            f"/api/backup/{backup_id}/verify")
+        return json.dumps(result)
+
+    @dbus_signal()
+    def BackupComplete(self, backup_id: "s", success: "b", size: "x") -> None:  # noqa: N802
+        pass
+
+
+# ── D-Bus interface: Module ────────────────────────────────────
+
+class ModuleLifecycle(ServiceInterface):
+    """Module lifecycle management."""
+
+    def __init__(self, session: aiohttp.ClientSession) -> None:
+        super().__init__("org.murphy.Module")
+        self._session = session
+
+    @method()
+    async def ListModules(self) -> "s":  # noqa: N802
+        result = await _get(self._session, "/api/modules")
+        return json.dumps(result)
+
+    @method()
+    async def StartModule(self, name: "s") -> "s":  # noqa: N802
+        logger.info("Module.StartModule(%s)", name)
+        result = await _post(self._session, "/api/modules/start",
+                             {"name": name})
+        return json.dumps(result)
+
+    @method()
+    async def StopModule(self, name: "s") -> "s":  # noqa: N802
+        logger.info("Module.StopModule(%s)", name)
+        result = await _post(self._session, "/api/modules/stop",
+                             {"name": name})
+        return json.dumps(result)
+
+    @method()
+    async def GetModuleStatus(self, name: "s") -> "s":  # noqa: N802
+        result = await _get(self._session,
+                            f"/api/modules/{name}/status")
+        return json.dumps(result)
+
+
 # ── main ───────────────────────────────────────────────────────────
 
 async def main() -> None:
@@ -329,12 +458,20 @@ async def main() -> None:
         hitl = HITL(session)
         swarm = Swarm(session)
         forge = Forge(session)
+        llm = LLMGovernor(session)
+        telemetry = TelemetryExport(session)
+        backup = Backup(session)
+        module = ModuleLifecycle(session)
 
         bus.export(OBJECT_PATH, ctrl)
         bus.export(OBJECT_PATH, conf)
         bus.export(OBJECT_PATH, hitl)
         bus.export(OBJECT_PATH, swarm)
         bus.export(OBJECT_PATH, forge)
+        bus.export(OBJECT_PATH, llm)
+        bus.export(OBJECT_PATH, telemetry)
+        bus.export(OBJECT_PATH, backup)
+        bus.export(OBJECT_PATH, module)
 
         await bus.request_name(BUS_NAME)
         logger.info("Acquired bus name %s at %s", BUS_NAME, OBJECT_PATH)

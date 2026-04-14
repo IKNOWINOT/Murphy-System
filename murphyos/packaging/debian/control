@@ -20,7 +20,9 @@ Depends: ${python3:Depends},
          systemd,
          dbus,
          polkitd | policykit-1,
-         curl
+         curl,
+         systemd-container,
+         prometheus-node-exporter
 Recommends: murphyos-kmod-dkms,
             python3-fusepy,
             nftables
@@ -30,7 +32,9 @@ Suggests: murphyos-desktop,
 Description: MurphyOS — AI-native Linux runtime with PQC security
  Core runtime for MurphyOS: Murphy System service, CLI tool, D-Bus bridge,
  FUSE filesystem, udev rules, PAM module, Polkit policies, nftables rules,
- DNS resolver, and post-quantum cryptography (PQC) key management.
+ DNS resolver, post-quantum cryptography (PQC) key management, cgroup
+ resource isolation, journal integration, backup/restore, LLM governor,
+ telemetry export, and module lifecycle management.
  .
  Murphy is a universal AI automation system with HITL governance, swarm
  orchestration, and confidence-driven safety gates — integrated as native

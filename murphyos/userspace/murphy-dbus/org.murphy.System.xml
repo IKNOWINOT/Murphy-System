@@ -117,4 +117,99 @@
     </signal>
   </interface>
 
+  <!-- ════════════════════════════════════════════════════════════════
+       org.murphy.LLM
+       LLM governor budget and health monitoring.
+       ════════════════════════════════════════════════════════════════ -->
+  <interface name="org.murphy.LLM">
+    <method name="GetUsage">
+      <arg name="provider"    type="s" direction="in"/>
+      <arg name="usage_json"  type="s" direction="out"/>
+    </method>
+
+    <method name="GetHealth">
+      <arg name="health_json" type="s" direction="out"/>
+    </method>
+
+    <method name="GetBudgetStatus">
+      <arg name="budget_json" type="s" direction="out"/>
+    </method>
+
+    <signal name="BudgetAlert">
+      <arg name="provider"      type="s"/>
+      <arg name="remaining_pct" type="d"/>
+    </signal>
+  </interface>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       org.murphy.Telemetry
+       Telemetry export metrics and status.
+       ════════════════════════════════════════════════════════════════ -->
+  <interface name="org.murphy.Telemetry">
+    <method name="GetMetrics">
+      <arg name="metrics_json" type="s" direction="out"/>
+    </method>
+
+    <method name="GetStatus">
+      <arg name="status_json" type="s" direction="out"/>
+    </method>
+
+    <signal name="MetricAlert">
+      <arg name="metric"    type="s"/>
+      <arg name="value"     type="d"/>
+      <arg name="threshold" type="d"/>
+    </signal>
+  </interface>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       org.murphy.Backup
+       Backup creation, listing, and verification.
+       ════════════════════════════════════════════════════════════════ -->
+  <interface name="org.murphy.Backup">
+    <method name="CreateBackup">
+      <arg name="label"     type="s" direction="in"/>
+      <arg name="backup_id" type="s" direction="out"/>
+    </method>
+
+    <method name="ListBackups">
+      <arg name="backups_json" type="s" direction="out"/>
+    </method>
+
+    <method name="VerifyBackup">
+      <arg name="backup_id"   type="s" direction="in"/>
+      <arg name="verify_json" type="s" direction="out"/>
+    </method>
+
+    <signal name="BackupComplete">
+      <arg name="backup_id" type="s"/>
+      <arg name="success"   type="b"/>
+      <arg name="size"      type="x"/>
+    </signal>
+  </interface>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       org.murphy.Module
+       Module lifecycle management.
+       ════════════════════════════════════════════════════════════════ -->
+  <interface name="org.murphy.Module">
+    <method name="ListModules">
+      <arg name="modules_json" type="s" direction="out"/>
+    </method>
+
+    <method name="StartModule">
+      <arg name="name"        type="s" direction="in"/>
+      <arg name="result_json" type="s" direction="out"/>
+    </method>
+
+    <method name="StopModule">
+      <arg name="name"        type="s" direction="in"/>
+      <arg name="result_json" type="s" direction="out"/>
+    </method>
+
+    <method name="GetModuleStatus">
+      <arg name="name"        type="s" direction="in"/>
+      <arg name="status_json" type="s" direction="out"/>
+    </method>
+  </interface>
+
 </node>
