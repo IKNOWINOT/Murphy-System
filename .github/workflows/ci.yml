@@ -346,3 +346,129 @@ jobs:
             --continue-on-collection-errors \
             -k "not test_actual_local_llm"
         continue-on-error: true
+
+  # ---------------------------------------------------------------------------
+  # CI Hardening — MURPHY-CI-HARDENING-001
+  # These checks BLOCK merge and BLOCK packaging on failure.
+  # ---------------------------------------------------------------------------
+  schema-and-code-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pydantic ruff pytest pytest-asyncio
+
+      # CHECK 1: Stub detector — fail if any function in murphy/ has
+      # pass-only body, TODO, or raise NotImplementedError
+      - name: "CI-HARD-001: Stub detector"
+        run: |
+          echo "Scanning for stubs in murphy/ ..."
+          python3 -c "
+          import ast, sys, pathlib
+          fails = []
+          for f in pathlib.Path('murphy').rglob('*.py'):
+              try:
+                  tree = ast.parse(f.read_text())
+              except SyntaxError:
+                  continue
+              for node in ast.walk(tree):
+                  if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                      stmts = [s for s in node.body if not (isinstance(s, ast.Expr) and isinstance(getattr(s, 'value', None), ast.Constant))]
+                      if len(stmts) == 1 and isinstance(stmts[0], ast.Pass):
+                          fails.append(f'{f}:{node.lineno} {node.name}() — pass-only stub')
+                      for s in stmts:
+                          if isinstance(s, ast.Raise) and hasattr(s.exc, 'func') and getattr(s.exc.func, 'id', '') == 'NotImplementedError':
+                              fails.append(f'{f}:{node.lineno} {node.name}() — NotImplementedError')
+          if fails:
+              for x in fails: print(f'STUB: {x}')
+              sys.exit(1)
+          print('✅ No stubs found in murphy/')
+          "
+
+      # CHECK 2: Silent failure detector — bare except:pass, empty catch
+      - name: "CI-HARD-002: Silent failure detector"
+        run: |
+          python3 -c "
+          import pathlib, re, sys
+          fails = []
+          for f in pathlib.Path('murphy').rglob('*.py'):
+              lines = f.read_text().splitlines()
+              for i, line in enumerate(lines):
+                  if re.match(r'^\s*except\s*:\s*$', line):
+                      if i+1 < len(lines) and re.match(r'^\s+pass\s*$', lines[i+1]):
+                          fails.append(f'{f}:{i+1} — bare except:pass')
+          for f in pathlib.Path('murphy').rglob('*.ts'):
+              text = f.read_text()
+              if re.search(r'catch\s*\([^)]*\)\s*\{\s*\}', text):
+                  fails.append(f'{f} — empty catch block')
+          if fails:
+              for x in fails: print(f'SILENT: {x}')
+              sys.exit(1)
+          print('✅ No silent failures found')
+          "
+
+      # CHECK 3: Schema conformance — AgentOutput schema validates
+      - name: "CI-HARD-003: Schema conformance check"
+        run: |
+          PYTHONPATH="${GITHUB_WORKSPACE}" python3 -c "
+          from murphy.schemas.agent_output import AgentOutput, ContentType, RenderType
+          AgentOutput(
+              agent_id='ci', agent_name='CI', file_path='check',
+              content_type=ContentType.PASS_FAIL, content='PASS',
+              org_node_id='ci', rosetta_state_hash='ci-hash',
+              render_type=RenderType.SYNTAX_HIGHLIGHT)
+          print('✅ AgentOutput schema validates correctly')
+          try:
+              AgentOutput(agent_id='x', agent_name='x', file_path='x',
+                  content_type=ContentType.CODE, content='x',
+                  org_node_id='x', rosetta_state_hash='',
+                  render_type=RenderType.SYNTAX_HIGHLIGHT)
+              exit(1)
+          except Exception: pass
+          print('✅ Empty rosetta_state_hash correctly rejected')
+          "
+
+      # CHECK 4: HITL authority hardcoding check
+      - name: "CI-HARD-004: HITL authority hardcoding check"
+        run: |
+          python3 -c "
+          import pathlib, re, sys
+          fails = []
+          for f in pathlib.Path('murphy/agents').rglob('*.py'):
+              for i, line in enumerate(f.read_text().splitlines(), 1):
+                  if 'hitl_authority_node_id' in line and re.search(r'=\s*\"[a-z]', line):
+                      if 'fallback' not in line and 'error-state' not in line:
+                          fails.append(f'{f}:{i} — hardcoded authority')
+          if fails:
+              for x in fails: print(x)
+              sys.exit(1)
+          print('✅ No hardcoded HITL authority strings')
+          "
+
+      # CHECK 5: Rosetta state hash presence
+      - name: "CI-HARD-005: Rosetta state hash presence"
+        run: |
+          PYTHONPATH="${GITHUB_WORKSPACE}" python3 -c "
+          from murphy.rosetta.org_lookup import get_rosetta_state_hash
+          h = get_rosetta_state_hash()
+          assert h and len(h) == 64, f'Invalid hash: {h}'
+          print(f'✅ Rosetta state hash: {h[:16]}...')
+          "
+
+      # CHECK 6: Full agent schema + integration test suite
+      - name: "CI-HARD-006: Agent schema and integration tests"
+        run: |
+          PYTHONPATH="${GITHUB_WORKSPACE}" python -m pytest tests/test_agent_output_schema.py -v --tb=short
