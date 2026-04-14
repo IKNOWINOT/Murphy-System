@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: LicenseRef-BSL-1.1
+# © 2020 Inoni Limited Liability Company — Creator: Corey Post — BSL 1.1
+#
+# murphy-telemetry-export.timer
+# Fires every 15 seconds to collect Murphy metrics into the
+# Prometheus node_exporter textfile directory.
+
+[Unit]
+Description=Murphy Telemetry Export Timer (every 15s)
+Documentation=https://github.com/murphy-system/murphy/blob/main/murphyos/userspace/murphy-telemetry-export/README.md
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=15s
+AccuracySec=1s
+RandomizedDelaySec=0
+
+[Install]
+WantedBy=timers.target
