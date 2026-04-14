@@ -1267,7 +1267,7 @@ const loadDashboard = async () => {
       if (statsEl && cov && cov.total_modules) {
         statsEl.textContent = `${cov.active_modules}/${cov.total_modules} modules active · ${Math.round(cov.coverage_pct || 0)}% coverage`;
       }
-    }).catch(() => {});
+    }).catch(() => { console.warn('[Murphy] heatmap-coverage fetch failed'); });
   } catch {
     const strip = document.getElementById('prod-heatmap-strip');
     if (strip) strip.innerHTML = '<span class="text-xs text-muted">Heatmap API offline.</span>';
@@ -1451,15 +1451,15 @@ const renderTimelineGraph = async () => {
   try {
     const q = await apiFetch('/api/production/queue');
     queueItems = q.items || [];
-  } catch (_) {}
+  } catch (_) { console.warn('[Murphy] production-queue fetch failed'); }
   try {
     const s = await apiFetch('/api/production/schedule');
     if (Array.isArray(s.schedules)) queueItems = [...queueItems, ...s.schedules];
-  } catch (_) {}
+  } catch (_) { console.warn('[Murphy] production-schedule fetch failed'); }
   try {
     const d = await apiFetch('/api/deliverables');
     deliverables = d.deliverables || [];
-  } catch (_) {}
+  } catch (_) { console.warn('[Murphy] deliverables fetch failed'); }
   container.innerHTML = '';
   container.appendChild(_buildTimelineSVG(queueItems, deliverables));
   await loadTimeline();
@@ -1631,7 +1631,7 @@ const loadHITL = async () => {
     try {
       const legacy = await apiFetch('/api/hitl/interventions/pending');
       legacyItems = legacy.interventions || legacy.items || [];
-    } catch(_) {}
+    } catch(_) { console.warn('[Murphy] HITL interventions fetch failed'); }
 
     let html = '';
 
@@ -1824,7 +1824,7 @@ window._cachedProposals = {};
   try {
     const data = await apiFetch('/api/production/proposals');
     (data.proposals || []).forEach(p => { window._cachedProposals[p.proposal_id] = p; });
-  } catch(_) {}
+  } catch(_) { console.warn('[Murphy] proposals cache fetch failed'); }
 })();
 
 // ── Deliverables ──────────────────────────────────────────────
