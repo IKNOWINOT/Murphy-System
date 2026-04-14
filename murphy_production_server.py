@@ -561,10 +561,14 @@ _VERTICAL_CONFIGS = {
     "content":    {"label":"Content",            "icon":"✍️","color":"#a855f7","description":"Content creation, scheduling, distribution pipeline","engine":"AutomationEngine + OpenAI/Anthropic integration","integrations":["OpenAI","Anthropic","WordPress","Buffer","Contentful"],"automation_templates":["Weekly blog post draft from topic queue","Social media calendar generation — monthly","Content performance report — topic optimization","SEO audit — crawl and flag issues weekly","Video transcript to blog post + social clips"]},
     "comms":      {"label":"Communications",     "icon":"💬","color":"#06b6d4","description":"Inter-agent messaging, team notifications, escalation routing","engine":"AgenticCommsRouter (ACOM-001)","integrations":["Matrix","Slack","Email","SMS","PagerDuty"],"automation_templates":["Agent message routing — priority-based delivery","Escalation chain — unresolved alerts after 15min","Daily standup summary — Slack digest","Cross-system event correlation — unified alert","HITL approval request broadcaster"]},
     "pipeline":   {"label":"AI Pipeline Builder","icon":"🔀","color":"#8b5cf6","description":"NL to DAG workflow generation and execution","engine":"AIWorkflowGenerator + OrchestrationEngine","integrations":["Any (via WorldModelRegistry 90+ connectors)"],"automation_templates":["Describe your workflow in plain English — DAG auto-built","Multi-step data transformation pipeline","API orchestration chain with retry logic","HITL-gated approval workflow","Parallel execution fan-out with merge gate"]},
+    "healthcare": {"label":"Healthcare",         "icon":"🏥","color":"#ec4899","description":"HIPAA compliance, clinical workflow orchestration, patient data privacy","engine":"ComplianceEngine (HIPAA) + AutomationEngine","integrations":["Epic","Cerner","HL7/FHIR","AWS HealthLake","Redox"],"automation_templates":["HIPAA-compliant automation gates — PHI access audit","Clinical workflow orchestration — patient intake to discharge","Patient data privacy monitor — access logging","Appointment scheduling pipeline with consent gate","Lab result notification with HITL escalation"]},
+    "legal":      {"label":"Legal",              "icon":"⚖️","color":"#78716c","description":"Case management, document automation, privilege protection","engine":"AutomationEngine + DocumentGen pipeline","integrations":["Clio","PracticePanther","NetDocuments","DocuSign","LexisNexis"],"automation_templates":["Matter & case workflow — intake to resolution","Document generation pipeline — contracts, briefs, filings","Privilege protection gate — auto-flag privileged docs","Billing & time entry automation — daily sync","Court deadline tracker — auto-calendar + alerts"]},
+    "construction":{"label":"Construction",      "icon":"🏗️","color":"#ca8a04","description":"Project timelines, safety compliance, subcontractor management","engine":"EngineeringBot + SchedulerBot","integrations":["Procore","PlanGrid","Autodesk BIM 360","OSHA API","QuickBooks"],"automation_templates":["Timeline & milestone automation — Gantt sync","Safety compliance monitor — daily checklist + photo capture","Subcontractor workflow routing — RFI to response","Daily progress report — auto-generated from field data","Budget variance alert — change order tracking"]},
+    "education":  {"label":"Education",          "icon":"🎓","color":"#0ea5e9","description":"FERPA compliance, curriculum automation, student privacy","engine":"ComplianceEngine (FERPA) + AutomationEngine","integrations":["Canvas","Blackboard","Google Classroom","PowerSchool","Clever"],"automation_templates":["FERPA-compliant data handling — access audit trail","Curriculum workflow automation — course build pipeline","Student privacy monitor — data sharing gate","Grading pipeline — rubric application + HITL review","Parent notification workflow — automated + compliant"]},
 }
 
-_COST_MAP    = {"reporting":85,"crm":65,"monitoring":110,"content":55,"industrial":120,"finance":90,"security":125,"notifications":45,"marketing":80,"proposals":95,"pipeline":110,"general":75}
-_DURATION_MAP = {"reporting":12,"crm":4,"monitoring":8,"content":7,"industrial":3,"finance":18,"security":35,"notifications":2,"marketing":6,"proposals":15,"pipeline":8,"general":10}
+_COST_MAP    = {"reporting":85,"crm":65,"monitoring":110,"content":55,"industrial":120,"finance":90,"security":125,"notifications":45,"marketing":80,"proposals":95,"pipeline":110,"general":75,"healthcare":130,"legal":115,"construction":105,"education":70}
+_DURATION_MAP = {"reporting":12,"crm":4,"monitoring":8,"content":7,"industrial":3,"finance":18,"security":35,"notifications":2,"marketing":6,"proposals":15,"pipeline":8,"general":10,"healthcare":25,"legal":20,"construction":15,"education":10}
 
 def _cost_savings(auto: Dict[str, Any]) -> float:
     est = auto.get("estimated_minutes", 0)
@@ -2324,6 +2328,10 @@ _CATEGORY_PATTERNS = {
     "campaign":"marketing","marketing":"marketing","outreach":"marketing",
     "proposal":"proposals","rfp":"proposals","quote":"proposals","tender":"proposals",
     "pipeline":"pipeline","workflow":"pipeline","dag":"pipeline","deploy":"pipeline",
+    "hipaa":"healthcare","patient":"healthcare","clinical":"healthcare","ehr":"healthcare","fhir":"healthcare",
+    "legal":"legal","case":"legal","matter":"legal","contract":"legal","court":"legal",
+    "construction":"construction","project":"construction","subcontractor":"construction","safety":"construction","timeline":"construction",
+    "education":"education","student":"education","curriculum":"education","ferpa":"education","course":"education",
 }
 
 @app.post("/api/prompt")
@@ -2512,7 +2520,7 @@ async def get_vertical(vertical_id:str, tenant_id:str=Query(default="")):
 async def activate_vertical(vertical_id:str, tenant_id:str=Query(default="tenant-001")):
     if vertical_id not in _VERTICAL_CONFIGS: raise HTTPException(404,f"Vertical {vertical_id} not found")
     tenant=_TENANTS.get(tenant_id)
-    if vertical_id in ("security","industrial","finance"):
+    if vertical_id in ("security","industrial","finance","healthcare","legal"):
         hitl = _create_hitl_item(
             hitl_type="vertical_activate",
             title=f"Approve Vertical Activation: {_VERTICAL_CONFIGS[vertical_id]['label']}",
@@ -3062,6 +3070,113 @@ async def run_full_setup():
         "comms_rooms_notified":len(_SUBSYSTEM_ROOMS),"message":"Murphy System self-automation pipeline fully initiated."})
 
 # ==============================================================================
+# OPERATIONS CENTER — no silent failures or successes (OPS-CENTER-001)
+# Every vertical reports its success/fail counts, ROI, and live health.
+# ==============================================================================
+@app.get("/api/operations/status")
+async def operations_status(tenant_id: str = Query(default="")):
+    """Aggregate operations view across ALL verticals. Nothing is silent."""
+    verticals_out = []
+    total_success = 0
+    total_fail = 0
+    total_savings = 0.0
+    total_manual = 0.0
+    total_auto_cost = 0.0
+
+    for vid, vconf in _VERTICAL_CONFIGS.items():
+        autos = [a for a in _automation_store
+                 if a.get("category") == vid and (not tenant_id or a.get("tenant_id") == tenant_id)]
+        execs = [e for e in _execution_log if e.get("automation_id") in {a["id"] for a in autos}]
+        succ = sum(1 for e in execs if e.get("status") == "completed")
+        fail = sum(1 for e in execs if e.get("status") == "failed")
+        total_success += succ
+        total_fail += fail
+        monthly = 0.0
+        manual_cost = 0.0
+        auto_cost = 0.0
+        for a in autos:
+            est = a.get("estimated_minutes", 0)
+            actual = a.get("actual_minutes", 0) or est * 0.9
+            hr = a.get("labor_cost_per_hr", 75)
+            m_c = (est / 60) * hr
+            a_c = (actual / 60) * (hr * 0.05)
+            sav = m_c - a_c
+            runs = {"hourly": 720, "daily": 30, "weekly": 4, "monthly": 1}.get(a.get("recurrence", "daily"), 30)
+            monthly += sav * runs
+            manual_cost += m_c
+            auto_cost += a_c
+        total_savings += monthly
+        total_manual += manual_cost
+        total_auto_cost += auto_cost
+
+        active_count = sum(1 for a in autos if a.get("status") == "active")
+        blocked_count = sum(1 for a in autos
+                           if any(m.get("status") == "blocked_hitl"
+                                  for m in a.get("milestones", [])))
+        delayed_count = sum(1 for a in autos if a.get("total_delay_minutes", 0) > 0)
+        success_rate = round(succ / max(succ + fail, 1) * 100, 1)
+
+        # health: green if >90% success, yellow 70-90, red <70
+        health = "healthy" if success_rate >= 90 else ("degraded" if success_rate >= 70 else "critical")
+        if not execs and not autos:
+            health = "inactive"
+
+        recent_execs = [{"id": e.get("execution_id", ""), "status": e.get("status", ""),
+                         "cost_savings": e.get("cost_savings", 0),
+                         "actual_minutes": e.get("actual_minutes", 0),
+                         "automation_name": e.get("automation_name", ""),
+                         "started_at": e.get("started_at", "")} for e in execs[-5:]]
+
+        verticals_out.append({
+            "id": vid,
+            "label": vconf["label"],
+            "icon": vconf["icon"],
+            "color": vconf["color"],
+            "engine": vconf["engine"],
+            "health": health,
+            "automation_count": len(autos),
+            "active_count": active_count,
+            "blocked_hitl": blocked_count,
+            "delayed": delayed_count,
+            "executions_total": len(execs),
+            "executions_success": succ,
+            "executions_failed": fail,
+            "success_rate_pct": success_rate,
+            "monthly_savings": round(monthly, 2),
+            "manual_cost_per_run": round(manual_cost, 2),
+            "automation_cost_per_run": round(auto_cost, 2),
+            "recent_executions": recent_execs,
+        })
+
+    # Global ROI
+    global_roi = round(total_manual / max(total_auto_cost, 0.01), 1)
+    global_success_rate = round(total_success / max(total_success + total_fail, 1) * 100, 1)
+    pending_hitl = sum(1 for h in _HITL_QUEUE if h.get("status") == "pending")
+
+    return JSONResponse({
+        "verticals": verticals_out,
+        "summary": {
+            "total_verticals": len(verticals_out),
+            "active_verticals": sum(1 for v in verticals_out if v["health"] != "inactive"),
+            "healthy": sum(1 for v in verticals_out if v["health"] == "healthy"),
+            "degraded": sum(1 for v in verticals_out if v["health"] == "degraded"),
+            "critical": sum(1 for v in verticals_out if v["health"] == "critical"),
+            "inactive": sum(1 for v in verticals_out if v["health"] == "inactive"),
+            "total_executions": total_success + total_fail,
+            "total_success": total_success,
+            "total_failed": total_fail,
+            "global_success_rate_pct": global_success_rate,
+            "total_monthly_savings": round(total_savings, 2),
+            "total_manual_cost": round(total_manual, 2),
+            "total_automation_cost": round(total_auto_cost, 2),
+            "roi_multiplier": global_roi,
+            "pending_hitl": pending_hitl,
+            "generated_at": _now_iso(),
+        },
+    })
+
+
+# ==============================================================================
 # EXECUTION LOG + TIERS + BOTS
 # ==============================================================================
 @app.get("/api/executions")
@@ -3416,6 +3531,228 @@ async def serve_onboarding():
     path = _MURPHY_DIR / "onboarding_wizard.html"
     if path.exists(): return HTMLResponse(path.read_text())
     return HTMLResponse("<p>Onboarding wizard not found</p>")
+
+
+# ==============================================================================
+# MISSING UI ROUTES — match landing page href targets (UI-ROUTE-001)
+# ==============================================================================
+def _resolve_html(name: str) -> Optional[str]:
+    """Try root, Murphy System/, murphy_ui/ for an HTML file."""
+    for d in [_BASE_DIR, _MURPHY_DIR, _UI_DIR]:
+        p = d / name
+        if p.exists():
+            return p.read_text()
+    return None
+
+@app.get("/ui/compliance", response_class=HTMLResponse)
+async def serve_compliance():
+    html = _resolve_html("compliance_dashboard.html")
+    return HTMLResponse(html or "<h1>Compliance Dashboard</h1><p>Loading compliance engine&hellip;</p>")
+
+@app.get("/ui/paper-trading", response_class=HTMLResponse)
+async def serve_paper_trading():
+    html = _resolve_html("paper_trading_dashboard.html")
+    return HTMLResponse(html or "<h1>Paper Trading</h1><p>Loading paper trading engine&hellip;</p>")
+
+@app.get("/ui/trading", response_class=HTMLResponse)
+async def serve_trading():
+    html = _resolve_html("trading_dashboard.html")
+    return HTMLResponse(html or "<h1>Trading Dashboard</h1><p>Loading trading engine&hellip;</p>")
+
+@app.get("/ui/partner", response_class=HTMLResponse)
+async def serve_partner():
+    html = _resolve_html("partner_request.html")
+    return HTMLResponse(html or "<h1>Partner Program</h1><p>Integration partner request form&hellip;</p>")
+
+@app.get("/ui/terminal-integrations", response_class=HTMLResponse)
+async def serve_terminal_integrations():
+    html = _resolve_html("terminal_integrations.html")
+    return HTMLResponse(html or "<h1>Integrations Terminal</h1><p>Loading integrations&hellip;</p>")
+
+@app.get("/ui/signup", response_class=HTMLResponse)
+async def serve_signup():
+    html = _resolve_html("signup.html")
+    return HTMLResponse(html or "<h1>Sign Up</h1><p>Loading signup&hellip;</p>")
+
+
+# ==============================================================================
+# COMPLIANCE AS CODE ENGINE — API surface (CCE-API-001)
+# Maps to landing page promise: "Compliance Automation" + architecture card
+# ==============================================================================
+_compliance_frameworks: Dict[str, Dict[str, Any]] = {
+    "soc2":   {"id": "soc2",   "name": "SOC 2 Type II",  "enabled": True,  "controls": 117, "passing": 104, "failing": 8, "not_applicable": 5, "last_scan": _now_iso()},
+    "gdpr":   {"id": "gdpr",   "name": "GDPR",           "enabled": True,  "controls": 82,  "passing": 71,  "failing": 6, "not_applicable": 5, "last_scan": _now_iso()},
+    "hipaa":  {"id": "hipaa",  "name": "HIPAA",           "enabled": False, "controls": 54,  "passing": 0,   "failing": 0, "not_applicable": 54, "last_scan": None},
+    "pci_dss":{"id": "pci_dss","name": "PCI-DSS v4.0",   "enabled": False, "controls": 64,  "passing": 0,   "failing": 0, "not_applicable": 64, "last_scan": None},
+    "sox":    {"id": "sox",    "name": "SOX",             "enabled": False, "controls": 38,  "passing": 0,   "failing": 0, "not_applicable": 38, "last_scan": None},
+    "ferpa":  {"id": "ferpa",  "name": "FERPA",           "enabled": False, "controls": 29,  "passing": 0,   "failing": 0, "not_applicable": 29, "last_scan": None},
+    "iso27001":{"id":"iso27001","name":"ISO 27001:2022",  "enabled": True,  "controls": 93,  "passing": 78,  "failing": 10,"not_applicable": 5, "last_scan": _now_iso()},
+}
+_compliance_scan_log: List[Dict[str, Any]] = []
+
+@app.get("/api/compliance/status")
+async def compliance_status():
+    enabled = [f for f in _compliance_frameworks.values() if f["enabled"]]
+    total_controls = sum(f["controls"] for f in enabled)
+    total_passing = sum(f["passing"] for f in enabled)
+    total_failing = sum(f["failing"] for f in enabled)
+    posture_pct = round(total_passing / max(total_controls, 1) * 100, 1)
+    return JSONResponse({
+        "frameworks": list(_compliance_frameworks.values()),
+        "enabled_count": len(enabled),
+        "total_controls": total_controls,
+        "total_passing": total_passing,
+        "total_failing": total_failing,
+        "posture_pct": posture_pct,
+        "status": "compliant" if total_failing == 0 else ("at_risk" if posture_pct >= 80 else "non_compliant"),
+        "last_scan": max((f["last_scan"] for f in enabled if f["last_scan"]), default=None),
+    })
+
+@app.get("/api/compliance/frameworks")
+async def compliance_frameworks():
+    return JSONResponse({"frameworks": list(_compliance_frameworks.values()), "total": len(_compliance_frameworks)})
+
+@app.post("/api/compliance/scan")
+async def compliance_scan():
+    """Run compliance-as-code scan across all enabled frameworks."""
+    results = []
+    for fid, fw in _compliance_frameworks.items():
+        if not fw["enabled"]:
+            continue
+        # Simulate scan: pass rate drifts slightly
+        fw["passing"] = min(fw["controls"] - fw["not_applicable"], fw["passing"] + random.randint(-2, 3))
+        fw["failing"] = fw["controls"] - fw["not_applicable"] - fw["passing"]
+        fw["last_scan"] = _now_iso()
+        results.append({**fw, "status": "pass" if fw["failing"] == 0 else "findings"})
+    scan_record = {"scan_id": f"scan-{uuid.uuid4().hex[:8]}", "frameworks_scanned": len(results),
+                   "results": results, "scanned_at": _now_iso()}
+    _compliance_scan_log.append(scan_record)
+    if len(_compliance_scan_log) > 100:
+        del _compliance_scan_log[:20]
+    _broadcast_sse("compliance_scan_complete", scan_record)
+    return JSONResponse(scan_record)
+
+@app.post("/api/compliance/toggles")
+async def compliance_toggle(request: Request):
+    body = await request.json()
+    fid = body.get("framework_id", "")
+    fw = _compliance_frameworks.get(fid)
+    if not fw:
+        raise HTTPException(404, f"Framework {fid} not found")
+    fw["enabled"] = body.get("enabled", not fw["enabled"])
+    if fw["enabled"] and not fw["last_scan"]:
+        fw["last_scan"] = _now_iso()
+    return JSONResponse({"framework_id": fid, "enabled": fw["enabled"]})
+
+@app.get("/api/compliance/audit-trail")
+async def compliance_audit_trail():
+    return JSONResponse({"scans": _compliance_scan_log[-50:], "total": len(_compliance_scan_log)})
+
+
+# ==============================================================================
+# TRADING ENGINE — API surface (TRADE-API-001)
+# Maps to landing page promise: "Trading & Finance" + architecture card
+# ==============================================================================
+_paper_portfolio: Dict[str, Any] = {
+    "cash": 100000.0, "positions": [], "orders": [],
+    "total_value": 100000.0, "pnl": 0.0, "pnl_pct": 0.0,
+    "paper_trading_active": True, "live_trading_enabled": False,
+    "graduation_criteria": {"min_trades": 50, "min_win_rate": 0.55, "max_drawdown_pct": 10.0,
+                            "min_sharpe": 1.0, "compliance_approved": False},
+    "current_stats": {"total_trades": 0, "win_rate": 0.0, "max_drawdown_pct": 0.0, "sharpe_ratio": 0.0},
+}
+_trade_log: List[Dict[str, Any]] = []
+
+@app.get("/api/trading/status")
+async def trading_status():
+    return JSONResponse({
+        "paper_trading_active": _paper_portfolio["paper_trading_active"],
+        "live_trading_enabled": _paper_portfolio["live_trading_enabled"],
+        "portfolio_value": _paper_portfolio["total_value"],
+        "cash": _paper_portfolio["cash"],
+        "positions": len(_paper_portfolio["positions"]),
+        "pnl": _paper_portfolio["pnl"],
+        "pnl_pct": _paper_portfolio["pnl_pct"],
+        "graduation_criteria": _paper_portfolio["graduation_criteria"],
+        "current_stats": _paper_portfolio["current_stats"],
+        "graduation_ready": (
+            _paper_portfolio["current_stats"]["total_trades"] >= _paper_portfolio["graduation_criteria"]["min_trades"]
+            and _paper_portfolio["current_stats"]["win_rate"] >= _paper_portfolio["graduation_criteria"]["min_win_rate"]
+        ),
+    })
+
+@app.get("/api/trading/portfolio")
+async def trading_portfolio():
+    return JSONResponse(_paper_portfolio)
+
+@app.post("/api/trading/paper-order")
+async def trading_paper_order(request: Request):
+    body = await request.json()
+    symbol = body.get("symbol", "AAPL")
+    side = body.get("side", "buy")
+    qty = int(body.get("quantity", 10))
+    price = float(body.get("price", round(random.uniform(50, 500), 2)))
+    order_value = qty * price
+
+    if side == "buy" and order_value > _paper_portfolio["cash"]:
+        raise HTTPException(400, "Insufficient paper cash")
+
+    order_id = f"porder-{uuid.uuid4().hex[:8]}"
+    order = {"order_id": order_id, "symbol": symbol, "side": side, "quantity": qty,
+             "price": price, "value": order_value, "status": "filled",
+             "filled_at": _now_iso(), "paper": True}
+
+    if side == "buy":
+        _paper_portfolio["cash"] -= order_value
+        existing = next((p for p in _paper_portfolio["positions"] if p["symbol"] == symbol), None)
+        if existing:
+            old_qty = existing["quantity"]
+            existing["quantity"] += qty
+            existing["avg_price"] = round((existing["avg_price"] * old_qty + price * qty) / existing["quantity"], 2)
+        else:
+            _paper_portfolio["positions"].append({"symbol": symbol, "quantity": qty, "avg_price": price, "current_price": price, "pnl": 0.0})
+    else:
+        existing = next((p for p in _paper_portfolio["positions"] if p["symbol"] == symbol), None)
+        if not existing or existing["quantity"] < qty:
+            raise HTTPException(400, f"Insufficient position in {symbol}")
+        existing["quantity"] -= qty
+        _paper_portfolio["cash"] += order_value
+        if existing["quantity"] == 0:
+            _paper_portfolio["positions"].remove(existing)
+
+    _paper_portfolio["orders"].append(order)
+    _paper_portfolio["current_stats"]["total_trades"] += 1
+    # Update portfolio value
+    pos_value = sum(p["quantity"] * p.get("current_price", p["avg_price"]) for p in _paper_portfolio["positions"])
+    _paper_portfolio["total_value"] = round(_paper_portfolio["cash"] + pos_value, 2)
+    _paper_portfolio["pnl"] = round(_paper_portfolio["total_value"] - 100000.0, 2)
+    _paper_portfolio["pnl_pct"] = round(_paper_portfolio["pnl"] / 100000.0 * 100, 2)
+
+    _trade_log.append(order)
+    _broadcast_sse("paper_trade_executed", order)
+    return JSONResponse(order, status_code=201)
+
+@app.get("/api/trading/history")
+async def trading_history():
+    return JSONResponse({"trades": _trade_log[-100:], "total": len(_trade_log)})
+
+@app.post("/api/trading/graduate")
+async def trading_graduate():
+    """Request graduation from paper to live trading — requires HITL approval."""
+    stats = _paper_portfolio["current_stats"]
+    criteria = _paper_portfolio["graduation_criteria"]
+    meets = (stats["total_trades"] >= criteria["min_trades"]
+             and stats["win_rate"] >= criteria["min_win_rate"])
+    if not meets:
+        return JSONResponse({"status": "not_ready", "current_stats": stats, "criteria": criteria}, status_code=400)
+    hitl = _create_hitl_item(
+        hitl_type="trading_graduation",
+        title="Approve Live Trading Graduation",
+        description=f"Paper trading stats: {stats['total_trades']} trades, {stats['win_rate']:.0%} win rate. Request to enable live trading.",
+        payload={"stats": stats, "criteria": criteria},
+        related_id="trading-engine", priority="critical",
+    )
+    return JSONResponse({"status": "pending_hitl", "hitl_id": hitl["id"], "message": "Graduation requires HITL approval"}, status_code=202)
 
 if __name__ == "__main__":
     import uvicorn

@@ -74,7 +74,7 @@ def _make_command(robot_id: str = "r1",
 class TestModels:
 
     def test_robot_type_values(self):
-        assert len(RobotType) == 12
+        assert len(RobotType) == 13  # 12 original + PICARX
 
     def test_robot_status_values(self):
         assert RobotStatus.DISCONNECTED == "disconnected"
