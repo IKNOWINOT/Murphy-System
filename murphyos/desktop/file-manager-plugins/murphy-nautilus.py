@@ -26,9 +26,8 @@ from gi.repository import GObject, Nautilus, GLib
 logger = logging.getLogger("murphy-nautilus")
 
 MURPHY_API = os.environ.get("MURPHY_API_URL", "http://localhost:8000")
-MURPHY_BRAND_ICON = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "brand", "murphy-icon-symbolic.svg",
+MURPHY_BRAND_ICON = str(
+    Path(__file__).resolve().parent.parent.parent / "brand" / "murphy-icon-symbolic.svg"
 )
 
 # Map file extensions / MIME prefixes to Murphy API endpoints.
