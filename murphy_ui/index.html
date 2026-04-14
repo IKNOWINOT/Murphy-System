@@ -696,7 +696,7 @@ function connectSSE() {
     try {
       const msg = JSON.parse(e.data);
       handleSSEEvent(msg);
-    } catch {}
+    } catch (e) { console.warn('[Murphy] SSE parse error:', e && e.message); }
   };
 }
 
@@ -749,7 +749,7 @@ function connectWS() {
     }, { passive: true });
   };
   ws.onmessage = (e) => {
-    try { handleWSEvent(JSON.parse(e.data)); } catch {}
+    try { handleWSEvent(JSON.parse(e.data)); } catch (e2) { console.warn('[Murphy] WS parse error:', e2 && e2.message); }
   };
   ws.onerror = () => setConnStatus('error');
   ws.onclose = () => { setConnStatus('disconnected'); setTimeout(connectWS, 3000); };
@@ -1343,7 +1343,7 @@ async function renderTierBadge() {
     const d = await api('/api/tiers');
     const active = d.active_automations;
     document.getElementById('tierName').textContent = `Business · ${active} automations`;
-  } catch {}
+  } catch (e) { console.warn('[Murphy] Tier fetch failed:', e && e.message); }
 }
 
 /* ── Layers ── */

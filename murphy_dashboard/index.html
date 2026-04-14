@@ -714,7 +714,7 @@ function connectSSE() {
     try {
       const msg = JSON.parse(e.data);
       handleSSE(msg);
-    } catch {}
+    } catch (e) { console.warn('[Murphy] SSE parse error:', e && e.message); }
   };
   es.onerror = () => setTimeout(connectSSE, 3000);
 }

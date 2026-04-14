@@ -2367,7 +2367,7 @@
   }
 
   function connectSSE() {
-    if (sseSource) { try { sseSource.close(); } catch (_) {} }
+    if (sseSource) { try { sseSource.close(); } catch (e) { console.warn('[Murphy] SSE close error:', e && e.message); } }
     var url = BASE + '/api/events/stream/' + encodeURIComponent(sseSubId || 'community_forum');
     sseSource = new EventSource(url);
 
@@ -2777,7 +2777,7 @@
       fState.localInitials = (u.name || u.full_name || 'Me')
         .split(' ').map(function (p) { return p[0]; }).join('').slice(0, 2).toUpperCase();
       fState.localAvatar = u.avatarUrl || u.avatar_url || null;
-    } catch (_) {}
+    } catch (e) { console.warn('[Murphy] State error:', e && e.message); }
     renderLocalAvatar();
   }
 
@@ -2810,7 +2810,7 @@
             var u = JSON.parse(localStorage.getItem('murphy_user') || '{}');
             u.avatarUrl = fState.localAvatar;
             localStorage.setItem('murphy_user', JSON.stringify(u));
-          } catch (_) {}
+          } catch (e) { console.warn('[Murphy] Persist failed:', e && e.message); }
           renderLocalAvatar();
         };
         reader.readAsDataURL(file);
@@ -2956,7 +2956,7 @@
       fState.murphyListening = false;
       if (btn) btn.classList.remove('listening');
       if (fMurphyWave) fMurphyWave.classList.add('idle');
-      if (fMurphyRec) { try { fMurphyRec.stop(); } catch (_) {} }
+      if (fMurphyRec) { try { fMurphyRec.stop(); } catch (e) { console.warn('[Murphy] Recognition stop error:', e && e.message); } }
     } else {
       var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SR) { fShowMurphyMsg('Voice recognition is not supported in this browser.'); return; }
