@@ -58,6 +58,19 @@ logs/
 
 # Murphy runtime artifacts
 .murphy.pid
+murphy_logs.db
+murphy_logs.db-wal
+murphy_logs.db-shm
+AGENT_OUTPUT.txt
+todo.md
+.murphy_persistence/
+
+# Node.js
+node_modules/
+npm-debug.log*
+
+# OS artifacts
+Thumbs.db
 */.murphy.pid
 
 # Murphy specific caches

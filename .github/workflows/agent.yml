@@ -1,18 +1,148 @@
-name: Repo Agent
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post | License: BSL-1.1
+#
+# Murphy System — Founder-Triggered Claude Code Agent
+# =====================================================
+# Allows the repository owner (founder) to dispatch Claude Code against
+# this repository with full read/write capability.
+#
+# Usage:
+#   1. Navigate to Actions → "Founder: Claude Code Agent" → Run workflow
+#   2. Optionally provide a task override in the `task` input field.
+#      If left blank, TASK_INSTRUCTIONS.txt is used.
+#   3. Claude Code will analyze, plan, implement, and commit changes
+#      directly to main (or a branch depending on the `branch` input).
+#
+# Design Labels: AGENT-001 (founder control plane), WIRE-010 (CI integration)
+# Security: Only repository owner can trigger (enforced via actor check)
+
+name: "Founder: Claude Code Agent"
 
 on:
   workflow_dispatch:
+    inputs:
+      task:
+        description: "Task for Claude (leave blank to use TASK_INSTRUCTIONS.txt)"
+        required: false
+        default: ""
+      branch:
+        description: "Target branch for changes (default: main)"
+        required: false
+        default: "main"
+      dry_run:
+        description: "Dry run — analyze only, do not commit changes"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  run-agent:
+  founder-agent:
+    name: "Claude Code — Founder Agent"
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+    timeout-minutes: 60
 
-      - name: Run agent
+    # Security: only the repo owner may trigger this workflow
+    if: github.actor == github.repository_owner
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.inputs.branch || 'main' }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python dependencies
         run: |
-          python3 agent_runner.py
+          pip install --upgrade pip
+          pip install -r requirements_ci.txt || true
+          pip install fastapi uvicorn pydantic psutil bcrypt cryptography requests httpx python-dotenv
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Validate API key is present
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.Murphy_System_Claude }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::ANTHROPIC_API_KEY (Murphy_System_Claude secret) is not set. Aborting."
+            exit 1
+          fi
+          echo "::notice::API key validated — Claude Code ready"
+
+      - name: Configure git identity
+        run: |
+          git config user.name "Murphy Founder Agent"
+          git config user.email "founder-agent@murphy.systems"
+
+      - name: Run Claude Code agent
+        id: claude_run
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.Murphy_System_Claude }}
+          MURPHY_ENV: "ci"
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+          TASK_OVERRIDE: ${{ github.event.inputs.task || '' }}
+        run: |
+          python3 .github/workflows/agent_runner.py
+
+      - name: Commit and push changes
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "::notice::No file changes to commit — Claude Code analysis complete."
+          else
+            git commit -m "feat(agent): Claude Code founder agent update
+
+          Triggered by: ${{ github.actor }}
+          Branch: ${{ github.event.inputs.branch || 'main' }}
+          Task: ${{ github.event.inputs.task || 'TASK_INSTRUCTIONS.txt' }}
+          Run: ${{ github.run_id }}"
+            git push origin HEAD:${{ github.event.inputs.branch || 'main' }}
+            echo "::notice::Changes committed and pushed."
+          fi
+
+      - name: Upload agent output
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: claude-agent-output-${{ github.run_number }}
+          path: AGENT_OUTPUT.txt
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "╔══════════════════════════════════════════════════════════╗"
+          echo "║      FOUNDER CLAUDE CODE AGENT — SUMMARY               ║"
+          echo "╠══════════════════════════════════════════════════════════╣"
+          echo "  Actor:    ${{ github.actor }}"
+          echo "  Branch:   ${{ github.event.inputs.branch || 'main' }}"
+          echo "  Dry Run:  ${{ github.event.inputs.dry_run || 'false' }}"
+          echo "  Run ID:   ${{ github.run_id }}"
+          if [ -f AGENT_OUTPUT.txt ]; then
+            echo "  --- Agent Output (first 20 lines) ---"
+            head -20 AGENT_OUTPUT.txt
+          fi
+          echo "╚══════════════════════════════════════════════════════════╝"
+
