@@ -898,6 +898,28 @@
 </head>
 <body>
 
+<!-- Murphy error banner — shown automatically on 5xx fetch errors -->
+<div id="murphy-error-banner" role="alert" aria-live="assertive" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#c0392b;color:#fff;padding:10px 16px;font-size:14px;align-items:center;gap:12px;">
+  <span id="murphy-error-banner-msg" style="flex:1"></span>
+  <button onclick="document.getElementById('murphy-error-banner').style.display='none'" aria-label="Dismiss" style="background:transparent;border:1px solid rgba(255,255,255,0.6);color:#fff;cursor:pointer;padding:2px 8px;border-radius:3px;font-size:13px;">✕</button>
+</div>
+<script>
+function showMurphyError(msg) {
+  var b = document.getElementById('murphy-error-banner');
+  document.getElementById('murphy-error-banner-msg').textContent = msg || 'An unexpected error occurred.';
+  b.style.display = 'flex';
+}
+(function() {
+  var _origFetch = window.fetch;
+  window.fetch = function() {
+    return _origFetch.apply(this, arguments).then(function(resp) {
+      if (resp.status >= 500) showMurphyError('Server error (' + resp.status + ') — ' + resp.url.split('?')[0]);
+      return resp;
+    });
+  };
+})();
+</script>
+
 <!-- Skip link for accessibility -->
 <a href="#ws-main" class="murphy-skip-link">Skip to content</a>
 
@@ -1687,6 +1709,7 @@
       mainEl.innerHTML = html;
     } catch (e) {
       mainEl.innerHTML = channelHeaderHTML('system', dot, '') + errorCard(e.message, 'system');
+      showMurphyError('System channel error: ' + e.message);
     }
   }
 
@@ -2076,6 +2099,7 @@
       navigate(slug);
     } catch (e) {
       createStatus.innerHTML = '<span class="text-danger">Failed: ' + esc(e.message) + '</span>';
+      showMurphyError('Failed to create channel: ' + e.message);
     } finally {
       document.getElementById('btn-modal-create').disabled = false;
     }
@@ -2095,7 +2119,7 @@
         channels: ['system', 'security', 'workflow', 'health', 'metrics', 'user_action', 'custom']
       });
       sseSubscriberId = res.subscriber_id || res.id;
-    } catch (_) {
+    } catch (sseSubErr) { console.warn("[Murphy] Community API error:", sseSubErr && sseSubErr.message || "network error");
       // If subscribe fails, try with a static ID
       sseSubscriberId = 'workspace_main';
     }
@@ -2119,14 +2143,14 @@
       try {
         var ev = JSON.parse(e.data);
         handleSSEEvent(ev);
-      } catch (_) {}
+      } catch (parseErr) { console.warn("[Murphy] SSE event parse error:", parseErr.message); }
     };
 
     sseSource.addEventListener('event', function (e) {
       try {
         var ev = JSON.parse(e.data);
         handleSSEEvent(ev);
-      } catch (_) {}
+      } catch (parseErr) { console.warn("[Murphy] SSE event parse error:", parseErr.message); }
     });
 
     sseSource.onerror = function () {
@@ -2256,7 +2280,7 @@
   }
 
   // Start SSE (non-blocking)
-  startSSE().catch(function () {});
+  startSSE().catch(function (e) { console.warn("[Murphy] Community API error:", e && e.message || "network error"); });
 
   // Initial navigation based on hash or default to #system
   navigate(location.hash.slice(1) || 'system');
@@ -3417,7 +3441,7 @@
       body: JSON.stringify({ channel: (window.state && window.state.channelId) || 'workspace', participants: 2 })
     }).then(function (r) { return r.json(); }).then(function (d) {
       if (d.session_id) sai.sessionId = d.session_id;
-    }).catch(function () {});
+    }).catch(function (e) { console.warn("[Murphy] Community API error:", e && e.message || "network error"); });
   }
 
   function stopSession() {
@@ -3436,7 +3460,7 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ transcript: sai.transcript })
-    }).catch(function () {});
+    }).catch(function (e) { console.warn("[Murphy] Community API error:", e && e.message || "network error"); });
 
     sai.orgSessions++;
     localStorage.setItem('murphy_org_sessions', String(sai.orgSessions));
@@ -3512,7 +3536,7 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: text })
-    }).catch(function () {});
+    }).catch(function (e) { console.warn("[Murphy] Community API error:", e && e.message || "network error"); });
   }
 
   /* ── Suggestions ────────────────────────────────────── */
