@@ -1651,24 +1651,33 @@ class MultiCursorDesktop:
         Convenience method: creates a channel and joins multiple cursors
         in one call — the typical pattern for cross-zone collaboration.
 
+        Accepts either cursor_id strings or zone_id strings (the primary
+        cursor for that zone will be used).
+
         Args:
-            cursor_ids:   List of cursor_id strings to link.
+            cursor_ids:   List of cursor_id or zone_id strings to link.
             channel_name: Human-readable name for the channel.
 
         Returns:
             The :class:`CursorChannel` all cursors were joined to.
 
         Raises:
-            KeyError: If any cursor_id is not registered.
+            KeyError: If any identifier is not a registered cursor or zone.
         """
         channel = self.create_channel(name=channel_name)
         for cid in cursor_ids:
-            cursor = self.get_cursor(cid) if cid in self._cursors else None
+            cursor: Optional[CursorContext] = None
+            if cid in self._cursors:
+                # Direct cursor_id match
+                cursor = self._cursors[cid]
+            elif cid in self._zones:
+                # Zone ID — find the primary cursor attached to this zone
+                for c in self._cursors.values():
+                    if c.zone is not None and c.zone.zone_id == cid:
+                        cursor = c
+                        break
             if cursor is None:
-                # Try looking up by zone_id too
-                cursor = self._cursors.get(cid)
-            if cursor is None:
-                raise KeyError(f"Cursor or zone '{cid}' not found")
+                raise KeyError(f"No cursor or zone '{cid}' found")
             channel.join(cursor)
         return channel
 
