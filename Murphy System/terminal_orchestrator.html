@@ -253,6 +253,7 @@ body { display:flex; flex-direction:column; height:100vh; overflow:hidden; }
 </div>
 
 <script src="static/murphy-components.js"></script>
+<script src="murphy_auth.js"></script>
 <script>
 const API = '/api';
 let currentDept = 'all';
@@ -304,8 +305,9 @@ async function loadGoldenPath() {
     });
     const d = await r.json();
     renderHitlList(d.recommendations || []);
-  } catch {
+  } catch (e) {
     renderHitlList([]);
+    console.warn('[Murphy] HITL list fetch failed:', e && e.message);
   }
 }
 
@@ -407,7 +409,6 @@ document.addEventListener('DOMContentLoaded', () => {
   var librarian = new MurphyLibrarianChat(api);
 });
 </script>
-<!-- Murphy Highlight Overlay — shadow-agent glow-key / left-click trainer hints -->
-<script src="murphy_overlay.js"></script>
+<script src="static/murphy-session-context.js"></script>
 </body>
 </html>

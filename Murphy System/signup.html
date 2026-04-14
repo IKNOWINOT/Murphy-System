@@ -771,7 +771,7 @@
             useCaseField.value = 'Activate automation plan: ' + d.spec.title;
           }
         })
-        .catch(function(){});
+        .catch(function(e){ console.warn('[Murphy] Spec prefill failed:', e && e.message || 'network error'); });
     }
     // Hook into form submit to persist spec_id
     var form2 = document.getElementById('signup-form') || document.querySelector('form');

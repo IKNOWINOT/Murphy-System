@@ -443,7 +443,7 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
       confidence: parseInt($id('select-confidence').value, 10),
       shadow: $id('toggle-shadow').checked
     };
-    try { localStorage.setItem('murphy_ambient_settings', JSON.stringify(settings)); } catch (_) {}
+    try { localStorage.setItem('murphy_ambient_settings', JSON.stringify(settings)); } catch (e) { console.warn('[Murphy] Persist failed:', e && e.message); }
     fetch('/api/ambient/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }).catch(function () { showToast('Failed to save settings — please try again.'); });
     showToast('Settings saved');
   });
@@ -469,7 +469,7 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
       if (saved.confidence) $id('select-confidence').value = String(saved.confidence);
       if (typeof saved.shadow !== 'undefined') $id('toggle-shadow').checked = saved.shadow;
     }
-  } catch (_) {}
+  } catch (e) { console.warn('[Murphy] localStorage read failed:', e && e.message); }
 
   /* ── Engine Status Dots ── */
   function updateEngineDots() {

@@ -1359,11 +1359,12 @@
           user_id: document.getElementById('af-user').value.trim() || undefined
         };
         if (!data.summary) { showError('Activity summary is required'); return; }
-        this.disabled = true;
+        var btn = this;
+        btn.disabled = true;
         API('/api/crm/activities', { method: 'POST', body: data }).then(function () {
           closeModal();
           loadActivities();
-        }).catch(function () {});
+        }).catch(function (e) { btn.disabled = false; showError('Failed to save activity — please try again.'); });
       });
     }
 
