@@ -19,6 +19,12 @@ _PATHS = [
     str(_MURPHYOS / "userspace" / "murphy-cli"),
     str(_MURPHYOS / "userspace" / "murphy-dbus"),
     str(_MURPHYOS / "userspace" / "murphy-resolved"),
+    str(_MURPHYOS / "userspace" / "murphy-cgroup"),
+    str(_MURPHYOS / "userspace" / "murphy-journal"),
+    str(_MURPHYOS / "userspace" / "murphy-backup"),
+    str(_MURPHYOS / "userspace" / "murphy-llm-governor"),
+    str(_MURPHYOS / "userspace" / "murphy-telemetry-export"),
+    str(_MURPHYOS / "userspace" / "murphy-module-lifecycle"),
 ]
 for p in _PATHS:
     if p not in sys.path:
