@@ -2119,7 +2119,7 @@ function showMurphyError(msg) {
         channels: ['system', 'security', 'workflow', 'health', 'metrics', 'user_action', 'custom']
       });
       sseSubscriberId = res.subscriber_id || res.id;
-    } catch (_) {
+    } catch (sseSubErr) { console.warn("[Murphy] Community API error:", sseSubErr && sseSubErr.message || "network error");
       // If subscribe fails, try with a static ID
       sseSubscriberId = 'workspace_main';
     }
@@ -2143,14 +2143,14 @@ function showMurphyError(msg) {
       try {
         var ev = JSON.parse(e.data);
         handleSSEEvent(ev);
-      } catch (_) {}
+      } catch (parseErr) { console.warn("[Murphy] SSE event parse error:", parseErr.message); }
     };
 
     sseSource.addEventListener('event', function (e) {
       try {
         var ev = JSON.parse(e.data);
         handleSSEEvent(ev);
-      } catch (_) {}
+      } catch (parseErr) { console.warn("[Murphy] SSE event parse error:", parseErr.message); }
     });
 
     sseSource.onerror = function () {
@@ -2280,7 +2280,7 @@ function showMurphyError(msg) {
   }
 
   // Start SSE (non-blocking)
-  startSSE().catch(function () {});
+  startSSE().catch(function (e) { console.warn("[Murphy] Community API error:", e && e.message || "network error"); });
 
   // Initial navigation based on hash or default to #system
   navigate(location.hash.slice(1) || 'system');
@@ -3441,7 +3441,7 @@ function showMurphyError(msg) {
       body: JSON.stringify({ channel: (window.state && window.state.channelId) || 'workspace', participants: 2 })
     }).then(function (r) { return r.json(); }).then(function (d) {
       if (d.session_id) sai.sessionId = d.session_id;
-    }).catch(function () {});
+    }).catch(function (e) { console.warn("[Murphy] Community API error:", e && e.message || "network error"); });
   }
 
   function stopSession() {
@@ -3460,7 +3460,7 @@ function showMurphyError(msg) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ transcript: sai.transcript })
-    }).catch(function () {});
+    }).catch(function (e) { console.warn("[Murphy] Community API error:", e && e.message || "network error"); });
 
     sai.orgSessions++;
     localStorage.setItem('murphy_org_sessions', String(sai.orgSessions));
@@ -3536,7 +3536,7 @@ function showMurphyError(msg) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: text })
-    }).catch(function () {});
+    }).catch(function (e) { console.warn("[Murphy] Community API error:", e && e.message || "network error"); });
   }
 
   /* ── Suggestions ────────────────────────────────────── */

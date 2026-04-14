@@ -2216,7 +2216,7 @@
         }
       );
       await loadMessages(currentChannel.id);
-    } catch (_) {
+    } catch (reactionErr) { console.warn("[Murphy] Community API error:", reactionErr && reactionErr.message || "network error");
       // Silently fail for reactions
     }
   }
@@ -2235,7 +2235,7 @@
       var data = await res.json();
       var members = Array.isArray(data) ? data : (data.members || []);
       renderMembers(members);
-    } catch (_) {
+    } catch (memberErr) { console.warn("[Murphy] Community API error:", memberErr && memberErr.message || "network error");
       renderMembers([]);
     }
   }
@@ -2292,7 +2292,7 @@
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' }
       });
-    } catch (_) {
+    } catch (orgErr) { console.warn("[Murphy] Community API error:", orgErr && orgErr.message || "network error");
       // Silently handle — user may not be in an org
     }
   }
@@ -2360,7 +2360,7 @@
         var data = await res.json();
         sseSubId = data.subscriber_id || data.id;
       }
-    } catch (_) {
+    } catch (sseSubErr) { console.warn("[Murphy] SSE subscribe error:", sseSubErr && sseSubErr.message || "network error");
       sseSubId = 'community_forum';
     }
     connectSSE();
@@ -2378,11 +2378,11 @@
     };
 
     sseSource.onmessage = function (e) {
-      try { handleSSEEvent(JSON.parse(e.data)); } catch (_) {}
+      try { handleSSEEvent(JSON.parse(e.data)); } catch (parseErr) { console.warn("[Murphy] SSE event parse error:", parseErr.message); }
     };
 
     sseSource.addEventListener('event', function (e) {
-      try { handleSSEEvent(JSON.parse(e.data)); } catch (_) {}
+      try { handleSSEEvent(JSON.parse(e.data)); } catch (parseErr) { console.warn("[Murphy] SSE event parse error:", parseErr.message); }
     });
 
     sseSource.onerror = function () {
@@ -2724,7 +2724,7 @@
     }
   });
 
-  startSSE().catch(function () {});
+  startSSE().catch(function (e) { console.warn("[Murphy] Community API error:", e && e.message || "network error"); });
 
   // Load org info
   (async function () {
@@ -2736,7 +2736,7 @@
         orgMemberCount.querySelector('span').textContent = (org.member_count || 0) + ' members';
         orgChannelCount.querySelector('span').textContent = (org.channel_count || channels.length) + ' channels';
       }
-    } catch (_) {}
+    } catch (orgInfoErr) { console.warn("[Murphy] Community API error:", orgInfoErr && orgInfoErr.message || "network error"); }
   })();
 
 })();
@@ -2923,7 +2923,7 @@
         fState.localStream = s;
         fLocalVideo.srcObject = s;
         if (!fState.cameraOff) { fLocalVideo.hidden = false; if (fLocalAvatar) fLocalAvatar.style.display = 'none'; }
-      }).catch(function () {});
+      }).catch(function (e) { console.warn("[Murphy] Community API error:", e && e.message || "network error"); });
   }
 
   function fToggleScreen() {
@@ -2944,7 +2944,7 @@
         var sb = document.getElementById('forum-call-btn-screen');
         if (sb) sb.classList.add('active');
         s.getVideoTracks()[0].addEventListener('ended', function () { fState.screenSharing = false; if (sb) sb.classList.remove('active'); });
-      }).catch(function () {});
+      }).catch(function (e) { console.warn("[Murphy] Community API error:", e && e.message || "network error"); });
   }
 
   /* ── Murphy AI voice ──────────────────────────────── */
