@@ -203,7 +203,7 @@ class LLMGovernor:
 
         # Circuit breaker state
         self._circuit_open: Dict[str, bool] = {}
-        self._circuit_reset_day: Optional[int] = None
+        self._circuit_reset_day: int = datetime.now(timezone.utc).day
 
         # Load persisted state (best-effort)
         self._load_state()

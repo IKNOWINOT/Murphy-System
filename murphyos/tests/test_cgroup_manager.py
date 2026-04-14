@@ -187,11 +187,11 @@ class TestCleanupOrphans:
 
 # ── configuration ─────────────────────────────────────────────────────────
 class TestConfiguration:
-    @mock.patch.object(pathlib.Path, "is_file", return_value=False)
-    def test_config_loading_from_yaml(self, _isf):
+    def test_config_loading_from_yaml(self):
         yaml_content = "murphy_cgroup:\n  base_slice: test.slice\n  enabled: false\n"
-        with mock.patch("builtins.open", mock.mock_open(read_data=yaml_content)):
-            with mock.patch.object(pathlib.Path, "is_file", side_effect=[True, False]):
+        mo = mock.mock_open(read_data=yaml_content)
+        with mock.patch.object(pathlib.Path, "is_file", side_effect=[True, False]):
+            with mock.patch.object(pathlib.Path, "open", mo):
                 mgr = CGroupManager(config_path="/etc/murphy/cgroup.yaml")
         assert mgr.is_noop is True
 

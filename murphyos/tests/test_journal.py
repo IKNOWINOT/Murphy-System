@@ -89,14 +89,18 @@ class TestConvenienceMethods:
         with mock.patch.object(j, "log_event") as mock_le:
             j.log_confidence_change(old_score=0.72, new_score=0.85)
             mock_le.assert_called_once()
-            call_kwargs = mock_le.call_args
-            assert "increased" in call_kwargs[1].get("message", call_kwargs[0][1])
+            call_kw = mock_le.call_args.kwargs or {}
+            call_pos = mock_le.call_args.args or ()
+            msg = call_kw.get("message") or (call_pos[1] if len(call_pos) > 1 else "")
+            assert "increased" in msg
 
     def test_log_confidence_change_decreased(self):
         j = MurphyJournal()
         with mock.patch.object(j, "log_event") as mock_le:
             j.log_confidence_change(old_score=0.90, new_score=0.50)
-            msg = mock_le.call_args[1].get("message", mock_le.call_args[0][1])
+            call_kw = mock_le.call_args.kwargs or {}
+            call_pos = mock_le.call_args.args or ()
+            msg = call_kw.get("message") or (call_pos[1] if len(call_pos) > 1 else "")
             assert "decreased" in msg
 
     def test_log_gate_decision_includes_all_fields(self):
