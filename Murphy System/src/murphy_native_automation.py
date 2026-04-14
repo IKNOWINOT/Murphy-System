@@ -1026,6 +1026,148 @@ class ScreenZone:
 
 
 # ---------------------------------------------------------------------------
+# CursorChannel — linked copy/paste data channel between cursors
+# Design Label: MCB-CHANNEL-001
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class CursorChannel:
+    """A named data channel that links multiple cursors for cooperative work.
+
+    Cursors joined to the same channel can share clipboard data, selection
+    state, and arbitrary payloads — enabling cross-zone collaboration where
+    one cursor copies data in zone A and another pastes it in zone B.
+
+    Thread-safe: all mutations go through ``_lock``.
+
+    Usage::
+
+        channel = CursorChannel(channel_id="shared-clipboard")
+        channel.join(cursor_a)
+        channel.join(cursor_b)
+        cursor_a_copy = channel.push("hello from zone A", source="cursor_a")
+        cursor_b_paste = channel.pull(consumer="cursor_b")
+    """
+
+    channel_id: str = field(default_factory=lambda: "chan_" + uuid.uuid4().hex[:6])
+    name: str = ""
+    _members: List[str] = field(default_factory=list, repr=False)
+    _buffer: List[Dict[str, Any]] = field(default_factory=list, repr=False)
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+
+    MAX_BUFFER: int = 100  # CWE-770: bounded buffer
+
+    def join(self, cursor: "CursorContext") -> None:
+        """Add a cursor to this channel."""
+        with self._lock:
+            if cursor.cursor_id not in self._members:
+                self._members.append(cursor.cursor_id)
+                cursor._channels.append(self.channel_id)  # MCB-CHANNEL-001
+                logger.info(
+                    "Cursor %s joined channel %s",
+                    cursor.cursor_id, self.channel_id,
+                )
+
+    def leave(self, cursor: "CursorContext") -> None:
+        """Remove a cursor from this channel."""
+        with self._lock:
+            if cursor.cursor_id in self._members:
+                self._members.remove(cursor.cursor_id)
+            if self.channel_id in cursor._channels:
+                cursor._channels.remove(self.channel_id)
+
+    def push(
+        self,
+        data: Any,
+        source: str = "",
+        *,
+        content_type: str = "text",
+    ) -> Dict[str, Any]:
+        """Push data onto the channel buffer (copy operation).
+
+        Args:
+            data:         The payload to share (text, dict, etc.).
+            source:       cursor_id of the sender (for audit trail).
+            content_type: Hint for consumers (``text``, ``json``, ``binary``).
+
+        Returns:
+            Envelope dict with metadata.
+
+        Raises:
+            RuntimeError: If source cursor is not a member of this channel.
+        """
+        with self._lock:
+            if source and source not in self._members:
+                raise RuntimeError(
+                    f"Cursor {source!r} is not a member of channel "
+                    f"{self.channel_id!r}; call join() first"
+                )
+            envelope: Dict[str, Any] = {
+                "channel_id": self.channel_id,
+                "source": source,
+                "content_type": content_type,
+                "data": data,
+                "ts": datetime.now(timezone.utc).isoformat(),
+            }
+            if len(self._buffer) >= self.MAX_BUFFER:
+                self._buffer.pop(0)  # evict oldest
+            self._buffer.append(envelope)
+            return envelope
+
+    def pull(self, consumer: str = "") -> Optional[Dict[str, Any]]:
+        """Pull the most recent item from the buffer (paste operation).
+
+        Args:
+            consumer: cursor_id of the receiver (for audit trail).
+
+        Returns:
+            Most recent envelope, or ``None`` if buffer is empty.
+
+        Raises:
+            RuntimeError: If consumer cursor is not a member of this channel.
+        """
+        with self._lock:
+            if consumer and consumer not in self._members:
+                raise RuntimeError(
+                    f"Cursor {consumer!r} is not a member of channel "
+                    f"{self.channel_id!r}; call join() first"
+                )
+            if not self._buffer:
+                return None
+            return self._buffer[-1]
+
+    def peek(self, last_n: int = 5) -> List[Dict[str, Any]]:
+        """Return the last *last_n* items without consuming them."""
+        with self._lock:
+            return list(self._buffer[-last_n:])
+
+    @property
+    def member_count(self) -> int:
+        with self._lock:
+            return len(self._members)
+
+    @property
+    def members(self) -> List[str]:
+        with self._lock:
+            return list(self._members)
+
+    @property
+    def buffer_size(self) -> int:
+        with self._lock:
+            return len(self._buffer)
+
+    def to_dict(self) -> Dict[str, Any]:
+        with self._lock:
+            return {
+                "channel_id": self.channel_id,
+                "name": self.name,
+                "members": list(self._members),
+                "buffer_size": len(self._buffer),
+            }
+
+
+# ---------------------------------------------------------------------------
 # CursorContext — independent cursor / pointer state
 # ---------------------------------------------------------------------------
 
@@ -1059,6 +1201,47 @@ class CursorContext:
     label: str = ""       # e.g. "Player 1", "Agent Alpha"
     metadata: Dict[str, Any] = field(default_factory=dict)
     _history: List[Dict[str, Any]] = field(default_factory=list, repr=False)
+    _channels: List[str] = field(default_factory=list, repr=False)  # MCB-CHANNEL-001
+
+    # ------------------------------------------------------------------
+    # Channel helpers (MCB-CHANNEL-001)
+    # ------------------------------------------------------------------
+
+    def copy_to_channel(
+        self,
+        channel: "CursorChannel",
+        data: Any,
+        *,
+        content_type: str = "text",
+    ) -> Dict[str, Any]:
+        """Push data onto a linked channel (cross-zone copy).
+
+        Raises:
+            RuntimeError: If this cursor has not joined the channel.
+        """
+        envelope = channel.push(data, source=self.cursor_id, content_type=content_type)
+        self._record("channel_copy", {
+            "channel_id": channel.channel_id, "content_type": content_type,
+        })
+        return envelope
+
+    def paste_from_channel(self, channel: "CursorChannel") -> Optional[Dict[str, Any]]:
+        """Pull the most recent item from a linked channel (cross-zone paste).
+
+        Raises:
+            RuntimeError: If this cursor has not joined the channel.
+        """
+        envelope = channel.pull(consumer=self.cursor_id)
+        self._record("channel_paste", {
+            "channel_id": channel.channel_id,
+            "got_data": envelope is not None,
+        })
+        return envelope
+
+    @property
+    def linked_channels(self) -> List[str]:
+        """Return IDs of all channels this cursor has joined."""
+        return list(self._channels)
 
     def attach_zone(self, zone: "ScreenZone") -> None:
         """Bind this cursor to a screen zone; position is clamped to zone bounds."""
@@ -1252,6 +1435,7 @@ class MultiCursorDesktop:
         self.screen_height = screen_height
         self._zones: Dict[str, ScreenZone] = {}
         self._cursors: Dict[str, CursorContext] = {}
+        self._channels: Dict[str, CursorChannel] = {}  # MCB-CHANNEL-001
         self._layout: SplitScreenLayout = SplitScreenLayout.SINGLE
         self._lock = threading.Lock()
         # Initialise with a single full-screen zone
@@ -1419,6 +1603,76 @@ class MultiCursorDesktop:
             return cursor
 
     # ------------------------------------------------------------------
+    # Channel management (MCB-CHANNEL-001)
+    # ------------------------------------------------------------------
+
+    def create_channel(
+        self,
+        name: str = "",
+        channel_id: Optional[str] = None,
+    ) -> CursorChannel:
+        """Create a new data channel for cross-zone cursor linking.
+
+        Args:
+            name:       Human-readable channel name.
+            channel_id: Explicit ID (auto-generated if not provided).
+
+        Returns:
+            The newly created :class:`CursorChannel`.
+        """
+        with self._lock:
+            cid = channel_id or ("chan_" + uuid.uuid4().hex[:6])
+            if cid in self._channels:
+                raise ValueError(f"Channel {cid!r} already exists")
+            ch = CursorChannel(channel_id=cid, name=name)
+            self._channels[cid] = ch
+            logger.info("Created cursor channel %s (%s)", cid, name)
+            return ch
+
+    def get_channel(self, channel_id: str) -> CursorChannel:
+        """Return the channel with *channel_id*."""
+        with self._lock:
+            if channel_id not in self._channels:
+                raise KeyError(f"No channel '{channel_id}'")
+            return self._channels[channel_id]
+
+    def list_channels(self) -> List[CursorChannel]:
+        """Return all registered channels."""
+        with self._lock:
+            return list(self._channels.values())
+
+    def link_cursors(
+        self,
+        cursor_ids: List[str],
+        channel_name: str = "",
+    ) -> CursorChannel:
+        """Create a channel and join all specified cursors to it.
+
+        Convenience method: creates a channel and joins multiple cursors
+        in one call — the typical pattern for cross-zone collaboration.
+
+        Args:
+            cursor_ids:   List of cursor_id strings to link.
+            channel_name: Human-readable name for the channel.
+
+        Returns:
+            The :class:`CursorChannel` all cursors were joined to.
+
+        Raises:
+            KeyError: If any cursor_id is not registered.
+        """
+        channel = self.create_channel(name=channel_name)
+        for cid in cursor_ids:
+            cursor = self.get_cursor(cid) if cid in self._cursors else None
+            if cursor is None:
+                # Try looking up by zone_id too
+                cursor = self._cursors.get(cid)
+            if cursor is None:
+                raise KeyError(f"Cursor or zone '{cid}' not found")
+            channel.join(cursor)
+        return channel
+
+    # ------------------------------------------------------------------
     # Dispatch helpers
     # ------------------------------------------------------------------
 
@@ -1530,6 +1784,7 @@ class MultiCursorDesktop:
                 "layout": self._layout.value,
                 "zones": [z.to_dict() for z in self._zones.values()],
                 "cursors": [c.position() for c in self._cursors.values()],
+                "channels": [ch.to_dict() for ch in self._channels.values()],
             }
 
 
