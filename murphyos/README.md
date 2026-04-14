@@ -15,13 +15,17 @@ all orchestrated by a single confidence-scored control plane.
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │                       Murphy CLI / Desktop                   │
-│  murphy status · murphy forge · murphy swarm · murphy gate   │
+│  murphy status · forge · swarm · gate · llm · backup · ...   │
+│  murphy module · murphy cgroup · murphy telemetry             │
 ├──────────────────────────────────────────────────────────────┤
-│                        MurphyFS (FUSE)                       │
-│  /murphy/live/confidence  ·  /murphy/engines/*  ·  events    │
+│                     MurphyFS (FUSE)                          │
+│  /murphy/live/confidence · /murphy/live/llm/ · /murphy/live/ │
+│  telemetry/ · backup/ · cgroup/ · modules/ · engines/*       │
 ├──────────────────────────────────────────────────────────────┤
 │                     Userspace Services                       │
-│  murphy-dbus  ·  murphy-resolved  ·  murphy-nftables         │
+│  murphy-dbus · murphy-resolved · murphy-nftables              │
+│  murphy-journal · murphy-cgroup · murphy-llm-governor         │
+│  murphy-backup · murphy-telemetry-export · murphy-module-life │
 ├──────────────────────────────────────────────────────────────┤
 │               AutoSec Orchestrator (autosec)                 │
 │  ┌────────────┐ ┌──────────┐ ┌──────────────┐ ┌───────────┐ │
@@ -85,7 +89,18 @@ murphyos/
     ├── murphy-pam/             # PAM module (C)
     ├── murphy-resolved/        # DNS resolver
     ├── murphy-udev/            # udev rules
+    ├── murphy-cgroup/          # cgroup v2 resource isolation
+    ├── murphy-journal/         # structured journald bridge
+    ├── murphy-backup/          # snapshot-based backup & DR
+    ├── murphy-llm-governor/    # LLM token/cost/GPU governance
+    ├── murphy-telemetry-export/# Prometheus textfile exporter
+    ├── murphy-module-lifecycle/ # systemd module instance manager
     └── murphyfs/               # FUSE virtual filesystem
+├── brand/                      # Brand identity assets & constants
+│   ├── murphy_brand.py         # Python brand constants
+│   ├── murphy-icon-symbolic.svg
+│   ├── murphy-icon-full.svg
+│   └── murphy-banner.svg
 ```
 
 ---
@@ -140,6 +155,51 @@ detection.
 
 `IntegrityMonitor` builds SHA3-256 baselines over watched paths, detects
 modifications, and quarantines tampered files to a secure directory.
+
+### CGroup Resource Isolation
+
+`CGroupManager` creates cgroup v2 scopes (`murphy-swarm-*.scope`,
+`murphy-llm-*.scope`, `murphy-auto-*.scope`) with per-task memory, CPU,
+and PID limits. Gracefully degrades to no-op on kernels without cgroup v2.
+
+### Structured Journal Bridge
+
+`MurphyJournal` writes structured entries to systemd-journald with
+Murphy-specific fields (`MURPHY_EVENT_TYPE`, `MURPHY_CONFIDENCE`,
+`MURPHY_GATE_ACTION`). Falls back to `logger(1)` when python-systemd
+is unavailable.
+
+### Backup & Disaster Recovery
+
+`MurphyBackup` performs automated backups using the best available
+strategy (btrfs → LVM → restic → tar). SHA3-256 manifest verification,
+pre/post hooks, configurable retention, and a systemd timer at 03:00 daily.
+
+### LLM Governor
+
+`LLMGovernor` enforces token budgets, cost circuit breakers, and rate
+limits per LLM provider. Monitors GPU utilisation via nvidia-smi, tracks
+provider health (p50/p95/p99 latency), and persists state atomically.
+
+### Telemetry Export
+
+`TelemetryExporter` renders 30+ Murphy metrics into Prometheus
+node_exporter textfile format across 9 families (confidence, gates,
+swarm, forge, LLM, security, system, backup, cgroup). Uses a 4-source
+fallback chain: D-Bus → REST → MurphyFS → cgroup filesystem.
+
+### Module Lifecycle Manager
+
+`ModuleLifecycleManager` registers, starts, stops, and health-checks
+Murphy modules as systemd transient scopes. Supports exponential-backoff
+auto-restart and persists module registry to JSON.
+
+### Brand Identity
+
+Murphy System brand assets live in `murphyos/brand/`. All desktop
+components (GNOME shell extension, Nautilus plugin, CLI) use the canonical
+Murphy palette: teal `#00D4AA`, green accent `#00ff41`, dark backgrounds
+`#0C1017`, Inter + JetBrains Mono typography.
 
 ---
 

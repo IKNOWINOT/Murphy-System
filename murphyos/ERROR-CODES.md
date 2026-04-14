@@ -362,3 +362,129 @@ Module: `desktop/file-manager-plugins/murphy-nautilus.py`
 |------|-------------|
 | `MURPHY-NAUTILUS-ERR-001` | HTTP request to Murphy API failed (URLError) |
 | `MURPHY-NAUTILUS-ERR-002` | D-Bus fallback invocation failed |
+
+---
+
+## CGroup Manager
+
+Module: `userspace/murphy-cgroup/murphy_cgroup_manager.py`
+
+| Code | Description |
+|------|-------------|
+| `MURPHY-CGROUP-ERR-001` | cgroup v2 not available on this kernel |
+| `MURPHY-CGROUP-ERR-002` | Base slice directory creation failed |
+| `MURPHY-CGROUP-ERR-003` | Scope creation failed |
+| `MURPHY-CGROUP-ERR-004` | Scope removal failed |
+| `MURPHY-CGROUP-ERR-005` | cgroup file write failed |
+| `MURPHY-CGROUP-ERR-006` | cgroup file read failed |
+| `MURPHY-CGROUP-ERR-007` | Scope not found |
+| `MURPHY-CGROUP-ERR-008` | cgroup stat read error |
+| `MURPHY-CGROUP-ERR-009` | Permission denied writing cgroup controller |
+| `MURPHY-CGROUP-ERR-010` | Orphan cleanup failed |
+| `MURPHY-CGROUP-ERR-011` | Configuration file load error |
+| `MURPHY-CGROUP-ERR-012` | Invalid memory specification |
+| `MURPHY-CGROUP-ERR-013` | Invalid scope name format |
+| `MURPHY-CGROUP-ERR-014` | Scope already exists |
+| `MURPHY-CGROUP-ERR-015` | systemd sd_notify failed |
+
+---
+
+## Journal Bridge
+
+Module: `userspace/murphy-journal/murphy_journal.py`
+
+| Code | Description |
+|------|-------------|
+| `MURPHY-JOURNAL-ERR-001` | python-systemd journal.send() failed |
+| `MURPHY-JOURNAL-ERR-002` | logger(1) subprocess failed |
+| `MURPHY-JOURNAL-ERR-003` | Invalid event type |
+| `MURPHY-JOURNAL-ERR-004` | Invalid severity level |
+| `MURPHY-JOURNAL-ERR-005` | Journal query failed |
+| `MURPHY-JOURNAL-ERR-006` | Journal Reader not available |
+| `MURPHY-JOURNAL-ERR-007` | Daemon initialization error |
+| `MURPHY-JOURNAL-ERR-008` | Configuration load error |
+
+---
+
+## Backup Manager
+
+Module: `userspace/murphy-backup/murphy_backup.py`
+
+| Code | Description |
+|------|-------------|
+| `MURPHY-BACKUP-ERR-001` | Backup target directory not found |
+| `MURPHY-BACKUP-ERR-002` | btrfs snapshot creation failed |
+| `MURPHY-BACKUP-ERR-003` | LVM snapshot creation failed |
+| `MURPHY-BACKUP-ERR-004` | restic backup failed |
+| `MURPHY-BACKUP-ERR-005` | tar archive creation failed |
+| `MURPHY-BACKUP-ERR-006` | Manifest write failed |
+| `MURPHY-BACKUP-ERR-007` | Restore failed |
+| `MURPHY-BACKUP-ERR-008` | SHA3-256 verification mismatch |
+| `MURPHY-BACKUP-ERR-009` | Pre-hook execution failed |
+| `MURPHY-BACKUP-ERR-010` | Post-hook execution failed |
+| `MURPHY-BACKUP-ERR-011` | Backup pruning failed |
+| `MURPHY-BACKUP-ERR-012` | Export failed |
+| `MURPHY-BACKUP-ERR-013` | Manifest not found |
+| `MURPHY-BACKUP-ERR-014` | Database dump failed |
+| `MURPHY-BACKUP-ERR-015` | Configuration load error |
+
+---
+
+## LLM Governor
+
+Module: `userspace/murphy-llm-governor/murphy_llm_governor.py`
+
+| Code | Description |
+|------|-------------|
+| `MURPHY-LLM-GOV-ERR-001` | State persistence write failed |
+| `MURPHY-LLM-GOV-ERR-002` | State persistence load failed |
+| `MURPHY-LLM-GOV-ERR-003` | nvidia-smi GPU stats query failed |
+| `MURPHY-LLM-GOV-ERR-004` | Per-provider daily budget exceeded — circuit breaker tripped |
+| `MURPHY-LLM-GOV-ERR-005` | Global hourly budget exceeded — circuit breaker tripped |
+| `MURPHY-LLM-GOV-ERR-006` | Rate limiter acquire denied (RPM exceeded) |
+| `MURPHY-LLM-GOV-ERR-007` | Rate limiter acquire denied (TPM exceeded) |
+| `MURPHY-LLM-GOV-ERR-008` | GPU OOM prevention — memory > 90% threshold |
+| `MURPHY-LLM-GOV-ERR-009` | GPU temperature limit exceeded |
+| `MURPHY-LLM-GOV-ERR-010` | Provider health check — error rate > threshold |
+| `MURPHY-LLM-GOV-ERR-011` | Configuration parse error |
+| `MURPHY-LLM-GOV-ERR-012` | Circuit breaker OPEN for provider |
+
+---
+
+## Telemetry Exporter
+
+Module: `userspace/murphy-telemetry-export/murphy_telemetry_export.py`
+
+| Code | Description |
+|------|-------------|
+| `MURPHY-TELEMETRY-ERR-001` | D-Bus data source query failed |
+| `MURPHY-TELEMETRY-ERR-002` | REST API data source query failed |
+| `MURPHY-TELEMETRY-ERR-003` | MurphyFS data source read failed |
+| `MURPHY-TELEMETRY-ERR-004` | cgroup filesystem read failed |
+| `MURPHY-TELEMETRY-ERR-005` | Prometheus textfile atomic write failed |
+| `MURPHY-TELEMETRY-ERR-006` | Metric collection cycle failed |
+| `MURPHY-TELEMETRY-ERR-007` | Configuration parse error |
+| `MURPHY-TELEMETRY-ERR-008` | Output directory does not exist |
+| `MURPHY-TELEMETRY-ERR-009` | Daemon initialization error |
+| `MURPHY-TELEMETRY-ERR-010` | Invalid metric format in render |
+
+---
+
+## Module Lifecycle Manager
+
+Module: `userspace/murphy-module-lifecycle/murphy_module_lifecycle.py`
+
+| Code | Description |
+|------|-------------|
+| `MURPHY-MODULE-ERR-001` | Module registry load failed |
+| `MURPHY-MODULE-ERR-002` | Module registry persist failed |
+| `MURPHY-MODULE-ERR-003` | Module already registered |
+| `MURPHY-MODULE-ERR-004` | Module not found in registry |
+| `MURPHY-MODULE-ERR-005` | systemd-run start failed |
+| `MURPHY-MODULE-ERR-006` | systemctl stop failed |
+| `MURPHY-MODULE-ERR-007` | Module health check failed |
+| `MURPHY-MODULE-ERR-008` | Module health check — HTTP timeout |
+| `MURPHY-MODULE-ERR-009` | journalctl log retrieval failed |
+| `MURPHY-MODULE-ERR-010` | Auto-restart limit exceeded |
+| `MURPHY-MODULE-ERR-011` | Configuration parse error |
+| `MURPHY-MODULE-ERR-012` | Daemon initialization error |
