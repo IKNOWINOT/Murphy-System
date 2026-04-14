@@ -1,0 +1,47 @@
+# MurphyOS Auto-Hardening Security Service
+# Runs the AutoSecOrchestrator as a hardened systemd service.
+
+[Unit]
+Description=MurphyOS Auto-Hardening Security Layer
+Documentation=https://docs.murphyos.local/auto-hardening
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/python3 -m murphyos.security.auto-hardening.murphy_autosec_orchestrator
+Restart=on-failure
+RestartSec=10
+WatchdogSec=120
+
+# --- Hardening ---
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+MemoryDenyWriteExecute=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictNamespaces=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+SystemCallArchitectures=native
+SystemCallFilter=@system-service @network-io
+
+# Allow write to state directories only
+ReadWritePaths=/var/lib/murphy
+
+# Capabilities (minimal)
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_IPC_LOCK CAP_SYS_PTRACE
+AmbientCapabilities=CAP_NET_ADMIN CAP_IPC_LOCK
+
+# Resource limits
+LimitNOFILE=65536
+LimitMEMLOCK=infinity
+
+[Install]
+WantedBy=multi-user.target

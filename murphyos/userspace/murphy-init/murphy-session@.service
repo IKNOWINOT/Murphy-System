@@ -1,0 +1,50 @@
+# murphy-session@.service — Per-User Murphy Session (template unit)
+# © 2020 Inoni Limited Liability Company | Creator: Corey Post | License: BSL 1.1
+#
+# Instantiated as murphy-session@<username>.service to give each user
+# an isolated Murphy session with its own state directory.
+#
+# Usage:  systemctl start murphy-session@alice.service
+
+[Unit]
+Description=Murphy Session for %i
+Documentation=https://github.com/Inoni-Limited/Murphy-System
+After=murphy-system.service
+Requires=murphy-system.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/murphy-session --user %i
+
+User=%i
+Slice=user-%i.slice
+
+Environment=MURPHY_SOCKET=/run/murphy/murphy.sock
+Environment=MURPHY_SESSION_USER=%i
+Environment=MURPHY_SESSION_STATE=/murphy/sessions/%i
+
+# Graceful shutdown
+KillMode=mixed
+TimeoutStopSec=15
+
+Restart=on-failure
+RestartSec=5
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=murphy-session-%i
+
+# Security hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+
+# Each session may write to its own state directory
+ReadWritePaths=/murphy/sessions/%i
+
+[Install]
+WantedBy=default.target

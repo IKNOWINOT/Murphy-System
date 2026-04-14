@@ -1,0 +1,58 @@
+# vim:syntax=apparmor
+# AppArmor profile for the Murphy System runtime
+# © 2020 Inoni Limited Liability Company | License: BSL 1.1
+
+#include <tunables/global>
+
+profile murphy-runtime /usr/lib/murphy/murphy-runtime flags=(enforce) {
+  #include <abstractions/base>
+  #include <abstractions/nameservice>
+  #include <abstractions/python>
+  #include <abstractions/ssl_certs>
+
+  # Murphy runtime executable
+  /usr/lib/murphy/** r,
+  /usr/bin/python3* ix,
+
+  # Configuration
+  /etc/murphy/** r,
+  /murphy/engines/** r,
+
+  # Data directories — read + write
+  /murphy/persistence/** rw,
+  /murphy/logs/** rw,
+  /murphy/swarm/** rw,
+  /murphy/telemetry/** rw,
+  /murphy/knowledge/** rw,
+  /murphy/models/** r,
+
+  # PQC — read public keys only
+  /murphy/keys/public/** r,
+  deny /murphy/keys/private/** rw,
+
+  # Runtime socket
+  /run/murphy/ r,
+  /run/murphy/murphy.sock rw,
+
+  # Kernel devices
+  /dev/murphy-event rw,
+  /dev/murphy-confidence r,
+  /sys/murphy/** r,
+
+  # Network — API server and LLM providers
+  network inet tcp,
+  network inet udp,
+  network inet6 tcp,
+  network inet6 udp,
+  network unix stream,
+
+  # Proc and sys for system info
+  @{PROC}/sys/net/** r,
+  /sys/devices/** r,
+
+  # Deny sensitive locations
+  deny /home/** rwx,
+  deny /root/** rwx,
+  deny /etc/shadow r,
+  deny /etc/gshadow r,
+}

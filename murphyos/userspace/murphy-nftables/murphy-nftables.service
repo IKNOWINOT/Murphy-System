@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: BSL-1.1
+# © 2020 Inoni Limited Liability Company — Creator: Corey Post
+#
+# murphy-nftables.service — load Murphy nftables rules at boot
+
+[Unit]
+Description=Murphy System nftables network-security rules
+Documentation=https://github.com/IKNOWINOT/Murphy-System
+After=network-pre.target
+Before=network.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /etc/murphy/murphy.nft
+ExecReload=/usr/sbin/nft -f /etc/murphy/murphy.nft
+ExecStop=/usr/sbin/nft flush ruleset
+
+[Install]
+WantedBy=multi-user.target

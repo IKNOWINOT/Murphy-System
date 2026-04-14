@@ -1,0 +1,41 @@
+# murphy-dbus.service — systemd unit for the Murphy D-Bus bridge
+# © 2020 Inoni Limited Liability Company | Creator: Corey Post | License: BSL 1.1
+#
+# Installed to: /usr/lib/systemd/system/murphy-dbus.service
+#
+# Bridges the Murphy REST API (localhost:8000) to the system D-Bus,
+# exposing org.murphy.{ControlPlane,Confidence,HITL,Swarm,Forge}.
+# Activates on-demand via D-Bus service activation or started by
+# murphy-system.service.
+
+[Unit]
+Description=Murphy System D-Bus Bridge
+Documentation=https://github.com/Inoni-Limited/Murphy-System
+After=murphy-system.service dbus.service
+Wants=murphy-system.service
+ConditionPathExists=/usr/lib/murphy/murphy-dbus-service
+
+[Service]
+Type=dbus
+BusName=org.murphy.System
+ExecStart=/usr/lib/murphy/murphy-dbus-service
+User=murphy
+Group=murphy
+
+Restart=on-failure
+RestartSec=5
+
+Environment=MURPHY_API_URL=http://127.0.0.1:8000
+Environment=PYTHONUNBUFFERED=1
+
+# Hardening
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+NoNewPrivileges=yes
+ReadOnlyPaths=/etc /usr
+ReadWritePaths=/var/lib/murphy /run/murphy /murphy/live
+
+[Install]
+WantedBy=multi-user.target
+Alias=dbus-org.murphy.System.service

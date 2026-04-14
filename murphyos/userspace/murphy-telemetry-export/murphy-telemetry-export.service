@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: LicenseRef-BSL-1.1
+# © 2020 Inoni Limited Liability Company — Creator: Corey Post — BSL 1.1
+#
+# murphy-telemetry-export.service
+# One-shot unit that collects Murphy metrics and writes
+# /var/lib/prometheus/node-exporter/murphy.prom
+# Triggered by murphy-telemetry-export.timer every 15 s.
+
+[Unit]
+Description=Murphy Telemetry → Prometheus Textfile Export
+Documentation=https://github.com/murphy-system/murphy/blob/main/murphyos/userspace/murphy-telemetry-export/README.md
+After=murphy-system.service
+Wants=murphy-system.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/Murphy-System/murphyos/userspace/murphy-telemetry-export/murphy_telemetry_export.py --once -c /etc/murphy/telemetry.yaml
+User=murphy
+Group=murphy
+
+# Paths
+ReadWritePaths=/var/lib/prometheus/node-exporter
+ReadOnlyPaths=/murphy/live /sys/fs/cgroup/murphy.slice /etc/murphy
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=no
+MemoryDenyWriteExecute=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=murphy-telemetry-export
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,21 @@
+murphyos (1.0.0-1) unstable; urgency=medium
+
+  * Initial release of MurphyOS — AI-native Linux distribution.
+  * Kernel module: /dev/murphy-event, /dev/murphy-confidence, sysfs gates,
+    netfilter hooks, PQC HMAC-SHA3 event authentication.
+  * Systemd integration: murphy-system.service, watchdog, per-user sessions,
+    boot-time engine generator.
+  * D-Bus bridge: org.murphy.{ControlPlane,Confidence,HITL,Swarm,Forge}.
+  * Post-quantum cryptography: ML-KEM-1024, ML-DSA-87, SLH-DSA-SHA2-256f,
+    hybrid classical+PQC mode, PQC key manager, secure boot verification.
+  * FUSE filesystem (murphyfs) exposing Murphy state as files.
+  * Murphy CLI with 20+ subcommands.
+  * udev rules for automatic hardware registration.
+  * PAM module for session management and HITL auth gate.
+  * Polkit policies with confidence-driven authorization.
+  * nftables rules for swarm isolation and LLM traffic shaping.
+  * DNS resolver for *.murphy.local.
+  * GNOME Shell extension with confidence indicator and HITL notifications.
+  * Nautilus file-manager plugin.
+
+ -- Corey Post <corey@inoni.llc>  Sat, 12 Apr 2026 00:00:00 +0000

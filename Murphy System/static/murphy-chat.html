@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Murphy — Chat</title>
+  <meta name="description" content="Murphy System conversational AI interface — build, analyze, and automate with multi-turn chat.">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/murphy-design-system.css">
+  <link rel="stylesheet" href="/static/murphy-chat.css">
+</head>
+<body>
+  <div class="chat-layout">
+
+    <!-- ── Left sidebar: conversation history ── -->
+    <aside id="chat-sidebar" class="chat-sidebar">
+      <div class="sidebar-header">
+        <h2>✦ Murphy</h2>
+      </div>
+      <button id="btn-new-chat" class="btn-new-chat" title="New conversation (Ctrl+N)">
+        + New Chat
+      </button>
+      <input id="sidebar-search" class="sidebar-search" type="text"
+             placeholder="Search conversations…" aria-label="Search conversations">
+      <div id="conv-list" class="conv-list" role="list"></div>
+    </aside>
+
+    <!-- ── Main chat area ── -->
+    <section class="chat-main">
+      <!-- Topbar -->
+      <header class="chat-topbar">
+        <button id="btn-toggle-sidebar" class="btn-toggle-sidebar" title="Toggle sidebar" aria-label="Toggle sidebar">☰</button>
+        <span id="chat-title" class="chat-title">Murphy</span>
+        <button id="btn-toggle-artifacts" class="btn-toggle-artifacts" title="Toggle artifacts (Ctrl+Shift+A)">Artifacts ▸</button>
+      </header>
+
+      <!-- Messages -->
+      <div id="chat-messages" class="chat-messages" role="log" aria-live="polite">
+        <div id="chat-empty" class="chat-empty">
+          <div class="logo-large">✦</div>
+          <h3>Murphy System</h3>
+          <p>AI Business Operating System. Ask anything, build with the Swarm Forge,
+             or analyze your operations. Type below or use <code>/help</code> for commands.</p>
+        </div>
+      </div>
+
+      <!-- Scroll-to-bottom -->
+      <button id="btn-scroll-bottom" class="btn-scroll-bottom">↓ Scroll to bottom</button>
+
+      <!-- Input area -->
+      <div class="chat-input-area">
+        <div class="mode-chips">
+          <button class="mode-chip active" data-mode="chat">Chat</button>
+          <button class="mode-chip" data-mode="forge">Forge</button>
+          <button class="mode-chip" data-mode="analyze">Analyze</button>
+        </div>
+        <div class="input-row">
+          <span class="prompt-prefix">$</span>
+          <textarea id="chat-input" rows="1"
+                    placeholder="Message Murphy…"
+                    aria-label="Chat message input"></textarea>
+          <button id="btn-send" class="btn-send" title="Send (Enter)" aria-label="Send message">↑</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Right panel: artifacts ── -->
+    <aside id="artifact-panel" class="chat-artifacts collapsed">
+      <div class="artifacts-header">
+        <h3>Artifacts</h3>
+        <button id="btn-close-artifacts" class="btn-close-artifacts" aria-label="Close artifacts">×</button>
+      </div>
+      <div id="artifact-tabs" class="artifacts-tabs"></div>
+      <div id="artifact-content" class="artifact-content"></div>
+      <div class="artifact-actions">
+        <button onclick="document.querySelector('#artifact-content') && navigator.clipboard.writeText(document.getElementById('artifact-content').textContent)">Copy</button>
+        <button id="btn-download-artifact">Download</button>
+      </div>
+    </aside>
+
+  </div>
+
+  <script src="/static/murphy-chat.js"></script>
+</body>
+</html>

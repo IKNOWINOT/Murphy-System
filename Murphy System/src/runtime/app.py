@@ -10824,6 +10824,7 @@ def create_app() -> FastAPI:
             "/ui/dev-module": "dev_module.html",
             "/ui/service-module": "service_module.html",
             "/ui/guest-portal": "guest_portal.html",
+            "/ui/chat": "static/murphy-chat.html",
         }
 
         # ── Route classification: public vs auth-required ──────────
@@ -14979,6 +14980,307 @@ def create_app() -> FastAPI:
             "scored_options": scored,
             "explanation": explanation,
         })
+
+    # ── Chat API endpoints ───────────────────────────────────────────────────
+    # Full conversational interface: CRUD for conversations + streaming
+    # message endpoint.  Uses chat_store for state and chat_router for
+    # intent detection.  (Label: CHAT-API-001)
+
+    @app.get("/api/chat/conversations")
+    async def chat_list_conversations(request: Request):
+        """List the current user's conversations."""
+        account = _get_account_from_session(request)
+        uid = account["account_id"] if account else "anon"
+        try:
+            from src.chat_store import get_chat_store
+            store = get_chat_store()
+            return JSONResponse({"conversations": store.list_for_user(uid)})
+        except Exception as exc:  # CHAT-API-ERR-001
+            logger.warning("CHAT-API-ERR-001: list conversations failed: %s", exc)
+            return JSONResponse({"conversations": []})
+
+    @app.post("/api/chat/conversations")
+    async def chat_create_conversation(request: Request):
+        """Create a new conversation."""
+        account = _get_account_from_session(request)
+        uid = account["account_id"] if account else "anon"
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        mode = (body.get("mode") or "chat").strip()
+        try:
+            from src.chat_store import get_chat_store
+            store = get_chat_store()
+            conv = store.create(uid, mode=mode)
+            return JSONResponse({"conversation": conv.to_dict()}, status_code=201)
+        except Exception as exc:  # CHAT-API-ERR-002
+            logger.warning("CHAT-API-ERR-002: create conversation failed: %s", exc)
+            return JSONResponse({"error": "Failed to create conversation"}, status_code=500)
+
+    @app.get("/api/chat/conversations/{conv_id}")
+    async def chat_get_conversation(conv_id: str, request: Request):
+        """Get a conversation with full messages."""
+        account = _get_account_from_session(request)
+        uid = account["account_id"] if account else "anon"
+        try:
+            from src.chat_store import get_chat_store
+            store = get_chat_store()
+            conv = store.get(conv_id, uid)
+            if not conv:
+                return JSONResponse({"error": "Not found"}, status_code=404)
+            return JSONResponse({"conversation": conv.to_dict()})
+        except Exception as exc:  # CHAT-API-ERR-003
+            logger.warning("CHAT-API-ERR-003: get conversation failed: %s", exc)
+            return JSONResponse({"error": "Server error"}, status_code=500)
+
+    @app.delete("/api/chat/conversations/{conv_id}")
+    async def chat_delete_conversation(conv_id: str, request: Request):
+        """Delete a conversation."""
+        account = _get_account_from_session(request)
+        uid = account["account_id"] if account else "anon"
+        try:
+            from src.chat_store import get_chat_store
+            store = get_chat_store()
+            deleted = store.delete(conv_id, uid)
+            return JSONResponse({"deleted": deleted})
+        except Exception as exc:  # CHAT-API-ERR-004
+            logger.warning("CHAT-API-ERR-004: delete conversation failed: %s", exc)
+            return JSONResponse({"error": "Server error"}, status_code=500)
+
+    @app.patch("/api/chat/conversations/{conv_id}")
+    async def chat_rename_conversation(conv_id: str, request: Request):
+        """Rename a conversation."""
+        account = _get_account_from_session(request)
+        uid = account["account_id"] if account else "anon"
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+        new_title = (body.get("title") or "").strip()
+        if not new_title:
+            return JSONResponse({"error": "title is required"}, status_code=400)
+        try:
+            from src.chat_store import get_chat_store
+            store = get_chat_store()
+            ok = store.rename(conv_id, uid, new_title)
+            return JSONResponse({"renamed": ok})
+        except Exception as exc:  # CHAT-API-ERR-005
+            logger.warning("CHAT-API-ERR-005: rename conversation failed: %s", exc)
+            return JSONResponse({"error": "Server error"}, status_code=500)
+
+    @app.post("/api/chat/message")
+    async def chat_send_message(request: Request):
+        """Send a message and stream the response via SSE.
+
+        Request body:
+            {"conversation_id": str, "message": str, "mode": str}
+
+        Returns a text/event-stream with events:
+            {type: "token",  token: str}
+            {type: "tool_start", tool: str, detail: str}
+            {type: "tool_result", tool: str, result: str}
+            {type: "artifact", title: str, content: str, artifact_type: str}
+            {type: "done", content: str, metadata: dict}
+            {type: "error", message: str}
+        """
+        from starlette.responses import StreamingResponse
+        import asyncio as _chat_asyncio
+
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+        conv_id = (body.get("conversation_id") or "").strip()
+        message = (body.get("message") or "").strip()
+        mode = (body.get("mode") or "chat").strip()
+
+        if not message:
+            return JSONResponse({"error": "message is required"}, status_code=400)
+
+        account = _get_account_from_session(request)
+        uid = account["account_id"] if account else "anon"
+
+        # Ensure conversation exists
+        try:
+            from src.chat_store import get_chat_store
+            store = get_chat_store()
+        except Exception as exc:  # CHAT-API-ERR-006
+            logger.warning("CHAT-API-ERR-006: chat store unavailable: %s", exc)
+            return JSONResponse({"error": "Chat service unavailable"}, status_code=503)
+
+        if conv_id:
+            conv = store.get(conv_id, uid)
+            if not conv:
+                conv = store.create(uid, mode=mode)
+                conv_id = conv.id
+        else:
+            conv = store.create(uid, mode=mode)
+            conv_id = conv.id
+
+        # Store user message
+        store.add_message(conv_id, uid, "user", message)
+
+        # Detect intent
+        try:
+            from src.chat_router import detect_intent, MURPHY_SYSTEM_PROMPT, MURPHY_HELP_TEXT
+            intent = detect_intent(message, mode)
+        except Exception:  # CHAT-API-ERR-007
+            from src.chat_router import ChatIntent
+            intent = ChatIntent("chat", 0.5, "router unavailable")
+            MURPHY_SYSTEM_PROMPT = "You are Murphy, an AI business operating system built by Inoni LLC."
+            MURPHY_HELP_TEXT = "Type /help for commands."
+
+        async def _stream():
+            full_content = ""
+            artifacts_list = []
+            tool_calls_list = []
+
+            try:
+                if intent.intent == "help":
+                    # Return help text directly
+                    full_content = MURPHY_HELP_TEXT
+                    yield f"data: {json.dumps({'type': 'token', 'token': full_content})}\n\n"
+
+                elif intent.intent == "status":
+                    # Return system status
+                    try:
+                        status_info = {
+                            "system": "Murphy System 1.0",
+                            "status": "operational",
+                            "llm_provider": "configured" if os.environ.get("DEEPINFRA_API_KEY") else "not configured",
+                            "uptime": "running",
+                        }
+                        full_content = (
+                            "**Murphy System Status**\n\n"
+                            f"- **System**: {status_info['system']}\n"
+                            f"- **Status**: {status_info['status']}\n"
+                            f"- **LLM Provider**: {status_info['llm_provider']}\n"
+                        )
+                    except Exception:
+                        full_content = "**Murphy System**: operational"
+                    yield f"data: {json.dumps({'type': 'token', 'token': full_content})}\n\n"
+
+                elif intent.intent == "forge":
+                    # Route through the Swarm Forge pipeline
+                    forge_query = intent.forge_query or message
+                    tool_calls_list.append({"tool": "Swarm Forge", "status": "starting"})
+                    yield f"data: {json.dumps({'type': 'tool_start', 'tool': 'Swarm Forge', 'detail': 'Routing to build pipeline...'})}\n\n"
+
+                    try:
+                        from src.demo_deliverable_generator import generate_deliverable_with_progress
+                        import functools
+
+                        _gen_fn = functools.partial(generate_deliverable_with_progress, forge_query)
+                        progress = await _chat_asyncio.get_event_loop().run_in_executor(None, _gen_fn)
+
+                        for event in progress:
+                            if event.get("phase") == "done":
+                                deliverable = event.get("deliverable") or {}
+                                metrics = event.get("metrics") or {}
+                                yield f"data: {json.dumps({'type': 'tool_result', 'tool': 'Swarm Forge', 'result': 'Build complete'})}\n\n"
+
+                                if deliverable.get("content"):
+                                    artifact = {
+                                        "title": deliverable.get("title", "Forge Deliverable"),
+                                        "content": deliverable["content"],
+                                        "artifact_type": "deliverable",
+                                        "filename": deliverable.get("filename", "murphy-deliverable.txt"),
+                                    }
+                                    artifacts_list.append(artifact)
+
+                                full_content = (
+                                    f"Built **{deliverable.get('title', 'deliverable')}** via the Swarm Forge.\n\n"
+                                    f"Open the artifact panel to view the full output."
+                                )
+
+                                done_event = {
+                                    "type": "done",
+                                    "content": full_content,
+                                    "deliverable": deliverable,
+                                    "metadata": {
+                                        "intent": intent.to_dict(),
+                                        "metrics": metrics,
+                                        "pipeline_diagnostics": event.get("pipeline_diagnostics"),
+                                    },
+                                }
+                                yield f"data: {json.dumps(done_event)}\n\n"
+                            else:
+                                # Progress event
+                                yield f"data: {json.dumps({'phase': event.get('phase'), 'status': event.get('status', ''), 'detail': event.get('detail', '')})}\n\n"
+
+                        # If we got here without a done event, store what we have
+                        if not full_content:
+                            full_content = "Forge build completed. Check the artifacts panel for results."
+                            yield f"data: {json.dumps({'type': 'token', 'token': full_content})}\n\n"
+
+                    except Exception as exc:  # CHAT-API-ERR-008
+                        logger.warning("CHAT-API-ERR-008: forge pipeline failed: %s", exc)
+                        yield f"data: {json.dumps({'type': 'tool_result', 'tool': 'Swarm Forge', 'result': 'Pipeline error — using fallback'})}\n\n"
+                        full_content = f"The Forge pipeline encountered an issue. Please try rephrasing your request or use a more specific description."
+                        yield f"data: {json.dumps({'type': 'token', 'token': full_content})}\n\n"
+
+                else:
+                    # General chat: call LLM with conversation context
+                    try:
+                        from src.llm_provider import MurphyLLMProvider
+                        llm = MurphyLLMProvider()
+                        context_msgs = conv.get_context_messages(MURPHY_SYSTEM_PROMPT)
+                        completion = await _chat_asyncio.get_event_loop().run_in_executor(
+                            None,
+                            lambda: llm.complete_messages(
+                                context_msgs,
+                                model_hint="chat",
+                                temperature=0.7,
+                                max_tokens=4096,
+                            ),
+                        )
+                        full_content = completion.content or ""
+
+                        # Stream in chunks for typewriter effect
+                        chunk_size = 20
+                        for i in range(0, len(full_content), chunk_size):
+                            chunk = full_content[i:i + chunk_size]
+                            yield f"data: {json.dumps({'type': 'token', 'token': chunk})}\n\n"
+                            await _chat_asyncio.sleep(0.02)
+
+                    except Exception as exc:  # CHAT-API-ERR-009
+                        logger.warning("CHAT-API-ERR-009: LLM call failed: %s", exc)
+                        full_content = (
+                            "I'm Murphy, your AI business operating system. "
+                            "I can help you build applications, analyze operations, and automate workflows. "
+                            "Currently my LLM connection isn't available, but you can try:\n\n"
+                            "- `/forge <description>` to build something with the Swarm Forge\n"
+                            "- `/status` to check system health\n"
+                            "- `/help` to see all commands"
+                        )
+                        yield f"data: {json.dumps({'type': 'token', 'token': full_content})}\n\n"
+
+            except Exception as exc:  # CHAT-API-ERR-010
+                logger.error("CHAT-API-ERR-010: stream generation error: %s", exc)
+                full_content = "*An error occurred while generating the response.*"
+                yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
+
+            # Store assistant message
+            try:
+                store.add_message(
+                    conv_id, uid, "assistant", full_content,
+                    tool_calls=tool_calls_list,
+                    artifacts=artifacts_list,
+                )
+            except Exception as exc:
+                logger.debug("Failed to store assistant message: %s", exc)
+
+            # Final done event (if not already sent by forge)
+            if intent.intent != "forge":
+                yield f"data: {json.dumps({'type': 'done', 'content': full_content, 'metadata': {'intent': intent.to_dict()}})}\n\n"
+
+        return StreamingResponse(
+            _stream(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
 
     # ── Founder account seed ────────────────────────────────────────────────
     # On every startup the platform ensures a founder/owner account exists so

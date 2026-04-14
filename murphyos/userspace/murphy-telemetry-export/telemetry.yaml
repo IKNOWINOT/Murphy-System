@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: LicenseRef-BSL-1.1
+# © 2020 Inoni Limited Liability Company — Creator: Corey Post — BSL 1.1
+#
+# Murphy Telemetry Export configuration
+# Install to /etc/murphy/telemetry.yaml
+
+murphy_telemetry:
+  enabled: true
+  output_path: /var/lib/prometheus/node-exporter/murphy.prom
+  interval_seconds: 15
+  data_sources:
+    - dbus
+    - rest_api
+    - murphyfs
+    - cgroup
+  metrics:
+    confidence: true
+    gates: true
+    swarm: true
+    forge: true
+    llm: true
+    security: true
+    system: true
+    backup: true
+    cgroup: true

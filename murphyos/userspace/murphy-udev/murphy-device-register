@@ -1,0 +1,47 @@
+#!/bin/sh
+# murphy-device-register — Register USB/IoT devices with Murphy
+# © 2020 Inoni Limited Liability Company, Creator: Corey Post
+# License: BSL 1.1
+#
+# Called by udev when a matching IoT vendor device is plugged in.
+# Reads udev environment variables and sends a JSON registration event.
+
+set -e
+
+MURPHY_EVENT_DEV="/dev/murphy-event"
+MURPHY_API="http://localhost:8000/api/system/device-register"
+TAG="murphy-device-register"
+
+# Escape a value for safe embedding in a JSON string
+json_esc() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
+
+VENDOR_ID=$(json_esc "${ID_VENDOR_ID:-unknown}")
+MODEL_ID=$(json_esc "${ID_MODEL_ID:-unknown}")
+DEV_NAME=$(json_esc "${DEVNAME:-unknown}")
+DEV_SUBSYSTEM=$(json_esc "${SUBSYSTEM:-unknown}")
+
+json_payload=$(cat <<EOF
+{"event":"device_register","vendor_id":"${VENDOR_ID}","model_id":"${MODEL_ID}","devname":"${DEV_NAME}","subsystem":"${DEV_SUBSYSTEM}","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
+EOF
+)
+
+# Try the Murphy kernel device first, fall back to HTTP API
+if [ -w "$MURPHY_EVENT_DEV" ]; then
+    echo "$json_payload" > "$MURPHY_EVENT_DEV" 2>/dev/null && \
+        logger -t "$TAG" "Registered device ${DEV_NAME} (${VENDOR_ID}:${MODEL_ID}) via ${MURPHY_EVENT_DEV}" && \
+        exit 0
+fi
+
+# Fall back to HTTP API
+if command -v curl >/dev/null 2>&1; then
+    curl -s -m 5 -X POST \
+        -H "Content-Type: application/json" \
+        -d "$json_payload" \
+        "$MURPHY_API" >/dev/null 2>&1 && \
+        logger -t "$TAG" "Registered device ${DEV_NAME} (${VENDOR_ID}:${MODEL_ID}) via HTTP API" && \
+        exit 0
+fi
+
+logger -t "$TAG" -p user.warning \
+    "Failed to register device ${DEV_NAME} (${VENDOR_ID}:${MODEL_ID}) — neither ${MURPHY_EVENT_DEV} nor HTTP API available"
+exit 0

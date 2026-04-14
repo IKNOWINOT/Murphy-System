@@ -1,0 +1,98 @@
+# SPDX-License-Identifier: LicenseRef-BSL-1.1
+# © 2020 Inoni Limited Liability Company — Creator: Corey Post — BSL 1.1
+#
+# Journal message catalog for MurphyOS
+# Install: journalctl --update-catalog < murphy.catalog
+#
+# Each entry is referenced by a 128-bit message ID and provides contextual
+# help shown by `journalctl --catalog`.
+
+-- a1b2c3d4e5f6a1b2c3d4e5f6a1b20001
+Subject: Murphy confidence score changed
+Defined-By: murphy-system
+
+The Murphy Fractal Governance Confidence (MFGC) score has changed.
+
+A rising score indicates healthy system operation; a falling score may
+indicate anomalies or degraded inputs.  Gate policies use this value to
+decide whether autonomous actions are allowed.
+
+Fields: MURPHY_EVENT_TYPE=confidence, MURPHY_CONFIDENCE, MURPHY_CONFIDENCE_OLD
+
+Documentation: https://docs.murphy.ai/governance/confidence
+
+-- a1b2c3d4e5f6a1b2c3d4e5f6a1b20002
+Subject: Murphy governance gate decision
+Defined-By: murphy-system
+
+A governance gate evaluated the current confidence score and rendered an
+allow, deny, or escalate decision.
+
+When a gate denies an action the system pauses autonomous execution and
+waits for human approval.  Escalation routes the decision to the HITL
+dashboard.
+
+Fields: MURPHY_EVENT_TYPE=gate, MURPHY_GATE_NAME, MURPHY_GATE_ACTION, MURPHY_CONFIDENCE
+
+Documentation: https://docs.murphy.ai/governance/gates
+
+-- a1b2c3d4e5f6a1b2c3d4e5f6a1b20003
+Subject: Murphy swarm agent lifecycle event
+Defined-By: murphy-system
+
+A swarm agent was spawned, terminated, or encountered an error.
+
+Every agent is identified by a UUID stored in MURPHY_AGENT_ID.
+Resources allocated to the agent are tracked in the murphy.slice cgroup
+hierarchy.
+
+Fields: MURPHY_EVENT_TYPE=swarm, MURPHY_AGENT_ID, MURPHY_SWARM_ACTION, MURPHY_SWARM_ROLE
+
+Documentation: https://docs.murphy.ai/swarm/lifecycle
+
+-- a1b2c3d4e5f6a1b2c3d4e5f6a1b20004
+Subject: Murphy security engine event
+Defined-By: murphy-system
+
+One of the MurphyOS security engines (auto-encrypt, auto-patch, network
+sentinel, memory protection, etc.) reported a notable event.
+
+Review the MURPHY_SECURITY_ENGINE field to identify the originating engine
+and check the severity to determine urgency.
+
+Fields: MURPHY_EVENT_TYPE=security, MURPHY_SECURITY_ENGINE, MURPHY_SEVERITY
+
+Documentation: https://docs.murphy.ai/security
+
+-- a1b2c3d4e5f6a1b2c3d4e5f6a1b20005
+Subject: Murphy LLM inference request
+Defined-By: murphy-system
+
+An LLM inference request was completed.  Token counts and latency are
+recorded for cost tracking and performance monitoring.
+
+Fields: MURPHY_EVENT_TYPE=llm, MURPHY_LLM_PROVIDER, MURPHY_LLM_MODEL,
+        MURPHY_LLM_TOKENS, MURPHY_LLM_LATENCY_MS
+
+Documentation: https://docs.murphy.ai/llm/tracking
+
+-- a1b2c3d4e5f6a1b2c3d4e5f6a1b20006
+Subject: Murphy forge event
+Defined-By: murphy-system
+
+A code-forge or build event was recorded by the Murphy system.
+
+Fields: MURPHY_EVENT_TYPE=forge
+
+Documentation: https://docs.murphy.ai/forge
+
+-- a1b2c3d4e5f6a1b2c3d4e5f6a1b20007
+Subject: Murphy automation event
+Defined-By: murphy-system
+
+An automation workflow step was logged.  Automation events track task
+execution, retries, and completion across the Murphy pipeline.
+
+Fields: MURPHY_EVENT_TYPE=automation
+
+Documentation: https://docs.murphy.ai/automation

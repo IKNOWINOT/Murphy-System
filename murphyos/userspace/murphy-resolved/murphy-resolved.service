@@ -1,0 +1,25 @@
+# murphy-resolved.service — Murphy DNS resolver for *.murphy.local
+# © 2020 Inoni Limited Liability Company | License: BSL 1.1
+
+[Unit]
+Description=Murphy DNS Resolver (*.murphy.local)
+After=network-online.target murphy-system.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=murphy
+Group=murphy
+ExecStart=/usr/lib/murphy/murphy-resolved
+Restart=on-failure
+RestartSec=5
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/murphy/logs
+
+[Install]
+WantedBy=multi-user.target

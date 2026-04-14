@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: LicenseRef-BSL-1.1
+# © 2020 Inoni Limited Liability Company — Creator: Corey Post — BSL 1.1
+#
+# llm-governor.yaml — Configuration for the MurphyOS LLM Resource Governor
+# Install: cp llm-governor.yaml /etc/murphy/llm-governor.yaml
+
+murphy_llm_governor:
+  enabled: true
+  state_file: /var/lib/murphy/llm-governor.json
+
+  budgets:
+    daily_total_usd: 50.0
+    hourly_total_usd: 10.0
+    per_provider:
+      deepinfra:
+        daily_usd: 20.0
+        rpm: 60
+        tpm: 100000
+      openai:
+        daily_usd: 30.0
+        rpm: 60
+        tpm: 150000
+      groq:
+        daily_usd: 10.0
+        rpm: 30
+        tpm: 50000
+
+  gpu:
+    oom_threshold_percent: 90
+    temperature_limit_celsius: 85
+
+  health:
+    error_rate_threshold: 0.05
+    latency_p99_threshold_ms: 30000
+    window_seconds: 300

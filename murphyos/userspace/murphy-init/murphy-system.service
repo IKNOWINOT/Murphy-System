@@ -1,0 +1,69 @@
+# murphy-system.service — Core Murphy Runtime
+# © 2020 Inoni Limited Liability Company | Creator: Corey Post | License: BSL 1.1
+#
+# Murphy System — Universal AI Automation Runtime
+# This unit launches the FastAPI-based Murphy System 1.0 runtime as a
+# system-level service with sd_notify readiness signalling.
+
+[Unit]
+Description=Murphy System — Universal AI Automation Runtime
+Documentation=https://github.com/Inoni-Limited/Murphy-System
+After=network-online.target murphy-bus.socket
+Wants=murphy-bus.socket murphy-watchdog.service
+Requires=network-online.target
+
+[Service]
+Type=notify
+User=murphy
+Group=murphy
+WorkingDirectory=/murphy/runtime
+
+ExecStart=/usr/bin/python3 -m murphy.runtime
+
+Environment=PYTHONPATH=/murphy/runtime
+Environment=MURPHY_ENV=production
+Environment=MURPHY_SOCKET=/run/murphy/murphy.sock
+Environment=MURPHY_LOG_LEVEL=info
+
+# Graceful shutdown: SIGTERM first, then SIGKILL after timeout
+KillMode=mixed
+TimeoutStartSec=90
+TimeoutStopSec=30
+WatchdogSec=60
+
+Restart=on-failure
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=murphy-system
+
+# --- Security hardening ---
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=no
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+
+# Murphy runtime writable paths
+ReadWritePaths=/murphy/persistence /murphy/logs /murphy/swarm /murphy/telemetry /murphy/knowledge
+ReadOnlyPaths=/murphy/runtime /murphy/engines
+
+# Runtime directory for transient state
+RuntimeDirectory=murphy
+RuntimeDirectoryMode=0750
+
+[Install]
+WantedBy=multi-user.target

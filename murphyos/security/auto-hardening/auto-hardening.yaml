@@ -1,0 +1,51 @@
+# MurphyOS Auto-Hardening — Default Configuration
+# "Humans don't want to perform security — the system keeps our stuff
+#  secure for us."
+---
+auto_hardening:
+  enabled: true
+
+  engines:
+    encrypt:
+      enabled: true
+      watch_dirs: []            # directories for inotify auto-encrypt
+      pqc_key_provider: null    # module path to PQC key callable
+
+    patch:
+      enabled: true
+      patch_url: "https://updates.murphyos.local/patches/latest.json"
+      check_interval_hours: 6
+
+    memory:
+      enabled: true
+      aslr_max: true
+      stack_protection: true
+      w_xor_x: true
+      seal_memory: true
+
+    network:
+      enabled: true
+      block_duration: 3600
+      allowlist:
+        - "127.0.0.1"
+        - "::1"
+      dns_exfil_detection: true
+
+    vault:
+      enabled: true
+      rotation_interval_days: 90
+
+    integrity:
+      enabled: true
+      watched_paths:
+        - "/opt/murphy"
+      check_interval: 300       # seconds
+      pqc_signed_baseline: true
+
+  logging:
+    level: INFO
+    journal: true               # log to systemd journal when available
+
+  systemd:
+    service_name: murphy-autosec
+    watchdog: true

@@ -1,0 +1,56 @@
+#!/bin/sh
+# murphy-gpu-register — Register GPU with Murphy Compute Plane
+# © 2020 Inoni Limited Liability Company, Creator: Corey Post
+# License: BSL 1.1
+#
+# Called by udev when a DRM card device appears.
+# Detects GPU vendor and sends registration to the Compute Plane.
+
+set -e
+
+MURPHY_EVENT_DEV="/dev/murphy-event"
+MURPHY_API="http://localhost:8000/api/system/gpu-register"
+TAG="murphy-gpu-register"
+
+# Detect GPU type from sysfs vendor ID
+# Escape a value for safe embedding in a JSON string
+json_esc() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
+
+gpu_type="unknown"
+card_name="${DEVNAME:-/dev/dri/card0}"
+card_base=$(basename "$card_name" 2>/dev/null || echo "card0")
+vendor_file="/sys/class/drm/${card_base}/device/vendor"
+
+if [ -r "$vendor_file" ]; then
+    vendor_id=$(cat "$vendor_file" 2>/dev/null || echo "")
+    case "$vendor_id" in
+        0x10de) gpu_type="nvidia"  ;;
+        0x1002) gpu_type="amd"     ;;
+        0x8086) gpu_type="intel"   ;;
+        *)      gpu_type="other:${vendor_id}" ;;
+    esac
+fi
+
+json_payload=$(cat <<EOF
+{"event":"gpu_register","gpu_type":"$(json_esc "$gpu_type")","device":"$(json_esc "$card_name")","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
+EOF
+)
+
+if [ -w "$MURPHY_EVENT_DEV" ]; then
+    echo "$json_payload" > "$MURPHY_EVENT_DEV" 2>/dev/null && \
+        logger -t "$TAG" "Registered GPU ${card_name} (${gpu_type}) via ${MURPHY_EVENT_DEV}" && \
+        exit 0
+fi
+
+if command -v curl >/dev/null 2>&1; then
+    curl -s -m 5 -X POST \
+        -H "Content-Type: application/json" \
+        -d "$json_payload" \
+        "$MURPHY_API" >/dev/null 2>&1 && \
+        logger -t "$TAG" "Registered GPU ${card_name} (${gpu_type}) via HTTP API" && \
+        exit 0
+fi
+
+logger -t "$TAG" -p user.warning \
+    "Failed to register GPU ${card_name} (${gpu_type})"
+exit 0

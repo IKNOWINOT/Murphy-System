@@ -1,0 +1,26 @@
+# murphy-bus.socket — Murphy IPC Socket
+# © 2020 Inoni Limited Liability Company | Creator: Corey Post | License: BSL 1.1
+#
+# Unix domain socket for zero-latency IPC between Murphy subsystems.
+# systemd manages the socket lifetime; murphy-system.service is activated
+# on first connection when socket-activation is used.
+
+[Unit]
+Description=Murphy System — IPC Bus Socket
+Documentation=https://github.com/Inoni-Limited/Murphy-System
+PartOf=murphy-system.service
+
+[Socket]
+ListenStream=/run/murphy/murphy.sock
+SocketUser=murphy
+SocketGroup=murphy
+SocketMode=0660
+Accept=no
+FileDescriptorName=murphy-bus
+RemoveOnStop=yes
+
+# Back-pressure: queue up to 128 pending connections
+Backlog=128
+
+[Install]
+WantedBy=sockets.target

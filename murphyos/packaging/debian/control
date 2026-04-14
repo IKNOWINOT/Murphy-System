@@ -1,0 +1,74 @@
+Source: murphyos
+Section: admin
+Priority: optional
+Maintainer: Corey Post <corey@inoni.llc>
+Build-Depends: debhelper-compat (= 13),
+               dh-python,
+               dh-sequence-dkms,
+               python3-all (>= 3.11),
+               python3-setuptools
+Standards-Version: 4.6.2
+Homepage: https://github.com/IKNOWINOT/Murphy-System
+Vcs-Git: https://github.com/IKNOWINOT/Murphy-System.git
+
+Package: murphyos-core
+Architecture: all
+Depends: ${python3:Depends},
+         ${misc:Depends},
+         python3 (>= 3.11),
+         python3-aiohttp,
+         systemd,
+         dbus,
+         polkitd | policykit-1,
+         curl,
+         systemd-container,
+         prometheus-node-exporter
+Recommends: murphyos-kmod-dkms,
+            python3-fusepy,
+            nftables
+Suggests: murphyos-desktop,
+          liboqs0,
+          python3-oqs
+Description: MurphyOS — AI-native Linux runtime with PQC security
+ Core runtime for MurphyOS: Murphy System service, CLI tool, D-Bus bridge,
+ FUSE filesystem, udev rules, PAM module, Polkit policies, nftables rules,
+ DNS resolver, post-quantum cryptography (PQC) key management, cgroup
+ resource isolation, journal integration, backup/restore, LLM governor,
+ telemetry export, and module lifecycle management.
+ .
+ Murphy is a universal AI automation system with HITL governance, swarm
+ orchestration, and confidence-driven safety gates — integrated as native
+ OS primitives.
+
+Package: murphyos-desktop
+Architecture: all
+Depends: ${misc:Depends},
+         murphyos-core,
+         gnome-shell (>= 45)
+Description: MurphyOS GNOME desktop integration
+ GNOME Shell extension with confidence indicator, HITL approval
+ notifications, Forge launcher, and PQC status display.  Includes
+ Nautilus file-manager plugin for right-click Murphy processing.
+
+Package: murphyos-kmod-dkms
+Architecture: all
+Depends: ${misc:Depends},
+         dkms,
+         linux-headers-generic | linux-headers-amd64 | linux-headers-arm64
+Description: MurphyOS kernel module (DKMS)
+ Loadable kernel module providing /dev/murphy-event (event bus),
+ /dev/murphy-confidence (MFGC score), /sys/murphy/gates/ (governance),
+ netfilter hooks (packet classification), and PQC HMAC-SHA3 event
+ authentication.
+
+Package: murphyos-edge
+Architecture: all
+Depends: ${python3:Depends},
+         ${misc:Depends},
+         python3 (>= 3.11),
+         systemd,
+         curl
+Description: MurphyOS edge/IoT minimal runtime
+ Minimal Murphy runtime for Raspberry Pi, Jetson, and industrial edge
+ devices.  Includes Sensor, Actuator, Command, and Agent engines with
+ PQC security and GPIO integration.

@@ -916,7 +916,7 @@ def create_app() -> FastAPI:
     # ── Communication Hub (IM, Voice, Video, Email, Moderator) ───────
     try:
         from src.comms_hub_routes import create_comms_hub_router
-        _comms_hub_router = create_comms_hub_router(account_resolver=_get_account_from_session)
+        _comms_hub_router = create_comms_hub_router()
         app.include_router(_comms_hub_router)
         logger.info(
             "Communication Hub API registered at /api/comms/* and /api/moderator/*"
@@ -1144,7 +1144,7 @@ def create_app() -> FastAPI:
             return JSONResponse({
                 "status": "healthy",
                 "version": murphy.version,
-                "deploy_commit": (os.environ.get("MURPHY_DEPLOY_COMMIT") or (__import__("subprocess").run(["git","-C","/opt/Murphy-System","rev-parse","--short","HEAD"],capture_output=True,text=True,timeout=3).stdout.strip()) or "unknown"),
+                "deploy_commit": os.environ.get("MURPHY_DEPLOY_COMMIT", "unknown"),
             })
 
         # Deep readiness probe — checks all critical subsystems
@@ -1224,7 +1224,7 @@ def create_app() -> FastAPI:
             checks["modules_loaded"] = 0
 
         checks["version"] = murphy.version
-        checks["deploy_commit"] = (os.environ.get("MURPHY_DEPLOY_COMMIT") or __import__("subprocess").run(["git","-C","/opt/Murphy-System","rev-parse","--short","HEAD"],capture_output=True,text=True,timeout=3).stdout.strip() or "unknown")
+        checks["deploy_commit"] = os.environ.get("MURPHY_DEPLOY_COMMIT", "unknown")
 
         # Determine overall status
         str_checks = [v for v in checks.values() if isinstance(v, str)]
@@ -5540,123 +5540,6 @@ def create_app() -> FastAPI:
             logger.debug("Non-critical error in endpoint: %s", exc)
         return JSONResponse({"success": True, "tasks": tasks, "count": len(tasks)})
 
-
-    @app.post("/api/tasks")
-    async def create_task(request: Request):
-        """Create a new task. Authenticated users only.
-        
-        Body: {title, description, priority, status, due_date, tags}
-        Returns: {success, task, id}
-        Commissioned: PATCH-005 / 2026-04-09
-        """
-        _session = _get_account_from_session(request)
-        if not _session:
-            return JSONResponse(
-                {"success": False, "error": {"code": "UNAUTHORIZED", "message": "Authentication required"}},
-                status_code=401
-            )
-        try:
-            body = await request.json()
-        except Exception:
-            return JSONResponse(
-                {"success": False, "error": {"code": "BAD_REQUEST", "message": "Invalid JSON body"}},
-                status_code=400
-            )
-        title = (body.get("title") or "").strip()
-        if not title:
-            return JSONResponse(
-                {"success": False, "error": {"code": "VALIDATION_ERROR", "message": "title is required"}},
-                status_code=422
-            )
-        import uuid as _uuid_mod
-        from datetime import datetime as _dt_mod, timezone as _tz_mod
-        task = {
-            "id": str(_uuid_mod.uuid4()),
-            "title": title,
-            "description": body.get("description", ""),
-            "priority": body.get("priority", "medium"),
-            "status": body.get("status", "pending"),
-            "assignee": body.get("assignee") or _session.get("account_id", ""),
-            "created_by": _session.get("account_id", ""),
-            "created_at": _dt_mod.now(_tz_mod.utc).isoformat(),
-            "due_date": body.get("due_date"),
-            "tags": body.get("tags", []),
-        }
-        try:
-            existing = getattr(murphy, "tasks", None)
-            if isinstance(existing, list):
-                existing.append(task)
-            elif isinstance(existing, dict):
-                existing[task["id"]] = task
-            else:
-                setattr(murphy, "tasks", [task])
-        except Exception as _exc:
-            logger.debug("Could not persist task to murphy.tasks: %s", _exc)
-        return JSONResponse({"success": True, "task": task, "id": task["id"]}, status_code=201)
-
-    @app.get("/api/tasks/{task_id}")
-    async def get_task_by_id(task_id: str, request: Request):
-        account = _get_account_from_session(request)
-        if not account:
-            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
-        tasks = getattr(murphy, "tasks", None)
-        if isinstance(tasks, list):
-            for t in tasks:
-                if t.get("id") == task_id:
-                    return JSONResponse({"success": True, "task": t, "id": t.get("id")})
-        elif isinstance(tasks, dict) and task_id in tasks:
-            return JSONResponse({"success": True, "task": tasks[task_id], "id": task_id})
-        return JSONResponse(
-            {"success": False, "error": {"code": "NOT_FOUND", "message": f"Task {task_id} not found"}},
-            status_code=404
-        )
-
-    @app.put("/api/tasks/{task_id}")
-    async def update_task(task_id: str, request: Request):
-        """Update an existing task by ID.
-        PATCH-008: Add task update endpoint.
-        """
-        account = _get_account_from_session(request)
-        if not account:
-            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
-        try:
-            body = await request.json()
-        except Exception:
-            return JSONResponse({"success": False, "error": {"code": "BAD_REQUEST"}}, status_code=400)
-        tasks = getattr(murphy, "tasks", None)
-        if isinstance(tasks, list):
-            for i, t in enumerate(tasks):
-                if t.get("id") == task_id:
-                    from datetime import datetime as _dt, timezone as _tz
-                    tasks[i].update({k: v for k, v in body.items() if k not in ("id","created_by","created_at")})
-                    tasks[i]["updated_at"] = _dt.now(_tz.utc).isoformat()
-                    return JSONResponse({"success": True, "task": tasks[i]})
-        elif isinstance(tasks, dict) and task_id in tasks:
-            from datetime import datetime as _dt, timezone as _tz
-            tasks[task_id].update({k: v for k, v in body.items() if k not in ("id","created_by","created_at")})
-            tasks[task_id]["updated_at"] = _dt.now(_tz.utc).isoformat()
-            return JSONResponse({"success": True, "task": tasks[task_id]})
-        return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": f"Task {task_id} not found"}}, status_code=404)
-
-    @app.delete("/api/tasks/{task_id}")
-    async def delete_task(task_id: str, request: Request):
-        """Delete a task by ID.
-        PATCH-008: Add task delete endpoint.
-        """
-        account = _get_account_from_session(request)
-        if not account:
-            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
-        tasks = getattr(murphy, "tasks", None)
-        if isinstance(tasks, list):
-            for i, t in enumerate(tasks):
-                if t.get("id") == task_id:
-                    tasks.pop(i)
-                    return JSONResponse({"success": True, "deleted": task_id})
-        elif isinstance(tasks, dict) and task_id in tasks:
-            del tasks[task_id]
-            return JSONResponse({"success": True, "deleted": task_id})
-        return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": f"Task {task_id} not found"}}, status_code=404)
-
     # ==================== PRODUCTION QUEUE ENDPOINTS ====================
 
     _production_queue: List[Dict[str, Any]] = []
@@ -6213,32 +6096,6 @@ def create_app() -> FastAPI:
             except Exception:
                 _sub_mgr = None
         return _sub_mgr
-
-    @app.get("/api/billing/current")
-    async def billing_current_subscription(request: Request):
-        """Get current subscription for the authenticated user.
-        PATCH-007: session-aware alias for /api/billing/account/{id}.
-        """
-        account = _get_account_from_session(request)
-        if account is None:
-            return JSONResponse(
-                {"success": False, "error": {"code": "AUTH_REQUIRED", "message": "Authentication required"}},
-                status_code=401,
-            )
-        account_id = account.get("account_id", "")
-        tier = account.get("tier", "free")
-        sub = None
-        if _sub_manager is not None and account_id:
-            sub = _sub_manager._subscriptions.get(account_id)
-        return JSONResponse({
-            "success": True,
-            "account_id": account_id,
-            "tier": tier,
-            "status": getattr(getattr(sub, "status", None), "value", "active") if sub else "active",
-            "billing_interval": getattr(getattr(sub, "interval", None), "value", "monthly") if sub else "monthly",
-            "plan_name": tier.title() + " Tier",
-            "features": [],
-        })
 
     @app.get("/api/billing/tiers")
     async def billing_tiers():
@@ -8198,7 +8055,6 @@ def create_app() -> FastAPI:
     @app.get("/api/auth/verify-email")
     async def auth_verify_email(request: Request, token: str = ""):
         """Verify email address from the link sent during signup."""
-        from starlette.responses import HTMLResponse  # PATCH-005: fix NameError
         if not token:
             return HTMLResponse(
                 '<html><body style="background:#0a0a0a;color:#ff4444;font-family:sans-serif;'
@@ -9525,7 +9381,6 @@ def create_app() -> FastAPI:
                 "tier": v.get("tier", "free"),
                 "status": v.get("status", "active"),
                 "created_at": v.get("created_at", ""),
-                "email_validated": v.get("email_validated", False),
                 "job_title": v.get("job_title", ""),
                 "company": v.get("company", ""),
             }
@@ -10905,9 +10760,6 @@ def create_app() -> FastAPI:
             "/": "murphy_landing_page.html",
             "/murphy_landing_page.html": "murphy_landing_page.html",
             "/ui/landing": "murphy_landing_page.html",
-            "/voteforsteve2028": "voteforsteve2028.html",
-            "/steve2028merch": "steve2028merch.html",
-            "/stevewiki": "stevewiki.html",
             "/ui/demo": "demo.html",
             "/ui/terminal-unified": "terminal_unified.html",
             "/ui/terminal": "terminal_unified.html",
@@ -10972,20 +10824,14 @@ def create_app() -> FastAPI:
             "/ui/dev-module": "dev_module.html",
             "/ui/service-module": "service_module.html",
             "/ui/guest-portal": "guest_portal.html",
-            # PATCH-006: Route aliases for missing UI paths referenced in API docs
-            "/ui/tasks": "terminal_orchestrator.html",
-            "/ui/workflows": "workflow_canvas.html",
-            "/ui/agents": "aionmind.html",
-            "/ui/settings": "management.html",
-            "/ui/modules": "module_instances.html",
-            "/ui/hitl": "hitl_dashboard.html",
+            "/ui/chat": "static/murphy-chat.html",
         }
 
         # ── Route classification: public vs auth-required ──────────
         # Public routes are accessible without a session.  Auth-required
         # routes redirect to /ui/login when no valid session cookie exists.
         _PUBLIC_HTML_ROUTES = frozenset({
-            "/", "/murphy_landing_page.html", "/ui/landing", "/ui/demo", "/voteforsteve2028", "/steve2028merch", "/stevewiki",
+            "/", "/murphy_landing_page.html", "/ui/landing", "/ui/demo",
             "/ui/login", "/ui/signup", "/ui/pricing",
             "/ui/docs", "/ui/blog", "/ui/careers", "/ui/legal", "/ui/privacy",
             "/ui/partner", "/ui/smoke-test",
@@ -11865,72 +11711,19 @@ def create_app() -> FastAPI:
     _account_statements: List[Dict[str, Any]] = []
 
     @app.get("/api/account/profile")
-    async def account_profile(request: Request):
-        """Get account profile and subscription info.
-
-        PATCH-002-ACCOUNT-PROFILE 2026-04-08:
-        Was returning a global _account_data dict — same hardcoded response
-        for every caller regardless of who was logged in. Now reads from
-        _user_store via the session token to return per-user data.
-        """
-        account = _get_account_from_session(request)
-        if account is None:
-            return JSONResponse(
-                {"success": False, "error": {"code": "AUTH_REQUIRED", "message": "Authentication required"}},
-                status_code=401,
-            )
-        profile = {
-            "success":         True,
-            "id":              account.get("account_id", ""),
-            "account_id":      account.get("account_id", ""),  # PATCH-007: alias for client use
-            "email":           account.get("email", ""),
-            "name":            account.get("full_name", account.get("name", "")),
-            "full_name":       account.get("full_name", ""),
-            "job_title":       account.get("job_title", ""),
-            "company":         account.get("company", ""),
-            "role":            account.get("role", "user"),
-            "tier":            account.get("tier", "free"),
-            "plan":            account.get("tier", "free"),
-            "plan_name":       account.get("tier", "free").title() + " Tier",
-            "email_validated": account.get("email_validated", False),
-            "created_at":      account.get("created_at", ""),
-            "updated_at":      account.get("updated_at", ""),
-        }
-        # Merge legacy billing fields from _account_data without overwriting real values
-        for k, v in _account_data.items():
-            if k not in profile and k != "id":
-                profile[k] = v
-        return JSONResponse(profile)
+    async def account_profile():
+        """Get account profile and subscription info."""
+        return JSONResponse({"success": True, **_account_data})
 
     @app.put("/api/account/profile")
     async def account_update_profile(request: Request):
-        """Update account profile.
-
-        PATCH-002-ACCOUNT-PROFILE 2026-04-08:
-        Was writing to global _account_data (shared across all users).
-        Now writes to the caller's own record in _user_store.
-        """
-        account = _get_account_from_session(request)
-        if account is None:
-            return JSONResponse(
-                {"success": False, "error": {"code": "AUTH_REQUIRED", "message": "Authentication required"}},
-                status_code=401,
-            )
+        """Update account profile."""
         body = await request.json()
-        updatable = ("full_name", "name", "job_title", "company")
-        with _session_lock:
-            user_rec = _user_store.get(account.get("account_id", ""))
-            if user_rec:
-                for key in updatable:
-                    if body.get(key) is not None:
-                        user_rec[key] = body[key]
-                user_rec["updated_at"] = _now_iso()
-        # Keep _account_data in sync for any downstream readers not yet migrated
-        for key in updatable:
-            if body.get(key) is not None:
+        for key in ("name", "email"):
+            if body.get(key):
                 _account_data[key] = body[key]
         _account_data["updated_at"] = _now_iso()
-        return JSONResponse({"success": True, "message": "Profile updated"})
+        return JSONResponse({"success": True, **_account_data})
 
     @app.get("/api/account/subscription")
     async def account_subscription():
@@ -12857,18 +12650,50 @@ def create_app() -> FastAPI:
     # ══════════════════════════════════════════════════════════════════════
     # AUTH MIDDLEWARE — unified X-API-Key enforcement for all /api/* routes
     # Permissive when MURPHY_API_KEY env var is not set (development mode).
-    # ── PATCH-001-AUTH-MIDDLEWARE 2026-04-08 ────────────────────────────────
-    # _APIKeyMiddleware REMOVED.
-    #
-    # Root cause: It ran FIRST in Starlette's LIFO middleware stack and only
-    # accepted the x-api-key header, causing every browser user (who sends a
-    # murphy_session cookie) to receive 401 on every /api/* call.
-    #
-    # SecurityMiddleware (added by configure_secure_fastapi above) handles all
-    # of this correctly and more: X-API-Key, Bearer JWT, Bearer session-token,
-    # murphy_session cookie, rate limiting, CSRF, brute-force lockout,
-    # security headers, DLP, RBAC, and risk classification.
-    # ─────────────────────────────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════════════════
+
+    from starlette.middleware.base import BaseHTTPMiddleware as _BHMW
+
+    class _APIKeyMiddleware(_BHMW):
+        """Unified API key enforcement for all /api/* routes.
+
+        Auth, demo, and other public-facing routes are always exempt so that
+        visitors can log in / sign up / use the demo even when MURPHY_API_KEY
+        is configured for protecting internal API routes.
+        """
+
+        # Exact-path exemptions
+        EXEMPT_PATHS = {"/api/health", "/api/info", "/api/manifest"}
+
+        # Prefix-based exemptions — any path that starts with one of these is
+        # treated as a public endpoint regardless of API key configuration.
+        EXEMPT_PREFIXES = (
+            "/api/auth/",    # login, signup, OAuth, password reset — must be public
+            "/api/demo/",    # demo runner and deliverable generator — no login required
+            "/api/system/",  # system status / health endpoints
+        )
+
+        async def dispatch(self, request: Request, call_next):
+            path = request.url.path
+            if path.startswith("/api/"):
+                is_exempt = (
+                    path in self.EXEMPT_PATHS
+                    or any(path.startswith(pfx) for pfx in self.EXEMPT_PREFIXES)
+                )
+                if not is_exempt:
+                    expected_key = os.environ.get("MURPHY_API_KEY", "") or os.environ.get("MURPHY_API_KEYS", "")
+                    if expected_key:
+                        # Starlette normalises header names to lowercase (RFC 7230);
+                        # use lowercase "x-api-key" here to match that behaviour.
+                        api_key = request.headers.get("x-api-key", "")
+                        if api_key != expected_key:
+                            return JSONResponse(
+                                {"success": False, "error": {"code": "AUTH_REQUIRED", "message": "Valid X-API-Key header required"}},
+                                status_code=401,
+                            )
+            return await call_next(request)
+
+    app.add_middleware(_APIKeyMiddleware)
 
     # ══════════════════════════════════════════════════════════════════════
     # EXCEPTION HANDLERS — normalise all error formats into standard envelope
@@ -12891,175 +12716,6 @@ def create_app() -> FastAPI:
             {"success": False, "error": {"code": "VALIDATION_ERROR", "message": str(exc)}},
             status_code=422,
         )
-
-    # ═══════════════════════════════════════════════════════
-    # PATCH-008: /api/calendar/* aliases for /api/roi-calendar/*
-    # The ROI calendar is the primary calendar engine in this system.
-    # Standard /api/calendar/* paths are aliased here for API consistency.
-    # ═══════════════════════════════════════════════════════
-    @app.get("/api/calendar/events")
-    async def calendar_events_list(request: Request):
-        """List calendar events. Alias for /api/roi-calendar/events."""
-        return JSONResponse({"ok": True, "events": list(_roi_calendar_store), "total": len(_roi_calendar_store)})
-
-    @app.post("/api/calendar/events")
-    async def calendar_events_create(request: Request):
-        """Create a calendar event. Alias for /api/roi-calendar/events.
-        PATCH-008: add calendar POST so clients can create events via standard path.
-        """
-        account = _get_account_from_session(request)
-        if not account:
-            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
-        try:
-            body = await request.json()
-        except Exception:
-            return JSONResponse({"success": False, "error": {"code": "BAD_REQUEST"}}, status_code=400)
-        import uuid as _uuid_cal
-        from datetime import datetime as _dt_cal, timezone as _tz_cal
-        evt = {
-            "id": str(_uuid_cal.uuid4()),
-            "title": body.get("title", "Untitled Event"),
-            "description": body.get("description", ""),
-            "start_time": body.get("start_time") or body.get("start") or _dt_cal.now(_tz_cal.utc).isoformat(),
-            "end_time": body.get("end_time") or body.get("end") or _dt_cal.now(_tz_cal.utc).isoformat(),
-            "all_day": body.get("all_day", False),
-            "color": body.get("color", "#00D4AA"),
-            "tags": body.get("tags", []),
-            "created_by": account.get("account_id", ""),
-            "created_at": _dt_cal.now(_tz_cal.utc).isoformat(),
-        }
-        _roi_calendar_store.append(evt)
-        return JSONResponse({"success": True, "event": evt, "id": evt["id"]}, status_code=201)
-
-    @app.get("/api/calendar/summary")
-    async def calendar_summary(request: Request):
-        """Calendar summary. Alias for /api/roi-calendar/summary."""
-        return JSONResponse({"ok": True, "count": len(_roi_calendar_store), "events": list(_roi_calendar_store)})
-
-    # ═══════════════════════════════════════════════════════════
-    # PATCH-009: Missing route aliases + stubs
-    # These routes were in the UI and documentation but not registered.
-    # ═══════════════════════════════════════════════════════════
-
-    @app.get("/api/collaboration/spaces")
-    async def list_collab_spaces(request: Request):
-        """List collaboration spaces. PATCH-009: stub returns board-scoped spaces.
-        Real collaboration routes live at /api/collaboration/comments, /feed, etc.
-        """
-        return JSONResponse({"ok": True, "spaces": [], "total": 0,
-            "note": "Use /api/boards for project spaces, /api/collaboration/* for comments and feeds."})
-
-    @app.post("/api/collaboration/spaces")
-    async def create_collab_space(request: Request):
-        """Create a collaboration space. PATCH-009.
-        Collaboration is board-scoped; this creates a named board space.
-        """
-        account = _get_account_from_session(request)
-        if not account:
-            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
-        try:
-            body = await request.json()
-        except Exception:
-            return JSONResponse({"success": False, "error": {"code": "BAD_REQUEST"}}, status_code=400)
-        import uuid as _uid, datetime as _dt
-        space = {
-            "id": str(_uid.uuid4()),
-            "name": body.get("name", "Unnamed Space"),
-            "description": body.get("description", ""),
-            "type": body.get("type", "project"),
-            "created_by": account.get("account_id",""),
-            "created_at": _dt.datetime.now(_dt.timezone.utc).isoformat(),
-        }
-        return JSONResponse({"ok": True, "space": space, "id": space["id"]}, status_code=201)
-
-    @app.post("/api/forms")
-    async def create_form(request: Request):
-        """Create a form definition. PATCH-009.
-        Murphy forms are structured data collection tools for workflows.
-        """
-        account = _get_account_from_session(request)
-        if not account:
-            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
-        try:
-            body = await request.json()
-        except Exception:
-            return JSONResponse({"success": False, "error": {"code": "BAD_REQUEST"}}, status_code=400)
-        import uuid as _uid2, datetime as _dt2
-        form = {
-            "id": str(_uid2.uuid4()),
-            "title": body.get("title", "Untitled Form"),
-            "description": body.get("description", ""),
-            "fields": body.get("fields", []),
-            "status": "draft",
-            "created_by": account.get("account_id",""),
-            "created_at": _dt2.datetime.now(_dt2.timezone.utc).isoformat(),
-        }
-        _forms_store = getattr(murphy, "_forms_store", None)
-        if _forms_store is None:
-            setattr(murphy, "_forms_store", [form])
-        elif isinstance(_forms_store, list):
-            _forms_store.append(form)
-        return JSONResponse({"success": True, "form": form, "id": form["id"]}, status_code=201)
-
-    @app.post("/api/flows")
-    async def create_flow(request: Request):
-        """Create a data flow definition. PATCH-009.
-        Flows define inbound/outbound data pipelines in Murphy.
-        """
-        account = _get_account_from_session(request)
-        if not account:
-            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
-        try:
-            body = await request.json()
-        except Exception:
-            return JSONResponse({"success": False, "error": {"code": "BAD_REQUEST"}}, status_code=400)
-        import uuid as _uid3, datetime as _dt3
-        flow = {
-            "id": str(_uid3.uuid4()),
-            "name": body.get("name", "Unnamed Flow"),
-            "description": body.get("description",""),
-            "direction": body.get("direction", "inbound"),
-            "steps": body.get("steps", []),
-            "status": "idle",
-            "created_by": account.get("account_id",""),
-            "created_at": _dt3.datetime.now(_dt3.timezone.utc).isoformat(),
-        }
-        _flows_store = getattr(murphy, "_flows_store", None)
-        if _flows_store is None:
-            setattr(murphy, "_flows_store", [flow])
-        elif isinstance(_flows_store, list):
-            _flows_store.append(flow)
-        return JSONResponse({"success": True, "flow": flow, "id": flow["id"]}, status_code=201)
-
-    @app.post("/api/meetings")
-    async def create_meeting(request: Request):
-        """Create/start a meeting. PATCH-009: alias for /api/meetings/start.
-        Accepts standard meeting creation payload and delegates to meeting intelligence.
-        """
-        account = _get_account_from_session(request)
-        if not account:
-            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
-        try:
-            body = await request.json()
-        except Exception:
-            return JSONResponse({"success": False, "error": {"code": "BAD_REQUEST"}}, status_code=400)
-        import uuid as _uid4, datetime as _dt4
-        meeting = {
-            "id": str(_uid4.uuid4()),
-            "title": body.get("title", "Untitled Meeting"),
-            "start": body.get("start") or body.get("start_time") or _dt4.datetime.now(_dt4.timezone.utc).isoformat(),
-            "duration_minutes": body.get("duration_minutes", 60),
-            "participants": body.get("participants", []),
-            "status": "scheduled",
-            "created_by": account.get("account_id",""),
-            "created_at": _dt4.datetime.now(_dt4.timezone.utc).isoformat(),
-        }
-        _meetings_store = getattr(murphy, "_meetings_store", None)
-        if _meetings_store is None:
-            setattr(murphy, "_meetings_store", [meeting])
-        elif isinstance(_meetings_store, list):
-            _meetings_store.append(meeting)
-        return JSONResponse({"success": True, "meeting": meeting, "id": meeting["id"]}, status_code=201)
 
     @app.exception_handler(Exception)
     async def _general_exception_handler(_req: _FARequest, exc: Exception):
@@ -13309,53 +12965,6 @@ def create_app() -> FastAPI:
             return _safe_error_response(exc, 500)
 
     # ── Self-Automation Orchestrator (ARCH-002) ───────────────────────────
-
-
-    _scheduler_jobs_store = []
-
-    @app.get("/api/scheduler/jobs")
-    async def list_scheduler_jobs(request: Request):
-        account = _get_account_from_session(request)
-        if not account:
-            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
-        return JSONResponse({"success": True, "jobs": _scheduler_jobs_store, "total": len(_scheduler_jobs_store)})
-
-    @app.post("/api/scheduler/jobs")
-    async def create_scheduler_job(request: Request):
-        account = _get_account_from_session(request)
-        if not account:
-            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
-        try:
-            body = await request.json()
-        except Exception:
-            return JSONResponse({"success": False, "error": {"code": "BAD_REQUEST"}}, status_code=400)
-        import uuid as _sj_u, datetime as _sj_d
-        job = {
-            "id": str(_sj_u.uuid4()),
-            "name": (body.get("name") or "").strip(),
-            "cron": body.get("cron") or body.get("schedule") or "",
-            "action": body.get("action") or "",
-            "description": body.get("description") or "",
-            "enabled": body.get("enabled", True),
-            "created_by": account.get("account_id", ""),
-            "created_at": _sj_d.datetime.now(_sj_d.timezone.utc).isoformat(),
-        }
-        if not job["name"]:
-            return JSONResponse({"success": False, "error": {"code": "VALIDATION_ERROR", "message": "name required"}}, status_code=400)
-        _scheduler_jobs_store.append(job)
-        return JSONResponse({"success": True, "job": job, "id": job["id"]}, status_code=201)
-
-    @app.delete("/api/scheduler/jobs/{job_id}")
-    async def delete_scheduler_job(job_id: str, request: Request):
-        account = _get_account_from_session(request)
-        if not account:
-            return JSONResponse({"success": False, "error": {"code": "UNAUTHORIZED"}}, status_code=401)
-        for i, j in enumerate(_scheduler_jobs_store):
-            if j.get("id") == job_id:
-                _scheduler_jobs_store.pop(i)
-                return JSONResponse({"success": True, "deleted": job_id})
-        return JSONResponse({"success": False, "error": {"code": "NOT_FOUND"}}, status_code=404)
-
 
     @app.get("/api/self-automation/status")
     async def self_automation_status():
@@ -13954,104 +13563,6 @@ def create_app() -> FastAPI:
             response_body["api_gaps"] = api_gaps
 
         return JSONResponse(response_body)
-
-
-
-    # ── Deliverable multi-format export (PATCH-013c) ──────────────────────────
-    @app.post("/api/demo/deliverable/export")
-    async def demo_deliverable_export(request: Request):
-        """Export a forge deliverable in multiple formats.
-        PATCH-013c: Missing endpoint that the forge UI calls.
-        Body: {deliverable: {content, filename, title}, format: str, query: str}
-        """
-        try:
-            body = await request.json()
-        except Exception:
-            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
-
-        deliverable = body.get("deliverable") or {}
-        fmt = (body.get("format") or "txt").lower().strip(".")
-        query = body.get("query") or ""
-        content = deliverable.get("content") or ""
-        filename_base = (deliverable.get("filename") or "murphy-deliverable").replace(".txt","")
-        title = deliverable.get("title") or query[:60] or "Murphy Deliverable"
-
-        if not content:
-            return JSONResponse({"success": False, "error": "No content provided"}, status_code=400)
-
-        import base64 as _b64, datetime as _dt, zipfile as _zf, io as _io
-        now = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-        base = filename_base
-
-        try:
-            if fmt == "pdf":
-                html = (
-                    "<!DOCTYPE html><html><head><meta charset='UTF-8'>"
-                    "<title>" + title + "</title>"
-                    "<style>body{font-family:monospace;white-space:pre-wrap;"
-                    "padding:2em;background:#0a0a0a;color:#e0e0e0;}"
-                    "h1{color:#00D4AA;}</style></head><body>"
-                    "<h1>" + title + "</h1>"
-                    "<pre>" + content.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;") + "</pre>"
-                    "<p style='color:#666;margin-top:2em'>To save as PDF: Ctrl+P > Save as PDF</p>"
-                    "</body></html>"
-                )
-                enc = _b64.b64encode(html.encode()).decode()
-                return JSONResponse({"success":True,"content":enc,
-                    "filename":base+"-print-as-pdf.html","mime_type":"text/html","is_binary":True})
-
-            elif fmt in ("docx","word"):
-                md = "# " + title + "\n\n> Generated by Murphy System\n\n```\n" + content + "\n```\n"
-                enc = _b64.b64encode(md.encode()).decode()
-                return JSONResponse({"success":True,"content":enc,
-                    "filename":base+".md","mime_type":"text/markdown","is_binary":True})
-
-            elif fmt == "html":
-                html = (
-                    "<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'>"
-                    "<title>" + title + "</title>"
-                    "<style>:root{--teal:#00D4AA;}body{background:#0a0a0a;color:#e0e0e0;"
-                    "font-family:monospace;padding:2em;}h1{color:var(--teal);}"
-                    "pre{white-space:pre-wrap;background:#111;padding:1.5em;border-radius:4px;}"
-                    "footer{color:#666;font-size:.8em;margin-top:2em;border-top:1px solid #222;padding-top:1em;}"
-                    "</style></head><body>"
-                    "<h1>" + title + "</h1>"
-                    "<pre>" + content.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;") + "</pre>"
-                    "<footer>Generated by Murphy System &mdash; " + now + "</footer>"
-                    "</body></html>"
-                )
-                enc = _b64.b64encode(html.encode()).decode()
-                return JSONResponse({"success":True,"content":enc,
-                    "filename":base+".html","mime_type":"text/html","is_binary":True})
-
-            elif fmt in ("md","markdown"):
-                md = "# " + title + "\n\n> Generated by Murphy System " + now + "\n\n```\n" + content + "\n```\n"
-                enc = _b64.b64encode(md.encode()).decode()
-                return JSONResponse({"success":True,"content":enc,
-                    "filename":base+".md","mime_type":"text/markdown","is_binary":True})
-
-            elif fmt in ("zip","bundle"):
-                buf = _io.BytesIO()
-                with _zf.ZipFile(buf,"w",_zf.ZIP_DEFLATED) as zf:
-                    zf.writestr(base+".txt", content)
-                    zf.writestr(base+".md", "# "+title+"\n\n```\n"+content+"\n```\n")
-                    html2 = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>"+title+"</title><style>body{font-family:monospace;white-space:pre-wrap;padding:2em;background:#0a0a0a;color:#e0e0e0;}</style></head><body><h1 style='color:#00D4AA'>"+title+"</h1><pre>"+content+"</pre></body></html>"
-                    zf.writestr(base+".html", html2)
-                    readme = "# Murphy System Bundle\n\nTitle: "+title+"\nGenerated: "+now+"\n\nFiles:\n- "+base+".txt\n- "+base+".md\n- "+base+".html\n\nLicense: Apache 1.0 output / BSL 1.1 system\n"
-                    zf.writestr("README.md", readme)
-                buf.seek(0)
-                enc = _b64.b64encode(buf.read()).decode()
-                return JSONResponse({"success":True,"content":enc,
-                    "filename":base+"-bundle.zip","mime_type":"application/zip","is_binary":True})
-
-            else:
-                enc = _b64.b64encode(content.encode()).decode()
-                return JSONResponse({"success":True,"content":enc,
-                    "filename":base+".txt","mime_type":"text/plain","is_binary":True})
-
-        except Exception as exc:
-            logger.exception("Export failed: %s", exc)
-            return JSONResponse({"success":False,"error":str(exc)},status_code=500)
 
     @app.post("/api/demo/generate-deliverable/stream")
     async def demo_generate_deliverable_stream(request: Request):
@@ -15469,6 +14980,307 @@ def create_app() -> FastAPI:
             "scored_options": scored,
             "explanation": explanation,
         })
+
+    # ── Chat API endpoints ───────────────────────────────────────────────────
+    # Full conversational interface: CRUD for conversations + streaming
+    # message endpoint.  Uses chat_store for state and chat_router for
+    # intent detection.  (Label: CHAT-API-001)
+
+    @app.get("/api/chat/conversations")
+    async def chat_list_conversations(request: Request):
+        """List the current user's conversations."""
+        account = _get_account_from_session(request)
+        uid = account["account_id"] if account else "anon"
+        try:
+            from src.chat_store import get_chat_store
+            store = get_chat_store()
+            return JSONResponse({"conversations": store.list_for_user(uid)})
+        except Exception as exc:  # CHAT-API-ERR-001
+            logger.warning("CHAT-API-ERR-001: list conversations failed: %s", exc)
+            return JSONResponse({"conversations": []})
+
+    @app.post("/api/chat/conversations")
+    async def chat_create_conversation(request: Request):
+        """Create a new conversation."""
+        account = _get_account_from_session(request)
+        uid = account["account_id"] if account else "anon"
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        mode = (body.get("mode") or "chat").strip()
+        try:
+            from src.chat_store import get_chat_store
+            store = get_chat_store()
+            conv = store.create(uid, mode=mode)
+            return JSONResponse({"conversation": conv.to_dict()}, status_code=201)
+        except Exception as exc:  # CHAT-API-ERR-002
+            logger.warning("CHAT-API-ERR-002: create conversation failed: %s", exc)
+            return JSONResponse({"error": "Failed to create conversation"}, status_code=500)
+
+    @app.get("/api/chat/conversations/{conv_id}")
+    async def chat_get_conversation(conv_id: str, request: Request):
+        """Get a conversation with full messages."""
+        account = _get_account_from_session(request)
+        uid = account["account_id"] if account else "anon"
+        try:
+            from src.chat_store import get_chat_store
+            store = get_chat_store()
+            conv = store.get(conv_id, uid)
+            if not conv:
+                return JSONResponse({"error": "Not found"}, status_code=404)
+            return JSONResponse({"conversation": conv.to_dict()})
+        except Exception as exc:  # CHAT-API-ERR-003
+            logger.warning("CHAT-API-ERR-003: get conversation failed: %s", exc)
+            return JSONResponse({"error": "Server error"}, status_code=500)
+
+    @app.delete("/api/chat/conversations/{conv_id}")
+    async def chat_delete_conversation(conv_id: str, request: Request):
+        """Delete a conversation."""
+        account = _get_account_from_session(request)
+        uid = account["account_id"] if account else "anon"
+        try:
+            from src.chat_store import get_chat_store
+            store = get_chat_store()
+            deleted = store.delete(conv_id, uid)
+            return JSONResponse({"deleted": deleted})
+        except Exception as exc:  # CHAT-API-ERR-004
+            logger.warning("CHAT-API-ERR-004: delete conversation failed: %s", exc)
+            return JSONResponse({"error": "Server error"}, status_code=500)
+
+    @app.patch("/api/chat/conversations/{conv_id}")
+    async def chat_rename_conversation(conv_id: str, request: Request):
+        """Rename a conversation."""
+        account = _get_account_from_session(request)
+        uid = account["account_id"] if account else "anon"
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+        new_title = (body.get("title") or "").strip()
+        if not new_title:
+            return JSONResponse({"error": "title is required"}, status_code=400)
+        try:
+            from src.chat_store import get_chat_store
+            store = get_chat_store()
+            ok = store.rename(conv_id, uid, new_title)
+            return JSONResponse({"renamed": ok})
+        except Exception as exc:  # CHAT-API-ERR-005
+            logger.warning("CHAT-API-ERR-005: rename conversation failed: %s", exc)
+            return JSONResponse({"error": "Server error"}, status_code=500)
+
+    @app.post("/api/chat/message")
+    async def chat_send_message(request: Request):
+        """Send a message and stream the response via SSE.
+
+        Request body:
+            {"conversation_id": str, "message": str, "mode": str}
+
+        Returns a text/event-stream with events:
+            {type: "token",  token: str}
+            {type: "tool_start", tool: str, detail: str}
+            {type: "tool_result", tool: str, result: str}
+            {type: "artifact", title: str, content: str, artifact_type: str}
+            {type: "done", content: str, metadata: dict}
+            {type: "error", message: str}
+        """
+        from starlette.responses import StreamingResponse
+        import asyncio as _chat_asyncio
+
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+        conv_id = (body.get("conversation_id") or "").strip()
+        message = (body.get("message") or "").strip()
+        mode = (body.get("mode") or "chat").strip()
+
+        if not message:
+            return JSONResponse({"error": "message is required"}, status_code=400)
+
+        account = _get_account_from_session(request)
+        uid = account["account_id"] if account else "anon"
+
+        # Ensure conversation exists
+        try:
+            from src.chat_store import get_chat_store
+            store = get_chat_store()
+        except Exception as exc:  # CHAT-API-ERR-006
+            logger.warning("CHAT-API-ERR-006: chat store unavailable: %s", exc)
+            return JSONResponse({"error": "Chat service unavailable"}, status_code=503)
+
+        if conv_id:
+            conv = store.get(conv_id, uid)
+            if not conv:
+                conv = store.create(uid, mode=mode)
+                conv_id = conv.id
+        else:
+            conv = store.create(uid, mode=mode)
+            conv_id = conv.id
+
+        # Store user message
+        store.add_message(conv_id, uid, "user", message)
+
+        # Detect intent
+        try:
+            from src.chat_router import detect_intent, MURPHY_SYSTEM_PROMPT, MURPHY_HELP_TEXT
+            intent = detect_intent(message, mode)
+        except Exception:  # CHAT-API-ERR-007
+            from src.chat_router import ChatIntent
+            intent = ChatIntent("chat", 0.5, "router unavailable")
+            MURPHY_SYSTEM_PROMPT = "You are Murphy, an AI business operating system built by Inoni LLC."
+            MURPHY_HELP_TEXT = "Type /help for commands."
+
+        async def _stream():
+            full_content = ""
+            artifacts_list = []
+            tool_calls_list = []
+
+            try:
+                if intent.intent == "help":
+                    # Return help text directly
+                    full_content = MURPHY_HELP_TEXT
+                    yield f"data: {json.dumps({'type': 'token', 'token': full_content})}\n\n"
+
+                elif intent.intent == "status":
+                    # Return system status
+                    try:
+                        status_info = {
+                            "system": "Murphy System 1.0",
+                            "status": "operational",
+                            "llm_provider": "configured" if os.environ.get("DEEPINFRA_API_KEY") else "not configured",
+                            "uptime": "running",
+                        }
+                        full_content = (
+                            "**Murphy System Status**\n\n"
+                            f"- **System**: {status_info['system']}\n"
+                            f"- **Status**: {status_info['status']}\n"
+                            f"- **LLM Provider**: {status_info['llm_provider']}\n"
+                        )
+                    except Exception:
+                        full_content = "**Murphy System**: operational"
+                    yield f"data: {json.dumps({'type': 'token', 'token': full_content})}\n\n"
+
+                elif intent.intent == "forge":
+                    # Route through the Swarm Forge pipeline
+                    forge_query = intent.forge_query or message
+                    tool_calls_list.append({"tool": "Swarm Forge", "status": "starting"})
+                    yield f"data: {json.dumps({'type': 'tool_start', 'tool': 'Swarm Forge', 'detail': 'Routing to build pipeline...'})}\n\n"
+
+                    try:
+                        from src.demo_deliverable_generator import generate_deliverable_with_progress
+                        import functools
+
+                        _gen_fn = functools.partial(generate_deliverable_with_progress, forge_query)
+                        progress = await _chat_asyncio.get_event_loop().run_in_executor(None, _gen_fn)
+
+                        for event in progress:
+                            if event.get("phase") == "done":
+                                deliverable = event.get("deliverable") or {}
+                                metrics = event.get("metrics") or {}
+                                yield f"data: {json.dumps({'type': 'tool_result', 'tool': 'Swarm Forge', 'result': 'Build complete'})}\n\n"
+
+                                if deliverable.get("content"):
+                                    artifact = {
+                                        "title": deliverable.get("title", "Forge Deliverable"),
+                                        "content": deliverable["content"],
+                                        "artifact_type": "deliverable",
+                                        "filename": deliverable.get("filename", "murphy-deliverable.txt"),
+                                    }
+                                    artifacts_list.append(artifact)
+
+                                full_content = (
+                                    f"Built **{deliverable.get('title', 'deliverable')}** via the Swarm Forge.\n\n"
+                                    f"Open the artifact panel to view the full output."
+                                )
+
+                                done_event = {
+                                    "type": "done",
+                                    "content": full_content,
+                                    "deliverable": deliverable,
+                                    "metadata": {
+                                        "intent": intent.to_dict(),
+                                        "metrics": metrics,
+                                        "pipeline_diagnostics": event.get("pipeline_diagnostics"),
+                                    },
+                                }
+                                yield f"data: {json.dumps(done_event)}\n\n"
+                            else:
+                                # Progress event
+                                yield f"data: {json.dumps({'phase': event.get('phase'), 'status': event.get('status', ''), 'detail': event.get('detail', '')})}\n\n"
+
+                        # If we got here without a done event, store what we have
+                        if not full_content:
+                            full_content = "Forge build completed. Check the artifacts panel for results."
+                            yield f"data: {json.dumps({'type': 'token', 'token': full_content})}\n\n"
+
+                    except Exception as exc:  # CHAT-API-ERR-008
+                        logger.warning("CHAT-API-ERR-008: forge pipeline failed: %s", exc)
+                        yield f"data: {json.dumps({'type': 'tool_result', 'tool': 'Swarm Forge', 'result': 'Pipeline error — using fallback'})}\n\n"
+                        full_content = f"The Forge pipeline encountered an issue. Please try rephrasing your request or use a more specific description."
+                        yield f"data: {json.dumps({'type': 'token', 'token': full_content})}\n\n"
+
+                else:
+                    # General chat: call LLM with conversation context
+                    try:
+                        from src.llm_provider import MurphyLLMProvider
+                        llm = MurphyLLMProvider()
+                        context_msgs = conv.get_context_messages(MURPHY_SYSTEM_PROMPT)
+                        completion = await _chat_asyncio.get_event_loop().run_in_executor(
+                            None,
+                            lambda: llm.complete_messages(
+                                context_msgs,
+                                model_hint="chat",
+                                temperature=0.7,
+                                max_tokens=4096,
+                            ),
+                        )
+                        full_content = completion.content or ""
+
+                        # Stream in chunks for typewriter effect
+                        chunk_size = 20
+                        for i in range(0, len(full_content), chunk_size):
+                            chunk = full_content[i:i + chunk_size]
+                            yield f"data: {json.dumps({'type': 'token', 'token': chunk})}\n\n"
+                            await _chat_asyncio.sleep(0.02)
+
+                    except Exception as exc:  # CHAT-API-ERR-009
+                        logger.warning("CHAT-API-ERR-009: LLM call failed: %s", exc)
+                        full_content = (
+                            "I'm Murphy, your AI business operating system. "
+                            "I can help you build applications, analyze operations, and automate workflows. "
+                            "Currently my LLM connection isn't available, but you can try:\n\n"
+                            "- `/forge <description>` to build something with the Swarm Forge\n"
+                            "- `/status` to check system health\n"
+                            "- `/help` to see all commands"
+                        )
+                        yield f"data: {json.dumps({'type': 'token', 'token': full_content})}\n\n"
+
+            except Exception as exc:  # CHAT-API-ERR-010
+                logger.error("CHAT-API-ERR-010: stream generation error: %s", exc)
+                full_content = "*An error occurred while generating the response.*"
+                yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
+
+            # Store assistant message
+            try:
+                store.add_message(
+                    conv_id, uid, "assistant", full_content,
+                    tool_calls=tool_calls_list,
+                    artifacts=artifacts_list,
+                )
+            except Exception as exc:
+                logger.debug("Failed to store assistant message: %s", exc)
+
+            # Final done event (if not already sent by forge)
+            if intent.intent != "forge":
+                yield f"data: {json.dumps({'type': 'done', 'content': full_content, 'metadata': {'intent': intent.to_dict()}})}\n\n"
+
+        return StreamingResponse(
+            _stream(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
 
     # ── Founder account seed ────────────────────────────────────────────────
     # On every startup the platform ensures a founder/owner account exists so

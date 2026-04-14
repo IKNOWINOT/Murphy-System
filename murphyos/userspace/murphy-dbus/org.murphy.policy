@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!--
+  org.murphy.policy — Polkit policy definitions for Murphy System D-Bus actions
+  © 2020 Inoni Limited Liability Company | Creator: Corey Post | License: BSL 1.1
+
+  Installed to: /usr/share/polkit-1/actions/org.murphy.policy
+
+  These actions gate privileged Murphy operations behind Polkit
+  authentication.  The companion org.murphy.rules file implements
+  dynamic confidence-aware authorisation.
+-->
+<policyconfig>
+  <vendor>Murphy System</vendor>
+  <vendor_url>https://github.com/Inoni-Limited/Murphy-System</vendor_url>
+  <icon_name>murphy-system</icon_name>
+
+  <!-- ── HITL gate approval ────────────────────────────────────── -->
+  <action id="org.murphy.hitl-approve">
+    <description>Approve a Murphy HITL gate request</description>
+    <message>Authentication is required to approve a Murphy human-in-the-loop gate request.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+  </action>
+
+  <!-- ── Engine start / stop ───────────────────────────────────── -->
+  <action id="org.murphy.engine-control">
+    <description>Start or stop a Murphy engine</description>
+    <message>Authentication is required to start or stop a Murphy engine.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <!-- ── Swarm agent spawn ─────────────────────────────────────── -->
+  <action id="org.murphy.swarm-spawn">
+    <description>Spawn a Murphy swarm agent</description>
+    <message>Authentication is required to spawn a Murphy swarm agent.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <!-- Dynamic: auto-approved when confidence >= 0.85,
+           auth_admin otherwise — see org.murphy.rules -->
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+  </action>
+
+  <!-- ── Forge build invocation ────────────────────────────────── -->
+  <action id="org.murphy.forge-build">
+    <description>Invoke Murphy Forge</description>
+    <message>Authentication is required to invoke Murphy Forge.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+  </action>
+
+  <!-- ── Backup creation ───────────────────────────────────────── -->
+  <action id="org.murphy.backup.create">
+    <description>Create a Murphy system backup</description>
+    <message>Authentication is required to create a Murphy system backup.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <!-- ── Backup restore ────────────────────────────────────────── -->
+  <action id="org.murphy.backup.restore">
+    <description>Restore a Murphy system backup</description>
+    <message>Authentication is required to restore a Murphy system backup.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+  </action>
+
+  <!-- ── Module start ──────────────────────────────────────────── -->
+  <action id="org.murphy.module.start">
+    <description>Start a Murphy module</description>
+    <message>Authentication is required to start a Murphy module.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <!-- ── Module stop ───────────────────────────────────────────── -->
+  <action id="org.murphy.module.stop">
+    <description>Stop a Murphy module</description>
+    <message>Authentication is required to stop a Murphy module.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+</policyconfig>
