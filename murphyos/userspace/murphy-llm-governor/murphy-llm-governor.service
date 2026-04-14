@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: LicenseRef-BSL-1.1
+# © 2020 Inoni Limited Liability Company — Creator: Corey Post — BSL 1.1
+#
+# murphy-llm-governor.service — OS-level LLM resource governor for MurphyOS
+# Install: cp murphy-llm-governor.service /etc/systemd/system/
+#          systemctl daemon-reload && systemctl enable --now murphy-llm-governor
+
+[Unit]
+Description=MurphyOS LLM Resource Governor
+Documentation=https://github.com/murphyos/Murphy-System
+After=network-online.target murphy-init.service
+Wants=network-online.target
+ConditionPathExists=/etc/murphy/llm-governor.yaml
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/python3 -m murphy_llm_governor --config /etc/murphy/llm-governor.yaml
+Restart=on-failure
+RestartSec=5
+WatchdogSec=30
+User=murphy
+Group=murphy
+
+# State directory
+StateDirectory=murphy
+RuntimeDirectory=murphy
+
+# Resource limits
+MemoryMax=256M
+CPUQuota=10%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=murphy-llm-governor
+
+# Security hardening
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/murphy
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictNamespaces=yes
+
+[Install]
+WantedBy=multi-user.target
