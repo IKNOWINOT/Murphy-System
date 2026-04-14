@@ -715,7 +715,7 @@
 
   function fmtTs(ts) {
     if (!ts) return '—';
-    try { return new Date(ts).toLocaleTimeString(); } catch { return ts; }
+    try { return new Date(ts).toLocaleTimeString(); } catch (e) { return ts; }
   }
 
   function setLastUpdated() {
