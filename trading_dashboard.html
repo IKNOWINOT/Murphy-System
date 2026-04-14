@@ -346,7 +346,7 @@ const state = {
 function fmt$(v){ return v == null ? '$—' : '$' + (+v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtPct(v){ return v == null ? '—%' : (+v).toFixed(2)+'%'; }
 function fmtAtom(v){ return v == null ? '— ATOM' : (+v).toFixed(4)+' ATOM'; }
-function fmtDate(s){ try{return new Date(s).toLocaleString();}catch{return s||'—';} }
+function fmtDate(s){ try{return new Date(s).toLocaleString();}catch(e){return s||'—';} }
 function el(id){ return document.getElementById(id); }
 function setText(id, v){ const e=el(id); if(e) e.textContent=v; }
 function setClass(e, cls){ if(e && typeof cls==='string') e.className=cls; }
