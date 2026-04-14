@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: LicenseRef-BSL-1.1
+# © 2020 Inoni Limited Liability Company — Creator: Corey Post — BSL 1.1
+#
+# systemd unit — MurphyOS journald structured logging bridge
+# Install: cp murphy-journal.service /etc/systemd/system/
+#          systemctl daemon-reload && systemctl enable --now murphy-journal
+
+[Unit]
+Description=MurphyOS Journald Structured Logging Bridge
+Documentation=https://github.com/murphyos/murphy-system
+After=systemd-journald.service murphy-system.service
+Wants=murphy-system.service
+Requires=systemd-journald.service
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/python3 /opt/murphy/murphyos/userspace/murphy-journal/murphy_journal.py
+Restart=on-failure
+RestartSec=5
+WatchdogSec=120
+
+# --- Identity ---
+User=murphy
+Group=murphy
+SupplementaryGroups=systemd-journal
+
+# --- Security hardening ---
+ProtectHome=yes
+ProtectSystem=strict
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+
+# --- Resource limits for the bridge daemon ---
+MemoryMax=64M
+CPUQuota=5%
+
+# --- Logging ---
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=murphy-journal
+
+[Install]
+WantedBy=multi-user.target
