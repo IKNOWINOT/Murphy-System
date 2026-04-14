@@ -63,6 +63,9 @@ matrix-nio[e2e]==0.24.0
 # System monitoring
 psutil==5.9.0
 
+# Password hashing (SEC-AUTH-001: bcrypt for credential storage)
+bcrypt==4.3.0
+
 # Symbolic computation (compute plane)
 sympy==1.12
 

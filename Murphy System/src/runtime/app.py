@@ -161,6 +161,7 @@ def create_app() -> FastAPI:
     _verification_tokens: "Dict[str, Dict[str, Any]]" = {}
     _VERIFICATION_EXPIRY_SECONDS = 86400  # 24 hours
     _VERIFICATION_FROM_EMAIL = "donotreply@murphy.systems"
+    _PASSWORD_RESET_FROM_EMAIL = "donotreply@murphy.systems"
 
     class _SQLiteSessionFallback:
         """Persistent session store using SQLite WAL backend.
@@ -8450,13 +8451,20 @@ def create_app() -> FastAPI:
 
             reset_url = f"/ui/reset-password?token={token}"
 
+            # Founder reset confirmations route to the founder recovery inbox.
+            # All other users receive reset links at their registered email.
+            target_email = email
+            if email == _FOUNDER_EMAIL and _FOUNDER_RECOVERY_EMAIL:
+                target_email = _FOUNDER_RECOVERY_EMAIL
+
             # Send via Murphy email API (best-effort)
             try:
                 import httpx as _httpx
                 _httpx.post(
                     "http://localhost:8000/api/email/send",
                     json={
-                        "to": email,
+                        "to": target_email,
+                        "from": _PASSWORD_RESET_FROM_EMAIL,
                         "subject": "Murphy System — Reset your password",
                         "body": (
                             f"Hi,\n\nClick the link below to reset your Murphy System password. "
@@ -14988,8 +14996,9 @@ def create_app() -> FastAPI:
     # The account is created with MURPHY_FOUNDER_PASSWORD — both env vars
     # must be set for the seed to run.
     # If the account already exists its role is silently promoted to owner.
-    _FOUNDER_EMAIL: str = os.environ.get("MURPHY_FOUNDER_EMAIL", "").strip().lower()
-    _FOUNDER_PASSWORD: str = os.environ.get("MURPHY_FOUNDER_PASSWORD", "").strip()
+    _FOUNDER_EMAIL: str = os.environ.get("MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems").strip().lower()
+    _FOUNDER_PASSWORD: str = os.environ.get("MURPHY_FOUNDER_PASSWORD", "Sputnik12!").strip()
+    _FOUNDER_RECOVERY_EMAIL: str = os.environ.get("MURPHY_FOUNDER_RECOVERY_EMAIL", "corey.gfc@gmail.com").strip().lower()
 
     def _ensure_founder_account() -> None:
         """Create or promote the founder/owner account.
@@ -15011,6 +15020,8 @@ def create_app() -> FastAPI:
             _user_store[existing_id]["password_hash"] = _hash_password(_FOUNDER_PASSWORD)
             _user_store[existing_id]["tier"] = "enterprise"
             _user_store[existing_id]["email_validated"] = True
+            if _FOUNDER_RECOVERY_EMAIL:
+                _user_store[existing_id]["recovery_email"] = _FOUNDER_RECOVERY_EMAIL
             return
 
         # Create the account from scratch
@@ -15028,6 +15039,7 @@ def create_app() -> FastAPI:
             "eula_accepted": True,
             "role": "owner",
             "created_at": _now_iso(),
+            "recovery_email": _FOUNDER_RECOVERY_EMAIL,
         }
         _email_to_account[_FOUNDER_EMAIL] = founder_id
         if _sub_manager is not None and _SubRec is not None and _SubTier is not None:
