@@ -3062,6 +3062,113 @@ async def run_full_setup():
         "comms_rooms_notified":len(_SUBSYSTEM_ROOMS),"message":"Murphy System self-automation pipeline fully initiated."})
 
 # ==============================================================================
+# OPERATIONS CENTER — no silent failures or successes (OPS-CENTER-001)
+# Every vertical reports its success/fail counts, ROI, and live health.
+# ==============================================================================
+@app.get("/api/operations/status")
+async def operations_status(tenant_id: str = Query(default="")):
+    """Aggregate operations view across ALL verticals. Nothing is silent."""
+    verticals_out = []
+    total_success = 0
+    total_fail = 0
+    total_savings = 0.0
+    total_manual = 0.0
+    total_auto_cost = 0.0
+
+    for vid, vconf in _VERTICAL_CONFIGS.items():
+        autos = [a for a in _automation_store
+                 if a.get("category") == vid and (not tenant_id or a.get("tenant_id") == tenant_id)]
+        execs = [e for e in _execution_log if e.get("automation_id") in {a["id"] for a in autos}]
+        succ = sum(1 for e in execs if e.get("status") == "completed")
+        fail = sum(1 for e in execs if e.get("status") == "failed")
+        total_success += succ
+        total_fail += fail
+        monthly = 0.0
+        manual_cost = 0.0
+        auto_cost = 0.0
+        for a in autos:
+            est = a.get("estimated_minutes", 0)
+            actual = a.get("actual_minutes", 0) or est * 0.9
+            hr = a.get("labor_cost_per_hr", 75)
+            m_c = (est / 60) * hr
+            a_c = (actual / 60) * (hr * 0.05)
+            sav = m_c - a_c
+            runs = {"hourly": 720, "daily": 30, "weekly": 4, "monthly": 1}.get(a.get("recurrence", "daily"), 30)
+            monthly += sav * runs
+            manual_cost += m_c
+            auto_cost += a_c
+        total_savings += monthly
+        total_manual += manual_cost
+        total_auto_cost += auto_cost
+
+        active_count = sum(1 for a in autos if a.get("status") == "active")
+        blocked_count = sum(1 for a in autos
+                           if any(m.get("status") == "blocked_hitl"
+                                  for m in a.get("milestones", [])))
+        delayed_count = sum(1 for a in autos if a.get("total_delay_minutes", 0) > 0)
+        success_rate = round(succ / max(succ + fail, 1) * 100, 1)
+
+        # health: green if >90% success, yellow 70-90, red <70
+        health = "healthy" if success_rate >= 90 else ("degraded" if success_rate >= 70 else "critical")
+        if not execs and not autos:
+            health = "inactive"
+
+        recent_execs = [{"id": e.get("execution_id", ""), "status": e.get("status", ""),
+                         "cost_savings": e.get("cost_savings", 0),
+                         "actual_minutes": e.get("actual_minutes", 0),
+                         "automation_name": e.get("automation_name", ""),
+                         "started_at": e.get("started_at", "")} for e in execs[-5:]]
+
+        verticals_out.append({
+            "id": vid,
+            "label": vconf["label"],
+            "icon": vconf["icon"],
+            "color": vconf["color"],
+            "engine": vconf["engine"],
+            "health": health,
+            "automation_count": len(autos),
+            "active_count": active_count,
+            "blocked_hitl": blocked_count,
+            "delayed": delayed_count,
+            "executions_total": len(execs),
+            "executions_success": succ,
+            "executions_failed": fail,
+            "success_rate_pct": success_rate,
+            "monthly_savings": round(monthly, 2),
+            "manual_cost_per_run": round(manual_cost, 2),
+            "automation_cost_per_run": round(auto_cost, 2),
+            "recent_executions": recent_execs,
+        })
+
+    # Global ROI
+    global_roi = round(total_manual / max(total_auto_cost, 0.01), 1)
+    global_success_rate = round(total_success / max(total_success + total_fail, 1) * 100, 1)
+    pending_hitl = sum(1 for h in _HITL_QUEUE if h.get("status") == "pending")
+
+    return JSONResponse({
+        "verticals": verticals_out,
+        "summary": {
+            "total_verticals": len(verticals_out),
+            "active_verticals": sum(1 for v in verticals_out if v["health"] != "inactive"),
+            "healthy": sum(1 for v in verticals_out if v["health"] == "healthy"),
+            "degraded": sum(1 for v in verticals_out if v["health"] == "degraded"),
+            "critical": sum(1 for v in verticals_out if v["health"] == "critical"),
+            "inactive": sum(1 for v in verticals_out if v["health"] == "inactive"),
+            "total_executions": total_success + total_fail,
+            "total_success": total_success,
+            "total_failed": total_fail,
+            "global_success_rate_pct": global_success_rate,
+            "total_monthly_savings": round(total_savings, 2),
+            "total_manual_cost": round(total_manual, 2),
+            "total_automation_cost": round(total_auto_cost, 2),
+            "roi_multiplier": global_roi,
+            "pending_hitl": pending_hitl,
+            "generated_at": _now_iso(),
+        },
+    })
+
+
+# ==============================================================================
 # EXECUTION LOG + TIERS + BOTS
 # ==============================================================================
 @app.get("/api/executions")
