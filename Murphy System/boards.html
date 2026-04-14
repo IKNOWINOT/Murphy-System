@@ -639,6 +639,7 @@
         boards = [];
         renderBoardList();
         if (!silent) $boardListLoad.style.display = 'none';
+        showError('Failed to load boards — please try again.');
       });
     }
 
@@ -708,6 +709,7 @@
       }).catch(function () {
         if (!silent) $boardLoading.style.display = 'none';
         updateRefreshStatus(false);
+        showError('Failed to load board details — please try again.');
       });
     }
 
@@ -848,6 +850,7 @@
           loadBoards(true);
         }).catch(function () {
           cell.textContent = currentName;
+          showError('Failed to rename item — please try again.');
         });
       }
 
@@ -951,6 +954,7 @@
         }).catch(function () {
           var btn = document.getElementById('modal-create-board-btn');
           if (btn) { btn.disabled = false; btn.textContent = 'Create Board'; }
+          showError('Failed to create board — please try again.');
         });
       });
     }
@@ -1171,7 +1175,7 @@
         } else {
           $notifBadge.style.display = 'none';
         }
-      }).catch(function () {});
+      }).catch(function (e) { console.warn('[Murphy] Notification poll failed:', e && e.message || 'network error'); });
 
       API('/api/collaboration/notifications/current-user').then(function (data) {
         var notifs = data.notifications || data || [];
@@ -1203,7 +1207,7 @@
       if (!boardId) return;
       API('/api/collaboration/feed/board/' + encodeURIComponent(boardId)).then(function () {
         // Feed data loaded for board-level collaboration awareness
-      }).catch(function () {});
+      }).catch(function (e) { console.warn('[Murphy] Activity feed load failed:', e && e.message || 'network error'); });
     }
 
     if (document.readyState === 'loading') {
