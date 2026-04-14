@@ -6,7 +6,8 @@ murphy_cli — Command-line interface for the Murphy runtime.
 
 Provides the ``murphy`` command with subcommands for status, forge, swarm
 management, governance gates, engine control, log streaming, confidence
-monitoring, configuration, and post-quantum cryptography operations.
+monitoring, configuration, post-quantum cryptography operations, LLM
+governor, backup, telemetry, cgroup isolation, and module lifecycle.
 
 Data sources (tried in order):
   1. D-Bus  (``org.murphy.System`` via dbus-next)
@@ -21,6 +22,11 @@ Usage::
     murphy gate approve req-42
     murphy confidence
     murphy pqc status
+    murphy llm status
+    murphy backup list
+    murphy telemetry status
+    murphy cgroup list
+    murphy module list
 
 ---------------------------------------------------------------------------
 Error-code registry
@@ -39,6 +45,16 @@ MURPHY-CLI-ERR-011  Event streaming interrupted by user
 MURPHY-CLI-ERR-012  Non-numeric confidence score in confidence command
 MURPHY-CLI-ERR-013  Command interrupted by user
 MURPHY-CLI-ERR-014  Unhandled exception in command dispatch
+MURPHY-CLI-ERR-015  LLM governor status retrieval failed
+MURPHY-CLI-ERR-016  LLM governor health retrieval failed
+MURPHY-CLI-ERR-017  Backup create operation failed
+MURPHY-CLI-ERR-018  Backup list retrieval failed
+MURPHY-CLI-ERR-019  Backup verify operation failed
+MURPHY-CLI-ERR-020  Backup restore operation failed
+MURPHY-CLI-ERR-021  Telemetry status retrieval failed
+MURPHY-CLI-ERR-022  Telemetry metrics dump failed
+MURPHY-CLI-ERR-023  Cgroup listing/usage retrieval failed
+MURPHY-CLI-ERR-024  Module lifecycle operation failed
 ---------------------------------------------------------------------------
 """
 
@@ -682,6 +698,392 @@ def cmd_version(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+# ── LLM governor commands ──────────────────────────────────────────
+
+def cmd_llm_status(args: argparse.Namespace) -> int:
+    """Show per-provider usage, budgets, health, and rate limits."""
+    data = _get("/api/llm/status", "llm/status")
+    if data is None:
+        _error("Cannot retrieve LLM governor status")  # MURPHY-CLI-ERR-015
+        logger.debug("MURPHY-CLI-ERR-015: LLM governor status retrieval failed")
+        return EXIT_ERROR
+
+    if _JSON_MODE:
+        _output(data)
+        return EXIT_OK
+
+    if isinstance(data, dict):
+        providers = data.get("providers", [])
+        if isinstance(providers, list) and providers:
+            fmt = "  {:<20s} {:<12s} {:<14s} {:<12s} {}"
+            print(fmt.format("PROVIDER", "STATUS", "TOKENS USED", "BUDGET", "RATE LIMIT"))
+            print(fmt.format("─" * 18, "─" * 10, "─" * 12, "─" * 10, "─" * 14))
+            for p in providers:
+                if isinstance(p, dict):
+                    name = p.get("name", "?")
+                    st = p.get("status", "?")
+                    tokens = str(p.get("tokens_used", "?"))
+                    budget = str(p.get("budget", "?"))
+                    rate = str(p.get("rate_limit", "?"))
+                    print(fmt.format(name, _status_color(st), tokens, budget, rate))
+        else:
+            _output(data)
+    else:
+        print(data)
+    return EXIT_OK
+
+
+def cmd_llm_usage(args: argparse.Namespace) -> int:
+    """Show token/cost usage stats, optionally filtered by provider."""
+    path = "/api/llm/usage"
+    if args.provider:
+        path = f"/api/llm/usage/{args.provider}"
+    data = _api_get(path)
+    if data is None:
+        _error("Cannot retrieve LLM usage stats")  # MURPHY-CLI-ERR-015
+        logger.debug("MURPHY-CLI-ERR-015: LLM governor status retrieval failed")
+        return EXIT_ERROR
+    _output(data)
+    return EXIT_OK
+
+
+def cmd_llm_health(args: argparse.Namespace) -> int:
+    """Show provider health (latency p50/p95/p99, error rate)."""
+    data = _api_get("/api/llm/health")
+    if data is None:
+        _error("Cannot retrieve LLM provider health")  # MURPHY-CLI-ERR-016
+        logger.debug("MURPHY-CLI-ERR-016: LLM governor health retrieval failed")
+        return EXIT_ERROR
+
+    if _JSON_MODE:
+        _output(data)
+        return EXIT_OK
+
+    if isinstance(data, dict):
+        providers = data.get("providers", [])
+        if isinstance(providers, list) and providers:
+            fmt = "  {:<20s} {:<10s} {:<10s} {:<10s} {}"
+            print(fmt.format("PROVIDER", "p50", "p95", "p99", "ERROR RATE"))
+            print(fmt.format("─" * 18, "─" * 8, "─" * 8, "─" * 8, "─" * 12))
+            for p in providers:
+                if isinstance(p, dict):
+                    name = p.get("name", "?")
+                    p50 = str(p.get("p50", "?"))
+                    p95 = str(p.get("p95", "?"))
+                    p99 = str(p.get("p99", "?"))
+                    err = str(p.get("error_rate", "?"))
+                    print(fmt.format(name, p50, p95, p99, err))
+        else:
+            _output(data)
+    else:
+        print(data)
+    return EXIT_OK
+
+
+# ── Backup commands ────────────────────────────────────────────────
+
+def cmd_backup_create(args: argparse.Namespace) -> int:
+    """Trigger a new backup."""
+    body: Dict[str, Any] = {}
+    if args.label:
+        body["label"] = args.label
+    result = _api_post("/api/backup/create", body)
+    if result is None:
+        _error("Backup creation failed")  # MURPHY-CLI-ERR-017
+        logger.debug("MURPHY-CLI-ERR-017: backup create operation failed")
+        return EXIT_ERROR
+    if _JSON_MODE:
+        _output(result)
+    elif not _QUIET:
+        bid = result.get("backup_id", "?") if isinstance(result, dict) else result
+        print(f"  Backup created: {bid}")
+    return EXIT_OK
+
+
+def cmd_backup_list(args: argparse.Namespace) -> int:
+    """List available backups."""
+    data = _get("/api/backup/list", "backup/")
+    if data is None:
+        _error("Cannot list backups")  # MURPHY-CLI-ERR-018
+        logger.debug("MURPHY-CLI-ERR-018: backup list retrieval failed")
+        return EXIT_ERROR
+
+    backups = data if isinstance(data, list) else (data.get("backups", []) if isinstance(data, dict) else [])
+    if _JSON_MODE:
+        _output(backups)
+        return EXIT_OK
+
+    if not backups:
+        print("  No backups available")
+        return EXIT_OK
+
+    fmt = "  {:<38s} {:<20s} {:<12s} {}"
+    print(fmt.format("ID", "CREATED", "SIZE", "LABEL"))
+    print(fmt.format("─" * 36, "─" * 18, "─" * 10, "─" * 16))
+    for b in backups:
+        if isinstance(b, dict):
+            bid = str(b.get("id", b.get("backup_id", "?")))
+            created = str(b.get("created", b.get("timestamp", "?")))
+            size = str(b.get("size", "?"))
+            label = str(b.get("label", ""))
+            print(fmt.format(bid, created, size, label))
+        else:
+            print(f"  {b}")
+
+    return EXIT_OK
+
+
+def cmd_backup_verify(args: argparse.Namespace) -> int:
+    """Verify backup integrity."""
+    result = _api_get(f"/api/backup/{args.backup_id}/verify")
+    if result is None:
+        _error(f"Failed to verify backup '{args.backup_id}'")  # MURPHY-CLI-ERR-019
+        logger.debug("MURPHY-CLI-ERR-019: backup verify operation failed for %s", args.backup_id)
+        return EXIT_ERROR
+
+    if _JSON_MODE:
+        _output(result)
+        return EXIT_OK
+
+    if isinstance(result, dict):
+        ok = result.get("verified", result.get("valid", False))
+        if ok:
+            print(f"  {_green('✓')} Backup {args.backup_id} integrity verified")
+        else:
+            print(f"  {_red('✗')} Backup {args.backup_id} integrity check FAILED")
+            return EXIT_ERROR
+    else:
+        print(result)
+    return EXIT_OK
+
+
+def cmd_backup_restore(args: argparse.Namespace) -> int:
+    """Restore from a backup."""
+    result = _api_post(f"/api/backup/{args.backup_id}/restore")
+    if result is None:
+        _error(f"Failed to restore backup '{args.backup_id}'")  # MURPHY-CLI-ERR-020
+        logger.debug("MURPHY-CLI-ERR-020: backup restore operation failed for %s", args.backup_id)
+        return EXIT_ERROR
+    if _JSON_MODE:
+        _output(result)
+    elif not _QUIET:
+        print(f"  Restore from backup {args.backup_id} initiated")
+    return EXIT_OK
+
+
+# ── Telemetry commands ─────────────────────────────────────────────
+
+def cmd_telemetry_status(args: argparse.Namespace) -> int:
+    """Show metric collection status."""
+    data = _get("/api/telemetry/status", "telemetry/status")
+    if data is None:
+        _error("Cannot retrieve telemetry status")  # MURPHY-CLI-ERR-021
+        logger.debug("MURPHY-CLI-ERR-021: telemetry status retrieval failed")
+        return EXIT_ERROR
+
+    if _JSON_MODE:
+        _output(data)
+        return EXIT_OK
+
+    if isinstance(data, dict):
+        st = data.get("status", "unknown")
+        print(f"  {_bold('Collection')}: {_status_color(st)}")
+        scrapers = data.get("scrapers", data.get("collectors"))
+        if scrapers is not None:
+            print(f"  {_bold('Scrapers')}:   {scrapers}")
+        interval = data.get("interval")
+        if interval is not None:
+            print(f"  {_bold('Interval')}:   {interval}")
+        metrics = data.get("metrics_count", data.get("total_metrics"))
+        if metrics is not None:
+            print(f"  {_bold('Metrics')}:    {metrics}")
+    else:
+        print(data)
+    return EXIT_OK
+
+
+def cmd_telemetry_dump(args: argparse.Namespace) -> int:
+    """Dump current metrics in Prometheus exposition format."""
+    data = _api_get("/api/telemetry/metrics")
+    if data is not None:
+        if _JSON_MODE:
+            _output(data)
+        else:
+            if isinstance(data, dict):
+                raw = data.get("metrics", data.get("data", ""))
+                print(raw)
+            else:
+                print(data)
+        return EXIT_OK
+
+    # Fall back to reading the node-exporter prom file
+    prom_path = "/var/lib/prometheus/node-exporter/murphy.prom"
+    try:
+        with open(prom_path) as fh:
+            print(fh.read())
+        return EXIT_OK
+    except OSError:  # MURPHY-CLI-ERR-022
+        logger.debug("MURPHY-CLI-ERR-022: telemetry metrics dump failed, prom file: %s", prom_path)
+
+    _error("Cannot dump telemetry metrics — API unreachable and prom file not found")
+    return EXIT_ERROR
+
+
+# ── Cgroup commands ────────────────────────────────────────────────
+
+CGROUP_BASE = "/sys/fs/cgroup/murphy.slice"
+
+
+def cmd_cgroup_list(args: argparse.Namespace) -> int:
+    """List all Murphy cgroup scopes."""
+    data = _api_get("/api/cgroup/status")
+    if data is not None:
+        scopes = data if isinstance(data, list) else (data.get("scopes", []) if isinstance(data, dict) else [])
+        if _JSON_MODE:
+            _output(scopes)
+            return EXIT_OK
+        if not scopes:
+            print("  No cgroup scopes found")
+            return EXIT_OK
+        fmt = "  {:<30s} {:<14s} {}"
+        print(fmt.format("SCOPE", "STATUS", "RESOURCES"))
+        print(fmt.format("─" * 28, "─" * 12, "─" * 20))
+        for s in scopes:
+            if isinstance(s, dict):
+                name = s.get("name", s.get("scope", "?"))
+                st = s.get("status", "?")
+                res = s.get("resources", "")
+                if isinstance(res, dict):
+                    res = f"cpu={res.get('cpu', '?')} mem={res.get('memory', '?')}"
+                print(fmt.format(str(name), _status_color(str(st)), str(res)))
+            else:
+                print(f"  {s}")
+        return EXIT_OK
+
+    # Fall back to reading cgroup filesystem
+    try:
+        entries = os.listdir(CGROUP_BASE)
+    except OSError:  # MURPHY-CLI-ERR-023
+        logger.debug("MURPHY-CLI-ERR-023: cgroup listing failed, path: %s", CGROUP_BASE)
+        _error("Cannot list cgroup scopes — API unreachable and cgroup fs not found")
+        return EXIT_ERROR
+
+    scopes = [e for e in entries if os.path.isdir(os.path.join(CGROUP_BASE, e))]
+    if _JSON_MODE:
+        _output(scopes)
+        return EXIT_OK
+    if not scopes:
+        print("  No cgroup scopes found")
+        return EXIT_OK
+    for scope in sorted(scopes):
+        print(f"  {scope}")
+    return EXIT_OK
+
+
+def cmd_cgroup_usage(args: argparse.Namespace) -> int:
+    """Show resource usage for a cgroup scope."""
+    scope = args.scope
+    if scope:
+        data = _api_get(f"/api/cgroup/status/{scope}")
+    else:
+        data = _api_get("/api/cgroup/status")
+    if data is not None:
+        _output(data)
+        return EXIT_OK
+
+    # Fall back to cgroup filesystem
+    scope_path = os.path.join(CGROUP_BASE, scope) if scope else CGROUP_BASE
+    info: Dict[str, str] = {}
+    for fname in ("cpu.stat", "memory.current", "memory.max", "pids.current"):
+        fpath = os.path.join(scope_path, fname)
+        try:
+            with open(fpath) as fh:
+                info[fname] = fh.read().strip()
+        except OSError:
+            pass
+
+    if not info:
+        _error(f"Cannot read cgroup usage for '{scope or 'murphy.slice'}'")  # MURPHY-CLI-ERR-023
+        logger.debug("MURPHY-CLI-ERR-023: cgroup usage retrieval failed for scope: %s", scope)
+        return EXIT_ERROR
+
+    if _JSON_MODE:
+        _output(info)
+    else:
+        for k, v in info.items():
+            print(f"  {_bold(k)}: {v}")
+    return EXIT_OK
+
+
+# ── Module lifecycle commands ──────────────────────────────────────
+
+def cmd_module_list(args: argparse.Namespace) -> int:
+    """List registered modules."""
+    data = _get("/api/module/list", "modules/")
+    if data is None:
+        _error("Cannot list modules")  # MURPHY-CLI-ERR-024
+        logger.debug("MURPHY-CLI-ERR-024: module lifecycle operation failed (list)")
+        return EXIT_ERROR
+
+    modules = data if isinstance(data, list) else (data.get("modules", []) if isinstance(data, dict) else [])
+    if _JSON_MODE:
+        _output(modules)
+        return EXIT_OK
+
+    if not modules:
+        print("  No modules registered")
+        return EXIT_OK
+
+    fmt = "  {:<28s} {:<12s} {}"
+    print(fmt.format("NAME", "STATUS", "VERSION"))
+    print(fmt.format("─" * 26, "─" * 10, "─" * 14))
+    for m in modules:
+        if isinstance(m, dict):
+            name = m.get("name", "?")
+            st = m.get("status", "?")
+            ver = m.get("version", "")
+            print(fmt.format(str(name), _status_color(str(st)), str(ver)))
+        else:
+            print(f"  {m}")
+
+    return EXIT_OK
+
+
+def cmd_module_start(args: argparse.Namespace) -> int:
+    """Start a module."""
+    result = _api_post(f"/api/module/{args.name}/start")
+    if result is None:
+        _error(f"Failed to start module '{args.name}'")  # MURPHY-CLI-ERR-024
+        logger.debug("MURPHY-CLI-ERR-024: module lifecycle operation failed (start %s)", args.name)
+        return EXIT_ERROR
+    if not _QUIET:
+        print(f"  Module '{args.name}' started")
+    return EXIT_OK
+
+
+def cmd_module_stop(args: argparse.Namespace) -> int:
+    """Stop a module."""
+    result = _api_post(f"/api/module/{args.name}/stop")
+    if result is None:
+        _error(f"Failed to stop module '{args.name}'")  # MURPHY-CLI-ERR-024
+        logger.debug("MURPHY-CLI-ERR-024: module lifecycle operation failed (stop %s)", args.name)
+        return EXIT_ERROR
+    if not _QUIET:
+        print(f"  Module '{args.name}' stopped")
+    return EXIT_OK
+
+
+def cmd_module_status(args: argparse.Namespace) -> int:
+    """Show module status."""
+    data = _get(f"/api/module/{args.name}/status", f"modules/{args.name}")
+    if data is None:
+        _error(f"Cannot retrieve status for module '{args.name}'")  # MURPHY-CLI-ERR-024
+        logger.debug("MURPHY-CLI-ERR-024: module lifecycle operation failed (status %s)", args.name)
+        return EXIT_ERROR
+    _output(data)
+    return EXIT_OK
+
+
 # ── Argument parser ─────────────────────────────────────────────────
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -759,6 +1161,49 @@ def _build_parser() -> argparse.ArgumentParser:
     pqc_sub.add_parser("rotate", help="Force key rotation")
     pqc_sub.add_parser("verify", help="Verify runtime integrity")
 
+    # llm
+    p_llm = sub.add_parser("llm", help="LLM governor operations")
+    llm_sub = p_llm.add_subparsers(dest="llm_cmd")
+    llm_sub.add_parser("status", help="Show per-provider usage, budgets, health")
+    p_lu = llm_sub.add_parser("usage", help="Show token/cost usage stats")
+    p_lu.add_argument("provider", nargs="?", default=None, help="Filter by provider name")
+    llm_sub.add_parser("health", help="Show provider health (latency, error rate)")
+
+    # backup
+    p_bak = sub.add_parser("backup", help="Backup operations")
+    bak_sub = p_bak.add_subparsers(dest="backup_cmd")
+    p_bc = bak_sub.add_parser("create", help="Trigger a new backup")
+    p_bc.add_argument("--label", default=None, help="Optional label for the backup")
+    bak_sub.add_parser("list", help="List available backups")
+    p_bv = bak_sub.add_parser("verify", help="Verify backup integrity")
+    p_bv.add_argument("backup_id", help="Backup ID to verify")
+    p_br = bak_sub.add_parser("restore", help="Restore from backup")
+    p_br.add_argument("backup_id", help="Backup ID to restore")
+
+    # telemetry
+    p_tel = sub.add_parser("telemetry", help="Telemetry/metrics operations")
+    tel_sub = p_tel.add_subparsers(dest="telemetry_cmd")
+    tel_sub.add_parser("status", help="Show metric collection status")
+    tel_sub.add_parser("dump", help="Dump current metrics (Prometheus format)")
+
+    # cgroup
+    p_cg = sub.add_parser("cgroup", help="Resource isolation status")
+    cg_sub = p_cg.add_subparsers(dest="cgroup_cmd")
+    cg_sub.add_parser("list", help="List all Murphy cgroup scopes")
+    p_cgu = cg_sub.add_parser("usage", help="Show resource usage for a scope")
+    p_cgu.add_argument("scope", nargs="?", default=None, help="Cgroup scope name")
+
+    # module
+    p_mod = sub.add_parser("module", help="Module lifecycle management")
+    mod_sub = p_mod.add_subparsers(dest="module_cmd")
+    mod_sub.add_parser("list", help="List registered modules")
+    p_ms = mod_sub.add_parser("start", help="Start a module")
+    p_ms.add_argument("name", help="Module name")
+    p_mp = mod_sub.add_parser("stop", help="Stop a module")
+    p_mp.add_argument("name", help="Module name")
+    p_mst = mod_sub.add_parser("status", help="Show module status")
+    p_mst.add_argument("name", help="Module name")
+
     # version
     sub.add_parser("version", help="Print version info")
 
@@ -787,6 +1232,21 @@ _DISPATCH = {
     ("pqc", "status"): cmd_pqc_status,
     ("pqc", "rotate"): cmd_pqc_rotate,
     ("pqc", "verify"): cmd_pqc_verify,
+    ("llm", "status"): cmd_llm_status,
+    ("llm", "usage"): cmd_llm_usage,
+    ("llm", "health"): cmd_llm_health,
+    ("backup", "create"): cmd_backup_create,
+    ("backup", "list"): cmd_backup_list,
+    ("backup", "verify"): cmd_backup_verify,
+    ("backup", "restore"): cmd_backup_restore,
+    ("telemetry", "status"): cmd_telemetry_status,
+    ("telemetry", "dump"): cmd_telemetry_dump,
+    ("cgroup", "list"): cmd_cgroup_list,
+    ("cgroup", "usage"): cmd_cgroup_usage,
+    ("module", "list"): cmd_module_list,
+    ("module", "start"): cmd_module_start,
+    ("module", "stop"): cmd_module_stop,
+    ("module", "status"): cmd_module_status,
     ("version", None): cmd_version,
 }
 
@@ -810,7 +1270,8 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # Determine sub-command key
     subcmd = None
-    for attr in ("swarm_cmd", "gate_cmd", "engine_cmd", "log_cmd", "config_cmd", "pqc_cmd"):
+    for attr in ("swarm_cmd", "gate_cmd", "engine_cmd", "log_cmd", "config_cmd", "pqc_cmd",
+                 "llm_cmd", "backup_cmd", "telemetry_cmd", "cgroup_cmd", "module_cmd"):
         val = getattr(args, attr, None)
         if val is not None:
             subcmd = val
