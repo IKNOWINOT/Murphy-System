@@ -444,7 +444,7 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
       shadow: $id('toggle-shadow').checked
     };
     try { localStorage.setItem('murphy_ambient_settings', JSON.stringify(settings)); } catch (_) {}
-    fetch('/api/ambient/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }).catch(function () {});
+    fetch('/api/ambient/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }).catch(function () { showToast('Failed to save settings — please try again.'); });
     showToast('Settings saved');
   });
 
@@ -506,7 +506,7 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
         if (banner) banner.classList.add('visible');
       }
     })
-    .catch(function () {});
+    .catch(function () { console.warn('[Murphy] ambient-settings fetch failed'); });
 
   /* ── Load live stats from /api/ambient/stats ── */
   function loadAmbientStats() {
@@ -539,7 +539,7 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
           badgeStream.textContent = String(data.total_signals);
         }
       })
-      .catch(function () {});
+      .catch(function () { console.warn('[Murphy] ambient-stats fetch failed'); });
   }
   loadAmbientStats();
   setInterval(loadAmbientStats, 30000);

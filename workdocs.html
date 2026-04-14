@@ -883,7 +883,7 @@
       if ($notifCount) {
         $notifCount.textContent = count > 0 ? '(' + count + ')' : '';
       }
-    }).catch(function () {});
+    }).catch(function () { showError('Failed to load notification count'); });
 
     API('/api/collaboration/notifications/current-user').then(function (data) {
       var notifs = data.notifications || data || [];
@@ -915,7 +915,7 @@
     if (!activeDocId) return;
     API('/api/collaboration/feed/item/' + encodeURIComponent(activeDocId)).then(function () {
       // Feed data loaded for collaboration awareness
-    }).catch(function () {});
+    }).catch(function () { showError('Failed to load collaboration feed'); });
   }
 
   /* ── Init ──────────────────────────────────────────── */
