@@ -34,6 +34,10 @@ from robotics.learned_policy_engine import LearnedPolicyEngine
 from robotics.fleet_orchestrator import FleetOrchestrator
 from robotics.telemetry_publisher import TelemetryPublisher
 
+# Phase 4 — PiCar-X / Reason (AI Butler)
+from robotics.picarx_hardware import PiCarXHardware
+from robotics.picarx_butler import PiCarXButler
+
 __all__ = [
     # Core
     "ActuatorEngine",
@@ -58,4 +62,7 @@ __all__ = [
     "LearnedPolicyEngine",
     "FleetOrchestrator",
     "TelemetryPublisher",
+    # Phase 4 — PiCar-X / Reason
+    "PiCarXHardware",
+    "PiCarXButler",
 ]
