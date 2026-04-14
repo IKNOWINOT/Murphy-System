@@ -547,7 +547,7 @@
       document.getElementById('stat-avg-slip').textContent   = fmt$(c.avg_slippage_usd);
       document.getElementById('stat-cost-pct').textContent   = fmtPct(c.cost_as_pct_of_trade);
       document.getElementById('stat-discrepancies').textContent = c.discrepancy_count || 0;
-    }).catch(function () {});
+    }).catch(function () { document.getElementById('stat-total-fees').textContent = '—'; document.getElementById('stat-avg-slip').textContent = '—'; document.getElementById('stat-cost-pct').textContent = '—'; document.getElementById('stat-discrepancies').textContent = '—'; console.warn('[Murphy] Risk costs API unavailable'); });
   }
 
   /* ── Audit log ── */
@@ -576,10 +576,7 @@
           '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + (e.rejection_reason || '') + '">' + (e.rejection_reason || '—') + '</td>' +
           '</tr>';
       }).join('');
-    }).catch(function () {
-      document.getElementById('audit-log-body').innerHTML =
-        '<tr><td colspan="7" style="text-align:center;color:var(--text-tertiary);">Audit log unavailable.</td></tr>';
-    });
+    }).catch(function () { var tbody = document.getElementById('audit-log-body'); if (tbody) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px;">⚠ Audit log unavailable</td></tr>'; } console.warn('[Murphy] Audit log API unavailable'); });
   }
 
   /* ── Emergency stop button handlers ── */
