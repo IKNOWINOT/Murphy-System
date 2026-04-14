@@ -3706,8 +3706,9 @@ async def trading_paper_order(request: Request):
         _paper_portfolio["cash"] -= order_value
         existing = next((p for p in _paper_portfolio["positions"] if p["symbol"] == symbol), None)
         if existing:
+            old_qty = existing["quantity"]
             existing["quantity"] += qty
-            existing["avg_price"] = round((existing["avg_price"] * (existing["quantity"] - qty) + price * qty) / existing["quantity"], 2)
+            existing["avg_price"] = round((existing["avg_price"] * old_qty + price * qty) / existing["quantity"], 2)
         else:
             _paper_portfolio["positions"].append({"symbol": symbol, "quantity": qty, "avg_price": price, "current_price": price, "pnl": 0.0})
     else:
