@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: LicenseRef-BSL-1.1
+# © 2020 Inoni Limited Liability Company — Creator: Corey Post — BSL 1.1
+#
+# MurphyOS Module Lifecycle Manager — default configuration
+# Install: cp module-lifecycle.yaml /etc/murphy/module-lifecycle.yaml
+
+murphy_module_lifecycle:
+  enabled: true
+  registry_path: /var/lib/murphy/modules/registry.json
+  module_slice: murphy-modules.slice
+  defaults:
+    memory_max: 256M
+    cpu_weight: 100
+    restart_max: 5
+    restart_backoff_max: 60
+  health_check:
+    interval_seconds: 30
+    timeout_seconds: 5
+    unhealthy_threshold: 3

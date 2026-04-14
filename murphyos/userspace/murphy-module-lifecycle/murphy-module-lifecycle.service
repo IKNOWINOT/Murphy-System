@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: LicenseRef-BSL-1.1
+# © 2020 Inoni Limited Liability Company — Creator: Corey Post — BSL 1.1
+#
+# systemd unit — MurphyOS module lifecycle manager daemon
+# Install: cp murphy-module-lifecycle.service /etc/systemd/system/
+#          systemctl daemon-reload && systemctl enable --now murphy-module-lifecycle
+
+[Unit]
+Description=MurphyOS Module Lifecycle Manager
+Documentation=https://github.com/murphyos/murphy-system
+After=murphy-system.service murphy-cgroup.service
+Wants=murphy-system.service murphy-cgroup.service
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/python3 /opt/murphy/murphyos/userspace/murphy-module-lifecycle/murphy_module_lifecycle.py --config /etc/murphy/module-lifecycle.yaml daemon
+Restart=on-failure
+RestartSec=5
+WatchdogSec=120
+
+# --- Identity ---
+User=root
+Group=root
+
+# --- State directory ---
+StateDirectory=murphy/modules
+StateDirectoryMode=0750
+
+# --- Security hardening ---
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/murphy/modules
+PrivateTmp=yes
+NoNewPrivileges=no
+MemoryDenyWriteExecute=yes
+RestrictRealtime=yes
+LockPersonality=yes
+
+# --- Resource limits ---
+MemoryMax=128M
+CPUWeight=50
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target
