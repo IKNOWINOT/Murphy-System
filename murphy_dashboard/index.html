@@ -81,6 +81,27 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--text);fo
 .tag-automation{background:rgba(59,158,255,.15);color:var(--blue)}
 .tag-dag{background:rgba(168,85,247,.15);color:var(--purple)}
 .tag-vertical{background:rgba(236,72,153,.15);color:var(--pink)}
+.ops-health{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.ops-health.healthy{background:var(--green);box-shadow:0 0 6px var(--green)}
+.ops-health.degraded{background:var(--orange);box-shadow:0 0 6px var(--orange)}
+.ops-health.critical{background:var(--red);box-shadow:0 0 6px var(--red);animation:pulse-red 1.5s infinite}
+.ops-health.inactive{background:var(--muted)}
+@keyframes pulse-red{0%,100%{opacity:1}50%{opacity:.4}}
+.ops-vcard{background:var(--bg3);border-radius:8px;padding:12px;border-left:3px solid var(--border);transition:all .2s}
+.ops-vcard:hover{background:var(--bg4)}
+.ops-vcard.healthy{border-left-color:var(--green)}
+.ops-vcard.degraded{border-left-color:var(--orange)}
+.ops-vcard.critical{border-left-color:var(--red)}
+.ops-vcard.inactive{border-left-color:var(--muted)}
+.ops-bar{height:6px;border-radius:3px;overflow:hidden;background:var(--bg4)}
+.ops-bar-fill{height:100%;border-radius:3px;transition:width .5s}
+.ops-exec-row{display:flex;align-items:center;gap:8px;padding:4px 8px;font-size:11px;border-bottom:1px solid var(--border)}
+.ops-exec-row.failed{background:rgba(239,68,68,.08)}
+.ops-exec-row .status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.ops-exec-row .status-dot.completed{background:var(--green)}
+.ops-exec-row .status-dot.failed{background:var(--red)}
+.ops-roi-row{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:6px;font-size:11px}
+.ops-roi-row:nth-child(odd){background:var(--bg3)}
 .hitl-actions{display:flex;gap:8px}
 .btn{display:inline-flex;align-items:center;gap:5px;border:none;border-radius:6px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap}
 .btn-approve{background:rgba(0,212,170,.15);color:var(--green);border:1px solid rgba(0,212,170,.3)}
@@ -261,6 +282,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--text);fo
   <nav class="sidebar">
     <a href="/landing" class="sb-logo" title="Landing Page">M</a>
     <button class="sb-btn active" data-panel="overview" title="Overview" onclick="showPanel('overview',this)">🏠</button>
+    <button class="sb-btn" data-panel="operations" title="Operations Center" onclick="showPanel('operations',this)">📡</button>
     <button class="sb-btn" data-panel="hitl" title="HITL Queue" onclick="showPanel('hitl',this)">⚡</button>
     <button class="sb-btn" data-panel="calendar" title="Production Calendar" onclick="showPanel('calendar',this)">📅</button>
     <button class="sb-btn" data-panel="automations" title="Automations" onclick="showPanel('automations',this)">⚙️</button>
@@ -329,6 +351,39 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--text);fo
         </div>
       </div>
 
+      <!-- ===== OPERATIONS CENTER (OPS-CENTER-001) ===== -->
+      <div class="panel" id="panel-operations">
+        <!-- ROI Summary Bar -->
+        <div class="kpi-grid" id="opsKPIs" style="grid-template-columns:repeat(6,1fr)"></div>
+        <!-- Vertical Health Grid — no vertical is silent -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📡 Operations Center — All Verticals Live</div>
+            <div style="display:flex;gap:6px">
+              <span style="font-size:10px;color:var(--muted)">Every vertical reports success + failure. Nothing is silent.</span>
+              <button class="btn btn-sm btn-ghost" onclick="loadOperations()">↺ Refresh</button>
+            </div>
+          </div>
+          <div id="opsVerticalGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px"></div>
+        </div>
+        <!-- Live Execution Feed — failures shown prominently -->
+        <div class="g2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">✅ Recent Successes</div></div>
+            <div id="opsSuccessFeed" style="display:flex;flex-direction:column;gap:2px;max-height:280px;overflow-y:auto"></div>
+          </div>
+          <div class="card" style="border-left:2px solid var(--red)">
+            <div class="card-header"><div class="card-title">❌ Recent Failures</div></div>
+            <div id="opsFailFeed" style="display:flex;flex-direction:column;gap:2px;max-height:280px;overflow-y:auto"></div>
+          </div>
+        </div>
+        <!-- Per-Vertical ROI Breakdown -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">💰 ROI Breakdown by Vertical</div></div>
+          <div id="opsROIBreakdown" style="display:flex;flex-direction:column;gap:4px"></div>
+        </div>
+      </div>
+
       <!-- ===== HITL QUEUE ===== -->
       <div class="panel" id="panel-hitl">
         <div class="card">
@@ -389,6 +444,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--text);fo
                 <option value="pipeline">Pipeline</option>
                 <option value="proposals">Proposals</option>
                 <option value="content">Content</option>
+                <option value="healthcare">Healthcare</option>
+                <option value="legal">Legal</option>
+                <option value="construction">Construction</option>
+                <option value="education">Education</option>
               </select>
               <button class="btn btn-sm btn-ghost" onclick="loadAutomationsPanel()">↺ Refresh</button>
             </div>
@@ -615,7 +674,7 @@ function showPanel(name, btn) {
   document.getElementById('contentArea').scrollTop = 0;
 
   const loaders = {
-    overview: loadOverview, hitl: loadHITL, calendar: loadCalendar,
+    overview: loadOverview, operations: loadOperations, hitl: loadHITL, calendar: loadCalendar,
     automations: loadAutomationsPanel, verticals: loadVerticals,
     marketing: loadMarketing, proposals: loadProposals,
     workflows: loadWorkflows, comms: loadComms, setup: loadSetup,
@@ -678,6 +737,7 @@ function handleSSE(msg) {
   if (ev === 'automation_executed') {
     addExecToLog(data);
     if (ap === 'panel-overview') updateAutoBlocks();
+    if (ap === 'panel-operations') loadOperations();
     document.getElementById('kpi-execs').textContent = parseInt(document.getElementById('kpi-execs').textContent || '0') + 1;
     return;
   }
@@ -1161,6 +1221,110 @@ async function loadAutomations() {
 }
 
 // ===========================================================================
+// OPERATIONS CENTER — No silent failures or successes (OPS-CENTER-001)
+// ===========================================================================
+async function loadOperations() {
+  const d = await apiFetch(`/api/operations/status?tenant_id=${_currentTenant}`);
+  const s = d.summary || {};
+  const verts = d.verticals || [];
+
+  // KPI bar
+  document.getElementById('opsKPIs').innerHTML = `
+    <div class="kpi"><div class="kpi-val" style="color:var(--green)">${s.healthy||0}</div><div class="kpi-label">Healthy</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--orange)">${s.degraded||0}</div><div class="kpi-label">Degraded</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--red)">${s.critical||0}</div><div class="kpi-label">Critical</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--green)">${s.global_success_rate_pct||0}%</div><div class="kpi-label">Success Rate</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--green)">${fmtMoney(s.total_monthly_savings||0)}</div><div class="kpi-label">Monthly Savings</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--blue)">${s.roi_multiplier||0}x</div><div class="kpi-label">ROI Multiple</div></div>`;
+
+  // Vertical health grid — every vertical visible, none silent
+  document.getElementById('opsVerticalGrid').innerHTML = verts.map(v => `
+    <div class="ops-vcard ${v.health}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="ops-health ${v.health}"></span>
+          <span style="font-size:16px">${v.icon}</span>
+          <span style="font-weight:700;font-size:12px">${v.label}</span>
+        </div>
+        <span style="font-size:10px;font-weight:700;color:${
+          v.health==='healthy'?'var(--green)':v.health==='degraded'?'var(--orange)':v.health==='critical'?'var(--red)':'var(--muted)'
+        };text-transform:uppercase">${v.health}</span>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px">${v.engine}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:8px">
+        <div style="text-align:center">
+          <div style="font-size:14px;font-weight:700;color:var(--green)">${v.executions_success}</div>
+          <div style="font-size:9px;color:var(--muted)">Success</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:14px;font-weight:700;color:var(--red)">${v.executions_failed}</div>
+          <div style="font-size:9px;color:var(--muted)">Failed</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:14px;font-weight:700;color:var(--blue)">${v.active_count}</div>
+          <div style="font-size:9px;color:var(--muted)">Active</div>
+        </div>
+      </div>
+      <div class="ops-bar" style="margin-bottom:6px">
+        <div class="ops-bar-fill" style="width:${v.success_rate_pct}%;background:${
+          v.success_rate_pct>=90?'var(--green)':v.success_rate_pct>=70?'var(--orange)':'var(--red)'
+        }"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px">
+        <span style="color:var(--muted)">${v.success_rate_pct}% success</span>
+        <span style="color:var(--green);font-weight:700">${fmtMoney(v.monthly_savings)}/mo</span>
+      </div>
+      ${v.blocked_hitl > 0 ? `<div style="margin-top:6px;font-size:10px;color:var(--hitl)">🔒 ${v.blocked_hitl} blocked by HITL</div>` : ''}
+      ${v.delayed > 0 ? `<div style="margin-top:4px;font-size:10px;color:var(--orange)">⏱ ${v.delayed} delayed</div>` : ''}
+    </div>`).join('');
+
+  // Success / Failure feeds
+  const allExecs = verts.flatMap(v => (v.recent_executions||[]).map(e => ({...e, vertical: v.label, icon: v.icon, color: v.color})));
+  allExecs.sort((a,b) => (b.started_at||'').localeCompare(a.started_at||''));
+
+  const successes = allExecs.filter(e => e.status === 'completed');
+  const failures = allExecs.filter(e => e.status === 'failed');
+
+  document.getElementById('opsSuccessFeed').innerHTML = successes.length
+    ? successes.map(e => `
+      <div class="ops-exec-row">
+        <div class="status-dot completed"></div>
+        <span style="font-size:12px">${e.icon}</span>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.automation_name}</span>
+        <span class="mono" style="color:var(--muted);font-size:10px">${fmtMin(e.actual_minutes||0)}</span>
+        <span style="color:var(--green);font-family:monospace;font-size:10px">${fmtMoney(e.cost_savings||0)}</span>
+      </div>`).join('')
+    : '<div style="color:var(--muted);font-size:11px;padding:10px">No recent successes</div>';
+
+  document.getElementById('opsFailFeed').innerHTML = failures.length
+    ? failures.map(e => `
+      <div class="ops-exec-row failed">
+        <div class="status-dot failed"></div>
+        <span style="font-size:12px">${e.icon}</span>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--red)">${e.automation_name}</span>
+        <span class="mono" style="color:var(--muted);font-size:10px">${e.started_at ? new Date(e.started_at).toLocaleTimeString() : ''}</span>
+      </div>`).join('')
+    : '<div style="color:var(--muted);font-size:11px;padding:10px">No recent failures — all clear ✅</div>';
+
+  // ROI breakdown
+  const sorted = [...verts].sort((a,b) => b.monthly_savings - a.monthly_savings);
+  const maxSav = Math.max(...sorted.map(v => v.monthly_savings), 1);
+  document.getElementById('opsROIBreakdown').innerHTML = sorted.map(v => `
+    <div class="ops-roi-row">
+      <span style="width:24px;text-align:center;font-size:14px">${v.icon}</span>
+      <span style="width:100px;font-weight:600">${v.label}</span>
+      <div style="flex:1;display:flex;align-items:center;gap:8px">
+        <div class="ops-bar" style="flex:1">
+          <div class="ops-bar-fill" style="width:${Math.round(v.monthly_savings/maxSav*100)}%;background:${v.color}"></div>
+        </div>
+        <span style="width:80px;text-align:right;color:var(--green);font-family:monospace;font-weight:700">${fmtMoney(v.monthly_savings)}</span>
+      </div>
+      <span style="width:60px;text-align:right;font-family:monospace;font-size:10px;color:var(--muted)">${v.success_rate_pct}%</span>
+      <span class="ops-health ${v.health}" style="margin-left:4px"></span>
+    </div>`).join('');
+}
+
+// ===========================================================================
 // VERTICALS
 // ===========================================================================
 async function loadVerticals() {
@@ -1631,7 +1795,7 @@ async function init() {
       const active = document.querySelector('.panel.active');
       if (active) {
         const loaders = {
-          'panel-overview': loadOverview, 'panel-hitl': loadHITL,
+          'panel-overview': loadOverview, 'panel-operations': loadOperations, 'panel-hitl': loadHITL,
           'panel-calendar': loadCalendar, 'panel-automations': loadAutomationsPanel,
           'panel-marketing': loadMarketing, 'panel-proposals': loadProposals,
           'panel-setup': loadSetup,

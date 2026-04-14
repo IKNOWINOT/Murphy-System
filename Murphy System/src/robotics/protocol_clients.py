@@ -466,6 +466,85 @@ class MQTTClient(ProtocolClient):
         return True
 
 
+class PiCarXClient(ProtocolClient):
+    """SunFounder PiCar-X protocol client (Raspberry Pi 3B+).
+
+    When a ``PiCarXHardware`` backend is supplied the client delegates
+    to real or stub hardware.  Without a backend it uses the standard
+    ProtocolClient stub helpers.
+    """
+
+    def connect(self) -> bool:
+        with self._lock:
+            if self._backend and hasattr(self._backend, "connect"):
+                self._backend.connect()
+            self._status = RobotStatus.CONNECTED
+        return True
+
+    def disconnect(self) -> bool:
+        with self._lock:
+            if self._backend and hasattr(self._backend, "disconnect"):
+                self._backend.disconnect()
+            self._status = RobotStatus.DISCONNECTED
+        return True
+
+    def read_sensor(self, sensor_id: str, sensor_type: str) -> SensorReading:
+        if self._backend and hasattr(self._backend, "read_all"):
+            snap = self._backend.read_all()
+            val: Any = 0.0
+            unit = ""
+            if sensor_type == "ultrasonic":
+                val, unit = snap.ultrasonic_cm, "cm"
+            elif sensor_type == "grayscale":
+                val, unit = snap.grayscale, ""
+            elif sensor_type == "battery":
+                val, unit = snap.battery_voltage, "V"
+            elif sensor_type == "battery_percent":
+                val, unit = snap.battery_percent, "%"
+            else:
+                val = 0.0
+            return SensorReading(
+                robot_id=self.config.robot_id,
+                sensor_id=sensor_id,
+                sensor_type=sensor_type,
+                value=val,
+                unit=unit,
+                timestamp=datetime.now(timezone.utc),
+            )
+        return self._stub_sensor(sensor_id, sensor_type, value=0.0, unit="")
+
+    def execute_command(self, command: ActuatorCommand) -> ActuatorResult:
+        if self._backend:
+            try:
+                cmd = command.command_type
+                params = command.parameters
+                if cmd == "drive":
+                    self._backend.set_speed(
+                        params.get("left", 0), params.get("right", 0))
+                elif cmd == "steer":
+                    self._backend.set_steering(params.get("angle", 0.0))
+                elif cmd == "stop":
+                    self._backend.stop()
+                elif cmd == "cam_pan":
+                    self._backend.set_camera_pan(params.get("angle", 0.0))
+                elif cmd == "cam_tilt":
+                    self._backend.set_camera_tilt(params.get("angle", 0.0))
+                return self._stub_result(command, success=True,
+                                         message=f"picarx:{cmd} ok")
+            except Exception as exc:  # PICARX-CLIENT-ERR-001
+                logger.warning("PiCarX command failed [PICARX-CLIENT-ERR-001]: %s", exc)
+                return self._stub_result(command, success=False, message=str(exc))
+        logger.info("PiCarX execute (stub): %s", command.command_type)
+        return self._stub_result(command)
+
+    def emergency_stop(self) -> bool:
+        with self._lock:
+            if self._backend and hasattr(self._backend, "stop"):
+                self._backend.stop()
+            self._status = RobotStatus.EMERGENCY_STOP
+        return True
+
+
 # ---------------------------------------------------------------------------
 # Factory
 # ---------------------------------------------------------------------------
@@ -483,6 +562,7 @@ CLIENT_REGISTRY: Dict[RobotType, Type[ProtocolClient]] = {
     RobotType.DJI: DJIClient,
     RobotType.CLEARPATH: ClearpathClient,
     RobotType.MQTT: MQTTClient,
+    RobotType.PICARX: PiCarXClient,
 }
 
 
