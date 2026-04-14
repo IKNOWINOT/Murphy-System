@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: LicenseRef-BSL-1.1
+# © 2020 Inoni Limited Liability Company — Creator: Corey Post — BSL 1.1
+#
+# Default configuration for the MurphyOS cgroup v2 resource isolation manager.
+# Copy to /etc/murphy/cgroup.yaml and adjust for your environment.
+
+murphy_cgroup:
+  enabled: true
+  base_slice: murphy.slice
+
+  # --- Per-agent swarm scopes: murphy-swarm-{uuid}.scope ---
+  swarm_defaults:
+    memory_max: 512M
+    cpu_weight: 100
+    pids_max: 64
+
+  # --- LLM inference workloads: murphy-llm.slice ---
+  llm_defaults:
+    memory_max: 4G
+    cpu_weight: 500
+    io_weight: 200
+
+  # --- Automation tasks: murphy-automation.slice ---
+  automation_defaults:
+    memory_max: 1G
+    cpu_weight: 200
+    io_weight: 100

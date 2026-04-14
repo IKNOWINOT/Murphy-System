@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: LicenseRef-BSL-1.1
+# © 2020 Inoni Limited Liability Company — Creator: Corey Post — BSL 1.1
+#
+# systemd unit — MurphyOS cgroup v2 resource isolation daemon
+# Install: cp murphy-cgroup.service /etc/systemd/system/
+#          systemctl daemon-reload && systemctl enable --now murphy-cgroup
+
+[Unit]
+Description=MurphyOS cgroup v2 Resource Isolation Manager
+Documentation=https://github.com/murphyos/murphy-system
+After=murphy-system.service
+Wants=murphy-system.service
+ConditionPathExists=/sys/fs/cgroup/cgroup.controllers
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/python3 /opt/murphy/murphyos/userspace/murphy-cgroup/murphy_cgroup_manager.py --config /etc/murphy/cgroup.yaml daemon
+Restart=on-failure
+RestartSec=5
+WatchdogSec=120
+
+# --- Identity ---
+User=root
+Group=root
+
+# --- Security hardening ---
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/sys/fs/cgroup/murphy.slice
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=no
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+
+# --- Resource limits for the daemon itself ---
+MemoryMax=128M
+CPUQuota=10%
+
+# --- Logging ---
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=murphy-cgroup
+
+[Install]
+WantedBy=multi-user.target
