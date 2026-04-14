@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: LicenseRef-BSL-1.1
+# © 2020 Inoni Limited Liability Company — Creator: Corey Post — BSL 1.1
+#
+# MurphyOS Backup Configuration
+# Default location: /etc/murphy/backup.yaml
+
+murphy_backup:
+  enabled: true
+  strategy: auto  # auto | btrfs | lvm | restic | tar
+
+  backup_dir: /var/lib/murphy/backups
+
+  retention:
+    keep_daily: 7
+    keep_weekly: 4
+    keep_monthly: 6
+
+  targets:
+    - /var/lib/murphy/
+    - /murphy/keys/
+    - /etc/murphy/
+
+  pre_hooks:
+    - systemctl stop murphy-system.service
+
+  post_hooks:
+    - systemctl start murphy-system.service
+
+  encryption:
+    enabled: true
+    key_source: pqc  # pqc | env | file
+
+  # Database settings — leave blank for auto-detection
+  # db_engine: postgresql
+  # db_connection: postgresql://murphy:secret@localhost/murphy

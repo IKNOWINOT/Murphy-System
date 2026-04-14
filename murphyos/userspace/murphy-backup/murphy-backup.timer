@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: LicenseRef-BSL-1.1
+# © 2020 Inoni Limited Liability Company — Creator: Corey Post — BSL 1.1
+#
+# systemd timer — automated daily backups at 03:00 UTC
+# Install: cp murphy-backup.timer /etc/systemd/system/
+#          systemctl daemon-reload && systemctl enable --now murphy-backup.timer
+
+[Unit]
+Description=MurphyOS Daily Backup Timer
+Documentation=https://github.com/murphyos/murphy-system
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+RandomizedDelaySec=900
+Persistent=true
+Unit=murphy-backup.service
+
+[Install]
+WantedBy=timers.target

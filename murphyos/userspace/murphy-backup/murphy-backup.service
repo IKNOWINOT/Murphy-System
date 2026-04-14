@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: LicenseRef-BSL-1.1
+# © 2020 Inoni Limited Liability Company — Creator: Corey Post — BSL 1.1
+#
+# systemd unit — MurphyOS snapshot backup (oneshot)
+# Install: cp murphy-backup.service /etc/systemd/system/
+#          cp murphy-backup.timer   /etc/systemd/system/
+#          systemctl daemon-reload && systemctl enable murphy-backup.timer
+
+[Unit]
+Description=MurphyOS Snapshot Backup
+Documentation=https://github.com/murphyos/murphy-system
+After=network-online.target murphy-system.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/murphy/murphyos/userspace/murphy-backup/murphy_backup.py --config /etc/murphy/backup.yaml create --label scheduled
+
+# --- Identity ---
+User=root
+Group=root
+
+# --- Security hardening ---
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/murphy/backups
+ReadOnlyPaths=/var/lib/murphy /murphy/keys /etc/murphy
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+
+# --- Resource limits ---
+MemoryMax=1G
+CPUQuota=50%
+
+# --- Timeouts ---
+TimeoutStartSec=3600
+
+# --- Logging ---
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=murphy-backup
+
+[Install]
+WantedBy=multi-user.target
