@@ -24,5 +24,10 @@
       <summary>Show PQC indicator</summary>
       <description>Display the post-quantum cryptography lock icon in the panel</description>
     </key>
+    <key name="brand-accent-color" type="s">
+      <default>'#00D4AA'</default>
+      <summary>Brand accent colour</summary>
+      <description>Primary Murphy brand accent colour (teal). Used by indicator and notifications.</description>
+    </key>
   </schema>
 </schemalist>

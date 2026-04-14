@@ -26,6 +26,10 @@ from gi.repository import GObject, Nautilus, GLib
 logger = logging.getLogger("murphy-nautilus")
 
 MURPHY_API = os.environ.get("MURPHY_API_URL", "http://localhost:8000")
+MURPHY_BRAND_ICON = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    "brand", "murphy-icon-symbolic.svg",
+)
 
 # Map file extensions / MIME prefixes to Murphy API endpoints.
 _ROUTE_MAP = {
@@ -118,8 +122,8 @@ class MurphyMenuProvider(GObject.GObject, Nautilus.MenuProvider):
 
             item = Nautilus.MenuItem(
                 name=f"MurphyProcess::{os.path.basename(filepath)}",
-                label="Process with Murphy",
-                tip=f"Send {os.path.basename(filepath)} to Murphy System for processing",
+                label="⚙ Process with Murphy System",
+                tip=f"Send {os.path.basename(filepath)} to Murphy System for AI processing",
                 icon="system-run-symbolic",
             )
             item.connect("activate", self._on_activate, filepath)

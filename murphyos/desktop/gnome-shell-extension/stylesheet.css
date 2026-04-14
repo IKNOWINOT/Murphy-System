@@ -2,20 +2,27 @@
  * © 2020 Inoni Limited Liability Company — Creator: Corey Post
  *
  * Murphy System GNOME Shell Extension — Stylesheet
+ *
+ * Brand palette (murphy-design-system.css / murphy-landing.css):
+ *   Teal #00D4AA | Green #00ff41 | Cyan #00ffff
+ *   BG base #0C1017 | BG surface #131A24 | BG elevated #1A2332
+ *   Text primary #E6ECF2 | Text secondary #8899AA
+ *   Warning #FFA63E | Danger #EF4444 | Success #22C55E | Info #3B9EFF
+ *   Fonts: Inter (UI), JetBrains Mono (code)
  */
 
 /* ── Confidence indicator colours ─────────────────────────── */
 
 .murphy-indicator-green {
-    color: #33d17a;
+    color: #00ff41;
 }
 
 .murphy-indicator-yellow {
-    color: #f6d32d;
+    color: #FFA63E;
 }
 
 .murphy-indicator-red {
-    color: #e01b24;
+    color: #EF4444;
 }
 
 /* ── PQC lock icon ────────────────────────────────────────── */
@@ -26,11 +33,30 @@
 }
 
 .murphy-pqc-verified {
-    color: #33d17a;
+    color: #00D4AA;
 }
 
 .murphy-pqc-unverified {
-    color: #e01b24;
+    color: #EF4444;
+}
+
+/* ── Panel button (branded) ───────────────────────────────── */
+
+.murphy-panel-button {
+    background-color: #00D4AA;
+    color: #0a0a0a;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-weight: bold;
+    font-family: Inter, system-ui, sans-serif;
+}
+
+.murphy-panel-button:hover {
+    background-color: #00ffff;
+}
+
+.murphy-panel-button:active {
+    background-color: #00D4AA;
 }
 
 /* ── Forge command entry ──────────────────────────────────── */
@@ -44,17 +70,34 @@
     border-radius: 6px;
     padding: 4px 8px;
     min-height: 28px;
-    background-color: rgba(255, 255, 255, 0.08);
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    caret-color: #ffffff;
+    background-color: rgba(12, 16, 23, 0.85);
+    color: #E6ECF2;
+    border: 1px solid rgba(0, 212, 170, 0.3);
+    caret-color: #E6ECF2;
+    font-family: 'JetBrains Mono', monospace;
 }
 
 .murphy-forge-entry StEntry:focus {
-    border-color: #3584e4;
-    background-color: rgba(255, 255, 255, 0.12);
+    border-color: #00D4AA;
+    background-color: rgba(12, 16, 23, 0.95);
 }
 
 .murphy-forge-entry StEntry:hover {
-    background-color: rgba(255, 255, 255, 0.10);
+    background-color: rgba(12, 16, 23, 0.90);
+    border-color: rgba(0, 212, 170, 0.5);
+}
+
+/* ── Notification cards ───────────────────────────────────── */
+
+.murphy-notification {
+    background-color: #111111;
+    border: 1px solid rgba(0, 255, 65, 0.18);
+    border-radius: 8px;
+    padding: 12px;
+    color: #E6ECF2;
+    font-family: Inter, system-ui, sans-serif;
+}
+
+.murphy-notification:hover {
+    border-color: rgba(0, 255, 65, 0.4);
 }

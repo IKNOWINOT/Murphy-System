@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: BSL-1.1 -->
+<!-- © 2020 Inoni Limited Liability Company — Creator: Corey Post -->
+<!-- Murphy System — Symbolic (monochrome) icon for GNOME integration -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="currentColor">
+  <path d="M32,3 L38.8,11.08 L49.05,8.54 L49.8,19.07 L59.58,23.04 L54,32 L59.58,40.96 L49.8,44.93 L49.05,55.46 L38.8,52.92 L32,61 L25.2,52.92 L14.95,55.46 L14.2,44.93 L4.42,40.96 L10,32 L4.42,23.04 L14.2,19.07 L14.95,8.54 L25.2,11.08 Z M32,47 A15,15 0 1,1 32,17 A15,15 0 1,1 32,47 Z" fill-rule="evenodd"/>
+  <ellipse cx="32" cy="32" rx="9" ry="5.5"/>
+  <circle cx="32" cy="32" r="4" fill="none"/>
+  <circle cx="32" cy="32" r="1.9"/>
+</svg>

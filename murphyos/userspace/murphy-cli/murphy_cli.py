@@ -682,6 +682,11 @@ def cmd_pqc_verify(args: argparse.Namespace) -> int:
 
 def cmd_version(args: argparse.Namespace) -> int:
     """Print version info."""
+    _TEAL = "\033[38;2;0;212;170m"
+    _GREEN = "\033[38;2;0;255;65m"
+    _RESET = "\033[0m"
+    _BOLD = "\033[1m"
+
     data = _get("/api/version", "system/version")
     if isinstance(data, dict):
         ver = data.get("version", __version__)
@@ -692,9 +697,11 @@ def cmd_version(args: argparse.Namespace) -> int:
     if _JSON_MODE:
         _output({"version": ver, "cli_version": __version__})
     else:
-        print(f"Murphy CLI v{__version__}")
+        print(f"{_TEAL}{_BOLD}⚙ Murphy System{_RESET}  —  AI Business Operating System")
+        print(f"  {_GREEN}CLI{_RESET} v{__version__}")
         if ver != __version__:
-            print(f"Murphy Runtime v{ver}")
+            print(f"  {_GREEN}Runtime{_RESET} v{ver}")
+        print(f"  {_TEAL}© 2020 Inoni LLC — BSL 1.1{_RESET}")
     return EXIT_OK
 
 
@@ -1089,7 +1096,7 @@ def cmd_module_status(args: argparse.Namespace) -> int:
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="murphy",
-        description="Murphy CLI — command-line interface for the Murphy runtime.",
+        description="⚙ Murphy System CLI — command-line interface for the Murphy runtime.",
     )
     parser.add_argument("--json", action="store_true", help="Output in JSON format")
     parser.add_argument("-q", "--quiet", action="store_true", help="Suppress non-essential output")

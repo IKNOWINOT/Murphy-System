@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: BSL-1.1 -->
+<!-- © 2020 Inoni Limited Liability Company — Creator: Corey Post -->
+<!-- Murphy System — Wide banner: gear icon + wordmark -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 64">
+  <!-- Gear + eye icon (left) -->
+  <defs><clipPath id="banner-eye-clip"><ellipse cx="32" cy="32" rx="9" ry="5.5"/></clipPath></defs>
+  <path d="M32,3 L38.8,11.08 L49.05,8.54 L49.8,19.07 L59.58,23.04 L54,32 L59.58,40.96 L49.8,44.93 L49.05,55.46 L38.8,52.92 L32,61 L25.2,52.92 L14.95,55.46 L14.2,44.93 L4.42,40.96 L10,32 L4.42,23.04 L14.2,19.07 L14.95,8.54 L25.2,11.08 Z M32,47 A15,15 0 1,1 32,17 A15,15 0 1,1 32,47 Z" fill="#00D4AA" fill-rule="evenodd"/>
+  <circle cx="32" cy="32" r="15" fill="none" stroke="#00D4AA" stroke-width="1"/>
+  <ellipse cx="32" cy="32" rx="9" ry="5.5" fill="#E6ECF2"/>
+  <path d="M23,32 Q32,23.5 41,32" fill="#C8D0DC" clip-path="url(#banner-eye-clip)"/>
+  <circle cx="32" cy="32" r="4" fill="#00D4AA"/>
+  <circle cx="32" cy="32" r="1.9" fill="#080E14"/>
+  <circle cx="33.2" cy="30.8" r="0.9" fill="rgba(255,255,255,0.55)"/>
+  <ellipse cx="32" cy="32" rx="9" ry="5.5" fill="none" stroke="#00D4AA" stroke-width="0.9"/>
+
+  <!-- Wordmark (right) -->
+  <text x="74" y="38" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="26" fill="#E6ECF2">Murphy</text>
+  <text x="196" y="38" font-family="Inter, system-ui, sans-serif" font-weight="400" font-size="26" fill="#00D4AA">System</text>
+  <text x="74" y="55" font-family="Inter, system-ui, sans-serif" font-weight="400" font-size="10" fill="#8899AA">AI Business Operating System</text>
+</svg>

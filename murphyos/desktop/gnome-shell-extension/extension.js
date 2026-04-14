@@ -72,7 +72,7 @@ class MurphyIndicator extends PanelMenu.Button {
         this._box.add_child(this._pqcLock);
 
         this._label = new St.Label({
-            text: 'M: —',
+            text: '⚙ Murphy: —',
             y_align: imports.gi.Clutter?.ActorAlign?.CENTER ?? 2,
         });
         this._box.add_child(this._label);
@@ -224,7 +224,7 @@ class MurphyIndicator extends PanelMenu.Button {
 
     _updateUI() {
         const band = _confidenceBand(this._confidence);
-        this._label.set_text(`M: ${this._confidence.toFixed(2)}`);
+        this._label.set_text(`⚙ Murphy: ${this._confidence.toFixed(2)}`);
 
         // Update indicator icon style
         this._icon.style_class = `murphy-indicator-${band} system-status-icon`;
@@ -296,7 +296,7 @@ class MurphyIndicator extends PanelMenu.Button {
 
         const [requestId, description] = params.deep_unpack();
         const source = new MessageTray.Source({
-            title: _('Murphy HITL'),
+            title: _('⚙ Murphy HITL'),
             iconName: 'dialog-question-symbolic',
         });
         Main.messageTray.add(source);
@@ -382,7 +382,7 @@ class MurphyIndicator extends PanelMenu.Button {
         if (!this._settings.get_boolean('show-notifications')) return;
 
         const source = new MessageTray.Source({
-            title: _('Murphy System'),
+            title: _('⚙ Murphy System'),
             iconName: 'system-run-symbolic',
         });
         Main.messageTray.add(source);

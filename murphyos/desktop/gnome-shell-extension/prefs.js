@@ -75,5 +75,22 @@ export default class MurphyPreferences extends ExtensionPreferences {
         });
         settings.bind('show-pqc-indicator', pqcRow, 'active', Gio.SettingsBindFlags.DEFAULT);
         displayGroup.add(pqcRow);
+
+        // ── Branding group ────────────────────────────────────
+        const brandGroup = new Adw.PreferencesGroup({
+            title: _('Branding'),
+            description: _('Murphy System visual identity'),
+        });
+        page.add(brandGroup);
+
+        // Brand accent colour
+        const accentRow = new Adw.EntryRow({
+            title: _('Accent Colour'),
+            text: settings.get_string('brand-accent-color'),
+        });
+        accentRow.connect('changed', () => {
+            settings.set_string('brand-accent-color', accentRow.text);
+        });
+        brandGroup.add(accentRow);
     }
 }
