@@ -755,7 +755,7 @@ function _exportDeliverable(deliverable,fmt,query,btn){
   .then(function(data){
     btn.textContent=origText;btn.disabled=false;
     if(!data||!data.success){
-      _showForgeError('Export failed: '+(data&&data.error?data.error:'unknown error'));
+      _showForgeError('Export failed: '+(data&&data.error?(typeof data.error==='object'?JSON.stringify(data.error):String(data.error)):'unknown error'));
       return;
     }
     var fname=data.filename||('murphy-deliverable.'+fmt);
@@ -851,6 +851,7 @@ function forgeRun(query){
   if(!query){_setStatus('&#9888; Please describe what you want to build.','phase');return;}
   _forgeRunning=true;
   _forgeQuery=query;
+  if(typeof MurphyContext!=='undefined'){MurphyContext.recordNLQuery(query,'forge');}
   _forgeDeliverable=null;
   var _forgeStartMs=Date.now();
 

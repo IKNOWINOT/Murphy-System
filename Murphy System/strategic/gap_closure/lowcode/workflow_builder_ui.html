@@ -1486,7 +1486,7 @@ const App = {
           if (idx < 0) continue;
           const k = line.slice(0, idx).trim();
           const v = line.slice(idx + 1).trim();
-          try { cfg[k] = JSON.parse(v); } catch { cfg[k] = v; }
+          try { cfg[k] = JSON.parse(v); } catch (e) { cfg[k] = v; }
         }
         node.config = cfg;
       } catch(e) { /* ignore parse errors */ }

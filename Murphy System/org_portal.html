@@ -405,7 +405,7 @@ const API = (path, opts = {}) => fetch(path, {
 /* ── Helpers ─────────────────────────────────────────────────────────── */
 function v(id)  { return (document.getElementById(id) || {}).value || ''; }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function fmtDate(iso) { if (!iso) return '—'; try { return new Date(iso).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}); } catch { return iso; } }
+function fmtDate(iso) { if (!iso) return '—'; try { return new Date(iso).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}); } catch (e) { return iso; } }
 function openModal(id)  { document.getElementById(id).hidden = false; }
 function closeModal(id) { document.getElementById(id).hidden = true; }
 let _toastTimer;
@@ -439,7 +439,7 @@ async function init() {
     accountRole  = profile.role || 'user';
     document.getElementById('topbar-user').textContent = accountEmail;
     document.getElementById('sidebar-email').textContent = accountEmail;
-  } catch {
+  } catch (e) {
     showNoOrg('Please sign in to view your organization.');
     return;
   }
@@ -458,7 +458,7 @@ async function init() {
           showNoOrg('No organizations have been created yet. Use the Admin Panel to create one.');
           return;
         }
-      } catch { showNoOrg('Could not load organizations.'); return; }
+      } catch (e) { showNoOrg('Could not load organizations.'); return; }
     } else {
       showNoOrg('No organization ID specified. Use a link like /ui/org-portal?org=<org_id> or contact your admin.');
       return;
@@ -476,7 +476,7 @@ async function init() {
     updateOrgUI(d);
     updateRoleUI(_callerRole);
     loadOverview();
-  } catch { showNoOrg('Could not connect to the server.'); return; }
+  } catch (e) { showNoOrg('Could not connect to the server.'); return; }
 }
 
 function showNoOrg(msg) {
@@ -553,7 +553,7 @@ async function loadOverview() {
   try {
     const d = await API('/api/org/portal/' + _orgId);
     if (d.success) updateOrgUI(d);
-  } catch { toast('Failed to refresh overview', 'error'); }
+  } catch (e) { toast('Failed to refresh overview', 'error'); }
 }
 
 /* ── Members ─────────────────────────────────────────────────────────── */
@@ -578,7 +578,7 @@ async function loadMembers() {
     } else {
       ps.style.display = 'none';
     }
-  } catch { toast('Failed to load members', 'error'); }
+  } catch (e) { toast('Failed to load members', 'error'); }
 }
 
 function filterMembers() {
@@ -623,7 +623,7 @@ async function submitInvite() {
     document.getElementById('invite-user-id').value = '';
     toast('Invite sent to ' + (email || userId));
     loadMembers(); loadOverview();
-  } catch { toast('Request failed','error'); }
+  } catch (e) { toast('Request failed','error'); }
 }
 
 async function removeMember(userId) {
@@ -677,7 +677,7 @@ async function loadChannels() {
           <div class="channel-meta">${c.members ? c.members.length + ' members' : ''} ${c.created ? '· ' + fmtDate(c.created) : ''}</div>
         </div>`;
     }).join('');
-  } catch { grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">Failed to load channels.</div>'; }
+  } catch (e) { grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">Failed to load channels.</div>'; }
 }
 
 /* ── Activity ────────────────────────────────────────────────────────── */
@@ -697,7 +697,7 @@ async function loadActivity() {
         </div>
         <span class="activity-ts">${fmtDate(e.ts)}</span>
       </div>`).join('');
-  } catch { toast('Failed to load activity','error'); }
+  } catch (e) { toast('Failed to load activity','error'); }
 }
 
 /* ── Settings ────────────────────────────────────────────────────────── */
@@ -712,7 +712,7 @@ async function loadSettings() {
     document.getElementById('settings-plan').value = org.plan || 'free';
     document.getElementById('settings-slug').value = org.slug || '';
     document.getElementById('settings-id').value  = org.org_id || '';
-  } catch { toast('Failed to load settings','error'); }
+  } catch (e) { toast('Failed to load settings','error'); }
 }
 
 async function saveSettings() {

@@ -332,6 +332,7 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
 </footer>
 
 <script src="static/murphy-components.js"></script>
+<script src="murphy_auth.js"></script>
 <script>
 const CAL_COLORS = {personal:'#00D4AA',work:'#3b9eff',team:'#e879f9',murphy:'#ffa63e'};
 let currentView = 'month';
@@ -551,7 +552,7 @@ function renderAttendeeTags(){
 function removeAttendee(i){attendees.splice(i,1);renderAttendeeTags();}
 function murphySuggestAttendees(){attendees=['Jordan Lee','Maria Rodriguez','Sam Rivera'];renderAttendeeTags();alert('Murphy AI: Suggested attendees based on project context.');}
 function findBestTime(){
-  fetch('/api/librarian/query',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:'find best meeting time'})}).catch(()=>{});
+  fetch('/api/librarian/query',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:'find best meeting time'})}).catch(function(e) { console.warn('[Murphy] Meeting time suggestion failed:', e && e.message || 'network error'); });
   document.getElementById('ai-time-slots').style.display='block';
 }
 function selectSlot(btn,label){document.getElementById('ev-title').placeholder=`Meeting at ${label}`;alert(`Selected: ${label}`);}

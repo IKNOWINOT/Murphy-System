@@ -499,26 +499,26 @@
         updateMetrics(m, d.equity_curve || []);
         updateStrategyTable(d.by_strategy || {});
       })
-      .catch(function () {});
+      .catch(function () { console.warn('[Murphy] performance fetch failed'); });
 
     // Positions
     api('GET', '/api/trading/paper/positions')
       .then(function (d) { updatePositions(d.positions || []); })
-      .catch(function () {});
+      .catch(function () { console.warn('[Murphy] positions fetch failed'); });
 
     // Trades
     api('GET', '/api/trading/paper/trades?limit=50')
       .then(function (d) { updateJournal(d.trades || []); })
-      .catch(function () {});
+      .catch(function () { console.warn('[Murphy] trades fetch failed'); });
   }
 
   function refreshCalibration() {
     api('GET', '/api/trading/calibration/costs')
       .then(function (d) { renderCostCal(d); })
-      .catch(function () {});
+      .catch(function () { console.warn('[Murphy] calibration-costs fetch failed'); });
     api('GET', '/api/trading/calibration/errors')
       .then(function (d) { renderErrCal(d); })
-      .catch(function () {});
+      .catch(function () { console.warn('[Murphy] calibration-errors fetch failed'); });
   }
 
   /* ─── Metric update ─── */
@@ -863,9 +863,11 @@
         startPolling();
       }
     })
-    .catch(function () {});
+    .catch(function () { console.warn('[Murphy] session-status fetch failed'); });
 
 })();
 </script>
+<script src="static/murphy-auth-guard.js"></script>
+<script>MurphyAuth.requireAuth();</script>
 </body>
 </html>

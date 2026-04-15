@@ -410,7 +410,7 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
   try {
     var raw = localStorage.getItem('murphy_last_meeting');
     if (raw) session = JSON.parse(raw);
-  } catch (_) {}
+  } catch (e) { console.warn('[Murphy] localStorage read failed:', e && e.message); }
 
   /* ── Check URL param ── */
   var urlParams = new URLSearchParams(window.location.search);
@@ -421,12 +421,12 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
   try {
     var allRaw = localStorage.getItem('murphy_all_meetings');
     if (allRaw) allSessions = JSON.parse(allRaw);
-  } catch (_) {}
+  } catch (e) { console.warn('[Murphy] localStorage read failed:', e && e.message); }
   if (session && session.id) {
     var exists = allSessions.find(function (s) { return s.id === session.id; });
     if (!exists) {
       allSessions.unshift(session);
-      try { localStorage.setItem('murphy_all_meetings', JSON.stringify(allSessions.slice(0, 50))); } catch (_) {}
+      try { localStorage.setItem('murphy_all_meetings', JSON.stringify(allSessions.slice(0, 50))); } catch (e) { console.warn('[Murphy] Persist failed:', e && e.message); }
     }
   }
 
@@ -463,7 +463,7 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
         allSessions = merged;
         // Update localStorage cache
         if (allSessions.length) {
-          try { localStorage.setItem('murphy_all_meetings', JSON.stringify(allSessions.slice(0, 50))); } catch (_) {}
+          try { localStorage.setItem('murphy_all_meetings', JSON.stringify(allSessions.slice(0, 50))); } catch (e) { console.warn('[Murphy] Persist failed:', e && e.message); }
         }
         // Seed demo only when both API and localStorage returned nothing
         if (!allSessions.length) {
@@ -671,7 +671,7 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
             btn.disabled = true;
             orgDraftsAccepted++;
             $id('stat-drafts-accepted').textContent = orgDraftsAccepted;
-            try { localStorage.setItem('murphy_org_drafts_accepted', String(orgDraftsAccepted)); } catch (_) {}
+            try { localStorage.setItem('murphy_org_drafts_accepted', String(orgDraftsAccepted)); } catch (e) { console.warn('[Murphy] Persist failed:', e && e.message); }
             submitDraftToAPI(key, content, 'accepted');
           } else if (action === 'export') {
             exportText(meta.title + '.txt', content);
@@ -720,7 +720,7 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
         this.disabled = true;
         orgInsights++;
         $id('stat-insights').textContent = orgInsights;
-        try { localStorage.setItem('murphy_org_insights', String(orgInsights)); } catch (_) {}
+        try { localStorage.setItem('murphy_org_insights', String(orgInsights)); } catch (e) { console.warn('[Murphy] Persist failed:', e && e.message); }
       });
       card.querySelector('.flag').addEventListener('click', function () {
         card.classList.toggle('flagged');

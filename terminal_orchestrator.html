@@ -305,8 +305,9 @@ async function loadGoldenPath() {
     });
     const d = await r.json();
     renderHitlList(d.recommendations || []);
-  } catch {
+  } catch (e) {
     renderHitlList([]);
+    console.warn('[Murphy] HITL list fetch failed:', e && e.message);
   }
 }
 
@@ -408,5 +409,6 @@ document.addEventListener('DOMContentLoaded', () => {
   var librarian = new MurphyLibrarianChat(api);
 });
 </script>
+<script src="static/murphy-session-context.js"></script>
 </body>
 </html>

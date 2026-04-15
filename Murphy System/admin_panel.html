@@ -577,7 +577,7 @@ async function init() {
 
     loadStats();
     loadUsers();
-  } catch {
+  } catch (e) {
     document.getElementById('access-denied-view').style.display = 'flex';
     document.querySelector('.m-sidebar').style.display = 'none';
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -629,7 +629,7 @@ async function loadUsers() {
     const d = await API('/api/admin/users?limit=500');
     _allUsers = d.users || [];
     renderUsers(_allUsers);
-  } catch { toast('Failed to load users', 'error'); }
+  } catch (e) { toast('Failed to load users', 'error'); }
 }
 
 function filterUsers() {
@@ -686,7 +686,7 @@ async function submitCreateUser() {
     closeModal('modal-create-user');
     toast('User created: ' + email);
     loadUsers(); loadStats();
-  } catch { toast('Request failed','error'); }
+  } catch (e) { toast('Request failed','error'); }
 }
 
 async function openEditUser(id) {
@@ -701,7 +701,7 @@ async function openEditUser(id) {
     setSelect('eu-tier', u.tier || 'free');
     setSelect('eu-status', u.status || 'active');
     openModal('modal-edit-user');
-  } catch { toast('Failed to load user','error'); }
+  } catch (e) { toast('Failed to load user','error'); }
 }
 
 async function submitEditUser() {
@@ -719,7 +719,7 @@ async function submitEditUser() {
     closeModal('modal-edit-user');
     toast('User updated');
     loadUsers();
-  } catch { toast('Request failed','error'); }
+  } catch (e) { toast('Request failed','error'); }
 }
 
 function openResetPw(id, email) {
@@ -740,7 +740,7 @@ async function submitResetPassword() {
     if (!d.success) { toast(d.error || 'Failed','error'); return; }
     closeModal('modal-reset-pw');
     toast('Password reset successfully');
-  } catch { toast('Request failed','error'); }
+  } catch (e) { toast('Request failed','error'); }
 }
 
 async function suspendUser(id) {
@@ -782,7 +782,7 @@ async function loadSessions() {
           </div>
         </td>
       </tr>`).join('');
-  } catch { toast('Failed to load sessions','error'); }
+  } catch (e) { toast('Failed to load sessions','error'); }
 }
 
 async function revokeSession(accountId) {
@@ -798,7 +798,7 @@ async function loadOrgs() {
     const d = await API('/api/admin/organizations?limit=200');
     _allOrgs = d.organizations || [];
     renderOrgs(_allOrgs);
-  } catch { toast('Failed to load organizations','error'); }
+  } catch (e) { toast('Failed to load organizations','error'); }
 }
 
 function filterOrgs() {
@@ -841,7 +841,7 @@ async function submitCreateOrg() {
     closeModal('modal-create-org');
     toast('Organization created');
     loadOrgs(); loadStats();
-  } catch { toast('Request failed','error'); }
+  } catch (e) { toast('Request failed','error'); }
 }
 
 async function openEditOrg(id) {
@@ -878,7 +878,7 @@ async function viewOrgMembers(id, name) {
     const members = d.members || [];
     var _notif = document.getElementById('admin-notification') || document.querySelector('.admin-notice,.notice,.notification');
     if (_notif) { _notif.textContent = 'Loaded ' + members.length + ' member(s) of "' + (name || 'this org') + '".'; _notif.style.display='block'; setTimeout(function(){_notif.style.display='none';},4000); }
-  } catch { toast('Failed to load members','error'); }
+  } catch (e) { toast('Failed to load members','error'); }
 }
 
 /* ── Audit Log ───────────────────────────────────────────────────────── */
@@ -898,7 +898,7 @@ async function loadAuditLog() {
         <span class="audit-ts">${fmtDate(e.ts)}</span>
       </div>`).join('');
     document.getElementById('audit-pagination').textContent = 'Showing ' + entries.length + ' of ' + d.total;
-  } catch { toast('Failed to load audit log','error'); }
+  } catch (e) { toast('Failed to load audit log','error'); }
 }
 
 /* ── Helpers ─────────────────────────────────────────────────────────── */
@@ -915,7 +915,7 @@ function setSelect(id, val) {
   if (opt) el.value = val;
 }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function fmtDate(iso) { if (!iso) return '—'; try { return new Date(iso).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}); } catch { return iso; } }
+function fmtDate(iso) { if (!iso) return '—'; try { return new Date(iso).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}); } catch (e) { return iso; } }
 function openModal(id)  { document.getElementById(id).hidden = false; }
 function closeModal(id) { document.getElementById(id).hidden = true; }
 

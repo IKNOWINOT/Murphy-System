@@ -851,6 +851,7 @@ function forgeRun(query){
   if(!query){_setStatus('&#9888; Please describe what you want to build.','phase');return;}
   _forgeRunning=true;
   _forgeQuery=query;
+  if(typeof MurphyContext!=='undefined'){MurphyContext.recordNLQuery(query,'forge');}
   _forgeDeliverable=null;
   var _forgeStartMs=Date.now();
 

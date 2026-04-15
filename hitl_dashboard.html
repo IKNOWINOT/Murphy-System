@@ -383,6 +383,7 @@
           const res = await fetch('/api/hitl/' + encodeURIComponent(id) + '/approve', { method: 'POST' });
           if (!res.ok) throw new Error(res.statusText);
           toast('Deliverable ' + id + ' approved', 'success');
+          if (typeof MurphyContext !== 'undefined') { MurphyContext.recordHITLDecision({ id: id, action: 'approved' }); }
           loadQueue();
         } catch (e) {
           toast('Approve failed: ' + e.message, 'error');
@@ -455,6 +456,7 @@
             throw new Error(err.detail || res.statusText);
           }
           toast('Deliverable ' + currentRejectId + ' rejected', 'success');
+          if (typeof MurphyContext !== 'undefined') { MurphyContext.recordHITLDecision({ id: currentRejectId, action: 'rejected', reason: payload.reason }); }
           closeRejectModal();
           loadQueue();
         } catch (e) {
@@ -515,5 +517,8 @@
       startAutoRefresh();
     })();
   </script>
+<script src="static/murphy-auth-guard.js"></script>
+<script src="static/murphy-session-context.js"></script>
+<script>MurphyAuth.requireAuth();</script>
 </body>
 </html>

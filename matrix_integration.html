@@ -531,7 +531,7 @@ const checkApiStatus = async () => {
     await apiFetch('/api/health');
     document.getElementById('api-status-badge').textContent = 'API Online';
     document.getElementById('api-status-badge').className = 'murphy-badge murphy-badge-success';
-  } catch {
+  } catch (e) {
     document.getElementById('api-status-badge').textContent = 'API Offline';
     document.getElementById('api-status-badge').className = 'murphy-badge murphy-badge-danger';
   }
@@ -560,7 +560,7 @@ const checkMatrixConnection = async () => {
     const cl = document.getElementById('conn-log');
     if (cl) cl.textContent += `\n[${new Date().toISOString()}] Status: ${connected ? 'ONLINE' : 'OFFLINE'}`;
     appLog(`Matrix connection: ${connected ? 'online' : 'offline'}`);
-  } catch {
+  } catch (e) {
     [dot, dotLarge].forEach(d => { if(d) d.className = 'matrix-status-dot status-offline'; });
     badge.innerHTML = '<span class="matrix-status-dot status-offline" id="matrix-dot"></span>Matrix Offline';
     if (textLarge) textLarge.textContent = 'Offline / Unconfigured';
@@ -577,11 +577,11 @@ const loadDashboard = async () => {
     const h = await apiFetch('/api/hitl/interventions/pending');
     const n = Array.isArray(h.interventions) ? h.interventions.length : '?';
     document.getElementById('stat-hitl-pending').textContent = n;
-  } catch { document.getElementById('stat-hitl-pending').textContent = '?'; }
+  } catch (e) { document.getElementById('stat-hitl-pending').textContent = '?'; console.warn('[Murphy] HITL pending fetch failed:', e && e.message); }
   try {
     const s = await apiFetch('/api/matrix/stats');
     if (s.messages_sent !== undefined) document.getElementById('stat-messages-sent').textContent = s.messages_sent;
-  } catch { document.getElementById('stat-messages-sent').textContent = '—'; }
+  } catch (e) { document.getElementById('stat-messages-sent').textContent = '—'; console.warn('[Murphy] Matrix stats fetch failed:', e && e.message); }
 };
 
 // ── Send message form ─────────────────────────────────────────
@@ -670,7 +670,7 @@ document.getElementById('btn-refresh-rooms').addEventListener('click', async () 
          </div>`
       ).join('');
     }
-  } catch { appLog('Could not refresh rooms — /api/matrix/rooms not available.'); }
+  } catch (e) { appLog('Could not refresh rooms — /api/matrix/rooms not available.'); }
 });
 
 // ── Status refresh ────────────────────────────────────────────
