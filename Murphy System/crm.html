@@ -860,11 +860,12 @@
       document.getElementById('btn-save-new-contact').addEventListener('click', function () {
         var data = readContactForm();
         if (!data.name) { showError('Contact name is required'); return; }
-        this.disabled = true;
+        var btn = this;
+        btn.disabled = true;
         API('/api/crm/contacts', { method: 'POST', body: data }).then(function () {
           closeModal();
           loadContacts();
-        }).catch(function () {});
+        }).catch(function () { btn.disabled = false; showError('Failed to save contact — please try again.'); });
       });
     }
 
@@ -881,13 +882,14 @@
       document.getElementById('btn-save-edit-contact').addEventListener('click', function () {
         var data = readContactForm();
         if (!data.name) { showError('Contact name is required'); return; }
-        this.disabled = true;
+        var btn = this;
+        btn.disabled = true;
         API('/api/crm/contacts/' + encodeURIComponent(id), { method: 'PATCH', body: data }).then(function () {
           closeModal();
           loadContacts().then(function () {
             if (selectedContactId === id) openContactDetail(id);
           });
-        }).catch(function () {});
+        }).catch(function () { btn.disabled = false; showError('Failed to update contact — please try again.'); });
       });
     }
 
@@ -900,12 +902,13 @@
         '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>' +
         '<button class="btn btn-danger" id="btn-confirm-delete-contact">Delete</button>');
       document.getElementById('btn-confirm-delete-contact').addEventListener('click', function () {
-        this.disabled = true;
+        var btn = this;
+        btn.disabled = true;
         API('/api/crm/contacts/' + encodeURIComponent(id), { method: 'DELETE' }).then(function () {
           closeModal();
           closeContactDetail();
           loadContacts();
-        }).catch(function () {});
+        }).catch(function () { btn.disabled = false; showError('Failed to delete contact — please try again.'); });
       });
     }
 
@@ -1076,7 +1079,7 @@
       API('/api/crm/deals/' + encodeURIComponent(dealId) + '/move/' + encodeURIComponent(stage), { method: 'POST' })
         .then(function () {
           loadPipelineDeals(activePipelineId, true);
-        }).catch(function () {});
+        }).catch(function () { showError('Failed to move deal — please try again.'); });
     }
 
     /* ── Deal detail ─────────────────────────────────────────── */
@@ -1175,11 +1178,12 @@
       document.getElementById('btn-save-new-deal').addEventListener('click', function () {
         var data = readDealForm();
         if (!data.title) { showError('Deal title is required'); return; }
-        this.disabled = true;
+        var btn = this;
+        btn.disabled = true;
         API('/api/crm/deals', { method: 'POST', body: data }).then(function () {
           closeModal();
           loadPipelineDeals(activePipelineId);
-        }).catch(function () {});
+        }).catch(function () { btn.disabled = false; showError('Failed to create deal — please try again.'); });
       });
     }
 
@@ -1214,13 +1218,14 @@
       document.getElementById('btn-save-edit-deal').addEventListener('click', function () {
         var data = readDealForm();
         if (!data.title) { showError('Deal title is required'); return; }
-        this.disabled = true;
+        var btn = this;
+        btn.disabled = true;
         API('/api/crm/deals/' + encodeURIComponent(id), { method: 'PATCH', body: data }).then(function () {
           closeModal();
           loadPipelineDeals(activePipelineId).then(function () {
             if (selectedDealId === id) openDealDetail(id);
           });
-        }).catch(function () {});
+        }).catch(function () { btn.disabled = false; showError('Failed to update deal — please try again.'); });
       });
     }
 
@@ -1233,12 +1238,13 @@
         '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>' +
         '<button class="btn btn-danger" id="btn-confirm-delete-deal">Delete</button>');
       document.getElementById('btn-confirm-delete-deal').addEventListener('click', function () {
-        this.disabled = true;
+        var btn = this;
+        btn.disabled = true;
         API('/api/crm/deals/' + encodeURIComponent(id), { method: 'DELETE' }).then(function () {
           closeModal();
           closeDealDetail();
           loadPipelineDeals(activePipelineId);
-        }).catch(function () {});
+        }).catch(function () { btn.disabled = false; showError('Failed to delete deal — please try again.'); });
       });
     }
 
@@ -1258,12 +1264,13 @@
         var stages = stagesRaw ? stagesRaw.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : [];
         if (!name) { showError('Pipeline name is required'); return; }
         if (stages.length === 0) { showError('At least one stage is required'); return; }
-        this.disabled = true;
+        var btn = this;
+        btn.disabled = true;
         API('/api/crm/pipelines', { method: 'POST', body: { name: name, stages: stages } }).then(function (newPipeline) {
           closeModal();
           if (newPipeline && newPipeline.id) activePipelineId = newPipeline.id;
           loadPipelines();
-        }).catch(function () {});
+        }).catch(function () { btn.disabled = false; showError('Failed to create pipeline — please try again.'); });
       });
     }
 
@@ -1352,11 +1359,12 @@
           user_id: document.getElementById('af-user').value.trim() || undefined
         };
         if (!data.summary) { showError('Activity summary is required'); return; }
-        this.disabled = true;
+        var btn = this;
+        btn.disabled = true;
         API('/api/crm/activities', { method: 'POST', body: data }).then(function () {
           closeModal();
           loadActivities();
-        }).catch(function () {});
+        }).catch(function (e) { btn.disabled = false; showError('Failed to save activity — please try again.'); });
       });
     }
 

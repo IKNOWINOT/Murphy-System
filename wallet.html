@@ -691,7 +691,7 @@
           }
         });
       })
-      .catch(function () {});
+      .catch(function () { console.warn('[Murphy] Wallet balance refresh failed'); });
   }
   refreshBalances();
 
@@ -905,7 +905,7 @@
         if (statusEl) statusEl.textContent = (g.status || '—').replace('_', ' ');
         if (pctEl)    pctEl.textContent    = (g.completion_pct || 0).toFixed(0) + '%';
       })
-      .catch(function () {});
+      .catch(function () { console.warn('[Murphy] Graduation status fetch failed'); });
 
     /* Risk summary */
     fetch('/api/trading/risk/assessment')
@@ -919,7 +919,7 @@
         if (regEl)   regEl.textContent  = 'Regime: ' + (s.market_regime || '—');
         if (scoreEl) scoreEl.textContent = 'Drawdown: ' + (s.current_drawdown_pct || 0).toFixed(1) + '%';
       })
-      .catch(function () {});
+      .catch(function () { console.warn('[Murphy] Risk assessment fetch failed'); });
   /* ── Coinbase Connection panel ── */
   function cbSetStatus(status) {
     var badge = document.getElementById('cb-status-badge');

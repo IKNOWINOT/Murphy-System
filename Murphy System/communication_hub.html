@@ -488,8 +488,9 @@ async function init() {
   try {
     const me = await fetch('/api/profiles/me').then(r => r.json());
     currentUser = me.email || me.username || me.account_id || 'guest@murphy.systems';
-  } catch {
+  } catch (e) {
     currentUser = 'guest@murphy.systems';
+    console.warn('[Murphy] Profile fetch failed:', e && e.message);
   }
   document.getElementById('current-user-label').textContent = currentUser;
   loadThreads();
@@ -991,7 +992,7 @@ function formatTime(iso) {
   try {
     const d = new Date(iso);
     return d.toLocaleString(undefined, {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-  } catch { return iso; }
+  } catch (e) { return iso; }
 }
 
 // ── Boot ─────────────────────────────────────────────────────────

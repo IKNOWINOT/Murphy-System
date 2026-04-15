@@ -2059,7 +2059,7 @@ function showMurphyError(msg) {
         var answer = chatRes.answer || chatRes.response || chatRes.message || '';
         var jsonMatch = answer.match(/\{[\s\S]*\}/);
         if (jsonMatch) chData = JSON.parse(jsonMatch[0]);
-      } catch (_) {}
+      } catch (e) { console.warn('[Murphy] Parse error:', e && e.message); }
 
       if (!chData || !chData.channel_name) {
         // Fallback: derive slug from description (only alphanumeric + hyphens)
@@ -2119,7 +2119,7 @@ function showMurphyError(msg) {
         channels: ['system', 'security', 'workflow', 'health', 'metrics', 'user_action', 'custom']
       });
       sseSubscriberId = res.subscriber_id || res.id;
-    } catch (_) {
+    } catch (sseSubErr) { console.warn("[Murphy] Community API error:", sseSubErr && sseSubErr.message || "network error");
       // If subscribe fails, try with a static ID
       sseSubscriberId = 'workspace_main';
     }
@@ -2128,7 +2128,7 @@ function showMurphyError(msg) {
   }
 
   function connectSSE() {
-    if (sseSource) { try { sseSource.close(); } catch (_) {} }
+    if (sseSource) { try { sseSource.close(); } catch (e) { console.warn('[Murphy] SSE close error:', e && e.message); } }
 
     var url = '/api/events/stream/' + encodeURIComponent(sseSubscriberId || 'workspace_main');
     sseSource = new EventSource(url);
@@ -2143,14 +2143,14 @@ function showMurphyError(msg) {
       try {
         var ev = JSON.parse(e.data);
         handleSSEEvent(ev);
-      } catch (_) {}
+      } catch (parseErr) { console.warn("[Murphy] SSE event parse error:", parseErr.message); }
     };
 
     sseSource.addEventListener('event', function (e) {
       try {
         var ev = JSON.parse(e.data);
         handleSSEEvent(ev);
-      } catch (_) {}
+      } catch (parseErr) { console.warn("[Murphy] SSE event parse error:", parseErr.message); }
     });
 
     sseSource.onerror = function () {
@@ -2280,7 +2280,7 @@ function showMurphyError(msg) {
   }
 
   // Start SSE (non-blocking)
-  startSSE().catch(function () {});
+  startSSE().catch(function (e) { console.warn("[Murphy] Community API error:", e && e.message || "network error"); });
 
   // Initial navigation based on hash or default to #system
   navigate(location.hash.slice(1) || 'system');
@@ -2352,7 +2352,7 @@ function showMurphyError(msg) {
         state.localInitials = displayName.split(' ').filter(Boolean).map(function (p) { return p[0]; }).join('').slice(0, 2).toUpperCase() || 'Me';
       }
       state.localAvatar = u.avatarUrl || u.avatar_url || null;
-    } catch (_) {}
+    } catch (e) { console.warn('[Murphy] State error:', e && e.message); }
     renderLocalTile();
   }
 
@@ -2388,7 +2388,7 @@ function showMurphyError(msg) {
             var u = JSON.parse(raw);
             u.avatarUrl = state.localAvatar;
             localStorage.setItem('murphy_user', JSON.stringify(u));
-          } catch (_) {}
+          } catch (e) { console.warn('[Murphy] Persist failed:', e && e.message); }
           renderLocalTile();
           if (state.localAvatar) {
             var tileAv = document.getElementById('call-tile-local-img');
@@ -2663,7 +2663,7 @@ function showMurphyError(msg) {
     btnMurphy.classList.remove('listening');
     btnMurphy.setAttribute('aria-label', 'Ask Murphy AI');
     murphyWave.classList.add('idle');
-    if (murphyRecognition) { try { murphyRecognition.stop(); } catch (_) {} }
+    if (murphyRecognition) { try { murphyRecognition.stop(); } catch (e) { console.warn('[Murphy] Recognition stop error:', e && e.message); } }
   }
 
   function sendToMurphy(query) {
@@ -3379,7 +3379,7 @@ function showMurphyError(msg) {
           agents.push({ name: p.name, initials: p.initials });
         });
       }
-    } catch (_) {}
+    } catch (e) { console.warn('[Murphy] State error:', e && e.message); }
 
     agents.forEach(function (a) {
       var el = document.createElement('div');
@@ -3441,14 +3441,14 @@ function showMurphyError(msg) {
       body: JSON.stringify({ channel: (window.state && window.state.channelId) || 'workspace', participants: 2 })
     }).then(function (r) { return r.json(); }).then(function (d) {
       if (d.session_id) sai.sessionId = d.session_id;
-    }).catch(function () {});
+    }).catch(function (e) { console.warn("[Murphy] Community API error:", e && e.message || "network error"); });
   }
 
   function stopSession() {
     sai.running = false;
     clearInterval(sai.pollTimer);
     clearInterval(sai.confAnimTimer);
-    if (sai.recognition) { try { sai.recognition.stop(); } catch (_) {} }
+    if (sai.recognition) { try { sai.recognition.stop(); } catch (e) { console.warn('[Murphy] Recognition stop error:', e && e.message); } }
 
     var badge = $id('sai-badge-live');
     var btn   = $id('sai-start-btn');
@@ -3460,7 +3460,7 @@ function showMurphyError(msg) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ transcript: sai.transcript })
-    }).catch(function () {});
+    }).catch(function (e) { console.warn("[Murphy] Community API error:", e && e.message || "network error"); });
 
     sai.orgSessions++;
     localStorage.setItem('murphy_org_sessions', String(sai.orgSessions));
@@ -3536,7 +3536,7 @@ function showMurphyError(msg) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: text })
-    }).catch(function () {});
+    }).catch(function (e) { console.warn("[Murphy] Community API error:", e && e.message || "network error"); });
   }
 
   /* ── Suggestions ────────────────────────────────────── */
@@ -3712,7 +3712,7 @@ function showMurphyError(msg) {
       }
 
       /* Persist drafts for meeting-intelligence page */
-      try { localStorage.setItem('murphy_last_meeting', JSON.stringify({ id: sai.sessionId, transcript: sai.transcript, suggestions: sai.suggestions, drafts: sai.drafts, confidence: sai.confidence })); } catch (_) {}
+      try { localStorage.setItem('murphy_last_meeting', JSON.stringify({ id: sai.sessionId, transcript: sai.transcript, suggestions: sai.suggestions, drafts: sai.drafts, confidence: sai.confidence })); } catch (e) { console.warn('[Murphy] Persist failed:', e && e.message); }
 
       /* Org intelligence accumulation */
       sai.orgSessions++;
@@ -3733,7 +3733,7 @@ function showMurphyError(msg) {
       var u = JSON.parse(localStorage.getItem('murphy_user') || '{}');
       var orgEl = $id('sai-org-name');
       if (orgEl && u.org_name) orgEl.textContent = u.org_name;
-    } catch (_) {}
+    } catch (e) { console.warn('[Murphy] State error:', e && e.message); }
   }
 
   /* ── Draft card clicks ──────────────────────────────── */

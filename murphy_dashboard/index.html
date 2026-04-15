@@ -714,7 +714,7 @@ function connectSSE() {
     try {
       const msg = JSON.parse(e.data);
       handleSSE(msg);
-    } catch {}
+    } catch (e) { console.warn('[Murphy] SSE parse error:', e && e.message); }
   };
   es.onerror = () => setTimeout(connectSSE, 3000);
 }
@@ -927,7 +927,8 @@ function updateAutoBlockLive(data) {
 }
 
 async function refreshHITLPreview() {
-  const d = await apiFetch('/api/hitl/queue?status=pending');
+  var d;
+  try { d = await apiFetch('/api/hitl/queue?status=pending'); } catch (e) { console.warn('[Murphy] HITL preview refresh failed:', e && e.message); return; }
   const items = (d.items || []).slice(0, 4);
   document.getElementById('hitlPreview').innerHTML = items.length
     ? items.map(h => `
@@ -969,8 +970,10 @@ function updateHITLBadge(data) {
 }
 
 async function refreshHITLBadge() {
-  const d = await apiFetch('/api/hitl/queue?status=pending');
-  updateHITLBadge({pending: d.pending || 0});
+  try {
+    const d = await apiFetch('/api/hitl/queue?status=pending');
+    updateHITLBadge({pending: d.pending || 0});
+  } catch (e) { console.warn('[Murphy] HITL badge refresh failed:', e && e.message); }
 }
 
 function updateCampaignMini(campaigns) {
@@ -1101,13 +1104,18 @@ function renderHITLPayloadPreview(h) {
 }
 
 async function approveHITL(id) {
-  await apiFetch(`/api/hitl/${id}/approve`, {
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({approved_by:'founder',reason:''})
-  });
-  toast('✅ Approved!', 'ok');
-  loadHITL();
-  refreshHITLPreview();
+  try {
+    await apiFetch(`/api/hitl/${id}/approve`, {
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({approved_by:'founder',reason:''})
+    });
+    toast('✅ Approved!', 'ok');
+    if (typeof MurphyContext !== 'undefined') { MurphyContext.recordHITLDecision({ id: id, action: 'approved' }); }
+    loadHITL();
+    refreshHITLPreview();
+  } catch (e) {
+    console.error('[Murphy] HITL approve failed for', id, ':', e && e.message);
+  }
 }
 
 function openRejectModal(id) {
@@ -1124,14 +1132,19 @@ function closeRejectModal() {
 async function submitReject() {
   if (!_rejectTargetId) return;
   const reason = document.getElementById('rejectReason').value;
-  await apiFetch(`/api/hitl/${_rejectTargetId}/reject`, {
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({approved_by:'founder',reason})
-  });
-  toast('Rejected.', 'err');
-  closeRejectModal();
-  loadHITL();
-  refreshHITLPreview();
+  try {
+    await apiFetch(`/api/hitl/${_rejectTargetId}/reject`, {
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({approved_by:'founder',reason})
+    });
+    toast('Rejected.', 'err');
+    if (typeof MurphyContext !== 'undefined') { MurphyContext.recordHITLDecision({ id: _rejectTargetId, action: 'rejected', reason: reason }); }
+    closeRejectModal();
+    loadHITL();
+    refreshHITLPreview();
+  } catch (e) {
+    console.error('[Murphy] HITL reject failed for', _rejectTargetId, ':', e && e.message);
+  }
 }
 
 // ===========================================================================
@@ -1812,5 +1825,6 @@ async function init() {
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
+<script src="static/murphy-session-context.js"></script>
 </body>
 </html>
