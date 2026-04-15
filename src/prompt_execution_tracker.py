@@ -242,12 +242,16 @@ class PromptExecutionTracker:
             logger.error(
                 "PROMPT-TRACKER-ERR-003: get_execution_status failed: %s", e
             )
+            # Return degraded response WITH an error signal so the caller
+            # knows this is a failure, not a genuinely-empty state.
+            # Immovable Constraint #4: no silent failures.
             return {
                 "total_prompts": len(self.PROMPT_IDS),
                 "completed": 0,
                 "pending": list(self.PROMPT_IDS),
                 "prompts": {},
                 "citl_summary": {},
+                "error": f"PROMPT-TRACKER-ERR-003: {e}",
             }
 
     def get_pending_doc_updates(self) -> List[str]:
@@ -267,7 +271,10 @@ class PromptExecutionTracker:
             logger.error(
                 "PROMPT-TRACKER-ERR-004: get_pending_doc_updates failed: %s", e
             )
-            return []
+            # Immovable Constraint #4: no silent failures — re-raise so
+            # the caller knows data is unreliable rather than seeing an
+            # empty list that looks like "nothing to update."
+            raise
 
     def add_doc_update(self, doc_path: str) -> None:
         """Manually add a documentation file to the pending-update set.
@@ -312,7 +319,10 @@ class PromptExecutionTracker:
             logger.error(
                 "PROMPT-TRACKER-ERR-006: resolve_doc_update failed: %s", e
             )
-            return False
+            # Immovable Constraint #4: no silent failures — re-raise so
+            # the caller knows the resolve operation did not succeed
+            # rather than seeing False (which looks like "wasn't pending").
+            raise
 
     def reset(self) -> None:
         """Clear all recorded state.  Intended for testing only.
