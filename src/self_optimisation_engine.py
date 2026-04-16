@@ -346,9 +346,11 @@ class SelfOptimisationEngine:
         # Feed diminishing-gains detector with cycle-level metrics
         if self._gains_detector is not None:
             try:
-                # Track how bottleneck count evolves across cycles
-                # Fewer bottlenecks = better optimization
-                # Normalise so detector sees improvement as value going UP
+                # Effectiveness score: proportion of samples that are NOT bottlenecks.
+                # As optimization progresses, fewer bottlenecks should remain, so
+                # this value trends toward 1.0.  The detector watches for when
+                # successive cycles stop reducing bottlenecks (diminishing gains).
+                # Clamped to [0.0, 1.0] since len(bottlenecks) ≤ samples_analysed.
                 effective_score = max(0.0, 1.0 - (len(bottlenecks) / max(samples_analysed, 1)))
                 self._gains_detector.record(
                     metric_name="optimisation_effectiveness",

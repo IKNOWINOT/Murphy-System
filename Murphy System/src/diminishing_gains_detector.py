@@ -39,12 +39,11 @@ License: BSL 1.1
 from __future__ import annotations
 
 import logging
-import math
 import threading
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 try:
     from thread_safe_operations import capped_append
