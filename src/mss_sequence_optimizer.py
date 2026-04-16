@@ -384,6 +384,16 @@ class MSSSequenceOptimizer:
                 "best_sequence": best_at_length.sequence,
             }
 
+        # Plateau analysis via DiminishingGainsDetector (ADV-004)
+        plateau_analysis: Optional[Dict[str, Any]] = None
+        try:
+            from diminishing_gains_detector import DiminishingGainsDetector
+            detector = DiminishingGainsDetector()
+            plateau_report = detector.analyse_sequence_battery(diminishing_returns)
+            plateau_analysis = plateau_report.to_dict()
+        except Exception as exc:
+            logger.debug("Plateau analysis skipped: %s", exc)
+
         return {
             "winner": winner.sequence,
             "winner_score": winner.composite_score,
@@ -401,4 +411,5 @@ class MSSSequenceOptimizer:
             "best_family": best_family,
             "efficiency_winner": efficiency_winner_result.sequence,
             "diminishing_returns": diminishing_returns,
+            "plateau_analysis": plateau_analysis,
         }

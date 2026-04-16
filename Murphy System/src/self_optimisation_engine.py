@@ -180,16 +180,19 @@ class SelfOptimisationEngine:
         persistence_manager=None,
         event_backbone=None,
         improvement_engine=None,
+        diminishing_gains_detector=None,
         max_samples: int = 50_000,
     ) -> None:
         self._lock = threading.Lock()
         self._pm = persistence_manager
         self._backbone = event_backbone
         self._improvement_engine = improvement_engine
+        self._gains_detector = diminishing_gains_detector
         self._samples: List[PerformanceSample] = []
         self._bottlenecks: List[BottleneckReport] = []
         self._cycles: List[OptimisationCycle] = []
         self._max_samples = max_samples
+        self._cycle_count: int = 0
 
     # ------------------------------------------------------------------
     # Sample recording
@@ -337,6 +340,23 @@ class SelfOptimisationEngine:
 
         with self._lock:
             capped_append(self._cycles, cycle)
+            self._cycle_count += 1
+            cycle_num = self._cycle_count
+
+        # Feed diminishing-gains detector with cycle-level metrics
+        if self._gains_detector is not None:
+            try:
+                # Track how bottleneck count evolves across cycles
+                # Fewer bottlenecks = better optimization
+                # Normalise so detector sees improvement as value going UP
+                effective_score = max(0.0, 1.0 - (len(bottlenecks) / max(samples_analysed, 1)))
+                self._gains_detector.record(
+                    metric_name="optimisation_effectiveness",
+                    iteration=cycle_num,
+                    value=effective_score,
+                )
+            except Exception as exc:
+                logger.debug("Diminishing gains recording skipped: %s", exc)
 
         # Persist
         if self._pm is not None:
@@ -392,7 +412,7 @@ class SelfOptimisationEngine:
     def get_status(self) -> Dict[str, Any]:
         """Return engine status summary."""
         with self._lock:
-            return {
+            status = {
                 "total_samples": len(self._samples),
                 "total_bottlenecks": len(self._bottlenecks),
                 "total_cycles": len(self._cycles),
@@ -400,7 +420,38 @@ class SelfOptimisationEngine:
                 "persistence_attached": self._pm is not None,
                 "backbone_attached": self._backbone is not None,
                 "improvement_engine_attached": self._improvement_engine is not None,
+                "gains_detector_attached": self._gains_detector is not None,
             }
+        return status
+
+    def should_stop_optimising(self) -> bool:
+        """Check whether optimisation has reached diminishing returns.
+
+        Returns ``True`` if the attached diminishing-gains detector
+        recommends stopping, ``False`` otherwise (including when no
+        detector is attached).
+        """
+        if self._gains_detector is None:
+            return False
+        try:
+            return self._gains_detector.should_stop("optimisation_effectiveness")
+        except Exception:
+            return False
+
+    def get_diminishing_gains_report(self) -> Optional[Dict[str, Any]]:
+        """Run diminishing-gains analysis on the optimisation effectiveness
+        metric and return the report.
+
+        Returns ``None`` if no detector is attached.
+        """
+        if self._gains_detector is None:
+            return None
+        try:
+            report = self._gains_detector.analyse("optimisation_effectiveness")
+            return report.to_dict()
+        except Exception as exc:
+            logger.debug("Diminishing gains analysis skipped: %s", exc)
+            return None
 
     # ------------------------------------------------------------------
     # Internal helpers
