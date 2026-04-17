@@ -178,6 +178,13 @@
           { id: 'out', type: 'output', side: 'right' }
         ]
       },
+      production: {
+        color: '#E879F9', icon: '🏭',
+        ports: [
+          { id: 'in', type: 'input', side: 'left' },
+          { id: 'out', type: 'output', side: 'right' }
+        ]
+      },
       integration: {
         color: '#38BDF8', icon: '🔌',
         ports: [
@@ -193,7 +200,8 @@
       'api-call': '🌐', execute: '⚙', message: '💬', generate: '✨',
       'if-else': '⑂', switch: '🔀', loop: '🔄', wait: '⏳', merge: '🔗',
       executive: '👔', operations: '🏭', qa: '🔍',
-      hitl: '🙋', compliance: '📋', budget: '💰'
+      hitl: '🙋', compliance: '📋', budget: '💰',
+      proposal: '📝', workorder: '📋', validate: '✅', deliver: '📦'
     };
 
     /* ── Shared services ────────────────────────────────── */
@@ -243,6 +251,7 @@
     function applyLayoutStyles() {
       /* Split-pane fills viewport below topbar */
       var topbarH = 'var(--topbar-height, 56px)';
+      $splitPane.style.marginTop = topbarH;
       $splitPane.style.height = 'calc(100vh - ' + topbarH + ')';
 
       /* Top pane: 70 % default */
