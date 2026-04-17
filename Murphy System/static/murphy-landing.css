@@ -11,7 +11,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-s
 .topbar-brand-name{font-size:1.1rem;font-weight:700;color:var(--teal);letter-spacing:.02em;}
 .murphy-nav-links{display:flex;align-items:center;gap:.25rem;}
 .murphy-nav-links a{color:var(--text);text-decoration:none;font-size:.875rem;padding:.4rem .8rem;border-radius:6px;transition:color .2s,background .2s;}
-.murphy-nav-links a:hover{color:var(--cyan);background:rgba(0,255,255,.07);}
+.murphy-nav-links a:hover{color:var(--cyan);background:rgba(0,255,255,.07);text-decoration:none;}
 .topbar-right{display:flex;align-items:center;gap:.75rem;flex-shrink:0;}
 .hamburger{display:none;background:none;border:none;cursor:pointer;padding:.4rem;color:var(--text);font-size:1.2rem;}
 .sys-pill{display:inline-flex;align-items:center;gap:.4rem;background:rgba(0,255,65,.06);border:1px solid rgba(0,255,65,.2);border-radius:999px;padding:.25rem .75rem;font-size:.72rem;font-family:'Courier New',monospace;color:var(--green);}
@@ -22,10 +22,10 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-s
 /* Buttons */
 .btn-p,.btn-s{display:inline-flex;align-items:center;gap:.5rem;font-weight:700;font-size:.9rem;padding:.65rem 1.4rem;border-radius:8px;border:none;cursor:pointer;text-decoration:none;transition:background .2s,transform .15s,box-shadow .2s;}
 .btn-p{background:var(--teal);color:#0a0a0a;}
-.btn-p:hover{background:var(--cyan);transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,212,170,.35);}
+.btn-p:hover{background:var(--cyan);transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,212,170,.35);color:#0a0a0a;text-decoration:none;}
 .btn-p.lg{font-size:1.05rem;padding:.85rem 2rem;border-radius:10px;}
 .btn-s{background:transparent;color:var(--cyan);border:1px solid rgba(0,255,255,.4);}
-.btn-s:hover{background:rgba(0,255,255,.08);border-color:var(--cyan);transform:translateY(-1px);}
+.btn-s:hover{background:rgba(0,255,255,.08);border-color:var(--cyan);transform:translateY(-1px);color:var(--cyan);text-decoration:none;}
 .btn-s.lg{font-size:1.05rem;padding:.85rem 2rem;border-radius:10px;}
 /* Layout */
 section{padding:5rem 2rem;}
