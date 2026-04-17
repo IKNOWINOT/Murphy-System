@@ -8046,6 +8046,7 @@ def create_app() -> FastAPI:
                 "success": True,
                 "requires_verification": True,
                 "message": "Account created. Please check your email to verify your address.",
+                "account_id": account_id,
                 "email": email,
                 "email_sent": _email_sent,
             }, status_code=201)

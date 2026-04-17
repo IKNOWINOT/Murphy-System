@@ -10,7 +10,7 @@ import sys
 import unittest
 
 # Resolve project root
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, ROOT)
 
 
@@ -116,9 +116,10 @@ class TestSourceTestCoverage(unittest.TestCase):
                 cls.src_modules.add(f)
 
         cls.test_files = set()
-        for f in os.listdir(cls.test_dir):
-            if f.startswith("test_") and f.endswith(".py"):
-                cls.test_files.add(f)
+        for dirpath, _, filenames in os.walk(cls.test_dir):
+            for f in filenames:
+                if f.startswith("test_") and f.endswith(".py"):
+                    cls.test_files.add(os.path.join(dirpath, f))
 
     def test_critical_modules_have_tests(self):
         """Critical modules must have at least one test file referencing them."""
@@ -143,8 +144,7 @@ class TestSourceTestCoverage(unittest.TestCase):
             # Check if any test file references this module
             found = False
             for tf in self.test_files:
-                tf_path = os.path.join(self.test_dir, tf)
-                with open(tf_path, "r") as fh:
+                with open(tf, "r") as fh:
                     if mod in fh.read():
                         found = True
                         break

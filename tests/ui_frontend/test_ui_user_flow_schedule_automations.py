@@ -75,7 +75,7 @@ def auth_user(_app):
         "job_title": "QA Engineer",
         "company": "TestCo",
     })
-    assert resp.status_code == 200
+    assert resp.status_code == 201
     data = resp.json()
     assert data["success"] is True
     assert data["account_id"]
@@ -582,7 +582,7 @@ class TestWorkflowCanvasContent:
     @pytest.fixture(autouse=True)
     def _load_canvas(self):
         canvas_path = os.path.join(
-            os.path.dirname(__file__), "..", "workflow_canvas.html"
+            os.path.dirname(__file__), "..", "..", "workflow_canvas.html"
         )
         with open(canvas_path, "r", encoding="utf-8") as f:
             self.content = f.read()

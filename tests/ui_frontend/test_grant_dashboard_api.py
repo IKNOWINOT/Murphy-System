@@ -13,7 +13,16 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-REPO_ROOT = os.path.join(os.path.dirname(__file__), "..")
+def _find_repo_root():
+    """Walk up from this file to the directory containing .git."""
+    d = os.path.dirname(os.path.abspath(__file__))
+    while d != os.path.dirname(d):
+        if os.path.isdir(os.path.join(d, ".git")):
+            return d
+        d = os.path.dirname(d)
+    return os.path.join(os.path.dirname(__file__), "..", "..")
+
+REPO_ROOT = _find_repo_root()
 
 VALID_STATUSES = {"draft", "in_review", "approved", "submitted", "waiting", "complete"}
 
@@ -41,7 +50,7 @@ def auth_client(client):
         "job_title": "Engineer",
         "company": "TestCorp",
     })
-    assert resp.status_code == 200
+    assert resp.status_code == 201
     return client
 
 
