@@ -1097,7 +1097,7 @@ function setLstat(id,ok){var el=document.getElementById(id);if(!el)return;var ld
 function probe(){
   fetch('/api/health').then(function(r){return r.json();}).then(function(d){
     var c=d.checks||{};
-    setLstat('lstat-llm',c.ollama_running===true);
+    setLstat('lstat-llm',c.llm==='ok');
     setLstat('lstat-mail',c.email!==false);
     setLstat('lstat-matrix',c.matrix!==false);
     setLstat('lstat-api',true);setLstat('lstat-hitl',true);setLstat('lstat-swarm',true);setLstat('lstat-trading',true);
