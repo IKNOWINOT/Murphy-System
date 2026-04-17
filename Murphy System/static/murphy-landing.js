@@ -851,6 +851,12 @@ function forgeRun(query){
   if(!query){_setStatus('&#9888; Please describe what you want to build.','phase');return;}
   _forgeRunning=true;
   _forgeQuery=query;
+
+  // Wrap the entire forge body in try/catch so _forgeRunning is always
+  // reset if any unexpected error occurs (e.g. a null DOM element).
+  // Without this, a single thrown TypeError permanently locks the button.
+  try{
+
   if(typeof MurphyContext!=='undefined'){MurphyContext.recordNLQuery(query,'forge');}
   _forgeDeliverable=null;
   var _forgeStartMs=Date.now();
@@ -873,7 +879,7 @@ function forgeRun(query){
   var workspace=document.getElementById('forge-workspace');
   var resBlock=document.getElementById('forge-result');
   if(workspace)workspace.style.display='grid';
-  resBlock.style.display='none';
+  if(resBlock)resBlock.style.display='none';
   var errEl=document.getElementById('forge-api-err');
   if(errEl){errEl.innerHTML='';errEl.classList.add('forge-hidden');}
   _buildGrid();
@@ -1048,6 +1054,13 @@ function forgeRun(query){
       _cascadePanes(type,function(){});
     }
   },3000);
+
+  }catch(ex){
+    // Safety net: if anything above threw, unlock the button so user can retry
+    _forgeRunning=false;
+    _setStatus('&#9888; Unexpected error — please try again.','phase');
+    if(typeof console!=='undefined')console.error('[ForgeRun] Unexpected error:',ex);
+  }
 }
 
 /* Wire forge chips */
