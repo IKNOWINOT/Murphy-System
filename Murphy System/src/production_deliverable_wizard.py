@@ -34,6 +34,9 @@ Deliverable types
 * ``AUTOMATION``      — Background automation (ETL, alerts, cron tasks)
 * ``ORG_CHART``       — Org chart with virtual employees (routes to
                         OrgChartGenerator)
+* ``CODE_PROJECT``    — Runnable project scaffold (HTML/CSS/JS/Python),
+                        packaged as a downloadable ZIP bundle with actual
+                        project files generated from the plan (label: CODE-PROJ-001)
 
 Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post
 License: BSL 1.1
@@ -65,6 +68,7 @@ class DeliverableType(str, Enum):
     ANALYSIS = "analysis"
     AUTOMATION = "automation"
     ORG_CHART = "org_chart"
+    CODE_PROJECT = "code_project"
     UNKNOWN = "unknown"
 
 
@@ -536,6 +540,15 @@ _WORKFLOW_TEMPLATES: Dict[str, List[Dict[str, Any]]] = {
         {"name": "Generate Positions", "type": "content_generation", "description": "Create virtual employee positions"},
         {"name": "Assign Shadow Agents", "type": "action", "description": "Wire shadow agents to each position"},
         {"name": "Publish Org Chart", "type": "deployment", "description": "Deploy interactive org chart"},
+    ],
+    # label: CODE-PROJ-001 — CODE_PROJECT workflow template
+    DeliverableType.CODE_PROJECT.value: [
+        {"name": "Parse Requirements", "type": "action", "description": "MFGC gate + MSS Magnify — extract functional requirements and components"},
+        {"name": "Architecture Plan", "type": "content_generation", "description": "MSS Solidify — generate RM5 implementation plan"},
+        {"name": "Assemble Files", "type": "action", "description": "LLM generates runnable HTML/CSS/JS/Python files from the plan"},
+        {"name": "Apply Theme", "type": "action", "description": "Apply Murphy System default colors and fonts as base theme"},
+        {"name": "Bundle Project", "type": "deployment", "description": "Package all files into a downloadable ZIP bundle"},
+        {"name": "HITL Review Gate", "type": "approval", "description": "Human-in-the-loop review before delivery"},
     ],
 }
 
