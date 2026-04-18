@@ -682,6 +682,23 @@ fi
 # STEP 5 — Onboard LLM (Ollama)
 # ═══════════════════════════════════════════════════════════════════════════════
 section "Step 5 — Onboard LLM (Ollama)"
+# Auto-skip Ollama when a cloud LLM key is configured — saves ~3.5 GB RSS on
+# memory-constrained boxes.  The DEEPINFRA_API_KEY is injected into
+# $MURPHY_ENV_FILE by the hetzner-deploy workflow before this script runs.
+_deepinfra_key=""
+if [ -f "$MURPHY_ENV_FILE" ]; then
+  _deepinfra_key=$(grep -m1 "^DEEPINFRA_API_KEY=" "$MURPHY_ENV_FILE" 2>/dev/null \
+    | cut -d= -f2- | tr -d '"' | tr -d "'" || true)
+fi
+# Also honour the process environment (set by CI / manual export)
+_deepinfra_key="${_deepinfra_key:-${DEEPINFRA_API_KEY:-}}"
+
+if [ -n "$_deepinfra_key" ] && [ "$SKIP_OLLAMA" = false ]; then
+  info "DEEPINFRA_API_KEY detected — skipping Ollama (cloud LLM preferred, saves ~3.5 GB RAM)"
+  SKIP_OLLAMA=true
+fi
+unset _deepinfra_key
+
 if [ "$SKIP_OLLAMA" = false ]; then
   if ! command -v ollama &>/dev/null; then
     info "Ollama not found — installing ..."
