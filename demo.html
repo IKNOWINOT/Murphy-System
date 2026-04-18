@@ -9,34 +9,111 @@
 <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="static/murphy-design-system.css">
 <style>
-:root{--bg:#0a0e17;--fg:#e2e8f0;--cyan:#00e5ff;--teal:#1de9b6;--green:#76ff03;--panel:#111827;--border:#1e293b;}
+/* ── Design tokens ─────────────────────────────────────────────────── */
+:root{--bg:#0a0e17;--fg:#e2e8f0;--cyan:#00e5ff;--teal:#1de9b6;--green:#76ff03;
+      --panel:#111827;--border:#1e293b;--stale-stripe:repeating-linear-gradient(
+        -45deg,transparent,transparent 6px,rgba(148,163,184,.07) 6px,rgba(148,163,184,.07) 12px);}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--bg);color:var(--fg);font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:2rem 1rem;}
+body{background:var(--bg);color:var(--fg);font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+     min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:2rem 1rem;}
+/* ── Page header ───────────────────────────────────────────────────── */
 .demo-page-header{text-align:center;margin-bottom:2rem;}
 .demo-page-header h1{font-size:2rem;color:var(--cyan);margin-bottom:.5rem;}
 .demo-page-header p{color:#94a3b8;font-size:1.1rem;max-width:600px;}
-.demo-container{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:2rem;max-width:720px;width:100%;}
+/* ── Demo container ────────────────────────────────────────────────── */
+.demo-container{background:var(--panel);border:1px solid var(--border);border-radius:12px;
+                padding:2rem;max-width:720px;width:100%;}
+/* ── Input row ─────────────────────────────────────────────────────── */
 .demo-prompt-row{display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;}
 .demo-prompt-dollar{color:var(--green);font-weight:700;font-family:'Fira Code','Courier New',monospace;font-size:1.1rem;}
-.demo-prompt-input{flex:1;background:#0f172a;border:1px solid var(--border);border-radius:8px;color:var(--fg);padding:.6rem .8rem;font-size:1rem;font-family:inherit;outline:none;}
+.demo-prompt-input{flex:1;background:#0f172a;border:1px solid var(--border);border-radius:8px;
+                   color:var(--fg);padding:.6rem .8rem;font-size:1rem;font-family:inherit;outline:none;}
 .demo-prompt-input:focus{border-color:var(--cyan);}
-.demo-run-btn{background:var(--cyan);color:#0a0e17;border:none;border-radius:8px;padding:.6rem 1.2rem;font-weight:700;cursor:pointer;font-size:.95rem;}
+.demo-run-btn{background:var(--cyan);color:#0a0e17;border:none;border-radius:8px;
+              padding:.6rem 1.2rem;font-weight:700;cursor:pointer;font-size:.95rem;}
 .demo-run-btn:hover{opacity:.85;}
+/* ── Chips ─────────────────────────────────────────────────────────── */
 .demo-chips{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.5rem;}
-.demo-chip{background:#1e293b;border:1px solid var(--border);color:var(--cyan);border-radius:20px;padding:.35rem .9rem;cursor:pointer;font-size:.85rem;transition:background .15s;}
+.demo-chip{background:#1e293b;border:1px solid var(--border);color:var(--cyan);
+           border-radius:20px;padding:.35rem .9rem;cursor:pointer;font-size:.85rem;transition:background .15s;}
 .demo-chip:hover{background:#334155;}
-.demo-term{background:#0f172a;border:1px solid var(--border);border-radius:8px;padding:1rem;font-family:'Fira Code','Courier New',monospace;font-size:.85rem;line-height:1.6;max-height:400px;overflow-y:auto;}
+/* ── Step-card grid  (label: HITL-RERUN-001) ────────────────────────── */
+.step-grid{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem;}
+/* Individual step card */
+.step-card{background:#0f172a;border:1px solid var(--border);border-radius:8px;
+           overflow:hidden;transition:border-color .2s;}
+.step-card.c-green{border-left:3px solid var(--green);}
+.step-card.c-cyan{border-left:3px solid var(--cyan);}
+.step-card.c-teal{border-left:3px solid var(--teal);}
+.step-card.c-roi{border-left:3px solid #fbbf24;}
+.step-card.c-done{border-left:3px solid var(--teal);}
+/* Header row — always visible */
+.step-card-header{display:flex;align-items:center;gap:.5rem;padding:.55rem .75rem;
+                  cursor:pointer;user-select:none;}
+.step-card-header:hover{background:rgba(255,255,255,.03);}
+.step-card-icon{flex-shrink:0;font-size:.85rem;width:1.2rem;text-align:center;}
+.step-card-label{flex:1;font-family:'Fira Code','Courier New',monospace;font-size:.8rem;
+                 white-space:pre-wrap;word-break:break-word;}
+.step-card-label.c-green{color:var(--green);}
+.step-card-label.c-cyan{color:var(--cyan);}
+.step-card-label.c-teal{color:var(--teal);}
+.step-card-label.c-roi{color:#fbbf24;font-weight:700;}
+.step-card-label.c-done{color:var(--teal);font-weight:700;}
+.step-card-chevron{flex-shrink:0;color:#475569;font-size:.7rem;transition:transform .2s;}
+.step-card.expanded .step-card-chevron{transform:rotate(180deg);}
+/* Spinner while re-running */
+.step-card-spinner{flex-shrink:0;width:14px;height:14px;border:2px solid var(--border);
+                   border-top-color:var(--cyan);border-radius:50%;
+                   animation:spin .6s linear infinite;display:none;}
+.step-card.running .step-card-spinner{display:block;}
+.step-card.running .step-card-chevron{display:none;}
+/* Expanded body */
+.step-card-body{border-top:1px solid var(--border);padding:.75rem;display:none;
+                font-size:.82rem;color:#94a3b8;line-height:1.5;}
+.step-card.expanded .step-card-body{display:block;}
+.step-card-body label{display:block;color:#64748b;font-size:.74rem;text-transform:uppercase;
+                      letter-spacing:.05em;margin-top:.6rem;margin-bottom:.25rem;}
+.step-card-body label:first-child{margin-top:0;}
+.step-card-body pre{background:#0a0e17;border:1px solid var(--border);border-radius:6px;
+                    padding:.6rem;white-space:pre-wrap;word-break:break-word;
+                    color:var(--fg);font-size:.8rem;max-height:200px;overflow-y:auto;}
+/* Edit mode */
+.step-edit-area{width:100%;background:#0a0e17;border:1px solid var(--cyan);border-radius:6px;
+                color:var(--fg);padding:.6rem;font-size:.82rem;font-family:inherit;
+                resize:vertical;min-height:80px;margin-top:.4rem;display:none;}
+.step-card.edit-mode .step-edit-area{display:block;}
+.step-card.edit-mode pre.output-pre{display:none;}
+.step-card-actions{display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap;}
+.step-btn{background:transparent;border:1px solid var(--border);color:#94a3b8;
+          border-radius:6px;padding:.3rem .7rem;font-size:.78rem;cursor:pointer;transition:all .15s;}
+.step-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+.step-btn.primary{background:var(--teal);color:#0a0e17;border-color:var(--teal);font-weight:700;}
+.step-btn.primary:hover{opacity:.85;}
+.step-card-meta{color:#475569;font-size:.74rem;margin-top:.4rem;}
+/* Stale overlay — downstream of an edit */
+.step-card.stale{opacity:.55;}
+.step-card.stale .step-card-header{background:var(--stale-stripe);}
+.step-card.stale .step-card-label::after{content:" ⟳ stale";color:#64748b;font-size:.7rem;}
+/* ── Legacy terminal (kept for hardcoded fallback) ─────────────────── */
+.demo-term{background:#0f172a;border:1px solid var(--border);border-radius:8px;padding:1rem;
+           font-family:'Fira Code','Courier New',monospace;font-size:.85rem;line-height:1.6;
+           max-height:400px;overflow-y:auto;}
 .dt-line{white-space:pre-wrap;word-break:break-word;}
 .dt-green,.dt-cmd{color:var(--green);}
 .dt-cyan,.dt-info{color:var(--cyan);}
 .dt-teal,.dt-ok,.dt-step{color:var(--teal);}
 .dt-roi,.dt-done{color:#fbbf24;font-weight:700;}
-.demo-cursor{display:inline-block;width:8px;height:1.1em;background:var(--cyan);animation:blink .6s step-end infinite;vertical-align:text-bottom;}
+.demo-cursor{display:inline-block;width:8px;height:1.1em;background:var(--cyan);
+             animation:blink .6s step-end infinite;vertical-align:text-bottom;}
 @keyframes blink{50%{opacity:0;}}
-.demo-roi-block{text-align:center;margin-top:1.5rem;padding:1rem;background:#1e293b;border-radius:8px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+/* ── ROI + CTA ─────────────────────────────────────────────────────── */
+.demo-roi-block{text-align:center;margin-top:1.5rem;padding:1rem;
+                background:#1e293b;border-radius:8px;}
 .demo-roi-stat{color:#fbbf24;font-weight:700;font-size:1rem;margin-bottom:1rem;}
 .demo-btns{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;}
-.demo-btns a,.demo-btns button{padding:.6rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;cursor:pointer;text-decoration:none;border:none;}
+.demo-btns a,.demo-btns button{padding:.6rem 1.4rem;border-radius:8px;font-weight:700;
+                                font-size:.95rem;cursor:pointer;text-decoration:none;border:none;}
 .demo-btns a{background:var(--cyan);color:#0a0e17;}
 .demo-btns button{background:transparent;border:1px solid var(--border);color:var(--fg);}
 .demo-btns button:hover{background:#334155;}
@@ -44,7 +121,8 @@ body{background:var(--bg);color:var(--fg);font-family:'Inter','Segoe UI',system-
 .demo-dl-btn:hover{opacity:.85;background:#1de9b6!important;}
 .demo-dl-btn:disabled{opacity:.5;cursor:not-allowed;}
 .demo-usage-counter{font-size:.78rem;color:#94a3b8;margin-top:.6rem;}
-.demo-limit-msg{margin-top:.75rem;padding:.6rem 1rem;background:#1e1a2e;border:1px solid #7c3aed;border-radius:8px;color:#c4b5fd;font-size:.85rem;}
+.demo-limit-msg{margin-top:.75rem;padding:.6rem 1rem;background:#1e1a2e;border:1px solid #7c3aed;
+                border-radius:8px;color:#c4b5fd;font-size:.85rem;}
 .back-link{margin-top:2rem;color:#94a3b8;font-size:.9rem;}
 .back-link a{color:var(--cyan);text-decoration:none;}
 .back-link a:hover{text-decoration:underline;}
@@ -78,7 +156,10 @@ body{background:var(--bg);color:var(--fg);font-family:'Inter','Segoe UI',system-
     </div>
   </div>
 
-  <!-- Terminal output -->
+  <!-- Step-card grid output (label: HITL-RERUN-001) -->
+  <div id="step-grid" class="step-grid" aria-live="polite" aria-label="Murphy pipeline steps" hidden></div>
+
+  <!-- Legacy terminal (fallback for hardcoded scenario animation) -->
   <div class="demo-term" id="demo-term" aria-live="polite" aria-label="Murphy terminal output" hidden></div>
 
   <!-- ROI + CTA (shown after demo completes) -->
@@ -97,7 +178,12 @@ body{background:var(--bg);color:var(--fg);font-family:'Inter','Segoe UI',system-
 <p class="back-link"><a href="/">&larr; Back to Murphy Home</a></p>
 
 <script>
-// ── Demo Scenarios (same as landing page) ──
+// ── Demo state ──────────────────────────────────────────────────────────────
+var _lastDemoQuery = '';
+var _currentSteps = [];        // rendered step objects (for HITL)
+var _editStepIndex = null;      // which step is in edit mode
+
+// ── Hardcoded scenario fallback data ────────────────────────────────────────
 var DEMO_SCENARIOS={
   onboarding:{
     kw:['onboard','client','customer','intake','new client','new customer'],
@@ -223,37 +309,44 @@ function demoMatch(q){
   ],roi:'\u2713 Custom deliverable generated in 2m 14s. Sign up to get the full output.'};
 }
 
+// ── Reset ────────────────────────────────────────────────────────────────────
 function demoReset(){
+  var grid=document.getElementById('step-grid');
   var term=document.getElementById('demo-term');
   var roiBlock=document.getElementById('demo-roi-block');
   var inputWrap=document.getElementById('demo-input-wrap');
-  term.hidden=true;
-  term.innerHTML='';
+  if(grid){grid.hidden=true;grid.innerHTML='';}
+  if(term){term.hidden=true;term.innerHTML='';}
   roiBlock.hidden=true;
   inputWrap.style.display='';
+  _currentSteps=[];
+  _editStepIndex=null;
   var inp=document.getElementById('demo-prompt-input');
   inp.value='';
   inp.focus();
 }
 
+// ── Main run ─────────────────────────────────────────────────────────────────
 function demoRun(query){
   _lastDemoQuery = query;
   var scenario = demoMatch(query);
+  var grid = document.getElementById('step-grid');
   var term = document.getElementById('demo-term');
   var roiBlock = document.getElementById('demo-roi-block');
   var inputWrap = document.getElementById('demo-input-wrap');
   inputWrap.style.display = 'none';
-  term.innerHTML = '';
-  term.hidden = false;
+  if(grid){grid.innerHTML='';grid.hidden=false;}
+  if(term){term.hidden=true;term.innerHTML='';}
   roiBlock.hidden = true;
+  _currentSteps = [];
+  _editStepIndex = null;
 
-  // Show a "connecting" line while we call the real API
-  var connectLine = document.createElement('div');
-  connectLine.className = 'dt-line dt-cyan';
-  connectLine.textContent = '→ Routing through Murphy System pipeline…';
-  term.appendChild(connectLine);
+  // Show a "connecting" card while we call the real API
+  if(grid){
+    var placeholder = _makeCard({label:'→ Routing through Murphy System pipeline…',cls:'cyan',step_index:0,pattern:'Connecting…'},0);
+    grid.appendChild(placeholder);
+  }
 
-  // Try the real backend API first
   fetch('/api/demo/run', {
     method: 'POST',
     headers: _apiHeaders(),
@@ -262,56 +355,285 @@ function demoRun(query){
   })
   .then(function(r){ return r.json(); })
   .then(function(data){
-    term.innerHTML = '';
+    if(grid) grid.innerHTML='';
     if(data.success && data.steps && data.steps.length > 0){
-      // Animate real pipeline steps from the API
-      _animateSteps(data.steps, term, function(){
+      // Render real pipeline steps as expandable cards
+      _renderStepCards(data.steps, grid, function(){
         var roi = data.roi_message || scenario.roi;
         document.getElementById('demo-roi-stat').textContent = roi;
         roiBlock.hidden = false;
       });
     } else {
-      // Fall back to hardcoded scenario animation
+      // Fall back to legacy terminal animation
+      if(grid) grid.hidden=true;
+      if(term) term.hidden=false;
       _animateHardcoded(scenario, term, roiBlock);
     }
   })
   .catch(function(){
-    // Network/server unavailable — fall back to hardcoded animation
-    term.innerHTML = '';
+    if(grid) grid.hidden=true;
+    if(term){term.innerHTML='';term.hidden=false;}
     _animateHardcoded(scenario, term, roiBlock);
   });
 }
 
-function _animateSteps(steps, term, onDone){
-  function addStep(i){
-    if(i >= steps.length){ setTimeout(onDone, 400); return; }
-    var s = steps[i];
-    var cls = s.cls || s['class'] || 'cyan';
-    var div = document.createElement('div');
-    div.className = 'dt-line dt-' + cls;
-    term.appendChild(div);
-    term.scrollTop = term.scrollHeight;
-    var txt = s.label || '';
-    if(!txt){ setTimeout(function(){ addStep(i+1); }, 80); return; }
-    var pos = 0;
-    var cursor = document.createElement('span');
-    cursor.className = 'demo-cursor';
-    div.appendChild(cursor);
-    var iv = setInterval(function(){
-      if(pos < txt.length){
-        cursor.insertAdjacentText('beforebegin', txt[pos++]);
-        term.scrollTop = term.scrollHeight;
-      } else {
-        clearInterval(iv);
-        cursor.remove();
-        var delay = (cls === 'roi' || cls === 'done') ? 600 : 80 + Math.random()*120;
-        setTimeout(function(){ addStep(i+1); }, delay);
-      }
-    }, 14 + Math.random()*10);
+// ── Step-card rendering  (label: HITL-RERUN-001) ─────────────────────────────
+
+/**
+ * Build a single step card DOM element.
+ * @param {Object} step - step object from the API (label, cls, input, output, pattern, duration_ms)
+ * @param {number} idx  - position in the full steps array
+ */
+function _makeCard(step, idx){
+  var cls = step.cls || 'cyan';
+  var card = document.createElement('div');
+  card.className = 'step-card c-'+cls;
+  card.dataset.stepIndex = String(idx);
+
+  // Header (always visible)
+  var hdr = document.createElement('div');
+  hdr.className = 'step-card-header';
+  hdr.setAttribute('role','button');
+  hdr.setAttribute('aria-expanded','false');
+  hdr.setAttribute('tabindex','0');
+
+  var icon = document.createElement('span');
+  icon.className = 'step-card-icon';
+  icon.textContent = cls==='green'?'$':cls==='teal'||cls==='done'?'✓':cls==='roi'?'★':'→';
+
+  var lbl = document.createElement('span');
+  lbl.className = 'step-card-label c-'+cls;
+  lbl.textContent = step.label || '';
+
+  var spinner = document.createElement('span');
+  spinner.className = 'step-card-spinner';
+  spinner.setAttribute('aria-hidden','true');
+
+  var chevron = document.createElement('span');
+  chevron.className = 'step-card-chevron';
+  chevron.textContent = '▼';
+
+  hdr.appendChild(icon);
+  hdr.appendChild(lbl);
+  hdr.appendChild(spinner);
+  hdr.appendChild(chevron);
+
+  // Body (hidden until expanded)
+  var body = document.createElement('div');
+  body.className = 'step-card-body';
+
+  // Only add body content for "result" steps (teal/roi/done/green) that have output
+  var hasOutput = step.output && step.output.trim();
+  var hasInput  = step.input  && step.input.trim();
+  if(hasOutput || hasInput){
+    if(hasInput){
+      var inLbl = document.createElement('label'); inLbl.textContent='Input';
+      var inPre = document.createElement('pre');   inPre.textContent=step.input;
+      body.appendChild(inLbl);
+      body.appendChild(inPre);
+    }
+    if(hasOutput){
+      var outLbl = document.createElement('label'); outLbl.textContent='Output';
+      var outPre = document.createElement('pre');   outPre.className='output-pre';
+      outPre.textContent=step.output;
+      body.appendChild(outLbl);
+      body.appendChild(outPre);
+      // Edit textarea (hidden until "Edit" button clicked)
+      var editArea = document.createElement('textarea');
+      editArea.className = 'step-edit-area';
+      editArea.value = step.output;
+      editArea.setAttribute('aria-label','Edit step output');
+      body.appendChild(editArea);
+    }
+    if(step.duration_ms && step.duration_ms > 0){
+      var meta = document.createElement('div');
+      meta.className = 'step-card-meta';
+      meta.textContent = 'Duration: '+step.duration_ms.toFixed(0)+'ms';
+      body.appendChild(meta);
+    }
+    // Action buttons
+    var actions = document.createElement('div');
+    actions.className = 'step-card-actions';
+    if(hasOutput){
+      var editBtn = document.createElement('button');
+      editBtn.className = 'step-btn';
+      editBtn.textContent = '✎ Edit';
+      editBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        _toggleEditMode(card, step, idx);
+      });
+      var applyBtn = document.createElement('button');
+      applyBtn.className = 'step-btn primary';
+      applyBtn.textContent = 'Apply & Re-run Downstream';
+      applyBtn.style.display = 'none';
+      applyBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        _applyEditAndRerun(card, editArea, idx);
+      });
+      var cancelBtn = document.createElement('button');
+      cancelBtn.className = 'step-btn';
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.style.display = 'none';
+      cancelBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        _cancelEdit(card, editArea, editBtn, applyBtn, cancelBtn);
+      });
+      // Store refs for toggle using data attributes for robustness
+      editBtn.dataset.role = 'edit';
+      applyBtn.dataset.role = 'apply';
+      cancelBtn.dataset.role = 'cancel';
+      actions.appendChild(editBtn);
+      actions.appendChild(applyBtn);
+      actions.appendChild(cancelBtn);
+    }
+    body.appendChild(actions);
   }
-  addStep(0);
+
+  card.appendChild(hdr);
+  card.appendChild(body);
+
+  // Expand/collapse on header click (skip for "loading" cards)
+  hdr.addEventListener('click', function(){
+    if(card.classList.contains('running')) return;
+    var expanded = card.classList.toggle('expanded');
+    hdr.setAttribute('aria-expanded', String(expanded));
+  });
+  hdr.addEventListener('keydown', function(e){
+    if(e.key==='Enter'||e.key===' '){ e.preventDefault(); hdr.click(); }
+  });
+
+  return card;
 }
 
+/** Toggle a step card into/out of edit mode. */
+function _toggleEditMode(card, step, idx){
+  var inEditMode = card.classList.toggle('edit-mode');
+  var editArea = card.querySelector('.step-edit-area');
+  var editBtn  = card.querySelector('[data-role="edit"]');
+  var applyBtn = card.querySelector('[data-role="apply"]');
+  var cancelBtn = card.querySelector('[data-role="cancel"]');
+  if(!editArea) return;
+  if(inEditMode){
+    if(editBtn) editBtn.textContent = '✎ Editing…';
+    if(applyBtn) applyBtn.style.display = '';
+    if(cancelBtn) cancelBtn.style.display = '';
+    editArea.focus();
+    _editStepIndex = idx;
+  } else {
+    _cancelEdit(card, editArea, editBtn, applyBtn, cancelBtn);
+  }
+}
+
+function _cancelEdit(card, editArea, editBtn, applyBtn, cancelBtn){
+  card.classList.remove('edit-mode');
+  if(editBtn){ editBtn.textContent='✎ Edit'; }
+  if(applyBtn){ applyBtn.style.display='none'; }
+  if(cancelBtn){ cancelBtn.style.display='none'; }
+  _editStepIndex = null;
+}
+
+/**
+ * Apply the user's edit and re-run all downstream steps.
+ * Label: HITL-RERUN-001
+ */
+function _applyEditAndRerun(editedCard, editArea, editedIdx){
+  var newOutput = editArea ? editArea.value.trim() : '';
+  var grid = document.getElementById('step-grid');
+  var roiBlock = document.getElementById('demo-roi-block');
+  if(!grid) return;
+
+  // Exit edit mode
+  editedCard.classList.remove('edit-mode');
+  var editBtn  = editedCard.querySelector('[data-role="edit"]');
+  var applyBtn = editedCard.querySelector('[data-role="apply"]');
+  var cancelBtn = editedCard.querySelector('[data-role="cancel"]');
+  _cancelEdit(editedCard, editArea, editBtn, applyBtn, cancelBtn);
+
+  // Update the output-pre in the edited card to show the new value
+  var outPre = editedCard.querySelector('.output-pre');
+  if(outPre) outPre.textContent = newOutput;
+
+  // Mark all downstream cards as stale + show spinners
+  var allCards = grid.querySelectorAll('.step-card');
+  allCards.forEach(function(c){
+    var ci = parseInt(c.dataset.stepIndex||'0', 10);
+    if(ci > editedIdx){
+      c.classList.add('stale','running');
+      c.classList.remove('expanded');
+    }
+  });
+  roiBlock.hidden = true;
+
+  // Collect prior steps data
+  var priorSteps = _currentSteps.slice(0, editedIdx+1);
+
+  // Call HITL re-run endpoint.
+  // step_index = the edited step; backend regenerates steps from step_index+1 onward.
+  fetch('/api/demo/rerun-from-step', {
+    method:'POST',
+    headers:_apiHeaders(),
+    credentials:'include',
+    body:JSON.stringify({
+      query: _lastDemoQuery||'',
+      step_index: editedIdx,
+      edited_output: newOutput,
+      prior_steps: priorSteps
+    })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if(!data.success || !data.steps) throw new Error(data.error||'rerun failed');
+    // Replace downstream cards with regenerated steps
+    var newSteps = data.steps;
+    allCards.forEach(function(c){
+      var ci = parseInt(c.dataset.stepIndex||'0', 10);
+      if(ci > editedIdx) c.remove();
+    });
+    newSteps.forEach(function(s, i){
+      var ni = editedIdx + 1 + i;
+      s.step_index = ni;
+      var nc = _makeCard(s, ni);
+      grid.appendChild(nc);
+      _currentSteps[ni] = s;
+    });
+    // Slight delay then expand first regenerated card
+    setTimeout(function(){
+      var first = grid.querySelector('.step-card[data-step-index="'+String(editedIdx+1)+'"]');
+      if(first){ first.classList.add('expanded'); }
+    }, 300);
+    // Show ROI
+    if(data.roi_message){
+      document.getElementById('demo-roi-stat').textContent = data.roi_message;
+      document.getElementById('demo-roi-block').hidden = false;
+    }
+  })
+  .catch(function(err){
+    // Remove stale state and show error
+    allCards.forEach(function(c){ c.classList.remove('stale','running'); });
+    var errCard = _makeCard({label:'⚠ Re-run failed: '+err.message,cls:'cyan',step_index:editedIdx+1,input:'',output:'',pattern:'Error'},editedIdx+1);
+    grid.appendChild(errCard);
+  });
+}
+
+/** Render all step cards with a staggered reveal animation. */
+function _renderStepCards(steps, grid, onDone){
+  _currentSteps = steps.slice();
+  function addCard(i){
+    if(i>=steps.length){ if(onDone) setTimeout(onDone,300); return; }
+    var s = steps[i];
+    var card = _makeCard(s, i);
+    grid.appendChild(card);
+    // Auto-expand result cards (teal/roi/done) after a short delay
+    var cls = s.cls||'cyan';
+    if(cls==='teal'||cls==='roi'||cls==='done'){
+      setTimeout(function(){ card.classList.add('expanded'); }, 200);
+    }
+    setTimeout(function(){ addCard(i+1); }, cls==='cyan'?80:120);
+  }
+  addCard(0);
+}
+
+// ── Legacy hardcoded animation (fallback) ────────────────────────────────────
 function _animateHardcoded(scenario, term, roiBlock){
   var lines = scenario.lines;
   function addLine(i){
@@ -345,7 +667,7 @@ function _animateHardcoded(scenario, term, roiBlock){
   addLine(0);
 }
 
-// Wire demo input
+// ── Wire demo input ──────────────────────────────────────────────────────────
 (function(){
   var inp=document.getElementById('demo-prompt-input');
   var btn=document.getElementById('demo-run-btn');
@@ -355,6 +677,7 @@ function _animateHardcoded(scenario, term, roiBlock){
   if(inp)inp.focus();
 })();
 
+// ── Utilities ────────────────────────────────────────────────────────────────
 function exportText(filename,content){
   var a=document.createElement('a');
   a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(content);
@@ -369,30 +692,58 @@ function _apiHeaders(){
   return h;
 }
 
+// ── Download deliverable ─────────────────────────────────────────────────────
 function downloadDeliverable(){
   var btn=document.getElementById('demo-dl-btn');
   var counter=document.getElementById('demo-usage-counter');
   var limitMsg=document.getElementById('demo-limit-msg');
   if(btn)btn.disabled=true;
-  if(btn)btn.textContent='Generating…';
+  if(btn)btn.textContent='Generating\u2026';
   if(limitMsg)limitMsg.style.display='none';
-  fetch('/api/demo/generate-deliverable',{
+
+  var query = _lastDemoQuery||'Custom deliverable';
+
+  // Detect CODE_PROJECT queries and use the dedicated endpoint  (label: CODE-PROJ-001)
+  var codeKws=['web app','webapp','mvp','create app','build app','scaffold','website',
+               'saas','full stack','mobile app','react app','vue app','fastapi app',
+               'flask app','django app','landing page'];
+  var isCodeProject = codeKws.some(function(kw){ return query.toLowerCase().indexOf(kw)>=0; });
+  var endpoint = isCodeProject
+    ? '/api/demo/generate-deliverable/code-project'
+    : '/api/demo/generate-deliverable';
+
+  fetch(endpoint,{
     method:'POST',
     headers:_apiHeaders(),
     credentials:'include',
-    body:JSON.stringify({query:_lastDemoQuery||'Custom deliverable'})
+    body:JSON.stringify({query:query})
   })
   .then(function(r){return r.json();})
   .then(function(data){
     if(btn)btn.disabled=false;
     if(btn)btn.textContent='\u2659 Download Deliverable';
-    if(data.success&&data.deliverable){
-      exportText(data.deliverable.filename||'murphy-deliverable.txt',data.deliverable.content);
-      var u=data.usage||{};
-      if(counter){
-        var lim=u.limit===-1?'unlimited':u.limit;
-        var rem=u.limit===-1?'unlimited':u.remaining;
-        counter.textContent=rem+' of '+lim+' free downloads remaining today';
+    if(data.success){
+      if(data.zip_base64){
+        // CODE_PROJECT — download as ZIP
+        var byteStr=atob(data.zip_base64);
+        var ab=new ArrayBuffer(byteStr.length);
+        var ia=new Uint8Array(ab);
+        for(var i=0;i<byteStr.length;i++) ia[i]=byteStr.charCodeAt(i);
+        var blob=new Blob([ab],{type:'application/zip'});
+        var url=URL.createObjectURL(blob);
+        var a=document.createElement('a');
+        a.href=url; a.download=data.zip_filename||'murphy-project.zip';
+        a.click();
+        setTimeout(function(){URL.revokeObjectURL(url);},60000);
+        if(counter) counter.textContent='Project ZIP downloaded (\u2713 '+data.file_count+' files)';
+      } else if(data.deliverable){
+        exportText(data.deliverable.filename||'murphy-deliverable.txt',data.deliverable.content);
+        var u=data.usage||data.forge_usage||{};
+        if(counter){
+          var lim=u.limit===-1?'unlimited':u.limit;
+          var rem=u.limit===-1?'unlimited':u.remaining;
+          counter.textContent=rem+' of '+lim+' free downloads remaining today';
+        }
       }
     } else if(data.error==='limit_exceeded'){
       if(counter)counter.textContent='';
@@ -400,16 +751,16 @@ function downloadDeliverable(){
         limitMsg.textContent=data.message||'Daily download limit reached.';
         limitMsg.style.display='';
       }
-      var u=data.usage||{};
+      var u=data.usage||data.forge_usage||{};
       if(u.tier==='anonymous'&&counter)counter.textContent='0 of '+(u.limit||5)+' free downloads remaining today';
     } else {
-      if(counter)counter.textContent='Download failed — please try again.';
+      if(counter)counter.textContent='Download failed \u2014 please try again.';
     }
   })
   .catch(function(){
     if(btn)btn.disabled=false;
     if(btn)btn.textContent='\u2659 Download Deliverable';
-    if(counter)counter.textContent='Network error — please try again.';
+    if(counter)counter.textContent='Network error \u2014 please try again.';
   });
 }
 </script>

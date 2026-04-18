@@ -150,101 +150,170 @@ class DemoRunner:
         scenario = _SCENARIOS.get(scenario_key, self._custom_scenario(query))
 
         steps: list[dict[str, Any]] = []
+        _step_idx = 0
+
+        def _step(label: str, detail: str, cls: str, *,
+                  input_val: str = "", output_val: str = "", pattern: str = "") -> dict[str, Any]:
+            """Build a structured step dict for the step-card UI (label: HITL-RERUN-001)."""
+            nonlocal _step_idx
+            s = {
+                "label": label,
+                "detail": detail,
+                "cls": cls,
+                "step_index": _step_idx,
+                "input": input_val,
+                "output": output_val,
+                "pattern": pattern or label,
+                "duration_ms": 0,
+            }
+            _step_idx += 1
+            return s
 
         # ── Step 0: CLI command ──────────────────────────────────────────
-        steps.append({
-            "label": f"$ {scenario['cli_command']}",
-            "detail": "",
-            "cls": "green",
-        })
+        steps.append(_step(
+            f"$ {scenario['cli_command']}", "",
+            "green",
+            input_val=query,
+            output_val=scenario["cli_command"],
+            pattern="CLI command dispatched",
+        ))
 
         # ── Step 1: MFGC gate ────────────────────────────────────────────
-        steps.append({"label": f"→ Routing through MFGC confidence gate…", "detail": "", "cls": "cyan"})
+        t1 = time.monotonic()
+        steps.append(_step("→ Routing through MFGC confidence gate…", "", "cyan", pattern="MFGC gate routing"))
         mfgc = self._run_mfgc(query)
+        mfgc_ms = (time.monotonic() - t1) * 1000
         confidence = mfgc.get("confidence", 0.0)
         phase = mfgc.get("phase", "EXECUTE")
         if mfgc.get("success") or confidence > 0:
-            steps.append({
-                "label": f"✓ MFGC gate: phase={phase}  confidence={confidence:.0%}  status=APPROVED",
-                "detail": f"gates={mfgc.get('gates', 7)}  murphy_index={mfgc.get('murphy_index', 0.91):.3f}",
-                "cls": "teal",
-            })
+            mfgc_out = f"phase={phase}  confidence={confidence:.0%}  gates={mfgc.get('gates', 7)}  murphy_index={mfgc.get('murphy_index', 0.91):.3f}"
+            mfgc_step = _step(
+                f"✓ MFGC gate: phase={phase}  confidence={confidence:.0%}  status=APPROVED",
+                f"gates={mfgc.get('gates', 7)}  murphy_index={mfgc.get('murphy_index', 0.91):.3f}",
+                "teal",
+                input_val=query,
+                output_val=mfgc_out,
+                pattern=f"MFGC confidence gate — {confidence:.0%} confidence, {phase} phase",
+            )
         else:
-            steps.append({
-                "label": "✓ MFGC gate: APPROVED (fallback — pipeline proceeding)",
-                "detail": "",
-                "cls": "teal",
-            })
+            mfgc_step = _step(
+                "✓ MFGC gate: APPROVED (fallback — pipeline proceeding)",
+                "",
+                "teal",
+                input_val=query,
+                output_val="fallback gate: APPROVED",
+                pattern="MFGC gate — fallback path",
+            )
+        mfgc_step["duration_ms"] = round(mfgc_ms, 1)
+        steps.append(mfgc_step)
 
         # ── Step 2: MSS Magnify ──────────────────────────────────────────
-        steps.append({"label": "→ MSS Magnify: expanding to functional requirements…", "detail": "", "cls": "cyan"})
+        t2 = time.monotonic()
+        steps.append(_step("→ MSS Magnify: expanding to functional requirements…", "", "cyan", pattern="MSS Magnify expansion"))
         mss = self._run_mss(query, mfgc)
+        mss_ms = (time.monotonic() - t2) * 1000
         mag = mss.get("magnify", {})
         reqs = mag.get("functional_requirements", [])
         comps = mag.get("technical_components", [])
         req_count = len(reqs) or _fallback_req_count(scenario_key)
         comp_count = len(comps) or len(scenario.get("integrations", []))
-        steps.append({
-            "label": f"✓ MSS Magnify: {req_count} requirements · {comp_count} components · resolution=RM4",
-            "detail": (reqs[0] if reqs else "") or scenario["description"],
-            "cls": "teal",
-        })
+        mag_out = (reqs[0] if reqs else "") or scenario["description"]
+        mag_step = _step(
+            f"✓ MSS Magnify: {req_count} requirements · {comp_count} components · resolution=RM4",
+            mag_out,
+            "teal",
+            input_val=query,
+            output_val=f"Expanded to {req_count} functional requirements and {comp_count} components.\n"
+                       + ("\n".join(f"  • {r}" for r in reqs[:5]) if reqs else mag_out),
+            pattern=f"Expanded requirements to {req_count} functional specs",
+        )
+        mag_step["duration_ms"] = round(mss_ms, 1)
+        steps.append(mag_step)
 
         # ── Step 3: MSS Solidify ─────────────────────────────────────────
-        steps.append({"label": "→ MSS Solidify: generating implementation plan at RM5…", "detail": "", "cls": "cyan"})
+        steps.append(_step("→ MSS Solidify: generating implementation plan at RM5…", "", "cyan", pattern="MSS Solidify — RM5 plan"))
         sol = mss.get("solidify", {})
         impl_steps = sol.get("implementation_steps", [])
         step_count = len(impl_steps) or _fallback_step_count(scenario_key)
         governance = mss.get("governance", "approved")
-        steps.append({
-            "label": f"✓ MSS Solidify: {step_count}-step plan · governance={governance} · RM5",
-            "detail": (impl_steps[0] if impl_steps else "") or "Step-by-step automation plan generated.",
-            "cls": "teal",
-        })
+        sol_out = (impl_steps[0] if impl_steps else "") or "Step-by-step automation plan generated."
+        sol_step = _step(
+            f"✓ MSS Solidify: {step_count}-step plan · governance={governance} · RM5",
+            sol_out,
+            "teal",
+            input_val=mag_out,
+            output_val=f"Generated {step_count}-step implementation plan at RM5 resolution.\n"
+                       + ("\n".join(f"  {i+1}. {s}" for i, s in enumerate(impl_steps[:5])) if impl_steps else sol_out),
+            pattern=f"Implementation plan: {step_count} steps at RM5 resolution",
+        )
+        sol_step["duration_ms"] = round(mss_ms, 1)
+        steps.append(sol_step)
 
         # ── Step 4: AI Workflow Generator ────────────────────────────────
-        steps.append({"label": "→ AI Workflow Generator: building executable workflow DAG…", "detail": "", "cls": "cyan"})
+        t4 = time.monotonic()
+        steps.append(_step("→ AI Workflow Generator: building executable workflow DAG…", "", "cyan", pattern="Workflow DAG generation"))
         workflow = self._run_workflow_gen(query, scenario_key, mss)
+        wf_ms = (time.monotonic() - t4) * 1000
         wf_id = workflow.get("workflow_id", f"wf-{scenario_key}-{uuid.uuid4().hex[:6]}")
         wf_name = workflow.get("name", scenario["description"].title())
         wf_steps = workflow.get("steps", [])
         wf_step_count = len(wf_steps) or step_count
         strategy = workflow.get("strategy", "sequential")
-        steps.append({
-            "label": f"✓ Workflow created: {wf_id}  strategy={strategy}  nodes={wf_step_count}",
-            "detail": f"name={wf_name}",
-            "cls": "teal",
-        })
+        wf_out = f"workflow_id={wf_id}  name={wf_name}  strategy={strategy}  nodes={wf_step_count}"
+        wf_step_obj = _step(
+            f"✓ Workflow created: {wf_id}  strategy={strategy}  nodes={wf_step_count}",
+            f"name={wf_name}",
+            "teal",
+            input_val=sol_out,
+            output_val=wf_out,
+            pattern=f"Workflow DAG built: {wf_step_count} nodes, {strategy} strategy",
+        )
+        wf_step_obj["duration_ms"] = round(wf_ms, 1)
+        steps.append(wf_step_obj)
 
         # ── Step 5: Integration map ──────────────────────────────────────
         integrations = scenario.get("integrations", [])
         if integrations:
-            steps.append({"label": f"→ Mapping {len(integrations)} integration connectors…", "detail": "", "cls": "cyan"})
+            steps.append(_step(f"→ Mapping {len(integrations)} integration connectors…", "", "cyan", pattern="Integration connector mapping"))
             connector_list = " · ".join(integrations[:3]) + (" · …" if len(integrations) > 3 else "")
-            steps.append({
-                "label": f"✓ Connectors: {connector_list}",
-                "detail": f"All {len(integrations)} connectors verified in Murphy integration registry",
-                "cls": "teal",
-            })
+            intg_out = f"Connectors: {', '.join(integrations)}"
+            steps.append(_step(
+                f"✓ Connectors: {connector_list}",
+                f"All {len(integrations)} connectors verified in Murphy integration registry",
+                "teal",
+                input_val=wf_out,
+                output_val=intg_out,
+                pattern=f"Mapped {len(integrations)} integration connectors",
+            ))
 
         # ── Step 6: ROI calculation ──────────────────────────────────────
         spec = self._build_spec(query, scenario_key, scenario, mss, workflow)
         hours_saved = spec["hours_saved_month"]
         monthly_savings = spec["monthly_savings_usd"]
         roi_x = spec["roi_multiple"]
-        steps.append({
-            "label": f"✓ Automation ready · saves {hours_saved}h/mo · ${monthly_savings:,}/mo · {roi_x}× ROI",
-            "detail": f"Recommended tier: {scenario['tier']}  ·  net benefit: ${spec['net_monthly_benefit']:,}/mo",
-            "cls": "roi",
-        })
+        roi_out = (
+            f"hours_saved={hours_saved}h/mo  monthly_savings=${monthly_savings:,}  "
+            f"roi={roi_x}×  tier={scenario['tier']}  net_benefit=${spec['net_monthly_benefit']:,}/mo"
+        )
+        steps.append(_step(
+            f"✓ Automation ready · saves {hours_saved}h/mo · ${monthly_savings:,}/mo · {roi_x}× ROI",
+            f"Recommended tier: {scenario['tier']}  ·  net benefit: ${spec['net_monthly_benefit']:,}/mo",
+            "roi",
+            input_val=intg_out if integrations else wf_out,
+            output_val=roi_out,
+            pattern=f"ROI: {roi_x}× return · saves {hours_saved}h/month",
+        ))
 
         duration_ms = (time.monotonic() - t0) * 1000
 
-        steps.append({
-            "label": f"✓ Done in {duration_ms / 1000:.1f}s  ·  {scenario['roi']}",
-            "detail": "",
-            "cls": "done",
-        })
+        steps.append(_step(
+            f"✓ Done in {duration_ms / 1000:.1f}s  ·  {scenario['roi']}",
+            "",
+            "done",
+            input_val="",
+            output_val=scenario["roi"],
+            pattern=f"Pipeline complete in {duration_ms / 1000:.1f}s",
+        ))
 
         return {
             "steps": steps,
@@ -299,6 +368,9 @@ class DemoRunner:
     def _run_mfgc(self, query: str) -> dict[str, Any]:
         """Run MFGC gate. Graceful fallback on import error."""
         try:
+            import sys
+            import os
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
             from mfgc_adapter import MFGCSystemFactory  # type: ignore[import]
             adapter = MFGCSystemFactory.create_development_system()
             result = adapter.execute_with_mfgc(
@@ -442,6 +514,11 @@ class DemoRunner:
 
     def _load_mss(self) -> Any:
         try:
+            import sys
+            import os
+            _src = os.path.join(os.path.dirname(__file__), ".")
+            if _src not in sys.path:
+                sys.path.insert(0, _src)
             from mss_controls import MSSController  # type: ignore[import]
             from information_quality import InformationQualityEngine  # type: ignore[import]
             from concept_translation import ConceptTranslationEngine  # type: ignore[import]
@@ -462,6 +539,10 @@ class DemoRunner:
 
     def _load_workflow_gen(self) -> Any:
         try:
+            import sys
+            import os
+            if os.path.join(os.path.dirname(__file__), "..") not in sys.path:
+                sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
             from ai_workflow_generator import AIWorkflowGenerator  # type: ignore[import]
             return AIWorkflowGenerator()
         except Exception as exc:
