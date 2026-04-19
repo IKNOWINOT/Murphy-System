@@ -4427,11 +4427,15 @@ class BuildMetrics:
 # Import demo deliverable generator
 _convert_deliverable_format = None
 _SUPPORTED_FORMATS = None
+_generate_code_project_deliverable = None
+_is_code_project_query = None
 try:
     from src.demo_deliverable_generator import generate_deliverable as _generate_demo_deliverable
     from src.demo_deliverable_generator import generate_deliverable_with_progress as _generate_demo_deliverable_with_progress
     from src.demo_deliverable_generator import convert_deliverable_format as _convert_deliverable_format
     from src.demo_deliverable_generator import SUPPORTED_FORMATS as _SUPPORTED_FORMATS
+    from src.demo_deliverable_generator import generate_code_project_deliverable as _generate_code_project_deliverable  # CODE-PROJ-001
+    from src.demo_deliverable_generator import _is_code_project_query as _is_code_project_query  # CODE-PROJ-001
     _demo_gen_available = True
 except ImportError as exc:
     log.warning(f"Demo deliverable generator not available: {exc}")
@@ -4439,6 +4443,13 @@ except ImportError as exc:
     _generate_demo_deliverable = None
     _generate_demo_deliverable_with_progress = None
 log.info("Demo deliverable generator: %s", "available" if _demo_gen_available else "UNAVAILABLE — check sys.path")
+
+# Import CODE_PROJECT bundle generator  (label: CODE-PROJ-001)
+_generate_code_project_bundle = None
+try:
+    from src.demo_bundle_generator import generate_code_project_bundle as _generate_code_project_bundle
+except ImportError as exc:
+    log.warning("CODE-PROJ-001: demo_bundle_generator generate_code_project_bundle not available: %s", exc)
 
 # -- Import SubscriptionManager for tier-aware demo rate limiting --------------
 try:
@@ -4738,6 +4749,174 @@ async def api_demo_deliverable_export(request: Request):
         return JSONResponse({
             "success": False,
             "error": f"Format conversion failed: {type(exc).__name__}: {exc}",
+        }, status_code=500)
+
+
+# ---------------------------------------------------------------------------
+# CODE_PROJECT download endpoint  (label: CODE-PROJ-001)
+# ---------------------------------------------------------------------------
+
+@app.post("/api/demo/generate-deliverable/code-project")
+async def api_demo_code_project(request: Request):
+    """Generate and return a CODE_PROJECT deliverable as a downloadable ZIP.
+
+    Accepts JSON body with:
+      - ``query``: the user's request (must contain web app / MVP / scaffold keywords)
+
+    Returns:
+      - ``success``: bool
+      - ``deliverable_type``: "code_project"
+      - ``zip_base64``: base64-encoded ZIP bytes
+      - ``zip_filename``: suggested filename
+      - ``file_count``: number of generated files
+      - ``files``: list of filenames in the bundle
+      - ``project_files``: dict of filename → content (for UI preview)
+
+    Label: CODE-PROJ-001
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+    query = (body.get("query") or "").strip()
+    if not query:
+        return JSONResponse({"success": False, "error": "query is required"}, status_code=400)
+
+    usage = _check_and_record_demo_usage(request)
+    if not usage["allowed"]:
+        return JSONResponse({
+            "success": False,
+            "error": "Daily build limit reached. Sign up for more builds.",
+            "forge_usage": usage,
+        }, status_code=429)
+
+    if not _demo_gen_available or not _generate_code_project_deliverable:
+        log.warning("CODE-PROJ-001: generator not available — returning 503")
+        return JSONResponse(
+            {"success": False, "error": "Code project generator not available"},
+            status_code=503,
+        )
+
+    try:
+        deliverable = _generate_code_project_deliverable(query)
+    except Exception as exc:
+        log.exception("CODE-PROJ-ERR-004: Code project generation failed: %s", exc)
+        return JSONResponse(
+            {"success": False, "error": f"Generation failed: {type(exc).__name__}: {exc}"},
+            status_code=500,
+        )
+
+    # Build the ZIP bundle via demo_bundle_generator
+    bundle_result: dict = {}
+    if _generate_code_project_bundle:
+        try:
+            bundle_result = _generate_code_project_bundle(query, deliverable)
+        except Exception as exc:  # CODE-PROJ-ERR-005
+            log.warning("CODE-PROJ-ERR-005: bundle generation failed: %s — using zip_base64 from deliverable", exc)
+
+    # Prefer bundle_result zip; fall back to zip already in deliverable
+    zip_bytes = bundle_result.get("zip_bytes")
+    if zip_bytes:
+        import base64 as _b64
+        zip_b64 = _b64.b64encode(zip_bytes).decode("ascii")
+        zip_filename = bundle_result.get("filename", deliverable.get("zip_filename", "murphy-project.zip"))
+        files_list = bundle_result.get("files", list(deliverable.get("project_files", {}).keys()))
+    else:
+        zip_b64 = deliverable.get("zip_base64", "")
+        zip_filename = deliverable.get("zip_filename", "murphy-project.zip")
+        files_list = list(deliverable.get("project_files", {}).keys())
+
+    return JSONResponse({
+        "success": True,
+        "deliverable_type": "code_project",
+        "title": deliverable.get("title", ""),
+        "zip_base64": zip_b64,
+        "zip_filename": zip_filename,
+        "file_count": len(files_list),
+        "files": files_list,
+        "project_files": deliverable.get("project_files", {}),
+        "forge_usage": usage,
+    })
+
+
+# ---------------------------------------------------------------------------
+# HITL re-run-from-step endpoint  (label: HITL-RERUN-001)
+# ---------------------------------------------------------------------------
+
+@app.post("/api/demo/rerun-from-step")
+async def api_demo_rerun_from_step(request: Request):
+    """Re-run the demo pipeline from a specific step index with edited output.
+
+    This is the HITL (Human-in-the-Loop) editor endpoint.  When a user edits
+    a step's output in the demo UI, all downstream steps are marked stale and
+    this endpoint regenerates them from the edited point forward.
+
+    Accepts JSON body with:
+      - ``query``: original user query
+      - ``step_index``: index of the step the user edited (0-based); downstream
+        steps (step_index + 1 onward) are the ones regenerated
+      - ``edited_output``: the user's new content for that step
+      - ``prior_steps``: list of step dicts for steps before the edit point
+
+    Returns:
+      - ``success``: bool
+      - ``steps``: list of regenerated step dicts starting from step_index + 1
+      - ``roi_message``: updated ROI line
+
+    Label: HITL-RERUN-001
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+    query = (body.get("query") or "").strip()
+    if not query:
+        return JSONResponse({"success": False, "error": "query is required"}, status_code=400)
+
+    step_index = body.get("step_index")
+    if step_index is None or not isinstance(step_index, int) or step_index < 0:
+        return JSONResponse({"success": False, "error": "step_index must be a non-negative integer"}, status_code=400)
+
+    edited_output = (body.get("edited_output") or "").strip()
+    prior_steps = body.get("prior_steps") or []
+    if not isinstance(prior_steps, list):
+        return JSONResponse({"success": False, "error": "prior_steps must be a list"}, status_code=400)
+
+    # Re-run the pipeline from step_index+1 forward using the DemoRunner.
+    # step_index is the step the user edited; everything after it is regenerated.
+    try:
+        from src.demo_runner import DemoRunner  # noqa: PLC0415
+        runner = DemoRunner()
+        # Build a modified query incorporating the user's edit
+        modified_query = query
+        if edited_output:
+            modified_query = f"{query} [HITL-EDIT: {edited_output[:200]}]"
+
+        full_result = runner.run_scenario(modified_query)
+        all_steps = full_result.get("steps", [])
+
+        # Return regenerated steps starting from step_index + 1.
+        # The edited step stays in the UI at step_index; only what comes after changes.
+        regenerated: list = []
+        downstream_start = step_index + 1
+        for i, step in enumerate(all_steps[downstream_start:], start=downstream_start):
+            step["step_index"] = i
+            regenerated.append(step)
+
+        return JSONResponse({
+            "success": True,
+            "steps": regenerated,
+            "roi_message": full_result.get("roi_message", ""),
+            "scenario_key": full_result.get("scenario_key", "custom"),
+        })
+
+    except Exception as exc:
+        log.exception("HITL-RERUN-001: rerun-from-step failed: %s", exc)
+        return JSONResponse({
+            "success": False,
+            "error": f"Re-run failed: {type(exc).__name__}: {exc}",
         }, status_code=500)
 
 
