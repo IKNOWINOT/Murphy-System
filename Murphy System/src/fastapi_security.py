@@ -253,6 +253,10 @@ def _is_public_api_route(path: str, method: str = "GET") -> bool:
         "/api/auth/register-free",
         "/api/auth/callback",
         "/api/auth/providers",
+        "/api/auth/forgot-password",
+        "/api/auth/request-password-reset",
+        "/api/auth/reset-password",
+        "/api/auth/reset-password/validate",
         "/api/usage/daily",
     })
     if normalized in _PUBLIC_EXACT:
@@ -527,6 +531,10 @@ _CSRF_EXEMPT_PATHS = frozenset({
     "/api/auth/register",
     "/api/auth/callback",
     "/api/auth/resend-verification",
+    "/api/auth/register-free",
+    "/api/auth/forgot-password",
+    "/api/auth/request-password-reset",
+    "/api/auth/reset-password",
 })
 
 # Secret used to sign CSRF tokens.  Override with MURPHY_CSRF_SECRET env var.
