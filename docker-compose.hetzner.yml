@@ -152,7 +152,7 @@ services:
       POSTMASTER_ADDRESS:       postmaster@${MURPHY_MAIL_DOMAIN:-murphy.systems}
       ENABLE_SPAMASSASSIN:      "1"
       SPAMASSASSIN_SPAM_TO_JUNK: "1"
-      ENABLE_CLAMAV:            "1"
+      ENABLE_CLAMAV:            "0"     # disabled — saves ~1.2 GB RAM (critical on ≤8 GB boxes)
       ENABLE_FAIL2BAN:          "1"
       ENABLE_POSTGREY:          "0"
       ONE_DIR:                  "1"

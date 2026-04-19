@@ -31,7 +31,22 @@ logger = logging.getLogger(__name__)
 
 
 class Role(str, Enum):
-    """Hierarchical roles within the Murphy System."""
+    """Hierarchical roles within the Murphy System.
+
+    Platform-level:
+      FOUNDER        — Platform creator; full control over all organisations
+      PLATFORM_ADMIN — Designated by founder; receives HITL deployment reviews,
+                       manages all organisations and users
+    Organisation-level:
+      OWNER          — Full control within their organisation
+      ADMIN          — All permissions except user management and API build
+      AUTOMATOR_ADMIN— Execute, approve, delivery, view, budget, metrics
+      OPERATOR       — Execute, approve, view, metrics
+      VIEWER         — View only
+      SHADOW_AGENT   — Execute, view (shadow agents as org-chart peers)
+    """
+    FOUNDER = "founder"
+    PLATFORM_ADMIN = "platform_admin"
     OWNER = "owner"
     ADMIN = "admin"
     AUTOMATOR_ADMIN = "automator_admin"
@@ -55,6 +70,11 @@ class Permission(str, Enum):
     TOGGLE_FULL_AUTOMATION = "toggle_full_automation"
     VIEW_AUTOMATION_METRICS = "view_automation_metrics"
     TRIGGER_API_BUILD = "trigger_api_build"
+    # Platform-level permissions (FOUNDER / PLATFORM_ADMIN only)
+    APPROVE_HITL_DEPLOYMENT = "approve_hitl_deployment"
+    MANAGE_PLATFORM = "manage_platform"
+    MANAGE_ALL_ORGS = "manage_all_orgs"
+    DESIGNATE_PLATFORM_ADMIN = "designate_platform_admin"
 
 
 # ------------------------------------------------------------------
@@ -62,8 +82,22 @@ class Permission(str, Enum):
 # ------------------------------------------------------------------
 
 DEFAULT_ROLE_PERMISSIONS: Dict[Role, Set[Permission]] = {
-    Role.OWNER: set(Permission),
-    Role.ADMIN: set(Permission) - {Permission.MANAGE_USERS, Permission.TRIGGER_API_BUILD},
+    Role.FOUNDER: set(Permission),
+    Role.PLATFORM_ADMIN: set(Permission) - {Permission.DESIGNATE_PLATFORM_ADMIN},
+    Role.OWNER: set(Permission) - {
+        Permission.APPROVE_HITL_DEPLOYMENT,
+        Permission.MANAGE_PLATFORM,
+        Permission.MANAGE_ALL_ORGS,
+        Permission.DESIGNATE_PLATFORM_ADMIN,
+    },
+    Role.ADMIN: set(Permission) - {
+        Permission.MANAGE_USERS,
+        Permission.TRIGGER_API_BUILD,
+        Permission.APPROVE_HITL_DEPLOYMENT,
+        Permission.MANAGE_PLATFORM,
+        Permission.MANAGE_ALL_ORGS,
+        Permission.DESIGNATE_PLATFORM_ADMIN,
+    },
     Role.AUTOMATOR_ADMIN: {
         Permission.EXECUTE_TASK,
         Permission.APPROVE_GATE,
@@ -89,7 +123,10 @@ DEFAULT_ROLE_PERMISSIONS: Dict[Role, Set[Permission]] = {
 }
 
 # Roles that are authorised to assign / remove roles on other users
-_ROLE_MANAGEMENT_ROLES: Set[Role] = {Role.OWNER, Role.ADMIN}
+_ROLE_MANAGEMENT_ROLES: Set[Role] = {Role.FOUNDER, Role.PLATFORM_ADMIN, Role.OWNER, Role.ADMIN}
+
+# Roles that receive platform-level HITL deployment reviews
+HITL_DEPLOYMENT_REVIEWER_ROLES: Set[Role] = {Role.FOUNDER, Role.PLATFORM_ADMIN}
 
 
 @dataclass

@@ -1265,3 +1265,9 @@ The following routes exist in `src/runtime/app.py` and were cataloged as missing
 | POST | /module-instances/bulk/despawn | Yes | Bulk despawn instances |
 | POST | /api/infrastructure/compare | Yes | Compare env against hetzner_load.sh |
 | POST | /api/matrix/notify | Yes | Send Matrix notification for HITL events |
+| GET | /api/auth/login | No | Login page / session check (auth guard) |
+| POST | /api/hitl/deployment-review | Yes | Create HITL deployment review for high-risk change |
+| GET | /api/hitl/deployment-reviews | Yes | List pending HITL deployment reviews |
+| POST | /api/hitl/deployment-review/{review_id}/decide | Yes | Approve/reject HITL deployment review (FOUNDER/PLATFORM_ADMIN only) |
+| GET | /api/route-coverage | Yes | API route coverage report per module |
+| POST | /api/route-coverage/scan | Yes | Trigger fresh route coverage scan |

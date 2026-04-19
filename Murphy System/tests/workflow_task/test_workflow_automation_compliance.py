@@ -52,7 +52,7 @@ def auth_client(client):
         "job_title": "QA",
         "company": "TestCo",
     })
-    assert resp.status_code == 200
+    assert resp.status_code == 201
     data = resp.json()
     assert data["success"] is True
     return client, data
@@ -67,7 +67,7 @@ def solo_client(client):
         "password": "SecurePass123!",
         "full_name": "Solo User",
     })
-    assert resp.status_code == 200
+    assert resp.status_code == 201
     data = resp.json()
     # Upgrade to SOLO tier via internal subscription manager
     try:
