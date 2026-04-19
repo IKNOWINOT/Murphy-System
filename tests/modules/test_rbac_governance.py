@@ -124,10 +124,23 @@ class TestUserRegistration:
 # ------------------------------------------------------------------
 
 class TestPermissionChecks:
-    def test_owner_has_all_permissions(self, gov):
+    def test_owner_has_all_org_permissions(self, gov):
+        # OWNER has all permissions except platform-level ones
+        # (APPROVE_HITL_DEPLOYMENT, MANAGE_PLATFORM, MANAGE_ALL_ORGS,
+        #  DESIGNATE_PLATFORM_ADMIN) which are reserved for FOUNDER /
+        #  PLATFORM_ADMIN.
+        _platform_only = {
+            Permission.APPROVE_HITL_DEPLOYMENT,
+            Permission.MANAGE_PLATFORM,
+            Permission.MANAGE_ALL_ORGS,
+            Permission.DESIGNATE_PLATFORM_ADMIN,
+        }
         for perm in Permission:
             allowed, reason = gov.check_permission("owner1", perm)
-            assert allowed, f"OWNER should have {perm.value}"
+            if perm in _platform_only:
+                assert not allowed, f"OWNER should NOT have {perm.value}"
+            else:
+                assert allowed, f"OWNER should have {perm.value}"
 
     def test_admin_lacks_manage_users(self, gov):
         allowed, _ = gov.check_permission("admin1", Permission.MANAGE_USERS)
