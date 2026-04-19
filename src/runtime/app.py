@@ -14014,7 +14014,23 @@ def create_app() -> FastAPI:
                         except Exception:
                             pass
                     event["run_id"] = run_id
-                    event["llm_provider"] = "murphy-demo"
+                    # Pass through the real llm_provider from the pipeline
+                    # diagnostics so the frontend knows what actually generated
+                    # the content instead of always showing "murphy-demo".
+                    diag = event.get("pipeline_diagnostics") or {}
+                    try:
+                        from src.demo_deliverable_generator import detect_llm_provider
+                        event.setdefault("llm_provider", detect_llm_provider(diag))
+                    except ImportError:
+                        event.setdefault("llm_provider", "murphy-demo")
+                    # Surface error/fallback counts so the frontend can decide
+                    # whether to show a warning about degraded output.
+                    if diag.get("error_count", 0) > 0 or diag.get("fallback_count", 0) > 0:
+                        event["pipeline_warnings"] = {
+                            "error_count": diag.get("error_count", 0),
+                            "fallback_count": diag.get("fallback_count", 0),
+                            "fallbacks": diag.get("fallbacks", []),
+                        }
                 try:
                     yield f"data: {json.dumps(event)}\n\n"
                 except (TypeError, ValueError):
@@ -14059,6 +14075,78 @@ def create_app() -> FastAPI:
                 "X-Accel-Buffering": "no",
             },
         )
+
+    # ------------------------------------------------------------------
+    # Multi-format deliverable export  (label: FORGE-EXPORT-001)
+    # ------------------------------------------------------------------
+
+    @app.get("/api/demo/deliverable/formats")
+    async def api_demo_deliverable_formats():
+        """Return the list of supported deliverable output formats."""
+        try:
+            from src.demo_deliverable_generator import SUPPORTED_FORMATS
+            return JSONResponse({
+                "formats": {k: v["label"] for k, v in SUPPORTED_FORMATS.items()},
+                "default": "txt",
+            })
+        except ImportError:
+            logger.warning("FORGE-EXPORT-ERR-003: SUPPORTED_FORMATS not available")
+            return JSONResponse({
+                "formats": {"txt": "Plain Text (.txt)"},
+                "default": "txt",
+            })
+
+    @app.post("/api/demo/deliverable/export")
+    async def api_demo_deliverable_export(request: Request):
+        """Convert a deliverable to a different output format.
+
+        Accepts a JSON body with:
+          - ``deliverable``: the deliverable dict (title, content, filename)
+          - ``format``: target format (txt, pdf, html, docx, zip, md)
+          - ``query``: original query (for ZIP README)
+
+        Returns the converted content.  Binary formats (pdf, docx, zip) are
+        returned as base64-encoded strings with ``is_binary: true``.
+
+        Label: FORGE-EXPORT-001
+        """
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+        deliverable = body.get("deliverable")
+        if not deliverable or not deliverable.get("content"):
+            return JSONResponse({"success": False, "error": "deliverable with content is required"}, status_code=400)
+
+        target_format = (body.get("format") or "txt").strip().lower()
+        query = body.get("query", "")
+
+        try:
+            from src.demo_deliverable_generator import convert_deliverable_format
+        except ImportError:
+            logger.warning("FORGE-EXPORT-ERR-001: convert_deliverable_format not available — returning txt")
+            return JSONResponse({
+                "success": True,
+                "content": deliverable.get("content", ""),
+                "filename": deliverable.get("filename", "murphy-deliverable.txt"),
+                "mime_type": "text/plain",
+                "format": "txt",
+                "is_binary": False,
+            })
+
+        try:
+            result = convert_deliverable_format(deliverable, target_format, query=query)
+            return JSONResponse({
+                "success": True,
+                **result,
+            })
+        except Exception as exc:
+            logger.exception("FORGE-EXPORT-ERR-002: Format conversion failed: %s", exc)
+            return JSONResponse({
+                "success": False,
+                "error": f"Format conversion failed: {type(exc).__name__}: {exc}",
+            }, status_code=500)
 
     @app.get("/ui/financing-options")
     async def ui_financing_options_redirect():

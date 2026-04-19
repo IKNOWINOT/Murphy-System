@@ -972,6 +972,21 @@ function forgeRun(query){
               apiBuildMetrics.line_count=evt.metrics.line_count;
               apiBuildMetrics.size_kb=evt.metrics.size_kb;
             }
+            // Surface pipeline warnings — don't fail silently (FORGE-HONESTY-001)
+            if(evt.pipeline_warnings){
+              var pw=evt.pipeline_warnings;
+              if(pw.fallback_count>0&&pw.fallbacks&&pw.fallbacks.length>0){
+                var fbMsg=pw.fallbacks.map(function(f){return _escHtml(f);}).join('; ');
+                _chatSystem('&#9888; Pipeline used '+pw.fallback_count+' fallback(s): '+fbMsg);
+              }
+              if(pw.error_count>0){
+                _chatSystem('&#9888; '+pw.error_count+' pipeline error(s) occurred — output may be template-based');
+              }
+            }
+            // Show which LLM provider actually generated the content
+            if(evt.llm_provider&&evt.llm_provider!=='murphy-demo'){
+              _chatSystem('&#128161; Content generated via: <strong>'+_escHtml(evt.llm_provider)+'</strong>');
+            }
             // Emit workflow decision into chat (label: FORGE-CHAT-002)
             if(evt.workflow&&evt.workflow.name){
               var wfMsg='&#128196; Production Workflow: <strong>'+_escHtml(evt.workflow.name)+'</strong>';
