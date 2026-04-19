@@ -28,6 +28,7 @@ import os
 import random
 import sys
 import re
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -3906,12 +3907,13 @@ def _prod_get_account_from_session(request: Request) -> Optional[Dict[str, Any]]
 
 
 # In-process stores for verification & password-reset flows
+# NOTE: These are in-memory only; pending tokens are lost on server restart.
+# For production deployments, back these with Redis or a database.
 _prod_verification_tokens: Dict[str, Dict[str, Any]] = {}
 _prod_password_reset_tokens: Dict[str, Dict[str, Any]] = {}
 
 _PROD_VERIFICATION_EXPIRY_SECONDS = 86400   # 24 hours
-_PROD_PASSWORD_RESET_FROM_EMAIL = os.environ.get("MURPHY_NOREPLY_EMAIL", "noreply@murphy.systems")
-_PROD_FOUNDER_RECOVERY_EMAIL = os.environ.get("MURPHY_FOUNDER_RECOVERY_EMAIL", "")
+_PROD_PASSWORD_RESET_EXPIRY_SECONDS = 3600  # 1 hour
 
 
 # ── Founder account seed ────────────────────────────────────────────────────
@@ -4281,7 +4283,7 @@ async def api_auth_providers():
 @app.get("/api/auth/verify-email")
 async def api_auth_verify_email(request: Request):
     """Verify email address from the link sent during signup."""
-    import time as _time
+
     token = request.query_params.get("token", "").strip()
     if not token:
         return HTMLResponse(
@@ -4383,17 +4385,19 @@ async def api_auth_resend_verification(request: Request):
         return JSONResponse({"success": True, "already_verified": True, "message": "This email is already verified. You can sign in."})
 
     # Invalidate old tokens
-    for t, meta in list(_prod_verification_tokens.items()):
-        if meta.get("account_id") == account_id:
-            _prod_verification_tokens.pop(t, None)
+    with _auth_lock:
+        for t, meta in list(_prod_verification_tokens.items()):
+            if meta.get("account_id") == account_id:
+                _prod_verification_tokens.pop(t, None)
 
     # Generate new token
     verification_token = _secrets.token_urlsafe(32)
-    _prod_verification_tokens[verification_token] = {
-        "account_id": account_id,
-        "email": email,
-        "created_at": _now_iso(),
-    }
+    with _auth_lock:
+        _prod_verification_tokens[verification_token] = {
+            "account_id": account_id,
+            "email": email,
+            "created_at": _now_iso(),
+        }
 
     scheme = request.url.scheme
     host = request.headers.get("host", request.url.hostname or "murphy.systems")
@@ -4422,7 +4426,7 @@ async def api_auth_forgot_password(request: Request):
 @app.post("/api/auth/request-password-reset")
 async def api_auth_request_password_reset(request: Request):
     """Generate a password-reset token and (in dev) return it inline for testing."""
-    import time as _time
+
     try:
         body = await request.json()
     except Exception:
@@ -4439,17 +4443,19 @@ async def api_auth_request_password_reset(request: Request):
     }
     if account_id:
         # Expire any existing unused token for this account
-        for t, meta in list(_prod_password_reset_tokens.items()):
-            if meta.get("account_id") == account_id and not meta.get("used"):
-                meta["used"] = True
+        with _auth_lock:
+            for t, meta in list(_prod_password_reset_tokens.items()):
+                if meta.get("account_id") == account_id and not meta.get("used"):
+                    meta["used"] = True
 
         token = _secrets.token_urlsafe(32)
-        _prod_password_reset_tokens[token] = {
-            "account_id": account_id,
-            "email": email,
-            "expires_at": _time.time() + 3600,
-            "used": False,
-        }
+        with _auth_lock:
+            _prod_password_reset_tokens[token] = {
+                "account_id": account_id,
+                "email": email,
+                "expires_at": time.time() + _PROD_PASSWORD_RESET_EXPIRY_SECONDS,
+                "used": False,
+            }
         reset_url = f"/ui/reset-password?token={token}"
 
         # In development expose the token so the flow can be tested without email
@@ -4463,12 +4469,12 @@ async def api_auth_request_password_reset(request: Request):
 @app.get("/api/auth/reset-password/validate")
 async def api_auth_validate_reset_token(request: Request):
     """Check whether a password-reset token is valid and unexpired."""
-    import time as _time
+
     token = request.query_params.get("token", "").strip()
     if not token:
         return JSONResponse({"valid": False, "error": "token is required"}, status_code=400)
     meta = _prod_password_reset_tokens.get(token)
-    if meta is None or meta.get("used") or _time.time() > meta.get("expires_at", 0):
+    if meta is None or meta.get("used") or time.time() > meta.get("expires_at", 0):
         return JSONResponse({"valid": False, "error": "Token is invalid or has expired"})
     return JSONResponse({"valid": True, "email": meta.get("email", "")})
 
@@ -4476,7 +4482,7 @@ async def api_auth_validate_reset_token(request: Request):
 @app.post("/api/auth/reset-password")
 async def api_auth_reset_password(request: Request):
     """Consume a password-reset token and set the new password."""
-    import time as _time
+
     try:
         body = await request.json()
     except Exception:
@@ -4493,7 +4499,7 @@ async def api_auth_reset_password(request: Request):
     meta = _prod_password_reset_tokens.get(token)
     if meta is None or meta.get("used"):
         return JSONResponse({"success": False, "error": "Token is invalid or has already been used"}, status_code=400)
-    if _time.time() > meta.get("expires_at", 0):
+    if time.time() > meta.get("expires_at", 0):
         return JSONResponse({"success": False, "error": "Token has expired. Please request a new reset link."}, status_code=400)
 
     account_id = meta.get("account_id", "")
