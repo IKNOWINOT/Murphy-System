@@ -121,6 +121,35 @@ class PipelineErrorTracker:
 
 
 # ---------------------------------------------------------------------------
+# Provider detection utility  (label: FORGE-PROVIDER-DETECT-001)
+# ---------------------------------------------------------------------------
+# Shared logic to extract the actual LLM provider from pipeline diagnostics
+# so that both forge_stream.py and runtime/app.py use the same logic.
+# ---------------------------------------------------------------------------
+
+def detect_llm_provider(pipeline_diagnostics: Dict[str, Any]) -> str:
+    """Extract the actual LLM provider from pipeline diagnostics path_taken.
+
+    Returns a human-readable provider name.  When no real LLM was used
+    and fallbacks were involved, returns ``"template-fallback"`` so the
+    frontend can inform the user honestly.
+    """
+    path_taken = (pipeline_diagnostics or {}).get("path_taken") or []
+    for step in path_taken:
+        if step.startswith("llm_ok:"):
+            return step.split(":", 1)[1]
+        if step.startswith("llm_controller_ok"):
+            return "llm-controller"
+        if step.startswith("local_llm_ok"):
+            return "local-llm"
+        if step.startswith("swarm_ok:"):
+            return "swarm"
+    if any("fallback" in s for s in path_taken):
+        return "template-fallback"
+    return "murphy-demo"
+
+
+# ---------------------------------------------------------------------------
 # Multi-format deliverable output  (label: FORGE-MULTIFORMAT-001)
 # ---------------------------------------------------------------------------
 # Supported output formats beyond plain text.  Each format uses existing

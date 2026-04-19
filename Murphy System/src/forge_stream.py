@@ -168,23 +168,13 @@ async def forge_stream_generator(query: str = "") -> AsyncIterator[str]:
     pipeline_warnings = None
     if done_event:
         diag = done_event.get("pipeline_diagnostics") or {}
-        path_taken = diag.get("path_taken") or []
-        for step in path_taken:
-            if step.startswith("llm_ok:"):
-                llm_provider = step.split(":", 1)[1]
-                break
-            if step.startswith("swarm_ok:"):
-                llm_provider = "swarm"
-                break
-            if step.startswith("llm_controller_ok"):
-                llm_provider = "llm-controller"
-                break
-            if step.startswith("local_llm_ok"):
-                llm_provider = "local-llm"
-                break
-        else:
-            if any("fallback" in s for s in path_taken):
-                llm_provider = "template-fallback"
+
+        # Use shared provider detection utility (FORGE-PROVIDER-DETECT-001)
+        try:
+            from src.demo_deliverable_generator import detect_llm_provider
+            llm_provider = detect_llm_provider(diag)
+        except ImportError:
+            llm_provider = "unknown"
 
         if diag.get("error_count", 0) > 0 or diag.get("fallback_count", 0) > 0:
             pipeline_warnings = {
