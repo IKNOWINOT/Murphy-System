@@ -253,11 +253,11 @@ def _is_public_api_route(path: str, method: str = "GET") -> bool:
         "/api/auth/register-free",
         "/api/auth/callback",
         "/api/auth/providers",
+        "/api/auth/forgot-password",
+        "/api/auth/request-password-reset",
+        "/api/auth/reset-password",
+        "/api/auth/reset-password/validate",
         "/api/usage/daily",
-        # PATCH-001-AUTH-MIDDLEWARE 2026-04-08: was only in _APIKeyMiddleware exempt list
-        # (now removed). Handler self-validates the cookie; listing here lets it
-        # reach the handler without SecurityMiddleware blocking it first.
-        "/api/auth/session-token",
     })
     if normalized in _PUBLIC_EXACT:
         return True
@@ -531,6 +531,10 @@ _CSRF_EXEMPT_PATHS = frozenset({
     "/api/auth/register",
     "/api/auth/callback",
     "/api/auth/resend-verification",
+    "/api/auth/register-free",
+    "/api/auth/forgot-password",
+    "/api/auth/request-password-reset",
+    "/api/auth/reset-password",
 })
 
 # Secret used to sign CSRF tokens.  Override with MURPHY_CSRF_SECRET env var.
