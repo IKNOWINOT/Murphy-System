@@ -976,6 +976,14 @@ def create_app() -> FastAPI:
     except Exception as _e:  # pragma: no cover
         logger.warning("Platform onboarding router not loaded: %s", _e)
 
+    # ── Module Instance Manager ────────────────────────────────────────
+    try:
+        from src.module_instance_api import register_module_instance_routes
+        register_module_instance_routes(app)
+        logger.info("Module Instance Manager API registered at /module-instances/*")
+    except Exception as _e:  # pragma: no cover
+        logger.warning("Module Instance Manager routes not loaded: %s", _e)
+
     # Register RBAC governance with security layer (SEC-005)
     rbac = getattr(murphy, 'rbac_governance', None)
     if rbac is not None:
@@ -1005,6 +1013,26 @@ def create_app() -> FastAPI:
         _integration_bus.initialize()
         logger.info("IntegrationBus initialised: %s", _integration_bus.get_status())
     except Exception as _ib_exc:
+
+    # ── HITL Review Builder ─────────────────────────────────────────────
+    _hitl_review_builder = None
+    try:
+        from src.hitl_review_builder import HITLReviewBuilder
+        _gate_syn = getattr(murphy, "gate_synthesis", None)
+        _rosetta = None
+        try:
+            from src.swarm_rosetta_bridge import get_bridge as _get_rosetta
+            _rosetta = _get_rosetta()
+        except Exception:
+            pass
+        _hitl_review_builder = HITLReviewBuilder(
+            gate_synthesis=_gate_syn,
+            rosetta_bridge=_rosetta,
+        )
+        setattr(murphy, "hitl_review_builder", _hitl_review_builder)
+        logger.info("HITL Review Builder initialised")
+    except Exception as _hrb_exc:
+        logger.warning("HITL Review Builder not loaded: %s", _hrb_exc)
         logger.warning("IntegrationBus not available — endpoints use legacy paths: %s", _ib_exc)
 
     # ==================== CORE ENDPOINTS ====================
@@ -2940,6 +2968,98 @@ def create_app() -> FastAPI:
         return JSONResponse({
             "success": True,
             "stats": _matrix_bridge_state["stats"],
+        })
+
+    @app.post("/api/matrix/notify")
+    async def matrix_notify(request: Request):
+        """Send a Matrix notification for HITL events.
+
+        Body: { "room_id": "...", "event_type": "hitl_pending|hitl_approved|...",
+                "message": "...", "metadata": {} }
+        Commissioned: PATCH-010 / 2026-04-19
+        """
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse(
+                {"success": False, "error": {"code": "BAD_REQUEST", "message": "Invalid JSON body"}},
+                status_code=400,
+            )
+        room_id = (body.get("room_id") or "").strip()
+        event_type = (body.get("event_type") or "").strip()
+        message = (body.get("message") or "").strip()
+        if not message:
+            return JSONResponse(
+                {"success": False, "error": {"code": "VALIDATION_ERROR", "message": "message is required"}},
+                status_code=422,
+            )
+        # Attempt delivery via Matrix bridge
+        bridge = getattr(murphy, "matrix_bridge", None)
+        delivered = False
+        if bridge and hasattr(bridge, "send_notification"):
+            try:
+                bridge.send_notification(room_id=room_id, event_type=event_type, body=message)
+                delivered = True
+            except Exception as exc:
+                logger.warning("Matrix notify delivery failed: %s", exc)
+        _matrix_bridge_state["stats"]["messages_sent"] = _matrix_bridge_state["stats"].get("messages_sent", 0) + (1 if delivered else 0)
+        return JSONResponse({
+            "success": True,
+            "delivered": delivered,
+            "event_type": event_type,
+            "room_id": room_id,
+        })
+
+    @app.post("/api/infrastructure/compare")
+    async def infrastructure_compare(request: Request):
+        """Compare running environment against hetzner_load.sh expected state.
+
+        Body: { "checks": ["docker", "ollama", "mail", "ssl", "dns"] }
+        Returns per-check pass/fail with details.
+        Commissioned: PATCH-010 / 2026-04-19
+        """
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        requested = body.get("checks") or ["docker", "ollama", "mail", "ssl", "dns"]
+        import shutil
+        results = {}
+        for check in requested:
+            if check == "docker":
+                results["docker"] = {
+                    "pass": shutil.which("docker") is not None,
+                    "detail": "docker binary found" if shutil.which("docker") else "docker not installed",
+                }
+            elif check == "ollama":
+                results["ollama"] = {
+                    "pass": _check_ollama_available(_ollama_base_url()),
+                    "detail": f"ollama at {_ollama_base_url()}",
+                }
+            elif check == "mail":
+                results["mail"] = {
+                    "pass": bool(os.environ.get("MURPHY_MAIL_DOMAIN")),
+                    "detail": os.environ.get("MURPHY_MAIL_DOMAIN", "not configured"),
+                }
+            elif check == "ssl":
+                results["ssl"] = {
+                    "pass": bool(os.environ.get("MURPHY_DOMAIN")),
+                    "detail": os.environ.get("MURPHY_DOMAIN", "not configured"),
+                }
+            elif check == "dns":
+                results["dns"] = {
+                    "pass": bool(os.environ.get("MURPHY_DOMAIN")),
+                    "detail": os.environ.get("MURPHY_DOMAIN", "not configured"),
+                }
+            else:
+                results[check] = {"pass": False, "detail": f"unknown check: {check}"}
+        passed = sum(1 for r in results.values() if r["pass"])
+        return JSONResponse({
+            "success": True,
+            "total": len(results),
+            "passed": passed,
+            "failed": len(results) - passed,
+            "checks": results,
         })
 
     # ==================== SWARM ENDPOINTS ====================
@@ -8248,6 +8368,31 @@ def create_app() -> FastAPI:
         except Exception as exc:
             logger.exception("Resend verification failed")
             return _safe_error_response(exc, 500)
+
+    @app.get("/api/auth/login")
+    async def auth_login_page(request: Request):
+        """Login page / session check.
+
+        Returns session status if already logged in, or a redirect hint
+        to the login UI.  Used by frontend auth guards.
+        Commissioned: PATCH-010 / 2026-04-19
+        """
+        account = _get_account_from_session(request)
+        if account:
+            return JSONResponse({
+                "success": True,
+                "authenticated": True,
+                "account_id": account.get("account_id", ""),
+                "email": account.get("email", ""),
+                "name": account.get("full_name", ""),
+                "tier": account.get("tier", "free"),
+            })
+        return JSONResponse({
+            "success": True,
+            "authenticated": False,
+            "login_url": "/ui/login",
+            "message": "Not authenticated — redirect to login page",
+        })
 
     @app.post("/api/auth/login")
     async def auth_login(request: Request):
@@ -15363,6 +15508,15 @@ def create_app() -> FastAPI:
         logger.info("ROI Calendar: seeded %d randomly-generated events", len(_seed_roi))
     except Exception as _roi_seed_exc:
         logger.debug("ROI Calendar seeding skipped: %s", _roi_seed_exc)
+
+    # ── Route Coverage Scanner (must be last — sees all registered routes) ──
+    _route_coverage_scanner = None
+    try:
+        from src.route_coverage_scanner import register_route_coverage_endpoints
+        _route_coverage_scanner = register_route_coverage_endpoints(app)
+        setattr(murphy, "route_coverage_scanner", _route_coverage_scanner)
+    except Exception as _rcs_exc:
+        logger.warning("Route coverage scanner not loaded: %s", _rcs_exc)
 
     return app
 
