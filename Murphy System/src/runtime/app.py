@@ -1013,6 +1013,7 @@ def create_app() -> FastAPI:
         _integration_bus.initialize()
         logger.info("IntegrationBus initialised: %s", _integration_bus.get_status())
     except Exception as _ib_exc:
+        logger.warning("IntegrationBus not available — endpoints use legacy paths: %s", _ib_exc)
 
     # ── HITL Review Builder ─────────────────────────────────────────────
     _hitl_review_builder = None
@@ -1033,7 +1034,6 @@ def create_app() -> FastAPI:
         logger.info("HITL Review Builder initialised")
     except Exception as _hrb_exc:
         logger.warning("HITL Review Builder not loaded: %s", _hrb_exc)
-        logger.warning("IntegrationBus not available — endpoints use legacy paths: %s", _ib_exc)
 
     # ==================== CORE ENDPOINTS ====================
 
@@ -9275,6 +9275,156 @@ def create_app() -> FastAPI:
         item["decided_at"] = _now_iso()
         item["notes"] = body.get("notes", "")
         return JSONResponse({"ok": True, "item": item})
+
+    # ==================== HITL DEPLOYMENT GATE ENDPOINTS ====================
+    # These endpoints wire the HITL Review Builder to the runtime, enabling
+    # platform admins (FOUNDER / PLATFORM_ADMIN) to review high-risk changes
+    # before they are applied to the system.
+
+    @app.post("/api/hitl/deployment-review")
+    async def hitl_create_deployment_review(request: Request):
+        """Create a HITL deployment review for a high-risk change.
+
+        Body: {
+            "change_category": "optimization|update|bugfix|source_code|customer_deliverable|...",
+            "problem_description": "...",
+            "rationale_why": "...",
+            "rationale_approach": "...",
+            "priority": "critical|high|medium|low",
+            "artifact_context": { ... }
+        }
+        Commissioned: PATCH-010 / 2026-04-19
+        """
+        builder = getattr(murphy, "hitl_review_builder", None)
+        if builder is None:
+            return JSONResponse(
+                {"success": False, "error": {"code": "SERVICE_UNAVAILABLE",
+                 "message": "HITL Review Builder not initialised"}},
+                status_code=503,
+            )
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse(
+                {"success": False, "error": {"code": "BAD_REQUEST", "message": "Invalid JSON"}},
+                status_code=400,
+            )
+        change_category = (body.get("change_category") or "update").strip()
+        problem_description = (body.get("problem_description") or "").strip()
+        if not problem_description:
+            return JSONResponse(
+                {"success": False, "error": {"code": "VALIDATION_ERROR",
+                 "message": "problem_description is required"}},
+                status_code=422,
+            )
+        review = builder.build_review(
+            change_category=change_category,
+            problem_description=problem_description,
+            rationale_why=body.get("rationale_why", ""),
+            rationale_approach=body.get("rationale_approach", ""),
+            priority=body.get("priority", "medium"),
+            artifact_context=body.get("artifact_context"),
+        )
+        # Persist to HITL store if available
+        _hitl_store = getattr(murphy, "hitl_store", None)
+        if _hitl_store and hasattr(_hitl_store, "save_item"):
+            _hitl_store.save_item({
+                "id": review.review_id,
+                "type": "deployment_review",
+                "title": f"Deployment Review: {change_category}",
+                "description": review.problem_summary,
+                "status": "pending",
+                "priority": review.priority,
+                "metadata": review.to_dict(),
+            })
+        logger.info("Created deployment review %s [%s]", review.review_id, change_category)
+        return JSONResponse({"success": True, "review": review.to_dict()}, status_code=201)
+
+    @app.get("/api/hitl/deployment-reviews")
+    async def hitl_list_deployment_reviews():
+        """List pending HITL deployment reviews.
+
+        Returns all reviews that require platform admin approval.
+        Commissioned: PATCH-010 / 2026-04-19
+        """
+        builder = getattr(murphy, "hitl_review_builder", None)
+        if builder is None:
+            return JSONResponse({"success": True, "reviews": [], "count": 0})
+        pending = builder.list_pending()
+        return JSONResponse({
+            "success": True,
+            "reviews": [r.to_dict() for r in pending],
+            "count": len(pending),
+        })
+
+    @app.post("/api/hitl/deployment-review/{review_id}/decide")
+    async def hitl_deployment_review_decide(review_id: str, request: Request):
+        """Approve or reject a HITL deployment review.
+
+        Body: { "decision": "approve|reject", "decided_by": "user_id", "reason": "..." }
+        Only FOUNDER and PLATFORM_ADMIN roles may decide.
+        Commissioned: PATCH-010 / 2026-04-19
+        """
+        builder = getattr(murphy, "hitl_review_builder", None)
+        if builder is None:
+            return JSONResponse(
+                {"success": False, "error": {"code": "SERVICE_UNAVAILABLE"}},
+                status_code=503,
+            )
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse(
+                {"success": False, "error": {"code": "BAD_REQUEST"}},
+                status_code=400,
+            )
+        decision = (body.get("decision") or "").strip()
+        decided_by = (body.get("decided_by") or "").strip()
+        reason = (body.get("reason") or "").strip()
+        if decision not in ("approve", "reject"):
+            return JSONResponse(
+                {"success": False, "error": {"code": "VALIDATION_ERROR",
+                 "message": "decision must be 'approve' or 'reject'"}},
+                status_code=422,
+            )
+        if not decided_by:
+            return JSONResponse(
+                {"success": False, "error": {"code": "VALIDATION_ERROR",
+                 "message": "decided_by is required"}},
+                status_code=422,
+            )
+        # Verify platform-admin role if RBAC is available
+        _rbac = getattr(murphy, "rbac_governance", None)
+        if _rbac is not None:
+            try:
+                from src.rbac_governance import HITL_DEPLOYMENT_REVIEWER_ROLES
+                user_identity = _rbac._users.get(decided_by)
+                if user_identity is not None:
+                    has_role = any(r in HITL_DEPLOYMENT_REVIEWER_ROLES for r in user_identity.roles)
+                    if not has_role:
+                        return JSONResponse(
+                            {"success": False, "error": {"code": "FORBIDDEN",
+                             "message": "Only FOUNDER or PLATFORM_ADMIN may decide deployment reviews"}},
+                            status_code=403,
+                        )
+            except Exception as _rbac_exc:
+                logger.debug("RBAC check skipped: %s", _rbac_exc)
+
+        result = builder.decide(review_id, decision, decided_by, reason)
+        if result is None:
+            return JSONResponse(
+                {"success": False, "error": {"code": "NOT_FOUND",
+                 "message": f"Review {review_id} not found"}},
+                status_code=404,
+            )
+        # Update HITL store
+        _hitl_store = getattr(murphy, "hitl_store", None)
+        if _hitl_store and hasattr(_hitl_store, "update_item"):
+            _hitl_store.update_item(review_id, {
+                "status": result.status,
+                "metadata": result.to_dict(),
+            })
+        return JSONResponse({"success": True, "review": result.to_dict()})
 
     # ==================== COMMUNITY / FORUM / ORG GROUPS ====================
 
