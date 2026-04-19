@@ -14018,28 +14018,11 @@ def create_app() -> FastAPI:
                     # diagnostics so the frontend knows what actually generated
                     # the content instead of always showing "murphy-demo".
                     diag = event.get("pipeline_diagnostics") or {}
-                    path_taken = diag.get("path_taken") or []
-                    if path_taken:
-                        # Extract the provider from path labels like "llm_ok:deepinfra"
-                        for step in path_taken:
-                            if step.startswith("llm_ok:"):
-                                event.setdefault("llm_provider", step.split(":", 1)[1])
-                                break
-                            if step.startswith("llm_controller_ok"):
-                                event.setdefault("llm_provider", "llm-controller")
-                                break
-                            if step.startswith("local_llm_ok"):
-                                event.setdefault("llm_provider", "local-llm")
-                                break
-                            if step.startswith("swarm_ok:"):
-                                event.setdefault("llm_provider", "swarm")
-                                break
-                    if "llm_provider" not in event:
-                        # No real LLM was used — surface this honestly
-                        if any("fallback" in s for s in path_taken):
-                            event["llm_provider"] = "template-fallback"
-                        else:
-                            event["llm_provider"] = "murphy-demo"
+                    try:
+                        from src.demo_deliverable_generator import detect_llm_provider
+                        event.setdefault("llm_provider", detect_llm_provider(diag))
+                    except ImportError:
+                        event.setdefault("llm_provider", "murphy-demo")
                     # Surface error/fallback counts so the frontend can decide
                     # whether to show a warning about degraded output.
                     if diag.get("error_count", 0) > 0 or diag.get("fallback_count", 0) > 0:
