@@ -83,25 +83,32 @@ Murphy System/  →  root   (canonical → mirror)
 
 ### CI enforcement
 
-Two CI jobs block merges that introduce drift:
+Three CI jobs block merges that introduce drift:
 
-1. **`tree-divergence-check`** (`ci.yml`) — fails if `.py` files exist in
-   `Murphy System/src/` but not in root `src/`.
+1. **`tree-divergence-check`** (`ci.yml`) — fails if any tracked file (`.py`,
+   `.html`, `.yaml`, `.yml`, `.md`, `.js`, `.ts`, `.sh`, `.bat`, `.css`)
+   exists in `Murphy System/` but not at the repo root.  Covers **all
+   directories**, not just `src/`.
 2. **`source-drift-guard`** (`source-drift-guard.yml`) — fails if any
-   paired config file differs between root and `Murphy System/`.
+   auto-discovered paired file differs in content between root and
+   `Murphy System/`.  On PRs, also runs a session-scoped check that verifies
+   changed files have their mirror counterpart updated in the same PR.
 
 ### Running locally
 
 ```bash
-# Check drift between root and Murphy System/ config files
+# Full scan — auto-discovers all pairs and checks byte-identity:
 python scripts/enforce_canonical_source.py
 
 # Example output when clean:
-# OK: All 13 paired files are byte-identical between root and Murphy System/.
+# OK: All N auto-discovered paired files are byte-identical between root and Murphy System/.
 
 # Example output when drifted:
 # DRIFT DETECTED: 1 file(s) differ between root and Murphy System/:
 #   requirements.txt  (root=2,900B  mirror=2,500B)
+
+# Session-scoped scan — checks only files changed in the current branch:
+python scripts/enforce_canonical_source.py --changed-only
 ```
 
 ---
