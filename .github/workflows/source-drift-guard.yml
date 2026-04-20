@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        with:
+          fetch-depth: 0  # Full history needed for --changed-only git diff
 
       - name: Set up Python
         uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
@@ -26,3 +28,7 @@ jobs:
 
       - name: Check for file drift between root and Murphy System/
         run: python scripts/enforce_canonical_source.py
+
+      - name: Check session-scoped drift (PR only)
+        if: github.event_name == 'pull_request'
+        run: python scripts/enforce_canonical_source.py --changed-only
