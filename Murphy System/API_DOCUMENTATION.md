@@ -114,5 +114,37 @@
 
 ---
 
-*451 total routes implemented · 52 UI pages · 706 test files*  
+## Module Instance Manager
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /module-instances/spawn | Yes | Spawn a new module instance |
+| POST | /module-instances/{id}/despawn | Yes | Despawn an instance |
+| GET | /module-instances/ | Yes | List all instances (filter by type/state) |
+| GET | /module-instances/{id} | Yes | Get instance details |
+| POST | /module-instances/viability/check | Yes | Pre-spawn viability check |
+| POST | /module-instances/find-viable | Yes | Find viable instances by type/capabilities |
+| GET | /module-instances/audit/trail | Yes | Audit trail (filter by instance_id) |
+| GET | /module-instances/{id}/config-history | Yes | Configuration backward logic |
+| GET | /module-instances/status/manager | Yes | Manager status overview |
+| GET | /module-instances/status/resources | Yes | Resource availability |
+| POST | /module-instances/types/register | Yes | Register a module type |
+| POST | /module-instances/types/{type}/blacklist | Yes | Blacklist a module type |
+| POST | /module-instances/bulk/despawn | Yes | Bulk despawn instances |
+
+## Infrastructure (Extended)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/infrastructure/compare | Yes | Compare env against hetzner_load.sh requirements |
+
+## Matrix Notifications
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/matrix/notify | Yes | Send Matrix notification for HITL events |
+
+---
+
+*464 total routes implemented · 55 UI pages · 708 test files*  
 *Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post — BSL 1.1*

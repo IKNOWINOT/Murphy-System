@@ -118,6 +118,7 @@ from market_positioning_engine import (
     MarketPositioningEngine,
     get_default_positioning_engine,
 )
+
 try:
     from thread_safe_operations import capped_append
 except ImportError:
@@ -343,14 +344,14 @@ def _sanitize_error(exc: BaseException) -> str:
     to _MAX_ERROR_MSG_LEN characters so that error lists cannot grow unbounded
     and never expose sensitive contact information.
     """
-    detail = str(exc)
+    msg = str(exc)
     # Mask anything that looks like an email address
-    detail = re.sub(
+    msg = re.sub(
         r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}",
         "<redacted>",
-        detail,
+        msg,
     )
-    combined = f"{type(exc).__name__}: {detail}"
+    combined = f"{type(exc).__name__}: {msg}"
     return combined[:_MAX_ERROR_MSG_LEN]
 
 
@@ -1233,29 +1234,29 @@ class SelfMarketingOrchestrator:
                         sp_name = _validate_salesperson_name(
                             offering["salesperson_name"], param="salesperson_name"
                         )
-                    except ValueError as e:
-                        logger.warning("Offering '%s' salesperson_name rejected: %s", pid, e)
+                    except ValueError as exc:
+                        logger.warning("Offering '%s' salesperson_name rejected: %s", pid, exc)
 
                 if offering.get("salesperson_title"):
                     try:
                         sp_title = _validate_salesperson_name(
                             offering["salesperson_title"], param="salesperson_title"
                         )
-                    except ValueError as e:
-                        logger.warning("Offering '%s' salesperson_title rejected: %s", pid, e)
+                    except ValueError as exc:
+                        logger.warning("Offering '%s' salesperson_title rejected: %s", pid, exc)
 
                 if offering.get("salesperson_email"):
                     try:
                         sp_email = _validate_salesperson_email(offering["salesperson_email"])
-                    except ValueError as e:
+                    except ValueError:
                         logger.warning("Offering '%s' salesperson_email rejected (not logged)", pid)
-                        # Intentionally do NOT log e — it may contain the raw email (PII)
+                        # Intentionally do NOT log the exception — it may contain the raw email (PII)
 
                 if offering.get("salesperson_linkedin"):
                     try:
                         sp_linkedin = _validate_linkedin_url(offering["salesperson_linkedin"])
-                    except ValueError as e:
-                        logger.warning("Offering '%s' salesperson_linkedin rejected: %s", pid, e)
+                    except ValueError as exc:
+                        logger.warning("Offering '%s' salesperson_linkedin rejected: %s", pid, exc)
 
                 self._partnerships[pid] = PartnershipProspect(
                     partner_id=pid,
@@ -2094,7 +2095,7 @@ class SelfMarketingOrchestrator:
                     f"\nWhy Murphy is the right fit:\n{cap_lines}\n"
                 )
         except Exception:  # noqa: BLE001
-            pass  # positioning enrichment is non-fatal
+            logger.debug("Suppressed exception in self_marketing_orchestrator")
 
         body = (
             f"{greeting}\n\n"
@@ -2846,7 +2847,7 @@ class SelfMarketingOrchestrator:
             if hasattr(self, "_selling_engine") and self._selling_engine is not None:
                 return self._selling_engine.generate_leads()
         except Exception:  # noqa: BLE001
-            pass
+            logger.debug("Suppressed exception in self_marketing_orchestrator")
         return []
 
     def _score_content(self, title: str, body: str) -> float:
@@ -3052,10 +3053,14 @@ class SelfMarketingOrchestrator:
 
     def _publish_event(self, event_type: str, payload: Dict[str, Any]) -> None:
         """Publish an event to EventBackbone if wired."""
-        if self._backbone is None:
-            return
         try:
-            self._backbone.publish(event_type=event_type, payload=payload)
+            from event_backbone_client import publish as _bb_publish  # noqa: PLC0415
+            _bb_publish(
+                event_type,
+                payload,
+                source="self_marketing_orchestrator",
+                backbone=self._backbone,
+            )
         except Exception as exc:  # noqa: BLE001
             logger.debug("Event publish skipped: %s", exc)
 

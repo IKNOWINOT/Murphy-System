@@ -8,7 +8,7 @@ that can serve as the formal state vector X(t) for a control-theoretic formulati
 import logging
 import math
 from datetime import datetime, timezone
-from typing import ClassVar, List, Optional
+from typing import Any, ClassVar, List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 

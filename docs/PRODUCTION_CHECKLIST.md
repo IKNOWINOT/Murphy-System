@@ -60,7 +60,7 @@ All resources below must be present in the `murphy-system` namespace before go-l
 
 ### Production (full deploy via Kustomize)
 ```bash
-kubectl apply -k "k8s/"
+kubectl apply -k "Murphy System/k8s/"
 ```
 
 ### Production (rolling image update via CI/CD)
@@ -68,24 +68,24 @@ Push to `main` branch — GitHub Actions handles build, push, and rolling update
 
 ### Staging
 ```bash
-kubectl apply -k "k8s/staging/"
+kubectl apply -k "Murphy System/k8s/staging/"
 ```
 
 ### Manual full apply (step-by-step)
 ```bash
-kubectl apply -f "k8s/namespace.yaml"
-kubectl apply -f "k8s/configmap.yaml"
-kubectl apply -f "k8s/secret.yaml"
-kubectl apply -f "k8s/pvc.yaml"
-kubectl apply -f "k8s/redis.yaml"
-kubectl apply -f "k8s/resource-quota.yaml"
-kubectl apply -f "k8s/deployment.yaml"
-kubectl apply -f "k8s/service.yaml"
-kubectl apply -f "k8s/ingress.yaml"
-kubectl apply -f "k8s/hpa.yaml"
-kubectl apply -f "k8s/network-policy.yaml"
-kubectl apply -f "k8s/pdb.yaml"
-kubectl apply -f "k8s/backup-cronjob.yaml"
+kubectl apply -f "Murphy System/k8s/namespace.yaml"
+kubectl apply -f "Murphy System/k8s/configmap.yaml"
+kubectl apply -f "Murphy System/k8s/secret.yaml"
+kubectl apply -f "Murphy System/k8s/pvc.yaml"
+kubectl apply -f "Murphy System/k8s/redis.yaml"
+kubectl apply -f "Murphy System/k8s/resource-quota.yaml"
+kubectl apply -f "Murphy System/k8s/deployment.yaml"
+kubectl apply -f "Murphy System/k8s/service.yaml"
+kubectl apply -f "Murphy System/k8s/ingress.yaml"
+kubectl apply -f "Murphy System/k8s/hpa.yaml"
+kubectl apply -f "Murphy System/k8s/network-policy.yaml"
+kubectl apply -f "Murphy System/k8s/pdb.yaml"
+kubectl apply -f "Murphy System/k8s/backup-cronjob.yaml"
 ```
 
 ---

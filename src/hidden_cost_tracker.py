@@ -351,4 +351,4 @@ class HiddenCostTracker:
             try:
                 self._alert_callback(cost)
             except Exception:
-                pass
+                logger.debug("Alert callback failed for cost tracking")

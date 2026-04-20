@@ -161,7 +161,7 @@ class SelfAutomationBootstrap:
 
         # SubscriptionManager
         try:
-            from subscription_manager import PRICING_PLANS, SubscriptionManager
+            from subscription_manager import SubscriptionManager, PRICING_PLANS
             mgr = SubscriptionManager()
             components["subscription_manager"] = True
             components["pricing_plans_count"] = len(PRICING_PLANS)

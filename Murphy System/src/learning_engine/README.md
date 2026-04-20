@@ -1,25 +1,61 @@
-# Learning Engine
+# `src/learning_engine` — Learning Engine
 
-The `learning_engine` package drives Murphy's closed-loop self-improvement.
-It captures human corrections, learns from them via A/B testing and feature
-engineering, and feeds evolved policies back into the execution plane.
+Comprehensive learning and adaptation subsystem for Murphy. Tracks performance,
+recognizes patterns, collects feedback, and drives adaptive decision-making —
+without autonomously executing actions.
 
-## Key Modules
-
-| Module | Purpose |
-|--------|---------|
-| `correction_capture.py` | Records human corrections with full provenance |
-| `correction_storage.py` | Persists corrections to durable storage |
-| `correction_models.py` | `Correction`, `CorrectionBatch` Pydantic models |
-| `correction_metadata.py` | Metadata enrichment (timestamp, operator, confidence delta) |
-| `ab_testing.py` | A/B test harness for policy variants |
-| `adaptive_decision_engine.py` | Updates decision weights based on correction history |
-| `feature_engineering.py` | Derives learning features from raw operational data |
-
-## Usage
+## Public API
 
 ```python
-from learning_engine.correction_capture import CorrectionCapture
-capture = CorrectionCapture()
-await capture.record(task_id="t-1", before={...}, after={...}, operator="alice")
+from learning_engine import (
+    LearningEngine, PatternRecognizer, PerformanceTracker, FeedbackCollector,
+    LearnedPattern, LearningInsight,
+    HumanFeedbackSystem, OperationalFeedbackSystem,
+    Feedback, FeedbackEntry, FeedbackAnalysis,
+)
 ```
+
+## Core Usage
+
+```python
+from learning_engine import LearningEngine
+
+engine = LearningEngine()
+
+# Record an outcome
+engine.feedback_collector.record(
+    task_id="task-123",
+    outcome="success",
+    duration_ms=412,
+    confidence=0.87,
+)
+
+# Extract patterns
+patterns: List[LearnedPattern] = engine.pattern_recognizer.extract()
+
+# Get insights (recommendations only — never auto-executed)
+insights: List[LearningInsight] = engine.get_insights()
+```
+
+## Key Classes
+
+| Class | Module | Description |
+|-------|--------|-------------|
+| `LearningEngine` | `learning_engine.py` | Top-level coordinator |
+| `PatternRecognizer` | `learning_engine.py` | Statistical pattern detection |
+| `PerformanceTracker` | `learning_engine.py` | Rolling performance metrics |
+| `FeedbackCollector` | `learning_engine.py` | Collects task outcomes |
+| `HumanFeedbackSystem` | `feedback_system.py` | Human-provided feedback UI |
+| `OperationalFeedbackSystem` | `feedback_system.py` | Automated ops feedback |
+| `AdaptiveDecisionEngine` | `adaptive_decision_engine.py` | Decision recommendations |
+| `ShadowAgent` | `shadow_agent.py` | Runs shadow experiments offline |
+
+## Connector (Closed-Loop Wiring)
+
+`src/learning_engine_connector.py` subscribes to EventBackbone events
+(`TASK_COMPLETED`, `TASK_FAILED`, `GATE_EVALUATED`, `AUTOMATION_EXECUTED`) and
+chains `FeedbackIntegrator → PatternRecognizer → PerformancePredictor → gate threshold evolution`.
+
+## Tests
+
+`tests/test_learning_engine*.py`, `tests/test_learning_engine_connector.py` (43 tests).

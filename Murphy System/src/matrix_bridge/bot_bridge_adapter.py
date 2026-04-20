@@ -153,7 +153,7 @@ _HIVEMIND_PERSONAS: List[BotPersona] = [
         description="API key allocation, monitoring, and security.",
         subsystems=[
             "secure_key_manager",
-            "groq_key_rotator",
+            "llm_provider_router",
             "key_harvester",
         ],
         commands=["keys", "key", "keymanager"],

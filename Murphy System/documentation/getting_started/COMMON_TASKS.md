@@ -588,8 +588,11 @@ curl -s -X POST http://localhost:8000/api/gates/validate \
 ### Workflow 4: Monitor System Performance
 
 ```bash
-# 1. Get system health
+# 1. Get system health (shallow — fast liveness check)
 curl -s http://localhost:8000/api/health
+
+# 1b. Deep health — includes Ollama status and all subsystem checks
+curl -s 'http://localhost:8000/api/health?deep=true' | python3 -m json.tool
 
 # 2. Get performance metrics
 curl -s http://localhost:8000/api/telemetry/metrics?type=performance

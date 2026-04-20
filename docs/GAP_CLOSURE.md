@@ -29,11 +29,11 @@ It is maintained as part of the iterative **DIAGNOSE → PLAN → IMPLEMENT → 
 | G-F10 | `_load_dotenv()` called with `_env_file` instead of `_env_path` | Low | `murphy_system_1.0_runtime.py` | ✅ Closed |
 | G-F11 | Documentation module count stale (625 vs 649) | Low | `README.md`, `GETTING_STARTED.md` | ✅ Closed |
 | G-F12 | `API_DOCUMENTATION.md` contained no parseable endpoints | Low | `API_DOCUMENTATION.md` | ✅ Closed |
-| G-F13 | Documentation module count stale (649 vs 650+) | Low | `README.md`, root `README.md` | ✅ Closed |
+| G-F13 | Documentation module count stale (649 vs 650+) | Low | `Murphy System/README.md`, root `README.md` | ✅ Closed |
 | G-F14 | Missing BSL 1.1 license headers on new modules | Low | `wingman_protocol.py`, `causality_sandbox.py`, `golden_path_bridge.py`, `telemetry_adapter.py`, `secure_key_manager.py` | ✅ Closed |
 | G-F15 | Apache 2.0 footer in GAP_ANALYSIS.md (should be BSL 1.1) | Low | `docs/GAP_ANALYSIS.md` | ✅ Closed |
-| G-F16 | Web Interfaces table missing new HTML terminals | Low | `README.md` | ✅ Closed |
-| G-F17 | API Reference table missing new module groups | Low | `README.md` | ✅ Closed |
+| G-F16 | Web Interfaces table missing new HTML terminals | Low | `Murphy System/README.md` | ✅ Closed |
+| G-F17 | API Reference table missing new module groups | Low | `Murphy System/README.md` | ✅ Closed |
 | G-F18 | Systematic labeling update not documented | Low | `docs/GAP_CLOSURE.md`, `docs/GAP_ANALYSIS.md` | ✅ Closed |
 
 ---
@@ -102,7 +102,7 @@ It is maintained as part of the iterative **DIAGNOSE → PLAN → IMPLEMENT → 
 
 ### G-F13 — Module count stale in docs (649 → 650+)
 **Root cause:** Additional modules (`wingman_protocol.py`, `causality_sandbox.py`, `hitl_graduation_engine.py`, `golden_path_bridge.py`, `telemetry_adapter.py`, `secure_key_manager.py`) were added without updating the module count in documentation.
-**Fix:** Updated `README.md` and root `README.md` to `650+` (a range rather than an exact number to reduce future churn).
+**Fix:** Updated `Murphy System/README.md` and root `README.md` to `650+` (a range rather than an exact number to reduce future churn).
 
 ### G-F14 — Missing BSL 1.1 license headers on new modules
 **Root cause:** Several recently added modules were committed without the canonical BSL 1.1 copyright header (`# Copyright © 2020 Inoni Limited Liability Company / # Creator: Corey Post / # License: BSL 1.1`).
@@ -114,11 +114,11 @@ It is maintained as part of the iterative **DIAGNOSE → PLAN → IMPLEMENT → 
 **Fix:** Replaced the footer with the correct BSL 1.1 attribution.
 
 ### G-F16 — Web Interfaces table missing new HTML terminals
-**Root cause:** `terminal_costs.html`, `terminal_orgchart.html`, `terminal_unified.html`, and `terminal_integrations.html` were added to the `repository root directory but not listed in the Web Interfaces table in `README.md`.
+**Root cause:** `terminal_costs.html`, `terminal_orgchart.html`, `terminal_unified.html`, and `terminal_integrations.html` were added to the `Murphy System/` directory but not listed in the Web Interfaces table in `Murphy System/README.md`.
 **Fix:** Added the four missing entries to the Web Interfaces table.
 
 ### G-F17 — API Reference table missing new module groups
-**Root cause:** The API Reference table in `README.md` listed only the original 15 endpoint groups. The new Wingman Protocol, Causality Sandbox, HITL Graduation, Functionality Heatmap, and three Orchestrator groups were absent.
+**Root cause:** The API Reference table in `Murphy System/README.md` listed only the original 15 endpoint groups. The new Wingman Protocol, Causality Sandbox, HITL Graduation, Functionality Heatmap, and three Orchestrator groups were absent.
 **Fix:** Added seven new rows to the API Reference table.
 
 ### G-F18 — Systematic labeling update not documented

@@ -41,10 +41,13 @@ class TicketStatus(Enum):
 
 
 class TicketPriority(Enum):
-    """Ticket priority levels."""
+    """Ticket priority levels.
+    PATCH-008: added MEDIUM as alias for NORMAL for API compatibility.
+    """
     URGENT = "urgent"
     HIGH = "high"
     NORMAL = "normal"
+    MEDIUM = "medium"   # PATCH-008: alias — maps to same SLA as NORMAL
     LOW = "low"
 
 

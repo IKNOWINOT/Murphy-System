@@ -1,8 +1,11 @@
 # © 2020 Inoni Limited Liability Company · Creator: Corey Post · License: BSL 1.1
 """Workflow definition: encode all onboarding tasks as a WorkflowDefinition for the DAG engine."""
 
-from src.workflow_dag_engine import StepDefinition, WorkflowDefinition
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
+from src.workflow_dag_engine import WorkflowDefinition, StepDefinition
 from .task_catalog import TASK_CATALOG
 
 

@@ -27,11 +27,11 @@ from self_selling_engine._engine import (  # noqa: F401
 )
 from self_selling_engine.marketing_plan import (  # noqa: F401
     ABTestConfig,
-    CommunityActionType,
     CommunityBuildingPlan,
-    CompetitiveOutreachConfig,
+    CommunityActionType,
     ContentCampaignConfig,
     ContentTrigger,
+    CompetitiveOutreachConfig,
     MarketingPlan,
     MarketingPlanEngine,
     PlanStatus,

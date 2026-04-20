@@ -186,7 +186,10 @@ class VirtualController:
             return False
 
         # Clamp to limits
-        value = max(point.low_limit, min(value, point.high_limit))
+        if value < point.low_limit:
+            value = point.low_limit
+        elif value > point.high_limit:
+            value = point.high_limit
 
         point.current_value = value
         return True

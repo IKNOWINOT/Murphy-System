@@ -80,8 +80,13 @@ class ProviderTOS:
 PROVIDER_TOS_REGISTRY: Dict[str, ProviderTOS] = {
     "deepinfra": ProviderTOS(
         provider_name="DeepInfra",
-        tos_url="https://deepinfra.com/terms-of-use/",
-        privacy_url="https://deepinfra.com/privacy-policy/",
+        tos_url="https://deepinfra.com/terms",
+        privacy_url="https://deepinfra.com/privacy",
+    ),
+    "together": ProviderTOS(
+        provider_name="Together AI",
+        tos_url="https://www.together.ai/terms-of-service",
+        privacy_url="https://www.together.ai/privacy",
     ),
     "openai": ProviderTOS(
         provider_name="OpenAI",

@@ -1,315 +1,374 @@
-# LLM Subsystem
+# LLM Subsystem — Technical Reference
 
-**Package:** `src/` (standalone modules)  
-**Key files:** `llm_controller.py`, `llm_integration_layer.py`, `deepinfra_key_rotator.py`, `openai_compatible_provider.py`  
-**Last updated:** 2026-03-16
+**Murphy System — LLM Controller, Integration Layer, and Key Rotation**
+
+> **Copyright © 2020–2026 Inoni LLC — Created by Corey Post  
+> License: BSL 1.1**
+
+---
+
+## Table of Contents
+
+1. [Overview](#overview)
+2. [LLM Controller (`llm_controller.py`)](#llm-controller)
+   - [Model Inventory](#model-inventory)
+   - [Capability Routing](#capability-routing)
+   - [Request / Response Structures](#request--response-structures)
+   - [Cost Optimization](#cost-optimization)
+3. [LLM Integration Layer (`llm_integration_layer.py`)](#llm-integration-layer)
+   - [Provider Types](#provider-types)
+   - [Domain-to-Provider Routing](#domain-to-provider-routing)
+   - [Validation and HITL](#validation-and-hitl)
+4. [DeepInfra Key Rotation (`deepinfra_key_rotator.py`)](#deepinfra-key-rotation)
+   - [Round-Robin Rotation](#round-robin-rotation)
+   - [Auto-Disable on Failure](#auto-disable-on-failure)
+   - [Usage Statistics](#usage-statistics)
+5. [OpenAI-Compatible Provider (`openai_compatible_provider.py`)](#openai-compatible-provider)
+6. [Environment Variables](#environment-variables)
+7. [Architecture Diagram](#architecture-diagram)
 
 ---
 
 ## Overview
 
-The Murphy System LLM Subsystem is the unified gateway between the application layer and all language model providers. It provides:
+Murphy's LLM subsystem routes natural-language workloads across three tiers:
 
-- **Provider abstraction** — a single `OpenAICompatibleProvider` that speaks to OpenAI, Azure OpenAI, DeepInfra, Ollama, vLLM, LiteLLM, custom endpoints, and the on-board Murphy Foundation Model (MFM)
-- **Intelligent routing** — `LLMController` selects the best model for each request based on capability, cost, and context requirements
-- **Domain-to-provider routing** — `LLMIntegrationLayer` routes by knowledge domain (mathematical → Aristotle, creative → DeepInfra, etc.)
-- **API key rotation** — `DeepInfraKeyRotator` distributes calls across multiple keys to maximize throughput and handle key failures gracefully
+| Tier | Provider | Best For | Latency |
+|------|----------|----------|---------|
+| **Deterministic** | Aristotle / Wulfrum | Math, physics, engineering validation | ~10 ms |
+| **Generative** | DeepInfra (Mixtral / Llama / Gemma) | Creative, strategic, architectural | ~600 ms |
+| **Self-hosted** | MFM (Murphy Foundation Model) | Private / offline inference | ~300 ms |
+| **Onboard LLM** | Local small/medium model | Dev/test, no API key required | varies |
 
----
-
-## Architecture Diagram
-
-```
-Application Layer
-       │
-       ▼
-LLMController ──────────────────────────────┐
-  - model selection (capability + cost)     │
-  - context routing                         │
-       │                                    │
-       ▼                                    ▼
-LLMIntegrationLayer              OpenAICompatibleProvider
-  - domain routing (8 domains)    - ProviderType enum (8 providers)
-  - HITL trigger detection        - Unified request / response model
-  - math/physics validation       │
-       │                          │
-       ▼                          ▼
-DeepInfraKeyRotator          Provider Backends
-  - round-robin rotation   OpenAI / Azure / DeepInfra / Ollama /
-  - auto-disable on error  vLLM / LiteLLM / Custom / MFM
-  - usage stats
-```
+The `LLMController` selects a model based on *capability requirements*.  
+The `LLMIntegrationLayer` further routes by *domain type* and validates math/physics outputs across providers, triggering a Human-in-the-Loop (HITL) gate when providers disagree.
 
 ---
 
-## Modules
+## LLM Controller
 
-### `openai_compatible_provider.py`
+**Source:** `src/llm_controller.py`
 
-**Central abstraction layer for all LLM providers.**
+The `LLMController` is the master backend terminal that powers the neon terminal UI for system/module setup guidance and orchestrates all LLM calls within Murphy.
 
-#### Supported Provider Types
-
-| `ProviderType` | Description |
-|----------------|-------------|
-| `OPENAI` | OpenAI API (gpt-4, gpt-3.5-turbo, etc.) |
-| `AZURE` | Azure OpenAI Service |
-| `DEEPINFRA` | DeepInfra Cloud (Mixtral, LLaMA, Gemma) |
-| `OLLAMA` | Local Ollama server |
-| `VLLM` | vLLM inference server |
-| `LITELLM` | LiteLLM unified proxy |
-| `CUSTOM` | Custom OpenAI-compatible endpoint |
-| `ONBOARD` | Murphy Foundation Model (on-device) |
-
-#### Key Classes
+### Model Inventory
 
 ```python
-ProviderConfig(
-    provider_type: ProviderType,
-    api_key: str,
-    base_url: str,
-    model: str,
-    temperature: float = 0.7,
-    max_tokens: int = 2048,
-    timeout: float = 30.0,
-)
-
-ChatMessage(role: str, content: str)
-
-CompletionResponse(
-    content: str,
-    model: str,
-    usage: dict,
-    finish_reason: str,
-)
+class LLMModel(Enum):
+    DEEPINFRA_MIXTRAL = "deepinfra_mixtral"     # Large, high-quality reasoning
+    DEEPINFRA_LLAMA   = "deepinfra_llama"       # Balanced speed/quality
+    DEEPINFRA_GEMMA   = "deepinfra_gemma"       # Fast, low-latency
+    LOCAL_SMALL  = "local_small"      # On-device, no API key
+    LOCAL_MEDIUM = "local_medium"     # On-device, higher quality
+    MFM          = "mfm"              # Murphy Foundation Model
 ```
 
-#### Usage
+Each model is registered as an `LLMModelInfo` with:
 
 ```python
-from openai_compatible_provider import OpenAICompatibleProvider, ProviderConfig, ProviderType
-
-config = ProviderConfig(
-    provider_type=ProviderType.DEEPINFRA,
-    api_key=os.environ["DEEPINFRA_API_KEY"],
-    base_url="https://api.deepinfra.com/v1/openai",
-    model="mixtral-8x7b-32768",
-)
-provider = OpenAICompatibleProvider(config)
-response = await provider.complete([ChatMessage(role="user", content="Hello")])
-print(response.content)
+@dataclass
+class LLMModelInfo:
+    name: str
+    model_type: LLMModel
+    capabilities: List[ModelCapability]   # What it can do
+    max_context: int                       # Token context window
+    cost_per_1k_tokens: float              # USD cost
+    avg_latency: float                     # Seconds
+    confidence_threshold: float            # Min confidence to auto-approve
+    available: bool = True
 ```
+
+### Capability Routing
+
+The controller selects the cheapest available model that satisfies all required capabilities:
+
+```python
+class ModelCapability(Enum):
+    CODE_GENERATION    = "code_generation"
+    REASONING          = "reasoning"
+    CONTEXT_PROCESSING = "context_processing"
+    SWARM_PLANNING     = "swarm_planning"
+    SAFETY_ANALYSIS    = "safety_analysis"
+```
+
+**Selection algorithm:**
+
+1. Filter models by `available=True` and `required_capabilities ⊆ model.capabilities`.
+2. Among passing models, pick the one with the lowest `cost_per_1k_tokens`.
+3. If `model_preference` is set on the request, use that model if it passes capability check.
+4. Fall back to the onboard LLM (`LOCAL_SMALL`) if all external models are unavailable.
+
+### Request / Response Structures
+
+```python
+@dataclass
+class LLMRequest:
+    prompt: str
+    context: Optional[str] = None
+    temperature: float = 0.7
+    max_tokens: int = 2000
+    model_preference: Optional[LLMModel] = None
+    require_capabilities: Optional[List[ModelCapability]] = None
+
+@dataclass
+class LLMResponse:
+    content: str
+    model_used: LLMModel
+    tokens_used: int
+    latency_ms: float
+    confidence: float
+    requires_human_review: bool = False
+```
+
+### Cost Optimization
+
+The controller tracks per-model cumulative token cost and surfaces this in `/api/status`. When monthly costs exceed a configurable budget threshold (`MURPHY_LLM_BUDGET_USD`), it automatically downgrades to the cheapest capable tier.
 
 ---
 
-### `llm_controller.py`
+## LLM Integration Layer
 
-**Master backend controller — model selection and routing logic.**
+**Source:** `src/llm_integration_layer.py`
 
-Based on the Recursive Language Models (RLM) pattern (arXiv:2512.24601).
+The `LLMIntegrationLayer` provides domain-aware routing between four providers, with cross-provider validation for high-stakes domains.
 
-#### Model Registry
-
-| `LLMModel` | Description | Best For |
-|------------|-------------|----------|
-| `DEEPINFRA_MIXTRAL` | DeepInfra Mixtral-8x7B | General purpose, high quality |
-| `DEEPINFRA_LLAMA` | DeepInfra LLaMA-3 | Fast inference, reasoning |
-| `DEEPINFRA_GEMMA` | DeepInfra Gemma-7B | Lightweight tasks |
-| `LOCAL_SMALL` | On-device small model | Offline, fast |
-| `LOCAL_MEDIUM` | On-device medium model | Offline, balanced |
-| `MFM` | Murphy Foundation Model | Murphy-specific domain knowledge |
-
-#### Model Capabilities
-
-| `ModelCapability` | Description |
-|-------------------|-------------|
-| `CODE_GENERATION` | Generate and review code |
-| `REASONING` | Multi-step logical reasoning |
-| `CONTEXT_PROCESSING` | Long-context document processing |
-| `SWARM_PLANNING` | Multi-agent task decomposition |
-| `SAFETY_ANALYSIS` | Risk and safety assessment |
-
-#### Selection Algorithm
-
-The controller selects the model with the highest capability match score that stays within the cost budget:
-
-```
-score = Σ (capability_weight × capability_match) − cost_penalty
-```
-
-#### Usage
+### Provider Types
 
 ```python
-from llm_controller import LLMController, ModelCapability
-
-controller = LLMController()
-response = await controller.complete(
-    prompt="Analyse the safety of this industrial system...",
-    required_capabilities=[ModelCapability.SAFETY_ANALYSIS, ModelCapability.REASONING],
-    max_cost_per_1k=0.01,
-)
+class LLMProvider(Enum):
+    ARISTOTLE = "aristotle"   # Deterministic: math/physics validation
+    WULFRUM   = "wulfrum"     # Fuzzy-match + math validation
+    DEEPINFRA      = "deepinfra"        # Generative: creative/strategic
+    MFM       = "mfm"         # Murphy Foundation Model (self-hosted)
+    AUTO      = "auto"        # Automatic routing (default)
 ```
 
----
+### Domain-to-Provider Routing
 
-### `llm_integration_layer.py`
+The integration layer maps request domains to provider combinations:
 
-**Domain-to-provider routing with HITL validation triggers.**
-
-#### Domain Routing Table
-
-| `DomainType` | Primary Provider | Secondary | HITL Trigger |
-|--------------|-----------------|-----------|--------------|
-| `MATHEMATICAL` | Aristotle | — | On disagreement |
-| `PHYSICS` | Aristotle | — | On disagreement |
-| `ENGINEERING` | Aristotle | Wulfrum | Always validate |
-| `CREATIVE` | DeepInfra | — | Never |
-| `STRATEGIC` | DeepInfra | — | On low confidence |
-| `ARCHITECTURAL` | DeepInfra | Wulfrum | On disagreement |
-| `REGULATORY` | Aristotle | — | Always |
-| `GENERAL` | DeepInfra | — | Never |
-
-#### Validation Flow
-
-```
-Request ──► route_request()
-               │
-               ├── determine_provider(domain)
-               │
-               ├── execute_request(provider)
-               │
-               └── validate_response()
-                       │
-                       ├── math/physics: cross-validate with Wulfrum
-                       │
-                       └── disagreement: emit HumanLoopTrigger
-```
-
-#### Key Classes
+| Domain | Primary Provider | Secondary (Validation) | HITL Trigger |
+|--------|-----------------|------------------------|--------------|
+| `MATHEMATICAL` | Aristotle | — | Never (deterministic) |
+| `PHYSICS` | Aristotle | — | Never |
+| `ENGINEERING` | Aristotle | Wulfrum | If disagreement |
+| `CREATIVE` | DeepInfra | — | Low confidence |
+| `STRATEGIC` | DeepInfra | — | Low confidence |
+| `ARCHITECTURAL` | DeepInfra | Wulfrum | If disagreement |
+| `REGULATORY` | Aristotle | — | Low confidence |
+| `GENERAL` | DeepInfra | — | Low confidence |
 
 ```python
-LLMRequest(
-    request_id: str,
-    provider: LLMProvider,
-    domain: DomainType,
-    prompt: str,
-    context: dict,
-    requires_validation: bool,
-)
-
-LLMResponse(
-    request_id: str,
-    provider: LLMProvider,
-    content: str,
-    validation_status: ValidationStatus,
-    human_loop_triggers: list[HumanLoopTrigger],
-)
-
-HumanLoopTrigger(
-    trigger_id: str,
-    reason: str,
-    urgency: str,
-    context: dict,
-)
+class DomainType(Enum):
+    MATHEMATICAL   = "mathematical"
+    PHYSICS        = "physics"
+    ENGINEERING    = "engineering"
+    CREATIVE       = "creative"
+    STRATEGIC      = "strategic"
+    ARCHITECTURAL  = "architectural"
+    REGULATORY     = "regulatory"
+    GENERAL        = "general"
 ```
 
-#### Usage
+### Validation and HITL
+
+For engineering/architectural domains, both Aristotle and Wulfrum compute a result. If they **disagree** (difference > threshold), the integration layer:
+
+1. Sets `ValidationStatus.DISAGREEMENT`.
+2. Creates a HITL trigger via the gate system.
+3. Returns the Aristotle result as the provisional answer.
+4. Logs the disagreement in the audit trail.
 
 ```python
-from llm_integration_layer import LLMIntegrationLayer, DomainType, LLMProvider
-
-layer = LLMIntegrationLayer(
-    deepinfra_api_key=os.environ["DEEPINFRA_API_KEY"],
-)
-response = layer.route_request(
-    prompt="Calculate the load-bearing capacity of this beam...",
-    domain=DomainType.ENGINEERING,
-)
-if response.human_loop_triggers:
-    # Escalate to HITL queue
-    for trigger in response.human_loop_triggers:
-        hitl_queue.add(trigger)
+class ValidationStatus(Enum):
+    VALIDATED   = "validated"
+    DISAGREEMENT = "disagreement"   # Triggers HITL gate
+    ERROR       = "error"
+    PENDING     = "pending"
 ```
 
 ---
 
-### `deepinfra_key_rotator.py`
+## DeepInfra Key Rotation
 
-**Round-robin API key rotation with automatic failure handling.**
+**Source:** `src/deepinfra_key_rotator.py`
 
-#### Features
+Murphy distributes DeepInfra API calls across multiple keys to maximize throughput and avoid rate limiting.
 
-- Round-robin distribution across N API keys
-- Automatic key disabling after repeated failures (`disable_threshold`, default 3)
-- Per-key statistics: total calls, successful calls, failed calls, last error
-- Thread-safe via `threading.Lock`
-- Re-enable disabled keys after a configurable recovery window
-
-#### `KeyStats` Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `key` | `str` | The API key value |
-| `name` | `str` | Human-readable label |
-| `total_calls` | `int` | Total requests using this key |
-| `successful_calls` | `int` | Successfully completed requests |
-| `failed_calls` | `int` | Requests that resulted in an error |
-| `is_active` | `bool` | Whether the key is eligible for rotation |
-| `last_error` | `str | None` | Most recent error message |
-
-#### Usage
+### Round-Robin Rotation
 
 ```python
-from deepinfra_key_rotator import DeepInfraKeyRotator
-
-rotator = DeepInfraKeyRotator([
-    ("Primary", os.environ["DEEPINFRA_KEY_1"]),
-    ("Secondary", os.environ["DEEPINFRA_KEY_2"]),
-    ("Tertiary", os.environ["DEEPINFRA_KEY_3"]),
+rotator = DeepInfraKeyRotator(keys=[
+    ("Primary",   "di_aaaa..."),
+    ("Secondary", "di_bbbb..."),
+    ("Tertiary",  "di_cccc..."),
 ])
 
-name, key = rotator.get_next_key()
-# Use key for DeepInfra API call
-rotator.record_success(name)  # or rotator.record_failure(name, "Rate limited")
+key = rotator.get_next_key()   # Thread-safe round-robin
+rotator.report_success(key)
+rotator.report_failure(key, "rate_limited")
+```
 
+### Auto-Disable on Failure
+
+Each key tracks consecutive failures. When a key reaches `max_failures` (default: **3 consecutive failures**), it is automatically disabled:
+
+- `is_active = False` — removed from rotation.
+- `last_error` field records the most recent error message.
+- An `ERROR` log is emitted with the key name (not the key value).
+
+Keys can be re-enabled with `rotator.enable_key(name)`.
+
+### Usage Statistics
+
+```python
 stats = rotator.get_statistics()
-# [{"name": "Primary", "total_calls": 42, "success_rate": 0.98, "is_active": True}, ...]
+# Returns per-key stats:
+# {
+#   "Primary":   {"total": 4200, "success": 4190, "failed": 10, "active": True},
+#   "Secondary": {"total": 4180, "success": 4180, "failed": 0,  "active": True},
+# }
+```
+
+```python
+@dataclass
+class KeyStats:
+    key: str                         # The API key (never logged)
+    name: str                        # Human-readable label
+    total_calls: int = 0
+    successful_calls: int = 0
+    failed_calls: int = 0
+    last_used: Optional[datetime] = None
+    last_error: Optional[str] = None
+    is_active: bool = True
+```
+
+---
+
+## OpenAI-Compatible Provider
+
+**Source:** `src/openai_compatible_provider.py`
+
+The `OpenAICompatibleProvider` is the unified gateway that implements the OpenAI API contract for all external and local LLM backends.
+
+### Supported Provider Types
+
+```python
+class ProviderType(Enum):
+    OPENAI   = "openai"    # OpenAI GPT-4/3.5
+    AZURE    = "azure"     # Azure OpenAI deployment
+    DEEPINFRA     = "deepinfra"      # DeepInfra API (Mixtral/Llama/Gemma)
+    OLLAMA   = "ollama"    # Ollama local server
+    VLLM     = "vllm"      # vLLM inference server
+    LITELLM  = "litellm"   # LiteLLM proxy
+    CUSTOM   = "custom"    # Any OpenAI-compatible endpoint
+    ONBOARD  = "onboard"   # Murphy onboard model (no API key)
+```
+
+Configure via `ProviderConfig`:
+
+```python
+config = ProviderConfig(
+    provider_type=ProviderType.DEEPINFRA,
+    api_key=os.getenv("DEEPINFRA_API_KEY"),
+    model="mixtral-8x7b-32768",
+    base_url="https://api.deepinfra.com/v1/openai",
+)
+provider = OpenAICompatibleProvider(config)
+response: CompletionResponse = await provider.complete(messages)
 ```
 
 ---
 
 ## Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DEEPINFRA_API_KEY` | Optional | Default DeepInfra API key |
-| `DEEPINFRA_API_KEY_2` | Optional | Secondary DeepInfra key for rotation |
-| `DEEPINFRA_API_KEY_3` | Optional | Tertiary DeepInfra key for rotation |
-| `OPENAI_API_KEY` | Optional | OpenAI API key |
-| `AZURE_OPENAI_API_KEY` | Optional | Azure OpenAI API key |
-| `AZURE_OPENAI_ENDPOINT` | Optional | Azure OpenAI endpoint URL |
-| `OLLAMA_BASE_URL` | Optional | Ollama server URL (default: `http://localhost:11434`) |
-| `MFM_MODEL_PATH` | Optional | Path to on-device Murphy Foundation Model |
-| `LLM_DEFAULT_PROVIDER` | Optional | Default provider (`deepinfra`, `openai`, `mfm`, …) |
-| `LLM_MAX_TOKENS` | Optional | Global token limit override (default: 2048) |
-| `LLM_TEMPERATURE` | Optional | Global temperature override (default: 0.7) |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DEEPINFRA_API_KEY` | — | Primary DeepInfra API key |
+| `DEEPINFRA_API_KEY_2` | — | Secondary DeepInfra key for rotation |
+| `DEEPINFRA_API_KEY_3` | — | Tertiary DeepInfra key for rotation |
+| `OPENAI_API_KEY` | — | OpenAI API key (optional) |
+| `OPENAI_MODEL` | `gpt-4o-mini` | Default OpenAI model |
+| `DEEPINFRA_MODEL` | `mixtral-8x7b-32768` | Default DeepInfra model |
+| `OLLAMA_HOST` | `http://localhost:11434` | Ollama server base URL (read by all Ollama call-sites) |
+| `OLLAMA_MODEL` | `llama3` | Default Ollama model; overrides the built-in probe order |
+| `MURPHY_LLM_BUDGET_USD` | `50` | Monthly LLM spend cap |
+| `MURPHY_LLM_DEFAULT_PROVIDER` | `deepinfra` | Default provider for AUTO routing |
+| `MURPHY_LLM_TIMEOUT` | `30` | Request timeout in seconds |
+
+### Onboard LLM (Ollama)
+
+When no external API key (`DEEPINFRA_API_KEY`, `OPENAI_API_KEY`, etc.) is set,
+Murphy automatically uses its **onboard LLM** powered by Ollama:
+
+1. **Install Ollama** (one-time, already done on the Hetzner server):
+   ```bash
+   curl -fsSL https://ollama.com/install.sh | sh
+   systemctl enable ollama
+   systemctl start ollama
+   ```
+2. **Pull a model** (choose based on available RAM):
+   ```bash
+   ollama pull llama3        # ~4.7 GB — default, requires 6 GB+ RAM
+   ollama pull phi3          # ~2.3 GB — use on 2.5–6 GB systems
+   ollama pull tinyllama     # ~1 GB   — minimal footprint (< 2.5 GB RAM)
+   ```
+3. **Select the model** via env var (optional — auto-detected otherwise):
+   ```bash
+   export OLLAMA_MODEL=llama3
+   ```
+4. **Verify** via the health endpoint:
+   ```bash
+   curl -s http://localhost:8000/api/health?deep=true | python3 -m json.tool
+   # Look for "ollama_running": true and "ollama_models": ["llama3"]
+   ```
+
+The deploy workflow automatically installs Ollama, starts the service, and
+pulls `OLLAMA_MODEL` (default `llama3`) on every `git push` to `main`.
 
 ---
 
-## Testing
+## Architecture Diagram
 
-```bash
-# Unit tests
-python -m pytest tests/test_deepinfra_key_rotator.py tests/test_llm_integration_layer.py --no-cov -q
-
-# DeepInfra integration tests (requires DEEPINFRA_API_KEY)
-python -m pytest tests/test_deepinfra_integration.py --no-cov -q
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│  Caller (API handler / automation engine / AionMind)                     │
+└─────────────────────────────┬────────────────────────────────────────────┘
+                              │ LLMRequest(domain=MATHEMATICAL, ...)
+                              ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      LLMController                                       │
+│  1. Resolves required capabilities                                       │
+│  2. Selects cheapest available model                                     │
+│  3. Delegates to LLMIntegrationLayer                                     │
+└──────────────────────────┬──────────────────────────────────────────────┘
+                           │
+          ┌────────────────┼──────────────────┐
+          │                │                  │
+          ▼                ▼                  ▼
+   ┌─────────────┐  ┌──────────────┐  ┌──────────────┐
+   │  Aristotle  │  │   Wulfrum    │  │     DeepInfra     │
+   │  (math/phy) │  │ (fuzzy/eng)  │  │ (generative) │
+   └──────┬──────┘  └──────┬───────┘  └──────┬───────┘
+          │                │                  │
+          └────────────────┼──────────────────┘
+                           │ Validation / Disagreement check
+                           ▼
+               ┌───────────────────────┐
+               │   ValidationStatus     │
+               │  VALIDATED / DISAGREE  │
+               └───────────┬───────────┘
+                           │ DISAGREEMENT
+                           ▼
+               ┌───────────────────────┐
+               │    HITL Gate Trigger  │
+               │ (human review prompt) │
+               └───────────────────────┘
 ```
 
 ---
 
-## Related Documentation
-
-- `documentation/components/` — Component-level architecture docs
-- `docs/AUAR_TECHNICAL_PROPOSAL.md` — AUAR routing proposal (references LLM layer)
-- `documentation/api/ENDPOINTS.md` — API endpoints that use LLM services
+*See also:*
+- [`documentation/architecture/SYSTEM_COMPONENTS.md`](../architecture/SYSTEM_COMPONENTS.md) — high-level component map
+- [`documentation/api/ENDPOINTS.md`](../api/ENDPOINTS.md) — API reference including MFM endpoints
+- [`docs/AUDIT_AND_COMPLETION_REPORT.md`](../../docs/AUDIT_AND_COMPLETION_REPORT.md) — audit findings

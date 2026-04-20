@@ -14,17 +14,17 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
-from src.billing.grants.espc import get_espc_programs
-from src.billing.grants.federal_grants import get_federal_grants
-from src.billing.grants.federal_tax_credits import get_federal_tax_credits
-from src.billing.grants.green_banks import get_green_banks
 from src.billing.grants.models import Grant, GrantCategory, GrantTrack
-from src.billing.grants.pace_financing import get_pace_financing
-from src.billing.grants.rd_tax_credits import get_rd_tax_credits
+from src.billing.grants.federal_tax_credits import get_federal_tax_credits
+from src.billing.grants.federal_grants import get_federal_grants
 from src.billing.grants.sba_financing import get_sba_financing
-from src.billing.grants.state_incentives import get_state_incentives
 from src.billing.grants.usda_programs import get_usda_programs
+from src.billing.grants.state_incentives import get_state_incentives
 from src.billing.grants.utility_programs import get_utility_programs
+from src.billing.grants.pace_financing import get_pace_financing
+from src.billing.grants.green_banks import get_green_banks
+from src.billing.grants.espc import get_espc_programs
+from src.billing.grants.rd_tax_credits import get_rd_tax_credits
 
 
 def _build_catalog() -> Dict[str, Grant]:

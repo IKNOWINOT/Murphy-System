@@ -10,9 +10,10 @@ License: BSL 1.1
 
 from __future__ import annotations
 
+from src.billing.grants.models import Grant, GrantCategory, GrantTrack
+
 # Federal §41 is defined in federal_tax_credits.py — re-exported here for convenience
 from src.billing.grants.federal_tax_credits import RD_CREDIT_SEC41
-from src.billing.grants.models import Grant, GrantCategory, GrantTrack
 
 # ---------------------------------------------------------------------------
 # State R&D Credits (stackable with federal §41)

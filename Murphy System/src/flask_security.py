@@ -105,10 +105,10 @@ def get_configured_api_keys() -> List[str]:
     """
     Get configured API keys from environment.
 
-    Reads MURPHY_API_KEYS env var (comma-separated).
+    Reads MURPHY_API_KEY env var (canonical; MURPHY_API_KEYS accepted as legacy alias).
     Returns empty list if not configured (auth disabled in dev mode).
     """
-    keys_str = os.environ.get("MURPHY_API_KEYS", "")
+    keys_str = os.environ.get("MURPHY_API_KEY", "") or os.environ.get("MURPHY_API_KEYS", "")
     if not keys_str:
         return []
     return [k.strip() for k in keys_str.split(",") if k.strip()]
@@ -276,10 +276,14 @@ class _FlaskRateLimiter:
 
 # Global rate limiter instance
 _rate_limiter = _FlaskRateLimiter(
-    requests_per_minute=int(os.environ.get("MURPHY_RATE_LIMIT_RPM", "60")),
-    burst_size=int(os.environ.get("MURPHY_RATE_LIMIT_BURST", "20")),
-    swarm_burst_size=int(os.environ.get("MURPHY_RATE_LIMIT_SWARM_BURST", "60")),
-    swarm_window_seconds=float(os.environ.get("MURPHY_RATE_LIMIT_SWARM_WINDOW", "2.0")),
+    # Defaults are intentionally high to accommodate multi-cursor (70 parallel
+    # actions), swarm agents, automation triggers, and sensor-style polling
+    # throughout the Murphy System UI and backend.  Override via env vars to
+    # tighten limits in resource-constrained environments.
+    requests_per_minute=int(os.environ.get("MURPHY_RATE_LIMIT_RPM", "600")),
+    burst_size=int(os.environ.get("MURPHY_RATE_LIMIT_BURST", "200")),
+    swarm_burst_size=int(os.environ.get("MURPHY_RATE_LIMIT_SWARM_BURST", "500")),
+    swarm_window_seconds=float(os.environ.get("MURPHY_RATE_LIMIT_SWARM_WINDOW", "1.0")),
 )
 
 

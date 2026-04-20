@@ -1,3944 +1,4184 @@
-canonical_src: src/
-general:
-  rank_1: ''
-  rank_2: null
+version: '1.0'
 generated_by: scripts/generate_module_registry.py
-module_count: 1312
+canonical_src: src/
+module_count: 1393
 modules:
 - key: src.__init__
-  package: src
   path: src/__init__.py
+  package: src
 - key: src.ab_testing_framework
-  package: src
   path: src/ab_testing_framework.py
+  package: src
 - key: src.account_management.__init__
-  package: src.account_management
   path: src/account_management/__init__.py
+  package: src.account_management
 - key: src.account_management.account_manager
-  package: src.account_management
   path: src/account_management/account_manager.py
+  package: src.account_management
 - key: src.account_management.credential_vault
-  package: src.account_management
   path: src/account_management/credential_vault.py
+  package: src.account_management
 - key: src.account_management.models
-  package: src.account_management
   path: src/account_management/models.py
-- key: src.account_management.oauth_provider_registry
   package: src.account_management
+- key: src.account_management.oauth_provider_registry
   path: src/account_management/oauth_provider_registry.py
+  package: src.account_management
 - key: src.activated_heartbeat_runner
-  package: src
   path: src/activated_heartbeat_runner.py
+  package: src
 - key: src.adapter_framework.__init__
-  package: src.adapter_framework
   path: src/adapter_framework/__init__.py
+  package: src.adapter_framework
 - key: src.adapter_framework.adapter_contract
-  package: src.adapter_framework
   path: src/adapter_framework/adapter_contract.py
+  package: src.adapter_framework
 - key: src.adapter_framework.adapter_runtime
-  package: src.adapter_framework
   path: src/adapter_framework/adapter_runtime.py
+  package: src.adapter_framework
 - key: src.adapter_framework.adapters.__init__
-  package: src.adapter_framework.adapters
   path: src/adapter_framework/adapters/__init__.py
+  package: src.adapter_framework.adapters
 - key: src.adapter_framework.adapters.http_adapter
-  package: src.adapter_framework.adapters
   path: src/adapter_framework/adapters/http_adapter.py
-- key: src.adapter_framework.adapters.mock_adapter
   package: src.adapter_framework.adapters
+- key: src.adapter_framework.adapters.mock_adapter
   path: src/adapter_framework/adapters/mock_adapter.py
+  package: src.adapter_framework.adapters
 - key: src.adapter_framework.execution_packet_extension
-  package: src.adapter_framework
   path: src/adapter_framework/execution_packet_extension.py
+  package: src.adapter_framework
 - key: src.adapter_framework.safety_hooks
-  package: src.adapter_framework
   path: src/adapter_framework/safety_hooks.py
-- key: src.adapter_framework.telemetry_artifact
   package: src.adapter_framework
+- key: src.adapter_framework.telemetry_artifact
   path: src/adapter_framework/telemetry_artifact.py
+  package: src.adapter_framework
 - key: src.adaptive_campaign_engine
-  package: src
   path: src/adaptive_campaign_engine.py
+  package: src
 - key: src.additive_manufacturing_connectors
-  package: src
   path: src/additive_manufacturing_connectors.py
+  package: src
 - key: src.advanced_loop_wiring
-  package: src
   path: src/advanced_loop_wiring.py
+  package: src
 - key: src.advanced_reports
-  package: src
   path: src/advanced_reports.py
+  package: src
 - key: src.advanced_research
-  package: src
   path: src/advanced_research.py
+  package: src
 - key: src.advanced_swarm_system
-  package: src
   path: src/advanced_swarm_system.py
+  package: src
 - key: src.agent_module_loader
-  package: src
   path: src/agent_module_loader.py
+  package: src
 - key: src.agent_monitor_dashboard
-  package: src
   path: src/agent_monitor_dashboard.py
+  package: src
 - key: src.agent_persona_library.__init__
-  package: src.agent_persona_library
   path: src/agent_persona_library/__init__.py
+  package: src.agent_persona_library
 - key: src.agent_persona_library._composer
-  package: src.agent_persona_library
   path: src/agent_persona_library/_composer.py
+  package: src.agent_persona_library
 - key: src.agent_persona_library._frameworks
-  package: src.agent_persona_library
   path: src/agent_persona_library/_frameworks.py
+  package: src.agent_persona_library
 - key: src.agent_persona_library._roster
-  package: src.agent_persona_library
   path: src/agent_persona_library/_roster.py
+  package: src.agent_persona_library
 - key: src.agent_persona_library._roster_data
-  package: src.agent_persona_library
   path: src/agent_persona_library/_roster_data.py
-- key: src.agent_persona_library._roster_data_ext
   package: src.agent_persona_library
+- key: src.agent_persona_library._roster_data_ext
   path: src/agent_persona_library/_roster_data_ext.py
+  package: src.agent_persona_library
 - key: src.agent_run_recorder
-  package: src
   path: src/agent_run_recorder.py
+  package: src
 - key: src.agentic_api_provisioner
-  package: src
   path: src/agentic_api_provisioner.py
+  package: src
 - key: src.agentic_comms_router
-  package: src
   path: src/agentic_comms_router.py
+  package: src
 - key: src.agentic_onboarding_engine
-  package: src
   path: src/agentic_onboarding_engine.py
+  package: src
 - key: src.ai_comms_orchestrator
-  package: src
   path: src/ai_comms_orchestrator.py
+  package: src
 - key: src.ai_workflow_generator
-  package: src
   path: src/ai_workflow_generator.py
+  package: src
 - key: src.aionmind.__init__
-  package: src.aionmind
   path: src/aionmind/__init__.py
+  package: src.aionmind
 - key: src.aionmind.api
-  package: src.aionmind
   path: src/aionmind/api.py
+  package: src.aionmind
 - key: src.aionmind.bot_capability_bridge
-  package: src.aionmind
   path: src/aionmind/bot_capability_bridge.py
+  package: src.aionmind
 - key: src.aionmind.capability_registry
-  package: src.aionmind
   path: src/aionmind/capability_registry.py
+  package: src.aionmind
 - key: src.aionmind.context_engine
-  package: src.aionmind
   path: src/aionmind/context_engine.py
+  package: src.aionmind
 - key: src.aionmind.dag_bridge
-  package: src.aionmind
   path: src/aionmind/dag_bridge.py
+  package: src.aionmind
 - key: src.aionmind.memory_layer
-  package: src.aionmind
   path: src/aionmind/memory_layer.py
+  package: src.aionmind
 - key: src.aionmind.models.__init__
-  package: src.aionmind.models
   path: src/aionmind/models/__init__.py
+  package: src.aionmind.models
 - key: src.aionmind.models.context_graph
-  package: src.aionmind.models
   path: src/aionmind/models/context_graph.py
+  package: src.aionmind.models
 - key: src.aionmind.models.context_object
-  package: src.aionmind.models
   path: src/aionmind/models/context_object.py
+  package: src.aionmind.models
 - key: src.aionmind.models.execution_graph
-  package: src.aionmind.models
   path: src/aionmind/models/execution_graph.py
-- key: src.aionmind.models.proposals
   package: src.aionmind.models
+- key: src.aionmind.models.proposals
   path: src/aionmind/models/proposals.py
+  package: src.aionmind.models
 - key: src.aionmind.optimization_engine
-  package: src.aionmind
   path: src/aionmind/optimization_engine.py
+  package: src.aionmind
 - key: src.aionmind.orchestration_engine
-  package: src.aionmind
   path: src/aionmind/orchestration_engine.py
+  package: src.aionmind
 - key: src.aionmind.reasoning_engine
-  package: src.aionmind
   path: src/aionmind/reasoning_engine.py
+  package: src.aionmind
 - key: src.aionmind.rsc_client_adapter
-  package: src.aionmind
   path: src/aionmind/rsc_client_adapter.py
+  package: src.aionmind
 - key: src.aionmind.runtime_kernel
-  package: src.aionmind
   path: src/aionmind/runtime_kernel.py
-- key: src.aionmind.stability_integration
   package: src.aionmind
+- key: src.aionmind.stability_integration
   path: src/aionmind/stability_integration.py
+  package: src.aionmind
 - key: src.alert_rules_engine
-  package: src
   path: src/alert_rules_engine.py
+  package: src
 - key: src.all_hands
-  package: src
   path: src/all_hands.py
+  package: src
 - key: src.ambient_api_router
-  package: src
   path: src/ambient_api_router.py
+  package: src
 - key: src.ambient_context_store
-  package: src
   path: src/ambient_context_store.py
+  package: src
 - key: src.ambient_email_delivery
-  package: src
   path: src/ambient_email_delivery.py
+  package: src
 - key: src.ambient_synthesis
-  package: src
   path: src/ambient_synthesis.py
+  package: src
 - key: src.analytics_dashboard
-  package: src
   path: src/analytics_dashboard.py
+  package: src
 - key: src.announcer_voice_engine
-  package: src
   path: src/announcer_voice_engine.py
+  package: src
 - key: src.api_capability_builder
-  package: src
   path: src/api_capability_builder.py
+  package: src
 - key: src.api_collection_agent
-  package: src
   path: src/api_collection_agent.py
+  package: src
 - key: src.api_gateway_adapter
-  package: src
   path: src/api_gateway_adapter.py
+  package: src
 - key: src.architecture_evolution
-  package: src
   path: src/architecture_evolution.py
+  package: src
 - key: src.artifact_viewport
-  package: src
   path: src/artifact_viewport.py
+  package: src
 - key: src.artifact_viewport_api
-  package: src
   path: src/artifact_viewport_api.py
+  package: src
 - key: src.as_built_generator
-  package: src
   path: src/as_built_generator.py
+  package: src
 - key: src.auar.__init__
-  package: src.auar
   path: src/auar/__init__.py
+  package: src.auar
 - key: src.auar.capability_graph
-  package: src.auar
   path: src/auar/capability_graph.py
+  package: src.auar
 - key: src.auar.config
-  package: src.auar
   path: src/auar/config.py
+  package: src.auar
 - key: src.auar.ml_optimization
-  package: src.auar
   path: src/auar/ml_optimization.py
+  package: src.auar
 - key: src.auar.observability
-  package: src.auar
   path: src/auar/observability.py
+  package: src.auar
 - key: src.auar.persistence
-  package: src.auar
   path: src/auar/persistence.py
+  package: src.auar
 - key: src.auar.pipeline
-  package: src.auar
   path: src/auar/pipeline.py
+  package: src.auar
 - key: src.auar.provider_adapter
-  package: src.auar
   path: src/auar/provider_adapter.py
+  package: src.auar
 - key: src.auar.routing_engine
-  package: src.auar
   path: src/auar/routing_engine.py
+  package: src.auar
 - key: src.auar.schema_translation
-  package: src.auar
   path: src/auar/schema_translation.py
-- key: src.auar.signal_interpretation
   package: src.auar
+- key: src.auar.signal_interpretation
   path: src/auar/signal_interpretation.py
+  package: src.auar
 - key: src.auar_api
-  package: src
   path: src/auar_api.py
+  package: src
 - key: src.audit_logger
-  package: src
   path: src/audit_logger.py
+  package: src
 - key: src.audit_logging_system
-  package: src
   path: src/audit_logging_system.py
+  package: src
 - key: src.auth_middleware
-  package: src
   path: src/auth_middleware.py
+  package: src
 - key: src.authority_gate
-  package: src
   path: src/authority_gate.py
+  package: src
 - key: src.auto_documentation_engine
-  package: src
   path: src/auto_documentation_engine.py
+  package: src
 - key: src.automation_commissioner
-  package: src
   path: src/automation_commissioner.py
+  package: src
 - key: src.automation_integration_hub
-  package: src
   path: src/automation_integration_hub.py
+  package: src
 - key: src.automation_loop_connector
-  package: src
   path: src/automation_loop_connector.py
+  package: src
 - key: src.automation_marketplace
-  package: src
   path: src/automation_marketplace.py
+  package: src
 - key: src.automation_mode_controller
-  package: src
   path: src/automation_mode_controller.py
+  package: src
 - key: src.automation_rbac_controller
-  package: src
   path: src/automation_rbac_controller.py
+  package: src
 - key: src.automation_readiness_evaluator
-  package: src
   path: src/automation_readiness_evaluator.py
+  package: src
 - key: src.automation_safeguard_engine
-  package: src
   path: src/automation_safeguard_engine.py
+  package: src
 - key: src.automation_scaler
-  package: src
   path: src/automation_scaler.py
+  package: src
 - key: src.automation_scheduler
-  package: src
   path: src/automation_scheduler.py
+  package: src
 - key: src.automation_type_registry
-  package: src
   path: src/automation_type_registry.py
+  package: src
 - key: src.automations.__init__
-  package: src.automations
   path: src/automations/__init__.py
+  package: src.automations
 - key: src.automations.api
-  package: src.automations
   path: src/automations/api.py
+  package: src.automations
 - key: src.automations.engine
-  package: src.automations
   path: src/automations/engine.py
-- key: src.automations.models
   package: src.automations
+- key: src.automations.models
   path: src/automations/models.py
+  package: src.automations
 - key: src.autonomous_repair_system
-  package: src
   path: src/autonomous_repair_system.py
+  package: src
 - key: src.autonomous_systems.__init__
-  package: src.autonomous_systems
   path: src/autonomous_systems/__init__.py
+  package: src.autonomous_systems
 - key: src.autonomous_systems.autonomous_scheduler
-  package: src.autonomous_systems
   path: src/autonomous_systems/autonomous_scheduler.py
+  package: src.autonomous_systems
 - key: src.autonomous_systems.human_oversight_system
-  package: src.autonomous_systems
   path: src/autonomous_systems/human_oversight_system.py
-- key: src.autonomous_systems.risk_manager
   package: src.autonomous_systems
+- key: src.autonomous_systems.risk_manager
   path: src/autonomous_systems/risk_manager.py
+  package: src.autonomous_systems
 - key: src.avatar.__init__
-  package: src.avatar
   path: src/avatar/__init__.py
+  package: src.avatar
 - key: src.avatar.avatar_models
-  package: src.avatar
   path: src/avatar/avatar_models.py
+  package: src.avatar
 - key: src.avatar.avatar_registry
-  package: src.avatar
   path: src/avatar/avatar_registry.py
+  package: src.avatar
 - key: src.avatar.avatar_session_manager
-  package: src.avatar
   path: src/avatar/avatar_session_manager.py
+  package: src.avatar
 - key: src.avatar.behavioral_scoring_engine
-  package: src.avatar
   path: src/avatar/behavioral_scoring_engine.py
+  package: src.avatar
 - key: src.avatar.compliance_guard
-  package: src.avatar
   path: src/avatar/compliance_guard.py
+  package: src.avatar
 - key: src.avatar.connectors.__init__
-  package: src.avatar.connectors
   path: src/avatar/connectors/__init__.py
+  package: src.avatar.connectors
 - key: src.avatar.connectors.elevenlabs
-  package: src.avatar.connectors
   path: src/avatar/connectors/elevenlabs.py
+  package: src.avatar.connectors
 - key: src.avatar.connectors.heygen
-  package: src.avatar.connectors
   path: src/avatar/connectors/heygen.py
+  package: src.avatar.connectors
 - key: src.avatar.connectors.tavus
-  package: src.avatar.connectors
   path: src/avatar/connectors/tavus.py
-- key: src.avatar.connectors.vapi
   package: src.avatar.connectors
+- key: src.avatar.connectors.vapi
   path: src/avatar/connectors/vapi.py
+  package: src.avatar.connectors
 - key: src.avatar.cost_ledger
-  package: src.avatar
   path: src/avatar/cost_ledger.py
+  package: src.avatar
 - key: src.avatar.persona_injector
-  package: src.avatar
   path: src/avatar/persona_injector.py
+  package: src.avatar
 - key: src.avatar.sentiment_classifier
-  package: src.avatar
   path: src/avatar/sentiment_classifier.py
-- key: src.avatar.user_adaptation_engine
   package: src.avatar
+- key: src.avatar.user_adaptation_engine
   path: src/avatar/user_adaptation_engine.py
+  package: src.avatar
 - key: src.backtester
-  package: src
   path: src/backtester.py
+  package: src
 - key: src.backup_disaster_recovery
-  package: src
   path: src/backup_disaster_recovery.py
+  package: src
 - key: src.bas_equipment_ingestion
-  package: src
   path: src/bas_equipment_ingestion.py
+  package: src
 - key: src.base_governance_runtime.__init__
-  package: src.base_governance_runtime
   path: src/base_governance_runtime/__init__.py
+  package: src.base_governance_runtime
 - key: src.base_governance_runtime.api_server
-  package: src.base_governance_runtime
   path: src/base_governance_runtime/api_server.py
+  package: src.base_governance_runtime
 - key: src.base_governance_runtime.compliance_monitor
-  package: src.base_governance_runtime
   path: src/base_governance_runtime/compliance_monitor.py
+  package: src.base_governance_runtime
 - key: src.base_governance_runtime.governance_runtime
-  package: src.base_governance_runtime
   path: src/base_governance_runtime/governance_runtime.py
+  package: src.base_governance_runtime
 - key: src.base_governance_runtime.governance_runtime_complete
-  package: src.base_governance_runtime
   path: src/base_governance_runtime/governance_runtime_complete.py
+  package: src.base_governance_runtime
 - key: src.base_governance_runtime.preset_manager
-  package: src.base_governance_runtime
   path: src/base_governance_runtime/preset_manager.py
-- key: src.base_governance_runtime.validation_engine
   package: src.base_governance_runtime
+- key: src.base_governance_runtime.validation_engine
   path: src/base_governance_runtime/validation_engine.py
+  package: src.base_governance_runtime
 - key: src.benchmark_adapters.__init__
-  package: src.benchmark_adapters
   path: src/benchmark_adapters/__init__.py
+  package: src.benchmark_adapters
 - key: src.benchmark_adapters.agent_bench_adapter
-  package: src.benchmark_adapters
   path: src/benchmark_adapters/agent_bench_adapter.py
+  package: src.benchmark_adapters
 - key: src.benchmark_adapters.base
-  package: src.benchmark_adapters
   path: src/benchmark_adapters/base.py
+  package: src.benchmark_adapters
 - key: src.benchmark_adapters.gaia_adapter
-  package: src.benchmark_adapters
   path: src/benchmark_adapters/gaia_adapter.py
+  package: src.benchmark_adapters
 - key: src.benchmark_adapters.swe_bench_adapter
-  package: src.benchmark_adapters
   path: src/benchmark_adapters/swe_bench_adapter.py
+  package: src.benchmark_adapters
 - key: src.benchmark_adapters.tau_bench_adapter
-  package: src.benchmark_adapters
   path: src/benchmark_adapters/tau_bench_adapter.py
+  package: src.benchmark_adapters
 - key: src.benchmark_adapters.terminal_bench_adapter
-  package: src.benchmark_adapters
   path: src/benchmark_adapters/terminal_bench_adapter.py
+  package: src.benchmark_adapters
 - key: src.benchmark_adapters.tool_bench_adapter
-  package: src.benchmark_adapters
   path: src/benchmark_adapters/tool_bench_adapter.py
-- key: src.benchmark_adapters.web_arena_adapter
   package: src.benchmark_adapters
+- key: src.benchmark_adapters.web_arena_adapter
   path: src/benchmark_adapters/web_arena_adapter.py
+  package: src.benchmark_adapters
 - key: src.billing.__init__
-  package: src.billing
   path: src/billing/__init__.py
+  package: src.billing
 - key: src.billing.api
-  package: src.billing
   path: src/billing/api.py
-- key: src.billing.currency
   package: src.billing
+- key: src.billing.currency
   path: src/billing/currency.py
+  package: src.billing
 - key: src.billing.grants.__init__
-  package: src.billing.grants
   path: src/billing/grants/__init__.py
+  package: src.billing.grants
 - key: src.billing.grants.api
-  package: src.billing.grants
   path: src/billing/grants/api.py
+  package: src.billing.grants
 - key: src.billing.grants.database
-  package: src.billing.grants
   path: src/billing/grants/database.py
+  package: src.billing.grants
 - key: src.billing.grants.eligibility_engine
-  package: src.billing.grants
   path: src/billing/grants/eligibility_engine.py
+  package: src.billing.grants
 - key: src.billing.grants.engine
-  package: src.billing.grants
   path: src/billing/grants/engine.py
+  package: src.billing.grants
 - key: src.billing.grants.espc
-  package: src.billing.grants
   path: src/billing/grants/espc.py
+  package: src.billing.grants
 - key: src.billing.grants.federal_grants
-  package: src.billing.grants
   path: src/billing/grants/federal_grants.py
+  package: src.billing.grants
 - key: src.billing.grants.federal_tax_credits
-  package: src.billing.grants
   path: src/billing/grants/federal_tax_credits.py
+  package: src.billing.grants
 - key: src.billing.grants.form_filler.__init__
-  package: src.billing.grants.form_filler
   path: src/billing/grants/form_filler/__init__.py
+  package: src.billing.grants.form_filler
 - key: src.billing.grants.form_filler.agent
-  package: src.billing.grants.form_filler
   path: src/billing/grants/form_filler/agent.py
+  package: src.billing.grants.form_filler
 - key: src.billing.grants.form_filler.api
-  package: src.billing.grants.form_filler
   path: src/billing/grants/form_filler/api.py
+  package: src.billing.grants.form_filler
 - key: src.billing.grants.form_filler.confidence_scorer
-  package: src.billing.grants.form_filler
   path: src/billing/grants/form_filler/confidence_scorer.py
+  package: src.billing.grants.form_filler
 - key: src.billing.grants.form_filler.field_mapper
-  package: src.billing.grants.form_filler
   path: src/billing/grants/form_filler/field_mapper.py
-- key: src.billing.grants.form_filler.form_definitions.__init__
-  package: src.billing.grants.form_filler.form_definitions
-  path: src/billing/grants/form_filler/form_definitions/__init__.py
-- key: src.billing.grants.form_filler.form_definitions.base
-  package: src.billing.grants.form_filler.form_definitions
-  path: src/billing/grants/form_filler/form_definitions/base.py
-- key: src.billing.grants.form_filler.form_definitions.energy_trust
-  package: src.billing.grants.form_filler.form_definitions
-  path: src/billing/grants/form_filler/form_definitions/energy_trust.py
-- key: src.billing.grants.form_filler.form_definitions.generic_grant
-  package: src.billing.grants.form_filler.form_definitions
-  path: src/billing/grants/form_filler/form_definitions/generic_grant.py
-- key: src.billing.grants.form_filler.form_definitions.grants_gov
-  package: src.billing.grants.form_filler.form_definitions
-  path: src/billing/grants/form_filler/form_definitions/grants_gov.py
-- key: src.billing.grants.form_filler.form_definitions.nsf_sbir
-  package: src.billing.grants.form_filler.form_definitions
-  path: src/billing/grants/form_filler/form_definitions/nsf_sbir.py
-- key: src.billing.grants.form_filler.form_definitions.sam_gov
-  package: src.billing.grants.form_filler.form_definitions
-  path: src/billing/grants/form_filler/form_definitions/sam_gov.py
-- key: src.billing.grants.form_filler.form_definitions.sba_microloan
-  package: src.billing.grants.form_filler.form_definitions
-  path: src/billing/grants/form_filler/form_definitions/sba_microloan.py
-- key: src.billing.grants.form_filler.form_definitions.sbir_phase1
-  package: src.billing.grants.form_filler.form_definitions
-  path: src/billing/grants/form_filler/form_definitions/sbir_phase1.py
-- key: src.billing.grants.form_filler.form_definitions.sttr_phase1
-  package: src.billing.grants.form_filler.form_definitions
-  path: src/billing/grants/form_filler/form_definitions/sttr_phase1.py
-- key: src.billing.grants.form_filler.output_generators.__init__
-  package: src.billing.grants.form_filler.output_generators
-  path: src/billing/grants/form_filler/output_generators/__init__.py
-- key: src.billing.grants.form_filler.output_generators.base
-  package: src.billing.grants.form_filler.output_generators
-  path: src/billing/grants/form_filler/output_generators/base.py
-- key: src.billing.grants.form_filler.output_generators.json_export
-  package: src.billing.grants.form_filler.output_generators
-  path: src/billing/grants/form_filler/output_generators/json_export.py
-- key: src.billing.grants.form_filler.output_generators.pdf_generator
-  package: src.billing.grants.form_filler.output_generators
-  path: src/billing/grants/form_filler/output_generators/pdf_generator.py
-- key: src.billing.grants.form_filler.output_generators.xml_generator
-  package: src.billing.grants.form_filler.output_generators
-  path: src/billing/grants/form_filler/output_generators/xml_generator.py
-- key: src.billing.grants.form_filler.review_session
   package: src.billing.grants.form_filler
+- key: src.billing.grants.form_filler.form_definitions.__init__
+  path: src/billing/grants/form_filler/form_definitions/__init__.py
+  package: src.billing.grants.form_filler.form_definitions
+- key: src.billing.grants.form_filler.form_definitions.base
+  path: src/billing/grants/form_filler/form_definitions/base.py
+  package: src.billing.grants.form_filler.form_definitions
+- key: src.billing.grants.form_filler.form_definitions.energy_trust
+  path: src/billing/grants/form_filler/form_definitions/energy_trust.py
+  package: src.billing.grants.form_filler.form_definitions
+- key: src.billing.grants.form_filler.form_definitions.generic_grant
+  path: src/billing/grants/form_filler/form_definitions/generic_grant.py
+  package: src.billing.grants.form_filler.form_definitions
+- key: src.billing.grants.form_filler.form_definitions.grants_gov
+  path: src/billing/grants/form_filler/form_definitions/grants_gov.py
+  package: src.billing.grants.form_filler.form_definitions
+- key: src.billing.grants.form_filler.form_definitions.nsf_sbir
+  path: src/billing/grants/form_filler/form_definitions/nsf_sbir.py
+  package: src.billing.grants.form_filler.form_definitions
+- key: src.billing.grants.form_filler.form_definitions.sam_gov
+  path: src/billing/grants/form_filler/form_definitions/sam_gov.py
+  package: src.billing.grants.form_filler.form_definitions
+- key: src.billing.grants.form_filler.form_definitions.sba_microloan
+  path: src/billing/grants/form_filler/form_definitions/sba_microloan.py
+  package: src.billing.grants.form_filler.form_definitions
+- key: src.billing.grants.form_filler.form_definitions.sbir_phase1
+  path: src/billing/grants/form_filler/form_definitions/sbir_phase1.py
+  package: src.billing.grants.form_filler.form_definitions
+- key: src.billing.grants.form_filler.form_definitions.sttr_phase1
+  path: src/billing/grants/form_filler/form_definitions/sttr_phase1.py
+  package: src.billing.grants.form_filler.form_definitions
+- key: src.billing.grants.form_filler.output_generators.__init__
+  path: src/billing/grants/form_filler/output_generators/__init__.py
+  package: src.billing.grants.form_filler.output_generators
+- key: src.billing.grants.form_filler.output_generators.base
+  path: src/billing/grants/form_filler/output_generators/base.py
+  package: src.billing.grants.form_filler.output_generators
+- key: src.billing.grants.form_filler.output_generators.json_export
+  path: src/billing/grants/form_filler/output_generators/json_export.py
+  package: src.billing.grants.form_filler.output_generators
+- key: src.billing.grants.form_filler.output_generators.pdf_generator
+  path: src/billing/grants/form_filler/output_generators/pdf_generator.py
+  package: src.billing.grants.form_filler.output_generators
+- key: src.billing.grants.form_filler.output_generators.xml_generator
+  path: src/billing/grants/form_filler/output_generators/xml_generator.py
+  package: src.billing.grants.form_filler.output_generators
+- key: src.billing.grants.form_filler.review_session
   path: src/billing/grants/form_filler/review_session.py
+  package: src.billing.grants.form_filler
 - key: src.billing.grants.grant_database
-  package: src.billing.grants
   path: src/billing/grants/grant_database.py
+  package: src.billing.grants
 - key: src.billing.grants.green_banks
-  package: src.billing.grants
   path: src/billing/grants/green_banks.py
+  package: src.billing.grants
 - key: src.billing.grants.hitl_task_queue
-  package: src.billing.grants
   path: src/billing/grants/hitl_task_queue.py
+  package: src.billing.grants
 - key: src.billing.grants.models
-  package: src.billing.grants
   path: src/billing/grants/models.py
+  package: src.billing.grants
 - key: src.billing.grants.murphy_profiles
-  package: src.billing.grants
   path: src/billing/grants/murphy_profiles.py
+  package: src.billing.grants
 - key: src.billing.grants.notifications.__init__
-  package: src.billing.grants.notifications
   path: src/billing/grants/notifications/__init__.py
+  package: src.billing.grants.notifications
 - key: src.billing.grants.notifications.deadline_alerts
-  package: src.billing.grants.notifications
   path: src/billing/grants/notifications/deadline_alerts.py
+  package: src.billing.grants.notifications
 - key: src.billing.grants.notifications.status_updates
-  package: src.billing.grants.notifications
   path: src/billing/grants/notifications/status_updates.py
-- key: src.billing.grants.notifications.submission_reminders
   package: src.billing.grants.notifications
+- key: src.billing.grants.notifications.submission_reminders
   path: src/billing/grants/notifications/submission_reminders.py
+  package: src.billing.grants.notifications
 - key: src.billing.grants.pace_financing
-  package: src.billing.grants
   path: src/billing/grants/pace_financing.py
+  package: src.billing.grants
 - key: src.billing.grants.prerequisites
-  package: src.billing.grants
   path: src/billing/grants/prerequisites.py
+  package: src.billing.grants
 - key: src.billing.grants.prerequisites_tracker
-  package: src.billing.grants
   path: src/billing/grants/prerequisites_tracker.py
+  package: src.billing.grants
 - key: src.billing.grants.rd_tax_credits
-  package: src.billing.grants
   path: src/billing/grants/rd_tax_credits.py
+  package: src.billing.grants
 - key: src.billing.grants.sba_financing
-  package: src.billing.grants
   path: src/billing/grants/sba_financing.py
+  package: src.billing.grants
 - key: src.billing.grants.session_manager
-  package: src.billing.grants
   path: src/billing/grants/session_manager.py
+  package: src.billing.grants
 - key: src.billing.grants.sessions
-  package: src.billing.grants
   path: src/billing/grants/sessions.py
+  package: src.billing.grants
 - key: src.billing.grants.state_incentives
-  package: src.billing.grants
   path: src/billing/grants/state_incentives.py
+  package: src.billing.grants
 - key: src.billing.grants.submission.__init__
-  package: src.billing.grants.submission
   path: src/billing/grants/submission/__init__.py
+  package: src.billing.grants.submission
 - key: src.billing.grants.submission.api_clients.__init__
-  package: src.billing.grants.submission.api_clients
   path: src/billing/grants/submission/api_clients/__init__.py
+  package: src.billing.grants.submission.api_clients
 - key: src.billing.grants.submission.api_clients.base_client
-  package: src.billing.grants.submission.api_clients
   path: src/billing/grants/submission/api_clients/base_client.py
+  package: src.billing.grants.submission.api_clients
 - key: src.billing.grants.submission.api_clients.grants_gov_api
-  package: src.billing.grants.submission.api_clients
   path: src/billing/grants/submission/api_clients/grants_gov_api.py
-- key: src.billing.grants.submission.api_clients.sam_gov_api
   package: src.billing.grants.submission.api_clients
+- key: src.billing.grants.submission.api_clients.sam_gov_api
   path: src/billing/grants/submission/api_clients/sam_gov_api.py
+  package: src.billing.grants.submission.api_clients
 - key: src.billing.grants.submission.format_adapters.__init__
-  package: src.billing.grants.submission.format_adapters
   path: src/billing/grants/submission/format_adapters/__init__.py
+  package: src.billing.grants.submission.format_adapters
 - key: src.billing.grants.submission.format_adapters.budget_narrative
-  package: src.billing.grants.submission.format_adapters
   path: src/billing/grants/submission/format_adapters/budget_narrative.py
+  package: src.billing.grants.submission.format_adapters
 - key: src.billing.grants.submission.format_adapters.grants_gov_xml
-  package: src.billing.grants.submission.format_adapters
   path: src/billing/grants/submission/format_adapters/grants_gov_xml.py
+  package: src.billing.grants.submission.format_adapters
 - key: src.billing.grants.submission.format_adapters.research_plan
-  package: src.billing.grants.submission.format_adapters
   path: src/billing/grants/submission/format_adapters/research_plan.py
+  package: src.billing.grants.submission.format_adapters
 - key: src.billing.grants.submission.format_adapters.sam_gov_format
-  package: src.billing.grants.submission.format_adapters
   path: src/billing/grants/submission/format_adapters/sam_gov_format.py
-- key: src.billing.grants.submission.format_adapters.sf424_builder
   package: src.billing.grants.submission.format_adapters
+- key: src.billing.grants.submission.format_adapters.sf424_builder
   path: src/billing/grants/submission/format_adapters/sf424_builder.py
+  package: src.billing.grants.submission.format_adapters
 - key: src.billing.grants.submission.models
-  package: src.billing.grants.submission
   path: src/billing/grants/submission/models.py
+  package: src.billing.grants.submission
 - key: src.billing.grants.submission.portal_instructions.__init__
-  package: src.billing.grants.submission.portal_instructions
   path: src/billing/grants/submission/portal_instructions/__init__.py
+  package: src.billing.grants.submission.portal_instructions
 - key: src.billing.grants.submission.portal_instructions.base
-  package: src.billing.grants.submission.portal_instructions
   path: src/billing/grants/submission/portal_instructions/base.py
+  package: src.billing.grants.submission.portal_instructions
 - key: src.billing.grants.submission.portal_instructions.energy_trust
-  package: src.billing.grants.submission.portal_instructions
   path: src/billing/grants/submission/portal_instructions/energy_trust.py
+  package: src.billing.grants.submission.portal_instructions
 - key: src.billing.grants.submission.portal_instructions.generic_portal
-  package: src.billing.grants.submission.portal_instructions
   path: src/billing/grants/submission/portal_instructions/generic_portal.py
+  package: src.billing.grants.submission.portal_instructions
 - key: src.billing.grants.submission.portal_instructions.grants_gov
-  package: src.billing.grants.submission.portal_instructions
   path: src/billing/grants/submission/portal_instructions/grants_gov.py
+  package: src.billing.grants.submission.portal_instructions
 - key: src.billing.grants.submission.portal_instructions.research_gov
-  package: src.billing.grants.submission.portal_instructions
   path: src/billing/grants/submission/portal_instructions/research_gov.py
+  package: src.billing.grants.submission.portal_instructions
 - key: src.billing.grants.submission.portal_instructions.sam_gov
-  package: src.billing.grants.submission.portal_instructions
   path: src/billing/grants/submission/portal_instructions/sam_gov.py
+  package: src.billing.grants.submission.portal_instructions
 - key: src.billing.grants.submission.portal_instructions.sba_portal
-  package: src.billing.grants.submission.portal_instructions
   path: src/billing/grants/submission/portal_instructions/sba_portal.py
-- key: src.billing.grants.submission.portal_instructions.sbir_gov
   package: src.billing.grants.submission.portal_instructions
+- key: src.billing.grants.submission.portal_instructions.sbir_gov
   path: src/billing/grants/submission/portal_instructions/sbir_gov.py
+  package: src.billing.grants.submission.portal_instructions
 - key: src.billing.grants.submission.submission_manager
-  package: src.billing.grants.submission
   path: src/billing/grants/submission/submission_manager.py
-- key: src.billing.grants.submission.submission_tracker
   package: src.billing.grants.submission
+- key: src.billing.grants.submission.submission_tracker
   path: src/billing/grants/submission/submission_tracker.py
+  package: src.billing.grants.submission
 - key: src.billing.grants.task_queue
-  package: src.billing.grants
   path: src/billing/grants/task_queue.py
+  package: src.billing.grants
 - key: src.billing.grants.usda_programs
-  package: src.billing.grants
   path: src/billing/grants/usda_programs.py
-- key: src.billing.grants.utility_programs
   package: src.billing.grants
+- key: src.billing.grants.utility_programs
   path: src/billing/grants/utility_programs.py
+  package: src.billing.grants
 - key: src.blackstart_controller
-  package: src
   path: src/blackstart_controller.py
+  package: src
 - key: src.blockchain_audit_trail
-  package: src
   path: src/blockchain_audit_trail.py
+  package: src
 - key: src.blueprint_auth
-  package: src
   path: src/blueprint_auth.py
+  package: src
 - key: src.board_system.__init__
-  package: src.board_system
   path: src/board_system/__init__.py
+  package: src.board_system
 - key: src.board_system.api
-  package: src.board_system
   path: src/board_system/api.py
+  package: src.board_system
 - key: src.board_system.board_manager
-  package: src.board_system
   path: src/board_system/board_manager.py
+  package: src.board_system
 - key: src.board_system.column_types
-  package: src.board_system
   path: src/board_system/column_types.py
+  package: src.board_system
 - key: src.board_system.models
-  package: src.board_system
   path: src/board_system/models.py
+  package: src.board_system
 - key: src.board_system.permissions
-  package: src.board_system
   path: src/board_system/permissions.py
-- key: src.board_system.views
   package: src.board_system
+- key: src.board_system.views
   path: src/board_system/views.py
+  package: src.board_system
 - key: src.bootstrap_and_run
-  package: src
   path: src/bootstrap_and_run.py
+  package: src
 - key: src.bot_governance_policy_mapper
-  package: src
   path: src/bot_governance_policy_mapper.py
+  package: src
 - key: src.bot_inventory_library
-  package: src
   path: src/bot_inventory_library.py
+  package: src
 - key: src.bot_room_registry
-  package: src
   path: src/bot_room_registry.py
+  package: src
 - key: src.bot_telemetry_normalizer
-  package: src
   path: src/bot_telemetry_normalizer.py
+  package: src
 - key: src.bridge_layer.__init__
-  package: src.bridge_layer
   path: src/bridge_layer/__init__.py
+  package: src.bridge_layer
 - key: src.bridge_layer.compilation
-  package: src.bridge_layer
   path: src/bridge_layer/compilation.py
+  package: src.bridge_layer
 - key: src.bridge_layer.hypothesis
-  package: src.bridge_layer
   path: src/bridge_layer/hypothesis.py
+  package: src.bridge_layer
 - key: src.bridge_layer.hypothesis_intake
-  package: src.bridge_layer
   path: src/bridge_layer/hypothesis_intake.py
+  package: src.bridge_layer
 - key: src.bridge_layer.intake
-  package: src.bridge_layer
   path: src/bridge_layer/intake.py
+  package: src.bridge_layer
 - key: src.bridge_layer.models
-  package: src.bridge_layer
   path: src/bridge_layer/models.py
+  package: src.bridge_layer
 - key: src.bridge_layer.schemas
-  package: src.bridge_layer
   path: src/bridge_layer/schemas.py
-- key: src.bridge_layer.ux
   package: src.bridge_layer
+- key: src.bridge_layer.ux
   path: src/bridge_layer/ux.py
+  package: src.bridge_layer
 - key: src.budget_aware_processor
-  package: src
   path: src/budget_aware_processor.py
+  package: src
 - key: src.bug_pattern_detector
-  package: src
   path: src/bug_pattern_detector.py
+  package: src
+- key: src.building_automation.__init__
+  path: src/building_automation/__init__.py
+  package: src.building_automation
+- key: src.building_automation.hvac_control
+  path: src/building_automation/hvac_control.py
+  package: src.building_automation
+- key: src.building_automation.lighting_control
+  path: src/building_automation/lighting_control.py
+  package: src.building_automation
+- key: src.building_automation.models
+  path: src/building_automation/models.py
+  package: src.building_automation
+- key: src.building_automation.occupancy_model
+  path: src/building_automation/occupancy_model.py
+  package: src.building_automation
+- key: src.building_automation.soo_engine
+  path: src/building_automation/soo_engine.py
+  package: src.building_automation
 - key: src.building_automation_connectors
-  package: src
   path: src/building_automation_connectors.py
+  package: src
 - key: src.business_scaling_engine
-  package: src
   path: src/business_scaling_engine.py
+  package: src
 - key: src.cache
-  package: src
   path: src/cache.py
+  package: src
 - key: src.campaign_orchestrator
-  package: src
   path: src/campaign_orchestrator.py
+  package: src
 - key: src.capability_map
-  package: src
   path: src/capability_map.py
+  package: src
 - key: src.capacity_planning_engine
-  package: src
   path: src/capacity_planning_engine.py
+  package: src
 - key: src.causal_spike_analyzer
-  package: src
   path: src/causal_spike_analyzer.py
+  package: src
 - key: src.causality_sandbox
-  package: src
   path: src/causality_sandbox.py
+  package: src
 - key: src.ceo_activation_plan
-  package: src
   path: src/ceo_activation_plan.py
+  package: src
 - key: src.ceo_branch_activation
-  package: src
   path: src/ceo_branch_activation.py
+  package: src
 - key: src.chaos.__init__
-  package: src.chaos
   path: src/chaos/__init__.py
+  package: src.chaos
 - key: src.chaos.api
-  package: src.chaos
   path: src/chaos/api.py
+  package: src.chaos
 - key: src.chaos.automation_pilot
-  package: src.chaos
   path: src/chaos/automation_pilot.py
+  package: src.chaos
 - key: src.chaos.chaos_engine
-  package: src.chaos
   path: src/chaos/chaos_engine.py
+  package: src.chaos
 - key: src.chaos.disruptive_technology
-  package: src.chaos
   path: src/chaos/disruptive_technology.py
+  package: src.chaos
 - key: src.chaos.economic_depression
-  package: src.chaos
   path: src/chaos/economic_depression.py
+  package: src.chaos
 - key: src.chaos.market_transitions
-  package: src.chaos
   path: src/chaos/market_transitions.py
+  package: src.chaos
 - key: src.chaos.swarm_chaos_coordinator
-  package: src.chaos
   path: src/chaos/swarm_chaos_coordinator.py
-- key: src.chaos.war_supply_chain
   package: src.chaos
+- key: src.chaos.war_supply_chain
   path: src/chaos/war_supply_chain.py
+  package: src.chaos
 - key: src.chaos_resilience_loop
-  package: src
   path: src/chaos_resilience_loop.py
+  package: src
 - key: src.character_network_engine
-  package: src
   path: src/character_network_engine.py
+  package: src
 - key: src.chatbot_v1_1_fixed
-  package: src
   path: src/chatbot_v1_1_fixed.py
+  package: src
 - key: src.ci_cd_pipeline_manager
-  package: src
   path: src/ci_cd_pipeline_manager.py
+  package: src
 - key: src.cli_art
-  package: src
   path: src/cli_art.py
+  package: src
 - key: src.client_psychology_engine
-  package: src
   path: src/client_psychology_engine.py
+  package: src
 - key: src.climate_resilience_engine
-  package: src
   path: src/climate_resilience_engine.py
+  package: src
 - key: src.closure_engine
-  package: src
   path: src/closure_engine.py
+  package: src
 - key: src.cloudflare_deploy
-  package: src
   path: src/cloudflare_deploy.py
+  package: src
 - key: src.code_generation_gateway
-  package: src
   path: src/code_generation_gateway.py
+  package: src
+- key: src.code_project_validator
+  path: src/code_project_validator.py
+  package: src
 - key: src.code_repair_engine
-  package: src
   path: src/code_repair_engine.py
+  package: src
 - key: src.coinbase_connector
-  package: src
   path: src/coinbase_connector.py
+  package: src
 - key: src.collaboration.__init__
-  package: src.collaboration
   path: src/collaboration/__init__.py
+  package: src.collaboration
 - key: src.collaboration.activity_feed
-  package: src.collaboration
   path: src/collaboration/activity_feed.py
+  package: src.collaboration
 - key: src.collaboration.api
-  package: src.collaboration
   path: src/collaboration/api.py
+  package: src.collaboration
 - key: src.collaboration.comment_manager
-  package: src.collaboration
   path: src/collaboration/comment_manager.py
+  package: src.collaboration
 - key: src.collaboration.mentions
-  package: src.collaboration
   path: src/collaboration/mentions.py
+  package: src.collaboration
 - key: src.collaboration.models
-  package: src.collaboration
   path: src/collaboration/models.py
-- key: src.collaboration.notifications
   package: src.collaboration
+- key: src.collaboration.notifications
   path: src/collaboration/notifications.py
+  package: src.collaboration
 - key: src.collaborative_task_orchestrator
-  package: src
   path: src/collaborative_task_orchestrator.py
+  package: src
 - key: src.command_parser
-  package: src
   path: src/command_parser.py
+  package: src
 - key: src.command_system
-  package: src
   path: src/command_system.py
+  package: src
 - key: src.comms.__init__
-  package: src.comms
   path: src/comms/__init__.py
+  package: src.comms
 - key: src.comms.compliance
-  package: src.comms
   path: src/comms/compliance.py
+  package: src.comms
 - key: src.comms.connectors
-  package: src.comms
   path: src/comms/connectors.py
+  package: src.comms
 - key: src.comms.governance
-  package: src.comms
   path: src/comms/governance.py
+  package: src.comms
 - key: src.comms.pipeline
-  package: src.comms
   path: src/comms/pipeline.py
-- key: src.comms.schemas
   package: src.comms
+- key: src.comms.schemas
   path: src/comms/schemas.py
+  package: src.comms
 - key: src.comms_hub_routes
-  package: src
   path: src/comms_hub_routes.py
+  package: src
 - key: src.communication_hub
-  package: src
   path: src/communication_hub.py
+  package: src
 - key: src.communication_system.__init__
-  package: src.communication_system
   path: src/communication_system/__init__.py
-- key: src.communication_system.pipeline
   package: src.communication_system
+- key: src.communication_system.pipeline
   path: src/communication_system/pipeline.py
+  package: src.communication_system
 - key: src.competitive_intelligence_engine
-  package: src
   path: src/competitive_intelligence_engine.py
+  package: src
 - key: src.compliance_as_code_engine
-  package: src
   path: src/compliance_as_code_engine.py
+  package: src
 - key: src.compliance_automation_bridge
-  package: src
   path: src/compliance_automation_bridge.py
+  package: src
 - key: src.compliance_engine
-  package: src
   path: src/compliance_engine.py
+  package: src
 - key: src.compliance_monitoring_completeness
-  package: src
   path: src/compliance_monitoring_completeness.py
+  package: src
 - key: src.compliance_orchestration_bridge
-  package: src
   path: src/compliance_orchestration_bridge.py
+  package: src
 - key: src.compliance_region_validator
-  package: src
   path: src/compliance_region_validator.py
+  package: src
 - key: src.compliance_report_aggregator
-  package: src
   path: src/compliance_report_aggregator.py
+  package: src
 - key: src.compliance_toggle_manager
-  package: src
   path: src/compliance_toggle_manager.py
+  package: src
+- key: src.compound_task_decomposer
+  path: src/compound_task_decomposer.py
+  package: src
 - key: src.compute_plane.__init__
-  package: src.compute_plane
   path: src/compute_plane/__init__.py
-- key: src.compute_plane.analyzers.__init__
-  package: src.compute_plane.analyzers
-  path: src/compute_plane/analyzers/__init__.py
-- key: src.compute_plane.analyzers.determinism_analyzer
-  package: src.compute_plane.analyzers
-  path: src/compute_plane/analyzers/determinism_analyzer.py
-- key: src.compute_plane.api.__init__
-  package: src.compute_plane.api
-  path: src/compute_plane/api/__init__.py
-- key: src.compute_plane.api.endpoints
-  package: src.compute_plane.api
-  path: src/compute_plane/api/endpoints.py
-- key: src.compute_plane.models.__init__
-  package: src.compute_plane.models
-  path: src/compute_plane/models/__init__.py
-- key: src.compute_plane.models.compute_request
-  package: src.compute_plane.models
-  path: src/compute_plane/models/compute_request.py
-- key: src.compute_plane.models.compute_result
-  package: src.compute_plane.models
-  path: src/compute_plane/models/compute_result.py
-- key: src.compute_plane.models.parsed_expression
-  package: src.compute_plane.models
-  path: src/compute_plane/models/parsed_expression.py
-- key: src.compute_plane.models.validation_result
-  package: src.compute_plane.models
-  path: src/compute_plane/models/validation_result.py
-- key: src.compute_plane.parsers.__init__
-  package: src.compute_plane.parsers
-  path: src/compute_plane/parsers/__init__.py
-- key: src.compute_plane.parsers.expression_parser
-  package: src.compute_plane.parsers
-  path: src/compute_plane/parsers/expression_parser.py
-- key: src.compute_plane.service
   package: src.compute_plane
+- key: src.compute_plane.analyzers.__init__
+  path: src/compute_plane/analyzers/__init__.py
+  package: src.compute_plane.analyzers
+- key: src.compute_plane.analyzers.determinism_analyzer
+  path: src/compute_plane/analyzers/determinism_analyzer.py
+  package: src.compute_plane.analyzers
+- key: src.compute_plane.api.__init__
+  path: src/compute_plane/api/__init__.py
+  package: src.compute_plane.api
+- key: src.compute_plane.api.endpoints
+  path: src/compute_plane/api/endpoints.py
+  package: src.compute_plane.api
+- key: src.compute_plane.models.__init__
+  path: src/compute_plane/models/__init__.py
+  package: src.compute_plane.models
+- key: src.compute_plane.models.compute_request
+  path: src/compute_plane/models/compute_request.py
+  package: src.compute_plane.models
+- key: src.compute_plane.models.compute_result
+  path: src/compute_plane/models/compute_result.py
+  package: src.compute_plane.models
+- key: src.compute_plane.models.parsed_expression
+  path: src/compute_plane/models/parsed_expression.py
+  package: src.compute_plane.models
+- key: src.compute_plane.models.validation_result
+  path: src/compute_plane/models/validation_result.py
+  package: src.compute_plane.models
+- key: src.compute_plane.parsers.__init__
+  path: src/compute_plane/parsers/__init__.py
+  package: src.compute_plane.parsers
+- key: src.compute_plane.parsers.expression_parser
+  path: src/compute_plane/parsers/expression_parser.py
+  package: src.compute_plane.parsers
+- key: src.compute_plane.service
   path: src/compute_plane/service.py
+  package: src.compute_plane
 - key: src.compute_plane.solvers.__init__
-  package: src.compute_plane.solvers
   path: src/compute_plane/solvers/__init__.py
+  package: src.compute_plane.solvers
 - key: src.compute_plane.solvers.numeric_solver
-  package: src.compute_plane.solvers
   path: src/compute_plane/solvers/numeric_solver.py
-- key: src.compute_plane.solvers.symbolic_solver
   package: src.compute_plane.solvers
+- key: src.compute_plane.solvers.symbolic_solver
   path: src/compute_plane/solvers/symbolic_solver.py
+  package: src.compute_plane.solvers
 - key: src.computer_vision_pipeline
-  package: src
   path: src/computer_vision_pipeline.py
+  package: src
 - key: src.concept_graph_engine
-  package: src
   path: src/concept_graph_engine.py
+  package: src
 - key: src.concept_translation
-  package: src
   path: src/concept_translation.py
+  package: src
 - key: src.confidence_engine.__init__
-  package: src.confidence_engine
   path: src/confidence_engine/__init__.py
+  package: src.confidence_engine
 - key: src.confidence_engine.api_server
-  package: src.confidence_engine
   path: src/confidence_engine/api_server.py
+  package: src.confidence_engine
 - key: src.confidence_engine.authority_mapper
-  package: src.confidence_engine
   path: src/confidence_engine/authority_mapper.py
+  package: src.confidence_engine
 - key: src.confidence_engine.confidence_calculator
-  package: src.confidence_engine
   path: src/confidence_engine/confidence_calculator.py
+  package: src.confidence_engine
 - key: src.confidence_engine.confidence_engine
-  package: src.confidence_engine
   path: src/confidence_engine/confidence_engine.py
+  package: src.confidence_engine
 - key: src.confidence_engine.credential_interface
-  package: src.confidence_engine
   path: src/confidence_engine/credential_interface.py
+  package: src.confidence_engine
 - key: src.confidence_engine.credential_verifier
-  package: src.confidence_engine
   path: src/confidence_engine/credential_verifier.py
+  package: src.confidence_engine
 - key: src.confidence_engine.external_validator
-  package: src.confidence_engine
   path: src/confidence_engine/external_validator.py
+  package: src.confidence_engine
 - key: src.confidence_engine.graph_analyzer
-  package: src.confidence_engine
   path: src/confidence_engine/graph_analyzer.py
+  package: src.confidence_engine
 - key: src.confidence_engine.models
-  package: src.confidence_engine
   path: src/confidence_engine/models.py
+  package: src.confidence_engine
 - key: src.confidence_engine.murphy_calculator
-  package: src.confidence_engine
   path: src/confidence_engine/murphy_calculator.py
+  package: src.confidence_engine
 - key: src.confidence_engine.murphy_gate
-  package: src.confidence_engine
   path: src/confidence_engine/murphy_gate.py
+  package: src.confidence_engine
 - key: src.confidence_engine.murphy_models
-  package: src.confidence_engine
   path: src/confidence_engine/murphy_models.py
+  package: src.confidence_engine
 - key: src.confidence_engine.murphy_validator
-  package: src.confidence_engine
   path: src/confidence_engine/murphy_validator.py
+  package: src.confidence_engine
 - key: src.confidence_engine.performance_optimization
-  package: src.confidence_engine
   path: src/confidence_engine/performance_optimization.py
+  package: src.confidence_engine
 - key: src.confidence_engine.phase_controller
-  package: src.confidence_engine
   path: src/confidence_engine/phase_controller.py
+  package: src.confidence_engine
 - key: src.confidence_engine.risk.__init__
-  package: src.confidence_engine.risk
   path: src/confidence_engine/risk/__init__.py
+  package: src.confidence_engine.risk
 - key: src.confidence_engine.risk.risk_database
-  package: src.confidence_engine.risk
   path: src/confidence_engine/risk/risk_database.py
+  package: src.confidence_engine.risk
 - key: src.confidence_engine.risk.risk_lookup
-  package: src.confidence_engine.risk
   path: src/confidence_engine/risk/risk_lookup.py
+  package: src.confidence_engine.risk
 - key: src.confidence_engine.risk.risk_mitigation
-  package: src.confidence_engine.risk
   path: src/confidence_engine/risk/risk_mitigation.py
+  package: src.confidence_engine.risk
 - key: src.confidence_engine.risk.risk_scoring
-  package: src.confidence_engine.risk
   path: src/confidence_engine/risk/risk_scoring.py
-- key: src.confidence_engine.risk.risk_storage
   package: src.confidence_engine.risk
+- key: src.confidence_engine.risk.risk_storage
   path: src/confidence_engine/risk/risk_storage.py
+  package: src.confidence_engine.risk
 - key: src.confidence_engine.rsc_telemetry
-  package: src.confidence_engine
   path: src/confidence_engine/rsc_telemetry.py
+  package: src.confidence_engine
 - key: src.confidence_engine.uncertainty_calculator
-  package: src.confidence_engine
   path: src/confidence_engine/uncertainty_calculator.py
-- key: src.confidence_engine.unified_confidence_engine
   package: src.confidence_engine
+- key: src.confidence_engine.unified_confidence_engine
   path: src/confidence_engine/unified_confidence_engine.py
+  package: src.confidence_engine
 - key: src.config
-  package: src
   path: src/config.py
+  package: src
 - key: src.constraint_system
-  package: src
   path: src/constraint_system.py
+  package: src
 - key: src.contact_compliance_governor
-  package: src
   path: src/contact_compliance_governor.py
+  package: src
 - key: src.content_creator_platform_modulator
-  package: src
   path: src/content_creator_platform_modulator.py
+  package: src
 - key: src.content_pipeline_engine
-  package: src
   path: src/content_pipeline_engine.py
+  package: src
 - key: src.contractual_audit
-  package: src
   path: src/contractual_audit.py
+  package: src
 - key: src.control_plane.__init__
-  package: src.control_plane
   path: src/control_plane/__init__.py
+  package: src.control_plane
 - key: src.control_plane.control_loop
-  package: src.control_plane
   path: src/control_plane/control_loop.py
+  package: src.control_plane
 - key: src.control_plane.execution_packet
-  package: src.control_plane
   path: src/control_plane/execution_packet.py
+  package: src.control_plane
 - key: src.control_plane.formal_constraints
-  package: src.control_plane
   path: src/control_plane/formal_constraints.py
+  package: src.control_plane
 - key: src.control_plane.llm_output_schemas
-  package: src.control_plane
   path: src/control_plane/llm_output_schemas.py
+  package: src.control_plane
 - key: src.control_plane.observation_model
-  package: src.control_plane
   path: src/control_plane/observation_model.py
+  package: src.control_plane
 - key: src.control_plane.orchestrator
-  package: src.control_plane
   path: src/control_plane/orchestrator.py
+  package: src.control_plane
 - key: src.control_plane.packet_compiler
-  package: src.control_plane
   path: src/control_plane/packet_compiler.py
-- key: src.control_plane.state_vector
   package: src.control_plane
+- key: src.control_plane.state_vector
   path: src/control_plane/state_vector.py
+  package: src.control_plane
 - key: src.control_plane_separation
-  package: src
   path: src/control_plane_separation.py
+  package: src
 - key: src.control_theory.__init__
-  package: src.control_theory
   path: src/control_theory/__init__.py
+  package: src.control_theory
 - key: src.control_theory.actor_registry
-  package: src.control_theory
   path: src/control_theory/actor_registry.py
+  package: src.control_theory
 - key: src.control_theory.bayesian_engine
-  package: src.control_theory
   path: src/control_theory/bayesian_engine.py
+  package: src.control_theory
 - key: src.control_theory.canonical_state
-  package: src.control_theory
   path: src/control_theory/canonical_state.py
+  package: src.control_theory
+- key: src.control_theory.confidence_manifold
+  path: src/control_theory/confidence_manifold.py
+  package: src.control_theory
 - key: src.control_theory.control_structure
-  package: src.control_theory
   path: src/control_theory/control_structure.py
+  package: src.control_theory
 - key: src.control_theory.control_vector
-  package: src.control_theory
   path: src/control_theory/control_vector.py
+  package: src.control_theory
 - key: src.control_theory.drift_detector
-  package: src.control_theory
   path: src/control_theory/drift_detector.py
+  package: src.control_theory
 - key: src.control_theory.entropy
-  package: src.control_theory
   path: src/control_theory/entropy.py
+  package: src.control_theory
 - key: src.control_theory.infinity_metric
-  package: src.control_theory
   path: src/control_theory/infinity_metric.py
+  package: src.control_theory
 - key: src.control_theory.jurisdiction
-  package: src.control_theory
   path: src/control_theory/jurisdiction.py
+  package: src.control_theory
 - key: src.control_theory.llm_synthesis_validator
-  package: src.control_theory
   path: src/control_theory/llm_synthesis_validator.py
+  package: src.control_theory
 - key: src.control_theory.llm_validation
-  package: src.control_theory
   path: src/control_theory/llm_validation.py
+  package: src.control_theory
+- key: src.control_theory.manifold_projection
+  path: src/control_theory/manifold_projection.py
+  package: src.control_theory
 - key: src.control_theory.observation_model
-  package: src.control_theory
   path: src/control_theory/observation_model.py
+  package: src.control_theory
 - key: src.control_theory.scaling_mechanism
-  package: src.control_theory
   path: src/control_theory/scaling_mechanism.py
+  package: src.control_theory
 - key: src.control_theory.stability
-  package: src.control_theory
   path: src/control_theory/stability.py
+  package: src.control_theory
 - key: src.control_theory.state_adapter
-  package: src.control_theory
   path: src/control_theory/state_adapter.py
+  package: src.control_theory
 - key: src.control_theory.state_model
-  package: src.control_theory
   path: src/control_theory/state_model.py
-- key: src.control_theory.state_transition
   package: src.control_theory
+- key: src.control_theory.state_transition
   path: src/control_theory/state_transition.py
+  package: src.control_theory
 - key: src.conversation_handler
-  package: src
   path: src/conversation_handler.py
+  package: src
 - key: src.conversation_manager
-  package: src
   path: src/conversation_manager.py
+  package: src
 - key: src.copilot_tenant.__init__
-  package: src.copilot_tenant
   path: src/copilot_tenant/__init__.py
+  package: src.copilot_tenant
 - key: src.copilot_tenant.decision_learner
-  package: src.copilot_tenant
   path: src/copilot_tenant/decision_learner.py
+  package: src.copilot_tenant
 - key: src.copilot_tenant.execution_gateway
-  package: src.copilot_tenant
   path: src/copilot_tenant/execution_gateway.py
+  package: src.copilot_tenant
 - key: src.copilot_tenant.graduation_manager
-  package: src.copilot_tenant
   path: src/copilot_tenant/graduation_manager.py
+  package: src.copilot_tenant
 - key: src.copilot_tenant.llm_router
-  package: src.copilot_tenant
   path: src/copilot_tenant/llm_router.py
+  package: src.copilot_tenant
 - key: src.copilot_tenant.matrix_room
-  package: src.copilot_tenant
   path: src/copilot_tenant/matrix_room.py
+  package: src.copilot_tenant
 - key: src.copilot_tenant.task_planner
-  package: src.copilot_tenant
   path: src/copilot_tenant/task_planner.py
-- key: src.copilot_tenant.tenant_agent
   package: src.copilot_tenant
+- key: src.copilot_tenant.tenant_agent
   path: src/copilot_tenant/tenant_agent.py
+  package: src.copilot_tenant
 - key: src.cost_calibrator
-  package: src
   path: src/cost_calibrator.py
+  package: src
 - key: src.cost_explosion_gate
-  package: src
   path: src/cost_explosion_gate.py
+  package: src
 - key: src.cost_optimization_advisor
-  package: src
   path: src/cost_optimization_advisor.py
+  package: src
 - key: src.credential_profile_system
-  package: src
   path: src/credential_profile_system.py
+  package: src
 - key: src.crm.__init__
-  package: src.crm
   path: src/crm/__init__.py
+  package: src.crm
 - key: src.crm.api
-  package: src.crm
   path: src/crm/api.py
+  package: src.crm
 - key: src.crm.crm_manager
-  package: src.crm
   path: src/crm/crm_manager.py
-- key: src.crm.models
   package: src.crm
+- key: src.crm.models
   path: src/crm/models.py
+  package: src.crm
 - key: src.cross_platform_data_sync
-  package: src
   path: src/cross_platform_data_sync.py
+  package: src
 - key: src.crypto_exchange_connector
-  package: src
   path: src/crypto_exchange_connector.py
+  package: src
 - key: src.crypto_portfolio_tracker
-  package: src
   path: src/crypto_portfolio_tracker.py
+  package: src
 - key: src.crypto_risk_manager
-  package: src
   path: src/crypto_risk_manager.py
+  package: src
 - key: src.crypto_wallet_manager
-  package: src
   path: src/crypto_wallet_manager.py
+  package: src
 - key: src.csrf_protection
-  package: src
   path: src/csrf_protection.py
+  package: src
 - key: src.customer_communication_manager
-  package: src
   path: src/customer_communication_manager.py
+  package: src
 - key: src.customer_infra_orchestrator
-  package: src
   path: src/customer_infra_orchestrator.py
+  package: src
 - key: src.cutsheet_engine
-  package: src
   path: src/cutsheet_engine.py
+  package: src
 - key: src.cyclic_trends_engine
-  package: src
   path: src/cyclic_trends_engine.py
+  package: src
 - key: src.dashboards.__init__
-  package: src.dashboards
   path: src/dashboards/__init__.py
+  package: src.dashboards
 - key: src.dashboards.aggregation
-  package: src.dashboards
   path: src/dashboards/aggregation.py
+  package: src.dashboards
 - key: src.dashboards.api
-  package: src.dashboards
   path: src/dashboards/api.py
+  package: src.dashboards
 - key: src.dashboards.dashboard_manager
-  package: src.dashboards
   path: src/dashboards/dashboard_manager.py
+  package: src.dashboards
 - key: src.dashboards.models
-  package: src.dashboards
   path: src/dashboards/models.py
-- key: src.dashboards.widgets
   package: src.dashboards
+- key: src.dashboards.widgets
   path: src/dashboards/widgets.py
+  package: src.dashboards
 - key: src.data_archive_manager
-  package: src
   path: src/data_archive_manager.py
+  package: src
 - key: src.data_pipeline_orchestrator
-  package: src
   path: src/data_pipeline_orchestrator.py
+  package: src
 - key: src.database.__init__
-  package: src.database
   path: src/database/__init__.py
+  package: src.database
 - key: src.db
-  package: src
   path: src/db.py
+  package: src
 - key: src.declarative_fleet_manager
-  package: src
   path: src/declarative_fleet_manager.py
+  package: src
+- key: src.deliverable_audit_gate
+  path: src/deliverable_audit_gate.py
+  package: src
 - key: src.delivery_adapters
-  package: src
   path: src/delivery_adapters.py
+  package: src
 - key: src.delivery_channel_completeness
-  package: src
   path: src/delivery_channel_completeness.py
+  package: src
 - key: src.demo_bundle_generator
-  package: src
   path: src/demo_bundle_generator.py
+  package: src
 - key: src.demo_deliverable_generator
-  package: src
   path: src/demo_deliverable_generator.py
+  package: src
 - key: src.demo_runner
-  package: src
   path: src/demo_runner.py
+  package: src
 - key: src.dependency_audit_engine
-  package: src
   path: src/dependency_audit_engine.py
+  package: src
+- key: src.dependency_deprecation_scanner
+  path: src/dependency_deprecation_scanner.py
+  package: src
 - key: src.deployment_automation_controller
-  package: src
   path: src/deployment_automation_controller.py
+  package: src
 - key: src.deployment_readiness
-  package: src
   path: src/deployment_readiness.py
+  package: src
 - key: src.deterministic_compute
-  package: src
   path: src/deterministic_compute.py
+  package: src
 - key: src.deterministic_compute_plane.__init__
-  package: src.deterministic_compute_plane
   path: src/deterministic_compute_plane/__init__.py
-- key: src.deterministic_compute_plane.compute_plane
   package: src.deterministic_compute_plane
+- key: src.deterministic_compute_plane.compute_plane
   path: src/deterministic_compute_plane/compute_plane.py
+  package: src.deterministic_compute_plane
 - key: src.deterministic_routing_engine
-  package: src
   path: src/deterministic_routing_engine.py
+  package: src
 - key: src.dev_module.__init__
-  package: src.dev_module
   path: src/dev_module/__init__.py
+  package: src.dev_module
 - key: src.dev_module.api
-  package: src.dev_module
   path: src/dev_module/api.py
+  package: src.dev_module
 - key: src.dev_module.dev_manager
-  package: src.dev_module
   path: src/dev_module/dev_manager.py
-- key: src.dev_module.models
   package: src.dev_module
+- key: src.dev_module.models
   path: src/dev_module/models.py
+  package: src.dev_module
 - key: src.digital_asset_generator
-  package: src
   path: src/digital_asset_generator.py
+  package: src
 - key: src.digital_twin_engine
-  package: src
   path: src/digital_twin_engine.py
+  package: src
 - key: src.dispatch
-  package: src
   path: src/dispatch.py
+  package: src
 - key: src.dispatch_routes
-  package: src
   path: src/dispatch_routes.py
+  package: src
 - key: src.docker_containerization
-  package: src
   path: src/docker_containerization.py
+  package: src
 - key: src.document_export.__init__
-  package: src.document_export
   path: src/document_export/__init__.py
+  package: src.document_export
 - key: src.document_export.api
-  package: src.document_export
   path: src/document_export/api.py
+  package: src.document_export
 - key: src.document_export.brand_registry
-  package: src.document_export
   path: src/document_export/brand_registry.py
+  package: src.document_export
 - key: src.document_export.export_pipeline
-  package: src.document_export
   path: src/document_export/export_pipeline.py
+  package: src.document_export
 - key: src.document_export.pdf_renderer
-  package: src.document_export
   path: src/document_export/pdf_renderer.py
-- key: src.document_export.style_rewriter
   package: src.document_export
+- key: src.document_export.style_rewriter
   path: src/document_export/style_rewriter.py
+  package: src.document_export
 - key: src.document_export.templates.__init__
-  package: src.document_export.templates
   path: src/document_export/templates/__init__.py
-- key: src.document_export.templates.commissioning
   package: src.document_export.templates
+- key: src.document_export.templates.commissioning
   path: src/document_export/templates/commissioning.py
+  package: src.document_export.templates
 - key: src.document_processor
-  package: src
   path: src/document_processor.py
+  package: src
 - key: src.domain_engine
-  package: src
   path: src/domain_engine.py
+  package: src
 - key: src.domain_expert_integration
-  package: src
   path: src/domain_expert_integration.py
+  package: src
 - key: src.domain_expert_system
-  package: src
   path: src/domain_expert_system.py
+  package: src
 - key: src.domain_gate_generator
-  package: src
   path: src/domain_gate_generator.py
+  package: src
 - key: src.domain_swarms
-  package: src
   path: src/domain_swarms.py
+  package: src
 - key: src.durable_swarm_orchestrator
-  package: src
   path: src/durable_swarm_orchestrator.py
+  package: src
 - key: src.dynamic_assist_engine
-  package: src
   path: src/dynamic_assist_engine.py
+  package: src
 - key: src.dynamic_command_discovery
-  package: src
   path: src/dynamic_command_discovery.py
+  package: src
 - key: src.dynamic_expert_generator
-  package: src
   path: src/dynamic_expert_generator.py
+  package: src
 - key: src.dynamic_risk_manager
-  package: src
   path: src/dynamic_risk_manager.py
+  package: src
 - key: src.efficiency_orchestrator
-  package: src
   path: src/efficiency_orchestrator.py
+  package: src
 - key: src.elite_org_simulator
-  package: src
   path: src/elite_org_simulator.py
+  package: src
 - key: src.email_integration
-  package: src
   path: src/email_integration.py
+  package: src
 - key: src.emergency_stop
-  package: src
   path: src/emergency_stop.py
+  package: src
 - key: src.emergency_stop_controller
-  package: src
   path: src/emergency_stop_controller.py
+  package: src
 - key: src.end_user_agreement
-  package: src
   path: src/end_user_agreement.py
+  package: src
 - key: src.energy_audit_engine
-  package: src
   path: src/energy_audit_engine.py
+  package: src
 - key: src.energy_efficiency_framework
-  package: src
   path: src/energy_efficiency_framework.py
+  package: src
+- key: src.energy_management.__init__
+  path: src/energy_management/__init__.py
+  package: src.energy_management
+- key: src.energy_management.carbon_accounting
+  path: src/energy_management/carbon_accounting.py
+  package: src.energy_management
+- key: src.energy_management.demand_response
+  path: src/energy_management/demand_response.py
+  package: src.energy_management
+- key: src.energy_management.load_forecasting
+  path: src/energy_management/load_forecasting.py
+  package: src.energy_management
+- key: src.energy_management.metering
+  path: src/energy_management/metering.py
+  package: src.energy_management
+- key: src.energy_management.renewable_integration
+  path: src/energy_management/renewable_integration.py
+  package: src.energy_management
+- key: src.energy_management.tariff_engine
+  path: src/energy_management/tariff_engine.py
+  package: src.energy_management
 - key: src.energy_management_connectors
-  package: src
   path: src/energy_management_connectors.py
+  package: src
 - key: src.enhanced_chatbot_mfgc
-  package: src
   path: src/enhanced_chatbot_mfgc.py
+  package: src
 - key: src.enhanced_local_llm
-  package: src
   path: src/enhanced_local_llm.py
+  package: src
 - key: src.enterprise_integrations
-  package: src
   path: src/enterprise_integrations.py
+  package: src
 - key: src.env_manager
-  package: src
   path: src/env_manager.py
+  package: src
 - key: src.environment_setup_agent
-  package: src
   path: src/environment_setup_agent.py
+  package: src
 - key: src.environment_state_manager
-  package: src
   path: src/environment_state_manager.py
+  package: src
 - key: src.eq.__init__
-  package: src.eq
   path: src/eq/__init__.py
+  package: src.eq
 - key: src.eq.agent_voice
-  package: src.eq
   path: src/eq/agent_voice.py
+  package: src.eq
 - key: src.eq.card_system
-  package: src.eq
   path: src/eq/card_system.py
+  package: src.eq
 - key: src.eq.cultural_identity
-  package: src.eq
   path: src/eq/cultural_identity.py
+  package: src.eq
 - key: src.eq.duel_controller
-  package: src.eq
   path: src/eq/duel_controller.py
+  package: src.eq
 - key: src.eq.eq_game_connector
-  package: src.eq
   path: src/eq/eq_game_connector.py
+  package: src.eq
 - key: src.eq.eq_gateway
-  package: src.eq
   path: src/eq/eq_gateway.py
+  package: src.eq
 - key: src.eq.eqemu_asset_manager
-  package: src.eq
   path: src/eq/eqemu_asset_manager.py
+  package: src.eq
 - key: src.eq.escalation_system
-  package: src.eq
   path: src/eq/escalation_system.py
+  package: src.eq
 - key: src.eq.experience_lore
-  package: src.eq
   path: src/eq/experience_lore.py
+  package: src.eq
 - key: src.eq.faction_manager
-  package: src.eq
   path: src/eq/faction_manager.py
+  package: src.eq
 - key: src.eq.lore_seeder
-  package: src.eq
   path: src/eq/lore_seeder.py
+  package: src.eq
 - key: src.eq.macro_trigger_engine
-  package: src.eq
   path: src/eq/macro_trigger_engine.py
+  package: src.eq
 - key: src.eq.murphy_integration
-  package: src.eq
   path: src/eq/murphy_integration.py
+  package: src.eq
 - key: src.eq.npc_card_effects
-  package: src.eq
   path: src/eq/npc_card_effects.py
+  package: src.eq
 - key: src.eq.perception_pipeline
-  package: src.eq
   path: src/eq/perception_pipeline.py
+  package: src.eq
 - key: src.eq.progression_server
-  package: src.eq
   path: src/eq/progression_server.py
+  package: src.eq
 - key: src.eq.remake_system
-  package: src.eq
   path: src/eq/remake_system.py
+  package: src.eq
 - key: src.eq.server_reboot
-  package: src.eq
   path: src/eq/server_reboot.py
+  package: src.eq
 - key: src.eq.sleeper_event
-  package: src.eq
   path: src/eq/sleeper_event.py
+  package: src.eq
 - key: src.eq.sorceror_class
-  package: src.eq
   path: src/eq/sorceror_class.py
+  package: src.eq
 - key: src.eq.soul_engine
-  package: src.eq
   path: src/eq/soul_engine.py
+  package: src.eq
 - key: src.eq.spawner_registry
-  package: src.eq
   path: src/eq/spawner_registry.py
+  package: src.eq
 - key: src.eq.streaming_overlay
-  package: src.eq
   path: src/eq/streaming_overlay.py
+  package: src.eq
 - key: src.eq.tower_zone
-  package: src.eq
   path: src/eq/tower_zone.py
+  package: src.eq
 - key: src.eq.town_systems
-  package: src.eq
   path: src/eq/town_systems.py
-- key: src.eq.unmaker_npc
   package: src.eq
+- key: src.eq.unmaker_npc
   path: src/eq/unmaker_npc.py
+  package: src.eq
 - key: src.error_calibrator
-  package: src
   path: src/error_calibrator.py
+  package: src
 - key: src.error_envelope
-  package: src
   path: src/error_envelope.py
+  package: src
 - key: src.errors.__init__
-  package: src.errors
   path: src/errors/__init__.py
+  package: src.errors
 - key: src.errors.codes
-  package: src.errors
   path: src/errors/codes.py
+  package: src.errors
 - key: src.errors.handlers
-  package: src.errors
   path: src/errors/handlers.py
-- key: src.errors.registry
   package: src.errors
+- key: src.errors.registry
   path: src/errors/registry.py
+  package: src.errors
+- key: src.eu_ai_act_compliance
+  path: src/eu_ai_act_compliance.py
+  package: src
 - key: src.event_backbone
-  package: src
   path: src/event_backbone.py
+  package: src
 - key: src.event_backbone_client
-  package: src
   path: src/event_backbone_client.py
+  package: src
 - key: src.execution.__init__
-  package: src.execution
   path: src/execution/__init__.py
-- key: src.execution.document_generation_engine
   package: src.execution
+- key: src.execution.document_generation_engine
   path: src/execution/document_generation_engine.py
+  package: src.execution
 - key: src.execution_compiler
-  package: src
   path: src/execution_compiler.py
+  package: src
 - key: src.execution_engine.__init__
-  package: src.execution_engine
   path: src/execution_engine/__init__.py
+  package: src.execution_engine
 - key: src.execution_engine.decision_engine
-  package: src.execution_engine
   path: src/execution_engine/decision_engine.py
+  package: src.execution_engine
 - key: src.execution_engine.execution_context
-  package: src.execution_engine
   path: src/execution_engine/execution_context.py
+  package: src.execution_engine
 - key: src.execution_engine.execution_orchestrator
-  package: src.execution_engine
   path: src/execution_engine/execution_orchestrator.py
+  package: src.execution_engine
 - key: src.execution_engine.form_execution_models
-  package: src.execution_engine
   path: src/execution_engine/form_execution_models.py
+  package: src.execution_engine
 - key: src.execution_engine.form_executor
-  package: src.execution_engine
   path: src/execution_engine/form_executor.py
+  package: src.execution_engine
 - key: src.execution_engine.integrated_form_executor
-  package: src.execution_engine
   path: src/execution_engine/integrated_form_executor.py
+  package: src.execution_engine
 - key: src.execution_engine.state_manager
-  package: src.execution_engine
   path: src/execution_engine/state_manager.py
+  package: src.execution_engine
 - key: src.execution_engine.task_executor
-  package: src.execution_engine
   path: src/execution_engine/task_executor.py
-- key: src.execution_engine.workflow_orchestrator
   package: src.execution_engine
+- key: src.execution_engine.workflow_orchestrator
   path: src/execution_engine/workflow_orchestrator.py
+  package: src.execution_engine
 - key: src.execution_orchestrator.__init__
-  package: src.execution_orchestrator
   path: src/execution_orchestrator/__init__.py
+  package: src.execution_orchestrator
 - key: src.execution_orchestrator.api
-  package: src.execution_orchestrator
   path: src/execution_orchestrator/api.py
+  package: src.execution_orchestrator
 - key: src.execution_orchestrator.completion
-  package: src.execution_orchestrator
   path: src/execution_orchestrator/completion.py
+  package: src.execution_orchestrator
 - key: src.execution_orchestrator.executor
-  package: src.execution_orchestrator
   path: src/execution_orchestrator/executor.py
+  package: src.execution_orchestrator
 - key: src.execution_orchestrator.models
-  package: src.execution_orchestrator
   path: src/execution_orchestrator/models.py
+  package: src.execution_orchestrator
 - key: src.execution_orchestrator.orchestrator
-  package: src.execution_orchestrator
   path: src/execution_orchestrator/orchestrator.py
+  package: src.execution_orchestrator
 - key: src.execution_orchestrator.risk_monitor
-  package: src.execution_orchestrator
   path: src/execution_orchestrator/risk_monitor.py
+  package: src.execution_orchestrator
 - key: src.execution_orchestrator.rollback
-  package: src.execution_orchestrator
   path: src/execution_orchestrator/rollback.py
+  package: src.execution_orchestrator
 - key: src.execution_orchestrator.rsc_integration
-  package: src.execution_orchestrator
   path: src/execution_orchestrator/rsc_integration.py
+  package: src.execution_orchestrator
 - key: src.execution_orchestrator.telemetry
-  package: src.execution_orchestrator
   path: src/execution_orchestrator/telemetry.py
-- key: src.execution_orchestrator.validator
   package: src.execution_orchestrator
+- key: src.execution_orchestrator.validator
   path: src/execution_orchestrator/validator.py
+  package: src.execution_orchestrator
 - key: src.execution_packet_compiler.__init__
-  package: src.execution_packet_compiler
   path: src/execution_packet_compiler/__init__.py
+  package: src.execution_packet_compiler
 - key: src.execution_packet_compiler.api_server
-  package: src.execution_packet_compiler
   path: src/execution_packet_compiler/api_server.py
+  package: src.execution_packet_compiler
 - key: src.execution_packet_compiler.compiler
-  package: src.execution_packet_compiler
   path: src/execution_packet_compiler/compiler.py
+  package: src.execution_packet_compiler
 - key: src.execution_packet_compiler.dependency_resolver
-  package: src.execution_packet_compiler
   path: src/execution_packet_compiler/dependency_resolver.py
+  package: src.execution_packet_compiler
 - key: src.execution_packet_compiler.determinism_enforcer
-  package: src.execution_packet_compiler
   path: src/execution_packet_compiler/determinism_enforcer.py
+  package: src.execution_packet_compiler
 - key: src.execution_packet_compiler.models
-  package: src.execution_packet_compiler
   path: src/execution_packet_compiler/models.py
+  package: src.execution_packet_compiler
 - key: src.execution_packet_compiler.packet_sealer
-  package: src.execution_packet_compiler
   path: src/execution_packet_compiler/packet_sealer.py
+  package: src.execution_packet_compiler
 - key: src.execution_packet_compiler.post_compilation_enforcer
-  package: src.execution_packet_compiler
   path: src/execution_packet_compiler/post_compilation_enforcer.py
+  package: src.execution_packet_compiler
 - key: src.execution_packet_compiler.risk_bounder
-  package: src.execution_packet_compiler
   path: src/execution_packet_compiler/risk_bounder.py
-- key: src.execution_packet_compiler.scope_freezer
   package: src.execution_packet_compiler
+- key: src.execution_packet_compiler.scope_freezer
   path: src/execution_packet_compiler/scope_freezer.py
+  package: src.execution_packet_compiler
 - key: src.execution_router
-  package: src
   path: src/execution_router.py
+  package: src
 - key: src.executive_planning_engine
-  package: src
   path: src/executive_planning_engine.py
+  package: src
 - key: src.factory_automation_connectors
-  package: src
   path: src/factory_automation_connectors.py
+  package: src
 - key: src.faq_generation_engine
-  package: src
   path: src/faq_generation_engine.py
+  package: src
 - key: src.fastapi_security
-  package: src
   path: src/fastapi_security.py
+  package: src
+- key: src.fdd.__init__
+  path: src/fdd/__init__.py
+  package: src.fdd
+- key: src.fdd.alarm_manager
+  path: src/fdd/alarm_manager.py
+  package: src.fdd
+- key: src.fdd.rule_engine
+  path: src/fdd/rule_engine.py
+  package: src.fdd
+- key: src.fdd.statistical_fdd
+  path: src/fdd/statistical_fdd.py
+  package: src.fdd
 - key: src.feature_flags.__init__
-  package: src.feature_flags
   path: src/feature_flags/__init__.py
+  package: src.feature_flags
 - key: src.feature_flags.flag_manager
-  package: src.feature_flags
   path: src/feature_flags/flag_manager.py
-- key: src.feature_flags.models
   package: src.feature_flags
+- key: src.feature_flags.models
   path: src/feature_flags/models.py
+  package: src.feature_flags
 - key: src.federated_learning_coordinator
-  package: src
   path: src/federated_learning_coordinator.py
+  package: src
 - key: src.feedback_integrator
-  package: src
   path: src/feedback_integrator.py
+  package: src
 - key: src.financial_reporting_engine
-  package: src
   path: src/financial_reporting_engine.py
+  package: src
 - key: src.finish_line_controller
-  package: src
   path: src/finish_line_controller.py
+  package: src
 - key: src.flask_security
-  package: src
   path: src/flask_security.py
+  package: src
 - key: src.forge_rate_limiter
-  package: src
   path: src/forge_rate_limiter.py
+  package: src
 - key: src.forge_stream
-  package: src
   path: src/forge_stream.py
+  package: src
 - key: src.form_intake.__init__
-  package: src.form_intake
   path: src/form_intake/__init__.py
+  package: src.form_intake
 - key: src.form_intake.api
-  package: src.form_intake
   path: src/form_intake/api.py
+  package: src.form_intake
 - key: src.form_intake.handlers
-  package: src.form_intake
   path: src/form_intake/handlers.py
+  package: src.form_intake
 - key: src.form_intake.plan_decomposer
-  package: src.form_intake
   path: src/form_intake/plan_decomposer.py
+  package: src.form_intake
 - key: src.form_intake.plan_models
-  package: src.form_intake
   path: src/form_intake/plan_models.py
-- key: src.form_intake.schemas
   package: src.form_intake
+- key: src.form_intake.schemas
   path: src/form_intake/schemas.py
+  package: src.form_intake
 - key: src.founder_bootstrap_orchestrator
-  package: src
   path: src/founder_bootstrap_orchestrator.py
+  package: src
 - key: src.founder_maintenance_api
-  package: src
   path: src/founder_maintenance_api.py
+  package: src
 - key: src.founder_maintenance_recommendation_engine
-  package: src
   path: src/founder_maintenance_recommendation_engine.py
+  package: src
+- key: src.founder_self_modification_engine
+  path: src/founder_self_modification_engine.py
+  package: src
 - key: src.founder_update_api
-  package: src
   path: src/founder_update_api.py
+  package: src
 - key: src.founder_update_engine.__init__
-  package: src.founder_update_engine
   path: src/founder_update_engine/__init__.py
+  package: src.founder_update_engine
 - key: src.founder_update_engine.auto_update_applicator
-  package: src.founder_update_engine
   path: src/founder_update_engine/auto_update_applicator.py
+  package: src.founder_update_engine
 - key: src.founder_update_engine.bug_response_handler
-  package: src.founder_update_engine
   path: src/founder_update_engine/bug_response_handler.py
+  package: src.founder_update_engine
 - key: src.founder_update_engine.digest_generator
-  package: src.founder_update_engine
   path: src/founder_update_engine/digest_generator.py
+  package: src.founder_update_engine
 - key: src.founder_update_engine.operating_analysis_dashboard
-  package: src.founder_update_engine
   path: src/founder_update_engine/operating_analysis_dashboard.py
+  package: src.founder_update_engine
 - key: src.founder_update_engine.recommendation_engine
-  package: src.founder_update_engine
   path: src/founder_update_engine/recommendation_engine.py
+  package: src.founder_update_engine
 - key: src.founder_update_engine.sdk_update_scanner
-  package: src.founder_update_engine
   path: src/founder_update_engine/sdk_update_scanner.py
+  package: src.founder_update_engine
 - key: src.founder_update_engine.subsystem_registry
-  package: src.founder_update_engine
   path: src/founder_update_engine/subsystem_registry.py
-- key: src.founder_update_engine.update_coordinator
   package: src.founder_update_engine
+- key: src.founder_update_engine.update_coordinator
   path: src/founder_update_engine/update_coordinator.py
+  package: src.founder_update_engine
 - key: src.founder_update_orchestrator
-  package: src
   path: src/founder_update_orchestrator.py
+  package: src
 - key: src.freelancer_validator.__init__
-  package: src.freelancer_validator
   path: src/freelancer_validator/__init__.py
+  package: src.freelancer_validator
 - key: src.freelancer_validator.budget_manager
-  package: src.freelancer_validator
   path: src/freelancer_validator/budget_manager.py
+  package: src.freelancer_validator
 - key: src.freelancer_validator.credential_verifier
-  package: src.freelancer_validator
   path: src/freelancer_validator/credential_verifier.py
+  package: src.freelancer_validator
 - key: src.freelancer_validator.criteria_engine
-  package: src.freelancer_validator
   path: src/freelancer_validator/criteria_engine.py
+  package: src.freelancer_validator
 - key: src.freelancer_validator.hitl_bridge
-  package: src.freelancer_validator
   path: src/freelancer_validator/hitl_bridge.py
+  package: src.freelancer_validator
 - key: src.freelancer_validator.models
-  package: src.freelancer_validator
   path: src/freelancer_validator/models.py
-- key: src.freelancer_validator.platform_client
   package: src.freelancer_validator
+- key: src.freelancer_validator.platform_client
   path: src/freelancer_validator/platform_client.py
+  package: src.freelancer_validator
 - key: src.full_automation_controller
-  package: src
   path: src/full_automation_controller.py
+  package: src
 - key: src.functionality_heatmap
-  package: src
   path: src/functionality_heatmap.py
+  package: src
 - key: src.game_creation_pipeline.__init__
-  package: src.game_creation_pipeline
   path: src/game_creation_pipeline/__init__.py
+  package: src.game_creation_pipeline
 - key: src.game_creation_pipeline.agent_player_controller
-  package: src.game_creation_pipeline
   path: src/game_creation_pipeline/agent_player_controller.py
+  package: src.game_creation_pipeline
 - key: src.game_creation_pipeline.ai_companion_system
-  package: src.game_creation_pipeline
   path: src/game_creation_pipeline/ai_companion_system.py
+  package: src.game_creation_pipeline
 - key: src.game_creation_pipeline.billboard_ad_system
-  package: src.game_creation_pipeline
   path: src/game_creation_pipeline/billboard_ad_system.py
+  package: src.game_creation_pipeline
 - key: src.game_creation_pipeline.class_balance_engine
-  package: src.game_creation_pipeline
   path: src/game_creation_pipeline/class_balance_engine.py
+  package: src.game_creation_pipeline
 - key: src.game_creation_pipeline.cooperation_mechanics
-  package: src.game_creation_pipeline
   path: src/game_creation_pipeline/cooperation_mechanics.py
+  package: src.game_creation_pipeline
 - key: src.game_creation_pipeline.luck_system
-  package: src.game_creation_pipeline
   path: src/game_creation_pipeline/luck_system.py
+  package: src.game_creation_pipeline
 - key: src.game_creation_pipeline.monetization_rules
-  package: src.game_creation_pipeline
   path: src/game_creation_pipeline/monetization_rules.py
+  package: src.game_creation_pipeline
 - key: src.game_creation_pipeline.streaming_integration
-  package: src.game_creation_pipeline
   path: src/game_creation_pipeline/streaming_integration.py
+  package: src.game_creation_pipeline
 - key: src.game_creation_pipeline.weekly_release_orchestrator
-  package: src.game_creation_pipeline
   path: src/game_creation_pipeline/weekly_release_orchestrator.py
-- key: src.game_creation_pipeline.world_generator
   package: src.game_creation_pipeline
+- key: src.game_creation_pipeline.world_generator
   path: src/game_creation_pipeline/world_generator.py
+  package: src.game_creation_pipeline
 - key: src.gate_behavior_model_engine
-  package: src
   path: src/gate_behavior_model_engine.py
+  package: src
 - key: src.gate_builder
-  package: src
   path: src/gate_builder.py
+  package: src
 - key: src.gate_bypass_controller
-  package: src
   path: src/gate_bypass_controller.py
+  package: src
 - key: src.gate_execution_wiring
-  package: src
   path: src/gate_execution_wiring.py
+  package: src
 - key: src.gate_synthesis.__init__
-  package: src.gate_synthesis
   path: src/gate_synthesis/__init__.py
+  package: src.gate_synthesis
 - key: src.gate_synthesis.api_server
-  package: src.gate_synthesis
   path: src/gate_synthesis/api_server.py
+  package: src.gate_synthesis
 - key: src.gate_synthesis.failure_mode_enumerator
-  package: src.gate_synthesis
   path: src/gate_synthesis/failure_mode_enumerator.py
+  package: src.gate_synthesis
 - key: src.gate_synthesis.gate_generator
-  package: src.gate_synthesis
   path: src/gate_synthesis/gate_generator.py
+  package: src.gate_synthesis
 - key: src.gate_synthesis.gate_lifecycle_manager
-  package: src.gate_synthesis
   path: src/gate_synthesis/gate_lifecycle_manager.py
+  package: src.gate_synthesis
 - key: src.gate_synthesis.gate_synthesis
-  package: src.gate_synthesis
   path: src/gate_synthesis/gate_synthesis.py
+  package: src.gate_synthesis
 - key: src.gate_synthesis.models
-  package: src.gate_synthesis
   path: src/gate_synthesis/models.py
+  package: src.gate_synthesis
 - key: src.gate_synthesis.murphy_estimator
-  package: src.gate_synthesis
   path: src/gate_synthesis/murphy_estimator.py
-- key: src.gate_synthesis.rsc_telemetry
   package: src.gate_synthesis
+- key: src.gate_synthesis.rsc_telemetry
   path: src/gate_synthesis/rsc_telemetry.py
+  package: src.gate_synthesis
 - key: src.generative_knowledge_builder
-  package: src
   path: src/generative_knowledge_builder.py
+  package: src
 - key: src.geographic_load_balancer
-  package: src
   path: src/geographic_load_balancer.py
+  package: src
+- key: src.global_feedback.__init__
+  path: src/global_feedback/__init__.py
+  package: src.global_feedback
+- key: src.global_feedback.dispatcher
+  path: src/global_feedback/dispatcher.py
+  package: src.global_feedback
+- key: src.global_feedback.models
+  path: src/global_feedback/models.py
+  package: src.global_feedback
+- key: src.global_feedback.remediation_engine
+  path: src/global_feedback/remediation_engine.py
+  package: src.global_feedback
 - key: src.golden_path_bridge
-  package: src
   path: src/golden_path_bridge.py
+  package: src
 - key: src.golden_path_engine
-  package: src
   path: src/golden_path_engine.py
+  package: src
 - key: src.governance_framework.__init__
-  package: src.governance_framework
   path: src/governance_framework/__init__.py
+  package: src.governance_framework
 - key: src.governance_framework.agent_descriptor
-  package: src.governance_framework
   path: src/governance_framework/agent_descriptor.py
+  package: src.governance_framework
 - key: src.governance_framework.agent_descriptor_complete
-  package: src.governance_framework
   path: src/governance_framework/agent_descriptor_complete.py
+  package: src.governance_framework
 - key: src.governance_framework.artifact_ingestion
-  package: src.governance_framework
   path: src/governance_framework/artifact_ingestion.py
+  package: src.governance_framework
 - key: src.governance_framework.refusal_handler
-  package: src.governance_framework
   path: src/governance_framework/refusal_handler.py
+  package: src.governance_framework
 - key: src.governance_framework.scheduler
-  package: src.governance_framework
   path: src/governance_framework/scheduler.py
-- key: src.governance_framework.stability_controller
   package: src.governance_framework
+- key: src.governance_framework.stability_controller
   path: src/governance_framework/stability_controller.py
+  package: src.governance_framework
 - key: src.governance_kernel
-  package: src
   path: src/governance_kernel.py
+  package: src
 - key: src.governance_toggle
-  package: src
   path: src/governance_toggle.py
+  package: src
 - key: src.graduation_controller
-  package: src
   path: src/graduation_controller.py
+  package: src
 - key: src.graphql_api_layer
-  package: src
   path: src/graphql_api_layer.py
+  package: src
 - key: src.groq_key_rotator
-  package: src
   path: src/groq_key_rotator.py
+  package: src
 - key: src.guest_collab.__init__
-  package: src.guest_collab
   path: src/guest_collab/__init__.py
+  package: src.guest_collab
 - key: src.guest_collab.api
-  package: src.guest_collab
   path: src/guest_collab/api.py
+  package: src.guest_collab
 - key: src.guest_collab.guest_manager
-  package: src.guest_collab
   path: src/guest_collab/guest_manager.py
-- key: src.guest_collab.models
   package: src.guest_collab
+- key: src.guest_collab.models
   path: src/guest_collab/models.py
+  package: src.guest_collab
 - key: src.hardware_visual_onboarding
-  package: src
   path: src/hardware_visual_onboarding.py
+  package: src
 - key: src.health_monitor
-  package: src
   path: src/health_monitor.py
+  package: src
 - key: src.heartbeat_liveness_protocol
-  package: src
   path: src/heartbeat_liveness_protocol.py
+  package: src
 - key: src.hetzner_deploy
-  package: src
   path: src/hetzner_deploy.py
+  package: src
 - key: src.hidden_cost_tracker
-  package: src
   path: src/hidden_cost_tracker.py
+  package: src
 - key: src.highlight_overlay
-  package: src
   path: src/highlight_overlay.py
+  package: src
 - key: src.historical_greatness_engine
-  package: src
   path: src/historical_greatness_engine.py
+  package: src
 - key: src.hitl_autonomy_controller
-  package: src
   path: src/hitl_autonomy_controller.py
+  package: src
 - key: src.hitl_execution_gate
-  package: src
   path: src/hitl_execution_gate.py
+  package: src
 - key: src.hitl_graduation_engine
-  package: src
   path: src/hitl_graduation_engine.py
+  package: src
 - key: src.hitl_persistence
-  package: src
   path: src/hitl_persistence.py
+  package: src
+- key: src.hitl_review_builder
+  path: src/hitl_review_builder.py
+  package: src
 - key: src.image_generation_engine
-  package: src
   path: src/image_generation_engine.py
+  package: src
 - key: src.immune_memory
-  package: src
   path: src/immune_memory.py
+  package: src
 - key: src.industry_automation_wizard
-  package: src
   path: src/industry_automation_wizard.py
+  package: src
 - key: src.inference_gate_engine
-  package: src
   path: src/inference_gate_engine.py
+  package: src
 - key: src.infinity_expansion_system
-  package: src
   path: src/infinity_expansion_system.py
+  package: src
 - key: src.information_density
-  package: src
   path: src/information_density.py
+  package: src
 - key: src.information_quality
-  package: src
   path: src/information_quality.py
+  package: src
 - key: src.innovation_farmer
-  package: src
   path: src/innovation_farmer.py
+  package: src
 - key: src.inoni_org_bootstrap
-  package: src
   path: src/inoni_org_bootstrap.py
+  package: src
 - key: src.input_validation
-  package: src
   path: src/input_validation.py
+  package: src
 - key: src.inquisitory_engine
-  package: src
   path: src/inquisitory_engine.py
+  package: src
 - key: src.integration_bus
-  package: src
   path: src/integration_bus.py
+  package: src
 - key: src.integration_engine.__init__
-  package: src.integration_engine
   path: src/integration_engine/__init__.py
+  package: src.integration_engine
 - key: src.integration_engine.adapters.__init__
-  package: src.integration_engine.adapters
   path: src/integration_engine/adapters/__init__.py
-- key: src.integration_engine.adapters.rynnbrain_adapter
   package: src.integration_engine.adapters
+- key: src.integration_engine.adapters.rynnbrain_adapter
   path: src/integration_engine/adapters/rynnbrain_adapter.py
+  package: src.integration_engine.adapters
 - key: src.integration_engine.agent_generator
-  package: src.integration_engine
   path: src/integration_engine/agent_generator.py
+  package: src.integration_engine
 - key: src.integration_engine.capability_extractor
-  package: src.integration_engine
   path: src/integration_engine/capability_extractor.py
+  package: src.integration_engine
 - key: src.integration_engine.hitl_approval
-  package: src.integration_engine
   path: src/integration_engine/hitl_approval.py
+  package: src.integration_engine
 - key: src.integration_engine.module_generator
-  package: src.integration_engine
   path: src/integration_engine/module_generator.py
+  package: src.integration_engine
 - key: src.integration_engine.profiles.__init__
-  package: src.integration_engine.profiles
   path: src/integration_engine/profiles/__init__.py
+  package: src.integration_engine.profiles
 - key: src.integration_engine.safety_tester
-  package: src.integration_engine
   path: src/integration_engine/safety_tester.py
+  package: src.integration_engine
 - key: src.integration_engine.sandbox_quarantine
-  package: src.integration_engine
   path: src/integration_engine/sandbox_quarantine.py
-- key: src.integration_engine.unified_engine
   package: src.integration_engine
+- key: src.integration_engine.unified_engine
   path: src/integration_engine/unified_engine.py
+  package: src.integration_engine
 - key: src.integrations.__init__
-  package: src.integrations
   path: src/integrations/__init__.py
+  package: src.integrations
 - key: src.integrations.airtable_connector
-  package: src.integrations
   path: src/integrations/airtable_connector.py
+  package: src.integrations
 - key: src.integrations.anthropic_connector
-  package: src.integrations
   path: src/integrations/anthropic_connector.py
+  package: src.integrations
 - key: src.integrations.asana_connector
-  package: src.integrations
   path: src/integrations/asana_connector.py
+  package: src.integrations
 - key: src.integrations.aws_connector
-  package: src.integrations
   path: src/integrations/aws_connector.py
+  package: src.integrations
 - key: src.integrations.base_connector
-  package: src.integrations
   path: src/integrations/base_connector.py
+  package: src.integrations
 - key: src.integrations.cloudflare_connector
-  package: src.integrations
   path: src/integrations/cloudflare_connector.py
+  package: src.integrations
 - key: src.integrations.database_connectors
-  package: src.integrations
   path: src/integrations/database_connectors.py
+  package: src.integrations
 - key: src.integrations.datadog_connector
-  package: src.integrations
   path: src/integrations/datadog_connector.py
+  package: src.integrations
 - key: src.integrations.discord_connector
-  package: src.integrations
   path: src/integrations/discord_connector.py
+  package: src.integrations
 - key: src.integrations.dropbox_connector
-  package: src.integrations
   path: src/integrations/dropbox_connector.py
+  package: src.integrations
 - key: src.integrations.firebase_connector
-  package: src.integrations
   path: src/integrations/firebase_connector.py
+  package: src.integrations
 - key: src.integrations.github_connector
-  package: src.integrations
   path: src/integrations/github_connector.py
+  package: src.integrations
 - key: src.integrations.google_analytics_connector
-  package: src.integrations
   path: src/integrations/google_analytics_connector.py
+  package: src.integrations
 - key: src.integrations.google_drive_connector
-  package: src.integrations
   path: src/integrations/google_drive_connector.py
+  package: src.integrations
 - key: src.integrations.hubspot_connector
-  package: src.integrations
   path: src/integrations/hubspot_connector.py
+  package: src.integrations
 - key: src.integrations.integration_framework
-  package: src.integrations
   path: src/integrations/integration_framework.py
+  package: src.integrations
 - key: src.integrations.jira_connector
-  package: src.integrations
   path: src/integrations/jira_connector.py
+  package: src.integrations
 - key: src.integrations.mailchimp_connector
-  package: src.integrations
   path: src/integrations/mailchimp_connector.py
+  package: src.integrations
 - key: src.integrations.monday_connector
-  package: src.integrations
   path: src/integrations/monday_connector.py
+  package: src.integrations
 - key: src.integrations.notion_connector
-  package: src.integrations
   path: src/integrations/notion_connector.py
+  package: src.integrations
 - key: src.integrations.openai_connector
-  package: src.integrations
   path: src/integrations/openai_connector.py
+  package: src.integrations
 - key: src.integrations.openweathermap_connector
-  package: src.integrations
   path: src/integrations/openweathermap_connector.py
+  package: src.integrations
 - key: src.integrations.pagerduty_connector
-  package: src.integrations
   path: src/integrations/pagerduty_connector.py
+  package: src.integrations
 - key: src.integrations.salesforce_connector
-  package: src.integrations
   path: src/integrations/salesforce_connector.py
+  package: src.integrations
 - key: src.integrations.scada_connector
-  package: src.integrations
   path: src/integrations/scada_connector.py
+  package: src.integrations
 - key: src.integrations.sendgrid_connector
-  package: src.integrations
   path: src/integrations/sendgrid_connector.py
+  package: src.integrations
 - key: src.integrations.shopify_connector
-  package: src.integrations
   path: src/integrations/shopify_connector.py
+  package: src.integrations
 - key: src.integrations.slack_connector
-  package: src.integrations
   path: src/integrations/slack_connector.py
+  package: src.integrations
 - key: src.integrations.stripe_connector
-  package: src.integrations
   path: src/integrations/stripe_connector.py
+  package: src.integrations
 - key: src.integrations.supabase_connector
-  package: src.integrations
   path: src/integrations/supabase_connector.py
+  package: src.integrations
 - key: src.integrations.telegram_connector
-  package: src.integrations
   path: src/integrations/telegram_connector.py
+  package: src.integrations
 - key: src.integrations.trello_connector
-  package: src.integrations
   path: src/integrations/trello_connector.py
+  package: src.integrations
 - key: src.integrations.twilio_connector
-  package: src.integrations
   path: src/integrations/twilio_connector.py
+  package: src.integrations
 - key: src.integrations.twitter_connector
-  package: src.integrations
   path: src/integrations/twitter_connector.py
+  package: src.integrations
 - key: src.integrations.world_model_registry
-  package: src.integrations
   path: src/integrations/world_model_registry.py
+  package: src.integrations
 - key: src.integrations.yahoo_finance_connector
-  package: src.integrations
   path: src/integrations/yahoo_finance_connector.py
-- key: src.integrations.zoom_connector
   package: src.integrations
+- key: src.integrations.zoom_connector
   path: src/integrations/zoom_connector.py
+  package: src.integrations
 - key: src.invoice_processing_pipeline
-  package: src
   path: src/invoice_processing_pipeline.py
+  package: src
 - key: src.ip_classification_engine
-  package: src
   path: src/ip_classification_engine.py
+  package: src
 - key: src.key_harvester
-  package: src
   path: src/key_harvester.py
+  package: src
 - key: src.kfactor_calculator
-  package: src
   path: src/kfactor_calculator.py
+  package: src
 - key: src.knostalgia_category_engine
-  package: src
   path: src/knostalgia_category_engine.py
+  package: src
 - key: src.knostalgia_engine
-  package: src
   path: src/knostalgia_engine.py
+  package: src
 - key: src.knowledge_base_manager
-  package: src
   path: src/knowledge_base_manager.py
+  package: src
 - key: src.knowledge_gap_system
-  package: src
   path: src/knowledge_gap_system.py
+  package: src
 - key: src.knowledge_graph_builder
-  package: src
   path: src/knowledge_graph_builder.py
+  package: src
 - key: src.kpi_tracker
-  package: src
   path: src/kpi_tracker.py
+  package: src
 - key: src.kubernetes_deployment
-  package: src
   path: src/kubernetes_deployment.py
+  package: src
 - key: src.large_action_model
-  package: src
   path: src/large_action_model.py
+  package: src
 - key: src.large_control_model
-  package: src
   path: src/large_control_model.py
+  package: src
 - key: src.lcm_chaos_simulation
-  package: src
   path: src/lcm_chaos_simulation.py
+  package: src
 - key: src.lcm_domain_registry
-  package: src
   path: src/lcm_domain_registry.py
+  package: src
 - key: src.lcm_engine
-  package: src
   path: src/lcm_engine.py
+  package: src
 - key: src.lcm_integration_bridge
-  package: src
   path: src/lcm_integration_bridge.py
+  package: src
 - key: src.learning_engine.__init__
-  package: src.learning_engine
   path: src/learning_engine/__init__.py
+  package: src.learning_engine
 - key: src.learning_engine.ab_testing
-  package: src.learning_engine
   path: src/learning_engine/ab_testing.py
+  package: src.learning_engine
 - key: src.learning_engine.adaptive_decision_engine
-  package: src.learning_engine
   path: src/learning_engine/adaptive_decision_engine.py
+  package: src.learning_engine
 - key: src.learning_engine.correction_capture
-  package: src.learning_engine
   path: src/learning_engine/correction_capture.py
+  package: src.learning_engine
 - key: src.learning_engine.correction_metadata
-  package: src.learning_engine
   path: src/learning_engine/correction_metadata.py
+  package: src.learning_engine
 - key: src.learning_engine.correction_models
-  package: src.learning_engine
   path: src/learning_engine/correction_models.py
+  package: src.learning_engine
 - key: src.learning_engine.correction_storage
-  package: src.learning_engine
   path: src/learning_engine/correction_storage.py
+  package: src.learning_engine
 - key: src.learning_engine.feature_engineering
-  package: src.learning_engine
   path: src/learning_engine/feature_engineering.py
+  package: src.learning_engine
+- key: src.learning_engine.feedback_loop_wiring
+  path: src/learning_engine/feedback_loop_wiring.py
+  package: src.learning_engine
 - key: src.learning_engine.feedback_system
-  package: src.learning_engine
   path: src/learning_engine/feedback_system.py
+  package: src.learning_engine
 - key: src.learning_engine.hyperparameter_tuning
-  package: src.learning_engine
   path: src/learning_engine/hyperparameter_tuning.py
+  package: src.learning_engine
 - key: src.learning_engine.integrated_correction_system
-  package: src.learning_engine
   path: src/learning_engine/integrated_correction_system.py
+  package: src.learning_engine
 - key: src.learning_engine.learning_engine
-  package: src.learning_engine
   path: src/learning_engine/learning_engine.py
+  package: src.learning_engine
 - key: src.learning_engine.learning_system
-  package: src.learning_engine
   path: src/learning_engine/learning_system.py
+  package: src.learning_engine
 - key: src.learning_engine.model_architecture
-  package: src.learning_engine
   path: src/learning_engine/model_architecture.py
+  package: src.learning_engine
 - key: src.learning_engine.model_registry
-  package: src.learning_engine
   path: src/learning_engine/model_registry.py
+  package: src.learning_engine
 - key: src.learning_engine.models
-  package: src.learning_engine
   path: src/learning_engine/models.py
+  package: src.learning_engine
 - key: src.learning_engine.pattern_extraction
-  package: src.learning_engine
   path: src/learning_engine/pattern_extraction.py
+  package: src.learning_engine
 - key: src.learning_engine.shadow_agent
-  package: src.learning_engine
   path: src/learning_engine/shadow_agent.py
+  package: src.learning_engine
 - key: src.learning_engine.shadow_evaluation
-  package: src.learning_engine
   path: src/learning_engine/shadow_evaluation.py
+  package: src.learning_engine
 - key: src.learning_engine.shadow_integration
-  package: src.learning_engine
   path: src/learning_engine/shadow_integration.py
+  package: src.learning_engine
 - key: src.learning_engine.shadow_models
-  package: src.learning_engine
   path: src/learning_engine/shadow_models.py
+  package: src.learning_engine
 - key: src.learning_engine.shadow_monitoring
-  package: src.learning_engine
   path: src/learning_engine/shadow_monitoring.py
+  package: src.learning_engine
 - key: src.learning_engine.training_data_transformer
-  package: src.learning_engine
   path: src/learning_engine/training_data_transformer.py
+  package: src.learning_engine
 - key: src.learning_engine.training_data_validator
-  package: src.learning_engine
   path: src/learning_engine/training_data_validator.py
-- key: src.learning_engine.training_pipeline
   package: src.learning_engine
+- key: src.learning_engine.training_pipeline
   path: src/learning_engine/training_pipeline.py
+  package: src.learning_engine
 - key: src.learning_engine_connector
-  package: src
   path: src/learning_engine_connector.py
+  package: src
 - key: src.learning_system
-  package: src
   path: src/learning_system.py
+  package: src
 - key: src.legacy_compatibility_matrix
-  package: src
   path: src/legacy_compatibility_matrix.py
+  package: src
 - key: src.librarian.__init__
-  package: src.librarian
   path: src/librarian/__init__.py
+  package: src.librarian
 - key: src.librarian.document_manager
-  package: src.librarian
   path: src/librarian/document_manager.py
+  package: src.librarian
 - key: src.librarian.knowledge_base
-  package: src.librarian
   path: src/librarian/knowledge_base.py
+  package: src.librarian
 - key: src.librarian.librarian_module
-  package: src.librarian
   path: src/librarian/librarian_module.py
-- key: src.librarian.semantic_search
   package: src.librarian
+- key: src.librarian.semantic_search
   path: src/librarian/semantic_search.py
+  package: src.librarian
 - key: src.librarian_adapter
-  package: src
   path: src/librarian_adapter.py
+  package: src
 - key: src.librarian_integration
-  package: src
   path: src/librarian_integration.py
+  package: src
 - key: src.live_feed_service
-  package: src
   path: src/live_feed_service.py
+  package: src
 - key: src.live_trading_engine
-  package: src
   path: src/live_trading_engine.py
+  package: src
 - key: src.llm_controller
-  package: src
   path: src/llm_controller.py
+  package: src
+- key: src.llm_determinism_guard
+  path: src/llm_determinism_guard.py
+  package: src
 - key: src.llm_integration
-  package: src
   path: src/llm_integration.py
+  package: src
 - key: src.llm_integration_layer
-  package: src
   path: src/llm_integration_layer.py
+  package: src
+- key: src.llm_output_manifold
+  path: src/llm_output_manifold.py
+  package: src
 - key: src.llm_output_validator
-  package: src
   path: src/llm_output_validator.py
+  package: src
 - key: src.llm_provider
-  package: src
   path: src/llm_provider.py
+  package: src
 - key: src.llm_routing_completeness
-  package: src
   path: src/llm_routing_completeness.py
+  package: src
 - key: src.llm_swarm_integration
-  package: src
   path: src/llm_swarm_integration.py
+  package: src
 - key: src.local_inference_engine
-  package: src
   path: src/local_inference_engine.py
+  package: src
 - key: src.local_llm_fallback
-  package: src
   path: src/local_llm_fallback.py
+  package: src
 - key: src.local_model_layer
-  package: src
   path: src/local_model_layer.py
+  package: src
 - key: src.log_analysis_engine
-  package: src
   path: src/log_analysis_engine.py
+  package: src
 - key: src.logging_config
-  package: src
   path: src/logging_config.py
+  package: src
 - key: src.logging_system
-  package: src
   path: src/logging_system.py
+  package: src
 - key: src.management_systems.__init__
-  package: src.management_systems
   path: src/management_systems/__init__.py
+  package: src.management_systems
 - key: src.management_systems.automation_recipes
-  package: src.management_systems
   path: src/management_systems/automation_recipes.py
+  package: src.management_systems
 - key: src.management_systems.board_engine
-  package: src.management_systems
   path: src/management_systems/board_engine.py
+  package: src.management_systems
 - key: src.management_systems.dashboard_generator
-  package: src.management_systems
   path: src/management_systems/dashboard_generator.py
+  package: src.management_systems
 - key: src.management_systems.doc_manager
-  package: src.management_systems
   path: src/management_systems/doc_manager.py
+  package: src.management_systems
 - key: src.management_systems.form_builder
-  package: src.management_systems
   path: src/management_systems/form_builder.py
+  package: src.management_systems
 - key: src.management_systems.integration_bridge
-  package: src.management_systems
   path: src/management_systems/integration_bridge.py
+  package: src.management_systems
 - key: src.management_systems.management_commands
-  package: src.management_systems
   path: src/management_systems/management_commands.py
+  package: src.management_systems
 - key: src.management_systems.status_engine
-  package: src.management_systems
   path: src/management_systems/status_engine.py
+  package: src.management_systems
 - key: src.management_systems.timeline_engine
-  package: src.management_systems
   path: src/management_systems/timeline_engine.py
-- key: src.management_systems.workspace_manager
   package: src.management_systems
+- key: src.management_systems.workspace_manager
   path: src/management_systems/workspace_manager.py
+  package: src.management_systems
 - key: src.manufacturing_automation_standards
-  package: src
   path: src/manufacturing_automation_standards.py
+  package: src
 - key: src.market_data_feed
-  package: src
   path: src/market_data_feed.py
+  package: src
 - key: src.market_positioning_engine
-  package: src
   path: src/market_positioning_engine.py
+  package: src
 - key: src.marketing_analytics_aggregator
-  package: src
   path: src/marketing_analytics_aggregator.py
+  package: src
 - key: src.matrix_bridge.__init__
-  package: src.matrix_bridge
   path: src/matrix_bridge/__init__.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge._registry_data_a
-  package: src.matrix_bridge
   path: src/matrix_bridge/_registry_data_a.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge._registry_data_b
-  package: src.matrix_bridge
   path: src/matrix_bridge/_registry_data_b.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge._registry_types
-  package: src.matrix_bridge
   path: src/matrix_bridge/_registry_types.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.appservice
-  package: src.matrix_bridge
   path: src/matrix_bridge/appservice.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.auth_bridge
-  package: src.matrix_bridge
   path: src/matrix_bridge/auth_bridge.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.bot_bridge_adapter
-  package: src.matrix_bridge
   path: src/matrix_bridge/bot_bridge_adapter.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.bot_personas
-  package: src.matrix_bridge
   path: src/matrix_bridge/bot_personas.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.command_dispatcher
-  package: src.matrix_bridge
   path: src/matrix_bridge/command_dispatcher.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.command_router
-  package: src.matrix_bridge
   path: src/matrix_bridge/command_router.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.config
-  package: src.matrix_bridge
   path: src/matrix_bridge/config.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.e2ee_manager
-  package: src.matrix_bridge
   path: src/matrix_bridge/e2ee_manager.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.email_bridge
-  package: src.matrix_bridge
   path: src/matrix_bridge/email_bridge.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.event_bridge
-  package: src.matrix_bridge
   path: src/matrix_bridge/event_bridge.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.event_streamer
-  package: src.matrix_bridge
   path: src/matrix_bridge/event_streamer.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.hitl_matrix_adapter
-  package: src.matrix_bridge
   path: src/matrix_bridge/hitl_matrix_adapter.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.management_features
-  package: src.matrix_bridge
   path: src/matrix_bridge/management_features.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.matrix_client
-  package: src.matrix_bridge
   path: src/matrix_bridge/matrix_client.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.matrix_config
-  package: src.matrix_bridge
   path: src/matrix_bridge/matrix_config.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.matrix_event_handler
-  package: src.matrix_bridge
   path: src/matrix_bridge/matrix_event_handler.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.media_handler
-  package: src.matrix_bridge
   path: src/matrix_bridge/media_handler.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.message_router
-  package: src.matrix_bridge
   path: src/matrix_bridge/message_router.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.module_manifest
-  package: src.matrix_bridge
   path: src/matrix_bridge/module_manifest.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.room_cognitive_roles
-  package: src.matrix_bridge
   path: src/matrix_bridge/room_cognitive_roles.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.room_registry
-  package: src.matrix_bridge
   path: src/matrix_bridge/room_registry.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.room_router
-  package: src.matrix_bridge
   path: src/matrix_bridge/room_router.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.room_topology
-  package: src.matrix_bridge
   path: src/matrix_bridge/room_topology.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.space_manager
-  package: src.matrix_bridge
   path: src/matrix_bridge/space_manager.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.startup
-  package: src.matrix_bridge
   path: src/matrix_bridge/startup.py
+  package: src.matrix_bridge
 - key: src.matrix_bridge.subsystem_registry
-  package: src.matrix_bridge
   path: src/matrix_bridge/subsystem_registry.py
-- key: src.matrix_bridge.webhook_receiver
   package: src.matrix_bridge
+- key: src.matrix_bridge.webhook_receiver
   path: src/matrix_bridge/webhook_receiver.py
+  package: src.matrix_bridge
 - key: src.mcp_plugin.__init__
-  package: src.mcp_plugin
   path: src/mcp_plugin/__init__.py
+  package: src.mcp_plugin
 - key: src.mcp_plugin.mcp_connector
-  package: src.mcp_plugin
   path: src/mcp_plugin/mcp_connector.py
-- key: src.mcp_plugin.models
   package: src.mcp_plugin
+- key: src.mcp_plugin.models
   path: src/mcp_plugin/models.py
+  package: src.mcp_plugin
 - key: src.memory_artifact_system
-  package: src
   path: src/memory_artifact_system.py
+  package: src
 - key: src.memory_management
-  package: src
   path: src/memory_management.py
+  package: src
 - key: src.metrics
-  package: src
   path: src/metrics.py
+  package: src
 - key: src.mfgc_adapter
-  package: src
   path: src/mfgc_adapter.py
+  package: src
 - key: src.mfgc_core
-  package: src
   path: src/mfgc_core.py
+  package: src
 - key: src.mfgc_metrics
-  package: src
   path: src/mfgc_metrics.py
+  package: src
 - key: src.mfgc_v1_1
-  package: src
   path: src/mfgc_v1_1.py
+  package: src
 - key: src.ml.__init__
-  package: src.ml
   path: src/ml/__init__.py
+  package: src.ml
 - key: src.ml.api
-  package: src.ml
   path: src/ml/api.py
+  package: src.ml
 - key: src.ml.copilot_adapter
-  package: src.ml
   path: src/ml/copilot_adapter.py
+  package: src.ml
 - key: src.ml.evaluation
-  package: src.ml
   path: src/ml/evaluation.py
+  package: src.ml
 - key: src.ml.inference_engine
-  package: src.ml
   path: src/ml/inference_engine.py
+  package: src.ml
+- key: src.ml.manifold_optimizer
+  path: src/ml/manifold_optimizer.py
+  package: src.ml
 - key: src.ml.model_config
-  package: src.ml
   path: src/ml/model_config.py
+  package: src.ml
 - key: src.ml.model_registry
-  package: src.ml
   path: src/ml/model_registry.py
-- key: src.ml.training_pipeline
   package: src.ml
+- key: src.ml.training_pipeline
   path: src/ml/training_pipeline.py
+  package: src.ml
 - key: src.ml_model_registry
-  package: src
   path: src/ml_model_registry.py
+  package: src
 - key: src.ml_strategy_engine
-  package: src
   path: src/ml_strategy_engine.py
+  package: src
 - key: src.mock_compatible_local_llm
-  package: src
   path: src/mock_compatible_local_llm.py
+  package: src
 - key: src.modular_runtime
-  package: src
   path: src/modular_runtime.py
+  package: src
 - key: src.module_compiler.__init__
-  package: src.module_compiler
   path: src/module_compiler/__init__.py
-- key: src.module_compiler.analyzers.__init__
-  package: src.module_compiler.analyzers
-  path: src/module_compiler/analyzers/__init__.py
-- key: src.module_compiler.analyzers.capability_extractor
-  package: src.module_compiler.analyzers
-  path: src/module_compiler/analyzers/capability_extractor.py
-- key: src.module_compiler.analyzers.determinism_classifier
-  package: src.module_compiler.analyzers
-  path: src/module_compiler/analyzers/determinism_classifier.py
-- key: src.module_compiler.analyzers.failure_mode_detector
-  package: src.module_compiler.analyzers
-  path: src/module_compiler/analyzers/failure_mode_detector.py
-- key: src.module_compiler.analyzers.sandbox_generator
-  package: src.module_compiler.analyzers
-  path: src/module_compiler/analyzers/sandbox_generator.py
-- key: src.module_compiler.analyzers.static_analyzer
-  package: src.module_compiler.analyzers
-  path: src/module_compiler/analyzers/static_analyzer.py
-- key: src.module_compiler.analyzers.test_vector_generator
-  package: src.module_compiler.analyzers
-  path: src/module_compiler/analyzers/test_vector_generator.py
-- key: src.module_compiler.api.__init__
-  package: src.module_compiler.api
-  path: src/module_compiler/api/__init__.py
-- key: src.module_compiler.api.endpoints
-  package: src.module_compiler.api
-  path: src/module_compiler/api/endpoints.py
-- key: src.module_compiler.compiler
   package: src.module_compiler
+- key: src.module_compiler.analyzers.__init__
+  path: src/module_compiler/analyzers/__init__.py
+  package: src.module_compiler.analyzers
+- key: src.module_compiler.analyzers.capability_extractor
+  path: src/module_compiler/analyzers/capability_extractor.py
+  package: src.module_compiler.analyzers
+- key: src.module_compiler.analyzers.determinism_classifier
+  path: src/module_compiler/analyzers/determinism_classifier.py
+  package: src.module_compiler.analyzers
+- key: src.module_compiler.analyzers.failure_mode_detector
+  path: src/module_compiler/analyzers/failure_mode_detector.py
+  package: src.module_compiler.analyzers
+- key: src.module_compiler.analyzers.sandbox_generator
+  path: src/module_compiler/analyzers/sandbox_generator.py
+  package: src.module_compiler.analyzers
+- key: src.module_compiler.analyzers.static_analyzer
+  path: src/module_compiler/analyzers/static_analyzer.py
+  package: src.module_compiler.analyzers
+- key: src.module_compiler.analyzers.test_vector_generator
+  path: src/module_compiler/analyzers/test_vector_generator.py
+  package: src.module_compiler.analyzers
+- key: src.module_compiler.api.__init__
+  path: src/module_compiler/api/__init__.py
+  package: src.module_compiler.api
+- key: src.module_compiler.api.endpoints
+  path: src/module_compiler/api/endpoints.py
+  package: src.module_compiler.api
+- key: src.module_compiler.compiler
   path: src/module_compiler/compiler.py
+  package: src.module_compiler
 - key: src.module_compiler.integration.__init__
-  package: src.module_compiler.integration
   path: src/module_compiler/integration/__init__.py
-- key: src.module_compiler.integration.murphy_helpers
   package: src.module_compiler.integration
+- key: src.module_compiler.integration.murphy_helpers
   path: src/module_compiler/integration/murphy_helpers.py
+  package: src.module_compiler.integration
 - key: src.module_compiler.models.__init__
-  package: src.module_compiler.models
   path: src/module_compiler/models/__init__.py
-- key: src.module_compiler.models.module_spec
   package: src.module_compiler.models
+- key: src.module_compiler.models.module_spec
   path: src/module_compiler/models/module_spec.py
+  package: src.module_compiler.models
 - key: src.module_compiler.registry.__init__
-  package: src.module_compiler.registry
   path: src/module_compiler/registry/__init__.py
-- key: src.module_compiler.registry.module_registry
   package: src.module_compiler.registry
+- key: src.module_compiler.registry.module_registry
   path: src/module_compiler/registry/module_registry.py
+  package: src.module_compiler.registry
 - key: src.module_compiler_adapter
-  package: src
   path: src/module_compiler_adapter.py
+  package: src
 - key: src.module_instance_api
-  package: src
   path: src/module_instance_api.py
+  package: src
 - key: src.module_instance_manager
-  package: src
   path: src/module_instance_manager.py
+  package: src
 - key: src.module_loader
-  package: src
   path: src/module_loader.py
+  package: src
 - key: src.module_manager
-  package: src
   path: src/module_manager.py
+  package: src
 - key: src.module_registry
-  package: src
   path: src/module_registry.py
+  package: src
 - key: src.mss_controls
-  package: src
   path: src/mss_controls.py
+  package: src
 - key: src.mss_sequence_optimizer
-  package: src
   path: src/mss_sequence_optimizer.py
+  package: src
 - key: src.multi_agent_coordinator.__init__
-  package: src.multi_agent_coordinator
   path: src/multi_agent_coordinator/__init__.py
+  package: src.multi_agent_coordinator
 - key: src.multi_agent_coordinator.coordinator
-  package: src.multi_agent_coordinator
   path: src/multi_agent_coordinator/coordinator.py
-- key: src.multi_agent_coordinator.models
   package: src.multi_agent_coordinator
+- key: src.multi_agent_coordinator.models
   path: src/multi_agent_coordinator/models.py
+  package: src.multi_agent_coordinator
 - key: src.multi_cloud_orchestrator
-  package: src
   path: src/multi_cloud_orchestrator.py
+  package: src
 - key: src.multi_language_codegen
-  package: src
   path: src/multi_language_codegen.py
+  package: src
 - key: src.multi_source_research
-  package: src
   path: src/multi_source_research.py
+  package: src
 - key: src.multi_tenant_workspace
-  package: src
   path: src/multi_tenant_workspace.py
+  package: src
 - key: src.multiverse_game_framework.__init__
-  package: src.multiverse_game_framework
   path: src/multiverse_game_framework/__init__.py
+  package: src.multiverse_game_framework
 - key: src.multiverse_game_framework.agent_player
-  package: src.multiverse_game_framework
   path: src/multiverse_game_framework/agent_player.py
+  package: src.multiverse_game_framework
 - key: src.multiverse_game_framework.ai_companion
-  package: src.multiverse_game_framework
   path: src/multiverse_game_framework/ai_companion.py
+  package: src.multiverse_game_framework
 - key: src.multiverse_game_framework.billboard_system
-  package: src.multiverse_game_framework
   path: src/multiverse_game_framework/billboard_system.py
+  package: src.multiverse_game_framework
 - key: src.multiverse_game_framework.item_portability
-  package: src.multiverse_game_framework
   path: src/multiverse_game_framework/item_portability.py
+  package: src.multiverse_game_framework
 - key: src.multiverse_game_framework.multiplayer_recruitment
-  package: src.multiverse_game_framework
   path: src/multiverse_game_framework/multiplayer_recruitment.py
+  package: src.multiverse_game_framework
 - key: src.multiverse_game_framework.spell_synergy
-  package: src.multiverse_game_framework
   path: src/multiverse_game_framework/spell_synergy.py
+  package: src.multiverse_game_framework
 - key: src.multiverse_game_framework.streaming_integration
-  package: src.multiverse_game_framework
   path: src/multiverse_game_framework/streaming_integration.py
+  package: src.multiverse_game_framework
 - key: src.multiverse_game_framework.universal_character
-  package: src.multiverse_game_framework
   path: src/multiverse_game_framework/universal_character.py
-- key: src.multiverse_game_framework.world_registry
   package: src.multiverse_game_framework
+- key: src.multiverse_game_framework.world_registry
   path: src/multiverse_game_framework/world_registry.py
+  package: src.multiverse_game_framework
 - key: src.murphy_action_engine
-  package: src
   path: src/murphy_action_engine.py
+  package: src
 - key: src.murphy_autonomous_perception
-  package: src
   path: src/murphy_autonomous_perception.py
+  package: src
+- key: src.murphy_cli.__init__
+  path: src/murphy_cli/__init__.py
+  package: src.murphy_cli
+- key: src.murphy_cli.__main__
+  path: src/murphy_cli/__main__.py
+  package: src.murphy_cli
+- key: src.murphy_cli.args
+  path: src/murphy_cli/args.py
+  package: src.murphy_cli
+- key: src.murphy_cli.client
+  path: src/murphy_cli/client.py
+  package: src.murphy_cli
+- key: src.murphy_cli.commands.__init__
+  path: src/murphy_cli/commands/__init__.py
+  package: src.murphy_cli.commands
+- key: src.murphy_cli.commands.agents
+  path: src/murphy_cli/commands/agents.py
+  package: src.murphy_cli.commands
+- key: src.murphy_cli.commands.auth
+  path: src/murphy_cli/commands/auth.py
+  package: src.murphy_cli.commands
+- key: src.murphy_cli.commands.automate
+  path: src/murphy_cli/commands/automate.py
+  package: src.murphy_cli.commands
+- key: src.murphy_cli.commands.automations
+  path: src/murphy_cli/commands/automations.py
+  package: src.murphy_cli.commands
+- key: src.murphy_cli.commands.chat
+  path: src/murphy_cli/commands/chat.py
+  package: src.murphy_cli.commands
+- key: src.murphy_cli.commands.commission
+  path: src/murphy_cli/commands/commission.py
+  package: src.murphy_cli.commands
+- key: src.murphy_cli.commands.config_cmd
+  path: src/murphy_cli/commands/config_cmd.py
+  package: src.murphy_cli.commands
+- key: src.murphy_cli.commands.diagnose
+  path: src/murphy_cli/commands/diagnose.py
+  package: src.murphy_cli.commands
+- key: src.murphy_cli.commands.forge
+  path: src/murphy_cli/commands/forge.py
+  package: src.murphy_cli.commands
+- key: src.murphy_cli.commands.hitl
+  path: src/murphy_cli/commands/hitl.py
+  package: src.murphy_cli.commands
+- key: src.murphy_cli.commands.mcb
+  path: src/murphy_cli/commands/mcb.py
+  package: src.murphy_cli.commands
+- key: src.murphy_cli.commands.safety
+  path: src/murphy_cli/commands/safety.py
+  package: src.murphy_cli.commands
+- key: src.murphy_cli.commands.split
+  path: src/murphy_cli/commands/split.py
+  package: src.murphy_cli.commands
+- key: src.murphy_cli.commands.system
+  path: src/murphy_cli/commands/system.py
+  package: src.murphy_cli.commands
+- key: src.murphy_cli.config
+  path: src/murphy_cli/config.py
+  package: src.murphy_cli
+- key: src.murphy_cli.main
+  path: src/murphy_cli/main.py
+  package: src.murphy_cli
+- key: src.murphy_cli.output
+  path: src/murphy_cli/output.py
+  package: src.murphy_cli
+- key: src.murphy_cli.registry
+  path: src/murphy_cli/registry.py
+  package: src.murphy_cli
 - key: src.murphy_code_healer
-  package: src
   path: src/murphy_code_healer.py
+  package: src
 - key: src.murphy_credential_gate
-  package: src
   path: src/murphy_credential_gate.py
+  package: src
 - key: src.murphy_crew_system
-  package: src
   path: src/murphy_crew_system.py
+  package: src
 - key: src.murphy_drawing_engine
-  package: src
   path: src/murphy_drawing_engine.py
+  package: src
 - key: src.murphy_drawing_engine_extensions
-  package: src
   path: src/murphy_drawing_engine_extensions.py
+  package: src
 - key: src.murphy_engineering_toolbox
-  package: src
   path: src/murphy_engineering_toolbox.py
+  package: src
 - key: src.murphy_foundation_model.__init__
-  package: src.murphy_foundation_model
   path: src/murphy_foundation_model/__init__.py
+  package: src.murphy_foundation_model
 - key: src.murphy_foundation_model.action_trace_serializer
-  package: src.murphy_foundation_model
   path: src/murphy_foundation_model/action_trace_serializer.py
+  package: src.murphy_foundation_model
+- key: src.murphy_foundation_model.lora_adapter_registry
+  path: src/murphy_foundation_model/lora_adapter_registry.py
+  package: src.murphy_foundation_model
 - key: src.murphy_foundation_model.mfm_inference
-  package: src.murphy_foundation_model
   path: src/murphy_foundation_model/mfm_inference.py
+  package: src.murphy_foundation_model
 - key: src.murphy_foundation_model.mfm_model
-  package: src.murphy_foundation_model
   path: src/murphy_foundation_model/mfm_model.py
+  package: src.murphy_foundation_model
 - key: src.murphy_foundation_model.mfm_registry
-  package: src.murphy_foundation_model
   path: src/murphy_foundation_model/mfm_registry.py
+  package: src.murphy_foundation_model
 - key: src.murphy_foundation_model.mfm_tokenizer
-  package: src.murphy_foundation_model
   path: src/murphy_foundation_model/mfm_tokenizer.py
+  package: src.murphy_foundation_model
 - key: src.murphy_foundation_model.mfm_trainer
-  package: src.murphy_foundation_model
   path: src/murphy_foundation_model/mfm_trainer.py
+  package: src.murphy_foundation_model
 - key: src.murphy_foundation_model.outcome_labeler
-  package: src.murphy_foundation_model
   path: src/murphy_foundation_model/outcome_labeler.py
+  package: src.murphy_foundation_model
 - key: src.murphy_foundation_model.rlef_engine
-  package: src.murphy_foundation_model
   path: src/murphy_foundation_model/rlef_engine.py
+  package: src.murphy_foundation_model
 - key: src.murphy_foundation_model.self_improvement_loop
-  package: src.murphy_foundation_model
   path: src/murphy_foundation_model/self_improvement_loop.py
+  package: src.murphy_foundation_model
 - key: src.murphy_foundation_model.shadow_deployment
-  package: src.murphy_foundation_model
   path: src/murphy_foundation_model/shadow_deployment.py
-- key: src.murphy_foundation_model.training_data_pipeline
   package: src.murphy_foundation_model
+- key: src.murphy_foundation_model.training_data_pipeline
   path: src/murphy_foundation_model/training_data_pipeline.py
+  package: src.murphy_foundation_model
 - key: src.murphy_identity
-  package: src
   path: src/murphy_identity.py
+  package: src
 - key: src.murphy_immune_engine
-  package: src
   path: src/murphy_immune_engine.py
+  package: src
+- key: src.murphy_memory_palace
+  path: src/murphy_memory_palace.py
+  package: src
 - key: src.murphy_native_automation
-  package: src
   path: src/murphy_native_automation.py
+  package: src
 - key: src.murphy_osmosis_engine
-  package: src
   path: src/murphy_osmosis_engine.py
+  package: src
 - key: src.murphy_repl
-  package: src
   path: src/murphy_repl.py
+  package: src
 - key: src.murphy_sensor_fusion
-  package: src
   path: src/murphy_sensor_fusion.py
+  package: src
 - key: src.murphy_shadow_trainer
-  package: src
   path: src/murphy_shadow_trainer.py
+  package: src
 - key: src.murphy_state_graph
-  package: src
   path: src/murphy_state_graph.py
+  package: src
 - key: src.murphy_template_hub
-  package: src
   path: src/murphy_template_hub.py
+  package: src
 - key: src.murphy_terminal.__init__
-  package: src.murphy_terminal
   path: src/murphy_terminal/__init__.py
-- key: src.murphy_terminal.command_registry
   package: src.murphy_terminal
+- key: src.murphy_terminal.command_registry
   path: src/murphy_terminal/command_registry.py
+  package: src.murphy_terminal
 - key: src.murphy_trace
-  package: src
   path: src/murphy_trace.py
+  package: src
 - key: src.murphy_wingman_evolution
-  package: src
   path: src/murphy_wingman_evolution.py
+  package: src
 - key: src.natural_language_query
-  package: src
   path: src/natural_language_query.py
+  package: src
 - key: src.nav_registry
-  package: src
   path: src/nav_registry.py
+  package: src
 - key: src.networking_mastery_engine
-  package: src
   path: src/networking_mastery_engine.py
+  package: src
 - key: src.neuro_symbolic_adapter
-  package: src
   path: src/neuro_symbolic_adapter.py
+  package: src
 - key: src.neuro_symbolic_models.__init__
-  package: src.neuro_symbolic_models
   path: src/neuro_symbolic_models/__init__.py
+  package: src.neuro_symbolic_models
 - key: src.neuro_symbolic_models.data
-  package: src.neuro_symbolic_models
   path: src/neuro_symbolic_models/data.py
+  package: src.neuro_symbolic_models
 - key: src.neuro_symbolic_models.inference
-  package: src.neuro_symbolic_models
   path: src/neuro_symbolic_models/inference.py
+  package: src.neuro_symbolic_models
 - key: src.neuro_symbolic_models.integration
-  package: src.neuro_symbolic_models
   path: src/neuro_symbolic_models/integration.py
+  package: src.neuro_symbolic_models
 - key: src.neuro_symbolic_models.models
-  package: src.neuro_symbolic_models
   path: src/neuro_symbolic_models/models.py
+  package: src.neuro_symbolic_models
 - key: src.neuro_symbolic_models.simple_wrapper
-  package: src.neuro_symbolic_models
   path: src/neuro_symbolic_models/simple_wrapper.py
-- key: src.neuro_symbolic_models.training
   package: src.neuro_symbolic_models
+- key: src.neuro_symbolic_models.training
   path: src/neuro_symbolic_models/training.py
+  package: src.neuro_symbolic_models
 - key: src.niche_business_generator
-  package: src
   path: src/niche_business_generator.py
+  package: src
 - key: src.niche_viability_gate
-  package: src
   path: src/niche_viability_gate.py
+  package: src
 - key: src.nocode_workflow_terminal
-  package: src
   path: src/nocode_workflow_terminal.py
+  package: src
 - key: src.notification_system
-  package: src
   path: src/notification_system.py
+  package: src
 - key: src.oauth_oidc_provider
-  package: src
   path: src/oauth_oidc_provider.py
+  package: src
 - key: src.observability_counters
-  package: src
   path: src/observability_counters.py
+  package: src
 - key: src.observation_model
-  package: src
   path: src/observation_model.py
+  package: src
+- key: src.on_policy_distiller
+  path: src/on_policy_distiller.py
+  package: src
 - key: src.onboarding_automation_engine
-  package: src
   path: src/onboarding_automation_engine.py
+  package: src
 - key: src.onboarding_flow
-  package: src
   path: src/onboarding_flow.py
+  package: src
 - key: src.onboarding_team_pipeline
-  package: src
   path: src/onboarding_team_pipeline.py
+  package: src
 - key: src.openai_compatible_provider
-  package: src
   path: src/openai_compatible_provider.py
+  package: src
 - key: src.operational_completeness
-  package: src
   path: src/operational_completeness.py
+  package: src
 - key: src.operational_dashboard_aggregator
-  package: src
   path: src/operational_dashboard_aggregator.py
+  package: src
 - key: src.operational_slo_tracker
-  package: src
   path: src/operational_slo_tracker.py
+  package: src
 - key: src.operations_cycle_engine
-  package: src
   path: src/operations_cycle_engine.py
+  package: src
 - key: src.optimal_routing_wiring
-  package: src
   path: src/optimal_routing_wiring.py
+  package: src
 - key: src.order_sensitivity_metrics
-  package: src
   path: src/order_sensitivity_metrics.py
+  package: src
 - key: src.org_build_plan.__init__
-  package: src.org_build_plan
   path: src/org_build_plan/__init__.py
+  package: src.org_build_plan
 - key: src.org_build_plan.build_orchestrator
-  package: src.org_build_plan
   path: src/org_build_plan/build_orchestrator.py
+  package: src.org_build_plan
 - key: src.org_build_plan.compliance_profiler
-  package: src.org_build_plan
   path: src/org_build_plan/compliance_profiler.py
+  package: src.org_build_plan
 - key: src.org_build_plan.connector_selector
-  package: src.org_build_plan
   path: src/org_build_plan/connector_selector.py
+  package: src.org_build_plan
 - key: src.org_build_plan.org_chart_builder
-  package: src.org_build_plan
   path: src/org_build_plan/org_chart_builder.py
+  package: src.org_build_plan
 - key: src.org_build_plan.organization_intake
-  package: src.org_build_plan
   path: src/org_build_plan/organization_intake.py
+  package: src.org_build_plan
 - key: src.org_build_plan.presets.__init__
-  package: src.org_build_plan.presets
   path: src/org_build_plan/presets/__init__.py
+  package: src.org_build_plan.presets
 - key: src.org_build_plan.presets.energy_utilities
-  package: src.org_build_plan.presets
   path: src/org_build_plan/presets/energy_utilities.py
+  package: src.org_build_plan.presets
 - key: src.org_build_plan.presets.financial_services
-  package: src.org_build_plan.presets
   path: src/org_build_plan/presets/financial_services.py
+  package: src.org_build_plan.presets
 - key: src.org_build_plan.presets.logistics_fleet
-  package: src.org_build_plan.presets
   path: src/org_build_plan/presets/logistics_fleet.py
+  package: src.org_build_plan.presets
 - key: src.org_build_plan.presets.manufacturing
-  package: src.org_build_plan.presets
   path: src/org_build_plan/presets/manufacturing.py
+  package: src.org_build_plan.presets
 - key: src.org_build_plan.presets.nonprofit_advocacy
-  package: src.org_build_plan.presets
   path: src/org_build_plan/presets/nonprofit_advocacy.py
+  package: src.org_build_plan.presets
 - key: src.org_build_plan.presets.retail_ecommerce
-  package: src.org_build_plan.presets
   path: src/org_build_plan/presets/retail_ecommerce.py
-- key: src.org_build_plan.presets.saas_agency
   package: src.org_build_plan.presets
+- key: src.org_build_plan.presets.saas_agency
   path: src/org_build_plan/presets/saas_agency.py
+  package: src.org_build_plan.presets
 - key: src.org_build_plan.tenant_provisioner
-  package: src.org_build_plan
   path: src/org_build_plan/tenant_provisioner.py
-- key: src.org_build_plan.workflow_templates
   package: src.org_build_plan
+- key: src.org_build_plan.workflow_templates
   path: src/org_build_plan/workflow_templates.py
+  package: src.org_build_plan
 - key: src.org_chart_enforcement
-  package: src
   path: src/org_chart_enforcement.py
+  package: src
 - key: src.org_chart_generator
-  package: src
   path: src/org_chart_generator.py
+  package: src
 - key: src.org_compiler.__init__
-  package: src.org_compiler
   path: src/org_compiler/__init__.py
+  package: src.org_compiler
 - key: src.org_compiler.compiler
-  package: src.org_compiler
   path: src/org_compiler/compiler.py
+  package: src.org_compiler
 - key: src.org_compiler.enterprise_compiler
-  package: src.org_compiler
   path: src/org_compiler/enterprise_compiler.py
+  package: src.org_compiler
 - key: src.org_compiler.murphy_integration
-  package: src.org_compiler
   path: src/org_compiler/murphy_integration.py
+  package: src.org_compiler
 - key: src.org_compiler.parsers
-  package: src.org_compiler
   path: src/org_compiler/parsers.py
+  package: src.org_compiler
 - key: src.org_compiler.schemas
-  package: src.org_compiler
   path: src/org_compiler/schemas.py
+  package: src.org_compiler
 - key: src.org_compiler.shadow_learning
-  package: src.org_compiler
   path: src/org_compiler/shadow_learning.py
+  package: src.org_compiler
 - key: src.org_compiler.substitution
-  package: src.org_compiler
   path: src/org_compiler/substitution.py
-- key: src.org_compiler.visualization
   package: src.org_compiler
+- key: src.org_compiler.visualization
   path: src/org_compiler/visualization.py
+  package: src.org_compiler
 - key: src.organization_chart_system
-  package: src
   path: src/organization_chart_system.py
+  package: src
 - key: src.organizational_context_system
-  package: src
   path: src/organizational_context_system.py
+  package: src
 - key: src.outreach_campaign_planner
-  package: src
   path: src/outreach_campaign_planner.py
+  package: src
 - key: src.outreach_compliance_integration
-  package: src
   path: src/outreach_compliance_integration.py
+  package: src
 - key: src.outreach_compliance_plan
-  package: src
   path: src/outreach_compliance_plan.py
+  package: src
 - key: src.paper_trading_engine
-  package: src
   path: src/paper_trading_engine.py
+  package: src
 - key: src.paper_trading_routes
-  package: src
   path: src/paper_trading_routes.py
+  package: src
 - key: src.performance_predictor
-  package: src
   path: src/performance_predictor.py
+  package: src
 - key: src.permutation_calibration_adapter
-  package: src
   path: src/permutation_calibration_adapter.py
+  package: src
 - key: src.permutation_policy_registry
-  package: src
   path: src/permutation_policy_registry.py
+  package: src
 - key: src.persistence_manager
-  package: src
   path: src/persistence_manager.py
+  package: src
 - key: src.persistence_replay_completeness
-  package: src
   path: src/persistence_replay_completeness.py
+  package: src
 - key: src.persistence_wal
-  package: src
   path: src/persistence_wal.py
+  package: src
 - key: src.persistent_memory.__init__
-  package: src.persistent_memory
   path: src/persistent_memory/__init__.py
+  package: src.persistent_memory
 - key: src.persistent_memory.context_compressor
-  package: src.persistent_memory
   path: src/persistent_memory/context_compressor.py
-- key: src.persistent_memory.tenant_memory
   package: src.persistent_memory
+- key: src.persistent_memory.tenant_memory
   path: src/persistent_memory/tenant_memory.py
+  package: src.persistent_memory
 - key: src.pilot_config
-  package: src
   path: src/pilot_config.py
+  package: src
 - key: src.platform_connector_framework
-  package: src
   path: src/platform_connector_framework.py
+  package: src
 - key: src.platform_onboarding.__init__
-  package: src.platform_onboarding
   path: src/platform_onboarding/__init__.py
+  package: src.platform_onboarding
 - key: src.platform_onboarding.onboarding_api
-  package: src.platform_onboarding
   path: src/platform_onboarding/onboarding_api.py
+  package: src.platform_onboarding
 - key: src.platform_onboarding.onboarding_session
-  package: src.platform_onboarding
   path: src/platform_onboarding/onboarding_session.py
+  package: src.platform_onboarding
 - key: src.platform_onboarding.priority_scorer
-  package: src.platform_onboarding
   path: src/platform_onboarding/priority_scorer.py
+  package: src.platform_onboarding
 - key: src.platform_onboarding.progress_tracker
-  package: src.platform_onboarding
   path: src/platform_onboarding/progress_tracker.py
+  package: src.platform_onboarding
 - key: src.platform_onboarding.task_catalog
-  package: src.platform_onboarding
   path: src/platform_onboarding/task_catalog.py
+  package: src.platform_onboarding
 - key: src.platform_onboarding.task_handlers
-  package: src.platform_onboarding
   path: src/platform_onboarding/task_handlers.py
+  package: src.platform_onboarding
 - key: src.platform_onboarding.url_launcher
-  package: src.platform_onboarding
   path: src/platform_onboarding/url_launcher.py
+  package: src.platform_onboarding
 - key: src.platform_onboarding.wait_state_handler
-  package: src.platform_onboarding
   path: src/platform_onboarding/wait_state_handler.py
-- key: src.platform_onboarding.workflow_definition
   package: src.platform_onboarding
+- key: src.platform_onboarding.workflow_definition
   path: src/platform_onboarding/workflow_definition.py
+  package: src.platform_onboarding
 - key: src.playwright_task_definitions
-  package: src
   path: src/playwright_task_definitions.py
+  package: src
 - key: src.plugin_extension_sdk
-  package: src
   path: src/plugin_extension_sdk.py
+  package: src
 - key: src.portfolio.__init__
-  package: src.portfolio
   path: src/portfolio/__init__.py
+  package: src.portfolio
 - key: src.portfolio.api
-  package: src.portfolio
   path: src/portfolio/api.py
+  package: src.portfolio
 - key: src.portfolio.critical_path
-  package: src.portfolio
   path: src/portfolio/critical_path.py
+  package: src.portfolio
 - key: src.portfolio.dependencies
-  package: src.portfolio
   path: src/portfolio/dependencies.py
+  package: src.portfolio
 - key: src.portfolio.gantt
-  package: src.portfolio
   path: src/portfolio/gantt.py
-- key: src.portfolio.models
   package: src.portfolio
+- key: src.portfolio.models
   path: src/portfolio/models.py
+  package: src.portfolio
 - key: src.predictive_failure_engine
-  package: src
   path: src/predictive_failure_engine.py
+  package: src
 - key: src.predictive_maintenance_engine
-  package: src
   path: src/predictive_maintenance_engine.py
+  package: src
 - key: src.presets.__init__
-  package: src.presets
   path: src/presets/__init__.py
+  package: src.presets
 - key: src.presets.base
-  package: src.presets
   path: src/presets/base.py
+  package: src.presets
 - key: src.presets.financial_services
-  package: src.presets
   path: src/presets/financial_services.py
+  package: src.presets
 - key: src.presets.healthcare
-  package: src.presets
   path: src/presets/healthcare.py
+  package: src.presets
 - key: src.presets.manufacturing
-  package: src.presets
   path: src/presets/manufacturing.py
+  package: src.presets
 - key: src.presets.professional_services
-  package: src.presets
   path: src/presets/professional_services.py
+  package: src.presets
 - key: src.presets.retail_commerce
-  package: src.presets
   path: src/presets/retail_commerce.py
-- key: src.presets.technology
   package: src.presets
+- key: src.presets.technology
   path: src/presets/technology.py
+  package: src.presets
 - key: src.pro_con_decision_engine
-  package: src
   path: src/pro_con_decision_engine.py
+  package: src
 - key: src.probabilistic_layer
-  package: src
   path: src/probabilistic_layer.py
+  package: src
 - key: src.procedural_distiller
-  package: src
   path: src/procedural_distiller.py
+  package: src
 - key: src.production_assistant
-  package: src
   path: src/production_assistant.py
+  package: src
 - key: src.production_assistant_engine
-  package: src
   path: src/production_assistant_engine.py
+  package: src
+- key: src.production_commissioning_validator
+  path: src/production_commissioning_validator.py
+  package: src
 - key: src.production_deliverable_wizard
-  package: src
   path: src/production_deliverable_wizard.py
+  package: src
 - key: src.production_output_calibrator
-  package: src
   path: src/production_output_calibrator.py
+  package: src
 - key: src.production_router
-  package: src
   path: src/production_router.py
+  package: src
+- key: src.production_workflow_registry
+  path: src/production_workflow_registry.py
+  package: src
 - key: src.profit_sweep
-  package: src
   path: src/profit_sweep.py
+  package: src
 - key: src.prometheus_metrics_exporter
-  package: src
   path: src/prometheus_metrics_exporter.py
+  package: src
 - key: src.prompt_amplifier
-  package: src
   path: src/prompt_amplifier.py
+  package: src
+- key: src.prompt_execution_tracker
+  path: src/prompt_execution_tracker.py
+  package: src
 - key: src.protocols.__init__
-  package: src.protocols
   path: src/protocols/__init__.py
+  package: src.protocols
 - key: src.protocols.bacnet_client
-  package: src.protocols
   path: src/protocols/bacnet_client.py
+  package: src.protocols
+- key: src.protocols.dnp3_client
+  path: src/protocols/dnp3_client.py
+  package: src.protocols
 - key: src.protocols.knx_client
-  package: src.protocols
   path: src/protocols/knx_client.py
+  package: src.protocols
 - key: src.protocols.modbus_client
-  package: src.protocols
   path: src/protocols/modbus_client.py
+  package: src.protocols
 - key: src.protocols.mqtt_sparkplug_client
-  package: src.protocols
   path: src/protocols/mqtt_sparkplug_client.py
-- key: src.protocols.opcua_client
   package: src.protocols
+- key: src.protocols.opcua_client
   path: src/protocols/opcua_client.py
+  package: src.protocols
+- key: src.protocols.openadr_client
+  path: src/protocols/openadr_client.py
+  package: src.protocols
 - key: src.question_manager
-  package: src
   path: src/question_manager.py
+  package: src
 - key: src.rag_vector_integration
-  package: src
   path: src/rag_vector_integration.py
+  package: src
 - key: src.rbac_governance
-  package: src
   path: src/rbac_governance.py
+  package: src
 - key: src.readiness_bootstrap_orchestrator
-  package: src
   path: src/readiness_bootstrap_orchestrator.py
+  package: src
 - key: src.readiness_scanner
-  package: src
   path: src/readiness_scanner.py
+  package: src
 - key: src.reasoning_engine
-  package: src
   path: src/reasoning_engine.py
+  package: src
 - key: src.recursive_stability_controller.__init__
-  package: src.recursive_stability_controller
   path: src/recursive_stability_controller/__init__.py
+  package: src.recursive_stability_controller
 - key: src.recursive_stability_controller.control_signals
-  package: src.recursive_stability_controller
   path: src/recursive_stability_controller/control_signals.py
+  package: src.recursive_stability_controller
 - key: src.recursive_stability_controller.feedback_isolation
-  package: src.recursive_stability_controller
   path: src/recursive_stability_controller/feedback_isolation.py
+  package: src.recursive_stability_controller
 - key: src.recursive_stability_controller.gate_damping
-  package: src.recursive_stability_controller
   path: src/recursive_stability_controller/gate_damping.py
+  package: src.recursive_stability_controller
 - key: src.recursive_stability_controller.lyapunov_monitor
-  package: src.recursive_stability_controller
   path: src/recursive_stability_controller/lyapunov_monitor.py
+  package: src.recursive_stability_controller
 - key: src.recursive_stability_controller.recursion_energy
-  package: src.recursive_stability_controller
   path: src/recursive_stability_controller/recursion_energy.py
+  package: src.recursive_stability_controller
 - key: src.recursive_stability_controller.rsc_service
-  package: src.recursive_stability_controller
   path: src/recursive_stability_controller/rsc_service.py
+  package: src.recursive_stability_controller
 - key: src.recursive_stability_controller.spawn_controller
-  package: src.recursive_stability_controller
   path: src/recursive_stability_controller/spawn_controller.py
+  package: src.recursive_stability_controller
 - key: src.recursive_stability_controller.stability_score
-  package: src.recursive_stability_controller
   path: src/recursive_stability_controller/stability_score.py
+  package: src.recursive_stability_controller
 - key: src.recursive_stability_controller.state_variables
-  package: src.recursive_stability_controller
   path: src/recursive_stability_controller/state_variables.py
-- key: src.recursive_stability_controller.telemetry
   package: src.recursive_stability_controller
+- key: src.recursive_stability_controller.telemetry
   path: src/recursive_stability_controller/telemetry.py
+  package: src.recursive_stability_controller
 - key: src.regulation_ml_engine
-  package: src
   path: src/regulation_ml_engine.py
+  package: src
 - key: src.remote_access_connector
-  package: src
   path: src/remote_access_connector.py
+  package: src
 - key: src.repair_api_endpoints
-  package: src
   path: src/repair_api_endpoints.py
+  package: src
 - key: src.request_context
-  package: src
   path: src/request_context.py
+  package: src
 - key: src.research_engine
-  package: src
   path: src/research_engine.py
+  package: src
 - key: src.resolution_scoring
-  package: src
   path: src/resolution_scoring.py
+  package: src
 - key: src.resource_scaling_controller
-  package: src
   path: src/resource_scaling_controller.py
+  package: src
 - key: src.response_composer
-  package: src
   path: src/response_composer.py
+  package: src
 - key: src.response_formatter
-  package: src
   path: src/response_formatter.py
+  package: src
 - key: src.risk_mitigation_tracker
-  package: src
   path: src/risk_mitigation_tracker.py
+  package: src
 - key: src.risk_routes
-  package: src
   path: src/risk_routes.py
+  package: src
 - key: src.robotics.__init__
-  package: src.robotics
   path: src/robotics/__init__.py
+  package: src.robotics
 - key: src.robotics.actuator_engine
-  package: src.robotics
   path: src/robotics/actuator_engine.py
+  package: src.robotics
+- key: src.robotics.digital_twin_bridge
+  path: src/robotics/digital_twin_bridge.py
+  package: src.robotics
+- key: src.robotics.fleet_orchestrator
+  path: src/robotics/fleet_orchestrator.py
+  package: src.robotics
+- key: src.robotics.kinematics_engine
+  path: src/robotics/kinematics_engine.py
+  package: src.robotics
+- key: src.robotics.learned_policy_engine
+  path: src/robotics/learned_policy_engine.py
+  package: src.robotics
+- key: src.robotics.motion_planner
+  path: src/robotics/motion_planner.py
+  package: src.robotics
+- key: src.robotics.navigation_engine
+  path: src/robotics/navigation_engine.py
+  package: src.robotics
+- key: src.robotics.picarx_butler
+  path: src/robotics/picarx_butler.py
+  package: src.robotics
+- key: src.robotics.picarx_hardware
+  path: src/robotics/picarx_hardware.py
+  package: src.robotics
+- key: src.robotics.point_cloud_processor
+  path: src/robotics/point_cloud_processor.py
+  package: src.robotics
 - key: src.robotics.protocol_clients
-  package: src.robotics
   path: src/robotics/protocol_clients.py
+  package: src.robotics
 - key: src.robotics.robot_registry
-  package: src.robotics
   path: src/robotics/robot_registry.py
+  package: src.robotics
 - key: src.robotics.robotics_models
-  package: src.robotics
   path: src/robotics/robotics_models.py
-- key: src.robotics.sensor_engine
   package: src.robotics
+- key: src.robotics.sensor_engine
   path: src/robotics/sensor_engine.py
+  package: src.robotics
+- key: src.robotics.simulation_bridge
+  path: src/robotics/simulation_bridge.py
+  package: src.robotics
+- key: src.robotics.slam_engine
+  path: src/robotics/slam_engine.py
+  package: src.robotics
+- key: src.robotics.telemetry_publisher
+  path: src/robotics/telemetry_publisher.py
+  package: src.robotics
 - key: src.room_llm_brain
-  package: src
   path: src/room_llm_brain.py
+  package: src
 - key: src.rosetta.__init__
-  package: src.rosetta
   path: src/rosetta/__init__.py
+  package: src.rosetta
 - key: src.rosetta.archive_classifier
-  package: src.rosetta
   path: src/rosetta/archive_classifier.py
+  package: src.rosetta
 - key: src.rosetta.global_aggregator
-  package: src.rosetta
   path: src/rosetta/global_aggregator.py
+  package: src.rosetta
 - key: src.rosetta.recalibration_scheduler
-  package: src.rosetta
   path: src/rosetta/recalibration_scheduler.py
+  package: src.rosetta
 - key: src.rosetta.rosetta_document_builder
-  package: src.rosetta
   path: src/rosetta/rosetta_document_builder.py
+  package: src.rosetta
 - key: src.rosetta.rosetta_manager
-  package: src.rosetta
   path: src/rosetta/rosetta_manager.py
+  package: src.rosetta
 - key: src.rosetta.rosetta_models
-  package: src.rosetta
   path: src/rosetta/rosetta_models.py
-- key: src.rosetta.subsystem_wiring
   package: src.rosetta
+- key: src.rosetta.rosetta_soul_renderer
+  path: src/rosetta/rosetta_soul_renderer.py
+  package: src.rosetta
+- key: src.rosetta.subsystem_wiring
   path: src/rosetta/subsystem_wiring.py
+  package: src.rosetta
 - key: src.rosetta_platform_state
-  package: src
   path: src/rosetta_platform_state.py
+  package: src
 - key: src.rosetta_selling_bridge
-  package: src
   path: src/rosetta_selling_bridge.py
+  package: src
 - key: src.rosetta_stone_heartbeat
-  package: src
   path: src/rosetta_stone_heartbeat.py
+  package: src
 - key: src.rosetta_subsystem_wiring
-  package: src
   path: src/rosetta_subsystem_wiring.py
+  package: src
 - key: src.rosette_lens
-  package: src
   path: src/rosette_lens.py
+  package: src
+- key: src.route_coverage_scanner
+  path: src/route_coverage_scanner.py
+  package: src
 - key: src.rpa_recorder_engine
-  package: src
   path: src/rpa_recorder_engine.py
+  package: src
 - key: src.rubix_evidence_adapter
-  package: src
   path: src/rubix_evidence_adapter.py
+  package: src
 - key: src.runtime.__init__
-  package: src.runtime
   path: src/runtime/__init__.py
+  package: src.runtime
 - key: src.runtime._deps
-  package: src.runtime
   path: src/runtime/_deps.py
+  package: src.runtime
 - key: src.runtime.app
-  package: src.runtime
   path: src/runtime/app.py
+  package: src.runtime
 - key: src.runtime.boot
-  package: src.runtime
   path: src/runtime/boot.py
+  package: src.runtime
 - key: src.runtime.living_document
-  package: src.runtime
   path: src/runtime/living_document.py
+  package: src.runtime
 - key: src.runtime.module_loader
-  package: src.runtime
   path: src/runtime/module_loader.py
+  package: src.runtime
 - key: src.runtime.murphy_system_core
-  package: src.runtime
   path: src/runtime/murphy_system_core.py
+  package: src.runtime
 - key: src.runtime.runtime_packs.__init__
-  package: src.runtime.runtime_packs
   path: src/runtime/runtime_packs/__init__.py
-- key: src.runtime.runtime_packs.registry
   package: src.runtime.runtime_packs
+- key: src.runtime.runtime_packs.registry
   path: src/runtime/runtime_packs/registry.py
+  package: src.runtime.runtime_packs
 - key: src.runtime.runtime_packs.tests.__init__
-  package: src.runtime.runtime_packs.tests
   path: src/runtime/runtime_packs/tests/__init__.py
-- key: src.runtime.runtime_packs.tests.test_tiered_orchestrator
   package: src.runtime.runtime_packs.tests
+- key: src.runtime.runtime_packs.tests.test_tiered_orchestrator
   path: src/runtime/runtime_packs/tests/test_tiered_orchestrator.py
+  package: src.runtime.runtime_packs.tests
 - key: src.runtime.tiered_app_factory
-  package: src.runtime
   path: src/runtime/tiered_app_factory.py
-- key: src.runtime.tiered_orchestrator
   package: src.runtime
+- key: src.runtime.tiered_orchestrator
   path: src/runtime/tiered_orchestrator.py
+  package: src.runtime
 - key: src.runtime_profile_compiler
-  package: src
   path: src/runtime_profile_compiler.py
+  package: src
 - key: src.safe_llm_wrapper
-  package: src
   path: src/safe_llm_wrapper.py
+  package: src
 - key: src.safety_gateway_integrator
-  package: src
   path: src/safety_gateway_integrator.py
+  package: src
 - key: src.safety_orchestrator
-  package: src
   path: src/safety_orchestrator.py
+  package: src
 - key: src.safety_validation_pipeline
-  package: src
   path: src/safety_validation_pipeline.py
+  package: src
 - key: src.sales_automation
-  package: src
   path: src/sales_automation.py
+  package: src
 - key: src.scheduler
-  package: src
   path: src/scheduler.py
+  package: src
 - key: src.schema_registry.__init__
-  package: src.schema_registry
   path: src/schema_registry/__init__.py
+  package: src.schema_registry
 - key: src.schema_registry.registry
-  package: src.schema_registry
   path: src/schema_registry/registry.py
-- key: src.schema_registry.schemas
   package: src.schema_registry
+- key: src.schema_registry.schemas
   path: src/schema_registry/schemas.py
+  package: src.schema_registry
 - key: src.secure_key_manager
-  package: src
   path: src/secure_key_manager.py
+  package: src
 - key: src.security_audit_scanner
-  package: src
   path: src/security_audit_scanner.py
+  package: src
 - key: src.security_hardening_config
-  package: src
   path: src/security_hardening_config.py
+  package: src
 - key: src.security_plane.__init__
-  package: src.security_plane
   path: src/security_plane/__init__.py
+  package: src.security_plane
 - key: src.security_plane.access_control
-  package: src.security_plane
   path: src/security_plane/access_control.py
+  package: src.security_plane
 - key: src.security_plane.adaptive_defense
-  package: src.security_plane
   path: src/security_plane/adaptive_defense.py
+  package: src.security_plane
 - key: src.security_plane.anti_surveillance
-  package: src.security_plane
   path: src/security_plane/anti_surveillance.py
+  package: src.security_plane
 - key: src.security_plane.authentication
-  package: src.security_plane
   path: src/security_plane/authentication.py
+  package: src.security_plane
 - key: src.security_plane.authorization_enhancer
-  package: src.security_plane
   path: src/security_plane/authorization_enhancer.py
+  package: src.security_plane
 - key: src.security_plane.bot_anomaly_detector
-  package: src.security_plane
   path: src/security_plane/bot_anomaly_detector.py
+  package: src.security_plane
 - key: src.security_plane.bot_identity_verifier
-  package: src.security_plane
   path: src/security_plane/bot_identity_verifier.py
+  package: src.security_plane
 - key: src.security_plane.bot_resource_quotas
-  package: src.security_plane
   path: src/security_plane/bot_resource_quotas.py
+  package: src.security_plane
 - key: src.security_plane.cryptography
-  package: src.security_plane
   path: src/security_plane/cryptography.py
+  package: src.security_plane
 - key: src.security_plane.data_leak_prevention
-  package: src.security_plane
   path: src/security_plane/data_leak_prevention.py
+  package: src.security_plane
 - key: src.security_plane.hardening
-  package: src.security_plane
   path: src/security_plane/hardening.py
+  package: src.security_plane
 - key: src.security_plane.log_sanitizer
-  package: src.security_plane
   path: src/security_plane/log_sanitizer.py
+  package: src.security_plane
 - key: src.security_plane.middleware
-  package: src.security_plane
   path: src/security_plane/middleware.py
+  package: src.security_plane
 - key: src.security_plane.packet_protection
-  package: src.security_plane
   path: src/security_plane/packet_protection.py
+  package: src.security_plane
 - key: src.security_plane.schemas
-  package: src.security_plane
   path: src/security_plane/schemas.py
+  package: src.security_plane
 - key: src.security_plane.security_dashboard
-  package: src.security_plane
   path: src/security_plane/security_dashboard.py
-- key: src.security_plane.swarm_communication_monitor
   package: src.security_plane
+- key: src.security_plane.swarm_communication_monitor
   path: src/security_plane/swarm_communication_monitor.py
+  package: src.security_plane
 - key: src.security_plane_adapter
-  package: src
   path: src/security_plane_adapter.py
+  package: src
 - key: src.self_automation_bootstrap
-  package: src
   path: src/self_automation_bootstrap.py
+  package: src
 - key: src.self_automation_orchestrator
-  package: src
   path: src/self_automation_orchestrator.py
+  package: src
 - key: src.self_codebase_swarm
-  package: src
   path: src/self_codebase_swarm.py
+  package: src
 - key: src.self_fix_loop
-  package: src
   path: src/self_fix_loop.py
+  package: src
 - key: src.self_fix_loop_connector
-  package: src
   path: src/self_fix_loop_connector.py
+  package: src
 - key: src.self_healing_coordinator
-  package: src
   path: src/self_healing_coordinator.py
+  package: src
 - key: src.self_healing_handlers
-  package: src
   path: src/self_healing_handlers.py
+  package: src
 - key: src.self_healing_startup
-  package: src
   path: src/self_healing_startup.py
+  package: src
 - key: src.self_improvement_engine
-  package: src
   path: src/self_improvement_engine.py
+  package: src
 - key: src.self_introspection_module
-  package: src
   path: src/self_introspection_module.py
+  package: src
 - key: src.self_learning_toggle
-  package: src
   path: src/self_learning_toggle.py
+  package: src
 - key: src.self_loop_wiring
-  package: src
   path: src/self_loop_wiring.py
+  package: src
 - key: src.self_marketing_orchestrator
-  package: src
   path: src/self_marketing_orchestrator.py
+  package: src
 - key: src.self_optimisation_engine
-  package: src
   path: src/self_optimisation_engine.py
+  package: src
 - key: src.self_selling_engine.__init__
-  package: src.self_selling_engine
   path: src/self_selling_engine/__init__.py
+  package: src.self_selling_engine
 - key: src.self_selling_engine._compliance
-  package: src.self_selling_engine
   path: src/self_selling_engine/_compliance.py
+  package: src.self_selling_engine
 - key: src.self_selling_engine._constraints
-  package: src.self_selling_engine
   path: src/self_selling_engine/_constraints.py
+  package: src.self_selling_engine
 - key: src.self_selling_engine._engine
-  package: src.self_selling_engine
   path: src/self_selling_engine/_engine.py
+  package: src.self_selling_engine
 - key: src.self_selling_engine._outreach_compliance
-  package: src.self_selling_engine
   path: src/self_selling_engine/_outreach_compliance.py
-- key: src.self_selling_engine.marketing_plan
   package: src.self_selling_engine
+- key: src.self_selling_engine.marketing_plan
   path: src/self_selling_engine/marketing_plan.py
+  package: src.self_selling_engine
 - key: src.semantics_boundary_controller
-  package: src
   path: src/semantics_boundary_controller.py
+  package: src
 - key: src.sensor_reader
-  package: src
   path: src/sensor_reader.py
+  package: src
 - key: src.seo_optimisation_engine
-  package: src
   path: src/seo_optimisation_engine.py
+  package: src
 - key: src.service_module.__init__
-  package: src.service_module
   path: src/service_module/__init__.py
+  package: src.service_module
 - key: src.service_module.api
-  package: src.service_module
   path: src/service_module/api.py
+  package: src.service_module
 - key: src.service_module.models
-  package: src.service_module
   path: src/service_module/models.py
-- key: src.service_module.service_manager
   package: src.service_module
+- key: src.service_module.service_manager
   path: src/service_module/service_manager.py
+  package: src.service_module
 - key: src.session_context
-  package: src
   path: src/session_context.py
+  package: src
 - key: src.setup_retry_amplifier
-  package: src
   path: src/setup_retry_amplifier.py
+  package: src
 - key: src.setup_wizard
-  package: src
   path: src/setup_wizard.py
+  package: src
 - key: src.shadow_agent_integration
-  package: src
   path: src/shadow_agent_integration.py
+  package: src
 - key: src.shadow_knostalgia_bridge
-  package: src
   path: src/shadow_knostalgia_bridge.py
+  package: src
 - key: src.shim_compiler.__init__
-  package: src.shim_compiler
   path: src/shim_compiler/__init__.py
+  package: src.shim_compiler
 - key: src.shim_compiler.compiler
-  package: src.shim_compiler
   path: src/shim_compiler/compiler.py
-- key: src.shim_compiler.schemas
   package: src.shim_compiler
+- key: src.shim_compiler.schemas
   path: src/shim_compiler/schemas.py
+  package: src.shim_compiler
 - key: src.shutdown_manager
-  package: src
   path: src/shutdown_manager.py
+  package: src
 - key: src.signup_gateway
-  package: src
   path: src/signup_gateway.py
+  package: src
 - key: src.simulation_engine
-  package: src
   path: src/simulation_engine.py
+  package: src
 - key: src.skill_catalogue_engine
-  package: src
   path: src/skill_catalogue_engine.py
+  package: src
 - key: src.skill_system.__init__
-  package: src.skill_system
   path: src/skill_system/__init__.py
+  package: src.skill_system
 - key: src.skill_system.models
-  package: src.skill_system
   path: src/skill_system/models.py
-- key: src.skill_system.skill_manager
   package: src.skill_system
+- key: src.skill_system.skill_manager
   path: src/skill_system/skill_manager.py
+  package: src.skill_system
 - key: src.slo_remediation_bridge
-  package: src
   path: src/slo_remediation_bridge.py
+  package: src
 - key: src.smart_codegen
-  package: src
   path: src/smart_codegen.py
+  package: src
 - key: src.social_media_moderation
-  package: src
   path: src/social_media_moderation.py
+  package: src
 - key: src.social_media_scheduler
-  package: src
   path: src/social_media_scheduler.py
+  package: src
 - key: src.solution_path_registry
-  package: src
   path: src/solution_path_registry.py
+  package: src
 - key: src.split_screen_coordinator
-  package: src
   path: src/split_screen_coordinator.py
+  package: src
+- key: src.split_screen_replay_viewer
+  path: src/split_screen_replay_viewer.py
+  package: src
 - key: src.startup_feature_summary
-  package: src
   path: src/startup_feature_summary.py
+  package: src
 - key: src.startup_validator
-  package: src
   path: src/startup_validator.py
+  package: src
 - key: src.state_machine
-  package: src
   path: src/state_machine.py
+  package: src
 - key: src.state_schema
-  package: src
   path: src/state_schema.py
+  package: src
 - key: src.statistics_collector
-  package: src
   path: src/statistics_collector.py
+  package: src
 - key: src.strategic_planning_engine
-  package: src
   path: src/strategic_planning_engine.py
+  package: src
 - key: src.strategy_templates.__init__
-  package: src.strategy_templates
   path: src/strategy_templates/__init__.py
+  package: src.strategy_templates
 - key: src.strategy_templates.arbitrage
-  package: src.strategy_templates
   path: src/strategy_templates/arbitrage.py
+  package: src.strategy_templates
 - key: src.strategy_templates.base_strategy
-  package: src.strategy_templates
   path: src/strategy_templates/base_strategy.py
+  package: src.strategy_templates
 - key: src.strategy_templates.breakout
-  package: src.strategy_templates
   path: src/strategy_templates/breakout.py
+  package: src.strategy_templates
 - key: src.strategy_templates.dca
-  package: src.strategy_templates
   path: src/strategy_templates/dca.py
+  package: src.strategy_templates
 - key: src.strategy_templates.grid
-  package: src.strategy_templates
   path: src/strategy_templates/grid.py
+  package: src.strategy_templates
 - key: src.strategy_templates.mean_reversion
-  package: src.strategy_templates
   path: src/strategy_templates/mean_reversion.py
+  package: src.strategy_templates
 - key: src.strategy_templates.momentum
-  package: src.strategy_templates
   path: src/strategy_templates/momentum.py
+  package: src.strategy_templates
 - key: src.strategy_templates.scalping
-  package: src.strategy_templates
   path: src/strategy_templates/scalping.py
+  package: src.strategy_templates
 - key: src.strategy_templates.sentiment
-  package: src.strategy_templates
   path: src/strategy_templates/sentiment.py
-- key: src.strategy_templates.trajectory
   package: src.strategy_templates
+- key: src.strategy_templates.trajectory
   path: src/strategy_templates/trajectory.py
+  package: src.strategy_templates
 - key: src.structural_coherence
-  package: src
   path: src/structural_coherence.py
+  package: src
 - key: src.subscription_manager
-  package: src
   path: src/subscription_manager.py
+  package: src
 - key: src.supervision_tree
-  package: src
   path: src/supervision_tree.py
+  package: src
 - key: src.supervisor_system.__init__
-  package: src.supervisor_system
   path: src/supervisor_system/__init__.py
+  package: src.supervisor_system
 - key: src.supervisor_system.anti_recursion
-  package: src.supervisor_system
   path: src/supervisor_system/anti_recursion.py
+  package: src.supervisor_system
 - key: src.supervisor_system.assumption_management
-  package: src.supervisor_system
   path: src/supervisor_system/assumption_management.py
+  package: src.supervisor_system
 - key: src.supervisor_system.correction_loop
-  package: src.supervisor_system
   path: src/supervisor_system/correction_loop.py
+  package: src.supervisor_system
 - key: src.supervisor_system.hitl_models
-  package: src.supervisor_system
   path: src/supervisor_system/hitl_models.py
+  package: src.supervisor_system
 - key: src.supervisor_system.hitl_monitor
-  package: src.supervisor_system
   path: src/supervisor_system/hitl_monitor.py
+  package: src.supervisor_system
 - key: src.supervisor_system.integrated_hitl_monitor
-  package: src.supervisor_system
   path: src/supervisor_system/integrated_hitl_monitor.py
+  package: src.supervisor_system
 - key: src.supervisor_system.schemas
-  package: src.supervisor_system
   path: src/supervisor_system/schemas.py
+  package: src.supervisor_system
 - key: src.supervisor_system.supervisor
-  package: src.supervisor_system
   path: src/supervisor_system/supervisor.py
-- key: src.supervisor_system.supervisor_loop
   package: src.supervisor_system
+- key: src.supervisor_system.supervisor_loop
   path: src/supervisor_system/supervisor_loop.py
+  package: src.supervisor_system
 - key: src.supply_orchestrator
-  package: src
   path: src/supply_orchestrator.py
+  package: src
+- key: src.swarm_manifold_optimizer
+  path: src/swarm_manifold_optimizer.py
+  package: src
 - key: src.swarm_proposal_generator
-  package: src
   path: src/swarm_proposal_generator.py
+  package: src
 - key: src.swarm_rate_governor
-  package: src
   path: src/swarm_rate_governor.py
+  package: src
 - key: src.swarm_rosetta_bridge
-  package: src
   path: src/swarm_rosetta_bridge.py
+  package: src
 - key: src.synthetic_failure_generator.__init__
-  package: src.synthetic_failure_generator
   path: src/synthetic_failure_generator/__init__.py
+  package: src.synthetic_failure_generator
 - key: src.synthetic_failure_generator.api
-  package: src.synthetic_failure_generator
   path: src/synthetic_failure_generator/api.py
+  package: src.synthetic_failure_generator
 - key: src.synthetic_failure_generator.control_failures
-  package: src.synthetic_failure_generator
   path: src/synthetic_failure_generator/control_failures.py
+  package: src.synthetic_failure_generator
 - key: src.synthetic_failure_generator.injection_pipeline
-  package: src.synthetic_failure_generator
   path: src/synthetic_failure_generator/injection_pipeline.py
+  package: src.synthetic_failure_generator
 - key: src.synthetic_failure_generator.interface_failures
-  package: src.synthetic_failure_generator
   path: src/synthetic_failure_generator/interface_failures.py
+  package: src.synthetic_failure_generator
 - key: src.synthetic_failure_generator.models
-  package: src.synthetic_failure_generator
   path: src/synthetic_failure_generator/models.py
+  package: src.synthetic_failure_generator
 - key: src.synthetic_failure_generator.organizational_failures
-  package: src.synthetic_failure_generator
   path: src/synthetic_failure_generator/organizational_failures.py
+  package: src.synthetic_failure_generator
 - key: src.synthetic_failure_generator.safety_enforcer
-  package: src.synthetic_failure_generator
   path: src/synthetic_failure_generator/safety_enforcer.py
+  package: src.synthetic_failure_generator
 - key: src.synthetic_failure_generator.semantic_failures
-  package: src.synthetic_failure_generator
   path: src/synthetic_failure_generator/semantic_failures.py
+  package: src.synthetic_failure_generator
 - key: src.synthetic_failure_generator.test_modes
-  package: src.synthetic_failure_generator
   path: src/synthetic_failure_generator/test_modes.py
-- key: src.synthetic_failure_generator.training_output
   package: src.synthetic_failure_generator
+- key: src.synthetic_failure_generator.training_output
   path: src/synthetic_failure_generator/training_output.py
+  package: src.synthetic_failure_generator
 - key: src.synthetic_interview_engine
-  package: src
   path: src/synthetic_interview_engine.py
+  package: src
 - key: src.system_builder
-  package: src
   path: src/system_builder.py
+  package: src
 - key: src.system_configuration_engine
-  package: src
   path: src/system_configuration_engine.py
+  package: src
 - key: src.system_integrator
-  package: src
   path: src/system_integrator.py
+  package: src
 - key: src.system_librarian
-  package: src
   path: src/system_librarian.py
+  package: src
 - key: src.system_performance_optimizer
-  package: src
   path: src/system_performance_optimizer.py
+  package: src
 - key: src.system_update_api
-  package: src
   path: src/system_update_api.py
+  package: src
 - key: src.system_update_recommendation_engine
-  package: src
   path: src/system_update_recommendation_engine.py
+  package: src
 - key: src.task_execution_bridge
-  package: src
   path: src/task_execution_bridge.py
+  package: src
 - key: src.task_executor
-  package: src
   path: src/task_executor.py
+  package: src
 - key: src.task_router
-  package: src
   path: src/task_router.py
+  package: src
 - key: src.telemetry_adapter
-  package: src
   path: src/telemetry_adapter.py
+  package: src
 - key: src.telemetry_evidence.__init__
-  package: src.telemetry_evidence
   path: src/telemetry_evidence/__init__.py
-- key: src.telemetry_evidence.evidence_store
   package: src.telemetry_evidence
+- key: src.telemetry_evidence.evidence_store
   path: src/telemetry_evidence/evidence_store.py
+  package: src.telemetry_evidence
 - key: src.telemetry_learning.__init__
-  package: src.telemetry_learning
   path: src/telemetry_learning/__init__.py
+  package: src.telemetry_learning
 - key: src.telemetry_learning.api
-  package: src.telemetry_learning
   path: src/telemetry_learning/api.py
+  package: src.telemetry_learning
 - key: src.telemetry_learning.ingestion
-  package: src.telemetry_learning
   path: src/telemetry_learning/ingestion.py
+  package: src.telemetry_learning
 - key: src.telemetry_learning.learning
-  package: src.telemetry_learning
   path: src/telemetry_learning/learning.py
+  package: src.telemetry_learning
 - key: src.telemetry_learning.models
-  package: src.telemetry_learning
   path: src/telemetry_learning/models.py
+  package: src.telemetry_learning
 - key: src.telemetry_learning.schemas
-  package: src.telemetry_learning
   path: src/telemetry_learning/schemas.py
+  package: src.telemetry_learning
 - key: src.telemetry_learning.shadow_mode
-  package: src.telemetry_learning
   path: src/telemetry_learning/shadow_mode.py
-- key: src.telemetry_learning.simple_wrapper
   package: src.telemetry_learning
+- key: src.telemetry_learning.simple_wrapper
   path: src/telemetry_learning/simple_wrapper.py
+  package: src.telemetry_learning
 - key: src.telemetry_system.__init__
-  package: src.telemetry_system
   path: src/telemetry_system/__init__.py
-- key: src.telemetry_system.telemetry
   package: src.telemetry_system
+- key: src.telemetry_system.telemetry
   path: src/telemetry_system/telemetry.py
+  package: src.telemetry_system
 - key: src.tenant_resource_governor
-  package: src
   path: src/tenant_resource_governor.py
+  package: src
 - key: src.test_mode_controller
-  package: src
   path: src/test_mode_controller.py
+  package: src
 - key: src.thread_safe_operations
-  package: src
   path: src/thread_safe_operations.py
+  package: src
 - key: src.ticket_triage_engine
-  package: src
   path: src/ticket_triage_engine.py
+  package: src
 - key: src.ticketing_adapter
-  package: src
   path: src/ticketing_adapter.py
+  package: src
 - key: src.time_tracking.__init__
-  package: src.time_tracking
   path: src/time_tracking/__init__.py
+  package: src.time_tracking
 - key: src.time_tracking.api
-  package: src.time_tracking
   path: src/time_tracking/api.py
+  package: src.time_tracking
 - key: src.time_tracking.approval_service
-  package: src.time_tracking
   path: src/time_tracking/approval_service.py
+  package: src.time_tracking
 - key: src.time_tracking.billing_integration
-  package: src.time_tracking
   path: src/time_tracking/billing_integration.py
+  package: src.time_tracking
 - key: src.time_tracking.config
-  package: src.time_tracking
   path: src/time_tracking/config.py
+  package: src.time_tracking
 - key: src.time_tracking.dashboard_api
-  package: src.time_tracking
   path: src/time_tracking/dashboard_api.py
+  package: src.time_tracking
 - key: src.time_tracking.dashboard_widgets
-  package: src.time_tracking
   path: src/time_tracking/dashboard_widgets.py
+  package: src.time_tracking
 - key: src.time_tracking.event_backbone_bridge
-  package: src.time_tracking
   path: src/time_tracking/event_backbone_bridge.py
+  package: src.time_tracking
 - key: src.time_tracking.export_service
-  package: src.time_tracking
   path: src/time_tracking/export_service.py
+  package: src.time_tracking
 - key: src.time_tracking.invoicing_hooks
-  package: src.time_tracking
   path: src/time_tracking/invoicing_hooks.py
+  package: src.time_tracking
 - key: src.time_tracking.models
-  package: src.time_tracking
   path: src/time_tracking/models.py
+  package: src.time_tracking
 - key: src.time_tracking.reporting_api
-  package: src.time_tracking
   path: src/time_tracking/reporting_api.py
+  package: src.time_tracking
 - key: src.time_tracking.reporting_service
-  package: src.time_tracking
   path: src/time_tracking/reporting_service.py
+  package: src.time_tracking
 - key: src.time_tracking.settings_api
-  package: src.time_tracking
   path: src/time_tracking/settings_api.py
+  package: src.time_tracking
 - key: src.time_tracking.summary_statistics
-  package: src.time_tracking
   path: src/time_tracking/summary_statistics.py
+  package: src.time_tracking
 - key: src.time_tracking.team_views
-  package: src.time_tracking
   path: src/time_tracking/team_views.py
-- key: src.time_tracking.tracker
   package: src.time_tracking
+- key: src.time_tracking.tracker
   path: src/time_tracking/tracker.py
+  package: src.time_tracking
 - key: src.tool_registry.__init__
-  package: src.tool_registry
   path: src/tool_registry/__init__.py
+  package: src.tool_registry
 - key: src.tool_registry.models
-  package: src.tool_registry
   path: src/tool_registry/models.py
-- key: src.tool_registry.registry
   package: src.tool_registry
+- key: src.tool_registry.registry
   path: src/tool_registry/registry.py
+  package: src.tool_registry
 - key: src.tos_acceptance_gate
-  package: src
   path: src/tos_acceptance_gate.py
+  package: src
 - key: src.trading_bot_engine
-  package: src
   path: src/trading_bot_engine.py
+  package: src
 - key: src.trading_bot_lifecycle
-  package: src
   path: src/trading_bot_lifecycle.py
+  package: src
 - key: src.trading_compliance_engine
-  package: src
   path: src/trading_compliance_engine.py
+  package: src
 - key: src.trading_hitl_gateway
-  package: src
   path: src/trading_hitl_gateway.py
+  package: src
 - key: src.trading_orchestrator
-  package: src
   path: src/trading_orchestrator.py
+  package: src
 - key: src.trading_routes
-  package: src
   path: src/trading_routes.py
+  package: src
 - key: src.trading_shadow_learner
-  package: src
   path: src/trading_shadow_learner.py
+  package: src
 - key: src.trading_strategy_engine
-  package: src
   path: src/trading_strategy_engine.py
+  package: src
 - key: src.trajectory_engine
-  package: src
   path: src/trajectory_engine.py
+  package: src
 - key: src.triage_rollcall_adapter
-  package: src
   path: src/triage_rollcall_adapter.py
+  package: src
 - key: src.trial_orchestrator
-  package: src
   path: src/trial_orchestrator.py
+  package: src
 - key: src.true_swarm_system
-  package: src
   path: src/true_swarm_system.py
+  package: src
 - key: src.ui_data_service
-  package: src
   path: src/ui_data_service.py
+  package: src
 - key: src.ui_test_completeness
-  package: src
   path: src/ui_test_completeness.py
+  package: src
 - key: src.ui_testing_framework
-  package: src
   path: src/ui_testing_framework.py
+  package: src
 - key: src.unified_control_protocol
-  package: src
   path: src/unified_control_protocol.py
+  package: src
 - key: src.unified_mfgc
-  package: src
   path: src/unified_mfgc.py
+  package: src
 - key: src.unified_observability_engine
-  package: src
   path: src/unified_observability_engine.py
+  package: src
 - key: src.unit_economics_analyzer
-  package: src
   path: src/unit_economics_analyzer.py
+  package: src
 - key: src.universal_ingestion_framework
-  package: src
   path: src/universal_ingestion_framework.py
+  package: src
 - key: src.universal_integration_adapter
-  package: src
   path: src/universal_integration_adapter.py
+  package: src
 - key: src.upload_content_reviewer
-  package: src
   path: src/upload_content_reviewer.py
+  package: src
 - key: src.verification_layer
-  package: src
   path: src/verification_layer.py
+  package: src
 - key: src.video_packager
-  package: src
   path: src/video_packager.py
+  package: src
 - key: src.video_streaming_connector
-  package: src
   path: src/video_streaming_connector.py
+  package: src
 - key: src.viewport_content_resolver
-  package: src
   path: src/viewport_content_resolver.py
+  package: src
 - key: src.virtual_controller
-  package: src
   path: src/virtual_controller.py
+  package: src
 - key: src.visual_swarm_builder
-  package: src
   path: src/visual_swarm_builder.py
+  package: src
 - key: src.voice_command_interface
-  package: src
   path: src/voice_command_interface.py
+  package: src
 - key: src.webhook_dispatcher
-  package: src
   path: src/webhook_dispatcher.py
+  package: src
 - key: src.webhook_event_processor
-  package: src
   path: src/webhook_event_processor.py
+  package: src
 - key: src.websocket_event_server
-  package: src
   path: src/websocket_event_server.py
+  package: src
 - key: src.wingman_protocol
-  package: src
   path: src/wingman_protocol.py
+  package: src
 - key: src.wingman_system
-  package: src
   path: src/wingman_system.py
+  package: src
 - key: src.workdocs.__init__
-  package: src.workdocs
   path: src/workdocs/__init__.py
+  package: src.workdocs
 - key: src.workdocs.api
-  package: src.workdocs
   path: src/workdocs/api.py
+  package: src.workdocs
 - key: src.workdocs.doc_manager
-  package: src.workdocs
   path: src/workdocs/doc_manager.py
-- key: src.workdocs.models
   package: src.workdocs
+- key: src.workdocs.models
   path: src/workdocs/models.py
+  package: src.workdocs
 - key: src.workflow_dag_engine
-  package: src
   path: src/workflow_dag_engine.py
+  package: src
 - key: src.workflow_template_marketplace
-  package: src
   path: src/workflow_template_marketplace.py
+  package: src
 - key: src.world_knowledge_calibrator
-  package: src
   path: src/world_knowledge_calibrator.py
+  package: src
 - key: src.youtube_channel_bootstrap
-  package: src
   path: src/youtube_channel_bootstrap.py
+  package: src
 - key: src.youtube_metadata_generator
-  package: src
   path: src/youtube_metadata_generator.py
-- key: src.youtube_uploader
   package: src
+- key: src.youtube_uploader
   path: src/youtube_uploader.py
-version: '1.0'
+  package: src

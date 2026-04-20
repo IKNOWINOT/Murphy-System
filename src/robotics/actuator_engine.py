@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional
 
 from robotics.robot_registry import RobotRegistry
 from robotics.robotics_models import ActuatorCommand, ActuatorResult, RobotStatus
+
 try:
     from thread_safe_operations import capped_append
 except ImportError:

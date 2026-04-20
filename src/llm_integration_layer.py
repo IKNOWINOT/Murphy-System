@@ -32,8 +32,7 @@ class LLMProvider(Enum):
     """LLM providers"""
     ARISTOTLE = "aristotle"  # Deterministic, math/physics
     WULFRUM = "wulfrum"  # Fuzzy match, math validation
-    DEEPINFRA = "deepinfra"  # Primary generative
-    TOGETHER = "together"    # Overflow generative
+    DEEPINFRA = "deepinfra"  # Generative, creative
     MFM = "mfm"  # Murphy Foundation Model — local, self-trained
     AUTO = "auto"  # Automatic routing
 
@@ -160,12 +159,13 @@ class HumanLoopTrigger:
 
 class LLMIntegrationLayer:
     """
-    Master LLM integration layer coordinating Aristotle, Wulfrum, DeepInfra, and Together AI
+    Master LLM integration layer coordinating Aristotle, Wulfrum, and DeepInfra
     Routes requests based on domain type and provides validation
     """
 
     def __init__(self, aristotle_api_key: Optional[str] = None,
                  wulfrum_api_key: Optional[str] = None,
+                 deepinfra_api_key: Optional[str] = None,
                  use_local_fallback: bool = True):
         self.request_count = 0
         self.validation_count = 0
@@ -174,8 +174,14 @@ class LLMIntegrationLayer:
         # API keys (would be loaded from environment in production)
         self.aristotle_api_key = aristotle_api_key or os.getenv("ARISTOTLE_API_KEY")
         self.wulfrum_api_key = wulfrum_api_key or os.getenv("WULFRUM_API_KEY")
-        self.deepinfra_api_key = os.getenv("DEEPINFRA_API_KEY", "")
-        self.together_api_key = os.getenv("TOGETHER_API_KEY", "")
+        self.deepinfra_api_key = deepinfra_api_key or os.getenv("DEEPINFRA_API_KEY")
+
+        # DeepInfra API keys from environment (comma-separated list)
+        env_keys = os.getenv("DEEPINFRA_API_KEYS", "")
+        self.deepinfra_api_keys = [k.strip() for k in env_keys.split(",") if k.strip()]
+        if self.deepinfra_api_key and self.deepinfra_api_key not in self.deepinfra_api_keys:
+            self.deepinfra_api_keys.insert(0, self.deepinfra_api_key)
+        self.current_deepinfra_key_index = 0
 
         # Domain routing configuration
         self.domain_routing = self._load_domain_routing()
@@ -321,20 +327,18 @@ class LLMIntegrationLayer:
                 return self._call_wulfrum(request)
             elif request.provider == LLMProvider.DEEPINFRA:
                 return self._call_deepinfra(request)
-            elif request.provider == LLMProvider.TOGETHER:
-                return self._call_together(request)
             else:
                 raise ValueError(f"Unknown provider: {request.provider}")
         except Exception as exc:
             logger.info(f"⚠️  API call failed for {request.provider.value}: {exc}")
 
-            # Try Together AI if DeepInfra failed
-            if request.provider != LLMProvider.TOGETHER:
+            # Fallback to DeepInfra if primary fails
+            if request.provider != LLMProvider.DEEPINFRA:
                 try:
-                    logger.info("🔄 Fallback to Together AI...")
-                    return self._call_together(request)
+                    logger.info("🔄 Fallback to DeepInfra API...")
+                    return self._call_deepinfra(request)
                 except Exception as e2:
-                    logger.info("⚠️  Together AI fallback also failed: %s", e2)
+                    logger.info(f"⚠️  DeepInfra fallback also failed: {e2}")
 
             # Final fallback to Enhanced Local LLM
             if self.use_local_fallback and self.local_llm:
@@ -439,20 +443,23 @@ class LLMIntegrationLayer:
         )
 
     def _call_deepinfra(self, request: LLMRequest) -> LLMResponse:
-        """Call DeepInfra API for generative processing (primary LLM provider).
+        """Call DeepInfra API for generative processing.
 
-        Attempts a real HTTP call to the DeepInfra chat completions endpoint.
-        Falls back to Together AI then the local generative engine when no key
-        succeeds.
+        Attempts a real HTTP call to the DeepInfra chat completions endpoint,
+        rotating through configured API keys.  Falls back to the local
+        generative engine when no key succeeds.
         """
-        api_key = os.environ.get("DEEPINFRA_API_KEY", "")
+        api_key = None
+        if self.deepinfra_api_keys:
+            api_key = self.deepinfra_api_keys[self.current_deepinfra_key_index % len(self.deepinfra_api_keys)]
+            self.current_deepinfra_key_index = (self.current_deepinfra_key_index + 1) % len(self.deepinfra_api_keys)
 
         if api_key:
             try:
                 resp = requests.post(
                     "https://api.deepinfra.com/v1/openai/chat/completions",
                     json={
-                        "model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
+                        "model": "llama3-70b-8192",
                         "messages": [{"role": "user", "content": request.prompt}],
                         "temperature": 0.7,
                         "max_tokens": 1024,
@@ -474,7 +481,7 @@ class LLMIntegrationLayer:
                         response=content,
                         confidence=0.85,
                         metadata={
-                            "model": data.get("model", "meta-llama/Meta-Llama-3.1-70B-Instruct"),
+                            "model": data.get("model", "deepinfra-llama3-70b"),
                             "domain": request.domain.value,
                             "processing_type": "generative",
                             "source": "api",
@@ -483,9 +490,9 @@ class LLMIntegrationLayer:
                     )
             except Exception as exc:
                 logger.debug("Suppressed exception: %s", exc)
-                pass  # fall through to together / local engine
+                pass  # fall through to local engine
 
-        response_text = self._local_generative_response(request)
+        response_text = self._local_deepinfra_response(request)
         # Before returning a canned template, try Ollama for a real response.
         if _HAS_OLLAMA_FALLBACK:
             try:
@@ -516,7 +523,7 @@ class LLMIntegrationLayer:
             response=response_text,
             confidence=0.85,
             metadata={
-                "model": "meta-llama/Meta-Llama-3.1-70B-Instruct",
+                "model": "deepinfra-llama3-70b",
                 "domain": request.domain.value,
                 "processing_type": "generative",
                 "source": "local",
@@ -541,8 +548,8 @@ class LLMIntegrationLayer:
         else:
             return "Wulfrum fuzzy match: Validation complete. Match score: 0.85. General agreement within tolerance."
 
-    def _local_generative_response(self, request: LLMRequest) -> str:
-        """Local generative engine (used when DeepInfra/Together API is unavailable)."""
+    def _local_deepinfra_response(self, request: LLMRequest) -> str:
+        """Local generative engine (used when DeepInfra API is unavailable)."""
         domain_contexts = {
             DomainType.CREATIVE: "Creative response generated with innovative solutions.",
             DomainType.STRATEGIC: "Strategic analysis completed with recommended actions.",
@@ -759,7 +766,7 @@ class LLMIntegrationLayer:
             "by_provider": by_provider,
             "by_domain": by_domain,
             "validations_pending_review": validations_pending,
-            "current_provider_index": getattr(self, "current_deepinfra_key_index", 0)
+            "current_deepinfra_key_index": self.current_deepinfra_key_index
         }
 
 

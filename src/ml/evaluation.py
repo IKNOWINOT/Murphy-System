@@ -250,7 +250,7 @@ class ModelEvaluator:
                 self._engine.infer(prompt)
                 latencies.append((time.monotonic() - t0) * 1000)
             except Exception:
-                pass
+                logger.debug("Suppressed exception in evaluation")
 
         median = sorted(latencies)[len(latencies) // 2] if latencies else 0.0
         return EvalMetric(
@@ -270,14 +270,14 @@ class ModelEvaluator:
                 total_reqs = metrics.get("total_requests", 0)
                 provider_usage = metrics.get("provider_usage", {})
                 # Cost proxy: proportion of requests handled by paid providers.
-                paid_providers = {"openai", "deepinfra", "together", "copilot"}
+                paid_providers = {"openai", "deepinfra", "copilot"}
                 paid_requests = sum(
                     v for k, v in provider_usage.items() if k in paid_providers
                 )
                 if total_reqs:
                     avg_cost = round(paid_requests / total_reqs * 0.001, 6)  # rough $/req estimate
             except Exception:
-                pass
+                logger.debug("Suppressed exception in evaluation")
 
         return EvalMetric(
             metric_name="avg_cost_per_request_usd",

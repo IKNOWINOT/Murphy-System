@@ -1,117 +1,151 @@
 # Security Policy
 
-<!--
-  Copyright © 2020 Inoni Limited Liability Company
-  Creator: Corey Post
-  License: BSL 1.1 (Business Source License 1.1)
--->
-
-**License:** BSL 1.1 — *Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post*
-
----
-
 ## Supported Versions
 
-Only the current stable release receives security patches. We recommend always running the latest version.
-
-| Version | Supported |
-|---------|-----------|
-| 1.0.x   | ✅ Active support |
-| < 1.0   | ❌ No longer supported |
-
----
+| Version | Supported          |
+| ------- | ------------------ |
+| 1.0.x   | :white_check_mark: |
+| < 1.0   | :x:                |
 
 ## Reporting a Vulnerability
 
-We take security seriously. If you discover a vulnerability in the Murphy System, please **do not open a public GitHub issue**. Instead, follow the responsible disclosure process below.
+**Please do NOT report security vulnerabilities through public GitHub issues.**
 
-### How to Report
+Instead, please report them responsibly:
 
-1. **Email:** Send a detailed report to **security@inoni.io**
-   - Subject line: `[SECURITY] Murphy System — <brief description>`
-   - Include: affected version, reproduction steps, potential impact, and any suggested mitigations.
+1. **Email:** Send details to the project maintainers via GitHub private vulnerability reporting
+2. **GitHub:** Use the [Security Advisories](https://github.com/IKNOWINOT/Murphy-System/security/advisories) feature to report privately
 
-2. **PGP-encrypted reports (optional):**
-   Our PGP public key is available at `https://inoni.io/.well-known/security.asc` (placeholder — key forthcoming).  
-   Fingerprint: `[PGP KEY FINGERPRINT PLACEHOLDER]`
+### What to Include
 
-3. **GitHub private vulnerability reporting:**
-   You may also use GitHub's [private security advisory](https://github.com/Murphy-System/Murphy-System/security/advisories/new) feature.
+- Description of the vulnerability
+- Steps to reproduce
+- Potential impact
+- Suggested fix (if any)
 
----
+### Response Timeline
 
-## Response Timeline
+- **Acknowledgment:** Within 48 hours
+- **Initial Assessment:** Within 1 week
+- **Fix Timeline:** Depends on severity (critical: ASAP, high: 1-2 weeks, medium: next release)
 
-| Stage | Target |
-|-------|--------|
-| Initial acknowledgement | Within **48 hours** |
-| Triage and severity assessment | Within **5 business days** |
-| Patch / mitigation for critical issues | Within **14 days** |
-| Patch / mitigation for high issues | Within **30 days** |
-| Public disclosure | Coordinated with reporter after patch is available |
+## Security Best Practices
 
-We follow a coordinated disclosure model. We will work with you to agree on a disclosure date that allows users adequate time to upgrade.
+When deploying Murphy System:
 
----
+- Never commit `.env` files or API keys to version control
+- Use strong, unique API keys for production
+- Run behind a reverse proxy (nginx/Caddy) in production
+- Enable HTTPS for all external connections
+- Restrict CORS origins to your known domains
+- Review the [Deployment Guide](DEPLOYMENT_GUIDE.md) for hardening steps
+
+## Authentication Architecture
+
+Murphy System uses **session-based authentication** via HttpOnly cookies:
+
+| Mechanism | Where set | Where validated |
+|-----------|-----------|-----------------|
+| `murphy_session` cookie | `/api/auth/signup`, `/api/auth/login`, OAuth callback | `SecurityMiddleware` via `register_session_validator()` |
+| `Authorization: Bearer <token>` | Client `localStorage.murphy_session_token` | `SecurityMiddleware` → `_authenticate_request()` |
+| `X-API-Key` header | Environment / dashboard | `SecurityMiddleware` → `validate_api_key()` |
+
+**Password hashing:** bcrypt (cost factor from `bcrypt.gensalt()`) — never stored in plaintext.
+
+**Session tokens:** cryptographically-random 32-byte URL-safe base64 strings from
+`secrets.token_urlsafe(32)`. Persisted using a three-tier storage hierarchy:
+1. **Redis** — when `REDIS_URL` is configured (recommended for multi-process deployments).
+2. **SQLite WAL** — when Redis is not configured, sessions are persisted to the
+   `session_store` table in the WAL backend (`DATABASE_URL`, defaults to `murphy.db`).
+   Sessions survive process restarts.
+3. **In-memory** — last resort when both Redis and SQLite are unavailable.
+
+**User accounts:** Persisted to the `user_accounts` table in the SQLite WAL backend
+(same `DATABASE_URL` as session storage). Accounts and their credentials survive
+process restarts.  The founder account is re-seeded / role-synced on every startup
+from `MURPHY_FOUNDER_EMAIL` / `MURPHY_FOUNDER_PASSWORD`.
+
+**API key environment variable:** `MURPHY_API_KEYS` (plural, comma-separated) is the
+canonical variable.  `MURPHY_API_KEY` (singular) is also accepted as a fallback for
+backward compatibility.
+
+**Cookie flags:** `HttpOnly=True` (XSS protection), `SameSite=lax` (CSRF protection),
+`Secure=True` in staging/production, 24-hour `Max-Age`.
 
 ## Scope
 
-The following are **in scope** for security testing:
+This security policy covers the Murphy System core runtime and all modules in the `src/` directory. Third-party dependencies are covered by their own security policies.
 
-- `murphy_system_1.0_runtime.py` — thin entry-point (delegates to `src/runtime/`)
-- `src/runtime/app.py` — FastAPI application factory and all API endpoints
-- `src/runtime/murphy_system_core.py` — MurphySystem orchestration class
-- `src/fastapi_security.py` — Authentication, CORS, rate limiting
-- `src/` — All source modules
-- `bots/` — Bot modules and agents
-- Docker and Kubernetes deployment configurations
+## Cryptographic Hash Policy
 
-The following are **out of scope**:
+Murphy System enforces **SHA-256 minimum** for all hashing in production code paths:
 
-- Third-party LLM provider APIs (DeepInfra, OpenAI, Anthropic) — report those to the respective provider
-- Social engineering attacks against Inoni LLC employees
-- Physical security
-- Denial-of-service attacks against our infrastructure (rate-limit bypass testing against your own local instance is fine)
-- Bugs in dependencies (report those upstream; notify us if the vulnerability directly affects Murphy System)
+| Use Case | Algorithm | Module |
+|----------|-----------|--------|
+| Audit log hash-chain | SHA-256 | `src/audit_logging_system.py` |
+| Webhook HMAC signing | HMAC-SHA256 | `src/webhook_dispatcher.py` |
+| Bot identity verification | HMAC-SHA256 | `src/security_plane/bot_identity_verifier.py` |
+| Commissioning test IDs | SHA-256 | `src/cutsheet_engine.py` |
+| Onboarding dedup hash | SHA-256 | `src/runtime/murphy_system_core.py` |
 
----
+**Prohibited algorithms:** MD5 and SHA-1 are not used in production code for any security-relevant or identifier-generation purpose. Test code may use these algorithms for negative-validation only. The codebase was scanned with bandit and AST analysis to verify compliance (round 55).
 
-## Security Architecture
+## Security Enhancement Roadmap
 
-Murphy System implements the following controls (see `docs/QA_AUDIT_REPORT.md` for details):
+All planned security enhancements have been implemented. The following multi-agent security controls are now operational:
 
-| Control | Implementation |
-|---------|---------------|
-| Authentication | Session cookie (`murphy_session`) or `Authorization: Bearer <session_token>` or `X-API-Key`; enforced in `src/fastapi_security.py` via `SecurityMiddleware` |
-| Session management | bcrypt-hashed passwords; `secrets.token_urlsafe(32)` session tokens stored in in-memory dict guarded by `threading.Lock`; HttpOnly + SameSite=lax + Secure cookies |
-| Authorization | Scope-based access; production mode requires `MURPHY_API_KEYS` |
-| CORS | Origin allowlist via `MURPHY_CORS_ORIGINS`; no wildcard `*` |
-| Rate limiting | Token-bucket per IP/key; configurable via env vars |
-| Input sanitization | Request body validation via Pydantic; iterative path-traversal stripping in `src/input_validation.py` (CWE-22 defence) |
-| Security headers | `X-Content-Type-Options`, `X-Frame-Options`, `Strict-Transport-Security` injected by middleware |
-| Secrets | API keys never logged; masked in `/api/llm/configure` responses; warning emitted when key stored in `os.environ` |
-| Audit logging | Every task execution generates an immutable `audit_id` |
-| API key comparison | Constant-time `hmac.compare_digest` used in both Flask and FastAPI validators (CWE-208 defence) |
-| DLP trusted-destination | `security_plane/middleware.py` uses `urllib.parse.urlparse` for hostname extraction — substring attacks like `evil-localhost.attacker.com` are rejected (CWE-20 defence) |
-| Subprocess execution | All `subprocess.run` calls use `shell=False` + `shlex.split()` (CWE-78 defence) |
+- **Per-request authorization** — ownership verification on every mutating request (`src/security_plane/authorization_enhancer.py`)
+- **PII sanitization** — automated detection and redaction of 8 sensitive data types in logs (`src/security_plane/log_sanitizer.py`)
+- **Bot resource quotas** — per-bot and per-swarm resource limits with automatic suspension (`src/security_plane/bot_resource_quotas.py`)
+- **Communication loop detection** — DFS-based cycle detection and rate limiting in swarm messaging (`src/security_plane/swarm_communication_monitor.py`)
+- **Bot identity verification** — HMAC-SHA256 message signing with key revocation (`src/security_plane/bot_identity_verifier.py`)
+- **Behavioral anomaly detection** — z-score analysis, resource spikes, and API pattern monitoring (`src/security_plane/bot_anomaly_detector.py`)
+- **Unified security dashboard** — event aggregation, correlation, and compliance reporting (`src/security_plane/security_dashboard.py`)
 
----
+## CSRF Protection
 
-## Known Security Gaps (Public Disclosure)
+Murphy System implements CSRF protection via the `_CSRFProtection` class in `src/fastapi_security.py`:
 
-The following gaps are tracked in `STATUS.md` and are being addressed:
+- **SameSite cookies:** Session cookies are issued with `SameSite=lax` (development) or `SameSite=strict` (production), providing browser-level CSRF protection for same-origin requests.
+- **Double-submit pattern:** Mutating API endpoints (`POST`, `PUT`, `DELETE`, `PATCH`) require the caller to supply the session token in the `Authorization: Bearer <token>` header or `X-API-Key` header — both inaccessible to cross-origin attackers who can only trigger cookie-bearing requests via HTML forms.
+- **Origin validation:** The middleware rejects requests whose `Origin` header does not match the configured `MURPHY_CORS_ORIGINS` allow-list in staging/production environments.
 
-| ID | Gap | Status |
-|----|-----|--------|
-| G-006 | Formal third-party penetration test not yet completed | Planned |
-| SEC-PENDING | Full security audit of bot modules | In progress |
+## Rate Limiting
 
----
+Murphy System enforces per-IP and per-user rate limits to prevent abuse:
 
-## Acknowledgements
+| Response Header | Meaning |
+|----------------|---------|
+| `X-RateLimit-Limit` | Maximum requests allowed in the current window |
+| `X-RateLimit-Remaining` | Requests remaining in the current window |
+| `X-RateLimit-Reset` | Unix timestamp when the window resets |
 
-We appreciate responsible security researchers. Confirmed vulnerability reporters will be credited in the release notes (unless they prefer to remain anonymous).
+**Configuration:** Set `MURPHY_RATE_LIMIT_RPM` environment variable to control the requests-per-minute limit (default: 60 RPM in production, unlimited in development).
 
----
+When the limit is exceeded, the API returns HTTP `429 Too Many Requests` with a `Retry-After` header.
 
-*Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post · License: BSL 1.1*
+## Brute-Force Protection
+
+Authentication endpoints (`/api/auth/login`, `/api/auth/signup`) include brute-force lockout protection:
+
+- **Lockout threshold:** After a configurable number of consecutive failed authentication attempts (default: 10), the source IP is locked out.
+- **Lockout duration:** Lockouts expire after a configurable window (default: 15 minutes).
+- **Scope:** Lockouts are tracked per IP address using the in-memory counter store (replace with Redis for multi-process deployments).
+- **Logging:** All lockout events are written to the security audit log with timestamps and source IP.
+
+## API Key Rotation Policy
+
+Murphy System provides automated key rotation via the `ScheduledKeyRotator` class in `src/secure_key_manager.py`:
+
+| Action | Command / Notes |
+|--------|----------------|
+| Generate a new key | `python3 -c "import secrets; print(secrets.token_urlsafe(32))"` |
+| Set new key | Update `MURPHY_API_KEY` in your secrets manager |
+| Grace period | Old key remains valid for a configurable grace window (default: 24 h) during dual-key transition |
+| Revoke old key | Remove the old value from `MURPHY_API_KEY` / `MURPHY_API_KEYS` after the grace period |
+| Scheduled rotation | `ScheduledKeyRotator` can automate the above cycle on a configurable interval |
+
+**Environment variables:**
+- `MURPHY_API_KEY` — Canonical API key variable (recommended).
+- `MURPHY_API_KEYS` — Legacy comma-separated multi-key alias; accepted for backward compatibility.
+- `MURPHY_KEY_ROTATION_INTERVAL_DAYS` — Days between automated rotations (default: 90).

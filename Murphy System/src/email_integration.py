@@ -273,11 +273,27 @@ class SMTPBackend(EmailBackend):
         all_recipients = message.to + message.cc + message.bcc
 
         try:
+            import ssl as _ssl_mod
+            # PATCH-006: tls_context with configurable cert verification
+            # Set SMTP_TLS_VERIFY=false for self-signed / local mail servers
+            _smtp_verify = os.getenv("SMTP_TLS_VERIFY", "true").lower() != "false"
+            _smtp_tls_ctx = _ssl_mod.create_default_context()
+            if not _smtp_verify:
+                _smtp_tls_ctx.check_hostname = False
+                _smtp_tls_ctx.verify_mode = _ssl_mod.CERT_NONE
+
+            # PATCH-006b: STARTTLS support for port 587
+            # use_tls=True  -> implicit SSL (port 465)
+            # use_tls=False -> STARTTLS (port 587) - set start_tls=True
+            _use_starttls = not self._use_tls and (self._port == 587 or os.getenv("SMTP_USE_STARTTLS","true").lower() != "false")
             smtp_kwargs: Dict[str, Any] = {
                 "hostname": self._host,
                 "port": self._port,
                 "use_tls": self._use_tls,
+                "tls_context": _smtp_tls_ctx,
             }
+            if _use_starttls:
+                smtp_kwargs["start_tls"] = True
             if self._username and self._password:
                 smtp_kwargs["username"] = self._username
                 smtp_kwargs["password"] = self._password

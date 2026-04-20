@@ -248,7 +248,7 @@ class EnterpriseIntegrationGateBridge:
             try:
                 self._registry = EnterpriseIntegrationRegistry()
             except Exception:  # noqa: BLE001
-                pass
+                logger.debug("Suppressed exception in lcm_integration_bridge")
 
     def execute_step_gated(
         self,
@@ -302,7 +302,7 @@ class AMWorkflowGateBridge:
             try:
                 self._registry = AdditiveManufacturingRegistry()
             except Exception:  # noqa: BLE001
-                pass
+                logger.debug("Suppressed exception in lcm_integration_bridge")
 
     def execute_am_action_gated(
         self,
@@ -379,7 +379,7 @@ class BASActionGateBridge:
             try:
                 self._registry = BuildingAutomationRegistry()
             except Exception:  # noqa: BLE001
-                pass
+                logger.debug("Suppressed exception in lcm_integration_bridge")
 
     def execute_bas_action_gated(
         self,

@@ -1532,7 +1532,7 @@ class MurphySystem:
             try:
                 self.capability_map = CapabilityMap()
                 # scan() expects base_path that contains both src/ and the runtime file
-                scan_base = str(Path(__file__).parent)
+                scan_base = str(Path(__file__).parent.parent.parent)  # project root: /opt/Murphy-System
                 self.capability_map.scan(scan_base)
                 logger.info("Capability map initialized with %d modules",
                             self.capability_map.get_status().get("total_modules", 0))
@@ -1874,7 +1874,7 @@ class MurphySystem:
         if SelfFixLoop:
             try:
                 self.self_fix_loop = SelfFixLoop(
-                    engine=self.self_improvement,
+                    improvement_engine=self.self_improvement,
                 )
                 logger.info("Self-fix loop initialized")
             except Exception as exc:

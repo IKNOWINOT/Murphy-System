@@ -41,6 +41,14 @@ class PhaseController:
         Returns:
             (new_phase, transitioned, reason)
         """
+        # Ensure we have a models.Phase (not murphy_models.Phase) so
+        # .confidence_threshold is available.
+        if not isinstance(current_phase, Phase):
+            try:
+                current_phase = Phase(current_phase.value)
+            except (ValueError, AttributeError):
+                return current_phase, False, "Unknown phase"
+
         confidence = confidence_state.confidence
         threshold = current_phase.confidence_threshold
 
@@ -74,7 +82,16 @@ class PhaseController:
         Phase skipping is forbidden
         """
         phases = list(Phase)
-        current_idx = phases.index(current_phase)
+        # Use value-based lookup in case the caller holds a Phase instance
+        # from a sibling import path (e.g. src.confidence_engine.models vs
+        # confidence_engine.models).
+        try:
+            current_idx = phases.index(current_phase)
+        except ValueError:
+            current_idx = next(
+                (i for i, p in enumerate(phases) if p.value == current_phase.value),
+                len(phases) - 1,
+            )
 
         if current_idx < len(phases) - 1:
             return phases[current_idx + 1]
@@ -107,8 +124,20 @@ class PhaseController:
         Returns:
             Progress information
         """
+        # Normalise to local Phase enum (handles dual-import-path mismatch)
+        if not isinstance(current_phase, Phase):
+            try:
+                current_phase = Phase(current_phase.value)
+            except (ValueError, AttributeError):
+                pass
         phases = list(Phase)
-        current_idx = phases.index(current_phase)
+        try:
+            current_idx = phases.index(current_phase)
+        except ValueError:
+            current_idx = next(
+                (i for i, p in enumerate(phases) if p.value == current_phase.value),
+                len(phases) - 1,
+            )
         total_phases = len(phases)
 
         return {
@@ -118,7 +147,7 @@ class PhaseController:
             'progress_ratio': (current_idx + 1) / total_phases,
             'remaining_phases': total_phases - current_idx - 1,
             'next_phase': phases[current_idx + 1].value if current_idx < total_phases - 1 else None,
-            'confidence_threshold': current_phase.confidence_threshold
+            'confidence_threshold': current_phase.confidence_threshold if hasattr(current_phase, 'confidence_threshold') else 0.5,
         }
 
     def get_phase_history(self) -> List[Dict[str, Any]]:

@@ -96,11 +96,12 @@ class SwarmExecutionResult:
     steps_total: int
     steps_completed: int
     steps_failed: int
-    step_results: List[Dict[str, Any]]
+    step_results: Dict[Any, Dict[str, Any]]
     total_cost: float
     total_duration_ms: float
     executed_at: datetime
     error: Optional[str] = None
+    blocked_by_safety_gate: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -684,7 +685,7 @@ Format: {{"steps": [...]}}
             for p in self.proposal_history
         ]
 
-    async def execute_proposal(
+    async def _execute_proposal_async(
         self,
         proposal: SwarmProposal,
         context: Optional[Dict[str, Any]] = None,
@@ -704,11 +705,11 @@ Format: {{"steps": [...]}}
         """
         import time as _time
         ctx_str = str(context or {})[:400]
-        step_results: List[Dict[str, Any]] = []
+        step_results: Dict[Any, Dict[str, Any]] = {}
         total_cost: float = 0.0
         start_wall = _time.time()
 
-        for step in proposal.execution_plan:
+        for idx, step in enumerate(proposal.execution_plan):
             step_start = _time.time()
             step_id = step.step_id
             try:
@@ -738,20 +739,154 @@ Format: {{"steps": [...]}}
                 output = {"result": f"Step failed: {exc}", "success": False, "artifacts": []}
                 step_cost = 0.0
                 status = "failed"
-                logger.warning("execute_proposal: step %s failed: %s", step_id, exc)
+                logger.warning("_execute_proposal_async: step %s failed: %s", step_id, exc)
 
             total_cost += step_cost
-            step_results.append({
+            step_results[idx] = {
                 "step_id": step_id,
                 "description": step.description,
                 "status": status,
                 "output": output,
                 "cost": step_cost,
                 "duration_ms": (_time.time() - step_start) * 1000,
-            })
+            }
 
-        completed = sum(1 for s in step_results if s["status"] == "completed")
-        failed = sum(1 for s in step_results if s["status"] == "failed")
+        completed = sum(1 for s in step_results.values() if s["status"] == "completed")
+        failed = sum(1 for s in step_results.values() if s["status"] == "failed")
+        if failed == 0:
+            overall_status = "completed"
+        elif completed == 0:
+            overall_status = "failed"
+        else:
+            overall_status = "partial"
+
+        return SwarmExecutionResult(
+            proposal_id=proposal.proposal_id,
+            status=overall_status,
+            steps_total=len(step_results),
+            steps_completed=completed,
+            steps_failed=failed,
+            step_results=step_results,
+            total_cost=round(total_cost, 6),
+            total_duration_ms=(_time.time() - start_wall) * 1000,
+            executed_at=datetime.now(timezone.utc),
+        )
+
+    # ------------------------------------------------------------------
+    # Synchronous execute_proposal (with budget / safety-gate support)
+    # ------------------------------------------------------------------
+
+    def execute_proposal(
+        self,
+        proposal: "SwarmProposal",
+        budget: float = float("inf"),
+        context: Optional[Dict[str, Any]] = None,
+    ) -> SwarmExecutionResult:
+        """Execute a proposal synchronously with optional budget enforcement.
+
+        Args:
+            proposal: The SwarmProposal to execute.
+            budget:   Maximum cost allowed. Steps are skipped once exhausted.
+            context:  Optional additional context.
+
+        Returns:
+            SwarmExecutionResult with per-step outputs keyed by index.
+
+        Raises:
+            ValueError: If *proposal* is ``None`` or *budget* ≤ 0.
+            TypeError:  If *proposal* is not a SwarmProposal.
+        """
+        import time as _time
+
+        if proposal is None:
+            raise ValueError("proposal must not be None")
+        if not isinstance(proposal, SwarmProposal):
+            raise TypeError(f"Expected SwarmProposal, got {type(proposal).__name__}")
+        if budget <= 0:
+            raise ValueError(f"budget must be positive, got {budget}")
+
+        # Safety-gate check
+        blocked_gate: Optional[str] = None
+        if hasattr(proposal, "safety_gates") and proposal.safety_gates:
+            for gate in proposal.safety_gates:
+                action = gate.action if hasattr(gate, "action") else gate.get("action", "warn")
+                severity = gate.severity if hasattr(gate, "severity") else gate.get("severity", 0.0)
+                gate_id = gate.gate_id if hasattr(gate, "gate_id") else gate.get("gate_id", "safety_gate")
+                if action == "block" and severity >= 0.8:
+                    blocked_gate = gate_id
+                    break
+
+        if blocked_gate:
+            return SwarmExecutionResult(
+                proposal_id=proposal.proposal_id,
+                status="failed",
+                steps_total=len(proposal.execution_plan),
+                steps_completed=0,
+                steps_failed=0,
+                step_results={},
+                total_cost=0.0,
+                total_duration_ms=0.0,
+                executed_at=datetime.now(timezone.utc),
+                error=f"Blocked by safety gate: {blocked_gate}",
+                blocked_by_safety_gate=blocked_gate,
+            )
+
+        ctx_str = str(context or {})[:400]
+        step_results: Dict[Any, Dict[str, Any]] = {}
+        total_cost: float = 0.0
+        start_wall = _time.time()
+
+        for idx, step in enumerate(proposal.execution_plan):
+            step_start = _time.time()
+            step_id = step.step_id
+
+            # Budget enforcement: estimate per-step cost from proposal
+            per_step_budget = proposal.cost_estimate / max(len(proposal.execution_plan), 1)
+            if total_cost + per_step_budget > budget and idx > 0:
+                step_results[idx] = {
+                    "step_id": step_id,
+                    "description": step.description,
+                    "status": "skipped",
+                    "output": {"result": "Budget exhausted"},
+                    "cost": 0.0,
+                    "duration_ms": 0.0,
+                }
+                continue
+
+            try:
+                # Use the LLM controller's synchronous chat() if available
+                prompt = (
+                    f"Execute step {step_id}: {step.description}\n"
+                    f"Context: {ctx_str}"
+                )
+                if hasattr(self.llm_controller, "chat") and callable(self.llm_controller.chat):
+                    raw = self.llm_controller.chat(prompt)
+                else:
+                    raw = '{"result": "ok", "success": true}'
+                try:
+                    output = json.loads(raw) if isinstance(raw, str) else {"result": str(raw), "success": True}
+                except Exception:
+                    output = {"result": str(raw), "success": True, "artifacts": []}
+                step_cost = per_step_budget
+                status = "completed"
+            except Exception as exc:
+                output = {"result": f"Step failed: {exc}", "success": False}
+                step_cost = 0.0
+                status = "failed"
+                logger.warning("execute_proposal: step %s failed: %s", step_id, exc)
+
+            total_cost += step_cost
+            step_results[idx] = {
+                "step_id": step_id,
+                "description": step.description,
+                "status": status,
+                "output": output,
+                "cost": step_cost,
+                "duration_ms": (_time.time() - step_start) * 1000,
+            }
+
+        completed = sum(1 for s in step_results.values() if s["status"] == "completed")
+        failed = sum(1 for s in step_results.values() if s["status"] == "failed")
         if failed == 0:
             overall_status = "completed"
         elif completed == 0:

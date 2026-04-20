@@ -239,20 +239,14 @@ docker rm murphy-system
 
 ### Configuration
 
-After installation, you may want to configure the system. Murphy System uses YAML
-files in the `config/` directory for defaults, with environment variables always
-taking precedence:
+After installation, you may want to configure the system:
 
 ```bash
-# Edit the main configuration file (LLM provider, thresholds, logging, etc.)
-nano config/murphy.yaml
+# Copy the configuration file
+cp config/config.example.yaml config/config.yaml
 
-# Edit engine configuration (swarm size, gate parameters, orchestrator settings)
-nano config/engines.yaml
-
-# Annotated examples with documentation for every setting:
-# config/murphy.yaml.example
-# config/engines.yaml.example
+# Edit the configuration
+nano config/config.yaml
 ```
 
 ### Environment Variables
@@ -319,6 +313,53 @@ sudo systemctl status murphy-system
 
 ---
 
+## Onboard LLM — Ollama Setup
+
+Murphy's onboard LLM runs through [Ollama](https://ollama.com). Without an
+external API key (DeepInfra, OpenAI, etc.) Ollama **is** the LLM. Install it once
+on the host and it will be managed by the deploy workflow automatically.
+
+```bash
+# 1. Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# 2. Enable as a system service (starts automatically on boot)
+systemctl enable ollama
+systemctl start ollama
+
+# 3. Pull a model — choose based on available RAM:
+#
+#   6 GB+ RAM  →  llama3 (default, best quality)
+ollama pull llama3
+#
+#   2.5–6 GB RAM  →  phi3
+# ollama pull phi3
+#
+#   < 2.5 GB RAM  →  tinyllama
+# ollama pull tinyllama
+
+# 4. Verify Ollama is up
+curl -s http://localhost:11434/api/tags | python3 -m json.tool
+```
+
+Set `OLLAMA_HOST` in your environment file if Ollama runs on a non-default
+address, and `OLLAMA_MODEL` to pin a specific model:
+
+```bash
+# /etc/murphy-production/environment  (or your .env file)
+OLLAMA_HOST=http://localhost:11434
+OLLAMA_MODEL=llama3
+```
+
+After deploying, confirm the onboard LLM is healthy:
+
+```bash
+curl -s 'http://localhost:8000/api/health?deep=true' | python3 -m json.tool
+# "ollama_running": true, "ollama_models": ["llama3"]
+```
+
+---
+
 ## Verification
 
 ### Test 1: Health Check
@@ -335,8 +376,8 @@ curl http://localhost:8000/api/health
 ```json
 {
   "status": "healthy",
-  "system_id": "murphy_system_20260117_100000",
-  "timestamp": "2026-01-17T10:00:00"
+  "version": "1.0.0",
+  "deploy_commit": "a1b2c3d"
 }
 ```
 
@@ -474,13 +515,11 @@ docker run -it -p 8000:8000 murphy-system-runtime:v1.0.0
 # Check system resources
 htop
 
-# Enable caching in config/murphy.yaml:
-# cache:
-#   enabled: true
-#   ttl: 3600
-
-# Or via environment variable (takes precedence over YAML):
-export MURPHY_CACHE__ENABLED=true
+# Enable caching in configuration
+# Edit config/config.yaml
+cache:
+  enabled: true
+  level: 2
 
 # Increase memory allocation
 export MURPHY_CACHE_SIZE=256

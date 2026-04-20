@@ -824,12 +824,274 @@ class MLStrategyEngine:
                 "ab_testing_framework",
                 "ensemble_methods",
                 "online_incremental_learning",
+                "sequence_scoring",  # Permutation calibration
             ],
-            "strategy_count": 11,
+            "strategy_count": 12,
             "classifier_classes": self.classifier.classes,
             "forecaster_method": self.forecaster.method.value,
             "ab_experiments": self.ab_testing.list_experiments(),
             "online_learner_state": {
                 "samples_seen": self.online_learner._samples_seen,
             },
+        }
+
+    # ------------------------------------------------------------------
+    # Permutation Calibration Integration (Spec Section 3.2)
+    # ------------------------------------------------------------------
+
+    def score_sequence_family(
+        self,
+        sequence_id: str,
+        evaluations: List[Dict[str, float]],
+    ) -> Dict[str, Any]:
+        """Score a sequence family based on evaluation history.
+
+        This implements spec Section 3.2: Score sequence families, detect
+        robust vs brittle orderings.
+
+        Args:
+            sequence_id: The sequence ID being scored
+            evaluations: List of evaluation dicts with scores
+
+        Returns:
+            Comprehensive scoring result
+        """
+        if not evaluations:
+            return {
+                "status": "insufficient_data",
+                "sequence_id": sequence_id,
+                "sample_count": 0,
+            }
+
+        # Extract metrics
+        outcome_scores = [e.get("outcome_quality", 0.5) for e in evaluations]
+        calibration_scores = [e.get("calibration_quality", 0.5) for e in evaluations]
+        stability_scores = [e.get("stability_score", 0.5) for e in evaluations]
+
+        # Calculate aggregate scores
+        avg_outcome = _safe_mean(outcome_scores)
+        avg_calibration = _safe_mean(calibration_scores)
+        avg_stability = _safe_mean(stability_scores)
+
+        # Calculate variance/robustness
+        outcome_variance = _safe_stdev(outcome_scores) ** 2
+        calibration_variance = _safe_stdev(calibration_scores) ** 2
+        stability_variance = _safe_stdev(stability_scores) ** 2
+
+        # Detect brittleness (high variance = brittle)
+        brittleness = (outcome_variance + calibration_variance + stability_variance) / 3
+        is_robust = brittleness < 0.02
+        is_brittle = brittleness > 0.1
+
+        # Calculate composite score using spec weights
+        composite_score = (
+            avg_outcome * 0.35 +
+            avg_calibration * 0.35 +
+            avg_stability * 0.20 +
+            (1 - brittleness) * 0.10
+        )
+
+        # Determine promotion readiness
+        promotion_ready = (
+            len(evaluations) >= 10 and
+            avg_outcome >= 0.65 and
+            avg_calibration >= 0.6 and
+            avg_stability >= 0.6 and
+            not is_brittle
+        )
+
+        return {
+            "status": "ok",
+            "sequence_id": sequence_id,
+            "sample_count": len(evaluations),
+            "avg_outcome_quality": round(avg_outcome, 4),
+            "avg_calibration_quality": round(avg_calibration, 4),
+            "avg_stability_score": round(avg_stability, 4),
+            "outcome_variance": round(outcome_variance, 6),
+            "calibration_variance": round(calibration_variance, 6),
+            "stability_variance": round(stability_variance, 6),
+            "brittleness": round(brittleness, 4),
+            "is_robust": is_robust,
+            "is_brittle": is_brittle,
+            "composite_score": round(composite_score, 4),
+            "promotion_ready": promotion_ready,
+        }
+
+    def rank_sequence_candidates(
+        self,
+        candidates: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """Rank sequence candidates for procedural promotion.
+
+        This implements spec Section 3.2: Rank candidate paths for
+        procedural promotion.
+
+        Args:
+            candidates: List of candidate dicts with sequence_id and evaluations
+
+        Returns:
+            Ranked list of candidates with scores
+        """
+        scored_candidates = []
+
+        for candidate in candidates:
+            sequence_id = candidate.get("sequence_id")
+            evaluations = candidate.get("evaluations", [])
+
+            score_result = self.score_sequence_family(sequence_id, evaluations)
+
+            scored_candidates.append({
+                "sequence_id": sequence_id,
+                "domain": candidate.get("domain", "unknown"),
+                "ordering": candidate.get("ordering", []),
+                "composite_score": score_result.get("composite_score", 0.0),
+                "promotion_ready": score_result.get("promotion_ready", False),
+                "is_robust": score_result.get("is_robust", False),
+                "is_brittle": score_result.get("is_brittle", True),
+                "sample_count": score_result.get("sample_count", 0),
+                "full_score": score_result,
+            })
+
+        # Rank by composite score (descending)
+        scored_candidates.sort(key=lambda c: c["composite_score"], reverse=True)
+
+        # Add rank position
+        for i, candidate in enumerate(scored_candidates):
+            candidate["rank"] = i + 1
+
+        return scored_candidates
+
+    def detect_ordering_anomalies(
+        self,
+        domain: str,
+        recent_scores: List[float],
+        historical_scores: List[float],
+    ) -> Dict[str, Any]:
+        """Detect anomalous performance changes in ordering outcomes.
+
+        This helps identify drift or sudden changes in sequence effectiveness.
+
+        Args:
+            domain: Domain being analyzed
+            recent_scores: Recent outcome scores
+            historical_scores: Historical baseline scores
+
+        Returns:
+            Anomaly detection result
+        """
+        if len(historical_scores) < 5 or len(recent_scores) < 3:
+            return {
+                "status": "insufficient_data",
+                "domain": domain,
+                "historical_count": len(historical_scores),
+                "recent_count": len(recent_scores),
+            }
+
+        # Calculate baseline statistics
+        historical_mean = _safe_mean(historical_scores)
+        historical_std = _safe_stdev(historical_scores)
+
+        # Calculate recent statistics
+        recent_mean = _safe_mean(recent_scores)
+
+        # Z-score of recent mean relative to historical distribution
+        if historical_std > 0:
+            z_score = (recent_mean - historical_mean) / historical_std
+        else:
+            z_score = 0.0
+
+        # Detect significant drift
+        drift_detected = abs(z_score) > 2.0
+        improvement = z_score > 2.0
+        degradation = z_score < -2.0
+
+        # Check individual anomalies in recent scores using a fresh detector
+        detector = AnomalyDetector(threshold=2.0)
+        detector.feed_many(historical_scores)
+
+        anomalies = []
+        for i, score in enumerate(recent_scores):
+            result = detector.detect(score)
+            if result.is_anomaly:
+                anomalies.append({
+                    "index": i,
+                    "score": score,
+                    "anomaly_score": result.score,
+                })
+
+        return {
+            "status": "ok",
+            "domain": domain,
+            "historical_mean": round(historical_mean, 4),
+            "historical_std": round(historical_std, 4),
+            "recent_mean": round(recent_mean, 4),
+            "z_score": round(z_score, 4),
+            "drift_detected": drift_detected,
+            "improvement": improvement,
+            "degradation": degradation,
+            "individual_anomalies": anomalies,
+            "recommendation": (
+                "reopen_exploration" if degradation else
+                "maintain_procedure" if not drift_detected else
+                "investigate_improvement"
+            ),
+        }
+
+    def online_sequence_learning(
+        self,
+        sequence_id: str,
+        features: Dict[str, float],
+        success: bool,
+    ) -> Dict[str, Any]:
+        """Perform online learning for sequence success prediction.
+
+        This supports online learning over feed changes (spec Section 3.2).
+
+        Args:
+            sequence_id: The sequence being learned
+            features: Feature dict (e.g., ordering entropy, domain metrics)
+            success: Whether the execution was successful
+
+        Returns:
+            Learning update result
+        """
+        # Add sequence-specific feature
+        enriched_features = dict(features)
+        enriched_features[f"seq:{sequence_id}"] = 1.0
+
+        # Perform online learning update
+        accuracy = self.online_learner.partial_fit(enriched_features, 1 if success else 0)
+
+        return {
+            "status": "ok",
+            "sequence_id": sequence_id,
+            "success": success,
+            "model_accuracy": round(accuracy, 4),
+            "samples_seen": self.online_learner._samples_seen,
+        }
+
+    def predict_sequence_success(
+        self,
+        sequence_id: str,
+        features: Dict[str, float],
+    ) -> Dict[str, Any]:
+        """Predict whether a sequence execution will succeed.
+
+        Args:
+            sequence_id: The sequence to predict for
+            features: Feature dict for prediction
+
+        Returns:
+            Success prediction
+        """
+        enriched_features = dict(features)
+        enriched_features[f"seq:{sequence_id}"] = 1.0
+
+        prediction, confidence = self.online_learner.predict(enriched_features)
+
+        return {
+            "status": "ok",
+            "sequence_id": sequence_id,
+            "predicted_success": bool(prediction),
+            "confidence": round(confidence, 4),
         }

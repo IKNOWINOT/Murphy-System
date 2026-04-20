@@ -64,7 +64,8 @@ if APIRouter is not None:
     class CreateArticleRequest(BaseModel):
         """Create Article Request."""
         title: str
-        body: str
+        body: str = ""
+        content: str = ""  # PATCH-009: alias
         category: str = ""
         author_id: str = ""
         tags: List[str] = Field(default_factory=list)
@@ -175,7 +176,7 @@ def create_service_router(
     @router.post("/kb")
     async def create_article(req: CreateArticleRequest):
         a = manager.create_article(
-            req.title, req.body, category=req.category,
+            req.title, req.body or req.content or "", category=req.category,
             author_id=req.author_id, tags=req.tags,
         )
         return JSONResponse(a.to_dict(), status_code=201)

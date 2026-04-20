@@ -133,7 +133,7 @@ class ConversationHandler:
             try:
                 return self._state_graph.get(key)
             except Exception:
-                pass
+                logger.debug("Suppressed exception in conversation_handler")
         if key == "_conv_topics":
             return []
         if key == "_conv_entities":
@@ -149,7 +149,7 @@ class ConversationHandler:
                 self._state_graph.set(key, value)
                 return
             except Exception:
-                pass
+                logger.debug("Suppressed exception in conversation_handler")
         if key == "_conv_topics":
             pass  # local topics are derived from history
         elif key == "_conv_entities":
@@ -168,7 +168,7 @@ class ConversationHandler:
                 self._state_graph.set("_conv_history", history)
                 return
             except Exception:
-                pass
+                logger.debug("Suppressed exception in conversation_handler")
         # Fallback to in-memory
         if not hasattr(self, "_local_history"):
             self._local_history = []

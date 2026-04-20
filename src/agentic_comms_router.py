@@ -241,7 +241,7 @@ class AgenticCommsRouter:
                     "type":         message.message_type.value,
                 })
             except Exception:
-                pass
+                logger.debug("Suppressed exception in agentic_comms_router")
 
         status = DeliveryStatus.DELIVERED if delivered > 0 else DeliveryStatus.BOUNCED
         receipt = DeliveryReceipt(
