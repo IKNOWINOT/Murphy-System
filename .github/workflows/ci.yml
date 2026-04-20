@@ -146,38 +146,87 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
 
-      - name: Check for new divergence between src/ trees
-        # Warns when files exist ONLY in Murphy System/src/ but not root src/.
-        # This prevents silent drift — the legacy mirror must not gain new
-        # modules that haven't been promoted to canonical root src/.
+      - name: Check for new divergence between root and Murphy System/ trees
+        # Fails when files of tracked types exist ONLY in Murphy System/ but not
+        # at the repo root.  This prevents silent drift — the mirror must not
+        # gain new files that haven't been promoted to the canonical root.
+        # Covers .py, .html, .yaml, .yml, .md, .js, .ts, .sh, .bat, .css
+        # across ALL directories (not just src/).
+        # Also reports (warning only) files that exist only at root.
         run: |
           python - <<'EOF'
           import sys
           from pathlib import Path
 
-          root_src = Path("src")
-          mirror_src = Path("Murphy System/src")
+          EXTENSIONS = {
+              ".py", ".html", ".yaml", ".yml", ".md",
+              ".js", ".ts", ".sh", ".bat", ".css",
+          }
+          SKIP_DIRS = {
+              ".git", ".venv", "venv", "node_modules", "__pycache__",
+              ".mypy_cache", ".pytest_cache", ".ruff_cache", "dist", "build",
+          }
 
-          if not mirror_src.exists():
-              print("Mirror tree Murphy System/src/ not found — nothing to check.")
+          root_dir = Path(".")
+          mirror_dir = Path("Murphy System")
+
+          if not mirror_dir.exists():
+              print("Mirror tree Murphy System/ not found — nothing to check.")
               sys.exit(0)
 
-          root_py = {p.relative_to(root_src) for p in root_src.rglob("*.py")}
-          mirror_py = {p.relative_to(mirror_src) for p in mirror_src.rglob("*.py")}
+          def collect_files(base: Path, skip_subdir: str | None = None) -> set[Path]:
+              result = set()
+              for p in base.rglob("*"):
+                  if not p.is_file():
+                      continue
+                  if p.suffix not in EXTENSIONS:
+                      continue
+                  rel = p.relative_to(base)
+                  # Skip unwanted directories
+                  if any(
+                      part in SKIP_DIRS or part.endswith(".egg-info")
+                      for part in rel.parts[:-1]
+                  ):
+                      continue
+                  # Skip a specific top-level subdirectory if requested
+                  if skip_subdir and rel.parts and rel.parts[0] == skip_subdir:
+                      continue
+                  result.add(rel)
+              return result
 
-          only_in_mirror = mirror_py - root_py
+          # Collect from mirror (relative to Murphy System/)
+          mirror_files = collect_files(mirror_dir)
+
+          # Collect from root — skip the Murphy System/ subtree itself
+          root_files = collect_files(root_dir, skip_subdir="Murphy System")
+
+          only_in_mirror = mirror_files - root_files
+          only_in_root = root_files - mirror_files
+
+          if only_in_root:
+              print(
+                  f"INFO: {len(only_in_root)} file(s) exist only at root "
+                  "(no Murphy System/ counterpart — may be legitimate root-only files):"
+              )
+              for f in sorted(only_in_root):
+                  print(f"  {f}")
+              print()
+
           if only_in_mirror:
-              print("WARNING: The following .py files exist ONLY in the legacy")
-              print("  Murphy System/src/ mirror and have NOT been promoted to")
-              print("  the canonical root src/.  Please review and promote or")
-              print("  document why they should not be in root src/:")
+              print("ERROR: The following files exist ONLY in the legacy")
+              print("  Murphy System/ mirror and have NOT been promoted to")
+              print("  the canonical root.  Please review and promote, or")
+              print("  document why they should not be in root:")
               for f in sorted(only_in_mirror):
                   print(f"  {f}")
               sys.exit(1)
           else:
-              print("OK: No new divergence detected between src/ trees.")
+              print(
+                  f"OK: No new divergence detected. "
+                  f"root={len(root_files)} tracked files, "
+                  f"mirror={len(mirror_files)} tracked files."
+              )
           EOF
-        continue-on-error: false
 
   test:
     # CI-SIMPLIFY: Single Python version matching production (Dockerfile: python:3.12-slim).
@@ -247,7 +296,6 @@ jobs:
 
       - name: Validate module_registry.yaml is up to date
         run: python scripts/generate_module_registry.py --check
-        continue-on-error: true
 
   security:
     runs-on: ubuntu-latest
