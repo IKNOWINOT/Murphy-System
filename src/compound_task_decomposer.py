@@ -99,6 +99,28 @@ _BUILD_VERBS = (
 _CONNECTORS = r"(?:then|and then|before|and|to|in order to|so I can|for)"
 
 _COMPOUND_PATTERNS: List[Tuple[re.Pattern, str, str]] = [
+    # "build X after performing research" (build verb first, research after)
+    (
+        re.compile(
+            rf"{_BUILD_VERBS}\b.+?\bafter\s+(?:performing|doing|completing|running)\b.+?"
+            rf"(?:research|analysis|assessment)\b",
+            re.IGNORECASE,
+        ),
+        "build_after_research",
+        "Build with explicit prerequisite research (build verb first)",
+    ),
+    # "build X for a lucrative/profitable niche after research"
+    (
+        re.compile(
+            rf"{_BUILD_VERBS}\b.+?(?:lucrative|profitable|viable)\s+"
+            rf"(?:niche|market|segment)\b.+?"
+            rf"(?:research|analysis|select|choose)\b",
+            re.IGNORECASE,
+        ),
+        "niche_research_build",
+        "Build for niche with prerequisite research (build verb first)",
+    ),
+    # "research X then build Y"
     (
         re.compile(
             rf"{_RESEARCH_VERBS}\b.+?\b{_CONNECTORS}\b.+?\b{_BUILD_VERBS}\b",
@@ -107,6 +129,7 @@ _COMPOUND_PATTERNS: List[Tuple[re.Pattern, str, str]] = [
         "research_then_build",
         "Research/analysis prerequisite before build phase",
     ),
+    # "after performing X, build Y"
     (
         re.compile(
             rf"after\s+(?:performing|doing|completing|running)\b.+?\b{_BUILD_VERBS}\b",
@@ -115,6 +138,7 @@ _COMPOUND_PATTERNS: List[Tuple[re.Pattern, str, str]] = [
         "after_analysis_build",
         "Explicit sequencing: analysis then build",
     ),
+    # "select X for Y (build)"
     (
         re.compile(
             rf"{_SELECT_VERBS}\b.+?\b(?:for|to build|to create|to make|to develop)\b",
@@ -123,6 +147,7 @@ _COMPOUND_PATTERNS: List[Tuple[re.Pattern, str, str]] = [
         "select_for_build",
         "Selection prerequisite before build phase",
     ),
+    # "market research" + build verb anywhere
     (
         re.compile(
             rf"market\s+research.+?{_BUILD_VERBS}\b",
@@ -131,6 +156,7 @@ _COMPOUND_PATTERNS: List[Tuple[re.Pattern, str, str]] = [
         "market_research_build",
         "Market research prerequisite before build",
     ),
+    # "perform analysis" + build verb
     (
         re.compile(
             rf"perform\s+(?:analysis|research|assessment).+?{_BUILD_VERBS}\b",
@@ -139,12 +165,13 @@ _COMPOUND_PATTERNS: List[Tuple[re.Pattern, str, str]] = [
         "perform_analysis_build",
         "Perform analysis prerequisite before build",
     ),
+    # "lucrative/profitable niche" + build verb
     (
         re.compile(
             rf"(?:lucrative|profitable|viable)\s+(?:niche|market|segment).+?{_BUILD_VERBS}\b",
             re.IGNORECASE,
         ),
-        "niche_research_build",
+        "niche_keyword_build",
         "Niche viability research before build",
     ),
 ]
@@ -255,7 +282,12 @@ def _build_phases(query: str, decomp_type: str) -> List[DecomposedPhase]:
             )
         )
 
-    elif decomp_type in ("market_research_build", "niche_research_build"):
+    elif decomp_type in (
+        "market_research_build",
+        "niche_research_build",
+        "build_after_research",
+        "niche_keyword_build",
+    ):
         phases.append(
             DecomposedPhase(
                 phase_id=0,
