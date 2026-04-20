@@ -396,6 +396,50 @@ jobs:
         continue-on-error: true
 
   # ---------------------------------------------------------------------------
+  # E2E tests — run on every PR and push (not just nightly)
+  # Tests the hero flow, production server routes, auth/security plane, and
+  # LLM pipeline without requiring a live server or API secrets.
+  # ---------------------------------------------------------------------------
+  e2e-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      MURPHY_ENV: test
+      MURPHY_DB_MODE: stub
+      E2EE_STUB_ALLOWED: "true"
+      MURPHY_POOL_MODE: simulated
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install E2E dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install fastapi httpx pydantic uvicorn pytest pytest-asyncio
+          pip install -r requirements_core.txt
+        continue-on-error: true
+
+      - name: Run E2E hero-flow, auth, and production-server tests
+        run: |
+          python -m pytest \
+            tests/e2e/test_hero_flow_e2e.py \
+            tests/e2e/test_auth_e2e.py \
+            tests/e2e/test_production_server_e2e.py \
+            tests/e2e/test_completion_areas.py \
+            tests/e2e/test_forge_user_flow.py \
+            tests/e2e/test_llm_pipeline_e2e.py \
+            -v --tb=short --timeout=60 \
+            --continue-on-collection-errors
+
+  # ---------------------------------------------------------------------------
   # CI Hardening — MURPHY-CI-HARDENING-001
   # These checks BLOCK merge and BLOCK packaging on failure.
   # ---------------------------------------------------------------------------
