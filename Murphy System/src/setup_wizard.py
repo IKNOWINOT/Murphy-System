@@ -30,7 +30,7 @@ VALID_ROBOTICS_PROTOCOLS = [
     "spot", "universal_robot", "ros2", "modbus", "bacnet",
     "opcua", "fanuc", "kuka", "abb", "dji", "clearpath", "mqtt",
 ]
-VALID_LLM_PROVIDERS = ["local", "deepinfra", "openai", "anthropic", "azure"]
+VALID_LLM_PROVIDERS = ["local", "deepinfra", "together", "openai", "anthropic", "azure"]
 VALID_COMPLIANCE_FRAMEWORKS = [
     "SOC2", "HIPAA", "GDPR", "PCI_DSS", "ISO27001", "none",
 ]
@@ -863,7 +863,7 @@ def _fuzzy_match_choice(raw: str, options: List[str]) -> Optional[str]:
     """Try to extract a valid option from free-text input.
 
     For example, ``"local for now."`` matches ``"local"`` when
-    ``options`` is ``["local", "deepinfra", "openai", ...]``.
+    ``options`` is ``["local", "deepinfra", "together", "openai", ...]``.
     """
     lower = raw.strip().lower()
     # Exact match (case-insensitive)

@@ -96,7 +96,7 @@ SUBSYSTEM_ROOMS: Dict[str, _RoomSpec] = {
     "local-model-layer":                ("llm-ai", False),
     "safe-llm-wrapper":                 ("llm-ai", False),
     "openai-compatible-provider":       ("llm-ai", False),
-    "llm-provider-router":                 ("llm-ai", True),
+    "deepinfra-key-rotator":                 ("llm-ai", True),
     "inference-gate-engine":            ("llm-ai", False),
 
     # ── Swarm & Agent Systems ────────────────────────────────────────────────

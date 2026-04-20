@@ -194,7 +194,7 @@ DEFAULT_ROOM_DEFINITIONS: dict[str, dict] = {
             "llm_integration_layer",
             "llm_controller",
             "llm_output_validator",
-            "groq_key_rotator",
+            "llm_provider_router",
             "openai_compatible_provider",
             "enhanced_local_llm",
             "local_llm_fallback",

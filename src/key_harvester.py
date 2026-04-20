@@ -832,6 +832,7 @@ class CaptchaHandler:
                 await asyncio.sleep(2.0)
                 return True
             except Exception:  # noqa: BLE001
+                logger.debug("Suppressed exception in conversation_handler, continuing")
                 continue
         return False
 

@@ -33,6 +33,11 @@ import time
 from pathlib import Path
 from typing import Any
 
+ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "Murphy System" / "src"))
+sys.path.insert(0, str(ROOT / "Murphy System"))
+
 from .base import BenchmarkAdapter, BenchmarkResult  # noqa: E402
 
 logger = logging.getLogger(__name__)

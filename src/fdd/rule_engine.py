@@ -203,7 +203,7 @@ class RuleBasedFDD:
                             f.status = FaultStatus.RESOLVED
                             f.resolved_at = time.time()
                 except Exception:
-                    pass  # rule evaluation should never crash the engine
+                    logger.debug("Suppressed exception in fdd_rule_engine")
         return new_faults
 
     # ── queries ──────────────────────────────────────────────────

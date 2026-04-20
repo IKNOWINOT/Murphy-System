@@ -106,9 +106,9 @@ class TenantProvisioner:
         Resource limits scale by *company_size*.
         """
         try:
-            from multi_tenant_workspace import IsolationLevel, TenantConfig, TenantRole
+            from multi_tenant_workspace import TenantConfig, IsolationLevel, TenantRole
         except ImportError:
-            from src.multi_tenant_workspace import IsolationLevel, TenantConfig, TenantRole  # type: ignore[no-reattr]
+            from src.multi_tenant_workspace import TenantConfig, IsolationLevel, TenantRole  # type: ignore[no-reattr]
 
         # Determine isolation level
         ip = intake.ip_protection_level

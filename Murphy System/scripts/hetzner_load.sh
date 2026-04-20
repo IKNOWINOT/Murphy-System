@@ -56,6 +56,8 @@
 # Exit code: 0 on success, 1 on critical failure.
 
 set -euo pipefail
+export PAGER=cat
+export DOCKER_PAGER=cat
 
 # ── Help / version ────────────────────────────────────────────────────────────
 show_help() {
@@ -537,8 +539,10 @@ if [ "$SKIP_ENV_AUDIT" = false ]; then
     # set +u is scoped narrowly to the source call only — the env file may
     # legitimately have unset variables which is exactly what we are auditing.
     set +u
+    set -a          # auto-export all sourced variables so printenv can see them
     # shellcheck disable=SC1090,SC1091
     source "$MURPHY_ENV_FILE" 2>/dev/null || true
+    set +a          # stop auto-exporting
     set -u
 
     audit_var "MURPHY_SECRET_KEY"      "sessions will be insecure — generate: python3 -c \"import secrets; print(secrets.token_urlsafe(48))\""
@@ -553,6 +557,8 @@ if [ "$SKIP_ENV_AUDIT" = false ]; then
     audit_var "MATRIX_USER_ID"         "Matrix IM bridge inactive (optional)"
     audit_var "MATRIX_BOT_TOKEN"       "Matrix client token alias missing — will be auto-populated from MATRIX_ACCESS_TOKEN"
     audit_var "MATRIX_BOT_USER"        "Matrix client user alias missing — will be auto-populated from MATRIX_USER_ID"
+    audit_var "DEEPINFRA_API_KEY"      "Swarm Forge LLM disabled — get a free key at https://deepinfra.com/keys"
+    audit_var "MURPHY_LLM_PROVIDER"    "defaulting to local (set to 'deepinfra' if DEEPINFRA_API_KEY is configured)"
 
     # Sanitize: quote any values containing spaces that aren't already quoted
     if [ -f "$MURPHY_ENV_FILE" ]; then
@@ -575,7 +581,7 @@ if [ "$SKIP_ENV_AUDIT" = false ]; then
 
     # ── Syntax validation: every non-comment, non-blank line must be KEY=value ──
     _bad_lines=$(grep -vE '^\s*#|^\s*$|^[A-Za-z_][A-Za-z0-9_]*=' \
-      "${MURPHY_ENV_FILE}" 2>/dev/null | wc -l)
+      "${MURPHY_ENV_FILE}" 2>/dev/null | wc -l) || _bad_lines=0
     if [ "${_bad_lines}" -gt 0 ]; then
       warn "Env file has ${_bad_lines} malformed line(s) (not KEY=value):"
       grep -nvE '^\s*#|^\s*$|^[A-Za-z_][A-Za-z0-9_]*=' "${MURPHY_ENV_FILE}" \
@@ -588,7 +594,7 @@ if [ "$SKIP_ENV_AUDIT" = false ]; then
     unset _bad_lines
 
     # ── CHANGEME placeholder detection ────────────────────────────────────────
-    _changeme_count=$(grep -cE 'CHANGEME' "${MURPHY_ENV_FILE}" 2>/dev/null || echo 0)
+    _changeme_count=$(grep -cE 'CHANGEME' "${MURPHY_ENV_FILE}" 2>/dev/null) || _changeme_count=0
     if [ "${_changeme_count}" -gt 0 ]; then
       warn "Env file still contains ${_changeme_count} CHANGEME placeholder(s) — fill in real values:"
       grep -nE 'CHANGEME' "${MURPHY_ENV_FILE}" 2>/dev/null | head -10 >&2 || true

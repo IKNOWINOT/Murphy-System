@@ -17,6 +17,7 @@ from typing import Dict, List, Optional
 
 from src.billing.grants.models import Prerequisite, PrerequisiteStatus
 
+
 # ---------------------------------------------------------------------------
 # Prerequisite definitions (federal grant chain)
 # ---------------------------------------------------------------------------

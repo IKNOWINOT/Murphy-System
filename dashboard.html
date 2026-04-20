@@ -1,0 +1,454 @@
+<!-- Murphy System — Live Dashboard / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Live Dashboard</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+:root{--sidebar-width:240px;--topbar-h:52px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* TOPBAR */
+.m-topbar{height:var(--topbar-h);background:var(--bg-surface);border-bottom:1px solid var(--border-default);display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:200;flex-shrink:0}
+.m-brand{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--teal);font-weight:700;font-size:1rem;letter-spacing:.05em}
+.m-topbar-right{display:flex;align-items:center;gap:8px}
+.m-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--radius-md);border:1px solid var(--border-default);background:var(--bg-elevated);color:var(--text-primary);font-size:13px;cursor:pointer;font-family:var(--font-ui);transition:background var(--transition-fast)}
+.m-btn:hover{background:var(--bg-input);border-color:var(--teal)}
+.m-btn-primary{background:var(--teal);color:#000;border-color:var(--teal);font-weight:600}
+.m-btn-primary:hover{background:#00b890}
+.m-btn-icon{padding:6px;border:none;background:none;color:var(--text-secondary);cursor:pointer;border-radius:var(--radius-sm);display:flex;align-items:center}
+.m-btn-icon:hover{background:var(--bg-elevated);color:var(--text-primary)}
+
+/* SHELL */
+.m-shell{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR */
+.m-sidebar{width:var(--sidebar-width);background:var(--bg-surface);border-right:1px solid var(--border-default);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.m-sidebar-header{padding:16px;border-bottom:1px solid var(--border-subtle)}
+.m-sidebar-title{font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 16px;color:var(--text-secondary);font-size:13px;text-decoration:none;border-radius:var(--radius-sm);margin:1px 6px;transition:background var(--transition-fast)}
+.nav-item:hover,.nav-item.active{background:var(--bg-elevated);color:var(--text-primary)}
+.nav-item.active{color:var(--teal)}
+
+/* MAIN */
+.m-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* LIVE BADGE */
+.live-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(0,212,170,.12);border:1px solid rgba(0,212,170,.4);color:var(--teal);font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;letter-spacing:.04em}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--teal);animation:pulse 1.4s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
+.connection-status{font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:4px}
+.connection-status.connected{color:#4ade80}
+.connection-status.disconnected{color:#f87171}
+
+/* HEADER BAR */
+.page-header{padding:16px 24px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.page-title{font-size:18px;font-weight:700;display:flex;align-items:center;gap:10px}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:24px}
+
+/* METRIC GRID */
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:24px}
+.metric-card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:20px;transition:border-color var(--transition-fast)}
+.metric-card:hover{border-color:var(--teal)}
+.metric-card-label{font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.metric-card-value{font-size:28px;font-weight:700;color:var(--text-primary);font-variant-numeric:tabular-nums}
+.metric-card-sub{font-size:12px;color:var(--text-muted);margin-top:4px}
+.metric-card-value.good{color:#4ade80}
+.metric-card-value.warn{color:#facc15}
+.metric-card-value.err{color:#f87171}
+
+/* SECTION */
+.section-title{font-size:14px;font-weight:600;color:var(--text-secondary);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+
+/* CHART AREA */
+.chart-panel{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:20px;margin-bottom:24px}
+.chart-canvas-wrap{height:180px;position:relative;overflow:hidden}
+#sparkline-canvas{width:100%;height:100%}
+
+/* LEARNING STATUS */
+.learning-panel{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:20px;margin-bottom:24px}
+.learning-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-subtle)}
+.learning-row:last-child{border-bottom:none}
+.learning-key{font-size:13px;color:var(--text-secondary)}
+.learning-val{font-size:13px;font-weight:600;color:var(--text-primary);font-variant-numeric:tabular-nums}
+.pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700}
+.pill-green{background:rgba(74,222,128,.15);color:#4ade80;border:1px solid rgba(74,222,128,.3)}
+.pill-yellow{background:rgba(250,204,21,.12);color:#facc15;border:1px solid rgba(250,204,21,.3)}
+.pill-red{background:rgba(248,113,113,.12);color:#f87171;border:1px solid rgba(248,113,113,.3)}
+
+/* HISTORY TABLE */
+.hist-table{width:100%;border-collapse:collapse;font-size:13px}
+.hist-table th{color:var(--text-muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:6px 8px;text-align:left;border-bottom:1px solid var(--border-default)}
+.hist-table td{padding:8px;border-bottom:1px solid var(--border-subtle);color:var(--text-primary)}
+.hist-table tr:hover td{background:var(--bg-elevated)}
+.hist-table td:first-child{color:var(--text-muted);font-variant-numeric:tabular-nums}
+
+/* INTERVAL CONTROL */
+.interval-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary)}
+.interval-row select{background:var(--bg-elevated);border:1px solid var(--border-default);color:var(--text-primary);padding:4px 8px;border-radius:var(--radius-sm);font-size:12px;font-family:var(--font-ui)}
+</style>
+</head>
+<body>
+<!-- TOPBAR -->
+<header class="m-topbar">
+  <a href="/ui/landing" class="m-brand">
+    <svg width="22" height="22" viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="17" stroke="currentColor" stroke-width="2"/><path d="M10 26V10l8 10 8-10v16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Murphy
+  </a>
+  <div class="m-topbar-right">
+    <div class="connection-status" id="conn-status">⬤ Connecting…</div>
+    <div class="live-badge"><span class="live-dot"></span> LIVE</div>
+    <div class="interval-row">
+      <label>Refresh every</label>
+      <select id="interval-select">
+        <option value="2">2 s</option>
+        <option value="5" selected>5 s</option>
+        <option value="10">10 s</option>
+        <option value="30">30 s</option>
+      </select>
+    </div>
+    <button class="m-btn m-btn-primary" id="btn-snapshot" onclick="fetchSnapshot()">Snapshot</button>
+  </div>
+</header>
+
+<div class="m-shell">
+  <!-- SIDEBAR -->
+  <aside class="m-sidebar">
+    <div class="m-sidebar-header">
+      <span class="m-sidebar-title">Navigation</span>
+    </div>
+    <a href="/ui/dashboard" class="nav-item active">📊 Live Dashboard</a>
+    <a href="/ui/management" class="nav-item">📋 Management</a>
+    <a href="/ui/calendar" class="nav-item">📅 Calendar</a>
+    <a href="/ui/meeting-intelligence" class="nav-item">🎙️ Meetings</a>
+    <a href="/ui/ambient" class="nav-item">🌐 Ambient</a>
+    <a href="/ui/wallet" class="nav-item">💳 Wallet</a>
+    <a href="/ui/landing" class="nav-item">🏠 Home</a>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="m-main">
+    <div class="page-header">
+      <div class="page-title">
+        📊 Live System Dashboard
+      </div>
+      <span id="last-update" style="font-size:12px;color:var(--text-muted)">Waiting for data…</span>
+    </div>
+
+    <div class="content">
+      <!-- METRIC CARDS -->
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="metric-card-label">Uptime</div>
+          <div class="metric-card-value" id="m-uptime">—</div>
+          <div class="metric-card-sub">seconds since boot</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-card-label">Dashboards</div>
+          <div class="metric-card-value" id="m-dashboards">—</div>
+          <div class="metric-card-sub">active dashboard objects</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-card-label">Events Received</div>
+          <div class="metric-card-value" id="m-events">—</div>
+          <div class="metric-card-sub">by learning connector</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-card-label">Insights Generated</div>
+          <div class="metric-card-value" id="m-insights">—</div>
+          <div class="metric-card-sub">ML patterns + insights</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-card-label">EventBackbone</div>
+          <div class="metric-card-value" id="m-backbone">—</div>
+          <div class="metric-card-sub">availability</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-card-label">Learning Connector</div>
+          <div class="metric-card-value" id="m-lc-status">—</div>
+          <div class="metric-card-sub">subscriptions active</div>
+        </div>
+      </div>
+
+      <!-- UPTIME SPARKLINE -->
+      <div class="chart-panel">
+        <div class="section-title">📈 Uptime Trend (last 20 snapshots)</div>
+        <div class="chart-canvas-wrap">
+          <canvas id="sparkline-canvas"></canvas>
+        </div>
+      </div>
+
+      <!-- LEARNING ENGINE PANEL -->
+      <div class="learning-panel">
+        <div class="section-title">🧠 Learning Engine Connector Status</div>
+        <div class="learning-row">
+          <span class="learning-key">Connector started</span>
+          <span class="learning-val" id="lc-started">—</span>
+        </div>
+        <div class="learning-row">
+          <span class="learning-key">Active subscriptions</span>
+          <span class="learning-val" id="lc-subs">—</span>
+        </div>
+        <div class="learning-row">
+          <span class="learning-key">Events received</span>
+          <span class="learning-val" id="lc-events">—</span>
+        </div>
+        <div class="learning-row">
+          <span class="learning-key">Insights generated</span>
+          <span class="learning-val" id="lc-insights">—</span>
+        </div>
+        <div class="learning-row">
+          <span class="learning-key">Backbone available</span>
+          <span class="learning-val" id="lc-backbone">—</span>
+        </div>
+        <div class="learning-row">
+          <span class="learning-key">Adaptive engine</span>
+          <span class="learning-val" id="lc-adaptive">—</span>
+        </div>
+      </div>
+
+      <!-- SNAPSHOT HISTORY -->
+      <div class="chart-panel">
+        <div class="section-title">🕐 Snapshot History (last 10)</div>
+        <table class="hist-table">
+          <thead>
+            <tr>
+              <th>Timestamp (UTC)</th>
+              <th>Uptime (s)</th>
+              <th>Dashboards</th>
+              <th>Events</th>
+              <th>Insights</th>
+            </tr>
+          </thead>
+          <tbody id="history-body">
+            <tr><td colspan="5" style="color:var(--text-muted);text-align:center;padding:16px">Waiting for first snapshot…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// State
+// ─────────────────────────────────────────────
+const MAX_HISTORY = 20;
+const MAX_TABLE_ROWS = 10;
+let uptimeHistory = [];
+let snapshotHistory = [];
+let eventSource = null;
+let currentInterval = 5;
+
+// ─────────────────────────────────────────────
+// SSE Connection
+// ─────────────────────────────────────────────
+function connectSSE(interval) {
+  if (eventSource) { eventSource.close(); eventSource = null; }
+
+  const url = `/api/dashboards/live-metrics?interval=${interval}`;
+  eventSource = new EventSource(url);
+
+  eventSource.onopen = () => {
+    setConnectionStatus(true);
+  };
+
+  eventSource.onmessage = (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      handleSnapshot(data);
+    } catch (err) {
+      console.warn('SSE parse error:', err);
+    }
+  };
+
+  eventSource.onerror = () => {
+    setConnectionStatus(false);
+    // Auto-reconnect after 5 s
+    eventSource.close();
+    eventSource = null;
+    setTimeout(() => connectSSE(currentInterval), 5000);
+  };
+}
+
+function setConnectionStatus(connected) {
+  const el = document.getElementById('conn-status');
+  if (connected) {
+    el.textContent = '⬤ Connected';
+    el.className = 'connection-status connected';
+  } else {
+    el.textContent = '⬤ Disconnected';
+    el.className = 'connection-status disconnected';
+  }
+}
+
+// ─────────────────────────────────────────────
+// Snapshot fetch (non-SSE fallback)
+// ─────────────────────────────────────────────
+async function fetchSnapshot() {
+  try {
+    const r = await fetch('/api/dashboards/live-metrics/snapshot');
+    if (!r.ok) throw new Error(r.status);
+    const data = await r.json();
+    handleSnapshot(data);
+  } catch (err) {
+    console.warn('Snapshot fetch error:', err);
+  }
+}
+
+// ─────────────────────────────────────────────
+// Render snapshot
+// ─────────────────────────────────────────────
+function handleSnapshot(data) {
+  const lc = data.learning_connector || {};
+  const bb = data.event_backbone || {};
+
+  // Cards
+  setCard('m-uptime', fmt(data.uptime_seconds, 's'), null);
+  setCard('m-dashboards', fmt(data.dashboards_count), null);
+  setCard('m-events',    fmt(lc.events_received), null);
+  setCard('m-insights',  fmt(lc.insights_generated), null);
+  setCard('m-backbone',  bb.available ? 'Available' : 'N/A', bb.available ? 'good' : 'warn');
+  setCard('m-lc-status', lc.started ? lc.subscriptions + ' subs' : 'Inactive', lc.started ? 'good' : 'warn');
+
+  // Learning panel
+  setText('lc-started',   pill(lc.started));
+  setText('lc-subs',      fmt(lc.subscriptions));
+  setText('lc-events',    fmt(lc.events_received));
+  setText('lc-insights',  fmt(lc.insights_generated));
+  setText('lc-backbone',  pill(lc.backbone_available));
+  setText('lc-adaptive',  pill(lc.adaptive_engine_available));
+
+  // Timestamp
+  const ts = data.ts ? new Date(data.ts).toLocaleTimeString() : '—';
+  document.getElementById('last-update').textContent = `Last update: ${ts}`;
+
+  // History
+  uptimeHistory.push(data.uptime_seconds || 0);
+  if (uptimeHistory.length > MAX_HISTORY) uptimeHistory.shift();
+  drawSparkline(uptimeHistory);
+
+  snapshotHistory.unshift(data);
+  if (snapshotHistory.length > MAX_TABLE_ROWS) snapshotHistory.pop();
+  renderHistoryTable();
+}
+
+function fmt(v, suffix = '') {
+  if (v === undefined || v === null) return '—';
+  return String(v) + suffix;
+}
+
+function setCard(id, value, cls) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = value;
+  el.className = 'metric-card-value' + (cls ? ' ' + cls : '');
+}
+
+function setText(id, html) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = html;
+}
+
+function pill(val) {
+  if (val === true || val === 'true')  return '<span class="pill pill-green">✓ Yes</span>';
+  if (val === false || val === 'false') return '<span class="pill pill-yellow">✗ No</span>';
+  if (val === undefined || val === null) return '—';
+  return String(val);
+}
+
+// ─────────────────────────────────────────────
+// Sparkline
+// ─────────────────────────────────────────────
+function drawSparkline(data) {
+  const canvas = document.getElementById('sparkline-canvas');
+  if (!canvas || !canvas.getContext) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.clientWidth || canvas.offsetWidth || 600;
+  const H = canvas.clientHeight || canvas.offsetHeight || 160;
+  canvas.width = W;
+  canvas.height = H;
+  ctx.clearRect(0, 0, W, H);
+
+  if (data.length < 2) return;
+
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const pad = 12;
+
+  const pts = data.map((v, i) => ({
+    x: pad + (i / (data.length - 1)) * (W - pad * 2),
+    y: (H - pad) - ((v - min) / range) * (H - pad * 2),
+  }));
+
+  // Fill
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, 'rgba(0,212,170,0.3)');
+  grad.addColorStop(1, 'rgba(0,212,170,0.02)');
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.lineTo(pts[pts.length - 1].x, H);
+  ctx.lineTo(pts[0].x, H);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.strokeStyle = '#00d4aa';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Last point dot
+  const last = pts[pts.length - 1];
+  ctx.beginPath();
+  ctx.arc(last.x, last.y, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#00d4aa';
+  ctx.fill();
+}
+
+// ─────────────────────────────────────────────
+// History table
+// ─────────────────────────────────────────────
+function renderHistoryTable() {
+  const tbody = document.getElementById('history-body');
+  if (!tbody) return;
+  tbody.innerHTML = snapshotHistory.map(s => {
+    const lc = s.learning_connector || {};
+    const ts = s.ts ? new Date(s.ts).toISOString().replace('T',' ').slice(0,19) : '—';
+    return `<tr>
+      <td>${ts}</td>
+      <td>${fmt(s.uptime_seconds)}</td>
+      <td>${fmt(s.dashboards_count)}</td>
+      <td>${fmt(lc.events_received)}</td>
+      <td>${fmt(lc.insights_generated)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─────────────────────────────────────────────
+// Interval selector
+// ─────────────────────────────────────────────
+document.getElementById('interval-select').addEventListener('change', function () {
+  currentInterval = parseInt(this.value, 10);
+  connectSSE(currentInterval);
+});
+
+// ─────────────────────────────────────────────
+// Boot
+// ─────────────────────────────────────────────
+fetchSnapshot();          // immediate non-SSE snapshot on load
+connectSSE(currentInterval);
+</script>
+</body>
+</html>

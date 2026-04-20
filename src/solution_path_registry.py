@@ -1,8 +1,8 @@
 """
-SolutionPathRegistry — Persists ranked solution-path alternatives for each task.
+Solution Path Registry — persists solution path alternatives across requests.
 
 Backs the "I found N ways to do this" HITL presentation and feeds outcome data
-back into the routing layer so future tasks benefit from historical success rates.
+to :class:`FeedbackIntegrator` to improve future routing.
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
@@ -14,107 +14,129 @@ from __future__ import annotations
 import json
 import logging
 import os
-import uuid
-from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Data classes
-# ---------------------------------------------------------------------------
-
-@dataclass
-class SolutionPath:
-    """A single ranked execution option for a task."""
-
-    path_id: str
-    task_id: str
-    capability_id: str        # e.g. "invoice_processing_pipeline"
-    module_path: str          # e.g. "src.invoice_processing.pipeline"
-    score: float              # 0.0–1.0 combined rank
-    librarian_score: float    # Raw Librarian match score
-    feedback_weight: float    # Historical success weight (default 1.0)
-    cost_estimate: str        # "low" | "medium" | "high"
-    determinism: str          # "deterministic" | "stochastic"
-    requires_hitl: bool       # Whether HITL gate is expected
-    parameters: Dict[str, Any] = field(default_factory=dict)
-    wingman: Optional[str] = None  # Assigned wingman validator module
-
-    @property
-    def combined_score(self) -> float:
-        return self.librarian_score * self.feedback_weight
-
-    def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SolutionPath":
-        return cls(**data)
-
-
-# ---------------------------------------------------------------------------
-# Registry
-# ---------------------------------------------------------------------------
-
 class SolutionPathRegistry:
-    """
-    Persists solution-path alternatives across process restarts.
+    """Persists solution path alternatives across process restarts.
 
-    Storage layout (``data_dir``):
-    - ``{task_id}.json``   — all paths for a task
-    - ``outcomes.jsonl``   — append-only outcome log
+    Paths are stored as JSON files under *data_dir*.  Each task maps to a
+    single ``<task_id>.json`` file that contains the ordered list of
+    :class:`~task_router.SolutionPath` alternatives.
+
+    Outcome data is forwarded to the :class:`~feedback_integrator.FeedbackIntegrator`
+    (if provided) so the routing layer can improve over time.
+
+    Usage::
+
+        registry = SolutionPathRegistry(data_dir="data/solution_paths")
+        registry.register(task_id, paths)
+
+        # HITL presenter retrieves alternatives:
+        alternatives = registry.get_alternatives(task_id)
+
+        # After execution:
+        registry.record_outcome(task_id, path_id, success=True, latency_ms=420)
     """
 
-    def __init__(self, data_dir: str = "data/solution_paths") -> None:
+    def __init__(
+        self,
+        data_dir: str = "data/solution_paths",
+        feedback_integrator: Optional[Any] = None,
+    ) -> None:
         self._data_dir = Path(data_dir)
-        self._data_dir.mkdir(parents=True, exist_ok=True)
-        self._outcomes_path = self._data_dir / "outcomes.jsonl"
+        self._feedback = feedback_integrator
+        # In-memory cache: task_id → list of path dicts
+        self._cache: Dict[str, List[Dict]] = {}
 
     # ------------------------------------------------------------------
-    # Core CRUD
+    # Persistence helpers
     # ------------------------------------------------------------------
 
-    def register(self, task_id: str, paths: List[SolutionPath]) -> None:
-        """Persist the full set of alternatives for *task_id*."""
-        if not paths:
-            return
-        sorted_paths = sorted(paths, key=lambda p: p.combined_score, reverse=True)
-        dest = self._data_dir / f"{task_id}.json"
-        dest.write_text(
-            json.dumps([p.to_dict() for p in sorted_paths], indent=2),
-            encoding="utf-8",
+    def _task_path(self, task_id: str) -> Path:
+        return self._data_dir / f"{task_id}.json"
+
+    def _ensure_dir(self) -> None:
+        try:
+            self._data_dir.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            logger.debug("SolutionPathRegistry: cannot create data_dir: %s", exc)
+
+    def _save(self, task_id: str, paths: List[Dict]) -> None:
+        """Write *paths* to disk; silently skip on I/O error."""
+        self._ensure_dir()
+        try:
+            with open(self._task_path(task_id), "w", encoding="utf-8") as fh:
+                json.dump(paths, fh, indent=2, default=str)
+        except OSError as exc:
+            logger.debug("SolutionPathRegistry: save failed for %s: %s", task_id, exc)
+
+    def _load(self, task_id: str) -> List[Dict]:
+        """Load *paths* from disk; return empty list on error or missing file."""
+        fp = self._task_path(task_id)
+        try:
+            with open(fp, "r", encoding="utf-8") as fh:
+                data = json.load(fh)
+                if isinstance(data, list):
+                    return data
+        except (OSError, json.JSONDecodeError):
+            pass
+        return []
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def register(self, task_id: str, paths: Any) -> None:
+        """Persist the full set of alternatives for *task_id*.
+
+        *paths* may be a list of :class:`~task_router.SolutionPath` instances
+        (which have a ``__dict__``) or plain dicts.
+        """
+        serialised: List[Dict] = []
+        for p in paths:
+            if hasattr(p, "__dict__"):
+                serialised.append({k: v for k, v in p.__dict__.items()})
+            elif isinstance(p, dict):
+                serialised.append(p)
+        self._cache[task_id] = serialised
+        self._save(task_id, serialised)
+        logger.debug(
+            "SolutionPathRegistry: registered %d path(s) for task_id=%s",
+            len(serialised),
+            task_id,
         )
-        logger.debug("Registered %d solution paths for task %s", len(paths), task_id)
 
-    def get_alternatives(self, task_id: str) -> List[SolutionPath]:
-        """Return all registered alternatives for HITL presentation."""
-        dest = self._data_dir / f"{task_id}.json"
-        if not dest.exists():
-            return []
-        raw = json.loads(dest.read_text(encoding="utf-8"))
-        return [SolutionPath.from_dict(d) for d in raw]
+    def get_alternatives(self, task_id: str) -> List[Dict]:
+        """Retrieve all registered alternatives for HITL presentation.
 
-    def get_primary(self, task_id: str) -> Optional[SolutionPath]:
-        """Return the highest-scored path (first in sorted list)."""
+        Returns a list of dicts (serialised :class:`~task_router.SolutionPath`).
+        Returns an empty list if the task was never registered.
+        """
+        if task_id in self._cache:
+            return list(self._cache[task_id])
+        loaded = self._load(task_id)
+        if loaded:
+            self._cache[task_id] = loaded
+        return list(loaded)
+
+    def get_primary(self, task_id: str) -> Optional[Dict]:
+        """Return the highest-scored path (first in sorted list).
+
+        Paths are assumed to be ordered descending by score at registration
+        time (which :class:`~task_router.TaskRouter._rank_paths` guarantees).
+        """
         alts = self.get_alternatives(task_id)
         return alts[0] if alts else None
 
-    def get_fallback(
-        self, task_id: str, failed_path_id: str
-    ) -> Optional[SolutionPath]:
-        """Return the next-best alternative after *failed_path_id* fails."""
+    def get_fallback(self, task_id: str, failed_path_id: str) -> Optional[Dict]:
+        """Return the next-best alternative after *failed_path_id* failed."""
         alts = self.get_alternatives(task_id)
-        for i, path in enumerate(alts):
-            if path.path_id == failed_path_id and i + 1 < len(alts):
-                return alts[i + 1]
-        return None
-
-    # ------------------------------------------------------------------
-    # Outcome recording
-    # ------------------------------------------------------------------
+        remaining = [p for p in alts if p.get("path_id") != failed_path_id]
+        return remaining[0] if remaining else None
 
     def record_outcome(
         self,
@@ -123,55 +145,89 @@ class SolutionPathRegistry:
         success: bool,
         latency_ms: int = 0,
     ) -> None:
-        """
-        Append an outcome record.  The feedback_weight for this capability
-        can be derived later by aggregating outcome records.
-        """
-        record = {
-            "task_id": task_id,
-            "path_id": path_id,
-            "success": success,
-            "latency_ms": latency_ms,
-        }
-        with self._outcomes_path.open("a", encoding="utf-8") as fh:
-            fh.write(json.dumps(record) + "\n")
-        logger.debug("Outcome recorded: task=%s path=%s success=%s", task_id, path_id, success)
+        """Record whether *path_id* succeeded or failed.
 
-    def get_success_rate(self, capability_id: str) -> float:
+        Updates the persisted record and forwards a feedback signal to the
+        :class:`~feedback_integrator.FeedbackIntegrator` (if configured).
         """
-        Return the historical success rate (0.0–1.0) for *capability_id*
-        based on the outcomes log.  Returns 1.0 (neutral) if no history.
-        """
-        if not self._outcomes_path.exists():
-            return 1.0
+        alts = self.get_alternatives(task_id)
+        for p in alts:
+            if p.get("path_id") == path_id:
+                p["last_outcome_success"] = success
+                p["last_outcome_latency_ms"] = latency_ms
+                break
 
-        all_paths: Dict[str, str] = {}
-        # Build path_id → capability_id mapping from task files
-        for task_file in self._data_dir.glob("*.json"):
-            if task_file.name == "outcomes.jsonl":
-                continue
+        # Persist updated record
+        self._cache[task_id] = alts
+        self._save(task_id, alts)
+
+        logger.info(
+            "SolutionPathRegistry: outcome task_id=%s path_id=%s success=%s latency=%dms",
+            task_id,
+            path_id,
+            success,
+            latency_ms,
+        )
+
+        # Forward to FeedbackIntegrator
+        self._forward_to_feedback(task_id, path_id, success, alts)
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _forward_to_feedback(
+        self,
+        task_id: str,
+        path_id: str,
+        success: bool,
+        paths: List[Dict],
+    ) -> None:
+        """Push outcome to FeedbackIntegrator if one is configured."""
+        if self._feedback is None:
+            return
+
+        capability_id: Optional[str] = None
+        for p in paths:
+            if p.get("path_id") == path_id:
+                capability_id = p.get("capability_id")
+                break
+
+        # Try the richer integrate() API first
+        integrate = getattr(self._feedback, "integrate", None)
+        if callable(integrate):
             try:
-                raw = json.loads(task_file.read_text(encoding="utf-8"))
-                for p in raw:
-                    all_paths[p["path_id"]] = p.get("capability_id", "")
-            except (json.JSONDecodeError, KeyError):
-                pass
+                from state_schema import TypedStateVector  # type: ignore[import]
 
-        successes = 0
-        total = 0
-        with self._outcomes_path.open(encoding="utf-8") as fh:
-            for line in fh:
-                line = line.strip()
-                if not line:
-                    continue
+                signal_cls_holder: Any = None
                 try:
-                    rec = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                cap = all_paths.get(rec.get("path_id", ""), "")
-                if cap == capability_id:
-                    total += 1
-                    if rec.get("success"):
-                        successes += 1
+                    from feedback_integrator import FeedbackSignal  # type: ignore[import]
 
-        return (successes / total) if total > 0 else 1.0
+                    signal_cls_holder = FeedbackSignal
+                except ImportError:
+                    pass
+
+                if signal_cls_holder is not None:
+                    signal = signal_cls_holder(
+                        signal_type="feedback",
+                        source_task_id=task_id,
+                        original_confidence=1.0 if success else 0.0,
+                        corrected_confidence=1.0 if success else 0.0,
+                        affected_state_variables=[capability_id or "routing"],
+                    )
+                    state = TypedStateVector()
+                    integrate(signal, state)
+                    return
+            except Exception as exc:
+                logger.debug("SolutionPathRegistry: feedback.integrate failed: %s", exc)
+
+        # Fallback — try a simpler record_outcome() on the feedback integrator
+        record = getattr(self._feedback, "record_outcome", None)
+        if callable(record):
+            try:
+                record(capability_id or path_id, success)
+            except Exception as exc:
+                logger.debug("SolutionPathRegistry: feedback.record_outcome failed: %s", exc)
+
+
+__all__ = ["SolutionPathRegistry"]

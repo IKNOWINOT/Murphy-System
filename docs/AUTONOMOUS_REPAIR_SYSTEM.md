@@ -24,7 +24,7 @@ The Autonomous Repair System is Murphy's next-generation self-healing infrastruc
 ## File Structure
 
 ```
-./
+Murphy System/
 ├── src/
 │   ├── autonomous_repair_system.py      # Master repair orchestrator
 │   ├── innovation_farmer.py             # Open-source innovation harvester

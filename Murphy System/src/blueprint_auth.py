@@ -16,7 +16,7 @@ Usage::
 Environment variables:
     MURPHY_ENV        - Set to ``production`` or ``staging`` to enable auth.
                         Defaults to ``development`` (auth skipped).
-    MURPHY_API_KEYS   - Comma-separated list of valid API keys.
+    MURPHY_API_KEYS   - Comma-separated list of valid API keys (legacy alias; MURPHY_API_KEY is canonical).
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
@@ -44,7 +44,7 @@ def require_blueprint_auth(blueprint: Any) -> Any:
 
     Registers a ``before_request`` hook that validates the ``Authorization:
     Bearer <token>`` or ``X-API-Key: <token>`` header against the keys
-    listed in ``MURPHY_API_KEYS``.
+    listed in ``MURPHY_API_KEY`` (or legacy ``MURPHY_API_KEYS``).
 
     Behaviour by environment (``MURPHY_ENV``):
     - ``development`` / ``test``  — auth is **skipped** (with a startup log).
@@ -90,20 +90,20 @@ def require_blueprint_auth(blueprint: Any) -> Any:
             token = api_key_header.strip()
 
         # Load configured API keys
-        api_keys_raw = os.environ.get("MURPHY_API_KEYS", "")
+        api_keys_raw = os.environ.get("MURPHY_API_KEY", "") or os.environ.get("MURPHY_API_KEYS", "")
         api_keys = [k.strip() for k in api_keys_raw.split(",") if k.strip()]
 
         if not api_keys:
             if murphy_env in ("staging", "production"):
                 logger.error(
-                    "Blueprint %s: MURPHY_API_KEYS not configured in %s — "
-                    "REJECTING all requests. Set MURPHY_API_KEYS to enable access.",
+                    "Blueprint %s: MURPHY_API_KEY not configured in %s — "
+                    "REJECTING all requests. Set MURPHY_API_KEY to enable access.",
                     blueprint.name,
                     murphy_env,
                 )
                 return jsonify({"error": "Service misconfigured — API keys required"}), 503
             logger.warning(
-                "Blueprint %s: MURPHY_API_KEYS not configured in %s — "
+                "Blueprint %s: MURPHY_API_KEY not configured in %s — "
                 "all requests are allowed.",
                 blueprint.name,
                 murphy_env,

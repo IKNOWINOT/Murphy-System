@@ -36,7 +36,7 @@ class EnhancedLocalLLM:
 
         Args:
             prompt: User query
-            provider: Which provider to emulate (aristotle, wulfrum, deepinfra)
+            provider: Which provider to emulate (aristotle, wulfrum, deepinfra/together)
             temperature: Temperature for randomness
 
         Returns:
@@ -61,10 +61,10 @@ class EnhancedLocalLLM:
             response = self._aristotle_response(prompt, temperature)
         elif provider == 'wulfrum':
             response = self._wulfrum_response(prompt, temperature)
-        elif provider == 'deepinfra':
-            response = self._deepinfra_response(prompt, temperature)
+        elif provider in ('deepinfra', 'together'):
+            response = self._generative_response(prompt, temperature)
         else:
-            response = self._deepinfra_response(prompt, temperature)
+            response = self._generative_response(prompt, temperature)
             provider = 'deepinfra'
 
         # Calculate tokens (rough estimate)
@@ -126,9 +126,9 @@ class EnhancedLocalLLM:
         # Default validation response
         return self._generate_validation_response(prompt)
 
-    def _deepinfra_response(self, prompt: str, temperature: float) -> Dict[str, Any]:
+    def _generative_response(self, prompt: str, temperature: float) -> Dict[str, Any]:
         """
-        DeepInfra-style: General domain tasks and generation
+        Generative (deepinfra/together)-style: General domain tasks and generation
         Uses high temperature (0.7) for creative output
         """
         # Check for creative requests
@@ -1177,9 +1177,9 @@ def example_function(param1, param2=None):
         # Main logic here
         result = process_data(param1, param2)
         return result
-    except Exception as exc:
+    except Exception as e:
         # Error handling
-        log_error(exc)
+        log_error(e)
         return None
 
 def process_data(data, options=None):

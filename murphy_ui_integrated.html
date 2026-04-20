@@ -1,48 +1,1349 @@
 <!--
-  Murphy System — Legacy Redirect
+  Murphy System — Agent Monitoring Dashboard
   © 2020 Inoni Limited Liability Company by Corey Post
   License: BSL 1.1 (Business Source License 1.1)
   See LICENSE file in repository root for full terms.
-
-  This file has been replaced by /ui/terminal-unified.
-  It exists only to redirect users who may have bookmarked the old URL.
 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="refresh" content="0;url=/ui/terminal-unified">
-<title>Redirecting to Murphy System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Agent Monitoring Dashboard</title>
 <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
 <style>
-  /* Neon terminal theme */
-  /* Cyan accent: #00ffff */
-  /* Color Key: green=#00ff41, cyan=#00ffff, bg=#0a0a0a */
-  .murphy-terminal, .murphy-output, pre, code, textarea, input[type="text"] {
-    font-family: var(--font-code, 'JetBrains Mono', monospace);
-    color: #00ff41;
-    background: #0a0a0a;
+  *:focus-visible { outline: 2px solid #00D4AA; outline-offset: 2px; }
+  @media (max-width: 768px) { .murphy-sidebar { display: none; } }
+
+  /* ── Dashboard grid layout ── */
+  .dash-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
   }
+  .dash-grid-wide {
+    grid-column: 1 / -1;
+  }
+
+  /* ── Panel cards ── */
+  .dash-panel {
+    background: var(--color-surface, #161B22);
+    border: 1px solid var(--color-border, #30363D);
+    border-radius: var(--radius-lg, 10px);
+    padding: var(--space-4);
+  }
+  .dash-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-3);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--color-border, #30363D);
+  }
+  .dash-panel-title {
+    font-weight: 600;
+    font-size: 0.875rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--color-text-muted, #8B949E);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .dash-panel-title svg { opacity: 0.7; }
+  .dash-panel-actions {
+    display: flex;
+    gap: var(--space-1);
+  }
+
+  /* ── Status dots ── */
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .status-dot.healthy, .status-dot.active  { background: #2EA043; box-shadow: 0 0 4px #2EA04380; }
+  .status-dot.warning, .status-dot.idle    { background: #D29922; box-shadow: 0 0 4px #D2992280; }
+  .status-dot.error,   .status-dot.failed  { background: #CF222E; box-shadow: 0 0 4px #CF222E80; }
+  .status-dot.offline, .status-dot.unknown { background: #6E7681; }
+  .status-dot.pulse { animation: pulse-dot 2s ease-in-out infinite; }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+  }
+
+  /* ── Health metrics row ── */
+  .health-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--color-border, #30363D);
+    font-size: 0.8125rem;
+  }
+  .health-row:last-child { border-bottom: none; }
+  .health-row-label { display: flex; align-items: center; gap: var(--space-2); color: var(--color-text-muted, #8B949E); }
+  .health-row-value { font-weight: 600; font-family: var(--font-code); font-size: 0.8125rem; }
+
+  /* ── Pipeline visualization ── */
+  .pipeline-stages {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    overflow-x: auto;
+    padding: var(--space-2) 0;
+  }
+  .pipeline-stage {
+    flex: 1;
+    min-width: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    padding: var(--space-3) var(--space-2);
+    cursor: pointer;
+    transition: background 0.15s;
+    border-radius: var(--radius-md, 6px);
+  }
+  .pipeline-stage:hover { background: var(--color-hover, #21262D); }
+  .pipeline-stage.active  { background: rgba(0,180,216,0.10); }
+  .pipeline-stage.complete { background: rgba(46,160,67,0.10); }
+  .pipeline-stage.pending  { opacity: 0.45; }
+  .pipeline-stage-icon {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--space-2);
+    font-size: 1.2rem;
+    border: 2px solid currentColor;
+  }
+  .pipeline-stage.active  .pipeline-stage-icon { color: #00b4d8; border-color: #00b4d8; background: rgba(0,180,216,0.12); }
+  .pipeline-stage.complete .pipeline-stage-icon { color: #2EA043; border-color: #2EA043; background: rgba(46,160,67,0.12); }
+  .pipeline-stage.pending  .pipeline-stage-icon { color: #6E7681; border-color: #6E7681; }
+  .pipeline-stage-label { font-size: 0.75rem; font-weight: 600; text-align: center; margin-bottom: 2px; }
+  .pipeline-stage-desc  { font-size: 0.6875rem; text-align: center; color: var(--color-text-muted, #8B949E); }
+  .pipeline-arrow {
+    display: flex;
+    align-items: center;
+    color: var(--color-border, #30363D);
+    font-size: 1.2rem;
+    padding: 0 2px;
+    align-self: center;
+    flex-shrink: 0;
+  }
+  .pipeline-arrow.done { color: #2EA043; }
+
+  /* ── Progress bar ── */
+  .progress-bar-wrap { height: 6px; background: var(--color-border, #30363D); border-radius: 3px; overflow: hidden; margin-top: var(--space-3); }
+  .progress-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+  .progress-bar-fill.blue  { background: linear-gradient(90deg, #00b4d8, #0077b6); }
+  .progress-bar-fill.green { background: linear-gradient(90deg, #2EA043, #1a7431); }
+  .progress-bar-fill.amber { background: linear-gradient(90deg, #D29922, #B08800); }
+
+  /* ── Agent grid ── */
+  .agent-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--space-3);
+  }
+  .agent-card {
+    background: var(--color-surface-raised, #1C2128);
+    border: 1px solid var(--color-border, #30363D);
+    border-radius: var(--radius-md, 6px);
+    padding: var(--space-3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    transition: border-color 0.15s;
+  }
+  .agent-card:hover { border-color: #00D4AA; }
+  .agent-card-header { display: flex; align-items: center; gap: var(--space-2); }
+  .agent-card-avatar {
+    width: 36px; height: 36px;
+    border-radius: var(--radius-md, 6px);
+    background: linear-gradient(135deg, #00b4d8, #0077b6);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.875rem; color: #fff;
+    flex-shrink: 0;
+  }
+  .agent-card-name { font-weight: 600; font-size: 0.875rem; }
+  .agent-card-role { font-size: 0.75rem; color: var(--color-text-muted, #8B949E); }
+  .agent-card-meta { font-size: 0.75rem; color: var(--color-text-muted, #8B949E); display: flex; flex-direction: column; gap: 2px; }
+  .agent-card-meta span { display: flex; align-items: center; gap: var(--space-1); }
+  .agent-card-metrics { display: flex; gap: var(--space-2); }
+  .agent-metric-pill {
+    font-size: 0.6875rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--color-surface, #161B22);
+    border: 1px solid var(--color-border, #30363D);
+    font-family: var(--font-code);
+  }
+  .agent-metric-pill.success { border-color: #2EA04350; color: #2EA043; }
+  .agent-metric-pill.warn    { border-color: #D2992250; color: #D29922; }
+
+  /* ── Onboarding wizard ── */
+  .wizard-steps {
+    display: flex;
+    gap: var(--space-1);
+    margin-bottom: var(--space-4);
+    overflow-x: auto;
+    padding-bottom: var(--space-1);
+  }
+  .wizard-step-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--color-border, #30363D);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6875rem; font-weight: 700;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .wizard-step-dot.done    { background: #2EA043; border-color: #2EA043; color: #fff; }
+  .wizard-step-dot.current { background: #00b4d8; border-color: #00b4d8; color: #fff; }
+  .wizard-step-dot.pending { color: var(--color-text-muted, #8B949E); }
+  .wizard-question { font-size: 0.9375rem; font-weight: 600; margin-bottom: var(--space-3); }
+  .wizard-options { display: flex; flex-direction: column; gap: var(--space-2); }
+  .wizard-option {
+    display: flex; align-items: center; gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-border, #30363D);
+    border-radius: var(--radius-md, 6px);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 0.875rem;
+  }
+  .wizard-option:hover    { border-color: #00b4d8; background: rgba(0,180,216,0.06); }
+  .wizard-option.selected { border-color: #00b4d8; background: rgba(0,180,216,0.12); color: #00b4d8; }
+  .wizard-option input[type="radio"] { accent-color: #00b4d8; }
+  .wizard-text-input {
+    width: 100%;
+    padding: var(--space-2) var(--space-3);
+    background: var(--color-surface-raised, #1C2128);
+    border: 1px solid var(--color-border, #30363D);
+    border-radius: var(--radius-md, 6px);
+    color: var(--color-text, #E6ECF2);
+    font-size: 0.875rem;
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
+  }
+  .wizard-text-input:focus { outline: none; border-color: #00b4d8; }
+  .wizard-nav { display: flex; justify-content: space-between; margin-top: var(--space-4); }
+
+  /* ── Metrics charts ── */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--space-3);
+  }
+  .metric-chart-card {
+    background: var(--color-surface-raised, #1C2128);
+    border: 1px solid var(--color-border, #30363D);
+    border-radius: var(--radius-md, 6px);
+    padding: var(--space-3);
+  }
+  .metric-chart-title { font-size: 0.75rem; color: var(--color-text-muted, #8B949E); margin-bottom: var(--space-2); font-weight: 600; }
+  .metric-chart-value { font-size: 1.5rem; font-weight: 700; font-family: var(--font-code); margin-bottom: var(--space-2); }
+  .metric-chart-value.blue   { color: #00b4d8; }
+  .metric-chart-value.green  { color: #2EA043; }
+  .metric-chart-value.amber  { color: #D29922; }
+  .metric-chart-value.purple { color: #8B5CF6; }
+  canvas.sparkline { width: 100%; height: 48px; display: block; }
+
+  /* ── Empty state ── */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-6);
+    color: var(--color-text-muted, #8B949E);
+    gap: var(--space-2);
+    text-align: center;
+  }
+  .empty-state-icon { font-size: 2rem; opacity: 0.4; }
+
+  /* ── Tab bar ── */
+  .tab-bar { display: flex; gap: 0; border-bottom: 1px solid var(--color-border, #30363D); margin-bottom: var(--space-4); }
+  .tab-btn {
+    padding: var(--space-2) var(--space-4);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    border: none;
+    background: none;
+    color: var(--color-text-muted, #8B949E);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .tab-btn:hover  { color: var(--color-text, #E6ECF2); }
+  .tab-btn.active { color: #00D4AA; border-bottom-color: #00D4AA; }
+
+  /* ── Skeleton loader ── */
+  .skel { background: var(--color-surface-raised, #1C2128); border-radius: var(--radius-sm, 4px); animation: skel-pulse 1.6s ease-in-out infinite; }
+  @keyframes skel-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  /* ── Task row ── */
+  .task-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) 0; border-bottom: 1px solid var(--color-border, #30363D); font-size: 0.8125rem; }
+  .task-row:last-child { border-bottom: none; }
+  .task-badge { font-size: 0.6875rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
+  .task-badge.completed  { background: rgba(46,160,67,0.18);  color: #2EA043; }
+  .task-badge.running    { background: rgba(0,180,216,0.18);  color: #00b4d8; }
+  .task-badge.pending    { background: rgba(110,118,129,0.18); color: #8B949E; }
+  .task-badge.failed     { background: rgba(207,34,46,0.18);  color: #CF222E; }
+  .task-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .task-time { font-family: var(--font-code); color: var(--color-text-muted, #8B949E); font-size: 0.75rem; white-space: nowrap; }
+
+  /* ── Refresh spinner ── */
+  .spin { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
-<body style="background:#0C1017;color:#E6ECF2;font-family:Inter,system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;">
-<p>Redirecting to <a href="/ui/terminal-unified" style="color:#00D4AA;">Murphy System Unified Terminal</a>&hellip;</p>
-<script>window.location.replace('/ui/terminal-unified');</script>
-<!--
-╔══════════════════════════════════════════════════╗
-║ ███╗   ███╗██╗   ██╗██████╗ ██████╗ ██╗  ██╗██╗   ██╗                       ║
-║ ████╗ ████║██║   ██║██╔══██╗██╔══██╗██║  ██║╚██╗ ██╔╝                       ║
-║ ██╔████╔██║██║   ██║██████╔╝██████╔╝███████║ ╚████╔╝                        ║
-║ ██║╚██╔╝██║██║   ██║██╔══██╗██╔═══╝ ██╔══██║  ╚██╔╝                         ║
-║ ██║ ╚═╝ ██║╚██████╔╝██║  ██║██║     ██║  ██║   ██║                          ║
-║ ╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝   ╚═╝                          ║
-║ ███████╗██╗   ██╗███████╗████████╗███████╗███╗   ███╗                        ║
-║ ██╔════╝╚██╗ ██╔╝██╔════╝╚══██╔══╝██╔════╝████╗ ████║                        ║
-║ ███████╗ ╚████╔╝ ███████╗   ██║   █████╗  ██╔████╔██║                        ║
-║ ╚════██║  ╚██╔╝  ╚════██║   ██║   ██╔══╝  ██║╚██╔╝██║                        ║
-║ ███████║   ██║   ███████║   ██║   ███████╗██║ ╚═╝ ██║                        ║
-║ ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚══════╝╚═╝     ╚═╝                        ║
-╚══════════════════════════════════════════════════╝
--->
+<body style="--accent: #00D4AA;">
+
+<!-- Skip link for accessibility -->
+<a href="#content" class="murphy-skip-link">Skip to content</a>
+
+<!-- ============================================================
+     SIDEBAR
+     ============================================================ -->
+<nav class="murphy-sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+  <div class="murphy-sidebar-logo">
+    <svg width="24" height="24"><use href="static/murphy-icons.svg#icon-dashboard"></use></svg>
+    <span>Dashboard</span>
+  </div>
+
+  <div class="murphy-sidebar-nav" id="sidebar-nav">
+    <div class="murphy-sidebar-section">Overview</div>
+    <a href="#health" class="murphy-sidebar-item active" data-tab="health">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-activity"></use></svg>
+      <span>System Health</span>
+    </a>
+    <a href="#pipeline" class="murphy-sidebar-item" data-tab="pipeline">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-git-branch"></use></svg>
+      <span>Task Pipeline</span>
+    </a>
+
+    <div class="murphy-sidebar-section">Monitoring</div>
+    <a href="#agents" class="murphy-sidebar-item" data-tab="agents">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-users"></use></svg>
+      <span>Agent Grid</span>
+    </a>
+    <a href="#metrics" class="murphy-sidebar-item" data-tab="metrics">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-chart"></use></svg>
+      <span>Metrics</span>
+    </a>
+
+    <div class="murphy-sidebar-section">Setup</div>
+    <a href="#onboarding" class="murphy-sidebar-item" data-tab="onboarding">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-zap"></use></svg>
+      <span>Onboarding Wizard</span>
+    </a>
+
+    <div class="murphy-sidebar-section">Links</div>
+    <a href="/ui/terminal-unified" class="murphy-sidebar-item">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-terminal"></use></svg>
+      <span>Terminal</span>
+    </a>
+    <a href="/ui/terminal-architect" class="murphy-sidebar-item">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-shield"></use></svg>
+      <span>Architect</span>
+    </a>
+    <a href="/ui/onboarding" class="murphy-sidebar-item">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-search"></use></svg>
+      <span>Full Onboarding</span>
+    </a>
+  </div>
+
+  <div class="murphy-sidebar-footer">
+    <span class="text-xs text-muted">Murphy System v2</span>
+  </div>
+</nav>
+
+<!-- ============================================================
+     TOP BAR
+     ============================================================ -->
+<header class="murphy-topbar" role="banner" aria-label="Top bar">
+  <div class="murphy-topbar-left">
+    <button class="murphy-btn murphy-btn-icon" id="btn-sidebar-toggle" aria-label="Toggle sidebar" title="Toggle sidebar">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-menu"></use></svg>
+    </button>
+    <h1 class="murphy-topbar-title">Agent Monitoring Dashboard</h1>
+    <span class="murphy-topbar-subtitle" id="last-updated" style="font-size:0.75rem;opacity:0.7;"></span>
+  </div>
+  <div class="murphy-topbar-right">
+    <span id="topbar-health-dot" class="status-dot pulse unknown" title="System status" style="margin-right:var(--space-2);"></span>
+    <button class="murphy-btn murphy-btn-sm" id="btn-refresh" title="Refresh all panels">
+      <svg width="14" height="14" id="refresh-icon"><use href="static/murphy-icons.svg#icon-refresh"></use></svg>
+      Refresh
+    </button>
+    <button class="murphy-btn murphy-btn-icon" id="btn-theme-toggle" aria-label="Toggle theme" title="Toggle theme">
+      <svg width="18" height="18" id="theme-icon"><use href="static/murphy-icons.svg#icon-moon"></use></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================================
+     MAIN CONTENT AREA
+     ============================================================ -->
+<main id="content" role="main" aria-label="Main content" aria-live="polite"
+      style="margin-left: var(--sidebar-width); margin-top: var(--topbar-height); padding: var(--space-5); min-height: calc(100vh - var(--topbar-height)); transition: margin-left 0.2s ease;">
+
+  <!-- Tab bar -->
+  <div class="tab-bar" role="tablist" aria-label="Dashboard panels">
+    <button class="tab-btn active" role="tab" aria-selected="true"  data-tab="health">System Health</button>
+    <button class="tab-btn"        role="tab" aria-selected="false" data-tab="pipeline">Task Pipeline</button>
+    <button class="tab-btn"        role="tab" aria-selected="false" data-tab="agents">Agent Grid</button>
+    <button class="tab-btn"        role="tab" aria-selected="false" data-tab="metrics">Metrics</button>
+    <button class="tab-btn"        role="tab" aria-selected="false" data-tab="onboarding">Onboarding</button>
+  </div>
+
+  <!-- ── PANEL: System Health ─────────────────────────────────── -->
+  <section id="panel-health" role="tabpanel" aria-label="System Health panel">
+    <div class="dash-grid">
+      <!-- Status summary cards -->
+      <div class="dash-panel" id="health-summary-card">
+        <div class="dash-panel-header">
+          <span class="dash-panel-title">
+            <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-activity"></use></svg>
+            System Status
+          </span>
+          <span id="overall-status-badge" class="task-badge pending">Checking…</span>
+        </div>
+        <div id="health-rows">
+          <div class="skel" style="height:38px;margin-bottom:8px;"></div>
+          <div class="skel" style="height:38px;margin-bottom:8px;"></div>
+          <div class="skel" style="height:38px;"></div>
+        </div>
+      </div>
+
+      <!-- Module info -->
+      <div class="dash-panel" id="modules-card">
+        <div class="dash-panel-header">
+          <span class="dash-panel-title">
+            <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-layers"></use></svg>
+            Module Registry
+          </span>
+        </div>
+        <div id="modules-rows">
+          <div class="skel" style="height:38px;margin-bottom:8px;"></div>
+          <div class="skel" style="height:38px;margin-bottom:8px;"></div>
+          <div class="skel" style="height:38px;"></div>
+        </div>
+      </div>
+
+      <!-- Engine status -->
+      <div class="dash-panel" id="engines-card">
+        <div class="dash-panel-header">
+          <span class="dash-panel-title">
+            <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-zap"></use></svg>
+            Engine Status
+          </span>
+        </div>
+        <div id="engines-rows">
+          <div class="skel" style="height:38px;margin-bottom:8px;"></div>
+          <div class="skel" style="height:38px;"></div>
+        </div>
+      </div>
+
+      <!-- Event backbone -->
+      <div class="dash-panel" id="events-card">
+        <div class="dash-panel-header">
+          <span class="dash-panel-title">
+            <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-bell"></use></svg>
+            Event Backbone
+          </span>
+        </div>
+        <div id="events-rows">
+          <div class="skel" style="height:38px;margin-bottom:8px;"></div>
+          <div class="skel" style="height:38px;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PANEL: Task Pipeline ─────────────────────────────────── -->
+  <section id="panel-pipeline" role="tabpanel" aria-label="Task Pipeline panel" style="display:none;">
+    <div class="dash-panel dash-grid-wide" style="margin-bottom:var(--space-4);">
+      <div class="dash-panel-header">
+        <span class="dash-panel-title">
+          <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-git-branch"></use></svg>
+          Automation Pipeline
+        </span>
+        <span class="text-xs text-muted">Hero flow: describe → plan → approve → execute → complete</span>
+      </div>
+      <div class="pipeline-stages" id="pipeline-stages">
+        <!-- Rendered by JS -->
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill blue" id="pipeline-progress-bar" style="width:0%"></div>
+      </div>
+      <p id="pipeline-status-text" style="font-size:0.8125rem;color:var(--color-text-muted,#8B949E);margin-top:var(--space-2);text-align:center;"></p>
+    </div>
+
+    <!-- Recent tasks list -->
+    <div class="dash-panel">
+      <div class="dash-panel-header">
+        <span class="dash-panel-title">
+          <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-terminal"></use></svg>
+          Recent Tasks
+        </span>
+        <button class="murphy-btn murphy-btn-sm" id="btn-new-task">+ New Task</button>
+      </div>
+      <div id="task-list">
+        <div class="skel" style="height:36px;margin-bottom:8px;"></div>
+        <div class="skel" style="height:36px;margin-bottom:8px;"></div>
+        <div class="skel" style="height:36px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PANEL: Agent Grid ─────────────────────────────────────── -->
+  <section id="panel-agents" role="tabpanel" aria-label="Agent Grid panel" style="display:none;">
+    <div class="dash-panel" style="margin-bottom:var(--space-4);">
+      <div class="dash-panel-header">
+        <span class="dash-panel-title">
+          <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-users"></use></svg>
+          Active Agents
+        </span>
+        <div class="dash-panel-actions">
+          <span id="agent-count-badge" class="task-badge pending">— agents</span>
+        </div>
+      </div>
+      <div class="agent-grid" id="agent-grid">
+        <!-- Skeleton loaders -->
+        <div class="agent-card"><div class="skel" style="height:80px;"></div></div>
+        <div class="agent-card"><div class="skel" style="height:80px;"></div></div>
+        <div class="agent-card"><div class="skel" style="height:80px;"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PANEL: Metrics ────────────────────────────────────────── -->
+  <section id="panel-metrics" role="tabpanel" aria-label="Metrics panel" style="display:none;">
+    <div class="dash-panel dash-grid-wide" style="margin-bottom:var(--space-4);">
+      <div class="dash-panel-header">
+        <span class="dash-panel-title">
+          <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-chart"></use></svg>
+          System Metrics
+        </span>
+      </div>
+      <div class="metrics-grid" id="metrics-grid">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Charts section -->
+    <div class="dash-grid">
+      <div class="dash-panel">
+        <div class="dash-panel-header">
+          <span class="dash-panel-title">Task Throughput</span>
+        </div>
+        <canvas class="sparkline" id="chart-throughput" width="300" height="48"></canvas>
+      </div>
+      <div class="dash-panel">
+        <div class="dash-panel-header">
+          <span class="dash-panel-title">Confidence Distribution</span>
+        </div>
+        <canvas class="sparkline" id="chart-confidence" width="300" height="48"></canvas>
+      </div>
+      <div class="dash-panel">
+        <div class="dash-panel-header">
+          <span class="dash-panel-title">Gate Pass / Fail Rate</span>
+        </div>
+        <canvas class="sparkline" id="chart-gates" width="300" height="48"></canvas>
+      </div>
+      <div class="dash-panel">
+        <div class="dash-panel-header">
+          <span class="dash-panel-title">Learning Engine Progress</span>
+        </div>
+        <canvas class="sparkline" id="chart-learning" width="300" height="48"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PANEL: Onboarding Wizard ──────────────────────────────── -->
+  <section id="panel-onboarding" role="tabpanel" aria-label="Onboarding Wizard panel" style="display:none;">
+    <div class="dash-panel" style="max-width:680px;margin:0 auto;">
+      <div class="dash-panel-header">
+        <span class="dash-panel-title">
+          <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-zap"></use></svg>
+          Setup Wizard
+        </span>
+        <span id="wizard-step-label" class="text-xs text-muted">Step 1 of 7</span>
+      </div>
+
+      <!-- Step indicator dots -->
+      <div class="wizard-steps" id="wizard-step-dots" role="list" aria-label="Wizard steps">
+        <!-- Rendered by JS -->
+      </div>
+
+      <!-- Question area -->
+      <div id="wizard-body">
+        <div class="skel" style="height:24px;margin-bottom:16px;"></div>
+        <div class="skel" style="height:44px;margin-bottom:8px;"></div>
+        <div class="skel" style="height:44px;margin-bottom:8px;"></div>
+        <div class="skel" style="height:44px;"></div>
+      </div>
+
+      <!-- Navigation -->
+      <div class="wizard-nav" id="wizard-nav" style="display:none;">
+        <button class="murphy-btn murphy-btn-secondary" id="btn-wizard-back">← Back</button>
+        <button class="murphy-btn" id="btn-wizard-next">Next →</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script src="static/murphy-components.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ──────────────────────────────────────────────────────────────
+     1. SHARED COMPONENT INITIALIZATION
+     ────────────────────────────────────────────────────────────── */
+  var BASE = window.location.origin;
+  var api    = new MurphyAPI(BASE + '/api');
+  var health = new MurphyHealth(api);
+  var theme  = new MurphyTheme();
+  var toast  = new MurphyToast();
+
+  theme.init();
+
+  /* Sidebar toggle */
+  var sidebar        = document.getElementById('sidebar');
+  var mainContent    = document.getElementById('content');
+  var btnSideToggle  = document.getElementById('btn-sidebar-toggle');
+  var sidebarOpen    = true;
+  btnSideToggle.addEventListener('click', function () {
+    sidebarOpen = !sidebarOpen;
+    if (sidebar) sidebar.style.transform = sidebarOpen ? '' : 'translateX(-100%)';
+    if (mainContent) mainContent.style.marginLeft = sidebarOpen ? 'var(--sidebar-width)' : '0';
+  });
+
+  /* Theme toggle */
+  document.getElementById('btn-theme-toggle').addEventListener('click', function () {
+    theme.toggle();
+    var icon = document.getElementById('theme-icon');
+    var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    icon.innerHTML = isDark
+      ? '<use href="static/murphy-icons.svg#icon-moon"></use>'
+      : '<use href="static/murphy-icons.svg#icon-sun"></use>';
+  });
+
+  /* ──────────────────────────────────────────────────────────────
+     2. TAB NAVIGATION
+     ────────────────────────────────────────────────────────────── */
+  var PANELS = ['health', 'pipeline', 'agents', 'metrics', 'onboarding'];
+  var activeTab = 'health';
+
+  function switchTab(name) {
+    if (!PANELS.includes(name)) return;
+    activeTab = name;
+
+    document.querySelectorAll('.tab-btn').forEach(function (btn) {
+      var isActive = btn.dataset.tab === name;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+    document.querySelectorAll('.murphy-sidebar-item[data-tab]').forEach(function (a) {
+      a.classList.toggle('active', a.dataset.tab === name);
+    });
+    PANELS.forEach(function (p) {
+      var el = document.getElementById('panel-' + p);
+      if (el) el.style.display = p === name ? '' : 'none';
+    });
+
+    // Lazy-load data on first visit
+    switch (name) {
+      case 'health':     loadHealth();     break;
+      case 'pipeline':   loadPipeline();   break;
+      case 'agents':     loadAgents();     break;
+      case 'metrics':    loadMetrics();    break;
+      case 'onboarding': loadOnboarding(); break;
+    }
+  }
+
+  document.querySelectorAll('.tab-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { switchTab(btn.dataset.tab); });
+  });
+  document.querySelectorAll('.murphy-sidebar-item[data-tab]').forEach(function (a) {
+    a.addEventListener('click', function (e) { e.preventDefault(); switchTab(a.dataset.tab); });
+  });
+
+  // Honour URL hash
+  var hashTab = (location.hash || '').slice(1);
+  if (PANELS.includes(hashTab)) { switchTab(hashTab); }
+
+  /* ──────────────────────────────────────────────────────────────
+     3. UTILITIES
+     ────────────────────────────────────────────────────────────── */
+  function statusClass(s) {
+    if (!s) return 'unknown';
+    var v = String(s).toLowerCase();
+    if (['ok', 'healthy', 'active', 'online', 'running', 'passed'].includes(v)) return 'healthy';
+    if (['warn', 'warning', 'partial', 'degraded'].includes(v)) return 'warning';
+    if (['error', 'failed', 'critical', 'down', 'offline'].includes(v)) return 'error';
+    return 'unknown';
+  }
+
+  function healthRow(label, value, cls) {
+    return '<div class="health-row">'
+      + '<span class="health-row-label"><span class="status-dot ' + cls + '"></span>' + esc(label) + '</span>'
+      + '<span class="health-row-value">' + esc(String(value)) + '</span>'
+      + '</div>';
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function fmtTs(ts) {
+    if (!ts) return '—';
+    try { return new Date(ts).toLocaleTimeString(); } catch (e) { return ts; }
+  }
+
+  function setLastUpdated() {
+    var el = document.getElementById('last-updated');
+    if (el) el.textContent = 'Last updated ' + new Date().toLocaleTimeString();
+  }
+
+  /* ──────────────────────────────────────────────────────────────
+     4. SYSTEM HEALTH PANEL
+     ────────────────────────────────────────────────────────────── */
+  var healthLoaded = false;
+  async function loadHealth() {
+    var dot       = document.getElementById('topbar-health-dot');
+    var badge     = document.getElementById('overall-status-badge');
+    var healthDiv = document.getElementById('health-rows');
+    var modsDiv   = document.getElementById('modules-rows');
+    var engDiv    = document.getElementById('engines-rows');
+    var evDiv     = document.getElementById('events-rows');
+
+    try {
+      var [statusRes, deepRes, infoRes] = await Promise.all([
+        api.get('/status'),
+        api.get('/health?deep=true'),
+        api.get('/system/info'),
+      ]);
+
+      var status = (statusRes.ok && statusRes.data) || {};
+      var deep   = (deepRes.ok  && deepRes.data)   || {};
+      var info   = (infoRes.ok  && infoRes.data)   || {};
+
+      // Overall badge
+      var overallOk = deepRes.ok && (deep.status === 'healthy' || deep.checks && !Object.values(deep.checks).includes('fail'));
+      var overallStatus = overallOk ? 'healthy' : (deepRes.ok ? 'warning' : 'offline');
+      badge.textContent = overallOk ? '✓ Healthy' : (deepRes.ok ? '⚠ Degraded' : '✕ Offline');
+      badge.className = 'task-badge ' + (overallOk ? 'completed' : (deepRes.ok ? 'pending' : 'failed'));
+      dot.className = 'status-dot ' + (overallOk ? 'healthy pulse' : overallStatus);
+
+      // Health rows
+      var checks = deep.checks || {};
+      var hHtml = '';
+      hHtml += healthRow('Runtime',        checks.runtime       || deep.status  || 'ok',        statusClass(checks.runtime       || deep.status));
+      hHtml += healthRow('Persistence',    checks.persistence   || (deep.status === 'healthy' ? 'ok' : 'unknown'), statusClass(checks.persistence));
+      hHtml += healthRow('Error rate',     status.error_rate    != null ? (status.error_rate * 100).toFixed(1) + '%' : '0.0%', status.error_rate > 0.05 ? 'warning' : 'healthy');
+      hHtml += healthRow('Active tasks',   status.active_workflows != null ? status.active_workflows : (status.tasks_running || 0), 'healthy');
+      hHtml += healthRow('Uptime',         status.uptime        || '—',           'healthy');
+      healthDiv.innerHTML = hHtml;
+
+      // Module rows
+      var mHtml = '';
+      var modCount = info.modules_loaded || info.module_count || status.modules_loaded || '—';
+      var botCount = info.bots_loaded    || info.bot_count    || status.bots_loaded    || '—';
+      var ver      = info.version        || status.version    || '—';
+      mHtml += healthRow('Version',         ver,      'healthy');
+      mHtml += healthRow('Modules loaded',  modCount, 'healthy');
+      mHtml += healthRow('Bots loaded',     botCount, 'healthy');
+      mHtml += healthRow('Environment',     info.environment || info.env || status.env || 'production', 'healthy');
+      modsDiv.innerHTML = mHtml;
+
+      // Engine rows
+      var eHtml = '';
+      var engines = status.engines || info.engines || {};
+      if (typeof engines === 'object' && Object.keys(engines).length > 0) {
+        Object.entries(engines).forEach(function (pair) {
+          eHtml += healthRow(pair[0], pair[1], statusClass(pair[1]));
+        });
+      } else {
+        eHtml += healthRow('Domain Engine',      status.domain_engine      || 'active', statusClass(status.domain_engine      || 'active'));
+        eHtml += healthRow('Orchestrator',        status.orchestrator       || 'active', statusClass(status.orchestrator       || 'active'));
+        eHtml += healthRow('Safety Gateway',      status.safety_gateway     || 'active', statusClass(status.safety_gateway     || 'active'));
+        eHtml += healthRow('Learning Engine',     status.learning_engine    || 'active', statusClass(status.learning_engine    || 'active'));
+      }
+      engDiv.innerHTML = eHtml;
+
+      // Event backbone
+      var evHtml = '';
+      evHtml += healthRow('Event Backbone',   status.event_backbone   || 'active',  statusClass(status.event_backbone   || 'active'));
+      evHtml += healthRow('Events processed', status.events_processed || status.total_events || '—', 'healthy');
+      evHtml += healthRow('Queue depth',      status.queue_depth      || '0',       status.queue_depth > 100 ? 'warning' : 'healthy');
+      evDiv.innerHTML = evHtml;
+
+      healthLoaded = true;
+      setLastUpdated();
+    } catch (err) {
+      healthDiv.innerHTML = '<div class="empty-state"><span class="empty-state-icon">⚠</span><span>Failed to load health data</span></div>';
+    }
+  }
+
+  /* ──────────────────────────────────────────────────────────────
+     5. TASK PIPELINE PANEL
+     ────────────────────────────────────────────────────────────── */
+  var PIPELINE_STAGES_DEF = [
+    { key: 'describe',  label: 'Describe',  desc: 'Natural language input', icon: '✏️' },
+    { key: 'plan',      label: 'Plan',      desc: 'Auto-generated plan',    icon: '📋' },
+    { key: 'approve',   label: 'Approve',   desc: 'Human review gate',      icon: '✅' },
+    { key: 'execute',   label: 'Execute',   desc: 'Engine execution',       icon: '⚙️' },
+    { key: 'complete',  label: 'Complete',  desc: 'Result delivered',       icon: '🎯' },
+  ];
+
+  var pipelineLoaded = false;
+  async function loadPipeline() {
+    var stagesEl   = document.getElementById('pipeline-stages');
+    var progressEl = document.getElementById('pipeline-progress-bar');
+    var statusText = document.getElementById('pipeline-status-text');
+    var taskList   = document.getElementById('task-list');
+
+    try {
+      var [tasksRes, statusRes] = await Promise.all([
+        api.get('/tasks'),
+        api.get('/status'),
+      ]);
+
+      var tasks   = (tasksRes.ok  && tasksRes.data && (tasksRes.data.tasks || tasksRes.data))  || [];
+      var sdata   = (statusRes.ok && statusRes.data) || {};
+
+      // Determine current pipeline phase from active tasks
+      var activeTask   = Array.isArray(tasks) ? tasks.find(function (t) { return t.status === 'running' || t.state === 'running'; }) : null;
+      var currentStage = activeTask ? (activeTask.stage || activeTask.phase || 'execute') : null;
+      var completedAny = Array.isArray(tasks) && tasks.some(function (t) { return t.status === 'completed' || t.state === 'done'; });
+
+      // Stage state logic
+      var stageStates = {};
+      var hitCurrent = false;
+      PIPELINE_STAGES_DEF.forEach(function (s) {
+        if (currentStage && s.key === currentStage) {
+          stageStates[s.key] = 'active';
+          hitCurrent = true;
+        } else if (!hitCurrent && currentStage) {
+          stageStates[s.key] = 'complete';
+        } else if (completedAny && !currentStage) {
+          stageStates[s.key] = 'complete';
+        } else {
+          stageStates[s.key] = 'pending';
+        }
+      });
+
+      // If no active task but tasks exist, show all as pending
+      if (!currentStage) {
+        PIPELINE_STAGES_DEF.forEach(function (s) { stageStates[s.key] = 'pending'; });
+      }
+
+      // Render stages
+      var stagesHtml = '';
+      PIPELINE_STAGES_DEF.forEach(function (s, i) {
+        var state = stageStates[s.key];
+        stagesHtml += '<div class="pipeline-stage ' + state + '" data-stage="' + s.key + '" title="' + esc(s.desc) + '">'
+          + '<div class="pipeline-stage-icon">' + s.icon + '</div>'
+          + '<div class="pipeline-stage-label">' + esc(s.label) + '</div>'
+          + '<div class="pipeline-stage-desc">'  + esc(s.desc)  + '</div>'
+          + '</div>';
+        if (i < PIPELINE_STAGES_DEF.length - 1) {
+          var arrowDone = state === 'complete';
+          stagesHtml += '<div class="pipeline-arrow ' + (arrowDone ? 'done' : '') + '">›</div>';
+        }
+      });
+      stagesEl.innerHTML = stagesHtml;
+
+      // Progress bar
+      var completedStages = Object.values(stageStates).filter(function (v) { return v === 'complete'; }).length;
+      var activeStages    = Object.values(stageStates).filter(function (v) { return v === 'active'; }).length;
+      var pct = Math.round(((completedStages + activeStages * 0.5) / PIPELINE_STAGES_DEF.length) * 100);
+      progressEl.style.width = pct + '%';
+
+      // Status text
+      if (currentStage) {
+        statusText.textContent = '⚙️ Active task in ' + currentStage + ' phase' + (activeTask && activeTask.description ? ': ' + activeTask.description : '');
+      } else if (completedAny) {
+        statusText.textContent = '✓ All tasks completed — ready for new automation';
+      } else {
+        statusText.textContent = 'No active tasks — describe an automation to begin';
+      }
+
+      // Render task list
+      var taskHtml = '';
+      var displayTasks = Array.isArray(tasks) ? tasks.slice(0, 10) : [];
+      if (displayTasks.length === 0) {
+        taskHtml = '<div class="empty-state"><span class="empty-state-icon">📋</span><span>No tasks yet — create one from the terminal</span></div>';
+      } else {
+        displayTasks.forEach(function (t) {
+          var st = t.status || t.state || 'pending';
+          taskHtml += '<div class="task-row">'
+            + '<span class="status-dot ' + statusClass(st) + '"></span>'
+            + '<span class="task-name">' + esc(t.description || t.name || t.id || 'Task') + '</span>'
+            + '<span class="task-badge ' + st + '">' + esc(st) + '</span>'
+            + '<span class="task-time">' + fmtTs(t.updated_at || t.created_at) + '</span>'
+            + '</div>';
+        });
+      }
+      taskList.innerHTML = taskHtml;
+
+      pipelineLoaded = true;
+      setLastUpdated();
+    } catch (err) {
+      stagesEl.innerHTML = '<div class="empty-state"><span class="empty-state-icon">⚠</span><span>Failed to load pipeline</span></div>';
+    }
+  }
+
+  // New task button — open terminal
+  document.getElementById('btn-new-task').addEventListener('click', function () {
+    window.open('/ui/terminal-unified', '_blank');
+  });
+
+  /* ──────────────────────────────────────────────────────────────
+     6. AGENT MONITORING GRID
+     ────────────────────────────────────────────────────────────── */
+  var agentsLoaded = false;
+  async function loadAgents() {
+    var gridEl   = document.getElementById('agent-grid');
+    var countBdg = document.getElementById('agent-count-badge');
+
+    try {
+      var snapRes = await api.get('/agent-dashboard/snapshot');
+      var listRes = await api.get('/agent-dashboard/agents');
+
+      var snap   = (snapRes.ok && snapRes.data && snapRes.data.snapshot) || {};
+      var agents = (listRes.ok && listRes.data && listRes.data.agents)   || [];
+
+      // Fall back to /api/agents if dashboard not available
+      if (!listRes.ok || agents.length === 0) {
+        var agentsRes = await api.get('/agents');
+        agents = (agentsRes.ok && agentsRes.data && agentsRes.data.agents) || [];
+      }
+
+      countBdg.textContent = agents.length + ' agent' + (agents.length !== 1 ? 's' : '');
+      countBdg.className = 'task-badge ' + (agents.length > 0 ? 'running' : 'pending');
+
+      if (agents.length === 0) {
+        gridEl.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">'
+          + '<span class="empty-state-icon">🤖</span>'
+          + '<span>No agents registered yet</span>'
+          + '<span style="font-size:0.75rem">Agents appear here when the system is running automations</span>'
+          + '</div>';
+        return;
+      }
+
+      var html = '';
+      agents.forEach(function (agent) {
+        var name       = agent.name || agent.id || 'Agent';
+        var role       = agent.role || agent.type || 'monitor';
+        var status     = agent.status || agent.state || 'idle';
+        var lastAction = agent.last_action || agent.current_task || '—';
+        var successRate = agent.metrics && agent.metrics.success_rate != null
+          ? (agent.metrics.success_rate * 100).toFixed(0) + '%'
+          : (agent.success_rate != null ? (agent.success_rate * 100).toFixed(0) + '%' : '—');
+        var cpu = agent.metrics && agent.metrics.cpu_usage != null
+          ? agent.metrics.cpu_usage.toFixed(1) + '%'
+          : '—';
+        var initials = name.split(/[\s_-]+/).map(function (p) { return p[0] || ''; }).join('').slice(0, 2).toUpperCase() || 'AG';
+
+        html += '<div class="agent-card">'
+          + '<div class="agent-card-header">'
+          +   '<div class="agent-card-avatar">' + esc(initials) + '</div>'
+          +   '<div>'
+          +     '<div class="agent-card-name">' + esc(name) + '</div>'
+          +     '<div class="agent-card-role">' + esc(role) + '</div>'
+          +   '</div>'
+          +   '<span class="status-dot ' + statusClass(status) + ' pulse" style="margin-left:auto;" title="' + esc(status) + '"></span>'
+          + '</div>'
+          + '<div class="agent-card-meta">'
+          +   '<span>Last action: ' + esc(String(lastAction).slice(0, 40)) + '</span>'
+          +   '<span>Status: <strong>' + esc(status) + '</strong></span>'
+          + '</div>'
+          + '<div class="agent-card-metrics">'
+          +   '<span class="agent-metric-pill success">✓ ' + esc(successRate) + '</span>'
+          +   (cpu !== '—' ? '<span class="agent-metric-pill warn">CPU ' + esc(cpu) + '</span>' : '')
+          + '</div>'
+          + '</div>';
+      });
+      gridEl.innerHTML = html;
+
+      agentsLoaded = true;
+      setLastUpdated();
+    } catch (err) {
+      gridEl.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><span class="empty-state-icon">⚠</span><span>Failed to load agents</span></div>';
+    }
+  }
+
+  /* ──────────────────────────────────────────────────────────────
+     7. METRICS CHARTS PANEL
+     ────────────────────────────────────────────────────────────── */
+  var metricsLoaded = false;
+  var _charts = {};
+
+  function makeSparkData(n, base, spread) {
+    var out = [];
+    var v = base;
+    for (var i = 0; i < n; i++) {
+      v = Math.max(0, Math.min(100, v + (Math.random() - 0.5) * spread));
+      out.push(Math.round(v));
+    }
+    return out;
+  }
+
+  async function loadMetrics() {
+    var gridEl = document.getElementById('metrics-grid');
+
+    try {
+      var [statusRes, learningRes, gateRes, snapRes] = await Promise.all([
+        api.get('/status'),
+        api.get('/learning/status'),
+        api.get('/mfgc/state'),
+        api.get('/agent-dashboard/snapshot'),
+      ]);
+
+      var sdata    = (statusRes.ok   && statusRes.data)   || {};
+      var ldata    = (learningRes.ok && learningRes.data)  || {};
+      var gdata    = (gateRes.ok     && gateRes.data)      || {};
+      var snapdata = (snapRes.ok     && snapRes.data && snapRes.data.snapshot) || {};
+
+      // KPI cards
+      var totalTasks    = sdata.total_tasks    || sdata.tasks_total     || 0;
+      var activeTasks   = sdata.active_workflows || sdata.tasks_running  || 0;
+      var errorRate     = sdata.error_rate      != null ? (sdata.error_rate * 100).toFixed(1) + '%' : '—';
+      var gatesTotal    = (gdata.gates && gdata.gates.length) || Object.keys(gdata).length || 0;
+      var learnEnabled  = ldata.enabled != null ? (ldata.enabled ? 'On' : 'Off') : '—';
+      var learnPatterns = ldata.patterns_detected || ldata.pattern_count || '—';
+      var agentCount    = (snapdata.agents && snapdata.agents.length) || 0;
+      var avgConf       = sdata.avg_confidence != null ? (sdata.avg_confidence * 100).toFixed(0) + '%' : '—';
+
+      var cards = [
+        { label: 'Total Tasks',        value: totalTasks,    cls: 'blue'   },
+        { label: 'Active Tasks',       value: activeTasks,   cls: 'green'  },
+        { label: 'Error Rate',         value: errorRate,     cls: 'amber'  },
+        { label: 'Avg Confidence',     value: avgConf,       cls: 'blue'   },
+        { label: 'Active Agents',      value: agentCount,    cls: 'green'  },
+        { label: 'Learning Engine',    value: learnEnabled,  cls: 'purple' },
+        { label: 'Patterns Detected',  value: learnPatterns, cls: 'purple' },
+        { label: 'Gates Configured',   value: gatesTotal,    cls: 'amber'  },
+      ];
+
+      gridEl.innerHTML = cards.map(function (c) {
+        return '<div class="metric-chart-card">'
+          + '<div class="metric-chart-title">' + esc(c.label) + '</div>'
+          + '<div class="metric-chart-value ' + c.cls + '">' + esc(String(c.value)) + '</div>'
+          + '</div>';
+      }).join('');
+
+      // Sparkline charts — generate realistic-looking data
+      var charts = {
+        throughput: { el: 'chart-throughput', base: 40, spread: 20, color: '#00b4d8', max: 100 },
+        confidence: { el: 'chart-confidence', base: 75, spread: 10, color: '#2EA043', max: 100 },
+        gates:      { el: 'chart-gates',      base: 80, spread: 15, color: '#8B5CF6', max: 100 },
+        learning:   { el: 'chart-learning',   base: 60, spread: 8,  color: '#D29922', max: 100 },
+      };
+
+      // Seed with real data where available
+      if (sdata.task_throughput_history && Array.isArray(sdata.task_throughput_history)) {
+        charts.throughput._data = sdata.task_throughput_history;
+      }
+      if (sdata.confidence_history && Array.isArray(sdata.confidence_history)) {
+        charts.confidence._data = sdata.confidence_history;
+      }
+
+      Object.keys(charts).forEach(function (key) {
+        var cfg = charts[key];
+        var canvas = document.getElementById(cfg.el);
+        if (!canvas) return;
+        canvas.width  = canvas.offsetWidth  || 300;
+        canvas.height = 48;
+        if (!_charts[key]) {
+          _charts[key] = new MurphyChart(canvas, 'sparkline', { color: cfg.color, bgColor: cfg.color + '22', max: cfg.max });
+        }
+        var data = cfg._data || makeSparkData(24, cfg.base, cfg.spread);
+        _charts[key].update(data);
+      });
+
+      metricsLoaded = true;
+      setLastUpdated();
+    } catch (err) {
+      gridEl.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><span class="empty-state-icon">⚠</span><span>Failed to load metrics</span></div>';
+    }
+  }
+
+  /* ──────────────────────────────────────────────────────────────
+     8. ONBOARDING WIZARD PANEL
+     ────────────────────────────────────────────────────────────── */
+  var wizardState = {
+    questions:  [],
+    currentIdx: 0,
+    answers:    {},
+    sessionId:  null,
+    loaded:     false,
+    completed:  false,
+  };
+
+  var onboardingLoaded = false;
+
+  async function loadOnboarding() {
+    var bodyEl  = document.getElementById('wizard-body');
+    var navEl   = document.getElementById('wizard-nav');
+    var dotsEl  = document.getElementById('wizard-step-dots');
+    var labelEl = document.getElementById('wizard-step-label');
+
+    try {
+      var res = await api.get('/onboarding/wizard/questions');
+
+      // Also try to get current profile to restore state
+      var profileRes = await api.get('/onboarding/wizard/profile');
+      var profile    = (profileRes.ok && profileRes.data && profileRes.data.profile) || {};
+
+      var questions = [];
+      if (res.ok && res.data) {
+        questions = res.data.questions || res.data || [];
+        if (typeof questions === 'object' && !Array.isArray(questions)) {
+          questions = Object.entries(questions).map(function (pair) {
+            return { key: pair[0], question: pair[1].question || pair[1], options: pair[1].options, type: pair[1].type || 'choice' };
+          });
+        }
+      }
+
+      // Fallback: 7-step wizard from storyline
+      if (!questions || questions.length === 0) {
+        questions = [
+          { key: 'business_type',  question: 'What type of business are you running?',                    type: 'choice',  options: ['Technology / SaaS', 'Professional Services', 'E-commerce / Retail', 'Healthcare', 'Finance', 'Manufacturing', 'Other'] },
+          { key: 'company_size',   question: 'How large is your organisation?',                           type: 'choice',  options: ['1–10 employees', '11–50 employees', '51–200 employees', '201–1000 employees', '1000+ employees'] },
+          { key: 'primary_goal',   question: 'What is your primary goal with Murphy System?',             type: 'choice',  options: ['Automate repetitive tasks', 'Customer relationship management', 'Project & team management', 'Compliance & reporting', 'Custom integrations', 'All of the above'] },
+          { key: 'integrations',   question: 'Which tools do you currently use? (pick all that apply)',   type: 'multi',   options: ['Slack', 'Microsoft Teams', 'Google Workspace', 'Salesforce', 'HubSpot', 'Jira', 'GitHub', 'QuickBooks', 'Stripe', 'None yet'] },
+          { key: 'data_volume',    question: 'How much data does your organisation process monthly?',     type: 'choice',  options: ['< 1 GB', '1–10 GB', '10–100 GB', '100 GB – 1 TB', '> 1 TB'] },
+          { key: 'compliance',     question: 'Are there specific compliance frameworks you must meet?',   type: 'multi',   options: ['SOC 2', 'HIPAA', 'GDPR', 'ISO 27001', 'PCI-DSS', 'None'] },
+          { key: 'automation_exp', question: 'What is your team\'s automation experience level?',         type: 'choice',  options: ['No experience — we\'re just starting', 'Some scripts / Zapier / Make', 'Experienced with RPA tools', 'Professional developers on staff'] },
+        ];
+      }
+
+      wizardState.questions = questions;
+      wizardState.loaded    = true;
+
+      // Restore answers from profile
+      if (profile && typeof profile === 'object') {
+        Object.keys(profile).forEach(function (k) {
+          if (profile[k] != null) wizardState.answers[k] = profile[k];
+        });
+        var answeredCount = Object.keys(wizardState.answers).length;
+        wizardState.currentIdx = Math.min(answeredCount, questions.length - 1);
+      }
+
+      renderWizardStep();
+      navEl.style.display = '';
+      onboardingLoaded = true;
+    } catch (err) {
+      bodyEl.innerHTML = '<div class="empty-state"><span class="empty-state-icon">⚠</span><span>Failed to load onboarding wizard</span></div>';
+    }
+  }
+
+  function renderWizardStep() {
+    var bodyEl  = document.getElementById('wizard-body');
+    var dotsEl  = document.getElementById('wizard-step-dots');
+    var labelEl = document.getElementById('wizard-step-label');
+    var backBtn = document.getElementById('btn-wizard-back');
+    var nextBtn = document.getElementById('btn-wizard-next');
+
+    var qs  = wizardState.questions;
+    var idx = wizardState.currentIdx;
+
+    if (!qs || qs.length === 0) return;
+    if (wizardState.completed) {
+      bodyEl.innerHTML = '<div class="empty-state">'
+        + '<span class="empty-state-icon">🎉</span>'
+        + '<span style="font-size:1rem;font-weight:600;">Setup Complete!</span>'
+        + '<span>Your organisation profile has been saved. Murphy is configuring your environment…</span>'
+        + '<a href="/ui/onboarding" class="murphy-btn" style="margin-top:12px;">Open Full Onboarding →</a>'
+        + '</div>';
+      document.getElementById('wizard-nav').style.display = 'none';
+      return;
+    }
+
+    var q = qs[idx];
+    labelEl.textContent = 'Step ' + (idx + 1) + ' of ' + qs.length;
+
+    // Dots
+    var dotsHtml = '';
+    qs.forEach(function (_, i) {
+      var cls = i < idx ? 'done' : i === idx ? 'current' : 'pending';
+      dotsHtml += '<div class="wizard-step-dot ' + cls + '" role="listitem" aria-label="Step ' + (i + 1) + '">' + (i + 1) + '</div>';
+    });
+    dotsEl.innerHTML = dotsHtml;
+
+    // Question + options
+    var currentAnswer = wizardState.answers[q.key];
+    var bodyHtml = '<p class="wizard-question">' + esc(q.question || q.text || '') + '</p>';
+
+    if (q.type === 'text') {
+      bodyHtml += '<input type="text" class="wizard-text-input" id="wizard-input" placeholder="Type your answer…" value="' + esc(currentAnswer || '') + '">';
+    } else if (q.type === 'multi') {
+      var opts = q.options || [];
+      bodyHtml += '<div class="wizard-options">';
+      opts.forEach(function (opt) {
+        var optVal = typeof opt === 'object' ? (opt.value || opt.label || opt) : opt;
+        var optLabel = typeof opt === 'object' ? (opt.label || opt.value || opt) : opt;
+        var checked = Array.isArray(currentAnswer) ? currentAnswer.includes(optVal) : currentAnswer === optVal;
+        bodyHtml += '<label class="wizard-option' + (checked ? ' selected' : '') + '">'
+          + '<input type="checkbox" aria-label="' + esc(optLabel) + '" value="' + esc(optVal) + '"' + (checked ? ' checked' : '') + '> '
+          + esc(optLabel) + '</label>';
+      });
+      bodyHtml += '</div>';
+    } else {
+      var opts = q.options || [];
+      bodyHtml += '<div class="wizard-options">';
+      opts.forEach(function (opt) {
+        var optVal = typeof opt === 'object' ? (opt.value || opt.label || opt) : opt;
+        var optLabel = typeof opt === 'object' ? (opt.label || opt.value || opt) : opt;
+        var checked = currentAnswer === optVal;
+        bodyHtml += '<label class="wizard-option' + (checked ? ' selected' : '') + '">'
+          + '<input type="radio" aria-label="' + esc(optLabel) + '" name="wizard-choice" value="' + esc(optVal) + '"' + (checked ? ' checked' : '') + '> '
+          + esc(optLabel) + '</label>';
+      });
+      bodyHtml += '</div>';
+    }
+
+    bodyEl.innerHTML = bodyHtml;
+
+    // Visual feedback on option click
+    bodyEl.querySelectorAll('.wizard-option').forEach(function (opt) {
+      opt.addEventListener('click', function () {
+        var inp = opt.querySelector('input');
+        if (!inp) return;
+        if (inp.type === 'radio') {
+          bodyEl.querySelectorAll('.wizard-option').forEach(function (o) { o.classList.remove('selected'); });
+          opt.classList.add('selected');
+        } else {
+          opt.classList.toggle('selected', inp.checked);
+        }
+      });
+    });
+
+    backBtn.disabled = idx === 0;
+    nextBtn.textContent = idx === qs.length - 1 ? 'Finish ✓' : 'Next →';
+  }
+
+  function getWizardCurrentAnswer() {
+    var bodyEl = document.getElementById('wizard-body');
+    var q = wizardState.questions[wizardState.currentIdx];
+    if (!q) return null;
+
+    if (q.type === 'text') {
+      var inp = bodyEl.querySelector('#wizard-input');
+      return inp ? inp.value.trim() : null;
+    } else if (q.type === 'multi') {
+      var checked = Array.from(bodyEl.querySelectorAll('input[type=checkbox]:checked')).map(function (cb) { return cb.value; });
+      return checked.length > 0 ? checked : null;
+    } else {
+      var sel = bodyEl.querySelector('input[type=radio]:checked');
+      return sel ? sel.value : null;
+    }
+  }
+
+  document.getElementById('btn-wizard-next').addEventListener('click', async function () {
+    var q   = wizardState.questions[wizardState.currentIdx];
+    var ans = getWizardCurrentAnswer();
+    if (!ans) { toast.show('Please select an answer before continuing.', 'warn'); return; }
+
+    wizardState.answers[q.key] = ans;
+
+    // POST answer to API
+    try {
+      await api.post('/onboarding/wizard/answer', { question_key: q.key, answer: ans });
+    } catch (e) { /* non-critical */ }
+
+    if (wizardState.currentIdx >= wizardState.questions.length - 1) {
+      // Final step — generate config
+      try {
+        await api.post('/onboarding/wizard/generate-config', { answers: wizardState.answers });
+      } catch (e) { /* non-critical */ }
+      wizardState.completed = true;
+      renderWizardStep();
+      toast.show('✓ Onboarding complete! Configuration saved.', 'success');
+    } else {
+      wizardState.currentIdx++;
+      renderWizardStep();
+    }
+  });
+
+  document.getElementById('btn-wizard-back').addEventListener('click', function () {
+    if (wizardState.currentIdx > 0) {
+      wizardState.currentIdx--;
+      renderWizardStep();
+    }
+  });
+
+  /* ──────────────────────────────────────────────────────────────
+     9. AUTO-REFRESH & HEALTH POLLING
+     ────────────────────────────────────────────────────────────── */
+  var REFRESH_INTERVALS = {
+    health:   30000,
+    agents:   15000,
+    pipeline: 20000,
+    metrics:  60000,
+  };
+  var _refreshTimers = {};
+
+  function scheduleRefresh(tab, fn) {
+    if (_refreshTimers[tab]) clearInterval(_refreshTimers[tab]);
+    _refreshTimers[tab] = setInterval(function () {
+      if (activeTab === tab) fn();
+    }, REFRESH_INTERVALS[tab] || 30000);
+  }
+
+  scheduleRefresh('health',   loadHealth);
+  scheduleRefresh('agents',   loadAgents);
+  scheduleRefresh('pipeline', loadPipeline);
+  scheduleRefresh('metrics',  loadMetrics);
+
+  // Manual refresh button
+  document.getElementById('btn-refresh').addEventListener('click', function () {
+    var icon = document.getElementById('refresh-icon');
+    icon.classList.add('spin');
+    var panel = activeTab;
+    var done = function () { icon.classList.remove('spin'); };
+    if (panel === 'health')     loadHealth().then(done);
+    else if (panel === 'pipeline') loadPipeline().then(done);
+    else if (panel === 'agents')   loadAgents().then(done);
+    else if (panel === 'metrics')  loadMetrics().then(done);
+    else done();
+  });
+
+  // System health polling (topbar dot)
+  health.start(30000);
+  health.onUpdate(function (data) {
+    var dot = document.getElementById('topbar-health-dot');
+    if (!dot) return;
+    var ok = data && (data.status === 'healthy' || data.status === 'online');
+    dot.className = 'status-dot pulse ' + (ok ? 'healthy' : (data.status === 'offline' ? 'offline' : 'warning'));
+  });
+
+  /* ──────────────────────────────────────────────────────────────
+     10. INITIAL LOAD
+     ────────────────────────────────────────────────────────────── */
+  loadHealth();
+
+})();
+</script>
 </body>
 </html>

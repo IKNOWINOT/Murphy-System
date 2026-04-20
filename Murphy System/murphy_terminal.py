@@ -66,12 +66,45 @@ except ImportError:
 
 # Placeholder strings that appear in template .env files but are not real keys.
 _PLACEHOLDER_KEY_VALUES = frozenset({
+    # Generic placeholders
     "your_deepinfra_key_here", "your_openai_key_here",
-    # Placeholders used in .env.example
-    "your_deepinfra_api_key_here", "sk-your_openai_key_here",
+    "your_key_here", "your-key-here", "change_me", "changeme", "xxx", "none",
+    # .env.example placeholders — AI / LLM
+    "your_deepinfra_api_key_here", "your_together_api_key_here", "sk-your_openai_key_here",
     "sk-ant-your_anthropic_key_here",
-    "your_key_here", "your-key-here", "change_me",
-    "changeme", "xxx", "none",
+    # Communication
+    "sg.your_sendgrid_key_here",
+    "xoxb-your-slack-bot-token-here",
+    "your_twilio_auth_token_here",
+    "your_twilio_account_sid_here",
+    # CRM / Sales
+    "your_hubspot_api_key_here",
+    "your_pipedrive_token_here",
+    "your_salesforce_consumer_key_here",
+    # Payments
+    "sk_test_your_stripe_key_here",
+    # Dev / Hosting
+    "ghp_your_github_token_here",
+    # Monitoring
+    "your_datadog_api_key_here",
+    "your_pagerduty_api_key_here",
+    # Productivity
+    "secret_your_notion_key_here",
+    "your_jira_api_token_here",
+    "your_asana_access_token_here",
+    "your_monday_api_key_here",
+    "your_airtable_api_key_here",
+    # Cloud
+    "your_aws_access_key_id_here",
+    "your_aws_secret_access_key_here",
+    # Video / Meetings
+    "your_zoom_api_key_here",
+    # Analytics / Data
+    "your_google_analytics_api_key_here",
+    "your_openweather_api_key_here",
+    # Legacy
+    "your_aristotle_api_key_here",
+    "your_wulfrum_api_key_here",
 })
 
 DEFAULT_API_URL = "http://localhost:8000"
@@ -116,9 +149,15 @@ MODULE_COMMAND_MAP: dict[str, list[str]] = {
 API_PROVIDER_LINKS: dict[str, dict[str, str]] = {
     "deepinfra": {
         "name": "DeepInfra",
-        "url": "https://deepinfra.com",
+        "url": "https://deepinfra.com/dash/api_keys",
         "env_var": "DEEPINFRA_API_KEY",
-        "description": "LLM provider (fast inference for Llama, Mixtral, Gemma)",
+        "description": "Primary LLM provider (meta-llama/Meta-Llama-3.1-70B-Instruct)",
+    },
+    "together": {
+        "name": "Together AI",
+        "url": "https://api.together.xyz/settings/api-keys",
+        "env_var": "TOGETHER_API_KEY",
+        "description": "Overflow LLM provider (Meta-Llama-3.1-70B-Instruct)",
     },
     "openai": {
         "name": "OpenAI",
@@ -486,7 +525,7 @@ class DialogContext:
             msg += (
                 "\n[bold cyan]What to do next:[/bold cyan]\n"
                 "  1. Sign up for the API keys listed above (links provided)\n"
-                "  2. Set keys right here: [green]set key deepinfra di_...[/green] (no restart needed)\n"
+                "  2. Set keys right here: [green]set key deepinfra <key>...[/green] (no restart needed)\n"
                 "  3. Type [green]status[/green] to verify everything is connected\n"
                 "  4. Type [green]execute <your first task>[/green] to start automating!\n\n"
             )
@@ -785,19 +824,30 @@ ACCOUNT_LIFECYCLE_FLOW: list[dict[str, str]] = [
 
 USER_TYPE_UI_LINKS: dict[str, list[dict[str, str]]] = {
     "owner": [
+        {"name": "Onboarding Wizard", "url": "/ui/onboarding", "file": "onboarding_wizard.html"},
         {"name": "Architect Terminal", "url": "/ui/terminal-architect", "file": "terminal_architect.html"},
         {"name": "Integrated Terminal", "url": "/ui/terminal-integrated", "file": "murphy_ui_integrated_terminal.html"},
         {"name": "Full Dashboard", "url": "/ui/dashboard", "file": "murphy_ui_integrated.html"},
-        {"name": "Onboarding Wizard", "url": "/ui/onboarding", "file": "onboarding_wizard.html"},
+        {"name": "Grant Wizard", "url": "/ui/grant-wizard", "file": "grant_wizard.html"},
+        {"name": "Grant Dashboard", "url": "/ui/grant-dashboard", "file": "grant_dashboard.html"},
+        {"name": "Financing Options", "url": "/ui/financing", "file": "financing_options.html"},
+        {"name": "System Visualizer", "url": "/ui/system-visualizer", "file": "system_visualizer.html"},
+        {"name": "Org Portal", "url": "/ui/org-portal", "file": "org_portal.html"},
+        {"name": "Admin Panel", "url": "/ui/admin", "file": "admin_panel.html"},
         {"name": "Landing Page", "url": "/ui/landing", "file": "murphy_landing_page.html"},
     ],
     "admin": [
+        {"name": "Onboarding Wizard", "url": "/ui/onboarding", "file": "onboarding_wizard.html"},
         {"name": "Architect Terminal", "url": "/ui/terminal-architect", "file": "terminal_architect.html"},
         {"name": "Integrated Terminal", "url": "/ui/terminal-integrated", "file": "murphy_ui_integrated_terminal.html"},
         {"name": "Full Dashboard", "url": "/ui/dashboard", "file": "murphy_ui_integrated.html"},
-        {"name": "Onboarding Wizard", "url": "/ui/onboarding", "file": "onboarding_wizard.html"},
+        {"name": "Grant Wizard", "url": "/ui/grant-wizard", "file": "grant_wizard.html"},
+        {"name": "Grant Dashboard", "url": "/ui/grant-dashboard", "file": "grant_dashboard.html"},
+        {"name": "Org Portal", "url": "/ui/org-portal", "file": "org_portal.html"},
+        {"name": "Admin Panel", "url": "/ui/admin", "file": "admin_panel.html"},
     ],
     "operator": [
+        {"name": "Onboarding Wizard", "url": "/ui/onboarding", "file": "onboarding_wizard.html"},
         {"name": "Worker Terminal", "url": "/ui/terminal-worker", "file": "terminal_worker.html"},
         {"name": "Enhanced Terminal", "url": "/ui/terminal-enhanced", "file": "terminal_enhanced.html"},
         {"name": "Operator Terminal", "url": "/ui/terminal-operator", "file": "terminal_integrated.html"},
@@ -954,7 +1004,13 @@ class MurphyTerminalApp(App):
         self._update_status_url()
         self._check_connection()
         self._check_api_key_on_startup()
-        self.query_one("#user-input", MurphyInput).focus()  # focus input on start
+        # Ensure the input widget has focus so the user can type immediately.
+        # _check_api_key_on_startup focuses it when the gate triggers, but not
+        # when a key already exists — this call covers that case.
+        try:
+            self.query_one("#user-input", MurphyInput).focus()
+        except Exception:
+            pass
 
     # -- connection --
 
@@ -1098,11 +1154,16 @@ class MurphyTerminalApp(App):
             "[bold yellow]⚠ No DeepInfra API key detected[/bold yellow]\n\n"
             "Murphy needs at least a DeepInfra API key for full AI features.\n\n"
             "[bold cyan]Get your free key:[/bold cyan]\n"
-            "  → [link=https://deepinfra.com]https://deepinfra.com[/link]\n\n"
+            "  → [link=https://deepinfra.com/dash/api_keys]https://deepinfra.com/dash/api_keys[/link]\n\n"
             "Then paste it here, or type:\n"
-            "  [green]set key deepinfra di_yourKeyHere[/green]\n"
+            "  [green]set key deepinfra <your-key>[/green]\n"
             "  [green]skip[/green] — continue in offline mode (limited functionality)\n"
         )
+        # Ensure the Input widget has focus so key presses are routed correctly
+        try:
+            self.query_one("#user-input", MurphyInput).focus()
+        except Exception:
+            pass
 
     def _handle_startup_key_input(self, message: str) -> None:
         """Handle user input during the first-run API key prompt."""
@@ -1121,7 +1182,7 @@ class MurphyTerminalApp(App):
 
         # Check if it looks like a bare key (starts with di_)
         bare = strip_key_wrapping(stripped)
-        if bare.startswith("di_"):
+        if bare.startswith("di_") or len(bare) >= 20:
             self._awaiting_api_key = False
             self._apply_api_key("deepinfra", bare)
             return
@@ -1221,12 +1282,13 @@ class MurphyTerminalApp(App):
 
     # -- input handling --
 
+
     def key_enter(self, event: events.Key) -> None:
-        """App-level Enter: submit input regardless of focused widget."""
+        """App-level Enter: submit the user input regardless of which widget has focus."""
         try:
             input_widget = self.query_one("#user-input", MurphyInput)
-            message = input_widget.value.strip()
-            if message:
+            if input_widget.value.strip():
+                message = input_widget.value.strip()
                 input_widget.value = ""
                 self._write_user(message)
                 self._process_message(message)
@@ -1368,7 +1430,7 @@ class MurphyTerminalApp(App):
             "  • [green]show modules[/green] — list all modules and commands\n"
             "  • [green]librarian[/green] — consult knowledge-base expert\n"
             "  • [green]api keys[/green] — get API signup links for integrations\n"
-            "  • [green]set key <provider> <key>[/green] — set an API key inline (e.g. [green]set key deepinfra di_...[/green])\n"
+            "  • [green]set key <provider> <key>[/green] — set an API key inline (e.g. [green]set key deepinfra <your-key>[/green])\n"
             "  • [green]plan[/green] — two-plane planning & execution overview\n"
             "  • [green]pending / hitl[/green] — pending interventions\n"
             "  • [green]corrections[/green] — correction statistics\n\n"
@@ -1437,7 +1499,7 @@ class MurphyTerminalApp(App):
                 f"Usage: [green]set key <provider> <key>[/green]\n"
                 f"Supported providers: [green]{supported}[/green]\n\n"
                 "Examples:\n"
-                "  [green]set key deepinfra di_abc123...[/green]\n"
+                "  [green]set key deepinfra <your-key>[/green]\n"
                 "  [green]set key openai sk-abc123...[/green]\n"
                 "  [green]set key anthropic sk-ant-abc123...[/green]"
             )
@@ -1474,23 +1536,18 @@ class MurphyTerminalApp(App):
         fmt = API_KEY_FORMATS[provider]
         env_var = fmt["env_var"]
 
+        # Set env IMMEDIATELY so it is observable before any I/O
+        import sys
+        print(f"[DEBUG] BEFORE SET: {env_var}={os.environ.get(env_var)!r}", file=sys.stderr)
+        os.environ[env_var] = key_value
+        os.environ["MURPHY_LLM_PROVIDER"] = provider
+        print(f"[DEBUG] AFTER SET: {env_var}={os.environ.get(env_var)!r}", file=sys.stderr)
+
         # Persist to .env (both the API key and the provider selection)
         env_path = get_env_path()
         write_env_key(env_path, env_var, key_value)
         write_env_key(env_path, "MURPHY_LLM_PROVIDER", provider)
-
-        # Hot-reload into current process immediately (before backend call)
-        os.environ[env_var] = key_value
-        os.environ["MURPHY_LLM_PROVIDER"] = provider
         reload_env(env_path)
-
-        # Notify the backend to hot-reload its LLM config (non-fatal if unreachable)
-        configure_result = self.client.configure_llm(provider, key_value)
-        if not configure_result.get("success", False):
-            self._write_murphy(
-                f"[yellow]⚠ Key saved locally but backend configure failed: {configure_result.get('error', 'unknown error')}[/yellow]\n"
-                "[dim]Key is active in this session. Backend will pick it up on next request.[/dim]"
-            )
 
         self._write_murphy(
             f"[bold green]✓ {provider.capitalize()} API key saved![/bold green]\n"
@@ -1498,20 +1555,28 @@ class MurphyTerminalApp(App):
             f"  .env    : [dim]{env_path}[/dim]"
         )
 
-        # Verify the key actually authenticates with the provider
-        test_result = self.client.llm_test()
-        if test_result.get("success"):
+        # Notify the backend to hot-reload its LLM config (best-effort)
+        configure_result = self.client.configure_llm(provider, key_value)
+        if not configure_result.get("success", False):
             self._write_murphy(
-                "[bold green]✓ Key verified — LLM is active and responding.[/bold green]\n"
-                "[dim]The key is active immediately — no restart needed.[/dim]"
+                f"[yellow]⚠ Backend configure failed: {configure_result.get('error', 'unknown error')}[/yellow]\n"
+                "[dim]Key is saved locally — will activate when backend reconnects.[/dim]"
             )
         else:
-            err = test_result.get("error", "unknown error")
-            self._write_murphy(
-                f"[yellow]⚠ Key saved but authentication failed: {err}[/yellow]\n"
-                "[dim]Please verify your key at "
-                "[link=https://deepinfra.com]https://deepinfra.com[/link][/dim]"
-            )
+            # Verify the key actually authenticates with the provider
+            test_result = self.client.llm_test()
+            if test_result.get("success"):
+                self._write_murphy(
+                    "[bold green]✓ Key verified — LLM is active and responding.[/bold green]\n"
+                    "[dim]The key is active immediately — no restart needed.[/dim]"
+                )
+            else:
+                err = test_result.get("error", "unknown error")
+                self._write_murphy(
+                    f"[yellow]⚠ Key saved but authentication failed: {err}[/yellow]\n"
+                    "[dim]Please verify your key at "
+                    "[link=https://deepinfra.com/dash/api_keys]https://deepinfra.com/dash/api_keys[/link][/dim]"
+                )
 
         # Refresh the StatusBar — only mark LLM On if the test passed
         self._check_llm_status()
@@ -1745,8 +1810,8 @@ class MurphyTerminalApp(App):
                     f"[bold yellow]🤖 LLM Status — Not Configured[/bold yellow]\n\n"
                     f"  Error: {error}\n\n"
                     "To enable LLM, set your API key right here:\n"
-                    "  [green]set key deepinfra di_your_key_here[/green]\n\n"
-                    "Get a free key: [link=https://deepinfra.com]https://deepinfra.com[/link]"
+                    "  [green]set key deepinfra <your-key>[/green]\n\n"
+                    "Get a free key: [link=https://deepinfra.com/dash/api_keys]https://deepinfra.com/dash/api_keys[/link]"
                 )
         except Exception as exc:
             self._write_murphy(f"[red]Could not fetch LLM status: {self._friendly_error(exc)}[/red]")
@@ -1876,8 +1941,8 @@ class MurphyTerminalApp(App):
                     f"   Test keys    : [cyan]{keys}[/cyan] key(s) loaded\n\n"
                     "[dim]💡 Best free key provider:[/dim]\n"
                     "   [bold]DeepInfra[/bold] — Free tier, generous limits, fast inference\n"
-                    "   Signup: [link=https://deepinfra.com]https://deepinfra.com[/link]\n"
-                    "   Then: [green]set key deepinfra di_your_key[/green]\n\n"
+                    "   Signup: [link=https://deepinfra.com/dash/api_keys]https://deepinfra.com/dash/api_keys[/link]\n"
+                    "   Then: [green]set key deepinfra <your-key>[/green]\n\n"
                     "[dim]Session ends automatically when call or time limit is reached.\n"
                     "Run [green]test mode[/green] again to disable.[/dim]"
                 )
@@ -1974,9 +2039,9 @@ class MurphyTerminalApp(App):
             )
         lines.append(
             "\n[bold cyan]Quick Start (LLM):[/bold cyan]\n"
-            "  1. Get a free DeepInfra key: [link=https://deepinfra.com]https://deepinfra.com[/link]\n"
+            "  1. Get a free DeepInfra key: [link=https://deepinfra.com/dash/api_keys]https://deepinfra.com/dash/api_keys[/link]\n"
             "  2. Set it right here in the terminal:\n"
-            "     [green]set key deepinfra di_your_key_here[/green]\n"
+            "     [green]set key deepinfra <your-key>[/green]\n"
             "  That's it! No restart needed.\n\n"
             "[dim]Tip: Run [green]start interview[/green] and Murphy will recommend "
             "exactly which API keys you need based on your answers.[/dim]"
@@ -2105,7 +2170,7 @@ class MurphyTerminalApp(App):
                 self._write_murphy(
                     f"[yellow]⚠ LLM call failed: {err_msg}[/yellow]\n"
                     "[dim]Your API key may be invalid. "
-                    "Get a new key at [link=https://deepinfra.com]https://deepinfra.com[/link] "
+                    "Get a new key at [link=https://deepinfra.com/dash/api_keys]https://deepinfra.com/dash/api_keys[/link] "
                     "then run [green]set key deepinfra <your-key>[/green][/dim]"
                 )
                 return

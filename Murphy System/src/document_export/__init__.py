@@ -14,7 +14,7 @@ from .style_rewriter import DocumentStyleRewriter
 # These names are NOT included in __all__ because they are not unconditionally
 # importable — callers should import them directly from .api when needed.
 try:
-    from .api import BrandCreateRequest, ExportRequest, create_router  # noqa: F401
+    from .api import ExportRequest, BrandCreateRequest, create_router  # noqa: F401
 except ImportError:  # FastAPI not installed
     pass
 

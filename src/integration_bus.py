@@ -71,6 +71,12 @@ class IntegrationBus:
         self._dynamic_assist_engine: Optional[Any] = None
         self._kfactor_calculator: Optional[Any] = None
         self._onboarding_team_pipeline: Optional[Any] = None
+        # Librarian-driven routing (replaces hardcoded chains when available)
+        self._task_router: Optional[Any] = None
+        # Collaborative Task Orchestrator (Gaps 1-5 wiring)
+        self._collaborative_orchestrator: Optional[Any] = None
+        # Highlight Overlay — trainer / glow-key hints
+        self._overlay_manager: Optional[Any] = None
         self._initialized: bool = False
 
         # Load attempts so we don't keep retrying broken imports
@@ -91,7 +97,8 @@ class IntegrationBus:
             "llm_controller=%s, llm_output_validator=%s, "
             "domain_engine=%s, swarm=%s, feedback_integrator=%s, "
             "shadow_knostalgia_bridge=%s, dynamic_assist_engine=%s, "
-            "kfactor_calculator=%s, onboarding_team_pipeline=%s",
+            "kfactor_calculator=%s, onboarding_team_pipeline=%s, "
+            "task_router=%s, collaborative_orchestrator=%s, overlay_manager=%s",
             self._llm_integration_layer is not None,
             self._llm_controller is not None,
             self._llm_output_validator is not None,
@@ -102,6 +109,9 @@ class IntegrationBus:
             self._dynamic_assist_engine is not None,
             self._kfactor_calculator is not None,
             self._onboarding_team_pipeline is not None,
+            self._task_router is not None,
+            self._collaborative_orchestrator is not None,
+            self._overlay_manager is not None,
         )
 
     def _load_all(self) -> None:
@@ -116,6 +126,11 @@ class IntegrationBus:
         self._kfactor_calculator = self._load_kfactor_calculator()
         self._shadow_knostalgia_bridge = self._load_shadow_knostalgia_bridge()
         self._onboarding_team_pipeline = self._load_onboarding_team_pipeline()
+        # Librarian-driven routing — loaded last so it can use the modules above
+        self._task_router = self._load_task_router()
+        # Collaborative Task Orchestrator + Overlay Manager (Gaps 1–5 + trainer wiring)
+        self._collaborative_orchestrator = self._load_collaborative_orchestrator()
+        self._overlay_manager = self._load_overlay_manager()
 
     # ------------------------------------------------------------------
     # Module loaders
@@ -295,6 +310,94 @@ class IntegrationBus:
             logger.warning("IntegrationBus: failed to instantiate OnboardingTeamPipeline: %s", exc)
             return None
 
+    def _load_task_router(self) -> Optional[Any]:
+        """Build and return a :class:`~task_router.TaskRouter` instance.
+
+        Wires :class:`~system_librarian.SystemLibrarian`,
+        :class:`~solution_path_registry.SolutionPathRegistry`, and the
+        :class:`~feedback_integrator.FeedbackIntegrator` into the router.
+        Falls back to ``None`` gracefully so that the old hardcoded chains
+        remain active if any dependency cannot be loaded.
+        """
+        if self._load_attempted.get("task_router"):
+            return self._task_router
+        self._load_attempted["task_router"] = True
+
+        router_mod = _try_import("src.task_router")
+        if router_mod is None:
+            return None
+        router_cls = _safe_get_class(router_mod, "TaskRouter")
+        if router_cls is None:
+            return None
+
+        librarian_mod = _try_import("src.system_librarian")
+        librarian_cls = _safe_get_class(librarian_mod, "SystemLibrarian") if librarian_mod else None
+
+        registry_mod = _try_import("src.solution_path_registry")
+        registry_cls = _safe_get_class(registry_mod, "SolutionPathRegistry") if registry_mod else None
+
+        if librarian_cls is None or registry_cls is None:
+            return None
+
+        try:
+            librarian = librarian_cls()
+            solution_registry = registry_cls(feedback_integrator=self._feedback_integrator)
+            return router_cls(
+                librarian=librarian,
+                solution_registry=solution_registry,
+                governance=None,
+                feedback=self._feedback_integrator,
+            )
+        except Exception as exc:
+            logger.warning("IntegrationBus: failed to build TaskRouter: %s", exc)
+            return None
+
+    def _load_collaborative_orchestrator(self) -> Optional[Any]:
+        """Load and return a :class:`~collaborative_task_orchestrator.CollaborativeTaskOrchestrator`.
+
+        Provides the end-to-end wiring of Gaps 1–5 as an available engine in
+        the integration bus.  Falls back to ``None`` gracefully.
+        """
+        if self._load_attempted.get("collaborative_orchestrator"):
+            return self._collaborative_orchestrator
+        self._load_attempted["collaborative_orchestrator"] = True
+        mod = _try_import("src.collaborative_task_orchestrator")
+        if mod is None:
+            return None
+        cls = _safe_get_class(mod, "CollaborativeTaskOrchestrator")
+        if cls is None:
+            return None
+        try:
+            return cls()
+        except Exception as exc:
+            logger.warning(
+                "IntegrationBus: failed to instantiate CollaborativeTaskOrchestrator: %s", exc
+            )
+            return None
+
+    def _load_overlay_manager(self) -> Optional[Any]:
+        """Load and return an :class:`~highlight_overlay.OverlayManager`.
+
+        Provides trainer / glow-key / left-click hint tracking across the bus.
+        Falls back to ``None`` gracefully.
+        """
+        if self._load_attempted.get("overlay_manager"):
+            return self._overlay_manager
+        self._load_attempted["overlay_manager"] = True
+        mod = _try_import("src.highlight_overlay")
+        if mod is None:
+            return None
+        cls = _safe_get_class(mod, "OverlayManager")
+        if cls is None:
+            return None
+        try:
+            return cls()
+        except Exception as exc:
+            logger.warning(
+                "IntegrationBus: failed to instantiate OverlayManager: %s", exc
+            )
+            return None
+
     # ------------------------------------------------------------------
     # Validation helper
     # ------------------------------------------------------------------
@@ -347,6 +450,8 @@ class IntegrationBus:
             return self._process_chat(payload)
         if request_type == "execute":
             return self._process_execute(payload)
+        if request_type == "orchestrate":
+            return self._process_orchestrate(payload)
 
         logger.warning("IntegrationBus.process: unknown request_type '%s'", request_type)
         return {
@@ -416,7 +521,7 @@ class IntegrationBus:
         }
 
     # ------------------------------------------------------------------
-    # Execute chain: DomainEngine → SwarmSystem → FeedbackIntegrator
+    # Execute chain: TaskRouter (Librarian-first) → DomainEngine → SwarmSystem → FeedbackIntegrator
     # ------------------------------------------------------------------
 
     def _process_execute(self, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -424,6 +529,46 @@ class IntegrationBus:
         task_type = payload.get("task_type", "general")
         parameters = payload.get("parameters") or {}
 
+        # ------------------------------------------------------------------
+        # Librarian-first routing: attempt dynamic routing via TaskRouter.
+        # When the router is available, it replaces the hardcoded chain below.
+        # On failure the legacy chain is used as fallback (graceful degradation).
+        # ------------------------------------------------------------------
+        if self._task_router is not None:
+            try:
+                route_task = {
+                    "task": task_description,
+                    "task_type": task_type,
+                    "parameters": parameters,
+                    "department_id": payload.get("department_id", "default"),
+                }
+                result = self._task_router.route_sync(route_task)
+                route_status = getattr(result, "status", None)
+                status_val = route_status.value if hasattr(route_status, "value") else str(route_status)
+                solution_path = getattr(result, "solution_path", None)
+                return {
+                    "success": status_val in ("approved", "hitl_required"),
+                    "task_description": task_description,
+                    "route_status": status_val,
+                    "capability_id": (
+                        getattr(solution_path, "capability_id", None)
+                        if solution_path else None
+                    ),
+                    "confidence": getattr(result, "confidence", 0.0),
+                    "gate_results": getattr(result, "gate_results", {}),
+                    "chain_steps": ["task_router"],
+                    "bus_routed": True,
+                    "librarian_routed": True,
+                }
+            except Exception as exc:
+                logger.warning(
+                    "IntegrationBus execute: TaskRouter failed, falling back to legacy chain: %s",
+                    exc,
+                )
+
+        # ------------------------------------------------------------------
+        # Legacy hardcoded chain (fallback / backwards compatibility)
+        # ------------------------------------------------------------------
         domain_result: Optional[Dict[str, Any]] = None
         swarm_result: Optional[Dict[str, Any]] = None
         chain_steps: List[str] = []
@@ -552,6 +697,55 @@ class IntegrationBus:
         }
 
     # ------------------------------------------------------------------
+    # Orchestrate chain: CollaborativeTaskOrchestrator (Gaps 1-5)
+    # ------------------------------------------------------------------
+
+    def _process_orchestrate(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Route an orchestrate request through the CollaborativeTaskOrchestrator.
+
+        Expected payload keys:
+          - ``task_description`` (str, required)
+          - ``budget`` (float, optional, default 100.0)
+          - ``idempotency_key`` (str, optional)
+
+        Falls back to ``_process_execute`` when the orchestrator is unavailable.
+        """
+        task_description = payload.get("task_description") or payload.get("task", "")
+        if not task_description:
+            return {"success": False, "error": "task_description is required", "response": ""}
+
+        budget = float(payload.get("budget", 100.0))
+        idempotency_key = payload.get("idempotency_key")
+
+        if self._collaborative_orchestrator is not None:
+            try:
+                orchestrate_fn = getattr(self._collaborative_orchestrator, "orchestrate", None)
+                if orchestrate_fn is not None:
+                    report = orchestrate_fn(
+                        task_description,
+                        budget=budget,
+                        idempotency_key=idempotency_key,
+                    )
+                    return {
+                        "success": report.status in ("completed", "partial"),
+                        "response": f"Orchestration {report.status}: {task_description}",
+                        "run_id": report.run_id,
+                        "status": report.status,
+                        "layout": report.layout,
+                        "total_cost": report.total_cost,
+                        "total_duration_ms": report.total_duration_ms,
+                        "parallel_groups": report.parallel_groups,
+                        "bus_routed": True,
+                        "engine": "collaborative_task_orchestrator",
+                    }
+            except Exception as exc:
+                logger.warning("IntegrationBus: orchestration failed, falling back: %s", exc)
+
+        # Graceful fallback to execute chain
+        logger.info("IntegrationBus: collaborative_orchestrator unavailable, falling back to execute")
+        return self._process_execute({"task": task_description, "parameters": payload})
+
+    # ------------------------------------------------------------------
     # Status
     # ------------------------------------------------------------------
 
@@ -570,6 +764,9 @@ class IntegrationBus:
                 "dynamic_assist_engine": self._dynamic_assist_engine is not None,
                 "kfactor_calculator": self._kfactor_calculator is not None,
                 "onboarding_team_pipeline": self._onboarding_team_pipeline is not None,
+                "task_router": self._task_router is not None,
+                "collaborative_orchestrator": self._collaborative_orchestrator is not None,
+                "overlay_manager": self._overlay_manager is not None,
             },
         }
 

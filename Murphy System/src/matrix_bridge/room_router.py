@@ -84,7 +84,7 @@ MODULE_TO_ROOM: dict[str, str] = {
     "llm_integration_layer": "murphy-llm",
     "llm_controller": "murphy-llm",
     "llm_output_validator": "murphy-llm",
-    "groq_key_rotator": "murphy-llm",
+    "llm_provider_router": "murphy-llm",
     "openai_compatible_provider": "murphy-llm",
     "enhanced_local_llm": "murphy-llm",
     "local_llm_fallback": "murphy-llm",

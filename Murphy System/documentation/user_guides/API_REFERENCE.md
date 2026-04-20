@@ -39,8 +39,14 @@ and `MURPHY_PORT` (see `.env.example` for all configuration options).
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/hitl/*` | List pending HITL interventions |
-| `POST` | `/api/hitl/*` | Approve or reject a HITL gate |
+| `GET` | `/api/hitl/queue` | Return HITL approval queue |
+| `GET` | `/api/hitl/pending` | Alias for pending items (terminal UI) |
+| `GET` | `/api/hitl/interventions/pending` | Get pending HITL interventions |
+| `POST` | `/api/hitl/interventions/{id}/respond` | Respond to intervention (approved/rejected/resolved/deferred/escalated) |
+| `GET` | `/api/hitl/statistics` | Get HITL statistics |
+| `POST` | `/api/hitl/qc/submit` | Submit for Quality Control review |
+| `POST` | `/api/hitl/acceptance/submit` | Submit for User Acceptance review |
+| `POST` | `/api/hitl/{tid}/decide` | Accept/reject/request revisions on QC or acceptance item |
 
 ### Corrections
 
@@ -48,6 +54,89 @@ and `MURPHY_PORT` (see `.env.example` for all configuration options).
 |--------|------|-------------|
 | `GET` | `/api/corrections/*` | List correction history |
 | `POST` | `/api/corrections/*` | Submit a new correction |
+
+### Platform Self-Automation
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/platform/automation-status` | Unified overview of all 5 self-automation systems |
+| `GET` | `/api/self-fix/status` | SelfFixLoop status |
+| `POST` | `/api/self-fix/run` | Trigger self-fix cycle |
+| `GET` | `/api/repair/status` | AutonomousRepairSystem status |
+| `POST` | `/api/repair/scan` | Run repair scan |
+| `GET` | `/api/scheduler/status` | MurphyScheduler status |
+| `POST` | `/api/scheduler/run` | Execute scheduled tasks |
+| `GET` | `/api/self-automation/status` | SelfAutomationOrchestrator status |
+| `POST` | `/api/self-automation/cycle` | Run automation cycle |
+| `GET` | `/api/self-improvement/status` | SelfImprovementEngine status |
+| `POST` | `/api/self-improvement/analyse` | Run self-improvement analysis |
+
+### Workflows
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/workflows/generate` | Generate workflow from natural language description |
+| `POST` | `/api/workflows/{id}/execute` | Execute a workflow (tier-gated) |
+
+### Compliance
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/compliance/toggles` | Get compliance framework toggles |
+| `POST` | `/api/compliance/toggles` | Save compliance toggles (tier-gated enforcement, conflict detection) |
+
+### Organisation & Agents
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/orgchart/inoni-agents` | Inoni LLC agent org chart (23 agents, 8 departments, 70+ automations) |
+
+### Creator Moderation
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/creator/moderation/check` | Free content moderation — spam detection, toxicity scoring |
+
+### SDK & Platform
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/sdk/status` | SDK availability and language support |
+| `GET` | `/api/platform/capabilities` | 12 licensable platform capabilities |
+| `GET` | `/api/demo/export` | Demo export bundle (BSL-1.1 licensed) |
+
+### Authentication
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/auth/signup` | Create account (bcrypt hashed, sets session cookie) |
+| `POST` | `/api/auth/login` | Sign in (sets HttpOnly murphy_session cookie) |
+| `POST` | `/api/auth/logout` | Sign out (clears session) |
+| `GET` | `/api/auth/providers` | List available OAuth providers |
+| `GET` | `/api/profiles/me` | Get current user profile |
+
+### Onboarding Wizard
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/onboarding/wizard/questions` | Get all setup wizard questions |
+| `POST` | `/api/onboarding/wizard/answer` | Submit answer to a wizard question |
+| `GET` | `/api/onboarding/wizard/profile` | Get current wizard profile state |
+| `POST` | `/api/onboarding/wizard/validate` | Validate the profile |
+| `POST` | `/api/onboarding/wizard/generate-config` | Generate Murphy config from answers |
+| `GET` | `/api/onboarding/wizard/summary` | Get human-readable summary |
+| `POST` | `/api/onboarding/wizard/reset` | Reset wizard to start over |
+
+### Librarian & Chat
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/chat` | Send natural-language message to Murphy |
+| `POST` | `/api/librarian/ask` | Ask the Librarian (modes: ask, execute) |
+| `GET` | `/api/librarian/status` | Librarian health status |
+| `GET` | `/api/llm/status` | LLM provider config & health |
+| `POST` | `/api/llm/configure` | Hot-reload LLM configuration |
+| `POST` | `/api/llm/test` | Test LLM connectivity |
 
 ### AionMind 2.0 Cognitive Pipeline
 

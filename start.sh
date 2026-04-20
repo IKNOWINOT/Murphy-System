@@ -33,7 +33,7 @@ MURPHY_VERSION=1.0.0
 MURPHY_ENV=development
 MURPHY_PORT=8000
 
-# API Keys — set your keys using:  set key deepinfra <your_key>  (in the Murphy terminal)
+# API Keys — set your keys using:  set key deepinfra gsk_yourKeyHere  (in the Murphy terminal)
 # Or uncomment and fill in below:
 # DEEPINFRA_API_KEY=
 # OPENAI_API_KEY=

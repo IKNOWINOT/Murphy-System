@@ -144,7 +144,13 @@ class OperationalDashboardAggregator:
         dash = OperationalDashboardAggregator()
         dash.register_module("OPS-001", "AutomationReadinessEvaluator",
                              lambda: evaluator.get_status())
+        dash.register_builtin_subsystems()
         snapshot = dash.collect()
+
+    Methods:
+        register_builtin_subsystems(): Auto-imports and registers known Murphy
+            subsystems (KPITracker, OperationalSLOTracker, PrometheusMetricsExporter,
+            CRMManager) with graceful degradation if unavailable.
     """
 
     def __init__(
@@ -178,6 +184,54 @@ class OperationalDashboardAggregator:
     def unregister_module(self, label: str) -> bool:
         with self._lock:
             return self._modules.pop(label, None) is not None
+
+    def register_builtin_subsystems(self) -> List[str]:
+        """Import and register known Murphy subsystems.
+
+        Each import is wrapped in try/except so failures are non-fatal.
+        Returns a list of successfully registered labels.
+        """
+        registered: List[str] = []
+
+        try:
+            from kpi_tracker import KPITracker
+            tracker = KPITracker()
+            self.register_module("KPI-001", "KPITracker", lambda: tracker.get_status())
+            registered.append("KPI-001")
+            logger.info("Registered builtin subsystem KPI-001 / KPITracker")
+        except Exception as exc:
+            logger.debug("Could not register KPITracker: %s", exc)
+
+        try:
+            from operational_slo_tracker import OperationalSLOTracker
+            tracker = OperationalSLOTracker()
+            self.register_module("SLO-001", "OperationalSLOTracker", lambda: tracker.get_status())
+            registered.append("SLO-001")
+            logger.info("Registered builtin subsystem SLO-001 / OperationalSLOTracker")
+        except Exception as exc:
+            logger.debug("Could not register OperationalSLOTracker: %s", exc)
+
+        try:
+            from prometheus_metrics_exporter import DEFAULT_REGISTRY
+            self.register_module(
+                "PME-001", "PrometheusMetricsExporter",
+                lambda: {"registered_families": DEFAULT_REGISTRY.family_count()},
+            )
+            registered.append("PME-001")
+            logger.info("Registered builtin subsystem PME-001 / PrometheusMetricsExporter")
+        except Exception as exc:
+            logger.debug("Could not register PrometheusMetricsExporter: %s", exc)
+
+        try:
+            from crm.crm_manager import CRMManager
+            instance = CRMManager()
+            self.register_module("CRM-001", "CRMManager", lambda: {"status": "available"})
+            registered.append("CRM-001")
+            logger.info("Registered builtin subsystem CRM-001 / CRMManager")
+        except Exception as exc:
+            logger.debug("Could not register CRMManager: %s", exc)
+
+        return registered
 
     # ------------------------------------------------------------------
     # Status collection

@@ -9,6 +9,7 @@ Dependencies:
   - DependencyAuditEngine (DEV-005)
   - BugPatternDetector (DEV-004)
   - SelfHealingCoordinator (OBS-004)
+  - PredictiveMaintenanceEngine (PME-001)
   - EventBackbone
   - PersistenceManager
 
@@ -72,7 +73,7 @@ except Exception:  # pragma: no cover
     _BACKBONE_AVAILABLE = False
 
 try:
-    from self_improvement_engine import ImprovementProposal, SelfImprovementEngine
+    from self_improvement_engine import SelfImprovementEngine, ImprovementProposal
     _IMPROVEMENT_AVAILABLE = True
 except Exception:  # pragma: no cover
     SelfImprovementEngine = None  # type: ignore[assignment,misc]
@@ -106,6 +107,13 @@ try:
 except Exception:  # pragma: no cover
     SelfHealingCoordinator = None  # type: ignore[assignment,misc]
     _HEALING_AVAILABLE = False
+
+try:
+    from predictive_maintenance_engine import PredictiveMaintenanceEngine as _PredictiveMaintenanceEngine
+    _PREDICTIVE_AVAILABLE = True
+except Exception:  # pragma: no cover
+    _PredictiveMaintenanceEngine = None  # type: ignore[assignment,misc]
+    _PREDICTIVE_AVAILABLE = False
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -838,6 +846,7 @@ class FounderMaintenanceRecommendationEngine:
         self._maybe_register_dependency_audit()
         self._maybe_register_bug_pattern_detector()
         self._maybe_register_self_healing_coordinator()
+        self._maybe_register_predictive_maintenance()
 
     def _maybe_register_self_improvement(self) -> None:
         if not _IMPROVEMENT_AVAILABLE or SelfImprovementEngine is None:
@@ -985,6 +994,52 @@ class FounderMaintenanceRecommendationEngine:
             )
         except Exception as exc:
             logger.debug("Could not register self_healing_coordinator: %s", exc)
+
+    def _maybe_register_predictive_maintenance(self) -> None:
+        if not _PREDICTIVE_AVAILABLE or _PredictiveMaintenanceEngine is None:
+            return
+        try:
+            engine = _PredictiveMaintenanceEngine()
+
+            def _health() -> Dict[str, Any]:
+                if hasattr(engine, "get_status"):
+                    return engine.get_status()
+                return {"healthy": True}
+
+            def _recs() -> List[Dict[str, Any]]:
+                recs = []
+                try:
+                    alerts = engine.get_alerts() if hasattr(engine, "get_alerts") else []
+                    for alert in alerts:
+                        severity = getattr(alert, "severity", None)
+                        if hasattr(severity, "value"):
+                            severity = severity.value
+                        priority = severity if severity in ("critical", "high", "medium", "low") else "medium"
+                        recs.append({
+                            "category": "MAINTENANCE",
+                            "priority": priority,
+                            "title": f"Predictive alert: {getattr(alert, 'alert_id', 'unknown')}",
+                            "description": getattr(alert, "message", ""),
+                            "suggested_action": "Investigate and address predictive maintenance alert.",
+                            "auto_applicable": False,
+                            "metadata": {
+                                "alert_id": getattr(alert, "alert_id", ""),
+                                "asset_id": getattr(alert, "asset_id", ""),
+                            },
+                        })
+                except Exception as exc:
+                    logger.debug("PredictiveMaintenanceEngine recs failed: %s", exc)
+                return recs
+
+            self.register_subsystem(
+                name="predictive_maintenance_engine",
+                description="Predictive Maintenance Engine (PME-001)",
+                health_check=_health,
+                get_recommendations=_recs,
+                criticality=4,
+            )
+        except Exception as exc:
+            logger.debug("Could not register predictive_maintenance_engine: %s", exc)
 
     # ------------------------------------------------------------------
     # Audit log access

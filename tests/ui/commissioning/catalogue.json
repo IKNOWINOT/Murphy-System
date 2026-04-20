@@ -297,5 +297,324 @@
       "customer",
       "investor"
     ]
+  },
+  {
+    "id": "BOARD-001",
+    "page": "boards",
+    "element": ".board-sidebar",
+    "expected": "Board sidebar with groups container and activity panel renders",
+    "viewpoints": [
+      "founder",
+      "operator"
+    ]
+  },
+  {
+    "id": "BOARD-002",
+    "page": "boards",
+    "element": "#groups-container",
+    "expected": "Board API endpoints wired: /api/boards, /api/boards/{boardId}, /api/collaboration/comments",
+    "viewpoints": [
+      "operator"
+    ]
+  },
+  {
+    "id": "BOARD-003",
+    "page": "boards",
+    "element": "murphy-sidebar",
+    "expected": "murphy-sidebar navigation component present for cross-page nav",
+    "viewpoints": [
+      "founder",
+      "customer"
+    ]
+  },
+  {
+    "id": "WDOC-001",
+    "page": "workdocs",
+    "element": "#doc-list",
+    "expected": "Document list and editor main area render with side panel",
+    "viewpoints": [
+      "founder",
+      "operator"
+    ]
+  },
+  {
+    "id": "WDOC-002",
+    "page": "workdocs",
+    "element": "#editor-main",
+    "expected": "Workdocs API wired: /api/workdocs, /api/workdocs/{docId}/blocks, /api/collaboration/comments",
+    "viewpoints": [
+      "operator"
+    ]
+  },
+  {
+    "id": "WDOC-003",
+    "page": "workdocs",
+    "element": "murphy-sidebar",
+    "expected": "murphy-sidebar navigation component present for cross-page nav",
+    "viewpoints": [
+      "founder",
+      "customer"
+    ]
+  },
+  {
+    "id": "TIME-001",
+    "page": "time_tracking",
+    "element": "body",
+    "expected": "Timer controls, entry table, and timesheet panel render",
+    "viewpoints": [
+      "operator",
+      "founder"
+    ]
+  },
+  {
+    "id": "TIME-002",
+    "page": "time_tracking",
+    "element": "body",
+    "expected": "Time tracking API wired: /api/time-tracking/entries, /api/time-tracking/timer/start",
+    "viewpoints": [
+      "operator"
+    ]
+  },
+  {
+    "id": "TIME-003",
+    "page": "time_tracking",
+    "element": "murphy-sidebar",
+    "expected": "murphy-sidebar navigation component present for cross-page nav",
+    "viewpoints": [
+      "founder",
+      "customer"
+    ]
+  },
+  {
+    "id": "DASH-001",
+    "page": "dashboards",
+    "element": "body",
+    "expected": "Dashboard list, widget grid, and chart containers render",
+    "viewpoints": [
+      "founder",
+      "investor"
+    ]
+  },
+  {
+    "id": "DASH-002",
+    "page": "dashboards",
+    "element": "body",
+    "expected": "Dashboard API wired: /api/dashboards, /api/dashboards/{dashId}/render",
+    "viewpoints": [
+      "operator"
+    ]
+  },
+  {
+    "id": "DASH-003",
+    "page": "dashboards",
+    "element": "murphy-sidebar",
+    "expected": "murphy-sidebar navigation component present for cross-page nav",
+    "viewpoints": [
+      "founder",
+      "customer"
+    ]
+  },
+  {
+    "id": "CRM-001",
+    "page": "crm",
+    "element": "body",
+    "expected": "Contact table, pipeline kanban, and activity feed render",
+    "viewpoints": [
+      "founder",
+      "customer"
+    ]
+  },
+  {
+    "id": "CRM-002",
+    "page": "crm",
+    "element": "body",
+    "expected": "CRM API wired: /api/crm/contacts, /api/crm/pipelines, /api/crm/deals",
+    "viewpoints": [
+      "operator"
+    ]
+  },
+  {
+    "id": "CRM-003",
+    "page": "crm",
+    "element": "murphy-sidebar",
+    "expected": "murphy-sidebar navigation component present for cross-page nav",
+    "viewpoints": [
+      "founder",
+      "customer"
+    ]
+  },
+  {
+    "id": "PORT-001",
+    "page": "portfolio",
+    "element": "body",
+    "expected": "Gantt chart, milestone markers, and critical path render",
+    "viewpoints": [
+      "founder",
+      "investor"
+    ]
+  },
+  {
+    "id": "PORT-002",
+    "page": "portfolio",
+    "element": "body",
+    "expected": "Portfolio API wired: /api/portfolio/bars, /api/portfolio/milestones, /api/portfolio/critical-path",
+    "viewpoints": [
+      "operator"
+    ]
+  },
+  {
+    "id": "PORT-003",
+    "page": "portfolio",
+    "element": "murphy-sidebar",
+    "expected": "murphy-sidebar navigation component present for cross-page nav",
+    "viewpoints": [
+      "founder",
+      "customer"
+    ]
+  },
+  {
+    "id": "AION-001",
+    "page": "aionmind",
+    "element": "body",
+    "expected": "Status panel, context input, and execution queue render",
+    "viewpoints": [
+      "operator",
+      "founder"
+    ]
+  },
+  {
+    "id": "AION-002",
+    "page": "aionmind",
+    "element": "body",
+    "expected": "AIONMind API wired: /api/aionmind/status, /api/aionmind/orchestrate, /api/aionmind/proposals",
+    "viewpoints": [
+      "operator"
+    ]
+  },
+  {
+    "id": "AION-003",
+    "page": "aionmind",
+    "element": "murphy-sidebar",
+    "expected": "murphy-sidebar navigation component present for cross-page nav",
+    "viewpoints": [
+      "founder",
+      "customer"
+    ]
+  },
+  {
+    "id": "AUTO-001",
+    "page": "automations",
+    "element": "body",
+    "expected": "Rule list, trigger/action config, and execution log render",
+    "viewpoints": [
+      "operator",
+      "founder"
+    ]
+  },
+  {
+    "id": "AUTO-002",
+    "page": "automations",
+    "element": "body",
+    "expected": "Automations API wired: /api/automations/rules, /api/automations/trigger, /api/automations/log",
+    "viewpoints": [
+      "operator"
+    ]
+  },
+  {
+    "id": "AUTO-003",
+    "page": "automations",
+    "element": "murphy-sidebar",
+    "expected": "murphy-sidebar navigation component present for cross-page nav",
+    "viewpoints": [
+      "founder",
+      "customer"
+    ]
+  },
+  {
+    "id": "DEV-001",
+    "page": "dev_module",
+    "element": "body",
+    "expected": "Sprint board, bug tracker, release panel, git feed, and roadmap render",
+    "viewpoints": [
+      "operator",
+      "founder"
+    ]
+  },
+  {
+    "id": "DEV-002",
+    "page": "dev_module",
+    "element": "body",
+    "expected": "Dev API wired: /api/dev/sprints, /api/dev/bugs, /api/dev/releases, /api/dev/git, /api/dev/roadmap",
+    "viewpoints": [
+      "operator"
+    ]
+  },
+  {
+    "id": "DEV-003",
+    "page": "dev_module",
+    "element": "murphy-sidebar",
+    "expected": "murphy-sidebar navigation component present for cross-page nav",
+    "viewpoints": [
+      "founder",
+      "customer"
+    ]
+  },
+  {
+    "id": "SVC-001",
+    "page": "service_module",
+    "element": "body",
+    "expected": "Ticket table, catalog list, KB search, and CSAT panel render",
+    "viewpoints": [
+      "operator",
+      "customer"
+    ]
+  },
+  {
+    "id": "SVC-002",
+    "page": "service_module",
+    "element": "body",
+    "expected": "Service API wired: /api/service/tickets, /api/service/catalog, /api/service/kb, /api/service/csat",
+    "viewpoints": [
+      "operator"
+    ]
+  },
+  {
+    "id": "SVC-003",
+    "page": "service_module",
+    "element": "murphy-sidebar",
+    "expected": "murphy-sidebar navigation component present for cross-page nav",
+    "viewpoints": [
+      "founder",
+      "customer"
+    ]
+  },
+  {
+    "id": "GUEST-001",
+    "page": "guest_portal",
+    "element": "body",
+    "expected": "Guest list, shareable links, portal config, and form builder render",
+    "viewpoints": [
+      "operator",
+      "customer"
+    ]
+  },
+  {
+    "id": "GUEST-002",
+    "page": "guest_portal",
+    "element": "body",
+    "expected": "Guest API wired: /api/guest/invites, /api/guest/links, /api/guest/portals, /api/guest/forms",
+    "viewpoints": [
+      "operator"
+    ]
+  },
+  {
+    "id": "GUEST-003",
+    "page": "guest_portal",
+    "element": "murphy-sidebar",
+    "expected": "murphy-sidebar navigation component present for cross-page nav",
+    "viewpoints": [
+      "founder",
+      "customer"
+    ]
   }
 ]

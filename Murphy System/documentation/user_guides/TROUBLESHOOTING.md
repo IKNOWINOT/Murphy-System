@@ -507,45 +507,39 @@ top -p $(pgrep -f murphy_system_1.0_runtime)
 
 **Diagnosis**:
 ```bash
-# Check YAML config files exist
-ls -la config/murphy.yaml
-ls -la config/engines.yaml
+# Check config file exists
+ls -la config/config.yaml
 
 # Validate YAML syntax
-python -c "import yaml; yaml.safe_load(open('config/murphy.yaml'))"
+python -c "import yaml; yaml.safe_load(open('config/config.yaml'))"
 ```
 
 **Solutions**:
 
-1. **Verify Config Files**:
+1. **Verify Config File**:
    ```bash
-   # Check files exist
-   ls -l config/murphy.yaml config/engines.yaml
+   # Check file exists
+   ls -l config/config.yaml
 
    # Check permissions
-   chmod 644 config/murphy.yaml config/engines.yaml
+   chmod 644 config/config.yaml
    ```
 
 2. **Validate YAML Syntax**:
    ```bash
    # Validate YAML
-   python -c "import yaml; yaml.safe_load(open('config/murphy.yaml'))"
+   python -c "import yaml; yaml.safe_load(open('config/config.yaml'))"
    ```
 
-3. **Override via Environment Variable**:
+3. **Check Config Path**:
    ```bash
-   # Environment variables always override YAML values
-   # Use namespaced syntax: MURPHY_<SECTION>__<KEY>
-   export MURPHY_API__PORT=9000
-   export MURPHY_THRESHOLDS__CONFIDENCE=0.90
-   python murphy_system_1.0_runtime.py
+   # Specify config explicitly
+   python murphy_system_1.0_runtime.py --config config/config.yaml
    ```
 
 4. **Use Environment Variables**:
    ```bash
-   # Legacy flat names also work
-   export LOG_LEVEL=DEBUG
-   export MURPHY_LLM_PROVIDER=deepinfra
+   export MURPHY_CONFIG=/path/to/config.yaml
    python murphy_system_1.0_runtime.py
    ```
 
@@ -559,41 +553,40 @@ python -c "import yaml; yaml.safe_load(open('config/murphy.yaml'))"
 
 **Diagnosis**:
 ```bash
-# Check config files
-cat config/murphy.yaml
-cat config/engines.yaml
+# Check config file
+cat config/config.yaml
 ```
 
 **Solutions**:
 
 1. **Validate Configuration**:
    ```yaml
-   # config/murphy.yaml — check values are valid
-   api:
-     port: 8000          # Must be 1-65535
-   thresholds:
-     confidence: 0.85    # Must be 0.0–1.0
+   # Check values are valid
+   server:
+     port: 8000  # Must be 1-65535
+     workers: 8  # Must be positive integer
    ```
 
 2. **Check Data Types**:
    ```yaml
    # Ensure correct types
    cache:
-     enabled: true   # boolean
-     ttl: 3600       # integer (seconds)
+     enabled: true  # boolean
+     level: 3  # integer
+     max_size: 1024  # integer
    ```
 
 3. **Use Example Config**:
    ```bash
-   # Start from the annotated example
-   cp config/murphy.yaml.example config/murphy.yaml
+   # Start with example
+   cp config/config.example.yaml config/config.yaml
    # Then modify
    ```
 
 4. **Validate with Schema**:
    ```python
    from pydantic import BaseModel
-
+   
    class Config(BaseModel):
        port: int
        workers: int
@@ -889,6 +882,80 @@ curl http://localhost:8000/api/health
 
 ---
 
+## Ollama / Onboard LLM Troubleshooting
+
+Murphy uses Ollama for local LLM inference when no external API key is set.
+Use these steps when LLM responses are canned/generic or the health endpoint
+reports `"ollama_running": false`.
+
+### Check Ollama service
+
+```bash
+systemctl status ollama
+# If inactive:
+systemctl start ollama
+```
+
+### Check which models are pulled
+
+```bash
+ollama list
+# Expected output (at minimum):
+#   NAME          ID          SIZE   MODIFIED
+#   llama3:latest ...         4.7 GB ...
+```
+
+### Pull a model if none are present
+
+```bash
+ollama pull llama3       # ~4.7 GB — default (requires 6 GB+ RAM)
+ollama pull phi3         # ~2.3 GB — use on 2.5–6 GB systems
+ollama pull tinyllama    # ~1 GB   — minimal (< 2.5 GB RAM)
+```
+
+### Verify Ollama responds directly
+
+```bash
+curl -s http://localhost:11434/api/tags | python3 -m json.tool
+# Should show {"models": [...]}
+
+# Quick generation test
+curl -s http://localhost:11434/api/generate \
+  -d '{"model":"llama3","prompt":"Say hi","stream":false}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin).get('response',''))"
+```
+
+### Check Murphy's view of Ollama
+
+```bash
+curl -s 'http://localhost:8000/api/health?deep=true' \
+  | python3 -c "
+import sys, json
+d = json.load(sys.stdin).get('checks', {})
+print('LLM:           ', d.get('llm'))
+print('Ollama running:', d.get('ollama_running'))
+print('Ollama models: ', d.get('ollama_models'))
+print('Ollama host:   ', d.get('ollama_host'))
+"
+
+# Or via the LLM status endpoint
+curl -s http://localhost:8000/api/llm/status | python3 -m json.tool
+```
+
+### Set OLLAMA_MODEL to a pulled model
+
+If Ollama is running but Murphy still falls back to pattern-matching, make
+sure the `OLLAMA_MODEL` env var matches an actually-pulled model name:
+
+```bash
+# Add to /etc/murphy-production/environment (or your .env)
+OLLAMA_MODEL=llama3    # must match a name shown by `ollama list`
+
+# Then restart Murphy
+systemctl restart murphy-production
+```
+
+---
 **© 2025 Corey Post InonI LLC. All rights reserved.**  
 **Licensed under BSL 1.1 (converts to Apache 2.0 after 4 years)**  
 **Contact: corey.gfc@gmail.com**

@@ -87,9 +87,9 @@ fi
 if [ ! "$SKIP_ENV" = true ]; then
     echo ""
     echo -e "${CYAN}To use Murphy, you need at least one LLM API key.${NC}"
-    echo -e "${CYAN}Recommended: DeepInfra (primary LLM provider)${NC}"
+    echo -e "${CYAN}Recommended: DeepInfra (free tier available)${NC}"
     echo ""
-    echo "Get a free DeepInfra API key at: https://deepinfra.com"
+    echo "Get a free DeepInfra API key at: https://deepinfra.com/keys"
     echo ""
     read -p "Enter your DeepInfra API key (or press Enter to skip): " DEEPINFRA_KEY
     echo ""
@@ -155,7 +155,7 @@ echo ""
 if [ -z "$DEEPINFRA_KEY" ]; then
     echo -e "${YELLOW}⚠ IMPORTANT: You need to add an API key to .env before starting Murphy${NC}"
     echo ""
-    echo "1. Get a free DeepInfra API key: https://deepinfra.com"
+    echo "1. Get a free DeepInfra API key: https://deepinfra.com/keys"
     echo "2. Edit .env and add: DEEPINFRA_API_KEY=your_key_here"
     echo "3. Save the file"
     echo ""

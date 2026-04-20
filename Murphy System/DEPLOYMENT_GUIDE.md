@@ -65,7 +65,7 @@ bash scripts/generate_secrets.sh
 | App secret key | `MURPHY_SECRET_KEY` | `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
 | JWT secret | `MURPHY_JWT_SECRET` | `python -c "import secrets; print(secrets.token_hex(32))"` |
 | Credential master key | `MURPHY_CREDENTIAL_MASTER_KEY` | `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
-| API key(s) | `MURPHY_API_KEYS` | `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
+| API key(s) | `MURPHY_API_KEY` | `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
 | DB password | `POSTGRES_PASSWORD` | `python -c "import secrets; print(secrets.token_urlsafe(24))"` |
 | Grafana password | `GRAFANA_ADMIN_PASSWORD` | `python -c "import secrets; print(secrets.token_urlsafe(24))"` |
 
@@ -99,7 +99,7 @@ chmod 600 /etc/murphy-production/environment
 MURPHY_ENV=production
 MURPHY_SECRET_KEY=<generated>
 MURPHY_JWT_SECRET=<generated>
-MURPHY_API_KEYS=<generated>
+MURPHY_API_KEY=<generated>
 
 # Database (PostgreSQL)
 DATABASE_URL=postgresql://murphy:<password>@localhost:5432/murphy
@@ -587,6 +587,48 @@ curl https://murphy.systems/api/health
 ### Database rollback (from backup)
 
 If a database migration needs to be reversed:
+
+---
+
+## Database Migrations (Alembic)
+
+Murphy System uses Alembic for database schema migrations.
+
+### Running Migrations
+
+```bash
+# Apply all pending migrations
+alembic upgrade head
+
+# Check current migration status
+alembic current
+
+# View migration history
+alembic history
+```
+
+The `POSTGRES_PASSWORD` environment variable is **required** for production deployments:
+
+```
+POSTGRES_PASSWORD=<strong-random-password>
+```
+
+Generate a secure password:
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(24))"
+```
+
+### Rolling Back Migrations
+
+```bash
+# Roll back one migration step
+alembic downgrade -1
+
+# Roll back to a specific revision
+alembic downgrade <revision_id>
+```
+
+---
 
 ```bash
 # List available backups

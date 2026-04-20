@@ -138,9 +138,9 @@ class WorkflowTemplateLibrary:
         result is directly consumable by :class:`WorkflowDAGEngine`.
         """
         try:
-            from workflow_dag_engine import StepDefinition, WorkflowDefinition
+            from workflow_dag_engine import WorkflowDefinition, StepDefinition
         except ImportError:
-            from src.workflow_dag_engine import StepDefinition, WorkflowDefinition  # type: ignore[no-reattr]
+            from src.workflow_dag_engine import WorkflowDefinition, StepDefinition  # type: ignore[no-reattr]
 
         step_defs = []
         for step in template.steps:

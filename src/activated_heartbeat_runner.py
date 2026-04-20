@@ -51,6 +51,7 @@ from agent_monitor_dashboard import (
     AgentState,
     DashboardSnapshot,
 )
+from ceo_branch_activation import CEOBranch
 from control_plane.control_loop import (
     ControlLaw as ProportionalControlLaw,
 )
@@ -69,7 +70,7 @@ from full_automation_controller import (
 from persistence_replay_completeness import PersistenceReplayCompleteness
 from rosetta.rosetta_models import BusinessPlanMath, UnitEconomics
 from rosetta_stone_heartbeat import RosettaStoneHeartbeat
-from ceo_branch_activation import CEOBranch
+
 try:
     from thread_safe_operations import capped_append
 except ImportError:

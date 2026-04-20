@@ -495,20 +495,20 @@ MODULE_MANIFEST: List[ModuleEntry] = [
     ModuleEntry(
         module="openai_compatible_provider",
         room="openai-compatible-provider",
-        commands=["llm openai", "llm deepinfra"],
+        commands=["llm openai", "llm deepinfra", "llm together"],
         persona="TriageBot",
         emits=["metric_recorded"],
         consumes=[],
-        description="OpenAI-compatible provider (openai/deepinfra/onboard)",
+        description="OpenAI-compatible provider (openai/deepinfra/together/onboard)",
     ),
     ModuleEntry(
-        module="groq_key_rotator",
-        room="deepinfra-key-rotator",
-        commands=["keys deepinfra", "llm deepinfra-keys"],
+        module="llm_provider_router",
+        room="llm-provider-router",
+        commands=["keys deepinfra", "llm deepinfra-key"],
         persona="KeyManagerBot",
         emits=["audit_logged"],
         consumes=[],
-        description="DeepInfra key rotator",
+        description="LLM provider router (DeepInfra/Together AI)",
     ),
     ModuleEntry(
         module="inference_gate_engine",
@@ -2678,11 +2678,36 @@ MODULE_MANIFEST: List[ModuleEntry] = [
     ModuleEntry(
         module='agent_module_loader',
         room='agent-persona-library',
-        commands=["agent module loader status"],
+        commands=[
+            "agent module loader status",
+            "mcb checkout controller",
+            "mcb list controllers",
+            "mcb release controller",
+            "mcb launch browser",
+            "mcb auto layout",
+            "mcb screenshot",
+            "mcb navigate",
+            "mcb assert visible",
+            "mcb parallel probe",
+        ],
         persona='TriageBot',
-        emits=["agent_module_loader_completed"],
-        consumes=["task_submitted"],
-        description='Agent Module Loader',
+        emits=[
+            "agent_module_loader_completed",
+            "mcb_controller_checked_out",
+            "mcb_browser_launched",
+            "mcb_action_completed",
+            "mcb_assertion_passed",
+            "mcb_assertion_failed",
+        ],
+        consumes=["task_submitted", "agent_startup", "browser_action_requested"],
+        description=(
+            'Agent Module Loader — MultiCursorBrowser de-facto agent controller. '
+            '120+ action types (complete Playwright superset + Murphy extensions). '
+            'All agents check out MCB controller via get_controller(agent_id=...) at startup. '
+            'Supports: multi-cursor zones, parallel execution, desktop automation, '
+            'recording/playback, 13 new assertion types, semantic locators, clock control, '
+            'network mocking, cookie/storage management, accessibility snapshots.'
+        ),
     ),
     ModuleEntry(
         module='agentic_comms_router',
