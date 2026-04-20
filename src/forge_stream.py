@@ -130,6 +130,16 @@ async def forge_stream_generator(query: str = "") -> AsyncIterator[str]:
         })
         await asyncio.sleep(0.02)
 
+        # CTD-SSE-001: Emit prerequisite phase events for compound queries
+        if event.get("pipeline_stage") == "ctd":
+            yield _sse_event("prerequisite_phase", {
+                "phase_type": event.get("phase_type", ""),
+                "success": event.get("phase_success", False),
+                "elapsed_ms": event.get("phase_elapsed_ms", 0),
+                "detail": event.get("detail", ""),
+            })
+            await asyncio.sleep(0.02)
+
         # When the pipeline decomposes into agent tasks (phase 3),
         # emit individual agent_start/agent_done events for each task.
         if event.get("detail") == "agent_tasks":
