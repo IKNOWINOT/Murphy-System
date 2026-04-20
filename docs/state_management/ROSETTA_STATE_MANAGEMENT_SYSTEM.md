@@ -5,7 +5,7 @@
 **Branch:** `feature/rosetta-state-management`  
 **Owner:** Inoni LLC / Corey Post  
 **Repository:** https://github.com/IKNOWINOT/Murphy-System  
-**Runtime Scope:** repository root only  
+**Runtime Scope:** `Murphy System/Murphy System/` only  
 
 ---
 
@@ -34,7 +34,7 @@ You asked: *"Is my current agent persistence system aligned with my original arc
 
 ### The Verdict: **Hybrid — Extend the Existing System, Do Not Replace It**
 
-After reading every relevant file in the repository root, the conclusion is clear:
+After reading every relevant file in `Murphy System/`, the conclusion is clear:
 
 **Your existing infrastructure is architecturally sound and more capable than you may realize.** The `PersistenceManager`, `StateManager`, `SelfImprovementEngine`, `SelfAutomationOrchestrator`, `RAGVectorIntegration`, `WorkflowDAGEngine`, `EventBackbone`, and `GovernanceScheduler` collectively form a strong foundation. The problem is not that the wrong system was built — it is that **these components are not wired together into a unified, agent-readable state surface**.
 
@@ -160,7 +160,7 @@ The existing system already has: durable storage, event replay, in-memory state 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                    ROSETTA STATE LAYER                              │
-│              src/rosetta/                         │
+│              Murphy System/src/rosetta/                         │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
 │  ┌─────────────────────┐    ┌──────────────────────────────────┐   │
@@ -546,12 +546,12 @@ WORKFLOW_PHASE_CHANGED = "workflow_phase_changed"
 
 ### Priority 3 — Subsystem Wiring (Week 3)
 
-- [x] **P3-001** Wire `SelfImprovementEngine.extract_patterns()` output into `RosettaStateManager.update_after_task()`
-- [x] **P3-002** Wire `SelfAutomationOrchestrator` cycle records into `automation_progress.workflows[]`
-- [x] **P3-003** Wire `RAGVectorIntegration.ingest_document()` call into `RosettaStateManager.save_agent_doc()`
-- [x] **P3-004** Wire `EventBackbone` subscription in `RosettaStateManager` — subscribe to `TASK_COMPLETED`, `TASK_FAILED`, `GATE_EVALUATED`
-- [x] **P3-005** Wire `StateManager` sync — on `SystemState` update, push delta to Rosetta document
-- [x] **P3-006** Write `tests/test_rosetta_subsystem_wiring.py`
+- [ ] **P3-001** Wire `SelfImprovementEngine.extract_patterns()` output into `RosettaStateManager.update_after_task()`
+- [ ] **P3-002** Wire `SelfAutomationOrchestrator` cycle records into `automation_progress.workflows[]`
+- [ ] **P3-003** Wire `RAGVectorIntegration.ingest_document()` call into `RosettaStateManager.save_agent_doc()`
+- [ ] **P3-004** Wire `EventBackbone` subscription in `RosettaStateManager` — subscribe to `TASK_COMPLETED`, `TASK_FAILED`, `GATE_EVALUATED`
+- [ ] **P3-005** Wire `StateManager` sync — on `SystemState` update, push delta to Rosetta document
+- [ ] **P3-006** Write `tests/test_rosetta_subsystem_wiring.py`
 
 ### Priority 4 — Self-Improvement Persistence (Week 4)
 
@@ -563,8 +563,8 @@ WORKFLOW_PHASE_CHANGED = "workflow_phase_changed"
 
 ### Priority 5 — Documentation & README (Week 4)
 
-- [ ] **P5-001** Update `ARCHITECTURE_MAP.md` to include Rosetta layer
-- [ ] **P5-002** Update `API_DOCUMENTATION.md` with Rosetta endpoints
+- [ ] **P5-001** Update `Murphy System/ARCHITECTURE_MAP.md` to include Rosetta layer
+- [ ] **P5-002** Update `Murphy System/API_DOCUMENTATION.md` with Rosetta endpoints
 - [ ] **P5-003** Add Rosetta state management section to main `README.md`
 
 ---
@@ -574,7 +574,7 @@ WORKFLOW_PHASE_CHANGED = "workflow_phase_changed"
 ### New Files to Create
 
 ```
-./
+Murphy System/
 └── src/
     └── rosetta/
         ├── __init__.py
@@ -584,7 +584,7 @@ WORKFLOW_PHASE_CHANGED = "workflow_phase_changed"
         ├── recalibration_scheduler.py # RecalibrationScheduler — weekly cycle orchestrator
         └── global_aggregator.py       # GlobalStateAggregator — system-wide view builder
 
-./
+Murphy System/
 └── tests/
     ├── test_rosetta_manager.py
     ├── test_recalibration_scheduler.py
@@ -592,7 +592,7 @@ WORKFLOW_PHASE_CHANGED = "workflow_phase_changed"
     ├── test_rosetta_subsystem_wiring.py
     └── test_self_improvement_persistence.py
 
-./
+Murphy System/
 └── docs/
     └── state_management/
         ├── ROSETTA_STATE_MANAGEMENT_SYSTEM.md   # This document

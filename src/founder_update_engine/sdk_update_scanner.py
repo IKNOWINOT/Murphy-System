@@ -272,7 +272,7 @@ class SdkUpdateScanner:
                     try:
                         self._dep_audit.register_dependency(name=name, version=version)
                     except Exception:
-                        pass
+                        logger.debug("Suppressed exception in sdk_update_scanner")
                 audit_report = self._dep_audit.run_audit_cycle()
                 for finding in audit_report.findings:
                     advisory_map.setdefault(finding.dep_name, []).append(finding.advisory_id)

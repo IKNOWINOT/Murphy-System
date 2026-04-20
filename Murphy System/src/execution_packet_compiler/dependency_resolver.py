@@ -5,16 +5,20 @@ Generates execution DAG with strict ordering
 
 import hashlib
 import logging
+import os
 
 # Import from confidence engine
+import sys
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from src.confidence_engine.models import ArtifactGraph, ArtifactNode, ArtifactType
-
 from .models import ExecutionGraph, ExecutionScope, ExecutionStep, StepType
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
 logger = logging.getLogger(__name__)
+
+from confidence_engine.models import ArtifactGraph, ArtifactNode, ArtifactType
 
 
 class DependencyResolver:

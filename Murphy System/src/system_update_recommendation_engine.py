@@ -58,7 +58,7 @@ except ImportError:
     SelfFixLoop = None  # type: ignore[misc,assignment]
 
 try:
-    from self_improvement_engine import ExecutionOutcome, OutcomeType, SelfImprovementEngine
+    from self_improvement_engine import SelfImprovementEngine, ExecutionOutcome, OutcomeType
 except ImportError:
     SelfImprovementEngine = None  # type: ignore[misc,assignment]
     ExecutionOutcome = None  # type: ignore[misc,assignment]
@@ -560,7 +560,7 @@ class SDKUpdateTracker:
                 reports = self._audit_engine.get_reports(limit=1)
                 report_count = len(reports)
             except Exception:
-                logger.debug("Audit engine report query failed")
+                pass
         return {
             "last_audit_available": report_count > 0,
             "compatibility_checks_registered": len(self._compatibility_matrix),
@@ -812,7 +812,18 @@ class BugReportAutoResponder:
             try:
                 pattern_count = len(self._detector.get_patterns(limit=100))
             except Exception:
-                logger.debug("Suppressed exception in system_update_recommendation_engine")
+                pass
+
+    def generate_recommendations(self) -> List[Recommendation]:
+        """Return bug-response recommendations based on ingested patterns."""
+        recs: List[Recommendation] = []
+
+        pattern_count = 0
+        if self._detector is not None:
+            try:
+                pattern_count = len(self._detector.get_patterns(limit=100))
+            except Exception:
+                pass
 
         if pattern_count > 0:
             recs.append(Recommendation(

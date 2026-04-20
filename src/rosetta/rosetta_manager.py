@@ -17,7 +17,14 @@ from pathlib import Path
 from threading import Lock
 from typing import Any, Dict, List, Optional
 
-from .rosetta_models import RosettaAgentState
+from .rosetta_models import (
+    AutomationProgress,
+    Identity,
+    ImprovementProposal,
+    RosettaAgentState,
+    SystemState,
+    WorkflowPattern,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -197,6 +204,225 @@ class RosettaManager:
                 "agents_in_memory": len(self._states),
                 "agents_on_disk": len(list(self._persistence_dir.glob("*.json"))),
             }
+
+    # ---- P3 wiring helpers ----
+
+    def update_after_task(
+        self,
+        agent_id: str,
+        patterns: List[Dict[str, Any]],
+    ) -> Optional[RosettaAgentState]:
+        """P3-001: Merge improvement patterns from SelfImprovementEngine into agent state.
+
+        Converts raw pattern dicts (from ``SelfImprovementEngine.extract_patterns()``)
+        into ``WorkflowPattern`` entries and upserts them on the agent's state document.
+        Creates a minimal state for the agent if one does not yet exist.
+
+        Args:
+            agent_id: The agent whose state should be updated.
+            patterns: List of pattern dicts as returned by
+                ``SelfImprovementEngine.extract_patterns()``.
+
+        Returns:
+            The updated ``RosettaAgentState``, or ``None`` on error.
+        """
+        if not patterns:
+            return self.load_state(agent_id)
+
+        try:
+            agent_id = self._sanitize_id(agent_id)
+        except ValueError as exc:
+            logger.warning("update_after_task: invalid agent_id %r — %s", agent_id, exc)
+            return None
+
+        with self._lock:
+            state = self._states.get(agent_id)
+            if state is None:
+                filepath = self._filepath(agent_id)
+                if filepath.exists():
+                    try:
+                        state = RosettaAgentState.model_validate(self._read_json(filepath))
+                    except Exception as exc:  # noqa: BLE001
+                        logger.warning("update_after_task: failed to load %s — %s", agent_id, exc)
+                        state = None
+                if state is None:
+                    state = RosettaAgentState(
+                        identity=Identity(agent_id=agent_id, name=agent_id)
+                    )
+
+            existing_ids = {wp.pattern_id for wp in state.workflow_patterns}
+            for p in patterns:
+                pid = p.get("pattern_id", "")
+                if not pid or pid in existing_ids:
+                    continue
+                try:
+                    wp = WorkflowPattern(
+                        pattern_id=pid,
+                        name=p.get("type", "unknown"),
+                        steps=p.get("sample_task_ids", []),
+                        success_rate=1.0 if p.get("type") == "success_pattern" else 0.0,
+                        avg_duration_seconds=float(p.get("avg_duration", 0.0)),
+                        usage_count=int(p.get("occurrences", 0)),
+                    )
+                    state.workflow_patterns.append(wp)
+                    existing_ids.add(pid)
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("update_after_task: skipping malformed pattern %r — %s", pid, exc)
+
+            state.metadata.updated_at = datetime.now(timezone.utc)
+            self._states[agent_id] = state
+            try:
+                self._write_json(self._filepath(agent_id), state.model_dump(mode="json"))
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("update_after_task: persistence write failed — %s", exc)
+
+        logger.debug("update_after_task: merged %d patterns for agent %s", len(patterns), agent_id)
+        return state
+
+    def save_agent_doc(
+        self,
+        agent_id: str,
+        rag: Any,
+        content: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """P3-003: Ingest the agent state document into the RAG vector store.
+
+        Serialises the current ``RosettaAgentState`` to JSON (or uses the supplied
+        *content* string) and calls ``rag.ingest_document()`` so that downstream
+        retrieval-augmented generation can query agent knowledge.
+
+        Args:
+            agent_id: The agent whose document should be ingested.
+            rag: A ``RAGVectorIntegration`` instance (or compatible duck-type).
+            content: Optional pre-serialised content string. If omitted, the
+                current state is serialised automatically.
+
+        Returns:
+            The dict returned by ``rag.ingest_document()``, or an error dict.
+        """
+        try:
+            agent_id = self._sanitize_id(agent_id)
+        except ValueError as exc:
+            logger.warning("save_agent_doc: invalid agent_id %r — %s", agent_id, exc)
+            return {"status": "error", "message": str(exc)}
+
+        if content is None:
+            state = self.load_state(agent_id)
+            if state is None:
+                return {"status": "error", "message": f"agent {agent_id!r} not found"}
+            try:
+                content = json.dumps(state.model_dump(mode="json"), indent=2, default=str)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("save_agent_doc: serialisation failed — %s", exc)
+                return {"status": "error", "message": str(exc)}
+
+        try:
+            result = rag.ingest_document(
+                text=content,
+                title=f"rosetta:{agent_id}",
+                source="rosetta_state_manager",
+                metadata={"agent_id": agent_id, "type": "rosetta_agent_state"},
+            )
+            logger.info("save_agent_doc: ingested doc for agent %s → %s", agent_id, result.get("status"))
+            return result
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("save_agent_doc: rag.ingest_document failed — %s", exc)
+            return {"status": "error", "message": str(exc)}
+
+    def sync_system_state(
+        self,
+        agent_id: str,
+        system_state: "SystemState",
+    ) -> Optional[RosettaAgentState]:
+        """P3-005: Push a ``SystemState`` delta into the Rosetta document.
+
+        Replaces the ``system_state`` field of the agent's document with the
+        provided snapshot and persists the change.
+
+        Args:
+            agent_id: The agent whose system state should be updated.
+            system_state: A ``SystemState`` model instance with the new values.
+
+        Returns:
+            The updated ``RosettaAgentState``, or ``None`` on error.
+        """
+        try:
+            agent_id = self._sanitize_id(agent_id)
+        except ValueError as exc:
+            logger.warning("sync_system_state: invalid agent_id %r — %s", agent_id, exc)
+            return None
+
+        updates = {"system_state": system_state.model_dump(mode="json")}
+        return self.update_state(agent_id, updates)
+
+    def sync_automation_progress(
+        self,
+        agent_id: str,
+        category: str,
+        completed: int,
+        total: int,
+    ) -> Optional[RosettaAgentState]:
+        """P3-002: Upsert an ``AutomationProgress`` entry for an orchestrator cycle.
+
+        Finds an existing entry for *category* in the agent's
+        ``automation_progress`` list (or appends a new one) and updates the
+        completed/total counts and coverage percentage.
+
+        Args:
+            agent_id: Target agent identifier.
+            category: Automation category label (e.g. ``"self_improvement"``).
+            completed: Number of completed workflow items.
+            total: Total workflow items in the category.
+
+        Returns:
+            Updated ``RosettaAgentState`` or ``None`` on error.
+        """
+        try:
+            agent_id = self._sanitize_id(agent_id)
+        except ValueError as exc:
+            logger.warning("sync_automation_progress: invalid agent_id %r — %s", agent_id, exc)
+            return None
+
+        with self._lock:
+            state = self._states.get(agent_id)
+            if state is None:
+                filepath = self._filepath(agent_id)
+                if filepath.exists():
+                    try:
+                        state = RosettaAgentState.model_validate(self._read_json(filepath))
+                    except Exception as exc:  # noqa: BLE001
+                        logger.warning("sync_automation_progress: load failed — %s", exc)
+                        state = None
+                if state is None:
+                    state = RosettaAgentState(
+                        identity=Identity(agent_id=agent_id, name=agent_id)
+                    )
+
+            coverage = (completed / total * 100.0) if total > 0 else 0.0
+            matched = next((ap for ap in state.automation_progress if ap.category == category), None)
+            if matched is not None:
+                matched.completed_items = completed
+                matched.total_items = total
+                matched.coverage_percent = coverage
+                matched.last_updated = datetime.now(timezone.utc)
+            else:
+                state.automation_progress.append(
+                    AutomationProgress(
+                        category=category,
+                        total_items=total,
+                        completed_items=completed,
+                        coverage_percent=coverage,
+                    )
+                )
+
+            state.metadata.updated_at = datetime.now(timezone.utc)
+            self._states[agent_id] = state
+            try:
+                self._write_json(self._filepath(agent_id), state.model_dump(mode="json"))
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("sync_automation_progress: write failed — %s", exc)
+
+        return state
 
     # ---- internal ----
 

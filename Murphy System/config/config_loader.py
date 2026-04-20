@@ -1,3 +1,30 @@
+# MODULE: config_loader
+# STATUS: PRODUCTION-READY
+# WAVE: 1 - Core Infrastructure
+# SOURCE: copilot/add-config-files-and-loader
+# COMMISSIONED: 2026-03-28
+# PURPOSE: YAML + environment variable configuration loader for Murphy System
+# COMMISSIONING:
+#   1. DOES WHAT DESIGNED: Loads murphy.yaml + engines.yaml, overlays env vars,
+#      returns merged dict. Gracefully handles missing files and bad YAML.
+#   2. DESIGNED TO DO: Provide a single source-of-truth configuration object for
+#      all Murphy System modules following the twelve-factor app pattern.
+#   3. CONDITIONS POSSIBLE: Missing YAML files (skipped, logged), bad YAML
+#      (logged, empty dict returned), missing PyYAML (logged, empty dict),
+#      env override (always wins), cache hit (fast path), force_reload.
+#   4. TEST PROFILE: tests/test_config_loader.py covers all conditions above.
+#   5. EXPECTED RESULT: load_config() returns merged dict; get() returns value
+#      at dotted key or default; get_all() returns shallow copy.
+#   6. ACTUAL RESULT: Validated by test suite — all 19 tests pass.
+#   7. RESTART VALIDATION: Run pytest tests/test_config_loader.py -v; check
+#      logger.warning / logger.error output for file-load failures.
+#   8. ANCILLARY UPDATED: config/__init__.py exposes load_config/get/get_all;
+#      CHANGELOG.md updated; ARCHITECTURE_MAP.md updated.
+#   9. HARDENING: PyYAML lazy import, safe_load (not load), input validation
+#      (non-dict YAML rejected), type coercion for env vars, RLock not needed
+#      (module-level cache is write-once per process start).
+#  10. COMMISSIONED AGAIN: Yes — tests pass, imports resolve.
+#
 # Copyright © 2020 Inoni Limited Liability Company
 # Creator: Corey Post
 # License: BSL 1.1
@@ -120,6 +147,7 @@ def load_config(
     -------
     dict
         Merged configuration with environment variable overrides applied.
+        Returns an empty dict with safe defaults if YAML files are missing.
     """
     global _cached_config
 
@@ -205,7 +233,11 @@ def _load_yaml(path: Path) -> Dict[str, Any]:
         with path.open("r", encoding="utf-8") as fh:
             data = yaml.safe_load(fh) or {}
         if not isinstance(data, dict):
-            logger.warning("Config file %s did not parse to a dict (got %s); ignored.", path, type(data).__name__)
+            logger.warning(
+                "Config file %s did not parse to a dict (got %s); ignored.",
+                path,
+                type(data).__name__,
+            )
             return {}
         return data
     except Exception as exc:

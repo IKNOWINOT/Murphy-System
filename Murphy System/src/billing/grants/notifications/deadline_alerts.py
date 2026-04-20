@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
+
 ALERT_THRESHOLDS_DAYS = [30, 14, 7, 3, 1]
 
 

@@ -5,15 +5,20 @@ Creates immutable snapshots of execution scope
 
 import hashlib
 import json
-import logging
+import os
 
 # Import from confidence engine
+import sys
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from src.confidence_engine.models import ArtifactGraph, ArtifactNode, ArtifactType
-
 from .models import ExecutionScope
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+import logging
+
+from confidence_engine.models import ArtifactGraph, ArtifactNode, ArtifactType
 
 logger = logging.getLogger(__name__)
 

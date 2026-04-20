@@ -59,6 +59,17 @@
       <!-- Canvas -->
       <div class="murphy-canvas-container" id="canvas-container"></div>
 
+      <!-- Live Automations Panel (right sidebar) -->
+      <aside id="automations-panel" style="position:absolute;top:8px;right:8px;width:280px;max-height:calc(100% - 16px);overflow-y:auto;background:rgba(15,23,42,0.92);border:1px solid #334155;border-radius:8px;padding:12px;z-index:10;font-size:0.8rem;color:#e2e8f0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-weight:700;color:#818cf8;letter-spacing:0.05em;">⚡ LIVE AUTOMATIONS</span>
+          <span id="auto-count" style="background:#1e293b;border-radius:12px;padding:2px 8px;font-size:0.7rem;color:#94a3b8;">–</span>
+        </div>
+        <div id="automations-list" style="display:flex;flex-direction:column;gap:6px;">
+          <div style="color:#64748b;font-size:0.75rem;text-align:center;padding:8px 0;">Loading…</div>
+        </div>
+      </aside>
+
       <!-- Detail panel (slides in from right when node clicked) -->
       <aside id="detail-panel" hidden aria-label="Module details">
         <div id="detail-header">
@@ -75,6 +86,7 @@
   </div>
 
   <script src="static/murphy-components.js"></script>
+<script src="murphy_auth.js"></script>
   <script src="static/murphy-canvas.js"></script>
   <script>
     /* ------------------------------------------------------------------ */
@@ -322,6 +334,77 @@
       } catch (_) {
         /* polling failure is non-fatal */
       }
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  Live Automations Panel                                             */
+    /* ------------------------------------------------------------------ */
+
+    var _autoList    = document.getElementById('automations-list');
+    var _autoCount   = document.getElementById('auto-count');
+    var _autoTimerId = null;
+    var _STATUS_COLORS = {
+      running:   '#22c55e',
+      completed: '#818cf8',
+      failed:    '#ef4444',
+      queued:    '#f59e0b',
+      scheduled: '#38bdf8',
+    };
+
+    function _renderAutomations(items) {
+      _autoCount.textContent = items.length;
+      if (!items.length) {
+        _autoList.innerHTML = '<div style="color:#64748b;font-size:0.75rem;text-align:center;padding:8px 0;">No active automations</div>';
+        return;
+      }
+      _autoList.innerHTML = items.map(function(a) {
+        var status  = (a.status || 'unknown').toLowerCase();
+        var color   = _STATUS_COLORS[status] || '#94a3b8';
+        var elapsed = a.duration_ms ? (a.duration_ms / 1000).toFixed(1) + 's' : '';
+        var pct     = typeof a.progress === 'number' ? a.progress : null;
+        return '<div style="background:#0f172a;border:1px solid #1e293b;border-radius:6px;padding:8px 10px;">' +
+          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">' +
+            '<span style="width:8px;height:8px;border-radius:50%;background:' + color + ';flex-shrink:0;"></span>' +
+            '<span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;" title="' + (a.workflow_id || a.id || '') + '">' +
+              (a.name || a.workflow_id || a.id || 'Automation') + '</span>' +
+            '<span style="font-size:0.7rem;color:' + color + ';flex-shrink:0;">' + status + '</span>' +
+          '</div>' +
+          (pct !== null ? '<div style="background:#1e293b;border-radius:4px;height:4px;overflow:hidden;"><div style="background:' + color + ';width:' + Math.min(100, pct) + '%;height:100%;transition:width 0.3s;"></div></div>' : '') +
+          '<div style="display:flex;justify-content:space-between;color:#64748b;font-size:0.7rem;margin-top:4px;">' +
+            '<span>' + (a.step_label || (a.completed + '/' + a.total_steps + ' steps' || '')) + '</span>' +
+            '<span>' + elapsed + '</span>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    async function pollAutomations() {
+      try {
+        // Primary: execution queue
+        var res = await api.get('/automations/executions');
+        var items = [];
+        if (res && res.data) {
+          items = Array.isArray(res.data) ? res.data :
+                  (res.data.executions || res.data.items || []);
+        }
+        // Fallback: production queue
+        if (!items.length) {
+          var pq = await api.get('/production/queue');
+          if (pq && pq.data) {
+            items = (pq.data.queue || pq.data.items || []).map(function(i) {
+              return { id: i.id, name: i.name || i.title || i.type, status: i.status || 'queued' };
+            });
+          }
+        }
+        _renderAutomations(items);
+      } catch (_) {
+        /* non-fatal */
+      }
+    }
+
+    function startAutomationPolling() {
+      pollAutomations();
+      _autoTimerId = setInterval(pollAutomations, 5000);
     }
 
     /* ------------------------------------------------------------------ */
@@ -587,6 +670,7 @@
 
       await loadTopology();
       startPolling();
+      startAutomationPolling();
     })();
   </script>
 </body>

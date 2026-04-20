@@ -105,7 +105,8 @@ def create_router(pipeline=None, brand_registry=None):  # type: ignore[no-untype
             )
             return result.model_dump()
         except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+            logger.debug("Export rejected with invalid parameters: %s", exc)
+            raise HTTPException(status_code=400, detail="Invalid export parameters") from exc
         except Exception as exc:
             logger.exception("Export failed: %s", exc)
             raise HTTPException(status_code=500, detail="Export failed.") from exc

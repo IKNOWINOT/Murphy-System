@@ -300,7 +300,7 @@ class TaskExecutionBridge:
                         try:
                             self._gate_ctrl.record_failure(task_type)
                         except Exception:
-                            pass
+                            logger.debug("Suppressed exception in task_execution_bridge")
                     continue
 
                 if self._gate_ctrl is not None:

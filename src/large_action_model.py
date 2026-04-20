@@ -804,15 +804,39 @@ class WorkflowLicenseManager:
 
     def _publish_event(self, event_name: str, payload: Dict[str, Any]) -> None:
         """Publish a LAM event to the EventBackbone if available."""
-        if self._backbone is None:
-            return
         try:
             from event_backbone import EventType
-            event_type_map: Dict[str, Any] = {}
+            # Map known event names to EventType values
+            event_type_map: Dict[str, Any] = {
+                "LAM_WORKFLOW_LICENSED": EventType.TASK_COMPLETED,
+                "LAM_WORKFLOW_FAILED": EventType.TASK_FAILED,
+                "LAM_GATE_EVALUATED": EventType.GATE_EVALUATED,
+                "learning_feedback": EventType.LEARNING_FEEDBACK,
+            }
             et = event_type_map.get(event_name)
             if et is None:
+                # Try from_string fallback for dynamic event names
+                if hasattr(EventType, "from_string"):
+                    try:
+                        et = EventType.from_string(event_name)
+                    except (ValueError, KeyError):
+                        pass
+            if et is None:
+                logger.debug("No EventType mapping for LAM event %r; skipping", event_name)
                 return
-            self._backbone.publish(event_type=et, payload=payload)
+            backbone = self._backbone
+            if backbone is None:
+                try:
+                    import event_backbone_client as _ebc
+                    backbone = _ebc.get_backbone()
+                except Exception:
+                    logger.debug("Suppressed exception in large_action_model")
+            if backbone is None:
+                logging.getLogger("event_backbone_client").warning(
+                    "WorkflowLicenseManager: no backbone available"
+                )
+                return
+            backbone.publish(event_type=et, payload=payload)
         except Exception as exc:
             logger.debug("EventBackbone publish skipped: %s", exc)
 

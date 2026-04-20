@@ -154,6 +154,23 @@ class KPISnapshot:
 # Default KPI definitions from Part 7 of the Self-Automation Plan
 # ---------------------------------------------------------------------------
 
+def _business_kpis() -> List[KPIDefinition]:
+    return [
+        KPIDefinition("kpi-crm-leads", "CRM Lead Count", 10.0, "leads",
+                       KPIDirection.HIGHER_IS_BETTER),
+        KPIDefinition("kpi-deal-close-rate", "Deal Close Rate", 20.0, "%",
+                       KPIDirection.HIGHER_IS_BETTER),
+        KPIDefinition("kpi-ticket-resolution-time", "Ticket Resolution Time", 24.0, "hours",
+                       KPIDirection.LOWER_IS_BETTER),
+        KPIDefinition("kpi-customer-satisfaction", "Customer Satisfaction Score", 4.0, "score",
+                       KPIDirection.HIGHER_IS_BETTER),
+        KPIDefinition("kpi-feature-adoption", "Feature Adoption Rate", 60.0, "%",
+                       KPIDirection.HIGHER_IS_BETTER),
+        KPIDefinition("kpi-monthly-revenue", "Monthly Revenue", 1000.0, "USD",
+                       KPIDirection.HIGHER_IS_BETTER),
+    ]
+
+
 def _default_kpis() -> List[KPIDefinition]:
     return [
         KPIDefinition("kpi-automation-rate", "Automation Rate", 80.0, "%",
@@ -180,7 +197,7 @@ def _default_kpis() -> List[KPIDefinition]:
         KPIDefinition("kpi-test-coverage", "Test Coverage", 90.0, "%",
                        KPIDirection.HIGHER_IS_BETTER,
                        "Test coverage percentage"),
-    ]
+    ] + _business_kpis()
 
 
 # ---------------------------------------------------------------------------
@@ -345,6 +362,39 @@ class KPITracker:
     def list_kpis(self) -> List[Dict[str, Any]]:
         with self._lock:
             return [d.to_dict() for d in self._kpis.values()]
+
+    def record_from_source(self, source: str, metrics: Dict[str, float]) -> List[Optional["KPIObservation"]]:
+        """Map source-specific metrics to KPI IDs and record observations.
+
+        Args:
+            source: Data source identifier ("crm", "service", "billing").
+            metrics: Dict of metric name to float value.
+
+        Returns:
+            List of KPIObservation (or None for unmapped metrics).
+        """
+        mapping: Dict[str, str] = {}
+        if source == "crm":
+            mapping = {
+                "lead_count": "kpi-crm-leads",
+                "deal_close_rate": "kpi-deal-close-rate",
+            }
+        elif source == "service":
+            mapping = {
+                "avg_resolution_hours": "kpi-ticket-resolution-time",
+            }
+        elif source == "billing":
+            mapping = {
+                "monthly_revenue_usd": "kpi-monthly-revenue",
+            }
+
+        observations = []
+        for metric_key, kpi_id in mapping.items():
+            value = metrics.get(metric_key)
+            if value is not None:
+                obs = self.record(kpi_id, float(value))
+                observations.append(obs)
+        return observations
 
     def get_status(self) -> Dict[str, Any]:
         with self._lock:

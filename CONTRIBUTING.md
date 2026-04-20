@@ -1,118 +1,311 @@
 # Contributing to Murphy System
 
-Thank you for your interest in contributing to Murphy System! This document provides guidelines and instructions for contributing.
+<!--
+  Copyright © 2020 Inoni Limited Liability Company
+  Creator: Corey Post
+  License: BSL 1.1 (Business Source License 1.1)
+-->
+
+**License:** BSL 1.1 — *Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post*
+
+Thank you for your interest in contributing to Murphy System! This guide explains how to report bugs, suggest features, set up a development environment, and submit changes.
+
+---
+
+## Table of Contents
+
+1. [Code of Conduct](#code-of-conduct)
+2. [Reporting Bugs](#reporting-bugs)
+3. [Suggesting Features](#suggesting-features)
+4. [Development Setup](#development-setup)
+5. [Running Tests](#running-tests)
+6. [Code Style](#code-style)
+7. [Pull Request Process](#pull-request-process)
+8. [Security Vulnerabilities](#security-vulnerabilities)
+
+---
 
 ## Code of Conduct
 
-By participating in this project, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md).
+This project follows the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md). By participating you agree to uphold those standards. Unacceptable behavior can be reported to **conduct@inoni.io**.
 
-## Architecture Overview
+---
 
-Murphy System has grown to **1,204 source modules** across 83 packages. Key subsystems include:
+## Reporting Bugs
 
-- **Core Runtime** — FastAPI server, config, command system
-- **Self-Healing** — `self_fix_loop.py`, `causality_sandbox.py`, `murphy_code_healer.py`
-- **Wingman Protocol** — `wingman_protocol.py` (executor/validator pairing for every task)
-- **HITL Graduation** — `hitl_graduation_engine.py` (human-to-automation handoff pipeline)
-- **Security** — `secure_key_manager.py`, `flask_security.py`, `fastapi_security.py`
-- **Bridges & Adapters** — `golden_path_bridge.py`, `telemetry_adapter.py`
-- **Confidence & Gates** — `confidence_engine/`, `gate_synthesis/`
-- **Orchestrators** — `campaign_orchestrator.py`; `safety_orchestrator.py`, `efficiency_orchestrator.py`, `supply_orchestrator.py` (planned)
-- **Issue #136 subsystems** (in progress) — Drawing Engine, Credential Gate, Sensor Fusion, Osmosis Engine, Autonomous Perception, Wingman Evolution, Engineering Toolbox
+Before opening an issue:
 
-See [`Murphy System/docs/MODULE_REGISTRY.md`](Murphy System/docs/MODULE_REGISTRY.md) for the full module index.
+1. Search [existing issues](https://github.com/IKNOWINOT/Murphy-System/issues) to avoid duplicates.
+2. Verify you are running the latest version.
+3. Confirm it is a Murphy System bug and not a dependency or configuration issue.
 
-## How to Contribute
+**To file a bug report**, open a GitHub issue and include:
 
-### Reporting Bugs
+- **Murphy System version** (`GET /api/health` → `version`)
+- **Python version** (`python --version`)
+- **OS and version**
+- **Minimal reproduction steps** — the fewest steps needed to trigger the bug
+- **Actual behaviour** — what happened
+- **Expected behaviour** — what you expected
+- **Relevant logs** — paste the relevant lines from the error log; redact any secrets
 
-1. **Check existing issues** — search [GitHub Issues](https://github.com/IKNOWINOT/Murphy-System/issues) first
-2. **Create a new issue** with a clear title and description
-3. Include steps to reproduce, expected vs. actual behavior, and your environment
+---
 
-### Suggesting Features
+## Suggesting Features
 
-Open a [GitHub Issue](https://github.com/IKNOWINOT/Murphy-System/issues) with the `enhancement` label and describe:
-- The problem you're trying to solve
-- Your proposed solution
-- Any alternatives you've considered
+Open a GitHub issue with the label `enhancement` and describe:
 
-### Submitting Changes
+- **Problem statement** — what use case is unaddressed?
+- **Proposed solution** — what would you like to see?
+- **Alternatives considered** — what other approaches did you evaluate?
+- **Is this a breaking change?** — does it affect the existing API contract?
 
-1. Fork the repository
-2. Create a feature branch from `main`:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-3. Make your changes following our coding standards
-4. Add or update tests as needed
-5. Run the test suite:
-   ```bash
-   cd "Murphy System"
-   python -m pytest tests/ -v
-   ```
-6. Commit with clear messages:
-   ```bash
-   git commit -m "Add: brief description of change"
-   ```
-7. Push and open a Pull Request
+Feature requests are evaluated against the project roadmap and BSL 1.1 licensing constraints.
+
+---
 
 ## Development Setup
 
+### Prerequisites
+
+- Python 3.10+
+- Git
+- (Optional) Docker, for running the full stack locally
+
+### 1. Fork and clone
+
 ```bash
-# Clone the repo
-git clone https://github.com/IKNOWINOT/Murphy-System.git
+git clone https://github.com/<your-username>/Murphy-System.git
 cd Murphy-System/Murphy\ System
-
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements_murphy_1.0.txt
-
-# Install and activate pre-commit hooks (runs on every git commit)
-pip install pre-commit
-pre-commit install
-
-# Run tests
-python -m pytest tests/ -v
 ```
 
-## Coding Standards
+### 2. Create a virtual environment
 
-- **Python 3.11+** required
-- Follow PEP 8 style guidelines
-- Add docstrings to all public functions and classes
-- Keep functions focused and under 50 lines where practical
-- Write tests for new functionality
+```bash
+python -m venv venv
+source venv/bin/activate        # Linux/macOS
+# venv\Scripts\activate         # Windows
+```
 
-## Contributor License Agreement
+### 3. Install the package in editable mode
 
-By submitting a contribution, you agree that your contributions are licensed under the same [BSL 1.1 license](LICENSE) as the project, and you assign copyright to Inoni Limited Liability Company.
+This makes `from src.xxx import yyy` imports work from any directory,
+including scripts and the REPL:
 
-## Questions?
+```bash
+pip install -e .
+pip install -r requirements_murphy_1.0.txt
+```
 
-Open an issue or reach out to the maintainers through [GitHub Discussions](https://github.com/IKNOWINOT/Murphy-System/discussions).
+> **Why editable install?**  
+> Murphy System uses a `src/` package layout.  `pip install -e .` registers
+> the `src` package in your Python environment so all `from src.xxx import yyy`
+> style imports resolve correctly — with no `sys.path` hacks needed.
 
-## Branch Protection Recommendations
+### 4. Configure the environment
 
-The following branch protection rules are recommended for `main`:
+```bash
+cp .env.example .env
+# Edit .env — at minimum set DEEPINFRA_API_KEY
+```
 
-| Rule | Setting |
-|---|---|
-| Require pull request before merging | ✅ Enabled |
-| Required approvals | 1 |
-| Dismiss stale pull request approvals when new commits are pushed | ✅ Enabled |
-| Require status checks to pass before merging | ✅ Enabled |
-| Required status checks | `test (3.10)`, `test (3.11)`, `test (3.12)`, `security` |
-| Require branches to be up to date before merging | ✅ Enabled |
-| Restrict who can push to matching branches | Maintainers only |
-| Do not allow bypassing the above settings | ✅ Enabled |
+### 5. Start the server
 
-## Stale PR Policy
+```bash
+python murphy_system_1.0_runtime.py
+# Server available at http://localhost:8000
+```
 
-- Draft PRs with no commits for **7 days** are automatically labelled `stale`.
-- Stale PRs with no activity for a further **3 days** are closed with a comment explaining why.
-- All active work must have at least one commit every **5 days** or be converted to an issue.
-- See `Murphy System/docs/STALE_PR_CLEANUP.md` for the rationale applied to PRs #21–#95.
+Or use the setup script:
+
+```bash
+# Linux/macOS
+./setup_and_start.sh
+
+# Windows
+setup_and_start.bat
+```
+
+### 6. Verify the setup
+
+```bash
+curl http://localhost:8000/api/health
+# {"status": "ok", "version": "1.0.0", "uptime_seconds": ...}
+```
+
+### Full stack with Docker Compose
+
+```bash
+cp .env.example .env
+docker compose up -d
+```
+
+**Backend Services:**
+
+| Service | URL | Notes |
+|---------|-----|-------|
+| Murphy API | <http://localhost:8000> | FastAPI backend |
+| API Docs (Swagger) | <http://localhost:8000/docs> | Interactive API reference |
+| Prometheus | <http://localhost:9090> | Metrics collection |
+| Grafana | <http://localhost:3000> | Dashboards — admin / admin |
+
+**UI Pages** (served by `python -m http.server 8090` from `Murphy System/`):
+
+| Page | URL | Role |
+|------|-----|------|
+| Landing Page | <http://localhost:8090/murphy_landing_page.html?apiPort=8000> | Public entry point |
+| Onboarding Wizard | <http://localhost:8090/onboarding_wizard.html?apiPort=8000> | Zero-jargon setup |
+| Unified Hub | <http://localhost:8090/terminal_unified.html?apiPort=8000> | Admin / all-roles hub |
+| Architect Terminal | <http://localhost:8090/terminal_architect.html?apiPort=8000> | System architect (planning) |
+| Enhanced Terminal | <http://localhost:8090/terminal_enhanced.html?apiPort=8000> | Power-user terminal |
+| Integrated Terminal | <http://localhost:8090/terminal_integrated.html?apiPort=8000> | Operations manager |
+| Worker Terminal | <http://localhost:8090/terminal_worker.html?apiPort=8000> | Delivery worker |
+| Orchestrator Terminal | <http://localhost:8090/terminal_orchestrator.html?apiPort=8000> | Orchestration overview |
+| Costs Terminal | <http://localhost:8090/terminal_costs.html?apiPort=8000> | Finance / budget manager |
+| Org Chart Terminal | <http://localhost:8090/terminal_orgchart.html?apiPort=8000> | HR / org structure |
+| Integrations Terminal | <http://localhost:8090/terminal_integrations.html?apiPort=8000> | DevOps / platform engineer |
+| Workflow Canvas | <http://localhost:8090/workflow_canvas.html?apiPort=8000> | Visual workflow designer |
+| System Visualizer | <http://localhost:8090/system_visualizer.html?apiPort=8000> | Topology viewer |
+| Production Wizard | <http://localhost:8090/production_wizard.html?apiPort=8000> | PROD-001 lifecycle wizard |
+| Matrix Integration | <http://localhost:8090/matrix_integration.html?apiPort=8000> | Matrix bridge & HITL |
+| Compliance Dashboard | <http://localhost:8090/compliance_dashboard.html?apiPort=8000> | Compliance / audit |
+| Workspace | <http://localhost:8090/workspace.html?apiPort=8000> | Personal workspace |
+| Pricing | <http://localhost:8090/pricing.html?apiPort=8000> | Plans & pricing |
+| Sign Up | <http://localhost:8090/signup.html?apiPort=8000> | User registration |
+| Smoke Test Tool | <http://localhost:8090/murphy-smoke-test.html?apiPort=8000> | API smoke tests (dev/QA) |
+| Observability Dashboard | <http://localhost:8090/strategic/gap_closure/observability/dashboard.html?apiPort=8000> | Observability metrics |
+| Community Portal | <http://localhost:8090/strategic/gap_closure/community/community_portal.html?apiPort=8000> | Community collaboration |
+| Workflow Builder (Low-Code) | <http://localhost:8090/strategic/gap_closure/lowcode/workflow_builder_ui.html?apiPort=8000> | Low-code builder |
+
+---
+
+## Running Tests
+
+```bash
+# From Murphy System/ directory
+python -m pytest --timeout=60 -v --tb=short
+```
+
+Run a specific file:
+
+```bash
+python -m pytest tests/test_auar.py -v
+```
+
+Run with coverage:
+
+```bash
+python -m pytest --timeout=60 --cov=. --cov-report=term-missing
+```
+
+See the full [Testing Guide](documentation/testing/TESTING_GUIDE.md) for test categories, writing new tests, and CI configuration.
+
+---
+
+## Import Strategy
+
+Murphy System uses a `src/` package layout.  All production code lives under
+`src/` and the package is named `src`.
+
+### The golden rule — no `sys.path` hacks
+
+**Never** add `sys.path.insert()` or `sys.path.append()` to source files.  The
+test `tests/test_no_sys_path_hacks.py` will fail CI if any `src/` file
+contains such a call.
+
+### Correct import style
+
+```python
+# Always use the full src.xxx prefix for absolute imports
+from src.confidence_engine.models import ConfidenceState
+from src.module_manager import module_manager
+```
+
+Within a sub-package you may also use relative imports:
+
+```python
+# Relative import (only within the same sub-package)
+from .models import MyModel
+from ..confidence_engine.models import ConfidenceState
+```
+
+### Why this works
+
+- `pip install -e .` registers the `src` package in your Python environment so
+  `from src.xxx import yyy` resolves in any context.
+- `pyproject.toml` sets `pythonpath = [".", "src"]` for pytest so both
+  `from src.xxx import yyy` and `from xxx import yyy` (bare sub-package name)
+  work in test code.
+- **`sys.path` manipulation is only permitted in `sandbox_quarantine.py`**
+  (legitimate isolation use).
+
+### Scripts
+
+Scripts in `scripts/` import from the `src` package.  Run `pip install -e .`
+first, then:
+
+```bash
+python scripts/compile_shims.py
+```
+
+---
+
+## Code Style
+
+- **Python version:** 3.10+
+- **Formatter:** `black` (88-char line length)
+- **Linter:** `flake8` with `--max-line-length 88`
+- **Type hints:** Use them for all public function signatures
+- **Docstrings:** Module-level and class-level docstrings are required; function docstrings for non-trivial logic
+- **Copyright header:** All new source files must include:
+
+```python
+"""
+<module description>
+
+Copyright © 2020 Inoni Limited Liability Company
+Creator: Corey Post
+"""
+```
+
+- **Comments:** Only comment code that needs clarification — avoid restating what the code already says
+- **Tests:** All new functionality must include tests. Target ≥ 80% coverage for new modules
+
+### Format and lint before committing
+
+```bash
+black .
+flake8 . --max-line-length 88 --extend-ignore E203,W503
+```
+
+---
+
+## Pull Request Process
+
+1. **Branch naming:** `feature/<short-description>`, `fix/<issue-number>-short-description`, or `docs/<what-changed>`
+
+2. **Keep PRs focused:** One logical change per PR. Large refactors should be discussed in an issue first.
+
+3. **Checklist before opening a PR:**
+   - [ ] Tests pass locally: `python -m pytest --timeout=60 -v --tb=short`
+   - [ ] New code has tests
+   - [ ] Copyright header added to new files
+   - [ ] `CHANGELOG.md` updated (under `[Unreleased]`)
+   - [ ] No secrets, credentials, or `.env` files committed
+   - [ ] `black` and `flake8` pass
+
+4. **PR description:** Explain the **why**, not just the what. Link to the related issue.
+
+5. **Review:** At least one maintainer review is required before merging. Address all review comments or explain why you disagree.
+
+6. **Merge:** Maintainers use squash-merge for feature/fix PRs, merge commits for release PRs.
+
+---
+
+## Security Vulnerabilities
+
+**Do not open a public GitHub issue for security vulnerabilities.** See [SECURITY.md](SECURITY.md) for the responsible disclosure process.
+
+---
+
+*Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post · License: BSL 1.1*

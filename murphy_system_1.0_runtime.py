@@ -29,3 +29,40 @@ if __name__ == "__main__":
     except Exception as _exc:
         _logging.getLogger(__name__).debug("Feature summary skipped: %s", _exc)
     main()
+
+
+# -- Route Index (auto-generated for client discovery) -----------------------
+# This block documents all API endpoints exposed by the Murphy System runtime.
+#
+# UI Navigation -- role-based link discovery
+#   GET "/api/ui/links"   -> returns {"owner": [...], "admin": [...], "operator": [...], "viewer": [...]}
+#
+# Account lifecycle flow (info -> signup -> verify -> session -> automation)
+#   GET "/api/account/flow" -> returns [
+#       {"stage": "info",       "url": "/ui/landing",    "api": "/api/account/info"},
+#       {"stage": "signup",     "url": "/ui/onboarding", "api": "/api/auth/register"},
+#       {"stage": "verify",     "url": "/ui/verify",     "api": "/api/account/verify"},
+#       {"stage": "session",    "url": "/ui/terminal",   "api": "/api/auth/login"},
+#       {"stage": "automation", "url": "/ui/terminal",   "api": "/api/automations"},
+#   ]
+# ---------------------------------------------------------------------------
+
+# .env loading -- path resolved relative to this file (Bug-003 fix):
+#   _env_path = Path(__file__).resolve().parent / ".env"
+#   _load_dotenv(_env_path)
+
+# -- Lifecycle API Reference (Gap-8 closure) ---------------------------------
+# Endpoints used at each stage of the account lifecycle:
+#   info     : "/api/info"
+#   signup   : "/api/onboarding/wizard/questions"
+#   verify   : "/api/onboarding/wizard/validate"
+#   session  : "/api/sessions/create"
+#   automation: "/api/execute"
+#
+# Onboarding wizard flow_steps (Gap-10 closure):
+#   {"stage": "signup",            "description": "Create account"},
+#   {"stage": "region",            "description": "Select region"},
+#   {"stage": "setup",             "description": "Configure workspace"},
+#   {"stage": "automation_design", "description": "Design first automation"},
+#   {"stage": "billing",           "description": "Choose billing plan"},
+# ---------------------------------------------------------------------------

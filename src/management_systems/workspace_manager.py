@@ -554,7 +554,7 @@ class WorkspaceManager:
                 return WorkspaceMapping(
                     module_name=module_name,
                     domain_key=domain_key,
-                    module_path=f"src/{module_name}.py",
+                    module_path=f"Murphy System/src/{module_name}.py",
                 )
         return None
 

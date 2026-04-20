@@ -29,6 +29,7 @@ class RobotType(str, Enum):
     DJI = "dji"
     CLEARPATH = "clearpath"
     MQTT = "mqtt"
+    PICARX = "picarx"
 
 
 class RobotStatus(str, Enum):

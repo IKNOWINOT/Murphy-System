@@ -895,24 +895,41 @@ class ContactComplianceGovernor:
             capped_append(self._audit_log, entry, max_size=self._MAX_AUDIT_ENTRIES)
 
     def _publish(self, event_name: str, payload: Dict[str, Any]) -> None:
-        """Publish an event to EventBackbone if available (best-effort)."""
-        if self._backbone is None:
-            return
+        """Publish an event to EventBackbone if available (best-effort).
+
+        The merged payload always includes ``source`` and ``action`` keys.
+        Caller-supplied keys with the same names will be overwritten by the
+        envelope values.
+
+        Falls back to the global backbone via ``event_backbone_client`` when
+        no backbone was injected at construction time.
+        """
         try:
             from event_backbone import EventType
-            # Map event names to existing EventType values or fall back to LEARNING_FEEDBACK
-            event_type_map: Dict[str, Any] = {}
-            et = event_type_map.get(event_name)
-            if et is None:
-                et = EventType.LEARNING_FEEDBACK
-            self._backbone.publish(
+            backbone = self._backbone
+            if backbone is None:
+                try:
+                    import event_backbone_client as _ebc
+                    backbone = _ebc.get_backbone()
+                except Exception:
+                    logger.debug("Suppressed exception in contact_compliance_governor")
+            if backbone is None:
+                logger.warning("ContactComplianceGovernor: no backbone available")
+                return
+            # Map known event names to EventType values
+            event_type_map: Dict[str, Any] = {
+                "OUTREACH_BLOCKED": EventType.TASK_FAILED,
+                "DNC_ADDED": EventType.LEARNING_FEEDBACK,
+                "CONTACT_SUPPRESSED": EventType.TASK_FAILED,
+            }
+            et = event_type_map.get(event_name, EventType.LEARNING_FEEDBACK)
+            backbone.publish(
                 event_type=et,
                 payload={
+                    **payload,
                     "source": "contact_compliance_governor",
                     "action": event_name.lower(),
-                    **payload,
                 },
-                source="contact_compliance_governor",
             )
         except Exception as exc:
             logger.debug("ContactComplianceGovernor: event publish skipped: %s", exc)

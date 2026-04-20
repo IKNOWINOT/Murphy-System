@@ -1,3 +1,6 @@
+// @ts-ignore — optional Node.js crypto fallback for environments without Web Crypto API
+import nodeCrypto from 'crypto';
+
 export async function ensureCrm(db:any) {
   const stmts = [`
     CREATE TABLE IF NOT EXISTS contacts (
@@ -81,7 +84,7 @@ export async function setMailboxCursor(db:any, cursor:string, id='default') {
 }
 function cryptoId(): string {
   const a = new Uint8Array(16); const g:any = (globalThis as any);
-  if (!g.crypto || !g.crypto.getRandomValues) { const nodeCrypto = require('crypto').webcrypto; nodeCrypto.getRandomValues(a); }
+  if (!g.crypto || !g.crypto.getRandomValues) { nodeCrypto.webcrypto.getRandomValues(a); }
   else { g.crypto.getRandomValues(a); }
   return Array.from(a).map(x => x.toString(16).padStart(2, '0')).join('');
 }

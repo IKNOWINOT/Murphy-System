@@ -101,10 +101,10 @@ class OrganizationBuildOrchestrator:
         self._lock = threading.Lock()
 
         # Lazy-init sub-components
-        from .compliance_profiler import ComplianceProfiler
-        from .connector_selector import ConnectorSelector
-        from .org_chart_builder import OrgChartBuilder
         from .tenant_provisioner import TenantProvisioner
+        from .org_chart_builder import OrgChartBuilder
+        from .connector_selector import ConnectorSelector
+        from .compliance_profiler import ComplianceProfiler
         from .workflow_templates import WorkflowTemplateLibrary
 
         self._provisioner = TenantProvisioner()

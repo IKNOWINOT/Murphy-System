@@ -186,13 +186,13 @@ class TelemetryEvidenceStore:
                     if snap.recorded_at < q.since:
                         continue
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in evidence_store")
             if q.until:
                 try:
                     if snap.recorded_at > q.until:
                         continue
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in evidence_store")
             if q.tags:
                 if not all(t in snap.tags for t in q.tags):
                     continue

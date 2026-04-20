@@ -91,7 +91,7 @@ class ShutdownManager:
             try:
                 print(msg, file=sys.stderr)
             except Exception:
-                pass  # Nothing we can do
+                logger.debug("Suppressed exception in shutdown_manager")
 
     def _run_with_timeout(self, handler, name, timeout):
         """Run a handler with a timeout to prevent hung shutdown."""

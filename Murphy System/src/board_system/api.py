@@ -35,7 +35,7 @@ if APIRouter is not None:
 
     class CreateBoardRequest(BaseModel):
         """Create Board Request."""
-        name: str
+        name: str = ""
         description: str = ""
         kind: str = "public"
         workspace_id: str = ""
@@ -125,16 +125,20 @@ def create_board_router(manager: Optional[BoardManager] = None) -> "APIRouter":
 
     @router.post("")
     async def create_board(req: CreateBoardRequest):
+        """Create a board. PATCH-011b: name validated after parse."""
+        # PATCH-011b: validate name — returns 400 not 422
+        if not (req.name or "").strip():
+            raise HTTPException(400, "Board name is required")
         try:
             kind = BoardKind(req.kind)
         except ValueError:
             raise HTTPException(400, f"Invalid board kind: {req.kind!r}")
         board = manager.create_board(
-            name=req.name,
+            name=req.name.strip(),
             description=req.description,
             kind=kind,
             workspace_id=req.workspace_id,
-            owner_id=req.owner_id,
+            owner_id=req.owner_id or "system",
         )
         return JSONResponse(board.to_dict(), status_code=201)
 

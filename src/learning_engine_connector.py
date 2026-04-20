@@ -343,7 +343,7 @@ class LearningEngineConnector:
             try:
                 self._backbone.unsubscribe(sid)
             except Exception:
-                pass
+                logger.debug("Suppressed exception in learning_engine_connector")
         self._subscription_ids.clear()
         self._is_started = False
         logger.info("LearningEngineConnector stopped")

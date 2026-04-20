@@ -3,7 +3,7 @@
 **Version:** 1.0  
 **Date:** 2026-02-27  
 **Repository:** IKNOWINOT/Murphy-System  
-**Runtime Directory:** repo root (`./`)  
+**Runtime Directory:** `Murphy System/`  
 **Purpose:** Step-by-step manual verification that every user-facing function of the Murphy System operates correctly, performed from the perspective of the user interface and API.
 
 ---
@@ -40,7 +40,7 @@ python3 --version
 
 **Steps:**
 ```bash
-cd "."
+cd "Murphy System/"
 pip install -r requirements_murphy_1.0.txt
 ```
 
@@ -67,7 +67,7 @@ pip install -r requirements_murphy_1.0.txt
    ```
    > If you do not have a DeepInfra API key, the system will still start but LLM-dependent features will return low-confidence results. Get a free key at https://deepinfra.com.
 
-**Expected Result:** `.env` file exists in the `repository root directory with at least the fields above.
+**Expected Result:** `.env` file exists in the `Murphy System/` directory with at least the fields above.
 
 - [ ] **PASS** / **FAIL**
 
@@ -77,7 +77,7 @@ pip install -r requirements_murphy_1.0.txt
 
 **Steps:**
 ```bash
-cd "."
+cd "Murphy System/"
 ./start_murphy_1.0.sh
 ```
 
@@ -912,7 +912,7 @@ curl -s http://localhost:8000/api/diagnostics/activation/last | python3 -m json.
 1. Open a new terminal window.
 2. Navigate to the Murphy System directory:
    ```bash
-   cd "."
+   cd "Murphy System/"
    python3 -m http.server 8090
    ```
 3. Leave this running.
@@ -1328,7 +1328,7 @@ curl -s http://localhost:8000/api/diagnostics/activation/last | python3 -m json.
 
 **Steps:**
 ```bash
-cd "."
+cd "Murphy System/"
 python -m pytest tests/ -v --tb=short 2>&1 | head -100
 ```
 
@@ -1344,7 +1344,7 @@ python -m pytest tests/ -v --tb=short 2>&1 | head -100
 
 **Steps:**
 ```bash
-cd "."
+cd "Murphy System/"
 python tests/test_basic_imports.py
 ```
 

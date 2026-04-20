@@ -30,12 +30,12 @@ except ImportError:  # pragma: no cover
     CompleteRequest = None  # type: ignore[misc,assignment]
     ResumeRequest = None  # type: ignore[misc,assignment]
 
-from .onboarding_session import OnboardingSession
-from .priority_scorer import PriorityScorer
-from .progress_tracker import ProgressTracker
 from .task_catalog import TASK_CATALOG
-from .wait_state_handler import WaitStateHandler
 from .workflow_definition import create_onboarding_workflow
+from .priority_scorer import PriorityScorer
+from .wait_state_handler import WaitStateHandler
+from .progress_tracker import ProgressTracker
+from .onboarding_session import OnboardingSession
 
 _sessions: Dict[str, OnboardingSession] = {}
 _task_map = {t.task_id: t for t in TASK_CATALOG}
@@ -59,6 +59,15 @@ def _resolve_session(session_id: str) -> OnboardingSession:
     return _get_session(session_id)
 
 
+def _resolve_session_optional(session_id: str) -> "Optional[OnboardingSession]":
+    """Like _resolve_session but returns None instead of raising 404."""
+    if session_id == "default":
+        if not _sessions:
+            return None
+        return next(iter(_sessions.values()))
+    return _sessions.get(session_id)
+
+
 def create_onboarding_router() -> "APIRouter":
     """Factory: create and return the onboarding APIRouter."""
     if not _HAS_FASTAPI:  # pragma: no cover
@@ -71,8 +80,10 @@ def create_onboarding_router() -> "APIRouter":
     # ------------------------------------------------------------------ #
 
     @router.post("/start")
-    def start_onboarding(body: StartRequest) -> Dict:
+    def start_onboarding(body: StartRequest = None) -> Dict:
         """Start a new platform onboarding workflow session."""
+        body = body or StartRequest()  # PATCH-006: allow empty/missing body
+        body = body or StartRequest()  # PATCH-006: allow empty/missing body
         session = OnboardingSession.create_new(body.account_id)
         session.session_data.update(body.session_data)
         _sessions[session.session_id] = session
@@ -87,8 +98,29 @@ def create_onboarding_router() -> "APIRouter":
 
     @router.get("/status")
     def get_status(session_id: str = "default") -> Dict:
-        """Get the progress dashboard for a session."""
-        session = _resolve_session(session_id)
+        """Get the progress dashboard for a session.
+
+        Returns empty/not-started state when no sessions exist yet
+        (first-time use case) rather than raising 404.
+        """
+        session = _resolve_session_optional(session_id)
+        if session is None:
+            return {
+                "session_id": None,
+                "status": "not_started",
+                "message": "No onboarding session started yet. POST /api/onboarding/start to begin.",
+                "progress": {
+                    "total_tasks": len(TASK_CATALOG),
+                    "completed": 0,
+                    "in_progress": 0,
+                    "waiting_on_external": 0,
+                    "blocked": 0,
+                    "not_started": len(TASK_CATALOG),
+                    "completion_percentage": 0.0,
+                    "estimated_remaining_hours": 0,
+                },
+                "next_recommended_tasks": [],
+            }
         progress = _tracker.compute_progress(session)
         return {
             "session_id": session.session_id,
