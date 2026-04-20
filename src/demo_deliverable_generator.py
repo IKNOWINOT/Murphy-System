@@ -6158,20 +6158,88 @@ def generate_code_project_deliverable(
     query: str,
     librarian_context: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Generate a CODE_PROJECT deliverable: plan → assemble files → ZIP.
+    """Generate a CODE_PROJECT deliverable: plan -> assemble files -> ZIP.
 
     Pipeline (label: CODE-PROJ-001):
-      1. MFGC gate — confidence-score the request
-      2. MSS Magnify + Solidify — produce RM5 implementation plan
-      3. _assemble_code_project_files() — LLM generates runnable files
-      4. _build_code_project_zip() — package as downloadable ZIP
-      5. Return deliverable with zip_base64 + project_files for the UI
+      0. CTD compound query decomposition (CTD-WIRE-001) -- run prerequisite
+         phases (research, niche selection) BEFORE the build phase.
+      1. MFGC gate -- confidence-score the request
+      2. MSS Magnify + Solidify -- produce RM5 implementation plan
+      3. _assemble_code_project_files() -- LLM generates runnable files
+      4. _build_code_project_zip() -- package as downloadable ZIP
+      5. CPV validation (CPV-001) -- validate generated files
+      6. Return deliverable with zip_base64 + project_files for the UI
 
     The plan is the creative/architectural step; file assembly is the build step.
     Murphy System default colors and fonts are applied as the base theme.
     """
     tracker = PipelineErrorTracker(query)
     tracker.record_path("CODE-PROJ-001:start")
+
+    # --- Stage 0: Compound Task Decomposition (CTD-WIRE-001) ---------------
+    # Detect prerequisite phases (research, niche selection) and execute them
+    # BEFORE the build phase.  Their output becomes enriched context.
+    ctd_context = ""
+    ctd_summary: Dict[str, Any] = {}
+    try:
+        from compound_task_decomposer import (
+            detect_compound_query,
+            execute_prerequisite_phases,
+            run_triage_rollcall,
+        )
+        decomposition = detect_compound_query(query)
+        if decomposition.is_compound:
+            tracker.record_path("CODE-PROJ-001:ctd-compound-detected")
+            logger.info(
+                "CTD-WIRE-001: Compound query detected with %d phases "
+                "(confidence=%.2f) for query: %s",
+                len(decomposition.phases),
+                decomposition.decomposition_confidence,
+                query[:80],
+            )
+            # Run triage rollcall for phase ordering validation
+            _rollcall = run_triage_rollcall(decomposition.phases)
+            tracker.record_path("CODE-PROJ-001:ctd-triage-rollcall")
+
+            # Execute prerequisite phases (research, selection, etc.)
+            decomposition = execute_prerequisite_phases(decomposition)
+            ctd_context = decomposition.enriched_context
+            ctd_summary = {
+                "is_compound": True,
+                "phase_count": len(decomposition.phases),
+                "confidence": decomposition.decomposition_confidence,
+                "trajectory_scores": decomposition.trajectory_scores,
+                "phases": [
+                    {
+                        "id": p.phase_id,
+                        "type": p.phase_type.value,
+                        "success": p.success,
+                        "elapsed_ms": p.elapsed_ms,
+                        "error": p.error,
+                    }
+                    for p in decomposition.phases
+                ],
+            }
+            tracker.record_path("CODE-PROJ-001:ctd-prerequisites-done")
+        else:
+            ctd_summary = {"is_compound": False}
+    except ImportError:
+        logger.debug(
+            "CTD-WIRE-001: compound_task_decomposer not available"
+        )
+        ctd_summary = {"is_compound": False, "available": False}
+    except Exception as exc:
+        tracker.record_error(
+            "CTD-WIRE-ERR-001", "compound_task_decomposer", str(exc)
+        )
+        ctd_summary = {"is_compound": False, "error": str(exc)}
+
+    # Merge CTD enriched context into librarian_context so the rest of the
+    # pipeline benefits from prerequisite phase outputs.
+    if ctd_context:
+        librarian_context = (
+            (librarian_context or "") + "\n" + ctd_context
+        ).strip()
 
     title = (
         f'Code Project: "{query[:60]}"'
@@ -6210,7 +6278,40 @@ def generate_code_project_deliverable(
         tracker.record_error("CODE-PROJ-ERR-002", "file_assembly", str(exc))
         project_files = _build_code_project_scaffold(query, plan_content, "")
 
-    # Stage 5 — Package as ZIP
+    # Stage 5 — Validate generated files (CPV-001)
+    validation_result: Dict[str, Any] = {}
+    try:
+        from code_project_validator import validate_code_project
+        vr = validate_code_project(project_files)
+        validation_result = {
+            "valid": vr.valid,
+            "files_checked": vr.files_checked,
+            "files_passed": vr.files_passed,
+            "error_count": vr.error_count,
+            "warning_count": vr.warning_count,
+            "issues": [
+                {
+                    "file": i.file_path,
+                    "severity": i.severity,
+                    "code": i.code,
+                    "message": i.message,
+                }
+                for i in vr.issues
+            ],
+        }
+        tracker.record_path("CODE-PROJ-001:validation-done")
+        if not vr.valid:
+            tracker.record_error(
+                "CPV-FAIL-001",
+                "code_project_validator",
+                f"{vr.error_count} validation errors",
+            )
+    except ImportError:
+        logger.debug("CPV-001: code_project_validator not available")
+    except Exception as exc:
+        tracker.record_error("CPV-ERR-001", "code_project_validator", str(exc))
+
+    # Stage 6 — Package as ZIP
     try:
         zip_b64 = _build_code_project_zip(query, plan_content, project_files)
         tracker.record_path("CODE-PROJ-001:zip-built")
@@ -6234,7 +6335,7 @@ def generate_code_project_deliverable(
 
     tracker.log_final_summary()
 
-    return {
+    result = {
         "title": title,
         "content": branded_txt,
         "filename": f"murphy-{slug}-project.txt",
@@ -6246,20 +6347,59 @@ def generate_code_project_deliverable(
         "pipeline_summary": tracker.summary(),
     }
 
+    # Attach CTD and validation metadata when available
+    if ctd_summary:
+        result["compound_decomposition"] = ctd_summary
+    if validation_result:
+        result["validation"] = validation_result
+
+    return result
+
 
 def generate_custom_deliverable(
     query: str,
     librarian_context: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Generate a custom deliverable using the MFGC → MSS → Librarian → LLM pipeline.
+    """Generate a custom deliverable using the MFGC -> MSS -> Librarian -> LLM pipeline.
 
     When the query is detected as a CODE_PROJECT request (web app / MVP / scaffold),
     routes to generate_code_project_deliverable() instead of the prose pipeline.
+
+    Stage 0 (CTD-WIRE-001): Compound queries are decomposed into prerequisite
+    phases (research, niche selection) that execute BEFORE the build phase.
+    Their output is threaded as enriched context into the main pipeline.
+
     Label: CODE-PROJ-001
     """
     # Route CODE_PROJECT queries to the dedicated assembly pipeline
     if _is_code_project_query(query):
         return generate_code_project_deliverable(query, librarian_context=librarian_context)
+
+    # --- Stage 0: Compound Task Decomposition (CTD-WIRE-001) ---------------
+    try:
+        from compound_task_decomposer import (
+            detect_compound_query,
+            execute_prerequisite_phases,
+        )
+        decomposition = detect_compound_query(query)
+        if decomposition.is_compound:
+            logger.info(
+                "CTD-WIRE-001: Compound query detected with %d phases for "
+                "custom deliverable: %s",
+                len(decomposition.phases),
+                query[:80],
+            )
+            decomposition = execute_prerequisite_phases(decomposition)
+            if decomposition.enriched_context:
+                librarian_context = (
+                    (librarian_context or "")
+                    + "\n"
+                    + decomposition.enriched_context
+                ).strip()
+    except ImportError:
+        pass  # compound_task_decomposer not available — non-blocking
+    except Exception as exc:
+        logger.warning("CTD-WIRE-ERR-001: Compound decomposition failed: %s", exc)
 
     title = (
         f'Custom Deliverable: "{query[:60]}"'
@@ -6359,6 +6499,76 @@ def generate_deliverable_with_progress(
 
     # FORGE-ERR-TRACKER-001: Track every error and fallback through the pipeline
     tracker = PipelineErrorTracker(query)
+
+    # --- Phase 0: Compound Task Decomposition (CTD-WIRE-001) ---------------
+    # Before the main pipeline, detect and execute prerequisite phases
+    # (research, niche selection) for compound queries.  Their output is
+    # injected as enriched librarian_context for all downstream phases.
+    try:
+        from compound_task_decomposer import (
+            detect_compound_query,
+            execute_prerequisite_phases,
+            run_triage_rollcall,
+        )
+        decomposition = detect_compound_query(query)
+        if decomposition.is_compound:
+            tracker.record_path("ctd-compound-detected")
+            events.append({
+                "phase": 0,
+                "status": (
+                    f"Compound query detected: {len(decomposition.phases)} "
+                    f"phases (confidence={decomposition.decomposition_confidence:.0%})"
+                ),
+                "detail": "compound_decomposition",
+                "pipeline_stage": "ctd",
+                "phase_count": len(decomposition.phases),
+                "decomposition_confidence": decomposition.decomposition_confidence,
+            })
+
+            # Run triage rollcall for phase ordering validation
+            _rollcall = run_triage_rollcall(decomposition.phases)
+            tracker.record_path("ctd-triage-rollcall")
+
+            # Execute prerequisite phases
+            decomposition = execute_prerequisite_phases(decomposition)
+            tracker.record_path("ctd-prerequisites-done")
+
+            # Emit per-phase results
+            for phase in decomposition.phases:
+                if phase.phase_type.value == "build":
+                    continue
+                events.append({
+                    "phase": 0,
+                    "status": (
+                        f"Prerequisite {phase.phase_type.value}: "
+                        f"{'completed' if phase.success else 'failed'}"
+                    ),
+                    "detail": f"ctd_phase_{phase.phase_id}",
+                    "pipeline_stage": "ctd",
+                    "phase_type": phase.phase_type.value,
+                    "phase_success": phase.success,
+                    "phase_elapsed_ms": phase.elapsed_ms,
+                    "phase_error": phase.error,
+                })
+
+            # Thread enriched context into librarian_context
+            if decomposition.enriched_context:
+                librarian_context = (
+                    (librarian_context or "")
+                    + "\n"
+                    + decomposition.enriched_context
+                ).strip()
+
+            logger.info(
+                "CTD-WIRE-001: Prerequisite phases completed for forge "
+                "pipeline, enriched context injected (%d chars)",
+                len(decomposition.enriched_context),
+            )
+    except ImportError:
+        pass  # compound_task_decomposer not available — non-blocking
+    except Exception as exc:
+        logger.warning("CTD-WIRE-ERR-001: Compound decomposition failed in forge pipeline: %s", exc)
+        tracker.record_error("CTD-WIRE-ERR-001", "compound_task_decomposer", str(exc))
 
     # --- Phase 1: Scenario Detection / MFGC Gate --------------------------
     # Scenario detection provides *context* for the agents but never bypasses
