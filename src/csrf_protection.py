@@ -47,7 +47,11 @@ _CSRF_SECRET: str = os.environ.get(
 # ---------------------------------------------------------------------------
 
 def _sign(session_id: str, token: str) -> str:
-    """Return HMAC-SHA256 signature of ``session_id:token``."""
+    """Return HMAC-SHA256 signature of ``session_id:token``.
+
+    Reserved for future use in stateless signed-cookie CSRF mode where the
+    token itself carries the HMAC instead of being stored server-side.
+    """
     payload = f"{session_id}:{token}".encode()
     return hmac.new(_CSRF_SECRET.encode(), payload, hashlib.sha256).hexdigest()
 

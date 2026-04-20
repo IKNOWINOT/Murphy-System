@@ -477,15 +477,15 @@ class PermutationCalibrationAdapter:
                 try:
                     exec_result = executor(candidate.ordering)
                     exec_context.update(exec_result if isinstance(exec_result, dict) else {})
-                except Exception as e:
-                    logger.warning("Executor failed for candidate %s: %s", candidate.candidate_id, e)
+                except Exception as exc:
+                    logger.warning("Executor failed for candidate %s: %s", candidate.candidate_id, exc)
             
             # Score across all dimensions
             for dimension, scorer in self._scorers.items():
                 try:
                     scores[dimension] = scorer(candidate.ordering, exec_context)
-                except Exception as e:
-                    logger.warning("Scorer '%s' failed: %s", dimension, e)
+                except Exception as exc:
+                    logger.warning("Scorer '%s' failed: %s", dimension, exc)
                     scores[dimension] = 0.5
             
             # Calculate weighted aggregate score
@@ -493,12 +493,12 @@ class PermutationCalibrationAdapter:
             success = True
             error = None
             
-        except Exception as e:
-            logger.error("Evaluation failed for candidate %s: %s", candidate.candidate_id, e)
+        except Exception as exc:
+            logger.error("Evaluation failed for candidate %s: %s", candidate.candidate_id, exc)
             scores = {d: 0.0 for d in self._scorers}
             aggregate = 0.0
             success = False
-            error = str(e)
+            error = str(exc)
         
         execution_time_ms = (time.time() - start) * 1000
         

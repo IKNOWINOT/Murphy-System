@@ -85,10 +85,10 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from src.communication_hub import (
-    automation_store,
+    im_store,
     call_store,
     email_store,
-    im_store,
+    automation_store,
     mod_console,
 )
 
@@ -135,8 +135,14 @@ class EndCallRequest(BaseModel):
 
 
 class SendEmailRequest(BaseModel):
-    sender: str
-    recipients: List[str]
+    """PATCH-008: sender/recipients have defaults so "to"/"from" aliases work.
+    Accepts both {"to":[...], "sender":"..."} and {"recipients":[...], "sender":"..."}.
+    sender defaults to "system" when not provided (auth resolved upstream).
+    """
+    sender: str = "system"
+    recipients: Optional[List[str]] = None
+    # Alias: accept "to" as well as "recipients"
+    to: Optional[List[str]] = None
     subject: str
     body: str
     cc: Optional[List[str]] = None
@@ -144,6 +150,10 @@ class SendEmailRequest(BaseModel):
     attachments: Optional[List[str]] = None
     priority: str = "normal"
     thread_id: Optional[str] = None
+
+    @property
+    def effective_recipients(self) -> List[str]:
+        return self.recipients or self.to or []
 
 
 class MarkReadRequest(BaseModel):
@@ -207,7 +217,7 @@ class BroadcastRequest(BaseModel):
 # Router factory
 # ---------------------------------------------------------------------------
 
-def create_comms_hub_router() -> APIRouter:
+def create_comms_hub_router(account_resolver=None) -> APIRouter:
     """Return the FastAPI router for all /api/comms/* and /api/moderator/* routes."""
     router = APIRouter(tags=["Communication Hub"])
 
@@ -418,9 +428,11 @@ def create_comms_hub_router() -> APIRouter:
     @router.post("/api/comms/email/send")
     async def email_send(body: SendEmailRequest) -> Dict[str, Any]:
         """Compose and send an email."""
+        # PATCH-008: resolve recipients via alias
+        _recips = body.recipients or body.to or []
         email = email_store.compose_and_send(
             sender=body.sender,
-            recipients=body.recipients,
+            recipients=_recips,
             subject=body.subject,
             body=body.body,
             cc=body.cc,
@@ -439,13 +451,29 @@ def create_comms_hub_router() -> APIRouter:
         return {"ok": True, "email": email, "rules_fired": [r["id"] for r in matched]}
 
     @router.get("/api/comms/email/inbox")
-    async def email_inbox(user: str) -> Dict[str, Any]:
-        """Get a user's email inbox."""
+    async def email_inbox(request: Request, user: str = "") -> Dict[str, Any]:
+        """Get email inbox. Uses injected account_resolver if user param omitted.
+        PATCH-005b: avoids circular import via dependency injection.
+        """
+        if not user and account_resolver:
+            acct = account_resolver(request)
+            if acct:
+                user = acct.get("email", "")
+        if not user:
+            return {"ok": False, "error": "Provide ?user= param or authenticate", "emails": []}
         return {"ok": True, "emails": email_store.get_inbox(user)}
 
     @router.get("/api/comms/email/outbox")
-    async def email_outbox(user: str) -> Dict[str, Any]:
-        """Get a user's email outbox."""
+    async def email_outbox(request: Request, user: str = "") -> Dict[str, Any]:
+        """Get email outbox. Uses injected account_resolver if user param omitted.
+        PATCH-005b: avoids circular import via dependency injection.
+        """
+        if not user and account_resolver:
+            acct = account_resolver(request)
+            if acct:
+                user = acct.get("email", "")
+        if not user:
+            return {"ok": False, "error": "Provide ?user= param or authenticate", "emails": []}
         return {"ok": True, "emails": email_store.get_outbox(user)}
 
     @router.get("/api/comms/email/{eid}")

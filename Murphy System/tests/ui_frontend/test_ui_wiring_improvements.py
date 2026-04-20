@@ -9,6 +9,7 @@ Covers five improvements:
 3. Trading dashboard risk/emergency-stop API wiring
 4. Ambient intelligence stats API wiring
 5. Compliance dashboard dynamic country/industry detection
+6. Landing page health polling — DEF-STATUS-001
 """
 
 import re
@@ -279,4 +280,67 @@ class TestMirrorSync:
             pytest.skip(f"Mirror file {relpath} does not exist")
         assert root_file.read_text() == mirror_file.read_text(), (
             f"Murphy System/{relpath} should be in sync with root {relpath}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 7. Landing page — health polling + offline fallback (DEF-STATUS-001)
+# ---------------------------------------------------------------------------
+
+class TestLandingPageHealthPolling:
+    """murphy-landing.js should poll /api/health and handle offline gracefully."""
+
+    @pytest.fixture(autouse=True)
+    def _load(self):
+        self.js = (ROOT / "static" / "murphy-landing.js").read_text()
+        self.html = (ROOT / "murphy_landing_page.html").read_text()
+
+    def test_probe_calls_api_health(self):
+        assert "/api/health" in self.js, (
+            "probe() should fetch /api/health"
+        )
+
+    def test_probe_polls_on_interval(self):
+        assert "setInterval" in self.js and "probe" in self.js, (
+            "probe() should be called on a setInterval for periodic polling"
+        )
+
+    def test_probe_polls_every_30_seconds(self):
+        assert "setInterval(probe,30000)" in self.js, (
+            "Polling interval should be 30 seconds (30000 ms)"
+        )
+
+    def test_api_gateway_lstat_has_id(self):
+        assert 'id="lstat-api"' in self.html, (
+            "API Gateway status indicator must have id='lstat-api' so probe() can update it"
+        )
+
+    def test_success_handler_updates_api_gateway(self):
+        assert "setLstat('lstat-api',true)" in self.js, (
+            "probe() success handler should call setLstat('lstat-api', true)"
+        )
+
+    def test_catch_handler_sets_all_indicators_offline(self):
+        assert "ld-off" in self.js, (
+            "catch handler should set lstat indicators to ld-off when backend is unreachable"
+        )
+        assert "'lstat-api'" in self.js and "'lstat-llm'" in self.js, (
+            "catch handler should cover all lstat indicators"
+        )
+
+    def test_catch_handler_shows_offline_text(self):
+        assert "textContent='offline'" in self.js or 'textContent="offline"' in self.js, (
+            "catch handler should set sys-status-text to 'offline'"
+        )
+
+    def test_mirror_js_matches_root(self):
+        mirror_js = (ROOT / "Murphy System" / "static" / "murphy-landing.js").read_text()
+        assert self.js == mirror_js, (
+            "Murphy System/static/murphy-landing.js must match root static/murphy-landing.js"
+        )
+
+    def test_mirror_html_matches_root(self):
+        mirror_html = (ROOT / "Murphy System" / "murphy_landing_page.html").read_text()
+        assert self.html == mirror_html, (
+            "Murphy System/murphy_landing_page.html must match root murphy_landing_page.html"
         )

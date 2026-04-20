@@ -6,8 +6,8 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Dict, List
 
-from .onboarding_session import OnboardingSession
 from .task_catalog import TASK_CATALOG
+from .onboarding_session import OnboardingSession
 
 _TASK_MAP = {t.task_id: t for t in TASK_CATALOG}
 

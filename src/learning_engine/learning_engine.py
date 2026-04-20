@@ -112,10 +112,19 @@ class PerformanceTracker:
                             start_time: datetime,
                             end_time: datetime) -> List[PerformanceMetric]:
         """Get metrics within a time range"""
+        # Normalise both bounds to UTC-aware so comparisons are always valid
+        def _ensure_utc(dt: datetime) -> datetime:
+            if dt.tzinfo is None:
+                return dt.replace(tzinfo=timezone.utc)
+            return dt
+
+        start_utc = _ensure_utc(start_time)
+        end_utc = _ensure_utc(end_time)
+
         with self.lock:
             return [
                 m for m in self.metrics[metric_name]
-                if start_time <= m.timestamp <= end_time
+                if start_utc <= _ensure_utc(m.timestamp) <= end_utc
             ]
 
     def get_all_metric_names(self) -> List[str]:

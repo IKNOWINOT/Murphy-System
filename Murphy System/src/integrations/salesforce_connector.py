@@ -103,7 +103,7 @@ class SalesforceConnector(BaseIntegrationConnector):
 
     def list_accounts(self, limit: int = 25) -> Dict[str, Any]:
         return self._sf_get("/query",
-                            {"q": f"SELECT Id,Name,Phone,Website FROM Account LIMIT {min(limit, 200)}"})
+                            {"q": f"SELECT Id,Name,Phone,Website FROM Account LIMIT {min(limit, 200)}"})  
 
     def get_account(self, account_id: str) -> Dict[str, Any]:
         return self._sf_get(f"/sobjects/Account/{account_id}")
@@ -116,7 +116,7 @@ class SalesforceConnector(BaseIntegrationConnector):
 
     def list_contacts(self, limit: int = 25) -> Dict[str, Any]:
         return self._sf_get("/query", {
-            "q": f"SELECT Id,FirstName,LastName,Email,Phone FROM Contact LIMIT {min(limit, 200)}"
+            "q": f"SELECT Id,FirstName,LastName,Email,Phone FROM Contact LIMIT {min(limit, 200)}"  
         })
 
     def create_contact(self, first_name: str, last_name: str,
@@ -132,7 +132,7 @@ class SalesforceConnector(BaseIntegrationConnector):
 
     def list_leads(self, limit: int = 25) -> Dict[str, Any]:
         return self._sf_get("/query", {
-            "q": f"SELECT Id,FirstName,LastName,Email,Status FROM Lead LIMIT {min(limit, 200)}"
+            "q": f"SELECT Id,FirstName,LastName,Email,Status FROM Lead LIMIT {min(limit, 200)}"  
         })
 
     def create_lead(self, first_name: str, last_name: str,
@@ -149,7 +149,7 @@ class SalesforceConnector(BaseIntegrationConnector):
     def list_opportunities(self, limit: int = 25) -> Dict[str, Any]:
         return self._sf_get("/query", {
             "q": (f"SELECT Id,Name,StageName,Amount,CloseDate FROM Opportunity "
-                  f"ORDER BY CloseDate DESC LIMIT {min(limit, 200)}")
+                  f"ORDER BY CloseDate DESC LIMIT {min(limit, 200)}")  
         })
 
     # -- SOQL --

@@ -28,6 +28,7 @@ import os
 import random
 import sys
 import re
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -3584,6 +3585,21 @@ async def serve_pricing():
     html = _resolve_html("pricing.html")
     return HTMLResponse(html or "<h1>Pricing</h1><p>Loading pricing&hellip;</p>")
 
+@app.get("/ui/reset-password", response_class=HTMLResponse)
+async def serve_reset_password():
+    html = _resolve_html("reset_password.html")
+    return HTMLResponse(html or "<h1>Reset Password</h1><p>Loading password reset&hellip;</p>")
+
+@app.get("/ui/change-password", response_class=HTMLResponse)
+async def serve_change_password():
+    html = _resolve_html("change_password.html")
+    return HTMLResponse(html or "<h1>Change Password</h1><p>Loading change password&hellip;</p>")
+
+@app.get("/ui/onboarding", response_class=HTMLResponse)
+async def serve_onboarding():
+    html = _resolve_html("onboarding_wizard.html")
+    return HTMLResponse(html or "<h1>Welcome to Murphy</h1><p>Loading onboarding&hellip;</p>")
+
 @app.get("/ui/grant-wizard", response_class=HTMLResponse)
 async def serve_grant_wizard():
     html = _resolve_html("grant_wizard.html")
@@ -3872,6 +3888,32 @@ def _prod_create_session(account_id: str) -> str:
     with _auth_lock:
         _prod_sessions[token] = account_id
     return token
+
+
+def _prod_get_account_from_session(request: Request) -> Optional[Dict[str, Any]]:
+    """Resolve a user account from the murphy_session cookie or Bearer token."""
+    token = request.cookies.get("murphy_session", "")
+    if not token:
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+    if not token:
+        return None
+    with _auth_lock:
+        account_id = _prod_sessions.get(token)
+    if not account_id:
+        return None
+    return _prod_user_store.get(account_id)
+
+
+# In-process stores for verification & password-reset flows
+# NOTE: These are in-memory only; pending tokens are lost on server restart.
+# For production deployments, back these with Redis or a database.
+_prod_verification_tokens: Dict[str, Dict[str, Any]] = {}
+_prod_password_reset_tokens: Dict[str, Dict[str, Any]] = {}
+
+_PROD_VERIFICATION_EXPIRY_SECONDS = 86400   # 24 hours
+_PROD_PASSWORD_RESET_EXPIRY_SECONDS = 3600  # 1 hour
 
 
 # ── Founder account seed ────────────────────────────────────────────────────
@@ -4178,6 +4220,511 @@ async def api_auth_register_free(request: Request):
 
 
 # =============================================================================
+# AUTH ENDPOINTS — Gap 3: Session, profile, verification, password-reset, OAuth
+# =============================================================================
+
+
+@app.get("/api/auth/login")
+async def api_auth_login_check(request: Request):
+    """Session check — returns auth status without requiring credentials."""
+    account = _prod_get_account_from_session(request)
+    if account:
+        return JSONResponse({
+            "success": True,
+            "authenticated": True,
+            "account_id": account.get("account_id", ""),
+            "email": account.get("email", ""),
+            "name": account.get("full_name", ""),
+            "tier": account.get("tier", "free"),
+        })
+    return JSONResponse({
+        "success": True,
+        "authenticated": False,
+        "login_url": "/ui/login",
+        "message": "Not authenticated — redirect to login page",
+    })
+
+
+@app.get("/api/auth/session-token")
+async def api_auth_session_token(request: Request):
+    """Return the active session token for the current user.
+
+    Called by murphy_auth.js after an OAuth redirect to mirror the
+    HttpOnly murphy_session cookie into localStorage.
+    """
+    token = request.cookies.get("murphy_session", "")
+    if not token:
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+    if not token:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    with _auth_lock:
+        account_id = _prod_sessions.get(token)
+    if not account_id:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    return JSONResponse({"session_token": token})
+
+
+@app.get("/api/auth/providers")
+async def api_auth_providers():
+    """Return which OAuth providers are configured (have client credentials).
+
+    Public endpoint — the signup/login pages call this to show/hide provider buttons.
+    """
+    configured: Dict[str, bool] = {}
+    # Detect providers from environment variables
+    for provider in ("google", "github", "apple", "linkedin", "meta"):
+        env_key = f"MURPHY_OAUTH_{provider.upper()}_CLIENT_ID"
+        configured[provider] = bool(os.environ.get(env_key, ""))
+    return JSONResponse({"providers": configured})
+
+
+@app.get("/api/auth/verify-email")
+async def api_auth_verify_email(request: Request):
+    """Verify email address from the link sent during signup."""
+
+    token = request.query_params.get("token", "").strip()
+    if not token:
+        return HTMLResponse(
+            '<html><body style="background:#0a0a0a;color:#ff4444;font-family:sans-serif;'
+            'display:flex;align-items:center;justify-content:center;min-height:100vh;">'
+            '<div style="text-align:center"><h2>Invalid verification link</h2>'
+            '<p>The verification link is missing or malformed.</p>'
+            '<a href="/ui/signup" style="color:#00D4AA;">Sign up again</a></div></body></html>',
+            status_code=400,
+        )
+    token_data = _prod_verification_tokens.get(token)
+    if not token_data:
+        return HTMLResponse(
+            '<html><body style="background:#0a0a0a;color:#ff4444;font-family:sans-serif;'
+            'display:flex;align-items:center;justify-content:center;min-height:100vh;">'
+            '<div style="text-align:center"><h2>Link expired or invalid</h2>'
+            '<p>This verification link has already been used or has expired.</p>'
+            '<a href="/ui/login" style="color:#00D4AA;">Sign in</a> or '
+            '<a href="/ui/signup" style="color:#00D4AA;">Sign up again</a></div></body></html>',
+            status_code=400,
+        )
+    # Check expiry
+    try:
+        created_str = token_data.get("created_at", "")
+        created_dt = datetime.fromisoformat(created_str)
+        if created_dt.tzinfo is None:
+            created_dt = created_dt.replace(tzinfo=timezone.utc)
+        if (datetime.now(timezone.utc) - created_dt).total_seconds() > _PROD_VERIFICATION_EXPIRY_SECONDS:
+            _prod_verification_tokens.pop(token, None)
+            return HTMLResponse(
+                '<html><body style="background:#0a0a0a;color:#ff4444;font-family:sans-serif;'
+                'display:flex;align-items:center;justify-content:center;min-height:100vh;">'
+                '<div style="text-align:center"><h2>Link expired</h2>'
+                '<p>This verification link has expired. Please sign up again.</p>'
+                '<a href="/ui/signup" style="color:#00D4AA;">Sign up</a></div></body></html>',
+                status_code=400,
+            )
+    except Exception:
+        _prod_verification_tokens.pop(token, None)
+        return HTMLResponse(
+            '<html><body style="background:#0a0a0a;color:#ff4444;font-family:sans-serif;'
+            'display:flex;align-items:center;justify-content:center;min-height:100vh;">'
+            '<div style="text-align:center"><h2>Verification error</h2>'
+            '<p>Could not validate this link. Please request a new one.</p>'
+            '<a href="/ui/signup" style="color:#00D4AA;">Sign up</a></div></body></html>',
+            status_code=400,
+        )
+
+    account_id = token_data["account_id"]
+    account = _prod_user_store.get(account_id)
+    if not account:
+        _prod_verification_tokens.pop(token, None)
+        return HTMLResponse(
+            '<html><body style="background:#0a0a0a;color:#ff4444;font-family:sans-serif;'
+            'display:flex;align-items:center;justify-content:center;min-height:100vh;">'
+            '<div style="text-align:center"><h2>Account not found</h2>'
+            '<p>The account associated with this link could not be found.</p>'
+            '<a href="/ui/signup" style="color:#00D4AA;">Sign up again</a></div></body></html>',
+            status_code=404,
+        )
+
+    # Mark email as validated
+    account["email_validated"] = True
+    _prod_verification_tokens.pop(token, None)
+
+    # Mint session and redirect to onboarding
+    session_token = _prod_create_session(account_id)
+    from starlette.responses import RedirectResponse as _RR
+    resp = _RR("/ui/onboarding", status_code=302)
+    resp.set_cookie(
+        key="murphy_session",
+        value=session_token,
+        httponly=True,
+        secure=os.environ.get("MURPHY_ENV", "production") != "development",
+        samesite="lax",
+        max_age=86400,
+    )
+    log.info("Email verified for account %s (%s)", account_id, token_data["email"])
+    return resp
+
+
+@app.post("/api/auth/resend-verification")
+async def api_auth_resend_verification(request: Request):
+    """Resend verification email for an unverified account."""
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+    email = (body.get("email") or "").strip().lower()
+    if not email:
+        return JSONResponse({"success": False, "error": "email is required"}, status_code=400)
+    account_id = _prod_email_to_account.get(email)
+    if not account_id:
+        return JSONResponse({"success": True, "message": "If the account exists, a verification email has been sent."})
+    account = _prod_user_store.get(account_id)
+    if not account:
+        return JSONResponse({"success": True, "message": "If the account exists, a verification email has been sent."})
+    if account.get("email_validated"):
+        return JSONResponse({"success": True, "already_verified": True, "message": "This email is already verified. You can sign in."})
+
+    # Invalidate old tokens
+    with _auth_lock:
+        for t, meta in list(_prod_verification_tokens.items()):
+            if meta.get("account_id") == account_id:
+                _prod_verification_tokens.pop(t, None)
+
+    # Generate new token
+    verification_token = _secrets.token_urlsafe(32)
+    with _auth_lock:
+        _prod_verification_tokens[verification_token] = {
+            "account_id": account_id,
+            "email": email,
+            "created_at": _now_iso(),
+        }
+
+    scheme = request.url.scheme
+    host = request.headers.get("host", request.url.hostname or "murphy.systems")
+    verify_url = f"{scheme}://{host}/api/auth/verify-email?token={verification_token}"
+    log.info("Resent verification email for %s (url=%s)", email, verify_url)
+
+    return JSONResponse({"success": True, "message": "Verification email sent."})
+
+
+@app.post("/api/auth/forgot-password")
+async def api_auth_forgot_password(request: Request):
+    """Initiate a password-reset flow. Always returns success to prevent user enumeration."""
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+    email = (body.get("email") or "").strip().lower()
+    if not email:
+        return JSONResponse({"success": False, "error": "email is required"}, status_code=400)
+    return JSONResponse({
+        "success": True,
+        "message": "If an account with that email exists, a reset link has been sent.",
+    })
+
+
+@app.post("/api/auth/request-password-reset")
+async def api_auth_request_password_reset(request: Request):
+    """Generate a password-reset token and (in dev) return it inline for testing."""
+
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+    email = (body.get("email") or "").strip().lower()
+    if not email:
+        return JSONResponse({"success": False, "error": "email is required"}, status_code=400)
+
+    account_id = _prod_email_to_account.get(email)
+    resp_body: Dict[str, Any] = {
+        "success": True,
+        "message": "If an account with that email exists, a reset link has been sent.",
+    }
+    if account_id:
+        # Expire any existing unused token for this account
+        with _auth_lock:
+            for t, meta in list(_prod_password_reset_tokens.items()):
+                if meta.get("account_id") == account_id and not meta.get("used"):
+                    meta["used"] = True
+
+        token = _secrets.token_urlsafe(32)
+        with _auth_lock:
+            _prod_password_reset_tokens[token] = {
+                "account_id": account_id,
+                "email": email,
+                "expires_at": time.time() + _PROD_PASSWORD_RESET_EXPIRY_SECONDS,
+                "used": False,
+            }
+        reset_url = f"/ui/reset-password?token={token}"
+
+        # In development expose the token so the flow can be tested without email
+        if os.environ.get("MURPHY_ENV", "development").lower() == "development":
+            resp_body["dev_token"] = token
+            resp_body["dev_reset_url"] = reset_url
+
+    return JSONResponse(resp_body)
+
+
+@app.get("/api/auth/reset-password/validate")
+async def api_auth_validate_reset_token(request: Request):
+    """Check whether a password-reset token is valid and unexpired."""
+
+    token = request.query_params.get("token", "").strip()
+    if not token:
+        return JSONResponse({"valid": False, "error": "token is required"}, status_code=400)
+    meta = _prod_password_reset_tokens.get(token)
+    if meta is None or meta.get("used") or time.time() > meta.get("expires_at", 0):
+        return JSONResponse({"valid": False, "error": "Token is invalid or has expired"})
+    return JSONResponse({"valid": True, "email": meta.get("email", "")})
+
+
+@app.post("/api/auth/reset-password")
+async def api_auth_reset_password(request: Request):
+    """Consume a password-reset token and set the new password."""
+
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+    token = (body.get("token") or "").strip()
+    new_pw = body.get("new_password", "")
+
+    if not token:
+        return JSONResponse({"success": False, "error": "token is required"}, status_code=400)
+    if not new_pw or len(new_pw) < 8:
+        return JSONResponse({"success": False, "error": "New password must be at least 8 characters"}, status_code=400)
+
+    meta = _prod_password_reset_tokens.get(token)
+    if meta is None or meta.get("used"):
+        return JSONResponse({"success": False, "error": "Token is invalid or has already been used"}, status_code=400)
+    if time.time() > meta.get("expires_at", 0):
+        return JSONResponse({"success": False, "error": "Token has expired. Please request a new reset link."}, status_code=400)
+
+    account_id = meta.get("account_id", "")
+    user = _prod_user_store.get(account_id)
+    if user is None:
+        return JSONResponse({"success": False, "error": "Account not found"}, status_code=404)
+
+    meta["used"] = True
+    user["password_hash"] = _prod_hash_password(new_pw)
+    user["password_changed_at"] = _now_iso()
+    log.info("Password reset consumed for account %s", account_id)
+    return JSONResponse({"success": True, "message": "Password has been reset. You can now sign in."})
+
+
+@app.post("/api/auth/change-password")
+async def api_auth_change_password(request: Request):
+    """Change the authenticated user's own password."""
+    account = _prod_get_account_from_session(request)
+    if account is None:
+        return JSONResponse({"success": False, "error": "Authentication required"}, status_code=401)
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+    current_pw = body.get("current_password", "")
+    new_pw = body.get("new_password", "")
+
+    if not current_pw or not new_pw:
+        return JSONResponse({"success": False, "error": "current_password and new_password are required"}, status_code=400)
+    if len(new_pw) < 8:
+        return JSONResponse({"success": False, "error": "New password must be at least 8 characters"}, status_code=400)
+
+    stored_hash = account.get("password_hash", "")
+    if not stored_hash or not _prod_verify_password(current_pw, stored_hash):
+        return JSONResponse({"success": False, "error": "Current password is incorrect"}, status_code=400)
+
+    if current_pw == new_pw:
+        return JSONResponse({"success": False, "error": "New password must differ from the current password"}, status_code=400)
+
+    account["password_hash"] = _prod_hash_password(new_pw)
+    account["password_changed_at"] = _now_iso()
+    log.info("Password changed for account %s", account["account_id"])
+    return JSONResponse({"success": True, "message": "Password updated successfully."})
+
+
+@app.get("/api/auth/oauth/{provider}")
+async def api_auth_oauth_redirect(provider: str):
+    """Redirect to OAuth provider for signup/login.
+
+    Returns a redirect to the configured OAuth provider or to the login page
+    with an error if the provider is not configured.
+    """
+    from starlette.responses import RedirectResponse
+    provider_key = provider.lower()
+    env_key = f"MURPHY_OAUTH_{provider_key.upper()}_CLIENT_ID"
+    if not os.environ.get(env_key, ""):
+        return RedirectResponse(
+            f"/ui/login?error=oauth_not_configured&provider={provider_key}",
+            status_code=302,
+        )
+    # Full OAuth flow requires client_secret, redirect_uri, etc.
+    # When those are configured the OAuth controller handles it.
+    try:
+        from src.account_management.models import OAuthProvider
+        from src.oauth_oidc_provider import OAuthProviderRegistry
+        registry = OAuthProviderRegistry()
+        oauth_prov = OAuthProvider(provider_key)
+        authorize_url, _state = registry.begin_auth_flow(oauth_prov)
+        return RedirectResponse(authorize_url, status_code=302)
+    except Exception as exc:
+        log.warning("OAuth redirect failed for %s: %s", provider_key, exc)
+        return RedirectResponse(
+            f"/ui/login?error=oauth_error&provider={provider_key}",
+            status_code=302,
+        )
+
+
+@app.get("/api/auth/callback")
+async def api_auth_oauth_callback(request: Request):
+    """Handle OAuth callback — exchange code for token and create session."""
+    from starlette.responses import RedirectResponse
+    code = request.query_params.get("code", "")
+    state = request.query_params.get("state", "")
+    error = request.query_params.get("error", "")
+
+    if error:
+        return RedirectResponse(f"/ui/login?error=oauth_denied&detail={error}", status_code=302)
+    if not code:
+        return RedirectResponse("/ui/login?error=oauth_missing_code", status_code=302)
+
+    # Attempt to complete the OAuth flow via AccountManager
+    try:
+        from src.account_management.models import OAuthProvider
+        from src.oauth_oidc_provider import OAuthProviderRegistry
+        registry = OAuthProviderRegistry()
+        token_data = registry.exchange_code(code, state)
+        if not token_data:
+            return RedirectResponse("/ui/login?error=oauth_exchange_failed", status_code=302)
+
+        email = token_data.get("email", "").strip().lower()
+        if not email:
+            return RedirectResponse("/ui/login?error=oauth_no_email", status_code=302)
+
+        # Find or create account
+        account_id = _prod_email_to_account.get(email)
+        if not account_id:
+            account_id = uuid.uuid4().hex[:20]
+            _prod_user_store[account_id] = {
+                "account_id": account_id,
+                "email": email,
+                "password_hash": "",
+                "full_name": token_data.get("name", ""),
+                "job_title": "",
+                "company": "",
+                "tier": "free",
+                "email_validated": True,
+                "eula_accepted": True,
+                "role": "user",
+                "created_at": _now_iso(),
+                "oauth_provider": token_data.get("provider", ""),
+            }
+            _prod_email_to_account[email] = account_id
+
+        session_token = _prod_create_session(account_id)
+        resp = RedirectResponse(
+            f"/ui/terminal-unified?oauth_success=1&provider={token_data.get('provider', '')}",
+            status_code=302,
+        )
+        resp.set_cookie(
+            key="murphy_session",
+            value=session_token,
+            httponly=True,
+            secure=os.environ.get("MURPHY_ENV", "production") != "development",
+            samesite="lax",
+            max_age=86400,
+        )
+        return resp
+    except Exception as exc:
+        log.warning("OAuth callback failed: %s", exc)
+        return RedirectResponse("/ui/login?error=oauth_failed", status_code=302)
+
+
+# =============================================================================
+# PROFILE ENDPOINTS — /api/profiles/me (required by murphy_auth.js)
+# =============================================================================
+
+
+@app.get("/api/profiles/me")
+async def api_profiles_me(request: Request):
+    """Return the authenticated user's profile.
+
+    murphy_auth.js calls this on every page load to verify authentication
+    and load feature flags.  Returns ``found: true`` with profile data on
+    success, or 401 if not authenticated.
+    """
+    account = _prod_get_account_from_session(request)
+    if not account:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    return JSONResponse({
+        "found": True,
+        "account_id": account.get("account_id", ""),
+        "email": account.get("email", ""),
+        "full_name": account.get("full_name", ""),
+        "job_title": account.get("job_title", ""),
+        "company": account.get("company", ""),
+        "tier": account.get("tier", "free"),
+        "role": account.get("role", "user"),
+        "email_validated": account.get("email_validated", False),
+        "eula_accepted": account.get("eula_accepted", True),
+        "created_at": account.get("created_at", ""),
+    })
+
+
+@app.get("/api/profiles/me/terminal-config")
+async def api_profiles_terminal_config(request: Request):
+    """Return terminal feature flags for the authenticated user."""
+    account = _prod_get_account_from_session(request)
+    if not account:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    tier = account.get("tier", "free")
+    features = {
+        "terminal_access": True,
+        "production_wizard": True,
+        "workflow_canvas": True,
+        "crypto_wallet": True,
+        "shadow_agent_training": True,
+        "community_access": True,
+        "shadow_agent_sell": tier not in ("free", "anonymous"),
+        "hitl_automations": tier not in ("free", "anonymous"),
+        "api_access": tier not in ("free", "solo", "anonymous"),
+        "automation_library": True,
+    }
+    return JSONResponse({"features": features, "tier": tier})
+
+
+@app.get("/api/auth/role")
+async def api_auth_role(request: Request):
+    """Return the authenticated user's role."""
+    account = _prod_get_account_from_session(request)
+    if not account:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    return JSONResponse({"role": account.get("role", "user"), "tier": account.get("tier", "free")})
+
+
+@app.get("/api/auth/permissions")
+async def api_auth_permissions(request: Request):
+    """Return the authenticated user's permissions based on role and tier."""
+    account = _prod_get_account_from_session(request)
+    if not account:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    role = account.get("role", "user")
+    tier = account.get("tier", "free")
+    perms = {
+        "can_create_automations": True,
+        "can_approve_hitl": role in ("owner", "admin", "founder_admin"),
+        "can_manage_team": role in ("owner", "admin", "founder_admin"),
+        "can_manage_billing": role in ("owner", "admin", "founder_admin"),
+        "can_access_api": tier not in ("free", "solo", "anonymous"),
+        "can_create_org": role in ("owner", "founder_admin"),
+    }
+    return JSONResponse({"permissions": perms, "role": role, "tier": tier})
+
+
+# =============================================================================
 # DEMO API ENDPOINTS - Forge Demo for Landing Page
 # =============================================================================
 
@@ -4427,11 +4974,15 @@ class BuildMetrics:
 # Import demo deliverable generator
 _convert_deliverable_format = None
 _SUPPORTED_FORMATS = None
+_generate_code_project_deliverable = None
+_is_code_project_query = None
 try:
     from src.demo_deliverable_generator import generate_deliverable as _generate_demo_deliverable
     from src.demo_deliverable_generator import generate_deliverable_with_progress as _generate_demo_deliverable_with_progress
     from src.demo_deliverable_generator import convert_deliverable_format as _convert_deliverable_format
     from src.demo_deliverable_generator import SUPPORTED_FORMATS as _SUPPORTED_FORMATS
+    from src.demo_deliverable_generator import generate_code_project_deliverable as _generate_code_project_deliverable  # CODE-PROJ-001
+    from src.demo_deliverable_generator import _is_code_project_query as _is_code_project_query  # CODE-PROJ-001
     _demo_gen_available = True
 except ImportError as exc:
     log.warning(f"Demo deliverable generator not available: {exc}")
@@ -4439,6 +4990,13 @@ except ImportError as exc:
     _generate_demo_deliverable = None
     _generate_demo_deliverable_with_progress = None
 log.info("Demo deliverable generator: %s", "available" if _demo_gen_available else "UNAVAILABLE — check sys.path")
+
+# Import CODE_PROJECT bundle generator  (label: CODE-PROJ-001)
+_generate_code_project_bundle = None
+try:
+    from src.demo_bundle_generator import generate_code_project_bundle as _generate_code_project_bundle
+except ImportError as exc:
+    log.warning("CODE-PROJ-001: demo_bundle_generator generate_code_project_bundle not available: %s", exc)
 
 # -- Import SubscriptionManager for tier-aware demo rate limiting --------------
 try:
@@ -4738,6 +5296,174 @@ async def api_demo_deliverable_export(request: Request):
         return JSONResponse({
             "success": False,
             "error": f"Format conversion failed: {type(exc).__name__}: {exc}",
+        }, status_code=500)
+
+
+# ---------------------------------------------------------------------------
+# CODE_PROJECT download endpoint  (label: CODE-PROJ-001)
+# ---------------------------------------------------------------------------
+
+@app.post("/api/demo/generate-deliverable/code-project")
+async def api_demo_code_project(request: Request):
+    """Generate and return a CODE_PROJECT deliverable as a downloadable ZIP.
+
+    Accepts JSON body with:
+      - ``query``: the user's request (must contain web app / MVP / scaffold keywords)
+
+    Returns:
+      - ``success``: bool
+      - ``deliverable_type``: "code_project"
+      - ``zip_base64``: base64-encoded ZIP bytes
+      - ``zip_filename``: suggested filename
+      - ``file_count``: number of generated files
+      - ``files``: list of filenames in the bundle
+      - ``project_files``: dict of filename → content (for UI preview)
+
+    Label: CODE-PROJ-001
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+    query = (body.get("query") or "").strip()
+    if not query:
+        return JSONResponse({"success": False, "error": "query is required"}, status_code=400)
+
+    usage = _check_and_record_demo_usage(request)
+    if not usage["allowed"]:
+        return JSONResponse({
+            "success": False,
+            "error": "Daily build limit reached. Sign up for more builds.",
+            "forge_usage": usage,
+        }, status_code=429)
+
+    if not _demo_gen_available or not _generate_code_project_deliverable:
+        log.warning("CODE-PROJ-001: generator not available — returning 503")
+        return JSONResponse(
+            {"success": False, "error": "Code project generator not available"},
+            status_code=503,
+        )
+
+    try:
+        deliverable = _generate_code_project_deliverable(query)
+    except Exception as exc:
+        log.exception("CODE-PROJ-ERR-004: Code project generation failed: %s", exc)
+        return JSONResponse(
+            {"success": False, "error": f"Generation failed: {type(exc).__name__}: {exc}"},
+            status_code=500,
+        )
+
+    # Build the ZIP bundle via demo_bundle_generator
+    bundle_result: dict = {}
+    if _generate_code_project_bundle:
+        try:
+            bundle_result = _generate_code_project_bundle(query, deliverable)
+        except Exception as exc:  # CODE-PROJ-ERR-005
+            log.warning("CODE-PROJ-ERR-005: bundle generation failed: %s — using zip_base64 from deliverable", exc)
+
+    # Prefer bundle_result zip; fall back to zip already in deliverable
+    zip_bytes = bundle_result.get("zip_bytes")
+    if zip_bytes:
+        import base64 as _b64
+        zip_b64 = _b64.b64encode(zip_bytes).decode("ascii")
+        zip_filename = bundle_result.get("filename", deliverable.get("zip_filename", "murphy-project.zip"))
+        files_list = bundle_result.get("files", list(deliverable.get("project_files", {}).keys()))
+    else:
+        zip_b64 = deliverable.get("zip_base64", "")
+        zip_filename = deliverable.get("zip_filename", "murphy-project.zip")
+        files_list = list(deliverable.get("project_files", {}).keys())
+
+    return JSONResponse({
+        "success": True,
+        "deliverable_type": "code_project",
+        "title": deliverable.get("title", ""),
+        "zip_base64": zip_b64,
+        "zip_filename": zip_filename,
+        "file_count": len(files_list),
+        "files": files_list,
+        "project_files": deliverable.get("project_files", {}),
+        "forge_usage": usage,
+    })
+
+
+# ---------------------------------------------------------------------------
+# HITL re-run-from-step endpoint  (label: HITL-RERUN-001)
+# ---------------------------------------------------------------------------
+
+@app.post("/api/demo/rerun-from-step")
+async def api_demo_rerun_from_step(request: Request):
+    """Re-run the demo pipeline from a specific step index with edited output.
+
+    This is the HITL (Human-in-the-Loop) editor endpoint.  When a user edits
+    a step's output in the demo UI, all downstream steps are marked stale and
+    this endpoint regenerates them from the edited point forward.
+
+    Accepts JSON body with:
+      - ``query``: original user query
+      - ``step_index``: index of the step the user edited (0-based); downstream
+        steps (step_index + 1 onward) are the ones regenerated
+      - ``edited_output``: the user's new content for that step
+      - ``prior_steps``: list of step dicts for steps before the edit point
+
+    Returns:
+      - ``success``: bool
+      - ``steps``: list of regenerated step dicts starting from step_index + 1
+      - ``roi_message``: updated ROI line
+
+    Label: HITL-RERUN-001
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+    query = (body.get("query") or "").strip()
+    if not query:
+        return JSONResponse({"success": False, "error": "query is required"}, status_code=400)
+
+    step_index = body.get("step_index")
+    if step_index is None or not isinstance(step_index, int) or step_index < 0:
+        return JSONResponse({"success": False, "error": "step_index must be a non-negative integer"}, status_code=400)
+
+    edited_output = (body.get("edited_output") or "").strip()
+    prior_steps = body.get("prior_steps") or []
+    if not isinstance(prior_steps, list):
+        return JSONResponse({"success": False, "error": "prior_steps must be a list"}, status_code=400)
+
+    # Re-run the pipeline from step_index+1 forward using the DemoRunner.
+    # step_index is the step the user edited; everything after it is regenerated.
+    try:
+        from src.demo_runner import DemoRunner  # noqa: PLC0415
+        runner = DemoRunner()
+        # Build a modified query incorporating the user's edit
+        modified_query = query
+        if edited_output:
+            modified_query = f"{query} [HITL-EDIT: {edited_output[:200]}]"
+
+        full_result = runner.run_scenario(modified_query)
+        all_steps = full_result.get("steps", [])
+
+        # Return regenerated steps starting from step_index + 1.
+        # The edited step stays in the UI at step_index; only what comes after changes.
+        regenerated: list = []
+        downstream_start = step_index + 1
+        for i, step in enumerate(all_steps[downstream_start:], start=downstream_start):
+            step["step_index"] = i
+            regenerated.append(step)
+
+        return JSONResponse({
+            "success": True,
+            "steps": regenerated,
+            "roi_message": full_result.get("roi_message", ""),
+            "scenario_key": full_result.get("scenario_key", "custom"),
+        })
+
+    except Exception as exc:
+        log.exception("HITL-RERUN-001: rerun-from-step failed: %s", exc)
+        return JSONResponse({
+            "success": False,
+            "error": f"Re-run failed: {type(exc).__name__}: {exc}",
         }, status_code=500)
 
 

@@ -1,4 +1,5 @@
 import type { FlowGraph, FlowExecutionResult } from "./flowTypes";
+import { post, get } from "../../api/murphyClient";
 
 export function convertFlowToStateGraph(graph: FlowGraph): Record<string, unknown> {
   const states: Record<string, unknown> = {};
@@ -39,64 +40,55 @@ export function convertFlowToStateGraph(graph: FlowGraph): Record<string, unknow
 
 export async function executeFlow(
   graph: FlowGraph,
-  apiBase = ""
+  /** @deprecated apiBase is ignored; murphyClient reads base URL from VITE_API_BASE env var */
+  _deprecatedApiBase = ""
 ): Promise<FlowExecutionResult> {
   const stateGraph = convertFlowToStateGraph(graph);
+  const result = await post<{ output?: unknown; trace_id?: string }>("/api/execute", { state_graph: stateGraph });
 
-  const response = await fetch(`${apiBase}/api/execute`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ state_graph: stateGraph }),
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    return { success: false, error: `HTTP ${response.status}: ${text}` };
+  if (!result.success) {
+    return { success: false, error: result.error?.message ?? "Execute failed" };
   }
 
-  const data = await response.json();
+  const data = result.data as Record<string, unknown> ?? {};
   return {
     success: true,
     output: data.output ?? data,
-    trace_id: data.trace_id,
+    trace_id: data.trace_id as string | undefined,
   };
 }
 
 export async function saveFlow(
   graph: FlowGraph,
   name: string,
-  apiBase = ""
+  /** @deprecated apiBase is ignored; murphyClient reads base URL from VITE_API_BASE env var */
+  _deprecatedApiBase = ""
 ): Promise<{ success: boolean; template_id?: string }> {
   const stateGraph = convertFlowToStateGraph(graph);
-
-  const response = await fetch(`${apiBase}/api/templates/publish`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, state_graph: stateGraph, flow_graph: graph }),
+  const result = await post<{ template_id?: string; id?: string }>("/api/templates/publish", {
+    name,
+    state_graph: stateGraph,
+    flow_graph: graph,
   });
 
-  if (!response.ok) {
-    return { success: false };
-  }
-
-  const data = await response.json();
-  return { success: true, template_id: data.template_id ?? data.id };
+  if (!result.success) return { success: false };
+  const d = result.data as Record<string, unknown> ?? {};
+  return { success: true, template_id: (d.template_id ?? d.id) as string | undefined };
 }
 
 export async function loadFlow(
   templateId: string,
-  apiBase = ""
+  /** @deprecated apiBase is ignored; murphyClient reads base URL from VITE_API_BASE env var */
+  _deprecatedApiBase = ""
 ): Promise<FlowGraph> {
-  const response = await fetch(`${apiBase}/api/templates/${templateId}`, {
-    method: "GET",
-    headers: { "Content-Type": "application/json" },
-  });
+  const result = await get<{ flow_graph?: FlowGraph } | FlowGraph>(`/api/templates/${templateId}`);
 
-  if (!response.ok) {
-    throw new Error(`Failed to load template ${templateId}: HTTP ${response.status}`);
+  if (!result.success) {
+    throw new Error(`Failed to load template ${templateId}: ${result.error?.message ?? "Unknown error"}`);
   }
 
-  const data = await response.json();
-  const flowGraph: FlowGraph = data.flow_graph ?? data;
+  const data = result.data as Record<string, unknown> | undefined;
+  const flowGraph = (data?.flow_graph ?? data) as FlowGraph;
   return flowGraph;
 }
+

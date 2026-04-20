@@ -1,23 +1,42 @@
-# AionMind
+# `src/aionmind` — AionMind Runtime Framework
 
-The `aionmind` package provides a multi-modal reasoning bridge that connects
-Murphy's capability registry to external AI backends via a directed acyclic
-graph (DAG) execution model.
+Collaborative Orchestrator-of-Orchestrators implementing six cognitive layers for the Murphy System 2.0 runtime.
 
-## Key Modules
+## Architecture
 
-| Module | Purpose |
-|--------|---------|
-| `capability_registry.py` | Registry of all AionMind-compatible capabilities |
-| `context_engine.py` | Builds enriched context objects for each inference call |
-| `dag_bridge.py` | Executes capability DAGs with parallelism and dependency ordering |
-| `bot_capability_bridge.py` | Maps bot commands to AionMind capability invocations |
-| `api.py` | Internal API for triggering AionMind reasoning flows |
+```
+Layer 1: Cognitive Input       — ContextEngine (context awareness)
+Layer 2: Collaborative Reason  — ReasoningEngine (orchestrator-of-orchestrators)
+Layer 3: Stability Control     — RSCClientAdapter (recursive stability)
+Layer 4: Dynamic Orchestration — OrchestrationEngine (DAG execution)
+Layer 5: Memory Integration    — MemoryLayer (STM / LTM)
+Layer 6: Optimization          — OptimizationEngine (conservative learning)
+```
 
-## Usage
+**Non-negotiable constraint:** NO AUTONOMY — all high-risk/low-confidence/irreversible operations require human approval (HITL gate).
+
+## Public API
 
 ```python
-from aionmind.dag_bridge import DAGBridge
-bridge = DAGBridge()
-result = await bridge.run(dag_spec={...}, context={...})
+from aionmind import AionMindKernel, ContextEngine, ReasoningEngine, OptimizationEngine
+
+kernel = AionMindKernel()
+result = kernel.process(context_object)
+# result.proposals → List[OptimizationProposal]  (never auto-executed)
 ```
+
+## Key Classes
+
+| Class | Module | Description |
+|-------|--------|-------------|
+| `AionMindKernel` | `runtime_kernel.py` | Main entry point, wires all 6 layers |
+| `ContextEngine` | `context_engine.py` | Builds `ContextGraph` from inputs |
+| `ReasoningEngine` | `reasoning_engine.py` | Multi-agent reasoning over context |
+| `OrchestrationEngine` | `orchestration_engine.py` | DAG-based execution planning |
+| `MemoryLayer` | `memory_layer.py` | Short-term + long-term memory |
+| `OptimizationEngine` | `optimization_engine.py` | Proposal generation (never execution) |
+| `CapabilityRegistry` | `capability_registry.py` | Registers agent capabilities |
+
+## Tests
+
+`tests/test_aionmind_*.py` — kernel, context engine, reasoning, DAG bridge.

@@ -594,7 +594,7 @@ class MultiCursorBrowser:
             try:
                 await child.close()
             except Exception:
-                pass
+                logger.debug("Suppressed exception in agent_module_loader")
         self._children.clear()
 
         # Close own pages
@@ -603,7 +603,7 @@ class MultiCursorBrowser:
                 if not page.is_closed():
                     await page.close()
             except Exception:
-                pass
+                logger.debug("Suppressed exception in agent_module_loader")
         self._pages.clear()
 
         # Close own context
@@ -611,7 +611,7 @@ class MultiCursorBrowser:
             try:
                 await self._pw_context.close()
             except Exception:
-                pass
+                logger.debug("Suppressed exception in agent_module_loader")
             self._pw_context = None
 
         # Only root owns + closes the browser process
@@ -620,12 +620,12 @@ class MultiCursorBrowser:
                 try:
                     await self._browser.close()
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in agent_module_loader")
             if self._pw_instance:
                 try:
                     await self._pw_instance.stop()
                 except Exception:
-                    pass
+                    logger.debug("Suppressed exception in agent_module_loader")
 
     # ── Page management ────────────────────────────────────────────
 
@@ -3856,11 +3856,11 @@ class LibrarianExecutionSuggestor:
                 "execution_type": suggestion.execution_type.value,
                 "message": f"Executed {suggestion.title}",
             }
-        except Exception as e:
+        except Exception as exc:
             return {
                 "suggestion_id": suggestion.suggestion_id,
                 "success": False,
-                "error": str(e),
+                "error": str(exc),
             }
 
     def suggest_for_pr(
@@ -4834,10 +4834,10 @@ class CreationChainManager:
                 "output": step.output_data,
             }
 
-        except Exception as e:
+        except Exception as exc:
             step.status = ChainStepStatus.FAILED
-            step.error = str(e)
-            return {"success": False, "error": str(e)}
+            step.error = str(exc)
+            return {"success": False, "error": str(exc)}
 
     async def execute_from(
         self,
@@ -6405,8 +6405,8 @@ class ClarificationSystem:
         if handler:
             try:
                 handler(request)
-            except Exception as e:
-                logger.error(f"Escalation handler failed: {e}")
+            except Exception as exc:
+                logger.error(f"Escalation handler failed: {exc}")
 
     def register_escalation_handler(self, priority: str, handler: Callable) -> None:
         """Register a handler for escalated clarifications."""

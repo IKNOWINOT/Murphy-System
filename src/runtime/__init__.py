@@ -1,5 +1,6 @@
 """Murphy System 1.0 - Runtime Package (INC-13 / H-04 / L-02)"""
 import logging as _logging
+
 try:
     from src.runtime.app import create_app, main
 except (ImportError, RuntimeError) as _e:

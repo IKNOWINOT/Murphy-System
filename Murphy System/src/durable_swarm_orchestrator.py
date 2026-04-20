@@ -240,6 +240,14 @@ class DurableSwarmOrchestrator:
             self._budget.allocated += budget
 
         logger.info("Spawned task %s (depth=%d, budget=%.2f)", task_id, depth, budget)
+
+        # Publish to Rosetta (non-blocking, best-effort)
+        try:
+            from swarm_rosetta_bridge import get_bridge
+            get_bridge().on_task_spawned(task_id=task_id, description=description, budget=budget)
+        except Exception:
+            pass
+
         return (True, task_id, idem_key)
 
     # ------------------------------------------------------------------
@@ -261,6 +269,14 @@ class DurableSwarmOrchestrator:
 
         self._circuit_breaker.record_success()
         logger.info("Task %s completed (cost=%.2f)", task_id, cost)
+
+        # Publish to Rosetta (non-blocking, best-effort)
+        try:
+            from swarm_rosetta_bridge import get_bridge
+            get_bridge().on_task_completed(task_id=task_id, cost=cost)
+        except Exception:
+            pass
+
         return True
 
     # ------------------------------------------------------------------
@@ -300,7 +316,15 @@ class DurableSwarmOrchestrator:
             # Exhausted retries — rollback
             task.state = SwarmTaskState.FAILED
             logger.warning("Task %s failed after %d retries; rollback", task_id, task.retries)
-            return (False, "rollback")
+
+        # Publish to Rosetta (non-blocking, best-effort)
+        try:
+            from swarm_rosetta_bridge import get_bridge
+            get_bridge().on_task_failed(task_id=task_id, reason=error)
+        except Exception:
+            pass
+
+        return (False, "rollback")
 
     # ------------------------------------------------------------------
     # Rollback

@@ -339,7 +339,7 @@ class GoldenPathBridge:
         # Full pipeline execution
         try:
             result = execution_fn(task_pattern)
-        except Exception:
+        except Exception as exc:
             self.record_failure(task_pattern, domain)
             raise
 
@@ -353,6 +353,234 @@ class GoldenPathBridge:
         result_dict = result if isinstance(result, dict) else {"raw": result}
         result_dict["source"] = "full_pipeline"
         return result_dict
+
+    # ------------------------------------------------------------------
+    # Permutation Calibration Integration (Spec Section 3.4)
+    # ------------------------------------------------------------------
+
+    def record_sequence_path(
+        self,
+        sequence_id: str,
+        domain: str,
+        ordering: List[str],
+        execution_spec: Dict[str, Any],
+        outcome_quality: float,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Record a golden path from a learned sequence family.
+
+        This implements spec Section 3.4: Record successful ordered evidence paths,
+        compare new situations to known sequence families.
+
+        Args:
+            sequence_id: The sequence ID from permutation registry
+            domain: Domain for the path
+            ordering: The learned optimal ordering
+            execution_spec: The execution specification
+            outcome_quality: Quality score (0.0-1.0)
+            metadata: Optional additional metadata
+
+        Returns:
+            The path_id for the recorded path
+        """
+        # Create task pattern from sequence
+        task_pattern = f"seq:{sequence_id}:{':'.join(ordering[:3])}"
+
+        # Enrich execution spec with ordering
+        enriched_spec = dict(execution_spec)
+        enriched_spec["learned_ordering"] = ordering
+        enriched_spec["sequence_id"] = sequence_id
+        enriched_spec["outcome_quality"] = outcome_quality
+
+        # Enrich metadata
+        full_metadata = metadata or {}
+        full_metadata["source"] = "permutation_learning"
+        full_metadata["ordering_length"] = len(ordering)
+
+        return self.record_success(
+            task_pattern=task_pattern,
+            domain=domain,
+            execution_spec=enriched_spec,
+            metadata=full_metadata,
+        )
+
+    def find_sequence_matches(
+        self,
+        current_ordering: List[str],
+        domain: str,
+        min_confidence: float = 0.6,
+    ) -> List[Dict[str, Any]]:
+        """Find golden paths that match a given ordering pattern.
+
+        This implements spec Section 3.4: Compare new situations to known
+        sequence families, detect when a current case matches a known "golden order".
+
+        Args:
+            current_ordering: The current ordering to match
+            domain: Domain to filter by
+            min_confidence: Minimum confidence threshold
+
+        Returns:
+            List of matching paths with similarity scores
+        """
+        with self._lock:
+            candidates = [
+                p for p in self._paths.values()
+                if p.status == PathStatus.ACTIVE
+                and p.domain == domain
+                and p.confidence_score >= min_confidence
+            ]
+
+        matches = []
+        for path in candidates:
+            # Get ordering from extra namespace (due to normalization)
+            extra = path.execution_spec.get("extra", {})
+            stored_ordering = extra.get("learned_ordering", [])
+
+            if not stored_ordering:
+                continue
+
+            similarity = self._compute_ordering_similarity(current_ordering, stored_ordering)
+
+            if similarity > 0.3:  # Only include meaningful matches
+                matches.append({
+                    "path_id": path.path_id,
+                    "sequence_id": extra.get("sequence_id"),
+                    "stored_ordering": stored_ordering,
+                    "similarity": round(similarity, 4),
+                    "confidence": round(path.confidence_score, 4),
+                    "outcome_quality": extra.get("outcome_quality", 0.0),
+                    "combined_score": round(similarity * path.confidence_score, 4),
+                })
+
+        # Sort by combined score
+        matches.sort(key=lambda m: m["combined_score"], reverse=True)
+        return matches
+
+    def _compute_ordering_similarity(
+        self,
+        ordering_a: List[str],
+        ordering_b: List[str],
+    ) -> float:
+        """Compute similarity between two orderings.
+
+        Uses a combination of:
+        - Set overlap (which elements are present)
+        - Position correlation (how similar the positions are)
+        """
+        if not ordering_a or not ordering_b:
+            return 0.0
+
+        # Set overlap
+        set_a = set(ordering_a)
+        set_b = set(ordering_b)
+        overlap = len(set_a & set_b)
+        union = len(set_a | set_b)
+        jaccard = overlap / union if union > 0 else 0.0
+
+        # Position similarity for common elements
+        common = set_a & set_b
+        if len(common) < 2:
+            return jaccard
+
+        # Kendall-tau style: count concordant vs discordant pairs
+        concordant = 0
+        discordant = 0
+        common_list = list(common)
+
+        for i, item_i in enumerate(common_list):
+            for item_j in common_list[i+1:]:
+                pos_a_i = ordering_a.index(item_i) if item_i in ordering_a else -1
+                pos_a_j = ordering_a.index(item_j) if item_j in ordering_a else -1
+                pos_b_i = ordering_b.index(item_i) if item_i in ordering_b else -1
+                pos_b_j = ordering_b.index(item_j) if item_j in ordering_b else -1
+
+                if pos_a_i >= 0 and pos_a_j >= 0 and pos_b_i >= 0 and pos_b_j >= 0:
+                    if (pos_a_i < pos_a_j) == (pos_b_i < pos_b_j):
+                        concordant += 1
+                    else:
+                        discordant += 1
+
+        total_pairs = concordant + discordant
+        position_similarity = concordant / total_pairs if total_pairs > 0 else 0.5
+
+        # Weighted combination
+        return 0.4 * jaccard + 0.6 * position_similarity
+
+    def replay_sequence_path(
+        self,
+        sequence_id: str,
+        domain: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Replay a golden path by its sequence ID.
+
+        This implements spec Section 3.4: Replay high-performing paths.
+
+        Args:
+            sequence_id: The sequence ID to replay
+            domain: Domain to filter by
+
+        Returns:
+            The execution spec if found, None otherwise
+        """
+        with self._lock:
+            for path in self._paths.values():
+                extra = path.execution_spec.get("extra", {})
+                if (path.status == PathStatus.ACTIVE
+                    and path.domain == domain
+                    and extra.get("sequence_id") == sequence_id):
+                    # Found matching path - replay it
+                    path.success_count += 1
+                    path.confidence_score = min(1.0, path.confidence_score + 0.03)
+                    path.last_used_at = datetime.now(timezone.utc)
+
+                    spec = dict(path.execution_spec)
+                    spec["replayed_from"] = path.path_id
+                    spec["replay_count"] = path.success_count
+                    # Flatten extra for convenience
+                    spec["learned_ordering"] = extra.get("learned_ordering")
+                    spec["sequence_id"] = extra.get("sequence_id")
+
+                    logger.info("Replayed sequence path %s (seq=%s)", path.path_id, sequence_id)
+                    return spec
+
+        return None
+
+    def get_sequence_path_stats(self) -> Dict[str, Any]:
+        """Get statistics for sequence-based golden paths.
+
+        Returns:
+            Statistics on sequence paths vs regular paths
+        """
+        with self._lock:
+            all_paths = list(self._paths.values())
+
+        sequence_paths = [
+            p for p in all_paths
+            if p.execution_spec.get("extra", {}).get("learned_ordering")
+        ]
+        regular_paths = [
+            p for p in all_paths
+            if not p.execution_spec.get("extra", {}).get("learned_ordering")
+        ]
+
+        active_sequence = [p for p in sequence_paths if p.status == PathStatus.ACTIVE]
+        active_regular = [p for p in regular_paths if p.status == PathStatus.ACTIVE]
+
+        return {
+            "status": "ok",
+            "total_sequence_paths": len(sequence_paths),
+            "active_sequence_paths": len(active_sequence),
+            "total_regular_paths": len(regular_paths),
+            "active_regular_paths": len(active_regular),
+            "avg_sequence_confidence": round(
+                _safe_mean([p.confidence_score for p in active_sequence]), 4
+            ),
+            "avg_regular_confidence": round(
+                _safe_mean([p.confidence_score for p in active_regular]), 4
+            ),
+            "domains_with_sequences": list(set(p.domain for p in sequence_paths)),
+        }
 
 
 # ------------------------------------------------------------------

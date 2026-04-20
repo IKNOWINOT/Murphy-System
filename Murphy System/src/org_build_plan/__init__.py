@@ -26,17 +26,17 @@ OrganizationBuildOrchestrator, BuildResult, BuildPhase
 
 from __future__ import annotations
 
-from .build_orchestrator import BuildPhase, BuildResult, OrganizationBuildOrchestrator
-from .compliance_profiler import ComplianceProfiler, ComplianceProfileResult
-from .connector_selector import ConnectorSelectionResult, ConnectorSelector
-from .org_chart_builder import OrgChartBuilder, OrgChartResult
 from .organization_intake import (
     DepartmentSpec,
     OrganizationIntake,
     OrganizationIntakeProfile,
 )
 from .tenant_provisioner import ProvisionResult, TenantProvisioner
+from .org_chart_builder import OrgChartBuilder, OrgChartResult
+from .connector_selector import ConnectorSelectionResult, ConnectorSelector
+from .compliance_profiler import ComplianceProfileResult, ComplianceProfiler
 from .workflow_templates import WorkflowTemplate, WorkflowTemplateLibrary
+from .build_orchestrator import BuildPhase, BuildResult, OrganizationBuildOrchestrator
 
 __version__ = "0.1.0"
 

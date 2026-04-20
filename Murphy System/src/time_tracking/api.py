@@ -28,17 +28,20 @@ logger = logging.getLogger(__name__)
 if APIRouter is not None:
 
     class StartTimerRequest(BaseModel):
-        """Start Timer Request."""
-        user_id: str
+        """Start Timer Request. PATCH-009: user_id defaults to '' (resolved server-side)."""
+        user_id: str = ""
         board_id: str = ""
         item_id: str = ""
         note: str = ""
         billable: bool = True
 
     class AddEntryRequest(BaseModel):
-        """Add Entry Request."""
-        user_id: str
-        duration_seconds: int
+        """Add Entry Request. PATCH-009: user_id optional; duration_minutes alias added."""
+        user_id: str = ""
+        duration_seconds: int = 0
+        duration_minutes: int = 0     # PATCH-009: alias; multiplied by 60 server-side
+        description: str = ""         # PATCH-009: alias for note
+        date: str = ""                # PATCH-009: alias for started_at
         board_id: str = ""
         item_id: str = ""
         note: str = ""
@@ -88,10 +91,15 @@ def create_time_tracking_router(
 
     @router.post("/entries")
     async def add_entry(req: AddEntryRequest):
+        # PATCH-009: resolve aliases
+        _dur_sec = req.duration_seconds or (req.duration_minutes * 60) or 60
+        _note = req.note or req.description or ""
+        _started = req.started_at or req.date or ""
+        _user = req.user_id or "system"
         entry = tracker.add_entry(
-            req.user_id, req.duration_seconds,
+            _user, _dur_sec,
             board_id=req.board_id, item_id=req.item_id,
-            note=req.note, started_at=req.started_at,
+            note=_note, started_at=_started,
             billable=req.billable, tags=req.tags,
         )
         return JSONResponse(entry.to_dict(), status_code=201)

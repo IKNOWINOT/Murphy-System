@@ -2027,7 +2027,7 @@ def handle_automation(dispatcher: object, cmd: object) -> object:
                     mode_val = int(args[1])
                     transition = ctrl.set_mode(AutomationMode(mode_val), reason=f"matrix command by {getattr(cmd, 'sender', 'unknown')}")
                     return _make_response(True, f"Mode set to `{transition.to_mode}` — {transition.reason}")
-                except (ValueError, KeyError):
+                except (ValueError, KeyError) as e:
                     return _make_response(False, f"Invalid mode value: {args[1]}. Use 0–4.")
             if action == "history":
                 transitions = ctrl.get_transitions(limit=10)
@@ -2424,7 +2424,7 @@ def handle_automation(dispatcher: object, cmd: object) -> object:
                     mode = FAMode(args[1])
                     controller.set_automation_mode(tenant_id=_tenant_id, mode=mode, reason=f"matrix command by {getattr(cmd, 'sender', 'unknown')}")
                     return _make_response(True, f"Full automation mode set to `{mode.value}`.")
-                except (ValueError, TypeError):
+                except (ValueError, TypeError) as e:
                     return _make_response(False, f"Invalid mode: {args[1]}. Options: {[m.value for m in FAMode]}")
             if action == "risks":
                 gaps = controller.get_active_hitl_gaps(tenant_id=_tenant_id)

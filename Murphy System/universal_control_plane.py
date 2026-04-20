@@ -13,21 +13,25 @@ Created by: Corey Post
 License: BSL 1.1
 """
 
-import logging
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+
+from typing import Dict, Any, List, Optional, Set
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Dict, Any, List, Optional, Set
+import logging
 
 logger = logging.getLogger(__name__)
 
 # Import universal systems
-from src.control_plane.execution_packet import (
+from control_plane.execution_packet import (
     ExecutionPacket, Action, ActionType, SafetyConstraint, Gate,
     TimeWindow, RollbackPlan, AuthorityEnvelope, create_simple_packet
 )
-from src.control_plane.packet_compiler import PacketCompiler
-from src.governance_framework.scheduler import GovernanceScheduler, ScheduledAgent
-from src.execution_engine.workflow_orchestrator import WorkflowOrchestrator
+from control_plane.packet_compiler import PacketCompiler
+from governance_framework.scheduler import GovernanceScheduler, ScheduledAgent
+from execution_engine.workflow_orchestrator import WorkflowOrchestrator
 
 # ============================================================================
 # ENGINE TYPES & REGISTRY
@@ -369,6 +373,8 @@ class APIEngine(BaseEngine):
             logger.warning("APIEngine call to %s failed: %s", url, exc)
 
         # Stub fallback — record the intended call and return simulated success.
+        # status_code is intentionally None (not 200) so callers can distinguish
+        # a stub response from a real HTTP response. Check `stub: True` to detect.
         stub = {
             'url': url,
             'method': method,

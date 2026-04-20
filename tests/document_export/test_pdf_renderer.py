@@ -13,11 +13,13 @@ from __future__ import annotations
 
 import base64
 import os
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 # Ensure the package is importable regardless of working directory
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.document_export.brand_registry import BrandProfile
 from src.document_export.export_pipeline import ExportPipeline

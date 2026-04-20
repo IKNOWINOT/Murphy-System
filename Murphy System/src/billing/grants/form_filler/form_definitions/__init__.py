@@ -7,14 +7,14 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 
 from src.billing.grants.form_filler.form_definitions.base import BaseFormDefinition
-from src.billing.grants.form_filler.form_definitions.energy_trust import EnergyTrustForm
-from src.billing.grants.form_filler.form_definitions.generic_grant import GenericGrantForm
-from src.billing.grants.form_filler.form_definitions.grants_gov import GrantsGovForm
-from src.billing.grants.form_filler.form_definitions.nsf_sbir import NSFSBIRForm
-from src.billing.grants.form_filler.form_definitions.sam_gov import SAMGovForm
-from src.billing.grants.form_filler.form_definitions.sba_microloan import SBAMicroloanForm
 from src.billing.grants.form_filler.form_definitions.sbir_phase1 import SBIRPhase1Form
 from src.billing.grants.form_filler.form_definitions.sttr_phase1 import STTRPhase1Form
+from src.billing.grants.form_filler.form_definitions.nsf_sbir import NSFSBIRForm
+from src.billing.grants.form_filler.form_definitions.sam_gov import SAMGovForm
+from src.billing.grants.form_filler.form_definitions.grants_gov import GrantsGovForm
+from src.billing.grants.form_filler.form_definitions.sba_microloan import SBAMicroloanForm
+from src.billing.grants.form_filler.form_definitions.energy_trust import EnergyTrustForm
+from src.billing.grants.form_filler.form_definitions.generic_grant import GenericGrantForm
 
 FORM_REGISTRY: Dict[str, BaseFormDefinition] = {
     "sbir_phase1": SBIRPhase1Form(),

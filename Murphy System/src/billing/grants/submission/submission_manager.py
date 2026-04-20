@@ -20,12 +20,12 @@ def _get_portal_class(portal: str):
     if portal in PORTAL_INSTRUCTIONS_MAP:
         return PORTAL_INSTRUCTIONS_MAP[portal]
 
-    from src.billing.grants.submission.portal_instructions.energy_trust import EnergyTrustInstructions
     from src.billing.grants.submission.portal_instructions.grants_gov import GrantsGovInstructions
-    from src.billing.grants.submission.portal_instructions.research_gov import ResearchGovInstructions
     from src.billing.grants.submission.portal_instructions.sam_gov import SamGovInstructions
-    from src.billing.grants.submission.portal_instructions.sba_portal import SbaPortalInstructions
     from src.billing.grants.submission.portal_instructions.sbir_gov import SbirGovInstructions
+    from src.billing.grants.submission.portal_instructions.research_gov import ResearchGovInstructions
+    from src.billing.grants.submission.portal_instructions.sba_portal import SbaPortalInstructions
+    from src.billing.grants.submission.portal_instructions.energy_trust import EnergyTrustInstructions
 
     registry = {
         "grants_gov": GrantsGovInstructions,

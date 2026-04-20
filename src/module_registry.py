@@ -93,7 +93,7 @@ _KNOWN_PATTERNS = (
 
 _DEFAULT_CAPABILITIES: Dict[str, List[str]] = {
     "llm_controller": ["llm_routing", "model_selection", "deepinfra_api"],
-    "llm_integration_layer": ["llm_routing", "llm_provider_routing", "domain_routing"],
+    "llm_integration_layer": ["llm_routing", "deepinfra_key_rotation", "domain_routing"],
     "llm_output_validator": ["output_validation", "schema_compliance", "injection_detection"],
     "domain_engine": ["domain_inference", "domain_gate", "classification"],
     "feedback_integrator": ["feedback_learning", "state_uncertainty", "closed_loop"],

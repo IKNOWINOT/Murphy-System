@@ -18,6 +18,9 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+# Maximum XML payload size (4 MB) to guard against DoS via oversized documents.
+_MAX_XML_BYTES = 4 * 1024 * 1024
+
 logger = logging.getLogger(__name__)
 
 
@@ -610,9 +613,9 @@ class BACnetEDEAdapter(IngestionAdapter):
                 equipment_specs.append(spec)
                 records_ingested += 1
 
-        except Exception as exc:
-            logger.error(f"EDE ingestion error: {exc}")
-            warnings.append(str(exc))
+        except Exception as e:
+            logger.error(f"EDE ingestion error: {e}")
+            warnings.append(str(e))
 
         return IngestionResult(
             result_id=result_id,
@@ -678,9 +681,9 @@ class ModbusRegisterMapAdapter(IngestionAdapter):
                 else:
                     records_failed += 1
 
-        except Exception as exc:
-            logger.error(f"Modbus ingestion error: {exc}")
-            warnings.append(str(exc))
+        except Exception as e:
+            logger.error(f"Modbus ingestion error: {e}")
+            warnings.append(str(e))
 
         return IngestionResult(
             result_id=result_id,
@@ -723,7 +726,14 @@ class OpcUaNodeSetAdapter(IngestionAdapter):
         records_failed = 0
 
         try:
-            root = ET.fromstring(content)  # nosec B314 — OPC-UA NodeSet2 XML from validated equipment ingestion pipeline; can_handle() pre-validates the format before this point is reached
+            # Guard: reject oversized payloads before parsing to prevent DoS.
+            if len(content.encode("utf-8", errors="replace")) > _MAX_XML_BYTES:
+                raise ValueError(
+                    f"OPC-UA NodeSet2 XML exceeds {_MAX_XML_BYTES // 1024 // 1024} MB limit"
+                )
+            # ET.fromstring does not expand external entities or DTDs, so XXE is
+            # not a risk here.  The payload is further constrained by can_handle().
+            root = ET.fromstring(content)  # nosec B314
 
             namespaces = {'ua': 'http://opcfoundation.org/UA/2011/03/UANodeSet.xsd'}
 
@@ -745,9 +755,9 @@ class OpcUaNodeSetAdapter(IngestionAdapter):
                 except Exception:
                     records_failed += 1
 
-        except Exception as exc:
-            logger.error(f"OPC UA ingestion error: {exc}")
-            warnings.append(str(exc))
+        except Exception as e:
+            logger.error(f"OPC UA ingestion error: {e}")
+            warnings.append(str(e))
 
         return IngestionResult(
             result_id=result_id,
@@ -792,9 +802,9 @@ class GenericCSVAdapter(IngestionAdapter):
                     equipment_specs.append(dict(row))
                     records_ingested += 1
 
-        except Exception as exc:
-            logger.error(f"CSV ingestion error: {exc}")
-            warnings.append(str(exc))
+        except Exception as e:
+            logger.error(f"CSV ingestion error: {e}")
+            warnings.append(str(e))
             records_failed = 1
 
         return IngestionResult(
@@ -851,9 +861,9 @@ class GenericJSONAdapter(IngestionAdapter):
                     equipment_specs = [data]
                     records_ingested = 1
 
-        except Exception as exc:
-            logger.error(f"JSON ingestion error: {exc}")
-            warnings.append(str(exc))
+        except Exception as e:
+            logger.error(f"JSON ingestion error: {e}")
+            warnings.append(str(e))
             records_failed = 1
 
         return IngestionResult(
@@ -918,9 +928,9 @@ class GraingerCatalogAdapter(IngestionAdapter):
                 component_recommendations.append(rec.to_dict())
                 records_ingested += 1
 
-        except Exception as exc:
-            logger.error(f"Grainger catalog ingestion error: {exc}")
-            warnings.append(str(exc))
+        except Exception as e:
+            logger.error(f"Grainger catalog ingestion error: {e}")
+            warnings.append(str(e))
 
         return IngestionResult(
             result_id=result_id,
@@ -973,9 +983,9 @@ class MQTTTopicMapAdapter(IngestionAdapter):
                         equipment_specs.append(dict(row))
                         records_ingested += 1
 
-        except Exception as exc:
-            logger.error(f"MQTT topic map ingestion error: {exc}")
-            warnings.append(str(exc))
+        except Exception as e:
+            logger.error(f"MQTT topic map ingestion error: {e}")
+            warnings.append(str(e))
 
         return IngestionResult(
             result_id=result_id,

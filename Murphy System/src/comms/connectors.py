@@ -9,6 +9,7 @@ CRITICAL: Connectors NEVER trigger execution. They only create artifacts.
 """
 
 import logging
+import os
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -105,17 +106,22 @@ class EmailConnector(BaseConnector):
     def __init__(self, config: ConnectorConfig):
         super().__init__(config)
 
-        # SMTP configuration
-        self.smtp_host = config.connection_params.get('smtp_host')
-        self.smtp_port = config.connection_params.get('smtp_port', 587)
-        self.smtp_username = config.connection_params.get('smtp_username')
-        self.smtp_password = config.connection_params.get('smtp_password')
+        # Internal docker-mailserver auto-detection
+        _internal = os.environ.get("MURPHY_MAIL_INTERNAL", "").lower() == "true"
+        _default_imap_host = "murphy-mailserver" if _internal else None
+        _default_smtp_host = "murphy-mailserver" if _internal else None
 
-        # IMAP configuration
-        self.imap_host = config.connection_params.get('imap_host')
-        self.imap_port = config.connection_params.get('imap_port', 993)
-        self.imap_username = config.connection_params.get('imap_username')
-        self.imap_password = config.connection_params.get('imap_password')
+        # SMTP configuration
+        self.smtp_host = config.connection_params.get('smtp_host') or os.environ.get("SMTP_HOST") or _default_smtp_host
+        self.smtp_port = config.connection_params.get('smtp_port', int(os.environ.get("SMTP_PORT", "587")))
+        self.smtp_username = config.connection_params.get('smtp_username') or os.environ.get("SMTP_USER")
+        self.smtp_password = config.connection_params.get('smtp_password') or os.environ.get("SMTP_PASSWORD")
+
+        # IMAP configuration — defaults to internal mailserver when MURPHY_MAIL_INTERNAL=true
+        self.imap_host = config.connection_params.get('imap_host') or os.environ.get("IMAP_HOST") or _default_imap_host
+        self.imap_port = config.connection_params.get('imap_port', int(os.environ.get("IMAP_PORT", "993")))
+        self.imap_username = config.connection_params.get('imap_username') or os.environ.get("IMAP_USER") or os.environ.get("SMTP_USER")
+        self.imap_password = config.connection_params.get('imap_password') or os.environ.get("IMAP_PASSWORD") or os.environ.get("SMTP_PASSWORD")
 
         # Microsoft Graph configuration (optional)
         self.use_graph = config.connection_params.get('use_graph', False)

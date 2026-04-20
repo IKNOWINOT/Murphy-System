@@ -3,7 +3,7 @@
 **Murphy System — Self-Automating Launch Strategy**
 **Date:** 2025-02-26
 **Repository:** IKNOWINOT/Murphy-System
-**Runtime Directory:** repo root (`./`)
+**Runtime Directory:** `Murphy System/`
 
 ---
 
@@ -31,12 +31,12 @@ This document defines the strategy to use **Murphy System to automate its own la
 
 | File / Path | Purpose |
 |-------------|---------|
-| `murphy_system_1.0_runtime.py` | Thin entry-point — delegates to `src/runtime/` package (`app.py`, `murphy_system_core.py`, `living_document.py`) |
-| `start_murphy_1.0.sh` | Startup script — bootstraps all subsystems |
-| `requirements_murphy_1.0.txt` | Python dependency manifest (100+ packages) |
-| `.env.example` | Configuration template — API keys, secrets |
-| `murphy_landing_page.html` | Public-facing landing page (32KB) |
-| `documentation/` | Comprehensive system documentation tree |
+| `Murphy System/murphy_system_1.0_runtime.py` | Thin entry-point — delegates to `src/runtime/` package (`app.py`, `murphy_system_core.py`, `living_document.py`) |
+| `Murphy System/start_murphy_1.0.sh` | Startup script — bootstraps all subsystems |
+| `Murphy System/requirements_murphy_1.0.txt` | Python dependency manifest (100+ packages) |
+| `Murphy System/.env.example` | Configuration template — API keys, secrets |
+| `Murphy System/murphy_landing_page.html` | Public-facing landing page (32KB) |
+| `Murphy System/documentation/` | Comprehensive system documentation tree |
 
 ### 1.2 System Requirements
 
@@ -55,11 +55,11 @@ This document defines the strategy to use **Murphy System to automate its own la
 pip install -r requirements_murphy_1.0.txt
 
 # Step 2 — Create environment config
-cp ".env.example" ".env"
+cp "Murphy System/.env.example" "Murphy System/.env"
 # Edit .env with your API keys and secrets
 
 # Step 3 — Start Murphy System
-python "start_murphy.py"
+python "Murphy System/start_murphy.py"
 
 # Step 4 — Verify running
 curl http://localhost:8000/health
@@ -308,16 +308,16 @@ Immediate actions to begin execution:
 pip install -r requirements_murphy_1.0.txt
 
 # 2. Create environment configuration
-cp ".env.example" ".env"
+cp "Murphy System/.env.example" "Murphy System/.env"
 
 # 3. Start Murphy System
-python "start_murphy.py"
+python "Murphy System/start_murphy.py"
 
 # 4. Verify system health
 curl http://localhost:8000/health
 
 # 5. Run first test workflow
-python "murphy_system_runtime.py" --workflow content-generation --dry-run
+python "Murphy System/murphy_system_runtime.py" --workflow content-generation --dry-run
 ```
 
 ⚠️ **Important:** Do not proceed to Priority 2+ until the system passes the health check and the test workflow completes successfully.

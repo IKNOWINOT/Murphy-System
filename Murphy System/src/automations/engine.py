@@ -23,7 +23,6 @@ except ImportError:
         target_list.append(item)
 
 from .models import (
-    _BUILTIN_AUTOMATION_TEMPLATES,
     ActionType,
     AutomationAction,
     AutomationRule,
@@ -33,6 +32,7 @@ from .models import (
     RecurrenceFrequency,
     RecurrenceRule,
     TriggerType,
+    _BUILTIN_AUTOMATION_TEMPLATES,
     _new_id,
     _now,
 )

@@ -17,7 +17,6 @@ from __future__ import annotations
 import logging
 from typing import Dict, List, Optional
 
-from src.billing.grants.database import GRANT_CATALOG, list_grants
 from src.billing.grants.models import (
     EligibilityMatch,
     EligibilityRequest,
@@ -25,6 +24,7 @@ from src.billing.grants.models import (
     Grant,
     GrantTrack,
 )
+from src.billing.grants.database import GRANT_CATALOG, list_grants
 
 logger = logging.getLogger(__name__)
 

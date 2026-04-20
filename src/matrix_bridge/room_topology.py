@@ -686,6 +686,7 @@ _CANONICAL_SPACES: List[SpaceDefinition] = [
                     "durable_swarm_orchestrator",
                     "murphy_crew_system",
                     "swarm_proposal_generator",
+                    "collaborative_task_orchestrator",
                 ],
             ),
             RoomDefinition(
@@ -741,6 +742,35 @@ _CANONICAL_SPACES: List[SpaceDefinition] = [
                 description="All bot-generated output not routed elsewhere.",
                 subsystems=[],
                 is_read_only=True,
+            ),
+        ],
+    ),
+    # -----------------------------------------------------------------------
+    # UI Trainer / Overlay
+    # -----------------------------------------------------------------------
+    SpaceDefinition(
+        alias="murphy-ui-trainer",
+        display_name="UI Trainer & Overlay",
+        description=(
+            "Highlight overlay, glow-key hints, left-click suggestions, "
+            "and golden-path recommendations surfaced to users in the terminal UI."
+        ),
+        hivemind_bot="TriageBot",
+        rooms=[
+            RoomDefinition(
+                alias="murphy-ui-trainer",
+                display_name="Trainer Suggestions",
+                room_type=RoomType.COORDINATION,
+                description=(
+                    "Shadow-agent automation suggestions rendered as "
+                    "colored highlights / glow-key hints. "
+                    "Served by OverlayManager via /api/overlay/*."
+                ),
+                subsystems=[
+                    "highlight_overlay",
+                    "golden_path_engine",
+                    "murphy_shadow_trainer",
+                ],
             ),
         ],
     ),

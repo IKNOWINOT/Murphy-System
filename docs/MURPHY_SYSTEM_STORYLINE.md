@@ -1272,3 +1272,71 @@ improves the system; governance ensures it doesn't improve itself into a dangero
 | Bots: Triage & feedback | `bots/triage_bot.py`, `bots/feedback_bot.py` |
 | Bots: Valon & tuning | `bots/valon.py`, `bots/valon_engine.py`, `bots/tuning_refiner_bot.py` |
 | Bots: Infrastructure | `bots/bot_base.py`, `bots/composite_registry.py`, `bots/plugin_loader.py` |
+
+---
+
+## Appendix: LLM Configuration, Onboard LLM, and Billing Flow
+
+### Onboard LLM — Always Available
+
+Murphy ships with a built-in offline LLM called **Murphy Onboard LLM** (powered by
+`EnhancedLocalLLM` in `src/enhanced_local_llm.py`). It is always active and requires no
+API key. It supports three internal providers:
+
+| Provider | Style | Best for |
+|---|---|---|
+| `aristotle` | Deterministic, low-temperature | Math, science, logic |
+| `wulfrum` | Fuzzy-matching, medium-temperature | Validation, comparisons |
+| `deepinfra` | High-temperature, general domain | Onboarding conversations, creative tasks |
+
+During the MFGC/5U onboarding interview, the `librarian_ask()` method routes through the
+onboard LLM's `deepinfra` provider, embedding the collected profile context in the prompt. This
+ensures each response is unique and personalized as more dimensions are collected.
+
+The onboard LLM is always listed in the `/api/llm/status` and `/api/llm/providers`
+responses — even when no cloud API key is set.
+
+### Adding a Cloud LLM Provider
+
+To upgrade to a faster cloud LLM, navigate to **Sidebar → LLM Config** in any terminal
+view. A configuration form lets you select a provider and enter your API key:
+
+1. **DeepInfra** (recommended — free tier available): Get a key at https://deepinfra.com
+2. **OpenAI**: Get a key at https://platform.openai.com/api-keys
+3. **Anthropic**: Get a key at https://console.anthropic.com/
+
+The key is stored via `/api/llm/configure` (POST) and persisted to the `.env` file. The
+system hot-reloads the configuration without restart.
+
+Alternatively, set environment variables directly:
+
+```bash
+export DEEPINFRA_API_KEY="di_..."
+export MURPHY_LLM_PROVIDER="deepinfra"
+```
+
+### Pricing Page and SaaS Subscription Flow
+
+The public pricing page (`/ui/pricing`) shows Solo, Business, Professional, and Enterprise
+tiers. When an unauthenticated visitor clicks **Start Free Trial** (Solo or Business), they
+are redirected to `/ui/signup?tier=<tier>&interval=<interval>` so they can create an
+account first. After signup, the billing checkout can proceed with the `account_id`
+required by the `CheckoutRequest` schema.
+
+Professional and Enterprise plans use `mailto:sales@murphy.ai` links for direct contact.
+
+The `/api/billing/checkout` endpoint accepts `account_id`, `tier`, and `interval` from
+authenticated sessions. Supported payment backends are PayPal (`approval_url`) and
+cryptocurrency (`hosted_url`).
+
+### LLM Config UI
+
+Both `terminal_integrations.html` (Integrations terminal, **Sidebar → LLM Config**) and
+`terminal_unified.html` (Unified terminal, **Sidebar → LLM Config**) show:
+
+1. **Summary cards** — active provider, active model, onboard LLM availability
+2. **Provider grid** — one card per configured provider with status badge, model, and temperature
+3. **Provider summary table** — all providers in a sortable table
+4. **Add Cloud Provider form** — select provider + enter API key + Save & Activate button
+
+The onboard LLM card is always shown regardless of whether a cloud API key is set.

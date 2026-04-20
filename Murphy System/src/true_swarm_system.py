@@ -13,6 +13,7 @@ Key Principles:
 import logging
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
@@ -195,7 +196,7 @@ class SwarmMode(Enum):
 
 class BaseSwarmAgent(ABC):
     """
-    Base class for swarm agents
+    Base class for swarm agents.
 
     Agents are inference operators that transform inputs into:
     - hypotheses
@@ -203,11 +204,60 @@ class BaseSwarmAgent(ABC):
     - risks
     - gates
 
-    Never actions.
+    Never direct actions — all browser/UI/desktop actions are delegated
+    to the MultiCursorBrowser controller checked out at agent startup.
+
+    ── MCB AGENT CONTROLLER ─────────────────────────────────────────────
+    Every BaseSwarmAgent subclass automatically receives a MultiCursorBrowser
+    controller at construction time via ``MultiCursorBrowser.get_controller()``.
+    This mirrors the Copilot skill-checkout pattern: before an agent can
+    interact with any UI surface it must declare its controller identity.
+
+    Access the controller via ``self._mcb``.  The browser is NOT launched
+    automatically — call ``await self._mcb.launch()`` before issuing
+    page-level actions.  Use ``MultiCursorBrowser.list_controllers()`` to
+    audit which agents have checked out a controller at any point in time.
     """
 
-    def __init__(self, instance: AgentInstance):
+    def __init__(self, instance: AgentInstance, llm_controller=None):
         self.instance = instance
+        self._llm = llm_controller  # Optional[LLMController] — injected at spawn time
+
+        # ── MCB agent controller checkout ────────────────────────────
+        # Every agent checks out its own MultiCursorBrowser controller
+        # on construction, keyed by its unique instance id.
+        try:
+            from agent_module_loader import MultiCursorBrowser as _MCB
+            self._mcb = _MCB.get_controller(agent_id=instance.instance_id)
+        except Exception:
+            self._mcb = None  # Graceful degradation in headless/test environments
+
+    def _llm_generate(self, prompt: str, context: Optional[str] = None, max_tokens: int = 800) -> Optional[str]:
+        """Call LLMController.query_llm() synchronously; returns None on any failure.
+
+        Uses the onboard fallback when no external API is configured, so this
+        method always returns a meaningful string unless the local engine is also
+        broken.
+        """
+        if self._llm is None:
+            return None
+        try:
+            import asyncio
+            from llm_controller import LLMRequest
+            req = LLMRequest(prompt=prompt, context=context, max_tokens=max_tokens)
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # Called from within an async context — run in thread pool
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                    future = pool.submit(asyncio.run, self._llm.query_llm(req))
+                    response = future.result(timeout=30)
+            else:
+                response = loop.run_until_complete(self._llm.query_llm(req))
+            return response.content
+        except Exception as exc:
+            logger.debug("BaseSwarmAgent._llm_generate failed (%s)", exc)
+            return None
 
     @abstractmethod
     def generate_artifacts(
@@ -294,44 +344,62 @@ class ExplorationAgent(BaseSwarmAgent):
         workspace: TypedGenerativeWorkspace,
         context: Dict[str, Any]
     ) -> List[Artifact]:
-        """Generate software solution candidates"""
+        """Generate software solution candidates — LLM-backed with static fallback."""
         solutions = []
 
-        # Phase-specific generation
+        # Try LLM generation first
+        llm_text = self._llm_generate(
+            prompt=(
+                f"You are a software architect. For the task: '{task}'\n"
+                f"Phase: {self.instance.phase.value}\n"
+                "List 3-4 concrete software solution candidates as JSON array. "
+                "Each item: {\"architecture\": str, \"approach\": str, \"trade_offs\": {\"pros\": [], \"cons\": []}}. "
+                "Output ONLY the JSON array."
+            ),
+            max_tokens=600,
+        )
+        if llm_text:
+            try:
+                import json as _json
+                items = _json.loads(llm_text.strip())
+                if isinstance(items, list):
+                    for item in items[:4]:
+                        solutions.append(self.create_artifact(
+                            content=item,
+                            artifact_type=ArtifactType.SOLUTION_CANDIDATE,
+                            confidence_impact=0.18,
+                            deterministic_bindings={"llm_generated": True},
+                        ))
+                    if solutions:
+                        return solutions
+            except Exception as exc:
+                logger.debug("LLM JSON parse failed for software solutions (%s), using static", exc)
+
+        # Static fallback
         if self.instance.phase == Phase.EXPAND:
-            # Broad architectural options
             architectures = ['microservices', 'monolithic', 'serverless', 'event-driven']
             for arch in architectures:
-                artifact = self.create_artifact(
+                solutions.append(self.create_artifact(
                     content={
                         'architecture': arch,
                         'approach': f'{arch.capitalize()} architecture for: {task}',
                         'trade_offs': self._get_architecture_tradeoffs(arch)
                     },
                     artifact_type=ArtifactType.SOLUTION_CANDIDATE,
-                    confidence_impact=0.1
-                )
-                solutions.append(artifact)
-
+                    confidence_impact=0.1,
+                ))
         elif self.instance.phase == Phase.ENUMERATE:
-            # Specific tech stacks
             stacks = [
                 {'frontend': 'React', 'backend': 'Node.js', 'db': 'PostgreSQL'},
                 {'frontend': 'Vue', 'backend': 'Python/Django', 'db': 'MongoDB'},
                 {'frontend': 'Angular', 'backend': 'Java/Spring', 'db': 'MySQL'}
             ]
             for stack in stacks:
-                artifact = self.create_artifact(
-                    content={
-                        'tech_stack': stack,
-                        'maturity': 'production-ready',
-                        'dependencies': list(stack.values())
-                    },
+                solutions.append(self.create_artifact(
+                    content={'tech_stack': stack, 'maturity': 'production-ready', 'dependencies': list(stack.values())},
                     artifact_type=ArtifactType.SOLUTION_CANDIDATE,
-                    confidence_impact=0.15
-                )
-                solutions.append(artifact)
-
+                    confidence_impact=0.15,
+                ))
         return solutions
 
     def _generate_system_architectures(
@@ -340,23 +408,48 @@ class ExplorationAgent(BaseSwarmAgent):
         workspace: TypedGenerativeWorkspace,
         context: Dict[str, Any]
     ) -> List[Artifact]:
-        """Generate system architecture candidates"""
+        """Generate system architecture candidates — LLM-backed with static fallback."""
         architectures = []
+
+        llm_text = self._llm_generate(
+            prompt=(
+                f"You are a systems architect. For the task: '{task}'\n"
+                f"Phase: {self.instance.phase.value}\n"
+                "List 3-4 system architecture patterns as JSON array. "
+                "Each item: {\"pattern\": str, \"description\": str, \"benefits\": []}. "
+                "Output ONLY the JSON array."
+            ),
+            max_tokens=500,
+        )
+        if llm_text:
+            try:
+                import json as _json
+                items = _json.loads(llm_text.strip())
+                if isinstance(items, list):
+                    for item in items[:4]:
+                        architectures.append(self.create_artifact(
+                            content=item,
+                            artifact_type=ArtifactType.SOLUTION_CANDIDATE,
+                            confidence_impact=0.15,
+                            deterministic_bindings={"llm_generated": True},
+                        ))
+                    if architectures:
+                        return architectures
+            except Exception as exc:
+                logger.debug("LLM JSON parse failed for architectures (%s), using static", exc)
 
         if self.instance.phase == Phase.EXPAND:
             patterns = ['layered', 'hexagonal', 'clean', 'onion']
             for pattern in patterns:
-                artifact = self.create_artifact(
+                architectures.append(self.create_artifact(
                     content={
                         'pattern': pattern,
                         'description': f'{pattern.capitalize()} architecture pattern',
                         'benefits': self._get_pattern_benefits(pattern)
                     },
                     artifact_type=ArtifactType.SOLUTION_CANDIDATE,
-                    confidence_impact=0.12
-                )
-                architectures.append(artifact)
-
+                    confidence_impact=0.12,
+                ))
         return architectures
 
     def _generate_data_solutions(
@@ -735,9 +828,10 @@ class SwarmSpawner:
     - incentive pressure spikes
     """
 
-    def __init__(self):
+    def __init__(self, llm_controller=None):
         self.active_agents: Dict[str, BaseSwarmAgent] = {}
         self.spawn_history: List[Dict[str, Any]] = []
+        self._llm = llm_controller
 
     def spawn_swarm(
         self,
@@ -772,11 +866,11 @@ class SwarmSpawner:
                 regulatory_knowledge=self._get_regulatory_knowledge(profession)
             )
 
-            # Create agent based on mode
+            # Create agent based on mode — inject LLMController for real inference
             if mode == SwarmMode.EXPLORATION:
-                agent = ExplorationAgent(instance)
+                agent = ExplorationAgent(instance, llm_controller=self._llm)
             else:  # CONTROL
-                agent = ControlAgent(instance)
+                agent = ControlAgent(instance, llm_controller=self._llm)
 
             agents.append(agent)
             self.active_agents[instance.id] = agent
@@ -966,11 +1060,12 @@ class TrueSwarmSystem:
     - Gate compilation (governance synthesis)
     """
 
-    def __init__(self):
+    def __init__(self, llm_controller=None):
         self.workspace = TypedGenerativeWorkspace()
-        self.spawner = SwarmSpawner()
+        self.spawner = SwarmSpawner(llm_controller=llm_controller)
         self.gate_compiler = GateCompiler()
         self.execution_history: List[Dict[str, Any]] = []
+        self._llm = llm_controller
 
     def execute_phase(
         self,
@@ -1002,14 +1097,23 @@ class TrueSwarmSystem:
         )
         logger.info(f"   Spawned {len(exploration_agents)} agents: {[a.instance.profession.value for a in exploration_agents]}")
 
-        # 2. Exploration agents generate artifacts (parallel)
-        logger.info("\n   Generating solution candidates...")
+        # 2. Exploration agents generate artifacts — TRUE PARALLELISM via ThreadPoolExecutor
+        logger.info("\n   Generating solution candidates (parallel)...")
         exploration_artifacts = []
-        for agent in exploration_agents:
-            artifacts = agent.generate_artifacts(task, self.workspace, context)
-            for artifact in artifacts:
-                self.workspace.write_artifact(artifact)
-                exploration_artifacts.append(artifact)
+        _max_workers = min(len(exploration_agents), 8) if exploration_agents else 1
+        with ThreadPoolExecutor(max_workers=_max_workers) as pool:
+            futures = {
+                pool.submit(agent.generate_artifacts, task, self.workspace, context): agent
+                for agent in exploration_agents
+            }
+            for future in as_completed(futures):
+                try:
+                    artifacts = future.result(timeout=30)
+                    for artifact in artifacts:
+                        self.workspace.write_artifact(artifact)
+                        exploration_artifacts.append(artifact)
+                except Exception as exc:
+                    logger.warning("Exploration agent failed: %s", exc)
         logger.info(f"   Generated {len(exploration_artifacts)} artifacts")
 
         # 3. Spawn control swarm
@@ -1023,14 +1127,23 @@ class TrueSwarmSystem:
         )
         logger.info(f"   Spawned {len(control_agents)} agents: {[a.instance.profession.value for a in control_agents]}")
 
-        # 4. Control agents analyze risks and propose gates (parallel)
-        logger.info("\n   Analyzing risks and proposing gates...")
+        # 4. Control agents analyze risks and propose gates — TRUE PARALLELISM
+        logger.info("\n   Analyzing risks and proposing gates (parallel)...")
         control_artifacts = []
-        for agent in control_agents:
-            artifacts = agent.estimate_risks(self.workspace, context)
-            for artifact in artifacts:
-                self.workspace.write_artifact(artifact)
-                control_artifacts.append(artifact)
+        _max_ctrl = min(len(control_agents), 8) if control_agents else 1
+        with ThreadPoolExecutor(max_workers=_max_ctrl) as pool:
+            futures = {
+                pool.submit(agent.estimate_risks, self.workspace, context): agent
+                for agent in control_agents
+            }
+            for future in as_completed(futures):
+                try:
+                    artifacts = future.result(timeout=30)
+                    for artifact in artifacts:
+                        self.workspace.write_artifact(artifact)
+                        control_artifacts.append(artifact)
+                except Exception as exc:
+                    logger.warning("Control agent failed: %s", exc)
         logger.info(f"   Generated {len(control_artifacts)} risk artifacts")
         logger.info(f"   Proposed {len(self.workspace.gate_proposals)} gates")
 
@@ -1067,6 +1180,20 @@ class TrueSwarmSystem:
         }
 
         self.execution_history.append(result)
+
+        # Publish phase completion to Rosetta (non-blocking, best-effort)
+        try:
+            from swarm_rosetta_bridge import get_bridge
+            get_bridge().on_phase_complete(
+                phase=phase.value,
+                artifacts=len(exploration_artifacts) + len(control_artifacts),
+                gates=len(activated_gates),
+                confidence_impact=net_confidence,
+                murphy_risk=murphy_risk,
+            )
+        except Exception:
+            pass
+
         return result
 
     def execute_full_cycle(

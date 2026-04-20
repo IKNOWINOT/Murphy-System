@@ -324,18 +324,12 @@ GRAFANA_PORT=3000
 ```
 Murphy System/
 ├── config/
-│   ├── murphy.yaml              # Main system configuration (defaults)
-│   ├── engines.yaml             # Engine-specific configuration
-│   ├── murphy.yaml.example      # Annotated reference for murphy.yaml
-│   ├── engines.yaml.example     # Annotated reference for engines.yaml
-│   └── config_loader.py         # YAML + env-var overlay loader
+│   ├── murphy.yaml              # Main configuration
+│   ├── engines.yaml             # Engine configuration
+│   ├── integrations.yaml        # Integration configuration
+│   ├── governance.yaml          # Governance rules
+│   └── deployment.yaml          # Deployment configuration
 ```
-
-> **Configuration priority:** Environment variables always override YAML file values
-> (twelve-factor app style). Use `config/murphy.yaml` and `config/engines.yaml` for
-> default settings, and override individual values via environment variables or `.env`.
-> Secrets must never be stored in YAML files — use `.env` (development) or a secrets
-> manager (staging/production).
 
 ---
 
@@ -576,3 +570,32 @@ Murphy System 1.0 is a complete, production-ready AI automation system that:
 ---
 
 **Next:** Assemble complete runtime package
+---
+
+## Appendix A — LCM & Platform Automation Bootstrap (v1.1)
+
+### A.1 Pilot Account
+The canonical pilot account `cpost@murphy.systems` (Corey Post, Inoni LLC) is defined
+in `src/pilot_config.py`. All platform automations route through this account.
+HITL level: `graduated` — the system auto-executes when confidence ≥ 85%.
+
+### A.2 Large Control Model (LCM)
+`src/large_control_model.py` — meta-controller above all subsystems.
+Pipeline: NLQueryEngine → MSSController → RosetteLens → CausalitySandbox → Dispatch.
+Built from decision layers over time; ML algorithms guide confidence gates.
+
+### A.3 Rosetta Lens
+`src/rosette_lens.py` — maps Rosetta agent positions to MSS filter criteria.
+The "rosette" (constellation of agent positions) determines the data lens (guise)
+that MSS operates on. Five guises: default, sales_focus, compliance_focus,
+research_focus, finance_focus.
+
+### A.4 Navigation Registry
+`src/nav_registry.py` — every module mapped to a category (Operations, Intelligence,
+Finance, Control, Automation, Communication, Compliance, Onboarding, Settings).
+Finance category includes all grant/financing pages. Shared nav: `static/murphy-nav.js`.
+
+### A.5 Demo Commissioning
+`src/demo_runner.py` — every demo scenario runs through the real Murphy pipeline
+(MFGC → MSS → AI Workflow Generator → Automation Spec). The downloadable deliverable
+is a usable automation schematic that can activate real workflows on the Murphy System.

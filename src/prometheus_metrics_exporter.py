@@ -425,6 +425,15 @@ def create_metrics_blueprint(registry: Optional[CollectorRegistry] = None):
     def prometheus_endpoint():
         """Prometheus scrape target."""
         body = PrometheusRenderer.render(reg)
+        # Bridge: append metrics from the canonical src.metrics module so the
+        # Flask Blueprint and the FastAPI app share a unified view.
+        try:
+            from src.metrics import render_metrics as _render_canonical
+            canonical = _render_canonical()
+            if canonical.strip():
+                body = body.rstrip("\n") + "\n" + canonical
+        except Exception:
+            logger.debug("Suppressed exception in prometheus_metrics_exporter")
         return Response(body, status=200,
                         content_type="text/plain; version=0.0.4; charset=utf-8")
 

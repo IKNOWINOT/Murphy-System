@@ -88,6 +88,8 @@ class SCADAConnector:
     def _get_modbus_client(self):
         if self._modbus_client is None:
             try:
+                import sys
+                sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "protocols"))
                 from modbus_client import MurphyModbusClient  # type: ignore
                 self._modbus_client = MurphyModbusClient(
                     host=self._modbus_host, port=self._modbus_port)
@@ -154,6 +156,8 @@ class SCADAConnector:
     def _get_bacnet_client(self):
         if self._bacnet_client is None:
             try:
+                import sys
+                sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "protocols"))
                 from bacnet_client import MurphyBACnetClient  # type: ignore
                 self._bacnet_client = MurphyBACnetClient(ip=self._bacnet_ip)
             except Exception as exc:
@@ -195,6 +199,8 @@ class SCADAConnector:
     def _get_opcua_client(self):
         if self._opcua_client is None:
             try:
+                import sys
+                sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "protocols"))
                 from opcua_client import MurphyOPCUAClient  # type: ignore
                 self._opcua_client = MurphyOPCUAClient(url=self._opcua_url)
             except Exception as exc:

@@ -5,22 +5,151 @@ All notable changes to Murphy System will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — Wave 1: Config Files and Loader (Core Infrastructure)
+
+### Added
+- **Config Loader** (`config/config_loader.py`) — YAML + environment variable
+  configuration loader following twelve-factor app principles. Loads `config/murphy.yaml`
+  and `config/engines.yaml`, overlays env vars (highest priority), and exposes
+  `load_config()`, `get(dotted_key, default)`, `get_all()`, and `invalidate_cache()`.
+  Handles missing files, bad YAML, and absent PyYAML gracefully (safe defaults, no crash).
+- **Config Package** (`config/__init__.py`) — Exposes `load_config`, `get`, `get_all`
+  as the public API for the config package.
+- **murphy.yaml** (`config/murphy.yaml`) — Main runtime defaults covering system env,
+  API server, LLM provider, safety thresholds, database, cache, rate limiting,
+  conversation, logging, tenant settings, and self-learning.
+- **engines.yaml** (`config/engines.yaml`) — Engine defaults covering domain engines,
+  swarm system, learning engine, gate parameters (MFGC-AI), two-phase orchestrator,
+  universal control plane, form executor, and self-healing coordinator.
+- **murphy.yaml.example** / **engines.yaml.example** — Annotated example config files
+  for operator reference.
+- **38 unit tests** (`tests/test_config_loader.py`) — Full coverage of YAML loading,
+  deep merge, env var overlay (legacy and namespaced), type coercion, dotted-key access,
+  shallow-copy semantics, cache/force-reload behaviour, and default YAML key validation.
+- **SOURCE**: `copilot/add-config-files-and-loader` (SHA: 68ee202)
+- **WAVE**: 1 — Core Infrastructure
+
+## [Unreleased] — Module Instance Manager + HITL/Infrastructure Enhancements
+
+### Added
+- **Module Instance Manager** (`src/module_instance_manager.py`) — Dynamic module
+  instantiation with unique instance IDs, spawn/despawn lifecycle, viability checking,
+  circuit breaker protection, configuration backward logic for auditing, and bounded
+  audit trails (InstanceState, ViabilityResult, SpawnDecision enums; ResourceProfile,
+  ModuleInstance, AuditEntry, ConfigurationSnapshot dataclasses; ViabilityChecker and
+  ModuleInstanceManager classes)
+- **Module Instance API** (`src/module_instance_api.py`) — 13 FastAPI REST endpoints
+  at `/module-instances/*` for spawn, despawn, list, get, viability check, find viable,
+  audit trail, config history, status, resources, type registration, blacklist, bulk
+  despawn; wired into `murphy_production_server.py` via `register_module_instance_routes()`
+- **Infrastructure Compare** — `POST /api/infrastructure/compare` for detailed
+  service-by-service comparison of production environment against `hetzner_load.sh`
+- **Matrix Notify** — `POST /api/matrix/notify` for real-time Matrix notifications
+  on HITL events (pending, approved, rejected) with configurable room targeting
+- **Module Instance Dashboard** (`module_instances.html`) — Status panel, instance
+  table, spawn/despawn controls with 10s auto-refresh
+- **HITL Dashboard** (`hitl_dashboard.html`) — Pending approvals list, approve/reject
+  with enhanced rejection form (mandatory ≥10-char reason, desired outcome, example
+  upload, follow-up question generation)
+- **Demo Config Panel** (`demo_config.html`) — Scenario browser, keyword cloud,
+  query inspector with MFGC pipeline trace visualization
+- 68 new tests: `tests/test_module_instance_manager.py` (49 unit tests),
+  `tests/test_module_instance_api.py` (19 integration tests)
+
 ## [Unreleased] — Session Persistence + Auth Hardening
 
 ### Fixed
 
 #### Session Persistence — Survives `hetzner_load.sh` Restarts (Critical)
 
+**Root cause:** `_session_store` and `_user_store` in `src/runtime/app.py` were
+pure in-memory structures wiped on every `systemctl restart murphy-production`.
+
 - **`src/persistence_wal.py`** + mirror — Added migration #5 `create_user_accounts`
   (columns: `account_id`, `email`, `data` JSON, `created_at`, `updated_at`).
-- **`src/runtime/app.py`** + mirror — Added `_SQLiteSessionFallback`, `_SQLiteUserStore`,
-  `_MutableUserRecord` classes for persistent session and user account storage.
-- **`src/runtime/app.py`** + mirror — Fixed `GET /api/auth/session-token` to return
-  the actual session token instead of a new random one.
-- **`src/fastapi_security.py`** + mirror — Harmonized `MURPHY_API_KEYS`/`MURPHY_API_KEY`
-  env var lookup; plural checked first, singular as fallback.
-- **`static/murphy-components.js`** + mirror — Added `credentials: 'same-origin'` to
-  `MurphyAPI._request()` so the HttpOnly cookie is included on all fetch calls.
+
+- **`src/runtime/app.py`** + mirror — Added `_SQLiteSessionFallback` class: replaces
+  the in-memory `_fallback` dict inside `_RedisSessionStore` with a write-through
+  SQLite WAL store. Sessions now survive restarts when Redis is not configured.
+
+- **`src/runtime/app.py`** + mirror — Added `_SQLiteUserStore` + `_MutableUserRecord`
+  classes: replaces the in-memory `_user_store` dict with a write-through SQLite
+  store. User accounts now survive restarts; `_email_to_account` index is rebuilt
+  from the DB on each startup.
+
+- **`src/runtime/app.py`** + mirror — Fixed `GET /api/auth/session-token` endpoint:
+  was generating a new random token instead of returning the actual active session
+  token from the `murphy_session` cookie. Now correctly returns
+  `{"session_token": <actual_token>}` so `murphy_auth.js` can mirror it to
+  `localStorage` for OAuth users.
+
+#### Auth Header Consistency
+
+- **`src/fastapi_security.py`** + mirror — `get_configured_api_keys()` now checks
+  `MURPHY_API_KEYS` (plural, canonical) first and falls back to `MURPHY_API_KEY`
+  (singular) for backward compatibility. Previously the root file checked the
+  singular variable first, diverging from the documented `.env.example`.
+
+- **`static/murphy-components.js`** + mirror — `MurphyAPI._request()` now sets
+  `credentials: 'same-origin'` on all `fetch()` calls so the HttpOnly
+  `murphy_session` cookie is always included as a fallback when the Bearer token
+  path is not available.
+
+### Tests
+
+- **`tests/test_auth_and_route_protection.py`** — Updated `client` fixture to use a
+  per-run temp SQLite database for isolation (fixed deterministic test emails
+  colliding with persisted accounts from previous runs).  Added
+  `TestSessionPersistence` class with 4 new tests: session token survives restart,
+  user account survives restart, `MURPHY_API_KEYS` checked first, and session-token
+  endpoint returns the real token.
+
+---
+
+## [Unreleased] — System Commissioning: ROI Calendar + Onboarding Chat + Forge Download
+
+### Fixed
+
+#### Issue 1: ROI Calendar Backend — Real Random Data
+- **`src/runtime/app.py`** — Replaced 5 hardcoded seed events with 12–16 **randomly generated** events using Python's `random` module and real industry hourly rates (Invoice Processing $45/hr, Compliance Audit $85/hr, Contract Review $120/hr, etc.)
+- Each event now includes **named agents with hex colors** from `_ROI_AGENT_POOL` (Orchestrator `#00d4aa`, DataExtractor `#00e5ff`, Validator `#ffd700`, ComplianceBot `#ff4444`, etc.) — 2–4 agents assigned per task
+- Each event now includes a **5-item checklist** per task with step-level agent assignment and completion states
+- Agent compute costs derived from realistic token-cost-based estimates ($0.50–$15/task); human costs derived from real `hourly_rate × hours`
+- **SSE endpoint** (`GET /api/roi-calendar/stream`) now runs a **real-time background advancement loop**: every 3–8 seconds it picks a non-complete event, advances `progress_pct` by 5–15%, marks the next checklist item as running/complete, increments `agent_compute_cost` by small realistic amounts ($0.02–$0.50 per step), and transitions status `pending → running → qc → complete`
+- **New `GET /api/roi-calendar/export`** endpoint — downloads the full calendar as JSON or CSV (querystring `?fmt=json|csv`)
+- **`roi_calendar.html`** — Updated `renderBlock()` to show agent color dots; `renderDetail()` now shows colored agent chips + full checklist panel (✅/⚙️/⬜ with per-item agent dot); added CSV/JSON export buttons in nav
+
+#### Issue 2: Onboarding Chat — Always Returns `response` Field
+- **`src/runtime/app.py`** — Added `message` field (alias of `response`) to every `POST /api/onboarding/mfgc-chat` response — wizard JavaScript checks both
+- Added `_onboarding_deterministic_reply()` — keyword-based fallback that always produces a useful, context-sensitive interview question (invoice/HR/CRM/compliance/data/email keywords each have tailored responses) with **no external LLM required**
+- Error path now returns `success: True` with the deterministic reply instead of `success: False` with an empty message — eliminates "I'm having trouble connecting" fallback
+
+#### Issue 3: Forge Download — Clear Success/Error States
+- **`murphy_landing_page.html`** — `_showResult()` now distinguishes empty-content case: shows clear error message ("API unavailable" / "Build limit reached") instead of "Build complete" when no deliverable was returned; download button labelled with filename + size when content is present
+- Forge `fetch` call updated to handle non-OK responses gracefully (`.catch` on `.json()` instead of silently returning null)
+
+### Added
+
+#### Stub Endpoints (3 missing endpoints audited and filled)
+- **`GET /api/demo/spec/{spec_id}`** — Returns a plausible synthetic spec structure (called by `signup.html`)
+- **`GET /api/market/quote/{symbol}`** — Returns synthetic market price/change/volume data (called by `wallet.html`)
+- **`POST /api/meetings/start`**, **`POST /api/meetings/{id}/end`**, **`GET /api/meetings/{id}/transcript`**, **`GET /api/meetings/{id}/suggestions`** — In-memory meeting session lifecycle (called by `workspace.html`)
+
+#### LLM Fallback Chain Debug Endpoint
+- **`GET /api/llm/debug`** — Returns the complete 5-layer fallback chain with availability flags: DeepInfra → OpenAI → Anthropic → Ollama → Onboard (built-in). Shows which layer is currently active and instructions to enable DeepInfra (free key at `deepinfra.com`)
+
+#### MurphyLibrarianChat Component
+- **`static/murphy-components.js`** — Added `MurphyLibrarianChat` class: a drop-in chat widget that posts to `/api/librarian/ask`, renders user/assistant bubbles, and falls back to a built-in offline answer engine when the server is unreachable
+- **`murphy_landing_page.html`** — Added `<script src="/static/murphy-components.js">` include and `MurphyLibrarianChat` initialization (fixes 3 pre-existing `test_ui_types` test failures)
+
+#### Error Banners
+- Added `#murphy-error-banner` (fixed, dismissible, red) + `showMurphyError()` JS function + automatic `fetch` monkey-patch to `onboarding_wizard.html`, `roi_calendar.html`, `murphy_landing_page.html`, `workspace.html`, and `compliance_dashboard.html` — no more silent 5xx failures
+
+#### End-to-End Commissioning Tests
+- **`tests/test_e2e_commissioning.py`** — 28-test commissioning suite covering all 7 stages: system health, onboarding chat turns, ROI calendar data quality, forge deliverable, stub endpoints, librarian, and UI page content. Serves as the regression baseline for future PRs.
+
+### Changed
+- Inline styles in `murphy_landing_page.html` — moved error banner and forge error message inline styles to named CSS classes (`#murphy-error-banner`, `#murphy-error-banner-msg`, `#murphy-error-banner-close`, `.forge-err-msg`, `.forge-err-link`) to reduce inline style count
 
 ---
 

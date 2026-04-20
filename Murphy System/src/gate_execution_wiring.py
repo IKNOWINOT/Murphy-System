@@ -39,6 +39,9 @@ class GateType(Enum):
     HITL = "hitl"
     COMPLIANCE = "compliance"
     BUDGET = "budget"
+    # Permutation calibration gates
+    PERMUTATION_EXPLORATION = "permutation_exploration"
+    SEQUENCE_PROMOTION = "sequence_promotion"
 
 
 class GateDecision(Enum):
@@ -65,6 +68,8 @@ GATE_SEQUENCE: List[GateType] = [
     GateType.BUDGET,
     GateType.EXECUTIVE,
     GateType.OPERATIONS,
+    GateType.PERMUTATION_EXPLORATION,  # Check if exploration is allowed
+    GateType.SEQUENCE_PROMOTION,        # Check if promotion is approved
     GateType.QA,
     GateType.HITL,
 ]
@@ -378,7 +383,7 @@ class GateExecutionWiring:
         Returns *self* for fluent chaining.
         """
         try:
-            from src.execution_engine import Task, TaskExecutor, TaskState, create_task
+            from src.execution_engine import TaskExecutor, Task, TaskState, create_task
             from src.execution_orchestrator import ExecutionOrchestrator
 
             _task_executor = TaskExecutor()
@@ -438,3 +443,148 @@ class GateExecutionWiring:
             executor = _noop_executor
 
         return self.wrap_execution(task, executor, session_id)
+
+    # -- permutation calibration gates ---------------------------------------
+
+    def register_permutation_exploration_gate(
+        self,
+        max_candidates: int = 100,
+        allowed_domains: Optional[List[str]] = None,
+        policy: GatePolicy = GatePolicy.WARN,
+    ) -> None:
+        """Register a gate that controls permutation exploration.
+
+        This implements spec Section 3.5: Decide whether permutation exploration
+        is allowed, limit exploratory breadth under risk/budget pressure.
+
+        Args:
+            max_candidates: Maximum candidates per exploration session
+            allowed_domains: If specified, only allow exploration in these domains
+            policy: Gate policy (ENFORCE blocks exploration if conditions fail)
+        """
+        def _exploration_evaluator(task: Dict[str, Any], session_id: str) -> "GateEvaluation":
+            domain = task.get("domain", "")
+            candidates = task.get("max_candidates", 0)
+            is_exploration = task.get("permutation_exploration", False)
+
+            if not is_exploration:
+                return GateEvaluation(
+                    gate_id=str(uuid.uuid4()),
+                    gate_type=GateType.PERMUTATION_EXPLORATION,
+                    decision=GateDecision.APPROVED,
+                    reason="Not a permutation exploration task",
+                    policy=policy,
+                    evaluated_at=datetime.now(timezone.utc).isoformat(),
+                    evaluator="permutation_exploration_gate",
+                )
+
+            issues = []
+
+            # Check domain allowlist
+            if allowed_domains and domain not in allowed_domains:
+                issues.append(f"Domain '{domain}' not in allowed list")
+
+            # Check candidate count
+            if candidates > max_candidates:
+                issues.append(f"Candidates ({candidates}) exceeds limit ({max_candidates})")
+
+            if issues:
+                return GateEvaluation(
+                    gate_id=str(uuid.uuid4()),
+                    gate_type=GateType.PERMUTATION_EXPLORATION,
+                    decision=GateDecision.BLOCKED,
+                    reason="; ".join(issues),
+                    policy=policy,
+                    evaluated_at=datetime.now(timezone.utc).isoformat(),
+                    evaluator="permutation_exploration_gate",
+                    metadata={"issues": issues},
+                )
+
+            return GateEvaluation(
+                gate_id=str(uuid.uuid4()),
+                gate_type=GateType.PERMUTATION_EXPLORATION,
+                decision=GateDecision.APPROVED,
+                reason=f"Exploration approved for domain '{domain}' with {candidates} candidates",
+                policy=policy,
+                evaluated_at=datetime.now(timezone.utc).isoformat(),
+                evaluator="permutation_exploration_gate",
+            )
+
+        self.register_gate(GateType.PERMUTATION_EXPLORATION, _exploration_evaluator, policy)
+        logger.info("Registered permutation exploration gate (max_candidates=%d)", max_candidates)
+
+    def register_sequence_promotion_gate(
+        self,
+        require_approval: bool = True,
+        min_evaluations: int = 10,
+        min_confidence: float = 0.7,
+        policy: GatePolicy = GatePolicy.ENFORCE,
+    ) -> None:
+        """Register a gate that controls sequence promotion to procedural mode.
+
+        This implements spec Section 5.2: Require gate approval for high-impact
+        promotion into Mode B.
+
+        Args:
+            require_approval: If True, require explicit approval for promotion
+            min_evaluations: Minimum evaluations before promotion allowed
+            min_confidence: Minimum confidence score for promotion
+            policy: Gate policy
+        """
+        def _promotion_evaluator(task: Dict[str, Any], session_id: str) -> "GateEvaluation":
+            is_promotion = task.get("sequence_promotion", False)
+
+            if not is_promotion:
+                return GateEvaluation(
+                    gate_id=str(uuid.uuid4()),
+                    gate_type=GateType.SEQUENCE_PROMOTION,
+                    decision=GateDecision.APPROVED,
+                    reason="Not a sequence promotion task",
+                    policy=policy,
+                    evaluated_at=datetime.now(timezone.utc).isoformat(),
+                    evaluator="sequence_promotion_gate",
+                )
+
+            evaluations = task.get("total_evaluations", 0)
+            confidence = task.get("confidence_score", 0.0)
+            gate_approved = task.get("gate_approved", False)
+
+            issues = []
+
+            if evaluations < min_evaluations:
+                issues.append(f"Insufficient evaluations ({evaluations} < {min_evaluations})")
+
+            if confidence < min_confidence:
+                issues.append(f"Confidence too low ({confidence:.2f} < {min_confidence})")
+
+            if require_approval and not gate_approved:
+                issues.append("Explicit gate approval required")
+
+            if issues:
+                decision = GateDecision.NEEDS_REVIEW if require_approval else GateDecision.BLOCKED
+                return GateEvaluation(
+                    gate_id=str(uuid.uuid4()),
+                    gate_type=GateType.SEQUENCE_PROMOTION,
+                    decision=decision,
+                    reason="; ".join(issues),
+                    policy=policy,
+                    evaluated_at=datetime.now(timezone.utc).isoformat(),
+                    evaluator="sequence_promotion_gate",
+                    metadata={"issues": issues},
+                )
+
+            return GateEvaluation(
+                gate_id=str(uuid.uuid4()),
+                gate_type=GateType.SEQUENCE_PROMOTION,
+                decision=GateDecision.APPROVED,
+                reason=f"Promotion approved (evaluations={evaluations}, confidence={confidence:.2f})",
+                policy=policy,
+                evaluated_at=datetime.now(timezone.utc).isoformat(),
+                evaluator="sequence_promotion_gate",
+            )
+
+        self.register_gate(GateType.SEQUENCE_PROMOTION, _promotion_evaluator, policy)
+        logger.info(
+            "Registered sequence promotion gate (min_eval=%d, min_conf=%.2f)",
+            min_evaluations, min_confidence
+        )

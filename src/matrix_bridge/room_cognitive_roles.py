@@ -249,7 +249,7 @@ ROOM_COGNITIVE_ROLES: dict[str, CognitiveRole] = {
     "lcm-engine":                     M,
 
     # ── Key Management ───────────────────────────────────────────────────────
-    "llm-provider-router":               L,
+    "deepinfra-key-rotator":               L,
     "secure-key-manager":             L,
     "key-harvester":                  L,
     "credential-profile-system":      L,
