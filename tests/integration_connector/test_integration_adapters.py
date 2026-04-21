@@ -259,7 +259,10 @@ class TestErrorHandlingIntegration(unittest.TestCase):
                 if hasattr(self.integrator, 'get_system_state_dict'):
                     state = self.integrator.get_system_state_dict()
                     self.assertIsNotNone(state)
-            except:
+            except Exception:
+                # PROD-HARD-A3: narrowed from bare `except:` so KeyboardInterrupt
+                # remains interruptible. Capability preserved — fallback assertion
+                # still runs on any integrator failure.
                 # If still fails, that's ok - test the system is still functional
                 result = self.integrator.process_user_request("test")
                 self.assertIsNotNone(result)

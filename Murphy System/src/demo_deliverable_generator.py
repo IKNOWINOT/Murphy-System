@@ -7394,7 +7394,11 @@ def _synthesize_swarm_outputs(
             continue
         successful_count += 1
         stripped = raw.strip()
-        content_hash = hashlib.md5(stripped.encode()).hexdigest()
+        # PROD-HARD-A5: usedforsecurity=False makes intent explicit — this is
+        # a content-deduplication fingerprint, not a security primitive. Closes
+        # bandit B324 (CWE-327). Switching to sha256 was considered but rejected:
+        # MD5 is faster for non-security dedup and the surrounding loop is hot.
+        content_hash = hashlib.md5(stripped.encode(), usedforsecurity=False).hexdigest()
         if content_hash in seen_hashes:
             logger.warning(
                 "FORGE-SWARM-DEDUP-001: Duplicate content from agent '%s' "

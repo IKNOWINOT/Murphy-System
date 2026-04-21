@@ -22,7 +22,10 @@ wheels/
 MANIFEST
 
 # Virtual Environment
+# PROD-HARD-A1: .venv/ added to close the gap that previously allowed
+# every contributor's local virtualenv to overwrite committed copies.
 venv/
+.venv/
 env/
 ENV/
 env.bak/
