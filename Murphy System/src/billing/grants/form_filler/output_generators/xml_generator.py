@@ -4,7 +4,11 @@ XML output generator for grant form data.
 """
 from __future__ import annotations
 
-import xml.etree.ElementTree as ET
+# PROD-HARD-SEC-001 (audit G18): this module generates XML output
+# (ET.Element/SubElement/ElementTree.write) and never parses untrusted input —
+# no ET.fromstring / ET.parse / ET.iterparse / XMLParser call sites.
+# Serialization has no XXE surface, so defusedxml is not required here.
+import xml.etree.ElementTree as ET  # nosec B405
 from typing import Dict, List
 
 from src.billing.grants.form_filler.output_generators.base import BaseOutputGenerator

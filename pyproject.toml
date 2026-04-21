@@ -21,7 +21,14 @@ classifiers = [
 ]
 
 [project.scripts]
-murphy = "murphy_cli.main:main"
+# PROD-HARD-J3 (audit J3): the previous target "murphy_cli.main:main" was
+# broken at install time — `murphy_cli` is not installed as a top-level
+# package (it lives at src/murphy_cli/ and is reached via the `src` package
+# or sys.path injection at test / entrypoint time, not via package-dir
+# remapping). `pip install . && murphy` therefore raised ModuleNotFoundError.
+# src.runtime.app.main exists (src/runtime/app.py:15762) and matches the
+# target already declared in setup.py, so both build paths now agree.
+murphy = "src.runtime.app:main"
 
 [project.optional-dependencies]
 llm = ["httpx>=0.24.0", "openai>=1.0"]
@@ -31,8 +38,12 @@ dev = ["pytest>=7.0", "pytest-cov", "ruff", "mypy"]
 all = ["murphy-system[llm,security,terminal,dev]"]
 
 [tool.setuptools.packages.find]
+# PROD-HARD-J3 (audit J3): dropped dead "murphy_cli" / "murphy_cli.*"
+# entries — those patterns resolve against where=["."], but there is no
+# root-level ./murphy_cli/ directory, so they matched nothing. The
+# src-layout package is picked up via the "src" / "src.*" patterns.
 where = ["."]
-include = ["src", "src.*", "murphy_cli", "murphy_cli.*"]
+include = ["src", "src.*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
