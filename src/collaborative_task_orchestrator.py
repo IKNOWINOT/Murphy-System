@@ -285,14 +285,14 @@ class WorkspaceMemoryBridge:
                     if ArtifactType is not None:
                         try:
                             atype = ArtifactType[artifact_type_name.upper()]
-                        except (KeyError, AttributeError):
-                            pass
+                        except (KeyError, AttributeError):  # PROD-HARD A2: unknown enum member — fall back to default atype
+                            logger.debug("Unknown ArtifactType %r; keeping default", artifact_type_name)
                     aphase = Phase.EXPAND
                     if Phase is not None:
                         try:
                             aphase = Phase[phase_name.upper()]
-                        except (KeyError, AttributeError):
-                            pass
+                        except (KeyError, AttributeError):  # PROD-HARD A2: unknown phase — keep default EXPAND
+                            logger.debug("Unknown Phase %r; keeping default EXPAND", phase_name)
                     tgw_artifact = Artifact(
                         id=artifact_id,
                         content=content,
@@ -382,8 +382,8 @@ class WorkspaceMemoryBridge:
                             if phase_name and Phase is not None:
                                 try:
                                     aphase = Phase[phase_name.upper()]
-                                except (KeyError, AttributeError):
-                                    pass
+                                except (KeyError, AttributeError):  # PROD-HARD A2: unknown phase filter — leave aphase=None (no filter)
+                                    logger.debug("Unknown Phase filter %r; returning unfiltered artifacts", phase_name)
                             tgw_results = self._tgw.get_artifacts_by_type(atype, phase=aphase)
                         except (KeyError, AttributeError):
                             tgw_results = list(getattr(self._tgw, "artifacts", {}).values())
@@ -519,8 +519,8 @@ class CollaborativeTaskOrchestrator:
         if _SPLIT_SCREEN_AVAILABLE or _LAYOUT_AVAILABLE:
             try:
                 layout_enum = SplitScreenLayout
-            except NameError:
-                pass
+            except NameError:  # PROD-HARD A2: SplitScreenLayout not imported in this build — leave layout_enum=None
+                logger.debug("SplitScreenLayout symbol unavailable; layout resolution degraded")
 
         mapping = {
             1: "SINGLE",
