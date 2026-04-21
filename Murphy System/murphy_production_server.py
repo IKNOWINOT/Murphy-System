@@ -1010,6 +1010,32 @@ except Exception as _rg_e:
     _rate_governor = None
     log.warning("Swarm rate governor not available (%s) — running without global rate limits", _rg_e)
 
+# -- PROMPT-RATE-001: Per-tenant swarm-aware guard for /api/prompt -------------
+# Layered on top of the global SwarmRateGovernor.  Stops one tenant's swarm
+# from monopolising the LLM budget for everyone else.  See
+# Murphy System/src/prompt_rate_limiter.py for the full commissioning record.
+try:
+    from src.prompt_rate_limiter import PromptRateLimiter
+    _prompt_rate_limiter: Optional[PromptRateLimiter] = PromptRateLimiter()
+except Exception as _prl_e:
+    _prompt_rate_limiter = None
+    log.warning("PROMPT-RATE-001 not available (%s) — /api/prompt has only global rate limit", _prl_e)
+
+# -- LLM-SELFCHECK-001: startup self-inference + provider verification --------
+# Confirms which provider actually answers (so an "onboard" fallback while a
+# DeepInfra key is set is visible immediately on /health), validates the
+# generated payload against the schema /api/prompt requires, and re-feeds the
+# payload back into the LLM as a verifier ("inference on its own data").
+try:
+    from src.llm_self_check import run_self_check as _run_llm_self_check
+    from src.llm_self_check import SelfCheckResult as _SelfCheckResult
+    _llm_self_check_result: Optional[Any] = None
+except Exception as _sc_e:
+    _run_llm_self_check = None  # type: ignore[assignment]
+    _SelfCheckResult = None     # type: ignore[assignment]
+    _llm_self_check_result = None
+    log.warning("LLM-SELFCHECK-001 not available (%s) — startup self-check disabled", _sc_e)
+
 # -- Murphy Error Handling System ----------------------------------------------
 try:
     from src.errors.handlers import register_error_handlers
@@ -1337,6 +1363,31 @@ async def _startup():
 
     log.info("Murphy Production Server v3 started — HITL gates active, milestone tracking enabled")
 
+    # LLM-SELFCHECK-001: run a bounded self-inference at startup.  Result is
+    # cached on the module-level `_llm_self_check_result` so it can be served
+    # from /health and /api/llm/selfcheck without re-hitting the provider.
+    # Runs in an executor because the underlying provider client is sync.
+    global _llm_self_check_result
+    if _run_llm_self_check is not None:
+        try:
+            _llm_self_check_result = await asyncio.get_event_loop().run_in_executor(
+                None, lambda: _run_llm_self_check(_get_llm)
+            )
+            _r = _llm_self_check_result
+            if _r is not None:
+                log.info(
+                    "LLM-SELFCHECK-001 startup: status=%s provider=%s model=%s "
+                    "latency_ms=%s verified=%s",
+                    _r.status, _r.provider, _r.model, _r.latency_ms, _r.verified,
+                )
+                if _r.status not in ("ok",):
+                    log.warning(
+                        "LLM-SELFCHECK-001 NOT OK at startup — status=%s category=%s err=%s",
+                        _r.status, _r.error_category, _r.last_error,
+                    )
+        except Exception as _sc_run_e:  # noqa: BLE001 — must never block startup
+            log.warning("LLM-SELFCHECK-001 raised at startup (non-blocking): %s", _sc_run_e)
+
 
 # -- Graceful Shutdown ---------------------------------------------------------
 # Label: GRACEFUL-SHUTDOWN — Clean up background tasks on SIGTERM / server stop.
@@ -1601,6 +1652,21 @@ async def diagnostics():
 async def health():
     active = sum(1 for a in _automation_store if a.get("status") == "active")
     pending_hitl = sum(1 for h in _HITL_QUEUE if h["status"] == "pending")
+    # LLM-SELFCHECK-001: compact summary so operators can tell at a glance
+    # whether DeepInfra is actually the provider (vs silent onboard fallback).
+    _sc = _llm_self_check_result
+    llm_block: Dict[str, Any]
+    if _sc is None:
+        llm_block = {"status": "not_run", "provider": None}
+    else:
+        llm_block = {
+            "status": _sc.status,
+            "provider": _sc.provider,
+            "model": _sc.model,
+            "latency_ms": _sc.latency_ms,
+            "verified": _sc.verified,
+            "error_category": _sc.error_category,
+        }
     return JSONResponse({
         "status": "ok", "version": "3.0.0", "env": _env,
         "active_automations": active, "total_automations": len(_automation_store),
@@ -1608,6 +1674,7 @@ async def health():
         "pending_hitl_items": pending_hitl,
         "sse_subscribers": len(_sse_subscribers),
         "ws_clients": len(_ws_clients), "ts": _now_iso(),
+        "llm_self_check": llm_block,
         "subsystems_wired": sum([
             _rosetta_manager is not None,
             _ceo_branch is not None,
@@ -1630,6 +1697,56 @@ async def rate_governor_status():
     if _rate_governor is None:
         return JSONResponse({"enabled": False, "message": "Rate governor not loaded"})
     return JSONResponse({"enabled": True, **_rate_governor.status()})
+
+# PROMPT-RATE-001: per-tenant prompt rate-limiter diagnostics.
+@app.get("/api/rate-governor/prompt-status")
+async def prompt_rate_limiter_status():
+    """Per-tenant prompt rate-limiter diagnostics (label PROMPT-RATE-001)."""
+    if _prompt_rate_limiter is None:
+        return JSONResponse({"enabled": False, "message": "Prompt rate limiter not loaded"})
+    return JSONResponse({"enabled": True, **_prompt_rate_limiter.status()})
+
+# LLM-SELFCHECK-001: full self-check result + on-demand re-run.
+@app.get("/api/llm/selfcheck")
+async def llm_selfcheck_get():
+    """Return the most recent LLM self-check result (label LLM-SELFCHECK-001).
+
+    Body includes the generated payload, verifier payload, latency, retry
+    count, and error category so operators can tell at a glance whether the
+    provider chain is really answering or silently falling back to onboard.
+    """
+    if _run_llm_self_check is None:
+        return JSONResponse(
+            {"enabled": False, "message": "LLM self-check module not loaded"},
+            status_code=503,
+        )
+    if _llm_self_check_result is None:
+        return JSONResponse(
+            {"enabled": True, "status": "not_run",
+             "message": "Self-check has not completed yet"},
+        )
+    return JSONResponse({"enabled": True, **_llm_self_check_result.to_dict()})
+
+@app.post("/api/llm/selfcheck/run")
+async def llm_selfcheck_run():
+    """Re-run the LLM self-check on demand (label LLM-SELFCHECK-001)."""
+    global _llm_self_check_result
+    if _run_llm_self_check is None:
+        return JSONResponse(
+            {"enabled": False, "message": "LLM self-check module not loaded"},
+            status_code=503,
+        )
+    try:
+        _llm_self_check_result = await asyncio.get_event_loop().run_in_executor(
+            None, lambda: _run_llm_self_check(_get_llm)
+        )
+    except Exception as _e:  # noqa: BLE001 — surface, never crash
+        log.warning("LLM-SELFCHECK-001 on-demand run failed: %s", _e)
+        return JSONResponse(
+            {"enabled": True, "status": "run_error", "message": str(_e)},
+            status_code=500,
+        )
+    return JSONResponse({"enabled": True, **_llm_self_check_result.to_dict()})
 
 # ==============================================================================
 # HITL — Human-in-the-Loop Queue
@@ -2336,7 +2453,34 @@ _CATEGORY_PATTERNS = {
 }
 
 @app.post("/api/prompt")
-async def create_from_prompt(req: PromptRequest):
+async def create_from_prompt(req: PromptRequest, request: Request):
+    # PROMPT-RATE-001: per-tenant swarm-aware rate limit.  Layered on top of
+    # the global SwarmRateGovernor so one tenant's swarm cannot drain LLM
+    # capacity for everyone else.  A tenant whose agents set
+    # `X-Murphy-Traffic-Class: swarm` gets the larger swarm-tier bucket.
+    if _prompt_rate_limiter is not None:
+        _hdr_class = (request.headers.get("X-Murphy-Traffic-Class") or "").strip().lower()
+        _decision = _prompt_rate_limiter.check(req.tenant_id, _hdr_class)
+        if not _decision.allowed:
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "success": False,
+                    "error": _decision.error,
+                    "message": _decision.message,
+                    "retry_after_seconds": _decision.retry_after_seconds,
+                    "traffic_class": _decision.traffic_class,
+                    "tenant_id": _decision.tenant_id,
+                    "limit": _decision.limit,
+                },
+                headers={
+                    "Retry-After": str(int(_decision.retry_after_seconds) or 1),
+                    "X-RateLimit-Limit": str(_decision.limit),
+                    "X-RateLimit-Remaining": "0",
+                    "X-Murphy-Traffic-Class": _decision.traffic_class,
+                },
+            )
+
     tenant = _TENANTS.get(req.tenant_id, {"tier":"solo"})
     tier_cfg = TIERS.get(tenant["tier"], TIERS["solo"])
     if tier_cfg["max_automations"]:
@@ -2366,6 +2510,11 @@ async def create_from_prompt(req: PromptRequest):
     auto_name = req.prompt.strip()[:60].title()  # default fallback
     llm_description = ""
     llm_steps: list = []
+    # PROMPT-PROVIDER-VIS-001: capture the actual provider that answered so
+    # the response reveals "onboard" silent-fallback rather than hiding it
+    # behind the generic `llm_generated` boolean.
+    llm_provider_used: Optional[str] = None
+    llm_model_used: Optional[str] = None
 
     if _llm_available and _get_llm is not None:
         try:
@@ -2403,6 +2552,9 @@ async def create_from_prompt(req: PromptRequest):
                 auto_name = str(parsed.get("name", auto_name))[:60]
                 llm_description = str(parsed.get("description", ""))
                 llm_steps = list(parsed.get("steps", []))[:6]
+                # PROMPT-PROVIDER-VIS-001: record which provider actually answered
+                llm_provider_used = getattr(result, "provider", None)
+                llm_model_used = getattr(result, "model", None)
                 log.info("LLM generated automation '%s' via %s", auto_name, result.provider)
         except Exception as _llm_err:
             log.warning("LLM generation failed (%s) — using pattern-match fallback", _llm_err)
@@ -2437,6 +2589,8 @@ async def create_from_prompt(req: PromptRequest):
         "milestones": milestones,
         "progress": 0.0, "total_delay_minutes": 0.0, "effective_duration_minutes": est_min,
         "llm_generated": _llm_available,
+        "llm_provider": llm_provider_used,   # PROMPT-PROVIDER-VIS-001
+        "llm_model": llm_model_used,         # PROMPT-PROVIDER-VIS-001
     }
     _automation_store.append(new_auto)
     new_auto["cost_savings"] = _cost_savings(new_auto)
