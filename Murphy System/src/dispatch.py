@@ -144,8 +144,8 @@ class PendingApprovalStore:
                 pa.decided_at = rec["decided_at"]
                 sess.commit()
             sess.close()
-        except Exception:
-            pass
+        except Exception:  # PROD-HARD A2: DB mirror best-effort; in-memory state already updated above
+            logger.warning("approve(): failed to persist PendingApproval %s to DB; in-memory status still recorded", call_id, exc_info=True)
         
         return ToolCall(
             tool_name=rec["tool_name"],
@@ -176,8 +176,8 @@ class PendingApprovalStore:
                 pa.decided_at = rec["decided_at"]
                 sess.commit()
             sess.close()
-        except Exception:
-            pass
+        except Exception:  # PROD-HARD A2: DB mirror best-effort; in-memory state already updated above
+            logger.warning("reject(): failed to persist PendingApproval %s to DB; in-memory status still recorded", call_id, exc_info=True)
         
         return True
 
@@ -387,8 +387,8 @@ class Dispatcher:
                 data = resp.json()
                 q = data.get("quality", {})
                 return float(q.get("overall_score", 1.0))
-        except Exception:
-            pass
+        except Exception:  # PROD-HARD A2: MSS scoring is optional enrichment — fall back to default quality score
+            logger.debug("MSS quality scoring unavailable; returning default overall_score=1.0", exc_info=True)
         return 1.0
 
     def _persist(self, tc: ToolCall, ok: bool, data: Any, error: Optional[str], duration: int):
