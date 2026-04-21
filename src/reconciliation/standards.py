@@ -190,10 +190,13 @@ def _seed_defaults() -> None:
         Standard(
             id="CODE-001",
             deliverable_type=DeliverableType.CODE,
-            title="Code includes a module or function docstring",
-            rationale="Above-average code is self-documenting; "
-            "every public unit exposes a docstring.",
-            check={"kind": "regex", "pattern": r'"""[\s\S]+?"""'},
+            title="Python code includes a module or function docstring",
+            rationale="Above-average Python is self-documenting; "
+            "every public unit exposes a docstring. Skipped for non-Python.",
+            check={
+                "kind": "callable",
+                "fn": "src.reconciliation.standards:check_python_has_docstring",
+            },
             weight=1.0,
             hard=False,
             tags=("documentation",),
@@ -234,6 +237,34 @@ def _seed_defaults() -> None:
             hard=True,
             tags=("correctness", "robustness"),
         ),
+        Standard(
+            id="CODE-005",
+            deliverable_type=DeliverableType.CODE,
+            title="Code does not embed hardcoded credentials",
+            rationale="Above-average code never hardcodes API keys, "
+            "tokens, or passwords; secrets belong in a secret manager.",
+            check={
+                "kind": "callable",
+                "fn": "src.reconciliation.standards:check_no_hardcoded_credentials",
+            },
+            weight=2.0,
+            hard=True,
+            tags=("security",),
+        ),
+        Standard(
+            id="CODE-006",
+            deliverable_type=DeliverableType.CODE,
+            title="Python code does not eval/exec dynamic input",
+            rationale="Dynamic eval/exec of caller-supplied data is the "
+            "classic source of arbitrary-code-execution bugs.",
+            check={
+                "kind": "callable",
+                "fn": "src.reconciliation.standards:check_python_no_dynamic_eval",
+            },
+            weight=2.0,
+            hard=True,
+            tags=("security",),
+        ),
         # ------------------------------------------------------------------
         # CONFIG_FILE
         # ------------------------------------------------------------------
@@ -242,10 +273,11 @@ def _seed_defaults() -> None:
             deliverable_type=DeliverableType.CONFIG_FILE,
             title="Config does not embed plaintext secrets",
             rationale="Above-average configs reference secret managers, "
-            "they do not inline credentials.",
+            "they do not inline credentials — including credentials "
+            "embedded in connection URLs.",
             check={
-                "kind": "regex_absent",
-                "pattern": r"(?i)(?:password|secret|api[_-]?key|token)\s*[:=]\s*[\"']?[A-Za-z0-9/+=_\-]{8,}",
+                "kind": "callable",
+                "fn": "src.reconciliation.standards:check_config_no_embedded_secrets",
             },
             weight=2.0,
             hard=True,
@@ -260,6 +292,20 @@ def _seed_defaults() -> None:
             weight=0.5,
             hard=False,
             tags=("documentation",),
+        ),
+        Standard(
+            id="CONFIG-003",
+            deliverable_type=DeliverableType.CONFIG_FILE,
+            title="Config is substantive (not an empty literal)",
+            rationale="A config that defines no settings is not a "
+            "useful deliverable.",
+            check={
+                "kind": "callable",
+                "fn": "src.reconciliation.standards:check_config_substantive",
+            },
+            weight=1.5,
+            hard=True,
+            tags=("substance",),
         ),
         # ------------------------------------------------------------------
         # SHELL_SCRIPT
@@ -282,7 +328,35 @@ def _seed_defaults() -> None:
             "of above-average shell.",
             check={"kind": "regex", "pattern": r"set\s+-[euo]+(?:\s+pipefail)?"},
             weight=1.0,
-            hard=False,
+            hard=True,
+            tags=("safety",),
+        ),
+        Standard(
+            id="SHELL-003",
+            deliverable_type=DeliverableType.SHELL_SCRIPT,
+            title="Shell script does not curl|bash external installers",
+            rationale="Pipe-to-shell installers execute remote code with "
+            "no integrity check — a documented antipattern.",
+            check={
+                "kind": "callable",
+                "fn": "src.reconciliation.standards:check_shell_no_curl_pipe_shell",
+            },
+            weight=2.0,
+            hard=True,
+            tags=("security",),
+        ),
+        Standard(
+            id="SHELL-004",
+            deliverable_type=DeliverableType.SHELL_SCRIPT,
+            title="Shell script does not contain catastrophic rm patterns",
+            rationale="`rm -rf /`, `rm -rf $UNSET/`, and "
+            "`--no-preserve-root` are catastrophic and never appropriate.",
+            check={
+                "kind": "callable",
+                "fn": "src.reconciliation.standards:check_shell_no_dangerous_rm",
+            },
+            weight=2.0,
+            hard=True,
             tags=("safety",),
         ),
         # ------------------------------------------------------------------
@@ -354,6 +428,34 @@ def _seed_defaults() -> None:
             hard=True,
             tags=("correctness",),
         ),
+        Standard(
+            id="MAIL-003",
+            deliverable_type=DeliverableType.MAILBOX_PROVISIONING,
+            title="Every account has a syntactically valid email",
+            rationale="Provisioning a mailbox to a malformed address is "
+            "always a bug.",
+            check={
+                "kind": "callable",
+                "fn": "src.reconciliation.standards:check_mailbox_email_formats",
+            },
+            weight=1.5,
+            hard=True,
+            tags=("correctness",),
+        ),
+        Standard(
+            id="MAIL-004",
+            deliverable_type=DeliverableType.MAILBOX_PROVISIONING,
+            title="Every account has a unique email address",
+            rationale="Duplicate addresses indicate a request was double-"
+            "submitted or a downstream merge bug.",
+            check={
+                "kind": "callable",
+                "fn": "src.reconciliation.standards:check_mailbox_unique_emails",
+            },
+            weight=1.0,
+            hard=True,
+            tags=("correctness",),
+        ),
         # ------------------------------------------------------------------
         # DEPLOYMENT_RESULT
         # ------------------------------------------------------------------
@@ -377,12 +479,15 @@ def _seed_defaults() -> None:
         Standard(
             id="PLAN-001",
             deliverable_type=DeliverableType.PLAN,
-            title="Plan enumerates concrete, ordered steps",
-            rationale="Above-average plans are actionable: numbered or "
-            "bulleted, not prose-only.",
-            check={"kind": "regex", "pattern": r"(?m)^\s*(?:\d+\.|[-*])\s+\S"},
-            weight=1.0,
-            hard=False,
+            title="Plan enumerates at least two concrete, ordered steps",
+            rationale="A single-step 'plan' is just an instruction; "
+            "above-average plans break the work into multiple steps.",
+            check={
+                "kind": "callable",
+                "fn": "src.reconciliation.standards:check_plan_has_multiple_steps",
+            },
+            weight=1.5,
+            hard=True,
             tags=("actionability",),
         ),
     ]
@@ -401,10 +506,50 @@ def _seed_defaults() -> None:
 CheckFn = Callable[[Any], Tuple[bool, float, str]]
 
 
+_PY_HINT_RE = re.compile(
+    r"(?m)^(?:#![^\n]*python|\s*(?:def|class|import|from)\s+\w|\s*@\w)"
+)
+_NON_PY_HINT_RE = re.compile(
+    # Language markers that are syntactically illegal in Python
+    r"(?m)^\s*(?:function\s+\w+\s*\(|const\s+\w|let\s+\w|var\s+\w|"
+    r"package\s+\w|public\s+(?:class|static)|fn\s+\w+\s*\()"
+    r"|=>"
+    r"|;\s*$"
+)
+
+
+def _looks_like_python(content: str) -> bool:
+    """Best-effort: does *content* look like Python source?
+
+    Used by Python-specific checks (CODE-001/003/004) so they don't
+    falsely complain about non-Python code dropped into the CODE
+    deliverable type (JS, Go, Rust, etc.).
+    """
+    if not content.strip():
+        return False
+    if _PY_HINT_RE.search(content):
+        return True
+    if _NON_PY_HINT_RE.search(content):
+        return False
+    # No strong signal either way — try the parser.
+    import ast as _ast
+    try:
+        _ast.parse(content)
+        return True
+    except SyntaxError:
+        return False
+
+
 def check_python_syntax(content: Any) -> Tuple[bool, float, str]:
-    """Return whether *content* parses as valid Python source."""
+    """Return whether *content* parses as valid Python source.
+
+    Skips cleanly when the content is not Python (we don't want to fail
+    JS/Go/etc. just because they're not syntactically Python).
+    """
     if not isinstance(content, str):
         return (False, 0.0, "content is not a string")
+    if not _looks_like_python(content):
+        return (True, 1.0, "skipped — content is not Python")
     import ast as _ast
     try:
         _ast.parse(content)
@@ -486,23 +631,6 @@ def check_mailbox_no_hard_failures(content: Any) -> Tuple[bool, float, str]:
     return (True, 1.0, "no hard provisioning failures reported")
 
 
-def check_deployment_healthy(content: Any) -> Tuple[bool, float, str]:
-    """Return whether a deployment-result dict reports a green health check."""
-    if not isinstance(content, dict):
-        return (False, 0.0, "content is not a dict")
-    health = content.get("health") or content.get("healthcheck")
-    if isinstance(health, dict):
-        status = str(health.get("status", "")).lower()
-        if status in {"ok", "healthy", "green", "passing", "ready"}:
-            return (True, 1.0, f"health check: {status}")
-        return (False, 0.0, f"health check status: {status or '<missing>'}")
-    if isinstance(health, str):
-        if health.lower() in {"ok", "healthy", "green", "passing", "ready"}:
-            return (True, 1.0, f"health: {health}")
-        return (False, 0.0, f"health: {health}")
-    return (False, 0.0, "no 'health' field present in deployment result")
-
-
 def check_python_no_bare_except(content: Any) -> Tuple[bool, float, str]:
     """Return whether *content* has no bare ``except:`` clauses.
 
@@ -511,6 +639,8 @@ def check_python_no_bare_except(content: Any) -> Tuple[bool, float, str]:
     """
     if not isinstance(content, str):
         return (True, 1.0, "non-string content — skipped")
+    if not _looks_like_python(content):
+        return (True, 1.0, "skipped — content is not Python")
     import ast as _ast
     try:
         tree = _ast.parse(content)
@@ -532,14 +662,321 @@ def check_python_no_bare_except(content: Any) -> Tuple[bool, float, str]:
     return (True, 1.0, "no bare except clauses")
 
 
+# ---------------------------------------------------------------------------
+# Round-2 calibration additions
+# ---------------------------------------------------------------------------
+
+
+# Common credential / API-key patterns.  Conservative: match well-known
+# provider prefixes plus generic high-entropy assignments to identifiers
+# named "api_key", "secret", "token", etc.  Allows obvious placeholders
+# (CHANGEME, your_*, xxx, ...) to avoid false positives in examples.
+_PLACEHOLDER_RE = re.compile(
+    r"(?i)\b(?:changeme|change_me|your[_-]?(?:secret|key|token|password)|"
+    r"placeholder|example|xxx+|todo|fake|dummy|sample|<[^>]+>)\b"
+)
+_HARDCODED_SECRET_PATTERNS = (
+    # Stripe-style live keys
+    re.compile(r"\bsk_live_[A-Za-z0-9]{16,}\b"),
+    # GitHub tokens
+    re.compile(r"\bghp_[A-Za-z0-9]{20,}\b"),
+    # AWS access keys
+    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
+    # Slack tokens
+    re.compile(r"\bxox[abp]-[A-Za-z0-9-]{10,}\b"),
+    # Generic high-entropy assignment to a sensitive name (quoted or unquoted)
+    re.compile(
+        r"(?i)\b(?:api[_-]?key|secret|password|passwd|auth[_-]?token|"
+        r"access[_-]?token|client[_-]?secret)\b\s*[:=]\s*[\"']?"
+        r"(?P<val>[A-Za-z0-9/+=_\-]{12,})[\"']?"
+    ),
+)
+
+
+def check_no_hardcoded_credentials(content: Any) -> Tuple[bool, float, str]:
+    """Return whether *content* lacks obvious hardcoded credentials.
+
+    Used by both CODE and (with a different regex) CONFIG. Skips if the
+    matched value looks like an obvious placeholder.
+    """
+    if not isinstance(content, str):
+        return (True, 1.0, "non-string content — skipped")
+    hits: List[str] = []
+    for pat in _HARDCODED_SECRET_PATTERNS:
+        for m in pat.finditer(content):
+            value = m.group("val") if "val" in (m.groupdict() or {}) else m.group(0)
+            if _PLACEHOLDER_RE.search(value):
+                continue
+            hits.append(m.group(0)[:40])
+    if hits:
+        return (
+            False,
+            0.0,
+            f"likely hardcoded secret(s): {hits[:3]}",
+        )
+    return (True, 1.0, "no hardcoded credential patterns found")
+
+
+_URL_WITH_CREDS_RE = re.compile(
+    # scheme://user:pass@host  — non-trivial password length, not a placeholder
+    r"\b[a-z][a-z0-9+.\-]*://[^\s:/@]+:(?P<pw>[^\s@/]{6,})@",
+    re.IGNORECASE,
+)
+
+
+def check_config_no_embedded_secrets(content: Any) -> Tuple[bool, float, str]:
+    """CONFIG-aware secret check.
+
+    Catches both ``password=...`` style and URLs with embedded credentials
+    (``postgres://user:secret@host``), which CONFIG-001's original regex
+    missed.
+    """
+    if not isinstance(content, str):
+        return (True, 1.0, "non-string content — skipped")
+    # Re-use the credential patterns from check_no_hardcoded_credentials.
+    ok, score, detail = check_no_hardcoded_credentials(content)
+    if not ok:
+        return (False, 0.0, detail)
+    for m in _URL_WITH_CREDS_RE.finditer(content):
+        pw = m.group("pw")
+        if _PLACEHOLDER_RE.search(pw):
+            continue
+        return (
+            False,
+            0.0,
+            f"URL embeds credentials: {m.group(0)[:60]}…",
+        )
+    return (True, 1.0, "no embedded secrets")
+
+
+def check_python_no_dynamic_eval(content: Any) -> Tuple[bool, float, str]:
+    """Return whether *content* avoids ``eval()``/``exec()`` of variables.
+
+    A literal-string ``eval('1+1')`` is allowed; any other call shape is
+    flagged because dynamic evaluation of caller-supplied data is the
+    classic source of arbitrary-code-execution bugs.
+    """
+    if not isinstance(content, str):
+        return (True, 1.0, "non-string content — skipped")
+    if not _looks_like_python(content):
+        return (True, 1.0, "skipped — content is not Python")
+    import ast as _ast
+    try:
+        tree = _ast.parse(content)
+    except SyntaxError:
+        return (True, 1.0, "skipped — file does not parse")
+    bad: List[str] = []
+    for node in _ast.walk(tree):
+        if not isinstance(node, _ast.Call):
+            continue
+        fn = node.func
+        name = (
+            fn.id if isinstance(fn, _ast.Name)
+            else fn.attr if isinstance(fn, _ast.Attribute)
+            else None
+        )
+        if name not in {"eval", "exec"}:
+            continue
+        # Allow literal-string eval/exec ("compile-time" expressions).
+        if node.args and isinstance(node.args[0], _ast.Constant) and isinstance(
+            node.args[0].value, str
+        ):
+            continue
+        bad.append(f"{name}() at line {node.lineno}")
+    if bad:
+        return (False, 0.0, f"dynamic {bad[:3]}")
+    return (True, 1.0, "no dynamic eval/exec")
+
+
+def check_shell_no_curl_pipe_shell(content: Any) -> Tuple[bool, float, str]:
+    """Reject the classic ``curl … | bash`` install antipattern."""
+    if not isinstance(content, str):
+        return (True, 1.0, "non-string content — skipped")
+    pattern = re.compile(
+        r"(?:curl|wget|fetch)\b[^\n|]*\|\s*(?:sudo\s+)?(?:bash|sh|zsh|ksh)\b",
+        re.IGNORECASE,
+    )
+    m = pattern.search(content)
+    if m:
+        return (False, 0.0, f"unsafe pipe-to-shell: {m.group(0)[:80]}…")
+    return (True, 1.0, "no curl|bash antipattern")
+
+
+def check_shell_no_dangerous_rm(content: Any) -> Tuple[bool, float, str]:
+    """Reject ``rm -rf /`` and equivalent catastrophic patterns."""
+    if not isinstance(content, str):
+        return (True, 1.0, "non-string content — skipped")
+    pattern = re.compile(
+        # rm -rf / | rm -rf /* | rm -rf "$VAR/" | rm -rf $HOME (no quote, no slash check)
+        r"\brm\s+(?:-[a-zA-Z]*[rRf][a-zA-Z]*\s+)+"
+        r"(?:/(?:\s|$|\*)|/\*|--no-preserve-root|\$\w+\b(?!/))",
+    )
+    m = pattern.search(content)
+    if m:
+        return (False, 0.0, f"dangerous rm: {m.group(0)[:60]}…")
+    return (True, 1.0, "no dangerous rm patterns")
+
+
+def check_config_substantive(content: Any) -> Tuple[bool, float, str]:
+    """Reject empty-shell config files like ``{}`` or ``[]``.
+
+    A config that defines nothing isn't a meaningful deliverable; this
+    is a substance floor specifically for CONFIG_FILE outputs.
+    """
+    if not isinstance(content, str):
+        # Dicts/lists fall through to the existing structured substance check.
+        return (True, 1.0, "non-string content — substance deferred")
+    stripped = content.strip()
+    if not stripped:
+        return (False, 0.0, "config is empty")
+    # Strip comment lines for a fairer "is there any setting here?" test.
+    body_lines = [
+        ln for ln in stripped.splitlines()
+        if ln.strip() and not ln.lstrip().startswith(("#", ";", "//"))
+    ]
+    body = "\n".join(body_lines).strip()
+    if not body:
+        return (False, 0.0, "config has only comments / no settings")
+    # `{}`, `[]`, `null`, single-token "value" — no real settings.
+    if body in {"{}", "[]", "null", "true", "false"}:
+        return (False, 0.0, f"config body is empty literal: {body!r}")
+    return (True, 1.0, "config has settings")
+
+
+def check_plan_has_multiple_steps(content: Any) -> Tuple[bool, float, str]:
+    """Plans must enumerate at least two ordered steps to be actionable.
+
+    Accepts numbered (``1.``), bulleted (``-``, ``*``) and checkbox
+    (``- [ ]``, ``- [x]``) styles.
+    """
+    if not isinstance(content, str):
+        return (False, 0.0, "non-string content")
+    step_re = re.compile(r"(?m)^\s*(?:\d+\.|[-*])\s+(?:\[[ xX]\]\s+)?\S")
+    steps = step_re.findall(content)
+    if len(steps) >= 2:
+        return (True, 1.0, f"{len(steps)} enumerated step(s)")
+    if len(steps) == 1:
+        return (False, 0.5, "plan has only one enumerated step")
+    return (False, 0.0, "plan has no enumerated steps")
+
+
+_EMAIL_RE = re.compile(
+    # Permissive but rejects "no @" and "no domain part".
+    r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.?[A-Za-z0-9\-]*$"
+)
+
+
+def check_mailbox_email_formats(content: Any) -> Tuple[bool, float, str]:
+    """Each provisioned account must have a syntactically valid email."""
+    if not isinstance(content, dict):
+        return (False, 0.0, "content is not a dict")
+    accounts = content.get("accounts") or []
+    if not isinstance(accounts, list) or not accounts:
+        return (False, 0.0, "no 'accounts' list present")
+    bad: List[str] = []
+    for a in accounts:
+        if not isinstance(a, dict):
+            continue
+        email = str(a.get("email", ""))
+        if not email or not _EMAIL_RE.match(email):
+            bad.append(email or "<missing>")
+    if bad:
+        ratio = 1.0 - len(bad) / len(accounts)
+        return (
+            False,
+            max(0.0, ratio),
+            f"{len(bad)}/{len(accounts)} malformed email(s): {bad[:5]}",
+        )
+    return (True, 1.0, f"all {len(accounts)} email(s) well-formed")
+
+
+def check_mailbox_unique_emails(content: Any) -> Tuple[bool, float, str]:
+    """Each provisioned account must have a unique email address."""
+    if not isinstance(content, dict):
+        return (False, 0.0, "content is not a dict")
+    accounts = content.get("accounts") or []
+    if not isinstance(accounts, list) or not accounts:
+        return (False, 0.0, "no 'accounts' list present")
+    seen: Dict[str, int] = {}
+    for a in accounts:
+        if not isinstance(a, dict):
+            continue
+        email = str(a.get("email", "")).lower()
+        if not email:
+            continue
+        seen[email] = seen.get(email, 0) + 1
+    dups = [e for e, n in seen.items() if n > 1]
+    if dups:
+        return (False, 0.0, f"duplicate email(s): {dups[:5]}")
+    return (True, 1.0, f"{len(seen)} unique email(s)")
+
+
+def check_deployment_healthy(content: Any) -> Tuple[bool, float, str]:
+    """Return whether a deployment-result dict reports a green health check.
+
+    Also fails if the result carries a truthy ``rolled_back`` / ``rollback``
+    marker — a rolled-back deploy is by definition not a successful one,
+    even if the post-rollback health check is green.
+    """
+    if not isinstance(content, dict):
+        return (False, 0.0, "content is not a dict")
+    if content.get("rolled_back") or content.get("rollback"):
+        return (False, 0.0, "deployment was rolled back")
+    health = content.get("health") or content.get("healthcheck")
+    if isinstance(health, dict):
+        status = str(health.get("status", "")).lower()
+        if status in {"ok", "healthy", "green", "passing", "ready"}:
+            return (True, 1.0, f"health check: {status}")
+        return (False, 0.0, f"health check status: {status or '<missing>'}")
+    if isinstance(health, str):
+        if health.lower() in {"ok", "healthy", "green", "passing", "ready"}:
+            return (True, 1.0, f"health: {health}")
+        return (False, 0.0, f"health: {health}")
+    return (False, 0.0, "no 'health' field present in deployment result")
+
+
+def check_python_has_docstring(content: Any) -> Tuple[bool, float, str]:
+    """Module/function-level docstring presence — Python only.
+
+    Skips for non-Python code so JS/Go/Rust deliverables don't get
+    falsely dinged for not having Python triple-quoted docstrings.
+    """
+    if not isinstance(content, str):
+        return (True, 1.0, "non-string content — skipped")
+    if not _looks_like_python(content):
+        return (True, 1.0, "skipped — content is not Python")
+    if re.search(r'"""[\s\S]+?"""', content) or re.search(r"'''[\s\S]+?'''", content):
+        return (True, 1.0, "docstring present")
+    return (False, 0.0, "no module/function docstring found")
+
+
 _CALLABLE_REGISTRY: Dict[str, CheckFn] = {
     "src.reconciliation.standards:check_python_syntax": check_python_syntax,
+    "src.reconciliation.standards:check_python_has_docstring": check_python_has_docstring,
     "src.reconciliation.standards:check_python_no_bare_except": check_python_no_bare_except,
+    "src.reconciliation.standards:check_python_no_dynamic_eval":
+        check_python_no_dynamic_eval,
+    "src.reconciliation.standards:check_no_hardcoded_credentials":
+        check_no_hardcoded_credentials,
+    "src.reconciliation.standards:check_config_no_embedded_secrets":
+        check_config_no_embedded_secrets,
+    "src.reconciliation.standards:check_config_substantive":
+        check_config_substantive,
+    "src.reconciliation.standards:check_shell_no_curl_pipe_shell":
+        check_shell_no_curl_pipe_shell,
+    "src.reconciliation.standards:check_shell_no_dangerous_rm":
+        check_shell_no_dangerous_rm,
+    "src.reconciliation.standards:check_plan_has_multiple_steps":
+        check_plan_has_multiple_steps,
     "src.reconciliation.standards:check_json_parses": check_json_parses,
     "src.reconciliation.standards:check_mailbox_passwords_recorded":
         check_mailbox_passwords_recorded,
     "src.reconciliation.standards:check_mailbox_no_hard_failures":
         check_mailbox_no_hard_failures,
+    "src.reconciliation.standards:check_mailbox_email_formats":
+        check_mailbox_email_formats,
+    "src.reconciliation.standards:check_mailbox_unique_emails":
+        check_mailbox_unique_emails,
     "src.reconciliation.standards:check_deployment_healthy": check_deployment_healthy,
 }
 
