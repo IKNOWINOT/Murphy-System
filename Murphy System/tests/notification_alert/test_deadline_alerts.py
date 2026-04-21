@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from src.billing.grants.notifications.deadline_alerts import DeadlineAlertSystem, ALERT_THRESHOLDS_DAYS, _sent_alerts, _alerts
 
 
@@ -22,7 +22,7 @@ def alert_system():
 
 
 def _grant(days_from_now: int, grant_id: str = "g1", title: str = "Test Grant") -> dict:
-    deadline = datetime.utcnow() + timedelta(days=days_from_now)
+    deadline = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=days_from_now)
     return {"grant_id": grant_id, "title": title, "deadline": deadline}
 
 
@@ -112,6 +112,6 @@ def test_multiple_grants_get_independent_alerts(alert_system):
 
 
 def test_datetime_deadline_object_works(alert_system):
-    grants = [{"grant_id": "g_dt", "title": "DT Grant", "deadline": datetime.utcnow() + timedelta(days=6)}]
+    grants = [{"grant_id": "g_dt", "title": "DT Grant", "deadline": datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=6)}]
     alerts = alert_system.check_deadlines(grants)
     assert len(alerts) > 0
