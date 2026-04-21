@@ -17,9 +17,14 @@ import sys
 
 import pytest
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+# This file lives at tests/documentation_qa/, so the repo root is two levels up.
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 SRC_DIR = os.path.join(PROJECT_ROOT, "src")
-REPO_ROOT = os.path.abspath(os.path.join(PROJECT_ROOT, ".."))
+TESTS_DIR = os.path.join(PROJECT_ROOT, "tests")
+# REPO_ROOT and PROJECT_ROOT both point at the repo root in the canonical
+# mirrored layout (Murphy System/ ↔ root). Kept as a separate name for
+# readability of the call sites that reference top-level docs.
+REPO_ROOT = PROJECT_ROOT
 
 
 class TestDocumentationAccuracy:
@@ -72,9 +77,8 @@ class TestDocumentationAccuracy:
         with open(gs_path) as f:
             content = f.read()
         # Count gap-closure tests
-        test_dir = os.path.join(PROJECT_ROOT, "tests")
         gc_files = [
-            f for f in os.listdir(test_dir) if f.startswith("test_gap_closure_round")
+            f for f in os.listdir(TESTS_DIR) if f.startswith("test_gap_closure_round")
         ]
         assert len(gc_files) >= 20, f"Expected 20+ gap-closure test files, found {len(gc_files)}"
         # Doc should reference 118 gap-closure tests
@@ -204,12 +208,11 @@ class TestZeroRemainingCodeBugs:
 
     def test_all_test_files_parse(self):
         """All test files must be syntactically valid."""
-        test_dir = os.path.join(PROJECT_ROOT, "tests")
         errors = []
-        for fn in os.listdir(test_dir):
+        for fn in os.listdir(TESTS_DIR):
             if not fn.endswith(".py"):
                 continue
-            path = os.path.join(test_dir, fn)
+            path = os.path.join(TESTS_DIR, fn)
             with open(path) as f:
                 try:
                     ast.parse(f.read(), path)

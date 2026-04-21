@@ -19,8 +19,9 @@ import sys
 
 import pytest
 
-# Resolve paths relative to project root
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+# Resolve paths relative to repo root.
+# This file lives at tests/documentation_qa/, so the repo root is two levels up.
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 SRC_DIR = os.path.join(PROJECT_ROOT, "src")
 TESTS_DIR = os.path.join(PROJECT_ROOT, "tests")
 
