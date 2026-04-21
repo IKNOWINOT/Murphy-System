@@ -4,10 +4,13 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class RatePeriod(Enum):
@@ -86,8 +89,8 @@ class TariffEngine:
                 if start_h <= hour < end_h:
                     try:
                         return RatePeriod(period_name)
-                    except ValueError:
-                        pass
+                    except ValueError:  # PROD-HARD A2: misconfigured tariff period name — log and fall through to OFF_PEAK
+                        logger.warning("Tariff config: unknown RatePeriod %r in schedule; using OFF_PEAK", period_name)
         return RatePeriod.OFF_PEAK
 
     def get_rate(self, timestamp: Optional[float] = None) -> float:
