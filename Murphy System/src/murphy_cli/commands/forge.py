@@ -85,8 +85,8 @@ def _cmd_forge_generate(parsed: Any, ctx: Any) -> int:
                         sys.stderr.write(f"  {green('▸')} {name} ({role}) — {status}\n")
                         sys.stderr.flush()
                         agent_count += 1
-                    except json.JSONDecodeError:
-                        pass
+                    except json.JSONDecodeError:  # PROD-HARD A2: malformed agent SSE frame — skip line, keep streaming
+                        print_warning("skipped malformed agent frame")
                     has_streamed = True
 
                 elif event == "progress":
@@ -96,8 +96,8 @@ def _cmd_forge_generate(parsed: Any, ctx: Any) -> int:
                         msg = prog.get("message", "")
                         sys.stderr.write(f"  {cyan('⟳')} {pct}% — {msg}\n")
                         sys.stderr.flush()
-                    except json.JSONDecodeError:
-                        pass
+                    except json.JSONDecodeError:  # PROD-HARD A2: malformed progress SSE frame — skip line, keep streaming
+                        print_warning("skipped malformed progress frame")
                     has_streamed = True
 
                 elif event == "metrics":
@@ -112,8 +112,8 @@ def _cmd_forge_generate(parsed: Any, ctx: Any) -> int:
                             f" — ROI: {roi:.0f}x\n"
                         )
                         sys.stderr.flush()
-                    except json.JSONDecodeError:
-                        pass
+                    except json.JSONDecodeError:  # PROD-HARD A2: malformed metrics SSE frame — skip line, keep streaming
+                        print_warning("skipped malformed metrics frame")
 
                 elif event == "content":
                     deliverable_content += data_str
