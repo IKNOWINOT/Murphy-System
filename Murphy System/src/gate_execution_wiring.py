@@ -327,8 +327,10 @@ class GateExecutionWiring:
                 cls = getattr(mod, class_name, None)
                 if cls is not None:
                     _security_checks.append((module_path.split(".")[-1], cls))
-            except (ImportError, Exception):
-                pass
+            except ImportError:
+                pass  # Optional security plane module not present — skip.
+            except Exception:  # PROD-HARD A2: import/getattr failure other than missing module — log
+                logger.warning("Failed to load security check %s.%s", module_path, class_name, exc_info=True)
 
         loaded_count = len(_security_checks)
 

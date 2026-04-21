@@ -701,8 +701,8 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                         status_code=413,
                         content={"error": "Request body too large", "max_bytes": _MAX_BODY_BYTES},
                     )
-            except ValueError:
-                pass
+            except ValueError:  # PROD-HARD A2: malformed Content-Length — log and let downstream handle
+                logger.debug("[%s] Malformed Content-Length header %r from %s", self.service_name, content_length_str, client_ip)
 
         # Rate limiting — enforced before auth so unauthenticated flood requests
         # are still throttled (CWE-770).
