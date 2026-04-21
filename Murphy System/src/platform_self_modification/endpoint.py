@@ -51,7 +51,7 @@ import hmac
 import html as html_lib
 import logging
 import os
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from fastapi import APIRouter, Header, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -76,11 +76,18 @@ class LaunchRequest(BaseModel):
     ``ImprovementProposal`` (revertibility requirement). ``operator_id``
     is the human operator on record (audit requirement). ``justification``
     is free text shown in the ledger and the console.
+
+    ``directive_id`` (ROSETTA-ORG-008) is the optional CEOBranch-side
+    correlation id when the launch was triggered by
+    ``CEOBranch.dispatch_directive_to_psm``.  When present it is
+    forwarded into ``gap_analysis`` so the orchestrator can tie its
+    cycle back to the originating directive end-to-end.
     """
 
     proposal_id: str = Field(min_length=1, max_length=128)
     operator_id: str = Field(min_length=1, max_length=128)
     justification: str = Field(min_length=1, max_length=2000)
+    directive_id: Optional[str] = Field(default=None, max_length=128)
 
 
 def _resolve_ledger_path() -> str:
@@ -109,12 +116,130 @@ def _check_operator_token(supplied: Optional[str]) -> bool:
     return hmac.compare_digest(expected.encode("utf-8"), supplied.encode("utf-8"))
 
 
+# ---------------------------------------------------------------------------
+# ROSETTA-ORG-007 — executive + operations context collectors.
+#
+# Both collectors follow the same contract: given a zero-arg callable
+# (or None), return a dict with a well-known shape containing the
+# gathered context and a NAMED status.  Every failure mode is surfaced
+# explicitly — never silent.
+# ---------------------------------------------------------------------------
+
+_MAX_INITIATIVES_IN_CONTEXT = 10
+_COMPLETED_INITIATIVE_STATUSES = {"completed", "cancelled"}
+
+
+def _collect_executive_context(
+    get_planner: Optional[Callable[[], Any]],
+    owner_role: Optional[str],
+) -> Dict[str, Any]:
+    """Collect open executive initiatives for the owner role.
+
+    Returns a dict with keys:
+        initiatives — list[dict] of at most
+            ``_MAX_INITIATIVES_IN_CONTEXT`` open initiatives,
+            ranked by ``rank_initiatives()``.  Empty when none
+            available or when the engine is not wired.
+        status — one of:
+            * ``"not_wired"`` — ``get_planner`` was not supplied
+              OR it returned ``None``.
+            * ``"ok"`` — initiatives were collected successfully
+              (may be an empty list if none are open).
+            * ``"exception"`` — the planner raised; error is in
+              ``error``.
+        owner_role — echo of the input for downstream correlation.
+        error — present only when ``status == "exception"``.
+
+    ``owner_role`` is threaded through so callers can correlate the
+    initiatives to the role later (the current
+    :class:`ExecutiveStrategyPlanner` does not itself filter by role —
+    future work: ROSETTA-ORG-009).
+    """
+    result: Dict[str, Any] = {
+        "initiatives": [],
+        "status": "not_wired",
+        "owner_role": owner_role,
+    }
+    if get_planner is None:
+        return result
+    try:
+        planner = get_planner()
+    except Exception as exc:  # noqa: BLE001 — loud, not silent
+        logger.warning("ROSETTA-ORG-007: get_executive_planner raised: %s", exc)
+        result["status"] = "exception"
+        result["error"] = f"get_planner: {exc}"
+        return result
+    if planner is None:
+        return result
+    try:
+        ranked = planner.rank_initiatives()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("ROSETTA-ORG-007: rank_initiatives raised: %s", exc)
+        result["status"] = "exception"
+        result["error"] = f"rank_initiatives: {exc}"
+        return result
+
+    open_initiatives: List[Dict[str, Any]] = []
+    for init in ranked or []:
+        try:
+            status = str(init.get("status", "")).lower()
+        except AttributeError:
+            continue
+        if status in _COMPLETED_INITIATIVE_STATUSES:
+            continue
+        open_initiatives.append(init)
+        if len(open_initiatives) >= _MAX_INITIATIVES_IN_CONTEXT:
+            break
+
+    result["initiatives"] = open_initiatives
+    result["status"] = "ok"
+    return result
+
+
+def _collect_operations_context(
+    get_engine: Optional[Callable[[], Any]],
+) -> Dict[str, Any]:
+    """Collect active operations cycles from the OperationsCycleEngine.
+
+    Returns a dict with keys:
+        cycles — dict snapshot from ``engine.get_status()`` (empty
+            when the engine is not wired).
+        status — one of ``"not_wired"``, ``"ok"``, ``"exception"``.
+        error — present only when ``status == "exception"``.
+    """
+    result: Dict[str, Any] = {"cycles": {}, "status": "not_wired"}
+    if get_engine is None:
+        return result
+    try:
+        engine = get_engine()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("ROSETTA-ORG-007: get_operations_cycle_engine raised: %s", exc)
+        result["status"] = "exception"
+        result["error"] = f"get_engine: {exc}"
+        return result
+    if engine is None:
+        return result
+    try:
+        snapshot = engine.get_status()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("ROSETTA-ORG-007: engine.get_status raised: %s", exc)
+        result["status"] = "exception"
+        result["error"] = f"get_status: {exc}"
+        return result
+
+    result["cycles"] = snapshot if isinstance(snapshot, dict) else {"raw": snapshot}
+    result["status"] = "ok"
+    return result
+
+
 def build_router(
     *,
     get_orchestrator: Callable[[], Any],
     get_lyapunov_source: Callable[[], Any],
     ledger_path: Optional[str] = None,
     get_rosetta_manager: Optional[Callable[[], Any]] = None,
+    get_executive_planner: Optional[Callable[[], Any]] = None,
+    get_operations_cycle_engine: Optional[Callable[[], Any]] = None,
 ) -> APIRouter:
     """Construct the platform self-modification router.
 
@@ -138,6 +263,24 @@ def build_router(
         and to ``gap_analysis``.  An unknown operator_id surfaces an
         explicit ``owner_lookup: "unknown_operator"`` — never silent.
         If omitted, behavior is unchanged from PSM-003 baseline.
+    get_executive_planner:
+        ROSETTA-ORG-007. Optional zero-arg callable returning an
+        :class:`ExecutivePlanningEngine.ExecutiveStrategyPlanner`-style
+        object (any duck-typed value with a ``rank_initiatives()``
+        method returning ``List[Dict[str, Any]]``).  When wired, the
+        launch attaches up to 10 open initiatives (not COMPLETED /
+        CANCELLED) to ``gap_analysis["executive_initiatives"]`` with
+        ``executive_status="ok"``.  Exceptions surface as
+        ``executive_status="exception"`` with the error message — never
+        silent.  When omitted, ``executive_status="not_wired"``.
+    get_operations_cycle_engine:
+        ROSETTA-ORG-007. Optional zero-arg callable returning an
+        :class:`OperationsCycleEngine`-style object (any duck-typed
+        value with a ``get_status()`` method returning a dict).  When
+        wired, ``gap_analysis["operations_cycles"]`` is populated with
+        the status snapshot and ``ops_status="ok"``.  Exceptions
+        surface as ``ops_status="exception"``.  When omitted,
+        ``ops_status="not_wired"``.
     """
     router = APIRouter(prefix="/api/platform/self-modification", tags=["platform-self-mod"])
     ledger = SelfEditLedger(ledger_path or _resolve_ledger_path())
@@ -302,6 +445,14 @@ def build_router(
             payload={"reason": decision.reason, **owner_info},
         )
 
+        # ROSETTA-ORG-007 — collect executive + ops context.  Each
+        # failure mode is named in the gap_analysis / ledger payload
+        # so the orchestrator never silently loses context.
+        exec_info = _collect_executive_context(
+            get_executive_planner, owner_info.get("owner_role"),
+        )
+        ops_info = _collect_operations_context(get_operations_cycle_engine)
+
         # 6. Hand off to the orchestrator. Wrapped so any exception in
         # third-party code becomes a FAILED entry, not a 500 with no
         # provenance.
@@ -318,6 +469,16 @@ def build_router(
                     "owner_role": owner_info.get("owner_role"),
                     "approver_chain": owner_info.get("approver_chain", []),
                     "owner_lookup": owner_info.get("owner_lookup"),
+                    # ROSETTA-ORG-007: executive + ops context.
+                    "executive_initiatives": exec_info["initiatives"],
+                    "executive_status": exec_info["status"],
+                    "operations_cycles": ops_info["cycles"],
+                    "ops_status": ops_info["status"],
+                    # ROSETTA-ORG-008: directive correlation id (or None
+                    # if this launch was not triggered by a CEOBranch
+                    # directive).  Carrying it makes the end-to-end
+                    # trace queryable from either side.
+                    "directive_id": req.directive_id,
                 }
             )
             cycle_id = getattr(cycle, "cycle_id", None) or str(cycle)
@@ -332,6 +493,9 @@ def build_router(
                     "reason": "orchestrator_exception",
                     "detail": str(exc),
                     **owner_info,
+                    "executive_status": exec_info["status"],
+                    "ops_status": ops_info["status"],
+                    "directive_id": req.directive_id,
                 },
             )
             return JSONResponse(
@@ -349,7 +513,13 @@ def build_router(
             proposal_id=req.proposal_id,
             operator_id=req.operator_id,
             rsc_snapshot=decision.snapshot,
-            payload={"cycle_id": cycle_id, **owner_info},
+            payload={
+                "cycle_id": cycle_id,
+                **owner_info,
+                "executive_status": exec_info["status"],
+                "ops_status": ops_info["status"],
+                "directive_id": req.directive_id,
+            },
         )
         return JSONResponse(
             status_code=202,
@@ -361,6 +531,9 @@ def build_router(
                 "rsc_reason": decision.reason,
                 "owner_role": owner_info.get("owner_role"),
                 "owner_lookup": owner_info.get("owner_lookup"),
+                "executive_status": exec_info["status"],
+                "ops_status": ops_info["status"],
+                "directive_id": req.directive_id,
             },
         )
 
