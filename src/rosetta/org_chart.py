@@ -213,6 +213,17 @@ def lookup_role_for_operator(
 
     _index(chart["tree"])
 
+    # ROSETTA-ORG-006 — if the operator maps to a known role_title but
+    # that role is not present in the seeded chart (e.g. VPs not
+    # seeded), surface it explicitly instead of silently returning an
+    # empty approver_chain with owner_lookup="ok".
+    if role not in nodes_by_role:
+        return {
+            "owner_role": role,
+            "approver_chain": [],
+            "owner_lookup": "role_not_in_chart",
+        }
+
     chain: List[str] = []
     cur = nodes_by_role.get(role, {}).get("reports_to")
     depth = 0

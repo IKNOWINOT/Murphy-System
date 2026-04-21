@@ -7,6 +7,7 @@ from .subsystem_wiring import (
     bootstrap_wiring,
 )
 from .platform_org_seed import (
+    CEO_BRANCH_LABEL_TO_ROLE_TITLE,
     PLATFORM_OPERATOR_TO_ROLE,
     PLATFORM_ORG_ID,
     get_platform_roster,
@@ -27,6 +28,7 @@ __all__ = [
     "bootstrap_wiring",
     "PLATFORM_ORG_ID",
     "PLATFORM_OPERATOR_TO_ROLE",
+    "CEO_BRANCH_LABEL_TO_ROLE_TITLE",
     "get_platform_roster",
     "seed_platform_org",
     "build_org_chart",
