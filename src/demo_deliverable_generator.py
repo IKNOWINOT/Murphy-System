@@ -2119,6 +2119,7 @@ render();
 # Run: pip install fastapi uvicorn && uvicorn api-server:app --reload
 
 from __future__ import annotations
+import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
@@ -2128,7 +2129,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 app = FastAPI(title="MurphyApp API", version="1.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+# CORS — safe-by-default. Override in production via the CORS_ALLOWED_ORIGINS
+# env var (comma-separated list of origins). Wildcard '*' is intentionally
+# not the default; combining '*' with allow_credentials=True is rejected by
+# the Starlette middleware and is a known browser-side credentials leak.
+_cors_origins = [o.strip() for o in os.environ.get(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:3000,http://localhost:5173,http://localhost:8000",
+).split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 # In-memory stores (swap for a real DB in production)
 _tasks: Dict[str, Dict[str, Any]] = {}
@@ -2289,6 +2304,7 @@ settings = Settings()
 # main.py — Automation Suite Entry Point
 from __future__ import annotations
 import logging
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Header, HTTPException
 from fastapi.responses import JSONResponse
@@ -2313,7 +2329,20 @@ async def lifespan(app: FastAPI):
     logger.info("Automation suite stopped.")
 
 app = FastAPI(title="Murphy Automation Suite", version="1.0.0", lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+# CORS — safe-by-default. Override in production via the CORS_ALLOWED_ORIGINS
+# env var (comma-separated list of origins). Wildcard '*' is intentionally
+# not the default.
+_cors_origins = [o.strip() for o in os.environ.get(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:3000,http://localhost:5173,http://localhost:8000",
+).split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 @app.get("/health")
 def health():
@@ -6011,6 +6040,7 @@ main{{padding:2rem 1.5rem;max-width:1000px;margin:0 auto;}}
 from __future__ import annotations
 
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Any, Dict
 
@@ -6022,10 +6052,18 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="{safe_name}", version="0.1.0")
+# CORS — safe-by-default. Override in production via the CORS_ALLOWED_ORIGINS
+# env var (comma-separated list of origins). Wildcard '*' is intentionally
+# not the default.
+_cors_origins = [o.strip() for o in os.environ.get(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:3000,http://localhost:5173,http://localhost:8000",
+).split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
