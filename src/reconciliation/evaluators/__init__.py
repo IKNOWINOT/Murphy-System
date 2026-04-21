@@ -27,6 +27,7 @@ from .code import CodeDeliverableEvaluator
 from .config import ConfigDeliverableEvaluator
 from .document import DocumentDeliverableEvaluator
 from .mailbox import MailboxProvisioningEvaluator
+from .structured import StructuredPayloadEvaluator
 
 __all__ = [
     "Evaluator",
@@ -40,4 +41,5 @@ __all__ = [
     "ConfigDeliverableEvaluator",
     "DocumentDeliverableEvaluator",
     "MailboxProvisioningEvaluator",
+    "StructuredPayloadEvaluator",
 ]
