@@ -680,8 +680,8 @@ class ProductionWorkflowRegistry:
             try:
                 if re.search(pattern, intent, re.IGNORECASE):
                     pattern_score = 0.4
-            except re.error:
-                pass
+            except re.error:  # PROD-HARD A2: invalid registry regex shouldn't block scoring, but log for operator
+                logger.warning("Invalid match_pattern %r in workflow %s; skipping pattern-score", pattern, name)
 
         # Similarity to name + description
         combined = f"{name} {desc}".lower()
