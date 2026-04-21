@@ -265,6 +265,35 @@ def _seed_defaults() -> None:
             hard=True,
             tags=("security",),
         ),
+        Standard(
+            id="CODE-007",
+            deliverable_type=DeliverableType.CODE,
+            title="Python code does not build SQL via string concat / f-strings",
+            rationale="Above-average code parameterises queries; "
+            "concatenated SQL is the textbook injection vector.",
+            check={
+                "kind": "callable",
+                "fn": "src.reconciliation.standards:check_python_no_sql_injection",
+            },
+            weight=2.0,
+            hard=True,
+            tags=("security",),
+        ),
+        Standard(
+            id="CODE-008",
+            deliverable_type=DeliverableType.CODE,
+            title="Python code does not call known-unsafe APIs unsafely",
+            rationale="``os.system(var)``, ``subprocess(shell=True, var)``, "
+            "``pickle.loads``, ``yaml.load`` without a SafeLoader, etc. "
+            "are textbook RCE vectors.",
+            check={
+                "kind": "callable",
+                "fn": "src.reconciliation.standards:check_python_no_unsafe_apis",
+            },
+            weight=2.0,
+            hard=True,
+            tags=("security",),
+        ),
         # ------------------------------------------------------------------
         # CONFIG_FILE
         # ------------------------------------------------------------------
@@ -359,6 +388,20 @@ def _seed_defaults() -> None:
             hard=True,
             tags=("safety",),
         ),
+        Standard(
+            id="SHELL-005",
+            deliverable_type=DeliverableType.SHELL_SCRIPT,
+            title="Shell script does not eval dynamic input",
+            rationale="``eval $var`` is the shell analogue of "
+            "``eval(user_input)`` — same RCE class.",
+            check={
+                "kind": "callable",
+                "fn": "src.reconciliation.standards:check_shell_no_eval_of_variable",
+            },
+            weight=2.0,
+            hard=True,
+            tags=("security",),
+        ),
         # ------------------------------------------------------------------
         # DOCUMENT (Markdown / prose)
         # ------------------------------------------------------------------
@@ -367,8 +410,11 @@ def _seed_defaults() -> None:
             deliverable_type=DeliverableType.DOCUMENT,
             title="Document opens with a top-level heading",
             rationale="Above-average technical writing always anchors "
-            "the reader with a clear H1.",
-            check={"kind": "regex", "pattern": r"^#\s+\S"},
+            "the reader with a clear H1 (Markdown ``#`` or HTML ``<h1>``).",
+            check={
+                "kind": "regex",
+                "pattern": r"(?im)^\s*#\s+\S|<h1\b",
+            },
             weight=1.0,
             hard=False,
             tags=("structure",),
@@ -559,21 +605,32 @@ def check_python_syntax(content: Any) -> Tuple[bool, float, str]:
 
 
 def check_json_parses(content: Any) -> Tuple[bool, float, str]:
-    """Return whether *content* (or its serialised form) is valid JSON."""
+    """Return whether *content* (or its serialised form) is valid JSON.
+
+    Strict per RFC 8259: ``NaN`` / ``Infinity`` / ``-Infinity`` are
+    rejected even though Python's :func:`json.loads` accepts them by
+    default.
+    """
     import json as _json
     if isinstance(content, (dict, list)):
         try:
-            _json.dumps(content)
+            _json.dumps(content, allow_nan=False)
             return (True, 1.0, "already a JSON-serialisable object")
         except (TypeError, ValueError) as exc:
             return (False, 0.0, f"not JSON-serialisable: {exc}")
     if not isinstance(content, str):
         return (False, 0.0, "content is neither a string nor a JSON object")
+
+    def _no_constants(token: str) -> Any:  # pragma: no cover - reached via raise
+        raise ValueError(f"non-RFC JSON constant: {token}")
+
     try:
-        _json.loads(content)
+        _json.loads(content, parse_constant=_no_constants)
         return (True, 1.0, "parsed cleanly")
     except _json.JSONDecodeError as exc:
         return (False, 0.0, f"JSONDecodeError: {exc.msg} at line {exc.lineno}")
+    except ValueError as exc:
+        return (False, 0.0, str(exc))
 
 
 def check_mailbox_passwords_recorded(content: Any) -> Tuple[bool, float, str]:
@@ -684,10 +741,15 @@ _HARDCODED_SECRET_PATTERNS = (
     re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     # Slack tokens
     re.compile(r"\bxox[abp]-[A-Za-z0-9-]{10,}\b"),
+    # Bearer / Authorization header tokens (covers: authorization: Bearer xxx)
+    re.compile(
+        r"(?i)\b(?:authorization|auth)\s*[:=]\s*(?:bearer\s+)?"
+        r"(?P<val>[A-Za-z0-9._/+=\-]{16,})"
+    ),
     # Generic high-entropy assignment to a sensitive name (quoted or unquoted)
     re.compile(
         r"(?i)\b(?:api[_-]?key|secret|password|passwd|auth[_-]?token|"
-        r"access[_-]?token|client[_-]?secret)\b\s*[:=]\s*[\"']?"
+        r"access[_-]?token|client[_-]?secret|bearer[_-]?token)\b\s*[:=]\s*[\"']?"
         r"(?P<val>[A-Za-z0-9/+=_\-]{12,})[\"']?"
     ),
 )
@@ -788,6 +850,163 @@ def check_python_no_dynamic_eval(content: Any) -> Tuple[bool, float, str]:
     return (True, 1.0, "no dynamic eval/exec")
 
 
+def _ast_call_name(node: "Any") -> Optional[str]:
+    """Return ``"mod.fn"`` or ``"fn"`` for an ast.Call's callee."""
+    import ast as _ast
+    fn = node.func
+    if isinstance(fn, _ast.Name):
+        return fn.id
+    if isinstance(fn, _ast.Attribute):
+        # Walk back to root for one level of dotted name (e.g. ``yaml.load``).
+        if isinstance(fn.value, _ast.Name):
+            return f"{fn.value.id}.{fn.attr}"
+        return fn.attr
+    return None
+
+
+def _is_literal_str(node: "Any") -> bool:
+    import ast as _ast
+    return isinstance(node, _ast.Constant) and isinstance(node.value, str)
+
+
+def _is_dynamic_string(node: "Any") -> bool:
+    """True if *node* is an f-string, str + var, ``%`` format, or ``.format`` call."""
+    import ast as _ast
+    if isinstance(node, _ast.JoinedStr):
+        return True
+    if isinstance(node, _ast.BinOp) and isinstance(node.op, (_ast.Add, _ast.Mod)):
+        # "str literal" + var  OR  "fmt %s" % var
+        return True
+    if isinstance(node, _ast.Call):
+        fn = node.func
+        if isinstance(fn, _ast.Attribute) and fn.attr == "format":
+            return True
+    return False
+
+
+def check_python_no_sql_injection(content: Any) -> Tuple[bool, float, str]:
+    """Flag ``cursor.execute(<dynamic-string>)`` patterns.
+
+    Above-average code parameterises queries; building the SQL with
+    ``+`` / ``%`` / f-strings is the textbook SQL injection vector.
+    """
+    if not isinstance(content, str):
+        return (True, 1.0, "non-string content — skipped")
+    if not _looks_like_python(content):
+        return (True, 1.0, "skipped — content is not Python")
+    import ast as _ast
+    try:
+        tree = _ast.parse(content)
+    except SyntaxError:
+        return (True, 1.0, "skipped — file does not parse")
+    bad: List[str] = []
+    for node in _ast.walk(tree):
+        if not isinstance(node, _ast.Call):
+            continue
+        fn = node.func
+        if not isinstance(fn, _ast.Attribute):
+            continue
+        if fn.attr not in {"execute", "executemany", "executescript"}:
+            continue
+        if not node.args:
+            continue
+        first = node.args[0]
+        if _is_dynamic_string(first):
+            bad.append(f"{fn.attr}() at line {node.lineno}")
+    if bad:
+        return (False, 0.0, f"likely SQL injection in {bad[:3]}")
+    return (True, 1.0, "no SQL-injection patterns")
+
+
+# Dangerous-API registry: (qualified_name, mode)
+#   mode="any"       → flag any call (no safe form)
+#   mode="dynamic"   → flag only if the relevant arg is dynamic
+#   mode="needs_kw"  → flag if the named keyword is missing/unsafe
+_DANGEROUS_APIS: Dict[str, Dict[str, Any]] = {
+    "os.system":         {"mode": "dynamic", "arg_index": 0},
+    "os.popen":          {"mode": "dynamic", "arg_index": 0},
+    "subprocess.call":   {"mode": "shell_true_with_dynamic"},
+    "subprocess.run":    {"mode": "shell_true_with_dynamic"},
+    "subprocess.Popen":  {"mode": "shell_true_with_dynamic"},
+    "subprocess.check_output": {"mode": "shell_true_with_dynamic"},
+    "subprocess.check_call":   {"mode": "shell_true_with_dynamic"},
+    "pickle.loads":      {"mode": "any"},
+    "pickle.load":       {"mode": "any"},
+    "cPickle.loads":     {"mode": "any"},
+    "marshal.loads":     {"mode": "any"},
+    "shelve.open":       {"mode": "any"},
+    "yaml.load":         {"mode": "yaml_unsafe"},
+}
+
+
+def check_python_no_unsafe_apis(content: Any) -> Tuple[bool, float, str]:
+    """Flag use of dangerous standard-library APIs.
+
+    Catches ``os.system(var)``, ``subprocess.*(..., shell=True, ...)`` with
+    non-literal command, ``pickle.loads``, ``yaml.load`` without an
+    explicit safe ``Loader``, etc.
+    """
+    if not isinstance(content, str):
+        return (True, 1.0, "non-string content — skipped")
+    if not _looks_like_python(content):
+        return (True, 1.0, "skipped — content is not Python")
+    import ast as _ast
+    try:
+        tree = _ast.parse(content)
+    except SyntaxError:
+        return (True, 1.0, "skipped — file does not parse")
+    bad: List[str] = []
+    for node in _ast.walk(tree):
+        if not isinstance(node, _ast.Call):
+            continue
+        name = _ast_call_name(node)
+        if name not in _DANGEROUS_APIS:
+            continue
+        rule = _DANGEROUS_APIS[name]
+        mode = rule["mode"]
+        if mode == "any":
+            bad.append(f"{name}() at line {node.lineno}")
+            continue
+        if mode == "dynamic":
+            idx = rule.get("arg_index", 0)
+            if len(node.args) > idx and not _is_literal_str(node.args[idx]):
+                bad.append(f"{name}(<dynamic>) at line {node.lineno}")
+            continue
+        if mode == "shell_true_with_dynamic":
+            shell_true = any(
+                isinstance(kw, _ast.keyword)
+                and kw.arg == "shell"
+                and isinstance(kw.value, _ast.Constant)
+                and kw.value.value is True
+                for kw in node.keywords
+            )
+            if shell_true and node.args and not _is_literal_str(node.args[0]):
+                bad.append(f"{name}(shell=True, <dynamic>) at line {node.lineno}")
+            continue
+        if mode == "yaml_unsafe":
+            # yaml.load(s) without Loader=SafeLoader/CSafeLoader is unsafe.
+            loader_kw = next(
+                (kw for kw in node.keywords if kw.arg == "Loader"),
+                None,
+            )
+            safe = False
+            if loader_kw is not None:
+                v = loader_kw.value
+                ldr_name = (
+                    v.attr if isinstance(v, _ast.Attribute)
+                    else v.id if isinstance(v, _ast.Name)
+                    else ""
+                )
+                if "Safe" in ldr_name:
+                    safe = True
+            if not safe:
+                bad.append(f"{name}() without SafeLoader at line {node.lineno}")
+            continue
+    if bad:
+        return (False, 0.0, f"unsafe API use: {bad[:3]}")
+    return (True, 1.0, "no unsafe API use")
+
+
 def check_shell_no_curl_pipe_shell(content: Any) -> Tuple[bool, float, str]:
     """Reject the classic ``curl … | bash`` install antipattern."""
     if not isinstance(content, str):
@@ -815,6 +1034,27 @@ def check_shell_no_dangerous_rm(content: Any) -> Tuple[bool, float, str]:
     if m:
         return (False, 0.0, f"dangerous rm: {m.group(0)[:60]}…")
     return (True, 1.0, "no dangerous rm patterns")
+
+
+def check_shell_no_eval_of_variable(content: Any) -> Tuple[bool, float, str]:
+    """Reject shell ``eval`` of a variable / command substitution.
+
+    ``eval "$var"`` / ``eval $(other)`` is the shell analogue of
+    Python's ``eval(user_input)`` — same RCE class.  A literal
+    ``eval 'echo done'`` (single-quoted constant) is allowed.
+    """
+    if not isinstance(content, str):
+        return (True, 1.0, "non-string content — skipped")
+    # Match eval at start of token, followed by whitespace, then anything
+    # that contains a $ expansion or a backtick / $() command sub.
+    pattern = re.compile(
+        r"(?m)(?<![A-Za-z0-9_])eval\s+(?:[^'\n#]*?(?:\$\{?\w|\$\(|`))",
+    )
+    m = pattern.search(content)
+    if m:
+        snippet = m.group(0).splitlines()[0]
+        return (False, 0.0, f"shell eval of dynamic input: {snippet[:80]}")
+    return (True, 1.0, "no dynamic shell eval")
 
 
 def check_config_substantive(content: Any) -> Tuple[bool, float, str]:
@@ -861,8 +1101,9 @@ def check_plan_has_multiple_steps(content: Any) -> Tuple[bool, float, str]:
 
 
 _EMAIL_RE = re.compile(
-    # Permissive but rejects "no @" and "no domain part".
-    r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.?[A-Za-z0-9\-]*$"
+    # Permissive but rejects "no @" and "no domain part".  Allows Unicode
+    # characters in both the local part and the domain (IDN / EAI).
+    r"^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)*$"
 )
 
 
@@ -914,24 +1155,35 @@ def check_mailbox_unique_emails(content: Any) -> Tuple[bool, float, str]:
 def check_deployment_healthy(content: Any) -> Tuple[bool, float, str]:
     """Return whether a deployment-result dict reports a green health check.
 
-    Also fails if the result carries a truthy ``rolled_back`` / ``rollback``
-    marker — a rolled-back deploy is by definition not a successful one,
-    even if the post-rollback health check is green.
+    Accepts string statuses (``ok``/``healthy``/...), numeric HTTP 2xx
+    status codes, and the boolean ``True``.  Also fails if the result
+    carries a truthy ``rolled_back`` / ``rollback`` marker — a rolled-
+    back deploy is by definition not a successful one, even if the
+    post-rollback health check is green.
     """
     if not isinstance(content, dict):
         return (False, 0.0, "content is not a dict")
     if content.get("rolled_back") or content.get("rollback"):
         return (False, 0.0, "deployment was rolled back")
     health = content.get("health") or content.get("healthcheck")
+    healthy_strs = {"ok", "healthy", "green", "passing", "ready", "up"}
+
+    def _classify(status: Any) -> Tuple[bool, str]:
+        if isinstance(status, bool):
+            return (status, f"health: {status}")
+        if isinstance(status, (int, float)) and not isinstance(status, bool):
+            ok = 200 <= int(status) < 300
+            return (ok, f"health status code: {int(status)}")
+        if isinstance(status, str):
+            return (status.lower() in healthy_strs, f"health: {status}")
+        return (False, f"health status of unsupported type: {type(status).__name__}")
+
     if isinstance(health, dict):
-        status = str(health.get("status", "")).lower()
-        if status in {"ok", "healthy", "green", "passing", "ready"}:
-            return (True, 1.0, f"health check: {status}")
-        return (False, 0.0, f"health check status: {status or '<missing>'}")
-    if isinstance(health, str):
-        if health.lower() in {"ok", "healthy", "green", "passing", "ready"}:
-            return (True, 1.0, f"health: {health}")
-        return (False, 0.0, f"health: {health}")
+        ok, detail = _classify(health.get("status", ""))
+        return (ok, 1.0 if ok else 0.0, detail)
+    if health is not None:
+        ok, detail = _classify(health)
+        return (ok, 1.0 if ok else 0.0, detail)
     return (False, 0.0, "no 'health' field present in deployment result")
 
 
@@ -956,6 +1208,10 @@ _CALLABLE_REGISTRY: Dict[str, CheckFn] = {
     "src.reconciliation.standards:check_python_no_bare_except": check_python_no_bare_except,
     "src.reconciliation.standards:check_python_no_dynamic_eval":
         check_python_no_dynamic_eval,
+    "src.reconciliation.standards:check_python_no_sql_injection":
+        check_python_no_sql_injection,
+    "src.reconciliation.standards:check_python_no_unsafe_apis":
+        check_python_no_unsafe_apis,
     "src.reconciliation.standards:check_no_hardcoded_credentials":
         check_no_hardcoded_credentials,
     "src.reconciliation.standards:check_config_no_embedded_secrets":
@@ -966,6 +1222,8 @@ _CALLABLE_REGISTRY: Dict[str, CheckFn] = {
         check_shell_no_curl_pipe_shell,
     "src.reconciliation.standards:check_shell_no_dangerous_rm":
         check_shell_no_dangerous_rm,
+    "src.reconciliation.standards:check_shell_no_eval_of_variable":
+        check_shell_no_eval_of_variable,
     "src.reconciliation.standards:check_plan_has_multiple_steps":
         check_plan_has_multiple_steps,
     "src.reconciliation.standards:check_json_parses": check_json_parses,
