@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List
 
 from .task_catalog import TASK_CATALOG
@@ -19,14 +19,14 @@ class WaitStateHandler:
         """Set task to waiting_on_external and return expected completion date."""
         task = _TASK_MAP.get(task_id)
         wait_days = (task.external_wait_days or 0) if task else 0
-        expected = datetime.utcnow() + timedelta(days=wait_days)
+        expected = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=wait_days)
         session.set_task_state(task_id, "waiting_on_external")
         session.wait_states[task_id] = expected
         return expected
 
     def get_waiting_tasks(self, session: OnboardingSession) -> List[Dict]:
         """Return all tasks in waiting state with days remaining."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         results = []
         for task_id, expected in session.wait_states.items():
             if session.get_task_state(task_id) == "waiting_on_external":
@@ -46,7 +46,7 @@ class WaitStateHandler:
         expected = session.wait_states.get(task_id)
         if expected is None:
             return False
-        return datetime.utcnow() >= expected
+        return datetime.now(timezone.utc).replace(tzinfo=None) >= expected
 
     def advance_to_unblocked(self, task_id: str, session: OnboardingSession) -> List[str]:
         """Complete wait, mark task done, return newly unblocked task IDs."""

@@ -907,8 +907,10 @@ class EquityFeed:
                         low_24h=float(q_data.get("low", price) or price),
                         provider=FeedProvider.IEX_CLOUD.value,
                     )
-            except (ImportError, Exception):
+            except ImportError:  # PROD-HARD A2: iexfinance SDK not installed — silent fallback to REST is correct
                 pass
+            except Exception:  # PROD-HARD A2: SDK call failed (network/auth/parse) — log before REST fallback
+                logger.warning("IEX Cloud SDK fetch failed for %s; falling back to REST", symbol, exc_info=True)
             # HTTP fallback — IEX Cloud v1 REST
             base = (
                 "https://sandbox.iexapis.com/stable"

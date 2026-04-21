@@ -69,7 +69,10 @@ def test_sit_int_001_component_initialization():
             import src.compute_plane
             components_tested.append("Compute Plane")
             print("✓ Compute Plane: Module available")
-        except:
+        except Exception as e:
+            # PROD-HARD-A3: bare `except:` also dropped the exception object,
+            # leaving `e` unbound and turning the pytest.fail into a NameError.
+            # Now binds the exception so the failure message is actually useful.
             pytest.fail(f"Compute Plane failed: {e}")
 
     # Test Security Plane (DLP)
@@ -256,7 +259,9 @@ def test_sit_int_004_compute_plane_integration():
         try:
             import src.compute_plane
             print("✓ Compute Plane module: Available")
-        except:
+        except Exception as e:
+            # PROD-HARD-A3: same fix as line 72 — bare `except:` left `e` unbound,
+            # masking the real ImportError as a NameError on test failure.
             pytest.fail(f"Compute Plane failed: {e}")
 
     print("\n✓ SIT-INT-004 PASSED: Compute Plane integration working")

@@ -125,7 +125,8 @@ def _broadcast_sse(event: str, data: Any) -> None:
         except asyncio.QueueFull: dead.append(q)
     for q in dead:
         try: _sse_subscribers.remove(q)
-        except ValueError: pass
+        except ValueError:  # PROD-HARD A2: concurrent unsubscribe — idempotent, nothing to do
+            log.debug("SSE queue already unsubscribed during broadcast cleanup")
 
 async def _broadcast_ws(event: str, data: Any) -> None:
     msg = json.dumps({"event": event, "data": data, "ts": _now_iso()})
@@ -1086,7 +1087,8 @@ async def stream_automations(request: Request):
                     yield f"data: {json.dumps({'event':'heartbeat','ts':_now_iso()})}\n\n"
         finally:
             try: _sse_subscribers.remove(q)
-            except ValueError: pass
+            except ValueError:  # PROD-HARD A2: already removed by concurrent cleanup — idempotent
+                log.debug("SSE subscriber queue already removed on client disconnect")
     return StreamingResponse(event_gen(), media_type="text/event-stream",
                              headers={"Cache-Control":"no-cache","X-Accel-Buffering":"no"})
 
@@ -1961,7 +1963,8 @@ async def websocket_endpoint(ws:WebSocket):
                     await _broadcast_ws(event,{**msg.get("data",{}),"client_id":client_id})
                 elif event=="ping":
                     await ws.send_text(json.dumps({"event":"pong","ts":_now_iso()}))
-            except json.JSONDecodeError: pass
+            except json.JSONDecodeError:  # PROD-HARD A2: malformed message from WS client — drop and continue
+                log.warning("WS client %s sent non-JSON message; dropping frame (len=%d)", client_id, len(raw) if isinstance(raw, (str, bytes)) else -1)
     except WebSocketDisconnect:
         log.info("WS disconnected: %s", client_id)
     finally:

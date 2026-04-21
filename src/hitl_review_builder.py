@@ -376,7 +376,7 @@ class HITLReviewBuilder:
             try:
                 level = self._mss_controls.get_resolution_level(description)
                 return (level, f"MSS analysis at {level}")
-            except Exception:
-                pass
+            except Exception:  # PROD-HARD A2: MSS resolution lookup failure → fall back to RM3, but log
+                logger.debug("MSS get_resolution_level failed for %r; using RM3 default", description, exc_info=True)
         # Default: RM3 (operational level)
         return ("RM3", "Default operational resolution level — no MSS analysis available")

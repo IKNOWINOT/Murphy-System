@@ -154,15 +154,38 @@ except Exception as _adv_e:
     _advanced_loop_available = False
     _wire_advanced_loop = None  # type: ignore
 
+# -- Platform self-modification HITL pipeline (PSM-001..PSM-004) ---------------
+# Distinct from per-tenant supervisor_system.hitl_*: this surface controls
+# Murphy modifying its OWN code. Operator-token-gated, RSC-Lyapunov-gated,
+# every outcome recorded in an immutable hash-chained ledger.
+try:
+    from src.platform_self_modification import build_router as _build_psm_router
+    _psm_available = True
+    log.info("Platform self-modification HITL pipeline (PSM-001..PSM-004) loaded")
+except Exception as _psm_e:
+    log.warning("Platform self-modification pipeline not available (%s)", _psm_e)
+    _psm_available = False
+    _build_psm_router = None  # type: ignore
+
+
 # -- Crown Jewel Module Wiring (Phases 1-8) ------------------------------------
 try:
     from rosetta.rosetta_manager import RosettaManager as _RosettaManager
+    # ROSETTA-ORG-001/003/004: org-chart projection + platform seed.
+    from rosetta.platform_org_seed import seed_platform_org as _seed_platform_org
+    from rosetta.org_chart import (
+        build_org_chart as _build_org_chart,
+        lookup_role_for_operator as _lookup_role_for_operator,
+    )
     _rosetta_available = True
     log.info("RosettaManager loaded")
 except Exception as _e:
     log.warning("RosettaManager not available (%s)", _e)
     _rosetta_available = False
     _RosettaManager = None
+    _seed_platform_org = None
+    _build_org_chart = None
+    _lookup_role_for_operator = None
 
 try:
     from ceo_branch_activation import CEOBranch as _CEOBranch
@@ -1010,6 +1033,32 @@ except Exception as _rg_e:
     _rate_governor = None
     log.warning("Swarm rate governor not available (%s) — running without global rate limits", _rg_e)
 
+# -- PROMPT-RATE-001: Per-tenant swarm-aware guard for /api/prompt -------------
+# Layered on top of the global SwarmRateGovernor.  Stops one tenant's swarm
+# from monopolising the LLM budget for everyone else.  See
+# Murphy System/src/prompt_rate_limiter.py for the full commissioning record.
+try:
+    from src.prompt_rate_limiter import PromptRateLimiter
+    _prompt_rate_limiter: Optional[PromptRateLimiter] = PromptRateLimiter()
+except Exception as _prl_e:
+    _prompt_rate_limiter = None
+    log.warning("PROMPT-RATE-001 not available (%s) — /api/prompt has only global rate limit", _prl_e)
+
+# -- LLM-SELFCHECK-001: startup self-inference + provider verification --------
+# Confirms which provider actually answers (so an "onboard" fallback while a
+# DeepInfra key is set is visible immediately on /health), validates the
+# generated payload against the schema /api/prompt requires, and re-feeds the
+# payload back into the LLM as a verifier ("inference on its own data").
+try:
+    from src.llm_self_check import run_self_check as _run_llm_self_check
+    from src.llm_self_check import SelfCheckResult as _SelfCheckResult
+    _llm_self_check_result: Optional[Any] = None
+except Exception as _sc_e:
+    _run_llm_self_check = None  # type: ignore[assignment]
+    _SelfCheckResult = None     # type: ignore[assignment]
+    _llm_self_check_result = None
+    log.warning("LLM-SELFCHECK-001 not available (%s) — startup self-check disabled", _sc_e)
+
 # -- Murphy Error Handling System ----------------------------------------------
 try:
     from src.errors.handlers import register_error_handlers
@@ -1128,6 +1177,11 @@ _background_tasks: list = []          # Track tasks for graceful shutdown
 
 # -- Crown Jewel Subsystem Instances -------------------------------------------
 _rosetta_manager: Optional[Any] = None
+# ROSETTA-ORG-002: explicit sentinel so /api/rosetta/* endpoints can
+# report *why* the manager is unavailable instead of silently flipping
+# to "not initialized" (which previously hid real errors at startup).
+_rosetta_init_error: Optional[str] = None
+_rosetta_seed_warnings: List[str] = []
 _ceo_branch: Optional[Any] = None
 _heartbeat_runner: Optional[Any] = None
 _aionmind_kernel: Optional[Any] = None
@@ -1196,19 +1250,60 @@ async def _startup():
             log.warning("Advanced loop startup wiring failed: %s", _adv_startup_e)
             app.state.adv_loop_components = {}
 
+    # PSM-001/002 — In-process Lyapunov monitor for the platform self-mod
+    # gate. The full RSC service runs out-of-process; here we keep a
+    # local monitor that other in-process subsystems can update with
+    # recursion-energy samples. An empty monitor allows cold-start
+    # cycles by design (gate returns reason="cold_start").
+    try:
+        from src.recursive_stability_controller.lyapunov_monitor import (
+            LyapunovMonitor as _LyapunovMonitor,
+        )
+        app.state.platform_lyapunov_monitor = _LyapunovMonitor()
+        log.info("PSM-001: in-process LyapunovMonitor initialized for platform self-mod gate")
+    except Exception as _ly_e:
+        log.warning("PSM-001: LyapunovMonitor unavailable (%s) — gate will refuse all launches", _ly_e)
+        app.state.platform_lyapunov_monitor = None
+
+
     # -- Phase 1: Wire RosettaManager ------------------------------------------
-    global _rosetta_manager
+    # ROSETTA-ORG-002: construct unconditionally in dev so the org chart
+    # is queryable on a fresh start.  Removed the earlier
+    # `_rosetta_manager.load_state()` call (no-arg form did not exist
+    # and silently disabled the entire subsystem via except-swallow).
+    # All failures are recorded in `_rosetta_init_error` so the HTTP
+    # surface can report them — never silent.
+    global _rosetta_manager, _rosetta_init_error, _rosetta_seed_warnings
     if _rosetta_available:
         try:
             _rosetta_state_dir = os.environ.get(
                 "MURPHY_PERSISTENCE_DIR", ".murphy_persistence"
             ) + "/rosetta"
             _rosetta_manager = _RosettaManager(persistence_dir=_rosetta_state_dir)
-            _rosetta_manager.load_state()
             log.info("RosettaManager initialized — state dir: %s", _rosetta_state_dir)
         except Exception as _e:
-            log.warning("RosettaManager init failed (%s) — continuing without", _e)
+            _rosetta_init_error = f"init_failed: {_e}"
+            log.error("RosettaManager init failed (%s)", _e, exc_info=_e)
             _rosetta_manager = None
+
+        # ROSETTA-ORG-001: seed the canonical Murphy-platform org.
+        # Skipped (with explicit warning) only if construction itself failed.
+        if _rosetta_manager is not None and _seed_platform_org is not None:
+            try:
+                seeded = _seed_platform_org(_rosetta_manager)
+                log.info(
+                    "ROSETTA-ORG-001: seeded %d platform roles: %s",
+                    len(seeded), seeded,
+                )
+            except Exception as _e:
+                # Loud: this is required for PSM owner attribution.
+                _rosetta_seed_warnings.append(f"seed_failed: {_e}")
+                log.error(
+                    "ROSETTA-ORG-001: seed_platform_org failed: %s",
+                    _e, exc_info=_e,
+                )
+    else:
+        _rosetta_init_error = "rosetta_module_unavailable"
 
     # -- Phase 1: Wire CEOBranch + ActivatedHeartbeatRunner --------------------
     global _ceo_branch, _heartbeat_runner
@@ -1337,6 +1432,31 @@ async def _startup():
 
     log.info("Murphy Production Server v3 started — HITL gates active, milestone tracking enabled")
 
+    # LLM-SELFCHECK-001: run a bounded self-inference at startup.  Result is
+    # cached on the module-level `_llm_self_check_result` so it can be served
+    # from /health and /api/llm/selfcheck without re-hitting the provider.
+    # Runs in an executor because the underlying provider client is sync.
+    global _llm_self_check_result
+    if _run_llm_self_check is not None:
+        try:
+            _llm_self_check_result = await asyncio.get_event_loop().run_in_executor(
+                None, lambda: _run_llm_self_check(_get_llm)
+            )
+            _r = _llm_self_check_result
+            if _r is not None:
+                log.info(
+                    "LLM-SELFCHECK-001 startup: status=%s provider=%s model=%s "
+                    "latency_ms=%s verified=%s",
+                    _r.status, _r.provider, _r.model, _r.latency_ms, _r.verified,
+                )
+                if _r.status not in ("ok",):
+                    log.warning(
+                        "LLM-SELFCHECK-001 NOT OK at startup — status=%s category=%s err=%s",
+                        _r.status, _r.error_category, _r.last_error,
+                    )
+        except Exception as _sc_run_e:  # noqa: BLE001 — must never block startup
+            log.warning("LLM-SELFCHECK-001 raised at startup (non-blocking): %s", _sc_run_e)
+
 
 # -- Graceful Shutdown ---------------------------------------------------------
 # Label: GRACEFUL-SHUTDOWN — Clean up background tasks on SIGTERM / server stop.
@@ -1355,57 +1475,114 @@ async def _shutdown():
     # Log rate governor final state for diagnostics
     if _rate_governor is not None:
         log.info("Rate governor final state: %s", _rate_governor.status())
-    # Persist Rosetta state on shutdown
+    # Persist Rosetta state on shutdown.
+    # ROSETTA-ORG-002: state is already persisted on every save_state /
+    # update_state call (atomic write to disk).  Nothing to flush.
+    # The previous no-arg save_state() call did not match any method
+    # signature and was silently swallowed by the warning handler.
     if _rosetta_manager is not None:
-        try:
-            _rosetta_manager.save_state()
-            log.info("Rosetta state saved on shutdown")
-        except Exception as _e:
-            log.warning("Rosetta state save failed on shutdown: %s", _e)
+        log.info(
+            "Rosetta shutdown: %d agent state(s) persisted on disk",
+            len(_rosetta_manager.list_agents()),
+        )
     log.info("Murphy Production Server shutdown complete")
 
 # == Crown Jewel API Endpoints (Phases 1-8) ====================================
 
 # -- Phase 1: Rosetta endpoints ------------------------------------------------
+def _rosetta_unavailable_payload() -> Dict[str, Any]:
+    """ROSETTA-ORG-002: explicit reason — never a bare 'not initialized'."""
+    return {
+        "available": False,
+        "reason": _rosetta_init_error or "not_initialized",
+        "seed_warnings": list(_rosetta_seed_warnings),
+    }
+
+
 @app.get("/api/rosetta/state")
 async def rosetta_state():
     """GET /api/rosetta/state — current Rosetta state snapshot. G1: RosettaManager state."""
     if _rosetta_manager is None:
-        return JSONResponse({"available": False, "message": "RosettaManager not initialized"})
+        return JSONResponse(_rosetta_unavailable_payload())
     try:
-        states = _rosetta_manager.list_all()
-        return JSONResponse({"available": True, "agent_count": len(states), "agents": [s for s in states]})
+        states = _rosetta_manager.list_states()
+        return JSONResponse({
+            "available": True,
+            "agent_count": len(states),
+            "agents": states,
+            "seed_warnings": list(_rosetta_seed_warnings),
+        })
     except Exception as _e:
-        log.warning("Rosetta state fetch error: %s", _e)
-        return JSONResponse({"available": True, "error": str(_e)}, status_code=500)
+        log.error("Rosetta state fetch error: %s", _e, exc_info=_e)
+        return JSONResponse(
+            {"available": True, "error": str(_e)}, status_code=500,
+        )
 
 
 @app.get("/api/rosetta/personas")
 async def rosetta_personas():
     """GET /api/rosetta/personas — list all personas."""
     if _rosetta_manager is None:
-        return JSONResponse({"available": False, "personas": []})
+        payload = _rosetta_unavailable_payload()
+        payload["personas"] = []
+        return JSONResponse(payload)
     try:
-        all_states = _rosetta_manager.list_all()
+        all_states = _rosetta_manager.list_states()
         return JSONResponse({"available": True, "personas": all_states})
     except Exception as _e:
-        return JSONResponse({"available": True, "error": str(_e), "personas": []}, status_code=500)
+        log.error("Rosetta personas fetch error: %s", _e, exc_info=_e)
+        return JSONResponse(
+            {"available": True, "error": str(_e), "personas": []},
+            status_code=500,
+        )
 
 
 @app.get("/api/rosetta/persona/{persona_id}")
 async def rosetta_persona(persona_id: str):
     """GET /api/rosetta/persona/{id} — single persona detail."""
     if _rosetta_manager is None:
-        raise HTTPException(status_code=503, detail="RosettaManager not initialized")
+        raise HTTPException(
+            status_code=503, detail=_rosetta_unavailable_payload(),
+        )
     try:
         state = _rosetta_manager.get_state(persona_id)
         if state is None:
-            raise HTTPException(status_code=404, detail=f"Persona {persona_id!r} not found")
-        return JSONResponse({"persona_id": persona_id, "state": state})
+            raise HTTPException(
+                status_code=404, detail=f"Persona {persona_id!r} not found",
+            )
+        return JSONResponse({
+            "persona_id": persona_id,
+            "state": state.model_dump(mode="json"),
+        })
     except HTTPException:
         raise
     except Exception as _e:
+        log.error("Rosetta persona fetch error: %s", _e, exc_info=_e)
         raise HTTPException(status_code=500, detail=str(_e))
+
+
+# ROSETTA-ORG-003: org-chart projection endpoint.
+@app.get("/api/rosetta/org-chart")
+async def rosetta_org_chart():
+    """GET /api/rosetta/org-chart — Murphy-platform org tree.
+
+    Returns the canonical Murphy-Inc roster (CEO / CTO / Compliance / SRE)
+    walked into a tree via ``EmployeeContract.reports_to``.  Surfaces
+    cycle/multi-root/orphan conditions explicitly rather than 500-ing
+    or returning a corrupt tree.
+    """
+    if _rosetta_manager is None or _build_org_chart is None:
+        return JSONResponse(_rosetta_unavailable_payload())
+    try:
+        chart = _build_org_chart(_rosetta_manager)
+        chart["seed_warnings"] = list(_rosetta_seed_warnings)
+        return JSONResponse(chart)
+    except Exception as _e:
+        log.error("Rosetta org-chart build error: %s", _e, exc_info=_e)
+        return JSONResponse(
+            {"available": False, "reason": "build_exception", "error": str(_e)},
+            status_code=500,
+        )
 
 
 # -- Phase 1: CEO Branch endpoints ---------------------------------------------
@@ -1601,6 +1778,21 @@ async def diagnostics():
 async def health():
     active = sum(1 for a in _automation_store if a.get("status") == "active")
     pending_hitl = sum(1 for h in _HITL_QUEUE if h["status"] == "pending")
+    # LLM-SELFCHECK-001: compact summary so operators can tell at a glance
+    # whether DeepInfra is actually the provider (vs silent onboard fallback).
+    _sc = _llm_self_check_result
+    llm_block: Dict[str, Any]
+    if _sc is None:
+        llm_block = {"status": "not_run", "provider": None}
+    else:
+        llm_block = {
+            "status": _sc.status,
+            "provider": _sc.provider,
+            "model": _sc.model,
+            "latency_ms": _sc.latency_ms,
+            "verified": _sc.verified,
+            "error_category": _sc.error_category,
+        }
     return JSONResponse({
         "status": "ok", "version": "3.0.0", "env": _env,
         "active_automations": active, "total_automations": len(_automation_store),
@@ -1608,6 +1800,7 @@ async def health():
         "pending_hitl_items": pending_hitl,
         "sse_subscribers": len(_sse_subscribers),
         "ws_clients": len(_ws_clients), "ts": _now_iso(),
+        "llm_self_check": llm_block,
         "subsystems_wired": sum([
             _rosetta_manager is not None,
             _ceo_branch is not None,
@@ -1630,6 +1823,56 @@ async def rate_governor_status():
     if _rate_governor is None:
         return JSONResponse({"enabled": False, "message": "Rate governor not loaded"})
     return JSONResponse({"enabled": True, **_rate_governor.status()})
+
+# PROMPT-RATE-001: per-tenant prompt rate-limiter diagnostics.
+@app.get("/api/rate-governor/prompt-status")
+async def prompt_rate_limiter_status():
+    """Per-tenant prompt rate-limiter diagnostics (label PROMPT-RATE-001)."""
+    if _prompt_rate_limiter is None:
+        return JSONResponse({"enabled": False, "message": "Prompt rate limiter not loaded"})
+    return JSONResponse({"enabled": True, **_prompt_rate_limiter.status()})
+
+# LLM-SELFCHECK-001: full self-check result + on-demand re-run.
+@app.get("/api/llm/selfcheck")
+async def llm_selfcheck_get():
+    """Return the most recent LLM self-check result (label LLM-SELFCHECK-001).
+
+    Body includes the generated payload, verifier payload, latency, retry
+    count, and error category so operators can tell at a glance whether the
+    provider chain is really answering or silently falling back to onboard.
+    """
+    if _run_llm_self_check is None:
+        return JSONResponse(
+            {"enabled": False, "message": "LLM self-check module not loaded"},
+            status_code=503,
+        )
+    if _llm_self_check_result is None:
+        return JSONResponse(
+            {"enabled": True, "status": "not_run",
+             "message": "Self-check has not completed yet"},
+        )
+    return JSONResponse({"enabled": True, **_llm_self_check_result.to_dict()})
+
+@app.post("/api/llm/selfcheck/run")
+async def llm_selfcheck_run():
+    """Re-run the LLM self-check on demand (label LLM-SELFCHECK-001)."""
+    global _llm_self_check_result
+    if _run_llm_self_check is None:
+        return JSONResponse(
+            {"enabled": False, "message": "LLM self-check module not loaded"},
+            status_code=503,
+        )
+    try:
+        _llm_self_check_result = await asyncio.get_event_loop().run_in_executor(
+            None, lambda: _run_llm_self_check(_get_llm)
+        )
+    except Exception as _e:  # noqa: BLE001 — surface, never crash
+        log.warning("LLM-SELFCHECK-001 on-demand run failed: %s", _e)
+        return JSONResponse(
+            {"enabled": True, "status": "run_error", "message": str(_e)},
+            status_code=500,
+        )
+    return JSONResponse({"enabled": True, **_llm_self_check_result.to_dict()})
 
 # ==============================================================================
 # HITL — Human-in-the-Loop Queue
@@ -2336,7 +2579,34 @@ _CATEGORY_PATTERNS = {
 }
 
 @app.post("/api/prompt")
-async def create_from_prompt(req: PromptRequest):
+async def create_from_prompt(req: PromptRequest, request: Request):
+    # PROMPT-RATE-001: per-tenant swarm-aware rate limit.  Layered on top of
+    # the global SwarmRateGovernor so one tenant's swarm cannot drain LLM
+    # capacity for everyone else.  A tenant whose agents set
+    # `X-Murphy-Traffic-Class: swarm` gets the larger swarm-tier bucket.
+    if _prompt_rate_limiter is not None:
+        _hdr_class = (request.headers.get("X-Murphy-Traffic-Class") or "").strip().lower()
+        _decision = _prompt_rate_limiter.check(req.tenant_id, _hdr_class)
+        if not _decision.allowed:
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "success": False,
+                    "error": _decision.error,
+                    "message": _decision.message,
+                    "retry_after_seconds": _decision.retry_after_seconds,
+                    "traffic_class": _decision.traffic_class,
+                    "tenant_id": _decision.tenant_id,
+                    "limit": _decision.limit,
+                },
+                headers={
+                    "Retry-After": str(int(_decision.retry_after_seconds) or 1),
+                    "X-RateLimit-Limit": str(_decision.limit),
+                    "X-RateLimit-Remaining": "0",
+                    "X-Murphy-Traffic-Class": _decision.traffic_class,
+                },
+            )
+
     tenant = _TENANTS.get(req.tenant_id, {"tier":"solo"})
     tier_cfg = TIERS.get(tenant["tier"], TIERS["solo"])
     if tier_cfg["max_automations"]:
@@ -2366,6 +2636,11 @@ async def create_from_prompt(req: PromptRequest):
     auto_name = req.prompt.strip()[:60].title()  # default fallback
     llm_description = ""
     llm_steps: list = []
+    # PROMPT-PROVIDER-VIS-001: capture the actual provider that answered so
+    # the response reveals "onboard" silent-fallback rather than hiding it
+    # behind the generic `llm_generated` boolean.
+    llm_provider_used: Optional[str] = None
+    llm_model_used: Optional[str] = None
 
     if _llm_available and _get_llm is not None:
         try:
@@ -2403,6 +2678,9 @@ async def create_from_prompt(req: PromptRequest):
                 auto_name = str(parsed.get("name", auto_name))[:60]
                 llm_description = str(parsed.get("description", ""))
                 llm_steps = list(parsed.get("steps", []))[:6]
+                # PROMPT-PROVIDER-VIS-001: record which provider actually answered
+                llm_provider_used = getattr(result, "provider", None)
+                llm_model_used = getattr(result, "model", None)
                 log.info("LLM generated automation '%s' via %s", auto_name, result.provider)
         except Exception as _llm_err:
             log.warning("LLM generation failed (%s) — using pattern-match fallback", _llm_err)
@@ -2437,6 +2715,8 @@ async def create_from_prompt(req: PromptRequest):
         "milestones": milestones,
         "progress": 0.0, "total_delay_minutes": 0.0, "effective_duration_minutes": est_min,
         "llm_generated": _llm_available,
+        "llm_provider": llm_provider_used,   # PROMPT-PROVIDER-VIS-001
+        "llm_model": llm_model_used,         # PROMPT-PROVIDER-VIS-001
     }
     _automation_store.append(new_auto)
     new_auto["cost_savings"] = _cost_savings(new_auto)
@@ -6516,6 +6796,36 @@ async def self_loop_execution_status():
         "components_available": list(components.keys()),
         "timestamp": _now_iso(),
     })
+
+
+# =============================================================================
+# PLATFORM SELF-MODIFICATION HITL PIPELINE (PSM-001..PSM-004)
+# =============================================================================
+# Distinct from per-tenant /api/hitl/*: this surface controls Murphy
+# modifying its OWN code. Operator-token-gated, RSC-Lyapunov-gated,
+# every outcome recorded in an immutable hash-chained ledger at
+# data/platform_self_edit_ledger.jsonl (override via
+# MURPHY_PLATFORM_SELF_EDIT_LEDGER_PATH).
+
+if _psm_available and _build_psm_router is not None:
+    try:
+        app.include_router(
+            _build_psm_router(
+                get_orchestrator=lambda: _get_adv_components().get("orchestrator"),
+                get_lyapunov_source=lambda: getattr(
+                    app.state, "platform_lyapunov_monitor", None
+                ),
+                # ROSETTA-ORG-004: lets the PSM endpoint stamp the
+                # Rosetta owner_role + approver_chain on every cycle.
+                get_rosetta_manager=lambda: _rosetta_manager,
+            )
+        )
+        log.info("PSM-003/PSM-004: platform self-modification router mounted")
+    except Exception as _psm_mount_e:
+        log.error(
+            "PSM-003/PSM-004: failed to mount platform self-mod router: %s",
+            _psm_mount_e,
+        )
 
 
 # =============================================================================

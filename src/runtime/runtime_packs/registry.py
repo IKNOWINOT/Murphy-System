@@ -248,7 +248,18 @@ CAPABILITY_TO_PACK: Dict[str, str] = {
     # ── Analytics ──────────────────────────────────────────────────────────
     "analytics": "analytics",
     "dashboards": "analytics",
-    "metrics": "analytics",
+    # PROD-HARD-A4: previously this read `"metrics": "analytics"` AND
+    # `"metrics": "domain_observability"` was set below at line 303. Python's
+    # dict literal silently let the later value win, so the analytics pack's
+    # claim on "metrics" was already dead at runtime. To preserve the analytics
+    # pack's metrics capability without colliding with the observability pack,
+    # the binding is renamed to a distinct key. Onboarding code that requests
+    # the bare "metrics" capability continues to resolve to "domain_observability"
+    # (unchanged runtime behaviour); code that wants the analytics pack's
+    # metrics surface should request "analytics_metrics".
+    # NOTE: this file also defines CAPABILITY_TO_PACK twice (line 51 vs 237);
+    # the second definition wins entirely. Tracked separately for follow-up.
+    "analytics_metrics": "analytics",
     "reporting": "analytics",
     # ── Workflows ──────────────────────────────────────────────────────────
     "automations": "workflows",

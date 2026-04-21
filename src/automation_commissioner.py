@@ -267,8 +267,8 @@ class AutomationCommissioner:
                     return resp.content
                 except Exception as exc:
                     logger.debug("Commissioner LLM failed: %s", exc)
-            except Exception:
-                pass
+            except Exception:  # PROD-HARD A2: outer LLM-controller setup failed (loop creation etc.) — log and fall through
+                logger.debug("Commissioner LLM outer setup failed; trying local fallback", exc_info=True)
         try:
             from local_llm_fallback import LocalLLMFallback
             return LocalLLMFallback().generate(prompt, max_tokens=max_tokens)

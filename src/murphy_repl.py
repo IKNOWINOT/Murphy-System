@@ -12,12 +12,19 @@ Security labels:
       (``--memory`` in Docker / ``mem_limit`` in compose) rather than
       per-exec thread.  The ``max_memory_mb`` attribute is retained as the
       declarative policy value for container-level enforcement.
+  SEC-REPL-005: On timeout, the runaway exec thread is forcibly terminated
+      via ``PyThreadState_SetAsyncExc`` so a ``while True:`` submission
+      cannot leave a zombie CPU-burning daemon thread behind the wider
+      interpreter process.  Without this, pytest-timeout raises
+      INTERNALERROR when CI hits the compliance suite and, in production,
+      every ill-formed REPL submission silently degrades server capacity.
 """
 
 import logging
 
 logger = logging.getLogger(__name__)
 import ast
+import ctypes
 import io
 import json
 import sys
@@ -27,6 +34,61 @@ from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# SEC-REPL-005: runaway-thread termination helper
+# ─────────────────────────────────────────────────────────────────────────
+def _terminate_runaway_thread(thread: threading.Thread) -> None:
+    """Raise ``SystemExit`` inside a still-running daemon exec thread.
+
+    Uses the CPython-internal ``PyThreadState_SetAsyncExc`` API — the
+    documented idiom for cancelling a stuck Python thread.  CPython's
+    evaluation loop checks for async exceptions at each bytecode
+    boundary, so a pure-Python busy loop (``while True: x += 1``) exits
+    within one iteration after this fires.
+
+    Limitations (documented so nothing fails silently):
+      * Threads blocked inside a C extension ignore the async exception
+        until they next enter the Python eval loop.  In the REPL,
+        builtins are pure-Python-callable so this is not a concern for
+        normal submissions.
+      * If the async-set fails (thread already exited, or set on more
+        than one thread), we undo the set and log.  We never raise.
+
+    Never called for threads that finished on their own.
+    """
+    if thread is None or not thread.is_alive():
+        return
+    tid = thread.ident
+    if tid is None:
+        return
+    try:
+        affected = ctypes.pythonapi.PyThreadState_SetAsyncExc(
+            ctypes.c_ulong(tid), ctypes.py_object(SystemExit)
+        )
+    except Exception:  # noqa: BLE001 — never propagate out of cleanup
+        logger.warning("SEC-REPL-005: PyThreadState_SetAsyncExc unavailable", exc_info=True)
+        return
+    if affected == 0:
+        # Thread ID not found — thread already exited between our
+        # is_alive() check and the API call.  Nothing to do.
+        return
+    if affected > 1:
+        # Guard from the CPython docs: roll back to avoid leaving multiple
+        # threads in an inconsistent exception state.
+        ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_ulong(tid), None)
+        logger.error("SEC-REPL-005: async exception set on >1 thread — rolled back")
+        return
+    # Give the killed thread a brief window to unwind and release GIL so
+    # subsequent tests / REPL calls start on a clean scheduler.  Bounded
+    # to 2s so a C-extension-blocked thread cannot stall the caller.
+    thread.join(timeout=2.0)
+    if thread.is_alive():
+        logger.warning(
+            "SEC-REPL-005: runaway REPL thread did not unwind within 2s; "
+            "likely blocked in a C extension"
+        )
 
 
 @dataclass
@@ -199,6 +261,9 @@ class SafeREPL:
 
             # SEC-REPL-003: Enforce execution timeout via threading.
             # SEC-REPL-004: Memory limit enforced inside the thread (Linux).
+            # SEC-REPL-005: On timeout, forcibly terminate the runaway thread
+            # so a `while True:` submission cannot leave a zombie CPU-burning
+            # daemon thread behind. See ``_terminate_runaway_thread`` below.
             _exec_error: list = []          # mutable container for thread result
             _exec_finished = threading.Event()
 
@@ -214,6 +279,12 @@ class SafeREPL:
             _t = threading.Thread(target=_run_exec, daemon=True)
             _t.start()
             if not _exec_finished.wait(timeout=self.max_execution_time):
+                # SEC-REPL-005: kill the runaway thread before surfacing the
+                # timeout — otherwise it continues to burn CPU for the entire
+                # lifetime of the interpreter, which has historically caused
+                # pytest-timeout INTERNALERRORs and, in production, silent
+                # capacity degradation for every `while True` submission.
+                _terminate_runaway_thread(_t)
                 raise TimeoutError(
                     f"REPL execution exceeded {self.max_execution_time}s limit (SEC-REPL-003)")
 

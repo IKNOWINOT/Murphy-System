@@ -4,7 +4,7 @@
 import pytest
 import sys
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -28,7 +28,7 @@ def test_mark_waiting_returns_expected_date_for_sam_gov():
     handler = WaitStateHandler()
     session = make_session()
     expected = handler.mark_waiting("1.01", session)
-    delta = expected - datetime.utcnow()
+    delta = expected - datetime.now(timezone.utc).replace(tzinfo=None)
     assert 9 <= delta.days <= 10, f"Expected ~10 days, got {delta.days}"
 
 
@@ -67,7 +67,7 @@ def test_check_completion_true_for_overdue():
     session = make_session()
     handler.mark_waiting("1.01", session)
     # Manually set expected to the past
-    session.wait_states["1.01"] = datetime.utcnow() - timedelta(days=1)
+    session.wait_states["1.01"] = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=1)
     assert handler.check_completion("1.01", session)
 
 
@@ -112,6 +112,6 @@ def test_wait_days_for_no_wait_task():
     handler = WaitStateHandler()
     session = make_session()
     expected = handler.mark_waiting("5.01", session)
-    delta = expected - datetime.utcnow()
+    delta = expected - datetime.now(timezone.utc).replace(tzinfo=None)
     # No wait days → expected is essentially now (within 1 second)
     assert abs(delta.total_seconds()) < 1

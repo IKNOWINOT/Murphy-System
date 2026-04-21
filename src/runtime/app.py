@@ -1024,8 +1024,8 @@ def create_app() -> FastAPI:
         try:
             from src.swarm_rosetta_bridge import get_bridge as _get_rosetta
             _rosetta = _get_rosetta()
-        except Exception:
-            pass
+        except Exception:  # PROD-HARD A2: deliberate probe — bridge is optional
+            logger.debug("swarm_rosetta_bridge unavailable; continuing without it", exc_info=True)
         _hitl_review_builder = HITLReviewBuilder(
             gate_synthesis=_gate_syn,
             rosetta_bridge=_rosetta,
@@ -2953,8 +2953,8 @@ def create_app() -> FastAPI:
             from src.matrix_bridge import MatrixClient
             # In production the client is a singleton managed by startup
             logger.info("Matrix send requested: room=%s len=%d", room, len(message))
-        except ImportError:
-            pass
+        except ImportError:  # PROD-HARD A2: matrix_bridge optional, fall through to ack
+            logger.debug("matrix_bridge unavailable; acknowledging send without dispatch", exc_info=True)
         return JSONResponse({
             "success": True,
             "status": "enqueued",
@@ -7484,8 +7484,8 @@ def create_app() -> FastAPI:
                 if native_id:
                     try:
                         frameworks.append(_CF(native_id))
-                    except ValueError:
-                        pass
+                    except ValueError:  # PROD-HARD A2: unknown compliance framework ID — skip with breadcrumb
+                        logger.debug("Compliance framework %r not recognised by native engine; skipping", native_id)
             return frameworks
         except ImportError:
             return []
@@ -11583,7 +11583,7 @@ def create_app() -> FastAPI:
                         await websocket.send_json({
                             "symbol": symbol,
                             "price": 0.0,
-                            "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
+                            "timestamp": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).replace(tzinfo=None).isoformat(),
                         })
                 except WebSocketDisconnect:
                     break
@@ -11591,8 +11591,8 @@ def create_app() -> FastAPI:
                     logger.debug("ws_market send error: %s", exc)
                     break
                 await asyncio.sleep(2)
-        except WebSocketDisconnect:
-            pass
+        except WebSocketDisconnect:  # PROD-HARD A2: normal client disconnect, not an error
+            logger.debug("ws_market: client disconnected")
 
     # ==================== TRADING COMPLIANCE ENDPOINTS ====================
 
@@ -14011,8 +14011,8 @@ def create_app() -> FastAPI:
                         try:
                             from src.demo_deliverable_generator import generate_deliverable
                             event["deliverable"] = generate_deliverable(query)
-                        except Exception:
-                            pass
+                        except Exception:  # PROD-HARD A2: fallback generator failed — stream original empty event
+                            logger.warning("Fallback deliverable generation failed; streaming original event", exc_info=True)
                     event["run_id"] = run_id
                     # Pass through the real llm_provider from the pipeline
                     # diagnostics so the frontend knows what actually generated
@@ -14033,8 +14033,8 @@ def create_app() -> FastAPI:
                         }
                 try:
                     yield f"data: {json.dumps(event)}\n\n"
-                except (TypeError, ValueError):
-                    pass
+                except (TypeError, ValueError):  # PROD-HARD A2: non-serialisable event — skip rather than abort stream
+                    logger.warning("Dropping non-JSON-serialisable SSE event: keys=%s", list(event.keys()) if isinstance(event, dict) else type(event).__name__)
 
         return StreamingResponse(
             _event_gen(),

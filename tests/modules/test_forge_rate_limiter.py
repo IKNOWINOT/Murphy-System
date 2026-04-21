@@ -6,7 +6,11 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 os.environ.setdefault("MURPHY_ENV", "test")
 
-from src.forge_rate_limiter import ForgeRateLimiter, AGENTS_PER_BUILD, TOTAL_COMPUTE_UNITS
+# PROD-HARD-TEST-002 (audit D4): AGENTS_PER_BUILD / TOTAL_COMPUTE_UNITS were
+# removed when agent count became dynamic per-build (see module docstring:
+# "Agent count per build is dynamic — it scales with task complexity").
+# Test now asserts against the surviving constant CURSORS_PER_AGENT.
+from src.forge_rate_limiter import ForgeRateLimiter, CURSORS_PER_AGENT
 
 
 class _FakeRequest:
@@ -35,10 +39,13 @@ class TestForgeRateLimiterBasics:
         assert r2["upgrade_url"] == "/pricing"
 
     def test_result_contains_swarm_cost(self):
+        # PROD-HARD-TEST-002 (audit D4): swarm_cost shape changed when
+        # per-build agent count became dynamic. Module now emits only
+        # cursors_per_agent; agents/total_compute_units are computed
+        # downstream from the live build manifest, not exposed here.
         lim = ForgeRateLimiter()
         r = lim.check_and_record(_FakeRequest(ip="9.9.9.9"))
-        assert r["swarm_cost"]["agents"] == AGENTS_PER_BUILD
-        assert r["swarm_cost"]["total_compute_units"] == TOTAL_COMPUTE_UNITS
+        assert r["swarm_cost"]["cursors_per_agent"] == CURSORS_PER_AGENT
 
     def test_free_tier_has_higher_limit(self):
         lim = ForgeRateLimiter()

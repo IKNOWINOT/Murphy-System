@@ -39,6 +39,10 @@ on:
           - audit
           - report
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: write
   actions: read
@@ -61,10 +65,10 @@ jobs:
       community_count: ${{ steps.classify.outputs.community_count }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -103,7 +107,7 @@ jobs:
           fi
 
       - name: Upload classification artifact
-        uses: actions/upload-artifact@v7  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v7 (Node 24)
+        uses: actions/upload-artifact@v4
         with:
           name: sweep-classification-${{ github.run_id }}
           path: /tmp/sweep_output/
@@ -120,10 +124,10 @@ jobs:
       issue_count: ${{ steps.audit.outputs.issue_count }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -134,7 +138,7 @@ jobs:
           pip install -r requirements_ci.txt
 
       - name: Download classification
-        uses: actions/download-artifact@v8  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v8 (Node 24)
+        uses: actions/download-artifact@v4
         with:
           name: sweep-classification-${{ github.run_id }}
           path: /tmp/sweep_output
@@ -157,7 +161,7 @@ jobs:
           echo "::notice::Audit found $LEAKS boundary leaks"
 
       - name: Upload audit artifact
-        uses: actions/upload-artifact@v7  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v7 (Node 24)
+        uses: actions/upload-artifact@v4
         with:
           name: sweep-audit-${{ github.run_id }}
           path: /tmp/sweep_output/
@@ -170,10 +174,10 @@ jobs:
     needs: [classify, audit]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -184,7 +188,7 @@ jobs:
           pip install -r requirements_ci.txt
 
       - name: Download audit artifacts
-        uses: actions/download-artifact@v8  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v8 (Node 24)
+        uses: actions/download-artifact@v4
         with:
           name: sweep-audit-${{ github.run_id }}
           path: /tmp/sweep_output
@@ -240,7 +244,7 @@ jobs:
           fi
 
       - name: Upload final report
-        uses: actions/upload-artifact@v7  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v7 (Node 24)
+        uses: actions/upload-artifact@v4
         with:
           name: sweep-report-${{ github.run_id }}
           path: /tmp/sweep_output/

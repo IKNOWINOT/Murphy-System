@@ -2119,7 +2119,8 @@ render();
 # Run: pip install fastapi uvicorn && uvicorn api-server:app --reload
 
 from __future__ import annotations
-from datetime import datetime
+import os
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 import uvicorn
@@ -2128,7 +2129,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 app = FastAPI(title="MurphyApp API", version="1.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+# CORS — safe-by-default. Override in production via the CORS_ALLOWED_ORIGINS
+# env var (comma-separated list of origins). Wildcard '*' is intentionally
+# not the default; combining '*' with allow_credentials=True is rejected by
+# the Starlette middleware and is a known browser-side credentials leak.
+_cors_origins = [o.strip() for o in os.environ.get(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:3000,http://localhost:5173,http://localhost:8000",
+).split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 # In-memory stores (swap for a real DB in production)
 _tasks: Dict[str, Dict[str, Any]] = {}
@@ -2145,7 +2160,7 @@ class TaskUpdate(BaseModel):
     priority: Optional[str] = None
 
 @app.get("/api/health")
-def health(): return {"status": "ok", "ts": datetime.utcnow().isoformat()}
+def health(): return {"status": "ok", "ts": datetime.now(timezone.utc).replace(tzinfo=None).isoformat()}
 
 @app.get("/api/tasks")
 def list_tasks(owner_id: Optional[str] = None) -> List[Dict]:
@@ -2157,7 +2172,7 @@ def list_tasks(owner_id: Optional[str] = None) -> List[Dict]:
 def create_task(body: TaskCreate) -> Dict:
     task_id = str(uuid4())
     task = {"id": task_id, "title": body.title, "priority": body.priority,
-            "done": False, "created_at": datetime.utcnow().isoformat(),
+            "done": False, "created_at": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
             "owner_id": body.owner_id}
     _tasks[task_id] = task
     return task
@@ -2169,7 +2184,7 @@ def update_task(task_id: str, body: TaskUpdate) -> Dict:
     if body.done is not None: task["done"] = body.done
     if body.title is not None: task["title"] = body.title
     if body.priority is not None: task["priority"] = body.priority
-    task["updated_at"] = datetime.utcnow().isoformat()
+    task["updated_at"] = datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
     return task
 
 @app.delete("/api/tasks/{task_id}", status_code=204)
@@ -2289,6 +2304,7 @@ settings = Settings()
 # main.py — Automation Suite Entry Point
 from __future__ import annotations
 import logging
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Header, HTTPException
 from fastapi.responses import JSONResponse
@@ -2313,7 +2329,20 @@ async def lifespan(app: FastAPI):
     logger.info("Automation suite stopped.")
 
 app = FastAPI(title="Murphy Automation Suite", version="1.0.0", lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+# CORS — safe-by-default. Override in production via the CORS_ALLOWED_ORIGINS
+# env var (comma-separated list of origins). Wildcard '*' is intentionally
+# not the default.
+_cors_origins = [o.strip() for o in os.environ.get(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:3000,http://localhost:5173,http://localhost:8000",
+).split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 @app.get("/health")
 def health():
@@ -6011,6 +6040,7 @@ main{{padding:2rem 1.5rem;max-width:1000px;margin:0 auto;}}
 from __future__ import annotations
 
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Any, Dict
 
@@ -6022,10 +6052,18 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="{safe_name}", version="0.1.0")
+# CORS — safe-by-default. Override in production via the CORS_ALLOWED_ORIGINS
+# env var (comma-separated list of origins). Wildcard '*' is intentionally
+# not the default.
+_cors_origins = [o.strip() for o in os.environ.get(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:3000,http://localhost:5173,http://localhost:8000",
+).split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -7356,7 +7394,11 @@ def _synthesize_swarm_outputs(
             continue
         successful_count += 1
         stripped = raw.strip()
-        content_hash = hashlib.md5(stripped.encode()).hexdigest()
+        # PROD-HARD-A5: usedforsecurity=False makes intent explicit — this is
+        # a content-deduplication fingerprint, not a security primitive. Closes
+        # bandit B324 (CWE-327). Switching to sha256 was considered but rejected:
+        # MD5 is faster for non-security dedup and the surrounding loop is hot.
+        content_hash = hashlib.md5(stripped.encode(), usedforsecurity=False).hexdigest()
         if content_hash in seen_hashes:
             logger.warning(
                 "FORGE-SWARM-DEDUP-001: Duplicate content from agent '%s' "

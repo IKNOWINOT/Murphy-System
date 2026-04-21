@@ -172,7 +172,7 @@ class ChangeManagementGate:
             resource=request.affected_component,
             action="SUBMIT",
             outcome="SUCCESS",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
         ))
         return request
 
@@ -181,7 +181,7 @@ class ChangeManagementGate:
         if not request or request.status != "PENDING":
             return False
         request.approved_by = approver
-        request.approved_at = datetime.utcnow()
+        request.approved_at = datetime.now(timezone.utc)
         request.status = "APPROVED"
         self._audit_log.append(AuditEvent(
             event_id=f"CHG-APPROVE-{change_id}",
@@ -190,7 +190,7 @@ class ChangeManagementGate:
             resource=request.affected_component,
             action="APPROVE",
             outcome="SUCCESS",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
         ))
         return True
 
@@ -366,7 +366,7 @@ class SIEMForwarder:
             severity=severity,
             category="CONFIDENCE",
             message=cr_dict.get("rationale", "Confidence result forwarded"),
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             metadata={**cr_dict, **(context or {})},
         )
         with self._lock:
@@ -394,7 +394,7 @@ class SIEMForwarder:
             severity=severity,
             category="GATE",
             message=gr_dict.get("message", "Gate result forwarded"),
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             metadata={**gr_dict, **(context or {})},
         )
         with self._lock:
@@ -566,7 +566,7 @@ class HIPAAAuditBackend:
             resource=f"patient:{patient_id}",
             action=action,
             outcome="LOGGED",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             details={"reason": reason[:500]},
         )
         with self._lock:
@@ -574,7 +574,7 @@ class HIPAAAuditBackend:
                 "user_id": user_id,
                 "patient_id": patient_id,
                 "action": action,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             })
         return self._audit_log.append(event)
 

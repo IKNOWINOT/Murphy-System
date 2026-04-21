@@ -174,7 +174,7 @@ class ConfidenceEngine:
             allowed=allowed,
             rationale=rationale,
             weights=w,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
         )
 
 

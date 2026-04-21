@@ -106,13 +106,14 @@ REQUIRED_ENV_VARS = [
 ]
 
 # Required config files
+# PROD-HARD-CLEAN-001 (audit A19): gunicorn.conf.py removed — production
+# entrypoint is docker-entrypoint.sh running uvicorn, not gunicorn.
 REQUIRED_CONFIG_FILES = [
     "requirements_ci.txt",
     "pyproject.toml",
     ".env.example",
     "Dockerfile",
     "docker-compose.yml",
-    "gunicorn.conf.py",
 ]
 
 

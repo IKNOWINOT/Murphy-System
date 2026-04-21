@@ -375,7 +375,7 @@ class EliteOrgChart:
     company_stage: CompanyStage
     roles: Dict[str, EliteRole]        # role_id → EliteRole
     departments: Dict[Department, List[str]]  # dept → [role_ids]
-    created_at: str = field(default_factory=lambda: __import__("datetime").datetime.utcnow().isoformat())
+    created_at: str = field(default_factory=lambda: __import__("datetime").datetime.now(__import__("datetime").timezone.utc).replace(tzinfo=None).isoformat())
 
     @property
     def headcount(self) -> int:

@@ -1191,8 +1191,8 @@ class TrueSwarmSystem:
                 confidence_impact=net_confidence,
                 murphy_risk=murphy_risk,
             )
-        except Exception:
-            pass
+        except Exception:  # PROD-HARD A2: Rosetta bridge failure is non-blocking, but must be observable
+            logger.debug("Rosetta bridge on_phase_complete publish failed (non-blocking)", exc_info=True)
 
         return result
 

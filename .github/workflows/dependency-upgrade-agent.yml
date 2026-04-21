@@ -13,6 +13,10 @@ on:
     - cron: '0 3 * * 1'
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: write
   pull-requests: write
@@ -36,10 +40,10 @@ jobs:
       has_vulnerabilities: ${{ steps.scan.outputs.has_vulnerabilities }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -79,7 +83,7 @@ jobs:
           echo "has_vulnerabilities=$HAS_VULNS" >> "$GITHUB_OUTPUT"
 
       - name: Upload scan report
-        uses: actions/upload-artifact@v7  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v7 (Node 24)
+        uses: actions/upload-artifact@v4
         with:
           name: dep-scan-report
           path: /tmp/dep_upgrade/
@@ -96,12 +100,12 @@ jobs:
       tests_passed: ${{ steps.test.outputs.tests_passed }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -113,7 +117,7 @@ jobs:
           pip install pytest-asyncio pytest-timeout pip-audit
 
       - name: Download scan report
-        uses: actions/download-artifact@v8  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v8 (Node 24)
+        uses: actions/download-artifact@v4
         with:
           name: dep-scan-report
           path: /tmp/dep_upgrade/
@@ -135,7 +139,7 @@ jobs:
             --ignore=tests/sla \
             --ignore=tests/benchmarks \
             --continue-on-collection-errors \
-            -k "not test_actual_local_llm" \
+            -m "not local_llm" \
             2>&1 | tee /tmp/dep_upgrade/test_output.log
           TEST_EXIT=$?
           set -e
@@ -147,7 +151,7 @@ jobs:
           fi
 
       - name: Upload test results
-        uses: actions/upload-artifact@v7  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v7 (Node 24)
+        uses: actions/upload-artifact@v4
         with:
           name: dep-upgrade-test-results
           path: /tmp/dep_upgrade/
@@ -162,12 +166,12 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -179,7 +183,7 @@ jobs:
           pip install pip-audit
 
       - name: Download scan report
-        uses: actions/download-artifact@v8  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v8 (Node 24)
+        uses: actions/download-artifact@v4
         with:
           name: dep-scan-report
           path: /tmp/dep_upgrade/

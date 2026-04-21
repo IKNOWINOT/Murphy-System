@@ -69,8 +69,8 @@ class TimeTracker:
             start = datetime.fromisoformat(entry.started_at)
             end = datetime.fromisoformat(entry.ended_at)
             entry.duration_seconds = max(0, int((end - start).total_seconds()))
-        except (ValueError, TypeError):
-            pass
+        except (ValueError, TypeError):  # PROD-HARD A2: malformed started_at — duration stays unset, but log
+            logger.debug("Time entry %s: cannot compute duration (started_at=%r)", entry.id, entry.started_at)
         return entry
 
     def get_active_timer(self, user_id: str) -> Optional[TimeEntry]:

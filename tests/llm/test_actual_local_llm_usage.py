@@ -1,14 +1,24 @@
 """
 Test that Enhanced Local LLM is actually used in offline mode
+
+PROD-HARD-TEST-002 (audit D12): Marked `local_llm` so PR-time CI excludes it
+via `-m "not local_llm"`. This test loads heavy local-model artefacts and is
+intended for environments where a real LLM runtime is provisioned (Hetzner
+deploy validation, recovery probes, dependency-upgrade nightly).
+
+The previous gating mechanism — `-k "not test_actual_local_llm"` — was a
+brittle string match: renaming the test would silently re-enable it in CI
+and break runs on machines without an LLM. The marker is rename-proof and
+discoverable via `pytest --markers`.
 """
 
-import sys
-sys.path.insert(0, '/workspace')
+import pytest
 
 from src.llm_integration_layer import LLMIntegrationLayer, LLMProvider, DomainType
 from src.enhanced_local_llm import EnhancedLocalLLM
 
 
+@pytest.mark.local_llm
 def test_actual_local_llm_usage():
     """Test that the enhanced local LLM is actually being used"""
 

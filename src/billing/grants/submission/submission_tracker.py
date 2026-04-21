@@ -1,7 +1,7 @@
 # © 2020 Inoni Limited Liability Company · Creator: Corey Post · License: BSL 1.1
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Optional
 
 from src.billing.grants.submission.models import StatusChange, SubmissionStatus
@@ -33,7 +33,7 @@ class SubmissionTracker:
         status = _statuses.get(submission_id)
         if status:
             status.transition("submitted")
-            status.submitted_at = datetime.utcnow()
+            status.submitted_at = datetime.now(timezone.utc).replace(tzinfo=None)
             if confirmation_number:
                 status.confirmation_number = confirmation_number
         return status

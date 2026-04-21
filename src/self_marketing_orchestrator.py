@@ -1316,8 +1316,8 @@ class SelfMarketingOrchestrator:
         if vertical_id:
             try:
                 vertical_topics = self._positioning.get_content_topics_for_vertical(vertical_id)
-            except (ValueError, Exception):  # noqa: BLE001
-                pass  # positioning engine failure is non-fatal for content cycle
+            except (ValueError, Exception):  # noqa: BLE001 — PROD-HARD A2: positioning engine failure is non-fatal for content cycle
+                logger.debug("Vertical positioning topics unavailable for %r; falling back to category templates", vertical_id, exc_info=True)
 
         # Merge: use vertical topics first (highest signal), then category templates
         combined_topics: List[str] = list(vertical_topics[:3]) + list(topics)
@@ -2690,30 +2690,31 @@ class SelfMarketingOrchestrator:
                                 str(pd["salesperson_name"])[:_MAX_NAME_LEN],
                                 param="salesperson_name",
                             )
-                    except ValueError:
-                        pass
+                    except ValueError:  # PROD-HARD A2: invalid name — drop field rather than reject prospect
+                        logger.debug("Invalid salesperson_name for partnership %r; leaving unset", pid)
                     try:
                         if pd.get("salesperson_title"):
                             sp_title = _validate_salesperson_name(
                                 str(pd["salesperson_title"])[:_MAX_NAME_LEN],
                                 param="salesperson_title",
                             )
-                    except ValueError:
-                        pass
+                    except ValueError:  # PROD-HARD A2: invalid title — drop field
+                        logger.debug("Invalid salesperson_title for partnership %r; leaving unset", pid)
                     try:
                         if pd.get("salesperson_email"):
                             sp_email = _validate_salesperson_email(
                                 str(pd["salesperson_email"])
                             )
                     except ValueError:
-                        pass  # do NOT log: raw email is PII
+                        # PROD-HARD A2: invalid email — drop field. do NOT log: raw email is PII.
+                        logger.debug("Invalid salesperson_email for partnership %r; leaving unset", pid)
                     try:
                         if pd.get("salesperson_linkedin"):
                             sp_linkedin = _validate_linkedin_url(
                                 str(pd["salesperson_linkedin"])
                             )
-                    except ValueError:
-                        pass
+                    except ValueError:  # PROD-HARD A2: invalid LinkedIn URL — drop field
+                        logger.debug("Invalid salesperson_linkedin for partnership %r; leaving unset", pid)
                     self._partnerships[pid] = PartnershipProspect(
                         partner_id=pid,
                         company=str(pd.get("company", pid))[:200],

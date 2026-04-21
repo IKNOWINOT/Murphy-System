@@ -18,7 +18,7 @@ Total: 22 vertical gaps + 5 cross-system gaps = 27 gaps tested
 import os
 import sys
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Ensure murphy_confidence is importable
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'strategic'))
@@ -181,7 +181,7 @@ class TestLongitudinalHistoryScorer(unittest.TestCase):
 
     def setUp(self):
         self.scorer = LongitudinalHistoryScorer()
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         # Rich history spanning 5 years
         for i in range(50):
             entry = HistoryEntry(
@@ -206,7 +206,7 @@ class TestLongitudinalHistoryScorer(unittest.TestCase):
 
     def test_single_entry_low_score(self):
         self.scorer.add_entry("P-002", HistoryEntry(
-            timestamp=datetime.utcnow(), event_type="LAB", code="CBC"
+            timestamp=datetime.now(timezone.utc).replace(tzinfo=None), event_type="LAB", code="CBC"
         ))
         score = self.scorer.score("P-002")
         self.assertLess(score, 0.5)
@@ -345,7 +345,7 @@ class TestWashTradeDetector(unittest.TestCase):
 
     def setUp(self):
         self.detector = WashTradeDetector(time_window_seconds=60)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         # Suspicious: same account, buy then sell, same price, within window
         self.detector.add_trade(TradeRecord("T-1", "AAPL", "BUY", 1000, 150.0, now, "ACC-1"))
         self.detector.add_trade(TradeRecord("T-2", "AAPL", "SELL", 1000, 150.0, now + timedelta(seconds=10), "ACC-1"))
@@ -486,7 +486,7 @@ class TestOPCUAStreamAdapter(unittest.TestCase):
 
     def setUp(self):
         self.adapter = OPCUAStreamAdapter()
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         self.adapter.ingest_reading(SensorReading("TEMP-01", "ROBOT-01", 72.5, "°C", "GOOD", now))
         self.adapter.ingest_reading(SensorReading("VIBR-01", "ROBOT-01", 0.3, "g", "GOOD", now))
         self.adapter.ingest_reading(SensorReading("TEMP-02", "ROBOT-01", 73.0, "°C", "UNCERTAIN", now))
@@ -512,7 +512,7 @@ class TestOPCUAStreamAdapter(unittest.TestCase):
         self.assertEqual(score, 0.0)
 
     def test_bad_quality_reading(self):
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         adapter = OPCUAStreamAdapter()
         adapter.ingest_reading(SensorReading("BAD-01", "ASSET-BAD", 50.0, "°C", "BAD", now))
         score = adapter.score("ASSET-BAD")
@@ -526,7 +526,7 @@ class TestMultiSensorFusion(unittest.TestCase):
         self.fusion = MultiSensorFusion()
 
     def test_agreeing_sensors_high_confidence(self):
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         readings = [
             SensorReading("S-1", "A-1", 72.0, "°C", "GOOD", now),
             SensorReading("S-2", "A-1", 72.5, "°C", "GOOD", now),
@@ -537,7 +537,7 @@ class TestMultiSensorFusion(unittest.TestCase):
         self.assertGreater(result["agreement"], 0.7)
 
     def test_disagreeing_sensors_low_confidence(self):
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         readings = [
             SensorReading("S-1", "A-1", 72.0, "°C", "GOOD", now),
             SensorReading("S-2", "A-1", 100.0, "°C", "GOOD", now),  # Outlier
@@ -546,7 +546,7 @@ class TestMultiSensorFusion(unittest.TestCase):
         self.assertGreater(len(result["outliers"]), 0)
 
     def test_single_sensor(self):
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         readings = [SensorReading("S-1", "A-1", 72.0, "°C", "GOOD", now)]
         result = self.fusion.fuse_readings(readings)
         self.assertEqual(result["confidence"], 1.0)
@@ -563,12 +563,12 @@ class TestPredictiveMaintenanceModel(unittest.TestCase):
         self.model = PredictiveMaintenanceModel()
         self.model.update_health(AssetHealth(
             asset_id="ROBOT-01", operating_hours=5000, mtbf_hours=10000,
-            last_maintenance=datetime.utcnow() - timedelta(days=30),
+            last_maintenance=datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=30),
             wear_pct=25.0,
         ))
         self.model.update_health(AssetHealth(
             asset_id="PRESS-01", operating_hours=9500, mtbf_hours=10000,
-            last_maintenance=datetime.utcnow() - timedelta(days=180),
+            last_maintenance=datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=180),
             wear_pct=85.0, temperature_delta=15.0, vibration_delta=2.0,
         ))
 

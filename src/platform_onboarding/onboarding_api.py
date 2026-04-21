@@ -351,9 +351,8 @@ def create_onboarding_router() -> "APIRouter":
         if _sessions:
             try:
                 session = _resolve_session(session_id)
-            except (KeyError, ValueError):
-                pass
-        tasks_with_value = [t for t in TASK_CATALOG if t.estimated_value]
+            except (KeyError, ValueError):  # PROD-HARD A2: unknown session id — return aggregate without session filter
+                logger.debug("get_value_report: session_id=%r not found; returning unfiltered totals", session_id)
         completed_ids: set = set()
         if session:
             completed_ids = {
@@ -383,8 +382,8 @@ def create_onboarding_router() -> "APIRouter":
         if _sessions:
             try:
                 session = _resolve_session(session_id)
-            except (KeyError, ValueError):
-                pass
+            except (KeyError, ValueError):  # PROD-HARD A2: unknown session id — return timeline without session filter
+                logger.debug("get_timeline: session_id=%r not found; returning unfiltered remaining-time", session_id)
         total_remaining_minutes = sum(
             t.time_estimate_minutes
             for t in TASK_CATALOG

@@ -763,8 +763,8 @@ def _register_known_bots(adapter: Any) -> None:
             adapter.register_candidate(
                 name=name, capabilities=capabilities, domains=domains
             )
-        except Exception:
-            pass
+        except Exception:  # PROD-HARD A2: candidate registration failure shouldn't crash CTD bootstrap, but operators must see it
+            logger.warning("CTD-BOOT: failed to register candidate bot %s", name, exc_info=True)
 
 
 # ---------------------------------------------------------------------------

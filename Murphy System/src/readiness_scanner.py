@@ -425,8 +425,10 @@ def _gate_security_scan() -> tuple:
                     f"SEC-READY-004: Infrastructure ports exposed to host — "
                     f"use expose: instead of ports: for {', '.join(_exposed)}"
                 )
-        except (FileNotFoundError, subprocess.TimeoutExpired, Exception):
+        except (FileNotFoundError, subprocess.TimeoutExpired):
             pass  # Docker not available or not running — skip check.
+        except Exception:  # PROD-HARD A2: real parser/key bug shouldn't be silenced as "Docker missing"
+            logger.warning("SEC-READY-004 docker-compose port-exposure check failed unexpectedly", exc_info=True)
 
         return True, f"Security scan passed for env={env}"
 
