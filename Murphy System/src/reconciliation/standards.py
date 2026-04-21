@@ -410,10 +410,11 @@ def _seed_defaults() -> None:
             deliverable_type=DeliverableType.DOCUMENT,
             title="Document opens with a top-level heading",
             rationale="Above-average technical writing always anchors "
-            "the reader with a clear H1 (Markdown ``#`` or HTML ``<h1>``).",
+            "the reader with a clear H1 (Markdown ``#`` / Setext "
+            "underline ``===`` / HTML ``<h1>``).",
             check={
-                "kind": "regex",
-                "pattern": r"(?im)^\s*#\s+\S|<h1\b",
+                "kind": "callable",
+                "fn": "src.reconciliation.standards:check_document_has_h1",
             },
             weight=1.0,
             hard=False,
@@ -428,6 +429,20 @@ def _seed_defaults() -> None:
             check={"kind": "min_length", "value": 120},
             weight=0.5,
             hard=False,
+            tags=("substance",),
+        ),
+        Standard(
+            id="DOC-003",
+            deliverable_type=DeliverableType.DOCUMENT,
+            title="Document has body content beyond the heading",
+            rationale="A document whose entire content is a single "
+            "heading line is a stub, not a deliverable.",
+            check={
+                "kind": "callable",
+                "fn": "src.reconciliation.standards:check_document_has_body",
+            },
+            weight=1.5,
+            hard=True,
             tags=("substance",),
         ),
         # ------------------------------------------------------------------
@@ -741,6 +756,11 @@ _HARDCODED_SECRET_PATTERNS = (
     re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     # Slack tokens
     re.compile(r"\bxox[abp]-[A-Za-z0-9-]{10,}\b"),
+    # PEM-encoded private keys (RSA, EC, OpenSSH, generic)
+    re.compile(
+        r"-----BEGIN[ ](?:RSA |EC |DSA |OPENSSH |ENCRYPTED )?PRIVATE KEY-----",
+        re.IGNORECASE,
+    ),
     # Bearer / Authorization header tokens (covers: authorization: Bearer xxx)
     re.compile(
         r"(?i)\b(?:authorization|auth)\s*[:=]\s*(?:bearer\s+)?"
@@ -1008,17 +1028,32 @@ def check_python_no_unsafe_apis(content: Any) -> Tuple[bool, float, str]:
 
 
 def check_shell_no_curl_pipe_shell(content: Any) -> Tuple[bool, float, str]:
-    """Reject the classic ``curl … | bash`` install antipattern."""
+    """Reject the classic pipe-to-shell installer antipattern.
+
+    Catches any pipeline whose final stage is ``bash`` / ``sh`` / ``zsh``
+    / ``ksh`` (optionally via ``sudo``).  This includes the common
+    ``curl ... | bash`` shape and obfuscated variants like
+    ``echo 'B64' | base64 -d | bash``.
+    """
     if not isinstance(content, str):
         return (True, 1.0, "non-string content — skipped")
     pattern = re.compile(
-        r"(?:curl|wget|fetch)\b[^\n|]*\|\s*(?:sudo\s+)?(?:bash|sh|zsh|ksh)\b",
+        # `| <maybe-sudo> (bash|sh|zsh|ksh)` followed by end-of-line, end-of-string,
+        # or a token that isn't a flag (so we don't catch `| bash -c 'safe-script.sh'`
+        # as harshly... actually we still want to catch that).
+        r"\|\s*(?:sudo\s+(?:-\S+\s+)*)?(?:bash|sh|zsh|ksh)\b",
         re.IGNORECASE,
     )
     m = pattern.search(content)
     if m:
-        return (False, 0.0, f"unsafe pipe-to-shell: {m.group(0)[:80]}…")
-    return (True, 1.0, "no curl|bash antipattern")
+        # Find the start of the line for friendly reporting.
+        line_start = content.rfind("\n", 0, m.start()) + 1
+        line_end = content.find("\n", m.end())
+        if line_end == -1:
+            line_end = len(content)
+        snippet = content[line_start:line_end].strip()
+        return (False, 0.0, f"unsafe pipe-to-shell: {snippet[:100]}")
+    return (True, 1.0, "no pipe-to-shell antipattern")
 
 
 def check_shell_no_dangerous_rm(content: Any) -> Tuple[bool, float, str]:
@@ -1202,9 +1237,58 @@ def check_python_has_docstring(content: Any) -> Tuple[bool, float, str]:
     return (False, 0.0, "no module/function docstring found")
 
 
+_SETEXT_H1_RE = re.compile(r"(?m)^\S[^\n]*\n=+\s*$")
+_MD_H1_RE = re.compile(r"(?im)^\s*#\s+\S")
+_HTML_H1_RE = re.compile(r"(?i)<h1\b")
+
+
+def check_document_has_h1(content: Any) -> Tuple[bool, float, str]:
+    """Accept Markdown (``# X``), Setext (``X\\n===``) or HTML ``<h1>``."""
+    if not isinstance(content, str):
+        return (False, 0.0, "non-string content")
+    if _MD_H1_RE.search(content):
+        return (True, 1.0, "Markdown # heading")
+    if _SETEXT_H1_RE.search(content):
+        return (True, 1.0, "Setext === heading")
+    if _HTML_H1_RE.search(content):
+        return (True, 1.0, "HTML <h1>")
+    return (False, 0.0, "no top-level heading")
+
+
+def check_document_has_body(content: Any) -> Tuple[bool, float, str]:
+    """A document must have body content beyond its heading.
+
+    Strips the leading heading (Markdown / Setext / HTML), then requires
+    at least 12 characters and 2 words of remaining body.  Heading-only
+    pages are stubs, not deliverables.
+    """
+    if not isinstance(content, str):
+        return (False, 0.0, "non-string content")
+    body = content
+    # Drop a leading Markdown H1 line.
+    body = re.sub(r"(?im)^\s*#\s+[^\n]*\n", "", body, count=1)
+    # Drop a leading Setext heading + underline.
+    body = re.sub(r"(?m)^\S[^\n]*\n=+\s*\n", "", body, count=1)
+    # Drop a leading HTML <h1>...</h1>.
+    body = re.sub(r"(?is)<h1\b[^>]*>.*?</h1>", "", body, count=1)
+    body = body.strip()
+    if not body:
+        return (False, 0.0, "document has only a heading, no body")
+    word_count = len(re.findall(r"\b\w+\b", body))
+    if len(body) < 12 or word_count < 2:
+        return (
+            False,
+            0.0,
+            f"document body too short (chars={len(body)}<12, words={word_count}<2)",
+        )
+    return (True, 1.0, f"body length {len(body)} chars / {word_count} words")
+
+
 _CALLABLE_REGISTRY: Dict[str, CheckFn] = {
     "src.reconciliation.standards:check_python_syntax": check_python_syntax,
     "src.reconciliation.standards:check_python_has_docstring": check_python_has_docstring,
+    "src.reconciliation.standards:check_document_has_h1": check_document_has_h1,
+    "src.reconciliation.standards:check_document_has_body": check_document_has_body,
     "src.reconciliation.standards:check_python_no_bare_except": check_python_no_bare_except,
     "src.reconciliation.standards:check_python_no_dynamic_eval":
         check_python_no_dynamic_eval,
