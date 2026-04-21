@@ -99,6 +99,11 @@ markers = [
     "e2e: End-to-end tests — exercise full request paths without external secrets",
     "slow: Tests intentionally allowed to run > a few seconds; gate with -m 'not slow' on PR runs",
     "integration: Cross-module integration tests gated to nightly / e2e jobs",
+    # PROD-HARD-TEST-002 (audit D12): explicit marker replaces the brittle
+    # `-k "not test_actual_local_llm"` string-match used in 5 workflows.
+    # The marker survives test renames; the -k workaround would silently
+    # re-enable the test on rename and break CI on machines without an LLM.
+    "local_llm: Heavy real-LLM integration tests; require a local LLM runtime — gated off PR runs with -m 'not local_llm'",
 ]
 # PROD-HARD-TEST-001 (audit D22): pytest-timeout is invoked via --timeout in
 # every CI workflow; declare it as required so a fresh dev env fails fast

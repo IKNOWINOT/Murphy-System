@@ -290,7 +290,7 @@ jobs:
             --ignore="Murphy System/tests/integration" \
             --ignore="Murphy System/tests/sla" \
             --ignore="Murphy System/tests/benchmarks" \
-            -k "not test_actual_local_llm" \
+            -m "not local_llm" \
             2>&1 | tee /tmp/test_output.log
           TEST_EXIT=$?
           set -e
