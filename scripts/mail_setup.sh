@@ -184,7 +184,7 @@ create_account() {
     if docker exec "$CONTAINER" grep -qF "${email}|" "${accounts_cf}" 2>/dev/null; then
         already_exists=true
     elif docker exec "$CONTAINER" setup email list 2>/dev/null \
-            | grep -qE "(^|[[:space:]*])${email//./\\.}([[:space:]]|$)"; then
+            | grep -qF "${email}"; then
         already_exists=true
     fi
 
