@@ -50,6 +50,9 @@
 | POST | /api/llm/configure | Yes | Set active LLM provider · Body: `{"provider":"deepinfra","api_key":"…"}` |
 | POST | /api/llm/test | Yes | Make a test call to verify the configured provider |
 | GET | /api/llm/providers | Yes | List all available LLM providers with status |
+| GET | /api/llm/selfcheck | No  | **LLM-SELFCHECK-001** — last startup self-inference result (provider that actually answered, latency, retry count, schema-verification outcome).  Surfaces silent onboard-fallback when a real API key is set. |
+| POST | /api/llm/selfcheck/run | No  | **LLM-SELFCHECK-001** — re-run the self-check on demand. |
+| GET | /api/rate-governor/prompt-status | No | **PROMPT-RATE-001** — per-tenant prompt rate-limiter diagnostics (human + swarm tiers). |
 
 ## Setup & Integrations
 
