@@ -1123,8 +1123,8 @@ if _STARLETTE_AVAILABLE:
                 content_length = int(content_length_str)
                 if content_length >= self._HIGH_BODY_SIZE_BYTES:
                     return self.HIGH
-            except ValueError:
-                pass
+            except ValueError:  # PROD-HARD A2: malformed Content-Length should not silently downgrade risk classification
+                logger.debug("DLP risk: malformed Content-Length header %r; treating as 0", content_length_str)
 
             # Write operations are medium risk
             if method in ("POST", "PUT"):

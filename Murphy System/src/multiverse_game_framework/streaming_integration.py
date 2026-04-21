@@ -258,8 +258,8 @@ class StreamingManager:
             if q_value:
                 try:
                     quality = StreamQuality(q_value)
-                except ValueError:
-                    pass
+                except ValueError:  # PROD-HARD A2: unknown quality string — log and fall back to HIGH
+                    logger.debug("Unknown stream quality %r in settings; defaulting to HIGH", q_value)
 
         session = StreamSession(
             character_id=character_id,
