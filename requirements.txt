@@ -46,6 +46,11 @@ requests==2.31.0
 httpx==0.27.0
 aiohttp==3.13.3
 
+# PROD-HARD-SEC-001 (audit G18): XXE-safe XML parsing for untrusted input
+# (e.g. remote OpenADR VTN responses in src/protocols/openadr_client.py).
+# Tiny pure-Python pkg with no transitive deps.
+defusedxml==0.7.1
+
 # A6: murphy_1.0 floor is coinbase-advanced-py>=1.8.2
 coinbase-advanced-py==1.8.2
 

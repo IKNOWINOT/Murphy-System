@@ -1,7 +1,11 @@
 # © 2020 Inoni Limited Liability Company · Creator: Corey Post · License: BSL 1.1
 from __future__ import annotations
 
-import xml.etree.ElementTree as ET
+# PROD-HARD-SEC-001 (audit G18): this module constructs XML documents
+# (ET.Element/SubElement/tostring) and never parses untrusted input —
+# no ET.fromstring / ET.parse / ET.iterparse / XMLParser call sites.
+# Serialization has no XXE surface, so defusedxml is not required here.
+import xml.etree.ElementTree as ET  # nosec B405
 from typing import Dict
 
 
