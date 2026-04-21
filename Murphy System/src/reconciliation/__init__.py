@@ -34,6 +34,8 @@ Design label: RECON-PKG-001
 
 from __future__ import annotations
 
+from .clarifying_questions import ClarifyingQuestionSynthesizer
+from .constraints import ConstraintExtractor, Constraints
 from .feature_flags import FeatureFlags, current_flags
 from .intent_classifier import (
     IntentClassifier,
@@ -43,6 +45,7 @@ from .intent_classifier import (
 )
 from .intent_corpus import INTERNAL_REQUEST_CORPUS, get_corpus
 from .learning_hooks import LearningHook, make_outcome_sink, outcome_to_feedback_payload
+from .request_decomposer import DecompositionPart, RequestDecomposer
 from .models import (
     AcceptanceCriterion,
     AmbiguityVector,
@@ -99,6 +102,10 @@ __all__ = [
     "ReconciliationScore",
     "Request",
     # Components
+    "ClarifyingQuestionSynthesizer",
+    "ConstraintExtractor",
+    "Constraints",
+    "DecompositionPart",
     "FeatureFlags",
     "current_flags",
     "IntentClassifier",
@@ -108,6 +115,7 @@ __all__ = [
     "get_corpus",
     "evaluate_corpus",
     "IntentExtractor",
+    "RequestDecomposer",
     "LearningHook",
     "make_outcome_sink",
     "outcome_to_feedback_payload",

@@ -22,10 +22,12 @@ import re
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence
 
+from .clarifying_questions import ClarifyingQuestionSynthesizer
 from .intent_classifier import IntentClassifier, IntentClassifierError, IntentPrediction
 from .models import (
     AcceptanceCriterion,
     AmbiguityVector,
+    ClarifyingQuestion,
     CriterionKind,
     DeliverableType,
     IntentSpec,
@@ -91,6 +93,9 @@ class IntentExtractor:
         max_candidates: int = 3,
         classifier: Optional[IntentClassifier] = None,
         classifier_min_confidence: float = 0.20,
+        question_synthesizer: Optional[ClarifyingQuestionSynthesizer] = None,
+        emit_questions_when_ambiguous: bool = True,
+        mss_controller: Optional[Any] = None,
     ) -> None:
         if max_candidates < 1:
             raise ValueError("max_candidates must be >= 1")
@@ -108,6 +113,18 @@ class IntentExtractor:
         # classifier is supplied and raises, we surface the exception.
         self._classifier = classifier
         self._classifier_min_confidence = classifier_min_confidence
+        # HITL-002: clarifying questions are auto-emitted when the
+        # ambiguity vector is non-empty.  Synthesizer is constructed
+        # lazily so callers don't have to know to wire it.
+        self._question_synth = question_synthesizer or ClarifyingQuestionSynthesizer()
+        self._emit_questions = emit_questions_when_ambiguous
+        # MSS pre-pass: optional duck-typed controller exposing
+        # ``magnify(text)`` / ``simplify(text)`` / ``solidify(text)``
+        # returning ``TransformationResult``-shaped objects.  When
+        # supplied, the request text is run through M→S before
+        # classification so its quality recommendation can directly
+        # gate question emission.
+        self._mss = mss_controller
 
     # ------------------------------------------------------------------
     # Vagueness detection
@@ -162,10 +179,28 @@ class IntentExtractor:
     # ------------------------------------------------------------------
 
     def extract(self, request: Request) -> List[IntentSpec]:
-        """Return one or more candidate :class:`IntentSpec`s for *request*."""
+        """Return one or more candidate :class:`IntentSpec`s for *request*.
+
+        Side-effects (CITL-OK; produce artifacts only, never execute):
+
+        1. Optional MSS magnify→simplify pre-pass on the request text;
+           the resulting governance status / quality recommendation is
+           attached to every emitted spec via :attr:`IntentSpec.mss_trace`
+           and is one of the triggers for question emission.
+        2. When the ambiguity vector is non-empty (or MSS recommends
+           ``clarify``/``block``), :class:`ClarifyingQuestion`s are
+           auto-emitted and attached to every spec via
+           :attr:`IntentSpec.clarifying_questions`.  Answering them is
+           HITL-only — Murphy MUST NOT auto-pick a candidate answer.
+        """
+        # 1. MSS pre-pass (advisory; never blocks extraction).
+        mss_trace = self._mss_pre_pass(request)
+
         llm_specs = self._extract_with_llm(request) if self._llm else []
         if llm_specs:
-            return llm_specs[: self._max_candidates]
+            specs = llm_specs[: self._max_candidates]
+            self._attach_questions_and_trace(specs, request, None, mss_trace)
+            return specs
 
         # Deterministic fallback.  If a classifier is configured AND the
         # caller hasn't pinned a specific deliverable type (i.e. they
@@ -188,7 +223,9 @@ class IntentExtractor:
             confidence=0.5 if self.is_vague(request) else 0.9,
         )
         if not self.is_vague(request):
-            return [primary]
+            specs = [primary]
+            self._attach_questions_and_trace(specs, request, classifier_pred, mss_trace)
+            return specs
 
         # Vague request: emit primary + alternative deliverable-type guesses.
         # Prefer classifier ranking when available; fall back to keyword
@@ -217,7 +254,126 @@ class IntentExtractor:
                     confidence=0.25,
                 )
             )
-        return alternatives[: self._max_candidates]
+        specs = alternatives[: self._max_candidates]
+        self._attach_questions_and_trace(specs, request, classifier_pred, mss_trace)
+        return specs
+
+    # ------------------------------------------------------------------
+    # MSS pre-pass + auto-triggered question synthesis
+    # ------------------------------------------------------------------
+
+    def _mss_pre_pass(self, request: Request) -> Dict[str, Any]:
+        """Optional Magnify→Simplify pre-pass on the request text.
+
+        Returns a small trace dict (always serializable) suitable for
+        attaching to :attr:`IntentSpec.mss_trace`.  Empty when no MSS
+        controller is wired.
+
+        We run **magnify** then **simplify** (not solidify) because
+        solidify is the action-commit step — and committing on an
+        ambiguous intent would violate the HITL boundary.  Solidify
+        is the principal's job, after they've answered the questions.
+        """
+        if self._mss is None:
+            return {}
+        trace: Dict[str, Any] = {"ran": False}
+        try:
+            magnified = self._mss.magnify(request.text)
+            simplified = self._mss.simplify(
+                self._mss_output_text(magnified) or request.text
+            )
+        except Exception as exc:  # pragma: no cover — defensive
+            logger.warning("MSS pre-pass failed (%s); skipping advisory trace", exc)
+            return {"ran": False, "error": str(exc)[:160]}
+
+        # Pull recommendation off whichever stage exposed it.
+        rec = (
+            self._mss_recommendation(simplified)
+            or self._mss_recommendation(magnified)
+            or "proceed"
+        )
+        trace.update(
+            {
+                "ran": True,
+                "magnify_status": getattr(magnified, "governance_status", "unknown"),
+                "simplify_status": getattr(simplified, "governance_status", "unknown"),
+                "recommendation": rec,
+                # Trigger flag mirrored on the spec so downstream
+                # controllers can branch on a single boolean.
+                "needs_clarification": rec in ("clarify", "block"),
+            }
+        )
+        return trace
+
+    @staticmethod
+    def _mss_output_text(result: Any) -> str:
+        """Extract a textual ``output`` from a TransformationResult-like."""
+        out = getattr(result, "output", None)
+        if isinstance(out, dict):
+            for key in ("text", "content", "result", "value"):
+                v = out.get(key)
+                if isinstance(v, str) and v.strip():
+                    return v
+        if isinstance(out, str):
+            return out
+        return ""
+
+    @staticmethod
+    def _mss_recommendation(result: Any) -> Optional[str]:
+        """Extract a clarify/block/proceed recommendation if present."""
+        iq = getattr(result, "input_quality", None) or getattr(result, "output_quality", None)
+        rec = getattr(iq, "recommendation", None)
+        if isinstance(rec, str):
+            return rec
+        return None
+
+    def _attach_questions_and_trace(
+        self,
+        specs: List[IntentSpec],
+        request: Request,
+        prediction: Optional[IntentPrediction],
+        mss_trace: Dict[str, Any],
+    ) -> None:
+        """Auto-emit clarifying questions on the primary spec when ambiguous.
+
+        Triggers (any of):
+          * Primary spec's ambiguity vector is non-empty.
+          * MSS pre-pass returned ``recommendation in {clarify, block}``.
+
+        Questions are attached to **every** spec so downstream code that
+        only inspects an alternative still sees them.  CITL boundary:
+        we generate the questions; we never auto-answer them.
+        """
+        if not specs:
+            return
+
+        if mss_trace:
+            for s in specs:
+                s.mss_trace = dict(mss_trace)
+
+        if not self._emit_questions:
+            return
+
+        primary = specs[0]
+        needs_questions = bool(primary.ambiguity.items) or mss_trace.get(
+            "needs_clarification", False
+        )
+        if not needs_questions:
+            return
+
+        questions = self._question_synth.synthesize(primary.ambiguity, prediction)
+        if not questions:
+            return
+        for s in specs:
+            # Fresh copies so mutating one spec's list doesn't leak across.
+            s.clarifying_questions = [
+                ClarifyingQuestion(
+                    question=q.question,
+                    ambiguity_item=q.ambiguity_item,
+                    candidate_answers=list(q.candidate_answers),
+                )
+                for q in questions
+            ]
 
     def _classify_or_none(self, request: Request) -> Optional[IntentPrediction]:
         """Run the classifier defensively.
