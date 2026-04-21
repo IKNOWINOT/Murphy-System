@@ -12,7 +12,7 @@ License: BSL 1.1
 from __future__ import annotations
 
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from src.billing.grants.models import Prerequisite, PrerequisiteStatus
@@ -255,7 +255,7 @@ class PrerequisiteChain:
                 )
 
         prereq.status = PrerequisiteStatus.COMPLETED
-        prereq.completed_at = datetime.utcnow()
+        prereq.completed_at = datetime.now(timezone.utc).replace(tzinfo=None)
         if notes:
             prereq.notes = notes
 
@@ -273,7 +273,7 @@ class PrerequisiteChain:
         if notes:
             prereq.notes = notes
         if status == PrerequisiteStatus.COMPLETED:
-            prereq.completed_at = datetime.utcnow()
+            prereq.completed_at = datetime.now(timezone.utc).replace(tzinfo=None)
         return prereq
 
     def get_blocking_prerequisites(self) -> List[Prerequisite]:

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from src.billing.grants.submission.models import (
@@ -71,7 +71,7 @@ class SubmissionManager:
             files=files,
             instructions=steps,
             status="generated",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc).replace(tzinfo=None),
         )
 
         _packages[package.package_id] = package

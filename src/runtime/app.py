@@ -11583,7 +11583,7 @@ def create_app() -> FastAPI:
                         await websocket.send_json({
                             "symbol": symbol,
                             "price": 0.0,
-                            "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
+                            "timestamp": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).replace(tzinfo=None).isoformat(),
                         })
                 except WebSocketDisconnect:
                     break

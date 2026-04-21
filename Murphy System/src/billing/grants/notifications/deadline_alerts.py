@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
 
@@ -32,7 +32,7 @@ class DeadlineAlertSystem:
     def check_deadlines(self, grants: List[Dict]) -> List[DeadlineAlert]:
         """Check grants for upcoming deadlines and create alerts as needed."""
         new_alerts = []
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         for grant in grants:
             grant_id = grant.get("grant_id", "")

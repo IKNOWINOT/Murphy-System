@@ -2120,7 +2120,7 @@ render();
 
 from __future__ import annotations
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 import uvicorn
@@ -2160,7 +2160,7 @@ class TaskUpdate(BaseModel):
     priority: Optional[str] = None
 
 @app.get("/api/health")
-def health(): return {"status": "ok", "ts": datetime.utcnow().isoformat()}
+def health(): return {"status": "ok", "ts": datetime.now(timezone.utc).replace(tzinfo=None).isoformat()}
 
 @app.get("/api/tasks")
 def list_tasks(owner_id: Optional[str] = None) -> List[Dict]:
@@ -2172,7 +2172,7 @@ def list_tasks(owner_id: Optional[str] = None) -> List[Dict]:
 def create_task(body: TaskCreate) -> Dict:
     task_id = str(uuid4())
     task = {"id": task_id, "title": body.title, "priority": body.priority,
-            "done": False, "created_at": datetime.utcnow().isoformat(),
+            "done": False, "created_at": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
             "owner_id": body.owner_id}
     _tasks[task_id] = task
     return task
@@ -2184,7 +2184,7 @@ def update_task(task_id: str, body: TaskUpdate) -> Dict:
     if body.done is not None: task["done"] = body.done
     if body.title is not None: task["title"] = body.title
     if body.priority is not None: task["priority"] = body.priority
-    task["updated_at"] = datetime.utcnow().isoformat()
+    task["updated_at"] = datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
     return task
 
 @app.delete("/api/tasks/{task_id}", status_code=204)
