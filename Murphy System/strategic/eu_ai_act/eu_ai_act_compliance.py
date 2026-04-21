@@ -353,7 +353,7 @@ class EUAIActCompliance:
 
         return {
             "report_type":        "EU AI Act 2024/1689 Conformity Assessment",
-            "generated":          datetime.utcnow().isoformat(),
+            "generated":          datetime.now(timezone.utc).isoformat(),
             "verified_by":        "Corey Post — Inoni LLC",
             "regulation_version": "EU AI Act 2024/1689 (entered into force 2024-08-01)",
             "summary": {

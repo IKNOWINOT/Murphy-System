@@ -176,7 +176,7 @@ def main() -> Dict[str, Any]:
 
     report: Dict[str, Any] = {
         "demo":        "manufacturing_iot_safety",
-        "generated":   datetime.utcnow().isoformat(),
+        "generated":   datetime.now(timezone.utc).isoformat(),
         "verified_by": "Corey Post — Inoni LLC",
         "summary": {
             "total": total, "executed": executed, "emergency_stops": stopped,

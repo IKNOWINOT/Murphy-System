@@ -16,6 +16,10 @@ on:
   repository_dispatch:
     types: [feedback_patch_request]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
   issues: write
