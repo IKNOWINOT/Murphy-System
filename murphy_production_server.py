@@ -154,6 +154,20 @@ except Exception as _adv_e:
     _advanced_loop_available = False
     _wire_advanced_loop = None  # type: ignore
 
+# -- Platform self-modification HITL pipeline (PSM-001..PSM-004) ---------------
+# Distinct from per-tenant supervisor_system.hitl_*: this surface controls
+# Murphy modifying its OWN code. Operator-token-gated, RSC-Lyapunov-gated,
+# every outcome recorded in an immutable hash-chained ledger.
+try:
+    from src.platform_self_modification import build_router as _build_psm_router
+    _psm_available = True
+    log.info("Platform self-modification HITL pipeline (PSM-001..PSM-004) loaded")
+except Exception as _psm_e:
+    log.warning("Platform self-modification pipeline not available (%s)", _psm_e)
+    _psm_available = False
+    _build_psm_router = None  # type: ignore
+
+
 # -- Crown Jewel Module Wiring (Phases 1-8) ------------------------------------
 try:
     from rosetta.rosetta_manager import RosettaManager as _RosettaManager
@@ -1221,6 +1235,22 @@ async def _startup():
         except Exception as _adv_startup_e:
             log.warning("Advanced loop startup wiring failed: %s", _adv_startup_e)
             app.state.adv_loop_components = {}
+
+    # PSM-001/002 — In-process Lyapunov monitor for the platform self-mod
+    # gate. The full RSC service runs out-of-process; here we keep a
+    # local monitor that other in-process subsystems can update with
+    # recursion-energy samples. An empty monitor allows cold-start
+    # cycles by design (gate returns reason="cold_start").
+    try:
+        from src.recursive_stability_controller.lyapunov_monitor import (
+            LyapunovMonitor as _LyapunovMonitor,
+        )
+        app.state.platform_lyapunov_monitor = _LyapunovMonitor()
+        log.info("PSM-001: in-process LyapunovMonitor initialized for platform self-mod gate")
+    except Exception as _ly_e:
+        log.warning("PSM-001: LyapunovMonitor unavailable (%s) — gate will refuse all launches", _ly_e)
+        app.state.platform_lyapunov_monitor = None
+
 
     # -- Phase 1: Wire RosettaManager ------------------------------------------
     global _rosetta_manager
@@ -6670,6 +6700,33 @@ async def self_loop_execution_status():
         "components_available": list(components.keys()),
         "timestamp": _now_iso(),
     })
+
+
+# =============================================================================
+# PLATFORM SELF-MODIFICATION HITL PIPELINE (PSM-001..PSM-004)
+# =============================================================================
+# Distinct from per-tenant /api/hitl/*: this surface controls Murphy
+# modifying its OWN code. Operator-token-gated, RSC-Lyapunov-gated,
+# every outcome recorded in an immutable hash-chained ledger at
+# data/platform_self_edit_ledger.jsonl (override via
+# MURPHY_PLATFORM_SELF_EDIT_LEDGER_PATH).
+
+if _psm_available and _build_psm_router is not None:
+    try:
+        app.include_router(
+            _build_psm_router(
+                get_orchestrator=lambda: _get_adv_components().get("orchestrator"),
+                get_lyapunov_source=lambda: getattr(
+                    app.state, "platform_lyapunov_monitor", None
+                ),
+            )
+        )
+        log.info("PSM-003/PSM-004: platform self-modification router mounted")
+    except Exception as _psm_mount_e:
+        log.error(
+            "PSM-003/PSM-004: failed to mount platform self-mod router: %s",
+            _psm_mount_e,
+        )
 
 
 # =============================================================================

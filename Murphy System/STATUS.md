@@ -30,6 +30,7 @@
 | **Prompt Rate Limiter (PROMPT-RATE-001)** | ✅ **New** | Per-tenant swarm-aware token bucket on `/api/prompt`; human + swarm tiers, env-tunable, structured 429. 9 tests. |
 | **LLM Self-Check (LLM-SELFCHECK-001)** | ✅ **New** | Startup self-inference + verification; exposes actual provider (deepinfra/together/onboard) on `/health` and `/api/llm/selfcheck` so silent fallback is immediately visible. Retry-with-reinforcement on schema failure; error categorization (schema/model/network/content/config). 14 tests. |
 | **Communication Hub** | ✅ **New** | IM, voice, video, email, automation rules + moderator console. SQLite-persisted. 38 API endpoints, 83 tests. `/ui/comms-hub` |
+| **Platform Self-Modification HITL (PSM-001..PSM-004)** | ✅ **New** | Operator-approved button to launch a self-mod cycle (`/api/platform/self-modification/console`). RSC Lyapunov gate vetoes cycles that grow recursion energy. Immutable hash-chained ledger at `data/platform_self_edit_ledger.jsonl` records every REQUESTED/VETOED/APPROVED/LAUNCHED/FAILED/REVERTED. Distinct from per-tenant `/api/hitl/*`. 43 tests. |
 | UI / Landing Page | ⚠️ Partial | Landing page, terminal UIs exist; dashboard incomplete |
 | **Documentation** | ✅ Complete | API docs, architecture docs (incl. Security Plane), LLM subsystem ref, 14 package READMEs, deployment guides |
 

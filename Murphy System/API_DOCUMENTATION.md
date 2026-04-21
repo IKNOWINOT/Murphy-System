@@ -87,6 +87,37 @@
 | POST | /api/hitl/qc/submit | Yes | Submit a deliverable for QC review |
 | POST | /api/hitl/acceptance/submit | Yes | Submit for customer acceptance |
 
+## Platform Self-Modification (PSM-001..PSM-004)
+
+Distinct from per-tenant `/api/hitl/*`: this surface controls **Murphy
+modifying its own code**. Operator-token-gated, RSC-Lyapunov-gated,
+every outcome recorded in an immutable hash-chained ledger.
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET  | /api/platform/self-modification/console | Operator token | HTML "operator-approved button" page (PSM-004) |
+| POST | /api/platform/self-modification/launch  | Operator token | Launch a self-modification cycle (PSM-003); returns 202 + cycle_id |
+| GET  | /api/platform/self-modification/ledger  | Operator token | Tail of the immutable ledger; verifies hash chain on every read |
+
+**Auth header:** `X-Murphy-Platform-Operator: <token>` matched constant-time
+against env var `MURPHY_PLATFORM_OPERATOR_TOKEN`. **Unconfigured token →
+all requests refused (401).**
+
+**Status codes** — `POST /launch`:
+- `202` Accepted: cycle handed to orchestrator. Body has `cycle_id`,
+  `proposal_id`, `ledger_seq`. Ledger entries written: `REQUESTED → APPROVED → LAUNCHED`.
+- `409` RSC veto (Lyapunov unstable or consecutive-violation streak).
+  Ledger: `REQUESTED → VETOED`.
+- `503` RSC source missing or orchestrator unwired. Ledger:
+  `REQUESTED → VETOED`/`FAILED`.
+- `500` Orchestrator raised. Ledger: `REQUESTED → APPROVED → FAILED`.
+- `422` Body validation failure. No partial writes.
+- `401` Missing/invalid operator token. No partial writes.
+
+**Ledger location:** `data/platform_self_edit_ledger.jsonl` (override
+via `MURPHY_PLATFORM_SELF_EDIT_LEDGER_PATH`). Append-only; SHA-256 chain
+detects tamper, sequence gaps, and broken `prev_hash` links.
+
 ## Trading
 
 | Method | Path | Auth | Description |
