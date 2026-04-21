@@ -17,7 +17,7 @@ Covers:
 import os
 import sys
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Ensure imports work — add strategic subdirectories directly to avoid
 # namespace collision with tests/compliance/ package.
@@ -69,28 +69,28 @@ class TestImmutableAuditLog(unittest.TestCase):
         self.log = ImmutableAuditLog()
 
     def test_append_event(self):
-        event = AuditEvent("E-1", "GATE_EVAL", "user1", "pipeline-1", "EVALUATE", "SUCCESS", datetime.utcnow())
+        event = AuditEvent("E-1", "GATE_EVAL", "user1", "pipeline-1", "EVALUATE", "SUCCESS", datetime.now(timezone.utc).replace(tzinfo=None))
         result = self.log.append(event)
         self.assertNotEqual(result.integrity_hash, "")
         self.assertEqual(self.log.event_count, 1)
 
     def test_hash_chain_integrity(self):
         for i in range(5):
-            event = AuditEvent(f"E-{i}", "GATE_EVAL", "user1", f"res-{i}", "EVALUATE", "SUCCESS", datetime.utcnow())
+            event = AuditEvent(f"E-{i}", "GATE_EVAL", "user1", f"res-{i}", "EVALUATE", "SUCCESS", datetime.now(timezone.utc).replace(tzinfo=None))
             self.log.append(event)
         self.assertTrue(self.log.verify_chain())
 
     def test_immutability(self):
         """Events cannot be modified after insertion."""
-        event = AuditEvent("E-1", "GATE_EVAL", "user1", "res-1", "EVALUATE", "SUCCESS", datetime.utcnow())
+        event = AuditEvent("E-1", "GATE_EVAL", "user1", "res-1", "EVALUATE", "SUCCESS", datetime.now(timezone.utc).replace(tzinfo=None))
         stored = self.log.append(event)
         # Frozen dataclass prevents modification
         with self.assertRaises(AttributeError):
             stored.actor = "tampered"
 
     def test_query_by_type(self):
-        self.log.append(AuditEvent("E-1", "GATE_EVAL", "user1", "r1", "EVAL", "SUCCESS", datetime.utcnow()))
-        self.log.append(AuditEvent("E-2", "ACCESS", "user2", "r2", "READ", "SUCCESS", datetime.utcnow()))
+        self.log.append(AuditEvent("E-1", "GATE_EVAL", "user1", "r1", "EVAL", "SUCCESS", datetime.now(timezone.utc).replace(tzinfo=None)))
+        self.log.append(AuditEvent("E-2", "ACCESS", "user2", "r2", "READ", "SUCCESS", datetime.now(timezone.utc).replace(tzinfo=None)))
         gate_events = self.log.query(event_type="GATE_EVAL")
         self.assertEqual(len(gate_events), 1)
 
