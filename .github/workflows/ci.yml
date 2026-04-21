@@ -266,7 +266,7 @@ jobs:
             --ignore=tests/integration \
             --ignore=tests/sla \
             --ignore=tests/benchmarks \
-            -k "not test_actual_local_llm"
+            -m "not local_llm"
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
@@ -393,7 +393,7 @@ jobs:
           python -m pytest tests/e2e tests/integration tests/sla \
             -v --tb=short --timeout=120 \
             --continue-on-collection-errors \
-            -k "not test_actual_local_llm"
+            -m "not local_llm"
         continue-on-error: true
 
   # ---------------------------------------------------------------------------

@@ -135,7 +135,7 @@ jobs:
             --ignore=tests/sla \
             --ignore=tests/benchmarks \
             --continue-on-collection-errors \
-            -k "not test_actual_local_llm" \
+            -m "not local_llm" \
             2>&1 | tee /tmp/dep_upgrade/test_output.log
           TEST_EXIT=$?
           set -e
