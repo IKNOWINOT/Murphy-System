@@ -80,12 +80,12 @@ jobs:
       root_cause_category: ${{ steps.diagnose.outputs.root_cause_category }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        uses: actions/checkout@v4
         with:
           ref: ${{ needs.gate.outputs.head_sha }}
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -160,7 +160,7 @@ jobs:
           fi
 
       - name: Upload diagnosis artifacts
-        uses: actions/upload-artifact@v7  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v7 (Node 24)
+        uses: actions/upload-artifact@v4
         with:
           name: recovery-diagnosis
           path: /tmp/recovery_workspace/
@@ -177,13 +177,13 @@ jobs:
       fix_branch: ${{ steps.execute_fix.outputs.fix_branch }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        uses: actions/checkout@v4
         with:
           ref: ${{ needs.gate.outputs.head_sha }}
           fetch-depth: 0
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -195,7 +195,7 @@ jobs:
           pip install pytest-asyncio pytest-timeout
 
       - name: Download diagnosis artifacts
-        uses: actions/download-artifact@v8  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v8 (Node 24)
+        uses: actions/download-artifact@v4
         with:
           name: recovery-diagnosis
           path: /tmp/recovery_workspace/
@@ -238,7 +238,7 @@ jobs:
           fi
 
       - name: Upload fix artifacts
-        uses: actions/upload-artifact@v7  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v7 (Node 24)
+        uses: actions/upload-artifact@v4
         with:
           name: recovery-fix-plan
           path: /tmp/recovery_workspace/
@@ -260,12 +260,12 @@ jobs:
       tests_passed: ${{ steps.test.outputs.tests_passed }}
     steps:
       - name: Checkout fix branch
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        uses: actions/checkout@v4
         with:
           ref: ${{ needs.plan-and-fix.outputs.fix_branch }}
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -337,13 +337,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout fix branch
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        uses: actions/checkout@v4
         with:
           ref: ${{ needs.plan-and-fix.outputs.fix_branch }}
           fetch-depth: 0
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -354,7 +354,7 @@ jobs:
           pip install -r requirements_ci.txt
 
       - name: Download diagnosis + fix artifacts
-        uses: actions/download-artifact@v8  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v8 (Node 24)
+        uses: actions/download-artifact@v4
         with:
           name: recovery-diagnosis
           path: /tmp/recovery_workspace/

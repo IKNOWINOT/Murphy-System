@@ -64,10 +64,10 @@ jobs:
       critical_count: ${{ steps.diagnose.outputs.critical_count }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -120,7 +120,7 @@ jobs:
 
       - name: Upload diagnosis artifacts
         if: always()
-        uses: actions/upload-artifact@v7  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v7 (Node 24)
+        uses: actions/upload-artifact@v4
         with:
           name: deprecation-diagnosis
           path: /tmp/deprecation_workspace/
@@ -138,12 +138,12 @@ jobs:
       fix_branch: ${{ steps.execute_fix.outputs.fix_branch }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -154,7 +154,7 @@ jobs:
           pip install pyyaml 2>/dev/null || true
 
       - name: Download diagnosis artifacts
-        uses: actions/download-artifact@v8  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v8 (Node 24)
+        uses: actions/download-artifact@v4
         with:
           name: deprecation-diagnosis
           path: /tmp/deprecation_workspace/
@@ -196,7 +196,7 @@ jobs:
 
       - name: Upload fix artifacts
         if: always()
-        uses: actions/upload-artifact@v7  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v7 (Node 24)
+        uses: actions/upload-artifact@v4
         with:
           name: deprecation-fix-plan
           path: /tmp/deprecation_workspace/
@@ -215,12 +215,12 @@ jobs:
       validation_passed: ${{ steps.validate.outputs.passed }}
     steps:
       - name: Checkout fix branch
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        uses: actions/checkout@v4
         with:
           ref: ${{ needs.plan-and-fix.outputs.fix_branch }}
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -286,19 +286,19 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout fix branch
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        uses: actions/checkout@v4
         with:
           ref: ${{ needs.plan-and-fix.outputs.fix_branch }}
           fetch-depth: 0
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
 
       - name: Download diagnosis artifacts
-        uses: actions/download-artifact@v8  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v8 (Node 24)
+        uses: actions/download-artifact@v4
         with:
           name: deprecation-diagnosis
           path: /tmp/deprecation_workspace/
