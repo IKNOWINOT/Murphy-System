@@ -11,6 +11,13 @@ on:
   workflow_dispatch:
     # Allow manual trigger (e.g. after major merge or hotfix)
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
 env:
   MURPHY_ENV: test
   MURPHY_DB_MODE: stub
@@ -319,6 +326,19 @@ jobs:
       - name: Run bandit on core paths (HIGH severity blocks)
         run: |
           bandit -r src/runtime/ src/rosetta/ \
+            -c bandit.yaml \
+            --severity-level high \
+            -f txt
+
+      - name: Run bandit HIGH across full src/ (blocks)
+        # PROD-HARD-CI-7 (audit B8): the MD5/B324 finding in
+        # src/demo_deliverable_generator.py was outside the runtime/rosetta
+        # scope above and the extended medium scan below is non-blocking, so
+        # a High finding could ship green. This step closes that gap by
+        # running bandit at --severity-level high across all of src/ with
+        # continue-on-error OFF — any new High issue anywhere in src/ blocks.
+        run: |
+          bandit -r src/ \
             -c bandit.yaml \
             --severity-level high \
             -f txt

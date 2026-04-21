@@ -199,6 +199,44 @@ class TestComplianceEvalSafety:
     def test_arithmetic(self, safe_eval):
         assert safe_eval("x + y > 10", {"x": 7, "y": 5}) is True
 
+    # ── PROD-HARD-A11: extended sandbox-escape corpus ─────────────────
+    # Audit identified that the existing block-list above did not exercise
+    # the classic Python sandbox-escape patterns. Each payload below MUST
+    # raise (either ValueError "disallowed" from _validate_ast, or a parse
+    # error from ast.parse). If any of these stops raising, the eval site
+    # at compliance_as_code_engine.py:223 has been weakened — investigate.
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            # Class-walking: classic escape to __subclasses__ → file-write gadgets.
+            "().__class__.__bases__[0].__subclasses__()",
+            "''.__class__.__mro__[1].__subclasses__()",
+            # getattr indirection — bypasses simple "no Attribute" filter.
+            "getattr(x, '__class__')",
+            # Lambda definition — would let an attacker smuggle code as a value.
+            "(lambda: 1)()",
+            # Comprehensions — Generator/ListComp nodes, allow side effects.
+            "[i for i in range(10)]",
+            "{i for i in range(10)}",
+            "{i: i for i in range(10)}",
+            "(i for i in range(10))",
+            # f-string with attribute access — JoinedStr / FormattedValue.
+            "f'{x.__class__}'",
+            # Nested call to dynamic builtins lookup.
+            "type(x).__name__",
+            # Star-args / unpacking — Starred node not in safe set.
+            "[*x]",
+            # Slice — Subscript already blocked, but assert via slice too.
+            "x[0:1]",
+            # Walrus operator — NamedExpr lets values escape into context.
+            "(y := 1)",
+        ],
+    )
+    def test_sandbox_escape_corpus_blocked(self, safe_eval, payload):
+        """Every classic Python sandbox-escape payload must be rejected."""
+        with pytest.raises((ValueError, SyntaxError, TypeError)):
+            safe_eval(payload, {"x": [1, 2, 3]})
+
 
 # ═══════════════════════════════════════════════════════════════════════
 #  Module 4 — SQL Injection Guard

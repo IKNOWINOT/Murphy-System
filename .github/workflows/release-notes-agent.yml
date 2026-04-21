@@ -16,6 +16,10 @@ on:
         description: 'Tag to generate release notes for (e.g., v1.2.3)'
         required: false
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: write
 

@@ -395,7 +395,7 @@ class CounterpartyCreditScorer:
         rating_score = 1.0 - rating_pd
 
         # Staleness penalty: profiles older than 24h get penalised
-        age_hours = (datetime.utcnow() - profile.last_updated).total_seconds() / 3600
+        age_hours = (datetime.now(timezone.utc) - profile.last_updated).total_seconds() / 3600
         staleness = _clamp(1.0 - age_hours / 48.0)  # Degrades over 48h
 
         return _clamp(
