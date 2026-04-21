@@ -107,6 +107,19 @@ Murphy System/archive/
 # Encrypted key files generated at runtime
 *.enc
 
+# PROD-HARD-SEC-001 (audit G14, G15): prevent accidental commit of secrets
+# and patch-artifact .bak files (which is how src/runtime/app.py.patch001.bak
+# and src/fastapi_security.py.patch001.bak got into the tree previously).
+*.bak
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+credentials.json
+.aws/
+.ssh/
+
 # Mail server TLS certificates (generated at deploy time, not tracked)
 config/mail/ssl/
 
