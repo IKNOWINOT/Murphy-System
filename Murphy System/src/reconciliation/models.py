@@ -209,6 +209,22 @@ class IntentSpec(_ReconBase):
     success_exemplars: List[str] = Field(default_factory=list)
     failure_exemplars: List[str] = Field(default_factory=list)
     ambiguity: AmbiguityVector = Field(default_factory=AmbiguityVector)
+    clarifying_questions: List["ClarifyingQuestion"] = Field(
+        default_factory=list,
+        description=(
+            "Auto-emitted by IntentExtractor when the request is ambiguous; "
+            "answering them is HITL-only — Murphy must NOT auto-pick a "
+            "candidate answer."
+        ),
+    )
+    mss_trace: Dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Optional Magnify→Simplify→Solidify trace: governance_status, "
+            "input/output quality scores, and recommendation. Populated when "
+            "an MSSController is wired into the extractor."
+        ),
+    )
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -358,3 +374,9 @@ __all__ = [
     "ClarifyingQuestion",
     "LoopOutcome",
 ]
+
+
+# Resolve the forward reference IntentSpec → ClarifyingQuestion (declared
+# after IntentSpec for grouping reasons).  Without this, pydantic v2 raises
+# PydanticUndefinedAnnotation on first use.
+IntentSpec.model_rebuild()
