@@ -13,6 +13,7 @@ Creator: Corey Post · License: BSL 1.1
 from __future__ import annotations
 
 import json
+import logging
 import sys
 from typing import Any
 
@@ -25,6 +26,8 @@ from murphy_cli.output import (
     print_stream_done,
     render_response,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _cmd_chat(parsed: Any, ctx: Any) -> int:
@@ -80,8 +83,8 @@ def _cmd_chat(parsed: Any, ctx: Any) -> int:
                 elif event == "error":
                     print_error(data, code="CLI-CMD-CHAT-ERR-002")
                     return 1
-        except Exception:  # CLI-CMD-CHAT-ERR-001
-            pass  # Fallback to non-streaming below
+        except Exception:  # CLI-CMD-CHAT-ERR-001  PROD-HARD A2: streaming path failed — log before falling back to non-streaming POST
+            logger.debug("Chat streaming path failed; falling back to non-streaming POST", exc_info=True)
 
         if streamed:
             print_stream_done()
