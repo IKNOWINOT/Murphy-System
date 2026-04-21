@@ -245,8 +245,8 @@ class DurableSwarmOrchestrator:
         try:
             from swarm_rosetta_bridge import get_bridge
             get_bridge().on_task_spawned(task_id=task_id, description=description, budget=budget)
-        except Exception:
-            pass
+        except Exception:  # PROD-HARD A2: Rosetta bridge optional; swarm function unaffected
+            logger.debug("Rosetta bridge unavailable for on_task_spawned(%s)", task_id, exc_info=True)
 
         return (True, task_id, idem_key)
 
@@ -274,8 +274,8 @@ class DurableSwarmOrchestrator:
         try:
             from swarm_rosetta_bridge import get_bridge
             get_bridge().on_task_completed(task_id=task_id, cost=cost)
-        except Exception:
-            pass
+        except Exception:  # PROD-HARD A2: Rosetta bridge optional; swarm function unaffected
+            logger.debug("Rosetta bridge unavailable for on_task_completed(%s)", task_id, exc_info=True)
 
         return True
 
@@ -321,8 +321,8 @@ class DurableSwarmOrchestrator:
         try:
             from swarm_rosetta_bridge import get_bridge
             get_bridge().on_task_failed(task_id=task_id, reason=error)
-        except Exception:
-            pass
+        except Exception:  # PROD-HARD A2: Rosetta bridge optional; swarm function unaffected
+            logger.debug("Rosetta bridge unavailable for on_task_failed(%s)", task_id, exc_info=True)
 
         return (False, "rollback")
 
