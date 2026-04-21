@@ -6,6 +6,13 @@ from .subsystem_wiring import (
     WiringStatus,
     bootstrap_wiring,
 )
+from .platform_org_seed import (
+    PLATFORM_OPERATOR_TO_ROLE,
+    PLATFORM_ORG_ID,
+    get_platform_roster,
+    seed_platform_org,
+)
+from .org_chart import build_org_chart, lookup_role_for_operator
 
 __all__ = [
     "RosettaAgentState",
@@ -18,4 +25,10 @@ __all__ = [
     "RosettaSubsystemWiring",
     "WiringStatus",
     "bootstrap_wiring",
+    "PLATFORM_ORG_ID",
+    "PLATFORM_OPERATOR_TO_ROLE",
+    "get_platform_roster",
+    "seed_platform_org",
+    "build_org_chart",
+    "lookup_role_for_operator",
 ]

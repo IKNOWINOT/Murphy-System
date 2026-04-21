@@ -171,12 +171,21 @@ except Exception as _psm_e:
 # -- Crown Jewel Module Wiring (Phases 1-8) ------------------------------------
 try:
     from rosetta.rosetta_manager import RosettaManager as _RosettaManager
+    # ROSETTA-ORG-001/003/004: org-chart projection + platform seed.
+    from rosetta.platform_org_seed import seed_platform_org as _seed_platform_org
+    from rosetta.org_chart import (
+        build_org_chart as _build_org_chart,
+        lookup_role_for_operator as _lookup_role_for_operator,
+    )
     _rosetta_available = True
     log.info("RosettaManager loaded")
 except Exception as _e:
     log.warning("RosettaManager not available (%s)", _e)
     _rosetta_available = False
     _RosettaManager = None
+    _seed_platform_org = None
+    _build_org_chart = None
+    _lookup_role_for_operator = None
 
 try:
     from ceo_branch_activation import CEOBranch as _CEOBranch
@@ -1168,6 +1177,11 @@ _background_tasks: list = []          # Track tasks for graceful shutdown
 
 # -- Crown Jewel Subsystem Instances -------------------------------------------
 _rosetta_manager: Optional[Any] = None
+# ROSETTA-ORG-002: explicit sentinel so /api/rosetta/* endpoints can
+# report *why* the manager is unavailable instead of silently flipping
+# to "not initialized" (which previously hid real errors at startup).
+_rosetta_init_error: Optional[str] = None
+_rosetta_seed_warnings: List[str] = []
 _ceo_branch: Optional[Any] = None
 _heartbeat_runner: Optional[Any] = None
 _aionmind_kernel: Optional[Any] = None
@@ -1253,18 +1267,43 @@ async def _startup():
 
 
     # -- Phase 1: Wire RosettaManager ------------------------------------------
-    global _rosetta_manager
+    # ROSETTA-ORG-002: construct unconditionally in dev so the org chart
+    # is queryable on a fresh start.  Removed the earlier
+    # `_rosetta_manager.load_state()` call (no-arg form did not exist
+    # and silently disabled the entire subsystem via except-swallow).
+    # All failures are recorded in `_rosetta_init_error` so the HTTP
+    # surface can report them — never silent.
+    global _rosetta_manager, _rosetta_init_error, _rosetta_seed_warnings
     if _rosetta_available:
         try:
             _rosetta_state_dir = os.environ.get(
                 "MURPHY_PERSISTENCE_DIR", ".murphy_persistence"
             ) + "/rosetta"
             _rosetta_manager = _RosettaManager(persistence_dir=_rosetta_state_dir)
-            _rosetta_manager.load_state()
             log.info("RosettaManager initialized — state dir: %s", _rosetta_state_dir)
         except Exception as _e:
-            log.warning("RosettaManager init failed (%s) — continuing without", _e)
+            _rosetta_init_error = f"init_failed: {_e}"
+            log.error("RosettaManager init failed (%s)", _e, exc_info=_e)
             _rosetta_manager = None
+
+        # ROSETTA-ORG-001: seed the canonical Murphy-platform org.
+        # Skipped (with explicit warning) only if construction itself failed.
+        if _rosetta_manager is not None and _seed_platform_org is not None:
+            try:
+                seeded = _seed_platform_org(_rosetta_manager)
+                log.info(
+                    "ROSETTA-ORG-001: seeded %d platform roles: %s",
+                    len(seeded), seeded,
+                )
+            except Exception as _e:
+                # Loud: this is required for PSM owner attribution.
+                _rosetta_seed_warnings.append(f"seed_failed: {_e}")
+                log.error(
+                    "ROSETTA-ORG-001: seed_platform_org failed: %s",
+                    _e, exc_info=_e,
+                )
+    else:
+        _rosetta_init_error = "rosetta_module_unavailable"
 
     # -- Phase 1: Wire CEOBranch + ActivatedHeartbeatRunner --------------------
     global _ceo_branch, _heartbeat_runner
@@ -1436,57 +1475,114 @@ async def _shutdown():
     # Log rate governor final state for diagnostics
     if _rate_governor is not None:
         log.info("Rate governor final state: %s", _rate_governor.status())
-    # Persist Rosetta state on shutdown
+    # Persist Rosetta state on shutdown.
+    # ROSETTA-ORG-002: state is already persisted on every save_state /
+    # update_state call (atomic write to disk).  Nothing to flush.
+    # The previous no-arg save_state() call did not match any method
+    # signature and was silently swallowed by the warning handler.
     if _rosetta_manager is not None:
-        try:
-            _rosetta_manager.save_state()
-            log.info("Rosetta state saved on shutdown")
-        except Exception as _e:
-            log.warning("Rosetta state save failed on shutdown: %s", _e)
+        log.info(
+            "Rosetta shutdown: %d agent state(s) persisted on disk",
+            len(_rosetta_manager.list_agents()),
+        )
     log.info("Murphy Production Server shutdown complete")
 
 # == Crown Jewel API Endpoints (Phases 1-8) ====================================
 
 # -- Phase 1: Rosetta endpoints ------------------------------------------------
+def _rosetta_unavailable_payload() -> Dict[str, Any]:
+    """ROSETTA-ORG-002: explicit reason — never a bare 'not initialized'."""
+    return {
+        "available": False,
+        "reason": _rosetta_init_error or "not_initialized",
+        "seed_warnings": list(_rosetta_seed_warnings),
+    }
+
+
 @app.get("/api/rosetta/state")
 async def rosetta_state():
     """GET /api/rosetta/state — current Rosetta state snapshot. G1: RosettaManager state."""
     if _rosetta_manager is None:
-        return JSONResponse({"available": False, "message": "RosettaManager not initialized"})
+        return JSONResponse(_rosetta_unavailable_payload())
     try:
-        states = _rosetta_manager.list_all()
-        return JSONResponse({"available": True, "agent_count": len(states), "agents": [s for s in states]})
+        states = _rosetta_manager.list_states()
+        return JSONResponse({
+            "available": True,
+            "agent_count": len(states),
+            "agents": states,
+            "seed_warnings": list(_rosetta_seed_warnings),
+        })
     except Exception as _e:
-        log.warning("Rosetta state fetch error: %s", _e)
-        return JSONResponse({"available": True, "error": str(_e)}, status_code=500)
+        log.error("Rosetta state fetch error: %s", _e, exc_info=_e)
+        return JSONResponse(
+            {"available": True, "error": str(_e)}, status_code=500,
+        )
 
 
 @app.get("/api/rosetta/personas")
 async def rosetta_personas():
     """GET /api/rosetta/personas — list all personas."""
     if _rosetta_manager is None:
-        return JSONResponse({"available": False, "personas": []})
+        payload = _rosetta_unavailable_payload()
+        payload["personas"] = []
+        return JSONResponse(payload)
     try:
-        all_states = _rosetta_manager.list_all()
+        all_states = _rosetta_manager.list_states()
         return JSONResponse({"available": True, "personas": all_states})
     except Exception as _e:
-        return JSONResponse({"available": True, "error": str(_e), "personas": []}, status_code=500)
+        log.error("Rosetta personas fetch error: %s", _e, exc_info=_e)
+        return JSONResponse(
+            {"available": True, "error": str(_e), "personas": []},
+            status_code=500,
+        )
 
 
 @app.get("/api/rosetta/persona/{persona_id}")
 async def rosetta_persona(persona_id: str):
     """GET /api/rosetta/persona/{id} — single persona detail."""
     if _rosetta_manager is None:
-        raise HTTPException(status_code=503, detail="RosettaManager not initialized")
+        raise HTTPException(
+            status_code=503, detail=_rosetta_unavailable_payload(),
+        )
     try:
         state = _rosetta_manager.get_state(persona_id)
         if state is None:
-            raise HTTPException(status_code=404, detail=f"Persona {persona_id!r} not found")
-        return JSONResponse({"persona_id": persona_id, "state": state})
+            raise HTTPException(
+                status_code=404, detail=f"Persona {persona_id!r} not found",
+            )
+        return JSONResponse({
+            "persona_id": persona_id,
+            "state": state.model_dump(mode="json"),
+        })
     except HTTPException:
         raise
     except Exception as _e:
+        log.error("Rosetta persona fetch error: %s", _e, exc_info=_e)
         raise HTTPException(status_code=500, detail=str(_e))
+
+
+# ROSETTA-ORG-003: org-chart projection endpoint.
+@app.get("/api/rosetta/org-chart")
+async def rosetta_org_chart():
+    """GET /api/rosetta/org-chart — Murphy-platform org tree.
+
+    Returns the canonical Murphy-Inc roster (CEO / CTO / Compliance / SRE)
+    walked into a tree via ``EmployeeContract.reports_to``.  Surfaces
+    cycle/multi-root/orphan conditions explicitly rather than 500-ing
+    or returning a corrupt tree.
+    """
+    if _rosetta_manager is None or _build_org_chart is None:
+        return JSONResponse(_rosetta_unavailable_payload())
+    try:
+        chart = _build_org_chart(_rosetta_manager)
+        chart["seed_warnings"] = list(_rosetta_seed_warnings)
+        return JSONResponse(chart)
+    except Exception as _e:
+        log.error("Rosetta org-chart build error: %s", _e, exc_info=_e)
+        return JSONResponse(
+            {"available": False, "reason": "build_exception", "error": str(_e)},
+            status_code=500,
+        )
 
 
 # -- Phase 1: CEO Branch endpoints ---------------------------------------------
@@ -6719,6 +6815,9 @@ if _psm_available and _build_psm_router is not None:
                 get_lyapunov_source=lambda: getattr(
                     app.state, "platform_lyapunov_monitor", None
                 ),
+                # ROSETTA-ORG-004: lets the PSM endpoint stamp the
+                # Rosetta owner_role + approver_chain on every cycle.
+                get_rosetta_manager=lambda: _rosetta_manager,
             )
         )
         log.info("PSM-003/PSM-004: platform self-modification router mounted")

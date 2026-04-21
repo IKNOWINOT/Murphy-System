@@ -90,7 +90,9 @@ class RosettaManager:
                     json.dump(data, f, indent=2, default=str)
                 tmp_path.replace(filepath)
             except Exception as exc:
-                logger.debug("Suppressed exception: %s", exc)
+                logger.error(
+                    "ROSETTA: atomic write failed for %s: %s", filepath, exc,
+                )
                 if tmp_path.exists():
                     tmp_path.unlink()
                 raise
@@ -145,8 +147,14 @@ class RosettaManager:
                     data = self._read_json(filepath)
                     state = RosettaAgentState.model_validate(data)
                 except Exception as exc:
-                    logger.debug("Suppressed exception: %s", exc)
-                    return None
+                    # ROSETTA-ORG-002: surface — the previous behavior
+                    # silently dropped the update and returned None,
+                    # which made corrupted state files invisible.
+                    logger.error(
+                        "Failed to load Rosetta state for update %s: %s",
+                        agent_id, exc,
+                    )
+                    raise
 
             current = state.model_dump(mode="json")
             self._deep_merge(current, updates)
@@ -162,6 +170,32 @@ class RosettaManager:
             on_disk = {p.stem for p in self._persistence_dir.glob("*.json")}
             in_memory = set(self._states.keys())
             return sorted(on_disk | in_memory)
+
+    # ROSETTA-ORG-002: thin wrappers used by HTTP endpoints.  Added
+    # because /api/rosetta/state and /api/rosetta/persona/{id} were
+    # calling methods that did not exist (silent 500 the moment the
+    # manager was non-None).  Surfacing real errors is preferred over
+    # the previous "swallow and disable" pattern.
+
+    def get_state(self, agent_id: str) -> Optional[RosettaAgentState]:
+        """Alias for :meth:`load_state` used by HTTP endpoints."""
+        return self.load_state(agent_id)
+
+    def list_states(self) -> List[Dict[str, Any]]:
+        """Return all agent states as JSON-ready dicts.
+
+        Skipped states (corrupt JSON on disk) are *not* hidden — they
+        are returned with an explicit ``{"agent_id": ..., "error": ...}``
+        marker so the caller (and operators) see them.
+        """
+        out: List[Dict[str, Any]] = []
+        for aid in self.list_agents():
+            state = self.load_state(aid)
+            if state is None:
+                out.append({"agent_id": aid, "error": "load_failed"})
+                continue
+            out.append(state.model_dump(mode="json"))
+        return out
 
     def delete_state(self, agent_id: str) -> bool:
         """Delete agent state from memory and disk."""
