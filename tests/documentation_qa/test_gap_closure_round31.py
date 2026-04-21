@@ -21,10 +21,6 @@ import pytest
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 SRC_DIR = os.path.join(PROJECT_ROOT, "src")
 TESTS_DIR = os.path.join(PROJECT_ROOT, "tests")
-# REPO_ROOT and PROJECT_ROOT both point at the repo root in the canonical
-# mirrored layout (Murphy System/ ↔ root). Kept as a separate name for
-# readability of the call sites that reference top-level docs.
-REPO_ROOT = PROJECT_ROOT
 
 
 class TestDocumentationAccuracy:
@@ -90,7 +86,7 @@ class TestDocumentationAccuracy:
 
         Regression tripwire (see test_inner_readme_module_count).
         """
-        gs_path = os.path.join(REPO_ROOT, "GETTING_STARTED.md")
+        gs_path = os.path.join(PROJECT_ROOT, "GETTING_STARTED.md")
         with open(gs_path) as f:
             content = f.read()
         actual = sum(
@@ -129,7 +125,7 @@ class TestDocumentationAccuracy:
 
     def test_gap_closure_test_count_in_docs(self):
         """GETTING_STARTED references at least the actual gap-closure test count."""
-        gs_path = os.path.join(REPO_ROOT, "GETTING_STARTED.md")
+        gs_path = os.path.join(PROJECT_ROOT, "GETTING_STARTED.md")
         with open(gs_path) as f:
             content = f.read()
         # Count gap-closure tests recursively — they live under
