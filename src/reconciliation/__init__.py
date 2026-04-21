@@ -35,6 +35,13 @@ Design label: RECON-PKG-001
 from __future__ import annotations
 
 from .feature_flags import FeatureFlags, current_flags
+from .intent_classifier import (
+    IntentClassifier,
+    IntentClassifierError,
+    IntentPrediction,
+    evaluate_corpus,
+)
+from .intent_corpus import INTERNAL_REQUEST_CORPUS, get_corpus
 from .learning_hooks import LearningHook, make_outcome_sink, outcome_to_feedback_payload
 from .models import (
     AcceptanceCriterion,
@@ -94,6 +101,12 @@ __all__ = [
     # Components
     "FeatureFlags",
     "current_flags",
+    "IntentClassifier",
+    "IntentClassifierError",
+    "IntentPrediction",
+    "INTERNAL_REQUEST_CORPUS",
+    "get_corpus",
+    "evaluate_corpus",
     "IntentExtractor",
     "LearningHook",
     "make_outcome_sink",
