@@ -219,6 +219,21 @@ def _seed_defaults() -> None:
             hard=True,
             tags=("correctness",),
         ),
+        Standard(
+            id="CODE-004",
+            deliverable_type=DeliverableType.CODE,
+            title="Python code has no bare 'except:' clauses",
+            rationale="Above-average code never silently swallows every "
+            "exception; bare except: hides real failures and is a hard "
+            "correctness floor.",
+            check={
+                "kind": "callable",
+                "fn": "src.reconciliation.standards:check_python_no_bare_except",
+            },
+            weight=1.5,
+            hard=True,
+            tags=("correctness", "robustness"),
+        ),
         # ------------------------------------------------------------------
         # CONFIG_FILE
         # ------------------------------------------------------------------
@@ -488,8 +503,38 @@ def check_deployment_healthy(content: Any) -> Tuple[bool, float, str]:
     return (False, 0.0, "no 'health' field present in deployment result")
 
 
+def check_python_no_bare_except(content: Any) -> Tuple[bool, float, str]:
+    """Return whether *content* has no bare ``except:`` clauses.
+
+    Above-average Python never silently swallows every exception.  Bare
+    ``except:`` is treated as a hard correctness floor.
+    """
+    if not isinstance(content, str):
+        return (True, 1.0, "non-string content — skipped")
+    import ast as _ast
+    try:
+        tree = _ast.parse(content)
+    except SyntaxError:
+        # Syntax errors are caught by check_python_syntax; don't
+        # double-report them here.
+        return (True, 1.0, "skipped — file does not parse")
+    bare = [
+        n.lineno
+        for n in _ast.walk(tree)
+        if isinstance(n, _ast.ExceptHandler) and n.type is None
+    ]
+    if bare:
+        return (
+            False,
+            0.0,
+            f"bare 'except:' at line(s) {bare[:5]}",
+        )
+    return (True, 1.0, "no bare except clauses")
+
+
 _CALLABLE_REGISTRY: Dict[str, CheckFn] = {
     "src.reconciliation.standards:check_python_syntax": check_python_syntax,
+    "src.reconciliation.standards:check_python_no_bare_except": check_python_no_bare_except,
     "src.reconciliation.standards:check_json_parses": check_json_parses,
     "src.reconciliation.standards:check_mailbox_passwords_recorded":
         check_mailbox_passwords_recorded,
