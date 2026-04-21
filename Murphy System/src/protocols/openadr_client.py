@@ -227,8 +227,8 @@ def _parse_distribute_event_xml(xml_text: str) -> List[DREvent]:
                 elif ctag == "duration" and child.text:
                     try:
                         duration_minutes = int(child.text)
-                    except ValueError:
-                        pass
+                    except ValueError:  # PROD-HARD A2: malformed OpenADR <duration> ISO/int — log and keep default
+                        logger.debug("OpenADR event %s: malformed duration %r; using default", event_id, child.text)
 
             if event_id:
                 events.append(DREvent(
