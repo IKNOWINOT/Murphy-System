@@ -324,12 +324,16 @@ jobs:
             -f txt
 
       - name: Run bandit on extended paths (non-blocking)
+        # PROD-HARD-CI-005 (consistent with batch 1 agent.yml fix): drop the
+        # `|| true` swallow. `continue-on-error: true` already governs whether
+        # this step blocks merges; the `|| true` was causing the step status
+        # to always render as "success" in logs even when bandit found medium-
+        # severity issues — making the warnings invisible.
         run: |
           bandit -r src/ \
             -c bandit.yaml \
             --severity-level medium \
-            -f txt \
-            || true
+            -f txt
         continue-on-error: true
 
       - name: Audit dependencies for known vulnerabilities
