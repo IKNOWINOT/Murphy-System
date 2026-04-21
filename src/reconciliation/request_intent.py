@@ -265,9 +265,22 @@ class IntentExtractor:
     def _mss_pre_pass(self, request: Request) -> Dict[str, Any]:
         """Optional Magnify→Simplify pre-pass on the request text.
 
-        Returns a small trace dict (always serializable) suitable for
+        Returns a small trace dict (always JSON-serializable) suitable for
         attaching to :attr:`IntentSpec.mss_trace`.  Empty when no MSS
         controller is wired.
+
+        When wired and successful, the returned dict has the shape::
+
+            {
+              "ran": True,
+              "magnify_status":  "approved" | "conditional" | "blocked",
+              "simplify_status": "approved" | "conditional" | "blocked",
+              "recommendation":  "proceed" | "clarify" | "block",
+              "needs_clarification": bool,  # True iff recommendation in
+                                            # {"clarify", "block"}
+            }
+
+        On failure, ``{"ran": False, "error": "<message>"}``.
 
         We run **magnify** then **simplify** (not solidify) because
         solidify is the action-commit step — and committing on an
