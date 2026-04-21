@@ -32,6 +32,9 @@ Options:
   --domain DOMAIN    Mail domain (default: murphy.systems)
   --dry-run          Show what would be done without making changes
   --list             List existing accounts and aliases
+  --reset-passwords  Reset (overwrite) passwords on accounts that already
+                     exist, so a known login is recorded for every mailbox
+                     in /tmp/murphy-mail-passwords.txt
 
 Created accounts (5GB quota each):
   • cpost, hpost, abeltaine, mpost, jcarney
@@ -66,6 +69,7 @@ EOF
 # ── Parse arguments ──────────────────────────────────────────────────────────
 DRY_RUN=false
 LIST_ONLY=false
+RESET_PASSWORDS=false
 CONTAINER="murphy-mailserver"
 DOMAIN="murphy.systems"
 
@@ -92,6 +96,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --list)
       LIST_ONLY=true
+      shift
+      ;;
+    --reset-passwords)
+      RESET_PASSWORDS=true
       shift
       ;;
     -*)
@@ -167,24 +175,40 @@ create_account() {
     # Generate a secure random password if not provided
     local password="${3:-$(openssl rand -base64 16)}"
 
-    # Check postfix-accounts.cf directly (pre-provisioned accounts) and also
-    # query the container's live list — handle both gracefully.
+    # Determine whether the account already exists. Try multiple sources:
+    #   1) postfix-accounts.cf (pre-provisioned accounts written to disk)
+    #   2) `setup email list` (live container view)
+    # Match on word boundaries so e.g. "post@" doesn't match "d.post@".
     local accounts_cf="/tmp/docker-mailserver/postfix-accounts.cf"
     local already_exists=false
     if docker exec "$CONTAINER" grep -qF "${email}|" "${accounts_cf}" 2>/dev/null; then
         already_exists=true
-    elif docker exec "$CONTAINER" setup email list 2>/dev/null | grep -qi "${email}"; then
+    elif docker exec "$CONTAINER" setup email list 2>/dev/null \
+            | grep -qE "(^|[[:space:]*])${email//./\\.}([[:space:]]|$)"; then
         already_exists=true
     fi
 
     if [ "$already_exists" = true ]; then
-        warn "Account ${email} already exists — skipping."
+        if [ "$RESET_PASSWORDS" = true ]; then
+            # Use `setup email update` to set a fresh password so we have a
+            # known login for this mailbox. Capture stderr for diagnostics.
+            local update_out
+            if update_out=$(docker exec "$CONTAINER" setup email update "${email}" "${password}" 2>&1); then
+                success "Reset ${email} (${display}) — password: ${password}"
+                echo "  ${email}:${password}" >> /tmp/murphy-mail-passwords.txt
+            else
+                warn "Failed to reset password for ${email}: ${update_out}"
+            fi
+        else
+            warn "Account ${email} already exists — skipping (use --reset-passwords to overwrite)."
+        fi
     else
-        if docker exec "$CONTAINER" setup email add "${email}" "${password}" 2>/dev/null; then
+        local add_out
+        if add_out=$(docker exec "$CONTAINER" setup email add "${email}" "${password}" 2>&1); then
             success "Created ${email} (${display}) — password: ${password}"
             echo "  ${email}:${password}" >> /tmp/murphy-mail-passwords.txt
         else
-            warn "Failed to create ${email} — it may already exist or setup email add returned an error."
+            warn "Failed to create ${email}: ${add_out}"
         fi
     fi
 
@@ -211,14 +235,17 @@ create_alias() {
     local alias_addr="$1"
     local targets="$2"
 
-    # Remove existing alias first to avoid duplicates
-    docker exec "$CONTAINER" setup alias del "${alias_addr}" 2>/dev/null || true
+    # Note: docker-mailserver's `setup alias del` requires BOTH the alias
+    # and a target (`setup alias del <alias> <recipient>`). Calling it with
+    # just the alias prints USAGE and exits non-zero. `setup alias add` is
+    # idempotent for (alias, target) pairs already present, so we skip the
+    # pre-delete entirely and just (re-)add each target.
 
     # Add one target at a time
     IFS=',' read -ra TARGETS <<< "$targets"
     for target in "${TARGETS[@]}"; do
         target="${target// /}"  # trim spaces
-        docker exec "$CONTAINER" setup alias add "${alias_addr}" "${target}"
+        docker exec "$CONTAINER" setup alias add "${alias_addr}" "${target}" 2>/dev/null || true
     done
     success "Alias ${alias_addr} → ${targets}"
 }
