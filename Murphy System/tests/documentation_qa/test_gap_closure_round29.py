@@ -19,8 +19,9 @@ import sys
 
 import pytest
 
-# Resolve paths relative to project root
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+# Resolve paths relative to repo root.
+# This file lives at tests/documentation_qa/, so the repo root is two levels up.
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 SRC_DIR = os.path.join(PROJECT_ROOT, "src")
 TESTS_DIR = os.path.join(PROJECT_ROOT, "tests")
 
@@ -79,10 +80,41 @@ class TestGapClosureRound29:
             + "\n".join(violations)
         )
 
-    def test_pytest_ini_has_testpaths(self):
-        """pytest.ini must scope collection to tests/ directory."""
+    def test_pytest_config_has_testpaths(self):
+        """Pytest configuration must scope collection to tests/ directory.
+
+        The project standardized on pyproject.toml's [tool.pytest.ini_options]
+        rather than a standalone pytest.ini. Either is acceptable as long as
+        ``testpaths`` is set to ``tests``.
+        """
         ini_path = os.path.join(PROJECT_ROOT, "pytest.ini")
-        assert os.path.exists(ini_path), "pytest.ini not found"
+        pyproject_path = os.path.join(PROJECT_ROOT, "pyproject.toml")
+
+        # Prefer pyproject.toml (the canonical location for this project).
+        if os.path.exists(pyproject_path):
+            with open(pyproject_path, encoding="utf-8") as f:
+                content = f.read()
+            # Look for the [tool.pytest.ini_options] section and a testpaths
+            # entry that includes "tests". Use a simple regex rather than a
+            # full TOML parse to avoid a hard dependency on tomllib (3.11+) or
+            # the third-party tomli package, neither of which is in the test
+            # extras.
+            section_re = re.compile(
+                r"\[tool\.pytest\.ini_options\][^\[]*?testpaths\s*=\s*\[[^\]]*\"tests\"[^\]]*\]",
+                re.DOTALL,
+            )
+            assert section_re.search(content), (
+                "pyproject.toml [tool.pytest.ini_options] must set "
+                "testpaths to include \"tests\" — otherwise archive/ files "
+                "may be collected"
+            )
+            return
+
+        # Fallback: legacy pytest.ini layout.
+        assert os.path.exists(ini_path), (
+            "Neither pyproject.toml nor pytest.ini found — pytest "
+            "configuration is missing"
+        )
         config = configparser.ConfigParser()
         config.read(ini_path)
         assert config.has_option("pytest", "testpaths"), (

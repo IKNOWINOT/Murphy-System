@@ -421,7 +421,11 @@ def test_security_middleware_statistics():
                 lambda req, ctx: {'result': 'success'},
                 'test_component'
             )
-        except:
+        except Exception:
+            # PROD-HARD-A3: was bare `except:` which also caught KeyboardInterrupt /
+            # SystemExit. Test loop deliberately swallows component failures to
+            # measure middleware statistics under stress; capability preserved,
+            # only the catch surface narrowed.
             pass
 
     stats = middleware.get_statistics()

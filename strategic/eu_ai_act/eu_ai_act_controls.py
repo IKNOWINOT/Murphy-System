@@ -182,7 +182,7 @@ class QMSEngine:
         self._load_default_documents()
 
     def _load_default_documents(self) -> None:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         defaults = [
             QMSDocument("QMS-001", "Quality Policy", "POLICY", "1.0", "APPROVED", "Corey Post", now, "Murphy System quality policy for AI safety and compliance"),
             QMSDocument("QMS-002", "Risk Management Procedure", "PROCEDURE", "1.0", "APPROVED", "Corey Post", now, "MFGC-based risk management per Article 9 requirements"),
@@ -296,7 +296,7 @@ class HRHITLWorkflow:
 
         decision.reviewed_by = reviewer
         decision.review_outcome = outcome
-        decision.review_timestamp = datetime.utcnow()
+        decision.review_timestamp = datetime.now(timezone.utc)
         return True
 
     def get_pending_reviews(self) -> List[HRDecision]:

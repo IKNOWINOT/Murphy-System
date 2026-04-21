@@ -128,7 +128,7 @@ class OPCUAStreamAdapter:
         if not readings:
             return 0.0  # No sensor data → cannot proceed
 
-        ref_time = reference_time or datetime.utcnow()
+        ref_time = reference_time or datetime.now(timezone.utc)
 
         quality_scores: List[float] = []
         for r in readings:

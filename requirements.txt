@@ -2,9 +2,17 @@
 # Copyright © 2020 Inoni Limited Liability Company
 # Creator: Corey Post | License: BSL-1.1
 #
-# SEC-DEPS-002: Exact version pins (==) for production reproducibility.
-# To upgrade, bump the == version here and run the full test suite.
-# For development flexibility, use requirements-dev.txt (allows >=).
+# PROD-HARD-DEPS-001 (audit A1–A10): Pins must be co-satisfiable with the
+# floors in requirements_murphy_1.0.txt and must build on Python 3.12 (the
+# only Python supported by Dockerfile + ci.yml). Previous pins (numpy 1.24.0,
+# uvicorn 0.23.0, web3 6.20.0, yfinance 0.2.31, ccxt 4.4.0,
+# coinbase-advanced-py 1.8.0, sympy 1.12, pyyaml 6.0, rich 13.0.0,
+# psutil 5.9.0) violated either the Py3.12 build matrix or the murphy_1.0
+# floors. Bumped to the lowest version that satisfies both.
+#
+# To upgrade further, bump the == version here, re-run the full test suite,
+# and confirm `pip install -r requirements.txt -r requirements_murphy_1.0.txt`
+# resolves cleanly.
 
 # LLM and ML
 transformers==4.48.0
@@ -12,7 +20,8 @@ torch==2.6.0
 sentencepiece==0.2.1
 
 # Data structures and utilities
-numpy==1.24.0
+# A1: numpy 1.24.0 has no Py3.12 wheel; 1.26.0 is the first Py3.12-compatible release.
+numpy==1.26.4
 networkx==3.1
 
 # Cryptography for execution packets
@@ -20,7 +29,8 @@ cryptography==46.0.5
 
 # Web framework — REST API runtime
 fastapi==0.109.1
-uvicorn==0.23.0
+# A2: murphy_1.0 floor is uvicorn>=0.24.0
+uvicorn==0.27.1
 
 # Web framework — sub-module API servers
 Flask==3.0.0
@@ -36,16 +46,24 @@ requests==2.31.0
 httpx==0.27.0
 aiohttp==3.13.3
 
-# Coinbase Advanced Trade API (Trader Automation — PR 1)
-coinbase-advanced-py==1.8.0
+# PROD-HARD-SEC-001 (audit G18): XXE-safe XML parsing for untrusted input
+# (e.g. remote OpenADR VTN responses in src/protocols/openadr_client.py).
+# Tiny pure-Python pkg with no transitive deps.
+defusedxml==0.7.1
+
+# A6: murphy_1.0 floor is coinbase-advanced-py>=1.8.2
+coinbase-advanced-py==1.8.2
 
 # Crypto exchange abstraction
 websocket-client==1.6.0
-ccxt==4.4.0
-web3==6.20.0
+# A5: murphy_1.0 floor is ccxt>=4.5.0
+ccxt==4.5.4
+# A3: murphy_1.0 floor is web3>=7.0.0,<9.0.0 (major-version conflict with old 6.x pin)
+web3==7.6.0
 
 # Market data feeds — stocks + crypto
-yfinance==0.2.31
+# A4: murphy_1.0 floor is yfinance>=1.2.0 (major-version conflict with old 0.2.x pin)
+yfinance==1.2.65
 alpaca-py==0.20.0
 alpha_vantage==2.3.1
 polygon-api-client==1.12.0
@@ -61,22 +79,26 @@ python-binance==1.0.16
 matrix-nio[e2e]==0.24.0
 
 # System monitoring
-psutil==5.9.0
+# A10: murphy_1.0 floor is psutil>=5.9.6
+psutil==5.9.6
 
 # Password hashing (SEC-AUTH-001: bcrypt for credential storage)
 bcrypt==4.3.0
 
 # Symbolic computation (compute plane)
-sympy==1.12
+# A7: murphy_1.0 floor is sympy>=1.12.1
+sympy==1.12.1
 
 # Terminal UI
-rich==13.0.0
+# A9: murphy_1.0 floor is rich>=13.7.0
+rich==13.7.1
 textual==1.0.0
 pyfiglet==1.0.0
 prompt-toolkit==3.0.0
 
 # Configuration
-pyyaml==6.0
+# A8: murphy_1.0 floor is pyyaml>=6.0.1
+pyyaml==6.0.1
 python-dotenv==1.0.0
 
 # Database

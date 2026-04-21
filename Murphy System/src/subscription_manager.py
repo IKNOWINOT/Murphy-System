@@ -1448,8 +1448,8 @@ return new
             try:
                 redis_anon_key = f"murphy:anon:{fingerprint}:{today}"
                 self._redis.delete(redis_anon_key)
-            except Exception:
-                pass  # Non-critical — in-memory path handles the rest
+            except Exception:  # PROD-HARD A2: Redis flakiness shouldn't block conversion — but operators must see degradation
+                logger.warning("Redis delete failed for anon-fingerprint %s; in-memory path will handle reset", fingerprint, exc_info=True)
 
         # ── In-memory path ────────────────────────────────────────────────────
         with self._lock:

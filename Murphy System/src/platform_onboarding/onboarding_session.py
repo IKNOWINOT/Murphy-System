@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Optional
 
 
@@ -38,7 +38,7 @@ class OnboardingSession:
         self.task_states[task_id] = state
         if data:
             self.task_data[task_id] = data
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
     # ------------------------------------------------------------------ #
     # Serialization                                                         #
@@ -77,7 +77,7 @@ class OnboardingSession:
 
     @classmethod
     def create_new(cls, account_id: str) -> "OnboardingSession":
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         return cls(
             session_id=str(uuid.uuid4()),
             account_id=account_id,

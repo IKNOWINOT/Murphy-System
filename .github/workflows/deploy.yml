@@ -3,6 +3,9 @@ name: Deploy to Production
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -14,20 +17,25 @@ jobs:
       - name: Check deploy secrets are configured
         id: check_secrets
         run: |
-          if [ -z "${{ secrets.DEPLOY_HOST }}" ] || [ -z "${{ secrets.DEPLOY_USER }}" ] || [ -z "${{ secrets.DEPLOY_PASSWORD }}" ]; then
+          if [ -z "${{ secrets.DEPLOY_HOST }}" ] || [ -z "${{ secrets.DEPLOY_USER }}" ] || [ -z "${{ secrets.DEPLOY_SSH_KEY }}" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "::warning title=Deploy Skipped::DEPLOY_HOST, DEPLOY_USER, or DEPLOY_PASSWORD secret not configured. Skipping deploy."
+            echo "::warning title=Deploy Skipped::DEPLOY_HOST, DEPLOY_USER, or DEPLOY_SSH_KEY secret not configured. Skipping deploy."
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
+      # PROD-HARD-DEPLOY-001 (audit C25 / G12): SSH-key authentication.
+      # Previously used `password: ${{ secrets.DEPLOY_PASSWORD }}` which (a)
+      # required storing a reusable shell password, and (b) is brute-forceable
+      # against an exposed sshd. Key auth is the SSH-config best practice and
+      # gives the deploy a revocable, per-key identity.
       - name: Deploy to Hetzner via SSH
         if: steps.check_secrets.outputs.skip == 'false'
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
-          password: ${{ secrets.DEPLOY_PASSWORD }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
           envs: MURPHY_SECRET_KEY,POSTGRES_PASSWORD,REDIS_PASSWORD,GRAFANA_ADMIN_PASSWORD,MURPHY_JWT_SECRET,ENCRYPTION_KEY,MURPHY_API_KEY,SMTP_PASSWORD
           script: |
             set -e
@@ -37,8 +45,15 @@ jobs:
             git pull origin main
 
             # ── 2. Write production environment file ────────────────────────
+            # PROD-HARD-DEPLOY-002 (audit G13): create the file with mode 600
+            # atomically via a subshell-scoped umask, eliminating the brief
+            # window in which the heredoc-then-chmod sequence left the file
+            # world-readable. The explicit `chmod 600` below is now belt-and-
+            # suspenders, kept for defence-in-depth.
             mkdir -p /etc/murphy-production
-            cat > /etc/murphy-production/environment <<EOF
+            (
+              umask 077
+              cat > /etc/murphy-production/environment <<EOF
             MURPHY_ENV=production
             MURPHY_PORT=8000
             MURPHY_SECRET_KEY=${MURPHY_SECRET_KEY}
@@ -65,8 +80,9 @@ jobs:
             SMTP_USER=murphy@murphy.systems
             SMTP_PASSWORD=${SMTP_PASSWORD}
             EOF
+            )
 
-            # ── 3. Secure the environment file ──────────────────────────────
+            # ── 3. Re-assert restrictive permissions (defence-in-depth) ─────
             chmod 600 /etc/murphy-production/environment
 
             # ── 4. Run idempotent server setup ──────────────────────────────

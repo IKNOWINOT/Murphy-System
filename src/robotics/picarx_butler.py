@@ -400,13 +400,13 @@ class PiCarXButler:
         if self._hw and hasattr(self._hw, "stop"):
             try:
                 self._hw.stop()
-            except Exception:
-                pass
+            except Exception:  # PROD-HARD A2: best-effort stop — proceed with disconnect regardless
+                logger.warning("Hardware stop() failed during Reason shutdown; continuing to disconnect", exc_info=True)
         if self._hw and hasattr(self._hw, "disconnect"):
             try:
                 self._hw.disconnect()
-            except Exception:
-                pass
+            except Exception:  # PROD-HARD A2: best-effort disconnect — continue thread join
+                logger.warning("Hardware disconnect() failed during Reason shutdown; continuing to join threads", exc_info=True)
         for t in self._threads:
             t.join(timeout=5)
         self._threads.clear()
@@ -615,8 +615,8 @@ class PiCarXButler:
         if self._hw and hasattr(self._hw, "stop"):
             try:
                 self._hw.stop()
-            except Exception:
-                pass
+            except Exception:  # PROD-HARD A2: emergency stop is best-effort — still transition to EMERGENCY_STOPPED below
+                logger.error("Hardware stop() failed during EMERGENCY STOP; forcing state transition anyway", exc_info=True)
         with self._lock:
             self._state.patrol_status = PatrolStatus.EMERGENCY_STOPPED
         self._tts("Emergency stop activated.")

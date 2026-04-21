@@ -467,7 +467,7 @@ def murphy_action(
         @murphy_action(description="Return the current UTC timestamp.")
         def get_timestamp() -> str:
             import datetime
-            return datetime.datetime.utcnow().isoformat()
+            return datetime.datetime.now(datetime.timezone.utc).isoformat()
     """
 
     def decorator(fn: Callable) -> Callable:
@@ -770,8 +770,8 @@ class LLMResponseWirer:
                     "hypothesis_id": data.get("hypothesis_id", f"llm_{uuid.uuid4().hex[:8]}"),
                     "confidence": data.get("confidence", 0.85),
                 }
-            except json.JSONDecodeError:
-                pass
+            except json.JSONDecodeError:  # PROD-HARD A2: not a JSON object — try array next
+                logger.debug("LLM response failed JSON-object parse; trying array form", exc_info=True)
 
         # Attempt 2: JSON array
         if response.startswith("["):
@@ -787,8 +787,8 @@ class LLMResponseWirer:
                         "hypothesis_id": f"llm_{uuid.uuid4().hex[:8]}",
                         "confidence": 0.85,
                     }
-            except json.JSONDecodeError:
-                pass
+            except json.JSONDecodeError:  # PROD-HARD A2: not a JSON array either — fall through to plain-text
+                logger.debug("LLM response failed JSON-array parse; falling through to plain text", exc_info=True)
 
         # Attempt 3: plain text — each line = one action
         lines = [ln.strip() for ln in response.splitlines() if ln.strip()]

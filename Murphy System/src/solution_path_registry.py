@@ -82,9 +82,8 @@ class SolutionPathRegistry:
                 data = json.load(fh)
                 if isinstance(data, list):
                     return data
-        except (OSError, json.JSONDecodeError):
-            pass
-        return []
+        except (OSError, json.JSONDecodeError):  # PROD-HARD A2: missing/corrupt registry file — start empty
+            logger.warning("Solution-path registry file %s unreadable; starting with empty alternatives", fp, exc_info=True)
 
     # ------------------------------------------------------------------
     # Public API

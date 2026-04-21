@@ -166,7 +166,10 @@ class TestStress(unittest.TestCase):
             except Exception as e:
                 # Expected to handle errors gracefully
                 handled += 1
-            except:
+            except Exception:
+                # PROD-HARD-A3: narrowed from bare `except:` so the stress loop
+                # remains Ctrl-C interruptible. Capability preserved — any
+                # non-system exception still counts as a crash for the test.
                 # Should not crash
                 crashed += 1
 

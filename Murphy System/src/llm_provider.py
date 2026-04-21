@@ -591,8 +591,8 @@ class MurphyLLMProvider:
                 provider=completion.provider,
                 latency_s=completion.latency_seconds,
             )
-        except Exception:  # DETERM-LLM-ERR-002
-            pass  # Guard failure must never break the LLM pipeline
+        except Exception:  # DETERM-LLM-ERR-002 / PROD-HARD A2: Guard failure must never break pipeline, but must be visible
+            logger.warning("DETERM-LLM-ERR-002: determinism-guard failure (non-fatal)", exc_info=True)
 
     def _onboard_fallback(
         self,

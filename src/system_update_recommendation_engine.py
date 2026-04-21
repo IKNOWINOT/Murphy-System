@@ -559,8 +559,8 @@ class SDKUpdateTracker:
             try:
                 reports = self._audit_engine.get_reports(limit=1)
                 report_count = len(reports)
-            except Exception:
-                pass
+            except Exception:  # PROD-HARD A2: audit engine optional for status summary
+                logger.debug("Audit engine unavailable for SDK status summary", exc_info=True)
         return {
             "last_audit_available": report_count > 0,
             "compatibility_checks_registered": len(self._compatibility_matrix),
@@ -811,8 +811,8 @@ class BugReportAutoResponder:
         if self._detector is not None:
             try:
                 pattern_count = len(self._detector.get_patterns(limit=100))
-            except Exception:
-                pass
+            except Exception:  # PROD-HARD A2: pattern detector optional — keep pattern_count=0
+                logger.debug("Pattern detector unavailable (BugResponder.generate_recommendations first defn)", exc_info=True)
 
     def generate_recommendations(self) -> List[Recommendation]:
         """Return bug-response recommendations based on ingested patterns."""
@@ -822,8 +822,8 @@ class BugReportAutoResponder:
         if self._detector is not None:
             try:
                 pattern_count = len(self._detector.get_patterns(limit=100))
-            except Exception:
-                pass
+            except Exception:  # PROD-HARD A2: pattern detector optional — keep pattern_count=0
+                logger.debug("Pattern detector unavailable for bug-response recommendations", exc_info=True)
 
         if pattern_count > 0:
             recs.append(Recommendation(

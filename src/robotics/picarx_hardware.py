@@ -206,8 +206,8 @@ class PiCarXHardware:
             try:
                 self._px.stop()
                 self._px.set_dir_servo_angle(0)
-            except Exception:
-                pass
+            except Exception:  # PROD-HARD A2: hardware shutdown error must not crash, but operators must see it
+                logger.warning("PicarX hardware stop failed during shutdown", exc_info=True)
 
     # -- camera gimbal -------------------------------------------------------
 

@@ -29,8 +29,23 @@ import logging
 import threading
 import time
 import uuid
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET  # nosec B405 - builders only; parsing uses defusedxml (see below)
 from dataclasses import dataclass, field
+
+# PROD-HARD-SEC-001 (audit G18): VTN responses are parsed from an external
+# HTTP endpoint and are therefore untrusted input. Stdlib ``xml.etree`` does
+# not protect against XXE / billion-laughs / external-entity attacks.
+# ``defusedxml`` is a drop-in for parsing and is the upstream-recommended
+# mitigation per the Python docs (https://docs.python.org/3/library/xml.html).
+# The import is guarded like the ``aiohttp`` guard above so this module stays
+# importable if the dependency is temporarily absent, but we raise loudly
+# rather than silently falling back to unsafe parsing.
+try:
+    from defusedxml.ElementTree import fromstring as _safe_fromstring
+    _DEFUSED_AVAILABLE = True
+except ImportError:  # pragma: no cover - exercised only when dep missing
+    _safe_fromstring = None  # type: ignore[assignment]
+    _DEFUSED_AVAILABLE = False
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -168,8 +183,18 @@ def _build_update_report_xml(ven_id: str, report_id: str, readings: Dict[str, An
 def _parse_distribute_event_xml(xml_text: str) -> List[DREvent]:
     """Parse an oadrDistributeEvent response into a list of DREvent objects."""
     events: List[DREvent] = []
+    # PROD-HARD-SEC-001 (audit G18): use defusedxml for XXE-safe parsing of
+    # remote VTN responses. If defusedxml is unavailable we refuse to parse
+    # rather than silently fall back to vulnerable stdlib ET.fromstring.
+    if not _DEFUSED_AVAILABLE or _safe_fromstring is None:
+        logger.error(
+            "OpenADR: defusedxml not installed; refusing to parse untrusted "
+            "VTN XML. Install defusedxml>=0.7.1 (already pinned in "
+            "requirements.txt / requirements_murphy_1.0.txt / requirements_ci.txt)."
+        )
+        return events
     try:
-        root = ET.fromstring(xml_text)
+        root = _safe_fromstring(xml_text)
     except ET.ParseError:
         logger.warning("OpenADR: failed to parse VTN response XML")
         return events
@@ -202,8 +227,8 @@ def _parse_distribute_event_xml(xml_text: str) -> List[DREvent]:
                 elif ctag == "duration" and child.text:
                     try:
                         duration_minutes = int(child.text)
-                    except ValueError:
-                        pass
+                    except ValueError:  # PROD-HARD A2: malformed OpenADR <duration> ISO/int — log and keep default
+                        logger.debug("OpenADR event %s: malformed duration %r; using default", event_id, child.text)
 
             if event_id:
                 events.append(DREvent(

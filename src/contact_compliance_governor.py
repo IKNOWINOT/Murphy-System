@@ -791,8 +791,8 @@ class ContactComplianceGovernor:
                             Regulation.TCPA,
                             False,
                         )
-                except (ValueError, TypeError):
-                    pass
+                except (ValueError, TypeError):  # PROD-HARD A2: malformed hour_utc shouldn't silently bypass TCPA gate
+                    logger.warning("TCPA quiet-hour check skipped: hour_utc=%r is not coercible to int", hour_utc)
 
         # GDPR (EU)
         if region == "EU":

@@ -4,6 +4,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -16,8 +19,8 @@ jobs:
       MURPHY_POOL_MODE: simulated
       PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src:${{ github.workspace }}/Murphy System/scripts:${{ github.workspace }}/Murphy System/bots"
     steps:
-      - uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
-      - uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -38,7 +41,7 @@ jobs:
             --ignore="Murphy System/tests/integration" \
             --ignore="Murphy System/tests/sla" \
             --ignore="Murphy System/tests/benchmarks" \
-            -k "not test_actual_local_llm"
+            -m "not local_llm"
 
   deploy:
     needs: test

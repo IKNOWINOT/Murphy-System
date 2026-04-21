@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 
@@ -27,7 +27,7 @@ class SubmissionReminderSystem:
             session_id=session_id,
             application_id=application_id,
             message=message,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc).replace(tzinfo=None),
         )
         _reminders[reminder.reminder_id] = reminder
         return reminder

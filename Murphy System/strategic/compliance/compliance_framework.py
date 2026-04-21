@@ -246,7 +246,7 @@ class ComplianceFramework:
         ]
 
         return {
-            "generated":           datetime.utcnow().isoformat(),
+            "generated":           datetime.now(timezone.utc).isoformat(),
             "verified_by":         "Corey Post — Inoni LLC",
             "overall_readiness_pct": overall_pct,
             "frameworks":          [soc2, iso, hipaa],

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -106,7 +106,7 @@ def mark_submitted(sid: str, aid: str, body: MarkSubmittedRequest):
     if not pkg:
         raise HTTPException(status_code=404, detail="Submission package not found")
     pkg.status = "submitted"
-    pkg.submitted_at = datetime.utcnow()
+    pkg.submitted_at = datetime.now(timezone.utc).replace(tzinfo=None)
     if body.confirmation_number:
         pkg.confirmation_number = body.confirmation_number
     _tracker.mark_submitted(pkg.package_id, body.confirmation_number)

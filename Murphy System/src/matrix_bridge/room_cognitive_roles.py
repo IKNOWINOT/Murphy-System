@@ -132,7 +132,9 @@ ROOM_COGNITIVE_ROLES: dict[str, CognitiveRole] = {
     "simulation-engine":              M,
     "chaos-resilience-loop":          M,
     "error-calibrator":               L,
-    "immune-memory":                  L,
+    # PROD-HARD-A4: "immune-memory" was duplicated here (first defined at line 101
+    # in the Safety section with identical value L). The duplicate silently
+    # collapsed to a single binding. Removed to make the dict honest.
     "self-fix-loop":                  L,
     "recursive-stability-controller": L,
 
@@ -250,7 +252,9 @@ ROOM_COGNITIVE_ROLES: dict[str, CognitiveRole] = {
 
     # ── Key Management ───────────────────────────────────────────────────────
     "deepinfra-key-rotator":               L,
-    "secure-key-manager":             L,
+    # PROD-HARD-A4: "secure-key-manager" was duplicated here (first defined at
+    # line 113 in the Security section with identical value L). The duplicate
+    # silently collapsed to a single binding. Removed to make the dict honest.
     "key-harvester":                  L,
     "credential-profile-system":      L,
 

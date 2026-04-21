@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 
@@ -29,7 +29,7 @@ class StatusUpdateNotifier:
             old_status=old_status,
             new_status=new_status,
             message=message or f"Status changed from {old_status} to {new_status}",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc).replace(tzinfo=None),
         )
         _events[event.event_id] = event
         return event

@@ -11,6 +11,13 @@ on:
   workflow_dispatch:
     # Allow manual trigger (e.g. after major merge or hotfix)
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
 env:
   MURPHY_ENV: test
   MURPHY_DB_MODE: stub
@@ -29,10 +36,10 @@ jobs:
     # Run from repo root — canonical source is root src/
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -59,10 +66,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -144,7 +151,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        uses: actions/checkout@v4
 
       - name: Check for new divergence between root and Murphy System/ trees
         # Fails when files of tracked types exist ONLY in Murphy System/ but not
@@ -241,10 +248,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -266,11 +273,10 @@ jobs:
             --ignore=tests/integration \
             --ignore=tests/sla \
             --ignore=tests/benchmarks \
-            --continue-on-collection-errors \
-            -k "not test_actual_local_llm"
+            -m "not local_llm"
 
       - name: Upload coverage
-        uses: actions/upload-artifact@v7  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v7 (Node 24)
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage.xml
@@ -283,10 +289,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -304,10 +310,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6  # NODE-24-FIX: upgraded from @v5 (Node 20) to @v6 (Node 24)
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -324,19 +330,38 @@ jobs:
             --severity-level high \
             -f txt
 
+      - name: Run bandit HIGH across full src/ (blocks)
+        # PROD-HARD-CI-7 (audit B8): the MD5/B324 finding in
+        # src/demo_deliverable_generator.py was outside the runtime/rosetta
+        # scope above and the extended medium scan below is non-blocking, so
+        # a High finding could ship green. This step closes that gap by
+        # running bandit at --severity-level high across all of src/ with
+        # continue-on-error OFF — any new High issue anywhere in src/ blocks.
+        run: |
+          bandit -r src/ \
+            -c bandit.yaml \
+            --severity-level high \
+            -f txt
+
       - name: Run bandit on extended paths (non-blocking)
+        # PROD-HARD-CI-005 (consistent with batch 1 agent.yml fix): drop the
+        # `|| true` swallow. `continue-on-error: true` already governs whether
+        # this step blocks merges; the `|| true` was causing the step status
+        # to always render as "success" in logs even when bandit found medium-
+        # severity issues — making the warnings invisible.
         run: |
           bandit -r src/ \
             -c bandit.yaml \
             --severity-level medium \
-            -f txt \
-            || true
+            -f txt
         continue-on-error: true
 
       - name: Audit dependencies for known vulnerabilities
-        # SEC-DEPS-001: Dependency audit is a merge blocker — no known CVEs in production.
-        run: |
-          pip-audit --requirement requirements_ci.txt --strict 2>&1 || echo "::warning::pip-audit found issues — review advisory output above"
+        # SEC-DEPS-001 / PROD-HARD-CI-004 (audit C7): Dependency audit is a
+        # merge blocker. Previously wrapped in `|| echo "::warning::"` which
+        # turned every CVE into a non-blocking warning — the comment claimed
+        # "merge blocker" but the implementation contradicted it.
+        run: pip-audit --requirement requirements_ci.txt --strict
         continue-on-error: false
 
       - name: Validate swarm rate governor import
@@ -352,7 +377,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6  # NODE-24-FIX: upgraded from @v4 (Node 20) to @v6 (Node 24)
+        uses: actions/checkout@v4
 
       - name: Build Docker image
         run: docker build -t murphy-system:${{ github.sha }} . 2>&1 | tail -20
@@ -373,10 +398,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -392,7 +417,7 @@ jobs:
           python -m pytest tests/e2e tests/integration tests/sla \
             -v --tb=short --timeout=120 \
             --continue-on-collection-errors \
-            -k "not test_actual_local_llm"
+            -m "not local_llm"
         continue-on-error: true
 
   # ---------------------------------------------------------------------------
@@ -412,10 +437,10 @@ jobs:
       MURPHY_POOL_MODE: simulated
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -436,8 +461,7 @@ jobs:
             tests/e2e/test_completion_areas.py \
             tests/e2e/test_forge_user_flow.py \
             tests/e2e/test_llm_pipeline_e2e.py \
-            -v --tb=short --timeout=60 \
-            --continue-on-collection-errors
+            -v --tb=short --timeout=60
 
   # ---------------------------------------------------------------------------
   # CI Hardening — MURPHY-CI-HARDENING-001
@@ -450,10 +474,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip

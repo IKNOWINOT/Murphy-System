@@ -114,7 +114,7 @@ class SkillResult:
     output:     Any
     log_id:     str           = field(default_factory=lambda: str(uuid.uuid4())[:8])
     timestamp:  str           = field(
-        default_factory=lambda: datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z"
+        default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).isoformat(timespec="seconds") + "Z"
     )
     error:      Optional[str] = None
     metadata:   Dict[str, Any] = field(default_factory=dict)

@@ -204,7 +204,7 @@ def generate_report(
     lines = [
         "# STRATEGIC EXECUTION REPORT",
         "",
-        f"**Generated:** {datetime.utcnow().isoformat()} UTC  ",
+        f"**Generated:** {datetime.now(timezone.utc).isoformat()} UTC  ",
         f"**Verified by:** Corey Post — Inoni LLC  ",
         f"**Overall Readiness Score:** {overall_pct:.1f}%  ",
         f"**Exit Code:** {'0 (PASS)' if exit_code == 0 else '1 (FAIL)'}  ",
@@ -349,7 +349,7 @@ def generate_report(
 def main() -> int:
     print("=" * 65)
     print("  MURPHY SYSTEM — Strategic Execution Master Runner")
-    print(f"  {datetime.utcnow().isoformat()} UTC")
+    print(f"  {datetime.now(timezone.utc).isoformat()} UTC")
     print("  VERIFIED BY: Corey Post — Inoni LLC")
     print("=" * 65)
 

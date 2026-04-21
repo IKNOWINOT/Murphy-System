@@ -21,7 +21,14 @@ classifiers = [
 ]
 
 [project.scripts]
-murphy = "murphy_cli.main:main"
+# PROD-HARD-J3 (audit J3): the previous target "murphy_cli.main:main" was
+# broken at install time — `murphy_cli` is not installed as a top-level
+# package (it lives at src/murphy_cli/ and is reached via the `src` package
+# or sys.path injection at test / entrypoint time, not via package-dir
+# remapping). `pip install . && murphy` therefore raised ModuleNotFoundError.
+# src.runtime.app.main exists (src/runtime/app.py:15762) and matches the
+# target already declared in setup.py, so both build paths now agree.
+murphy = "src.runtime.app:main"
 
 [project.optional-dependencies]
 llm = ["httpx>=0.24.0", "openai>=1.0"]
@@ -31,8 +38,12 @@ dev = ["pytest>=7.0", "pytest-cov", "ruff", "mypy"]
 all = ["murphy-system[llm,security,terminal,dev]"]
 
 [tool.setuptools.packages.find]
+# PROD-HARD-J3 (audit J3): dropped dead "murphy_cli" / "murphy_cli.*"
+# entries — those patterns resolve against where=["."], but there is no
+# root-level ./murphy_cli/ directory, so they matched nothing. The
+# src-layout package is picked up via the "src" / "src.*" patterns.
 where = ["."]
-include = ["src", "src.*", "murphy_cli", "murphy_cli.*"]
+include = ["src", "src.*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -93,7 +104,22 @@ markers = [
     "testing_meta: Test mode controller and test vector generator tests",
     "wiring_validation: Cross-module wiring, structural audit, and parity tests",
     "modules: Core module unit tests — individual Murphy System modules",
+    # PROD-HARD-TEST-001 (audit D7–D10): register marks that were emitting
+    # PytestUnknownMarkWarning on every run because they were used in tests
+    # but never declared.
+    "e2e: End-to-end tests — exercise full request paths without external secrets",
+    "slow: Tests intentionally allowed to run > a few seconds; gate with -m 'not slow' on PR runs",
+    "integration: Cross-module integration tests gated to nightly / e2e jobs",
+    # PROD-HARD-TEST-002 (audit D12): explicit marker replaces the brittle
+    # `-k "not test_actual_local_llm"` string-match used in 5 workflows.
+    # The marker survives test renames; the -k workaround would silently
+    # re-enable the test on rename and break CI on machines without an LLM.
+    "local_llm: Heavy real-LLM integration tests; require a local LLM runtime — gated off PR runs with -m 'not local_llm'",
 ]
+# PROD-HARD-TEST-001 (audit D22): pytest-timeout is invoked via --timeout in
+# every CI workflow; declare it as required so a fresh dev env fails fast
+# with a clear message instead of "unrecognized arguments: --timeout".
+required_plugins = ["pytest-asyncio", "pytest-timeout"]
 # Default per-test timeout: ~5 s per 1 000 lines of tested source.
 # Tests that target very large modules (app.py = 6 293 lines, compute_plane = 2 877 lines)
 # carry per-file @pytest.mark.timeout() overrides; this default covers the majority.

@@ -22,7 +22,10 @@ wheels/
 MANIFEST
 
 # Virtual Environment
+# PROD-HARD-A1: .venv/ added to close the gap that previously allowed
+# every contributor's local virtualenv to overwrite committed copies.
 venv/
+.venv/
 env/
 ENV/
 env.bak/
@@ -107,6 +110,19 @@ Murphy System/archive/
 # Encrypted key files generated at runtime
 *.enc
 
+# PROD-HARD-SEC-001 (audit G14, G15): prevent accidental commit of secrets
+# and patch-artifact .bak files (which is how src/runtime/app.py.patch001.bak
+# and src/fastapi_security.py.patch001.bak got into the tree previously).
+*.bak
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+credentials.json
+.aws/
+.ssh/
+
 # Mail server TLS certificates (generated at deploy time, not tracked)
 config/mail/ssl/
 
@@ -145,3 +161,6 @@ Murphy System/tests/murphy_terminal.py
 
 # Agent-generated solution paths
 data/solution_paths/*.json
+
+# PSM-002 platform self-modification ledger (immutable runtime artifact)
+data/platform_self_edit_ledger.jsonl

@@ -117,13 +117,22 @@ class TestP0PersonaLoading(unittest.TestCase):
         self.assertTrue(result["activated"])
         self.assertEqual(result["personas_loaded"], len(_ORG_CHART_DEFINITION))
 
-        # Verify each role has state
+        # Verify each role has state.  ROSETTA-ORG-005 — identity
+        # fields now come from the canonical platform seed:
+        #   * identity.name is "Murphy <ROLE>" (e.g. "Murphy CEO")
+        #   * identity.role is the lowercase-hyphenated role_title
+        #     (e.g. "ceo", "vp-sales")
+        #   * identity.organization is the canonical "murphy-inc"
         all_roles = branch._org_chart.get_all_roles()
         for role in all_roles.values():
             state = self.mgr.load_state(role.agent_id)
             self.assertIsNotNone(state, f"Missing Rosetta state for {role.role_label}")
-            self.assertEqual(state.identity.name, role.role_label)
-            self.assertEqual(state.identity.organization, "murphy-system")
+            self.assertTrue(
+                state.identity.name.startswith("Murphy "),
+                f"Expected canonical identity.name prefix for {role.role_label}, "
+                f"got {state.identity.name!r}",
+            )
+            self.assertEqual(state.identity.organization, "murphy-inc")
 
     def test_activate_is_idempotent(self) -> None:
         """Second activate does not duplicate Rosetta state documents."""
@@ -161,19 +170,33 @@ class TestP0PersonaLoading(unittest.TestCase):
         self.assertIsNotNone(ceo_role)
         state = self.mgr.load_state(ceo_role.agent_id)
         self.assertIsNotNone(state)
-        self.assertEqual(state.identity.role, "CEO")
+        # ROSETTA-ORG-005 — canonical lowercase-hyphenated role_title.
+        self.assertEqual(state.identity.role, "ceo")
         self.assertEqual(state.system_state.status, "idle")
         self.assertEqual(state.agent_state.current_phase, "onboarding")
 
     def test_persona_seed_count_matches_org_chart(self) -> None:
-        """Exact match between org chart roles and seeded personas."""
+        """Exact match between CEOBranch org chart roles and ``personas_loaded``.
+
+        ROSETTA-ORG-005 — ``seed_platform_org(include_vps=True)`` seeds
+        11 canonical platform agents (10 overlap with CEOBranch +
+        1 platform-only ``sre`` role).  ``personas_loaded`` reports
+        only the 10 CEOBranch-mapped ones — the one extra agent is
+        counted in ``list_agents()`` but is *expected* platform-core
+        state (never silent: the debug log records the full count).
+        """
         branch = CEOBranch(rosetta_manager=self.mgr)
         result = branch.activate()
         branch.deactivate()
 
-        expected = len(_ORG_CHART_DEFINITION)
-        self.assertEqual(result["personas_loaded"], expected)
-        self.assertEqual(len(self.mgr.list_agents()), expected)
+        expected_org_chart_roles = len(_ORG_CHART_DEFINITION)
+        self.assertEqual(result["personas_loaded"], expected_org_chart_roles)
+        # The seed adds one platform-only agent (``sre``) that is not
+        # in the CEOBranch runtime chart.  Allow it explicitly.
+        self.assertEqual(
+            len(self.mgr.list_agents()), expected_org_chart_roles + 1,
+            msg="Seed should produce 10 CEOBranch roles + 1 platform-only sre",
+        )
 
 
 # ===========================================================================
