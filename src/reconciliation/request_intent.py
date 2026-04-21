@@ -22,6 +22,7 @@ import re
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence
 
+from .intent_classifier import IntentClassifier, IntentClassifierError, IntentPrediction
 from .models import (
     AcceptanceCriterion,
     AmbiguityVector,
@@ -88,12 +89,25 @@ class IntentExtractor:
         catalog: Optional[StandardsCatalog] = None,
         llm_adapter: Optional[Any] = None,
         max_candidates: int = 3,
+        classifier: Optional[IntentClassifier] = None,
+        classifier_min_confidence: float = 0.20,
     ) -> None:
         if max_candidates < 1:
             raise ValueError("max_candidates must be >= 1")
+        if not 0.0 <= classifier_min_confidence <= 1.0:
+            raise ValueError(
+                "classifier_min_confidence must be in [0.0, 1.0] "
+                f"(got {classifier_min_confidence})"
+            )
         self._catalog = catalog or default_catalog()
         self._llm = llm_adapter
         self._max_candidates = max_candidates
+        # Optional ML classifier — used only as a non-LLM hint when the
+        # caller hasn't pinned a deliverable type or has left it as the
+        # GENERIC_TEXT default.  Failures here are NEVER silent: if the
+        # classifier is supplied and raises, we surface the exception.
+        self._classifier = classifier
+        self._classifier_min_confidence = classifier_min_confidence
 
     # ------------------------------------------------------------------
     # Vagueness detection
@@ -153,20 +167,43 @@ class IntentExtractor:
         if llm_specs:
             return llm_specs[: self._max_candidates]
 
-        # Deterministic fallback.
+        # Deterministic fallback.  If a classifier is configured AND the
+        # caller hasn't pinned a specific deliverable type (i.e. they
+        # accepted the GENERIC_TEXT default), consult it.  The
+        # classifier is *advisory* — we override the deliverable type
+        # only when its confidence clears the configured floor.
+        chosen_type = request.deliverable_type
+        classifier_pred = self._classify_or_none(request)
+        if (
+            request.deliverable_type == DeliverableType.GENERIC_TEXT
+            and classifier_pred is not None
+            and classifier_pred.confidence >= self._classifier_min_confidence
+        ):
+            chosen_type = classifier_pred.deliverable_type
+
         primary = self._build_spec(
             request,
             summary=self._summarise(request.text),
-            deliverable_type=request.deliverable_type,
+            deliverable_type=chosen_type,
             confidence=0.5 if self.is_vague(request) else 0.9,
         )
         if not self.is_vague(request):
             return [primary]
 
         # Vague request: emit primary + alternative deliverable-type guesses.
+        # Prefer classifier ranking when available; fall back to keyword
+        # heuristics otherwise.
         alternatives: List[IntentSpec] = [primary]
-        seen = {request.deliverable_type}
-        for alt_type in self._guess_alt_types(request):
+        seen = {chosen_type}
+        alt_iter: Sequence[DeliverableType]
+        if classifier_pred is not None and classifier_pred.token_count > 0:
+            alt_iter = tuple(
+                cls for cls, _ in classifier_pred.ranking
+                if cls != chosen_type
+            )
+        else:
+            alt_iter = self._guess_alt_types(request)
+        for alt_type in alt_iter:
             if len(alternatives) >= self._max_candidates:
                 break
             if alt_type in seen:
@@ -181,6 +218,30 @@ class IntentExtractor:
                 )
             )
         return alternatives[: self._max_candidates]
+
+    def _classify_or_none(self, request: Request) -> Optional[IntentPrediction]:
+        """Run the classifier defensively.
+
+        Returns ``None`` if no classifier is configured.  If the
+        classifier raises an unexpected error we log loudly and return
+        ``None`` — we never let an advisory subsystem break extraction —
+        but the typed :class:`IntentClassifierError` is re-raised so
+        configuration bugs surface during tests rather than degrading
+        silently in production.
+        """
+        if self._classifier is None:
+            return None
+        try:
+            return self._classifier.predict(request.text)
+        except IntentClassifierError:
+            # Configuration / state bug — must not be silent.
+            raise
+        except Exception as exc:  # pragma: no cover — defensive
+            logger.warning(
+                "IntentExtractor classifier raised %s; ignoring this advisory "
+                "and falling back to keyword heuristics", exc,
+            )
+            return None
 
     # ------------------------------------------------------------------
     # Internals
