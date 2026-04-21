@@ -73,6 +73,12 @@ try:
         RosettaAgentState as _RosettaAgentState,
         SystemState as _SystemState,
     )
+    from rosetta.platform_org_seed import (
+        CEO_BRANCH_LABEL_TO_ROLE_TITLE as _CEO_LABEL_TO_ROLE,
+        PLATFORM_OPERATOR_TO_ROLE as _PLATFORM_OPERATOR_TO_ROLE,
+        _agent_id_for as _platform_agent_id_for,
+        seed_platform_org as _seed_platform_org,
+    )
     _ROSETTA_AVAILABLE = True
 except ImportError:  # pragma: no cover
     _ROSETTA_AVAILABLE = False
@@ -81,6 +87,10 @@ except ImportError:  # pragma: no cover
     _Identity = None  # type: ignore[assignment,misc]
     _SystemState = None  # type: ignore[assignment,misc]
     _AgentState = None  # type: ignore[assignment,misc]
+    _CEO_LABEL_TO_ROLE = {}  # type: ignore[assignment]
+    _PLATFORM_OPERATOR_TO_ROLE = {}  # type: ignore[assignment]
+    _platform_agent_id_for = None  # type: ignore[assignment]
+    _seed_platform_org = None  # type: ignore[assignment]
 
 try:
     from rosetta_platform_state import RosettaPlatformManager as _PlatformManager
@@ -569,12 +579,22 @@ class OrgChartAutomation:
         probes = role_probes or {}
         for definition in _ORG_CHART_DEFINITION:
             label = definition["label"]
+            # ROSETTA-ORG-005 — stamp the canonical platform agent_id
+            # (``murphy-inc.<role-title>``) on every VPRole when Rosetta
+            # is available, so the org chart + PSM operator lookup refer
+            # to the *same* agent as the CEOBranch runtime.
+            canonical_agent_id: Optional[str] = None
+            if _ROSETTA_AVAILABLE and _platform_agent_id_for is not None:
+                role_title = _CEO_LABEL_TO_ROLE.get(label)
+                if role_title:
+                    canonical_agent_id = _platform_agent_id_for(role_title)
             role = VPRole(
                 role_label=label,
                 subsystems=definition["subsystems"],
                 responsibilities=definition["responsibilities"],
                 status_probe=probes.get(label),
                 rosetta_manager=rosetta_manager,
+                agent_id=canonical_agent_id,
             )
             self._roles[label] = role
 
@@ -1143,6 +1163,7 @@ class CEOBranch:
         rosetta_manager: Optional[Any] = None,
         platform_manager: Optional[Any] = None,
         heartbeat: Optional[Any] = None,
+        psm_launch_hook: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
     ) -> None:
         """Initialise the CEO branch.
 
@@ -1161,6 +1182,14 @@ class CEOBranch:
                 enables P3 (directive audit trail via sync_down).
             heartbeat: Optional :class:`RosettaStoneHeartbeat` — enables
                 P4 (management-tier translator registration).
+            psm_launch_hook: ROSETTA-ORG-008. Optional callable
+                ``(body: dict) -> dict`` that invokes the PSM launch
+                endpoint (or any equivalent HTTP/in-process facade) and
+                returns the response body.  When wired, the public
+                :meth:`dispatch_directive_to_psm` method routes a CEO
+                directive through this hook so the directive lands in
+                the PSM ledger (REQUESTED+APPROVED+LAUNCHED) with
+                canonical owner_role attribution.
         """
         self._lock = threading.Lock()
         self._branch_id: str = uuid.uuid4().hex[:12]
@@ -1171,6 +1200,7 @@ class CEOBranch:
         self._rosetta_manager = rosetta_manager
         self._platform_manager = platform_manager
         self._heartbeat = heartbeat
+        self._psm_launch_hook = psm_launch_hook
 
         # Build org chart (P1 — pass rosetta_manager to every VP role)
         self._org_chart = OrgChartAutomation(
@@ -1338,6 +1368,190 @@ class CEOBranch:
         )
         return results
 
+    # ------------------------------------------------------------------
+    # ROSETTA-ORG-008 — Bidirectional directive routing via PSM
+    # ------------------------------------------------------------------
+
+    # Reverse map: canonical role_title -> operator_id.  Built once
+    # from ``PLATFORM_OPERATOR_TO_ROLE`` so we have a single source of
+    # truth for the operator<->role relationship.
+    @staticmethod
+    def _role_title_to_operator_id(role_title: str) -> Optional[str]:
+        """Return the canonical operator_id for a given role_title, or ``None``.
+
+        Uses the reverse of ``PLATFORM_OPERATOR_TO_ROLE``.  Returning
+        ``None`` (rather than raising) lets the caller surface the
+        named failure mode ``unknown_role`` explicitly.
+        """
+        if not _PLATFORM_OPERATOR_TO_ROLE:
+            return None
+        for op_id, rt in _PLATFORM_OPERATOR_TO_ROLE.items():
+            if rt == role_title:
+                return op_id
+        return None
+
+    def dispatch_directive_to_psm(
+        self,
+        role_label: str,
+        justification: str,
+        *,
+        proposal_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Route a CEO directive to a VP role through the PSM launch path.
+
+        ROSETTA-ORG-008 — when a ``psm_launch_hook`` is wired at
+        construction time, this method turns a CEOBranch directive into
+        a real Platform Self-Modification cycle: it resolves the
+        ``role_label`` (e.g. ``"VP Engineering"``) to its canonical
+        ``role_title`` (``"vp-eng"``), looks up the matching
+        ``operator_id`` (``"op-vp-eng"``), records the directive on the
+        P3 audit trail, and invokes the hook with a body that carries
+        the directive_id.  The PSM endpoint is responsible for stamping
+        ``owner_role`` and writing ledger entries — see
+        ``platform_self_modification.endpoint.build_router``.
+
+        Parameters
+        ----------
+        role_label:
+            Human-readable CEOBranch role label from
+            ``_ORG_CHART_DEFINITION`` (e.g. ``"VP Engineering"``).
+        justification:
+            Free-text reason, forwarded to the ledger.
+        proposal_id:
+            Optional caller-supplied proposal_id.  When omitted, a
+            stable id of the form ``ceo-directive-<directive_id>`` is
+            generated so callers can correlate CEOBranch directives
+            with PSM cycles after the fact.
+
+        Returns
+        -------
+        dict with keys:
+            ``ok``                — True iff the PSM launch succeeded.
+            ``reason``            — named failure when ``ok=False``:
+                                    ``hook_not_wired``,
+                                    ``unknown_role``,
+                                    ``unknown_operator``,
+                                    ``hook_exception``.
+            ``directive_id``      — CEOBranch-side correlation id
+                                    (always present).
+            ``proposal_id``       — the id sent to PSM.
+            ``operator_id``       — resolved operator_id (if any).
+            ``psm_response``      — raw response from the hook when
+                                    it was invoked (else omitted).
+
+        Never raises — every failure mode is named so callers and
+        operators can audit the outcome without silent loss.
+        """
+        directive_id = uuid.uuid4().hex[:12]
+        label = str(role_label or "")[:_MAX_ROLE_LABEL_LEN].replace("\x00", "")
+        justification_clean = str(justification or "")[:_MAX_DIRECTIVE_LEN].replace("\x00", "")
+        resolved_proposal_id = proposal_id or f"ceo-directive-{directive_id}"
+
+        if self._psm_launch_hook is None:
+            self._emit_telemetry(
+                "ceo_psm_dispatch_not_wired",
+                {"role_label": label, "directive_id": directive_id},
+            )
+            return {
+                "ok": False,
+                "reason": "hook_not_wired",
+                "directive_id": directive_id,
+                "proposal_id": resolved_proposal_id,
+                "operator_id": None,
+            }
+
+        role_title = _CEO_LABEL_TO_ROLE.get(label) if _ROSETTA_AVAILABLE else None
+        if not role_title:
+            self._emit_telemetry(
+                "ceo_psm_dispatch_unknown_role",
+                {"role_label": label, "directive_id": directive_id},
+            )
+            return {
+                "ok": False,
+                "reason": "unknown_role",
+                "directive_id": directive_id,
+                "proposal_id": resolved_proposal_id,
+                "operator_id": None,
+            }
+
+        operator_id = self._role_title_to_operator_id(role_title)
+        if operator_id is None:
+            self._emit_telemetry(
+                "ceo_psm_dispatch_unknown_operator",
+                {"role_label": label, "role_title": role_title,
+                 "directive_id": directive_id},
+            )
+            return {
+                "ok": False,
+                "reason": "unknown_operator",
+                "directive_id": directive_id,
+                "proposal_id": resolved_proposal_id,
+                "operator_id": None,
+            }
+
+        # Record the directive on the CEOBranch side BEFORE invoking
+        # the hook so the P3 audit trail carries a provenance record
+        # even if the PSM call later fails.
+        local_result = DirectiveResult(
+            role_label=label,
+            directive=justification_clean,
+            accepted=True,
+            message=f"Dispatched to PSM via operator {operator_id}",
+        )
+        with self._lock:
+            capped_append(
+                self._telemetry,
+                {
+                    "event": "ceo_psm_dispatch",
+                    "branch_id": self._branch_id,
+                    "directive_id": directive_id,
+                    "role_label": label,
+                    "role_title": role_title,
+                    "operator_id": operator_id,
+                    "proposal_id": resolved_proposal_id,
+                    "at": datetime.now(timezone.utc).isoformat(),
+                },
+                max_size=_MAX_TELEMETRY_EVENTS,
+            )
+
+        body = {
+            "proposal_id": resolved_proposal_id,
+            "operator_id": operator_id,
+            "justification": justification_clean or f"CEO directive {directive_id}",
+            # ROSETTA-ORG-008 — carry the CEOBranch directive_id
+            # through the PSM LaunchRequest so the orchestrator's
+            # gap_analysis references it for end-to-end correlation.
+            "directive_id": directive_id,
+        }
+
+        try:
+            response = self._psm_launch_hook(body)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "ROSETTA-ORG-008: psm_launch_hook raised for directive %s: %s",
+                directive_id, str(exc)[:200],
+            )
+            return {
+                "ok": False,
+                "reason": "hook_exception",
+                "directive_id": directive_id,
+                "proposal_id": resolved_proposal_id,
+                "operator_id": operator_id,
+                "error": str(exc)[:500],
+            }
+
+        response = response if isinstance(response, dict) else {"raw": response}
+        psm_ok = bool(response.get("ok"))
+        _ = local_result  # directive acknowledged locally
+        return {
+            "ok": psm_ok,
+            "reason": "ok" if psm_ok else "psm_rejected",
+            "directive_id": directive_id,
+            "proposal_id": resolved_proposal_id,
+            "operator_id": operator_id,
+            "psm_response": response,
+        }
+
     def get_operational_plan(self) -> Dict[str, Any]:
         """Return the current operational plan."""
         return self._workflow.get_operational_plan()
@@ -1403,49 +1617,43 @@ class CEOBranch:
     def _seed_rosetta_personas(self) -> int:
         """Create a Rosetta state document for each VP role in the org chart.
 
-        Uses the canonical ``_ORG_CHART_DEFINITION`` to build an initial
-        ``RosettaAgentState`` per role.  Each agent gets:
-          - identity: agent_id derived from role label, name = role label,
-            role = first responsibility, org = "murphy-system"
-          - system_state: status="idle" (not yet active)
-          - agent_state: current_phase = "onboarding"
-
-        Returns the count of successfully created personas.
+        ROSETTA-ORG-005 — delegates to :func:`rosetta.seed_platform_org`
+        with ``include_vps=True`` so the platform core roles (ceo/cto/
+        compliance/sre) *and* the 7 VP roles from ``_VP_ROSTER`` come
+        from a single writer.  ``seed_platform_org`` is idempotent and
+        self-heals incomplete extras (see its docstring); this method
+        returns the count of canonical platform agents present after
+        the call.
         """
         if self._rosetta_manager is None or not _ROSETTA_AVAILABLE:
             return 0
+        if _seed_platform_org is None:  # pragma: no cover — import fallback
+            return 0
 
-        loaded = 0
-        all_roles = self._org_chart.get_all_roles()
-        for role in all_roles.values():
-            try:
-                # Skip if state already exists (idempotent)
-                existing = self._rosetta_manager.load_state(role.agent_id)
-                if existing is not None:
-                    loaded += 1
-                    continue
-
-                state = _RosettaAgentState(
-                    identity=_Identity(
-                        agent_id=role.agent_id,
-                        name=role.role_label,
-                        role=role.role_label,
-                        version="1.0.0",
-                        organization="murphy-system",
-                    ),
-                    system_state=_SystemState(status="idle"),
-                    agent_state=_AgentState(current_phase="onboarding"),
-                )
-                self._rosetta_manager.save_state(state)
-                loaded += 1
-                logger.debug("P0: seeded Rosetta state for %s (%s)",
-                             role.role_label, role.agent_id)
-            except Exception as exc:  # noqa: BLE001
-                logger.warning(
-                    "P0: failed to seed Rosetta state for %s: %s",
-                    role.role_label, str(exc)[:200],
-                )
-        return loaded
+        try:
+            seeded = _seed_platform_org(self._rosetta_manager, include_vps=True)
+            # ROSETTA-ORG-005 — ``personas_loaded`` reports the count
+            # of CEOBranch org-chart roles present in the platform
+            # roster (10: 3 core overlaps + 7 VPs), NOT the raw seed
+            # total.  This keeps the historical contract
+            # ``personas_loaded == len(_ORG_CHART_DEFINITION)`` stable
+            # while the underlying seed now also owns the platform-only
+            # ``sre`` role.
+            org_chart_titles = set(_CEO_LABEL_TO_ROLE.values())
+            org_chart_count = sum(
+                1 for aid in seeded
+                if aid.split(".", 1)[-1] in org_chart_titles
+            )
+            logger.debug(
+                "ROSETTA-ORG-005: seeded %d platform roles (%d map to CEOBranch org chart)",
+                len(seeded), org_chart_count,
+            )
+            return org_chart_count
+        except Exception as exc:  # noqa: BLE001 — loud, not silent
+            logger.warning(
+                "ROSETTA-ORG-005: seed_platform_org failed: %s", str(exc)[:200],
+            )
+            return 0
 
     # ------------------------------------------------------------------
     # P4 — Register heartbeat tier translator (Gap 4 closure)
