@@ -51,7 +51,7 @@ import hmac
 import html as html_lib
 import logging
 import os
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Dict, Optional
 
 from fastapi import APIRouter, Header, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -114,6 +114,7 @@ def build_router(
     get_orchestrator: Callable[[], Any],
     get_lyapunov_source: Callable[[], Any],
     ledger_path: Optional[str] = None,
+    get_rosetta_manager: Optional[Callable[[], Any]] = None,
 ) -> APIRouter:
     """Construct the platform self-modification router.
 
@@ -129,6 +130,14 @@ def build_router(
         gate fails closed when None is returned.
     ledger_path:
         Override for tests. Defaults to env-or-disk default.
+    get_rosetta_manager:
+        ROSETTA-ORG-004. Optional zero-arg callable returning a
+        :class:`RosettaManager`. When supplied, the launch endpoint
+        attaches ``owner_role`` and ``approver_chain`` (walked via the
+        platform org chart) to the APPROVED + LAUNCHED ledger payloads
+        and to ``gap_analysis``.  An unknown operator_id surfaces an
+        explicit ``owner_lookup: "unknown_operator"`` — never silent.
+        If omitted, behavior is unchanged from PSM-003 baseline.
     """
     router = APIRouter(prefix="/api/platform/self-modification", tags=["platform-self-mod"])
     ledger = SelfEditLedger(ledger_path or _resolve_ledger_path())
@@ -259,12 +268,38 @@ def build_router(
                 },
             )
 
+        # ROSETTA-ORG-004: owner-role attribution.  Failures here MUST
+        # NOT block the launch (the pipeline pre-dates Rosetta wiring),
+        # but every failure mode is named explicitly in owner_info so
+        # the ledger and response carry it forward — never silent.
+        owner_info: Dict[str, Any] = {
+            "owner_role": None,
+            "approver_chain": [],
+            "owner_lookup": "rosetta_not_wired",
+        }
+        if get_rosetta_manager is not None:
+            try:
+                from rosetta.org_chart import lookup_role_for_operator
+                manager = get_rosetta_manager()
+                owner_info = lookup_role_for_operator(manager, req.operator_id)
+            except Exception as _lookup_exc:  # noqa: BLE001
+                logger.error(
+                    "PSM-003: Rosetta owner lookup raised: %s",
+                    _lookup_exc, exc_info=_lookup_exc,
+                )
+                owner_info = {
+                    "owner_role": None,
+                    "approver_chain": [],
+                    "owner_lookup": "lookup_exception",
+                    "lookup_error": str(_lookup_exc),
+                }
+
         approved = ledger.record(
             LedgerEntryKind.APPROVED,
             proposal_id=req.proposal_id,
             operator_id=req.operator_id,
             rsc_snapshot=decision.snapshot,
-            payload={"reason": decision.reason},
+            payload={"reason": decision.reason, **owner_info},
         )
 
         # 6. Hand off to the orchestrator. Wrapped so any exception in
@@ -278,6 +313,11 @@ def build_router(
                     "operator_id": req.operator_id,
                     "justification": req.justification,
                     "ledger_seq_approved": approved.seq,
+                    # ROSETTA-ORG-004: tell the orchestrator who owns
+                    # this cycle and who the approvers are.
+                    "owner_role": owner_info.get("owner_role"),
+                    "approver_chain": owner_info.get("approver_chain", []),
+                    "owner_lookup": owner_info.get("owner_lookup"),
                 }
             )
             cycle_id = getattr(cycle, "cycle_id", None) or str(cycle)
@@ -288,7 +328,11 @@ def build_router(
                 proposal_id=req.proposal_id,
                 operator_id=req.operator_id,
                 rsc_snapshot=decision.snapshot,
-                payload={"reason": "orchestrator_exception", "detail": str(exc)},
+                payload={
+                    "reason": "orchestrator_exception",
+                    "detail": str(exc),
+                    **owner_info,
+                },
             )
             return JSONResponse(
                 status_code=500,
@@ -305,7 +349,7 @@ def build_router(
             proposal_id=req.proposal_id,
             operator_id=req.operator_id,
             rsc_snapshot=decision.snapshot,
-            payload={"cycle_id": cycle_id},
+            payload={"cycle_id": cycle_id, **owner_info},
         )
         return JSONResponse(
             status_code=202,
@@ -315,6 +359,8 @@ def build_router(
                 "proposal_id": req.proposal_id,
                 "ledger_seq": launched.seq,
                 "rsc_reason": decision.reason,
+                "owner_role": owner_info.get("owner_role"),
+                "owner_lookup": owner_info.get("owner_lookup"),
             },
         )
 
