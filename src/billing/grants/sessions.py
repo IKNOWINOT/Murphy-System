@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from src.billing.grants.models import (
@@ -112,7 +112,7 @@ class SessionManager:
         self._assert_owner(session_id, requesting_account_id)
 
         session.is_active = False
-        session.updated_at = datetime.utcnow()
+        session.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         # Clear all associated data
         self._form_data[session_id] = {}
         self._applications[session_id] = []
@@ -282,7 +282,7 @@ class SessionManager:
         for key, value in updates.items():
             if hasattr(app, key):
                 setattr(app, key, value)
-        app.updated_at = datetime.utcnow()
+        app.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         return app
 
     def delete_application(

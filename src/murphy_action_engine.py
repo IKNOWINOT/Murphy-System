@@ -467,7 +467,7 @@ def murphy_action(
         @murphy_action(description="Return the current UTC timestamp.")
         def get_timestamp() -> str:
             import datetime
-            return datetime.datetime.utcnow().isoformat()
+            return datetime.datetime.now(datetime.timezone.utc).isoformat()
     """
 
     def decorator(fn: Callable) -> Callable:

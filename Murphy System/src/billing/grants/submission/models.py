@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 
@@ -63,11 +63,11 @@ class SubmissionStatus:
 
     def transition(self, new_status: str, notes: str = "") -> None:
         change = StatusChange(
-            changed_at=datetime.utcnow(),
+            changed_at=datetime.now(timezone.utc).replace(tzinfo=None),
             old_status=self.status,
             new_status=new_status,
             notes=notes,
         )
         self.history.append(change)
         self.status = new_status
-        self.last_checked = datetime.utcnow()
+        self.last_checked = datetime.now(timezone.utc).replace(tzinfo=None)

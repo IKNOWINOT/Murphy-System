@@ -15,7 +15,7 @@ License: BSL 1.1
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from src.billing.grants.models import (
@@ -111,7 +111,7 @@ class HitlTaskManager:
         task.state = self._compute_initial_state(queue, task)
 
         queue.tasks.append(task)
-        queue.updated_at = datetime.utcnow()
+        queue.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         return task
 
     def update_task(
@@ -131,15 +131,15 @@ class HitlTaskManager:
             self._validate_transition(task.state, new_state)
             task.state = new_state
             if new_state == HitlTaskState.COMPLETED:
-                task.completed_at = datetime.utcnow()
+                task.completed_at = datetime.now(timezone.utc).replace(tzinfo=None)
                 # Unblock downstream tasks
                 self._unblock_downstream(queue, task_id)
 
         if human_provided_data is not None:
             task.human_provided_data.update(human_provided_data)
 
-        task.updated_at = datetime.utcnow()
-        queue.updated_at = datetime.utcnow()
+        task.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        queue.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         return task
 
     def get_task(self, session_id: str, task_id: str) -> HitlTask:
@@ -216,7 +216,7 @@ class HitlTaskManager:
                 else:
                     new_state = HitlTaskState.NEEDS_REVIEW
                 task.state = new_state
-                task.updated_at = datetime.utcnow()
+                task.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
                 logger.info(
                     "Task %s unblocked → %s after dependency %s completed",
                     task.task_id, task.state, completed_task_id,
