@@ -71,8 +71,10 @@ _ROOT_FILES = [
     "inoni_business_automation.py",
 ]
 
-# Files we never count as a "user" of the module under inspection.
-_SELF_FILES_PATTERN = re.compile(r"__init__\.py$|test_.*\.py$|.*_test\.py$")
+# File-name patterns excluded from the module enumeration. These are not
+# user-facing modules (init shims and test files) so we never list them as
+# candidates for being "unused".
+_EXCLUDED_FILES_PATTERN = re.compile(r"__init__\.py$|test_.*\.py$|.*_test\.py$")
 
 
 def _enumerate_modules() -> list[tuple[str, Path]]:
@@ -82,7 +84,7 @@ def _enumerate_modules() -> list[tuple[str, Path]]:
         rel = py.relative_to(_REPO_ROOT)
         if py.name == "__init__.py":
             continue
-        if _SELF_FILES_PATTERN.match(py.name):
+        if _EXCLUDED_FILES_PATTERN.match(py.name):
             continue
         # src/foo/bar.py -> src.foo.bar
         dotted = ".".join(rel.with_suffix("").parts)

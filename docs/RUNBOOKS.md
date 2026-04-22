@@ -490,7 +490,7 @@ mitigation that the on-call should attempt first.
 **Linked alerts:** `MurphyAPIAvailabilitySLOFastBurn`,
 `MurphyAPIAvailabilitySLOSlowBurn`.
 
-**SLO:** 99.5 % of `/api/*` requests return non-5xx in any 30-day window.
+**SLO:** 99.9 % of `/api/*` requests return non-5xx in any 30-day window.
 
 **First 5 minutes:**
 
