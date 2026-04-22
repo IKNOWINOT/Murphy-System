@@ -510,17 +510,31 @@ if [ "$SKIP_DEPS" = false ]; then
     unset _pip_exit
   fi
 
-  # ── Purge stale __pycache__ / .pyc (prevents bytecode import errors) ─────────
-  info "Purging stale __pycache__ / .pyc files ..."
-  find "${REPO_DIR}/src" -name '__pycache__' -type d \
-    -exec rm -rf {} + 2>/dev/null || true
-  find "${REPO_DIR}/src" -name '*.pyc' -type f \
-    -delete 2>/dev/null || true
-  ok "Bytecode cache cleared"
-
 else
   info "Skipping pip install (--skip-deps)"
 fi
+
+# ── Purge stale __pycache__ / .pyc (prevents bytecode import errors) ─────────
+#
+# This MUST run on every invocation — including --skip-deps — and MUST cover
+# every src tree that ends up on sys.path.  Otherwise a `git pull` followed by
+# `systemctl restart murphy-production` can keep serving old behaviour from
+# stale .pyc files (the symptom: "the Forge output doesn't match what I just
+# pushed").  murphy_production_server.py imports from BOTH the root `src/`
+# (via `sys.path.insert(0, str(REPO/"src"))`) and the canonical
+# `Murphy System/src/` (via `sys.path.insert(0, str(REPO/"Murphy System"))`),
+# so both must be purged here.
+info "Purging stale __pycache__ / .pyc files ..."
+for _src_tree in "${REPO_DIR}/src" "${REPO_DIR}/Murphy System/src"; do
+  if [ -d "${_src_tree}" ]; then
+    find "${_src_tree}" -name '__pycache__' -type d \
+      -exec rm -rf {} + 2>/dev/null || true
+    find "${_src_tree}" -name '*.pyc' -type f \
+      -delete 2>/dev/null || true
+  fi
+done
+unset _src_tree
+ok "Bytecode cache cleared (root src/ + Murphy System/src/)"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # STEP 3 — Environment file audit
