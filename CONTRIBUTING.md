@@ -300,6 +300,31 @@ flake8 . --max-line-length 88 --extend-ignore E203,W503
 
 6. **Merge:** Maintainers use squash-merge for feature/fix PRs, merge commits for release PRs.
 
+### Architecture Decision Records (ADRs)
+
+Some changes need an **ADR** in [`docs/adr/`](docs/adr/) alongside the code.
+ADRs are short Michael-Nygard-format markdown files that capture the *why*
+behind a structural decision and *what alternatives were rejected*.
+
+You **must** open an ADR in the same PR as the code when the change:
+
+* introduces, replaces, or removes a major dependency (LLM provider, vector
+  store, message broker, auth provider, observability backend, etc.);
+* changes a trust boundary, an authentication path, or a data-retention
+  rule (cross-reference [`docs/SECURITY_THREAT_MODEL.md`](docs/SECURITY_THREAT_MODEL.md));
+* alters the canonical source layout, packaging, or deployment topology;
+* introduces a new always-on subsystem or makes an opt-in subsystem default;
+* supersedes an existing ADR (cite the old one's number in the `Status`
+  line — e.g. *Supersedes ADR-0003*).
+
+Bug fixes, refactors that preserve behavior, dependency-version bumps that
+do not change the chosen vendor, and documentation-only changes do **not**
+need an ADR.
+
+To add one, copy the next free number (see [`docs/adr/README.md`](docs/adr/README.md)),
+fill in **Status / Context / Decision / Consequences**, and add a row to the
+ADR index. The ADR is reviewed in the same PR as the code it justifies.
+
 ---
 
 ## Security Vulnerabilities
