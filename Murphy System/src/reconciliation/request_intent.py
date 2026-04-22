@@ -28,6 +28,7 @@ from .delegation import (
     auto_resolve_questions,
     detect_delegation,
 )
+from .framing import build_framing
 from .intent_classifier import IntentClassifier, IntentClassifierError, IntentPrediction
 from .models import (
     AcceptanceCriterion,
@@ -381,6 +382,17 @@ class IntentExtractor:
                 s.mss_trace = dict(mss_trace)
 
         if not self._emit_questions:
+            # Even with question emission disabled, every spec still
+            # gets framing so the universal "AI recommendation, please
+            # validate" doctrine holds for *all* extractor output.
+            for s in specs:
+                s.framing = build_framing(
+                    request=request,
+                    spec=s,
+                    delegation_granted=False,
+                    picks=[],
+                    mss_trace=mss_trace,
+                )
             return
 
         primary = specs[0]
@@ -388,10 +400,28 @@ class IntentExtractor:
             "needs_clarification", False
         )
         if not needs_questions:
+            # Clear request — still attach a HIGH-band framing so the
+            # disclosure / validation panel always renders.
+            for s in specs:
+                s.framing = build_framing(
+                    request=request,
+                    spec=s,
+                    delegation_granted=False,
+                    picks=[],
+                    mss_trace=mss_trace,
+                )
             return
 
         questions = self._question_synth.synthesize(primary.ambiguity, prediction)
         if not questions:
+            for s in specs:
+                s.framing = build_framing(
+                    request=request,
+                    spec=s,
+                    delegation_granted=False,
+                    picks=[],
+                    mss_trace=mss_trace,
+                )
             return
         # Detect delegation: either opt-in path is sufficient and the two
         # are treated as equivalent alternatives — there is no precedence
@@ -432,6 +462,17 @@ class IntentExtractor:
                 ]
                 if "[best-effort]" not in s.summary:
                     s.summary = f"[best-effort] {s.summary}"
+            # Always attach framing — the universal doctrine applies
+            # regardless of delegation / ambiguity state.  Build it
+            # AFTER the spec's clarifying_questions / delegated_picks /
+            # summary mutations so the panels reflect the final state.
+            s.framing = build_framing(
+                request=request,
+                spec=s,
+                delegation_granted=s.delegation_granted,
+                picks=s.delegated_picks,
+                mss_trace=mss_trace,
+            )
 
     def _classify_or_none(self, request: Request) -> Optional[IntentPrediction]:
         """Run the classifier defensively.

@@ -42,6 +42,14 @@ from .delegation import (
     detect_delegation,
 )
 from .feature_flags import FeatureFlags, current_flags
+from .framing import (
+    AIRecommendationFraming,
+    BaseDeliverableRenderer,
+    ConfidenceBand,
+    RequestVsInference,
+    build_framing,
+    compute_inference_delta,
+)
 from .intent_classifier import (
     IntentClassifier,
     IntentClassifierError,
@@ -109,12 +117,18 @@ __all__ = [
     "ReconciliationScore",
     "Request",
     # Components
+    "AIRecommendationFraming",
+    "BaseDeliverableRenderer",
     "BEST_EFFORT_PREAMBLE",
     "ClarifyingQuestionSynthesizer",
+    "ConfidenceBand",
     "ConstraintExtractor",
     "Constraints",
     "DecompositionPart",
+    "RequestVsInference",
     "auto_resolve_questions",
+    "build_framing",
+    "compute_inference_delta",
     "detect_delegation",
     "FeatureFlags",
     "current_flags",
