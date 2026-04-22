@@ -29,6 +29,7 @@ Index
 | 0004 | Human-in-the-loop (HITL) gate is mandatory for all agent action | Accepted |
 | 0005 | Canonical source layout: `Murphy System/` mirrored to root      | Accepted |
 | 0006 | Blockchain-style append-only audit ledger for self-modification | Accepted |
+| 0007 | OpenTelemetry tracing is opt-in, not on-by-default              | Accepted |
 
 Adding a new ADR
 ----------------
