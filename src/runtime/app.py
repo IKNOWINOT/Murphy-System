@@ -636,6 +636,174 @@ def create_app() -> FastAPI:
             return None
         return _user_store.get(account_id)
 
+    # ── Phase 1: identity & approval policy helpers ──────────────────
+    #
+    # ``_resolve_caller`` produces a single normalized identity dict
+    # (or None) by trying session first (cookie / Bearer) and then
+    # falling back to the legacy ``X-User-ID`` header used by the RBAC
+    # dependency.  Endpoints that route through the AionMind kernel
+    # use this so the audit trail and approval policy see the *same*
+    # identity the security plane already authenticated.
+    #
+    # ``_auto_approve_for`` is the role+risk policy referenced by the
+    # plan: owners auto-approve LOW+MEDIUM, admins LOW only, everyone
+    # else (including anonymous in dev) never auto-approves — which
+    # restores the kernel's no-autonomy contract.
+
+    def _resolve_caller(request: "Request") -> "Optional[Dict[str, Any]]":
+        """Return ``{account_id, email, role, tier}`` or ``None``.
+
+        Tries session (cookie / Bearer) first, then the ``X-User-ID``
+        header.  Returns ``None`` when no identity can be resolved
+        (typical for anonymous dev/test traffic that ``require_permission``
+        permits).
+
+        Phase 2 / A3 — founder seeding race.  When the resolved
+        caller's email matches ``MURPHY_FOUNDER_EMAIL`` the role is
+        forced to ``"owner"`` even if the user store hasn't yet been
+        seeded with the founder account (or seeded them with a lower
+        role).  Without this override a fresh deployment would
+        downgrade the founder to ``role="user"`` and silently deny
+        every auto-approval, which is the opposite of the intended
+        no-autonomy contract: the *founder* should always retain
+        owner-tier authority on their own deployment.
+        """
+        # 1) Session-based auth (cookie or Bearer token)
+        try:
+            account = _get_account_from_session(request)
+        except Exception:  # pragma: no cover - defensive
+            account = None
+        if not account:
+            # 2) Legacy X-User-ID header (the RBAC dependency uses this)
+            user_id = request.headers.get("X-User-ID", "") or ""
+            user_id = user_id.strip()
+            if user_id:
+                account = _user_store.get(user_id)
+                if account is None:
+                    # X-User-ID may be an email rather than an account_id
+                    aid = _email_to_account.get(user_id.lower())
+                    if aid:
+                        account = _user_store.get(aid)
+                if account is None and "@" in user_id:
+                    # A3 — founder seeding race: even when the user
+                    # store has no record at all, accept a bare
+                    # ``X-User-ID: <email>`` as an unseeded identity
+                    # so the founder override below can fire.
+                    account = {
+                        "account_id": "",
+                        "email": user_id,
+                        "role": "user",
+                        "tier": "free",
+                    }
+        if not account:
+            return None
+        email = (account.get("email") or "").strip().lower()
+        role = account.get("role") or "user"
+        # A3 — founder override.
+        try:
+            founder_email = os.environ.get(
+                "MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems"
+            ).strip().lower()
+        except Exception:  # pragma: no cover
+            founder_email = "cpost@murphy.systems"
+        if email and email == founder_email and role != "owner":
+            role = "owner"
+        return {
+            "account_id": account.get("account_id") or account.get("id") or "",
+            "email": email,
+            "role": role,
+            "tier": account.get("tier") or "free",
+        }
+
+    def _auto_approve_for(
+        user: "Optional[Dict[str, Any]]",
+        risk: "Any" = None,
+    ) -> "tuple":
+        """Role+risk auto-approval policy.
+
+        Returns ``(auto_approve: bool, max_auto_approve_risk: RiskLevel)``
+        suitable for passing straight into
+        :meth:`AionMindKernel.cognitive_execute`.
+
+        * ``role == "owner"`` → auto-approve LOW and MEDIUM.
+        * ``role == "admin"`` → auto-approve LOW only.
+        * Anyone else (including anonymous / unknown) → never
+          auto-approve; the kernel will return ``pending_approval`` and
+          the request goes to the HITL queue.
+
+        ``risk`` is currently unused — the policy is decided purely by
+        role and a static ceiling — but is reserved so a future
+        per-action override (e.g. CRITICAL never auto-approves
+        regardless of role) can plug in without changing every call
+        site.
+        """
+        try:
+            from aionmind.models.context_object import RiskLevel as _RL
+        except Exception:  # pragma: no cover - kernel always present in prod
+            return (False, None)
+        role = ((user or {}).get("role") or "").lower()
+        if role == "owner":
+            return (True, _RL.MEDIUM)
+        if role == "admin":
+            return (True, _RL.LOW)
+        return (False, _RL.LOW)
+
+
+    def _enqueue_hitl_handoff(
+        aionmind_result: "Dict[str, Any]",
+        *,
+        actor: str,
+        task_description: str,
+        task_type: str,
+    ) -> "Optional[str]":
+        """Phase 2 / B8 — push a `pending_approval` AionMind result
+        into the existing HITL intervention queue.
+
+        When ``cognitive_execute`` returns ``status='pending_approval'``
+        the request currently dies on the front door — no human ever
+        sees it because nothing surfaces it in ``/api/hitl/queue`` or
+        the terminal HITL UI.  This helper bridges the gap by inserting
+        a synthetic intervention record that mirrors the shape used by
+        ``handle_form_validation`` so the existing UI / respond
+        endpoints work unchanged.
+
+        Best-effort: any exception is logged at DEBUG and swallowed.
+        Returns the intervention id on success, ``None`` otherwise.
+        """
+        if not isinstance(aionmind_result, dict):
+            return None
+        if aionmind_result.get("status") != "pending_approval":
+            return None
+        try:
+            from datetime import datetime, timezone
+            from uuid import uuid4
+        except Exception:  # pragma: no cover
+            return None
+        try:
+            interventions = getattr(murphy, "hitl_interventions", None)
+            if interventions is None:
+                return None
+            iid = uuid4().hex
+            interventions[iid] = {
+                "request_id": iid,
+                "task_id": aionmind_result.get("graph_id") or iid,
+                "intervention_type": "aionmind_approval",
+                "urgency": "medium",
+                "reason": "AionMind kernel requires human approval before execution.",
+                "status": "pending",
+                "actor": actor,
+                "task_description": task_description,
+                "task_type": task_type,
+                "context_id": aionmind_result.get("context_id"),
+                "graph_id": aionmind_result.get("graph_id"),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+            return iid
+        except Exception as _exc:  # pragma: no cover - defensive
+            logger.debug("HITL hand-off failed: %s", _exc)
+            return None
+
+
     # ── Subscription manager (shared instance) ──
     try:
         from src.subscription_manager import SubscriptionManager as _SubMgr
@@ -713,6 +881,15 @@ def create_app() -> FastAPI:
             auto_bridge_bots=True,
             auto_discover_rsc=True,
         )
+        # Phase 2 / E26 — wire optional append-only audit log when
+        # MURPHY_AUDIT_LOG_PATH is set in the environment.
+        _audit_path = os.environ.get("MURPHY_AUDIT_LOG_PATH", "").strip()
+        if _audit_path:
+            try:
+                _aionmind_kernel.set_audit_log_path(_audit_path)
+                logger.info("AionMind audit log enabled at %s", _audit_path)
+            except Exception as _audit_exc:  # pragma: no cover
+                logger.warning("AionMind audit log wire-up failed: %s", _audit_exc)
         aionmind_api.init_kernel(_aionmind_kernel)
         # Mount AionMind 2.0 endpoints at /api/aionmind/*
         # (status, context, orchestrate, execute, proposals, memory)
@@ -1052,17 +1229,54 @@ def create_app() -> FastAPI:
         task_description = data.get('task_description', '') or data.get('command', '')
         task_type = data.get('task_type', 'general')
 
+        # Phase 1: resolve the authenticated caller (session → header)
+        # so the AionMind kernel sees the real identity instead of the
+        # legacy "api_auto" placeholder.
+        _caller = _resolve_caller(request)
+        _caller_email = (_caller or {}).get("email", "")
+        _founder_email = os.environ.get(
+            "MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems"
+        ).strip().lower()
+        _is_founder = bool(_caller_email) and _caller_email == _founder_email
+
         # Route through AionMind cognitive pipeline if available
         if _aionmind_kernel is not None:
             try:
-                aionmind_result = _aionmind_kernel.cognitive_execute(
-                    source="api",
+                _auto, _max_risk = _auto_approve_for(_caller)
+                _approver = _caller_email or "anonymous"
+                _source = f"user:{_caller_email}" if _caller_email else "api:anonymous"
+                _meta: "Dict[str, Any]" = {}
+                if _caller_email:
+                    _meta["user_email"] = _caller_email
+                    _meta["user_role"] = (_caller or {}).get("role", "user")
+                if _is_founder:
+                    _meta["founder"] = True
+                _kernel_kwargs: "Dict[str, Any]" = dict(
+                    source=_source,
                     raw_input=task_description,
                     task_type=task_type,
                     parameters=data.get('parameters'),
-                    auto_approve=True,
-                    approver="api_auto",
+                    auto_approve=_auto,
+                    approver=_approver,
+                    metadata=_meta,
+                    actor=_approver,
                 )
+                if _max_risk is not None:
+                    _kernel_kwargs["max_auto_approve_risk"] = _max_risk
+                aionmind_result = _aionmind_kernel.cognitive_execute(**_kernel_kwargs)
+                # B8 — when the kernel says "pending_approval" push the
+                # result into the HITL queue so a human can see it via
+                # /api/hitl/queue and the terminal UI.  Best-effort —
+                # the helper swallows its own errors.
+                if aionmind_result.get("status") == "pending_approval":
+                    _hitl_id = _enqueue_hitl_handoff(
+                        aionmind_result,
+                        actor=_approver,
+                        task_description=task_description,
+                        task_type=task_type,
+                    )
+                    if _hitl_id:
+                        aionmind_result["hitl_intervention_id"] = _hitl_id
                 # Fall through to legacy if no candidates
                 if aionmind_result.get("status") != "no_candidates":
                     # Merge with legacy execution for full feature coverage
@@ -2729,18 +2943,41 @@ def create_app() -> FastAPI:
     async def form_task_execution(request: Request):
         """Execute task via form endpoint — routes through AionMind cognitive pipeline."""
         data = await request.json()
+        # Phase 1: thread the authenticated caller into the kernel
+        _caller = _resolve_caller(request)
+        _caller_email = (_caller or {}).get("email", "")
+        _founder_email = os.environ.get(
+            "MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems"
+        ).strip().lower()
+        _is_founder = bool(_caller_email) and _caller_email == _founder_email
         # Enrich form data with AionMind context if available
         if _aionmind_kernel is not None:
             try:
                 desc = data.get("description") or data.get("task_description", "")
-                aionmind_result = _aionmind_kernel.cognitive_execute(
-                    source="form:task-execution",
+                _auto, _max_risk = _auto_approve_for(_caller)
+                _approver = _caller_email or "anonymous"
+                _source = (
+                    f"user:{_caller_email}" if _caller_email else "form:task-execution"
+                )
+                _meta: "Dict[str, Any]" = {"form": "task-execution"}
+                if _caller_email:
+                    _meta["user_email"] = _caller_email
+                    _meta["user_role"] = (_caller or {}).get("role", "user")
+                if _is_founder:
+                    _meta["founder"] = True
+                _kernel_kwargs: "Dict[str, Any]" = dict(
+                    source=_source,
                     raw_input=desc,
                     task_type=data.get("task_type", "general"),
                     parameters=data.get("parameters"),
-                    auto_approve=True,
-                    approver="form_auto",
+                    auto_approve=_auto,
+                    approver=_approver,
+                    metadata=_meta,
+                    actor=_approver,
                 )
+                if _max_risk is not None:
+                    _kernel_kwargs["max_auto_approve_risk"] = _max_risk
+                aionmind_result = _aionmind_kernel.cognitive_execute(**_kernel_kwargs)
                 result = await murphy.handle_form_task_execution(data)
                 result["aionmind"] = aionmind_result
                 return JSONResponse(result)
@@ -2753,12 +2990,28 @@ def create_app() -> FastAPI:
     async def form_validation(request: Request):
         """Validate task via form endpoint — enriched with AionMind context."""
         data = await request.json()
+        _caller = _resolve_caller(request)
+        _caller_email = (_caller or {}).get("email", "")
+        _founder_email = os.environ.get(
+            "MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems"
+        ).strip().lower()
+        _is_founder = bool(_caller_email) and _caller_email == _founder_email
         if _aionmind_kernel is not None:
             try:
                 desc = (data.get("task_data") or data).get("description", "")
+                _meta: "Dict[str, Any]" = {"form": "validation"}
+                if _caller_email:
+                    _meta["user_email"] = _caller_email
+                    _meta["user_role"] = (_caller or {}).get("role", "user")
+                if _is_founder:
+                    _meta["founder"] = True
+                _source = (
+                    f"user:{_caller_email}" if _caller_email else "form:validation"
+                )
                 ctx = _aionmind_kernel.build_context(
-                    source="form:validation",
+                    source=_source,
                     raw_input=desc,
+                    metadata=_meta,
                 )
                 result = murphy.handle_form_validation(data)
                 result["aionmind_context_id"] = ctx.context_id
@@ -2772,13 +3025,31 @@ def create_app() -> FastAPI:
     async def form_correction(request: Request):
         """Submit correction via form endpoint — enriched with AionMind context."""
         data = await request.json()
+        _caller = _resolve_caller(request)
+        _caller_email = (_caller or {}).get("email", "")
+        _founder_email = os.environ.get(
+            "MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems"
+        ).strip().lower()
+        _is_founder = bool(_caller_email) and _caller_email == _founder_email
         if _aionmind_kernel is not None:
             try:
                 desc = data.get("task_description") or data.get("original_task", "")
+                _meta: "Dict[str, Any]" = {
+                    "form": "correction",
+                    "correction": data.get("correction", ""),
+                }
+                if _caller_email:
+                    _meta["user_email"] = _caller_email
+                    _meta["user_role"] = (_caller or {}).get("role", "user")
+                if _is_founder:
+                    _meta["founder"] = True
+                _source = (
+                    f"user:{_caller_email}" if _caller_email else "form:correction"
+                )
                 ctx = _aionmind_kernel.build_context(
-                    source="form:correction",
+                    source=_source,
                     raw_input=desc,
-                    metadata={"correction": data.get("correction", "")},
+                    metadata=_meta,
                 )
                 result = murphy.handle_form_correction(data)
                 result["aionmind_context_id"] = ctx.context_id
@@ -12962,52 +13233,62 @@ def create_app() -> FastAPI:
         logger.warning("Blockchain Audit Trail API unavailable: %s", _bat_exc)
 
     # ══════════════════════════════════════════════════════════════════════
-    # AUTH MIDDLEWARE — unified X-API-Key enforcement for all /api/* routes
-    # Permissive when MURPHY_API_KEY env var is not set (development mode).
+    # AUTH MIDDLEWARE — ADR-0012 Release N
+    # OIDC primary (Bearer JWT) + session cookie + deprecated X-API-Key
+    # fallback gated by MURPHY_ALLOW_API_KEY (default true) and a
+    # route allowlist (default /api/v1/internal/*).
     # ══════════════════════════════════════════════════════════════════════
 
-    from starlette.middleware.base import BaseHTTPMiddleware as _BHMW
+    try:
+        from auth_middleware import OIDCAuthMiddleware as _OIDCMW  # type: ignore
+    except Exception:
+        try:
+            from src.auth_middleware import OIDCAuthMiddleware as _OIDCMW  # type: ignore
+        except Exception as _oidc_imp_exc:
+            _OIDCMW = None  # type: ignore[assignment]
+            logger.warning(
+                "OIDCAuthMiddleware import failed (%s) — using legacy inline guard",
+                _oidc_imp_exc,
+            )
 
-    class _APIKeyMiddleware(_BHMW):
-        """Unified API key enforcement for all /api/* routes.
+    if _OIDCMW is not None:
+        app.add_middleware(_OIDCMW)
+    else:
+        # Fallback: keep the previous inline X-API-Key middleware so
+        # deployments without ``src.auth_middleware`` on PYTHONPATH keep
+        # working.  This branch should not normally fire — the canonical
+        # source layout puts auth_middleware.py on the path.
+        from starlette.middleware.base import BaseHTTPMiddleware as _BHMW
 
-        Auth, demo, and other public-facing routes are always exempt so that
-        visitors can log in / sign up / use the demo even when MURPHY_API_KEY
-        is configured for protecting internal API routes.
-        """
+        class _APIKeyMiddleware(_BHMW):
+            """Legacy inline X-API-Key fallback (Release-N back-compat)."""
 
-        # Exact-path exemptions
-        EXEMPT_PATHS = {"/api/health", "/api/info", "/api/manifest"}
+            EXEMPT_PATHS = {"/api/health", "/api/info", "/api/manifest"}
+            EXEMPT_PREFIXES = (
+                "/api/auth/",
+                "/api/demo/",
+                "/api/system/",
+            )
 
-        # Prefix-based exemptions — any path that starts with one of these is
-        # treated as a public endpoint regardless of API key configuration.
-        EXEMPT_PREFIXES = (
-            "/api/auth/",    # login, signup, OAuth, password reset — must be public
-            "/api/demo/",    # demo runner and deliverable generator — no login required
-            "/api/system/",  # system status / health endpoints
-        )
+            async def dispatch(self, request: Request, call_next):
+                path = request.url.path
+                if path.startswith("/api/"):
+                    is_exempt = (
+                        path in self.EXEMPT_PATHS
+                        or any(path.startswith(pfx) for pfx in self.EXEMPT_PREFIXES)
+                    )
+                    if not is_exempt:
+                        expected_key = os.environ.get("MURPHY_API_KEY", "") or os.environ.get("MURPHY_API_KEYS", "")
+                        if expected_key:
+                            api_key = request.headers.get("x-api-key", "")
+                            if api_key != expected_key:
+                                return JSONResponse(
+                                    {"success": False, "error": {"code": "AUTH_REQUIRED", "message": "Valid X-API-Key header required"}},
+                                    status_code=401,
+                                )
+                return await call_next(request)
 
-        async def dispatch(self, request: Request, call_next):
-            path = request.url.path
-            if path.startswith("/api/"):
-                is_exempt = (
-                    path in self.EXEMPT_PATHS
-                    or any(path.startswith(pfx) for pfx in self.EXEMPT_PREFIXES)
-                )
-                if not is_exempt:
-                    expected_key = os.environ.get("MURPHY_API_KEY", "") or os.environ.get("MURPHY_API_KEYS", "")
-                    if expected_key:
-                        # Starlette normalises header names to lowercase (RFC 7230);
-                        # use lowercase "x-api-key" here to match that behaviour.
-                        api_key = request.headers.get("x-api-key", "")
-                        if api_key != expected_key:
-                            return JSONResponse(
-                                {"success": False, "error": {"code": "AUTH_REQUIRED", "message": "Valid X-API-Key header required"}},
-                                status_code=401,
-                            )
-            return await call_next(request)
-
-    app.add_middleware(_APIKeyMiddleware)
+        app.add_middleware(_APIKeyMiddleware)
 
     # ══════════════════════════════════════════════════════════════════════
     # EXCEPTION HANDLERS — normalise all error formats into standard envelope
@@ -13767,15 +14048,58 @@ def create_app() -> FastAPI:
             logger.debug("Librarian lookup skipped: %s", _lib_exc)
 
         # Step 2: MFGC → MSS → LLM pipeline (inside generate_deliverable)
+        # P1b (FORGE-KERNEL-001): resolve the caller up-front so we can
+        # tag both success and failure audit entries with the actor.
+        # ``_resolve_caller`` is defined in the same closure (used at
+        # ``/api/execute`` too) and falls back to ``"anonymous"`` here
+        # so the demo route stays usable for unauthenticated traffic.
+        try:
+            _fk_caller = _resolve_caller(request)
+        except Exception:
+            _fk_caller = None
+        _fk_actor = (_fk_caller or {}).get("email") or "anonymous"
         try:
             from src.demo_deliverable_generator import generate_deliverable
             deliverable = generate_deliverable(query, librarian_context=librarian_context or None)
         except Exception as exc:
             logger.warning("Deliverable generation failed: %s", exc)
+            # P1b: record the failure against the kernel so the
+            # operator audit log + KPI strip see Forge failures.
+            if _aionmind_kernel is not None:
+                try:
+                    _aionmind_kernel.record_external_execution(
+                        actor=_fk_actor,
+                        task_type="demo_forge",
+                        status="failed",
+                        summary=query,
+                        details={"error": str(exc)[:240], "tier": _usage_forge.get("tier", "anonymous")},
+                    )
+                except Exception as _rec_exc:  # pragma: no cover - defensive
+                    logger.debug("kernel.record_external_execution (failure) skipped: %s", _rec_exc)
             return JSONResponse(
                 {"success": False, "error": "generation_failed", "message": str(exc)},
                 status_code=500,
             )
+
+        # P1b (FORGE-KERNEL-001): record the successful Forge execution
+        # against the kernel.  Audit-only — does not gate the response,
+        # does not consult risk policy, swallows its own errors.
+        if _aionmind_kernel is not None:
+            try:
+                _aionmind_kernel.record_external_execution(
+                    actor=_fk_actor,
+                    task_type="demo_forge",
+                    status="completed",
+                    summary=query,
+                    details={
+                        "scenario": deliverable.get("filename", "").split(".")[0] or "custom",
+                        "llm_provider": deliverable.get("llm_provider"),
+                        "bytes": len(deliverable.get("content", "") or ""),
+                        "tier": _usage_forge.get("tier", "anonymous"),
+                    },
+                )
+            except Exception as _rec_exc:  # pragma: no cover - defensive
+                logger.debug("kernel.record_external_execution (success) skipped: %s", _rec_exc)
 
         # Generate automation spec (the key sales asset)
         automation_spec: Optional[Dict[str, Any]] = None

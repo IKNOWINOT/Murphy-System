@@ -70,6 +70,7 @@ class OrchestrationState:
     node_results: Dict[str, Any] = field(default_factory=dict)
     started_at: Optional[str] = None
     finished_at: Optional[str] = None
+    actor: Optional[str] = None
 
 
 class OrchestrationEngine:
@@ -100,8 +101,23 @@ class OrchestrationEngine:
 
     # ── execution lifecycle ───────────────────────────────────────
 
-    def execute(self, graph: ExecutionGraphObject) -> OrchestrationState:
+    def execute(
+        self,
+        graph: ExecutionGraphObject,
+        *,
+        actor: Optional[str] = None,
+    ) -> OrchestrationState:
         """Execute an **approved** graph.
+
+        Parameters
+        ----------
+        graph : ExecutionGraphObject
+            The approved graph to run.
+        actor : str, optional
+            Identity label of the human / service that initiated this
+            execution.  Recorded on the resulting
+            :class:`OrchestrationState` and emitted on every audit
+            entry so the audit trail is attributable.
 
         Raises
         ------
@@ -119,6 +135,7 @@ class OrchestrationEngine:
             graph_id=graph.graph_id,
             status=OrchestrationStatus.RUNNING,
             started_at=datetime.now(timezone.utc).isoformat(),
+            actor=actor,
         )
         self._states[state.execution_id] = state
         self._audit(state, "__start__", "execution_started")
@@ -278,11 +295,16 @@ class OrchestrationEngine:
         event: str,
         details: Optional[Dict[str, Any]] = None,
     ) -> None:
+        merged: Dict[str, Any] = dict(details or {})
+        # Stamp the initiating actor on every audit entry so the trail
+        # is attributable end-to-end (Phase 1: identity correctness).
+        if state.actor and "actor" not in merged:
+            merged["actor"] = state.actor
         entry = AuditEntry(
             timestamp=datetime.now(timezone.utc).isoformat(),
             node_id=node_id,
             event=event,
-            details=details or {},
+            details=merged,
         )
         state.audit_trail.append(entry)
         logger.info(
@@ -290,5 +312,5 @@ class OrchestrationEngine:
             state.execution_id[:8],
             node_id,
             event,
-            details or "",
+            merged or "",
         )
