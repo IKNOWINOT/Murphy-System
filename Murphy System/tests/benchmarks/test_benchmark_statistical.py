@@ -9,6 +9,7 @@ Targets:
   - Gate evaluation:          >50,000 ops/s
   - Control plane creation:   >1,000 ops/s
   - Platform connector (sim): >200 ops/s
+  - LLM routing dispatch:     >5,000 ops/s
 
 Run:
     pytest tests/benchmarks/test_benchmark_statistical.py --benchmark-only
@@ -167,3 +168,44 @@ def test_platform_connector_framework_throughput(benchmark):
 
     result = benchmark(fw.execute_action, action)
     assert result is not None
+
+
+# ---------------------------------------------------------------------------
+# LLM Provider Routing Dispatch  (target: >5,000 ops/s)
+# ---------------------------------------------------------------------------
+#
+# Roadmap Item 15 names "LLM provider routing" as a hot path. The interesting
+# thing to benchmark here is the *dispatch* overhead: prompt assembly +
+# local→cloud→layer fallback decision. We deliberately benchmark the
+# all-backends-unavailable path because:
+#
+#   1. CI has no real LLM backends configured, so this path is the only one
+#      we can measure deterministically.
+#   2. Network-bound paths are owned by locust (see `locust_benchmark.py`),
+#      not pytest-benchmark. pytest-benchmark is for in-process micro-bench.
+#   3. Routing overhead is what regresses when the dispatch logic gets more
+#      complex; the network call dominates real latency but is constant
+#      relative to dispatch changes.
+
+def test_llm_routing_dispatch_throughput(benchmark):
+    """TenantLLMRouter.complete() dispatch path must sustain >5,000 ops/s.
+
+    Test ID: PERF-LLM-ROUTE-001
+    Priority: High
+    Traceability: Roadmap Item 15 — Hot path "LLM provider routing"
+
+    Measures the routing-decision overhead (prompt build + local→cloud→layer
+    fallback chain) on the all-backends-unavailable path that returns the
+    stub response. This isolates dispatch cost from any network I/O.
+    """
+    try:
+        from src.copilot_tenant.llm_router import TenantLLMRouter
+    except ImportError as exc:
+        pytest.skip(f"copilot_tenant.llm_router not available: {exc}")
+
+    router = TenantLLMRouter()
+    prompt = "summarise the following telemetry payload in two sentences"
+    context = {"tenant": "bench", "request_id": "bench-001", "priority": "p2"}
+
+    result = benchmark(router.complete, prompt, context)
+    assert isinstance(result, str) and result
