@@ -1,0 +1,177 @@
+# Murphy System — SLO burn-rate alert rules
+# Class S Roadmap, Item 17.
+#
+# Service Level Objectives (SLOs) and the alerts that fire when an
+# operational error budget is being consumed faster than the SLO allows.
+#
+# References:
+#   - Google SRE workbook, "Alerting on SLOs" — multi-window, multi-burn-rate.
+#     https://sre.google/workbook/alerting-on-slos/
+#   - ADR-0004 (HITL gate is mandatory) — motivates the HITL approval-time SLO.
+#
+# All metrics referenced below are exported by `src/prometheus_metrics_exporter.py`.
+# When that exporter changes a metric name, this file MUST be updated in lockstep.
+
+groups:
+  # ---------------------------------------------------------------------------
+  # SLO 1: API availability
+  # ---------------------------------------------------------------------------
+  # Objective: 99.9% of HTTP requests to /api/* return a non-5xx response over a
+  # rolling 30-day window. Error budget = 0.1% = ~43.2 minutes per 30 days.
+  - name: murphy-slo-api-availability
+    interval: 30s
+    rules:
+      - alert: MurphySLOFastBurnAvailability
+        # Burning > 14.4x budget over 1h means the entire 30-day budget is
+        # consumed in ~2 days — page immediately.
+        expr: |
+          (
+            sum(rate(murphy_requests_total{status=~"5.."}[1h]))
+            /
+            sum(rate(murphy_requests_total[1h]))
+          ) > (14.4 * 0.001)
+          and
+          (
+            sum(rate(murphy_requests_total{status=~"5.."}[5m]))
+            /
+            sum(rate(murphy_requests_total[5m]))
+          ) > (14.4 * 0.001)
+        for: 2m
+        labels:
+          severity: critical
+          team: murphy
+          slo: api-availability
+        annotations:
+          summary: "API availability SLO is burning fast (>14.4x)"
+          description: |
+            The 99.9% availability SLO is being consumed at >14.4x burn rate
+            over both the 1h and 5m windows. At this rate the entire 30-day
+            error budget is exhausted in under 2 days.
+          runbook_url: "https://github.com/IKNOWINOT/Murphy-System/blob/main/docs/RUNBOOKS.md#api-availability"
+
+      - alert: MurphySLOSlowBurnAvailability
+        # Burning > 6x budget over 6h is the slow-burn signal — ticket, not page.
+        expr: |
+          (
+            sum(rate(murphy_requests_total{status=~"5.."}[6h]))
+            /
+            sum(rate(murphy_requests_total[6h]))
+          ) > (6 * 0.001)
+          and
+          (
+            sum(rate(murphy_requests_total{status=~"5.."}[30m]))
+            /
+            sum(rate(murphy_requests_total[30m]))
+          ) > (6 * 0.001)
+        for: 15m
+        labels:
+          severity: warning
+          team: murphy
+          slo: api-availability
+        annotations:
+          summary: "API availability SLO is burning slowly (>6x)"
+          description: |
+            Sustained slow burn of the 99.9% availability error budget.
+            Investigate before this becomes a fast-burn page.
+          runbook_url: "https://github.com/IKNOWINOT/Murphy-System/blob/main/docs/RUNBOOKS.md#api-availability"
+
+  # ---------------------------------------------------------------------------
+  # SLO 2: /api/prompt latency
+  # ---------------------------------------------------------------------------
+  # Objective: 95% of /api/prompt requests complete in <= 5s over a rolling
+  # 30-day window. The user-visible "thinking" pause must stay sub-perceptual
+  # for the median tenant on the median model.
+  - name: murphy-slo-prompt-latency
+    interval: 30s
+    rules:
+      - alert: MurphySLOFastBurnPromptLatency
+        expr: |
+          (
+            sum(rate(murphy_request_duration_seconds_bucket{route="/api/prompt",le="5.0"}[1h]))
+            /
+            sum(rate(murphy_request_duration_seconds_count{route="/api/prompt"}[1h]))
+          ) < (1 - 14.4 * 0.05)
+        for: 5m
+        labels:
+          severity: critical
+          team: murphy
+          slo: prompt-latency
+        annotations:
+          summary: "/api/prompt p95 latency SLO is burning fast"
+          description: |
+            More than 14.4x of the latency error budget for /api/prompt is being
+            consumed. Likely causes: LLM provider degradation, RAG retrieval
+            slow-path, downstream worker saturation.
+          runbook_url: "https://github.com/IKNOWINOT/Murphy-System/blob/main/docs/RUNBOOKS.md#prompt-latency"
+
+  # ---------------------------------------------------------------------------
+  # SLO 3: HITL approval time
+  # ---------------------------------------------------------------------------
+  # Objective (per ADR-0004): median time-to-approval for a normal-priority
+  # HITL ticket is <= 5 minutes during business hours. This protects the
+  # user-perceived latency of "automated" workflows that are actually
+  # sitting behind a human approval.
+  - name: murphy-slo-hitl-latency
+    interval: 1m
+    rules:
+      - alert: MurphyHITLApprovalLatencyHigh
+        expr: |
+          histogram_quantile(
+            0.5,
+            sum by (le) (rate(murphy_hitl_approval_seconds_bucket{priority="normal"}[15m]))
+          ) > 300
+        for: 10m
+        labels:
+          severity: warning
+          team: murphy
+          slo: hitl-approval
+        annotations:
+          summary: "HITL median approval time exceeds 5 minutes"
+          description: |
+            The median time from HITL ticket creation to approval has exceeded
+            5 minutes for the last 10 minutes. Workflows are stalling behind
+            the approval queue.
+          runbook_url: "https://github.com/IKNOWINOT/Murphy-System/blob/main/docs/RUNBOOKS.md#hitl-queue"
+
+      - alert: MurphyHITLQueueDepthCritical
+        expr: |
+          max(murphy_hitl_queue_depth) > 500
+        for: 5m
+        labels:
+          severity: critical
+          team: murphy
+          slo: hitl-approval
+        annotations:
+          summary: "HITL queue depth is critically high"
+          description: |
+            The HITL approval queue depth has exceeded 500 pending tickets for
+            5 minutes. Either the queue is being abused (rate-limit a
+            misbehaving automation) or the reviewer pool is offline.
+
+  # ---------------------------------------------------------------------------
+  # SLO 4: LLM provider error budget
+  # ---------------------------------------------------------------------------
+  # Objective: < 1% of LLM calls fail after exhausting the multi-provider
+  # fallback chain.
+  - name: murphy-slo-llm-availability
+    interval: 30s
+    rules:
+      - alert: MurphyLLMTerminalFailureRateHigh
+        expr: |
+          (
+            sum(rate(murphy_llm_calls_total{outcome="terminal_error"}[10m]))
+            /
+            sum(rate(murphy_llm_calls_total[10m]))
+          ) > 0.01
+        for: 10m
+        labels:
+          severity: warning
+          team: murphy
+          slo: llm-availability
+        annotations:
+          summary: "LLM fallback chain is exhausted on > 1% of calls"
+          description: |
+            More than 1% of LLM calls are failing after exhausting every
+            provider in the fallback chain over the last 10 minutes. The
+            primary provider (DeepInfra) and at least one secondary are
+            both degraded.
