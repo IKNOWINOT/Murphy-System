@@ -95,6 +95,25 @@ class AionMindKernel:
         # got registered without inspecting the whole registry.
         self._bridge_counts: Dict[str, int] = {}
 
+        # Phase 2 (E25) — in-process outcome counter for
+        # ``cognitive_execute``.  Exposed via ``metrics()`` /
+        # ``GET /api/aionmind/metrics``.  Pre-seeded with every
+        # outcome key so consumers get a stable schema even before
+        # any traffic.
+        self._aionmind_metrics: Dict[str, int] = {
+            "calls_total": 0,
+            "auto_approved": 0,
+            "pending_approval": 0,
+            "no_candidates": 0,
+            "executed": 0,
+            "failed": 0,
+        }
+
+        # Phase 2 (E26) — append-only JSONL audit log path.  When
+        # set, every ``cognitive_execute`` call appends one line.
+        # ``None`` disables persistence (default for tests / dev).
+        self._audit_log_path: Optional[str] = None
+
         # Gap 1 — bot inventory → capability bridge
         if auto_bridge_bots:
             self._bridge_bot_capabilities()
@@ -402,6 +421,8 @@ class AionMindKernel:
         if actor and "actor" not in meta:
             meta["actor"] = actor
 
+        self._aionmind_metrics["calls_total"] += 1
+
         # Step 1 — build context
         risk = RiskLevel.LOW
         if task_type in ("integration", "deployment", "security"):
@@ -417,13 +438,16 @@ class AionMindKernel:
         # Step 2 — plan
         candidates = self.plan(ctx, max_candidates=3)
         if not candidates:
-            return {
+            self._aionmind_metrics["no_candidates"] += 1
+            result = {
                 "pipeline": "aionmind",
                 "context_id": ctx.context_id,
                 "status": "no_candidates",
                 "detail": "Reasoning engine produced no candidate graphs — "
                           "check registered capabilities.",
             }
+            self._append_audit_log(result, actor=actor, task_type=task_type)
+            return result
 
         # Step 3 — select best
         graph = self.select(candidates, ctx)
@@ -431,18 +455,25 @@ class AionMindKernel:
             graph = candidates[0]
 
         # Step 4 — approval gate
+        auto_approved_now = False
         if auto_approve and _risk_le(ctx.risk_level, max_auto_approve_risk):
             graph.approved = True
             graph.approved_by = approver
+            auto_approved_now = True
+            self._aionmind_metrics["auto_approved"] += 1
         elif not graph.approved:
-            return {
+            self._aionmind_metrics["pending_approval"] += 1
+            result = {
                 "pipeline": "aionmind",
                 "context_id": ctx.context_id,
                 "graph_id": graph.graph_id,
                 "status": "pending_approval",
+                "auto_approved": False,
                 "graph": graph.model_dump(),
                 "note": "Graph requires human approval before execution.",
             }
+            self._append_audit_log(result, actor=actor, task_type=task_type)
+            return result
 
         # Step 5 — execute
         state = self.execute(graph, actor=actor)
@@ -460,12 +491,19 @@ class AionMindKernel:
             },
         )
 
-        return {
+        status_val = state.status.value
+        if status_val == "completed":
+            self._aionmind_metrics["executed"] += 1
+        elif status_val == "failed":
+            self._aionmind_metrics["failed"] += 1
+
+        result = {
             "pipeline": "aionmind",
             "context_id": ctx.context_id,
             "graph_id": graph.graph_id,
             "execution_id": state.execution_id,
-            "status": state.status.value,
+            "status": status_val,
+            "auto_approved": auto_approved_now,
             "audit_trail": [
                 {
                     "timestamp": a.timestamp,
@@ -476,8 +514,66 @@ class AionMindKernel:
                 for a in state.audit_trail
             ],
         }
+        self._append_audit_log(result, actor=actor, task_type=task_type)
+        return result
 
     # ── Observability ─────────────────────────────────────────────
+
+    def metrics(self) -> Dict[str, int]:
+        """Return a snapshot of the cognitive_execute outcome counters.
+
+        Phase 2 / E25.  Counters are monotonic for the life of the
+        kernel process; callers wanting deltas should diff successive
+        snapshots.
+        """
+        return dict(self._aionmind_metrics)
+
+    def set_audit_log_path(self, path: Optional[str]) -> None:
+        """Configure the append-only JSONL audit log destination.
+
+        Phase 2 / E26.  When *path* is set, every ``cognitive_execute``
+        outcome appends one JSON line.  Pass ``None`` to disable.
+        Callers are responsible for log rotation.
+        """
+        self._audit_log_path = path
+
+    def _append_audit_log(
+        self,
+        result: Dict[str, Any],
+        *,
+        actor: Optional[str],
+        task_type: str,
+    ) -> None:
+        """Best-effort append to the JSONL audit log.
+
+        Failures are logged at DEBUG and swallowed — audit-log
+        persistence MUST NOT break the request path.
+        """
+        path = self._audit_log_path
+        if not path:
+            return
+        try:
+            import json as _json
+            import os as _os
+            import time as _time
+
+            entry = {
+                "ts": _time.time(),
+                "actor": actor or "anonymous",
+                "task_type": task_type,
+                "status": result.get("status"),
+                "context_id": result.get("context_id"),
+                "graph_id": result.get("graph_id"),
+                "execution_id": result.get("execution_id"),
+                "auto_approved": result.get("auto_approved", False),
+            }
+            parent = _os.path.dirname(path)
+            if parent:
+                _os.makedirs(parent, exist_ok=True)
+            with open(path, "a", encoding="utf-8") as fh:
+                fh.write(_json.dumps(entry, separators=(",", ":")) + "\n")
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.debug("audit-log append failed: %s", exc, exc_info=True)
 
     def status(self) -> Dict[str, Any]:
         """Return a summary of the kernel's current state."""

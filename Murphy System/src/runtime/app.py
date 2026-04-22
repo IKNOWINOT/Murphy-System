@@ -657,6 +657,16 @@ def create_app() -> FastAPI:
         header.  Returns ``None`` when no identity can be resolved
         (typical for anonymous dev/test traffic that ``require_permission``
         permits).
+
+        Phase 2 / A3 — founder seeding race.  When the resolved
+        caller's email matches ``MURPHY_FOUNDER_EMAIL`` the role is
+        forced to ``"owner"`` even if the user store hasn't yet been
+        seeded with the founder account (or seeded them with a lower
+        role).  Without this override a fresh deployment would
+        downgrade the founder to ``role="user"`` and silently deny
+        every auto-approval, which is the opposite of the intended
+        no-autonomy contract: the *founder* should always retain
+        owner-tier authority on their own deployment.
         """
         # 1) Session-based auth (cookie or Bearer token)
         try:
@@ -674,12 +684,34 @@ def create_app() -> FastAPI:
                     aid = _email_to_account.get(user_id.lower())
                     if aid:
                         account = _user_store.get(aid)
+                if account is None and "@" in user_id:
+                    # A3 — founder seeding race: even when the user
+                    # store has no record at all, accept a bare
+                    # ``X-User-ID: <email>`` as an unseeded identity
+                    # so the founder override below can fire.
+                    account = {
+                        "account_id": "",
+                        "email": user_id,
+                        "role": "user",
+                        "tier": "free",
+                    }
         if not account:
             return None
+        email = (account.get("email") or "").strip().lower()
+        role = account.get("role") or "user"
+        # A3 — founder override.
+        try:
+            founder_email = os.environ.get(
+                "MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems"
+            ).strip().lower()
+        except Exception:  # pragma: no cover
+            founder_email = "cpost@murphy.systems"
+        if email and email == founder_email and role != "owner":
+            role = "owner"
         return {
             "account_id": account.get("account_id") or account.get("id") or "",
-            "email": (account.get("email") or "").strip().lower(),
-            "role": account.get("role") or "user",
+            "email": email,
+            "role": role,
             "tier": account.get("tier") or "free",
         }
 
@@ -715,6 +747,61 @@ def create_app() -> FastAPI:
         if role == "admin":
             return (True, _RL.LOW)
         return (False, _RL.LOW)
+
+
+    def _enqueue_hitl_handoff(
+        aionmind_result: "Dict[str, Any]",
+        *,
+        actor: str,
+        task_description: str,
+        task_type: str,
+    ) -> "Optional[str]":
+        """Phase 2 / B8 — push a `pending_approval` AionMind result
+        into the existing HITL intervention queue.
+
+        When ``cognitive_execute`` returns ``status='pending_approval'``
+        the request currently dies on the front door — no human ever
+        sees it because nothing surfaces it in ``/api/hitl/queue`` or
+        the terminal HITL UI.  This helper bridges the gap by inserting
+        a synthetic intervention record that mirrors the shape used by
+        ``handle_form_validation`` so the existing UI / respond
+        endpoints work unchanged.
+
+        Best-effort: any exception is logged at DEBUG and swallowed.
+        Returns the intervention id on success, ``None`` otherwise.
+        """
+        if not isinstance(aionmind_result, dict):
+            return None
+        if aionmind_result.get("status") != "pending_approval":
+            return None
+        try:
+            from datetime import datetime, timezone
+            from uuid import uuid4
+        except Exception:  # pragma: no cover
+            return None
+        try:
+            interventions = getattr(murphy, "hitl_interventions", None)
+            if interventions is None:
+                return None
+            iid = uuid4().hex
+            interventions[iid] = {
+                "request_id": iid,
+                "task_id": aionmind_result.get("graph_id") or iid,
+                "intervention_type": "aionmind_approval",
+                "urgency": "medium",
+                "reason": "AionMind kernel requires human approval before execution.",
+                "status": "pending",
+                "actor": actor,
+                "task_description": task_description,
+                "task_type": task_type,
+                "context_id": aionmind_result.get("context_id"),
+                "graph_id": aionmind_result.get("graph_id"),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+            return iid
+        except Exception as _exc:  # pragma: no cover - defensive
+            logger.debug("HITL hand-off failed: %s", _exc)
+            return None
 
 
     # ── Subscription manager (shared instance) ──
@@ -794,6 +881,15 @@ def create_app() -> FastAPI:
             auto_bridge_bots=True,
             auto_discover_rsc=True,
         )
+        # Phase 2 / E26 — wire optional append-only audit log when
+        # MURPHY_AUDIT_LOG_PATH is set in the environment.
+        _audit_path = os.environ.get("MURPHY_AUDIT_LOG_PATH", "").strip()
+        if _audit_path:
+            try:
+                _aionmind_kernel.set_audit_log_path(_audit_path)
+                logger.info("AionMind audit log enabled at %s", _audit_path)
+            except Exception as _audit_exc:  # pragma: no cover
+                logger.warning("AionMind audit log wire-up failed: %s", _audit_exc)
         aionmind_api.init_kernel(_aionmind_kernel)
         # Mount AionMind 2.0 endpoints at /api/aionmind/*
         # (status, context, orchestrate, execute, proposals, memory)
@@ -1168,6 +1264,19 @@ def create_app() -> FastAPI:
                 if _max_risk is not None:
                     _kernel_kwargs["max_auto_approve_risk"] = _max_risk
                 aionmind_result = _aionmind_kernel.cognitive_execute(**_kernel_kwargs)
+                # B8 — when the kernel says "pending_approval" push the
+                # result into the HITL queue so a human can see it via
+                # /api/hitl/queue and the terminal UI.  Best-effort —
+                # the helper swallows its own errors.
+                if aionmind_result.get("status") == "pending_approval":
+                    _hitl_id = _enqueue_hitl_handoff(
+                        aionmind_result,
+                        actor=_approver,
+                        task_description=task_description,
+                        task_type=task_type,
+                    )
+                    if _hitl_id:
+                        aionmind_result["hitl_intervention_id"] = _hitl_id
                 # Fall through to legacy if no candidates
                 if aionmind_result.get("status") != "no_candidates":
                     # Merge with legacy execution for full feature coverage
