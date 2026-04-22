@@ -242,6 +242,22 @@ class IntentSpec(_ReconBase):
             "an MSSController is wired into the extractor."
         ),
     )
+    framing: Optional[Any] = Field(
+        default=None,
+        description=(
+            "Universal AI-recommendation framing (HITL-004) — an "
+            "AIRecommendationFraming instance from "
+            ":mod:`reconciliation.framing`. Auto-populated by "
+            "IntentExtractor.extract — always present on extractor output. "
+            "Carries the non-suppressible AI disclosure, the confidence band, "
+            "the assumptions panel, the open clarifying questions, the "
+            "suggested validation steps (one per still-unresolved ambiguity "
+            "dimension), and the computed request-vs-inference delta. Every "
+            "BaseDeliverableRenderer subclass surfaces this block. Typed as "
+            "Any to avoid a circular import; runtime type is enforced by the "
+            "framing module itself."
+        ),
+    )
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
