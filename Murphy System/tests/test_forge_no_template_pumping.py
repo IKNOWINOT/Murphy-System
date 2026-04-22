@@ -221,23 +221,111 @@ class TestNoTemplatePumping:
 
 
 class TestProviderAttribution:
-    """FORGE-PROVIDER-001 (P2b) — every deliverable must carry an
-    ``llm_provider`` field so the UI can distinguish real LLM output
-    from composer-only fallback content.
+    """FORGE-PROVIDER-002 (P2c) — every deliverable must carry an
+    ``llm_provider`` field with a precise tag that names the rung of
+    the provider chain that produced the body.
+
+    Allowed prefixes (validated by :data:`_VALID_PROVIDER_PREFIXES`):
+
+    * ``"llm-remote:<name>"`` — a remote LLM provider succeeded
+      (e.g. ``llm-remote:deepinfra``, ``llm-remote:together``).
+    * ``"llm-controller"`` — the async LLMController rung succeeded.
+    * ``"llm-local"`` — the local LLM fallback returned usable content.
+    * ``"deterministic-fallback:<sub-rung>"`` — every LLM rung failed
+      and the body came from MSS / the domain engine
+      (``mss+domain``, ``mss``, ``domain``, or ``minimal``).
+    * ``"composer"`` — the predefined path used the static template +
+      per-prompt composer because the LLM produced nothing usable.
+
+    The earlier P2b implementation used a flat ``{"llm","composer"}``
+    set, which made it impossible to tell template-quality output from
+    real LLM output in the UI or audit log.  This test enforces the
+    richer schema.
     """
+
+    _VALID_PROVIDER_PREFIXES = (
+        "llm-remote:",
+        "llm-controller",
+        "llm-local",
+        "deterministic-fallback:",
+        "composer",
+    )
+
+    def _assert_valid(self, value):
+        assert isinstance(value, str) and value, f"llm_provider must be a non-empty string, got {value!r}"
+        assert any(value == p or value.startswith(p) for p in self._VALID_PROVIDER_PREFIXES), (
+            f"unexpected llm_provider value: {value!r}"
+        )
 
     def test_predefined_path_sets_llm_provider(self):
         prompt, expected_scenario = CHIP_PROMPTS["mmorpg"]
         assert expected_scenario == "game"  # sanity
         d = generate_deliverable(prompt)
         assert "llm_provider" in d, "predefined path must populate llm_provider"
-        assert d["llm_provider"] in {"llm", "composer"}, (
-            f"unexpected llm_provider value: {d['llm_provider']!r}"
-        )
+        self._assert_valid(d["llm_provider"])
 
     def test_custom_path_sets_llm_provider(self):
         prompt, expected_scenario = CHIP_PROMPTS["bizplan"]
         assert expected_scenario is None  # sanity
         d = generate_deliverable(prompt)
         assert "llm_provider" in d
-        assert d["llm_provider"] in {"llm", "composer"}
+        self._assert_valid(d["llm_provider"])
+
+    def test_no_chip_reports_generic_llm_tag(self):
+        """Regression check for the FORGE-PROVIDER-001 (P2b) generic
+        ``"llm"`` value.  After P2c, no deliverable should report
+        the bare strings ``"llm"`` or ``"composer-fallback"``: the tag
+        must always be specific enough to identify the rung
+        (``llm-remote:<name>`` / ``llm-controller`` / ``llm-local`` /
+        ``deterministic-fallback:<sub-rung>`` / ``composer``).
+        """
+        for chip_id, (prompt, _expected) in CHIP_PROMPTS.items():
+            tag = generate_deliverable(prompt).get("llm_provider")
+            assert tag != "llm", (
+                f"Chip {chip_id!r} reported generic 'llm' tag - regression to P2b."
+            )
+            self._assert_valid(tag)
+
+
+class TestDualPathImports:
+    """FORGE-IMPORT-001 (P0b) — the Forge LLM/MFGC adapter chain must
+    survive both ``sys.path`` layouts (production and alt).
+
+    The ``_import_dual`` helper tries ``src.<name>`` first and falls
+    back to bare ``<name>``.  This test exercises the helper directly
+    so the fallback path doesn't silently rot.
+    """
+
+    def test_import_dual_resolves_known_modules(self):
+        from demo_deliverable_generator import _import_dual
+
+        # These four are the imports inside ``_generate_llm_content``
+        # and ``_run_mfgc_gate`` that previously used a hard
+        # ``from src.X import Y`` and broke under the alt path.
+        # We tolerate ``ModuleNotFoundError`` for *transitive* deps
+        # (e.g. ``numpy`` not installed in the sandbox) — the only
+        # thing we're testing here is that the dual-path resolver
+        # itself doesn't choke on the ``src.``-prefix layer.
+        for name in ("llm_provider", "llm_controller", "local_llm_fallback", "mfgc_adapter"):
+            try:
+                mod = _import_dual(name)
+            except ModuleNotFoundError as exc:
+                missing = (exc.name or "").split(".")[0]
+                if missing and missing not in (name, f"src.{name}"):
+                    pytest.skip(
+                        f"_import_dual({name!r}) reached the module but a "
+                        f"transitive dep ({missing!r}) is unavailable in this env"
+                    )
+                raise
+            assert mod is not None, f"_import_dual({name!r}) returned None"
+            assert mod.__name__.endswith(name), (
+                f"_import_dual({name!r}) returned unexpected module {mod.__name__!r}"
+            )
+
+    def test_import_dual_raises_on_truly_missing_module(self):
+        from demo_deliverable_generator import _import_dual
+
+        with pytest.raises(ImportError):
+            _import_dual("definitely_not_a_real_murphy_module_12345")
+
+

@@ -24,6 +24,7 @@ License: BSL 1.1 — Inoni LLC / Corey Post
 from __future__ import annotations
 
 import base64
+import contextvars
 import hashlib
 import io
 import logging
@@ -33,9 +34,66 @@ import zipfile
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+# FORGE-PROVIDER-002 (P2c): per-call provider attribution.
+#
+# ``_generate_llm_content`` writes a precise tag here when it returns,
+# so callers can distinguish remote-LLM output from each fallback rung
+# instead of guessing with a content-shape heuristic.  Using a
+# ``ContextVar`` keeps the value scoped to the executing request, which
+# matters because the custom-deliverable path runs MSS + domain-expert
+# work inside a ``ThreadPoolExecutor``.
+_LAST_LLM_PROVIDER: "contextvars.ContextVar[Optional[str]]" = contextvars.ContextVar(
+    "forge_last_llm_provider", default=None,
+)
+
+
+def _set_llm_provider(tag: str) -> None:
+    """Record the provider rung that produced the most recent LLM call."""
+    _LAST_LLM_PROVIDER.set(tag)
+
+
+def _get_llm_provider() -> Optional[str]:
+    """Return the provider tag set by the most recent ``_generate_llm_content`` call."""
+    return _LAST_LLM_PROVIDER.get()
+
 from murphy_identity import MURPHY_SYSTEM_IDENTITY
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# FORGE-IMPORT-001 (P0b): dual-path import helper.
+#
+# The Forge runs in two slightly different ``sys.path`` layouts
+# depending on the entrypoint:
+#
+# * ``murphy_production_server.py`` adds both ``Murphy System/`` and
+#   ``Murphy System/src/`` to the path, so ``from src.X import Y``
+#   resolves through ``Murphy System/`` and ``from X import Y``
+#   resolves through ``Murphy System/src/``.
+# * Some tooling (notably the in-sandbox eval harness and certain
+#   CI configurations) only places ``Murphy System/src/`` on the path,
+#   in which case ``from src.X`` raises ``ModuleNotFoundError``.
+#
+# The helper below tries the ``src.``-prefixed import first (matches
+# the production layout) and silently falls back to the bare module
+# name on ``ImportError``.  Callers receive the resolved module
+# object and pull attributes off it; this is materially equivalent
+# to ``from src.X import Y`` but works under both layouts.
+# ---------------------------------------------------------------------------
+
+def _import_dual(module_name: str):
+    """Import ``src.<module_name>`` with a bare-name fallback.
+
+    Returns the resolved module object.  Raises ``ImportError`` only
+    when both layouts fail, so callers can keep using their existing
+    ``except ImportError`` blocks.
+    """
+    import importlib  # local to avoid polluting the module namespace
+    try:
+        return importlib.import_module(f"src.{module_name}")
+    except ImportError:
+        return importlib.import_module(module_name)
 
 
 # ---------------------------------------------------------------------------
@@ -3552,6 +3610,9 @@ def generate_predefined_deliverable(
     # matched scenarios, not just for "custom" no-match queries.
     llm_body: Optional[str] = None
     llm_provider_used = "composer"
+    # Reset the per-call provider tag so a stale value from a previous
+    # request can't leak into this one when the LLM stack short-circuits.
+    _set_llm_provider("composer")
     try:
         candidate = _generate_llm_content(
             query,
@@ -3561,7 +3622,12 @@ def generate_predefined_deliverable(
         )
         if _is_substantive_llm_output(candidate):
             llm_body = candidate
-            llm_provider_used = "llm"
+            # FORGE-PROVIDER-002: read the precise tag set inside
+            # _generate_llm_content rather than reporting a generic
+            # "llm" string.  Falls back to the deterministic-fallback
+            # tag when the chain produced substantive content via the
+            # MSS/domain engine, which is the honest answer.
+            llm_provider_used = _get_llm_provider() or "deterministic-fallback:unknown"
     except Exception as exc:  # pragma: no cover - defensive
         logger.debug("LLM rendering for predefined scenario failed: %s", exc)
         llm_body = None
@@ -3650,7 +3716,8 @@ def _run_mfgc_gate(
     SSE progress stream) can report exactly what happened.
     """
     try:
-        from src.mfgc_adapter import MFGCSystemFactory  # noqa: PLC0415
+        # FORGE-IMPORT-001: dual-path import.
+        MFGCSystemFactory = _import_dual("mfgc_adapter").MFGCSystemFactory
         adapter = MFGCSystemFactory.create_development_system()
         result = adapter.execute_with_mfgc(
             user_input=query,
@@ -4461,7 +4528,8 @@ def _generate_llm_content(
 
     # ── Try 1: Direct MurphyLLMProvider (DeepInfra → Together.ai) ─────────
     try:
-        from src.llm_provider import get_llm
+        # FORGE-IMPORT-001: dual-path import (works under both layouts).
+        get_llm = _import_dual("llm_provider").get_llm
         provider = get_llm()
         completion = provider.complete_messages(
             messages,
@@ -4476,6 +4544,7 @@ def _generate_llm_content(
             )
             if tracker:
                 tracker.record_path(f"llm_ok:{completion.provider}")
+            _set_llm_provider(f"llm-remote:{completion.provider}")
             return completion.content
         # LLM returned empty or onboard — log explicitly
         logger.warning(
@@ -4497,7 +4566,9 @@ def _generate_llm_content(
     # ── Try 2: LLMController (async, broader model selection) ─────────────
     try:
         import asyncio
-        from src.llm_controller import LLMController, LLMRequest
+        # FORGE-IMPORT-001: dual-path import.
+        _ctl = _import_dual("llm_controller")
+        LLMController, LLMRequest = _ctl.LLMController, _ctl.LLMRequest
         controller = LLMController()
         req = LLMRequest(prompt=user_prompt, max_tokens=max_output_tokens)
         try:
@@ -4515,6 +4586,7 @@ def _generate_llm_content(
             logger.info("LLMController deliverable: %d chars", len(response.content))
             if tracker:
                 tracker.record_path("llm_controller_ok")
+            _set_llm_provider("llm-controller")
             return response.content
         logger.warning(
             "LLM-CONTROLLER-EMPTY-001: LLMController returned insufficient content (%d chars)",
@@ -4529,7 +4601,8 @@ def _generate_llm_content(
 
     # ── Try 3: LocalLLMFallback ───────────────────────────────────────────
     try:
-        from src.local_llm_fallback import LocalLLMFallback
+        # FORGE-IMPORT-001: dual-path import.
+        LocalLLMFallback = _import_dual("local_llm_fallback").LocalLLMFallback
         fallback = LocalLLMFallback()
         content = fallback.generate(user_prompt, max_tokens=max_output_tokens)
         # Skip if the fallback only returned the generic onboard placeholder
@@ -4538,6 +4611,7 @@ def _generate_llm_content(
                 and "LLM Unavailable" not in content[:80]):
             if tracker:
                 tracker.record_path("local_llm_ok")
+            _set_llm_provider("llm-local")
             return content
         logger.warning(
             "LLM-LOCAL-EMPTY-001: LocalLLMFallback returned placeholder "
@@ -4566,14 +4640,17 @@ def _generate_llm_content(
     if base_content and domain_content:
         if tracker:
             tracker.record_path("fallback:mss+domain")
+        _set_llm_provider("deterministic-fallback:mss+domain")
         return base_content + "\n\n" + _fb_notice + domain_content
     if base_content:
         if tracker:
             tracker.record_path("fallback:mss_only")
+        _set_llm_provider("deterministic-fallback:mss")
         return base_content
     if domain_content:
         if tracker:
             tracker.record_path("fallback:domain_only")
+        _set_llm_provider("deterministic-fallback:domain")
         return (
             f"■ DELIVERABLE OVERVIEW\n"
             f"───────────────────────\n"
@@ -4584,6 +4661,7 @@ def _generate_llm_content(
         )
     if tracker:
         tracker.record_path("fallback:minimal")
+    _set_llm_provider("deterministic-fallback:minimal")
     return _build_minimal_custom_content(query)
 
 
@@ -6713,6 +6791,9 @@ def generate_custom_deliverable(
         expert_result = _expert_future.result(timeout=90)
 
     # Stage 3 — Generate prose with all enriched context
+    # FORGE-PROVIDER-002: clear the per-call provider tag so a stale
+    # value from a previous request can't leak into this one.
+    _set_llm_provider("composer")
     content = _generate_llm_content(
         query,
         mfgc_result=mfgc_result,
@@ -6746,11 +6827,18 @@ def generate_custom_deliverable(
         quality = 96  # MSS ran even if MFGC unavailable
 
     txt = build_branded_txt(title, content, scenario_type="custom", quality_score=quality)
-    # FORGE-PROVIDER-001 (P2b): always surface llm_provider so the UI
-    # and audit log can tell template-fallback content apart from real
-    # LLM rendering.  ``_is_substantive_llm_output`` mirrors the same
-    # heuristic the predefined path uses.
-    provider_used = "llm" if _is_substantive_llm_output(content) else "composer"
+    # FORGE-PROVIDER-002 (P2c): use the per-call tag set inside
+    # ``_generate_llm_content`` so callers can tell which rung of the
+    # provider chain produced the body (``llm-remote:<name>``,
+    # ``llm-controller``, ``llm-local``, or
+    # ``deterministic-fallback:<sub-rung>``).  ``_is_substantive_llm_output``
+    # is still the gate for "did we get usable content?" — the tag
+    # itself is the honest attribution.
+    provider_used = (
+        _get_llm_provider() or "deterministic-fallback:unknown"
+        if _is_substantive_llm_output(content)
+        else "composer"
+    )
     return {
         "title": title,
         "content": txt,

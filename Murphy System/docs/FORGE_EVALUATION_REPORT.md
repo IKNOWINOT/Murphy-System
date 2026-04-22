@@ -25,19 +25,22 @@ not that good to begin with)".
 
 This report was produced in the agent sandbox, which has **no outbound network**
 and **no LLM API keys** configured.  The full provider chain therefore degrades
-to its deterministic fallback (`_build_content_from_mss`).  The `llm_provider`
-field is reported as `"llm"` because the post-fallback content is substantive
-(>500 chars, no placeholder markers), which is the heuristic used by
-`_is_substantive_llm_output`.
+to its deterministic fallback (`_build_content_from_mss`), and the `llm_provider`
+field correctly reports `deterministic-fallback:mss+domain` for every chip - so
+the table below is honest about what produced the body.
 
 Implication: in production with DeepInfra / Together API keys present, every one
 of these deliverables will be **richer** than what is shown below; the sandbox
-numbers are a *floor*, not a ceiling.  The two regression invariants this PR locks
-in (chip routes correctly + bodies vary per prompt) hold in both modes.
+numbers are a *floor*, not a ceiling.  The three regression invariants this PR
+locks in (chip routes correctly + bodies vary per prompt + provider tag is
+honest) hold in both modes.
 
-**This caveat is itself a finding**: the `llm_provider` heuristic should be
-tightened in a follow-up so it reports `composer` when the provider chain has
-fully degraded.  Recorded as P2c in the PR follow-ups.
+**Update (FORGE-PROVIDER-002 / P2c, this PR)**: the original P2b implementation
+of this report reported a flat `"llm"` for every prompt, which was misleading
+when the chain had fully degraded.  The provider tag is now one of:
+`llm-remote:<name>` / `llm-controller` / `llm-local` /
+`deterministic-fallback:<sub-rung>` / `composer` - so the UI and audit log can
+tell template-quality output from real LLM output at a glance.
 
 ## Summary table
 
@@ -71,7 +74,7 @@ Required concept stems: `playable`, `level`, `sprite`, `canvas`, `touch`, `mobil
 
 - Title: **HTML5 MMORPG — Single-Level Playable Demo**
 - Detected scenario: `game`
-- Declared `llm_provider`: `llm`
+- Declared `llm_provider`: `deterministic-fallback:mss+domain`
 - Body size: **13819 bytes** / 296 lines
 - Filename: `murphy-html5-game-deliverable.txt`
 
@@ -115,7 +118,7 @@ Required concept stems: `dashboard`, `task`, `fastapi`, `backend`, `mvp`, `deplo
 
 - Title: **Web App MVP — Complete Full-Stack Application**
 - Detected scenario: `app`
-- Declared `llm_provider`: `llm`
+- Declared `llm_provider`: `deterministic-fallback:mss+domain`
 - Body size: **20453 bytes** / 418 lines
 - Filename: `murphy-web-app-mvp-deliverable.txt`
 
@@ -159,7 +162,7 @@ Required concept stems: `stripe`, `payment`, `webhook`, `workflow`, `onboard`
 
 - Title: **Vertical Automation Suite — Business + Server + Payment**
 - Detected scenario: `automation`
-- Declared `llm_provider`: `llm`
+- Declared `llm_provider`: `deterministic-fallback:mss+domain`
 - Body size: **16022 bytes** / 349 lines
 - Filename: `murphy-business-automation-suite-deliverable.txt`
 
@@ -203,7 +206,7 @@ Required concept stems: `lesson`, `exercise`, `rubric`, `grading`, `python`, `au
 
 - Title: **Complete Course — Full Curriculum with Lessons and Exercises**
 - Detected scenario: `course`
-- Declared `llm_provider`: `llm`
+- Declared `llm_provider`: `deterministic-fallback:mss+domain`
 - Body size: **14780 bytes** / 317 lines
 - Filename: `murphy-complete-course-deliverable.txt`
 
@@ -247,7 +250,7 @@ Required concept stems: `invoic`, `account`, `hr`, `onboard`, `complian`, `repor
 
 - Title: **Vertical Automation Suite — Business + Server + Payment**
 - Detected scenario: `automation`
-- Declared `llm_provider`: `llm`
+- Declared `llm_provider`: `deterministic-fallback:mss+domain`
 - Body size: **17026 bytes** / 353 lines
 - Filename: `murphy-business-automation-suite-deliverable.txt`
 
@@ -291,7 +294,7 @@ Required concept stems: `executive`, `market`, `financial`, `marketing`, `fundin
 
 - Title: **Custom Deliverable: "generate a complete business plan with executive summary mar"**
 - Detected scenario: `None`
-- Declared `llm_provider`: `llm`
+- Declared `llm_provider`: `deterministic-fallback:mss+domain`
 - Body size: **16996 bytes** / 339 lines
 - Filename: `murphy-generate-a-complete-business-plan-with-e-deliverable.txt`
 
@@ -343,18 +346,25 @@ Of these, **3 of 3** are echoed back in the body (100.0%).
 - **Per-prompt distinctive vocabulary** — 100 % of phrases extracted by
   `_extract_distinctive_phrases` appear back in the deliverable body, so the
   user can see the system "heard" them.
-- **Provider attribution** — `llm_provider` is always populated, was always `None`.
+- **Provider attribution** — `llm_provider` is always populated AND honest:
+  one of `llm-remote:<name>` / `llm-controller` / `llm-local` /
+  `deterministic-fallback:<sub-rung>` / `composer`.  Pre-PR baseline was
+  `None`; the P2b interim was a flat `"llm"`; P2c (this PR) gives the precise
+  rung that produced the body.
+- **Dual-path imports (P0b)** — the LLM/MFGC adapter chain (`llm_provider`,
+  `llm_controller`, `local_llm_fallback`, `mfgc_adapter`) now imports cleanly
+  under both `sys.path` layouts via `_import_dual()` instead of a hard
+  `from src.X import Y`.  Locked in by `TestDualPathImports` in
+  `tests/test_forge_no_template_pumping.py`.
 
 ### What this PR does NOT fix (and why)
 
 - **Body sections beyond the scope-block** still come from the deterministic MSS
   engine in this sandbox because no LLM provider is reachable.  In production,
   the provider chain (DeepInfra → Together → LLMController → onboard) renders the
-  body and rubric coverage will be higher than the sandbox numbers above.
-- **`llm_provider` reporting accuracy (P2c)** — when every LLM provider falls
-  through to the deterministic builder, the heuristic still returns `"llm"`.
-  This should be tightened to differentiate `"llm-remote"` from
-  `"llm-deterministic-fallback"`.  Tracked as a follow-up.
+  body and rubric coverage will be higher than the sandbox numbers above.  When
+  the LLM is reachable in production, the `llm_provider` field will surface the
+  actual rung (e.g. `llm-remote:deepinfra`).
 - **Forge does not yet invoke `kernel.cognitive_execute()` (P1b)** — capability
   bridges, risk policy, and the new audit log are not exercised by the Forge
   path.  Tracked as a follow-up because it requires plumbing actor/auth into the
@@ -371,5 +381,6 @@ Of these, **3 of 3** are echoed back in the body (100.0%).
 |-----------------|----------------------|
 | 3 of 6 chips mis-routed | 6 of 6 chips route correctly |
 | 96.8 - 97.5 % byte-identical bodies for distinct prompts in same scenario | 78.8 - 82.4 % line overlap, all body sizes diverge |
-| `llm_provider: None` for every prompt | `llm_provider` always populated |
+| `llm_provider: None` for every prompt | `llm_provider` always populated AND specific (`deterministic-fallback:mss+domain` in sandbox; `llm-remote:<name>` in production) |
 | Per-prompt vocabulary echoed only in header quote | 100 % distinctive-phrase coverage in scope-block + body |
+| `from src.X` imports broke under alt path layout | `_import_dual()` works under both layouts |
