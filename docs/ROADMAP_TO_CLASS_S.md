@@ -30,7 +30,7 @@ the engineering review of 2026-04-22.
 | 7 | Real Redis usage (rate limit, sessions, queue, cache) | ⏳ | Keep the in-memory fallback for single-node dev. |
 | 8 | Background work as a real job system (Celery/RQ/Arq) | ⏳ | Move automation ticks out of the web process. |
 | 9 | Pin and scan dependencies | ✅ | Dockerfile base image pinned to `python:3.12-slim@sha256:804ddf3251a60bbf9c92e73b7566c40428d54d0e79d3428194edf40da6521286`. Dependabot, pip-audit, bandit wired in CI. Trivy container scan now runs in `release.yml`: HIGH/CRITICAL CVEs block the release; the full report is attached to the GitHub Release as `trivy-report.json`. |
-| 10 | Reduce broad `except Exception` use; enable Ruff `BLE001` | ⏳ | ~2 900 occurrences today. Triage required. |
+| 10 | Reduce broad `except Exception` use; enable Ruff `BLE001` | 🟡 | `BLE001` enforced via the `lint` CI job on the roadmap-foundation paths (`src/runtime/subsystem_registry.py`, `src/runtime/tracing.py`, `src/routers/`, the three `scripts/` helpers) so no NEW broad-except debt lands on the surfaces we just built. Pre-existing ~2 900 occurrences across the legacy surface remain — graduate paths to BLE001-clean incrementally and add them to the gate. When global debt reaches zero, move `BLE001` into the main Ruff `select` list. |
 
 ## Tier 3 — Architectural polish
 
@@ -38,15 +38,15 @@ the engineering review of 2026-04-22.
 |---|---|---|---|
 | 11 | Consolidate the 69 root-level HTML files | ⏳ | Pick Jinja2 templating (minimal) or SPA (modern). Move marketing pages out of the product tree. |
 | 12 | Integration connector contract tests | 🟡 | `tests/integration_connector/test_base_contract.py` defines `CONNECTOR_REQUIRED_FIELDS`, `validate_connector_definition`, and runs the contract against `DEFAULT_PLATFORMS` (3 tests passing). Per-connector VCR/`responses` fixtures are the remaining sub-item. |
-| 13 | Graduate or delete the GraphQL layer | ⏳ | Decision required: 800-line custom GraphQL engine that no client uses. |
-| 14 | API versioning + published OpenAPI schema | 🟡 | `scripts/export_openapi.py` supports both `module:attr` and `module:factory()` syntax. CI `--check` wiring blocked on importing `create_app()` (heavy deps); deferred to the PR that lands `/api/v1/...` versioning. |
+| 13 | Graduate or delete the GraphQL layer | 🟡 | **Decided in [ADR-0008](adr/0008-graphql-layer-experimental.md):** marked experimental, slated for removal at next major version (or 90 days, whichever comes first). `src/graphql_api_layer.py` now emits `DeprecationWarning` at import; not wired into any production HTTP route. The 976-line test file still passes. Final deletion happens in a follow-up PR that cites ADR-0008. |
+| 14 | API versioning + published OpenAPI schema | ✅ | `scripts/export_openapi.py` exports the schema; baseline committed at `docs/openapi.json` (815 paths). New CI job `openapi-check` (in `.github/workflows/ci.yml`) runs `--check` on every PR — drift fails the build until the maintainer re-runs `python scripts/export_openapi.py` and commits the result. `docs/openapi.json` is marked `linguist-generated` in `.gitattributes` so PR diffs collapse it by default. Versioning (`/api/v1/...`) is the remaining sub-item, deferred to a focused PR. |
 | 15 | Performance baselines (pytest-benchmark + locust/k6) | ⏳ | Hot paths: LLM provider routing, governance kernel, RAG retrieval, HITL queue dispatch. |
 
 ## Tier 4 — Process and governance
 
 | # | Item | Status | Notes |
 |---|---|---|---|
-| 16 | Architecture Decision Records | ✅ | `docs/adr/` created with index and ADRs 0001–0007. New ADRs land alongside the changes that justify them; the policy is now surfaced in `CONTRIBUTING.md` and the PR template so contributors see it at PR-open time. |
+| 16 | Architecture Decision Records | ✅ | `docs/adr/` created with index and ADRs 0001–0008. New ADRs land alongside the changes that justify them; the policy is now surfaced in `CONTRIBUTING.md` and the PR template so contributors see it at PR-open time. ADR-0008 records the decision that closes Item 13. |
 | 17 | SLO/SLI definitions + Prometheus alerts | ✅ | `prometheus-rules/murphy-slo-alerts.yml` added: API availability, /api/prompt latency, HITL approval time, LLM terminal-failure rate. Multi-window/multi-burn-rate per Google SRE workbook. |
 | 18 | STRIDE threat model | ✅ | `docs/SECURITY_THREAT_MODEL.md`, reviewed quarterly and on any change to a trust boundary. |
 | 19 | Release engineering: SBOM (CycloneDX) + cosign signing + GHCR push | ✅ | `.github/workflows/release.yml` triggers on tag push: builds the digest-pinned container, generates Python (`cyclonedx-bom`) and image (`syft`) SBOMs, signs the image and attests the SBOM with cosign keyless (Sigstore + GitHub OIDC), pushes to GHCR, and attaches both SBOMs to the GitHub Release. |

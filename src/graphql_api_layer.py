@@ -43,11 +43,32 @@ Key Classes
   GraphQLAPI           — Flask blueprint factory
 
 Copyright © 2020 Inoni Limited Liability Company
+
+.. deprecated::
+    This module is **experimental** and slated for removal. See
+    `docs/adr/0008-graphql-layer-experimental.md` for the rationale and
+    removal schedule. Importing this module emits a ``DeprecationWarning``.
+    No internal HTTP route is wired to it; it has no current consumers.
+    If you need GraphQL going forward, the planned replacement is
+    ``strawberry`` per ADR-0008.
 """
 from __future__ import annotations
 
 import json
 import logging
+import warnings
+
+# Class S Roadmap, Item 13 (per ADR-0008): mark this module experimental
+# and emit a DeprecationWarning at import time so any out-of-tree caller
+# becomes visible in their own CI before the module is finally removed.
+__experimental__ = True
+warnings.warn(
+    "src.graphql_api_layer is experimental and slated for removal; see "
+    "docs/adr/0008-graphql-layer-experimental.md. Replace with `strawberry` "
+    "if you need a real GraphQL surface.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 import re
 import threading
 import time
