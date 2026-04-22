@@ -107,6 +107,43 @@ async def get_status() -> Dict[str, Any]:
     return _get_kernel().status()
 
 
+@router.get("/capabilities")
+async def list_capabilities(
+    provider: Optional[str] = None,
+    tag: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Return the registered capabilities.
+
+    Phase 2 (D22) — gives the UI a list endpoint backing a "what can
+    AionMind do?" panel.  Optional ``provider`` / ``tag`` filters
+    mirror :meth:`CapabilityRegistry.search`.
+    """
+    kernel = _get_kernel()
+    if provider or tag:
+        caps = kernel.registry.search(
+            provider=provider,
+            tags=[tag] if tag else None,
+        )
+    else:
+        caps = kernel.registry.list_all()
+    return {
+        "count": len(caps),
+        "capabilities": [
+            {
+                "capability_id": c.capability_id,
+                "name": c.name,
+                "description": c.description,
+                "provider": c.provider,
+                "risk_level": c.risk_level,
+                "requires_approval": c.requires_approval,
+                "tags": list(c.tags),
+                "metadata": dict(c.metadata),
+            }
+            for c in caps
+        ],
+    }
+
+
 @router.post("/context")
 async def build_context(req: BuildContextRequest) -> Dict[str, Any]:
     """Build a ContextObject from raw inputs (Layer 1)."""
