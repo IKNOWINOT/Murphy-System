@@ -154,6 +154,44 @@ async def get_metrics() -> Dict[str, Any]:
     return {"metrics": _get_kernel().metrics()}
 
 
+@router.get("/audit")
+async def get_audit(limit: int = 50) -> Dict[str, Any]:
+    """Return the most recent ``cognitive_execute`` audit entries.
+
+    Phase 2 / D21 — read-only tail of the JSONL audit log written by
+    ``runtime_kernel._append_audit_log`` to the path given by the
+    ``MURPHY_AUDIT_LOG_PATH`` env var.
+
+    Response::
+
+        {
+          "enabled": true,                # MURPHY_AUDIT_LOG_PATH is set
+          "path":    "/var/log/...jsonl", # the configured path (or null)
+          "limit":   50,                  # clamped to [1, 500]
+          "count":   12,                  # entries actually returned
+          "entries": [ {ts, actor, ...}, ... ]   # newest-first
+        }
+
+    The endpoint never raises on a missing or malformed log file —
+    audit logging is best-effort by design (E26), and the viewer is
+    expected to render an empty state gracefully.
+    """
+    kernel = _get_kernel()
+    path = kernel.audit_log_path()
+    try:
+        clamped = max(1, min(500, int(limit)))
+    except (TypeError, ValueError):
+        clamped = 50
+    entries = kernel.tail_audit_log(clamped) if path else []
+    return {
+        "enabled": bool(path),
+        "path": path,
+        "limit": clamped,
+        "count": len(entries),
+        "entries": entries,
+    }
+
+
 @router.post("/context")
 async def build_context(req: BuildContextRequest) -> Dict[str, Any]:
     """Build a ContextObject from raw inputs (Layer 1)."""
