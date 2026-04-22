@@ -380,6 +380,19 @@ Of these, **3 of 3** are echoed back in the body (100.0%).
 - **ROI numbers in `generate_automation_spec` (P2a)** are still pulled from the
   per-scenario constants, not the live capability registry.  Display-only;
   changing them risks breaking the landing-page narrative without UX review.
+  **Deferred with rationale (tracked).**  A `# TODO(P2a)` marker now sits
+  at the top of `generate_automation_spec` in
+  `src/demo_deliverable_generator.py` pointing back to this section.  The
+  unblocker is **UX/marketing sign-off on the new number ranges**, not
+  engineering effort: the per-scenario constants (`hours_saved_month`,
+  `hourly_rate`, `recommended_tier`) are tuned together so that the
+  `roi_multiple`, the recommended-tier cliff, and the sales-deck narrative
+  all stay coherent on the landing page.  A registry-derived calculation
+  produces a different (likely smaller, less round) range that may
+  decouple from the tier recommendation.  When sign-off arrives, the
+  implementation should be gated behind `MURPHY_FORGE_REGISTRY_ROI=1` so
+  the change is a deploy-time switch (with rollback) rather than a code
+  event.
 
 ### Headline numbers
 
