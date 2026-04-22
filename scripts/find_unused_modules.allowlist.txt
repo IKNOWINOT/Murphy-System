@@ -1,0 +1,109 @@
+# Allowlist for scripts/find_unused_modules.py — Class S Roadmap, Item 20
+#
+# Modules listed here are loaded at runtime via string-name lookup
+# rather than `import` / `from`, so the static-import scanner reports
+# them as unused even though they are wired into the live system.
+#
+# Format: one dotted module path per line; '#' starts a comment.
+# Add a category banner before each block so future audits can verify
+# the allowlist still reflects reality.
+#
+# Re-run quarterly:
+#   python scripts/find_unused_modules.py \
+#     --allowlist scripts/find_unused_modules.allowlist.txt
+#
+# To audit a single category, comment out the others and re-run; any
+# module that *no longer* surfaces as unused should be removed from
+# the allowlist (its callers now use real `import` statements).
+
+# ---------------------------------------------------------------------------
+# Loaded by src/matrix_bridge/module_manifest.py via underscore-name string
+# lookup (e.g. ``module='integrations_airtable_connector'``). The manifest
+# is read by the matrix bridge at runtime to wire commands ↔ rooms ↔ bots.
+# ---------------------------------------------------------------------------
+src.advanced_reports
+src.advanced_swarm_system
+src.agentic_comms_router
+src.aionmind.api
+src.ambient_api_router
+src.ambient_synthesis
+src.billing.grants.notifications.status_updates
+src.billing.grants.notifications.submission_reminders
+src.bootstrap_and_run
+src.bot_room_registry
+src.confidence_engine.api_server
+src.confidence_engine.external_validator
+src.confidence_engine.performance_optimization
+src.confidence_engine.risk.risk_lookup
+src.confidence_engine.risk.risk_mitigation
+src.confidence_engine.risk.risk_scoring
+src.confidence_engine.rsc_telemetry
+src.csrf_protection
+src.domain_engine
+src.dynamic_command_discovery
+src.execution_orchestrator.rsc_integration
+src.execution_packet_compiler.api_server
+src.factory_automation_connectors
+src.form_intake.api
+src.gate_synthesis.api_server
+src.gate_synthesis.rsc_telemetry
+src.governance_framework.agent_descriptor
+src.governance_toggle
+src.integrations.airtable_connector
+src.integrations.aws_connector
+src.integrations.github_connector
+src.integrations.jira_connector
+src.integrations.monday_connector
+src.integrations.notion_connector
+src.integrations.pagerduty_connector
+src.integrations.salesforce_connector
+src.integrations.sendgrid_connector
+src.integrations.twilio_connector
+src.integrations.zoom_connector
+src.learning_engine.correction_metadata
+src.learning_engine.shadow_integration
+src.llm_swarm_integration
+src.matrix_bridge.email_bridge
+src.memory_management
+src.mock_compatible_local_llm
+src.module_loader
+src.module_registry
+src.multi_language_codegen
+src.optimal_routing_wiring
+src.organizational_context_system
+src.platform_onboarding.task_handlers
+src.presets.financial_services
+src.presets.manufacturing
+src.probabilistic_layer
+src.rosetta_subsystem_wiring
+src.smart_codegen
+src.statistics_collector
+src.synthetic_failure_generator.api
+src.telemetry_learning.api
+src.world_knowledge_calibrator
+
+# ---------------------------------------------------------------------------
+# Loaded by src/murphy_terminal/command_registry.py via the CommandDefinition
+# string-name lookup (e.g. ``CommandDefinition("pro_con_decision_engine", ...)``).
+# Some entries here are also referenced from docs/ or as-built reports; the
+# operational load path is the terminal command registry.
+# ---------------------------------------------------------------------------
+src.as_built_generator
+src.climate_resilience_engine
+src.energy_efficiency_framework
+src.learning_engine_connector
+src.performance_predictor
+src.pro_con_decision_engine
+src.production_commissioning_validator
+src.production_router
+src.self_healing_startup
+src.synthetic_interview_engine
+src.system_configuration_engine
+src.universal_ingestion_framework
+src.virtual_controller
+
+# ---------------------------------------------------------------------------
+# CLI entry points invoked via ``python -m`` (e.g. ``python -m src.murphy_cli``).
+# These have no static importer by definition.
+# ---------------------------------------------------------------------------
+src.murphy_cli.__main__

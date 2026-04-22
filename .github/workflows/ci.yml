@@ -53,6 +53,24 @@ jobs:
         run: ruff check src/ --select E,F,W --ignore E501,W503
         continue-on-error: true
 
+      # Class S Roadmap, Item 10 — block NEW broad `except Exception` debt
+      # in the roadmap-foundation paths. We do not (yet) enable BLE001
+      # globally because there are ~2 900 pre-existing occurrences in the
+      # legacy surface area; this gate stops the bleeding while triage
+      # progresses incrementally per `docs/ROADMAP_TO_CLASS_S.md` Item 10.
+      # When a path graduates to BLE001-clean, add it here. When the global
+      # debt reaches zero, move BLE001 into the main `select` list above.
+      - name: "BLE001 (no-new-broad-except) on roadmap-foundation paths"
+        run: |
+          ruff check --select=BLE001 \
+            src/runtime/subsystem_registry.py \
+            src/runtime/tracing.py \
+            src/runtime/module_loader.py \
+            src/routers/ \
+            scripts/export_openapi.py \
+            scripts/find_unused_modules.py \
+            scripts/enforce_canonical_source.py
+
       - name: Syntax check core modules
         run: |
           python -m py_compile src/runtime/app.py
@@ -263,11 +281,16 @@ jobs:
           pip install pytest-cov pytest-asyncio pytest-timeout
 
       - name: Run tests with coverage
+        # Class S Roadmap, Item 5: cover the whole src/ tree, not just the
+        # initial seed modules. The .coveragerc fail_under floor (currently 0)
+        # ratchets quarterly toward 80%. The previous --cov-fail-under=0 here
+        # masked the .coveragerc setting and is removed so .coveragerc owns
+        # the floor in one place.
         run: |
           python -m pytest tests/ -v --tb=short --timeout=60 \
-            --cov=src/runtime --cov=src/rosetta \
+            --cov=src \
             --cov-report=xml --cov-report=term-missing \
-            --cov-fail-under=0 \
+            --cov-report=html:coverage-html \
             --ignore=tests/e2e \
             --ignore=tests/commissioning \
             --ignore=tests/integration \
@@ -275,11 +298,22 @@ jobs:
             --ignore=tests/benchmarks \
             -m "not local_llm"
 
-      - name: Upload coverage
+      - name: Upload coverage (xml)
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage.xml
+          if-no-files-found: ignore
+
+      - name: Upload coverage (html)
+        # Class S Roadmap, Item 5: HTML report doubles as the per-module
+        # heatmap that prioritizes which low-covered subsystems get tests
+        # next quarter (integration connectors, LCM engine, platform
+        # self-modification pipeline are the expected hotspots).
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: coverage-html/
           if-no-files-found: ignore
 
   registry-check:
@@ -462,6 +496,93 @@ jobs:
             tests/e2e/test_forge_user_flow.py \
             tests/e2e/test_llm_pipeline_e2e.py \
             -v --tb=short --timeout=60
+
+  # ---------------------------------------------------------------------------
+  # Class S Roadmap, Item 14 — Published OpenAPI schema
+  # Regenerates the schema with `scripts/export_openapi.py --check` and fails
+  # if `docs/openapi.json` is out of date. Maintainers re-run
+  # `python scripts/export_openapi.py` and commit the result.
+  # ---------------------------------------------------------------------------
+  openapi-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements_ci.txt
+
+      - name: Verify docs/openapi.json is in sync
+        # PYTHONPATH=. so `from src.runtime.app import create_app` resolves
+        # the same way the test job does (pyproject.toml's pythonpath only
+        # applies inside pytest).
+        env:
+          PYTHONPATH: .
+        run: python scripts/export_openapi.py --check
+
+  # ---------------------------------------------------------------------------
+  # Performance regression check  (Roadmap Item 15 — soak phase)
+  #
+  # Runs the four roadmap-named dispatch-overhead benchmarks and compares
+  # HEAD's `min` time against the committed baseline at
+  # `.benchmarks/Linux-CPython-3.12-64bit/0001_baseline.json`.
+  #
+  # ADVISORY ONLY (continue-on-error: true).  Rationale and the
+  # promotion-to-blocking plan are documented in `.benchmarks/README.md`.
+  # Tightening the threshold or removing continue-on-error MUST be a
+  # separate PR after ≥2 weeks of soak data.
+  # ---------------------------------------------------------------------------
+  benchmark-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    continue-on-error: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements_ci.txt
+
+      - name: Compare dispatch benchmarks against committed baseline
+        # `--benchmark-compare=0001_baseline` reads the committed JSON.
+        # `--benchmark-compare-fail=min:25%` fails if HEAD's min time is
+        # >25% slower than baseline's min.  See `.benchmarks/README.md`
+        # for why min/25% (not mean/10%).
+        env:
+          PYTHONPATH: .
+        run: |
+          python -m pytest \
+            tests/benchmarks/test_benchmark_statistical.py::test_gate_evaluation_throughput \
+            tests/benchmarks/test_benchmark_statistical.py::test_platform_connector_framework_throughput \
+            tests/benchmarks/test_benchmark_statistical.py::test_llm_routing_dispatch_throughput \
+            tests/benchmarks/test_benchmark_statistical.py::test_hitl_queue_enqueue_throughput \
+            --benchmark-only \
+            --benchmark-min-rounds=10 \
+            --benchmark-warmup=on \
+            --benchmark-warmup-iterations=50 \
+            --benchmark-compare=0001_baseline \
+            --benchmark-compare-fail=min:25%
 
   # ---------------------------------------------------------------------------
   # CI Hardening — MURPHY-CI-HARDENING-001

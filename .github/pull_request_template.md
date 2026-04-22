@@ -12,3 +12,4 @@
 - [ ] Self-review completed
 - [ ] Tests pass locally
 - [ ] Documentation updated if needed
+- [ ] ADR added in `docs/adr/` if this change introduces/replaces a major dependency, alters a trust boundary, or changes the source/deployment layout (see [CONTRIBUTING.md](../CONTRIBUTING.md#architecture-decision-records-adrs))
