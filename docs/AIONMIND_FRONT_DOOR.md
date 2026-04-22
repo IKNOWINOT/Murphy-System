@@ -158,13 +158,45 @@ The writer creates parent directories as needed and is best-effort:
 write failures are logged at DEBUG and swallowed.  Log rotation is
 the operator's responsibility.
 
+### D19 / D20 / D21 / D23 — terminal-architect front-door panels
+
+The single-page UI at `aionmind.html` reuses the existing dark-teal
+design tokens (Inter / JetBrains Mono, `--teal: #00D4AA`).  The tab
+bar grows from four entries to five — one new **Audit** tab; D19 and
+D20 enrich the existing **Status** tab in place rather than adding
+new panels, on the explicit "simplified UX" requirement.
+
+| Ticket | Where | Bound to |
+|--------|-------|----------|
+| D19 — capabilities table | Status tab, replacing the flat chip list | `GET /api/aionmind/capabilities` |
+| D20 — outcome metrics card | Status tab, above kernel-info | `GET /api/aionmind/metrics` |
+| D21 — audit-log endpoint  | new `aionmind.api.get_audit` | `GET /api/aionmind/audit` |
+| D23 — audit tab           | new tab between Proposals and Memory | `GET /api/aionmind/audit?limit=100` |
+
+`GET /api/aionmind/audit?limit=N` (1 ≤ N ≤ 500, default 50) returns
+the most recent JSONL entries newest-first:
+
+```json
+{
+  "enabled": true,
+  "path":    "/var/log/murphy/aionmind-audit.jsonl",
+  "limit":   100,
+  "count":   12,
+  "entries": [{"ts": 1714000000.0, "actor": "alice@example.com", ...}]
+}
+```
+
+When `MURPHY_AUDIT_LOG_PATH` is **not** set the response is
+`{enabled: false, path: null, count: 0, entries: []}` and the UI
+shows an instructional empty state pointing back to this section.
+Malformed JSONL lines are silently skipped — the audit log is
+best-effort by design (E26) and the viewer must never crash on bad
+input.  The endpoint is read-only; there is no write surface.
+
 ## 6. Out of scope (tracked separately)
 
 * **A4** — full JWT/OIDC replacement of the legacy session token is
   ADR-0012's separate 2-release deprecation window.
-* **D19/D20/D21/D23** — UI front-door overhaul (terminal-architect
-  panels for capabilities, metrics, audit-log viewer) needs design
-  coordination with the existing terminal HTMLs.
 * **E27** — distributed tracing (OTel) is its own ADR + deployment
   work.
 * **E28** — request-rate limiting on `/api/aionmind/*` requires a
