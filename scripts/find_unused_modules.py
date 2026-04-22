@@ -22,13 +22,19 @@ What it deliberately does NOT do
 --------------------------------
 * It does not trust dynamic imports. ``importlib.import_module(name)`` calls
   with computed names will not be detected; flagged modules must be
-  reviewed manually before deletion.
-* It does not parse ``__all__`` re-exports — if module A re-exports module B
-  via ``from .b import *``, B will appear "used" via A.
+  reviewed manually before deletion. The ``--allowlist`` option lets the
+  audit owner record those exceptions explicitly so they do not pollute
+  future reports.
 * It does not run the test suite. A module imported only at runtime via the
-  module loader / registry / hot-load path may be reported as unused; the
-  ``--allowlist`` option lets the audit owner record those exceptions
-  explicitly so they do not pollute future reports.
+  module loader / registry / hot-load path may be reported as unused; use
+  the allowlist for those.
+
+What it does catch (in addition to plain ``import x`` / ``from x import y``)
+---------------------------------------------------------------------------
+* Relative imports inside the module's own package: ``from .leaf import X``,
+  ``from ..pkg.leaf import X``, ``from . import leaf``. Without this the
+  re-export pattern used by every package ``__init__.py`` in this repo
+  would generate ~200 false positives.
 
 Usage
 -----
@@ -94,8 +100,25 @@ def _enumerate_modules() -> list[tuple[str, Path]]:
 
 def _has_reference(dotted: str, exclude_file: Path) -> bool:
     """Return True if any file under the search dirs (other than ``exclude_file``)
-    imports ``dotted``. Matches both the canonical ``src.foo.bar`` form and
-    the bare ``foo.bar`` form Murphy also uses via the src-layout pythonpath."""
+    imports ``dotted``.
+
+    Two passes:
+
+    1. **Absolute imports.** Match the canonical ``src.foo.bar`` form and
+       the bare ``foo.bar`` form Murphy also uses via the src-layout pythonpath.
+    2. **Relative imports** scoped to the module's package root. Catches
+       ``from .bar import X``, ``from ..pkg.bar import X``, and
+       ``from . import bar`` — which is how every package in this repo
+       re-exports its own submodules through ``__init__.py``. Without
+       this pass the script reports ~200 false positives.
+    """
+    return _has_absolute_reference(dotted, exclude_file) or _has_relative_reference(
+        dotted, exclude_file
+    )
+
+
+def _has_absolute_reference(dotted: str, exclude_file: Path) -> bool:
+    """Pass 1: search for absolute-import references to ``dotted``."""
     canonical = dotted  # e.g. "src.foo.bar"
     bare = dotted.removeprefix("src.")  # e.g. "foo.bar"
 
@@ -121,6 +144,86 @@ def _has_reference(dotted: str, exclude_file: Path) -> bool:
     cmd.extend(_SEARCH_DIRS)
     cmd.extend(_ROOT_FILES)
 
+    return _run_grep_returns_match(cmd, dotted, exclude_file)
+
+
+def _has_relative_reference(dotted: str, exclude_file: Path) -> bool:
+    """Pass 2: search for relative-import references inside the module's
+    package root.
+
+    For ``src/reconciliation/evaluators/code.py`` (dotted
+    ``src.reconciliation.evaluators.code``), the package root is
+    ``src/reconciliation/`` (the first directory under ``src/``) and the leaf
+    name is ``code``. Relative imports of this module from anywhere inside
+    the package look like one of:
+
+    * ``from .code import X``
+    * ``from .evaluators.code import X``
+    * ``from ..evaluators.code import X``
+    * ``from . import code``
+    * ``from . import (other, code, more)``
+
+    The grep is scoped to the package root so a leaf-name collision in an
+    unrelated package does not produce a false negative for the unrelated
+    module (it can only be imported from within its own package via the
+    relative form).
+    """
+    parts = dotted.split(".")
+    # Top-level modules in src/ (e.g. ``src.foo``) cannot be the target of
+    # a relative import — there is no parent package to anchor a leading dot.
+    if parts[0] != "src" or len(parts) < 3:
+        return False
+
+    package_root = _REPO_ROOT / "src" / parts[1]
+    if not package_root.is_dir():
+        return False
+    leaf = parts[-1]
+
+    # Pattern A: ``from .<...>leaf<token>`` — covers ``from .leaf``,
+    # ``from .sub.leaf``, ``from ..pkg.leaf``, including the case where
+    # the import opens a multi-line ``import (`` block on the same line.
+    # Pattern B: ``from .<...>  import  <maybe parens>(...,) leaf`` — the
+    # ``from . import x`` form. Restricted to the same line for simplicity;
+    # the multi-line ``from . import (\n    leaf,\n)`` form is extremely
+    # rare in this codebase and will be picked up by Pattern A's sibling
+    # ``from .leaf import`` re-export when present.
+    leaf_re = re.escape(leaf)
+    pattern = (
+        r"(?:from\s+\.+(?:\w+\.)*"
+        + leaf_re
+        + r"(?:\s|$|\.|,))"
+        + r"|"
+        + r"(?:from\s+\.+\s+import\s+[^#\n]*\b"
+        + leaf_re
+        + r"\b)"
+    )
+
+    package_root_rel = package_root.relative_to(_REPO_ROOT)
+    cmd = [
+        "git",
+        "grep",
+        "-l",
+        "--perl-regexp",
+        pattern,
+        "--",
+        str(package_root_rel),
+    ]
+
+    return _run_grep_returns_match(cmd, dotted, exclude_file)
+
+
+def _run_grep_returns_match(
+    cmd: list[str], dotted: str, exclude_file: Path
+) -> bool:
+    """Run ``cmd`` (a ``git grep -l ...``) and return True iff at least one
+    matching file other than ``exclude_file`` is found.
+
+    Centralises the timeout / non-zero-rc handling shared by both passes:
+    on timeout or unexpected error we conservatively return True so the
+    module is not flagged as unused. Repeated warnings make pathological
+    cases (e.g. perf regression in git-grep) visible rather than silently
+    biasing the report.
+    """
     try:
         result = subprocess.run(
             cmd,
