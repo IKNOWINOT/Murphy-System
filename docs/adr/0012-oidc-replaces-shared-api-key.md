@@ -1,11 +1,12 @@
 # ADR-0012: Wire OIDC into auth_middleware; deprecate the shared API key
 
-* **Status:** Accepted
+* **Status:** Accepted — **Release N landed 2026-04-22**
 * **Date:** 2026-04-22
 * **Roadmap row closed:** Item 3
 * **Trust-boundary change:** YES — see `docs/SECURITY_THREAT_MODEL.md` §2.1
-* **Implementation spans:** `src/auth_middleware.py`, `src/oauth_oidc_provider.py`,
-  `src/runtime/app.py`, `docs/SECURITY_THREAT_MODEL.md`, `docs/DEPLOYMENT_GUIDE.md`
+* **Implementation spans:** `src/auth_middleware.py`, `src/oidc_verifier.py`,
+  `src/oauth_oidc_provider.py`, `src/runtime/app.py`,
+  `docs/SECURITY_THREAT_MODEL.md`, `docs/DEPLOYMENT_GUIDE.md`
 
 ## Context
 
