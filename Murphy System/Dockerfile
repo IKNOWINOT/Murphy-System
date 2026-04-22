@@ -7,12 +7,18 @@
 # ---------------------------------------------------------------------------
 # Stage 1: Install Python dependencies in an isolated layer
 # ---------------------------------------------------------------------------
-# PROD-HARD-DOCKER-001 (audit G21): base image is unpinned by digest.
-# Pinning to `python:3.12-slim@sha256:...` requires resolving the current
-# digest from the registry under controlled-network conditions; deferred
-# to the dependency-update PR that will also drive the murphy_1.0 floor
-# bumps. Tracker: open follow-up issue.
-FROM python:3.12-slim AS deps
+# PROD-HARD-DOCKER-001 (audit G21): base image pinned by digest for
+# reproducible builds and supply-chain integrity (Class S Roadmap, Item 9).
+#
+# To refresh the digest:
+#   TOKEN=$(curl -s "https://auth.docker.io/token?service=registry.docker.io&scope=repository:library/python:pull" | jq -r .token)
+#   curl -sI -H "Authorization: Bearer $TOKEN" \
+#     -H 'Accept: application/vnd.oci.image.index.v1+json' \
+#     -H 'Accept: application/vnd.docker.distribution.manifest.list.v2+json' \
+#     "https://registry-1.docker.io/v2/library/python/manifests/3.12-slim" \
+#     | grep -i docker-content-digest
+# Then update the digest below and the matching `FROM` in the runtime stage.
+FROM python:3.12-slim@sha256:804ddf3251a60bbf9c92e73b7566c40428d54d0e79d3428194edf40da6521286 AS deps
 
 WORKDIR /app
 
@@ -29,7 +35,7 @@ RUN apt-get update \
 # ---------------------------------------------------------------------------
 # Stage 2: Production image
 # ---------------------------------------------------------------------------
-FROM python:3.12-slim AS production
+FROM python:3.12-slim@sha256:804ddf3251a60bbf9c92e73b7566c40428d54d0e79d3428194edf40da6521286 AS production
 
 WORKDIR /app
 
