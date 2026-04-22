@@ -97,5 +97,7 @@ yarn.lock   linguist-generated
 # OpenAPI schema is mechanically generated from the FastAPI app by
 # scripts/export_openapi.py; the CI `openapi-check` job blocks merges if it
 # drifts from the source code. Mark as generated so GitHub collapses the diff
-# in PR review and excludes it from language stats.
-docs/openapi.json linguist-generated
+# in PR review and excludes it from language stats. The `-diff` attribute
+# suppresses git's textual diff for this file (it's ~880 KB; reviewers should
+# inspect the rendered API docs, not a line-by-line diff).
+docs/openapi.json linguist-generated -diff
