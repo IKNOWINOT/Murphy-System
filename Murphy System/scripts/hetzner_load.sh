@@ -510,14 +510,6 @@ if [ "$SKIP_DEPS" = false ]; then
     unset _pip_exit
   fi
 
-  # ── Purge stale __pycache__ / .pyc (prevents bytecode import errors) ─────────
-  info "Purging stale __pycache__ / .pyc files ..."
-  find "${REPO_DIR}/src" -name '__pycache__' -type d \
-    -exec rm -rf {} + 2>/dev/null || true
-  find "${REPO_DIR}/src" -name '*.pyc' -type f \
-    -delete 2>/dev/null || true
-  ok "Bytecode cache cleared"
-
 else
   info "Skipping pip install (--skip-deps)"
 fi
@@ -884,6 +876,20 @@ else
   else
     warn "Env file not found at ${MURPHY_ENV_FILE} — MURPHY_DEPLOY_COMMIT not persisted"
   fi
+  # ── Purge stale __pycache__ / .pyc BEFORE restart (runs unconditionally,
+  #    even with --skip-deps, and covers BOTH src trees on sys.path) ──────────
+  info "Purging stale __pycache__ / .pyc files (both src trees) ..."
+  for _pycache_root in "${REPO_DIR}/src" "${REPO_DIR}/Murphy System/src"; do
+    if [ -d "${_pycache_root}" ]; then
+      find "${_pycache_root}" -name '__pycache__' -type d \
+        -exec rm -rf {} + 2>/dev/null || true
+      find "${_pycache_root}" -name '*.pyc' -type f \
+        -delete 2>/dev/null || true
+    fi
+  done
+  unset _pycache_root
+  ok "Bytecode cache cleared (root src/ + Murphy System/src/)"
+
   info "Restarting ${SERVICE_NAME} (commit: ${DEPLOY_COMMIT}) ..."
   systemctl restart "${SERVICE_NAME}"
   ok "${SERVICE_NAME} restarted"
