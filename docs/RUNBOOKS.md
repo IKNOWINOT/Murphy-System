@@ -477,4 +477,70 @@ print('Blackstart seq:', result['blackstart_sequence_id'])
 
 ---
 
+## SLO-Burn Alerts
+
+These runbook sections are referenced from the `runbook_url` annotations
+in `prometheus-rules/murphy-slo-alerts.yml`. Each section links to the
+detailed troubleshooting in the **Common Troubleshooting** and
+**Monitoring Alert Response** sections above and adds the SLO-specific
+mitigation that the on-call should attempt first.
+
+### api-availability
+
+**Linked alerts:** `MurphyAPIAvailabilitySLOFastBurn`,
+`MurphyAPIAvailabilitySLOSlowBurn`.
+
+**SLO:** 99.5 % of `/api/*` requests return non-5xx in any 30-day window.
+
+**First 5 minutes:**
+
+1. Confirm the burn is real, not a synthetic-monitor flap, by curling
+   `/api/healthz` from at least two regions.
+2. Check recent deploys (`gh run list --workflow=release.yml --limit 5`).
+   If the burn started within 15 minutes of a deploy, prepare to roll
+   back immediately — see [Service won't start](#service-wont-start) and
+   [Alert: High error rate](#alert-high-error-rate-5xx-responses--5).
+
+**Mitigation:** roll back to the previous tagged release before
+diagnosing — restore the SLO first, then debug.
+
+### prompt-latency
+
+**Linked alert:** `MurphyPromptLatencySLOBurn`.
+
+**SLO:** p95 latency on `POST /api/prompt` ≤ 2.0 s in any 30-day window.
+
+**First 5 minutes:**
+
+1. Identify which provider is slow (the recording rule
+   `murphy:llm_request_p95_by_provider` breaks p95 by provider).
+2. See [Slow response times](#slow-response-times) and
+   [Alert: LLM degraded](#alert-llm-degraded-error-rate--20).
+
+**Mitigation:** demote the slow provider in `MURPHY_LLM_PROVIDER_ORDER`
+so traffic shifts to a healthy alternative; if all providers are slow,
+rate-limit the inbound side of `/api/prompt` to protect the governance
+kernel from queue-depth runaway.
+
+### hitl-queue
+
+**Linked alerts:** `MurphyHITLApprovalLatencySLOBurn`,
+`MurphyHITLQueueDepthGrowing`.
+
+**SLO:** median HITL approval time ≤ 30 min during business hours;
+queue depth ≤ 50 outstanding items.
+
+**First 5 minutes:**
+
+1. Open the HITL dashboard and confirm the queue is genuinely growing
+   (not a metric sync issue).
+2. See [Alert: Queue backup](#alert-queue-backup-queue-depth--50).
+
+**Mitigation:** if a single approval *type* is dominating the backlog,
+quiesce the upstream caller for that type (feature flag or rate-limit
+override) until the backlog drains; otherwise page the secondary
+on-call operator.
+
+---
+
 *Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post — BSL 1.1*
