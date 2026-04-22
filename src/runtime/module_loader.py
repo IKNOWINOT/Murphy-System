@@ -217,7 +217,7 @@ class ModuleLoader:
                 registered = entry.loader(app)
                 report.status = LoadStatus.LOADED
                 report.router_registered = bool(registered)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 — loader must absorb any load failure and bucket it by priority
                 report.status = LoadStatus.FAILED
                 report.error = str(exc)
                 if entry.priority == ModulePriority.CRITICAL:
