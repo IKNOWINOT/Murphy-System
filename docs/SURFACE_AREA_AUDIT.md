@@ -19,33 +19,39 @@ Static counts (April 2026):
 
 | Stage                                                  | Modules |
 |--------------------------------------------------------|--------:|
-| Total Python modules under `src/` (excluding `__init__.py` and tests) | 1 302 |
+| Total Python modules under `src/` (excluding `__init__.py` and tests) | 1 298 |
 | Reported as unused by the absolute-only scanner (the original bug)    |   200 |
-| Reported as unused after the relative-import fix landed in this PR    |    79 |
+| Reported as unused after the relative-import fix landed               |    79 |
 | Allowlisted (string-name registries: matrix bridge, terminal command registry, `python -m` entry points) | 74 |
-| **Actionable deletion candidates remaining**           |   **5** |
+| Acted on (4 obsolete vertical presets deleted)         |     4 |
+| **Actionable deletion candidates remaining**           |   **1** |
 
-The 200 → 5 reduction (97.5 %) is what makes this list reviewable. Before
+The 200 → 1 reduction (99.5 %) is what makes this list reviewable. Before
 the fix, the audit owner would have had to triage 200 candidates by
 hand; ~195 of those were re-exports caught by the new relative-import
-pass and runtime-loaded modules caught by the seed allowlist.
+pass and runtime-loaded modules caught by the seed allowlist; the
+remaining 4 obsolete presets were removed in the deletion pass.
 
-## The 5 actionable candidates
-
-Each row is a single audit-owner decision: **delete**, **move to
-`experimental/`**, or **wire the lone consumer**.
+## The 1 remaining actionable candidate
 
 | Module | LOC | Status | Recommended action | Notes |
 |---|---:|---|---|---|
-| `src/presets/healthcare.py` | 143 | Obsolete | **Delete** | Superseded by the live `src/org_build_plan/presets/` package (which has `saas_agency.py`, `nonprofit_advocacy.py`, etc., consumed by `src/org_build_plan/build_orchestrator.py` via `from .presets import get_preset, list_presets`). The `src/presets/` siblings (`base.py`, `financial_services.py`, `manufacturing.py`) are referenced — **only the four vertical presets here are orphaned**. |
-| `src/presets/professional_services.py` | 1 786 | Obsolete | **Delete** | Same parallel-package situation. |
-| `src/presets/retail_commerce.py` | 213 | Obsolete | **Delete** | Same. |
-| `src/presets/technology.py` | 1 318 | Obsolete | **Delete** | Same. |
 | `src/runtime/module_loader.py` | 244 | Built-but-not-wired | **Wire or delete** | Module docstring: *"Provides ModuleLoadReport and ModuleLoader to replace the ad-hoc try/except pattern in app.py."* Never wired into `app.py`. Two paths forward: (a) wire it into `src/runtime/app.py` to replace the `_deps` try/except blocks (the original intent); (b) delete it as a never-finished refactor. **Recommend (a)**, tracked as the next-PR title *"Wire `ModuleLoader` into `app.py`; remove `src/runtime/_deps.py` try/except blocks."* If (a) does not happen within one quarter, fall back to (b). |
 
-**Total reclaimable surface if all 5 are deleted: ~3 700 LOC** (the four
-preset files alone are 3 460 LOC; the loader adds 244 if option (b) is
-chosen).
+## Already acted on
+
+| Module | LOC | Action | Commit |
+|---|---:|---|---|
+| `src/presets/healthcare.py` | 143 | Deleted — superseded by `src/org_build_plan/presets/` | (this PR) |
+| `src/presets/professional_services.py` | 1 786 | Deleted — superseded | (this PR) |
+| `src/presets/retail_commerce.py` | 213 | Deleted — superseded | (this PR) |
+| `src/presets/technology.py` | 1 318 | Deleted — superseded | (this PR) |
+
+**Surface reclaimed by the deletions: 3 460 LOC** across four files. The
+sibling files `src/presets/{base,financial_services,manufacturing}.py`
+remain because they are still referenced from `src/universal_integration_adapter.py`
+and other live consumers. The empty `src/presets/__init__.py` is kept
+so the package still imports.
 
 ## Categories the allowlist suppresses (74 entries)
 
@@ -81,3 +87,4 @@ be removed in the same PR.
 | Date | Change | LOC delta |
 |---|---|---|
 | 2026-04-22 | Relative-import detection added; allowlist seeded; 200 → 5 | n/a (read-only audit) |
+| 2026-04-22 | Deleted four obsolete vertical presets (`healthcare`, `professional_services`, `retail_commerce`, `technology`); 5 → 1 | −3 460 LOC |

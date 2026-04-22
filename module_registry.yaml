@@ -1,7 +1,7 @@
 version: '1.0'
 generated_by: scripts/generate_module_registry.py
 canonical_src: src/
-module_count: 1393
+module_count: 1422
 modules:
 - key: src.__init__
   path: src/__init__.py
@@ -2388,6 +2388,9 @@ modules:
 - key: src.llm_routing_completeness
   path: src/llm_routing_completeness.py
   package: src
+- key: src.llm_self_check
+  path: src/llm_self_check.py
+  package: src
 - key: src.llm_swarm_integration
   path: src/llm_swarm_integration.py
   package: src
@@ -3168,6 +3171,18 @@ modules:
 - key: src.platform_onboarding.workflow_definition
   path: src/platform_onboarding/workflow_definition.py
   package: src.platform_onboarding
+- key: src.platform_self_modification.__init__
+  path: src/platform_self_modification/__init__.py
+  package: src.platform_self_modification
+- key: src.platform_self_modification.endpoint
+  path: src/platform_self_modification/endpoint.py
+  package: src.platform_self_modification
+- key: src.platform_self_modification.ledger
+  path: src/platform_self_modification/ledger.py
+  package: src.platform_self_modification
+- key: src.platform_self_modification.rsc_gate
+  path: src/platform_self_modification/rsc_gate.py
+  package: src.platform_self_modification
 - key: src.playwright_task_definitions
   path: src/playwright_task_definitions.py
   package: src
@@ -3207,20 +3222,8 @@ modules:
 - key: src.presets.financial_services
   path: src/presets/financial_services.py
   package: src.presets
-- key: src.presets.healthcare
-  path: src/presets/healthcare.py
-  package: src.presets
 - key: src.presets.manufacturing
   path: src/presets/manufacturing.py
-  package: src.presets
-- key: src.presets.professional_services
-  path: src/presets/professional_services.py
-  package: src.presets
-- key: src.presets.retail_commerce
-  path: src/presets/retail_commerce.py
-  package: src.presets
-- key: src.presets.technology
-  path: src/presets/technology.py
   package: src.presets
 - key: src.pro_con_decision_engine
   path: src/pro_con_decision_engine.py
@@ -3264,6 +3267,9 @@ modules:
 - key: src.prompt_execution_tracker
   path: src/prompt_execution_tracker.py
   package: src
+- key: src.prompt_rate_limiter
+  path: src/prompt_rate_limiter.py
+  package: src
 - key: src.protocols.__init__
   path: src/protocols/__init__.py
   package: src.protocols
@@ -3306,6 +3312,78 @@ modules:
 - key: src.reasoning_engine
   path: src/reasoning_engine.py
   package: src
+- key: src.reconciliation.__init__
+  path: src/reconciliation/__init__.py
+  package: src.reconciliation
+- key: src.reconciliation.clarifying_questions
+  path: src/reconciliation/clarifying_questions.py
+  package: src.reconciliation
+- key: src.reconciliation.constraints
+  path: src/reconciliation/constraints.py
+  package: src.reconciliation
+- key: src.reconciliation.delegation
+  path: src/reconciliation/delegation.py
+  package: src.reconciliation
+- key: src.reconciliation.evaluators.__init__
+  path: src/reconciliation/evaluators/__init__.py
+  package: src.reconciliation.evaluators
+- key: src.reconciliation.evaluators.base
+  path: src/reconciliation/evaluators/base.py
+  package: src.reconciliation.evaluators
+- key: src.reconciliation.evaluators.code
+  path: src/reconciliation/evaluators/code.py
+  package: src.reconciliation.evaluators
+- key: src.reconciliation.evaluators.config
+  path: src/reconciliation/evaluators/config.py
+  package: src.reconciliation.evaluators
+- key: src.reconciliation.evaluators.document
+  path: src/reconciliation/evaluators/document.py
+  package: src.reconciliation.evaluators
+- key: src.reconciliation.evaluators.mailbox
+  path: src/reconciliation/evaluators/mailbox.py
+  package: src.reconciliation.evaluators
+- key: src.reconciliation.evaluators.structured
+  path: src/reconciliation/evaluators/structured.py
+  package: src.reconciliation.evaluators
+- key: src.reconciliation.evaluators.text
+  path: src/reconciliation/evaluators/text.py
+  package: src.reconciliation.evaluators
+- key: src.reconciliation.feature_flags
+  path: src/reconciliation/feature_flags.py
+  package: src.reconciliation
+- key: src.reconciliation.framing
+  path: src/reconciliation/framing.py
+  package: src.reconciliation
+- key: src.reconciliation.intent_classifier
+  path: src/reconciliation/intent_classifier.py
+  package: src.reconciliation
+- key: src.reconciliation.intent_corpus
+  path: src/reconciliation/intent_corpus.py
+  package: src.reconciliation
+- key: src.reconciliation.learning_hooks
+  path: src/reconciliation/learning_hooks.py
+  package: src.reconciliation
+- key: src.reconciliation.models
+  path: src/reconciliation/models.py
+  package: src.reconciliation
+- key: src.reconciliation.output_evaluator
+  path: src/reconciliation/output_evaluator.py
+  package: src.reconciliation
+- key: src.reconciliation.patch_synthesizer
+  path: src/reconciliation/patch_synthesizer.py
+  package: src.reconciliation
+- key: src.reconciliation.reconciliation_loop
+  path: src/reconciliation/reconciliation_loop.py
+  package: src.reconciliation
+- key: src.reconciliation.request_decomposer
+  path: src/reconciliation/request_decomposer.py
+  package: src.reconciliation
+- key: src.reconciliation.request_intent
+  path: src/reconciliation/request_intent.py
+  package: src.reconciliation
+- key: src.reconciliation.standards
+  path: src/reconciliation/standards.py
+  package: src.reconciliation
 - key: src.recursive_stability_controller.__init__
   path: src/recursive_stability_controller/__init__.py
   package: src.recursive_stability_controller
@@ -3438,6 +3516,12 @@ modules:
 - key: src.rosetta.global_aggregator
   path: src/rosetta/global_aggregator.py
   package: src.rosetta
+- key: src.rosetta.org_chart
+  path: src/rosetta/org_chart.py
+  package: src.rosetta
+- key: src.rosetta.platform_org_seed
+  path: src/rosetta/platform_org_seed.py
+  package: src.rosetta
 - key: src.rosetta.recalibration_scheduler
   path: src/rosetta/recalibration_scheduler.py
   package: src.rosetta
@@ -3474,6 +3558,9 @@ modules:
 - key: src.route_coverage_scanner
   path: src/route_coverage_scanner.py
   package: src
+- key: src.routers.__init__
+  path: src/routers/__init__.py
+  package: src.routers
 - key: src.rpa_recorder_engine
   path: src/rpa_recorder_engine.py
   package: src
@@ -3507,17 +3594,17 @@ modules:
 - key: src.runtime.runtime_packs.registry
   path: src/runtime/runtime_packs/registry.py
   package: src.runtime.runtime_packs
-- key: src.runtime.runtime_packs.tests.__init__
-  path: src/runtime/runtime_packs/tests/__init__.py
-  package: src.runtime.runtime_packs.tests
-- key: src.runtime.runtime_packs.tests.test_tiered_orchestrator
-  path: src/runtime/runtime_packs/tests/test_tiered_orchestrator.py
-  package: src.runtime.runtime_packs.tests
+- key: src.runtime.subsystem_registry
+  path: src/runtime/subsystem_registry.py
+  package: src.runtime
 - key: src.runtime.tiered_app_factory
   path: src/runtime/tiered_app_factory.py
   package: src.runtime
 - key: src.runtime.tiered_orchestrator
   path: src/runtime/tiered_orchestrator.py
+  package: src.runtime
+- key: src.runtime.tracing
+  path: src/runtime/tracing.py
   package: src.runtime
 - key: src.runtime_profile_compiler
   path: src/runtime_profile_compiler.py
