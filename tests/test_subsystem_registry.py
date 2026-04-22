@@ -109,4 +109,4 @@ def test_module_level_default_registry_isolated() -> None:
         assert name in reg.snapshot()
     finally:
         # Best-effort cleanup: remove only our entry, not the whole registry.
-        reg.default_registry._entries.pop(name, None)  # type: ignore[attr-defined]
+        reg.default_registry.remove(name)

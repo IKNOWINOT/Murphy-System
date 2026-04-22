@@ -153,7 +153,23 @@ class SubsystemRegistry:
     # ---- resolution ----------------------------------------------------
 
     def _resolve(self, entry: SubsystemEntry) -> None:
-        """Attempt to import the subsystem; cache success or failure on the entry."""
+        """Attempt to import the subsystem; cache success or failure on the entry.
+
+        Design note: any exception raised during the import attempt — whether
+        it is a true ``ImportError`` (missing module, missing attribute) or a
+        subsystem-side bug (``RuntimeError`` from ``__init__``, etc.) — is
+        coerced into an ``ImportError`` and stored on the entry. This is
+        deliberate: the registry's contract is that callers see exactly one
+        exception type for "subsystem unusable", which is the whole reason
+        the registry exists (it replaces ~30 inline ``try/except ImportError``
+        blocks that all swallowed broader exceptions inconsistently).
+
+        The original exception is preserved as ``__cause__`` so a developer
+        debugging an unexpected failure can still see the real root cause.
+        Truly fatal conditions (``KeyboardInterrupt``, ``SystemExit``,
+        ``MemoryError`` and other ``BaseException`` subclasses) are NOT
+        caught — the catch is narrowed to ``Exception``.
+        """
         if entry._resolved:
             return
         try:
@@ -170,10 +186,12 @@ class SubsystemRegistry:
                 entry.import_path,
                 exc,
             )
-        except Exception as exc:  # noqa: BLE001 — coerce to ImportError but log
-            entry._error = ImportError(
+        except Exception as exc:  # noqa: BLE001 — see docstring above
+            wrapped = ImportError(
                 f"Subsystem {entry.name!r} failed to initialize: {exc}"
             )
+            wrapped.__cause__ = exc
+            entry._error = wrapped
             entry._value = None
             logger.warning(
                 "Subsystem %r raised %s during import of %s: %s",
@@ -257,6 +275,12 @@ class SubsystemRegistry:
         """Return the registered subsystem names in registration order."""
         with self._lock:
             return list(self._entries)
+
+    def remove(self, name: str) -> bool:
+        """Remove a single entry by name. Returns True if removed.
+        Intended for tests and dynamic re-registration scenarios."""
+        with self._lock:
+            return self._entries.pop(name, None) is not None
 
     def clear(self) -> None:
         """Remove all entries. Intended for tests."""
