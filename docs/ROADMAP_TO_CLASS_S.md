@@ -26,7 +26,7 @@ the engineering review of 2026-04-22.
 
 | # | Item | Status | Notes |
 |---|---|---|---|
-| 6 | OpenTelemetry tracing + structured JSON logs + request-id middleware | ✅ | Structured JSON logs (`src/logging_config.py`) and request-ID middleware (`src/request_context.py:RequestIDMiddleware`) wired in `src/runtime/app.py` (lines 8988, 15767). OTel tracing scaffold (`src/runtime/tracing.py`) is now wired into `app.py` next to the request-ID middleware: a no-op when `MURPHY_OTEL_ENABLED` is unset, a graceful no-op when the env switch is on but the OTel SDK is missing, and a fully-configured OTLP pipeline (FastAPI instrumentation + BatchSpanProcessor) when both are in place. The OTel SDK is an opt-in production extra and is intentionally not in `requirements_ci.txt` to keep the test image slim. |
+| 6 | OpenTelemetry tracing + structured JSON logs + request-id middleware | ✅ | Structured JSON logs (`src/logging_config.py`) and request-ID middleware (`src/request_context.py:RequestIDMiddleware`) wired in `src/runtime/app.py` (lines 8988, 15767). OTel tracing scaffold (`src/runtime/tracing.py`) is now wired into `app.py` next to the request-ID middleware: a no-op when `MURPHY_OTEL_ENABLED` is unset, a graceful no-op when the env switch is on but the OTel SDK is missing, and a fully-configured OTLP pipeline (FastAPI instrumentation + BatchSpanProcessor) when both are in place. The OTel SDK is an opt-in production extra and is intentionally not in `requirements_ci.txt` to keep the test image slim. Rationale and rejected alternatives captured in [ADR-0007](adr/0007-opentelemetry-opt-in.md). |
 | 7 | Real Redis usage (rate limit, sessions, queue, cache) | ⏳ | Keep the in-memory fallback for single-node dev. |
 | 8 | Background work as a real job system (Celery/RQ/Arq) | ⏳ | Move automation ticks out of the web process. |
 | 9 | Pin and scan dependencies | ✅ | Dockerfile base image pinned to `python:3.12-slim@sha256:804ddf3251a60bbf9c92e73b7566c40428d54d0e79d3428194edf40da6521286`. Dependabot, pip-audit, bandit wired in CI. Trivy container scan now runs in `release.yml`: HIGH/CRITICAL CVEs block the release; the full report is attached to the GitHub Release as `trivy-report.json`. |
@@ -46,7 +46,7 @@ the engineering review of 2026-04-22.
 
 | # | Item | Status | Notes |
 |---|---|---|---|
-| 16 | Architecture Decision Records | ✅ | `docs/adr/` created with index and ADRs 0001–0006. New ADRs land alongside the changes that justify them. |
+| 16 | Architecture Decision Records | ✅ | `docs/adr/` created with index and ADRs 0001–0007. New ADRs land alongside the changes that justify them; the policy is now surfaced in `CONTRIBUTING.md` and the PR template so contributors see it at PR-open time. |
 | 17 | SLO/SLI definitions + Prometheus alerts | ✅ | `prometheus-rules/murphy-slo-alerts.yml` added: API availability, /api/prompt latency, HITL approval time, LLM terminal-failure rate. Multi-window/multi-burn-rate per Google SRE workbook. |
 | 18 | STRIDE threat model | ✅ | `docs/SECURITY_THREAT_MODEL.md`, reviewed quarterly and on any change to a trust boundary. |
 | 19 | Release engineering: SBOM (CycloneDX) + cosign signing + GHCR push | ✅ | `.github/workflows/release.yml` triggers on tag push: builds the digest-pinned container, generates Python (`cyclonedx-bom`) and image (`syft`) SBOMs, signs the image and attests the SBOM with cosign keyless (Sigstore + GitHub OIDC), pushes to GHCR, and attaches both SBOMs to the GitHub Release. |
