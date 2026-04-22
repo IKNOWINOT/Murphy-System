@@ -23,12 +23,18 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence
 
 from .clarifying_questions import ClarifyingQuestionSynthesizer
+from .delegation import (
+    BEST_EFFORT_PREAMBLE,
+    auto_resolve_questions,
+    detect_delegation,
+)
 from .intent_classifier import IntentClassifier, IntentClassifierError, IntentPrediction
 from .models import (
     AcceptanceCriterion,
     AmbiguityVector,
     ClarifyingQuestion,
     CriterionKind,
+    DelegatedPick,
     DeliverableType,
     IntentSpec,
     Request,
@@ -355,7 +361,17 @@ class IntentExtractor:
 
         Questions are attached to **every** spec so downstream code that
         only inspects an alternative still sees them.  CITL boundary:
-        we generate the questions; we never auto-answer them.
+        we generate the questions; we never auto-answer them — *unless*
+        the principal explicitly delegated picks via the request text
+        ("you can pick", "your call", ...) or by setting
+        ``Request.context['delegation'] = True`` (HITL-003).
+
+        When delegation is granted, every emitted question is
+        auto-resolved via :func:`delegation.auto_resolve_questions`
+        and the picks are recorded on each spec under
+        :attr:`IntentSpec.delegated_picks`.  The summary is annotated
+        with ``[best-effort]`` so generators downstream know to render
+        the assumptions panel + override controls.
         """
         if not specs:
             return
@@ -377,6 +393,14 @@ class IntentExtractor:
         questions = self._question_synth.synthesize(primary.ambiguity, prediction)
         if not questions:
             return
+        # Detect delegation: explicit context flag wins; otherwise sniff
+        # the request text for an unambiguous delegation phrase.
+        delegated = bool(request.context.get("delegation", False)) or detect_delegation(
+            request.text
+        )
+        picks: List[DelegatedPick] = (
+            auto_resolve_questions(questions, prediction) if delegated else []
+        )
         for s in specs:
             # Fresh copies so mutating one spec's list doesn't leak across.
             s.clarifying_questions = [
@@ -387,6 +411,20 @@ class IntentExtractor:
                 )
                 for q in questions
             ]
+            if delegated:
+                s.delegation_granted = True
+                s.delegated_picks = [
+                    DelegatedPick(
+                        question_id=p.question_id,
+                        question=p.question,
+                        ambiguity_item=p.ambiguity_item,
+                        chosen_answer=p.chosen_answer,
+                        rationale=p.rationale,
+                    )
+                    for p in picks
+                ]
+                if "[best-effort]" not in s.summary:
+                    s.summary = f"[best-effort] {s.summary}"
 
     def _classify_or_none(self, request: Request) -> Optional[IntentPrediction]:
         """Run the classifier defensively.
