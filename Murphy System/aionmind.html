@@ -347,6 +347,7 @@
           <button class="tab-btn active" role="tab" data-tab="status" onclick="switchTab('status')">&#x1F9E0; Status</button>
           <button class="tab-btn" role="tab" data-tab="pipeline" onclick="switchTab('pipeline')">&#x2699;&#xFE0F; Pipeline</button>
           <button class="tab-btn" role="tab" data-tab="proposals" onclick="switchTab('proposals')">&#x1F4CB; Proposals</button>
+          <button class="tab-btn" role="tab" data-tab="audit" onclick="switchTab('audit')">&#x1F4DC; Audit</button>
           <button class="tab-btn" role="tab" data-tab="memory" onclick="switchTab('memory')">&#x1F4BE; Memory</button>
         </div>
 
@@ -359,6 +360,21 @@
           </div>
           <div id="status-content" style="display:none;">
             <div class="kpi-row" id="status-kpis"></div>
+
+            <!-- D20 — outcome-metrics card (cognitive_execute counters) -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Outcome Metrics</div>
+                  <div class="card-subtitle">cognitive_execute counters since kernel start &#8226; <code>/api/aionmind/metrics</code></div>
+                </div>
+                <button class="btn btn-ghost btn-sm" onclick="loadStatus()">&#x21BB; Refresh</button>
+              </div>
+              <div class="kpi-row" id="metrics-kpis">
+                <div class="kpi-card"><div class="kpi-value" style="color:var(--text-muted);">&#8212;</div><div class="kpi-label">Loading&#x2026;</div></div>
+              </div>
+            </div>
+
             <div class="card">
               <div class="card-header">
                 <div>
@@ -369,14 +385,31 @@
               </div>
               <div id="kernel-info"></div>
             </div>
+
+            <!-- D19 — capabilities table (replaces flat chip list) -->
             <div class="card">
               <div class="card-header">
                 <div>
                   <div class="card-title">Capabilities</div>
-                  <div class="card-subtitle">Active cognitive modules and subsystems</div>
+                  <div class="card-subtitle">Active cognitive modules and subsystems &#8226; <code>/api/aionmind/capabilities</code></div>
                 </div>
+                <span class="topbar-status" id="capabilities-count"></span>
               </div>
-              <div class="chip-list" id="capabilities-list"></div>
+              <div style="max-height:340px; overflow-y:auto;">
+                <table class="data-table" id="capabilities-table">
+                  <thead>
+                    <tr>
+                      <th>Capability</th>
+                      <th>Provider</th>
+                      <th>Risk</th>
+                      <th>Approval</th>
+                    </tr>
+                  </thead>
+                  <tbody id="capabilities-tbody">
+                    <tr><td colspan="4" style="color:var(--text-muted); text-align:center; padding:18px;">Loading capabilities&#x2026;</td></tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
@@ -563,6 +596,41 @@
         </div>
 
         <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- AUDIT TAB (D23)                                         -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div class="tab-panel" id="tab-audit" role="tabpanel" aria-label="Audit log">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Audit Log</div>
+                <div class="card-subtitle">Most recent <code>cognitive_execute</code> outcomes &#8226; <code>/api/aionmind/audit</code></div>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="loadAudit()">&#x21BB; Refresh</button>
+            </div>
+            <div id="audit-disabled" style="display:none; padding:18px; color:var(--text-muted); font-size:0.82rem; background:var(--bg-input); border-radius:6px;">
+              Audit log is disabled. Set <code>MURPHY_AUDIT_LOG_PATH</code> to a writable JSONL file path to enable persistent audit capture (see <code>docs/AIONMIND_FRONT_DOOR.md</code> &#xA7;5).
+            </div>
+            <div id="audit-empty" style="display:none; padding:18px; color:var(--text-muted); font-size:0.82rem; text-align:center;">
+              No audit entries yet. Entries are appended each time <code>cognitive_execute</code> runs.
+            </div>
+            <div id="audit-table-wrap" style="display:none; max-height:520px; overflow-y:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Actor</th>
+                    <th>Task</th>
+                    <th>Status</th>
+                    <th>Auto?</th>
+                  </tr>
+                </thead>
+                <tbody id="audit-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
         <!-- MEMORY TAB                                              -->
         <!-- ═══════════════════════════════════════════════════════ -->
         <div class="tab-panel" id="tab-memory" role="tabpanel" aria-label="Memory subsystem">
@@ -685,7 +753,14 @@
     var $statusContent   = document.getElementById('status-content');
     var $statusKpis      = document.getElementById('status-kpis');
     var $kernelInfo      = document.getElementById('kernel-info');
-    var $capsList        = document.getElementById('capabilities-list');
+    var $metricsKpis     = document.getElementById('metrics-kpis');
+    var $capsTbody       = document.getElementById('capabilities-tbody');
+    var $capsCount       = document.getElementById('capabilities-count');
+
+    var $auditDisabled   = document.getElementById('audit-disabled');
+    var $auditEmpty      = document.getElementById('audit-empty');
+    var $auditTableWrap  = document.getElementById('audit-table-wrap');
+    var $auditTbody      = document.getElementById('audit-tbody');
 
     var $ctxPreview      = document.getElementById('context-preview');
     var $orchestrateCard = document.getElementById('orchestrate-card');
@@ -783,8 +858,9 @@
       document.getElementById('tab-' + tab).classList.add('active');
       document.querySelector('[data-tab="' + tab + '"]').classList.add('active');
 
-      if (tab === 'status') loadStatus();
+      if (tab === 'status') { loadStatus(); loadMetrics(); loadCapabilities(); }
       if (tab === 'proposals') loadProposals();
+      if (tab === 'audit') loadAudit();
       if (tab === 'memory') loadMemoryStats();
     };
 
@@ -828,13 +904,116 @@
         infoHtml += '<div class="mem-stat-row"><span class="mem-stat-key">' + esc(k) + '</span><span class="mem-stat-val">' + esc(val) + '</span></div>';
       });
       $kernelInfo.innerHTML = infoHtml || '<div style="color:var(--text-muted);font-size:0.82rem;">No additional kernel details available.</div>';
-
-      var caps = data.capabilities || [];
-      if (!Array.isArray(caps)) caps = Object.keys(caps);
-      $capsList.innerHTML = caps.length
-        ? caps.map(function (c) { return '<span class="chip chip-active">' + esc(String(c)) + '</span>'; }).join('')
-        : '<span style="color:var(--text-muted);font-size:0.82rem;">No capabilities reported.</span>';
     }
+
+    /* D20 — Outcome Metrics (cognitive_execute counters) */
+    window.loadMetrics = function () {
+      if (!$metricsKpis) return;
+      API('/api/aionmind/metrics').then(function (data) {
+        var m = (data && data.metrics) || {};
+        // Show the four headline outcome counters; the kernel exposes more
+        // (calls_total, no_candidates, executed, ...) but the simplified
+        // UX surfaces just the four most actionable ones.
+        var fields = [
+          { key: 'completed',         label: 'Completed',          color: 'var(--success)' },
+          { key: 'pending_approval',  label: 'Awaiting Approval',  color: 'var(--warning)' },
+          { key: 'denied',            label: 'Denied',             color: 'var(--danger)' },
+          { key: 'failed',            label: 'Failed',             color: 'var(--danger)' }
+        ];
+        $metricsKpis.innerHTML = fields.map(function (f) {
+          var v = (m[f.key] != null) ? m[f.key] : 0;
+          return '<div class="kpi-card"><div class="kpi-value" style="color:' + f.color + ';">'
+            + esc(String(v)) + '</div><div class="kpi-label">' + esc(f.label) + '</div></div>';
+        }).join('');
+      }).catch(function () {
+        $metricsKpis.innerHTML = '<div class="kpi-card"><div class="kpi-value" style="color:var(--text-muted);">\u2014</div><div class="kpi-label">Metrics unavailable</div></div>';
+      });
+    };
+
+    /* D19 — Capabilities table (replaces the old flat chip list) */
+    window.loadCapabilities = function () {
+      if (!$capsTbody) return;
+      API('/api/aionmind/capabilities').then(function (data) {
+        var caps = (data && data.capabilities) || [];
+        if ($capsCount) $capsCount.textContent = caps.length + ' registered';
+        if (!caps.length) {
+          $capsTbody.innerHTML = '<tr><td colspan="4" style="color:var(--text-muted); text-align:center; padding:18px;">No capabilities registered.</td></tr>';
+          return;
+        }
+        // Sort by provider, then name, for a stable readable list.
+        caps.sort(function (a, b) {
+          var pa = (a.provider || '') + ' ' + (a.name || a.capability_id || '');
+          var pb = (b.provider || '') + ' ' + (b.name || b.capability_id || '');
+          return pa < pb ? -1 : pa > pb ? 1 : 0;
+        });
+        $capsTbody.innerHTML = caps.map(function (c) {
+          var risk = String(c.risk_level || 'low').toLowerCase();
+          var riskCls =
+            risk === 'critical' ? 'status-down' :
+            risk === 'high'     ? 'status-failed' :
+            risk === 'medium'   ? 'status-waiting' :
+                                  'status-completed';
+          var approval = c.requires_approval
+            ? '<span class="status-pill status-pending">Approval</span>'
+            : '<span class="status-pill status-completed">Auto</span>';
+          var name = c.name || c.capability_id || '';
+          var idLine = (c.capability_id && c.capability_id !== name)
+            ? '<div style="font-size:0.7rem; color:var(--text-muted); font-family:var(--font-code);">' + esc(c.capability_id) + '</div>'
+            : '';
+          return '<tr>'
+            + '<td><div style="font-weight:600;">' + esc(name) + '</div>' + idLine + '</td>'
+            + '<td style="font-family:var(--font-code); font-size:0.78rem;">' + esc(c.provider || '\u2014') + '</td>'
+            + '<td><span class="status-pill ' + riskCls + '">' + esc(risk) + '</span></td>'
+            + '<td>' + approval + '</td>'
+            + '</tr>';
+        }).join('');
+      }).catch(function () {
+        $capsTbody.innerHTML = '<tr><td colspan="4" style="color:var(--text-muted); text-align:center; padding:18px;">Failed to load capabilities.</td></tr>';
+      });
+    };
+
+    /* D23 — Audit log tail viewer */
+    window.loadAudit = function () {
+      if (!$auditTbody) return;
+      $auditDisabled.style.display = 'none';
+      $auditEmpty.style.display = 'none';
+      $auditTableWrap.style.display = 'none';
+      API('/api/aionmind/audit?limit=100').then(function (data) {
+        if (!data || data.enabled === false) {
+          $auditDisabled.style.display = 'block';
+          return;
+        }
+        var entries = (data && data.entries) || [];
+        if (!entries.length) {
+          $auditEmpty.style.display = 'block';
+          return;
+        }
+        $auditTableWrap.style.display = 'block';
+        $auditTbody.innerHTML = entries.map(function (e) {
+          var ts = e.ts ? new Date(e.ts * 1000).toLocaleString() : '\u2014';
+          var status = String(e.status || 'unknown').toLowerCase();
+          var statusCls =
+            status === 'completed'         ? 'status-completed' :
+            status === 'awaiting_approval' ? 'status-waiting' :
+            status === 'denied'            ? 'status-rejected' :
+            status === 'failed'            ? 'status-failed' :
+                                             'status-pending';
+          var auto = e.auto_approved
+            ? '<span style="color:var(--success);">&#x2713;</span>'
+            : '<span style="color:var(--text-muted);">&#x2013;</span>';
+          return '<tr>'
+            + '<td style="font-family:var(--font-code); font-size:0.76rem; white-space:nowrap;">' + esc(ts) + '</td>'
+            + '<td>' + esc(String(e.actor || 'anonymous')) + '</td>'
+            + '<td style="font-family:var(--font-code); font-size:0.78rem;">' + esc(String(e.task_type || '\u2014')) + '</td>'
+            + '<td><span class="status-pill ' + statusCls + '">' + esc(status) + '</span></td>'
+            + '<td style="text-align:center;">' + auto + '</td>'
+            + '</tr>';
+        }).join('');
+      }).catch(function () {
+        $auditDisabled.style.display = 'block';
+        $auditDisabled.textContent = 'Failed to load audit log.';
+      });
+    };
 
     /* ═══════════════════════════════════════════════════════════ */
     /* PIPELINE TAB                                                */
@@ -1183,6 +1362,8 @@
     /* ── Init ────────────────────────────────────────────────── */
     function init() {
       loadStatus();
+      loadMetrics();
+      loadCapabilities();
     }
 
     if (document.readyState === 'loading') {
