@@ -53,6 +53,23 @@ jobs:
         run: ruff check src/ --select E,F,W --ignore E501,W503
         continue-on-error: true
 
+      # Class S Roadmap, Item 10 — block NEW broad `except Exception` debt
+      # in the roadmap-foundation paths. We do not (yet) enable BLE001
+      # globally because there are ~2 900 pre-existing occurrences in the
+      # legacy surface area; this gate stops the bleeding while triage
+      # progresses incrementally per `docs/ROADMAP_TO_CLASS_S.md` Item 10.
+      # When a path graduates to BLE001-clean, add it here. When the global
+      # debt reaches zero, move BLE001 into the main `select` list above.
+      - name: "BLE001 (no-new-broad-except) on roadmap-foundation paths"
+        run: |
+          ruff check --select=BLE001 \
+            src/runtime/subsystem_registry.py \
+            src/runtime/tracing.py \
+            src/routers/ \
+            scripts/export_openapi.py \
+            scripts/find_unused_modules.py \
+            scripts/enforce_canonical_source.py
+
       - name: Syntax check core modules
         run: |
           python -m py_compile src/runtime/app.py
@@ -478,6 +495,40 @@ jobs:
             tests/e2e/test_forge_user_flow.py \
             tests/e2e/test_llm_pipeline_e2e.py \
             -v --tb=short --timeout=60
+
+  # ---------------------------------------------------------------------------
+  # Class S Roadmap, Item 14 — Published OpenAPI schema
+  # Regenerates the schema with `scripts/export_openapi.py --check` and fails
+  # if `docs/openapi.json` is out of date. Maintainers re-run
+  # `python scripts/export_openapi.py` and commit the result.
+  # ---------------------------------------------------------------------------
+  openapi-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements_ci.txt
+
+      - name: Verify docs/openapi.json is in sync
+        # PYTHONPATH=. so `from src.runtime.app import create_app` resolves
+        # the same way the test job does (pyproject.toml's pythonpath only
+        # applies inside pytest).
+        env:
+          PYTHONPATH: .
+        run: python scripts/export_openapi.py --check
 
   # ---------------------------------------------------------------------------
   # CI Hardening — MURPHY-CI-HARDENING-001
