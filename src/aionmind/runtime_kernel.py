@@ -537,6 +537,69 @@ class AionMindKernel:
         """
         self._audit_log_path = path
 
+    def audit_log_path(self) -> Optional[str]:
+        """Return the configured JSONL audit log path, or ``None``.
+
+        Phase 2 / D21 — used by the read-only ``/api/aionmind/audit``
+        endpoint to expose the *enabled* / *disabled* state cleanly
+        without having to introspect private state.
+        """
+        return self._audit_log_path
+
+    def tail_audit_log(self, limit: int = 50) -> List[Dict[str, Any]]:
+        """Return up to *limit* most-recent JSONL audit entries (newest-first).
+
+        Phase 2 / D21.  Read-only accessor backing the
+        ``/api/aionmind/audit`` endpoint.  The semantics:
+
+        * If no path is configured, returns ``[]``.
+        * If the file does not yet exist, returns ``[]`` (the kernel
+          appends lazily on first ``cognitive_execute``).
+        * Lines that fail JSON parsing are skipped, not raised — the
+          audit log is best-effort by design (E26).
+        * *limit* is clamped into ``[1, 500]`` to keep the response
+          bounded.
+        """
+        path = self._audit_log_path
+        if not path:
+            return []
+        try:
+            limit = max(1, min(500, int(limit)))
+        except (TypeError, ValueError):
+            limit = 50
+        try:
+            import json as _json
+            import os as _os
+
+            if not _os.path.exists(path):
+                return []
+            # Read the whole file then keep the tail.  The audit log
+            # is bounded by operator-managed rotation so this is fine
+            # for the intended scale; a true "tail" is a follow-up.
+            with open(path, "r", encoding="utf-8") as fh:
+                lines = fh.readlines()
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.debug("audit-log read failed: %s", exc, exc_info=True)
+            return []
+
+        out: List[Dict[str, Any]] = []
+        # Iterate the tail newest-first, stopping once we have *limit*
+        # parseable entries.
+        for raw in reversed(lines):
+            line = raw.strip()
+            if not line:
+                continue
+            try:
+                entry = _json.loads(line)
+            except Exception:
+                continue
+            if not isinstance(entry, dict):
+                continue
+            out.append(entry)
+            if len(out) >= limit:
+                break
+        return out
+
     def _append_audit_log(
         self,
         result: Dict[str, Any],
