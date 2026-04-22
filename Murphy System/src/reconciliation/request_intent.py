@@ -393,8 +393,15 @@ class IntentExtractor:
         questions = self._question_synth.synthesize(primary.ambiguity, prediction)
         if not questions:
             return
-        # Detect delegation: explicit context flag wins; otherwise sniff
-        # the request text for an unambiguous delegation phrase.
+        # Detect delegation: either opt-in path is sufficient and the two
+        # are treated as equivalent alternatives — there is no precedence
+        # between them, by design.  ``Request.context['delegation']``
+        # exists for programmatic callers (REST/CLI/tests) that don't
+        # round-trip through natural language; the text sniff is for
+        # principals typing prose ("you can pick").  If either says yes,
+        # delegation is granted; only an explicit negation in the text
+        # ("don't pick for me") suppresses it — handled by
+        # ``detect_delegation`` itself.
         delegated = bool(request.context.get("delegation", False)) or detect_delegation(
             request.text
         )
