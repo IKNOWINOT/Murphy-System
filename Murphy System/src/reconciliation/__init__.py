@@ -36,6 +36,11 @@ from __future__ import annotations
 
 from .clarifying_questions import ClarifyingQuestionSynthesizer
 from .constraints import ConstraintExtractor, Constraints
+from .delegation import (
+    BEST_EFFORT_PREAMBLE,
+    auto_resolve_questions,
+    detect_delegation,
+)
 from .feature_flags import FeatureFlags, current_flags
 from .intent_classifier import (
     IntentClassifier,
@@ -52,6 +57,7 @@ from .models import (
     ClarifyingQuestion,
     CriterionKind,
     CriterionResult,
+    DelegatedPick,
     Deliverable,
     DeliverableType,
     Diagnosis,
@@ -88,6 +94,7 @@ __all__ = [
     "ClarifyingQuestion",
     "CriterionKind",
     "CriterionResult",
+    "DelegatedPick",
     "Deliverable",
     "DeliverableType",
     "Diagnosis",
@@ -102,10 +109,13 @@ __all__ = [
     "ReconciliationScore",
     "Request",
     # Components
+    "BEST_EFFORT_PREAMBLE",
     "ClarifyingQuestionSynthesizer",
     "ConstraintExtractor",
     "Constraints",
     "DecompositionPart",
+    "auto_resolve_questions",
+    "detect_delegation",
     "FeatureFlags",
     "current_flags",
     "IntentClassifier",

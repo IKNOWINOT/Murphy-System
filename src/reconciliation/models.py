@@ -214,7 +214,24 @@ class IntentSpec(_ReconBase):
         description=(
             "Auto-emitted by IntentExtractor when the request is ambiguous; "
             "answering them is HITL-only — Murphy must NOT auto-pick a "
-            "candidate answer."
+            "candidate answer unless delegation_granted is True."
+        ),
+    )
+    delegation_granted: bool = Field(
+        False,
+        description=(
+            "True iff the principal explicitly delegated picks to Murphy "
+            "(HITL-003 — phrases like 'you can pick' / 'your call' / "
+            "Request.context['delegation'] = True). When False, Murphy "
+            "must NOT auto-answer any clarifying question."
+        ),
+    )
+    delegated_picks: List["DelegatedPick"] = Field(
+        default_factory=list,
+        description=(
+            "Best-effort answers Murphy auto-selected because delegation "
+            "was granted. Each carries a rationale so every assumption is "
+            "auditable and individually overridable."
         ),
     )
     mss_trace: Dict[str, Any] = Field(
@@ -332,6 +349,29 @@ class ClarifyingQuestion(_ReconBase):
     candidate_answers: List[str] = Field(default_factory=list)
 
 
+class DelegatedPick(_ReconBase):
+    """A best-effort answer Murphy auto-selected after explicit user delegation.
+
+    HITL-003: when the principal says "you can pick" (or sets
+    ``Request.context['delegation'] = True``), Murphy auto-resolves
+    each :class:`ClarifyingQuestion` and records the choice + rationale
+    here so the principal can audit and override every assumption.
+    """
+
+    question_id: str
+    question: str = Field(..., min_length=1)
+    ambiguity_item: str
+    chosen_answer: str
+    rationale: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Short, machine-friendly tag explaining why this answer was "
+            "picked, e.g. 'auto: top classifier rank'."
+        ),
+    )
+
+
 class LoopOutcome(_ReconBase):
     """Final result of a reconciliation loop run."""
 
@@ -372,6 +412,7 @@ __all__ = [
     "LoopBudget",
     "LoopIteration",
     "ClarifyingQuestion",
+    "DelegatedPick",
     "LoopOutcome",
 ]
 
