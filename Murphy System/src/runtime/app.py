@@ -636,6 +636,87 @@ def create_app() -> FastAPI:
             return None
         return _user_store.get(account_id)
 
+    # ── Phase 1: identity & approval policy helpers ──────────────────
+    #
+    # ``_resolve_caller`` produces a single normalized identity dict
+    # (or None) by trying session first (cookie / Bearer) and then
+    # falling back to the legacy ``X-User-ID`` header used by the RBAC
+    # dependency.  Endpoints that route through the AionMind kernel
+    # use this so the audit trail and approval policy see the *same*
+    # identity the security plane already authenticated.
+    #
+    # ``_auto_approve_for`` is the role+risk policy referenced by the
+    # plan: owners auto-approve LOW+MEDIUM, admins LOW only, everyone
+    # else (including anonymous in dev) never auto-approves — which
+    # restores the kernel's no-autonomy contract.
+
+    def _resolve_caller(request: "Request") -> "Optional[Dict[str, Any]]":
+        """Return ``{account_id, email, role, tier}`` or ``None``.
+
+        Tries session (cookie / Bearer) first, then the ``X-User-ID``
+        header.  Returns ``None`` when no identity can be resolved
+        (typical for anonymous dev/test traffic that ``require_permission``
+        permits).
+        """
+        # 1) Session-based auth (cookie or Bearer token)
+        try:
+            account = _get_account_from_session(request)
+        except Exception:  # pragma: no cover - defensive
+            account = None
+        if not account:
+            # 2) Legacy X-User-ID header (the RBAC dependency uses this)
+            user_id = request.headers.get("X-User-ID", "") or ""
+            user_id = user_id.strip()
+            if user_id:
+                account = _user_store.get(user_id)
+                if account is None:
+                    # X-User-ID may be an email rather than an account_id
+                    aid = _email_to_account.get(user_id.lower())
+                    if aid:
+                        account = _user_store.get(aid)
+        if not account:
+            return None
+        return {
+            "account_id": account.get("account_id") or account.get("id") or "",
+            "email": (account.get("email") or "").strip().lower(),
+            "role": account.get("role") or "user",
+            "tier": account.get("tier") or "free",
+        }
+
+    def _auto_approve_for(
+        user: "Optional[Dict[str, Any]]",
+        risk: "Any" = None,
+    ) -> "tuple":
+        """Role+risk auto-approval policy.
+
+        Returns ``(auto_approve: bool, max_auto_approve_risk: RiskLevel)``
+        suitable for passing straight into
+        :meth:`AionMindKernel.cognitive_execute`.
+
+        * ``role == "owner"`` → auto-approve LOW and MEDIUM.
+        * ``role == "admin"`` → auto-approve LOW only.
+        * Anyone else (including anonymous / unknown) → never
+          auto-approve; the kernel will return ``pending_approval`` and
+          the request goes to the HITL queue.
+
+        ``risk`` is currently unused — the policy is decided purely by
+        role and a static ceiling — but is reserved so a future
+        per-action override (e.g. CRITICAL never auto-approves
+        regardless of role) can plug in without changing every call
+        site.
+        """
+        try:
+            from aionmind.models.context_object import RiskLevel as _RL
+        except Exception:  # pragma: no cover - kernel always present in prod
+            return (False, None)
+        role = ((user or {}).get("role") or "").lower()
+        if role == "owner":
+            return (True, _RL.MEDIUM)
+        if role == "admin":
+            return (True, _RL.LOW)
+        return (False, _RL.LOW)
+
+
     # ── Subscription manager (shared instance) ──
     try:
         from src.subscription_manager import SubscriptionManager as _SubMgr
@@ -1052,17 +1133,41 @@ def create_app() -> FastAPI:
         task_description = data.get('task_description', '') or data.get('command', '')
         task_type = data.get('task_type', 'general')
 
+        # Phase 1: resolve the authenticated caller (session → header)
+        # so the AionMind kernel sees the real identity instead of the
+        # legacy "api_auto" placeholder.
+        _caller = _resolve_caller(request)
+        _caller_email = (_caller or {}).get("email", "")
+        _founder_email = os.environ.get(
+            "MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems"
+        ).strip().lower()
+        _is_founder = bool(_caller_email) and _caller_email == _founder_email
+
         # Route through AionMind cognitive pipeline if available
         if _aionmind_kernel is not None:
             try:
-                aionmind_result = _aionmind_kernel.cognitive_execute(
-                    source="api",
+                _auto, _max_risk = _auto_approve_for(_caller)
+                _approver = _caller_email or "anonymous"
+                _source = f"user:{_caller_email}" if _caller_email else "api:anonymous"
+                _meta: "Dict[str, Any]" = {}
+                if _caller_email:
+                    _meta["user_email"] = _caller_email
+                    _meta["user_role"] = (_caller or {}).get("role", "user")
+                if _is_founder:
+                    _meta["founder"] = True
+                _kernel_kwargs: "Dict[str, Any]" = dict(
+                    source=_source,
                     raw_input=task_description,
                     task_type=task_type,
                     parameters=data.get('parameters'),
-                    auto_approve=True,
-                    approver="api_auto",
+                    auto_approve=_auto,
+                    approver=_approver,
+                    metadata=_meta,
+                    actor=_approver,
                 )
+                if _max_risk is not None:
+                    _kernel_kwargs["max_auto_approve_risk"] = _max_risk
+                aionmind_result = _aionmind_kernel.cognitive_execute(**_kernel_kwargs)
                 # Fall through to legacy if no candidates
                 if aionmind_result.get("status") != "no_candidates":
                     # Merge with legacy execution for full feature coverage
@@ -2729,18 +2834,41 @@ def create_app() -> FastAPI:
     async def form_task_execution(request: Request):
         """Execute task via form endpoint — routes through AionMind cognitive pipeline."""
         data = await request.json()
+        # Phase 1: thread the authenticated caller into the kernel
+        _caller = _resolve_caller(request)
+        _caller_email = (_caller or {}).get("email", "")
+        _founder_email = os.environ.get(
+            "MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems"
+        ).strip().lower()
+        _is_founder = bool(_caller_email) and _caller_email == _founder_email
         # Enrich form data with AionMind context if available
         if _aionmind_kernel is not None:
             try:
                 desc = data.get("description") or data.get("task_description", "")
-                aionmind_result = _aionmind_kernel.cognitive_execute(
-                    source="form:task-execution",
+                _auto, _max_risk = _auto_approve_for(_caller)
+                _approver = _caller_email or "anonymous"
+                _source = (
+                    f"user:{_caller_email}" if _caller_email else "form:task-execution"
+                )
+                _meta: "Dict[str, Any]" = {"form": "task-execution"}
+                if _caller_email:
+                    _meta["user_email"] = _caller_email
+                    _meta["user_role"] = (_caller or {}).get("role", "user")
+                if _is_founder:
+                    _meta["founder"] = True
+                _kernel_kwargs: "Dict[str, Any]" = dict(
+                    source=_source,
                     raw_input=desc,
                     task_type=data.get("task_type", "general"),
                     parameters=data.get("parameters"),
-                    auto_approve=True,
-                    approver="form_auto",
+                    auto_approve=_auto,
+                    approver=_approver,
+                    metadata=_meta,
+                    actor=_approver,
                 )
+                if _max_risk is not None:
+                    _kernel_kwargs["max_auto_approve_risk"] = _max_risk
+                aionmind_result = _aionmind_kernel.cognitive_execute(**_kernel_kwargs)
                 result = await murphy.handle_form_task_execution(data)
                 result["aionmind"] = aionmind_result
                 return JSONResponse(result)
@@ -2753,12 +2881,28 @@ def create_app() -> FastAPI:
     async def form_validation(request: Request):
         """Validate task via form endpoint — enriched with AionMind context."""
         data = await request.json()
+        _caller = _resolve_caller(request)
+        _caller_email = (_caller or {}).get("email", "")
+        _founder_email = os.environ.get(
+            "MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems"
+        ).strip().lower()
+        _is_founder = bool(_caller_email) and _caller_email == _founder_email
         if _aionmind_kernel is not None:
             try:
                 desc = (data.get("task_data") or data).get("description", "")
+                _meta: "Dict[str, Any]" = {"form": "validation"}
+                if _caller_email:
+                    _meta["user_email"] = _caller_email
+                    _meta["user_role"] = (_caller or {}).get("role", "user")
+                if _is_founder:
+                    _meta["founder"] = True
+                _source = (
+                    f"user:{_caller_email}" if _caller_email else "form:validation"
+                )
                 ctx = _aionmind_kernel.build_context(
-                    source="form:validation",
+                    source=_source,
                     raw_input=desc,
+                    metadata=_meta,
                 )
                 result = murphy.handle_form_validation(data)
                 result["aionmind_context_id"] = ctx.context_id
@@ -2772,13 +2916,31 @@ def create_app() -> FastAPI:
     async def form_correction(request: Request):
         """Submit correction via form endpoint — enriched with AionMind context."""
         data = await request.json()
+        _caller = _resolve_caller(request)
+        _caller_email = (_caller or {}).get("email", "")
+        _founder_email = os.environ.get(
+            "MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems"
+        ).strip().lower()
+        _is_founder = bool(_caller_email) and _caller_email == _founder_email
         if _aionmind_kernel is not None:
             try:
                 desc = data.get("task_description") or data.get("original_task", "")
+                _meta: "Dict[str, Any]" = {
+                    "form": "correction",
+                    "correction": data.get("correction", ""),
+                }
+                if _caller_email:
+                    _meta["user_email"] = _caller_email
+                    _meta["user_role"] = (_caller or {}).get("role", "user")
+                if _is_founder:
+                    _meta["founder"] = True
+                _source = (
+                    f"user:{_caller_email}" if _caller_email else "form:correction"
+                )
                 ctx = _aionmind_kernel.build_context(
-                    source="form:correction",
+                    source=_source,
                     raw_input=desc,
-                    metadata={"correction": data.get("correction", "")},
+                    metadata=_meta,
                 )
                 result = murphy.handle_form_correction(data)
                 result["aionmind_context_id"] = ctx.context_id
