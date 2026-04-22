@@ -1,0 +1,188 @@
+# Allowlist for scripts/find_unused_modules.py — Class S Roadmap, Item 20
+#
+# Modules listed here are loaded at runtime via string lookup (not via
+# `import` / `from`), so the static-import scanner reports them as
+# unused even though they are wired into the live system.
+#
+# Format: one dotted module path per line; '#' starts a comment.
+# Add a category banner before each block so future audits can verify
+# the allowlist still reflects reality.
+#
+# Re-run quarterly:  python scripts/find_unused_modules.py \
+#                       --allowlist scripts/find_unused_modules.allowlist.txt
+#
+# To audit a single category, comment out the others and re-run; any
+# module that *no longer* surfaces as unused should be removed from
+# the allowlist (its callers now use real `import` statements).
+
+# ---------------------------------------------------------------------------
+# Loaded by the matrix_bridge module manifest
+# (src/matrix_bridge/module_manifest.py) via underscore-name string lookup
+# ---------------------------------------------------------------------------
+src.adapter_framework.adapters.http_adapter
+src.advanced_reports
+src.advanced_swarm_system
+src.agentic_comms_router
+src.aionmind.api
+src.ambient_api_router
+src.ambient_synthesis
+src.autonomous_systems.autonomous_scheduler
+src.autonomous_systems.human_oversight_system
+src.autonomous_systems.risk_manager
+src.avatar.behavioral_scoring_engine
+src.avatar.connectors.elevenlabs
+src.avatar.connectors.heygen
+src.avatar.connectors.tavus
+src.avatar.connectors.vapi
+src.avatar.user_adaptation_engine
+src.base_governance_runtime.api_server
+src.base_governance_runtime.governance_runtime
+src.benchmark_adapters.agent_bench_adapter
+src.benchmark_adapters.base
+src.benchmark_adapters.gaia_adapter
+src.benchmark_adapters.swe_bench_adapter
+src.benchmark_adapters.tau_bench_adapter
+src.benchmark_adapters.terminal_bench_adapter
+src.benchmark_adapters.tool_bench_adapter
+src.benchmark_adapters.web_arena_adapter
+src.billing.grants.notifications.status_updates
+src.billing.grants.notifications.submission_reminders
+src.bootstrap_and_run
+src.bot_room_registry
+src.bridge_layer.schemas
+src.compute_plane.api.endpoints
+src.compute_plane.models.parsed_expression
+src.compute_plane.models.validation_result
+src.confidence_engine.api_server
+src.confidence_engine.external_validator
+src.confidence_engine.performance_optimization
+src.confidence_engine.risk.risk_lookup
+src.confidence_engine.risk.risk_mitigation
+src.confidence_engine.risk.risk_scoring
+src.confidence_engine.rsc_telemetry
+src.confidence_engine.uncertainty_calculator
+src.csrf_protection
+src.domain_engine
+src.dynamic_command_discovery
+src.execution_orchestrator.rsc_integration
+src.execution_packet_compiler.api_server
+src.factory_automation_connectors
+src.form_intake.api
+src.founder_update_engine.auto_update_applicator
+src.founder_update_engine.bug_response_handler
+src.founder_update_engine.update_coordinator
+src.gate_synthesis.api_server
+src.gate_synthesis.rsc_telemetry
+src.governance_framework.agent_descriptor
+src.governance_framework.artifact_ingestion
+src.governance_framework.refusal_handler
+src.governance_framework.stability_controller
+src.governance_toggle
+src.integration_engine.agent_generator
+src.integration_engine.capability_extractor
+src.integration_engine.hitl_approval
+src.integration_engine.module_generator
+src.integration_engine.safety_tester
+src.integrations.airtable_connector
+src.integrations.aws_connector
+src.integrations.github_connector
+src.integrations.jira_connector
+src.integrations.monday_connector
+src.integrations.notion_connector
+src.integrations.pagerduty_connector
+src.integrations.salesforce_connector
+src.integrations.sendgrid_connector
+src.integrations.twilio_connector
+src.integrations.zoom_connector
+src.learning_engine.correction_capture
+src.learning_engine.correction_metadata
+src.learning_engine.correction_models
+src.learning_engine.feature_engineering
+src.learning_engine.hyperparameter_tuning
+src.learning_engine.model_registry
+src.learning_engine.models
+src.learning_engine.pattern_extraction
+src.learning_engine.shadow_agent
+src.learning_engine.shadow_evaluation
+src.learning_engine.shadow_integration
+src.learning_engine.shadow_models
+src.learning_engine.shadow_monitoring
+src.learning_engine.training_data_transformer
+src.learning_engine.training_data_validator
+src.librarian.document_manager
+src.librarian.knowledge_base
+src.librarian.librarian_module
+src.librarian.semantic_search
+src.llm_swarm_integration
+src.matrix_bridge._registry_data_a
+src.matrix_bridge._registry_data_b
+src.matrix_bridge._registry_types
+src.matrix_bridge.appservice
+src.matrix_bridge.auth_bridge
+src.matrix_bridge.bot_bridge_adapter
+src.matrix_bridge.email_bridge
+src.matrix_bridge.event_streamer
+src.matrix_bridge.management_features
+src.matrix_bridge.matrix_event_handler
+src.matrix_bridge.media_handler
+src.matrix_bridge.message_router
+src.matrix_bridge.room_router
+src.matrix_bridge.room_topology
+src.matrix_bridge.subsystem_registry
+src.memory_management
+src.ml.model_registry
+src.mock_compatible_local_llm
+src.module_compiler.analyzers.determinism_classifier
+src.module_compiler.api.endpoints
+src.module_loader
+src.module_registry
+src.multi_language_codegen
+src.neuro_symbolic_models.simple_wrapper
+src.optimal_routing_wiring
+src.org_build_plan.presets.energy_utilities
+src.org_build_plan.presets.financial_services
+src.org_build_plan.presets.logistics_fleet
+src.org_build_plan.presets.manufacturing
+src.org_build_plan.presets.nonprofit_advocacy
+src.org_build_plan.presets.retail_ecommerce
+src.org_build_plan.presets.saas_agency
+src.organizational_context_system
+src.platform_onboarding.task_handlers
+src.platform_onboarding.url_launcher
+src.presets.financial_services
+src.presets.manufacturing
+src.probabilistic_layer
+src.recursive_stability_controller.telemetry
+src.rosetta_subsystem_wiring
+src.schema_registry.registry
+src.schema_registry.schemas
+src.smart_codegen
+src.statistics_collector
+src.supervisor_system.hitl_models
+src.supervisor_system.hitl_monitor
+src.supervisor_system.supervisor
+src.synthetic_failure_generator.api
+src.telemetry_evidence.evidence_store
+src.telemetry_learning.api
+src.telemetry_learning.schemas
+src.telemetry_learning.simple_wrapper
+src.time_tracking.reporting_api
+src.world_knowledge_calibrator
+
+# ---------------------------------------------------------------------------
+# Other string-based loaders (subsystem registry, FastAPI mount, plugin
+# scanner). String reference exists in the codebase but no static import.
+# ---------------------------------------------------------------------------
+src.as_built_generator
+src.climate_resilience_engine
+src.energy_efficiency_framework
+src.learning_engine_connector
+src.performance_predictor
+src.pro_con_decision_engine
+src.production_commissioning_validator
+src.production_router
+src.self_healing_startup
+src.synthetic_interview_engine
+src.system_configuration_engine
+src.universal_ingestion_framework
+src.virtual_controller
