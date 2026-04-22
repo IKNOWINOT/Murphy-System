@@ -63,8 +63,8 @@ import warnings
 # becomes visible in their own CI before the module is finally removed.
 __experimental__ = True
 warnings.warn(
-    "src.graphql_api_layer is experimental and slated for removal; see "
-    "docs/adr/0008-graphql-layer-experimental.md. Replace with `strawberry` "
+    "src.graphql_api_layer is experimental and slated for removal per ADR-0008; "
+    "see docs/adr/0008-graphql-layer-experimental.md. Replace with `strawberry` "
     "if you need a real GraphQL surface.",
     DeprecationWarning,
     stacklevel=2,

@@ -1,9 +1,9 @@
 # ADR-0003: TF-IDF is the default RAG backend until embeddings ship
 
-* **Status:** Accepted (interim)
+* **Status:** Superseded by [ADR-0009](0009-embeddings-vector-store-rag.md)
 * **Date:** 2026-04-22 (retroactive)
-* **Will be superseded by:** the ADR that lands real embeddings + a vector
-  store as the default RAG backend (Class S Roadmap, Item 4).
+* **Superseded:** 2026-04-22 — embeddings + vector store became the default
+  per ADR-0009 (Class S Roadmap, Item 4).
 
 ## Context
 
