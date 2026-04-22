@@ -130,7 +130,13 @@ def _has_reference(dotted: str, exclude_file: Path) -> bool:
         )
     except subprocess.TimeoutExpired:
         # On timeout we conservatively assume the module is referenced so we
-        # do not falsely flag it as unused.
+        # do not falsely flag it as unused. Log so repeated timeouts surface
+        # as a real problem (e.g. pathological repo size or git grep
+        # performance regression) rather than silently skewing the report.
+        sys.stderr.write(
+            f"warning: git grep timed out after 30s for {dotted!r}; "
+            "assuming referenced\n"
+        )
         return True
 
     if result.returncode not in (0, 1):
