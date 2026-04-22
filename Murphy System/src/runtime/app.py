@@ -8991,6 +8991,17 @@ def create_app() -> FastAPI:
     except Exception as _rid_exc:
         logger.warning("RequestIDMiddleware unavailable: %s", _rid_exc)
 
+    # ==================== OPENTELEMETRY TRACING (OPT-IN) ====================
+    # Class S Roadmap, Item 6: configure OTel tracing if MURPHY_OTEL_ENABLED
+    # is truthy AND the opentelemetry SDK is installed. The scaffold is a
+    # documented no-op in every other case (see src/runtime/tracing.py) so
+    # this call is safe to run unconditionally and never blocks boot.
+    try:
+        from src.runtime.tracing import configure_tracing
+        configure_tracing(app)
+    except Exception as _otel_exc:  # noqa: BLE001 — tracing must never block boot
+        logger.warning("OTel tracing setup skipped: %s", _otel_exc)
+
     # ==================== RESPONSE SIZE LIMIT MIDDLEWARE ====================
 
     _max_response_mb = float(os.environ.get("MURPHY_MAX_RESPONSE_SIZE_MB", "10"))
