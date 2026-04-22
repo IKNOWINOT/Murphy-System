@@ -144,6 +144,16 @@ async def list_capabilities(
     }
 
 
+@router.get("/metrics")
+async def get_metrics() -> Dict[str, Any]:
+    """Return a snapshot of the cognitive_execute outcome counters.
+
+    Phase 2 / E25.  Counters are monotonic for the life of the kernel
+    process; consumers wanting deltas should diff successive snapshots.
+    """
+    return {"metrics": _get_kernel().metrics()}
+
+
 @router.post("/context")
 async def build_context(req: BuildContextRequest) -> Dict[str, Any]:
     """Build a ContextObject from raw inputs (Layer 1)."""
