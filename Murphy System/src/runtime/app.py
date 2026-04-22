@@ -13233,52 +13233,62 @@ def create_app() -> FastAPI:
         logger.warning("Blockchain Audit Trail API unavailable: %s", _bat_exc)
 
     # ══════════════════════════════════════════════════════════════════════
-    # AUTH MIDDLEWARE — unified X-API-Key enforcement for all /api/* routes
-    # Permissive when MURPHY_API_KEY env var is not set (development mode).
+    # AUTH MIDDLEWARE — ADR-0012 Release N
+    # OIDC primary (Bearer JWT) + session cookie + deprecated X-API-Key
+    # fallback gated by MURPHY_ALLOW_API_KEY (default true) and a
+    # route allowlist (default /api/v1/internal/*).
     # ══════════════════════════════════════════════════════════════════════
 
-    from starlette.middleware.base import BaseHTTPMiddleware as _BHMW
+    try:
+        from auth_middleware import OIDCAuthMiddleware as _OIDCMW  # type: ignore
+    except Exception:
+        try:
+            from src.auth_middleware import OIDCAuthMiddleware as _OIDCMW  # type: ignore
+        except Exception as _oidc_imp_exc:
+            _OIDCMW = None  # type: ignore[assignment]
+            logger.warning(
+                "OIDCAuthMiddleware import failed (%s) — using legacy inline guard",
+                _oidc_imp_exc,
+            )
 
-    class _APIKeyMiddleware(_BHMW):
-        """Unified API key enforcement for all /api/* routes.
+    if _OIDCMW is not None:
+        app.add_middleware(_OIDCMW)
+    else:
+        # Fallback: keep the previous inline X-API-Key middleware so
+        # deployments without ``src.auth_middleware`` on PYTHONPATH keep
+        # working.  This branch should not normally fire — the canonical
+        # source layout puts auth_middleware.py on the path.
+        from starlette.middleware.base import BaseHTTPMiddleware as _BHMW
 
-        Auth, demo, and other public-facing routes are always exempt so that
-        visitors can log in / sign up / use the demo even when MURPHY_API_KEY
-        is configured for protecting internal API routes.
-        """
+        class _APIKeyMiddleware(_BHMW):
+            """Legacy inline X-API-Key fallback (Release-N back-compat)."""
 
-        # Exact-path exemptions
-        EXEMPT_PATHS = {"/api/health", "/api/info", "/api/manifest"}
+            EXEMPT_PATHS = {"/api/health", "/api/info", "/api/manifest"}
+            EXEMPT_PREFIXES = (
+                "/api/auth/",
+                "/api/demo/",
+                "/api/system/",
+            )
 
-        # Prefix-based exemptions — any path that starts with one of these is
-        # treated as a public endpoint regardless of API key configuration.
-        EXEMPT_PREFIXES = (
-            "/api/auth/",    # login, signup, OAuth, password reset — must be public
-            "/api/demo/",    # demo runner and deliverable generator — no login required
-            "/api/system/",  # system status / health endpoints
-        )
+            async def dispatch(self, request: Request, call_next):
+                path = request.url.path
+                if path.startswith("/api/"):
+                    is_exempt = (
+                        path in self.EXEMPT_PATHS
+                        or any(path.startswith(pfx) for pfx in self.EXEMPT_PREFIXES)
+                    )
+                    if not is_exempt:
+                        expected_key = os.environ.get("MURPHY_API_KEY", "") or os.environ.get("MURPHY_API_KEYS", "")
+                        if expected_key:
+                            api_key = request.headers.get("x-api-key", "")
+                            if api_key != expected_key:
+                                return JSONResponse(
+                                    {"success": False, "error": {"code": "AUTH_REQUIRED", "message": "Valid X-API-Key header required"}},
+                                    status_code=401,
+                                )
+                return await call_next(request)
 
-        async def dispatch(self, request: Request, call_next):
-            path = request.url.path
-            if path.startswith("/api/"):
-                is_exempt = (
-                    path in self.EXEMPT_PATHS
-                    or any(path.startswith(pfx) for pfx in self.EXEMPT_PREFIXES)
-                )
-                if not is_exempt:
-                    expected_key = os.environ.get("MURPHY_API_KEY", "") or os.environ.get("MURPHY_API_KEYS", "")
-                    if expected_key:
-                        # Starlette normalises header names to lowercase (RFC 7230);
-                        # use lowercase "x-api-key" here to match that behaviour.
-                        api_key = request.headers.get("x-api-key", "")
-                        if api_key != expected_key:
-                            return JSONResponse(
-                                {"success": False, "error": {"code": "AUTH_REQUIRED", "message": "Valid X-API-Key header required"}},
-                                status_code=401,
-                            )
-            return await call_next(request)
-
-    app.add_middleware(_APIKeyMiddleware)
+        app.add_middleware(_APIKeyMiddleware)
 
     # ══════════════════════════════════════════════════════════════════════
     # EXCEPTION HANDLERS — normalise all error formats into standard envelope

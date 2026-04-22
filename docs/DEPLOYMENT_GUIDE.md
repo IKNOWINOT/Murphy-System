@@ -225,6 +225,84 @@ server to refuse to start if unset.
 | `MURPHY_JWT_EXPIRY_HOURS` | ❌ | `24` | JWT token expiry in hours |
 | `MURPHY_PII_DETECTION` | ❌ | `true` | Enable PII detection in logs |
 
+#### OIDC authentication (ADR-0012 Release N)
+
+OIDC is the **primary** authentication path; the legacy shared API
+key remains a deprecated fallback during the two-release transition
+window.  All four `MURPHY_OIDC_*` vars must be set together to
+enable the JWT path.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `MURPHY_OIDC_ISSUER` | OIDC | — | Provider issuer URL, e.g. `https://example.auth0.com/` |
+| `MURPHY_OIDC_CLIENT_ID` | OIDC | — | Audience the IdP issues tokens for |
+| `MURPHY_OIDC_CLIENT_SECRET` | code-flow | — | Used by `oauth_oidc_provider` for the auth-code exchange (not by the verifier) |
+| `MURPHY_OIDC_REDIRECT_URI` | code-flow | — | Browser callback URL |
+| `MURPHY_OIDC_TENANT_CLAIM` | ❌ | `tenant` | JWT claim carrying the tenant id |
+| `MURPHY_ALLOW_API_KEY` | ❌ | `true` | Set to `false` to preview Release N+1 behaviour (rejects every X-API-Key request) |
+| `MURPHY_API_KEY_ROUTES` | ❌ | `/api/v1/internal/*` | Comma-separated `fnmatch` patterns restricting which routes accept the deprecated header |
+| `MURPHY_AUTH_ENFORCED` | ❌ | (auto) | Set to `true` to require credentials on `/api/*` even when no `MURPHY_API_KEY` is set |
+
+#### OIDC quickstart
+
+Worked examples for the four providers we test against.
+
+##### Auth0
+
+```bash
+export MURPHY_OIDC_ISSUER="https://YOUR_TENANT.auth0.com/"
+export MURPHY_OIDC_CLIENT_ID="YOUR_API_AUDIENCE"
+# Tokens minted by Auth0 carry custom claims under a namespace —
+# point MURPHY_OIDC_TENANT_CLAIM at the namespaced claim name:
+export MURPHY_OIDC_TENANT_CLAIM="https://murphy.systems/tenant"
+```
+
+In the Auth0 dashboard create an **API** with the audience above and
+an **Action** that injects the tenant claim onto the access token.
+
+##### Keycloak
+
+```bash
+export MURPHY_OIDC_ISSUER="https://kc.example.com/realms/murphy"
+export MURPHY_OIDC_CLIENT_ID="murphy-api"
+# Map the Keycloak group / attribute to the "tenant" claim with a
+# Token Mapper of type "User Attribute" → claim name "tenant".
+export MURPHY_OIDC_TENANT_CLAIM="tenant"
+```
+
+##### Google Workspace
+
+```bash
+export MURPHY_OIDC_ISSUER="https://accounts.google.com"
+export MURPHY_OIDC_CLIENT_ID="123-abc.apps.googleusercontent.com"
+# Google does not natively emit a tenant claim — synthesize one
+# from the hosted-domain claim:
+export MURPHY_OIDC_TENANT_CLAIM="hd"
+```
+
+##### Okta
+
+```bash
+export MURPHY_OIDC_ISSUER="https://YOUR_DOMAIN.okta.com/oauth2/default"
+export MURPHY_OIDC_CLIENT_ID="YOUR_CLIENT_ID"
+# Configure a Custom Claim "tenant" on the default Authorization Server
+# that returns the user's organization id.
+export MURPHY_OIDC_TENANT_CLAIM="tenant"
+```
+
+#### Migrating off `MURPHY_API_KEY`
+
+1. **Release N (now):** OIDC primary, API key still works on
+   `/api/v1/internal/*`.  Watch
+   `auth_middleware.api_key_deprecation_counter.snapshot()` (or its
+   eventual `/api/aionmind/metrics` exposure) and confirm usage is
+   trending to zero on every route.
+2. **Release N+1:** set `MURPHY_ALLOW_API_KEY=false` in production
+   *before* the upgrade lands so any remaining clients fail in
+   staging first.  The default flips to `false` in this release.
+3. **Release N+2:** the API-key code path is deleted.  Remove the
+   `MURPHY_API_KEY` and `MURPHY_ALLOW_API_KEY` env vars.
+
 ### Persistence
 
 | Variable | Required | Default | Description |
