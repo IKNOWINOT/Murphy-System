@@ -25,12 +25,17 @@ Index
 |------|-----------------------------------------------------------------|----------|
 | 0001 | Use Architecture Decision Records                               | Accepted |
 | 0002 | DeepInfra is the primary LLM provider                           | Accepted |
-| 0003 | TF-IDF is the default RAG backend until embeddings ship         | Accepted |
+| 0003 | TF-IDF is the default RAG backend until embeddings ship         | Superseded by 0009 |
 | 0004 | Human-in-the-loop (HITL) gate is mandatory for all agent action | Accepted |
 | 0005 | Canonical source layout: `Murphy System/` mirrored to root      | Accepted |
 | 0006 | Blockchain-style append-only audit ledger for self-modification | Accepted |
 | 0007 | OpenTelemetry tracing is opt-in, not on-by-default              | Accepted |
 | 0008 | GraphQL layer marked experimental, slated for removal           | Accepted |
+| 0009 | Embeddings + vector store as the default RAG backend            | Accepted |
+| 0010 | Background workers on Arq (move automation ticks off the web)   | Accepted |
+| 0011 | Promote Redis from optional to required                         | Accepted |
+| 0012 | Wire OIDC into auth_middleware; deprecate the shared API key    | Accepted |
+| 0013 | Frontend consolidation: Jinja2 over SPA for product pages       | Accepted |
 
 Adding a new ADR
 ----------------
