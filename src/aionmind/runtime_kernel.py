@@ -90,9 +90,20 @@ class AionMindKernel:
         # Layer 6
         self._optimization = OptimizationEngine()
 
+        # Per-subsystem capability counts populated by the bridge
+        # loaders.  Surfaced via ``status()`` so callers can see what
+        # got registered without inspecting the whole registry.
+        self._bridge_counts: Dict[str, int] = {}
+
         # Gap 1 — bot inventory → capability bridge
         if auto_bridge_bots:
             self._bridge_bot_capabilities()
+            # Phase 2 (C9–C16) — subsystem capability bridges.  Each
+            # bridge is best-effort: if the underlying subsystem cannot
+            # be imported, the bridge still registers its capabilities
+            # with stub handlers so plans surface them and a clear
+            # ``unavailable`` payload is returned at execute time.
+            self._bridge_subsystem_capabilities()
 
     # ── private bootstrap helpers ─────────────────────────────────
 
@@ -105,8 +116,60 @@ class AionMindKernel:
             count = load_bot_capabilities_into_registry(self._registry)
             if count:
                 logger.info("Auto-bridged %d bot capabilities.", count)
+                self._bridge_counts["bot_inventory"] = count
         except Exception as exc:
             logger.debug("Bot capability bridge unavailable — skipped: %s", exc, exc_info=True)
+
+    def _bridge_subsystem_capabilities(self) -> None:
+        """Auto-load every Phase-2 subsystem bridge.
+
+        Each bridge is wrapped in its own try/except so a single
+        broken subsystem cannot block the others.  After all bridges
+        run a single startup-summary line is emitted (E24 — per
+        subsystem totals) so operators can see what made it into the
+        registry without trawling per-bridge log lines.
+        """
+        # Each entry: (logical_name, import_path, loader_attr).
+        bridges = [
+            ("automations", "aionmind.automations_capability_bridge",
+             "load_automations_capabilities_into_kernel"),
+            ("hitl", "aionmind.hitl_capability_bridge",
+             "load_hitl_capabilities_into_kernel"),
+            ("boards", "aionmind.boards_capability_bridge",
+             "load_boards_capabilities_into_kernel"),
+            ("founder", "aionmind.founder_capability_bridge",
+             "load_founder_capabilities_into_kernel"),
+            ("production", "aionmind.production_capability_bridge",
+             "load_production_capabilities_into_kernel"),
+            ("integration_bus", "aionmind.integration_bus_capability_bridge",
+             "load_integration_bus_capabilities_into_kernel"),
+            ("document", "aionmind.document_capability_bridge",
+             "load_document_capabilities_into_kernel"),
+        ]
+        for name, module_path, loader_name in bridges:
+            try:
+                module = __import__(module_path, fromlist=[loader_name])
+                loader = getattr(module, loader_name)
+                count = loader(self)
+                if count:
+                    self._bridge_counts[name] = count
+            except Exception as exc:  # pragma: no cover - defensive
+                logger.debug(
+                    "Subsystem bridge %s unavailable — skipped: %s",
+                    name,
+                    exc,
+                    exc_info=True,
+                )
+        # E24 — single per-subsystem summary line.
+        if self._bridge_counts:
+            summary = ", ".join(
+                f"{n}={c}" for n, c in sorted(self._bridge_counts.items())
+            )
+            logger.info(
+                "AionMind capability bridges loaded (%d total): %s",
+                self._registry.count(),
+                summary,
+            )
 
     @staticmethod
     def _try_discover_rsc() -> Optional[Any]:
@@ -420,6 +483,7 @@ class AionMindKernel:
         """Return a summary of the kernel's current state."""
         return {
             "capabilities_registered": self._registry.count(),
+            "bridge_counts": dict(self._bridge_counts),
             "memory": self._memory.stats(),
             "pending_proposals": len(
                 self._optimization.list_proposals(
