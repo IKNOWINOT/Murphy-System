@@ -10,6 +10,8 @@ Targets:
   - Control plane creation:   >1,000 ops/s
   - Platform connector (sim): >200 ops/s
   - LLM routing dispatch:     >5,000 ops/s
+  - RAG retrieval (TF-IDF):   >500 ops/s
+  - HITL queue enqueue:       >10,000 ops/s
 
 Run:
     pytest tests/benchmarks/test_benchmark_statistical.py --benchmark-only
@@ -209,3 +211,83 @@ def test_llm_routing_dispatch_throughput(benchmark):
 
     result = benchmark(router.complete, prompt, context)
     assert isinstance(result, str) and result
+
+
+# ---------------------------------------------------------------------------
+# RAG Retrieval Throughput  (target: >500 ops/s)
+# ---------------------------------------------------------------------------
+#
+# Roadmap Item 15 names "RAG retrieval" as a hot path. Benchmarks the
+# pure-Python TF-IDF backend (the CI default; ChromaDB is opt-in via
+# CHROMADB_PATH env var per src/rag_vector_integration.py docstring).
+# Pre-ingests a small fixed corpus once during setup, then measures only
+# the search() call inside the benchmark loop.
+
+def test_rag_retrieval_throughput(benchmark):
+    """RAGVectorIntegration.search() must sustain >500 ops/s on a 5-doc corpus.
+
+    Test ID: PERF-RAG-001
+    Priority: High
+    Traceability: Roadmap Item 15 — Hot path "RAG retrieval"
+
+    Measures TF-IDF cosine-similarity retrieval over a deterministic
+    fixed corpus. Ingestion happens in setup; only search() is timed.
+    """
+    try:
+        from src.rag_vector_integration import RAGVectorIntegration
+    except ImportError as exc:
+        pytest.skip(f"rag_vector_integration not available: {exc}")
+
+    rag = RAGVectorIntegration(chunk_size=64, chunk_overlap=8)
+    corpus = [
+        ("governance kernel", "The governance kernel evaluates gates against policies."),
+        ("control plane", "The universal control plane creates and routes automations."),
+        ("platform connector", "Platform connectors bridge external services with rate limits."),
+        ("llm routing", "The tenant LLM router prefers local backends and falls back to cloud."),
+        ("hitl queue", "The HITL task queue enqueues tasks pending human review."),
+    ]
+    for title, text in corpus:
+        rag.ingest_document(text=text, title=title)
+
+    result = benchmark(rag.search, "how does the governance gate evaluate policies", 3)
+    assert result.get("status") == "ok"
+
+
+# ---------------------------------------------------------------------------
+# HITL Queue Dispatch Throughput  (target: >10,000 ops/s)
+# ---------------------------------------------------------------------------
+#
+# Roadmap Item 15 names "HITL queue dispatch" as a hot path. Benchmarks
+# HITLTaskQueue.enqueue() — the dispatch entry point that all upstream
+# validators call when a field needs human review.
+
+def test_hitl_queue_enqueue_throughput(benchmark):
+    """HITLTaskQueue.enqueue() must sustain >10,000 ops/s.
+
+    Test ID: PERF-HITL-001
+    Priority: High
+    Traceability: Roadmap Item 15 — Hot path "HITL queue dispatch"
+    """
+    try:
+        from src.billing.grants.hitl_task_queue import (
+            TIER_REVIEW,
+            HITLTaskQueue,
+        )
+    except ImportError as exc:
+        pytest.skip(f"billing.grants.hitl_task_queue not available: {exc}")
+
+    queue = HITLTaskQueue()
+
+    def enqueue_one():
+        return queue.enqueue(
+            session_id="bench-session",
+            application_id="bench-app",
+            field_id="bench-field",
+            tier=TIER_REVIEW,
+            value="needs review",
+            confidence=0.42,
+            reasoning="benchmark dispatch path",
+        )
+
+    task = benchmark(enqueue_one)
+    assert task is not None and task.task_id
