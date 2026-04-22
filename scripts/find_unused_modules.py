@@ -133,9 +133,14 @@ def _has_reference(dotted: str, exclude_file: Path) -> bool:
         # do not falsely flag it as unused. Log so repeated timeouts surface
         # as a real problem (e.g. pathological repo size or git grep
         # performance regression) rather than silently skewing the report.
+        # To investigate locally, re-run the failing query directly:
+        #   git grep -l --perl-regexp '<pattern>' -- src tests scripts
+        # and consider narrowing the search dirs or raising the 30s budget.
         sys.stderr.write(
             f"warning: git grep timed out after 30s for {dotted!r}; "
-            "assuming referenced\n"
+            "assuming referenced. Re-run manually with "
+            f"`git grep -l --perl-regexp '...{dotted}...' -- src tests scripts` "
+            "to investigate.\n"
         )
         return True
 

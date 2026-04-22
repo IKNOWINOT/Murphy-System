@@ -62,6 +62,15 @@ ALLOWED_BASE_URL_SCHEMES: frozenset[str] = frozenset({"https://", "wss://"})
 #: Substrings that, when present in a base_url, exempt it from the secure-
 #: scheme requirement. These cover loopback addresses only — never bind a
 #: production connector to a non-loopback http:// endpoint.
+#:
+#: Note on ``0.0.0.0``: in a *base_url* context this is almost always a
+#: misconfigured "bind to all interfaces" string copied from a server-side
+#: ``--host 0.0.0.0`` flag. It is not a routable destination address (and
+#: many HTTP clients refuse to connect to it). Treating it as loopback-
+#: equivalent here permits self-hosted dev sidecars (n8n, ollama,
+#: in-cluster sidecars) without weakening the contract for legitimate
+#: remote URLs — a base_url that successfully reaches a *non-loopback*
+#: target over plain HTTP would still be rejected.
 LOOPBACK_HOSTS: frozenset[str] = frozenset(
     {"localhost", "127.0.0.1", "[::1]", "0.0.0.0"}
 )

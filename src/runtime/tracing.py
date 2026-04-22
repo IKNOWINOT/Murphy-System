@@ -50,7 +50,10 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:  # pragma: no cover — type-checking only
+    from fastapi import FastAPI
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +74,7 @@ def is_enabled() -> bool:
     return raw in {"1", "true", "yes", "on"}
 
 
-def configure_tracing(app: Optional[Any] = None) -> bool:
+def configure_tracing(app: Optional["FastAPI"] = None) -> bool:
     """Configure OpenTelemetry tracing if the environment opts in.
 
     Returns True if tracing was successfully configured, False otherwise.
