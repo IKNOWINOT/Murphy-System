@@ -32,24 +32,41 @@ from pathlib import Path
 from typing import Any
 
 
-_DEFAULT_APP = "src.runtime.app:app"
+_DEFAULT_APP = "src.runtime.app:create_app()"
 _DEFAULT_OUTPUT = Path("docs") / "openapi.json"
 
 
 def _load_app(target: str) -> Any:
-    """Import ``module:attr`` and return the FastAPI instance."""
+    """Import ``module:attr`` and return the FastAPI instance.
+
+    The ``attr`` may be either an attribute name (returned as-is) or a
+    factory invocation (``attr()``) — useful when the FastAPI app is
+    constructed by a ``create_app()`` factory rather than instantiated at
+    module import time.
+    """
     if ":" not in target:
         raise SystemExit(
-            f"--app must be of the form 'module.path:attribute'; got {target!r}"
+            f"--app must be of the form 'module.path:attribute' or "
+            f"'module.path:factory()'; got {target!r}"
         )
     module_path, attr = target.split(":", 1)
+    is_factory = attr.endswith("()")
+    if is_factory:
+        attr = attr[:-2]
     module = importlib.import_module(module_path)
     try:
-        return getattr(module, attr)
+        value = getattr(module, attr)
     except AttributeError as exc:
         raise SystemExit(
             f"Module {module_path!r} has no attribute {attr!r}"
         ) from exc
+    if is_factory:
+        if not callable(value):
+            raise SystemExit(
+                f"{module_path}:{attr} is not callable; cannot invoke as factory"
+            )
+        value = value()
+    return value
 
 
 def _generate_schema(app: Any) -> dict[str, Any]:
