@@ -365,10 +365,18 @@ Of these, **3 of 3** are echoed back in the body (100.0%).
   body and rubric coverage will be higher than the sandbox numbers above.  When
   the LLM is reachable in production, the `llm_provider` field will surface the
   actual rung (e.g. `llm-remote:deepinfra`).
-- **Forge does not yet invoke `kernel.cognitive_execute()` (P1b)** — capability
-  bridges, risk policy, and the new audit log are not exercised by the Forge
-  path.  Tracked as a follow-up because it requires plumbing actor/auth into the
-  Forge entrypoint.
+- **Forge → kernel audit/metrics integration (P1b) — DONE in this PR.**
+  `/api/demo/generate-deliverable` now resolves the caller via the existing
+  `_resolve_caller` helper and calls `kernel.record_external_execution` on
+  both success and failure paths.  Each call appends one JSONL audit entry
+  tagged `source="external"` and `task_type="demo_forge"`, and bumps the new
+  `executed_external` / `failed_external` counters that the D20 KPI strip
+  and D23 audit tab consume.  This is audit-only — the Forge does **not**
+  route through `cognitive_execute`'s plan/select/approve loop because its
+  output is a presentation deliverable, not a side-effecting graph; the
+  capability bridges and risk policy stay reserved for routes that change
+  state.  Locked in by `TestRecordExternalExecution` (6 tests) +
+  `TestMetricsEndpoint` schema check in `tests/test_aionmind/test_metrics_and_audit_log.py`.
 - **ROI numbers in `generate_automation_spec` (P2a)** are still pulled from the
   per-scenario constants, not the live capability registry.  Display-only;
   changing them risks breaking the landing-page narrative without UX review.
@@ -384,3 +392,4 @@ Of these, **3 of 3** are echoed back in the body (100.0%).
 | `llm_provider: None` for every prompt | `llm_provider` always populated AND specific (`deterministic-fallback:mss+domain` in sandbox; `llm-remote:<name>` in production) |
 | Per-prompt vocabulary echoed only in header quote | 100 % distinctive-phrase coverage in scope-block + body |
 | `from src.X` imports broke under alt path layout | `_import_dual()` works under both layouts |
+| Forge runs invisible to operator audit log + KPI strip | Every Forge run appends one `source="external"` audit row + bumps `executed_external` / `failed_external` |

@@ -107,6 +107,17 @@ class AionMindKernel:
             "no_candidates": 0,
             "executed": 0,
             "failed": 0,
+            # P1b (FORGE-KERNEL-001): out-of-band pipelines (currently
+            # the Demo Forge ``/api/demo/generate-deliverable`` route)
+            # record their executions through ``record_external_execution``
+            # so the operator audit log + outcome KPI strip reflect
+            # Forge usage too.  ``executed_external`` covers successes
+            # and ``failed_external`` covers failures; we keep the
+            # counters separate from ``executed``/``failed`` so an
+            # operator can tell kernel-driven work from Forge demo
+            # work at a glance.
+            "executed_external": 0,
+            "failed_external": 0,
         }
 
         # Phase 2 (E26) — append-only JSONL audit log path.  When
@@ -525,8 +536,114 @@ class AionMindKernel:
         Phase 2 / E25.  Counters are monotonic for the life of the
         kernel process; callers wanting deltas should diff successive
         snapshots.
+
+        P1b: includes ``executed_external`` and ``failed_external``
+        counters that out-of-band pipelines bump via
+        :meth:`record_external_execution`.
         """
         return dict(self._aionmind_metrics)
+
+    def record_external_execution(
+        self,
+        *,
+        actor: Optional[str],
+        task_type: str,
+        status: str,
+        summary: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Record an out-of-band pipeline execution against the kernel
+        audit log + outcome metrics.
+
+        Phase 2 / P1b (FORGE-KERNEL-001).  This is the audit-only
+        complement to :meth:`cognitive_execute`: pipelines that run
+        outside the AionMind reasoning/execution loop (today, the
+        Demo Forge ``/api/demo/generate-deliverable`` route) call
+        this on completion so the operator surfaces (D20 metrics,
+        D23 audit tab) reflect their activity.
+
+        Unlike ``cognitive_execute`` this method:
+
+        * does **not** build a context, plan, select, or execute;
+        * does **not** consult the risk policy or approval gate;
+        * does **not** mutate the capability registry or memory;
+        * is safe to call from any thread (the underlying file write
+          uses one append-syscall per entry, matching ``_append_audit_log``).
+
+        Parameters
+        ----------
+        actor : str, optional
+            Identity label of the human / service that initiated the
+            external execution.  Recorded on the audit entry.  When
+            falsy, the audit entry stores ``"anonymous"``.
+        task_type : str
+            Routing label for the external pipeline (e.g.
+            ``"demo_forge"``).  Recorded on the audit entry and on
+            the metrics counter so an operator can tell external
+            work apart from kernel-driven work.
+        status : str
+            Free-form outcome label.  Anything other than ``"completed"``
+            is treated as a failure for metrics purposes.  Recorded
+            verbatim on the audit entry.
+        summary : str, optional
+            Short human-readable summary (e.g. the Forge query) — kept
+            short so the audit log stays operator-readable.  The first
+            240 characters are stored.
+        details : dict, optional
+            Free-form structured details (provider, scenario, latency,
+            etc.) merged into the audit entry under ``external``.
+
+        Returns
+        -------
+        dict
+            The audit entry that was appended (or would have been, if
+            no audit log path is configured).  Useful for tests and
+            for callers that want to echo the audit row back to the
+            client.
+        """
+        # ── Counters first (cheap and always available) ────────────────
+        if status == "completed":
+            self._aionmind_metrics["executed_external"] += 1
+        else:
+            self._aionmind_metrics["failed_external"] += 1
+
+        # ── Build the audit entry ──────────────────────────────────────
+        import time as _time
+
+        entry: Dict[str, Any] = {
+            "ts": _time.time(),
+            "actor": actor or "anonymous",
+            "task_type": task_type,
+            "status": status,
+            # Mark the entry as external so a UI / audit reader can
+            # filter or label it differently from kernel-driven rows.
+            "source": "external",
+            "auto_approved": False,
+        }
+        if summary:
+            entry["summary"] = str(summary)[:240]
+        if details:
+            # Defensive copy so callers can't mutate after recording.
+            try:
+                entry["external"] = dict(details)
+            except Exception:
+                entry["external"] = {"_repr": repr(details)[:240]}
+
+        # ── Append to JSONL audit log (best-effort, mirrors _append_audit_log) ──
+        path = self._audit_log_path
+        if path:
+            try:
+                import json as _json
+                import os as _os
+
+                parent = _os.path.dirname(path)
+                if parent:
+                    _os.makedirs(parent, exist_ok=True)
+                with open(path, "a", encoding="utf-8") as fh:
+                    fh.write(_json.dumps(entry, separators=(",", ":")) + "\n")
+            except Exception as exc:  # pragma: no cover - defensive
+                logger.debug("audit-log append (external) failed: %s", exc, exc_info=True)
+        return entry
 
     def set_audit_log_path(self, path: Optional[str]) -> None:
         """Configure the append-only JSONL audit log destination.

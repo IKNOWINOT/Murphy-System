@@ -14048,15 +14048,58 @@ def create_app() -> FastAPI:
             logger.debug("Librarian lookup skipped: %s", _lib_exc)
 
         # Step 2: MFGC → MSS → LLM pipeline (inside generate_deliverable)
+        # P1b (FORGE-KERNEL-001): resolve the caller up-front so we can
+        # tag both success and failure audit entries with the actor.
+        # ``_resolve_caller`` is defined in the same closure (used at
+        # ``/api/execute`` too) and falls back to ``"anonymous"`` here
+        # so the demo route stays usable for unauthenticated traffic.
+        try:
+            _fk_caller = _resolve_caller(request)
+        except Exception:
+            _fk_caller = None
+        _fk_actor = (_fk_caller or {}).get("email") or "anonymous"
         try:
             from src.demo_deliverable_generator import generate_deliverable
             deliverable = generate_deliverable(query, librarian_context=librarian_context or None)
         except Exception as exc:
             logger.warning("Deliverable generation failed: %s", exc)
+            # P1b: record the failure against the kernel so the
+            # operator audit log + KPI strip see Forge failures.
+            if _aionmind_kernel is not None:
+                try:
+                    _aionmind_kernel.record_external_execution(
+                        actor=_fk_actor,
+                        task_type="demo_forge",
+                        status="failed",
+                        summary=query,
+                        details={"error": str(exc)[:240], "tier": _usage_forge.get("tier", "anonymous")},
+                    )
+                except Exception as _rec_exc:  # pragma: no cover - defensive
+                    logger.debug("kernel.record_external_execution (failure) skipped: %s", _rec_exc)
             return JSONResponse(
                 {"success": False, "error": "generation_failed", "message": str(exc)},
                 status_code=500,
             )
+
+        # P1b (FORGE-KERNEL-001): record the successful Forge execution
+        # against the kernel.  Audit-only — does not gate the response,
+        # does not consult risk policy, swallows its own errors.
+        if _aionmind_kernel is not None:
+            try:
+                _aionmind_kernel.record_external_execution(
+                    actor=_fk_actor,
+                    task_type="demo_forge",
+                    status="completed",
+                    summary=query,
+                    details={
+                        "scenario": deliverable.get("filename", "").split(".")[0] or "custom",
+                        "llm_provider": deliverable.get("llm_provider"),
+                        "bytes": len(deliverable.get("content", "") or ""),
+                        "tier": _usage_forge.get("tier", "anonymous"),
+                    },
+                )
+            except Exception as _rec_exc:  # pragma: no cover - defensive
+                logger.debug("kernel.record_external_execution (success) skipped: %s", _rec_exc)
 
         # Generate automation spec (the key sales asset)
         automation_spec: Optional[Dict[str, Any]] = None
