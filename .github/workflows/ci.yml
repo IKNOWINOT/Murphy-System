@@ -65,6 +65,7 @@ jobs:
           ruff check --select=BLE001 \
             src/runtime/subsystem_registry.py \
             src/runtime/tracing.py \
+            src/runtime/module_loader.py \
             src/routers/ \
             scripts/export_openapi.py \
             scripts/find_unused_modules.py \
