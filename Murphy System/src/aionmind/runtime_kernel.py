@@ -31,6 +31,22 @@ from aionmind.stability_integration import StabilityIntegration
 logger = logging.getLogger(__name__)
 
 
+# Risk tiers ordered from least to most risky.  Used by
+# ``cognitive_execute`` to compare a context's risk against the
+# caller-supplied ``max_auto_approve_risk`` ceiling.
+_RISK_ORDER: Dict[RiskLevel, int] = {
+    RiskLevel.LOW: 0,
+    RiskLevel.MEDIUM: 1,
+    RiskLevel.HIGH: 2,
+    RiskLevel.CRITICAL: 3,
+}
+
+
+def _risk_le(actual: RiskLevel, ceiling: RiskLevel) -> bool:
+    """Return True iff ``actual`` is at or below ``ceiling`` in risk."""
+    return _RISK_ORDER.get(actual, 99) <= _RISK_ORDER.get(ceiling, -1)
+
+
 class AionMindKernel:
     """Murphy 2.0a runtime kernel — Collaborative Orchestrator of Orchestrators.
 
@@ -178,12 +194,26 @@ class AionMindKernel:
 
     # ── Layer 4: Execution ────────────────────────────────────────
 
-    def execute(self, graph: ExecutionGraphObject) -> OrchestrationState:
+    def execute(
+        self,
+        graph: ExecutionGraphObject,
+        *,
+        actor: Optional[str] = None,
+    ) -> OrchestrationState:
         """Execute an approved graph (Layer 4).
+
+        Parameters
+        ----------
+        graph : ExecutionGraphObject
+            The approved graph to execute.
+        actor : str, optional
+            Identity label of the human / service initiating execution.
+            Recorded on :class:`OrchestrationState` and on every audit
+            entry so the audit trail is attributable.
 
         Raises ``ValueError`` if the graph has not been approved.
         """
-        state = self._orchestration.execute(graph)
+        state = self._orchestration.execute(graph, actor=actor)
         # Store result in STM for immediate access
         self._memory.store_intermediate_state(
             f"exec:{state.execution_id}",
@@ -248,6 +278,9 @@ class AionMindKernel:
         parameters: Optional[Dict[str, Any]] = None,
         auto_approve: bool = False,
         approver: str = "system",
+        metadata: Optional[Dict[str, Any]] = None,
+        actor: Optional[str] = None,
+        max_auto_approve_risk: RiskLevel = RiskLevel.LOW,
     ) -> Dict[str, Any]:
         """High-level convenience that runs the full cognitive pipeline:
         ``build_context → plan → select → (approve) → execute``.
@@ -272,6 +305,21 @@ class AionMindKernel:
             tasks only; high-risk tasks still require human approval).
         approver : str
             Label for the approver when auto_approve is enabled.
+        metadata : dict, optional
+            Free-form metadata merged into the :class:`ContextObject`'s
+            ``metadata`` field.  Used by Phase 1 to thread the
+            ``founder``/``user_email`` flags down to capability handlers
+            without overloading ``parameters``.
+        actor : str, optional
+            Identity label of the human / service that initiated the
+            request.  Stored on :class:`OrchestrationState` and emitted
+            on every audit entry so audit trails are attributable.
+        max_auto_approve_risk : RiskLevel
+            Maximum risk level eligible for auto-approval when
+            ``auto_approve`` is set.  Defaults to ``LOW`` to preserve
+            the kernel's no-autonomy contract; callers (e.g. the
+            ``_auto_approve_for`` policy in ``app.py``) may raise this
+            for owners who can self-approve MEDIUM-risk work.
 
         Returns
         -------
@@ -279,8 +327,17 @@ class AionMindKernel:
             Unified result with ``context``, ``graph``, ``execution``, and
             ``pipeline`` keys.
         """
-        meta = parameters or {}
+        meta: Dict[str, Any] = dict(parameters or {})
+        if metadata:
+            # Caller-supplied metadata takes precedence over the
+            # parameters-derived defaults so identity flags survive.
+            meta.update(metadata)
+        # ``task_type`` is the kernel's contract — always set it from
+        # the dedicated argument so caller metadata cannot accidentally
+        # override the routing label.
         meta["task_type"] = task_type
+        if actor and "actor" not in meta:
+            meta["actor"] = actor
 
         # Step 1 — build context
         risk = RiskLevel.LOW
@@ -311,7 +368,7 @@ class AionMindKernel:
             graph = candidates[0]
 
         # Step 4 — approval gate
-        if auto_approve and ctx.risk_level == RiskLevel.LOW:
+        if auto_approve and _risk_le(ctx.risk_level, max_auto_approve_risk):
             graph.approved = True
             graph.approved_by = approver
         elif not graph.approved:
@@ -325,7 +382,7 @@ class AionMindKernel:
             }
 
         # Step 5 — execute
-        state = self.execute(graph)
+        state = self.execute(graph, actor=actor)
 
         # Step 6 — memory archival
         self._memory.store_intermediate_state(
