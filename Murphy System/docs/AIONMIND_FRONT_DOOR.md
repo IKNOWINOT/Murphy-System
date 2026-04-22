@@ -195,11 +195,53 @@ input.  The endpoint is read-only; there is no write surface.
 
 ## 6. Out of scope (tracked separately)
 
+Each item below names the **open question that blocks it** and the
+**decision-maker scope**.  Engineering effort is not the bottleneck for
+any of these; ratifying the decision is.  Each item should land as its
+own PR once the open question is answered — bundling them together
+defeats the per-PR review boundary.
+
 * **A4** — full JWT/OIDC replacement of the legacy session token is
   ADR-0012's separate 2-release deprecation window.
-* **E27** — distributed tracing (OTel) is its own ADR + deployment
-  work.
-* **E28** — request-rate limiting on `/api/aionmind/*` requires a
-  global rate-limit strategy decision.
-* **E29–E31** — SSE notifications, structured-log rotation, and
-  long-haul audit-log shipping are tracked as follow-ups.
+  *Open question:* none — schedule is fixed in ADR-0012.
+  *Owner:* platform.
+* **E27** — distributed tracing (OTel) for AionMind routes.
+  **The cross-cutting decision is already made** in
+  [ADR-0007 (OpenTelemetry tracing is opt-in, not on-by-default)][adr0007]:
+  OTel + OTLP, opt-in via `MURPHY_OTEL_ENABLED`, SDK as a production
+  extra.  Because every `/api/aionmind/*` route is a FastAPI route on
+  the same `app` that ADR-0007 instruments, AionMind tracing comes for
+  free the moment an operator flips `MURPHY_OTEL_ENABLED=1` and
+  installs the production extras.  No AionMind-specific ADR is
+  required.
+  *Open question:* deployment-time only — which collector endpoint
+  does production point at, and what sampling ratio (`OTEL_TRACES_SAMPLER`)
+  do we ship with?
+  *Owner:* operations / observability platform.
+* **E28** — request-rate limiting on `/api/aionmind/*`.
+  *Open question:* do AionMind routes share the existing
+  `forge_rate_limiter` per-tier budget, get their own per-tier
+  bucket, or front-end onto a global token bucket (e.g. Redis-backed)?
+  Each choice has different fairness and noisy-neighbour properties.
+  *Owner:* platform + product (the choice affects what tier customers
+  perceive).
+* **E29** — SSE notifications on the `/api/aionmind/*` surface.
+  *Open question:* payload schema (per-event-type vs. envelope) and
+  client consumer plan (does the existing UI subscribe, or is this for
+  external integrators?).  Without a consumer the channel is dead
+  weight.
+  *Owner:* product + frontend.
+* **E30** — structured-log rotation for the AionMind audit JSONL.
+  *Open question:* in-process rotation (Python's `RotatingFileHandler`
+  / `TimedRotatingFileHandler`) vs. operator-managed rotation
+  (`logrotate`, container log driver).  In-process is portable but
+  conflicts with append-only audit semantics; operator-managed
+  preserves the JSONL invariant at the cost of a deployment runbook.
+  *Owner:* operations.
+* **E31** — long-haul audit-log shipping.
+  *Open question:* sink choice (S3 / Loki / a SIEM / blob storage)
+  and retention policy.  Same shape as E27 — the engineering work is
+  small once the sink is named.
+  *Owner:* operations + compliance.
+
+[adr0007]: adr/0007-opentelemetry-opt-in.md

@@ -8392,6 +8392,17 @@ def generate_automation_spec(
       signup_url     — https://murphy.systems/ui/signup?spec=SPEC-xxx
       generated_at   — ISO timestamp
     """
+    # TODO(P2a): hours_saved_month / monthly_savings / roi_multiple are
+    # currently sourced from the per-scenario constants in
+    # `_get_spec_for_query`, not from the live capability registry.  These
+    # values are user-visible landing-page copy tuned to the
+    # `recommended_tier` cliffs and the sales-deck narrative; switching
+    # them to a registry-derived calculation requires UX/marketing
+    # sign-off on the new number ranges (see
+    # `docs/FORGE_EVALUATION_REPORT.md` §"What this PR does NOT fix").
+    # When that sign-off arrives, gate the new derivation behind
+    # `MURPHY_FORGE_REGISTRY_ROI=1` so the landing page can flip on a
+    # deploy-time switch rather than a code-change event.
     spec_id = "SPEC-" + _uuid_mod.uuid4().hex[:8].upper()
     spec_template = _get_spec_for_query(query)
 
