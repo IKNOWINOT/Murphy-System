@@ -16163,6 +16163,18 @@ def main():
     # Create FastAPI app
     app = create_app()
 
+    # FIX-002: stamp deploy commit from inside the process (ExecStartPre can't
+    # write to /etc/ under ProtectSystem=strict, so it was silently failing).
+    try:
+        import subprocess as _sp
+        _commit = _sp.check_output(
+            ["git", "-C", "/opt/Murphy-System", "rev-parse", "--short", "HEAD"],
+            stderr=_sp.DEVNULL, timeout=5
+        ).decode().strip()
+        os.environ["MURPHY_DEPLOY_COMMIT"] = _commit
+    except Exception as _ce:
+        logger.debug("Could not stamp deploy commit: %s", _ce)
+
     # Run server
     port = int(os.getenv('PORT') or os.getenv('MURPHY_PORT') or 8000)
 

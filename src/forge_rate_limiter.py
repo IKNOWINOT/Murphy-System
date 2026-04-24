@@ -210,16 +210,49 @@ return new
             return True, 0, daily_limit
 
     def _extract_identity(self, request: Any):
+        # PATCH-047a: resolve identity from session account, API key, or X-User-ID header.
+        # Priority: session account_id > API key > X-User-ID header > anonymous.
         headers = getattr(request, "headers", {}) or {}
-        user_id = (headers.get("X-User-ID") or "").strip() or "anonymous"
         fwd = (headers.get("X-Forwarded-For") or "").split(",")[0].strip()
         client = getattr(request, "client", None)
         client_ip = fwd or (client.host if client else "unknown")
+
+        # 1. Try to resolve from session (cookie or Bearer token via app._get_account_from_session)
+        try:
+            import sys
+            app_module = sys.modules.get("src.runtime.app") or sys.modules.get("runtime.app")
+            if app_module:
+                gaf = getattr(app_module, "_get_account_from_session", None)
+                if gaf:
+                    account = gaf(request)
+                    if account and account.get("account_id"):
+                        return account["account_id"], client_ip
+        except Exception:
+            pass
+
+        # 2. Try X-API-Key header — look up in env MURPHY_API_KEYS
+        api_key = (headers.get("X-API-Key") or headers.get("x-api-key") or "").strip()
+        if api_key:
+            known_keys = os.environ.get("MURPHY_API_KEYS", "")
+            founder_key = os.environ.get("FOUNDER_API_KEY", "")
+            if api_key == founder_key or api_key in known_keys.split(","):
+                return f"apikey:{api_key[:16]}", client_ip
+
+        # 3. X-User-ID header fallback
+        user_id = (headers.get("X-User-ID") or "").strip() or "anonymous"
         return user_id, client_ip
 
     def _resolve_tier(self, request: Any, user_id: str) -> str:
+        # PATCH-047a: API key users from MURPHY_API_KEYS / FOUNDER_API_KEY get enterprise.
         if user_id == "anonymous":
             return "anonymous"
+        if user_id.startswith("apikey:"):
+            return "enterprise"
+        # Check X-Subscription-Tier header (set by auth middleware or caller)
+        headers = getattr(request, "headers", {}) or {}
+        header_tier = (headers.get("X-Subscription-Tier") or "").strip().lower()
+        if header_tier and header_tier in ("enterprise", "professional", "business", "solo", "free"):
+            return header_tier
         try:
             from src.subscription_manager import SubscriptionManager
             sm = SubscriptionManager()
@@ -228,9 +261,7 @@ return new
                 return sub.tier.value.lower()
         except Exception:
             logger.debug("Suppressed exception in forge_rate_limiter")
-        # Fall back to X-Subscription-Tier header (set by auth middleware)
-        headers = getattr(request, "headers", {}) or {}
-        return (headers.get("X-Subscription-Tier") or "free").lower()
+        return "free"
 
     def _check_hourly(self, key: str, limit: int, burst: int, now: float):
         bucket = self._hourly.get(key) or {"tokens": float(burst), "last_refill": now}
