@@ -13776,11 +13776,16 @@ def create_app() -> FastAPI:
                 status_code=400,
             )
 
-        # ── Usage tracking (HIGH-001) ───────────────────────────────────
+        # -- Usage tracking (HIGH-001) PATCH-047a: API key bypass --
         account = _get_account_from_session(request)
+        _ak2 = (request.headers.get("X-API-Key") or "").strip()
+        _fk2 = __import__('os').environ.get("FOUNDER_API_KEY", "")
+        _mk2 = __import__('os').environ.get("MURPHY_API_KEYS", "")
+        _is_api2 = bool(_ak2 and (_ak2 == _fk2 or _ak2 in _mk2.split(",")))
         usage_result: dict = {}
-
-        if _sub_manager is not None:
+        if _is_api2:
+            usage_result = {"allowed": True, "used": 0, "limit": -1, "remaining": -1, "tier": "enterprise"}
+        elif _sub_manager is not None:
             if account:
                 usage_result = _sub_manager.record_usage(account["account_id"])
             else:
@@ -13957,9 +13962,18 @@ def create_app() -> FastAPI:
 
         # ── Check usage limits ──────────────────────────────────────────
         account = _get_account_from_session(request)
+        # PATCH-047a: API key holders (FOUNDER_API_KEY / MURPHY_API_KEYS) bypass sub_manager limits.
+        _api_key_req = (request.headers.get("X-API-Key") or request.headers.get("x-api-key") or "").strip()
+        _known_keys = __import__('os').environ.get("MURPHY_API_KEYS", "")
+        _founder_key = __import__('os').environ.get("FOUNDER_API_KEY", "")
+        _is_api_key_user = bool(_api_key_req and (
+            _api_key_req == _founder_key or _api_key_req in _known_keys.split(",")
+        ))
         usage_result: dict = {}
 
-        if _sub_manager is not None:
+        if _is_api_key_user:
+            usage_result = {"allowed": True, "used": 0, "limit": -1, "remaining": -1, "tier": "enterprise"}
+        elif _sub_manager is not None:
             if account:
                 account_id = account["account_id"]
                 usage_result = _sub_manager.record_usage(account_id)
@@ -13974,7 +13988,7 @@ def create_app() -> FastAPI:
                     ip = request.client.host if request.client else "unknown"
                     fp = hashlib.sha256(ip.encode()).hexdigest()[:32]
                 usage_result = _sub_manager.record_anon_usage(fp)
-        else:
+        elif not _is_api_key_user:
             usage_result = {"allowed": True, "used": 1, "limit": 5, "remaining": 4, "tier": "anonymous"}  # fallback: no tracking
 
         if not usage_result.get("allowed", True):
@@ -14005,29 +14019,32 @@ def create_app() -> FastAPI:
                 status_code=429,
             )
 
-        # ── Forge-specific rate limit (tier + swarm-aware) ──────────────────
+        # -- Forge-specific rate limit (PATCH-047b: API key bypass) --
         _usage_forge: dict = {}
-        try:
-            from src.forge_rate_limiter import get_forge_rate_limiter
-            _forge_limiter = get_forge_rate_limiter()
-            _forge_result = _forge_limiter.check_and_record(request)
-            if not _forge_result.get("allowed", True):
-                return JSONResponse(
-                    {
-                        "success": False,
-                        "error": "forge_rate_limit_exceeded",
-                        "tier": _forge_result.get("tier", "anonymous"),
-                        "limit": _forge_result.get("builds_remaining_hour", 0),
-                        "retry_after_seconds": _forge_result.get("retry_after_seconds", 60),
-                        "upgrade_url": "/pricing",
-                        "swarm_cost": _forge_result.get("swarm_cost", {}),
-                    },
-                    status_code=429,
-                    headers={"Retry-After": str(_forge_result.get("retry_after_seconds", 60))},
-                )
-            _usage_forge = _forge_result
-        except Exception as _frl_exc:
-            logger.debug("ForgeRateLimiter skipped: %s", _frl_exc)
+        if _is_api_key_user:
+            _usage_forge = {"allowed": True, "tier": "enterprise", "builds_remaining_today": -1, "builds_used_today": 0, "swarm_cost": {}}
+        else:
+            try:
+                from src.forge_rate_limiter import get_forge_rate_limiter
+                _forge_limiter = get_forge_rate_limiter()
+                _forge_result = _forge_limiter.check_and_record(request)
+                if not _forge_result.get("allowed", True):
+                    return JSONResponse(
+                        {
+                            "success": False,
+                            "error": "forge_rate_limit_exceeded",
+                            "tier": _forge_result.get("tier", "anonymous"),
+                            "limit": _forge_result.get("builds_remaining_hour", 0),
+                            "retry_after_seconds": _forge_result.get("retry_after_seconds", 60),
+                            "upgrade_url": "/pricing",
+                            "swarm_cost": _forge_result.get("swarm_cost", {}),
+                        },
+                        status_code=429,
+                        headers={"Retry-After": str(_forge_result.get("retry_after_seconds", 60))},
+                    )
+                _usage_forge = _forge_result
+            except Exception as _frl_exc:
+                logger.debug("ForgeRateLimiter skipped: %s", _frl_exc)
 
         # ── Generate deliverable ────────────────────────────────────────
         # Step 1: Librarian lookup — gives domain knowledge to the generator
