@@ -1,24 +1,22 @@
-import importlib.util
-from pathlib import Path
+"""
+Murphy System — Governance Dashboard Snapshot Tests
+PROD-HARD-GOV-001: Rewritten to import MurphySystem directly from
+src.runtime.murphy_system_core instead of exec_module()'ing the full
+1.0 runtime wrapper, which triggers a transformers→squad.py import
+chain that exceeds the 15s CI timeout.
 
-
-def load_runtime_module():
-    runtime_dir = Path(__file__).resolve().parent.parent.parent
-    candidates = list(runtime_dir.glob("murphy_system_*_runtime.py"))
-    if not candidates:
-        raise RuntimeError("Unable to locate Murphy runtime module")
-    module_path = candidates[0]
-    spec = importlib.util.spec_from_file_location("murphy_system_runtime", module_path)
-    module = importlib.util.module_from_spec(spec)
-    if spec.loader is None:
-        raise RuntimeError("Unable to load Murphy runtime module")
-    spec.loader.exec_module(module)
-    return module
+Design intent: _build_governance_dashboard_snapshot() normalises
+governance component statuses into a unified summary dict. These
+tests verify that summary counts and normalized_status values are
+correct across the "needs_wiring" and "ready" scenarios.
+"""
+import pytest
+from src.runtime.murphy_system_core import MurphySystem
 
 
 def test_governance_dashboard_snapshot_defaults():
-    runtime = load_runtime_module()
-    murphy = runtime.MurphySystem.create_test_instance()
+    # PROD-HARD-GOV-001: uses direct import, not exec_module() of full runtime
+    murphy = MurphySystem.create_test_instance()
 
     snapshot = murphy._build_governance_dashboard_snapshot(
         {"delivery_readiness": "needs_info"},
@@ -35,8 +33,7 @@ def test_governance_dashboard_snapshot_defaults():
 
 
 def test_governance_dashboard_snapshot_ready():
-    runtime = load_runtime_module()
-    murphy = runtime.MurphySystem.create_test_instance()
+    murphy = MurphySystem.create_test_instance()
 
     snapshot = murphy._build_governance_dashboard_snapshot(
         {"delivery_readiness": "ready"},
@@ -54,8 +51,7 @@ def test_governance_dashboard_snapshot_ready():
 
 
 def test_governance_dashboard_snapshot_in_system_status():
-    runtime = load_runtime_module()
-    murphy = runtime.MurphySystem.create_test_instance()
+    murphy = MurphySystem.create_test_instance()
 
     murphy.latest_activation_preview = {
         "executive_directive": {"delivery_readiness": "needs_info"},

@@ -46,12 +46,18 @@ _PROJECT_TYPE_ALIASES: Dict[str, str] = {
     "software": "software_rd",
     "iot": "industrial_iot",
     "hvac": "hvac_automation",
+    "hvac_controls": "hvac_automation",
     "solar_pv": "solar",
+    "solar_controls": "solar",
     "storage": "battery_storage",
     "ev": "ev_charging",
     "dr": "demand_response",
     "grid": "grid_interactive",
     "home_automation": "home_energy_management",
+    "general_automation": "general_business_automation",
+    "workflow_automation": "general_business_automation",
+    "crm_automation": "general_business_automation",
+    "compliance_automation": "automation_rd",
 }
 
 
@@ -141,26 +147,29 @@ class GrantEligibilityEngine:
             return None
 
         # --- Project type match (primary signal) ---
+        # Scoring uses presence-based matching (does request type appear in grant's list?)
+        # rather than overlap-fraction — avoids penalizing grants with broad eligibility
         if grant.eligible_project_types:
             project_types_normalized = [
                 _normalize_project_type(pt) for pt in grant.eligible_project_types
             ]
-            req_types_normalized = [
+            req_types_normalized = set([
                 normalized_project_type,
                 *[_normalize_project_type(t) for t in request.tags],
-            ]
+            ])
 
-            overlap = set(project_types_normalized) & set(req_types_normalized)
+            overlap = set(project_types_normalized) & req_types_normalized
             if overlap:
-                project_score = min(1.0, len(overlap) / max(1, len(project_types_normalized)))
-                score += project_score * 0.6
+                # Presence bonus: 0.45 base + 0.05 per additional overlap type (cap 0.65)
+                project_score = min(0.65, 0.45 + (len(overlap) - 1) * 0.05)
+                score += project_score
                 reasons.append(f"Matches project types: {', '.join(overlap)}")
             else:
-                # No project type match — low-relevance but still eligible
-                score += 0.1
+                # Weak relevance — grant is broadly eligible but project type not listed
+                score += 0.08
         else:
             # Grant has no project type restriction — broadly eligible
-            score += 0.3
+            score += 0.25
             reasons.append("No project type restriction — broadly eligible")
 
         # --- Tag bonus scoring ---
@@ -169,8 +178,24 @@ class GrantEligibilityEngine:
             grant_tags_lower = {t.lower() for t in grant.tags}
             tag_overlap = req_tags_lower & grant_tags_lower
             if tag_overlap:
-                score += min(0.2, len(tag_overlap) * 0.05)
+                score += min(0.25, len(tag_overlap) * 0.05)
                 reasons.append(f"Tag matches: {', '.join(tag_overlap)}")
+
+        # --- R&D activity bonus ---
+        if request.has_rd_activity and getattr(grant, "requires_rd_activity", False):
+            score += 0.10
+            reasons.append("R&D activity confirmed — required for this program")
+        elif request.has_rd_activity and grant.tags and any(
+            t in grant.tags for t in ("rd", "research", "innovation", "sbir", "sttr")
+        ):
+            score += 0.05
+            reasons.append("R&D activity aligns with program focus")
+
+        # --- Project cost signal ---
+        if request.project_cost_usd and grant.min_amount_usd:
+            if request.project_cost_usd >= grant.min_amount_usd:
+                score += 0.05
+                reasons.append("Project cost meets minimum program threshold")
 
         # --- Bonus: stacking opportunities ---
         stacking: List[str] = []

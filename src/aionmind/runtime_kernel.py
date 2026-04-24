@@ -434,6 +434,14 @@ class AionMindKernel:
 
         self._aionmind_metrics["calls_total"] += 1
 
+        # PATCH-062: Register real tools on first cognitive_execute
+        try:
+            from src.aionmind.tool_executor import register_all_tools
+            register_all_tools()
+        except Exception as _te:
+            logger.debug("PATCH-062: tool registration skipped: %s", _te)
+
+
         # Step 1 — build context
         risk = RiskLevel.LOW
         if task_type in ("integration", "deployment", "security"):
@@ -526,6 +534,25 @@ class AionMindKernel:
             ],
         }
         self._append_audit_log(result, actor=actor, task_type=task_type)
+
+        # PATCH-063: Persist session to Rosetta
+        try:
+            from src.aionmind.rosetta_bridge import record_session_to_rosetta
+            import uuid as _uuid
+            _agent_id = (actor or "aionmind_default").replace("@", "_").replace(".", "_")
+            record_session_to_rosetta(
+                agent_id=_agent_id,
+                session_id=state.execution_id,
+                raw_input=raw_input,
+                intent=intent or raw_input,
+                task_type=task_type,
+                status=status_val,
+                result_summary=str(result.get("status", ""))[:500],
+                actor=actor,
+            )
+        except Exception as _rse:
+            logger.debug("PATCH-063: Rosetta persist skipped: %s", _rse)
+
         return result
 
     # ── Observability ─────────────────────────────────────────────
@@ -557,7 +584,7 @@ class AionMindKernel:
 
         Phase 2 / P1b (FORGE-KERNEL-001).  This is the audit-only
         complement to :meth:`cognitive_execute`: pipelines that run
-        outside the AionMind reasoning/execution loop (today, the
+        outside the Murphy Intelligence reasoning/execution loop (today, the
         Demo Forge ``/api/demo/generate-deliverable`` route) call
         this on completion so the operator surfaces (D20 metrics,
         D23 audit tab) reflect their activity.

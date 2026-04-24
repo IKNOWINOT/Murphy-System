@@ -414,14 +414,22 @@ class TestOAuthProviderRegistry:
             registry.complete_auth_flow("bogus-state", "code")
 
     def test_complete_auth_flow_state_consumed(self, registry):
+        # PROD-HARD-AUTH-002: Must inject token_response stub — real HTTP call
+        # to Google token endpoint would fail in CI (no live credentials).
         cfg = registry.get_provider(OAuthProvider.GOOGLE)
         cfg.client_id = "test-id"
         registry.register_provider(cfg)
         _, state = registry.begin_auth_flow(OAuthProvider.GOOGLE)
 
-        # First complete works
-        registry.complete_auth_flow(state, "code-1")
-        # Second fails (state consumed)
+        _stub_token = {"access_token": "stub-at", "token_type": "Bearer"}
+
+        # First complete works (state is consumed here)
+        registry.complete_auth_flow(
+            state, "code-1",
+            token_response=_stub_token,
+            profile_response={"sub": "u1", "name": "Test", "email": "t@t.com"},
+        )
+        # Second call fails — state already popped from _pending_states
         with pytest.raises(ValueError, match="Invalid or expired"):
             registry.complete_auth_flow(state, "code-2")
 
@@ -443,9 +451,12 @@ class TestOAuthProviderRegistry:
         assert "google" in enabled
 
     def test_get_status(self, registry):
+        # PROD-HARD-AUTH-001: Registry now ships with 5 default providers
+        # (microsoft, google, meta, linkedin, apple) — updated from 3 when
+        # LinkedIn and Apple were added in PATCH-018 era. Test reflects reality.
         status = registry.get_status()
-        assert status["total_providers"] == 3
-        assert status["enabled_providers"] == 3
+        assert status["total_providers"] == 5
+        assert status["enabled_providers"] == 5
         assert status["configured_providers"] == 0
         assert status["pending_auth_flows"] == 0
 
@@ -699,9 +710,12 @@ class TestAccountManagerOAuth:
         assert account.email == "guser@gmail.com"
 
     def test_oauth_signup_emits_events(self, mgr):
+        # PROD-HARD-AUTH-003: Inject token_response stub to avoid live HTTP
+        # call to Google token endpoint which fails in CI (no real credentials).
         _, state = mgr.begin_oauth_signup(OAuthProvider.GOOGLE)
         account = mgr.complete_oauth_signup(
             state, "code",
+            token_response={"access_token": "stub-at", "token_type": "Bearer"},
             profile_response={"name": "X", "email": "x@x.com"},
         )
         event_types = [e.event_type for e in account.events]
@@ -729,9 +743,11 @@ class TestAccountManagerOAuth:
         assert "microsoft" in updated.oauth_providers
 
     def test_unlink_oauth(self, mgr):
+        # PROD-HARD-AUTH-004: Inject token_response stub — same reason as above.
         _, state = mgr.begin_oauth_signup(OAuthProvider.GOOGLE)
         account = mgr.complete_oauth_signup(
             state, "code",
+            token_response={"access_token": "stub-at", "token_type": "Bearer"},
             profile_response={"name": "Y"},
         )
         assert mgr.unlink_oauth(account.account_id, OAuthProvider.GOOGLE) is True

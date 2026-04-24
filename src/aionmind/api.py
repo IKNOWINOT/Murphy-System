@@ -1,7 +1,7 @@
 """
-AionMind FastAPI Router — Murphy System 2.0a API.
+Murphy Intelligence FastAPI Router — Murphy System 2.0a API.
 
-Exposes the AionMind kernel capabilities as REST endpoints following the
+Exposes the Murphy Intelligence kernel capabilities as REST endpoints following the
 existing FastAPI router patterns in the codebase.
 
 All endpoints honour the no-autonomy invariant:
@@ -25,7 +25,7 @@ from aionmind.runtime_kernel import AionMindKernel
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/aionmind", tags=["aionmind"])
+router = APIRouter(prefix="/api/aionmind", tags=["murphy"])
 
 # ── Shared kernel instance (initialised by the host app) ──────────
 _kernel: Optional[AionMindKernel] = None
@@ -41,7 +41,7 @@ def _get_kernel() -> AionMindKernel:
     if _kernel is None:
         raise HTTPException(
             status_code=503,
-            detail="AionMind kernel not initialised.",
+            detail="Murphy Intelligence kernel not initialised.",
         )
     return _kernel
 

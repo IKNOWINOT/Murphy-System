@@ -195,17 +195,46 @@
      API: FETCH ELIGIBILITY (Step 1 → Step 2)
   ───────────────────────────────────────────────────────────── */
 
+
+  /* Basic ZIP → state lookup for grant matching (expanded as needed) */
+  function inferStateFromZip(zip) {
+    var n = parseInt(zip, 10);
+    if (isNaN(n)) return 'CA';
+    if (n >= 90000 && n <= 96699) return 'CA';
+    if (n >= 97000 && n <= 97999) return 'OR';
+    if (n >= 98000 && n <= 99499) return 'WA';
+    if (n >= 10000 && n <= 14999) return 'NY';
+    if (n >= 77000 && n <= 79999) return 'TX';
+    if (n >= 60000 && n <= 62999) return 'IL';
+    if (n >= 80000 && n <= 81999) return 'CO';
+    if (n >= 30000 && n <= 31999) return 'GA';
+    if (n >= 20000 && n <= 22999) return 'VA';
+    if (n >= 33000 && n <= 34999) return 'FL';
+    return 'CA';
+  }
+
+  // Project types that imply R&D activity
+  var RD_PROJECT_TYPES = [
+    'agentic', 'agentic_ai', 'ai_platform', 'software_rd', 'automation_rd',
+    'industrial_iot', 'smart_manufacturing', 'manufacturing_automation',
+    'grid_interactive', 'battery_storage', 'workflow_automation',
+    'compliance_automation', 'crm_automation'
+  ];
+
   function fetchEligibility(data) {
+    var hasRd = RD_PROJECT_TYPES.indexOf(data.project_type) !== -1;
+    // Infer state from ZIP (basic mapping — use OR as default for now)
+    var stateFromZip = inferStateFromZip(data.zip_code);
+
     var params = new URLSearchParams({
-      project_type:  data.project_type,
-      zip_code:      data.zip_code,
-      project_cost:  data.project_cost,
-      biz_type:      data.biz_type,
-      building_type: data.building_type,
-      sqft:          data.sqft,
-      rural:         data.rural,
-      tax_status:    data.tax_status,
-      session_id:    data.session_id
+      project_type:       data.project_type,
+      zip_code:           data.zip_code,
+      project_cost_usd:   data.project_cost,
+      entity_type:        data.biz_type || 'small_business',  // biz_type now uses API entity-type values directly
+      state:              stateFromZip,
+      has_rd_activity:    hasRd ? 'true' : 'false',
+      is_commercial:      (data.tax_status !== 'nonprofit') ? 'true' : 'false',
+      existing_building:  data.building_type ? 'true' : 'false',
     });
 
     return fetch('/api/grants/eligibility?' + params.toString(), {
@@ -314,12 +343,70 @@
     }
     if (grant.max_value) return 'Up to ' + formatCurrency(grant.max_value);
     if (grant.percent_value) return 'Up to ' + grant.percent_value + '%';
+    // grant.value holds value_description from API normalization
+    if (grant.value && grant.value !== '') return grant.value;
+    if (grant.estimated_value_usd) return 'Est. ' + formatCurrency(grant.estimated_value_usd);
     return 'Varies';
   }
 
   /* ─────────────────────────────────────────────────────────────
      RENDER: RESULTS PAGE
   ───────────────────────────────────────────────────────────── */
+
+
+  /* ─────────────────────────────────────────────────────────────
+     NORMALIZE API RESPONSE
+     The API returns { matches: [{category, ...}, ...], total_matches, ... }
+     renderResults expects { grants: [], tax_credits: [], financing: [], utility_programs: [] }
+  ───────────────────────────────────────────────────────────── */
+
+  function normalizeEligibilityResponse(data) {
+    // If already in section format, pass through
+    if (data.grants || data.tax_credits) return data;
+
+    var matches = data.matches || [];
+    var result = { grants: [], tax_credits: [], financing: [], utility_programs: [] };
+
+    var grantCats = ['federal_grant', 'state_grant', 'usda_program', 'green_bank', 'espc'];
+    var taxCats = ['federal_tax_credit', 'state_tax_credit', 'rd_tax_credit'];
+    var financingCats = ['sba_financing', 'pace_financing', 'espc', 'green_bank'];
+    var utilityCats = ['utility_program', 'state_incentive'];
+
+    matches.forEach(function (m) {
+      var cat = m.category || '';
+      var card = {
+        id: m.grant_id,
+        name: m.grant_name,
+        sponsor: m.agency || m.grant_id,
+        description: (m.match_reasons || []).join('. '),
+        value: m.value_description || '',
+        estimated_value_usd: m.estimated_value_usd,
+        deadline: m.deadline || null,
+        url: m.program_url || '#',
+        stacking: m.stacking_opportunities || [],
+        match_score: m.match_score || 0,
+        eligibility_score: m.match_score || 0,  // already 0-1; renderGrantCard multiplies by 100 for %
+        category: cat
+      };
+
+      if (taxCats.indexOf(cat) !== -1) {
+        result.tax_credits.push(card);
+      } else if (utilityCats.indexOf(cat) !== -1) {
+        result.utility_programs.push(card);
+      } else if (financingCats.indexOf(cat) !== -1) {
+        result.financing.push(card);
+      } else {
+        result.grants.push(card);
+      }
+    });
+
+    // Sort each bucket by match_score desc
+    ['grants','tax_credits','financing','utility_programs'].forEach(function (k) {
+      result[k].sort(function (a, b) { return (b.match_score || 0) - (a.match_score || 0); });
+    });
+
+    return result;
+  }
 
   function renderResults(results) {
     eligibilityResults = results;
@@ -407,17 +494,98 @@
   }
 
   function showGrantDetails(grant) {
-    // Non-blocking detail view using alert for MVP; replace with modal in production
-    var msg = [
-      grant.name,
-      '',
-      'Sponsor: ' + (grant.sponsor || 'N/A'),
-      'Value: ' + formatValueRange(grant),
-      'Deadline: ' + formatDate(grant.deadline),
-      '',
-      grant.description || 'No description available.'
-    ].join('\n');
-    alert(msg);
+    // Remove any existing modal
+    var existing = document.getElementById('grant-detail-modal');
+    if (existing) existing.remove();
+
+    var stacking = (grant.stacking || []).join(', ') || 'None identified';
+    var eligPct = Math.round((grant.eligibility_score || 0) * 100);
+
+    var modal = document.createElement('div');
+    modal.id = 'grant-detail-modal';
+    modal.style.cssText = [
+      'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;',
+      'background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);',
+    ].join('');
+
+    modal.innerHTML = [
+      '<div style="',
+        'background:var(--bg-card,#16191f);border-top:2px solid var(--accent,#00e5a0);',
+        'border-radius:16px 16px 0 0;width:100%;max-width:640px;max-height:80vh;',
+        'overflow-y:auto;padding:32px 28px 40px;font-family:var(--font-ui,Inter,sans-serif);',
+        'animation:slideUp 0.25s ease;',
+      '">',
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">',
+          '<div>',
+            '<span style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;',
+              'color:var(--accent,#00e5a0);margin-bottom:6px;display:block;">Program Details</span>',
+            '<h2 style="font-size:18px;font-weight:700;color:var(--text-primary,#fff);margin:0;">',
+              escapeHtml(grant.name),
+            '</h2>',
+          '</div>',
+          '<button id="grant-modal-close" style="',
+            'background:none;border:none;cursor:pointer;font-size:22px;color:var(--text-muted,#666);',
+            'line-height:1;padding:4px 8px;',
+          '" aria-label="Close">✕</button>',
+        '</div>',
+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">',
+          _detailCell('💰 Value', formatValueRange(grant)),
+          _detailCell('📍 Sponsor', grant.sponsor || 'Federal / State'),
+          _detailCell('📅 Deadline', formatDate(grant.deadline)),
+          _detailCell('🎯 Match', eligPct + '%'),
+        '</div>',
+
+        '<div style="margin-bottom:16px;">',
+          '<div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;',
+            'color:var(--text-muted,#888);margin-bottom:8px;">Description</div>',
+          '<p style="font-size:14px;line-height:1.6;color:var(--text-secondary,#bbb);margin:0;">',
+            escapeHtml(grant.description || 'No description available.'),
+          '</p>',
+        '</div>',
+
+        (stacking !== 'None identified' ? [
+          '<div style="margin-bottom:20px;">',
+            '<div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;',
+              'color:var(--text-muted,#888);margin-bottom:8px;">Stackable With</div>',
+            '<p style="font-size:13px;color:var(--text-secondary,#bbb);margin:0;">',
+              escapeHtml(stacking),
+            '</p>',
+          '</div>',
+        ].join('') : ''),
+
+        '<div style="display:flex;gap:12px;margin-top:24px;">',
+          '<button id="grant-modal-apply" class="murphy-btn murphy-btn-primary" style="flex:1;">',
+            'Apply for This Grant →',
+          '</button>',
+          (grant.url && grant.url !== '#' ? [
+            '<a href="' + escapeHtml(grant.url) + '" target="_blank" rel="noopener"',
+              ' class="murphy-btn murphy-btn-ghost" style="flex:0 0 auto;">',
+              'Program Site ↗',
+            '</a>',
+          ].join('') : ''),
+        '</div>',
+      '</div>',
+    ].join('');
+
+    document.body.appendChild(modal);
+
+    // Close handlers
+    document.getElementById('grant-modal-close').onclick = function () { modal.remove(); };
+    modal.addEventListener('click', function (e) { if (e.target === modal) modal.remove(); });
+    document.getElementById('grant-modal-apply').onclick = function () {
+      modal.remove();
+      selectGrantAndApply(grant);
+    };
+  }
+
+  function _detailCell(label, value) {
+    return [
+      '<div style="background:var(--bg-card-inner,rgba(255,255,255,.04));border-radius:8px;padding:12px 14px;">',
+        '<div style="font-size:11px;color:var(--text-muted,#888);margin-bottom:4px;">' + escapeHtml(label) + '</div>',
+        '<div style="font-size:14px;font-weight:600;color:var(--text-primary,#fff);">' + escapeHtml(String(value)) + '</div>',
+      '</div>',
+    ].join('');
   }
 
   /* ─────────────────────────────────────────────────────────────
@@ -473,6 +641,16 @@
      VIDEO SETUP
   ───────────────────────────────────────────────────────────── */
 
+  /* Inject modal animation keyframe once */
+  (function () {
+    if (!document.getElementById('gw-modal-styles')) {
+      var s = document.createElement('style');
+      s.id = 'gw-modal-styles';
+      s.textContent = '@keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}';
+      document.head.appendChild(s);
+    }
+  })();
+
   function initVideo() {
     var body = document.body;
     var videoUrl = (body && body.dataset.videoUrl) ? body.dataset.videoUrl.trim() : '';
@@ -515,7 +693,7 @@
 
         fetchEligibility(intakeData)
           .then(function (data) {
-            renderResults(data);
+            renderResults(normalizeEligibilityResponse(data));
           })
           .catch(function (err) {
             showInlineError('results-content', 'Unable to load results. Please check your connection and try again.');

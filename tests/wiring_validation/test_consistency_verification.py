@@ -228,6 +228,21 @@ class TestHTMLUIConsistency(unittest.TestCase):
     # Legacy redirect files that forward to a neon-themed page
     LEGACY_REDIRECTS = {"murphy_ui_integrated.html", "murphy_ui_integrated_terminal.html"}
 
+    # Standalone marketing / campaign pages that intentionally use their own
+    # visual identity and are NOT part of the Murphy terminal UI.
+    # PROD-HARD-UI-001: exempted from neon-theme enforcement.
+    NON_APP_PAGES = {
+        "stevewiki.html",        # Wikipedia-parody campaign page (own theme)
+        "voteforsteve2028.html", # Campaign page (own theme)
+        "steve2028merch.html",   # Merch page (own theme)
+        "murphy_landing_page.html",  # Public marketing landing (own theme)
+        "blog.html",             # Public blog (own theme)
+        "careers.html",          # Public careers page (own theme)
+        "legal.html",            # Public legal page (own theme)
+        "financing_options.html",# Public financing page (own theme)
+        "guest_portal.html",     # Guest portal (own theme)
+    }
+
     @classmethod
     def setUpClass(cls):
         cls.html_files = []
@@ -244,8 +259,8 @@ class TestHTMLUIConsistency(unittest.TestCase):
         non_neon = []
         for fp in self.html_files:
             basename = os.path.basename(fp)
-            if basename in self.LEGACY_REDIRECTS:
-                continue  # redirect-only stubs forward to themed pages
+            if basename in self.LEGACY_REDIRECTS or basename in self.NON_APP_PAGES:
+                continue  # redirect stubs and standalone marketing pages use their own themes
             with open(fp, "r") as f:
                 content = f.read()
             if not any(ind in content for ind in self.NEON_INDICATORS):

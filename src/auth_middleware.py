@@ -34,7 +34,7 @@ _DEFAULT_EXEMPT: Set[str] = {
     "/health",
     "/api/health",
     "/api/readiness",
-    "/api/status",
+    "/api/status/public",
     "/docs",
     "/redoc",
     "/openapi.json",
@@ -49,6 +49,13 @@ _EXEMPT_PREFIXES = (
     "/api/ui/",
     "/api/auth/",
     "/api/demo",
+    "/api/manga",
+    "/api/v1/",          # PATCH-065a: public API
+    "/oauth/",           # PATCH-065b: OAuth AS
+    "/.well-known/",     # PATCH-065b: OIDC discovery
+    "/api/connectors/",  # PATCH-065c: connector agent
+    "/api/connectors",
+        "/api/connectors",
     "/api/v1/auth/",
     # PATCH-049a: billing endpoints — webhooks public (signature-verified),
     # checkout + plans public (user supplies account_id in body)
@@ -314,7 +321,7 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/info",
         "/api/manifest",
         "/api/readiness",
-        "/api/status",
+        "/api/status/public",
         "/health",
         "/docs",
         "/redoc",
@@ -330,6 +337,7 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/auth/",
         "/api/v1/auth/",
         "/api/demo",
+    "/api/manga",
         "/api/demo/",
         "/api/system/",
         # PATCH-048: /api/account/* and /api/admin/* use murphy_session
@@ -346,6 +354,11 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/billing/plans",
         "/api/billing/currencies",
         "/api/billing/checkout",
+        # PATCH-065: Public API, OAuth AS, Connector Agent
+        "/api/v1/",
+        "/oauth/",
+        "/.well-known/",
+        "/api/connectors/",
     )
 
     def __init__(

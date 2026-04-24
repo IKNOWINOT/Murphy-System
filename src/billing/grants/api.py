@@ -911,6 +911,32 @@ def _get_account_id(request: Request) -> str:
 # Eligibility endpoints
 # ---------------------------------------------------------------------------
 
+# Project type → auto-generated tags (expands matching surface)
+_PROJECT_TYPE_TAG_MAP: dict = {
+    "agentic":              ["rd", "ai", "software", "innovation", "sbir", "automation"],
+    "ai_platform":          ["rd", "ai", "software", "innovation", "sbir"],
+    "software_rd":          ["rd", "software", "innovation"],
+    "automation_rd":        ["rd", "automation", "software", "innovation"],
+    "agentic_ai":           ["rd", "ai", "software", "innovation", "sbir"],
+    "manufacturing_automation": ["manufacturing", "automation", "industrial"],
+    "smart_manufacturing":  ["manufacturing", "automation", "industrial", "iot"],
+    "industrial_iot":       ["iot", "industrial", "automation"],
+    "grid_interactive":     ["energy", "grid", "renewable"],
+    "battery_storage":      ["energy", "storage", "renewable"],
+    "bas_bms":              ["building", "automation", "energy"],
+    "ems":                  ["energy", "building", "automation"],
+    "hvac_automation":      ["hvac", "building", "energy"],
+}
+
+def _auto_tags(project_type: str, has_rd: bool) -> list:
+    tags = list(_PROJECT_TYPE_TAG_MAP.get(project_type.lower(), []))
+    if has_rd and "rd" not in tags:
+        tags.append("rd")
+    if has_rd and "innovation" not in tags:
+        tags.append("innovation")
+    return tags
+
+
 @router.get("/eligibility")
 async def get_eligibility(
     project_type: str = Query(..., description="Project type (bas_bms, ems, scada, manufacturing, etc.)"),
@@ -921,9 +947,15 @@ async def get_eligibility(
     has_rd_activity: bool = Query(False),
     existing_building: bool = Query(True),
     zip_code: Optional[str] = Query(None),
+    tags: Optional[str] = Query(None, description="Comma-separated extra tags"),
 ) -> JSONResponse:
     """Match project parameters to applicable grant and incentive programs."""
     try:
+        # Build tag list: auto-generated from project_type + caller-supplied tags
+        auto = _auto_tags(project_type, has_rd_activity)
+        extra = [t.strip() for t in tags.split(",") if t.strip()] if tags else []
+        all_tags = list(dict.fromkeys(auto + extra))  # deduplicate, preserve order
+
         req = EligibilityRequest(
             project_type=project_type,
             entity_type=entity_type,
@@ -933,6 +965,7 @@ async def get_eligibility(
             has_rd_activity=has_rd_activity,
             existing_building=existing_building,
             zip_code=zip_code,
+            tags=all_tags,
         )
         engine = GrantEligibilityEngine()
         response = engine.match(req)

@@ -126,13 +126,34 @@
             </label>
             <select id="project-type" name="project_type" class="form-select" required aria-required="true" aria-describedby="project-type-error">
               <option value="">Select project type…</option>
-              <option value="bas_bms">BAS / BMS</option>
-              <option value="ems">EMS (Energy Management System)</option>
-              <option value="hvac_controls">HVAC Controls</option>
-              <option value="scada">SCADA</option>
-              <option value="smart_manufacturing">Smart Manufacturing</option>
-              <option value="solar_controls">Solar + Controls</option>
-              <option value="general_automation">General Automation</option>
+              <optgroup label="AI &amp; Software">
+                <option value="agentic">Agentic AI / AI Operating System</option>
+                <option value="ai_platform">AI Platform / LLM Integration</option>
+                <option value="software_rd">Software R&amp;D</option>
+                <option value="automation_rd">Automation R&amp;D</option>
+              </optgroup>
+              <optgroup label="Building &amp; Energy">
+                <option value="bas_bms">BAS / BMS (Building Automation)</option>
+                <option value="ems">Energy Management System (EMS)</option>
+                <option value="hvac_automation">HVAC Controls &amp; Automation</option>
+                <option value="solar">Solar + Controls</option>
+                <option value="battery_storage">Battery Storage</option>
+                <option value="ev_charging">EV Charging Infrastructure</option>
+                <option value="grid_interactive">Grid-Interactive Building</option>
+                <option value="demand_response">Demand Response</option>
+              </optgroup>
+              <optgroup label="Industrial &amp; Manufacturing">
+                <option value="smart_manufacturing">Smart Manufacturing</option>
+                <option value="manufacturing_automation">Manufacturing Automation</option>
+                <option value="industrial_iot">Industrial IoT / IIoT</option>
+                <option value="scada">SCADA / Process Control</option>
+              </optgroup>
+              <optgroup label="Business Automation">
+                <option value="general_business_automation">General Business Automation</option>
+                <option value="workflow_automation">Workflow &amp; Process Automation</option>
+                <option value="crm_automation">CRM / Sales Automation</option>
+                <option value="compliance_automation">Compliance &amp; RegTech</option>
+              </optgroup>
             </select>
             <span id="project-type-error" class="form-error" role="alert" aria-live="polite"></span>
           </div>
@@ -194,12 +215,13 @@
             </label>
             <select id="biz-type" name="biz_type" class="form-select" required aria-required="true" aria-describedby="biz-type-error">
               <option value="">Select business type…</option>
-              <option value="commercial">Commercial</option>
-              <option value="residential">Residential</option>
-              <option value="agricultural">Agricultural</option>
-              <option value="nonprofit">Nonprofit</option>
-              <option value="government">Government</option>
-              <option value="industrial">Industrial</option>
+              <option value="small_business">Small Business (&lt;500 employees)</option>
+              <option value="startup">Startup / Early Stage</option>
+              <option value="large_business">Large Business</option>
+              <option value="nonprofit">Nonprofit / 501(c)(3)</option>
+              <option value="government">Government / Municipality</option>
+              <option value="university">University / Research Institution</option>
+              <option value="individual">Individual / Sole Proprietor</option>
             </select>
             <span id="biz-type-error" class="form-error" role="alert" aria-live="polite"></span>
           </div>

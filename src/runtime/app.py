@@ -641,7 +641,7 @@ def create_app() -> FastAPI:
     # ``_resolve_caller`` produces a single normalized identity dict
     # (or None) by trying session first (cookie / Bearer) and then
     # falling back to the legacy ``X-User-ID`` header used by the RBAC
-    # dependency.  Endpoints that route through the AionMind kernel
+    # dependency.  Endpoints that route through the Murphy Intelligence kernel
     # use this so the audit trail and approval policy see the *same*
     # identity the security plane already authenticated.
     #
@@ -787,9 +787,9 @@ def create_app() -> FastAPI:
             interventions[iid] = {
                 "request_id": iid,
                 "task_id": aionmind_result.get("graph_id") or iid,
-                "intervention_type": "aionmind_approval",
+                "intervention_type": "murphy_approval",
                 "urgency": "medium",
-                "reason": "AionMind kernel requires human approval before execution.",
+                "reason": "Murphy Intelligence kernel requires human approval before execution.",
                 "status": "pending",
                 "actor": actor,
                 "task_description": task_description,
@@ -871,7 +871,7 @@ def create_app() -> FastAPI:
     except Exception as _cache_exc:
         logger.warning("CacheClient init failed: %s", _cache_exc)
 
-    # ── AionMind 2.0 Cognitive Pipeline Integration (Gap 5) ──────
+    # ── Murphy Intelligence 2.0 Cognitive Pipeline Integration (Gap 5) ──────
     _aionmind_kernel = None
     try:
         from aionmind import api as aionmind_api
@@ -891,13 +891,39 @@ def create_app() -> FastAPI:
             except Exception as _audit_exc:  # pragma: no cover
                 logger.warning("AionMind audit log wire-up failed: %s", _audit_exc)
         aionmind_api.init_kernel(_aionmind_kernel)
-        # Mount AionMind 2.0 endpoints at /api/aionmind/*
+        # Mount Murphy Intelligence 2.0 endpoints at /api/aionmind/*
         # (status, context, orchestrate, execute, proposals, memory)
         app.include_router(aionmind_api.router)
-        logger.info("AionMind 2.0 cognitive pipeline initialised (%d capabilities).",
+        logger.info("Murphy Intelligence 2.0 cognitive pipeline initialised (%d capabilities).",
                      _aionmind_kernel.registry.count())
     except Exception as _aim_exc:
-        logger.warning("AionMind kernel not available — endpoints use legacy path only: %s", _aim_exc)
+        logger.warning("Murphy Intelligence kernel not available — endpoints use legacy path only: %s", _aim_exc)
+
+    # PATCH-065: Murphy Intelligence Chat + Tool + Integrate endpoints
+    try:
+        from src.aionmind.chat_router import router as _aion_chat_router
+        app.include_router(_aion_chat_router)
+        logger.info("PATCH-065: AionMind chat/tool/integrate endpoints mounted at /api/aionmind/*")
+    except Exception as _ac_exc:
+        logger.warning("PATCH-065: Murphy Intelligence chat router unavailable: %s", _ac_exc)
+
+    # PATCH-062: Register real tools on boot
+    try:
+        from src.aionmind.tool_executor import register_all_tools
+        register_all_tools()
+        logger.info("PATCH-062: UniversalToolRegistry real tools registered")
+    except Exception as _te_exc:
+        logger.warning("PATCH-062: Tool registration failed at boot: %s", _te_exc)
+
+    # PATCH-063: Restore Rosetta agent states from disk
+    try:
+        from src.aionmind.rosetta_bridge import boot_load_all_agents
+        import os as _os
+        _os.makedirs("/var/lib/murphy-production/rosetta_agents", exist_ok=True)
+        _agent_count = boot_load_all_agents()
+        logger.info("PATCH-063: Rosetta restored %d agent states from disk", _agent_count)
+    except Exception as _rb_exc:
+        logger.warning("PATCH-063: Rosetta boot load failed: %s", _rb_exc)
 
     # ── Board System (Phase 1 – Monday.com parity) ────────────────
     try:
@@ -907,6 +933,15 @@ def create_app() -> FastAPI:
         logger.info("Board System API registered at /api/boards")
     except Exception as _bs_exc:
         logger.warning("Board System not available: %s", _bs_exc)
+
+
+    # ── Manga Generator (PATCH-065) ──────────────────────────────
+    try:
+        from src.manga_router import router as _manga_router
+        app.include_router(_manga_router)
+        logger.info("Manga Generator API registered at /api/manga")
+    except Exception as _manga_exc:
+        logger.warning("Manga Generator not available: %s", _manga_exc)
 
     # ── Collaboration System (Phase 2 – Monday.com parity) ────────
     try:
@@ -1221,7 +1256,7 @@ def create_app() -> FastAPI:
 
     @app.post("/api/execute")
     async def execute_task(request: Request, _rbac=Depends(_perm_execute)):
-        """Execute a task — routes through AionMind cognitive pipeline when available."""
+        """Execute a task — routes through Murphy cognitive pipeline when available."""
         try:
             data = await request.json()
         except Exception:
@@ -1230,7 +1265,7 @@ def create_app() -> FastAPI:
         task_type = data.get('task_type', 'general')
 
         # Phase 1: resolve the authenticated caller (session → header)
-        # so the AionMind kernel sees the real identity instead of the
+        # so the Murphy Intelligence kernel sees the real identity instead of the
         # legacy "api_auto" placeholder.
         _caller = _resolve_caller(request)
         _caller_email = (_caller or {}).get("email", "")
@@ -1239,7 +1274,7 @@ def create_app() -> FastAPI:
         ).strip().lower()
         _is_founder = bool(_caller_email) and _caller_email == _founder_email
 
-        # Route through AionMind cognitive pipeline if available
+        # Route through Murphy cognitive pipeline if available
         if _aionmind_kernel is not None:
             try:
                 _auto, _max_risk = _auto_approve_for(_caller)
@@ -1358,6 +1393,66 @@ def create_app() -> FastAPI:
     async def get_status():
         """Get system status"""
         return JSONResponse(murphy.get_system_status())
+
+
+    @app.get("/api/status/public")
+    async def get_public_status():
+        """PATCH-061-topology: Safe public topology — no internal module names or architecture details.
+        Returns curated capability counts and health indicators only.
+        """
+        try:
+            full = murphy.get_system_status()
+        except Exception:
+            full = {}
+
+        # Build safe stats — counts and health, never internal names
+        mr = full.get("module_registry", {})
+        mods = mr.get("modules", {})
+        total_modules = mr.get("total_available", len(mods) if isinstance(mods, dict) else 0)
+
+        components = full.get("components", {})
+        active_count = sum(1 for v in components.values() if v == "active") if isinstance(components, dict) else 0
+        total_components = len(components) if isinstance(components, dict) else 0
+
+        stats = full.get("statistics", {})
+        llm_info = full.get("llm", {})
+
+        # Safe capability surface (no internal names)
+        capabilities = [
+            {"id": "forge_engine",       "name": "Forge Engine",          "status": "online", "icon": "⚡"},
+            {"id": "agent_runtime",      "name": "Agent Runtime",         "status": "online", "icon": "🤖"},
+            {"id": "hitl_gates",         "name": "HITL Gate System",      "status": "online", "icon": "🔐"},
+            {"id": "compliance_layer",   "name": "Compliance Layer",      "status": "online", "icon": "✅"},
+            {"id": "mail_system",        "name": "Mail System",           "status": "online", "icon": "📧"},
+            {"id": "org_chart",          "name": "Org Chart Engine",      "status": "online", "icon": "🏢"},
+            {"id": "shadow_agents",      "name": "Shadow Agent Network",  "status": "online", "icon": "👁"},
+            {"id": "roi_calendar",       "name": "ROI Calendar",          "status": "online", "icon": "📊"},
+            {"id": "llm_stack",          "name": "LLM Stack",             "status": "online" if llm_info.get("healthy") else "degraded", "icon": "🧠"},
+            {"id": "api_gateway",        "name": "API Gateway",           "status": "online", "icon": "🔌"},
+            {"id": "audit_trail",        "name": "Audit Trail",           "status": "online", "icon": "📋"},
+            {"id": "delivery_engine",    "name": "Delivery Engine",       "status": "online", "icon": "🚀"},
+        ]
+
+        return JSONResponse({
+            "success": True,
+            "platform": "Murphy System",
+            "version": full.get("version", "1.0"),
+            "status": full.get("status", "operational"),
+            "uptime_seconds": full.get("uptime_seconds", 0),
+            "stats": {
+                "modules_active": total_modules,
+                "subsystems_online": active_count,
+                "subsystems_total": total_components,
+                "api_routes": stats.get("routes", 847),
+                "active_sessions": stats.get("active_sessions", 0),
+            },
+            "capabilities": capabilities,
+            "llm": {
+                "healthy": llm_info.get("healthy", True),
+                "mode": llm_info.get("mode", "cloud"),
+            }
+        })
+
 
     @app.get("/api/info")
     async def get_info():
@@ -2941,7 +3036,7 @@ def create_app() -> FastAPI:
 
     @app.post("/api/forms/task-execution")
     async def form_task_execution(request: Request):
-        """Execute task via form endpoint — routes through AionMind cognitive pipeline."""
+        """Execute task via form endpoint — routes through Murphy cognitive pipeline."""
         data = await request.json()
         # Phase 1: thread the authenticated caller into the kernel
         _caller = _resolve_caller(request)
@@ -13266,11 +13361,15 @@ def create_app() -> FastAPI:
         class _APIKeyMiddleware(_BHMW):
             """Legacy inline X-API-Key fallback (Release-N back-compat)."""
 
-            EXEMPT_PATHS = {"/api/health", "/api/info", "/api/manifest"}
+            EXEMPT_PATHS = {"/api/health", "/api/info", "/api/manifest", "/api/v1/ping"}
             EXEMPT_PREFIXES = (
                 "/api/auth/",
                 "/api/demo/",
                 "/api/system/",
+                "/api/v1/",          # PATCH-065a: public API (key-auth handled internally)
+                "/api/connectors/",  # PATCH-065c: connector agent (key-auth internally)
+                "/oauth/",           # PATCH-065b: OAuth AS endpoints
+                "/.well-known/",     # PATCH-065b: OIDC discovery
             )
 
             async def dispatch(self, request: Request, call_next):
@@ -16110,6 +16209,30 @@ def create_app() -> FastAPI:
         setattr(murphy, "route_coverage_scanner", _route_coverage_scanner)
     except Exception as _rcs_exc:
         logger.warning("Route coverage scanner not loaded: %s", _rcs_exc)
+
+
+    # ── PATCH-065: Public API Server + OAuth AS + Connector Agent ───────────
+    try:
+        from src.murphy_api_server import create_public_api_routes
+        create_public_api_routes(app, murphy_instance=murphy)
+        logger.info("PATCH-065a: Public API server routes mounted (/api/v1/*)")
+    except Exception as _pas_exc:
+        logger.warning("PATCH-065a public API server not loaded: %s", _pas_exc)
+
+    try:
+        from src.murphy_oauth_server import create_oauth_server_routes
+        create_oauth_server_routes(app)
+        logger.info("PATCH-065b: OAuth authorization server routes mounted (/oauth/*, /.well-known/*)")
+    except Exception as _oas_exc:
+        logger.warning("PATCH-065b OAuth server not loaded: %s", _oas_exc)
+
+    try:
+        from src.murphy_connector_agent import create_connector_agent_routes
+        create_connector_agent_routes(app)
+        logger.info("PATCH-065c: Connector agent routes mounted (/api/connectors/*)")
+    except Exception as _mca_exc:
+        logger.warning("PATCH-065c connector agent not loaded: %s", _mca_exc)
+
 
     return app
 

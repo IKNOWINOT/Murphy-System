@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ROI Calendar — Murphy System</title>
   <meta name="description" content="Live ROI visualization: see automation tasks shrink before your eyes as agents replace human labor costs.">
+  <meta name="murphy-public" content="true">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <style>
     :root{--bg:#0a0a0a;--bg2:#111;--bg3:#161616;--border:#222;--border2:#2a2a2a;
     --green:#00ff41;--teal:#00d4aa;--cyan:#00e5ff;--yellow:#ffd700;--orange:#ff8c00;
@@ -35,47 +37,47 @@
     .legend-item{display:flex;align-items:center;gap:.35rem;font-size:.73rem;color:var(--text2);}
     .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
     /* Calendar */
-    .calendar-wrap{padding:1.5rem 2rem;overflow-x:auto;}
-    .calendar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;}
-    .calendar-title{font-size:1.05rem;font-weight:700;color:var(--teal);}
-    .week-grid{display:grid;grid-template-columns:60px repeat(7,1fr);border:1px solid var(--border);border-radius:10px;overflow:hidden;min-width:800px;}
-    .week-hdr-cell{padding:.6rem .5rem;text-align:center;font-size:.75rem;font-weight:700;color:var(--teal);border-right:1px solid var(--border);background:var(--bg3);border-bottom:1px solid var(--border);}
-    .week-hdr-cell.time-col{color:var(--muted);font-size:.65rem;}
-    .time-slot{border-right:1px solid var(--border);border-bottom:1px solid var(--border2);height:64px;position:relative;background:var(--bg);}
-    .time-label{background:var(--bg3);border-right:1px solid var(--border);border-bottom:1px solid var(--border2);height:64px;display:flex;align-items:flex-start;justify-content:center;padding-top:5px;}
-    .time-label span{font-size:.6rem;color:var(--muted);font-family:'Courier New',monospace;}
+    
+    
+    
+    
+    
+    
+    
+    
+    
     /* ROI Block */
-    .roi-block{position:absolute;left:2px;right:2px;border-radius:6px;overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .15s;border:1px solid rgba(255,255,255,.12);min-height:36px;z-index:2;}
-    .roi-block:hover{transform:translateX(2px);box-shadow:0 4px 20px rgba(0,0,0,.5);z-index:10;}
-    .roi-block.status-pending{background:rgba(100,100,100,.25);border-color:rgba(100,100,100,.4);}
-    .roi-block.status-running{background:rgba(0,212,170,.15);border-color:rgba(0,212,170,.5);}
-    .roi-block.status-qc{background:rgba(255,215,0,.12);border-color:rgba(255,215,0,.4);}
-    .roi-block.status-hitl_review{background:rgba(255,140,0,.12);border-color:rgba(255,140,0,.5);animation:hitl-pulse .6s ease-in-out;}
-    .roi-block.status-complete{background:rgba(0,255,65,.1);border-color:rgba(0,255,65,.4);}
-    .roi-block.status-error{background:rgba(255,68,68,.1);border-color:rgba(255,68,68,.4);}
-    @keyframes hitl-pulse{0%{transform:scaleY(1)}30%{transform:scaleY(1.08);box-shadow:0 0 16px rgba(255,140,0,.5)}100%{transform:scaleY(1)}}
+    
+    
+    
+    
+    
+    
+    
+    
+    30%{transform:scaleY(1.08);box-shadow:0 0 16px rgba(255,140,0,.5)}100%{transform:scaleY(1)}}
     /* ROI visual: block is fixed at human cost height. Agent "eats" it from bottom. */
-    .roi-agent-zone{position:absolute;bottom:0;left:0;right:0;background:rgba(0,212,170,.18);border-top:1px solid rgba(0,212,170,.4);transition:height .9s cubic-bezier(.4,0,.2,1);pointer-events:none;}
-    .roi-hitl-band{position:absolute;left:0;right:0;height:0;background:rgba(255,140,0,.35);border-top:1px solid rgba(255,140,0,.7);transition:height .5s ease,bottom .9s cubic-bezier(.4,0,.2,1);pointer-events:none;}
-    .roi-contract-line{position:absolute;left:0;right:0;height:2px;background:rgba(100,160,255,.6);border-top:1px dashed rgba(100,160,255,.8);pointer-events:none;}
-    .roi-human-label{position:absolute;top:0;left:0;right:0;padding:4px 6px 0;z-index:3;}
-    .roi-progress-bar{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,.08);z-index:4;}
-    .roi-progress-fill{height:100%;background:var(--teal);transition:width .6s ease;}
-    .roi-progress-fill.qc{background:var(--yellow);}
-    .roi-progress-fill.hitl{background:var(--orange);}
-    .roi-progress-fill.complete{background:var(--green);}
-    .roi-block-content{position:relative;padding:5px 7px 8px;z-index:3;}
-    .roi-block-title{font-size:.7rem;font-weight:700;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .roi-block-agents{font-size:.6rem;color:var(--teal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:3px;}
-    .agent-dot{display:inline-block;width:6px;height:6px;border-radius:50%;flex-shrink:0;}
-    .roi-block-costs{display:flex;gap:.4rem;margin-top:3px;flex-wrap:wrap;}
-    .cost-chip{font-size:.57rem;padding:1px 4px;border-radius:3px;font-family:'Courier New',monospace;font-weight:700;}
-    .cost-human{background:rgba(255,68,68,.2);color:#ff8888;text-decoration:line-through;}
-    .cost-agent{background:rgba(0,212,170,.2);color:var(--teal);}
-    .cost-roi{background:rgba(0,255,65,.2);color:var(--green);}
-    .roi-pct-badge{position:absolute;top:4px;right:4px;font-size:.58rem;font-weight:800;font-family:'Courier New',monospace;padding:1px 5px;border-radius:4px;}
-    .roi-pct-badge.positive{background:rgba(0,255,65,.3);color:var(--green);}
-    .roi-pct-badge.loading{background:rgba(0,212,170,.2);color:var(--teal);}
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     /* Detail panel */
     .detail-panel{position:fixed;top:0;right:0;height:100vh;width:380px;background:var(--bg2);border-left:1px solid var(--border);transform:translateX(100%);transition:transform .3s ease;z-index:100;overflow-y:auto;padding:1.5rem;}
     .detail-panel.open{transform:translateX(0);}
@@ -162,7 +164,149 @@
     .mc-log-line .action{color:var(--teal);}
     .mc-log-line.hitl-line .action{color:var(--orange);}
     .mc-log-line.complete-line .action{color:var(--green);}
-  </style>
+  
+    /* ── ROI CALENDAR — horizontal time-block layout ─────────────── */
+    .calendar-wrap{padding:1.25rem 1.5rem;overflow-x:auto;}
+    .calendar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;}
+    .calendar-title{font-size:1.05rem;font-weight:700;color:var(--teal);}
+
+    /* Grid: time axis = rows (hours), day axis = columns */
+    .week-grid{
+      display:grid;
+      /* 60px time gutter + 7 equal day columns */
+      grid-template-columns:60px repeat(7,1fr);
+      border:1px solid var(--border);border-radius:10px;overflow:hidden;min-width:820px;
+    }
+    .week-hdr-cell{
+      padding:.55rem .4rem;text-align:center;font-size:.74rem;font-weight:700;
+      color:var(--teal);border-right:1px solid var(--border);
+      background:var(--bg3);border-bottom:1px solid var(--border);
+    }
+    .week-hdr-cell.time-col{color:var(--muted);font-size:.65rem;}
+    .time-label{
+      background:var(--bg3);border-right:1px solid var(--border);
+      border-bottom:1px solid var(--border2);height:72px;
+      display:flex;align-items:flex-start;justify-content:center;padding-top:5px;
+    }
+    .time-label span{font-size:.6rem;color:var(--muted);font-family:'Courier New',monospace;}
+
+    /* Day column cell — contains horizontally-oriented blocks */
+    .time-slot{
+      border-right:1px solid var(--border);border-bottom:1px solid var(--border2);
+      height:72px;position:relative;background:var(--bg);overflow:visible;
+    }
+    .time-slot:hover{background:rgba(255,255,255,.012);}
+
+    /* ── ROI Block — horizontal bar ─────────────────────────────── */
+    /*
+      The block sits at top:6px with a fixed height (row-height minus padding).
+      width = "human cost" proportion of the hour — full width = whole hour.
+      As agent progresses, right edge animates left toward start (shrinks inward).
+      The teal "saved" zone clips off the right, leaving the remaining cost visible.
+    */
+    .roi-block{
+      position:absolute;
+      top:6px;
+      height:56px;                          /* fixed row height minus margins */
+      left:0;                               /* always anchored at start of slot */
+      border-radius:7px;
+      overflow:hidden;
+      cursor:pointer;
+      transition:box-shadow .15s;
+      border:1px solid rgba(255,255,255,.1);
+      z-index:2;
+      /* width set inline = human_time proportion of 1 hour slot */
+    }
+    .roi-block:hover{box-shadow:0 3px 18px rgba(0,0,0,.6);z-index:10;}
+
+    /* status tints — background of the remaining "human" cost portion */
+    .roi-block.status-pending  {background:rgba(100,100,100,.28);border-color:rgba(100,100,100,.4);}
+    .roi-block.status-running  {background:rgba(0,212,170,.18);border-color:rgba(0,212,170,.55);}
+    .roi-block.status-qc       {background:rgba(255,215,0,.14);border-color:rgba(255,215,0,.45);}
+    .roi-block.status-hitl_review{background:rgba(255,140,0,.14);border-color:rgba(255,140,0,.55);animation:hitl-pulse 1.4s ease-in-out infinite;}
+    .roi-block.status-complete {background:rgba(0,255,65,.12);border-color:rgba(0,255,65,.45);}
+    .roi-block.status-error    {background:rgba(255,68,68,.12);border-color:rgba(255,68,68,.45);}
+
+    @keyframes hitl-pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,140,0,0)}50%{box-shadow:0 0 0 3px rgba(255,140,0,.3)}}
+
+    /*
+      Agent "eaten" zone — sits on the RIGHT side of the block, growing left as pct increases.
+      This IS the saved cost: the right portion of the original human-time block is consumed.
+      The remaining left portion is what still needs to happen (or what was genuinely spent).
+    */
+    .roi-agent-zone{
+      position:absolute;
+      top:0;bottom:0;
+      right:0;                              /* always anchored to right edge */
+      background:rgba(0,212,170,.22);
+      border-left:2px solid rgba(0,212,170,.7);
+      transition:width .9s cubic-bezier(.4,0,.2,1);
+      pointer-events:none;
+    }
+
+    /* Amber HITL band — thin vertical strip inside agent zone (right side) */
+    .roi-hitl-band{
+      position:absolute;
+      top:0;bottom:0;right:0;
+      background:rgba(255,140,0,.38);
+      border-left:1px solid rgba(255,140,0,.75);
+      transition:width .5s ease;
+      pointer-events:none;
+    }
+
+    /* Dashed blue overhead line — vertical at fixed cost proportion */
+    .roi-contract-line{
+      position:absolute;top:0;bottom:0;
+      width:2px;
+      background:repeating-linear-gradient(to bottom,rgba(100,160,255,.7) 0,rgba(100,160,255,.7) 4px,transparent 4px,transparent 8px);
+      pointer-events:none;
+    }
+
+    /* Text content inside block */
+    .roi-block-content{
+      position:absolute;top:0;left:0;right:0;bottom:0;
+      padding:4px 7px;z-index:3;
+      display:flex;flex-direction:column;justify-content:center;gap:2px;
+      overflow:hidden;
+    }
+    .roi-block-title{
+      font-size:.69rem;font-weight:700;color:#fff;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    .roi-block-agents{
+      font-size:.6rem;color:var(--teal);
+      display:flex;align-items:center;gap:3px;overflow:hidden;
+    }
+    .agent-dot{display:inline-block;width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+    .roi-block-costs{display:flex;gap:.3rem;flex-wrap:nowrap;overflow:hidden;}
+    .cost-chip{
+      font-size:.57rem;padding:1px 4px;border-radius:3px;
+      font-family:'Courier New',monospace;font-weight:700;flex-shrink:0;
+    }
+    .cost-human{background:rgba(255,80,80,.18);color:#ff9090;border:1px solid rgba(255,80,80,.3);}
+    .cost-agent{background:rgba(0,212,170,.18);color:var(--teal);border:1px solid rgba(0,212,170,.3);}
+    .cost-roi  {background:rgba(0,255,65,.15);color:var(--green);border:1px solid rgba(0,255,65,.3);}
+
+    /* ROI % badge — top-right corner of block */
+    .roi-pct-badge{
+      position:absolute;top:3px;right:4px;
+      font-size:.57rem;font-weight:800;
+      padding:1px 5px;border-radius:4px;
+      background:rgba(0,0,0,.45);color:#aaa;z-index:6;
+      white-space:nowrap;
+    }
+    .roi-pct-badge.positive{color:var(--green);}
+
+    /* Thin progress stripe along bottom edge */
+    .roi-progress-bar{
+      position:absolute;bottom:0;left:0;right:0;height:3px;
+      background:rgba(255,255,255,.07);z-index:5;
+    }
+    .roi-progress-fill{height:100%;background:var(--teal);transition:width .6s ease;}
+    .roi-progress-fill.qc{background:var(--yellow);}
+    .roi-progress-fill.hitl{background:var(--orange);}
+    .roi-progress-fill.complete{background:var(--green);}
+</style>
 </head>
 <body>
 <!-- Murphy error banner — shown automatically on 5xx fetch errors -->
@@ -224,7 +368,7 @@ function showMurphyError(msg) {
   <span class="legend-item"><span class="legend-dot" style="background:var(--orange)"></span>HITL Review</span>
   <span class="legend-item"><span class="legend-dot" style="background:var(--green)"></span>Complete</span>
   <span class="legend-item"><span class="legend-dot" style="background:var(--red)"></span>Error</span>
-  <span style="margin-left:auto;font-size:.67rem;color:var(--muted);">Block height = human cost · Teal zone grows from bottom = agent progress · Amber band = HITL cost · Dashed blue = overhead · Green = complete</span>
+  <span style="margin-left:auto;font-size:.67rem;color:var(--muted);">Block width = task duration · Teal zone shrinks block from right = agent progress · Amber strip = HITL cost · Dashed line = overhead</span>
 </div>
 
 <div class="calendar-wrap">
@@ -365,26 +509,28 @@ function renderBlock(ev){
   var oh=parseFloat(ev.overhead_cost||0);
   var roi=parseFloat(ev.roi||0);
   var pct=parseInt(ev.progress_pct||0);
+  var hrs=parseFloat(ev.human_time_estimate_hours||1);  // duration in hours
   var agents=(ev.agents||[]).slice(0,3);
 
-  // Block height is FIXED at human cost scale — this is the "team would take" reference
-  // Scaled: $0=48px, $200=80px, $500=120px, $1000=160px, $2000=180px (sqrt curve)
-  var blockH=Math.max(48,Math.min(180,48+Math.sqrt(hc)*3.2));
+  // Block WIDTH = fraction of the 1-hour time slot the task was expected to take
+  // Clamp: 0.25h min, 1h max (block never exceeds its slot; multi-hour tasks stack)
+  var slotPct=Math.min(100,Math.max(20,Math.round((Math.min(hrs,1)/1)*100)));
+  var blockW=slotPct+'%';
 
-  // Teal agent zone grows from BOTTOM as work progresses — agent consuming the human cost
+  // Agent "saved" zone grows from RIGHT — this is how much the agent has consumed
+  // At 100% it fills the whole block (task fully automated, no human cost remaining)
   var agentPct=ev.status==='complete'?100:Math.min(100,pct);
-  var agentZoneH=Math.round(blockH*(agentPct/100));
+  var agentW=Math.round(slotPct*(agentPct/100))+'%';  // of total slot, from right
 
-  // Amber HITL band: real human cost inside the agent zone (HITL reviews cost real hours)
+  // Amber HITL band: thin vertical strip inside agent zone, from right
   var hitlCost=0;
   if(ev.hitl_reviews&&ev.hitl_reviews.length){
     ev.hitl_reviews.forEach(function(r){hitlCost+=parseFloat(r.cost||r.human_cost||0);});
   }
-  var hitlH=hc>0&&hitlCost>0?Math.max(4,Math.round(agentZoneH*(hitlCost/hc))):0;
-  var hitlBottom=agentZoneH-hitlH;
+  var hitlW=hc>0&&hitlCost>0?Math.max(3,Math.round(slotPct*(hitlCost/hc)/100*slotPct))+'%':'0%';
 
-  // Dashed blue contractual/overhead line — fixed proportion of block
-  var contractLineBottom=hc>0&&oh>0?Math.max(0,Math.round(blockH*(oh/hc))):0;
+  // Dashed blue overhead line — vertical line at overhead cost position from right
+  var contractRight=hc>0&&oh>0?Math.max(0,Math.round(slotPct*(oh/hc)))+'%':'';
 
   var pbCls=ev.status==='complete'?'complete':ev.status==='qc'?'qc':ev.status==='hitl_review'?'hitl':'';
   var roiPct=hc>0?Math.round(roi/hc*100):0;
@@ -401,28 +547,33 @@ function renderBlock(ev){
     agentHtml+='</div>';
   }
 
-  return '<div class="roi-block status-'+ev.status+'" style="height:'+blockH+'px;top:2px;" onclick="openDetail(''+ev.event_id+'')" >'
-    // Teal zone grows from bottom — the agent is eating the human cost block
-    +'<div class="roi-agent-zone" style="height:'+agentZoneH+'px"></div>'
-    // Amber HITL band inside the agent zone — represents human review hours still spent
-    +(hitlH>0?'<div class="roi-hitl-band" style="height:'+hitlH+'px;bottom:'+hitlBottom+'px"></div>':'')
-    // Dashed blue overhead/contractual line
-    +(contractLineBottom>0?'<div class="roi-contract-line" style="bottom:'+contractLineBottom+'px"></div>':'')
-    // Title + agents + cost chips — always visible on top layer
-    +'<div class="roi-block-content" style="z-index:3;">'
+  return '<div class="roi-block status-'+ev.status
+    +'" style="width:'+blockW+';top:6px;height:56px;" onclick="openDetail(\''+ev.event_id+'\')">'
+    // Teal agent zone: grows from RIGHT toward left as agent consumes the work
+    +'<div class="roi-agent-zone" style="width:'+agentW+'"></div>'
+    // Amber HITL band: thin strip at far right of agent zone
+    +(hitlCost>0?'<div class="roi-hitl-band" style="width:'+hitlW+'"></div>':'')
+    // Dashed blue overhead/contractual vertical line
+    +(contractRight?'<div class="roi-contract-line" style="right:'+contractRight+'"></div>':'')
+    // Text content
+    +'<div class="roi-block-content">'
       +'<div class="roi-block-title">'+esc(ev.title)+'</div>'
       +agentHtml
       +'<div class="roi-block-costs">'
-        +(hc>0?'<span class="cost-chip cost-human" title="Team cost estimate">$'+fmt(hc)+'</span>':'')
+        +(hc>0?'<span class="cost-chip cost-human" title="Team cost est.">$'+fmt(hc)+'</span>':'')
         +(ac>0?'<span class="cost-chip cost-agent" title="Agent cost">$'+fmt(ac)+'</span>':'')
         +(roi>0&&ev.status==='complete'?'<span class="cost-chip cost-roi">+$'+fmt(roi)+'</span>':'')
       +'</div>'
     +'</div>'
     // ROI % badge top-right
-    +(pct>0||ev.status==='complete'?'<div class="roi-pct-badge '+(roiPct>=0?'positive':'loading')+'" style="z-index:5;">'+(ev.status==='complete'?'&#10003; ':pct+'% ')+roiPct+'% ROI</div>':'')
-    +'<div class="roi-progress-bar" style="z-index:5;"><div class="roi-progress-fill '+pbCls+'" style="width:'+pct+'%"></div></div>'
+    +(pct>0||ev.status==='complete'
+      ?'<div class="roi-pct-badge '+(roiPct>=0?'positive':'')+'">'
+        +(ev.status==='complete'?'&#10003; ':pct+'% ')+roiPct+'% ROI</div>'
+      :'')
+    +'<div class="roi-progress-bar"><div class="roi-progress-fill '+pbCls+'" style="width:'+pct+'%"></div></div>'
     +'</div>';
 }
+
 
 function openDetail(id){
   var ev=_events.find(function(e){return e.event_id===id;});if(!ev)return;
