@@ -8534,7 +8534,7 @@ def create_app() -> FastAPI:
             key="murphy_session",
             value=session_token,
             httponly=True,
-            secure=os.environ.get("MURPHY_ENV", "development") != "development",
+            secure=True,
             samesite="lax",
             max_age=86400,
         )
@@ -8710,7 +8710,7 @@ def create_app() -> FastAPI:
                 key="murphy_session",
                 value=session_token,
                 httponly=True,
-                secure=os.environ.get("MURPHY_ENV", "development") != "development",
+                secure=True,
                 samesite="lax",
                 max_age=86400,
             )
