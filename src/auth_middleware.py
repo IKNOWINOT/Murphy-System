@@ -326,6 +326,14 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/demo",
         "/api/demo/",
         "/api/system/",
+        # PATCH-048: /api/account/* and /api/admin/* use murphy_session
+        # cookie auth inside app.py (_get_account_from_session).
+        # OIDCAuthMiddleware only knows murphy_sid — exempt these so they
+        # reach the inner auth logic rather than being blocked here.
+        "/api/account/",
+        "/api/account",
+        "/api/admin/",
+        "/api/admin",
     )
 
     def __init__(

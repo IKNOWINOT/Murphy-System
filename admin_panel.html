@@ -548,10 +548,30 @@ let _allOrgs  = [];
 let _currentSection = 'stats';
 let _adminAccount = null;
 
+/* PATCH-048: MurphyAuth.headers() doesn't exist on murphy_auth.js.
+   Use murphyAuth.getToken() (the real exported API) to build headers.
+   credentials:'same-origin' ensures session cookies also flow through. */
+function _authHeaders(extra = {}) {
+  const token = (window.murphyAuth && window.murphyAuth.getToken()) || '';
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': 'Bearer ' + token } : {}),
+    ...extra,
+  };
+}
+
 const API = (path, opts = {}) => fetch(path, {
-  headers: { 'Content-Type': 'application/json', ...MurphyAuth.headers() },
+  headers: _authHeaders(),
+  credentials: 'same-origin',
   ...opts,
-}).then(r => r.json());
+}).then(async r => {
+  if (!r.ok && r.status === 401) {
+    // Session expired — redirect to login
+    window.location.href = '/ui/login?next=' + encodeURIComponent(window.location.pathname);
+    return {};
+  }
+  return r.json();
+});
 
 /* ── Bootstrap ──────────────────────────────────────────────────────── */
 async function init() {
@@ -876,8 +896,13 @@ async function viewOrgMembers(id, name) {
   try {
     const d = await API('/api/admin/organizations/' + id + '/members');
     const members = d.members || [];
-    var _notif = document.getElementById('admin-notification') || document.querySelector('.admin-notice,.notice,.notification');
-    if (_notif) { _notif.textContent = 'Loaded ' + members.length + ' member(s) of "' + (name || 'this org') + '".'; _notif.style.display='block'; setTimeout(function(){_notif.style.display='none';},4000); }
+    // PATCH-048: render members into modal instead of missing #admin-notification
+    const _memberRows = members.map(m =>
+      `<tr><td>${esc(m.email||m.account_id)}</td><td>${esc(m.full_name||'—')}</td><td><span class="pill pill-${m.role||'user'}">${m.role||'user'}</span></td></tr>`
+    ).join('') || '<tr><td colspan="3" class="empty-state">No members.</td></tr>';
+    document.getElementById('modal-org-members-name').textContent = name || 'Organization';
+    document.getElementById('modal-org-members-tbody').innerHTML = _memberRows;
+    openModal('modal-org-members');
   } catch (e) { toast('Failed to load members','error'); }
 }
 
@@ -939,7 +964,13 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') document.querySelectorAll('.modal-overlay').forEach(m => m.hidden = true);
 });
 
-init();
+/* PATCH-048: wait for DOM + murphy_auth.js to be ready before calling init() */
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  // Already interactive — defer one tick to let murphy_auth.js wire up
+  setTimeout(init, 0);
+}
 </script>
 </body>
 </html>
