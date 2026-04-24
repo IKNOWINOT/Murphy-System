@@ -474,7 +474,19 @@ class SubscriptionManager:
             self._update_subscription_status(account_id, SubscriptionStatus.PAST_DUE)
 
         self._audit("stripe_webhook", account_id, {"event_type": event_type})
-        return {"received": True, "event_type": event_type}
+        # PATCH-049c: include account_id + tier in return so billing webhook
+        # handler can flip the account tier in murphy_users.db
+        tier_out = (
+            (event.get("data", {}).get("object", {}).get("metadata") or {}).get("tier", "")
+            if event_type == "checkout.session.completed"
+            else ""
+        )
+        return {
+            "received": True,
+            "event_type": event_type,
+            "account_id": account_id,
+            "tier": tier_out,
+        }
 
     # ------------------------------------------------------------------
     # PayPal

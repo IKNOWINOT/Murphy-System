@@ -50,6 +50,10 @@ _EXEMPT_PREFIXES = (
     "/api/auth/",
     "/api/demo",
     "/api/v1/auth/",
+    # PATCH-049a: billing webhooks must be public (verified by payload signature)
+    "/api/billing/webhooks/",
+    "/api/billing/plans",
+    "/api/billing/currencies",
 )
 
 
@@ -334,6 +338,10 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/account",
         "/api/admin/",
         "/api/admin",
+        # PATCH-049a: payment webhooks are public — signature-verified by provider
+        "/api/billing/webhooks/",
+        "/api/billing/plans",
+        "/api/billing/currencies",
     )
 
     def __init__(

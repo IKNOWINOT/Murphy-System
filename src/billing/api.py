@@ -464,4 +464,154 @@ def create_billing_router(
         summary = mgr.get_usage_summary(account_id)
         return JSONResponse(summary)
 
+
+    # ── PATCH-049c: flip account tier in murphy_users.db ─────────────────
+
+    def _flip_account_tier(account_id: str, tier: str) -> None:
+        """Update tier + role in murphy_users.db (user_accounts table) after payment.
+
+        The DB stores account data as a JSON blob in the `data` column.
+        account_id matches either the `account_id` field OR the `email` field.
+        Falls back silently on any error — billing webhook must always return 200.
+        PATCH-049c
+        """
+        try:
+            import os, sqlite3, json as _json
+            db_path = os.environ.get("MURPHY_USER_DB", "/var/lib/murphy-production/murphy_users.db")
+            role_map = {
+                "free": "user",
+                "solo": "user",
+                "business": "admin",
+                "professional": "admin",
+                "enterprise": "owner",
+            }
+            role = role_map.get(tier, "user")
+            conn = sqlite3.connect(db_path)
+            try:
+                cur = conn.cursor()
+                # Fetch matching row — account_id may be email or internal ID
+                cur.execute(
+                    "SELECT account_id, data FROM user_accounts "
+                    "WHERE account_id=? OR email=? LIMIT 1",
+                    (account_id, account_id),
+                )
+                row = cur.fetchone()
+                if not row:
+                    logger.warning("PATCH-049c: no user found for account_id=%s", account_id)
+                    return
+                db_account_id, raw_data = row
+                data = _json.loads(raw_data) if raw_data else {}
+                data["tier"] = tier
+                data["role"] = role
+                now = __import__("datetime").datetime.utcnow().isoformat() + "+00:00"
+                cur.execute(
+                    "UPDATE user_accounts SET data=?, updated_at=? WHERE account_id=?",
+                    (_json.dumps(data), now, db_account_id),
+                )
+                conn.commit()
+                logger.info(
+                    "PATCH-049c: account_id=%s email=%s tier=%s role=%s updated",
+                    db_account_id, data.get("email", "?"), tier, role,
+                )
+            finally:
+                conn.close()
+        except Exception as exc:
+            logger.error("PATCH-049c: _flip_account_tier failed for %s: %s", account_id, exc)
+
+
+    # ── PATCH-049b: Stripe checkout + webhook ─────────────────────────────
+
+    @router.post("/checkout/stripe")
+    async def stripe_checkout(request: Request) -> JSONResponse:
+        """Create a Stripe Checkout Session and return the hosted URL.
+
+        Body: { account_id, tier, interval ("monthly"|"annual") }
+        Returns: { checkout_url: str }
+        Stripe handles all card data — Murphy never touches raw card numbers.
+        """
+        try:
+            body = await request.json()
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+        account_id = _validate_account_id(body.get("account_id", ""))
+        tier_str = body.get("tier", "solo")
+        interval_str = body.get("interval", "monthly")
+
+        try:
+            from src.subscription_manager import SubscriptionTier, BillingInterval
+            tier = SubscriptionTier(tier_str)
+            interval = BillingInterval(interval_str)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+        import os
+        success_url = os.environ.get("STRIPE_SUCCESS_URL", "https://murphy.systems/billing/success")
+        cancel_url = os.environ.get("STRIPE_CANCEL_URL", "https://murphy.systems/billing/cancel")
+
+        try:
+            checkout_url = mgr.create_stripe_checkout_session(
+                account_id=account_id,
+                tier=tier,
+                interval=interval,
+                success_url=success_url + "?session_id={CHECKOUT_SESSION_ID}",
+                cancel_url=cancel_url,
+            )
+            return JSONResponse({"ok": True, "checkout_url": checkout_url, "provider": "stripe"})
+        except Exception as exc:
+            logger.error("Stripe checkout failed for account=%s: %s", account_id, exc)
+            return _safe_billing_error(exc, 502)
+
+    @router.post("/webhooks/stripe")
+    async def stripe_webhook(request: Request) -> JSONResponse:
+        """Receive Stripe subscription lifecycle webhooks.
+
+        Stripe posts signed events here on:
+          - checkout.session.completed  → activate account
+          - customer.subscription.updated → tier change
+          - customer.subscription.deleted → cancel / downgrade to free
+          - invoice.payment_failed        → grace period / suspend
+
+        Signature verified via STRIPE_WEBHOOK_SECRET env var.
+        Account tier is updated in murphy_users.db on activation.
+        PATCH-049b, PATCH-049c
+        """
+        raw_body = await request.body()
+        if len(raw_body) > _MAX_WEBHOOK_BODY_BYTES:
+            raise HTTPException(status_code=413, detail="Webhook payload too large")
+
+        sig = request.headers.get("stripe-signature", "")
+        import os
+        webhook_secret = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+
+        try:
+            result = mgr.handle_stripe_webhook(
+                payload=raw_body.decode("utf-8", errors="replace"),
+                signature=sig,
+                webhook_secret=webhook_secret,
+            )
+        except ValueError as exc:
+            logger.warning("Stripe webhook validation failed: %s", exc)
+            raise HTTPException(status_code=400, detail="Invalid webhook signature")
+        except Exception as exc:
+            logger.error("Stripe webhook processing error: %s", exc)
+            return _safe_billing_error(exc, 500)
+
+        # PATCH-049c: if payment succeeded, flip the account tier in the user DB
+        event_type = result.get("event_type", "")
+        account_id = result.get("account_id", "")
+        new_tier = result.get("tier", "")
+
+        if event_type == "checkout.session.completed" and account_id and new_tier:
+            _flip_account_tier(account_id, new_tier)
+            _trigger_provision(account_id, new_tier)
+
+        elif event_type == "customer.subscription.updated" and account_id and new_tier:
+            _flip_account_tier(account_id, new_tier)
+
+        elif event_type == "customer.subscription.deleted" and account_id:
+            _flip_account_tier(account_id, "free")
+
+        return JSONResponse({"received": True, **result})
+
     return router
