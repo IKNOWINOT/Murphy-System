@@ -11409,6 +11409,7 @@ def create_app() -> FastAPI:
             "/ui/automations": "automations.html",
             "/ui/dev-module": "dev_module.html",
             "/ui/service-module": "service_module.html",
+            "/ui/video-demo": "demo_video.html",
             "/ui/guest-portal": "guest_portal.html",
         }
 
@@ -11422,6 +11423,7 @@ def create_app() -> FastAPI:
             "/ui/partner", "/ui/smoke-test",
             "/ui/reset-password",
             "/ui/roi-calendar",
+            "/ui/video-demo",
         })
 
         # Redirect bare /ui/ to /ui/landing
