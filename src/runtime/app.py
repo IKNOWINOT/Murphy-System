@@ -11421,6 +11421,7 @@ def create_app() -> FastAPI:
             "/ui/docs", "/ui/blog", "/ui/careers", "/ui/legal", "/ui/privacy",
             "/ui/partner", "/ui/smoke-test",
             "/ui/reset-password",
+            "/ui/roi-calendar",
         })
 
         # Redirect bare /ui/ to /ui/landing
