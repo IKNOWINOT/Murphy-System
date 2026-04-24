@@ -54,13 +54,17 @@
     .roi-block.status-complete{background:rgba(0,255,65,.1);border-color:rgba(0,255,65,.4);}
     .roi-block.status-error{background:rgba(255,68,68,.1);border-color:rgba(255,68,68,.4);}
     @keyframes hitl-pulse{0%{transform:scaleY(1)}30%{transform:scaleY(1.08);box-shadow:0 0 16px rgba(255,140,0,.5)}100%{transform:scaleY(1)}}
-    .roi-savings-overlay{position:absolute;top:0;left:0;right:0;background:rgba(0,255,65,.18);border-bottom:1px solid rgba(0,255,65,.4);transition:height .8s ease;pointer-events:none;}
-    .roi-progress-bar{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,.1);}
-    .roi-progress-fill{height:100%;background:var(--teal);transition:width .5s ease;}
+    /* ROI visual: block is fixed at human cost height. Agent "eats" it from bottom. */
+    .roi-agent-zone{position:absolute;bottom:0;left:0;right:0;background:rgba(0,212,170,.18);border-top:1px solid rgba(0,212,170,.4);transition:height .9s cubic-bezier(.4,0,.2,1);pointer-events:none;}
+    .roi-hitl-band{position:absolute;left:0;right:0;height:0;background:rgba(255,140,0,.35);border-top:1px solid rgba(255,140,0,.7);transition:height .5s ease,bottom .9s cubic-bezier(.4,0,.2,1);pointer-events:none;}
+    .roi-contract-line{position:absolute;left:0;right:0;height:2px;background:rgba(100,160,255,.6);border-top:1px dashed rgba(100,160,255,.8);pointer-events:none;}
+    .roi-human-label{position:absolute;top:0;left:0;right:0;padding:4px 6px 0;z-index:3;}
+    .roi-progress-bar{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,.08);z-index:4;}
+    .roi-progress-fill{height:100%;background:var(--teal);transition:width .6s ease;}
     .roi-progress-fill.qc{background:var(--yellow);}
     .roi-progress-fill.hitl{background:var(--orange);}
     .roi-progress-fill.complete{background:var(--green);}
-    .roi-block-content{position:relative;padding:5px 7px 8px;z-index:1;}
+    .roi-block-content{position:relative;padding:5px 7px 8px;z-index:3;}
     .roi-block-title{font-size:.7rem;font-weight:700;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .roi-block-agents{font-size:.6rem;color:var(--teal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:3px;}
     .agent-dot{display:inline-block;width:6px;height:6px;border-radius:50%;flex-shrink:0;}
@@ -179,7 +183,7 @@ function showMurphyError(msg) {
   <span class="legend-item"><span class="legend-dot" style="background:var(--orange)"></span>HITL Review</span>
   <span class="legend-item"><span class="legend-dot" style="background:var(--green)"></span>Complete</span>
   <span class="legend-item"><span class="legend-dot" style="background:var(--red)"></span>Error</span>
-  <span style="margin-left:auto;font-size:.67rem;color:var(--muted);">Block height = human cost · Green overlay = ROI savings · Progress bar = % complete</span>
+  <span style="margin-left:auto;font-size:.67rem;color:var(--muted);">Block height = human cost · Teal zone grows from bottom = agent progress · Amber band = HITL cost · Dashed blue = overhead · Green = complete</span>
 </div>
 
 <div class="calendar-wrap">
@@ -315,15 +319,36 @@ function renderCalendar(){
 }
 
 function renderBlock(ev){
-  var hc=parseFloat(ev.human_cost_estimate||0),ac=parseFloat(ev.agent_compute_cost||0);
-  var roi=parseFloat(ev.roi||0),pct=parseInt(ev.progress_pct||0);
+  var hc=parseFloat(ev.human_cost_estimate||0);
+  var ac=parseFloat(ev.agent_compute_cost||0);
+  var oh=parseFloat(ev.overhead_cost||0);
+  var roi=parseFloat(ev.roi||0);
+  var pct=parseInt(ev.progress_pct||0);
   var agents=(ev.agents||[]).slice(0,3);
-  var blockH=Math.max(36,Math.min(160,36+hc/60));
-  var savPct=hc>0?Math.min(100,Math.round(roi/hc*100)):0;
-  var overlayH=Math.max(0,Math.round(blockH*savPct/100));
+
+  // Block height is FIXED at human cost scale — this is the "team would take" reference
+  // Scaled: $0=48px, $200=80px, $500=120px, $1000=160px, $2000=180px (sqrt curve)
+  var blockH=Math.max(48,Math.min(180,48+Math.sqrt(hc)*3.2));
+
+  // Teal agent zone grows from BOTTOM as work progresses — agent consuming the human cost
+  var agentPct=ev.status==='complete'?100:Math.min(100,pct);
+  var agentZoneH=Math.round(blockH*(agentPct/100));
+
+  // Amber HITL band: real human cost inside the agent zone (HITL reviews cost real hours)
+  var hitlCost=0;
+  if(ev.hitl_reviews&&ev.hitl_reviews.length){
+    ev.hitl_reviews.forEach(function(r){hitlCost+=parseFloat(r.cost||r.human_cost||0);});
+  }
+  var hitlH=hc>0&&hitlCost>0?Math.max(4,Math.round(agentZoneH*(hitlCost/hc))):0;
+  var hitlBottom=agentZoneH-hitlH;
+
+  // Dashed blue contractual/overhead line — fixed proportion of block
+  var contractLineBottom=hc>0&&oh>0?Math.max(0,Math.round(blockH*(oh/hc))):0;
+
   var pbCls=ev.status==='complete'?'complete':ev.status==='qc'?'qc':ev.status==='hitl_review'?'hitl':'';
   var roiPct=hc>0?Math.round(roi/hc*100):0;
-  // Build agent dots (support both string agents and object agents with color)
+
+  // Agent dots
   var agentHtml='';
   if(agents.length){
     agentHtml='<div class="roi-block-agents">';
@@ -334,18 +359,27 @@ function renderBlock(ev){
     });
     agentHtml+='</div>';
   }
-  return '<div class="roi-block status-'+ev.status+'" style="height:'+blockH+'px;top:2px;" onclick="openDetail(\''+ev.event_id+'\')" >'
-    +'<div class="roi-savings-overlay" style="height:'+overlayH+'px"></div>'
-    +'<div class="roi-block-content">'
+
+  return '<div class="roi-block status-'+ev.status+'" style="height:'+blockH+'px;top:2px;" onclick="openDetail(''+ev.event_id+'')" >'
+    // Teal zone grows from bottom — the agent is eating the human cost block
+    +'<div class="roi-agent-zone" style="height:'+agentZoneH+'px"></div>'
+    // Amber HITL band inside the agent zone — represents human review hours still spent
+    +(hitlH>0?'<div class="roi-hitl-band" style="height:'+hitlH+'px;bottom:'+hitlBottom+'px"></div>':'')
+    // Dashed blue overhead/contractual line
+    +(contractLineBottom>0?'<div class="roi-contract-line" style="bottom:'+contractLineBottom+'px"></div>':'')
+    // Title + agents + cost chips — always visible on top layer
+    +'<div class="roi-block-content" style="z-index:3;">'
       +'<div class="roi-block-title">'+esc(ev.title)+'</div>'
       +agentHtml
       +'<div class="roi-block-costs">'
-        +(hc>0?'<span class="cost-chip cost-human">$'+fmt(hc)+'</span>':'')
-        +(ac>0?'<span class="cost-chip cost-agent">$'+fmt(ac)+'</span>':'')
-        +(roi>0?'<span class="cost-chip cost-roi">+$'+fmt(roi)+'</span>':'')
-      +'</div></div>'
-    +(pct>0||ev.status==='complete'?'<div class="roi-pct-badge '+(roiPct>=0?'positive':'loading')+'">'+(ev.status==='complete'?'&#10003; ':'')+roiPct+'% ROI</div>':'')
-    +'<div class="roi-progress-bar"><div class="roi-progress-fill '+pbCls+'" style="width:'+pct+'%"></div></div>'
+        +(hc>0?'<span class="cost-chip cost-human" title="Team cost estimate">$'+fmt(hc)+'</span>':'')
+        +(ac>0?'<span class="cost-chip cost-agent" title="Agent cost">$'+fmt(ac)+'</span>':'')
+        +(roi>0&&ev.status==='complete'?'<span class="cost-chip cost-roi">+$'+fmt(roi)+'</span>':'')
+      +'</div>'
+    +'</div>'
+    // ROI % badge top-right
+    +(pct>0||ev.status==='complete'?'<div class="roi-pct-badge '+(roiPct>=0?'positive':'loading')+'" style="z-index:5;">'+(ev.status==='complete'?'&#10003; ':pct+'% ')+roiPct+'% ROI</div>':'')
+    +'<div class="roi-progress-bar" style="z-index:5;"><div class="roi-progress-fill '+pbCls+'" style="width:'+pct+'%"></div></div>'
     +'</div>';
 }
 
