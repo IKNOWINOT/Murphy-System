@@ -121,6 +121,47 @@
     .request-toast .req-meta{color:var(--muted);font-size:.65rem;}
     .request-toast.complete{border-color:var(--green);}
     .request-toast.hitl{border-color:var(--orange);}
+
+    /* =========================================================
+       MULTICURSOR PANEL — PATCH-062
+       Shows parallel agent cursors working on tasks live
+       ========================================================= */
+    .mc-panel{background:var(--bg2);border-top:1px solid var(--border);padding:1.25rem 2rem 1.5rem;}
+    .mc-panel-header{display:flex;align-items:center;gap:1rem;margin-bottom:1rem;}
+    .mc-panel-title{font-size:.95rem;font-weight:800;color:var(--teal);letter-spacing:-.01em;}
+    .mc-panel-sub{font-size:.72rem;color:var(--muted);}
+    .mc-panel-badge{background:rgba(0,212,170,.12);border:1px solid rgba(0,212,170,.35);color:var(--teal);border-radius:999px;padding:.2rem .65rem;font-size:.67rem;font-weight:700;margin-left:auto;}
+    /* Screen zones grid */
+    .mc-screen{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:8px;min-height:220px;position:relative;}
+    .mc-zone{border:1px solid var(--border2);border-radius:7px;background:var(--bg);padding:8px 10px;position:relative;overflow:hidden;transition:border-color .3s;}
+    .mc-zone.active{border-color:rgba(0,212,170,.5);box-shadow:0 0 12px rgba(0,212,170,.08);}
+    .mc-zone.hitl{border-color:rgba(255,140,0,.6);box-shadow:0 0 12px rgba(255,140,0,.1);}
+    .mc-zone.complete{border-color:rgba(0,255,65,.4);}
+    .mc-zone-label{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px;}
+    .mc-zone-task{font-size:.7rem;color:var(--text);line-height:1.35;min-height:28px;}
+    /* Cursor blips */
+    .mc-cursor{position:absolute;width:10px;height:10px;border-radius:50%;pointer-events:none;transition:top .4s cubic-bezier(.4,0,.2,1),left .4s cubic-bezier(.4,0,.2,1);z-index:10;}
+    .mc-cursor::after{content:'';position:absolute;inset:-3px;border-radius:50%;border:2px solid currentColor;opacity:.4;animation:mc-ring 1.4s ease-out infinite;}
+    @keyframes mc-ring{0%{transform:scale(1);opacity:.4}100%{transform:scale(2.2);opacity:0}}
+    .mc-cursor-label{position:absolute;top:13px;left:12px;font-size:.52rem;font-weight:700;white-space:nowrap;background:rgba(0,0,0,.7);padding:1px 4px;border-radius:3px;}
+    /* Agent roster strip */
+    .mc-agents{display:flex;gap:.6rem;margin-top:.85rem;flex-wrap:wrap;}
+    .mc-agent-card{display:flex;align-items:center;gap:.5rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.4rem .75rem;min-width:140px;transition:border-color .3s;}
+    .mc-agent-card.active{border-color:rgba(0,212,170,.45);}
+    .mc-agent-card.hitl{border-color:rgba(255,140,0,.6);animation:hitl-glow .8s ease-in-out infinite alternate;}
+    @keyframes hitl-glow{from{box-shadow:none}to{box-shadow:0 0 10px rgba(255,140,0,.3)}}
+    .mc-agent-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+    .mc-agent-name{font-size:.72rem;font-weight:700;color:var(--text);}
+    .mc-agent-status{font-size:.6rem;color:var(--muted);margin-top:1px;}
+    .mc-agent-ops{margin-left:auto;font-size:.62rem;font-family:'Courier New',monospace;font-weight:700;}
+    /* Activity log */
+    .mc-log{margin-top:.85rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.6rem .85rem;max-height:90px;overflow-y:auto;font-family:'Courier New',monospace;font-size:.67rem;}
+    .mc-log-line{color:var(--text2);line-height:1.5;white-space:nowrap;}
+    .mc-log-line .ts{color:var(--muted);}
+    .mc-log-line .agent{font-weight:700;}
+    .mc-log-line .action{color:var(--teal);}
+    .mc-log-line.hitl-line .action{color:var(--orange);}
+    .mc-log-line.complete-line .action{color:var(--green);}
   </style>
 </head>
 <body>
@@ -495,5 +536,254 @@ document.addEventListener('keydown',function(e){
 </script>
 <script src="static/murphy-auth-guard.js"></script>
 <script>MurphyAuth.requireAuth();</script>
+
+<!-- ============================================================
+     MULTICURSOR LIVE PANEL — PATCH-062
+     Animated split-screen showing parallel agent cursors
+     ============================================================ -->
+<section class="mc-panel" id="mc-panel" aria-label="Multicursor agent view">
+  <div class="mc-panel-header">
+    <div>
+      <div class="mc-panel-title">⊞ Multicursor — Parallel Agent Execution</div>
+      <div class="mc-panel-sub">4 agents · 4 screen zones · working simultaneously</div>
+    </div>
+    <span class="mc-panel-badge" id="mc-ops-total">0 ops/sec</span>
+  </div>
+
+  <!-- Split-screen zones with animated cursors -->
+  <div class="mc-screen" id="mc-screen">
+    <div class="mc-zone" id="mc-zone-0">
+      <div class="mc-zone-label">Zone A — Finance</div>
+      <div class="mc-zone-task" id="mc-task-0">Idle</div>
+    </div>
+    <div class="mc-zone" id="mc-zone-1">
+      <div class="mc-zone-label">Zone B — Compliance</div>
+      <div class="mc-zone-task" id="mc-task-1">Idle</div>
+    </div>
+    <div class="mc-zone" id="mc-zone-2">
+      <div class="mc-zone-label">Zone C — CRM</div>
+      <div class="mc-zone-task" id="mc-task-2">Idle</div>
+    </div>
+    <div class="mc-zone" id="mc-zone-3">
+      <div class="mc-zone-label">Zone D — Ops</div>
+      <div class="mc-zone-task" id="mc-task-3">Idle</div>
+    </div>
+  </div>
+
+  <!-- Agent cards -->
+  <div class="mc-agents" id="mc-agents"></div>
+
+  <!-- Activity log -->
+  <div class="mc-log" id="mc-log"></div>
+</section>
+
+<script>
+/* ================================================================
+   MULTICURSOR ANIMATION ENGINE — PATCH-062
+   Simulates parallel agent cursor activity across 4 screen zones
+   Uses real ROI calendar event data when available
+   ================================================================ */
+(function(){
+'use strict';
+
+var AGENTS = [
+  {id:'a0', name:'Aria',    color:'#00d4aa', zone:0, ops:0, status:'idle'},
+  {id:'a1', name:'Beacon',  color:'#ffd700', zone:1, ops:0, status:'idle'},
+  {id:'a2', name:'Cascade', color:'#7c6af7', zone:2, ops:0, status:'idle'},
+  {id:'a3', name:'Delta',   color:'#ff8c00', zone:3, ops:0, status:'idle'},
+];
+
+var TASK_POOLS = [
+  // Zone A — Finance
+  ['Parsing invoice #INV-2847','Reconciling Q1 ledger','Extracting vendor data','Flagging duplicate payments','Writing journal entries','Validating PO matching'],
+  // Zone B — Compliance
+  ['Running SOC2 audit check','Scanning HIPAA log entries','Generating compliance report','Verifying access controls','Cross-referencing policy doc','Archiving evidence bundle'],
+  // Zone C — CRM
+  ['Updating 38 contact records','Scoring lead pipeline','Drafting follow-up emails','Syncing Salesforce delta','Tagging churned accounts','Building weekly CRM digest'],
+  // Zone D — Ops
+  ['Scheduling production runs','Updating inventory deltas','Firing alert: SLA breach','Generating shift report','Escalating ticket #4421','Optimizing route schedule'],
+];
+
+var HITL_TASKS = [
+  'HITL: Awaiting approval — invoice >$10k',
+  'HITL: Human review — compliance exception',
+  'HITL: Confirm contract renewal',
+  'HITL: Override request — SLA breach',
+];
+
+var _cursors = {};    // zone_id → DOM element
+var _agentOps = 0;
+var _logLines = [];
+var _taskTimers = [null,null,null,null];
+
+function ts(){var d=new Date();return d.toTimeString().slice(0,8);}
+function rand(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function randInt(a,b){return a+Math.floor(Math.random()*(b-a+1));}
+
+/* Build agent cards */
+function initAgentCards(){
+  var wrap=document.getElementById('mc-agents');
+  if(!wrap)return;
+  AGENTS.forEach(function(ag){
+    var el=document.createElement('div');
+    el.className='mc-agent-card';
+    el.id='mc-card-'+ag.id;
+    el.innerHTML='<span class="mc-agent-dot" style="background:'+ag.color+'"></span>'
+      +'<div><div class="mc-agent-name">'+ag.name+'</div>'
+      +'<div class="mc-agent-status" id="mc-status-'+ag.id+'">Initialising…</div></div>'
+      +'<span class="mc-agent-ops" id="mc-ops-'+ag.id+'" style="color:'+ag.color+'">0 ops</span>';
+    wrap.appendChild(el);
+  });
+}
+
+/* Spawn an animated cursor blip inside a zone */
+function spawnCursor(ag){
+  var zone=document.getElementById('mc-zone-'+ag.zone);
+  if(!zone)return;
+  // Remove old cursor for this agent
+  var old=document.getElementById('mc-cur-'+ag.id);
+  if(old)old.remove();
+  var el=document.createElement('div');
+  el.className='mc-cursor';
+  el.id='mc-cur-'+ag.id;
+  el.style.background=ag.color;
+  el.style.color=ag.color;
+  el.style.top=randInt(8,zone.offsetHeight-20||60)+'px';
+  el.style.left=randInt(8,zone.offsetWidth-20||80)+'px';
+  var lbl=document.createElement('span');
+  lbl.className='mc-cursor-label';
+  lbl.style.color=ag.color;
+  lbl.textContent=ag.name;
+  el.appendChild(lbl);
+  zone.appendChild(el);
+  // Animate cursor to new position
+  setTimeout(function(){
+    el.style.top=randInt(8,zone.offsetHeight-20||60)+'px';
+    el.style.left=randInt(8,zone.offsetWidth-20||80)+'px';
+  },100);
+}
+
+/* Move existing cursor */
+function moveCursor(ag){
+  var el=document.getElementById('mc-cur-'+ag.id);
+  var zone=document.getElementById('mc-zone-'+ag.zone);
+  if(!el||!zone)return;
+  el.style.top=randInt(8,(zone.offsetHeight-20)||60)+'px';
+  el.style.left=randInt(8,(zone.offsetWidth-20)||80)+'px';
+}
+
+/* Append a log line (scrolls to bottom) */
+function appendLog(ag, action, cls){
+  var log=document.getElementById('mc-log');
+  if(!log)return;
+  var line=document.createElement('div');
+  line.className='mc-log-line'+(cls?' '+cls:'');
+  line.innerHTML='<span class="ts">['+ts()+']</span> '
+    +'<span class="agent" style="color:'+ag.color+'">'+ag.name+'</span> '
+    +'<span class="action">'+action+'</span>';
+  log.appendChild(line);
+  // Keep last 40 lines
+  while(log.children.length>40)log.removeChild(log.firstChild);
+  log.scrollTop=log.scrollHeight;
+}
+
+/* Update total ops badge */
+function updateOps(){
+  var total=AGENTS.reduce(function(s,a){return s+a.ops;},0);
+  var el=document.getElementById('mc-ops-total');
+  if(el)el.textContent=total+' ops logged';
+}
+
+/* Run one task cycle for an agent */
+function runAgentCycle(ag){
+  var zoneEl=document.getElementById('mc-zone-'+ag.zone);
+  var taskEl=document.getElementById('mc-task-'+ag.zone);
+  var cardEl=document.getElementById('mc-card-'+ag.id);
+  var statusEl=document.getElementById('mc-status-'+ag.id);
+  var opsEl=document.getElementById('mc-ops-'+ag.id);
+
+  // Pick HITL occasionally (~15% chance)
+  var isHitl=Math.random()<0.15;
+  var task=isHitl?rand(HITL_TASKS):rand(TASK_POOLS[ag.zone]);
+
+  ag.status=isHitl?'hitl':'running';
+  ag.ops++;
+
+  // Update zone
+  if(zoneEl){zoneEl.className='mc-zone '+(isHitl?'hitl':'active');}
+  if(taskEl){taskEl.textContent=task;}
+  if(cardEl){cardEl.className='mc-agent-card '+(isHitl?'hitl':'active');}
+  if(statusEl){statusEl.textContent=isHitl?'⚠ HITL Review':'● Working';}
+  if(opsEl){opsEl.textContent=ag.ops+' ops';}
+
+  appendLog(ag, task, isHitl?'hitl-line':'');
+  spawnCursor(ag);
+  updateOps();
+
+  // Duration: HITL tasks linger longer
+  var dur=isHitl?randInt(3500,6000):randInt(1200,3200);
+
+  // Move cursor mid-task
+  var moveTimer=setTimeout(function(){moveCursor(ag);},dur/2);
+
+  _taskTimers[ag.zone]=setTimeout(function(){
+    // Task complete
+    ag.status='idle';
+    if(zoneEl)zoneEl.className='mc-zone complete';
+    if(taskEl)taskEl.textContent='✓ '+task.replace(/^HITL: /,'');
+    if(cardEl)cardEl.className='mc-agent-card';
+    if(statusEl)statusEl.textContent='✓ Done';
+    appendLog(ag, '✓ Complete → '+task.replace(/^HITL: /,''), 'complete-line');
+
+    // Small gap then next task
+    setTimeout(function(){
+      if(taskEl)taskEl.textContent='Idle';
+      if(zoneEl)zoneEl.className='mc-zone';
+      runAgentCycle(ag);
+    }, randInt(400,900));
+  }, dur);
+}
+
+/* Start all agents with staggered delays */
+function startMulticursor(){
+  initAgentCards();
+  AGENTS.forEach(function(ag, i){
+    setTimeout(function(){
+      appendLog(ag, 'Agent online — cursor initialised in Zone '+'ABCD'[i]);
+      spawnCursor(ag);
+      setTimeout(function(){runAgentCycle(ag);}, randInt(200,800));
+    }, i*320);
+  });
+}
+
+/* Expose for external triggers */
+window._mcRefreshFromEvents=function(events){
+  if(!events||!events.length)return;
+  var running=events.filter(function(e){return e.status==='running'||e.status==='hitl_review';});
+  running.forEach(function(ev,i){
+    var ag=AGENTS[i%AGENTS.length];
+    if(ag&&ev.title){
+      var el=document.getElementById('mc-task-'+ag.zone);
+      if(el)el.textContent=ev.title;
+    }
+  });
+};
+
+// Boot when DOM ready
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',startMulticursor);
+}else{
+  startMulticursor();
+}
+
+// Hook into existing SSE to sync real tasks when they arrive
+var _origSSE=window._mcSSEHook;
+document.addEventListener('murphy:roi_update',function(e){
+  if(e.detail)window._mcRefreshFromEvents([e.detail]);
+});
+
+})();
+</script>
+
 </body>
 </html>
