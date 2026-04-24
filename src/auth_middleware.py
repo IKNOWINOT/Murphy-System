@@ -477,7 +477,13 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         # ── Path 2: server-side session cookie ───────────────────────
-        sid = request.cookies.get("murphy_sid", "")
+        # PATCH-060-auth: accept both murphy_sid (OIDC store) and
+        # murphy_session (app.py login store) so the standard login
+        # flow authenticates all /api/* routes.
+        sid = (
+            request.cookies.get("murphy_sid", "")
+            or request.cookies.get("murphy_session", "")
+        )
         if sid:
             sess = self._session_store.get(sid)
             if sess:
@@ -485,6 +491,17 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
                 request.state.actor_tenant = sess.get("tenant", "")
                 request.state.actor_kind = "session"
                 return await call_next(request)
+            # Fallback: validate against the app-level session store
+            # (populated by /api/auth/login using murphy_session cookie).
+            try:
+                from src.fastapi_security import _session_validator as _app_sv
+                if _app_sv is not None and _app_sv(sid):
+                    request.state.actor_user_sub = "murphy_session_user"
+                    request.state.actor_tenant = "default"
+                    request.state.actor_kind = "session"
+                    return await call_next(request)
+            except Exception:
+                pass
 
         # ── Path 3: deprecated API-key fallback ──────────────────────
         api_key = _extract_api_key(request)

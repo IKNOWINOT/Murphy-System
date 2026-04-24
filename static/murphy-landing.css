@@ -205,13 +205,13 @@ h2.stitle{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;line-height:1.2;bac
 /* Compare */
 #compare{background:var(--bg3);}
 .ctw{overflow-x:auto;margin-top:2rem;border-radius:12px;border:1px solid var(--border);}
-.ctable{width:100%;border-collapse:collapse;min-width:560px;}
+.ctable{width:100%;border-collapse:collapse;min-width:820px;}
 .ctable th{background:rgba(0,212,170,.08);padding:1rem 1.25rem;text-align:left;font-size:.85rem;font-weight:700;color:var(--teal);border-bottom:1px solid var(--border);}
 .ctable td{padding:.9rem 1.25rem;font-size:.88rem;border-bottom:1px solid rgba(255,255,255,.04);color:var(--text);}
 .ctable tr:last-child td{border-bottom:none;}
 .ctable tbody tr:hover{background:rgba(0,255,65,.03);}
 .mc{color:var(--green);font-weight:600;}
-.xc{color:#444;}
+.xc{color:#666;}.pc{color:#e8a020;font-weight:600;}
 /* Compliance */
 #compliance{background:var(--bg);}
 .comp-grid{display:flex;flex-wrap:wrap;gap:.75rem;margin:2rem 0;}

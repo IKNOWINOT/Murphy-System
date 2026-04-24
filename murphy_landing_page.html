@@ -404,30 +404,110 @@
 <section id="compare" aria-labelledby="cmp-h" class="ml-6" >
   <div class="si">
     <span class="slabel">Why Murphy</span>
-    <h2 class="stitle" id="cmp-h">Everything Else Needs 12 Tools.<br>Murphy Is One.</h2>
+    <h2 class="stitle" id="cmp-h">Twin builds single agents. Salesforce sells you a platform. Murphy runs your whole operation.</h2>
     <div class="ctw" role="region" aria-label="Comparison table">
       <table class="ctable">
         <thead>
           <tr>
             <th>Capability</th>
             <th>Murphy</th>
+            <th>Twin.so</th>
             <th>Zapier + Notion + HubSpot</th>
             <th>Salesforce</th>
           </tr>
         </thead>
         <tbody>
-          <tr><td>Onboard local LLM (Ollama)</td><td class="mc">&#10003; Built-in</td><td class="xc">&#10007;</td><td class="xc">&#10007;</td></tr>
-          <tr><td>Hosted mail server</td><td class="mc">&#10003; Built-in</td><td class="xc">&#10007; 3rd-party</td><td class="xc">&#10007; 3rd-party</td></tr>
-          <tr><td>Matrix messaging bridge</td><td class="mc">&#10003; 287 rooms</td><td class="xc">&#10007;</td><td class="xc">&#10007;</td></tr>
-          <tr><td>Human-in-the-Loop gates</td><td class="mc">&#10003; Gate synthesis</td><td class="xc">&#10007; Manual only</td><td class="xc">&#10007; Approvals only</td></tr>
-          <tr><td>Self-healing / auto-repair</td><td class="mc">&#10003; Built-in engine</td><td class="xc">&#10007;</td><td class="xc">&#10007;</td></tr>
-          <tr><td>Blockchain audit trail</td><td class="mc">&#10003; BAT engine</td><td class="xc">&#10007;</td><td class="xc">&#8764; Partial</td></tr>
-          <tr><td>Shadow Agent training</td><td class="mc">&#10003; Observe &#8594; Assist &#8594; Auto</td><td class="xc">&#10007;</td><td class="xc">&#8764; Einstein AI</td></tr>
-          <tr><td>Compliance automation (SOC2/HIPAA)</td><td class="mc">&#10003; CCE engine</td><td class="xc">&#10007; Manual</td><td class="xc">&#8764; Partial</td></tr>
-          <tr><td>Fully self-hostable</td><td class="mc">&#10003; Hetzner deploy</td><td class="xc">&#10007; Cloud only</td><td class="xc">&#10007; Cloud only</td></tr>
-          <tr><td>Data never leaves your server (LLM)</td><td class="mc">&#10003; Onboard Ollama</td><td class="xc">&#10007;</td><td class="xc">&#10007;</td></tr>
-          <tr><td>Open source (BSL 1.1)</td><td class="mc">&#10003;</td><td class="xc">&#10007; Proprietary</td><td class="xc">&#10007; Proprietary</td></tr>
-          <tr><td>Monthly cost &#8212; 5-person team</td><td class="mc">$299/mo all-in</td><td class="xc">$800&#8211;1,400/mo</td><td class="xc">$1,500+/mo</td></tr>
+          <tr>
+            <td>Browser automation (no-API tasks)</td>
+            <td class="mc">&#10003; Built-in + HITL-gated browser engine</td>
+            <td class="pc">&#10003; Core strength — single-task focus</td>
+            <td class="xc">&#10007; API only</td>
+            <td class="xc">&#10007;</td>
+          </tr>
+          <tr>
+            <td>Conversational agent builder</td>
+            <td class="mc">&#10003; Forge wizard + org chart + shadow agents</td>
+            <td class="pc">&#10003; Chat-to-agent (single tasks only)</td>
+            <td class="xc">&#10007; Form-based only</td>
+            <td class="xc">&#8764; Einstein builder</td>
+          </tr>
+          <tr>
+            <td>Agents that learn <em>your</em> behavior</td>
+            <td class="mc">&#10003; Shadow agents observe &rarr; assist &rarr; automate</td>
+            <td class="xc">&#10007; Task-only, no user learning</td>
+            <td class="xc">&#10007;</td>
+            <td class="xc">&#8764; Einstein AI</td>
+          </tr>
+          <tr>
+            <td>Org chart — virtual employees with roles</td>
+            <td class="mc">&#10003; Full org + individual agent accounts</td>
+            <td class="xc">&#10007; Single-task agents only</td>
+            <td class="xc">&#10007;</td>
+            <td class="xc">&#10007;</td>
+          </tr>
+          <tr>
+            <td>ROI calendar (time &amp; cost savings, live)</td>
+            <td class="mc">&#10003; Per-task human vs. agent cost tracking</td>
+            <td class="xc">&#10007;</td>
+            <td class="xc">&#10007;</td>
+            <td class="xc">&#10007;</td>
+          </tr>
+          <tr>
+            <td>Human-in-the-Loop gates</td>
+            <td class="mc">&#10003; Gate synthesis engine, HITL on every risk tier</td>
+            <td class="xc">&#8764; Manual approval only</td>
+            <td class="xc">&#10007; Manual only</td>
+            <td class="xc">&#10007; Approvals only</td>
+          </tr>
+          <tr>
+            <td>Onboard local LLM (data never leaves server)</td>
+            <td class="mc">&#10003; Ollama built-in, self-hosted</td>
+            <td class="xc">&#10007; Cloud LLM only</td>
+            <td class="xc">&#10007;</td>
+            <td class="xc">&#10007;</td>
+          </tr>
+          <tr>
+            <td>Self-healing / auto-repair</td>
+            <td class="mc">&#10003; Immune engine, self-fixes in production</td>
+            <td class="xc">&#8764; Retries only</td>
+            <td class="xc">&#10007;</td>
+            <td class="xc">&#10007;</td>
+          </tr>
+          <tr>
+            <td>Hosted mail server (own domain)</td>
+            <td class="mc">&#10003; Built-in Postfix + Dovecot</td>
+            <td class="xc">&#10007; 3rd-party</td>
+            <td class="xc">&#10007; 3rd-party</td>
+            <td class="xc">&#10007; 3rd-party</td>
+          </tr>
+          <tr>
+            <td>Compliance automation (SOC2/HIPAA)</td>
+            <td class="mc">&#10003; CCE engine</td>
+            <td class="xc">&#10007;</td>
+            <td class="xc">&#10007; Manual</td>
+            <td class="xc">&#8764; Partial</td>
+          </tr>
+          <tr>
+            <td>Blockchain audit trail</td>
+            <td class="mc">&#10003; BAT engine, immutable log</td>
+            <td class="xc">&#10007;</td>
+            <td class="xc">&#10007;</td>
+            <td class="xc">&#8764; Partial</td>
+          </tr>
+          <tr>
+            <td>Fully self-hostable</td>
+            <td class="mc">&#10003; Your server, your data</td>
+            <td class="xc">&#10007; Cloud only</td>
+            <td class="xc">&#10007; Cloud only</td>
+            <td class="xc">&#10007; Cloud only</td>
+          </tr>
+          <tr>
+            <td>Monthly cost &#8212; 5-person team</td>
+            <td class="mc">$299/mo all-in</td>
+            <td class="xc">$500+/mo + usage fees</td>
+            <td class="xc">$800&#8211;1,400/mo</td>
+            <td class="xc">$1,500+/mo</td>
+          </tr>
         </tbody>
       </table>
     </div>
