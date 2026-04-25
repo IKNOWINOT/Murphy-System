@@ -351,6 +351,11 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/account",
         "/api/admin/",
         "/api/admin",
+        # PATCH-072: Ambient AI + Management AI — session-cookie auth inside routers
+        "/api/ambient/",
+        "/api/ambient",
+        "/api/mgmt/",
+        "/api/mgmt",
         # PATCH-049a: payment webhooks public (signature-verified by provider)
         # checkout + plans public (user supplies account_id in body)
         "/api/billing/webhooks/",
