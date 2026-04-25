@@ -146,7 +146,15 @@ async def engineering_query(req: QueryRequest):
     try:
         from src.murphy_memory_palace import MemoryPalace
         palace = MemoryPalace()
-        results = palace.retrieve(req.question, top_k=req.top_k)
+        raw_results = palace.search(req.question, top_k=req.top_k)
+
+        # HybridSearchResult objects — extract content + source
+        results = []
+        for r in raw_results:
+            content = getattr(r, "content", "") or r.get("content", "") if isinstance(r, dict) else getattr(r, "content", "")
+            source = getattr(r, "source", "") or r.get("source", "") if isinstance(r, dict) else getattr(r, "source", "")
+            meta = getattr(r, "metadata", {}) or r.get("metadata", {}) if isinstance(r, dict) else getattr(r, "metadata", {})
+            results.append({"content": content, "source": source, "metadata": meta})
 
         # Filter by discipline if specified
         if req.discipline:

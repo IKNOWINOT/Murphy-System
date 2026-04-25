@@ -319,9 +319,10 @@ def store_in_knowledge_graph(doc: IngestedDocument) -> bool:
     try:
         from src.murphy_memory_palace import MemoryPalace
         palace = MemoryPalace()
+        stored = 0
         for chunk in doc.chunks:
-            palace.store(
-                content=chunk.text,
+            result = palace.index_conversation(
+                text=chunk.text,
                 source=doc.filename,
                 metadata={
                     "doc_id": doc.doc_id,
@@ -330,11 +331,14 @@ def store_in_knowledge_graph(doc: IngestedDocument) -> bool:
                     "revision": doc.revision,
                     "chunk_index": chunk.chunk_index,
                     "file_type": doc.file_type,
-                    **doc.metadata,
+                    **{k: v for k, v in doc.metadata.items() if isinstance(v, (str, int, float, bool))},
                 },
             )
-        logger.info("DOC-INGEST: %d chunks stored in KG for %s", len(doc.chunks), doc.filename)
-        return True
+            if result.get("status") == "indexed":
+                stored += 1
+        logger.info("DOC-INGEST: %d/%d chunks stored in KG for %s",
+                    stored, len(doc.chunks), doc.filename)
+        return stored > 0
     except Exception as exc:
         logger.error("DOC-INGEST: KG store failed for %s: %s", doc.filename, exc)
         return False

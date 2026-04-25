@@ -232,20 +232,20 @@ def store_paper_in_kg(paper: FetchedPaper) -> bool:
     try:
         from src.murphy_memory_palace import MemoryPalace
         palace = MemoryPalace()
-        palace.store(
-            content=paper.full_text,
+        result = palace.index_conversation(
+            text=paper.full_text,
             source=f"arxiv:{paper.paper_id}",
             metadata={
                 "type": "research_paper",
                 "paper_id": paper.paper_id,
                 "title": paper.title,
-                "authors": paper.authors[:5],
-                "categories": paper.categories,
+                "authors": ", ".join(paper.authors[:3]),
+                "categories": ", ".join(paper.categories),
                 "published": paper.published,
                 "pdf_url": paper.pdf_url,
             },
         )
-        return True
+        return result.get("status") == "indexed"
     except Exception as exc:
         logger.error("PAPER-FETCH: KG store failed for %s: %s", paper.paper_id, exc)
         return False
