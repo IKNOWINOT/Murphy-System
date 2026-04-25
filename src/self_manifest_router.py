@@ -22,6 +22,75 @@ router = APIRouter(prefix="/api/self", tags=["self"])
 
 
 def _require_founder(request: Request):
+    """Resolve caller via session token → SQLite lookup → role check.
+    Reads directly from murphy_users.db to avoid circular imports.
+    PATCH-068b
+    """
+    import sqlite3, json as _json, os as _os
+
+    token = request.cookies.get("murphy_session", "")
+    if not token:
+        auth_hdr = request.headers.get("authorization", "")
+        if auth_hdr.startswith("Bearer "):
+            token = auth_hdr[7:]
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    db_path = _os.environ.get(
+        "MURPHY_USERS_DB",
+        "/var/lib/murphy-production/murphy_users.db"
+    )
+    try:
+        conn = sqlite3.connect(db_path, timeout=3)
+        row = conn.execute(
+            "SELECT tenant_id FROM session_store WHERE session_id=?", (token,)
+        ).fetchone()
+        if not row:
+            conn.close()
+            raise HTTPException(status_code=401, detail="Session not found or expired")
+        account_id = row[0]
+        arow = conn.execute(
+            "SELECT data FROM user_accounts WHERE json_extract(data, '$.account_id')=?",
+            (account_id,)
+        ).fetchone()
+        conn.close()
+        if not arow:
+            raise HTTPException(status_code=401, detail="Account not found")
+        account = _json.loads(arow[0])
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Auth DB error: {exc}")
+
+    role = account.get("role", "")
+    if role not in ("owner", "admin"):
+        raise HTTPException(status_code=403, detail="Founder/admin role required")
+    return account
+
+# Copyright © 2020 Inoni LLC | License: BSL 1.1
+"""Murphy Self-Manifest Router — PATCH-066 | Label: SELF-ROUTER-001
+
+Exposes Murphy's self-model as REST endpoints:
+  GET  /api/self/health          — fast summary (public, no auth)
+  GET  /api/self/manifest        — full self-model (founder/admin, cached 120s)
+  GET  /api/self/patch-log       — PATCH lineage from git
+  POST /api/self/diagnose        — run triage cycle (founder)
+  GET  /api/self/proposals       — list patch proposals
+  POST /api/self/proposals/{id}/approve  — founder approves
+  POST /api/self/proposals/{id}/reject   — founder rejects
+  POST /api/self/proposals/{id}/apply    — apply approved proposal
+"""
+from __future__ import annotations
+import logging
+from typing import Optional
+from fastapi import APIRouter, Request, HTTPException, Query
+from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
+router = APIRouter(prefix="/api/self", tags=["self"])
+
+
+def _require_founder(request: Request):
     """Resolve caller via session cookie or Bearer token. Require owner/admin role.
     Uses src.fastapi_security session validator to avoid circular imports.
     PATCH-066d
