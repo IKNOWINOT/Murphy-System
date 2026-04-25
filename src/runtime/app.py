@@ -16578,6 +16578,15 @@ def create_app() -> FastAPI:
         logger.warning("PATCH-080c: engineering_router failed: %s", _eng_exc)
 
 
+    # ── PATCH-081b: Integration Builder Router ─────────────────────────────────
+    try:
+        from src.integration_router import router as _integ_build_router
+        app.include_router(_integ_build_router)
+        logger.info("PATCH-081b: /api/integrations/* mounted — autonomous integration builder live")
+    except Exception as _ib_exc:
+        logger.warning("PATCH-081b: integration_router failed: %s", _ib_exc)
+
+
     return app
 
 
