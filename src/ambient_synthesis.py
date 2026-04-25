@@ -363,12 +363,7 @@ def synthesize(
     min_confidence: float = 60.0,
     use_llm: bool = True,
 ) -> List[Dict[str, Any]]:
-    """
-    PATCH-072g: Public synthesize() — LLM via query_llm, template fallback.
-
-    Uses LLMController.query_llm(LLMRequest) with Together.ai backend.
-    Falls back to template synthesis if LLM unavailable or times out.
-    """
+    """PATCH-072h: Public synthesize() using LLMController.query_llm."""
     import re as _re
 
     if not signals:
@@ -381,15 +376,13 @@ def synthesize(
             LLMController, LLMRequest = _try_import_llm_controller()
             if LLMController is not None:
                 ctrl = LLMController()
+                schema = '{"id":"uuid","title":"short","summary":"1-2 sentences","confidence":0.85,"category":"perf|business|infra|risk","priority":"high|medium|low","source":"server"}'
+                signals_json = json.dumps(grouped, default=str)[:2000]
                 prompt = (
                     "You are Murphy, an AI operating system. "
-                    "Analyse these ambient context signals and return ONLY a JSON array of insights. "
-                    "No markdown, no explanation — just the JSON array. "
-                    "Each element: {"id":"<uuid>","title":"<short title>","
-                    ""summary":"<1-2 sentence insight>","confidence":0.85,"
-                    ""category":"<perf|business|infra|risk>","priority":"<high|medium|low>","
-                    ""source":"server"}. "
-                    f"Signals summary: {json.dumps(grouped, default=str)[:2000]}"
+                    "Analyse these ambient context signals and return ONLY a JSON array — no markdown, no explanation. "
+                    "Each element must match this schema: " + schema + ". "
+                    "Signals: " + signals_json
                 )
                 req = LLMRequest(prompt=prompt, max_tokens=600, temperature=0.4)
                 resp = ctrl.query_llm(req)
@@ -398,11 +391,9 @@ def synthesize(
                 if match:
                     parsed = json.loads(match.group())
                     if isinstance(parsed, list) and parsed:
-                        logger.info("PATCH-072g: LLM synthesized %d insights", len(parsed))
+                        logger.info("PATCH-072h: LLM synthesized %d insights", len(parsed))
                         return parsed
         except Exception as _exc:
-            logger.warning("PATCH-072g: LLM synthesis failed, using template: %s", _exc)
+            logger.warning("PATCH-072h: LLM synthesis failed, using template: %s", _exc)
 
-    # Template fallback — works with: upcoming_meeting, overdue, unassigned,
-    # pending_votes, org_milestone signal types
     return _template_insights(grouped, min_confidence=min_confidence)
