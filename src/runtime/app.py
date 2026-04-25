@@ -16248,6 +16248,23 @@ def create_app() -> FastAPI:
 
 
 
+
+    # ── PATCH-071: Self-Marketing + Sell Engine ──────────────────────────────
+    try:
+        from src.marketing_router import router as _marketing_router
+        app.include_router(_marketing_router)
+        logger.info("PATCH-071: marketing_router mounted — /api/marketing/* + /api/sell/* live")
+    except Exception as _mr_exc:
+        logger.warning("PATCH-071: marketing_router failed to mount: %s", _mr_exc)
+
+    # ── PATCH-071b: Production router (campaign mgmt, HITL, workflows, verticals) ──
+    try:
+        from src.production_router import router as _prod_router
+        app.include_router(_prod_router)
+        logger.info("PATCH-071b: production_router mounted — /api/marketing/campaigns, /api/hitl/queue, /api/workflows/* live")
+    except Exception as _pr_exc:
+        logger.warning("PATCH-071b: production_router failed to mount: %s", _pr_exc)
+
     # ── PATCH-070d: Schedule automatic triage every 30 minutes ──────────
     try:
         import threading as _threading

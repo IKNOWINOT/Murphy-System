@@ -234,6 +234,66 @@ def run_triage_cycle() -> Dict:
 
     # ── Create proposals + auto-generate diffs ──────────────────────
     diff_results = []
+    # Check 7: Infra cost signal — bandwidth/memory threshold
+    try:
+        import subprocess as _sp
+        # Memory pressure: if used > 85% of total, flag it
+        r = _sp.run(["free", "-m"], capture_output=True, text=True, timeout=5)
+        lines = r.stdout.splitlines()
+        for line in lines:
+            if line.startswith("Mem:"):
+                parts = line.split()
+                total_mb = int(parts[1])
+                used_mb = int(parts[2])
+                pct = used_mb / total_mb if total_mb else 0
+                if pct > 0.90:
+                    issues_found.append({
+                        "symptom": f"Memory pressure: {pct:.0%} used ({used_mb}MB/{total_mb}MB)",
+                        "diagnosis": "High memory usage — may cause OOM kills or slow responses. Review heavy modules.",
+                        "file": "system/memory", "risk": "HIGH"
+                    })
+    except Exception:
+        pass
+
+    # Check 8: Disk usage > 85%
+    try:
+        r = _sp.run(["df", "-h", "/opt"], capture_output=True, text=True, timeout=5)
+        for line in r.stdout.splitlines()[1:]:
+            parts = line.split()
+            if len(parts) >= 5:
+                pct_str = parts[4].replace('%', '')
+                try:
+                    pct = int(pct_str)
+                    if pct > 85:
+                        issues_found.append({
+                            "symptom": f"Disk usage at {pct}% on /opt",
+                            "diagnosis": "Disk filling up — logs or uploads consuming space. Review /opt/Murphy-System.",
+                            "file": "system/disk", "risk": "HIGH"
+                        })
+                except ValueError:
+                    pass
+    except Exception:
+        pass
+
+    # Check 9: Response time degradation — sample /api/health latency
+    try:
+        import time as _time
+        _t0 = _time.monotonic()
+        r = _sp.run(
+            ["curl", "-s", "-o", "/dev/null", "-w", "%{time_total}",
+             "http://127.0.0.1:8000/api/health", "--max-time", "5"],
+            capture_output=True, text=True, timeout=8
+        )
+        latency = float(r.stdout.strip() or "0")
+        if latency > 2.0:
+            issues_found.append({
+                "symptom": f"Health endpoint latency {latency:.2f}s (>2s threshold)",
+                "diagnosis": "API responding slowly — possible blocking I/O, overloaded worker, or DB contention.",
+                "file": "src/runtime/app.py", "risk": "MEDIUM"
+            })
+    except Exception:
+        pass
+
     # Dedup: skip issues whose symptom is already in a pending proposal
     existing_symptoms = {p.symptom for p in _proposals.values() if p.status == ProposalStatus.PENDING}
     issues_to_process = [i for i in issues_found if i["symptom"] not in existing_symptoms]
