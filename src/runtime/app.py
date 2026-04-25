@@ -16358,6 +16358,16 @@ def create_app() -> FastAPI:
         from src.management_ai_router import router as _mgmt_ai_router
         app.include_router(_mgmt_ai_router)
         logger.info("PATCH-072b: management_ai_router mounted — /api/mgmt/* live (Board/Status/Workspace/Dashboard/Recipes/Timeline)")
+
+    # ── PATCH-073: LargeControlModel (LCM) Activation ───────────────────────
+    try:
+        from src.lcm_router import build_router as _lcm_build_router
+        _lcm_router = _lcm_build_router()
+        app.include_router(_lcm_router)
+        logger.info("PATCH-073: LCM router mounted — /api/lcm/* live")
+    except Exception as _lcm_exc:
+        logger.warning("PATCH-073: LCM router mount failed: %s", _lcm_exc)
+
     except Exception as _mar_exc:
         logger.warning("PATCH-072b: management_ai_router failed: %s", _mar_exc)
 
