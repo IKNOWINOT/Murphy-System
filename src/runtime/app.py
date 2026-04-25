@@ -16247,6 +16247,29 @@ def create_app() -> FastAPI:
         logger.warning("PATCH-065c connector agent not loaded: %s", _mca_exc)
 
 
+
+    # ── PATCH-070d: Schedule automatic triage every 30 minutes ──────────
+    try:
+        import threading as _threading
+        def _run_periodic_triage():
+            import time as _time
+            _time.sleep(300)  # wait 5 min after startup before first run
+            while True:
+                try:
+                    from src.murphy_self_patch_loop import run_triage_cycle
+                    result = run_triage_cycle()
+                    logger.info("PATCH-070d: Scheduled triage complete — issues=%s diffs=%s",
+                                result.get("issues_found", 0), len(result.get("diff_results", [])))
+                except Exception as _te:
+                    logger.warning("PATCH-070d: Scheduled triage failed: %s", _te)
+                _time.sleep(1800)  # 30 minutes
+
+        _triage_thread = _threading.Thread(target=_run_periodic_triage, daemon=True, name="murphy-triage")
+        _triage_thread.start()
+        logger.info("PATCH-070d: Periodic triage thread started (every 30min)")
+    except Exception as _ste:
+        logger.warning("PATCH-070d: Could not start triage scheduler: %s", _ste)
+
     return app
 
 

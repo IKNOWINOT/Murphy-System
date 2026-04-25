@@ -315,6 +315,9 @@ class MurphyLLMProvider:
         self.together_api_key  = together_api_key  or os.getenv("TOGETHER_API_KEY",  "")
         self.timeout     = timeout
         self.max_retries = max_retries
+        # PATCH-070c: per-provider timeouts — DeepInfra fast-fails, Together gets full window
+        self.deepinfra_timeout = float(os.getenv("DEEPINFRA_TIMEOUT", "10"))
+        self.together_timeout  = float(os.getenv("TOGETHER_TIMEOUT",  str(timeout)))
 
         self._di_circuit  = _CircuitBreaker()  # DeepInfra circuit
         self._tog_circuit = _CircuitBreaker()  # Together circuit
@@ -371,6 +374,7 @@ class MurphyLLMProvider:
         temperature: float = 0.7,
         max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,
         seed:        Optional[int] = None,
+        timeout:     Optional[float] = None,  # PATCH-070c: per-provider override
     ) -> Dict[str, Any]:
         """POST to an OpenAI-compatible chat completions endpoint."""
         payload: Dict[str, Any] = {
@@ -389,7 +393,7 @@ class MurphyLLMProvider:
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type":  "application/json",
             },
-            timeout=self.timeout,
+            timeout=timeout if timeout is not None else self.timeout,
         )
         resp.raise_for_status()
         return resp.json()
@@ -500,6 +504,7 @@ class MurphyLLMProvider:
                 data = self._post_openai_compat(
                     DEEPINFRA_BASE_URL, self.deepinfra_api_key,
                     model, messages, temperature, max_tokens, seed=seed,
+                    timeout=self.deepinfra_timeout,  # PATCH-070c: fast-fail
                 )
                 elapsed = time.monotonic() - start
                 self._di_circuit.record_success()
@@ -532,6 +537,7 @@ class MurphyLLMProvider:
                 data = self._post_openai_compat(
                     TOGETHER_BASE_URL, self.together_api_key,
                     model, messages, temperature, max_tokens, seed=seed,
+                    timeout=self.together_timeout,  # PATCH-070c: full window
                 )
                 elapsed = time.monotonic() - start
                 self._tog_circuit.record_success()

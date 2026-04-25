@@ -234,6 +234,13 @@ def run_triage_cycle() -> Dict:
 
     # ── Create proposals + auto-generate diffs ──────────────────────
     diff_results = []
+    # Dedup: skip issues whose symptom is already in a pending proposal
+    existing_symptoms = {p.symptom for p in _proposals.values() if p.status == ProposalStatus.PENDING}
+    issues_to_process = [i for i in issues_found if i["symptom"] not in existing_symptoms]
+    if len(issues_to_process) < len(issues_found):
+        logger.info("SELF-PATCH-070: skipping %d duplicate symptoms", len(issues_found) - len(issues_to_process))
+    issues_found = issues_to_process
+
     for issue in issues_found:
         prop = PatchProposal(
             symptom=issue["symptom"],
@@ -253,12 +260,23 @@ def run_triage_cycle() -> Dict:
             try:
                 from src.murphy_code_gen import generate_diff_for_proposal
                 diff_result = generate_diff_for_proposal(prop.proposal_id)
-                diff_results.append({
+                dr = {
                     "proposal_id": prop.proposal_id,
                     "diff_ok": diff_result.get("ok", False),
                     "diff_lines": diff_result.get("diff_lines", 0),
                     "error": diff_result.get("error"),
-                })
+                }
+                diff_results.append(dr)
+                # Update proposed_change with real summary now that diff exists
+                if diff_result.get("ok"):
+                    with _STORE_LOCK:
+                        p2 = _proposals.get(prop.proposal_id)
+                        if p2:
+                            p2.proposed_change = (
+                                f"Auto-generated {diff_result.get('diff_lines',0)}-line diff — "
+                                f"review at /api/self/proposals/{prop.proposal_id}"
+                            )
+                            _save_store()
                 logger.info("SELF-PATCH-070: auto-diff for %s → ok=%s lines=%s",
                             prop.proposal_id,
                             diff_result.get("ok"), diff_result.get("diff_lines"))
