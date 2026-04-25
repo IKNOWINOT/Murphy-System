@@ -16408,6 +16408,81 @@ def create_app() -> FastAPI:
     except Exception as _ste:
         logger.warning("PATCH-070d: Could not start triage scheduler: %s", _ste)
 
+    # ── PATCH-076b: Start MurphyScheduler at boot ────────────────────────────
+    try:
+        if getattr(murphy, 'murphy_scheduler', None) is not None:
+            _sched_started = murphy.murphy_scheduler.start()
+            logger.info("PATCH-076b: MurphyScheduler.start() => %s", _sched_started)
+        else:
+            from src.scheduler import MurphyScheduler as _MS076
+            _ms076 = _MS076()
+            murphy.murphy_scheduler = _ms076
+            _sched_started = _ms076.start()
+            logger.info("PATCH-076b: MurphyScheduler direct init => started=%s", _sched_started)
+    except Exception as _se076:
+        logger.warning("PATCH-076b: Scheduler start failed: %s", _se076)
+
+    # ── PATCH-076a/c/d: Murphy Data Loop (Self-Fix + CRM + Market → Ambient → LCM) ─
+    try:
+        from src.murphy_data_loop import start_data_loop as _start_dl076
+        _dl076_thread = _start_dl076(interval=3600)
+        logger.info("PATCH-076: Data loop started — CRM/Market/SelfFix -> Ambient -> LCM every 1h")
+    except Exception as _dl076_exc:
+        logger.warning("PATCH-076: Data loop failed: %s", _dl076_exc)
+
+    # ── PATCH-076e/g/h/k: Extension Routers (KG + Confidence + AUAR + ML) ──────
+    try:
+        from src.murphy_extension_routers import (
+            build_kg_router as _build_kg,
+            build_confidence_router as _build_conf,
+            build_auar_router as _build_auar,
+            build_ml_router as _build_ml,
+        )
+        app.include_router(_build_kg())
+        logger.info("PATCH-076e: /api/kg/* mounted — Memory Palace / Knowledge Graph live")
+        app.include_router(_build_conf())
+        logger.info("PATCH-076g: /api/confidence/* mounted — Confidence Engine live")
+        app.include_router(_build_auar())
+        logger.info("PATCH-076h: /api/auar/* mounted — AUAR Analytics live")
+        app.include_router(_build_ml())
+        logger.info("PATCH-076k: /api/ml/* mounted — ML API live")
+    except Exception as _ext_exc:
+        logger.warning("PATCH-076e/g/h/k: Extension routers failed: %s", _ext_exc)
+
+    # ── PATCH-076l: Gate Synthesis — enumerate + activate failure-mode gates ────
+    try:
+        import threading as _gate_threading
+        def _activate_gates():
+            import time as _t, json as _j, urllib.request as _ur
+            _t.sleep(20)  # wait for server fully up
+            try:
+                # Enumerate failure modes
+                r = _ur.Request(
+                    "http://127.0.0.1:8000/api/gate-synthesis/failure-modes/enumerate",
+                    data=b"{}",
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                with _ur.urlopen(r, timeout=15) as resp:
+                    fdata = _j.loads(resp.read())
+                # Generate gates from Murphy's profile
+                r2 = _ur.Request(
+                    "http://127.0.0.1:8000/api/gate-synthesis/gates/generate",
+                    data=_j.dumps({"profile": "murphy_os", "auto_activate": True}).encode(),
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                with _ur.urlopen(r2, timeout=15) as resp2:
+                    gdata = _j.loads(resp2.read())
+                logger.info("PATCH-076l: Gate Synthesis activated — gates=%s", gdata.get("count", "?"))
+            except Exception as _ge:
+                logger.debug("PATCH-076l: Gate activation error (non-critical): %s", _ge)
+        _gate_thread = _gate_threading.Thread(target=_activate_gates, daemon=True, name="gate-activator")
+        _gate_thread.start()
+        logger.info("PATCH-076l: Gate activation thread started")
+    except Exception as _gate_exc:
+        logger.warning("PATCH-076l: Gate thread failed: %s", _gate_exc)
+
     return app
 
 

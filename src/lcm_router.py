@@ -58,6 +58,34 @@ def _err(msg: str, status: int = 500) -> "JSONResponse":
     return JSONResponse({"ok": False, "error": msg}, status_code=status)
 
 
+
+def _record_lcm_in_kg(input_text: str, result: dict) -> None:
+    """PATCH-076e: Write LCM dispatch result into Memory Palace as a temporal triple."""
+    def _write():
+        try:
+            import urllib.request as _req, json as _j
+            run_id = result.get("run_id", "?")
+            stage = result.get("stage", "dispatch")
+            payload = _j.dumps({
+                "subject": f"lcm:{run_id}",
+                "predicate": "dispatched_from",
+                "obj": input_text[:120],
+                "confidence": float(result.get("confidence_score", 0.8)),
+                "source": "lcm_router",
+            }).encode()
+            r = _req.Request(
+                "http://127.0.0.1:8000/api/kg/triples",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with _req.urlopen(r, timeout=8):
+                pass
+        except Exception as _e:
+            logger.debug("PATCH-076e: KG write failed (non-critical): %s", _e)
+    threading.Thread(target=_write, daemon=True).start()
+
+
 def build_router() -> "APIRouter":
     if not _FASTAPI:
         raise RuntimeError("FastAPI not available")
@@ -84,6 +112,9 @@ def build_router() -> "APIRouter":
         try:
             result = lcm.process(text, account=account or None)
             _run_history.appendleft(result)
+            # PATCH-076e: Record dispatch in Knowledge Graph
+            if result.get("executed") and not result.get("hitl_required"):
+                _record_lcm_in_kg(text, result)
             return _ok(result)
         except Exception as exc:
             logger.exception("PATCH-073: lcm.process() raised")
