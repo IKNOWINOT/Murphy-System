@@ -358,3 +358,51 @@ async def signup_log():
         return JSONResponse({"ok": True, "total": len(log), "log": clean})
     except Exception as exc:
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+
+
+# ── Code Quality Evaluation ──────────────────────────────────────────────────
+
+@router.get("/eval/log")
+async def eval_log():
+    """Code quality evaluation history."""
+    try:
+        from src.coding_intelligence import EVAL_LOG
+        import json as _json
+        log = _json.loads(EVAL_LOG.read_text()) if EVAL_LOG.exists() else []
+        avg = sum(e["total"] for e in log) / len(log) if log else 0
+        return JSONResponse({
+            "ok": True,
+            "total_evaluations": len(log),
+            "average_score": round(avg, 2),
+            "pass_rate": f"{sum(1 for e in log if e.get('passed'))*100//max(len(log),1)}%",
+            "log": log[-20:],  # last 20
+        })
+    except Exception as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+
+
+class EvalRequest(BaseModel):
+    code: str
+    service: str
+
+@router.post("/eval/score")
+async def score_code(req: EvalRequest):
+    """Score a connector on the 15-point quality scale."""
+    try:
+        from src.coding_intelligence import score_connector
+        score = score_connector(req.code, req.service)
+        return JSONResponse({
+            "ok": True,
+            "service": req.service,
+            "total": score.total,
+            "max": score.max_score,
+            "grade": score.grade,
+            "passes": score.passes,
+            "quality": score.quality,
+            "coverage": score.coverage,
+            "production": score.production,
+            "issues": score.issues,
+            "strengths": score.strengths,
+        })
+    except Exception as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)

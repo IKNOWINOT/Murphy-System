@@ -876,10 +876,24 @@ _provider: Optional[MurphyLLMProvider] = None
 
 
 def get_llm() -> MurphyLLMProvider:
-    """Return the module-level singleton MurphyLLMProvider, creating it on first call."""
+    """Return the module-level singleton MurphyLLMProvider.
+    
+    PATCH-082a: Re-validates API keys on each call so late-loaded environment
+    variables (from systemd secrets.env) are always picked up.
+    """
     global _provider
     if _provider is None:
         _provider = MurphyLLMProvider.from_env()
+    else:
+        # Re-check if keys appeared in env since singleton was created
+        di_key = os.getenv("DEEPINFRA_API_KEY", "")
+        tog_key = os.getenv("TOGETHER_API_KEY", "")
+        if di_key and not _provider.deepinfra_api_key:
+            _provider.deepinfra_api_key = di_key
+            logger.info("PATCH-082a: DeepInfra key hot-loaded into LLM singleton")
+        if tog_key and not _provider.together_api_key:
+            _provider.together_api_key = tog_key
+            logger.info("PATCH-082a: Together.ai key hot-loaded into LLM singleton")
     return _provider
 
 

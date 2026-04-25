@@ -16587,6 +16587,25 @@ def create_app() -> FastAPI:
         logger.warning("PATCH-081b: integration_router failed: %s", _ib_exc)
 
 
+    # ── PATCH-082d: Mount modules with existing api.py but previously unwired ──
+    _unwired_modules = [
+        ("form_intake.api",                "router",  "/api/forms",    "Form Intake"),
+        ("document_export.api",            "create_router", "/api/export", "Document Export"),
+        ("telemetry_learning.api",         "router",  "/api/telemetry","Telemetry Learning"),
+    ]
+    for _mod_path, _attr, _prefix, _label in _unwired_modules:
+        try:
+            import importlib
+            _mod = importlib.import_module(f"src.{_mod_path}")
+            _r = getattr(_mod, _attr)
+            if callable(_r) and not hasattr(_r, "routes"):
+                _r = _r()  # call factory if it's create_router()
+            app.include_router(_r)
+            logger.info("PATCH-082d: %s mounted at %s", _label, _prefix)
+        except Exception as _e:
+            logger.warning("PATCH-082d: %s failed: %s", _label, _e)
+
+
     return app
 
 

@@ -162,12 +162,13 @@ def _generate_connector_code(
     api_doc_context: str,
 ) -> Tuple[str, str]:
     """
-    Use LLM to generate a complete connector.
+    Use LLM to generate a complete connector — direct API calls to bypass singleton issues.
     Returns (code, explanation).
     """
-    # Read base connector as template
+    import os, requests as _req
+    
     try:
-        base_template = (INTEGRATIONS_DIR / "base_connector.py").read_text()[:3000]
+        base_template = (INTEGRATIONS_DIR / "base_connector.py").read_text()[:2500]
         slack_example = (INTEGRATIONS_DIR / "slack_connector.py").read_text()[:2000]
     except Exception:
         base_template = ""
@@ -176,65 +177,89 @@ def _generate_connector_code(
     class_name = "".join(w.capitalize() for w in re.split(r"[_\-]", service)) + "Connector"
     env_key = service.upper().replace("-", "_") + "_API_KEY"
 
-    system_prompt = textwrap.dedent(f"""
-        You are Murphy, an AI OS writing Python integration connectors.
-        
-        The base class (BaseIntegrationConnector) provides:
-        - self._get(path, params, headers) → dict
-        - self._post(path, json, headers) → dict  
-        - self._patch(path, json, headers) → dict
-        - self._delete(path, headers) → dict
-        - self._credentials dict for API keys
-        - All HTTP calls handle retries, errors, and auth automatically
-        
-        Write a COMPLETE, PRODUCTION-READY connector class.
-        Format: EXPLANATION: <one line>
-        CODE:
-        ```python
-        <full connector code>
-        ```
-    """).strip()
+    system_prompt = f"""You are Murphy — a senior Python engineer at Inoni LLC writing production-grade REST API connectors.
+Rules:
+- ALWAYS inherit from BaseIntegrationConnector
+- ALWAYS implement _build_headers() with correct auth for this service
+- ALWAYS implement is_configured() checking required credentials
+- ALWAYS implement get_status() with service-specific health info
+- EVERY public method uses self._get(), self._post(), self._patch(), or self._delete()
+- NO placeholder methods — every method must make a real API call
+- Include type hints on all parameters and return values
+- Handle pagination in list/search methods
+- Include module docstring with credential setup instructions
+- Target: 12-15 quality points (production-grade, better than typical AI output)"""
+
+    user_prompt = f"""Write a complete Python connector for: {service}
+Category: {category}
+Description: {description}
+Class name: {class_name}
+Primary env var: {env_key}
+
+API context:
+{api_doc_context[:2000]}
+
+Base class pattern:
+{base_template[:1500]}
+
+Example (Slack):
+{slack_example[:1200]}
+
+Return ONLY a Python code block with the complete connector. No explanations outside the block."""
+
+    response = None
+    explanation = f"Auto-built {service} connector"
     
-    user_prompt = textwrap.dedent(f"""
-        Write a Python connector for: {service}
-        Category: {category}
-        Description: {description}
-        Class name: {class_name}
-        Primary credential env var: {env_key}
-        
-        API Documentation context:
-        {api_doc_context[:3000]}
-        
-        Base connector pattern (inherit from this):
-        {base_template[:1500]}
-        
-        Example connector (Slack):
-        {slack_example[:1500]}
-        
-        Requirements:
-        1. Class must inherit BaseIntegrationConnector
-        2. Set INTEGRATION_NAME, BASE_URL, CREDENTIAL_KEYS, REQUIRED_CREDENTIALS, SETUP_URL
-        3. Override _build_headers() with correct auth
-        4. Implement 5-10 most useful methods for this service
-        5. Each method: docstring, uses self._get/_post/_patch/_delete
-        6. Handle pagination where relevant
-        7. Import only from stdlib or packages already in requirements (requests, httpx, json)
-        8. NO placeholder methods — every method must make real API calls
-        9. Include module docstring with credential setup instructions
-    """).strip()
+    # Try 1: DeepInfra direct (bypasses broken singleton)
+    di_key = os.getenv("DEEPINFRA_API_KEY", "")
+    if di_key:
+        try:
+            r = _req.post(
+                "https://api.deepinfra.com/v1/openai/chat/completions",
+                headers={"Authorization": f"Bearer {di_key}", "Content-Type": "application/json"},
+                json={
+                    "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    "max_tokens": 2500,
+                    "temperature": 0.15,
+                },
+                timeout=60,
+            )
+            if r.status_code == 200:
+                content = r.json()["choices"][0]["message"]["content"]
+                m = re.search(r"```python\s*\n(.*?)\n```", content, re.DOTALL)
+                response = m.group(1).strip() if m else content
+                explanation = f"DeepInfra/Llama-3.3-70B generated {service} connector"
+                logger.info("AUTO-INTEG: DeepInfra generated %s", service)
+            else:
+                logger.warning("AUTO-INTEG: DeepInfra %d: %s", r.status_code, r.text[:100])
+        except Exception as e:
+            logger.warning("AUTO-INTEG: DeepInfra direct call failed: %s", e)
     
-    try:
-        from src.llm_provider import complete as _llm_complete
-        response = _llm_complete(
-            prompt=user_prompt,
-            system=system_prompt,
-            max_tokens=2000,
-            temperature=0.2,
-        )
-        if not response or response.startswith("[Murphy Onboard]") or response.startswith("[LLM"):
-            return "", f"LLM unavailable: {response}"
-    except Exception as exc:
-        return "", f"LLM call failed: {exc}"
+    # Try 2: Ollama phi3 local
+    if not response:
+        try:
+            combined = f"{system_prompt}\n\nUser: {user_prompt}\nAssistant:"
+            r2 = _req.post(
+                "http://localhost:11434/api/generate",
+                json={"model": "phi3:latest", "prompt": combined, "stream": False,
+                      "options": {"num_predict": 2000, "temperature": 0.15}},
+                timeout=90,
+            )
+            if r2.status_code == 200:
+                resp_text = r2.json().get("response", "")
+                m = re.search(r"```python\s*\n(.*?)\n```", resp_text, re.DOTALL)
+                response = m.group(1).strip() if m else resp_text
+                explanation = f"Phi3/local generated {service} connector"
+                logger.info("AUTO-INTEG: Phi3 generated %s", service)
+        except Exception as e:
+            logger.warning("AUTO-INTEG: Phi3 fallback failed: %s", e)
+    
+    if not response:
+        return "", "All LLM providers unavailable"
     
     if not response:
         return "", "LLM returned empty response"
@@ -358,10 +383,9 @@ def build_integration(
         _log_build(service, False, explanation)
         return result
     
-    # 3. Validate
+    # 3. Validate syntax
     valid, reason = _validate_code(code, service)
     if not valid:
-        # Try to fix obvious issues
         if "BaseIntegrationConnector" not in code:
             code = "from .base_connector import BaseIntegrationConnector\n\n" + code
             valid, reason = _validate_code(code, service)
@@ -370,6 +394,16 @@ def build_integration(
         result = {"ok": False, "service": service, "error": f"Validation failed: {reason}", "code_preview": code[:300]}
         _log_build(service, False, reason)
         return result
+    
+    # 3b. Quality evaluation + iterative improvement (PATCH-082b)
+    try:
+        from src.coding_intelligence import evaluate_and_improve
+        code, eval_score, attempts = evaluate_and_improve(code, service, category, max_attempts=3)
+        logger.info("AUTO-INTEG: %s quality score: %.1f/15 (%s) in %d attempt(s)",
+                    service, eval_score.total, eval_score.grade, attempts)
+    except Exception as eval_exc:
+        eval_score = None
+        logger.warning("AUTO-INTEG: quality eval failed for %s: %s", service, eval_exc)
     
     # 4. Add import if missing
     if "from .base_connector import" not in code and "from integrations.base_connector" not in code:
@@ -401,6 +435,17 @@ def build_integration(
     
     logger.info("AUTO-INTEG: ✅ Built %s — %d methods, registered=%s", service, len(methods), registered)
     
+    score_data = {}
+    if eval_score:
+        score_data = {
+            "quality_score": eval_score.total,
+            "quality_grade": eval_score.grade,
+            "quality_passed": eval_score.passes,
+            "quality_attempts": attempts,
+            "quality_issues": eval_score.issues,
+            "quality_strengths": eval_score.strengths[:3],
+        }
+    
     result = {
         "ok": True,
         "service": service,
@@ -411,6 +456,7 @@ def build_integration(
         "method_count": len(methods),
         "registered": registered,
         "explanation": explanation,
+        **score_data,
     }
     _log_build(service, True, explanation, methods)
     return result
