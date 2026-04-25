@@ -16569,6 +16569,15 @@ def create_app() -> FastAPI:
         logger.warning("PATCH-079d: PSM router failed: %s", _psm_exc)
 
 
+    # ── PATCH-080c: Engineering Intelligence Router ────────────────────────────
+    try:
+        from src.engineering_router import router as _eng_router
+        app.include_router(_eng_router)
+        logger.info("PATCH-080c: /api/eng/* mounted — document ingest + paper fetch + RAG live")
+    except Exception as _eng_exc:
+        logger.warning("PATCH-080c: engineering_router failed: %s", _eng_exc)
+
+
     return app
 
 
