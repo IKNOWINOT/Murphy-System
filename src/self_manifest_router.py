@@ -22,19 +22,6 @@ router = APIRouter(prefix="/api/self", tags=["self"])
 
 
 def _require_founder(request: Request):
-    """Resolve caller via app.state.get_account_from_session → role check. PATCH-068b."""
-    resolver = getattr(getattr(request, "app", None) and request.app.state, "get_account_from_session", None)
-    if resolver is None:
-        raise HTTPException(status_code=503, detail="Auth resolver not available")
-    account = resolver(request)
-    if account is None:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    role = account.get("role", "") if isinstance(account, dict) else ""
-    if role not in ("owner", "admin"):
-        raise HTTPException(status_code=403, detail="Founder/admin role required")
-    return account
-
-def _require_founder(request: Request):
     """Resolve caller via session cookie or Bearer token. Require owner/admin role.
     Uses src.fastapi_security session validator to avoid circular imports.
     PATCH-066d
