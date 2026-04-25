@@ -209,10 +209,21 @@ def delete_board(board_id: str):
 @router.post("/boards/{board_id}/items")
 def add_item(board_id: str, req: ItemCreate):
     try:
-        item = _B().add_item(board_id=board_id, name=req.name,
-                             description=req.description, assignee=req.assignee,
-                             status=req.status, priority=req.priority)
+        # Get or create default group
+        board = _B().get_board(board_id)
+        if board is None:
+            raise HTTPException(404, "Board not found")
+        groups = getattr(board, "groups", None) or []
+        group_id = groups[0].id if groups and hasattr(groups[0], "id") else (
+                   list(groups.keys())[0] if isinstance(groups, dict) else "default")
+        cell_values = {"status": req.status, "priority": req.priority,
+                       "assignee": req.assignee, "description": req.description}
+        item = _B().add_item(board_id=board_id, group_id=str(group_id),
+                             name=req.name, cell_values=cell_values,
+                             created_by=req.assignee or "system")
         return {"ok": True, "item": _ser(item)}
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(500, str(exc))
 
@@ -289,24 +300,41 @@ def list_dashboard_templates():
 @router.post("/dashboards/report")
 def generate_report(req: ReportRequest):
     try:
-        report = _D().generate_report(template_id=req.template_id, context=req.context)
-        return {"ok": True, "report": _ser(report)}
+        from management_systems.dashboard_generator import DashboardTemplateType
+        try:
+            ttype = DashboardTemplateType(req.template_id)
+        except ValueError:
+            ttype = DashboardTemplateType.PROJECT_STATUS
+        board_data = req.context or {}
+        report = _D().generate_report(template_type=ttype, board_data=board_data,
+                                      title=board_data.get("title"))
+        return {"ok": True, "report": report}
     except Exception as exc:
         raise HTTPException(500, str(exc))
 
 @router.post("/dashboards/standup")
 def generate_standup(req: ReportRequest):
     try:
-        report = _D().generate_standup(context=req.context)
-        return {"ok": True, "standup": _ser(report)}
+        ctx = req.context or {}
+        report = _D().generate_standup(
+            team_name=ctx.get("team_name", "Murphy Team"),
+            completed_items=ctx.get("completed", []),
+            in_progress_items=ctx.get("in_progress", []),
+            blocked_items=ctx.get("blocked", []),
+        )
+        return {"ok": True, "standup": report}
     except Exception as exc:
         raise HTTPException(500, str(exc))
 
 @router.post("/dashboards/weekly")
 def generate_weekly(req: ReportRequest):
     try:
-        report = _D().generate_weekly_report(context=req.context)
-        return {"ok": True, "weekly": _ser(report)}
+        ctx = req.context or {}
+        report = _D().generate_weekly_report(
+            workspace_name=ctx.get("workspace_name", "Murphy"),
+            stats=ctx,
+        )
+        return {"ok": True, "weekly": report}
     except Exception as exc:
         raise HTTPException(500, str(exc))
 
@@ -361,8 +389,7 @@ def list_timeline():
 def add_timeline_item(req: TimelineItem):
     try:
         item = _T().add_item(name=req.name, start_date=req.start_date,
-                              end_date=req.end_date, assignee=req.assignee,
-                              priority=req.priority, description=req.description)
+                              end_date=req.end_date, assignee=req.assignee)
         return {"ok": True, "item": _ser(item)}
     except Exception as exc:
         raise HTTPException(500, str(exc))
