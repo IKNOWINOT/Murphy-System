@@ -52,7 +52,7 @@ def search(query: str, max_results: int = 8) -> List[Dict[str, str]]:
 
 # ── Fetch page text ───────────────────────────────────────────────────────────
 
-def fetch(url: str, timeout: int = 12) -> Dict[str, Any]:
+def fetch(url: str, timeout: int = 20) -> Dict[str, Any]:
     """
     Fetch a URL and return extracted text + metadata.
     Uses requests + BeautifulSoup. Returns:
@@ -97,21 +97,31 @@ def screenshot(url: str, timeout: int = 20) -> Dict[str, Any]:
     """
     try:
         import base64
+        import threading
 
-        async def _capture():
-            from playwright.async_api import async_playwright
-            async with async_playwright() as pw:
-                browser = await pw.chromium.launch(
+        result_box = {}
+
+        def _capture_sync():
+            from playwright.sync_api import sync_playwright
+            with sync_playwright() as pw:
+                browser = pw.chromium.launch(
                     headless=True,
                     args=["--no-sandbox", "--disable-setuid-sandbox"],
                 )
-                page = await browser.new_page(viewport={"width": 1280, "height": 900})
-                await page.goto(url, wait_until="networkidle", timeout=timeout * 1000)
-                png = await page.screenshot(full_page=True)
-                await browser.close()
-                return png
+                page = browser.new_page(viewport={"width": 1280, "height": 900})
+                page.goto(url, wait_until="networkidle", timeout=timeout * 1000)
+                png = page.screenshot(full_page=True)
+                browser.close()
+                result_box["png"] = png
 
-        png_bytes = asyncio.run(_capture())
+        # Run in dedicated thread to avoid event-loop conflicts with uvicorn
+        t = threading.Thread(target=_capture_sync, daemon=True)
+        t.start()
+        t.join(timeout=timeout + 5)
+        if "png" not in result_box:
+            raise TimeoutError(f"screenshot timed out after {timeout}s")
+
+        png_bytes = result_box["png"]
         encoded = base64.b64encode(png_bytes).decode()
         logger.info("WEB-TOOL: screenshot(%s) → %d bytes", url, len(png_bytes))
         return {"ok": True, "url": url, "png_b64": encoded,
@@ -136,33 +146,35 @@ def fill_and_submit(
     submit_selector = "button[type=submit]"
     """
     try:
-        async def _fill():
-            from playwright.async_api import async_playwright
-            async with async_playwright() as pw:
-                browser = await pw.chromium.launch(
+        result_box = {}
+
+        def _fill_sync():
+            from playwright.sync_api import sync_playwright
+            with sync_playwright() as pw:
+                browser = pw.chromium.launch(
                     headless=True,
                     args=["--no-sandbox", "--disable-setuid-sandbox"],
                 )
-                page = await browser.new_page()
-                await page.goto(url, wait_until="domcontentloaded", timeout=timeout * 1000)
-
+                page = browser.new_page()
+                page.goto(url, wait_until="domcontentloaded", timeout=timeout * 1000)
                 for selector, value in fields.items():
                     try:
-                        await page.fill(selector, value)
+                        page.fill(selector, value)
                         logger.debug("WEB-TOOL: filled %s", selector)
                     except Exception as fe:
                         logger.warning("WEB-TOOL: fill(%s) failed: %s", selector, fe)
-
                 if submit_selector:
-                    await page.click(submit_selector)
-                    await page.wait_for_timeout(wait_after_ms)
+                    page.click(submit_selector)
+                    page.wait_for_timeout(wait_after_ms)
+                result_box["text"] = page.inner_text("body")[:4000]
+                result_box["png"] = page.screenshot()
+                browser.close()
 
-                text = await page.inner_text("body")
-                png = await page.screenshot()
-                await browser.close()
-                return text[:4000], png
-
-        text, png = asyncio.run(_fill())
+        t = threading.Thread(target=_fill_sync, daemon=True)
+        t.start()
+        t.join(timeout=timeout + 5)
+        text = result_box.get("text", "")
+        png = result_box.get("png", b"")
         import base64
         logger.info("WEB-TOOL: fill_and_submit(%s) → result %d chars", url, len(text))
         return {"ok": True, "url": url, "result_text": text,
