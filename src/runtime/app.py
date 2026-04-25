@@ -911,6 +911,8 @@ def create_app() -> FastAPI:
         try:
             from src.self_manifest_router import router as _self_manifest_router
             app.include_router(_self_manifest_router)
+            # PATCH-068b: expose session resolver on app.state for self_manifest_router
+            app.state.get_account_from_session = _get_account_from_session
             logger.info("PATCH-066: self_manifest_router wired — /api/self/* endpoints live")
         except Exception as _smr_exc:
             logger.warning("PATCH-066: self_manifest_router failed to load: %s", _smr_exc)
