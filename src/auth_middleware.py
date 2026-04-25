@@ -35,6 +35,7 @@ _DEFAULT_EXEMPT: Set[str] = {
     "/api/health",
     "/api/readiness",
     "/api/status/public",
+    "/api/self/health",
     "/docs",
     "/redoc",
     "/openapi.json",

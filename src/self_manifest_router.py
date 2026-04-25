@@ -22,7 +22,27 @@ router = APIRouter(prefix="/api/self", tags=["self"])
 
 
 def _require_founder(request: Request):
-    account = getattr(request.state, "account", None)
+    """Resolve caller from session cookie or Bearer token, require owner/admin role."""
+    token = ""
+    cookie_val = request.cookies.get("murphy_session", "")
+    if cookie_val:
+        token = cookie_val
+    if not token:
+        auth_hdr = request.headers.get("authorization", "")
+        if auth_hdr.startswith("Bearer "):
+            token = auth_hdr[7:]
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    # Resolve via app-level session store
+    try:
+        from src.runtime.app import _session_store, _session_lock, _user_store
+        import threading
+        with _session_lock:
+            account_id = _session_store.get(token)
+        account = _user_store.get(account_id) if account_id else None
+    except Exception:
+        # Fallback: check request.state set by middleware
+        account = getattr(request.state, "account", None)
     if account is None:
         raise HTTPException(status_code=401, detail="Authentication required")
     role = account.get("role", "") if isinstance(account, dict) else getattr(account, "role", "")
