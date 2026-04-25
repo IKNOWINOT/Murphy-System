@@ -323,6 +323,7 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/manifest",
         "/api/readiness",
         "/api/status/public",
+        "/api/self/health",    # PATCH-066c: self health public
         "/health",
         "/docs",
         "/redoc",
@@ -341,6 +342,7 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
     "/api/manga",
         "/api/demo/",
         "/api/system/",
+        "/api/self/",          # PATCH-066c: auth enforced inside self_manifest_router
         # PATCH-048: /api/account/* and /api/admin/* use murphy_session
         # cookie auth inside app.py (_get_account_from_session).
         # OIDCAuthMiddleware only knows murphy_sid — exempt these so they
