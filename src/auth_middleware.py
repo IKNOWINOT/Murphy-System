@@ -356,6 +356,8 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/ambient",
         "/api/mgmt/",
         "/api/mgmt",
+        "/api/lcm/",
+        "/api/lcm",
         # PATCH-049a: payment webhooks public (signature-verified by provider)
         # checkout + plans public (user supplies account_id in body)
         "/api/billing/webhooks/",
