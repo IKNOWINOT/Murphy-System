@@ -34,21 +34,20 @@ _store = None
 _synth = None
 
 def _get_store():
-    """Return the shared AmbientContextStore — prefers the one on murphy app state."""
+    """Return the module-level AmbientContextStore singleton."""
     global _store
-    # Try to get the shared store set by app.py (murphy._ambient_store)
-    try:
-        import gc
-        for obj in gc.get_objects():
-            if hasattr(obj, "_ambient_store"):
-                return obj._ambient_store
-    except Exception:
-        pass
     if _store is None:
         from src.ambient_context_store import AmbientContextStore
         _store = AmbientContextStore(max_signals=2000, ttl_seconds=86400)
-        logger.info("PATCH-072a: AmbientContextStore initialised (standalone)")
+        logger.info("PATCH-072a: AmbientContextStore initialised")
     return _store
+
+
+def set_shared_store(store) -> None:
+    """Allow app.py to inject the shared store instance (PATCH-072g)."""
+    global _store
+    _store = store
+    logger.info("PATCH-072g: AmbientContextStore injected from app startup")
 
 def _get_synth():
     global _synth

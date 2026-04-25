@@ -16342,6 +16342,17 @@ def create_app() -> FastAPI:
     except Exception as _afr_exc:
         logger.warning("PATCH-072a: ambient_full_router failed: %s", _afr_exc)
 
+    # ── PATCH-072g: Share AmbientContextStore ────────────────────────────────
+    try:
+        from src.ambient_context_store import AmbientContextStore as _ACSS
+        from src.ambient_full_router import set_shared_store as _afr_set_store
+        _shared_ambient_store = _ACSS(max_signals=2000, ttl_seconds=86400)
+        murphy._ambient_store = _shared_ambient_store
+        _afr_set_store(_shared_ambient_store)
+        logger.info("PATCH-072g: Shared AmbientContextStore wired — signals+synthesis unified")
+    except Exception as _afr_store_exc:
+        logger.warning("PATCH-072g: store injection failed: %s", _afr_store_exc)
+
     # ── PATCH-072b: Management AI Activation ──────────────────────────────────
     try:
         from src.management_ai_router import router as _mgmt_ai_router
