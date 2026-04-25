@@ -16591,7 +16591,7 @@ def create_app() -> FastAPI:
     _unwired_modules = [
         ("form_intake.api",                "router",  "/api/forms",    "Form Intake"),
         ("document_export.api",            "create_router", "/api/export", "Document Export"),
-        ("telemetry_learning.api",         "router",  "/api/telemetry","Telemetry Learning"),
+        ("telemetry_learning.api",         "app",     "/api/telemetry","Telemetry Learning"),
     ]
     for _mod_path, _attr, _prefix, _label in _unwired_modules:
         try:

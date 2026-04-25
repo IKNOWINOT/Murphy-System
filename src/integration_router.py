@@ -1,21 +1,21 @@
-import threading
 """
 Integration Builder Router — PATCH-081b
 REST API for autonomous integration building, discovery, and web signup.
 
-  GET  /api/integrations/catalog        — all known + auto-built connectors
-  GET  /api/integrations/status         — which are configured with real keys
-  POST /api/integrations/build          — build one new integration autonomously
-  POST /api/integrations/build/cycle    — run autonomous batch build cycle
-  GET  /api/integrations/build/log      — build history
-  POST /api/integrations/configure      — set credentials for an integration
-  POST /api/integrations/call           — call any integration method
-  POST /api/integrations/signup         — Playwright-based web signup agent
-  GET  /api/integrations/signup/log     — signup attempt history
+  GET  /api/builder/catalog        — all known + auto-built connectors
+  GET  /api/builder/status         — which are configured with real keys
+  POST /api/builder/build          — build one new integration autonomously
+  POST /api/builder/build/cycle    — run autonomous batch build cycle
+  GET  /api/builder/build/log      — build history
+  POST /api/builder/configure      — set credentials for an integration
+  POST /api/builder/call           — call any integration method
+  POST /api/builder/signup         — Playwright-based web signup agent
+  GET  /api/builder/signup/log     — signup attempt history
 
 PATCH-081b | Label: INTEG-ROUTER-001
 """
 from __future__ import annotations
+import threading
 
 import json
 import logging
@@ -29,7 +29,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/integrations", tags=["integrations"])
+router = APIRouter(prefix="/api/builder", tags=["integration_builder"])
 
 SIGNUP_LOG = Path("/var/lib/murphy-production/signup_log.json")
 SIGNUP_LOG.parent.mkdir(parents=True, exist_ok=True)
