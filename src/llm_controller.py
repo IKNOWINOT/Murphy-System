@@ -72,6 +72,20 @@ class LLMRequest:
     context: Optional[str] = None
     temperature: float = 0.7
     max_tokens: int = 131072  # DeepInfra Llama-3.1-70B context window
+
+    def __post_init__(self):
+        # PATCH-078: RSC resource constraint — scale token budget with stability
+        try:
+            from src.rsc_unified_sink import get_sink, RSCMode
+            current = get_sink().get()
+            if current:
+                if current.mode == RSCMode.CONSTRAIN:
+                    object.__setattr__(self, 'max_tokens', min(self.max_tokens, 512))
+                elif current.mode == RSCMode.NOMINAL:
+                    object.__setattr__(self, 'max_tokens', min(self.max_tokens, 2048))
+                # EXPAND: no cap — use requested value
+        except Exception:
+            pass  # RSC not available — use requested value
     model_preference: Optional[LLMModel] = None
     require_capabilities: Optional[List[ModelCapability]] = None
 

@@ -21,7 +21,7 @@ from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from src.rsc_unified_sink import get_sink, push, enforce, RSCMode
+from src.rsc_unified_sink import get_sink, push, enforce, RSCMode, resource_budget
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,9 @@ async def rsc_status():
     current = sink.get()
     if current is None:
         return JSONResponse({"ok": True, "data": None, "note": "no readings yet"})
-    return JSONResponse({"ok": True, "data": current.to_dict()})
+    data = current.to_dict()
+    data["resource_budget"] = resource_budget()
+    return JSONResponse({"ok": True, "data": data})
 
 
 @router.get("/stream")

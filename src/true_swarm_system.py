@@ -1100,7 +1100,19 @@ class TrueSwarmSystem:
         # 2. Exploration agents generate artifacts — TRUE PARALLELISM via ThreadPoolExecutor
         logger.info("\n   Generating solution candidates (parallel)...")
         exploration_artifacts = []
-        _max_workers = min(len(exploration_agents), 8) if exploration_agents else 1
+        # PATCH-078: RSC resource constraint — scale thread pool with stability
+        _rsc_max = 8  # EXPAND default
+        try:
+            from src.rsc_unified_sink import get_sink, RSCMode
+            _cur = get_sink().get()
+            if _cur:
+                if _cur.mode == RSCMode.CONSTRAIN:
+                    _rsc_max = 1   # sequential only
+                elif _cur.mode == RSCMode.NOMINAL:
+                    _rsc_max = 4   # half pool
+        except Exception:
+            pass
+        _max_workers = min(len(exploration_agents), _rsc_max) if exploration_agents else 1
         with ThreadPoolExecutor(max_workers=_max_workers) as pool:
             futures = {
                 pool.submit(agent.generate_artifacts, task, self.workspace, context): agent

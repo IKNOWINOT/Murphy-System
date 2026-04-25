@@ -354,6 +354,16 @@ class EnterpriseRoleTemplateCompiler:
 
         # Performance settings
         self._batch_size = batch_size
+        # PATCH-078: RSC resource constraint
+        try:
+            from src.rsc_unified_sink import get_sink, RSCMode
+            _cur = get_sink().get()
+            if _cur and _cur.mode == RSCMode.CONSTRAIN:
+                max_workers = min(max_workers, 1)
+            elif _cur and _cur.mode == RSCMode.NOMINAL:
+                max_workers = min(max_workers, 2)
+        except Exception:
+            pass
         self._max_workers = max_workers
         self._cache_ttl = cache_ttl
         self._lock = threading.RLock()

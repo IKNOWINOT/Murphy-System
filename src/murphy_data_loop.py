@@ -280,6 +280,15 @@ def _get_founder_cookies() -> str:
 
 def run_data_loop(interval: int = _INTERVAL_SECONDS) -> None:
     """Main daemon loop — runs forever, emitting signals on schedule."""
+    # PATCH-078: RSC resource constraint — stretch interval if constrained
+    try:
+        from src.rsc_unified_sink import get_sink, RSCMode
+        _cur = get_sink().get()
+        if _cur and _cur.mode == RSCMode.CONSTRAIN:
+            interval = max(interval, 7200)
+            logger.info("PATCH-078: RSC CONSTRAIN — data loop interval stretched to %ds", interval)
+    except Exception:
+        pass
     logger.info("PATCH-076: Data loop starting (interval=%ds)", interval)
     # Wait for server to fully init
     time.sleep(15)

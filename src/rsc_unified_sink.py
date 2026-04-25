@@ -373,3 +373,39 @@ def enforce(op_name: str, required_mode: str = RSCMode.NOMINAL) -> Optional[str]
         logger.warning(msg)
         return msg
     return None
+
+# ── Resource budget helper ────────────────────────────────────────────────────
+
+def resource_budget() -> Dict[str, Any]:
+    """
+    Return a resource envelope scaled to current S(t).
+    Any module can call this to get its allowed resource limits.
+
+    Returns dict with:
+      max_tokens:   LLM token cap
+      max_workers:  Thread pool worker cap
+      loop_interval_multiplier: Scale factor for timed loops (1.0=normal, 2.0=half-rate)
+      mode:         Current RSC mode string
+      s_t:          Current stability score
+
+    Usage:
+        from src.rsc_unified_sink import resource_budget
+        budget = resource_budget()
+        pool_size = min(requested_size, budget["max_workers"])
+    """
+    current = get_sink().get()
+    if current is None:
+        # No data yet — full resources allowed
+        return {"max_tokens": 131072, "max_workers": 8,
+                "loop_interval_multiplier": 1.0, "mode": "unknown", "s_t": 1.0}
+
+    if current.mode == RSCMode.CONSTRAIN:
+        return {"max_tokens": 512,   "max_workers": 1, "loop_interval_multiplier": 2.0,
+                "mode": current.mode, "s_t": current.s_t}
+    elif current.mode == RSCMode.EXPAND:
+        return {"max_tokens": 131072, "max_workers": 8, "loop_interval_multiplier": 1.0,
+                "mode": current.mode, "s_t": current.s_t}
+    else:  # NOMINAL
+        return {"max_tokens": 2048,  "max_workers": 4, "loop_interval_multiplier": 1.0,
+                "mode": current.mode, "s_t": current.s_t}
+
