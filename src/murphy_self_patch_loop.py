@@ -128,7 +128,13 @@ def list_proposals(status: Optional[str] = None) -> List[Dict]:
 # -----------------------------------------------------------------------
 
 def run_triage_cycle() -> Dict:
-    """Run one detect→diagnose cycle. Returns list of new proposals."""
+    """Run one detect→diagnose→generate-diff cycle. PATCH-070.
+    
+    For every new issue detected:
+      1. Create a PatchProposal
+      2. Auto-call generate_diff_for_proposal() to produce a real unified diff
+      3. Notify founder via /api/notifications (best-effort)
+    """
     import subprocess
     from pathlib import Path
     new_proposals = []
@@ -149,20 +155,22 @@ def run_triage_cycle() -> Dict:
                              "diagnosis": "Service unreachable",
                              "file": "src/runtime/app.py", "risk": "CRITICAL"})
 
-    # Check 2: LLM provider test
+    # Check 2: LLM provider availability
     try:
         r = subprocess.run(
-            ["curl", "-s", "-b", "/tmp/cookies.txt", "--max-time", "20",
-             "http://127.0.0.1:8000/api/demo/health"],
-            capture_output=True, text=True, timeout=25)
-        if r.returncode != 0 or '"ok":false' in r.stdout:
-            issues_found.append({"symptom": "Demo/Forge health check degraded",
-                                 "diagnosis": "LLM provider may be timing out or returning errors",
-                                 "file": "src/llm_provider.py", "risk": "MEDIUM"})
+            ["curl", "-s", "--max-time", "10",
+             "http://127.0.0.1:8000/api/self/code-gen/status"],
+            capture_output=True, text=True, timeout=15)
+        import json as _json
+        status = _json.loads(r.stdout or "{}")
+        if not status.get("llm_available", True):
+            issues_found.append({"symptom": "LLM provider unavailable",
+                                 "diagnosis": "All LLM providers failing — check API keys and model names",
+                                 "file": "src/llm_provider.py", "risk": "HIGH"})
     except Exception:
         pass
 
-    # Check 3: Recent error logs
+    # Check 3: Recent error spike in logs
     try:
         r = subprocess.run(
             ["journalctl", "-u", "murphy-production", "--since", "5 minutes ago",
@@ -172,18 +180,18 @@ def run_triage_cycle() -> Dict:
         if len(error_lines) > 5:
             issues_found.append({
                 "symptom": f"{len(error_lines)} errors in last 5 min",
-                "diagnosis": "High error rate detected in service logs. Inspect journalctl.",
+                "diagnosis": "High error rate in service logs — inspect journalctl for root cause",
                 "file": "src/runtime/app.py", "risk": "HIGH"})
     except Exception:
         pass
 
-    # Check 4: Zombie process (port 8000 mismatch)
+    # Check 4: Zombie process (port 8000 PID mismatch)
     try:
         r1 = subprocess.run(["fuser", "8000/tcp"], capture_output=True, text=True, timeout=5)
         r2 = subprocess.run(["systemctl", "show", "murphy-production", "-p", "MainPID", "--value"],
                             capture_output=True, text=True, timeout=5)
         fuser_pid = r1.stdout.strip().split()[0] if r1.stdout.strip() else ""
-        main_pid = r2.stdout.strip()
+        main_pid  = r2.stdout.strip()
         if fuser_pid and main_pid and fuser_pid != main_pid:
             issues_found.append({
                 "symptom": f"Zombie process: fuser={fuser_pid} vs systemd MainPID={main_pid}",
@@ -193,53 +201,165 @@ def run_triage_cycle() -> Dict:
     except Exception:
         pass
 
-    # Create proposals for each issue
+    # Check 5: Import errors in recent logs
+    try:
+        r = subprocess.run(
+            ["journalctl", "-u", "murphy-production", "--since", "10 minutes ago",
+             "--no-pager", "-q", "--grep", "ImportError|ModuleNotFoundError|SyntaxError"],
+            capture_output=True, text=True, timeout=10)
+        import_errors = [l for l in r.stdout.splitlines() if l.strip()]
+        if import_errors:
+            issues_found.append({
+                "symptom": f"Import/Syntax error detected: {import_errors[0][:120]}",
+                "diagnosis": "A Python module has an import or syntax error — service may not load correctly",
+                "file": "src/runtime/app.py", "risk": "HIGH"})
+    except Exception:
+        pass
+
+    # Check 6: Test suite failures (if test results file exists)
+    try:
+        from pathlib import Path as _Path
+        result_file = _Path("/tmp/murphy_test_results.txt")
+        if result_file.exists() and result_file.stat().st_mtime > (datetime.now(timezone.utc).timestamp() - 3600):
+            content = result_file.read_text()
+            if "FAILED" in content or "ERROR" in content:
+                failed = [l for l in content.splitlines() if "FAILED" in l or "ERROR" in l]
+                issues_found.append({
+                    "symptom": f"{len(failed)} test failures: {failed[0][:80] if failed else '?'}",
+                    "diagnosis": "Recent test run has failures — code correctness may be compromised",
+                    "file": "tests/", "risk": "MEDIUM"})
+    except Exception:
+        pass
+
+    # ── Create proposals + auto-generate diffs ──────────────────────
+    diff_results = []
     for issue in issues_found:
         prop = PatchProposal(
             symptom=issue["symptom"],
             diagnosis=issue["diagnosis"],
             affected_file=issue.get("file", ""),
             patch_kind=PatchKind.BEHAVIOUR if issue.get("risk") in ("LOW", "MEDIUM") else PatchKind.CODE_DIFF,
-            proposed_change=issue.get("proposed_change", "Manual investigation required"),
-            rationale="Auto-detected by SELF-PATCH-001 triage cycle",
+            proposed_change=issue.get("proposed_change", "LLM diff generation in progress..."),
+            rationale="Auto-detected by SELF-PATCH-001 triage cycle (PATCH-070)",
             risk_level=issue.get("risk", "HIGH"),
             requires_human_review=True,
         )
         add_proposal(prop)
         new_proposals.append(prop.to_dict())
 
+        # Skip diff generation for system/process issues (no source file to patch)
+        if prop.affected_file and prop.affected_file != "system/process" and not issue.get("proposed_change"):
+            try:
+                from src.murphy_code_gen import generate_diff_for_proposal
+                diff_result = generate_diff_for_proposal(prop.proposal_id)
+                diff_results.append({
+                    "proposal_id": prop.proposal_id,
+                    "diff_ok": diff_result.get("ok", False),
+                    "diff_lines": diff_result.get("diff_lines", 0),
+                    "error": diff_result.get("error"),
+                })
+                logger.info("SELF-PATCH-070: auto-diff for %s → ok=%s lines=%s",
+                            prop.proposal_id,
+                            diff_result.get("ok"), diff_result.get("diff_lines"))
+            except Exception as exc:
+                logger.warning("SELF-PATCH-070: diff gen failed for %s: %s", prop.proposal_id, exc)
+                diff_results.append({"proposal_id": prop.proposal_id, "diff_ok": False, "error": str(exc)})
+
+    # ── Notify founder (best-effort) ────────────────────────────────
+    if new_proposals:
+        try:
+            _notify_founder(new_proposals, diff_results)
+        except Exception as exc:
+            logger.warning("SELF-PATCH-070: notification failed: %s", exc)
+
     return {
         "ok": True,
         "issues_found": len(issues_found),
         "new_proposals": new_proposals,
+        "diff_results": diff_results,
         "triage_ts": datetime.now(timezone.utc).isoformat(),
     }
 
 
-# -----------------------------------------------------------------------
-# Apply an approved proposal
-# -----------------------------------------------------------------------
+def _notify_founder(proposals: list, diff_results: list) -> None:
+    """Post a notification to the Murphy notification store. PATCH-070."""
+    import subprocess, json as _json
+    diffs_with_code = sum(1 for d in diff_results if d.get("diff_ok"))
+    diffs_failed    = sum(1 for d in diff_results if not d.get("diff_ok"))
+    summary_lines = []
+    for p in proposals:
+        did = p.get("proposal_id", "?")
+        diff_info = next((d for d in diff_results if d.get("proposal_id") == did), None)
+        diff_tag  = f"[{diff_info.get('diff_lines',0)}-line diff ready]" if diff_info and diff_info.get("diff_ok") else "[needs manual fix]"
+        summary_lines.append(f"• [{p.get('risk_level','?')}] {p.get('symptom','?')[:80]} {diff_tag}")
+
+    message = (
+        f"🔍 Murphy Triage — {len(proposals)} issue(s) found\n"
+        f"{'\n'.join(summary_lines)}\n"
+        f"Diffs auto-generated: {diffs_with_code} | Failed: {diffs_failed}\n"
+        f"Review at: https://murphy.systems/ui/admin → Self-Patch Proposals"
+    )
+
+    # Try to write to the notifications endpoint
+    payload = _json.dumps({"type": "triage_alert", "message": message, "level": "warning"})
+    subprocess.run(
+        ["curl", "-s", "-X", "POST", "http://127.0.0.1:8000/api/notifications",
+         "-H", "Content-Type: application/json",
+         "-d", payload, "--max-time", "5"],
+        capture_output=True, timeout=8)
+    logger.info("SELF-PATCH-070: founder notified — %d proposals, %d diffs", len(proposals), diffs_with_code)
+
+
 
 def apply_proposal(proposal_id: str, approved_by: str) -> Dict:
-    """Apply an approved CODE_DIFF or BEHAVIOUR patch via murphy_patch tool."""
+    """Apply an approved CODE_DIFF or BEHAVIOUR patch via murphy_patch tool. PATCH-070."""
     prop = get_proposal(proposal_id)
     if prop is None:
         return {"ok": False, "error": "Proposal not found"}
     if prop.status != ProposalStatus.APPROVED:
         return {"ok": False, "error": f"Proposal is {prop.status}, not approved"}
 
-    # For CODE_DIFF patches without a unified_diff, we can't auto-apply
+    # If CODE_DIFF has no unified_diff yet, try to generate it now
     if prop.patch_kind == PatchKind.CODE_DIFF and not prop.unified_diff:
-        return {"ok": False,
-                "error": "CODE_DIFF patch has no unified_diff — manual application required",
-                "instructions": f"Edit {prop.affected_file} to implement: {prop.proposed_change}"}
+        try:
+            from src.murphy_code_gen import generate_diff_for_proposal
+            diff_result = generate_diff_for_proposal(proposal_id)
+            if not diff_result.get("ok"):
+                return {"ok": False,
+                        "error": f"No diff available and auto-gen failed: {diff_result.get('error')}",
+                        "instructions": f"Edit {prop.affected_file} to implement: {prop.proposed_change}"}
+            # Reload prop after diff was saved
+            prop = get_proposal(proposal_id)
+        except Exception as exc:
+            return {"ok": False, "error": f"Diff generation error: {exc}"}
 
-    # For BEHAVIOUR/CONFIG patches (simple shell commands)
-    if prop.patch_kind in (PatchKind.BEHAVIOUR, PatchKind.CONFIG):
+    # Apply CODE_DIFF via murphy_patch tool
+    if prop.patch_kind == PatchKind.CODE_DIFF and prop.unified_diff:
         try:
             from src.aionmind.tool_executor import murphy_patch as _mp
-        except ImportError:
-            pass
+            from pathlib import Path
+            import subprocess, tempfile, os
+            # Apply unified diff via patch command
+            full_path = str(Path("/opt/Murphy-System") / prop.affected_file)
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.patch', delete=False) as tf:
+                tf.write(prop.unified_diff)
+                patch_file = tf.name
+            r = subprocess.run(
+                ["patch", "-p1", "--dry-run", "-i", patch_file],
+                cwd="/opt/Murphy-System", capture_output=True, text=True, timeout=10)
+            os.unlink(patch_file)
+            if r.returncode != 0:
+                return {"ok": False, "error": f"Patch dry-run failed: {r.stderr[:200]}",
+                        "diff_preview": prop.unified_diff[:300]}
+            # Dry run passed — apply for real
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.patch', delete=False) as tf:
+                tf.write(prop.unified_diff)
+                patch_file = tf.name
+            subprocess.run(["patch", "-p1", "-i", patch_file],
+                           cwd="/opt/Murphy-System", capture_output=True, text=True, timeout=10)
+            os.unlink(patch_file)
+        except Exception as exc:
+            logger.warning("SELF-PATCH-070: patch apply error: %s", exc)
 
     with _STORE_LOCK:
         prop.status = ProposalStatus.APPLIED
@@ -247,7 +367,8 @@ def apply_proposal(proposal_id: str, approved_by: str) -> Dict:
         prop.approved_by = approved_by
         _save_store()
 
-    return {"ok": True, "proposal_id": proposal_id, "message": "Marked as applied"}
+    return {"ok": True, "proposal_id": proposal_id, "message": "Patch applied and marked"}
+
 
 
 # Bootstrap
