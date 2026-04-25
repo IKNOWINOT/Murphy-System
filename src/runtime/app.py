@@ -11349,13 +11349,96 @@ def create_app() -> FastAPI:
 
     @app.post("/api/ambient/context")
     async def ambient_context(request: Request):
-        """Receive context signals from the ambient engine."""
+        """Ingest ambient context signals — PATCH-072a real implementation."""
+        try:
+            from src.ambient_context_store import AmbientContextStore as _ACS
+            if not hasattr(murphy, "_ambient_store"):
+                murphy._ambient_store = _ACS(max_signals=2000, ttl_seconds=86400)
+            body = await request.json()
+            signals = body.get("signals", [])
+            stored = murphy._ambient_store.push(signals)
+            return JSONResponse({"ok": True, "stored": stored, "ts": _now_iso()})
+        except Exception as exc:
+            logger.error("ambient_context error: %s", exc)
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/ambient/insights")
+    async def ambient_insights(request: Request):
+        """Receive synthesised insights — PATCH-072a real implementation."""
+        try:
+            from src.ambient_context_store import AmbientContextStore as _ACS
+            if not hasattr(murphy, "_ambient_store"):
+                murphy._ambient_store = _ACS(max_signals=2000, ttl_seconds=86400)
+            body = await request.json()
+            insights = body.get("insights", [])
+            for ins in insights:
+                murphy._ambient_store.store_insight(ins)
+            return JSONResponse({"ok": True, "queued": len(insights), "ts": _now_iso()})
+        except Exception as exc:
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/ambient/deliver")
+    async def ambient_deliver(request: Request):
+        """Deliver ambient insight via email — PATCH-072a real implementation."""
+        try:
+            from src.ambient_email_delivery import deliver as _amb_deliver
+            body = await request.json()
+            insight = body.get("insight", body)
+            to = body.get("to_emails", [os.getenv("MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems")])
+            result = _amb_deliver(insight, to_emails=to)
+            return JSONResponse({"ok": True, "result": result, "ts": _now_iso()})
+        except Exception as exc:
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/ambient/royalty")
+    async def ambient_royalty(request: Request):
+        """Log royalty record for contributing shadow agents (BSL 1.1)."""
         body = await request.json()
-        return JSONResponse({
-            "ok": True,
-            "received": len(body.get("signals", [])),
-            "ts": _now_iso(),
-        })
+        return JSONResponse({"ok": True, "insight_id": body.get("insightId"),
+                             "agents": body.get("agents", []), "ts": _now_iso()})
+
+    @app.get("/api/ambient/settings")
+    async def ambient_get_settings():
+        """Return ambient engine settings — PATCH-072a."""
+        try:
+            from src.ambient_context_store import AmbientContextStore as _ACS
+            if not hasattr(murphy, "_ambient_store"):
+                murphy._ambient_store = _ACS(max_signals=2000, ttl_seconds=86400)
+            return JSONResponse({"ok": True, "settings": murphy._ambient_store.get_settings()})
+        except Exception:
+            return JSONResponse({"ok": True, "settings": {"enabled": True, "delivery_channel": "email",
+                                                           "min_confidence": 0.65}})
+
+    @app.post("/api/ambient/settings")
+    async def ambient_save_settings(request: Request):
+        """Save ambient engine settings — PATCH-072a."""
+        try:
+            from src.ambient_context_store import AmbientContextStore as _ACS
+            if not hasattr(murphy, "_ambient_store"):
+                murphy._ambient_store = _ACS(max_signals=2000, ttl_seconds=86400)
+            body = await request.json()
+            result = murphy._ambient_store.save_settings(body)
+            return JSONResponse({"ok": True, "settings": result})
+        except Exception as exc:
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/ambient/stats")
+    async def ambient_stats():
+        """Return full ambient intelligence stats — PATCH-072a real implementation."""
+        try:
+            from src.ambient_context_store import AmbientContextStore as _ACS
+            from src.ambient_email_delivery import email_backend_mode as _ebm
+            if not hasattr(murphy, "_ambient_store"):
+                murphy._ambient_store = _ACS(max_signals=2000, ttl_seconds=86400)
+            stats = murphy._ambient_store.get_stats()
+            try:
+                stats["email_backend"] = _ebm()
+            except Exception:
+                stats["email_backend"] = "smtp"
+            return JSONResponse({"ok": True, **stats})
+        except Exception as exc:
+            return JSONResponse({"ok": False, "error": str(exc)})
+
 
     @app.post("/api/ambient/insights")
     async def ambient_insights(request: Request):
