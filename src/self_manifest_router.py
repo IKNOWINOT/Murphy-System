@@ -22,32 +22,50 @@ router = APIRouter(prefix="/api/self", tags=["self"])
 
 
 def _require_founder(request: Request):
-    """Resolve caller from session cookie or Bearer token, require owner/admin role."""
-    token = ""
-    cookie_val = request.cookies.get("murphy_session", "")
-    if cookie_val:
-        token = cookie_val
+    """Resolve caller via session cookie or Bearer token. Require owner/admin role.
+    Uses src.fastapi_security session validator to avoid circular imports.
+    PATCH-066d
+    """
+    token = request.cookies.get("murphy_session", "")
     if not token:
         auth_hdr = request.headers.get("authorization", "")
         if auth_hdr.startswith("Bearer "):
             token = auth_hdr[7:]
     if not token:
         raise HTTPException(status_code=401, detail="Authentication required")
-    # Resolve via app-level session store
+
+    account = None
     try:
-        from src.runtime.app import _session_store, _session_lock, _user_store
-        import threading
-        with _session_lock:
-            account_id = _session_store.get(token)
-        account = _user_store.get(account_id) if account_id else None
+        # Primary: use the fastapi_security session validator (no circular import)
+        from src.fastapi_security import _session_validator
+        result = _session_validator(token)
+        if result:
+            account = result
     except Exception:
-        # Fallback: check request.state set by middleware
-        account = getattr(request.state, "account", None)
+        pass
+
     if account is None:
-        raise HTTPException(status_code=401, detail="Authentication required")
+        try:
+            # Fallback: import session store via module-level cache (avoids circular)
+            import sys
+            app_mod = sys.modules.get("src.runtime.app") or sys.modules.get("runtime.app")
+            if app_mod:
+                lock = getattr(app_mod, "_session_lock", None)
+                store = getattr(app_mod, "_session_store", None)
+                users = getattr(app_mod, "_user_store", None)
+                if lock and store and users:
+                    with lock:
+                        aid = store.get(token)
+                    account = users.get(aid) if aid else None
+        except Exception:
+            pass
+
+    if account is None:
+        raise HTTPException(status_code=401, detail="Authentication required — valid session required")
+
     role = account.get("role", "") if isinstance(account, dict) else getattr(account, "role", "")
     if role not in ("owner", "admin"):
-        raise HTTPException(status_code=403, detail="Founder/admin required")
+        raise HTTPException(status_code=403, detail="Founder/admin role required")
     return account
 
 
