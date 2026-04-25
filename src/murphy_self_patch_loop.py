@@ -142,9 +142,10 @@ def run_triage_cycle() -> Dict:
 
     # Check 1: Service health
     try:
-        r = subprocess.run(["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}",
-                            "--max-time", "5", "http://127.0.0.1:8000/api/health"],
-                           capture_output=True, text=True, timeout=8)
+        r = subprocess.run(["curl", "-s", "-L", "-o", "/dev/null", "-w", "%{http_code}",
+                            "--max-time", "8", "--retry", "2", "--retry-delay", "2",
+                            "http://127.0.0.1:8000/api/health"],
+                           capture_output=True, text=True, timeout=20)
         code = int(r.stdout.strip() or 0)
         if code not in (200, 204):
             issues_found.append({"symptom": f"Health endpoint returned {code}",
