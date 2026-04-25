@@ -96,10 +96,14 @@ def create_app() -> FastAPI:
     if FastAPI is None:
         raise ImportError("FastAPI not installed. Install with: pip install fastapi uvicorn")
 
+    _is_prod = os.environ.get("MURPHY_ENV", "").lower() in ("production", "staging")
     app = FastAPI(
         title="Murphy System 1.0",
         description="Universal AI Automation System",
-        version="1.0.0"
+        version="1.0.0",
+        docs_url=None if _is_prod else "/docs",
+        redoc_url=None if _is_prod else "/redoc",
+        openapi_url=None if _is_prod else "/openapi.json",
     )
 
     # ── Utility: ISO timestamp helper ───────────────────────────
@@ -903,6 +907,13 @@ def create_app() -> FastAPI:
     try:
         from src.aionmind.chat_router import router as _aion_chat_router
         app.include_router(_aion_chat_router)
+        # PATCH-066: Self-manifest + self-patch loop endpoints
+        try:
+            from src.self_manifest_router import router as _self_manifest_router
+            app.include_router(_self_manifest_router)
+            logger.info("PATCH-066: self_manifest_router wired — /api/self/* endpoints live")
+        except Exception as _smr_exc:
+            logger.warning("PATCH-066: self_manifest_router failed to load: %s", _smr_exc)
         logger.info("PATCH-065: AionMind chat/tool/integrate endpoints mounted at /api/aionmind/*")
     except Exception as _ac_exc:
         logger.warning("PATCH-065: Murphy Intelligence chat router unavailable: %s", _ac_exc)
