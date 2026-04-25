@@ -12,10 +12,10 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from concept_translation import ConceptTranslationEngine, TechnicalAnalogue
-from information_quality import InformationQuality, InformationQualityEngine
-from resolution_scoring import ResolutionLevel
-from simulation_engine import SimulationResult, StrategicSimulationEngine
+from src.concept_translation import ConceptTranslationEngine, TechnicalAnalogue
+from src.information_quality import InformationQuality, InformationQualityEngine
+from src.resolution_scoring import ResolutionLevel
+from src.simulation_engine import SimulationResult, StrategicSimulationEngine
 
 logger = logging.getLogger(__name__)
 

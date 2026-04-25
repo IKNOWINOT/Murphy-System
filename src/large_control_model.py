@@ -209,23 +209,36 @@ class LargeControlModel:
 
     def _try_load_nl_engine(self) -> Any:
         try:
-            from natural_language_query import NLQueryEngine  # type: ignore[import]
+            from src.natural_language_query import NLQueryEngine  # PATCH-074
             return NLQueryEngine()
         except Exception as exc:
             logger.debug("LCM: NLQueryEngine not available: %s", exc)
             return None
 
     def _try_load_mss_controller(self) -> Any:
+        """PATCH-074: Build full MSS dependency chain before instantiating."""
         try:
-            from mss_controls import MSSController  # type: ignore[import]
-            return MSSController()
+            from src.resolution_scoring import ResolutionDetectionEngine
+            from src.information_density import InformationDensityEngine
+            from src.structural_coherence import StructuralCoherenceEngine
+            from src.information_quality import InformationQualityEngine
+            from src.concept_translation import ConceptTranslationEngine
+            from src.simulation_engine import StrategicSimulationEngine
+            from src.mss_controls import MSSController
+            rde = ResolutionDetectionEngine()
+            ide = InformationDensityEngine()
+            sce = StructuralCoherenceEngine()
+            iqe = InformationQualityEngine(rde=rde, ide=ide, sce=sce)
+            cte = ConceptTranslationEngine()
+            sim = StrategicSimulationEngine()
+            return MSSController(iqe=iqe, cte=cte, sim=sim)
         except Exception as exc:
             logger.debug("LCM: MSSController not available: %s", exc)
             return None
 
     def _try_load_rosette_lens(self) -> Any:
         try:
-            from rosette_lens import RosetteLens  # type: ignore[import]
+            from src.rosette_lens import RosetteLens  # PATCH-074
             return RosetteLens()
         except Exception as exc:
             logger.debug("LCM: RosetteLens not available: %s", exc)
@@ -233,7 +246,7 @@ class LargeControlModel:
 
     def _try_load_causality_sandbox(self) -> Any:
         try:
-            from causality_sandbox import CausalitySandboxEngine  # type: ignore[import]
+            from src.causality_sandbox import CausalitySandboxEngine  # PATCH-074
 
             def _noop_factory():
                 class _FakeLoop:
@@ -254,8 +267,8 @@ class LargeControlModel:
 
     def _try_load_dispatcher(self) -> Any:
         try:
-            from dispatch import Dispatcher  # type: ignore[import]
-            return Dispatcher()
+            from src.global_feedback.dispatcher import GlobalFeedbackDispatcher  # PATCH-074
+            return GlobalFeedbackDispatcher()
         except Exception as exc:
             logger.debug("LCM: Dispatcher not available: %s", exc)
             return None

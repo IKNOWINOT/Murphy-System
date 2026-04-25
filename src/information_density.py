@@ -26,7 +26,7 @@ import threading
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Pattern
 
-from resolution_scoring import ResolutionScore
+from src.resolution_scoring import ResolutionScore
 
 logger = logging.getLogger(__name__)
 

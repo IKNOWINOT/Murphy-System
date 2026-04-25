@@ -19,9 +19,9 @@ import logging
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
-from information_density import DensityScore, InformationDensityEngine
-from resolution_scoring import ResolutionDetectionEngine, ResolutionScore
-from structural_coherence import CoherenceScore, StructuralCoherenceEngine
+from src.information_density import DensityScore, InformationDensityEngine
+from src.resolution_scoring import ResolutionDetectionEngine, ResolutionScore
+from src.structural_coherence import CoherenceScore, StructuralCoherenceEngine
 
 logger = logging.getLogger(__name__)
 

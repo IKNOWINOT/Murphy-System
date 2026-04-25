@@ -415,8 +415,94 @@ def synthesize(
                     parsed = json.loads(match.group())
                     if isinstance(parsed, list) and parsed:
                         logger.info("PATCH-072h: LLM synthesized %d insights", len(parsed))
+                        _feed_insights_to_lcm(parsed)  # PATCH-075: Ambient → LCM
                         return parsed
         except Exception as _exc:
             logger.warning("PATCH-072h: LLM synthesis failed, using template: %s", _exc)
 
-    return _template_insights(grouped, min_confidence=min_confidence)
+    _fallback = _template_insights(grouped, min_confidence=min_confidence)
+    _feed_insights_to_lcm(_fallback)  # PATCH-075: Ambient → LCM (template path)
+    return _fallback
+
+
+def _feed_insights_to_lcm(insights: List[Dict[str, Any]]) -> None:
+    """PATCH-075: Automatically feed high-confidence Ambient insights into LCM.
+
+    Only feeds insights with confidence >= 0.75 to avoid noisy signals.
+    Runs in a background thread so it never blocks synthesis.
+    """
+    import threading as _threading
+
+    def _feed():
+        try:
+            import urllib.request as _req
+            import json as _json
+            high_conf = [i for i in insights if float(i.get("confidence", 0)) >= 0.75]
+            for insight in high_conf[:5]:  # cap at 5 per synthesis run
+                payload = _json.dumps({
+                    "source": "ambient_synthesis",
+                    "type": insight.get("category", "signal"),
+                    "value": f"{insight.get('title','')}: {insight.get('summary','')}",
+                    "confidence": float(insight.get("confidence", 0.8)),
+                }).encode()
+                r = _req.Request(
+                    "http://127.0.0.1:8000/api/lcm/signal",
+                    data=payload,
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                with _req.urlopen(r, timeout=15) as resp:
+                    result = _json.loads(resp.read())
+                    if result.get("ok"):
+                        lcm_data = result.get("data", {})
+                        # If LCM auto-dispatched, create a Management AI board item
+                        if lcm_data.get("executed") and not lcm_data.get("hitl_required"):
+                            _create_mgmt_board_item(insight, lcm_data)
+                        elif lcm_data.get("hitl_required"):
+                            logger.info("PATCH-075: LCM HITL required for insight: %s", insight.get("title"))
+        except Exception as exc:
+            logger.debug("PATCH-075: LCM feed error (non-critical): %s", exc)
+
+    _threading.Thread(target=_feed, daemon=True).start()
+
+
+def _create_mgmt_board_item(insight: Dict[str, Any], lcm_result: Dict[str, Any]) -> None:
+    """PATCH-075: Create a Management AI board item from a dispatched LCM result."""
+    try:
+        import urllib.request as _req
+        import json as _json
+        # Ensure a board exists first
+        board_payload = _json.dumps({
+            "name": "Ambient AI Actions",
+            "description": "Auto-generated from Ambient AI → LCM dispatch pipeline"
+        }).encode()
+        board_req = _req.Request(
+            "http://127.0.0.1:8000/api/mgmt/boards",
+            data=board_payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with _req.urlopen(board_req, timeout=8) as br:
+            board = _json.loads(br.read())
+        board_id = board.get("board_id") or board.get("id") or "default"
+
+        item_payload = _json.dumps({
+            "title": insight.get("title", "Ambient Action"),
+            "description": (
+                    insight.get("summary", "") + "\n\nLCM run_id: " + str(lcm_result.get("run_id", "?"))
+                ),
+            "priority": insight.get("priority", "medium"),
+            "source": "ambient_lcm_pipeline",
+            "confidence": insight.get("confidence", 0.8),
+        }).encode()
+        item_req = _req.Request(
+            f"http://127.0.0.1:8000/api/mgmt/boards/{board_id}/items",
+            data=item_payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with _req.urlopen(item_req, timeout=8) as ir:
+            logger.info("PATCH-075: Board item created: %s", insight.get("title"))
+    except Exception as exc:
+        logger.debug("PATCH-075: Board item creation error (non-critical): %s", exc)
+
