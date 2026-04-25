@@ -354,3 +354,59 @@ async def synthesize(
     # LLM produced nothing useful — fall back to templates
     logger.debug("Ambient synthesis: LLM returned no usable insights, using template fallback")
     return _template_insights(grouped, min_confidence)
+
+
+# ── PATCH-072f: Public synthesize() API ─────────────────────────────────────
+
+def synthesize(
+    signals: List[Dict[str, Any]],
+    min_confidence: float = 60.0,
+    use_llm: bool = True,
+) -> List[Dict[str, Any]]:
+    """
+    Public entrypoint: synthesize ambient insights from a list of signals.
+
+    Tries LLM-powered synthesis first; falls back to template-based synthesis
+    if the LLM is unavailable or times out.
+
+    Parameters
+    ----------
+    signals:
+        List of signal dicts (source, type, value, confidence, …).
+    min_confidence:
+        Minimum confidence threshold (0–100) for included insights.
+    use_llm:
+        If False, skip LLM and go straight to template synthesis.
+
+    Returns
+    -------
+    List of insight dicts ready to store or deliver.
+    """
+    if not signals:
+        return []
+
+    grouped = _group_signals(signals)
+
+    if use_llm and _llm_available():
+        try:
+            ctrl = _try_import_llm_controller()
+            if ctrl is not None:
+                prompt = (
+                    "You are Murphy, an AI operating system. "
+                    "Analyse these grouped signals and return a JSON array of insights. "
+                    "Each insight: {id, title, summary, confidence (0-1), source_signals, category, priority}. "
+                    f"Signals: {json.dumps(grouped, default=str)[:3000]}"
+                )
+                raw = ctrl.generate(prompt, max_tokens=600)
+                # Parse JSON from response
+                import re as _re
+                match = _re.search(r'\[.*?\]', raw, _re.DOTALL)
+                if match:
+                    parsed = json.loads(match.group())
+                    if isinstance(parsed, list) and parsed:
+                        return parsed
+        except Exception as _exc:
+            logger.warning("PATCH-072f: LLM synthesis failed, falling back: %s", _exc)
+
+    # Template fallback
+    return _template_insights(grouped, min_confidence=min_confidence)
