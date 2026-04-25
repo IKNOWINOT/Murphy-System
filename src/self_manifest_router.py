@@ -178,3 +178,48 @@ async def apply_proposal(request: Request, proposal_id: str):
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
+
+@router.post("/proposals/{proposal_id}/generate-diff")
+async def generate_diff(proposal_id: str, request: Request):
+    """Use LLM to generate a unified diff for a pending proposal. Founder only."""
+    _require_founder(request)
+    try:
+        from src.murphy_code_gen import generate_diff_for_proposal
+        result = generate_diff_for_proposal(proposal_id)
+        return result
+    except Exception as exc:
+        logger.error("SELF-ROUTER: /generate-diff failed: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.post("/code-gen/snippet")
+async def code_gen_snippet(request: Request):
+    """Generate a Python code snippet from a plain-english task. Founder only."""
+    _require_founder(request)
+    body = await request.json()
+    task = body.get("task", "")
+    context_files = body.get("context_files", [])
+    if not task:
+        raise HTTPException(status_code=400, detail="'task' required")
+    try:
+        from src.murphy_code_gen import generate_snippet
+        return generate_snippet(task, context_files)
+    except Exception as exc:
+        logger.error("SELF-ROUTER: /code-gen/snippet failed: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get("/code-gen/status")
+async def code_gen_status():
+    """Check if LLM is available for code generation. Public."""
+    try:
+        from src.llm_provider import complete
+        result = complete(prompt="Reply: OK", system="Say OK", max_tokens=5, temperature=0)
+        working = result and not result.startswith("[Murphy Onboard]") and not result.startswith("[LLM")
+        return {
+            "llm_available": working,
+            "response_preview": result[:50] if result else None,
+        }
+    except Exception as exc:
+        return {"llm_available": False, "error": str(exc)}
+

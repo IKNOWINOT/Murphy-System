@@ -45,9 +45,9 @@ DEEPINFRA_FAST_MODEL   = "meta-llama/Meta-Llama-3.1-8B-Instruct"
 DEEPINFRA_CODE_MODEL   = "Qwen/Qwen2.5-Coder-32B-Instruct"
 
 # Fallback models (Together.ai)
-TOGETHER_CHAT_MODEL    = "meta-llama/Llama-3.1-70B-Instruct-Turbo"
-TOGETHER_FAST_MODEL    = "meta-llama/Llama-3.1-8B-Instruct-Turbo"
-TOGETHER_CODE_MODEL    = "Qwen/Qwen2.5-Coder-32B-Instruct"
+TOGETHER_CHAT_MODEL    = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
+TOGETHER_FAST_MODEL    = "Qwen/Qwen2.5-7B-Instruct-Turbo"
+TOGETHER_CODE_MODEL    = "Qwen/Qwen2.5-7B-Instruct-Turbo"
 
 # DeepInfra Llama-3.1-70B context window: 131 072 tokens (prompt + output).
 # Output is not artificially capped — the LLM produces whatever the request
