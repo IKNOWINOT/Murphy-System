@@ -355,6 +355,7 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/billing/plans",
         "/api/billing/currencies",
         "/api/billing/checkout",
+        "/api/self/",          # PATCH-066b: auth enforced inside self_manifest_router
         # PATCH-065: Public API, OAuth AS, Connector Agent
         "/api/v1/",
         "/oauth/",
