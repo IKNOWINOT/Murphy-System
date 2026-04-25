@@ -1,3 +1,4 @@
+import threading
 """
 Integration Builder Router — PATCH-081b
 REST API for autonomous integration building, discovery, and web signup.

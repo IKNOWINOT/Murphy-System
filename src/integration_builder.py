@@ -224,20 +224,17 @@ def _generate_connector_code(
     """).strip()
     
     try:
-        from src.llm_provider import call_llm
-        response = call_llm(
+        from src.llm_provider import complete as _llm_complete
+        response = _llm_complete(
             prompt=user_prompt,
             system=system_prompt,
             max_tokens=2000,
-            provider="together",
+            temperature=0.2,
         )
-    except Exception:
-        try:
-            from src.llm_integration import LLMIntegration
-            llm = LLMIntegration()
-            response = llm.complete(user_prompt, system=system_prompt, max_tokens=2000)
-        except Exception as exc:
-            return "", f"LLM call failed: {exc}"
+        if not response or response.startswith("[Murphy Onboard]") or response.startswith("[LLM"):
+            return "", f"LLM unavailable: {response}"
+    except Exception as exc:
+        return "", f"LLM call failed: {exc}"
     
     if not response:
         return "", "LLM returned empty response"
