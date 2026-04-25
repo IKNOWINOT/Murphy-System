@@ -364,24 +364,13 @@ def synthesize(
     use_llm: bool = True,
 ) -> List[Dict[str, Any]]:
     """
-    Public entrypoint: synthesize ambient insights from a list of signals.
+    PATCH-072g: Public synthesize() — LLM via query_llm, template fallback.
 
-    Tries LLM-powered synthesis first; falls back to template-based synthesis
-    if the LLM is unavailable or times out.
-
-    Parameters
-    ----------
-    signals:
-        List of signal dicts (source, type, value, confidence, …).
-    min_confidence:
-        Minimum confidence threshold (0–100) for included insights.
-    use_llm:
-        If False, skip LLM and go straight to template synthesis.
-
-    Returns
-    -------
-    List of insight dicts ready to store or deliver.
+    Uses LLMController.query_llm(LLMRequest) with Together.ai backend.
+    Falls back to template synthesis if LLM unavailable or times out.
     """
+    import re as _re
+
     if not signals:
         return []
 
@@ -389,24 +378,31 @@ def synthesize(
 
     if use_llm and _llm_available():
         try:
-            ctrl = _try_import_llm_controller()
-            if ctrl is not None:
+            LLMController, LLMRequest = _try_import_llm_controller()
+            if LLMController is not None:
+                ctrl = LLMController()
                 prompt = (
                     "You are Murphy, an AI operating system. "
-                    "Analyse these grouped signals and return a JSON array of insights. "
-                    "Each insight: {id, title, summary, confidence (0-1), source_signals, category, priority}. "
-                    f"Signals: {json.dumps(grouped, default=str)[:3000]}"
+                    "Analyse these ambient context signals and return ONLY a JSON array of insights. "
+                    "No markdown, no explanation — just the JSON array. "
+                    "Each element: {"id":"<uuid>","title":"<short title>","
+                    ""summary":"<1-2 sentence insight>","confidence":0.85,"
+                    ""category":"<perf|business|infra|risk>","priority":"<high|medium|low>","
+                    ""source":"server"}. "
+                    f"Signals summary: {json.dumps(grouped, default=str)[:2000]}"
                 )
-                raw = ctrl.generate(prompt, max_tokens=600)
-                # Parse JSON from response
-                import re as _re
-                match = _re.search(r'\[.*?\]', raw, _re.DOTALL)
+                req = LLMRequest(prompt=prompt, max_tokens=600, temperature=0.4)
+                resp = ctrl.query_llm(req)
+                raw = getattr(resp, "content", getattr(resp, "text", str(resp)))
+                match = _re.search(r"\[.*?\]", raw, _re.DOTALL)
                 if match:
                     parsed = json.loads(match.group())
                     if isinstance(parsed, list) and parsed:
+                        logger.info("PATCH-072g: LLM synthesized %d insights", len(parsed))
                         return parsed
         except Exception as _exc:
-            logger.warning("PATCH-072f: LLM synthesis failed, falling back: %s", _exc)
+            logger.warning("PATCH-072g: LLM synthesis failed, using template: %s", _exc)
 
-    # Template fallback
+    # Template fallback — works with: upcoming_meeting, overdue, unassigned,
+    # pending_votes, org_milestone signal types
     return _template_insights(grouped, min_confidence=min_confidence)
