@@ -218,7 +218,7 @@ Return ONLY a Python code block with the complete connector. No explanations out
                 "https://api.deepinfra.com/v1/openai/chat/completions",
                 headers={"Authorization": f"Bearer {di_key}", "Content-Type": "application/json"},
                 json={
-                    "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+                    "model": "meta-llama/Meta-Llama-3.1-8B-Instruct",
                     "messages": [
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt},

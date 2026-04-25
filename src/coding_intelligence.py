@@ -332,7 +332,7 @@ Write the COMPLETE improved connector. Include the full class, all imports, modu
                     "https://api.deepinfra.com/v1/openai/chat/completions",
                     headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
                     json={
-                        "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+                        "model": "meta-llama/Meta-Llama-3.1-8B-Instruct",
                         "messages": [
                             {"role": "system", "content": system},
                             {"role": "user", "content": prompt},

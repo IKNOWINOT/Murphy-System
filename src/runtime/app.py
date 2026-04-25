@@ -16606,6 +16606,15 @@ def create_app() -> FastAPI:
             logger.warning("PATCH-082d: %s failed: %s", _label, _e)
 
 
+    # ── PATCH-084: Auto-Wire Router — exposes all 31 unwired modules ──────────
+    try:
+        from src.auto_wire_router import router as _autowire_router
+        app.include_router(_autowire_router)
+        logger.info("PATCH-084: /api/modules/* mounted — 31 unwired modules now inspectable")
+    except Exception as _aw_exc:
+        logger.warning("PATCH-084: auto_wire_router failed: %s", _aw_exc)
+
+
     return app
 
 
