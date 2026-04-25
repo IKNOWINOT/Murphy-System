@@ -169,3 +169,14 @@ data/platform_self_edit_ledger.jsonl
 # (auto-numbered 0002_*, 0003_*, ...) stay local. See .benchmarks/README.md.
 .benchmarks/Linux-CPython-3.12-64bit/*
 !.benchmarks/Linux-CPython-3.12-64bit/0001_baseline.json
+
+# Timestamped backup files — PATCH-068 cleanup
+*.bak.*
+*.bak
+.env.bak
+requirements.lock.bak
+src/runtime/app.py.bak*
+
+# OS junk
+.DS_Store
+Thumbs.db
