@@ -376,14 +376,18 @@ def synthesize(
             LLMController, LLMRequest = _try_import_llm_controller()
             if LLMController is not None:
                 ctrl = LLMController()
-                schema = '{"id":"uuid","title":"short","summary":"1-2 sentences","confidence":0.85,"category":"perf|business|infra|risk","priority":"high|medium|low","source":"server"}'
-                signals_json = json.dumps(grouped, default=str)[:2000]
-                prompt = (
-                    "You are Murphy, an AI operating system. "
-                    "Analyse these ambient context signals and return ONLY a JSON array — no markdown, no explanation. "
-                    "Each element must match this schema: " + schema + ". "
-                    "Signals: " + signals_json
-                )
+                # PATCH-072j: Build prompt safely — no f-string interpolation of JSON
+                _parts = [
+                    "You are Murphy, an AI operating system.",
+                    "Analyse these ambient context signals and return ONLY a JSON array.",
+                    "No markdown, no explanation — just the raw JSON array.",
+                    "Each element: id (string), title (string), summary (string),",
+                    "confidence (0-1 float), category (perf/business/infra/risk),",
+                    "priority (high/medium/low), source (always 'server').",
+                    "Signals:",
+                    json.dumps(grouped, default=str)[:2000],
+                ]
+                prompt = " ".join(_parts)
                 req = LLMRequest(prompt=prompt, max_tokens=600, temperature=0.4)
                 import asyncio as _asyncio
                 import inspect as _inspect
