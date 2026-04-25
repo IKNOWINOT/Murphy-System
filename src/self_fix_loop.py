@@ -245,6 +245,17 @@ class SelfFixLoop:
     # ------------------------------------------------------------------
 
     def run_loop(self, max_iterations: int = 10) -> LoopReport:
+        # PATCH-077c: RSC gate
+        try:
+            from src.rsc_unified_sink import enforce
+            blocked = enforce("self_fix_loop.run_loop")
+            if blocked:
+                logger.warning("RSC blocked self_fix_loop: %s", blocked)
+                return LoopReport(report_id="rsc_constrained", status="rsc_constrained",
+                                  gaps_found=0, gaps_fixed=0, gaps_remaining=0,
+                                  iterations_run=0, duration_ms=0)
+        except Exception:
+            pass
         """Run the self-fix loop up to max_iterations.
 
         Returns a LoopReport summarising the overall outcome.

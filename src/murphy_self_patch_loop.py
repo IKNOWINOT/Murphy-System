@@ -128,6 +128,15 @@ def list_proposals(status: Optional[str] = None) -> List[Dict]:
 # -----------------------------------------------------------------------
 
 def run_triage_cycle() -> Dict:
+    # PATCH-077c: RSC gate — no self-patching while system is unstable
+    try:
+        from src.rsc_unified_sink import enforce
+        blocked = enforce("run_triage_cycle")
+        if blocked:
+            logger.warning("RSC blocked triage: %s", blocked)
+            return {"status": "rsc_constrained", "issues_found": 0, "diff_results": []}
+    except Exception:
+        pass
     """Run one detect→diagnose→generate-diff cycle. PATCH-070.
     
     For every new issue detected:

@@ -280,6 +280,15 @@ class LargeControlModel:
     def _nl_parse(
         self, text: str, trace: list[dict[str, Any]]
     ) -> dict[str, Any]:
+        # PATCH-077c: RSC gate — LCM dispatch is an effector; block if unstable
+        try:
+            from src.rsc_unified_sink import enforce
+            blocked = enforce("lcm._dispatch")
+            if blocked:
+                return {"stage": "rsc_constrained", "executed": False,
+                        "hitl_required": False, "error": blocked}
+        except Exception:
+            pass
         t0 = time.monotonic()
         result: dict[str, Any]
         if self._nl_engine is not None:

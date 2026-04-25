@@ -111,10 +111,9 @@ def _scan_test_coverage() -> Dict:
 def _build_health_snapshot() -> Dict:
     health = {}
     try:
-        r = subprocess.run(["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}",
-                            "http://127.0.0.1:8000/api/health"],
-                           capture_output=True, text=True, timeout=8)
-        health["api_http_status"] = int(r.stdout.strip() or 0)
+        import urllib.request as _ur2
+        with _ur2.urlopen("http://127.0.0.1:8000/api/health", timeout=5) as _hr:
+            health["api_http_status"] = _hr.status
     except Exception:
         health["api_http_status"] = 0
     try:

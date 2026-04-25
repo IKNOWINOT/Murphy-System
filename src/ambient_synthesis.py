@@ -365,6 +365,12 @@ def synthesize(
 ) -> List[Dict[str, Any]]:
     """PATCH-072h: Public synthesize() using LLMController.query_llm."""
     import re as _re
+    # PATCH-077c: RSC — report signal volume as entropy proxy
+    try:
+        from src.rsc_unified_sink import push as _rsc_push
+        _rsc_push("ambient_synthesis", contradictions=max(0.0, len(signals) - 10) / 10.0)
+    except Exception:
+        pass
 
     if not signals:
         return []

@@ -292,6 +292,12 @@ def run_data_loop(interval: int = _INTERVAL_SECONDS) -> None:
                 time.sleep(60)
                 continue
 
+            # PATCH-077c: RSC signal — data loop itself updates RSC
+            try:
+                from src.rsc_unified_sink import push as _rsc_push
+                _rsc_push("data_loop", tasks=1.0)  # data loop counts as active task
+            except Exception:
+                pass
             all_signals: List[Dict[str, Any]] = []
             all_signals.extend(pull_self_fix_signals(cookies))
             all_signals.extend(pull_crm_signals(cookies))

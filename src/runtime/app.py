@@ -16483,6 +16483,49 @@ def create_app() -> FastAPI:
     except Exception as _gate_exc:
         logger.warning("PATCH-076l: Gate thread failed: %s", _gate_exc)
 
+    # ── PATCH-077a/b: RSC Unified Sink — mount router + start all adapters ────
+    try:
+        from src.rsc_router import router as _rsc_router
+        app.include_router(_rsc_router)
+        logger.info("PATCH-077b: /api/rsc/* mounted — RSC Unified Sink live")
+    except Exception as _rsc_r_exc:
+        logger.warning("PATCH-077b: RSC router failed: %s", _rsc_r_exc)
+    try:
+        from src.rsc_unified_sink import start_all_adapters as _rsc_start
+        _rsc_start()
+        logger.info("PATCH-077a: RSC source adapters started (8 streams → unified S(t))")
+    except Exception as _rsc_a_exc:
+        logger.warning("PATCH-077a: RSC adapters failed: %s", _rsc_a_exc)
+
+    # ── PATCH-077d: Unmounted routers — wire all verified importable routers ──
+    _unmounted = [
+        ("src.collaboration.api",                  "router",             "/api/collaboration"),
+        ("src.portfolio.api",                       "router",             "/api/portfolio"),
+        ("src.automations.api",                     "router",             "/api/automations"),
+        ("src.guest_collab.api",                    "router",             "/api/guest"),
+        ("src.chaos.api",                           "router",             "/api/chaos"),
+        ("src.platform_self_modification.endpoint", "router",             "/api/platform/self-modification"),
+        ("src.time_tracking.api",                   "router",             "/api/time-tracking"),
+        ("src.dashboards.api",                      "router",             "/api/dashboards"),
+        ("src.dev_module.api",                      "router",             "/api/dev"),
+        ("src.workdocs.api",                        "router",             "/api/workdocs"),
+        ("src.board_system.api",                    "router",             "/api/boards"),
+    ]
+    for _mod_path, _attr, _prefix in _unmounted:
+        try:
+            import importlib as _il
+            _m = _il.import_module(_mod_path)
+            _r = getattr(_m, _attr, None)
+            if _r is None and hasattr(_m, 'create_router'):
+                _r = _m.create_router()
+            if _r is not None:
+                app.include_router(_r)
+                logger.info("PATCH-077d: %s mounted", _prefix)
+            else:
+                logger.warning("PATCH-077d: %s — no router attr found", _prefix)
+        except Exception as _ue:
+            logger.warning("PATCH-077d: %s failed: %s", _prefix, _ue)
+
     return app
 
 
