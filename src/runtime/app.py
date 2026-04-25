@@ -16504,7 +16504,7 @@ def create_app() -> FastAPI:
         ("src.automations.api",                     "router",             "/api/automations"),
         ("src.guest_collab.api",                    "router",             "/api/guest"),
         ("src.chaos.api",                           "router",             "/api/chaos"),
-        ("src.platform_self_modification.endpoint", "router",             "/api/platform/self-modification"),
+        # PSM handled separately below with build_router() pattern
         ("src.time_tracking.api",                   "router",             "/api/time-tracking"),
         ("src.dashboards.api",                      "router",             "/api/dashboards"),
         ("src.dev_module.api",                      "router",             "/api/dev"),
@@ -16525,6 +16525,49 @@ def create_app() -> FastAPI:
                 logger.warning("PATCH-077d: %s — no router attr found", _prefix)
         except Exception as _ue:
             logger.warning("PATCH-077d: %s failed: %s", _prefix, _ue)
+
+    # ── PATCH-079c: Web Tool Router — internet as a tool ─────────────────────
+    try:
+        from src.web_tool_router import router as _web_router
+        app.include_router(_web_router)
+        logger.info("PATCH-079c: /api/web/* mounted — search/fetch/screenshot/fill live")
+    except Exception as _wr_exc:
+        logger.warning("PATCH-079c: web_tool_router failed: %s", _wr_exc)
+
+    # ── PATCH-079d: Platform Self-Modification — proper build_router() wiring ─
+    try:
+        from src.platform_self_modification.endpoint import build_router as _psm_build_router
+        # Wire RSC unified sink as the Lyapunov source
+        def _get_lyap():
+            try:
+                from src.rsc_unified_sink import get_sink
+                sink = get_sink()
+                current = sink.get()
+                # Return a duck-typed Lyapunov-compatible object
+                class _LyapProxy:
+                    def is_stable(self):
+                        c = get_sink().get()
+                        return c is not None and c.s_t >= 0.70
+                    def get_stability_score(self):
+                        c = get_sink().get()
+                        return c.s_t if c else 1.0
+                    def get_snapshot(self):
+                        c = get_sink().get()
+                        return c.to_dict() if c else {}
+                return _LyapProxy()
+            except Exception:
+                return None
+        def _get_orch():
+            return None  # orchestrator optional
+        _psm_router = _psm_build_router(
+            get_orchestrator=_get_orch,
+            get_lyapunov_source=_get_lyap,
+        )
+        app.include_router(_psm_router)
+        logger.info("PATCH-079d: /api/platform/self-modification/* mounted — RSC-gated PSM live")
+    except Exception as _psm_exc:
+        logger.warning("PATCH-079d: PSM router failed: %s", _psm_exc)
+
 
     return app
 
