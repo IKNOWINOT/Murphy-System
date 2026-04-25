@@ -10,14 +10,14 @@ import sys, os, time, json, subprocess
 sys.path.insert(0, '/opt/Murphy-System')
 sys.path.insert(0, '/opt/Murphy-System/src')
 
-# Load env
+# Load env — secrets.env OVERRIDES environment file (it has fresher keys)
 for path in ['/etc/murphy-production/environment', '/etc/murphy-production/secrets.env']:
     try:
         for line in open(path).readlines():
             line = line.strip()
             if line and not line.startswith('#') and '=' in line:
                 k, v = line.split('=', 1)
-                os.environ.setdefault(k.strip(), v.strip())
+                os.environ[k.strip()] = v.strip()  # override so secrets.env wins
     except Exception:
         pass
 
