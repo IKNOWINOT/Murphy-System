@@ -16249,6 +16249,24 @@ def create_app() -> FastAPI:
 
 
 
+
+    # ── PATCH-072a: Ambient AI Full Activation ────────────────────────────────
+    try:
+        from src.ambient_full_router import router as _ambient_full_router
+        # Remove old stub routes by mounting dedicated router (takes precedence via order)
+        app.include_router(_ambient_full_router)
+        logger.info("PATCH-072a: ambient_full_router mounted — /api/ambient/* live with synthesis + email delivery")
+    except Exception as _afr_exc:
+        logger.warning("PATCH-072a: ambient_full_router failed: %s", _afr_exc)
+
+    # ── PATCH-072b: Management AI Activation ──────────────────────────────────
+    try:
+        from src.management_ai_router import router as _mgmt_ai_router
+        app.include_router(_mgmt_ai_router)
+        logger.info("PATCH-072b: management_ai_router mounted — /api/mgmt/* live (Board/Status/Workspace/Dashboard/Recipes/Timeline)")
+    except Exception as _mar_exc:
+        logger.warning("PATCH-072b: management_ai_router failed: %s", _mar_exc)
+
     # ── PATCH-071: Self-Marketing + Sell Engine ──────────────────────────────
     try:
         from src.marketing_router import router as _marketing_router
