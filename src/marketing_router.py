@@ -59,9 +59,13 @@ def _get_email():
     global _email_svc
     if _email_svc is None:
         try:
+            import sys as _sys, os as _os
+            _src = _os.path.join(_os.path.dirname(__file__))
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
             from email_integration import EmailService
             _email_svc = EmailService.from_env()
-            logger.info("PATCH-071: EmailService initialised (backend=%s)", _email_svc.backend_name)
+            logger.info("PATCH-071: EmailService initialised (backend=%s)", type(getattr(_email_svc, "_backend", _email_svc)).__name__)
         except Exception as exc:
             logger.warning("PATCH-071: EmailService unavailable: %s", exc)
             _email_svc = None
@@ -300,7 +304,7 @@ async def sell_status(request: Request):
         return {
             "ok": True,
             "engine": "SelfMarketingOrchestrator + MurphySelfSellingEngine",
-            "transport": _get_email().backend_name if _get_email() else "unavailable",
+            "transport": getattr(_get_email(), "provider_name", type(getattr(_get_email(),"_backend",None)).__name__) if _get_email() else "unavailable",
             "summary": {
                 "content_cycles": dash.get("content_cycles_run", 0),
                 "outreach_cycles": dash.get("outreach_cycles_run", 0),
