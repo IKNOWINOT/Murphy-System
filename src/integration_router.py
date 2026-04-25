@@ -113,29 +113,52 @@ class BuildRequest(BaseModel):
     description: str = ""
     search_docs: bool = True
 
+# In-memory job store for async builds
+_build_jobs: Dict[str, Any] = {}
+
 @router.post("/build")
 async def build_integration(req: BuildRequest):
-    """Autonomously build a new integration connector."""
+    """
+    Autonomously build a new integration connector.
+    Returns 202 immediately with a job_id; poll /api/builder/build/{job_id} for result.
+    If the connector already exists, returns 200 with status=already_exists.
+    """
     try:
-        from src.integration_builder import build_integration as _build
-        result_box = {}
+        from src.integration_builder import build_integration as _build, _already_built
+        
+        # Fast path: already exists
+        if _already_built(req.service):
+            return JSONResponse({"ok": True, "service": req.service, "status": "already_exists"})
+        
+        # Generate job_id
+        import uuid
+        job_id = f"build_{req.service}_{uuid.uuid4().hex[:8]}"
+        _build_jobs[job_id] = {"status": "running", "service": req.service, "started": time.time()}
         
         def _run():
-            result_box["result"] = _build(
-                req.service, req.category, req.description, req.search_docs
-            )
+            try:
+                result = _build(req.service, req.category, req.description, req.search_docs)
+                _build_jobs[job_id] = {"status": "done", **result, "elapsed": round(time.time() - _build_jobs[job_id]["started"], 1)}
+            except Exception as e:
+                _build_jobs[job_id] = {"status": "error", "ok": False, "error": str(e)}
         
         t = threading.Thread(target=_run, daemon=True)
         t.start()
-        t.join(timeout=120)
         
-        if "result" not in result_box:
-            return JSONResponse({"ok": False, "error": "Build timed out"}, status_code=504)
-        
-        return JSONResponse(result_box["result"])
+        return JSONResponse({"ok": True, "status": "queued", "job_id": job_id,
+                             "poll_url": f"/api/builder/build/{job_id}"}, status_code=202)
     except Exception as exc:
         logger.error("INTEG-ROUTER: build failed: %s", exc)
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+
+
+@router.get("/build/{job_id}")
+async def build_status(job_id: str):
+    """Poll build job status."""
+    job = _build_jobs.get(job_id)
+    if not job:
+        return JSONResponse({"ok": False, "error": "Job not found"}, status_code=404)
+    return JSONResponse(job)
 
 
 class BatchBuildRequest(BaseModel):
