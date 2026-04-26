@@ -32,7 +32,7 @@ import time
 from collections import deque
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

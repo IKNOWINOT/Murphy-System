@@ -390,8 +390,8 @@ class TeacherLoopEngine:
 
         # Step 5: Model Team quick deliberate
         try:
-            from src.model_team import model_team
-            team_result = model_team.deliberate(
+            from src.model_team import deliberate as model_team_deliberate
+            team_result = model_team_deliberate(
                 task    = f"Review proposed patch: {assignment.description}",
                 domain  = "self_modification",
                 account = {"role": "owner"},
