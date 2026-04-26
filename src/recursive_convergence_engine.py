@@ -602,7 +602,7 @@ class SteeringAction:
     llm_enriched:       bool = False   # GAP-2: True if payload was LLM-enriched
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        d = {
             "action_id":      self.action_id,
             "action_type":    self.action_type,
             "payload":        self.payload,
@@ -612,6 +612,12 @@ class SteeringAction:
             "cidp_cleared":   self.cidp_cleared,
             "llm_enriched":   self.llm_enriched,
         }
+        # PATCH-099: attach PCC fields if present
+        if hasattr(self, "pcc_r_fair"):
+            d["pcc_r_fair"]    = self.pcc_r_fair
+            d["pcc_directive"] = self.pcc_directive
+            d["pcc_cold_start"]= self.pcc_cold_start
+        return d
 
 
 class GradientSteerer:
@@ -865,8 +871,77 @@ class RecursiveConvergenceEngine:
             logger.debug("RCE: trajectory calc failed (non-blocking): %s", _traj_exc)
             curr_state = None
 
-        # Generate steering action with trajectory-adjusted magnitude
+        # ── PATCH-099: PCC — Predictive Convergence Correction ─────────────────
+        # Principle 5: what is the expected result at all points of operation?
+        # PCC answers: given where this trajectory is heading, are we steering
+        # the right amount? It adjusts magnitude BEFORE steer() is called.
+        pcc_result = None
+        try:
+            from src.pcc import pcc, PCCInput
+            if curr_state is not None:
+                sv_dict = {
+                    "d1_flourishing":        curr_state.d1_flourishing,
+                    "d2_contraction":        curr_state.d2_contraction,
+                    "d3_closure":            curr_state.d3_closure,
+                    "d4_coherence_delta":    curr_state.d4_coherence_delta,
+                    "d5_p_harm_physical":    curr_state.d5_p_harm_physical,
+                    "d6_p_harm_psychological": curr_state.d6_p_harm_psychological,
+                    "d7_p_harm_financial":   curr_state.d7_p_harm_financial,
+                    "d8_p_harm_autonomy":    curr_state.d8_p_harm_autonomy,
+                }
+                # Map tribal pattern → causal chain name
+                chain_map = {
+                    "OUTRAGE_LOOP":    "outrage_amplification",
+                    "SCAPEGOAT_LOOP":  "scapegoat_loop",
+                    "IN_GROUP_SIGNAL": "in_group_closure",
+                    "THREAT_FRAME":    "threat_frame",
+                    "CURIOSITY_LOOP":  "curiosity_expansion",
+                    "COOPERATION":     "cooperation_signal",
+                }
+                chain = chain_map.get(
+                    signal.tribal_gravity.dominant_pattern.value.upper(),
+                    "default"
+                )
+                pcc_inp = PCCInput(
+                    session_id     = session_id,
+                    state_vector   = sv_dict,
+                    causal_chain   = chain,
+                    trajectory_len = len(graph.get_session_events(session_id)) if curr_state else 0,
+                    d9_balance     = 0.0,   # D9 not yet in StateVector — placeholder
+                    assumptions    = [],
+                )
+                pcc_result = pcc.compute(pcc_inp)
+
+                # Apply PCC directive
+                if pcc_result.hard_floor_hit:
+                    # Omega_possible boundary — do not steer past this
+                    signal.should_steer = False
+                    signal.steer_reason = "PCC BLOCK: hard harm floor triggered (p_harm >= 0.65)"
+                elif pcc_result.steering_directive == "INCREASE" and signal.middle_path.shift_magnitude is not None:
+                    signal.middle_path.shift_magnitude = min(
+                        1.0, signal.middle_path.shift_magnitude + pcc_result.magnitude_delta
+                    )
+                elif pcc_result.steering_directive == "REDUCE" and signal.middle_path.shift_magnitude is not None:
+                    signal.middle_path.shift_magnitude = max(
+                        0.05, signal.middle_path.shift_magnitude + pcc_result.magnitude_delta
+                    )
+                # HOLD and COLD_START: no change — trust existing magnitude
+
+                logger.debug(
+                    "PCC: chain=%s r_fair=%.3f directive=%s mag_delta=%.3f",
+                    chain, pcc_result.r_fair, pcc_result.steering_directive, pcc_result.magnitude_delta
+                )
+        except Exception as _pcc_exc:
+            logger.debug("PCC: non-blocking error: %s", _pcc_exc)
+            pcc_result = None
+
+        # Generate steering action with PCC-adjusted magnitude
         action = self._steerer.steer(signal)
+        # Attach PCC result to action for transparency
+        if pcc_result is not None:
+            action.pcc_r_fair      = pcc_result.r_fair
+            action.pcc_directive   = pcc_result.steering_directive
+            action.pcc_cold_start  = pcc_result.cold_start
 
         # Persist to convergence graph
         try:

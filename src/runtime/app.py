@@ -16607,6 +16607,61 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
 
+    # ── PATCH-099: PCC — Predictive Convergence Correction API ────────────────
+
+    @app.get("/api/pcc/status")
+    async def _pcc_status(session_id: str = None):
+        """PATCH-099 — Current PCC global and per-session status."""
+        try:
+            from src.pcc import pcc
+            return JSONResponse({"success": True, **pcc.status(session_id)})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/pcc/feedback")
+    async def _pcc_feedback(request: Request):
+        """
+        PATCH-099 — Record a confirmed or disconfirmed outcome.
+        Updates R_t rolling baseline.
+        Body: {session_id, r_fair, confirmed (bool)}
+        """
+        try:
+            from src.pcc import pcc
+            body = await request.json()
+            pcc.feedback(
+                session_id = body.get("session_id", "global"),
+                r_fair     = float(body.get("r_fair", 0.5)),
+                confirmed  = bool(body.get("confirmed", True)),
+            )
+            return JSONResponse({"success": True, **pcc.status(body.get("session_id"))})
+        except Exception as exc:
+            logger.error("pcc/feedback error: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/pcc/compute")
+    async def _pcc_compute(request: Request):
+        """
+        PATCH-099 — Direct PCC computation (for inspection/testing).
+        Body: {session_id, state_vector {d1..d8}, causal_chain?, trajectory_len?, d9_balance?}
+        """
+        try:
+            from src.pcc import pcc, PCCInput
+            body = await request.json()
+            inp = PCCInput(
+                session_id    = body.get("session_id", "test"),
+                state_vector  = body.get("state_vector", {}),
+                causal_chain  = body.get("causal_chain", "default"),
+                trajectory_len= int(body.get("trajectory_len", 0)),
+                d9_balance    = float(body.get("d9_balance", 0.0)),
+                assumptions   = body.get("assumptions", []),
+            )
+            result = pcc.compute(inp)
+            return JSONResponse({"success": True, **result.to_dict()})
+        except Exception as exc:
+            logger.error("pcc/compute error: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
     # ── PATCH-098: RROM Phase 1 — Resource Orchestration Measurement ─────────
 
     @app.get("/api/rrom/snapshot")

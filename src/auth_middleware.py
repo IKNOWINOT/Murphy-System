@@ -79,6 +79,9 @@ _EXEMPT_PREFIXES = (
     # PATCH-098: RROM monitoring
     "/api/rrom/",
     "/api/rrom",
+    # PATCH-099: PCC
+    "/api/pcc/",
+    "/api/pcc",
 )
 
 
@@ -401,6 +404,9 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         # PATCH-098: RROM monitoring
         "/api/rrom/",
         "/api/rrom",
+        # PATCH-099: PCC
+        "/api/pcc/",
+        "/api/pcc",
     )
 
     def __init__(
