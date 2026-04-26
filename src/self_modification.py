@@ -237,6 +237,41 @@ class SelfModificationEngine:
         if target.exists():
             backup_path = self._backup(intent.target_file, intent.patch_id)
 
+        # 4b. Structural quality gates (PATCH-104e) — prevent destructive codegen
+        if target.exists():
+            try:
+                import re as _re2
+                original_content = target.read_text(encoding="utf-8")
+                orig_lines = len(original_content.splitlines())
+                new_lines  = len(new_content.splitlines())
+
+                # Gate A: reject if new file removes > 40% of lines (gutting attack)
+                if orig_lines > 50 and new_lines < orig_lines * 0.60:
+                    return PatchResult(
+                        patch_id      = intent.patch_id,
+                        success       = False,
+                        backup_path   = backup_path,
+                        errors        = [f"GATE-A: size regression — {new_lines} lines vs {orig_lines} original (>{40}% reduction)"],
+                        dry_run       = dry_run,
+                        gate_decision = "REJECT_SIZE_REGRESSION",
+                    )
+
+                # Gate B: reject if > 20% of named functions/classes removed
+                orig_syms = set(_re2.findall(r"(?m)^(?:    )*(?:def|class) (\w+)", original_content))
+                new_syms  = set(_re2.findall(r"(?m)^(?:    )*(?:def|class) (\w+)", new_content))
+                removed   = orig_syms - new_syms
+                if orig_syms and len(removed) > max(2, len(orig_syms) * 0.20):
+                    return PatchResult(
+                        patch_id      = intent.patch_id,
+                        success       = False,
+                        backup_path   = backup_path,
+                        errors        = [f"GATE-B: symbol regression — {len(removed)}/{len(orig_syms)} functions removed: {sorted(removed)[:6]}"],
+                        dry_run       = dry_run,
+                        gate_decision = "REJECT_SYMBOL_REGRESSION",
+                    )
+            except Exception as _gate_exc:
+                logger.warning("Structural gates skipped: %s", _gate_exc)
+
         # 5. Write
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(new_content, encoding="utf-8")
@@ -733,48 +768,68 @@ class SelfModificationEngine:
                     current = self.read_file(target_file)
                     current_lines = len(current.split("\n"))
 
-                    # Ask LLM to generate a targeted fix
+                    # PATCH-104e: Surgical codegen — LLM generates an APPENDED block only,
+                    # not the whole file. Structural gates protect against regressions.
                     from src.llm_provider import get_llm as _get_llm_patch
                     _llm = _get_llm_patch()
+
+                    # Extract last 60 lines for context (end of file)
+                    current_tail = "\n".join(current.split("\n")[-60:])
+
                     patch_prompt = (
-                        f"You are Murphy — a self-improving AI system. Fix this engineering gap:\n"
-                        f"GAP: {gap_desc}\n"
+                        f"You are Murphy — a self-improving AI system adding a new capability.\n"
+                        f"GAP TO FIX: {gap_desc}\n"
                         f"TARGET FILE: {target_file} ({current_lines} lines)\n\n"
-                        f"CURRENT FILE (first 3000 chars):\n{current[:3000]}\n\n"
-                        f"Write ONLY the complete, corrected Python file content that fixes the gap. "
-                        f"Do NOT include markdown, code fences, or explanation. "
-                        f"Return ONLY the raw Python source that should replace {target_file}."
+                        f"END OF CURRENT FILE (last 60 lines for context):\n{current_tail}\n\n"
+                        f"TASK: Write ONLY the NEW Python code to APPEND at the end of this file to fix the gap.\n"
+                        f"Rules:\n"
+                        f"  1. Output ONLY a new Python function, class, or code block (not the full file).\n"
+                        f"  2. Start with a comment: # AUTONOMOUS-PATCH: {gap_id}\n"
+                        f"  3. No markdown, no code fences, no explanation.\n"
+                        f"  4. The code must be syntactically valid Python.\n"
+                        f"  5. Keep it under 80 lines — be surgical.\n"
+                        f"  6. If you cannot fix it in one appended block, output: # NO_PATCH_POSSIBLE"
                     )
                     patch_resp = _llm.complete(
                         patch_prompt,
                         system=(
-                            "You are a senior Python engineer making surgical fixes. "
-                            "Return ONLY raw Python source code — no markdown, no explanation. "
-                            "The output must be syntactically valid Python."
+                            "You are a senior Python engineer. Output ONLY raw Python — no markdown, "
+                            "no explanation, no code fences. Keep output minimal and surgical."
                         ),
-                        max_tokens=4096,
+                        max_tokens=1024,
                         model_hint="code",
                     )
 
                     new_content = None
-                    if patch_resp.success and patch_resp.content and len(patch_resp.content.strip()) > 100:
+                    if patch_resp.success and patch_resp.content:
                         candidate = patch_resp.content.strip()
                         # Strip any accidental code fences
-                        if candidate.startswith("```"):
-                            candidate = "\n".join(candidate.split("\n")[1:])
-                            if candidate.endswith("```"):
-                                candidate = candidate[:-3].strip()
-                        # Validate syntax
-                        try:
-                            compile(candidate, target_file, "exec")
-                            new_content = candidate
-                            logger.info("Autonomous PATCH-104: LLM generated valid patch for %s (%d chars)", gap_id, len(new_content))
-                        except SyntaxError as _se:
-                            logger.warning("Autonomous PATCH-104: LLM patch syntax error for %s: %s — falling back to identity", gap_id, _se)
-                    else:
-                        logger.warning("Autonomous PATCH-104: LLM codegen failed for %s (%s) — falling back to identity write", gap_id, patch_resp.error if not patch_resp.success else "empty response")
+                        for fence in ("```python", "```py", "```"):
+                            if candidate.startswith(fence):
+                                candidate = candidate[len(fence):].strip()
+                                break
+                        if candidate.endswith("```"):
+                            candidate = candidate[:-3].strip()
 
-                    # Use LLM content if valid, else fall through with identity write
+                        # Skip if LLM says no patch possible
+                        if "# NO_PATCH_POSSIBLE" in candidate:
+                            logger.info("Autonomous: LLM says no patch possible for %s", gap_id)
+                            candidate = None
+                        elif len(candidate) > 30:
+                            # Validate syntax of the NEW BLOCK alone
+                            try:
+                                compile(candidate, "<patch_block>", "exec")
+                                # Build full file = original + appended block
+                                new_content = current.rstrip() + "\n\n" + candidate + "\n"
+                                logger.info("Autonomous PATCH-104e: appended %d chars to %s for %s",
+                                            len(candidate), target_file, gap_id)
+                            except SyntaxError as _se:
+                                logger.warning("Autonomous PATCH-104e: LLM block syntax error — %s: %s", gap_id, _se)
+                    else:
+                        logger.warning("Autonomous PATCH-104e: LLM failed for %s — %s", gap_id,
+                                       patch_resp.error if not patch_resp.success else "empty")
+
+                    # Use patched file if valid, else fall through with identity (no change)
                     write_content = new_content if new_content else current
                     pr = self.write_patch(intent, write_content, restart=False)
                     result["patch_result"] = pr.to_dict()
