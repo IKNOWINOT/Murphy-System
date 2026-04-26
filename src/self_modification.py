@@ -294,7 +294,8 @@ class SelfModificationEngine:
     def evaluate_self(self, scope: str = "full") -> Dict:
         """
         Murphy self-assessment: what works, what gaps remain, what to fix next.
-        Returns a structured report based on guiding engineering principles.
+        Applies all 10 guiding engineering principles.
+        Uses LLM for dynamic gap analysis and next-action prioritization.
         """
         report: Dict[str, Any] = {
             "evaluated_at": datetime.now(timezone.utc).isoformat(),
@@ -302,20 +303,22 @@ class SelfModificationEngine:
             "principle":    "Does the module do what it was designed to do?",
         }
 
+        # ── Principle 6: What is the actual result? ──────────────────────────
         # Shield wall status
         try:
             import urllib.request
             with urllib.request.urlopen("http://127.0.0.1:8000/api/shield/status", timeout=5) as resp:
                 sw = json.loads(resp.read())
             layers = sw.get("layers", [])
+            n_active = sum(1 for l in layers if l["active"])
             report["shield_wall"] = {
                 "total":   len(layers),
-                "active":  sum(1 for l in layers if l["active"]),
+                "active":  n_active,
                 "dormant": [l["layer"] for l in layers if not l["active"]],
-                "verdict": "HEALTHY" if sum(1 for l in layers if l["active"]) >= 19 else "DEGRADED",
+                "verdict": "HEALTHY" if n_active >= len(layers) - 1 else "DEGRADED",
             }
         except Exception as exc:
-            report["shield_wall"] = {"error": str(exc)}
+            report["shield_wall"] = {"error": str(exc), "verdict": "UNKNOWN"}
 
         # Front-of-line queue
         try:
@@ -330,24 +333,99 @@ class SelfModificationEngine:
         except Exception as exc:
             report["front_of_line"] = {"error": str(exc)}
 
-        # Gap inventory
-        report["known_gaps"] = [
-            {"id": "GAP-1",  "desc": "steer=False on outrage_loop — PCC not wired to RSC",       "priority": "HIGH"},
-            {"id": "GAP-2",  "desc": "LLM not wired to SteeringAction payload",                  "priority": "HIGH"},
-            {"id": "GAP-3",  "desc": "RROM Phase 1 (measurement) not deployed",                  "priority": "MEDIUM"},
-            {"id": "GAP-4",  "desc": "CIDP investigation reports not persisted",                 "priority": "MEDIUM"},
-            {"id": "GAP-5",  "desc": "PCC formula not implemented in code (only architecture)",  "priority": "HIGH"},
-            {"id": "GAP-6",  "desc": "Sentinel (phi3) timeouts — too slow for team role",        "priority": "LOW"},
-            {"id": "GAP-7",  "desc": "SendGrid key missing — 1 shield layer dormant",            "priority": "LOW"},
-            {"id": "GAP-8",  "desc": "Self-modification not yet wired to PCC decision cycle",    "priority": "MEDIUM"},
-        ]
+        # RROM status
+        try:
+            from src.rrom import rrom
+            snap = rrom.current_snapshot()
+            report["rrom"] = snap if snap else {"status": "warming_up"}
+        except Exception as exc:
+            report["rrom"] = {"error": str(exc)}
 
-        # Next recommended action
-        report["recommended_next"] = [
-            "Wire GAP-2: SteeringAction → LLM prompt builder (highest impact, 2 files)",
-            "Wire GAP-1: RSC outrage_loop → PCC steer=True path",
-            "Deploy RROM Phase 1 monitoring (measurement only, no behavior change)",
-        ]
+        # Module inventory — what exists, what is stubs
+        try:
+            source_files = self.list_source_files("src")
+            report["source_files"] = len(source_files)
+        except Exception:
+            report["source_files"] = -1
+
+        # ── Principles 1–5: Dynamic gap analysis via LLM ─────────────────────
+        # Murphy uses its own LLM to assess system state and prioritize gaps.
+        # This is Principle 4: does the test profile reflect the full range?
+        try:
+            from src.llm_provider import llm_provider
+            sw_str  = json.dumps(report.get("shield_wall", {}))
+            fl_str  = json.dumps(report.get("front_of_line", {}))
+            rrom_str= json.dumps(report.get("rrom", {}).get("faces", {}) if isinstance(report.get("rrom"), dict) else {})
+
+            audit_prompt = (
+                f"You are Murphy's engineering audit engine. Apply the 10 guiding principles:\n"
+                f"1. Does the module do what it was designed to do?\n"
+                f"2. What is the design intent?\n"
+                f"3. What conditions are possible?\n"
+                f"4. Does the test profile reflect the full range?\n"
+                f"5. What is the expected result at all points?\n"
+                f"6. What is the actual result?\n"
+                f"7. Restart from symptoms if problems remain\n"
+                f"8. Has ancillary code and docs been updated?\n"
+                f"9. Has hardening been applied?\n"
+                f"10. Has the module been recommissioned after changes?\n\n"
+                f"Current system state:\n"
+                f"Shield Wall: {sw_str}\n"
+                f"Front-of-Line: {fl_str}\n"
+                f"RROM faces: {rrom_str}\n\n"
+                f"Known implemented modules: Rules of Conduct, Ledger Engine, Front-of-Line gate, "
+                f"Convergence Engine (GAP-1 + GAP-2 just fixed), RROM Phase 1 (just deployed), "
+                f"Criminal Investigation Protocol, Model Team, Self-Modification Engine, "
+                f"Honeypot/Counter-Intelligence, Shield Wall.\n\n"
+                f"Known open gaps: PCC formula not in code, CIDP reports not persisted, "
+                f"Sentinel model too slow, SendGrid dormant, self-mod not wired to PCC cycle.\n\n"
+                f"List exactly 5 specific engineering gaps ordered by impact. "
+                f"For each: id (GAP-N), priority (HIGH/MEDIUM/LOW), one-line description, "
+                f"and the exact file+function where the fix belongs. "
+                f"Then list 3 recommended next actions in order. "
+                f"Return as JSON: {{gaps: [...], recommended_next: [...]}}"
+            )
+            llm_out = llm_provider.complete(
+                audit_prompt,
+                system="You are Murphy's engineering audit engine. Return only valid JSON.",
+                model_hint="chat",
+                temperature=0.2,
+                max_tokens=800,
+            )
+            if llm_out and llm_out.text:
+                raw = llm_out.text.strip()
+                # Extract JSON from response
+                start = raw.find("{")
+                end   = raw.rfind("}") + 1
+                if start >= 0 and end > start:
+                    parsed = json.loads(raw[start:end])
+                    report["known_gaps"]      = parsed.get("gaps", [])
+                    report["recommended_next"]= parsed.get("recommended_next", [])
+                    report["llm_audit"]       = True
+                    report["audit_model"]     = getattr(llm_out, "model", "?")
+                else:
+                    raise ValueError("No JSON object in LLM response")
+            else:
+                raise ValueError("Empty LLM response")
+        except Exception as exc:
+            logger.warning("evaluate_self: LLM audit failed (%s) — falling back to static gaps", exc)
+            # ── Fallback static gap list (updated after PATCH-097/098) ──────
+            report["known_gaps"] = [
+                {"id": "GAP-1",  "priority": "FIXED",  "desc": "HIGH_RISK_PATTERNS now trigger early steering (PATCH-097)"},
+                {"id": "GAP-2",  "priority": "FIXED",  "desc": "LLM-enriched SteeringAction payload (PATCH-097)"},
+                {"id": "GAP-3",  "priority": "FIXED",  "desc": "RROM Phase 1 measurement deployed (PATCH-098)"},
+                {"id": "GAP-4",  "priority": "MEDIUM", "desc": "CIDP investigation reports not persisted — src/criminal_investigation_protocol.py"},
+                {"id": "GAP-5",  "priority": "HIGH",   "desc": "PCC formula not in code — needs src/pcc.py + wiring to convergence_engine"},
+                {"id": "GAP-6",  "priority": "LOW",    "desc": "Sentinel (phi3) timeouts — src/model_team.py SENTINEL config"},
+                {"id": "GAP-7",  "priority": "LOW",    "desc": "SendGrid key missing — /etc/murphy-production/secrets.env"},
+                {"id": "GAP-8",  "priority": "MEDIUM", "desc": "Self-mod not wired to PCC — src/self_modification.py _gate_check()"},
+            ]
+            report["recommended_next"] = [
+                "Implement PCC formula in src/pcc.py — wire R_fair to convergence + RROM",
+                "Persist CIDP reports to SQLite — add LedgerEntry-style storage in criminal_investigation_protocol.py",
+                "Replace Sentinel phi3 with faster local model or increase timeout + async retry",
+            ]
+            report["llm_audit"] = False
 
         return report
 

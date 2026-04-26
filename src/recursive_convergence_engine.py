@@ -590,25 +590,27 @@ class SteeringAction:
       - Transparent (always surfaceable to the user)
       - Free-will-preserving (the choice is always theirs)
     """
-    action_id:       str
+    action_id:          str
     convergence_signal: str    # signal_id this action responds to
-    action_type:     str       # "inject_counter_signal" | "surface_perspective" | "open_question" | "none"
-    payload:         str       # the actual content to inject/surface
-    rationale:       str       # why this action was chosen
-    llm_enriched:    bool = False  # GAP-2 fix: True if payload was LLM-generated
-    magnitude:       float     # 0.0–1.0 how much shift was warranted
-    free_will_note:  str       # reminder that this is a choice
-    cidp_cleared:    bool = False   # set True after CIDP output investigation
+    action_type:        str    # "inject_counter_signal" | "surface_perspective" | "open_question" | "none"
+    payload:            str    # the actual content to inject/surface
+    rationale:          str    # why this action was chosen
+    magnitude:          float  # 0.0–1.0 how much shift was warranted
+    free_will_note:     str    # reminder that this is a choice
+    # Default fields last (Python dataclass rule)
+    cidp_cleared:       bool = False   # set True after CIDP output investigation
+    llm_enriched:       bool = False   # GAP-2: True if payload was LLM-enriched
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "action_id":    self.action_id,
-            "action_type":  self.action_type,
-            "payload":      self.payload,
-            "rationale":    self.rationale,
-            "magnitude":    self.magnitude,
+            "action_id":      self.action_id,
+            "action_type":    self.action_type,
+            "payload":        self.payload,
+            "rationale":      self.rationale,
+            "magnitude":      self.magnitude,
             "free_will_note": self.free_will_note,
-            "cidp_cleared": self.cidp_cleared,
+            "cidp_cleared":   self.cidp_cleared,
+            "llm_enriched":   self.llm_enriched,
         }
 
 

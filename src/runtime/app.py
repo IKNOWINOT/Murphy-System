@@ -16539,19 +16539,49 @@ def create_app() -> FastAPI:
     @app.post("/api/ledger/reconcile")
     async def _ledger_reconcile(request: Request):
         """
-        PATCH-097 — Reconcile a deployment's ledger.
-        Computes net impact and 10x obligation for successor.
+        PATCH-097b — Full ledger cycle: open_estimate → reconcile in one call.
+        Computes net impact, debt incurred, and 10x obligation for successor.
+        Body: {deployment_id, deployment_desc?, domain?, tokens_used?, compute_joules?,
+               water_liters?, co2_grams?, est_net?, est_rationale?}
         """
         try:
-            from src.ledger_engine import ledger_engine
+            from src.ledger_engine import ledger_engine, LedgerEngine
             body = await request.json()
-            result = ledger_engine.reconcile(
-                deployment_id  = body.get("deployment_id", "unknown"),
-                total_provided = float(body.get("total_provided", 0.0)),
+            did   = body.get("deployment_id", "unknown")
+            desc  = body.get("deployment_desc", did)
+            domain= body.get("domain", "ai_inference")
+            # Compute rough cost/provision from raw metrics
+            tokens  = float(body.get("tokens_used", 0))
+            joules  = float(body.get("compute_joules", 0))
+            water   = float(body.get("water_liters", 0))
+            co2     = float(body.get("co2_grams", 0))
+            cost_str = f"Tokens={tokens}, Compute={joules}J, Water={water}L, CO2={co2}g"
+            prov_str = body.get("est_provision", "Inference service delivered")
+            net_str  = body.get("est_net", "Positive if model helps user; negative if extractive")
+            rat_str  = body.get("est_rationale", "Standard inference estimate")
+            # Open then immediately reconcile
+            entry = ledger_engine.open_estimate(
+                deployment_id  = did,
+                deployment_desc= desc,
+                domain         = domain,
+                est_cost       = cost_str,
+                est_provision  = prov_str,
+                est_net        = net_str,
+                est_rationale  = rat_str,
             )
-            return JSONResponse(result)
+            result = ledger_engine.reconcile(entry.entry_id)
+            return JSONResponse({"success": True, **result})
         except Exception as exc:
             logger.error("ledger/reconcile error: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/ledger/status")
+    async def _ledger_status():
+        """PATCH-097b — Full ledger status: all entries, debts, deferred obligations."""
+        try:
+            from src.ledger_engine import ledger_engine
+            return JSONResponse({"success": True, **ledger_engine.status()})
+        except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
     @app.post("/api/frontline/check")
@@ -16576,9 +16606,45 @@ def create_app() -> FastAPI:
             logger.error("frontline/check error: %s", exc)
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
+
+    # ── PATCH-098: RROM Phase 1 — Resource Orchestration Measurement ─────────
+
+    @app.get("/api/rrom/snapshot")
+    async def _rrom_snapshot():
+        """PATCH-098 — Current RROM six-face resource snapshot."""
+        try:
+            from src.rrom import rrom
+            snap = rrom.current_snapshot()
+            if not snap:
+                return JSONResponse({"success": True, "status": "warming_up", "message": "Sampler started, first snapshot in 5s"})
+            return JSONResponse({"success": True, **snap})
+        except Exception as exc:
+            logger.error("rrom/snapshot error: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/rrom/history")
+    async def _rrom_history(n: int = 12):
+        """PATCH-098 — RROM snapshot history (last N samples, default 12 = 1 min)."""
+        try:
+            from src.rrom import rrom
+            return JSONResponse({"success": True, "history": rrom.history(n)})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/rrom/face/{face}")
+    async def _rrom_face(face: str):
+        """PATCH-098 — Status of a single RROM face (shield_util, llm_demand, etc.)."""
+        try:
+            from src.rrom import rrom
+            return JSONResponse({"success": True, **rrom.face_status(face)})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
     # ── PATCH-097b: Self-Modification API ────────────────────────────────────
 
     @app.post("/api/self/evaluate")
+    @app.get("/api/self/evaluate")
     async def _self_evaluate(request: Request):
         """
         PATCH-097b — Murphy self-assessment report.
@@ -16586,7 +16652,10 @@ def create_app() -> FastAPI:
         """
         try:
             from src.self_modification import self_mod
-            body = await request.json() if request.headers.get("content-type","").startswith("application/json") else {}
+            try:
+                body = await request.json() if request.headers.get("content-type","").startswith("application/json") else {}
+            except Exception:
+                body = {}
             scope = body.get("scope", "full")
             report = self_mod.evaluate_self(scope)
             return JSONResponse({"success": True, "report": report})
