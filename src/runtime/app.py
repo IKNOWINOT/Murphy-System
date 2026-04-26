@@ -16607,6 +16607,34 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
 
+    # ── PATCH-100: CIDP Persistence API ───────────────────────────────────────
+
+    @app.get("/api/cidp/reports")
+    async def _cidp_reports(
+        request: Request,
+        limit: int = 50,
+        domain: str = None,
+        verdict: str = None,
+    ):
+        """PATCH-100 — Retrieve persisted CIDP investigation reports."""
+        try:
+            from src.criminal_investigation_protocol import query_cidp_reports, cidp_stats
+            reports = query_cidp_reports(limit=limit, domain=domain, verdict=verdict)
+            stats   = cidp_stats()
+            return JSONResponse({"success": True, "stats": stats, "reports": reports})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/cidp/stats")
+    async def _cidp_stats():
+        """PATCH-100 — CIDP report store statistics."""
+        try:
+            from src.criminal_investigation_protocol import cidp_stats
+            return JSONResponse({"success": True, **cidp_stats()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
     # ── PATCH-099: PCC — Predictive Convergence Correction API ────────────────
 
     @app.get("/api/pcc/status")

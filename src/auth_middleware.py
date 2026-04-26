@@ -82,6 +82,8 @@ _EXEMPT_PREFIXES = (
     # PATCH-099: PCC
     "/api/pcc/",
     "/api/pcc",
+    # PATCH-100: CIDP reports (read-only stats public)
+    "/api/cidp/stats",
 )
 
 

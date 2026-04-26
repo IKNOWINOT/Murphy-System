@@ -27,6 +27,127 @@ import json
 import logging
 import time
 import uuid
+
+# ── PATCH-100: CIDP Persistence ───────────────────────────────────────────────
+import sqlite3 as _sqlite3
+import json as _json_cidp
+
+_CIDP_DB_PATH = "/var/lib/murphy-production/cidp_reports.db"
+
+def _get_cidp_db() -> _sqlite3.Connection:
+    """Open (or create) the CIDP reports database."""
+    import os as _os
+    _os.makedirs(_os.path.dirname(_CIDP_DB_PATH), exist_ok=True)
+    conn = _sqlite3.connect(_CIDP_DB_PATH, check_same_thread=False)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS cidp_reports (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            investigation_id TEXT NOT NULL,
+            intent          TEXT,
+            domain          TEXT,
+            account         TEXT,
+            verdict         TEXT,
+            verdict_reason  TEXT,
+            motive_class    TEXT,
+            ethical_score   REAL,
+            p_harm          REAL,
+            p_catastrophic  REAL,
+            duration_ms     REAL,
+            report_json     TEXT,
+            created_at      TEXT DEFAULT (datetime('now'))
+        )
+    """)
+    conn.commit()
+    return conn
+
+
+def persist_cidp_report(report: "InvestigationReport") -> str:
+    """
+    PATCH-100 — Persist an InvestigationReport to SQLite.
+    Returns the investigation_id.
+    Non-blocking: any failure is logged and swallowed.
+    """
+    try:
+        conn = _get_cidp_db()
+        conn.execute("""
+            INSERT INTO cidp_reports
+              (investigation_id, intent, domain, account, verdict, verdict_reason,
+               motive_class, ethical_score, p_harm, p_catastrophic, duration_ms, report_json)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+        """, (
+            report.investigation_id,
+            report.intent[:500],
+            report.domain,
+            report.account,
+            report.verdict,
+            report.verdict_reason[:500],
+            report.motive.motive_class.value,
+            report.ethical_score.weighted_score,
+            report.harm.p_aggregate,
+            report.harm.p_catastrophic,
+            report.duration_ms,
+            _json_cidp.dumps(report.to_dict()),
+        ))
+        conn.commit()
+        conn.close()
+        return report.investigation_id
+    except Exception as _exc:
+        import logging as _log
+        _log.getLogger(__name__).warning("CIDP persist failed (non-blocking): %s", _exc)
+        return report.investigation_id
+
+
+def query_cidp_reports(
+    limit: int = 50,
+    domain: str = None,
+    verdict: str = None,
+    account: str = None,
+) -> list:
+    """
+    PATCH-100 — Query persisted CIDP reports.
+    Returns list of dicts (most recent first).
+    """
+    try:
+        conn = _get_cidp_db()
+        wheres = []
+        params = []
+        if domain:  wheres.append("domain = ?");  params.append(domain)
+        if verdict: wheres.append("verdict = ?"); params.append(verdict)
+        if account: wheres.append("account = ?"); params.append(account)
+        where_clause = ("WHERE " + " AND ".join(wheres)) if wheres else ""
+        rows = conn.execute(
+            f"SELECT report_json FROM cidp_reports {where_clause} "
+            f"ORDER BY id DESC LIMIT ?",
+            params + [limit]
+        ).fetchall()
+        conn.close()
+        return [_json_cidp.loads(r[0]) for r in rows]
+    except Exception as _exc:
+        import logging as _log
+        _log.getLogger(__name__).warning("CIDP query failed: %s", _exc)
+        return []
+
+
+def cidp_stats() -> dict:
+    """PATCH-100 — Basic stats on the CIDP report store."""
+    try:
+        conn = _get_cidp_db()
+        total   = conn.execute("SELECT COUNT(*) FROM cidp_reports").fetchone()[0]
+        blocked = conn.execute("SELECT COUNT(*) FROM cidp_reports WHERE verdict='blocked'").fetchone()[0]
+        hitl    = conn.execute("SELECT COUNT(*) FROM cidp_reports WHERE verdict='hitl_required'").fetchone()[0]
+        proceed = conn.execute("SELECT COUNT(*) FROM cidp_reports WHERE verdict='proceed'").fetchone()[0]
+        avg_dur = conn.execute("SELECT AVG(duration_ms) FROM cidp_reports").fetchone()[0] or 0.0
+        conn.close()
+        return {
+            "total": total, "blocked": blocked,
+            "hitl_required": hitl, "proceed": proceed,
+            "avg_duration_ms": round(avg_dur, 2),
+        }
+    except Exception as _exc:
+        return {"error": str(_exc)}
+
+# ── End PATCH-100 CIDP Persistence ───────────────────────────────────────────
+
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -935,6 +1056,11 @@ class MasterInvestigator:
             "CIDP investigation %s: verdict=%s in %.1fms — %s",
             inv_id, verdict, duration_ms, verdict_reason[:80],
         )
+        # PATCH-100: persist every report — audit trail
+        try:
+            persist_cidp_report(report)
+        except Exception:
+            pass
         return report
 
 
