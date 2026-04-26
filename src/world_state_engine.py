@@ -1210,18 +1210,32 @@ class WorldStateEngine:
         }
 
     def summary(self) -> Dict[str, Any]:
-        """Lightweight summary for RROM face 8."""
+        """PATCH-104: Richer summary — includes domain breakdown and scenario list."""
         snap = self._current
         if not snap:
-            return {"wsi": 0.5, "label": "UNKNOWN", "world_pressure": 0.5}
+            return {"wsi": 0.5, "label": "UNKNOWN", "world_pressure": 0.5, "domains": {}, "scenarios": []}
+        domains = {}
+        for name, domain in snap.domains.items():
+            domains[name] = {
+                "stability_score": round(domain.stability_score, 4),
+                "confidence":      round(domain.confidence, 4),
+                "source":          domain.source,
+                "error":           str(domain.error) if domain.error else None,
+            }
+        scenarios = [
+            {"name": sc.name, "probability": round(sc.probability, 3), "severity": sc.severity}
+            for sc in snap.scenarios[:5]
+        ]
         return {
-            "wsi":              snap.wsi,
+            "wsi":              round(snap.wsi, 4),
             "label":            snap.wsi_label,
             "world_pressure":   round(1.0 - snap.wsi, 4),
             "dominant_risk":    snap.dominant_risk,
-            "scenarios":        len(snap.scenarios),
+            "domains":          domains,
+            "scenarios":        scenarios,
             "trend_6h":         snap.trend_6h,
             "refreshed_at":     snap.timestamp,
+            "refresh_duration_s": snap.refresh_duration_s,
         }
 
 

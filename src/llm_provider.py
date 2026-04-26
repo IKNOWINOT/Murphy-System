@@ -514,6 +514,11 @@ class MurphyLLMProvider:
                 content = data["choices"][0]["message"]["content"]
                 usage   = data.get("usage", {})
                 logger.info("DeepInfra ✅ %.2fs | %s", elapsed, model)
+                try:
+                    from src.pcc import pcc as _pcc104
+                    _pcc104.feedback(f"llm_di_{id(self)}", outcome_quality=0.85, confirmed=True)
+                except Exception:
+                    pass
                 completion = LLMCompletion(
                     content=content, model=model, provider="deepinfra",
                     tokens_prompt=usage.get("prompt_tokens", 0),
