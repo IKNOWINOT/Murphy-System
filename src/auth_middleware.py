@@ -353,6 +353,7 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/admin",
         # PATCH-072: Ambient AI + Management AI — session-cookie auth inside routers
         "/api/ambient/",
+    "/api/shield/",  # PATCH-093c: Shield Wall — public status endpoint
         "/api/ambient",
         "/api/mgmt/",
         "/api/mgmt",
