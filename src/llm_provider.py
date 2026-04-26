@@ -52,7 +52,8 @@ TOGETHER_CODE_MODEL    = "Qwen/Qwen2.5-7B-Instruct-Turbo"
 # DeepInfra Llama-3.1-70B context window: 131 072 tokens (prompt + output).
 # Output is not artificially capped — the LLM produces whatever the request
 # requires.  Callers may pass a lower max_tokens for smaller tasks.
-DEEPINFRA_MODEL_CONTEXT = 131072
+DEEPINFRA_MODEL_CONTEXT = 131072   # input context window — do NOT pass as max_tokens
+DEEPINFRA_MAX_OUTPUT    = 8192     # PATCH-093b: max generation tokens per call (422 fix)
 
 # ---------------------------------------------------------------------------
 # Circuit breaker
@@ -372,16 +373,18 @@ class MurphyLLMProvider:
         model:     str,
         messages:  List[Dict[str, str]],
         temperature: float = 0.7,
-        max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,
+        max_tokens:  int   = DEEPINFRA_MAX_OUTPUT,  # PATCH-093b: output cap not context window
         seed:        Optional[int] = None,
         timeout:     Optional[float] = None,  # PATCH-070c: per-provider override
     ) -> Dict[str, Any]:
         """POST to an OpenAI-compatible chat completions endpoint."""
+        # PATCH-093b: cap output tokens — context window != generation limit (422 fix)
+        _safe_max = min(max_tokens, DEEPINFRA_MAX_OUTPUT) if base_url == DEEPINFRA_BASE_URL else max_tokens
         payload: Dict[str, Any] = {
             "model":       model,
             "messages":    messages,
             "temperature": temperature,
-            "max_tokens":  max_tokens,
+            "max_tokens":  _safe_max,
         }
         # DETERM-LLM-001: include seed when deterministic mode is active
         if seed is not None:
@@ -409,7 +412,7 @@ class MurphyLLMProvider:
         system:      str   = "You are Murphy, an AI automation platform built by Inoni LLC.",
         model_hint:  str   = "chat",
         temperature: float = 0.7,
-        max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,
+        max_tokens:  int   = DEEPINFRA_MAX_OUTPUT,  # PATCH-093b: output cap not context window
         deterministic: bool = False,
     ) -> LLMCompletion:
         """Complete a prompt synchronously.
@@ -438,7 +441,7 @@ class MurphyLLMProvider:
         *,
         model_hint:  str   = "chat",
         temperature: float = 0.7,
-        max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,
+        max_tokens:  int   = DEEPINFRA_MAX_OUTPUT,  # PATCH-093b: output cap not context window
         deterministic: bool = False,
     ) -> LLMCompletion:
         """Complete a messages list synchronously."""
@@ -455,7 +458,7 @@ class MurphyLLMProvider:
         messages:    List[Dict[str, str]],
         model_hint:  str   = "chat",
         temperature: float = 0.7,
-        max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,
+        max_tokens:  int   = DEEPINFRA_MAX_OUTPUT,  # PATCH-093b: output cap not context window
         deterministic: bool = False,
     ) -> LLMCompletion:
         request_id = str(uuid.uuid4())
@@ -633,7 +636,7 @@ class MurphyLLMProvider:
         system:      str   = "You are Murphy, an AI automation platform built by Inoni LLC.",
         model_hint:  str   = "chat",
         temperature: float = 0.7,
-        max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,  # WIRE-LLM-001: match sync default
+        max_tokens:  int   = DEEPINFRA_MAX_OUTPUT,  # PATCH-093b: output cap not context window
         deterministic: bool = False,
     ) -> LLMCompletion:
         """Async completion — DeepInfra primary, Together.ai fallback.
@@ -659,7 +662,7 @@ class MurphyLLMProvider:
         *,
         model_hint:  str   = "chat",
         temperature: float = 0.7,
-        max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,  # WIRE-LLM-001: match sync default
+        max_tokens:  int   = DEEPINFRA_MAX_OUTPUT,  # PATCH-093b: output cap not context window
         deterministic: bool = False,
     ) -> LLMCompletion:
         """Async messages completion."""
@@ -676,7 +679,7 @@ class MurphyLLMProvider:
         messages:    List[Dict[str, str]],
         model_hint:  str   = "chat",
         temperature: float = 0.7,
-        max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,  # WIRE-LLM-001: match sync default
+        max_tokens:  int   = DEEPINFRA_MAX_OUTPUT,  # PATCH-093b: output cap not context window
         deterministic: bool = False,
     ) -> LLMCompletion:
         request_id = str(uuid.uuid4())
@@ -912,7 +915,7 @@ def complete(
     system:      str   = "You are Murphy, an AI automation platform built by Inoni LLC.",
     model_hint:  str   = "chat",
     temperature: float = 0.7,
-    max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,  # WIRE-LLM-001: match class default
+    max_tokens:  int   = DEEPINFRA_MAX_OUTPUT,  # PATCH-093b: output cap not context window
 ) -> str:
     """Single-call convenience: returns just the content string."""
     return get_llm().complete(
@@ -926,7 +929,7 @@ async def acomplete(
     system:      str   = "You are Murphy, an AI automation platform built by Inoni LLC.",
     model_hint:  str   = "chat",
     temperature: float = 0.7,
-    max_tokens:  int   = DEEPINFRA_MODEL_CONTEXT,  # WIRE-LLM-001: match class default
+    max_tokens:  int   = DEEPINFRA_MAX_OUTPUT,  # PATCH-093b: output cap not context window
 ) -> str:
     """Async convenience: returns just the content string."""
     resp = await get_llm().acomplete(
