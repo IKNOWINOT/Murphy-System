@@ -16607,6 +16607,85 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
 
+    # ── PATCH-103: World State Engine API ─────────────────────────────────────
+
+    @app.get("/api/world/snapshot")
+    async def _world_snapshot():
+        """PATCH-103 — Current World State Index + all 8 domain readings."""
+        try:
+            from src.world_state_engine import world_state
+            snap = world_state.current_snapshot()
+            if not snap:
+                return JSONResponse({"success": False, "error": "No snapshot yet — engine warming up"}, status_code=503)
+            d = snap.to_dict()
+            return JSONResponse({"success": True, "snapshot": d})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/world/summary")
+    async def _world_summary():
+        """PATCH-103 — Lightweight WSI summary (for dashboards and RROM)."""
+        try:
+            from src.world_state_engine import world_state
+            return JSONResponse({"success": True, **world_state.summary()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/world/history")
+    async def _world_history(hours: int = 24):
+        """PATCH-103 — WSI time-series history (hours param, default 24h)."""
+        try:
+            from src.world_state_engine import world_state
+            return JSONResponse({"success": True, "history": world_state.history(hours)})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/world/graph")
+    async def _world_graph(hours: int = 24):
+        """PATCH-103 — Graph-ready WSI time-series with domain breakdown."""
+        try:
+            from src.world_state_engine import world_state
+            return JSONResponse({"success": True, **world_state.graph_data(hours)})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/world/scenarios")
+    async def _world_scenarios():
+        """PATCH-103 — Current scenario models (only generated when WSI < 0.6)."""
+        try:
+            from src.world_state_engine import world_state
+            snap = world_state.current_snapshot()
+            scenarios = [s.to_dict() for s in snap.scenarios] if snap else []
+            return JSONResponse({"success": True, "scenarios": scenarios,
+                                 "wsi": snap.wsi if snap else None})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/world/domain/{domain_name}")
+    async def _world_domain(domain_name: str):
+        """PATCH-103 — Deep dive into one domain reading."""
+        try:
+            from src.world_state_engine import world_state
+            snap = world_state.current_snapshot()
+            if not snap or domain_name not in snap.domains:
+                return JSONResponse({"success": False, "error": f"Domain '{domain_name}' not found"}, status_code=404)
+            return JSONResponse({"success": True, "domain": snap.domains[domain_name].to_dict()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/world/refresh")
+    async def _world_refresh(request: Request):
+        """PATCH-103 — Force immediate refresh cycle (auth required)."""
+        try:
+            from src.world_state_engine import world_state
+            import asyncio
+            snap = await asyncio.get_event_loop().run_in_executor(None, world_state.refresh)
+            return JSONResponse({"success": True, "wsi": snap.wsi, "label": snap.wsi_label,
+                                 "duration_s": snap.refresh_duration_s})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
     # ── PATCH-102: Hardware Telemetry API ──────────────────────────────────────
 
     @app.get("/api/hardware/snapshot")

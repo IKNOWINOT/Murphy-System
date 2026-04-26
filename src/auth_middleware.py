@@ -82,6 +82,9 @@ _EXEMPT_PREFIXES = (
     # PATCH-099: PCC
     "/api/pcc/",
     "/api/pcc",
+    # PATCH-103: World State Engine (public read-only)
+    "/api/world/",
+    "/api/world",
     # PATCH-102: Hardware telemetry (public read-only)
     "/api/hardware/",
     "/api/hardware",
@@ -373,6 +376,9 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         # PATCH-099: PCC (public)
         "/api/pcc/",
         "/api/pcc",
+        # PATCH-103: World State Engine (public read-only)
+        "/api/world/",
+        "/api/world",
         # PATCH-102: Hardware telemetry (public read-only)
         "/api/hardware/",
         "/api/hardware",

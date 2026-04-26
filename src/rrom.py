@@ -247,6 +247,22 @@ class RROMEngine:
         except Exception as _hw_exc:
             logger.debug("RROM hardware face error (non-blocking): %s", _hw_exc)
 
+        # PATCH-103: inject world_pressure face from WorldStateEngine
+        try:
+            from src.world_state_engine import world_state as _wse
+            _wse_summary = _wse.summary()
+            _world_util = round(_wse_summary.get("world_pressure", 0.5), 4)
+            faces["world_pressure"] = ModuleMetric(
+                face         = "world_pressure",
+                timestamp    = time.monotonic(),
+                rate_per_min = 0.0,
+                in_flight    = 0,
+                util_ratio   = _world_util,
+                r_fair       = _world_util,
+            )
+        except Exception as _wse_exc:
+            logger.debug("RROM world face error (non-blocking): %s", _wse_exc)
+
         overall = sum(m.util_ratio for m in faces.values()) / len(faces)
         # Pressure classification
         if overall < 0.3:
