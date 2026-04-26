@@ -188,6 +188,12 @@ class HardwareTelemetryEngine:
         self._last_ts:      Optional[float] = None
         # Service start time
         self._service_start: Optional[datetime] = self._get_service_start()
+        # Warm up cpu_percent so first call returns real data (not 0.0)
+        try:
+            import psutil as _p
+            _p.cpu_percent(interval=0.1, percpu=True)
+        except Exception:
+            pass
         logger.info("HardwareTelemetryEngine initialized — PATCH-102")
 
     # ── Specs (static, cached) ────────────────────────────────────────────────
@@ -365,7 +371,7 @@ class HardwareTelemetryEngine:
         ping_ms = loss = None
         try:
             result = subprocess.run(
-                ["ping", "-c", str(_PING_COUNT), "-W", "2", _PING_HOST],
+                ["/bin/ping", "-c", str(_PING_COUNT), "-W", "2", _PING_HOST],
                 capture_output=True, text=True, timeout=6
             )
             for line in result.stdout.split("\n"):
@@ -385,7 +391,7 @@ class HardwareTelemetryEngine:
         try:
             import urllib.request
             t0 = time.monotonic()
-            urllib.request.urlopen("http://127.0.0.1:8000/api/health", timeout=2)
+            urllib.request.urlopen("http://127.0.0.1:8000/api/health", timeout=3)
             local_ms = round((time.monotonic() - t0) * 1000, 2)
         except Exception:
             pass
