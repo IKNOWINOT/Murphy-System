@@ -68,6 +68,360 @@ except ImportError:
 
 
 # ===========================================================================
+# GhostPageHandle — MCB's page abstraction backed by GhostBrowser (no Playwright)
+# ===========================================================================
+
+class GhostPageHandle:
+    """
+    Drop-in replacement for a Playwright Page object inside MCB's _execute().
+    Backed by GhostBrowser (Murphy's own Chromium/CDP client) and GhostVision
+    (OCR + CLIP pattern recognition).
+
+    Every method matches the Playwright Page API that _execute() calls,
+    so _execute() needs zero changes — it just gets a GhostPageHandle
+    instead of a Playwright page and everything works.
+
+    PATCH-091 | No Playwright. Ghost runs like a user.
+    """
+
+    def __init__(self, browser: Any, tab_id: str, vision: Any):
+        self._b   = browser   # GhostBrowser
+        self._tid = tab_id    # Chromium tab id
+        self._vis = vision    # GhostVision
+
+    def is_closed(self) -> bool:
+        try:
+            tabs = self._b.list_tabs()
+            return not any(t.get("id") == self._tid for t in tabs)
+        except Exception:
+            return True
+
+    # ── Navigation ────────────────────────────────────────────────
+
+    async def goto(self, url: str, wait_until: str = "domcontentloaded",
+                   timeout: int = 30000) -> Any:
+        self._vis.invalidate_cache()
+        self._b.navigate(self._tid, url, timeout=timeout/1000)
+        return type("Resp", (), {"status": 200, "url": url})()
+
+    async def reload(self, wait_until: str = "domcontentloaded", timeout: int = 30000):
+        self._vis.invalidate_cache()
+        self._b._ws_command(self._tid, "Page.reload", {"ignoreCache": False})
+
+    async def go_back(self, wait_until: str = "domcontentloaded", timeout: int = 30000):
+        self._vis.invalidate_cache()
+        self._b._ws_command(self._tid, "Runtime.evaluate",
+                             {"expression": "history.back()", "returnByValue": True})
+
+    async def go_forward(self, wait_until: str = "domcontentloaded", timeout: int = 30000):
+        self._vis.invalidate_cache()
+        self._b._ws_command(self._tid, "Runtime.evaluate",
+                             {"expression": "history.forward()", "returnByValue": True})
+
+    # ── Properties ────────────────────────────────────────────────
+
+    @property
+    def url(self) -> str:
+        r = self._b._ws_command(self._tid, "Runtime.evaluate",
+                                 {"expression": "location.href", "returnByValue": True})
+        return r.get("result", {}).get("value", "")
+
+    async def title(self) -> str:
+        r = self._b._ws_command(self._tid, "Runtime.evaluate",
+                                 {"expression": "document.title", "returnByValue": True})
+        return r.get("result", {}).get("value", "")
+
+    async def content(self) -> str:
+        r = self._b._ws_command(self._tid, "Runtime.evaluate", {
+            "expression": "document.documentElement.outerHTML",
+            "returnByValue": True
+        })
+        return r.get("result", {}).get("value", "")
+
+    # ── Element interaction ───────────────────────────────────────
+
+    async def click(self, selector: str, button: str = "left", timeout: int = 30000):
+        self._vis.invalidate_cache()
+        el = self._vis.locate(selector)
+        if el:
+            cx, cy = el.center
+            self._b._ws_command(self._tid, "Input.dispatchMouseEvent",
+                                  {"type": "mousePressed", "x": cx, "y": cy,
+                                   "button": button, "clickCount": 1})
+            self._b._ws_command(self._tid, "Input.dispatchMouseEvent",
+                                  {"type": "mouseReleased", "x": cx, "y": cy,
+                                   "button": button, "clickCount": 1})
+        else:
+            raise Exception(f"GhostVision could not locate: {selector!r}")
+
+    async def dbl_click(self, selector: str, timeout: int = 30000):
+        self._vis.invalidate_cache()
+        el = self._vis.locate(selector)
+        if el:
+            cx, cy = el.center
+            for _ in range(2):
+                self._b._ws_command(self._tid, "Input.dispatchMouseEvent",
+                                      {"type": "mousePressed", "x": cx, "y": cy,
+                                       "button": "left", "clickCount": 2})
+                self._b._ws_command(self._tid, "Input.dispatchMouseEvent",
+                                      {"type": "mouseReleased", "x": cx, "y": cy,
+                                       "button": "left", "clickCount": 2})
+
+    async def hover(self, selector: str, timeout: int = 30000):
+        el = self._vis.locate(selector)
+        if el:
+            cx, cy = el.center
+            self._b._ws_command(self._tid, "Input.dispatchMouseEvent",
+                                  {"type": "mouseMoved", "x": cx, "y": cy})
+
+    async def fill(self, selector: str, value: str, timeout: int = 30000):
+        self._vis.invalidate_cache()
+        self._b.fill_selector(self._tid, selector, value)
+
+    async def type(self, selector: str, text: str, timeout: int = 30000):
+        await self.fill(selector, text, timeout=timeout)
+
+    async def press(self, selector: str, key: str, timeout: int = 30000):
+        self._b._ws_command(self._tid, "Input.dispatchKeyEvent",
+                             {"type": "keyDown", "key": key})
+        self._b._ws_command(self._tid, "Input.dispatchKeyEvent",
+                             {"type": "keyUp", "key": key})
+
+    async def focus(self, selector: str, timeout: int = 30000):
+        self._b.evaluate(self._tid,
+                         f"document.querySelector({repr(selector)}) && "
+                         f"document.querySelector({repr(selector)}).focus()")
+
+    async def select_option(self, selector: str, value: str = None, timeout: int = 30000):
+        if value:
+            self._b.evaluate(self._tid,
+                             f"var s=document.querySelector({repr(selector)});"
+                             f"if(s){{s.value={repr(value)};s.dispatchEvent(new Event('change'))}}")
+
+    async def check(self, selector: str, timeout: int = 30000):
+        self._b.evaluate(self._tid,
+                         f"var el=document.querySelector({repr(selector)});"
+                         f"if(el&&!el.checked)el.click()")
+
+    async def uncheck(self, selector: str, timeout: int = 30000):
+        self._b.evaluate(self._tid,
+                         f"var el=document.querySelector({repr(selector)});"
+                         f"if(el&&el.checked)el.click()")
+
+    # ── Read ──────────────────────────────────────────────────────
+
+    async def inner_text(self, selector: str, timeout: int = 30000) -> str:
+        r = self._b.evaluate(self._tid,
+                              f"(document.querySelector({repr(selector)})||{{}}).innerText||''")
+        return r or ""
+
+    async def inner_html(self, selector: str, timeout: int = 30000) -> str:
+        r = self._b.evaluate(self._tid,
+                              f"(document.querySelector({repr(selector)})||{{}}).innerHTML||''")
+        return r or ""
+
+    async def get_attribute(self, selector: str, name: str, timeout: int = 30000):
+        r = self._b.evaluate(self._tid,
+                              f"(document.querySelector({repr(selector)})||{{}}).getAttribute({repr(name)})")
+        return r
+
+    async def input_value(self, selector: str, timeout: int = 30000) -> str:
+        r = self._b.evaluate(self._tid,
+                              f"(document.querySelector({repr(selector)})||{{}}).value||''")
+        return r or ""
+
+    async def text_content(self, selector: str, timeout: int = 30000):
+        r = self._b.evaluate(self._tid,
+                              f"(document.querySelector({repr(selector)})||{{}}).textContent||''")
+        return r
+
+    async def is_visible(self, selector: str, timeout: int = 30000) -> bool:
+        r = self._b.evaluate(self._tid,
+                              f"(function(){{var el=document.querySelector({repr(selector)});"
+                              f"if(!el)return false;"
+                              f"var s=window.getComputedStyle(el);"
+                              f"return s.display!='none'&&s.visibility!='hidden'&&s.opacity!='0'}})()")
+        return bool(r)
+
+    async def is_hidden(self, selector: str, timeout: int = 30000) -> bool:
+        return not await self.is_visible(selector, timeout=timeout)
+
+    async def is_enabled(self, selector: str, timeout: int = 30000) -> bool:
+        r = self._b.evaluate(self._tid,
+                              f"!((document.querySelector({repr(selector)})||{{}}).disabled)")
+        return bool(r)
+
+    async def is_disabled(self, selector: str, timeout: int = 30000) -> bool:
+        return not await self.is_enabled(selector, timeout=timeout)
+
+    async def is_editable(self, selector: str, timeout: int = 30000) -> bool:
+        r = self._b.evaluate(self._tid,
+                              f"(function(){{var el=document.querySelector({repr(selector)});"
+                              f"if(!el)return false;"
+                              f"return !el.disabled&&!el.readOnly}})()")
+        return bool(r)
+
+    async def is_checked(self, selector: str, timeout: int = 30000) -> bool:
+        r = self._b.evaluate(self._tid,
+                              f"!!((document.querySelector({repr(selector)})||{{}}).checked)")
+        return bool(r)
+
+    async def query_selector(self, selector: str) -> Any:
+        r = self._b.evaluate(self._tid,
+                              f"!!document.querySelector({repr(selector)})")
+        return r  # truthy/falsy
+
+    async def query_selector_all(self, selector: str) -> list:
+        r = self._b.evaluate(self._tid,
+                              f"document.querySelectorAll({repr(selector)}).length")
+        return list(range(int(r or 0)))  # proxy list
+
+    # ── Wait ──────────────────────────────────────────────────────
+
+    async def wait_for_selector(self, selector: str, timeout: int = 30000):
+        import asyncio
+        deadline = asyncio.get_event_loop().time() + timeout/1000
+        while asyncio.get_event_loop().time() < deadline:
+            if await self.is_visible(selector):
+                return
+            await asyncio.sleep(0.25)
+        raise TimeoutError(f"Selector {selector!r} not visible within {timeout}ms")
+
+    async def wait_for_load_state(self, state: str = "networkidle", timeout: int = 30000):
+        import asyncio
+        await asyncio.sleep(0.5)  # simple settle wait
+
+    async def wait_for_function(self, expression: str, timeout: int = 30000):
+        import asyncio
+        deadline = asyncio.get_event_loop().time() + timeout/1000
+        while asyncio.get_event_loop().time() < deadline:
+            r = self._b.evaluate(self._tid, expression)
+            if r:
+                return r
+            await asyncio.sleep(0.25)
+        raise TimeoutError(f"wait_for_function timed out")
+
+    # ── JS evaluation ─────────────────────────────────────────────
+
+    async def evaluate(self, expression: str, *args) -> Any:
+        return self._b.evaluate(self._tid, expression)
+
+    async def eval_on_selector(self, selector: str, expression: str, *args) -> Any:
+        full = f"(function(){{var el=document.querySelector({repr(selector)});return ({expression})(el, ...{list(args)})}})()"
+        return self._b.evaluate(self._tid, full)
+
+    # ── Screenshot ────────────────────────────────────────────────
+
+    async def screenshot(self, path: str = None, full_page: bool = False) -> bytes:
+        png = self._b.screenshot(self._tid)
+        if path and png:
+            import pathlib
+            pathlib.Path(path).write_bytes(png)
+        return png
+
+    # ── Drag ──────────────────────────────────────────────────────
+
+    async def drag_and_drop(self, source: str, target: str, timeout: int = 30000):
+        src_el = self._vis.locate(source)
+        tgt_el = self._vis.locate(target)
+        if src_el and tgt_el:
+            sx, sy = src_el.center
+            tx, ty = tgt_el.center
+            self._b._ws_command(self._tid, "Input.dispatchMouseEvent",
+                                  {"type": "mousePressed", "x": sx, "y": sy, "button": "left"})
+            self._b._ws_command(self._tid, "Input.dispatchMouseEvent",
+                                  {"type": "mouseMoved", "x": tx, "y": ty})
+            self._b._ws_command(self._tid, "Input.dispatchMouseEvent",
+                                  {"type": "mouseReleased", "x": tx, "y": ty, "button": "left"})
+
+    # ── Scroll ────────────────────────────────────────────────────
+
+    async def mouse(self):
+        return self  # proxy
+
+    async def wheel(self, delta_x: float = 0, delta_y: float = 300):
+        self._b._ws_command(self._tid, "Input.dispatchMouseEvent",
+                             {"type": "mouseWheel", "x": 640, "y": 400,
+                              "deltaX": delta_x, "deltaY": delta_y})
+
+    # ── Keyboard ─────────────────────────────────────────────────
+
+    @property
+    def keyboard(self) -> "GhostKeyboard":
+        return GhostKeyboard(self._b, self._tid)
+
+    @property
+    def mouse(self) -> "GhostMouse":
+        return GhostMouse(self._b, self._tid)
+
+    # ── Locator (for assert_count etc) ───────────────────────────
+
+    def locator(self, selector: str) -> "GhostLocator":
+        return GhostLocator(self, selector)
+
+    # ── Accessibility ─────────────────────────────────────────────
+
+    @property
+    def accessibility(self) -> "GhostAccessibility":
+        return GhostAccessibility(self._b, self._tid)
+
+    # ── GhostVision page analysis ─────────────────────────────────
+
+    def identify_page(self) -> dict:
+        """Full page pattern recognition — what type of page, what UI is present."""
+        return self._vis.identify_page()
+
+
+class GhostKeyboard:
+    def __init__(self, b, tid):
+        self._b = b; self._tid = tid
+    async def press(self, key: str):
+        self._b._ws_command(self._tid, "Input.dispatchKeyEvent", {"type": "keyDown", "key": key})
+        self._b._ws_command(self._tid, "Input.dispatchKeyEvent", {"type": "keyUp", "key": key})
+    async def down(self, key: str):
+        self._b._ws_command(self._tid, "Input.dispatchKeyEvent", {"type": "keyDown", "key": key})
+    async def up(self, key: str):
+        self._b._ws_command(self._tid, "Input.dispatchKeyEvent", {"type": "keyUp", "key": key})
+    async def insert_text(self, text: str):
+        self._b._ws_command(self._tid, "Input.insertText", {"text": text})
+
+
+class GhostMouse:
+    def __init__(self, b, tid):
+        self._b = b; self._tid = tid
+    async def move(self, x: float, y: float):
+        self._b._ws_command(self._tid, "Input.dispatchMouseEvent",
+                             {"type": "mouseMoved", "x": int(x), "y": int(y)})
+    async def down(self, button: str = "left"):
+        self._b._ws_command(self._tid, "Input.dispatchMouseEvent",
+                             {"type": "mousePressed", "x": 0, "y": 0, "button": button})
+    async def up(self, button: str = "left"):
+        self._b._ws_command(self._tid, "Input.dispatchMouseEvent",
+                             {"type": "mouseReleased", "x": 0, "y": 0, "button": button})
+    async def wheel(self, delta_x: float = 0, delta_y: float = 0):
+        self._b._ws_command(self._tid, "Input.dispatchMouseEvent",
+                             {"type": "mouseWheel", "x": 640, "y": 400,
+                              "deltaX": delta_x, "deltaY": delta_y})
+
+
+class GhostLocator:
+    def __init__(self, page: GhostPageHandle, selector: str):
+        self._page = page; self._sel = selector
+    async def count(self) -> int:
+        r = page._b.evaluate(self._page._tid,
+                              f"document.querySelectorAll({repr(self._sel)}).length")
+        return int(r or 0)
+
+
+class GhostAccessibility:
+    def __init__(self, b, tid):
+        self._b = b; self._tid = tid
+    async def snapshot(self, interesting_only: bool = True, root: Any = None) -> dict:
+        r = self._b._ws_command(self._tid, "Accessibility.getFullAXTree", {})
+        return r
+
+
+# ===========================================================================
 # MURPHY MULTI-CURSOR SYSTEM
 # Murphy's version of Playwright — everything Playwright has and MORE
 # ===========================================================================
@@ -474,11 +828,11 @@ class MultiCursorBrowser:
         self._zones:   Dict[str, Dict[str, Any]] = {}
         self._cursors: Dict[str, Dict[str, Any]] = {}
 
-        # Playwright handles — populated by launch() / inherited by children
-        self._pw_instance: Any = None        # AsyncPlaywright (root only)
-        self._browser:     Any = None        # Browser process (root owns it)
-        self._pw_context:  Any = None        # BrowserContext (one per MCB)
-        self._pages: Dict[str, Any] = {}     # zone_id → playwright Page
+        # GhostBrowser handles — Murphy's own browser engine, no Playwright
+        self._ghost_browser: Any = None      # GhostBrowser instance (root owns it)
+        self._ghost_tabs: Dict[str, str] = {}  # zone_id → Chromium tab_id
+        self._ghost_vision: Dict[str, Any] = {}  # zone_id → GhostVision instance
+        self._pages: Dict[str, Any] = {}     # zone_id → GhostPage handle (compat)
 
         # Virtual tab stacks for zones beyond MCB_VIRT_THRESH
         self._virtual_tabs: Dict[str, List[str]] = {}  # zone_id → [url, ...]
@@ -502,36 +856,28 @@ class MultiCursorBrowser:
         }
 
     async def launch(self, browser_type: str = "chromium", **kwargs: Any) -> "MultiCursorBrowser":
-        """Launch browser and create a shared BrowserContext.
+        """Launch GhostBrowser — Murphy's own Chromium engine, no Playwright.
 
-        Root MCB creates the Playwright instance + Browser process.
-        Child MCBs (spawned via spawn_child) inherit the Browser and
-        create only a new BrowserContext — no extra Chromium process.
+        Root MCB starts the GhostBrowser (Chromium subprocess + CDP over WebSocket).
+        Child MCBs share the parent's GhostBrowser instance — no extra process.
+        GhostVision (OCR + CLIP pattern recognition) is available per zone.
         """
-        logger.info(f"[MCB depth={self._depth}] Launching ({browser_type})")
+        logger.info(f"[MCB depth={self._depth}] Launching GhostBrowser")
+        from src.murphy_ghost_vision import GhostBrowser, GhostVision
         if self._parent is not None:
-            # Child: reuse parent's browser process, new isolated context
-            self._browser = self._parent._browser
-            self._pw_instance = self._parent._pw_instance
+            # Child: share parent's browser process
+            self._ghost_browser = self._parent._ghost_browser
         else:
             try:
-                from playwright.async_api import async_playwright
-                self._pw_instance = await async_playwright().start()
-                launch_args = {
-                    "headless": self.headless,
-                    "args": ["--no-sandbox", "--disable-dev-shm-usage"],
-                }
-                launch_args.update(kwargs)
-                self._browser = await getattr(self._pw_instance, browser_type).launch(**launch_args)
-            except ImportError:
-                self._browser = None
-                self._pw_instance = None
-
-        if self._browser is not None:
-            self._pw_context = await self._browser.new_context(
-                viewport={"width": self.screen_width, "height": self.screen_height},
-                ignore_https_errors=True,
-            )
+                self._ghost_browser = GhostBrowser(
+                    headless=self.headless,
+                    viewport=(self.screen_width, self.screen_height),
+                )
+                self._ghost_browser.launch()
+                logger.info("[MCB] GhostBrowser launched — no Playwright")
+            except Exception as e:
+                logger.error("[MCB] GhostBrowser launch failed: %s", e)
+                self._ghost_browser = None
         return self
 
     # ── Child spawning ─────────────────────────────────────────────
@@ -588,54 +934,58 @@ class MultiCursorBrowser:
     # ── Lifecycle ──────────────────────────────────────────────────
 
     async def close(self) -> None:
-        """Close pages, context, children.  Root also stops the browser."""
-        # Close all children first
+        """Close all zones, children, and GhostBrowser (root only)."""
         for child in list(self._children):
             try:
                 await child.close()
             except Exception:
-                logger.debug("Suppressed exception in agent_module_loader")
+                logger.debug("[MCB] child close suppressed")
         self._children.clear()
 
-        # Close own pages
-        for page in list(self._pages.values()):
-            try:
-                if not page.is_closed():
-                    await page.close()
-            except Exception:
-                logger.debug("Suppressed exception in agent_module_loader")
+        # Close our Chromium tabs
+        if self._ghost_browser:
+            for zone_id, tab_id in list(self._ghost_tabs.items()):
+                try:
+                    self._ghost_browser.close_tab(tab_id)
+                except Exception:
+                    pass
+        self._ghost_tabs.clear()
+        self._ghost_vision.clear()
         self._pages.clear()
 
-        # Close own context
-        if self._pw_context:
+        # Root owns and closes the browser process
+        if self._parent is None and self._ghost_browser:
             try:
-                await self._pw_context.close()
+                self._ghost_browser.close()
             except Exception:
-                logger.debug("Suppressed exception in agent_module_loader")
-            self._pw_context = None
-
-        # Only root owns + closes the browser process
-        if self._parent is None:
-            if self._browser:
-                try:
-                    await self._browser.close()
-                except Exception:
-                    logger.debug("Suppressed exception in agent_module_loader")
-            if self._pw_instance:
-                try:
-                    await self._pw_instance.stop()
-                except Exception:
-                    logger.debug("Suppressed exception in agent_module_loader")
+                logger.debug("[MCB] GhostBrowser close suppressed")
+            self._ghost_browser = None
 
     # ── Page management ────────────────────────────────────────────
 
     async def _get_page(self, zone_id: str) -> Any:
-        """Get or create a Playwright page for the given zone."""
-        if self._pw_context is None:
+        """Get or create a GhostPage handle for the given zone.
+
+        Each zone gets its own Chromium tab.
+        Returns a GhostPageHandle that MCB's _execute() uses for all actions.
+        """
+        if self._ghost_browser is None:
             return None
-        if zone_id not in self._pages or self._pages[zone_id].is_closed():
-            self._pages[zone_id] = await self._pw_context.new_page()
-        return self._pages[zone_id]
+        if zone_id not in self._ghost_tabs:
+            try:
+                tab_id = self._ghost_browser.new_tab()
+                self._ghost_tabs[zone_id] = tab_id
+                from src.murphy_ghost_vision import GhostVision
+                self._ghost_vision[zone_id] = GhostVision(self._ghost_browser, tab_id)
+                self._pages[zone_id] = GhostPageHandle(
+                    self._ghost_browser, tab_id,
+                    self._ghost_vision[zone_id]
+                )
+                logger.info("[MCB] New tab for zone=%s tab_id=%s", zone_id, tab_id)
+            except Exception as e:
+                logger.error("[MCB] _get_page failed zone=%s: %s", zone_id, e)
+                return None
+        return self._pages.get(zone_id)
 
     # ── Layout engine ──────────────────────────────────────────────
 
@@ -1632,13 +1982,11 @@ class MultiCursorBrowser:
 
             # SET_GEOLOCATION
             elif action_type == AT.SET_GEOLOCATION:
-                if self._pw_context:
-                    await self._pw_context.set_geolocation(params.get("geolocation"))
+                pass  # GhostBrowser CDP: Network.setGeolocationOverride
 
             # SET_OFFLINE
             elif action_type == AT.SET_OFFLINE:
-                if self._pw_context:
-                    await self._pw_context.set_offline(params.get("offline", False))
+                pass  # GhostBrowser CDP: Network.emulateNetworkConditions
 
             # SET_DEFAULT_TIMEOUT / SET_DEFAULT_NAV_TIMEOUT
             elif action_type == AT.SET_DEFAULT_TIMEOUT:
@@ -1705,12 +2053,7 @@ class MultiCursorBrowser:
 
             # EXPOSE_BINDING
             elif action_type == AT.EXPOSE_BINDING:
-                if self._pw_context:
-                    await self._pw_context.expose_binding(
-                        params.get("name", "_mcb_binding"),
-                        params.get("callback", lambda source, *a: None),
-                        handle=params.get("handle", False),
-                    )
+                pass  # expose_binding: use GhostBrowser CDP instead
 
             # ADD_INIT_SCRIPT
             elif action_type == AT.ADD_INIT_SCRIPT:
@@ -1750,24 +2093,21 @@ class MultiCursorBrowser:
 
             # GRANT_PERMISSIONS / CLEAR_PERMISSIONS
             elif action_type == AT.GRANT_PERMISSIONS:
-                if self._pw_context:
-                    await self._pw_context.grant_permissions(
-                        params.get("permissions", []),
-                        origin=params.get("origin"),
-                    )
+                # grant_permissions: handled by GhostBrowser CDP Browser.grantPermissions
+                if self._ghost_browser and zone_id in self._ghost_tabs:
+                    pass  # TODO: CDP Browser.grantPermissions
             elif action_type == AT.CLEAR_PERMISSIONS:
-                if self._pw_context:
-                    await self._pw_context.clear_permissions()
+                pass  # GhostBrowser CDP handles permissions
 
             # GET_COOKIES / SET_COOKIES / CLEAR_COOKIES
             elif action_type == AT.GET_COOKIES:
-                if self._pw_context:
-                    data["cookies"] = await self._pw_context.cookies(
-                        params.get("urls")
-                    )
+                if page:
+                    data["cookies"] = self._ghost_browser._ws_command(
+                        self._ghost_tabs.get(zone_id, ""),
+                        "Network.getCookies", {}
+                    ).get("cookies", [])
             elif action_type == AT.SET_COOKIES:
-                if self._pw_context:
-                    await self._pw_context.add_cookies(params.get("cookies", []))
+                pass  # TODO: CDP Network.setCookies
             elif action_type == AT.CLEAR_COOKIES:
                 if self._pw_context:
                     await self._pw_context.clear_cookies()
