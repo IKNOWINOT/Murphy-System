@@ -16406,7 +16406,10 @@ def create_app() -> FastAPI:
         _lcm_router = _lcm_build_router()
         app.include_router(_lcm_router)
         logger.info("PATCH-073: LCM router mounted — /api/lcm/* live")
+    except Exception as _lcm_exc:
+        logger.warning("PATCH-073: LCM router mount failed: %s", _lcm_exc)
 
+    # ── PATCH-093c: Shield Wall ───────────────────────────────────────────────
     try:
         from src.shield_wall import build_shield_wall_router as _sw_router_fn
         _sw_router = _sw_router_fn()
@@ -16415,8 +16418,6 @@ def create_app() -> FastAPI:
             logger.info("PATCH-093c: Shield Wall router mounted — /api/shield/* live")
     except Exception as _sw_exc:
         logger.warning("PATCH-093c: Shield Wall router mount failed: %s", _sw_exc)
-    except Exception as _lcm_exc:
-        logger.warning("PATCH-073: LCM router mount failed: %s", _lcm_exc)
 
     # ── PATCH-071: Self-Marketing + Sell Engine ──────────────────────────────
     try:
