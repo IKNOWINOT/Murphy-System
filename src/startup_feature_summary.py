@@ -117,6 +117,12 @@ SHIELD_LAYERS: List[Tuple[str, str, str, str | None]] = [
         "Session forgery",
         "MURPHY_JWT_SECRET",
     ),
+    (
+        "ModelTeam",
+        "model_team.MurphyReferee.deliberate() — 4 models under RoE",
+        "Single-model blind spots — Triage, Analyst, Specialist, Sentinel",
+        "DEEPINFRA_API_KEY",
+    ),
 ]
 
 # ---------------------------------------------------------------------------

@@ -153,5 +153,45 @@ def build_shield_wall_router():
         except Exception as exc:
             return JSONResponse(content={"error": str(exc)}, status_code=500)
 
+
+    # ── PATCH-095: Model Team ────────────────────────────────────────────────
+    @router.get("/team/roe", summary="Rules of Engagement")
+    async def team_roe():
+        """The rules of engagement governing the Murphy Model Team."""
+        try:
+            from src.model_team import RULES_OF_ENGAGEMENT, ROLE_CONFIG, TeamRole
+            return JSONResponse(content={
+                "rules_of_engagement": RULES_OF_ENGAGEMENT,
+                "team": {
+                    role.value: {
+                        "authority": cfg["authority"],
+                        "constraint": cfg["constraint"],
+                        "model_hint": cfg["model_hint"],
+                        "provider": cfg["provider"],
+                    }
+                    for role, cfg in ROLE_CONFIG.items()
+                },
+            })
+        except Exception as exc:
+            return JSONResponse(content={"error": str(exc)}, status_code=500)
+
+    @router.post("/team/deliberate", summary="Run Model Team Deliberation")
+    async def team_deliberate(request: dict):
+        """
+        Run a full team deliberation under rules of engagement.
+        Four models. Murphy referees. CIDP investigates the output.
+        """
+        try:
+            from src.model_team import deliberate
+            session = deliberate(
+                task=request.get("task", ""),
+                domain=request.get("domain", "general"),
+                account=request.get("account", "unknown"),
+            )
+            return JSONResponse(content=session.to_dict())
+        except Exception as exc:
+            logger.warning("Team deliberate error: %s", exc)
+            return JSONResponse(content={"error": str(exc)}, status_code=500)
+
     logger.info("PATCH-093c: Shield Wall router mounted — /api/shield/*")
     return router
