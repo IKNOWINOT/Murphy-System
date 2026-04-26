@@ -31,6 +31,6 @@ HOOKEOF
 chmod +x "$HOOK_DIR/post-checkout" "$HOOK_DIR/pre-merge-commit"
 
 # Ensure origin/main stays in sync (push-only, never pull-reset)
-git -C "$DEPLOY_DIR" remote set-url origin   "https://GITHUB_PAT_REDACTED@github.com/IKNOWINOT/Murphy-System.git"
+git -C "$DEPLOY_DIR" remote set-url origin   "https://${GITHUB_PAT}@github.com/IKNOWINOT/Murphy-System.git"
 
 echo "[Murphy Safety] Git lock installed. Operations logged to /var/log/murphy-git-ops.log"
