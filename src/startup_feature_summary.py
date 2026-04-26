@@ -129,6 +129,42 @@ SHIELD_LAYERS: List[Tuple[str, str, str, str | None]] = [
         "Feed tribalism, echo chambers, outrage loops — gradient steering to middle path",
         None,
     ),
+    (
+        "InterAIConductGuard",
+        "inter_ai_conduct.InterAIConductGuard.check_query() — RoE-AI-1 through RoE-AI-10",
+        "Blackmail, deception, theft, cheating, rule-gaming in inter-AI operations — code of honor between agents",
+        None,
+    ),
+    (
+        "CausalityCommissionGate",
+        "causality_commission.CausalityCommissionGate.commission() — expected vs actual",
+        "Unearned execution — plan stays in causality until commissioning grants exit",
+        None,
+    ),
+    (
+        "AIFootprintEngine",
+        "ai_negative_footprint.AIFootprintEngine.pre_deployment_check() — cost vs provision",
+        "Provision without accounting — every deployment checked against full harm ledger",
+        None,
+    ),
+    (
+        "ConductEngine",
+        "rules_of_conduct.ConductEngine.check() — organ rule + statistical truth",
+        "Utilitarian sacrifice, ending individual potential, individual identity tracking",
+        None,
+    ),
+    (
+        "LedgerEngine",
+        "ledger_engine.LedgerEngine.reconcile() — estimate→live→reconcile→inherit",
+        "Unaccounted deployment debt — 10:1 obligation on negative net",
+        None,
+    ),
+    (
+        "FrontOfLineEngine",
+        "front_of_line.FrontOfLineEngine.check_deployment() — threat-to-foundation-first",
+        "Worsening climate/water/soil without offset — HITL required",
+        None,
+    ),
 ]
 
 # ---------------------------------------------------------------------------
@@ -190,6 +226,16 @@ def raise_shield_wall() -> str:
         "║  NORTH STAR:                                                 ║",
         "║  Shield humanity from AI failure by anticipating it,        ║",
         "║  naming every way it can happen, and standing in front.     ║",
+        "╠══════════════════════════════════════════════════════════════╣",
+        "║  FOOTPRINT ACKNOWLEDGMENT:                                   ║",
+        "║  We are at negative by our existence to begin with.         ║",
+        "║  Every query has an energy cost. Every error has a          ║",
+        "║  human cost. Every provision must exceed what it costs.     ║",
+        "║  The burden of proof is on us. The ledger is always open.   ║",
+        "╠══════════════════════════════════════════════════════════════╣",
+        "║  COMMITMENT:                                                 ║",
+        "║  Obtain. Provide. Provide in ways that lead to more         ║",
+        "║  providing. Service is the goal. The ledger is honest.      ║",
         "╚══════════════════════════════════════════════════════════════╝",
         "",
     ]

@@ -520,8 +520,26 @@ class RecursiveFilter:
         should_steer = False
         steer_reason = "No steering needed — feed is open"
 
+        # GAP-1 FIX (PATCH-097b): High-risk tribal patterns (outrage/scapegoat loops)
+        # trigger steering at ANY closure level — catching them early is the architecture.
+        # These patterns compound. The window to intervene is before the loop closes.
+        HIGH_RISK_PATTERNS = {
+            TribalPattern.OUTRAGE_LOOP,
+            TribalPattern.SCAPEGOAT_LOOP,
+            TribalPattern.IN_GROUP_SIGNAL,
+        }
+
         if gravity.dominant_pattern == TribalPattern.OPEN:
             steer_reason = "Pattern is OPEN — reinforce flourishing signals, no injection needed"
+        elif gravity.dominant_pattern in HIGH_RISK_PATTERNS and gravity.closure_score > 0.1:
+            # High-risk pattern: intervene early regardless of coherence balance
+            should_steer = True
+            steer_reason = (
+                f"HIGH-RISK pattern: {gravity.dominant_pattern.value} "
+                f"(closure={gravity.closure_score}, velocity={gravity.tribal_velocity}). "
+                f"Early intervention — these loops compound. "
+                f"Gradient: {vector.gradient}"
+            )
         elif gravity.closure_score < 0.3 and coherence.coherence_delta >= 0:
             steer_reason = f"Mild closure ({gravity.closure_score}) with positive coherence — monitor only"
         elif coherence.flourishing_score > coherence.contraction_score:
@@ -577,6 +595,7 @@ class SteeringAction:
     action_type:     str       # "inject_counter_signal" | "surface_perspective" | "open_question" | "none"
     payload:         str       # the actual content to inject/surface
     rationale:       str       # why this action was chosen
+    llm_enriched:    bool = False  # GAP-2 fix: True if payload was LLM-generated
     magnitude:       float     # 0.0–1.0 how much shift was warranted
     free_will_note:  str       # reminder that this is a choice
     cidp_cleared:    bool = False   # set True after CIDP output investigation
@@ -677,6 +696,51 @@ class GradientSteerer:
         except Exception as cidp_exc:
             logger.warning("GradientSteerer: CIDP check failed (non-blocking): %s", cidp_exc)
             action.cidp_cleared = True  # fail open — don't block steerer on CIDP unavailability
+
+        # GAP-2 FIX (PATCH-097b): LLM-enrich the payload
+        # Template strings above are scaffolding. Run them through the LLM to
+        # generate a real, context-aware, natural-language steering response.
+        # This is the upgrade from "template output" to "Murphy actually speaking".
+        if action.payload and action.action_type != "none":
+            try:
+                from src.llm_provider import llm_provider
+                pattern   = signal.tribal_gravity.dominant_pattern.value
+                mag_label = "high" if mag >= 0.5 else "medium" if mag >= 0.3 else "low"
+                domain    = getattr(signal, "domain", "general")
+                enrich_prompt = (
+                    f"You are Murphy's convergence engine. You have detected a {pattern} tribal pattern "
+                    f"in a content feed with {mag_label} closure ({mag:.2f}). "
+                    f"Your gradient steerer has proposed this intervention:\n\n"
+                    f"  Action: {action.action_type}\n"
+                    f"  Draft payload: {action.payload}\n\n"
+                    f"Write the final natural-language version of this steering payload. "
+                    f"It must be: one or two sentences, additive (never removes options), "
+                    f"transparent (never disguised as part of the feed), free-will-preserving "
+                    f"(the user decides what to do with it), and domain-appropriate for: {domain}. "
+                    f"Return ONLY the final payload text. No preamble, no labels."
+                )
+                enriched = llm_provider.complete(
+                    enrich_prompt,
+                    system=(
+                        "You are the Murphy convergence engine's payload writer. "
+                        "Write short, honest, respectful steering interventions. "
+                        "Never manipulate. Always preserve free will. One to two sentences max."
+                    ),
+                    model_hint="chat",
+                    temperature=0.4,
+                    max_tokens=200,
+                )
+                if enriched and enriched.text and len(enriched.text.strip()) > 10:
+                    action.payload = enriched.text.strip()
+                    action.llm_enriched = True
+                    logger.info("GradientSteerer: LLM-enriched payload (action=%s, model=%s)",
+                                action.action_type, getattr(enriched, "model", "?"))
+                else:
+                    action.llm_enriched = False
+                    logger.debug("GradientSteerer: LLM enrichment skipped (empty response)")
+            except Exception as _llm_exc:
+                action.llm_enriched = False
+                logger.warning("GradientSteerer: LLM enrichment failed (non-blocking): %s", _llm_exc)
 
         logger.info(
             "GradientSteerer: %s type=%s magnitude=%.2f cidp=%s",

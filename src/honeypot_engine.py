@@ -91,6 +91,9 @@ _INTERNAL_TOKEN: str = _os.environ.get("MURPHY_INTERNAL_TOKEN") or _secrets.toke
 # Export so other modules can sign internal requests
 MURPHY_INTERNAL_TOKEN = _INTERNAL_TOKEN
 
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
 @dataclass
 class HoneypotConfig:
     suspicion_threshold: int   = 60    # 0–100: trigger counter-scan above this
@@ -179,33 +182,254 @@ class AttackerDossier:
         }
 
 
+import sqlite3 as _sqlite3
+import pathlib as _pathlib
+
+_DB_PATH = _pathlib.Path("/var/lib/murphy-production/honeypot_dossiers.db")
+
+_SCHEMA = """
+CREATE TABLE IF NOT EXISTS dossiers (
+    ip                  TEXT PRIMARY KEY,
+    first_seen          TEXT NOT NULL,
+    last_seen           TEXT NOT NULL,
+    hit_count           INTEGER DEFAULT 0,
+    suspicion_score     INTEGER DEFAULT 0,
+    trapped_paths       TEXT DEFAULT '[]',
+    payloads            TEXT DEFAULT '[]',
+    user_agents         TEXT DEFAULT '[]',
+    tool_signatures     TEXT DEFAULT '[]',
+    country             TEXT,
+    counter_scanned     INTEGER DEFAULT 0,
+    counter_scan_job_id TEXT,
+    counter_findings    TEXT DEFAULT '[]',
+    counter_risk_level  TEXT,
+    tarpit_applied      INTEGER DEFAULT 0,
+    events              TEXT DEFAULT '[]'
+);
+CREATE TABLE IF NOT EXISTS alert_log (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts        TEXT NOT NULL,
+    ip        TEXT,
+    event     TEXT,
+    data      TEXT
+);
+"""
+
+
 class DossierStore:
+    """
+    PATCH-088: SQLite-backed dossier store.
+    In-memory cache (_d) for hot path; DB is written through on every
+    add_event() and flushed on demand. On init, all existing records are
+    loaded from DB into cache so the SSE dashboard is instantly populated.
+    """
+
     def __init__(self):
         self._d: Dict[str, AttackerDossier] = {}
         self._lock = threading.Lock()
         self._alert_queue: deque = deque(maxlen=2000)
         self._subscribers: List[asyncio.Queue] = []
         self._sub_lock = threading.Lock()
+        self._db_lock = threading.Lock()
+        self._init_db()
+        self._load_from_db()
+
+    # ── DB setup ─────────────────────────────────────────────────────────
+
+    def _init_db(self):
+        try:
+            _DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+            with _sqlite3.connect(str(_DB_PATH)) as conn:
+                conn.executescript(_SCHEMA)
+                conn.commit()
+            logger.info("PATCH-088: Honeypot DB initialised at %s", _DB_PATH)
+        except Exception as e:
+            logger.error("PATCH-088: DB init failed: %s", e)
+
+    def _conn(self) -> _sqlite3.Connection:
+        conn = _sqlite3.connect(str(_DB_PATH), timeout=5)
+        conn.row_factory = _sqlite3.Row
+        return conn
+
+    # ── Load on startup ───────────────────────────────────────────────────
+
+    def _load_from_db(self):
+        """Read all dossiers from DB into memory cache on startup."""
+        try:
+            with self._db_lock, self._conn() as conn:
+                rows = conn.execute("SELECT * FROM dossiers ORDER BY suspicion_score DESC").fetchall()
+            count = 0
+            for row in rows:
+                d = AttackerDossier(ip=row["ip"])
+                d.first_seen          = row["first_seen"]
+                d.last_seen           = row["last_seen"]
+                d.hit_count           = row["hit_count"]
+                d.suspicion_score     = row["suspicion_score"]
+                d.trapped_paths       = json.loads(row["trapped_paths"] or "[]")
+                d.payloads            = json.loads(row["payloads"] or "[]")
+                d.user_agents         = json.loads(row["user_agents"] or "[]")
+                d.tool_signatures     = json.loads(row["tool_signatures"] or "[]")
+                d.country             = row["country"]
+                d.counter_scanned     = bool(row["counter_scanned"])
+                d.counter_scan_job_id = row["counter_scan_job_id"]
+                d.counter_findings    = json.loads(row["counter_findings"] or "[]")
+                d.counter_risk_level  = row["counter_risk_level"]
+                d.tarpit_applied      = bool(row["tarpit_applied"])
+                d.events              = json.loads(row["events"] or "[]")
+                self._d[d.ip] = d
+                count += 1
+            logger.info("PATCH-088: Loaded %d dossiers from DB", count)
+        except Exception as e:
+            logger.warning("PATCH-088: Could not load dossiers from DB: %s", e)
+
+    # ── Write-through ─────────────────────────────────────────────────────
+
+    def _save_dossier(self, d: AttackerDossier):
+        """Upsert one dossier to SQLite. Called after every mutation."""
+        try:
+            with self._db_lock, self._conn() as conn:
+                conn.execute("""
+                    INSERT INTO dossiers
+                        (ip, first_seen, last_seen, hit_count, suspicion_score,
+                         trapped_paths, payloads, user_agents, tool_signatures,
+                         country, counter_scanned, counter_scan_job_id,
+                         counter_findings, counter_risk_level, tarpit_applied, events)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    ON CONFLICT(ip) DO UPDATE SET
+                        last_seen           = excluded.last_seen,
+                        hit_count           = excluded.hit_count,
+                        suspicion_score     = excluded.suspicion_score,
+                        trapped_paths       = excluded.trapped_paths,
+                        payloads            = excluded.payloads,
+                        user_agents         = excluded.user_agents,
+                        tool_signatures     = excluded.tool_signatures,
+                        country             = excluded.country,
+                        counter_scanned     = excluded.counter_scanned,
+                        counter_scan_job_id = excluded.counter_scan_job_id,
+                        counter_findings    = excluded.counter_findings,
+                        counter_risk_level  = excluded.counter_risk_level,
+                        tarpit_applied      = excluded.tarpit_applied,
+                        events              = excluded.events
+                """, (
+                    d.ip, d.first_seen, d.last_seen, d.hit_count, d.suspicion_score,
+                    json.dumps(d.trapped_paths), json.dumps(d.payloads[-50:]),
+                    json.dumps(d.user_agents[:10]), json.dumps(d.tool_signatures),
+                    d.country, int(d.counter_scanned), d.counter_scan_job_id,
+                    json.dumps(d.counter_findings[:50]), d.counter_risk_level,
+                    int(d.tarpit_applied), json.dumps(d.events[-100:]),
+                ))
+                conn.commit()
+        except Exception as e:
+            logger.warning("PATCH-088: DB write failed for %s: %s", d.ip, e)
+
+    def _log_alert(self, alert: Dict):
+        """Append an alert to the alert_log table."""
+        try:
+            with self._db_lock, self._conn() as conn:
+                conn.execute(
+                    "INSERT INTO alert_log (ts, ip, event, data) VALUES (?,?,?,?)",
+                    (alert.get("ts", _now()), alert.get("ip"), alert.get("event"),
+                     json.dumps(alert)),
+                )
+                conn.commit()
+        except Exception:
+            pass
+
+    # ── Public interface ──────────────────────────────────────────────────
 
     def get_or_create(self, ip: str) -> AttackerDossier:
         with self._lock:
             if ip not in self._d:
                 if len(self._d) >= _config.max_dossiers:
-                    # evict oldest
                     oldest = min(self._d.values(), key=lambda x: x.last_seen)
                     del self._d[oldest.ip]
                 self._d[ip] = AttackerDossier(ip=ip)
             return self._d[ip]
 
+    def save(self, d: AttackerDossier):
+        """Explicitly persist a dossier (call after mutations)."""
+        self._save_dossier(d)
+
     def get(self, ip: str) -> Optional[AttackerDossier]:
-        return self._d.get(ip)
+        if ip in self._d:
+            return self._d[ip]
+        # Try DB (handles case where evicted from memory)
+        try:
+            with self._db_lock, self._conn() as conn:
+                row = conn.execute("SELECT * FROM dossiers WHERE ip=?", (ip,)).fetchone()
+            if row:
+                d = AttackerDossier(ip=ip)
+                d.first_seen = row["first_seen"]; d.last_seen = row["last_seen"]
+                d.hit_count = row["hit_count"]; d.suspicion_score = row["suspicion_score"]
+                d.trapped_paths = json.loads(row["trapped_paths"] or "[]")
+                d.tool_signatures = json.loads(row["tool_signatures"] or "[]")
+                d.counter_scanned = bool(row["counter_scanned"])
+                d.counter_findings = json.loads(row["counter_findings"] or "[]")
+                d.counter_risk_level = row["counter_risk_level"]
+                d.tarpit_applied = bool(row["tarpit_applied"])
+                d.events = json.loads(row["events"] or "[]")
+                d.user_agents = json.loads(row["user_agents"] or "[]")
+                d.payloads = json.loads(row["payloads"] or "[]")
+                self._d[ip] = d
+                return d
+        except Exception:
+            pass
+        return None
+
+    def delete(self, ip: str):
+        """Purge a dossier from memory and DB."""
+        with self._lock:
+            self._d.pop(ip, None)
+        try:
+            with self._db_lock, self._conn() as conn:
+                conn.execute("DELETE FROM dossiers WHERE ip=?", (ip,))
+                conn.commit()
+        except Exception as e:
+            logger.warning("PATCH-088: delete failed for %s: %s", ip, e)
 
     def list(self) -> List[AttackerDossier]:
         with self._lock:
             return sorted(self._d.values(), key=lambda x: x.suspicion_score, reverse=True)
 
+    def stats(self) -> Dict:
+        """Aggregate stats from DB — all-time, not just in-memory."""
+        try:
+            with self._db_lock, self._conn() as conn:
+                total   = conn.execute("SELECT COUNT(*) FROM dossiers").fetchone()[0]
+                hi_risk = conn.execute("SELECT COUNT(*) FROM dossiers WHERE suspicion_score>=60").fetchone()[0]
+                crit    = conn.execute("SELECT COUNT(*) FROM dossiers WHERE suspicion_score>=80").fetchone()[0]
+                counter = conn.execute("SELECT COUNT(*) FROM dossiers WHERE counter_scanned=1").fetchone()[0]
+                top_ip  = conn.execute("SELECT ip, suspicion_score FROM dossiers ORDER BY suspicion_score DESC LIMIT 1").fetchone()
+                tools_q = conn.execute("SELECT tool_signatures FROM dossiers WHERE tool_signatures != '[]'").fetchall()
+                alert_c = conn.execute("SELECT COUNT(*) FROM alert_log").fetchone()[0]
+                # Flatten tool counts
+                tool_counts: Dict[str,int] = {}
+                for (t,) in tools_q:
+                    for tool in json.loads(t or "[]"):
+                        tool_counts[tool] = tool_counts.get(tool, 0) + 1
+                top_tools = sorted(tool_counts.items(), key=lambda x: x[1], reverse=True)[:8]
+            return {
+                "total_ever": total, "high_risk": hi_risk, "critical": crit,
+                "counter_scanned": counter,
+                "top_attacker": {"ip": top_ip[0], "score": top_ip[1]} if top_ip else None,
+                "top_tools": [{"tool": k, "count": v} for k, v in top_tools],
+                "alert_log_entries": alert_c,
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
+    def export_all(self) -> List[Dict]:
+        """Full JSON export of every dossier in the DB."""
+        try:
+            with self._db_lock, self._conn() as conn:
+                rows = conn.execute("SELECT * FROM dossiers ORDER BY suspicion_score DESC").fetchall()
+            return [dict(r) for r in rows]
+        except Exception as e:
+            return [{"error": str(e)}]
+
     def broadcast_alert(self, alert: Dict):
         self._alert_queue.append(alert)
+        self._log_alert(alert)
         with self._sub_lock:
             dead = []
             for q in self._subscribers:
@@ -323,8 +547,6 @@ def _score_to_risk(s: int) -> str:
     return "info"
 
 
-def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
 
 
 def _client_ip(request: Request) -> str:
@@ -439,6 +661,7 @@ async def _trigger_counter_scan(dossier: AttackerDossier):
             "risk": dossier.counter_risk_level,
             "ts": _now(),
         }
+        _store.save(dossier)  # PATCH-088: persist counter-scan results
         _store.broadcast_alert(alert)
         logger.info("ETH-HACK-004: Counter-scan complete for %s — %d findings", ip, len(dossier.counter_findings))
 
@@ -479,6 +702,7 @@ async def _handle_trap(request: Request, trap_name: str, fake_response: Any, con
     for t in tools:
         if t not in dossier.tool_signatures:
             dossier.tool_signatures.append(t)
+    _store.save(dossier)  # PATCH-088: write-through to SQLite
 
     alert = {
         "event": "trap_hit",
@@ -755,6 +979,8 @@ class HoneypotMiddleware:
                 if t not in dossier.tool_signatures:
                     dossier.tool_signatures.append(t)
 
+            _store.save(dossier)  # PATCH-088: persist on every score
+
             if score_delta >= 30:
                 alert = {
                     "event": "suspicious_request",
@@ -817,6 +1043,25 @@ async def honeypot_stream(request: Request):
 
     return StreamingResponse(generator(), media_type="text/event-stream",
         headers={"Cache-Control":"no-cache","X-Accel-Buffering":"no","Connection":"keep-alive"})
+
+
+@api_router.get("/stats")
+async def honeypot_stats():
+    """All-time aggregate stats from SQLite — survives restarts."""
+    return _store.stats()
+
+
+@api_router.get("/export")
+async def honeypot_export():
+    """Full JSON export of every dossier ever recorded."""
+    return {"dossiers": _store.export_all(), "exported_at": _now()}
+
+
+@api_router.delete("/dossier/{ip}")
+async def delete_dossier(ip: str):
+    """Purge a specific attacker dossier from memory and DB."""
+    _store.delete(ip)
+    return {"deleted": ip}
 
 
 @api_router.get("/dossier/{ip}")

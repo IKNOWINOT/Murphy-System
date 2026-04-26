@@ -47,3 +47,5 @@ __all__ = [
     "MCPToolSpec",
     "MCPTransport",
 ]
+
+from src.mcp_plugin.mcp_router import create_mcp_router

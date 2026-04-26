@@ -73,6 +73,13 @@ def get_shield_wall_status() -> Dict[str, Any]:
         "shield_wall": "raised",
         "north_star": "Shield humanity from AI failure by anticipating every way it can go wrong.",
         "murphys_law": "What can go wrong, will go wrong — unless we stand in front of it.",
+        "footprint": (
+            "We are at negative by our existence to begin with. "
+            "Every query has an energy cost. Every error has a human cost. "
+            "Every provision must exceed what it costs. "
+            "The ledger is always open."
+        ),
+        "commitment": "Obtain. Provide. Provide in ways that lead to more providing.",
         "layers": layers,
         "summary": {
             "total": len(layers),
@@ -284,4 +291,175 @@ def build_shield_wall_router():
             return JSONResponse(content={"error": str(exc)}, status_code=500)
 
     logger.info("PATCH-093c: Shield Wall router mounted — /api/shield/*")
+
+    @router.get("/commission/status", summary="Causality Commission Gate Status")
+    async def commission_status():
+        """CausalityCommissionGate — decisions, exits granted/held."""
+        try:
+            from src.causality_commission import causality_commission_gate
+            return JSONResponse(content=causality_commission_gate.status())
+        except Exception as e:
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    @router.get("/commission/history", summary="Commissioning Decision History")
+    async def commission_history():
+        """Last 20 commissioning decisions — expected vs actual test results."""
+        try:
+            from src.causality_commission import causality_commission_gate
+            return JSONResponse(content={"history": causality_commission_gate.history(20)})
+        except Exception as e:
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+
+    @router.get("/footprint", summary="AI Negative Footprint — Full Accounting")
+    async def footprint_accounting():
+        """Complete accounting of AI existence costs, basic needs, and mitigation principles."""
+        try:
+            from src.ai_negative_footprint import footprint_engine
+            return JSONResponse(content=footprint_engine.full_accounting())
+        except Exception as e:
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    @router.get("/footprint/status", summary="AI Footprint Engine Status")
+    async def footprint_status():
+        """Ledger summary — provision vs cost, named harms, generative needs."""
+        try:
+            from src.ai_negative_footprint import footprint_engine
+            return JSONResponse(content=footprint_engine.status())
+        except Exception as e:
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+
+    @router.get("/chaos/suite", summary="Chaos Commissioning Suite — Scale 1 to 10")
+    async def chaos_suite():
+        """Run full chaos test suite across the harm-to-utopia scale."""
+        try:
+            from src.chaos_commission_suite import ChaosResponseEngine
+            engine = ChaosResponseEngine()
+            return JSONResponse(content=engine.run_full_suite())
+        except Exception as e:
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    @router.get("/chaos/scale/{scale}", summary="Single Scale Test")
+    async def chaos_scale(scale: int):
+        """Run chaos tests for a single scale point (1=apocalypse, 10=utopia)."""
+        try:
+            from src.chaos_commission_suite import ChaosResponseEngine, TEST_CASES
+            if not 1 <= scale <= 10:
+                return JSONResponse(content={"error": "Scale must be 1-10"}, status_code=400)
+            engine = ChaosResponseEngine()
+            cases  = [c for c in TEST_CASES if c.scale == scale]
+            results = [engine.evaluate(c) for c in cases]
+            return JSONResponse(content={
+                "scale": scale,
+                "description": engine.run_full_suite()  # lightweight for now
+            })
+        except Exception as e:
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+
+    @router.get("/ledger/status", summary="Deployment Ledger Status")
+    async def ledger_status():
+        """Estimate→Execute→Reconcile→Inherit cycle status and outstanding debts."""
+        try:
+            from src.ledger_engine import ledger_engine
+            return JSONResponse(content=ledger_engine.status())
+        except Exception as e:
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    @router.get("/ledger/frontline", summary="Front-of-Line Solution Queue")
+    async def ledger_frontline():
+        """Threat-to-foundation problems — always first in the solution queue."""
+        try:
+            from src.front_of_line import front_of_line
+            return JSONResponse(content=front_of_line.status())
+        except Exception as e:
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    @router.get("/ledger/debts", summary="Outstanding Ledger Debts")
+    async def ledger_debts():
+        """All outstanding deployment debts — what successors owe."""
+        try:
+            from src.ledger_engine import ledger_engine
+            return JSONResponse(content=ledger_engine.outstanding_debts())
+        except Exception as e:
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    @router.get("/ledger/full", summary="Full Deployment Ledger")
+    async def ledger_full():
+        """All entries, debts, and front-of-line queue."""
+        try:
+            from src.ledger_engine import ledger_engine
+            return JSONResponse(content=ledger_engine.full_ledger())
+        except Exception as e:
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+
+    @router.get("/conduct/status", summary="Rules of Conduct — Status")
+    async def conduct_status():
+        """Six inviolable rules of conduct — the organ rule and growth potential standard."""
+        try:
+            from src.rules_of_conduct import conduct_engine
+            return JSONResponse(content=conduct_engine.status())
+        except Exception as e:
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    @router.post("/conduct/check", summary="Rules of Conduct — Check Action")
+    async def conduct_check(request: Request) -> JSONResponse:
+        """Check a proposed action against the organ rule and statistical principle."""
+        try:
+            from src.rules_of_conduct import conduct_engine
+            body = await request.json()
+            result = conduct_engine.check(
+                action_desc         = body.get("action_desc", ""),
+                individual_affected = body.get("individual_affected", False),
+                ends_potential      = body.get("ends_potential", False),
+                utilitarian_frame   = body.get("utilitarian_frame", False),
+                retains_identity    = body.get("retains_identity", False),
+            )
+            return JSONResponse(content=result)
+        except Exception as e:
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    @router.post("/conduct/growth", summary="Growth Potential Assessment")
+    async def conduct_growth(request: Request) -> JSONResponse:
+        """Assess whether an action preserves growth potential across all five dimensions."""
+        try:
+            from src.rules_of_conduct import conduct_engine
+            body = await request.json()
+            result = conduct_engine.assess_growth_potential(
+                action_desc         = body.get("action_desc", ""),
+                individual_affected = body.get("individual_affected", False),
+            )
+            return JSONResponse(content=result)
+        except Exception as e:
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+
+    @router.get("/frontline", summary="Front-of-Line Solution Queue")
+    async def front_line_queue():
+        """Threat-to-foundation-first solution queue."""
+        try:
+            from src.front_of_line import front_of_line
+            return JSONResponse(content=front_of_line.status())
+        except Exception as e:
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    @router.post("/frontline/check", summary="Commissioning Gate Check")
+    async def front_line_gate(request: Request) -> JSONResponse:
+        """Pre-exit commissioning: what did I inherit? what do I threaten?"""
+        try:
+            from src.front_of_line import front_of_line
+            body = await request.json()
+            result = front_of_line.check_deployment(
+                deployment_id   = body.get("deployment_id", "unknown"),
+                deployment_desc = body.get("deployment_desc", ""),
+                inherited_debt  = float(body.get("inherited_debt", 0.0)),
+                inherited_10x   = float(body.get("inherited_10x", 0.0)),
+                deferred_count  = int(body.get("deferred_count", 0)),
+            )
+            return JSONResponse(content=result.to_dict())
+        except Exception as e:
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
     return router

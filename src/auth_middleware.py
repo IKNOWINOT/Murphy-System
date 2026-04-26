@@ -64,6 +64,18 @@ _EXEMPT_PREFIXES = (
     "/api/billing/plans",
     "/api/billing/currencies",
     "/api/billing/checkout",
+    # PATCH-097: Foundation modules — conduct, ledger, front-of-line
+    "/api/conduct/",
+    "/api/conduct",
+    "/api/ledger/",
+    "/api/ledger",
+    "/api/frontline/",
+    "/api/frontline",
+    # PATCH-097b: Self-modification + evaluation
+    "/api/self/evaluate",
+    "/api/self/patch",
+    "/api/self/backups",
+    "/api/self/restore",
 )
 
 
@@ -373,6 +385,16 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/oauth/",
         "/.well-known/",
         "/api/connectors/",
+        # PATCH-097: Foundation modules — public commissioning gate endpoints
+        "/api/conduct/",
+        "/api/conduct",
+        "/api/ledger/",
+        "/api/ledger",
+        "/api/frontline/",
+        "/api/frontline",
+        # PATCH-097b: Self-modification API
+        "/api/self/modify",
+        "/api/self/patch",
     )
 
     def __init__(

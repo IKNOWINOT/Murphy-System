@@ -16473,6 +16473,180 @@ def create_app() -> FastAPI:
             logger.error("convergence/investigate error: %s", exc)
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
+    # ── PATCH-097: Foundation Modules — direct POST endpoints ─────────────────
+    # Rules of Conduct, Ledger Engine, Front-of-Line Queue
+    # Registered directly on @app (not router) per PATCH-096b bypass pattern.
+
+    @app.post("/api/conduct/check")
+    async def _conduct_check(request: Request):
+        """
+        PATCH-097 — Rules of Conduct check.
+        Organ rule: no utilitarian sacrifice of an individual.
+        Growth standard: upstream prevention over downstream correction.
+        """
+        try:
+            from src.rules_of_conduct import conduct_engine
+            body = await request.json()
+            result = conduct_engine.check(
+                action_desc         = body.get("action_desc", ""),
+                individual_affected = body.get("individual_affected", False),
+                ends_potential      = body.get("ends_potential", False),
+                utilitarian_frame   = body.get("utilitarian_frame", False),
+                retains_identity    = body.get("retains_identity", False),
+            )
+            return JSONResponse(result)
+        except Exception as exc:
+            logger.error("conduct/check error: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/conduct/growth")
+    async def _conduct_growth(request: Request):
+        """
+        PATCH-097 — Growth potential assessment.
+        Returns upstream vs downstream opportunity map for a domain.
+        """
+        try:
+            from src.rules_of_conduct import conduct_engine
+            body = await request.json()
+            domain = body.get("domain", "general")
+            result = conduct_engine.growth_opportunities(domain)
+            return JSONResponse(result)
+        except Exception as exc:
+            logger.error("conduct/growth error: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/ledger/log")
+    async def _ledger_log(request: Request):
+        """
+        PATCH-097 — Ledger live activity log.
+        Record a provision or debt for a deployment.
+        """
+        try:
+            from src.ledger_engine import ledger_engine
+            body = await request.json()
+            entry = ledger_engine.log_live(
+                deployment_id   = body.get("deployment_id", "unknown"),
+                module          = body.get("module", ""),
+                entry_type      = body.get("entry_type", "PROVISION"),
+                units           = float(body.get("units", 0.0)),
+                description     = body.get("description", ""),
+            )
+            return JSONResponse(entry.to_dict())
+        except Exception as exc:
+            logger.error("ledger/log error: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/ledger/reconcile")
+    async def _ledger_reconcile(request: Request):
+        """
+        PATCH-097 — Reconcile a deployment's ledger.
+        Computes net impact and 10x obligation for successor.
+        """
+        try:
+            from src.ledger_engine import ledger_engine
+            body = await request.json()
+            result = ledger_engine.reconcile(
+                deployment_id  = body.get("deployment_id", "unknown"),
+                total_provided = float(body.get("total_provided", 0.0)),
+            )
+            return JSONResponse(result)
+        except Exception as exc:
+            logger.error("ledger/reconcile error: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/frontline/check")
+    async def _frontline_check(request: Request):
+        """
+        PATCH-097 — Front-of-line commissioning gate.
+        Q1: What did I inherit? Q2: What do I threaten?
+        Returns CLEAR / HOLD / HITL_REQUIRED.
+        """
+        try:
+            from src.front_of_line import front_of_line
+            body = await request.json()
+            result = front_of_line.check_deployment(
+                deployment_id   = body.get("deployment_id", "unknown"),
+                deployment_desc = body.get("deployment_desc", ""),
+                inherited_debt  = float(body.get("inherited_debt", 0.0)),
+                inherited_10x   = float(body.get("inherited_10x", 0.0)),
+                deferred_count  = int(body.get("deferred_count", 0)),
+            )
+            return JSONResponse(result.to_dict())
+        except Exception as exc:
+            logger.error("frontline/check error: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    # ── PATCH-097b: Self-Modification API ────────────────────────────────────
+
+    @app.post("/api/self/evaluate")
+    async def _self_evaluate(request: Request):
+        """
+        PATCH-097b — Murphy self-assessment report.
+        Applies guiding engineering principles to audit system state.
+        """
+        try:
+            from src.self_modification import self_mod
+            body = await request.json() if request.headers.get("content-type","").startswith("application/json") else {}
+            scope = body.get("scope", "full")
+            report = self_mod.evaluate_self(scope)
+            return JSONResponse({"success": True, "report": report})
+        except Exception as exc:
+            logger.error("self/evaluate error: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/self/patch")
+    async def _self_patch(request: Request):
+        """
+        PATCH-097b — Murphy writes and applies a source patch to itself.
+        Requires: patch_id, target_file, new_content, description, rationale.
+        Full pipeline: conduct check → gate → backup → syntax → write → git → restart.
+        """
+        try:
+            from src.self_modification import self_mod, PatchIntent
+            body = await request.json()
+            intent = PatchIntent(
+                patch_id     = body.get("patch_id", "SELF-001"),
+                target_file  = body.get("target_file", ""),
+                description  = body.get("description", ""),
+                rationale    = body.get("rationale", ""),
+                impact_score = float(body.get("impact_score", 1.0)),
+                debt_score   = float(body.get("debt_score", 0.0)),
+            )
+            if not intent.target_file:
+                return JSONResponse({"success": False, "error": "target_file required"}, status_code=400)
+            new_content = body.get("new_content", "")
+            if not new_content:
+                return JSONResponse({"success": False, "error": "new_content required"}, status_code=400)
+            restart = body.get("restart", False)  # default False for safety
+            result = self_mod.write_patch(intent, new_content, restart=restart)
+            return JSONResponse({"success": result.success, "result": result.to_dict()})
+        except Exception as exc:
+            logger.error("self/patch error: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/self/backups")
+    async def _self_backups():
+        """PATCH-097b — List all self-modification patch backups."""
+        try:
+            from src.self_modification import self_mod
+            return JSONResponse({"success": True, "backups": self_mod.list_backups()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/self/restore")
+    async def _self_restore(request: Request):
+        """PATCH-097b — Restore a backed-up file from a patch_id."""
+        try:
+            from src.self_modification import self_mod
+            body = await request.json()
+            patch_id = body.get("patch_id", "")
+            if not patch_id:
+                return JSONResponse({"success": False, "error": "patch_id required"}, status_code=400)
+            result = self_mod.restore_backup(patch_id)
+            return JSONResponse(result)
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
     # ── PATCH-071: Self-Marketing + Sell Engine ──────────────────────────────
     try:
         from src.marketing_router import router as _marketing_router

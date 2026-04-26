@@ -477,9 +477,30 @@ def _create_mgmt_board_item(insight: Dict[str, Any], lcm_result: Dict[str, Any])
     try:
         import urllib.request as _req
         import json as _json
-        # Ensure a board exists first
-        board_payload = _json.dumps({
-            "name": "Ambient AI Actions",
+        # Ensure a board exists — reuse existing one, never duplicate
+        # First check if 'Ambient AI Actions' board already exists
+        try:
+            with _req.urlopen(
+                _req.Request("http://127.0.0.1:8000/api/mgmt/boards",
+                             headers={"Cookie": "murphy_session=internal"}),
+                timeout=5,
+            ) as _br:
+                _existing = _json.loads(_br.read())
+                _boards = _existing if isinstance(_existing, list) else _existing.get("boards", [])
+                _ambient_board = next((b for b in _boards if b.get("name") == "Ambient AI Actions"), None)
+                if _ambient_board:
+                    board_id = _ambient_board.get("board_id") or _ambient_board.get("id") or "default"
+                    logger.debug("PATCH-089: Reusing existing board %s", board_id)
+                    # skip straight to item creation
+                    board_id_found = True
+                else:
+                    board_id_found = False
+        except Exception:
+            board_id_found = False
+
+        if not board_id_found:
+            board_payload = _json.dumps({
+                "name": "Ambient AI Actions",
             "description": "Auto-generated from Ambient AI → LCM dispatch pipeline"
         }).encode()
         board_req = _req.Request(
@@ -490,7 +511,8 @@ def _create_mgmt_board_item(insight: Dict[str, Any], lcm_result: Dict[str, Any])
         )
         with _req.urlopen(board_req, timeout=8) as br:
             board = _json.loads(br.read())
-        board_id = board.get("board_id") or board.get("id") or "default"
+            board_id = board.get("board_id") or board.get("id") or "default"
+            board_id_found = True  # just created it
 
         item_payload = _json.dumps({
             "title": insight.get("title", "Ambient Action"),
