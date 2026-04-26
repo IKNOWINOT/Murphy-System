@@ -16532,6 +16532,13 @@ def create_app() -> FastAPI:
         logger.info("PATCH-077a: RSC source adapters started (8 streams → unified S(t))")
     except Exception as _rsc_a_exc:
         logger.warning("PATCH-077a: RSC adapters failed: %s", _rsc_a_exc)
+    # ── PATCH-085: Ethical Hacking Engine ───────────────────────────────────
+    try:
+        from src.ethical_hacking_engine import router as _hack_router
+        app.include_router(_hack_router)
+        logger.info("PATCH-085: /api/hack/* mounted — Ethical Hacking Engine live")
+    except Exception as _hack_exc:
+        logger.warning("PATCH-085: Ethical Hacking Engine failed to mount: %s", _hack_exc)
 
     # ── PATCH-077d: Unmounted routers — wire all verified importable routers ──
     _unmounted = [
