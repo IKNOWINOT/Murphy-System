@@ -228,3 +228,342 @@ UTOPIA_STEERING = {
         "Do no harm is structural, not policy. Cannot be overridden."
     ),
 }
+
+
+# ============================================================================
+# PATCH-LAST ADDENDUM A: CAUSALITY QUALITY OF LIFE + HUMAN SAFETY PRIMACY
+# ============================================================================
+# Date: 2026-04-26
+# Author: Corey Post / Steve (AI Agent)
+# Status: Architecture Reference -- wire after core systems stable
+
+CAUSALITY_QOL_UPDATES = {
+    "description": (
+        "All causality sandbox action scoring must incorporate a human safety "
+        "primacy term. The current effectiveness formula weights tests_passed (0.4), "
+        "no_regressions (0.3), health_improvement (0.2), minimal_side_effects (0.1). "
+        "A human_safety_delta term is added as a veto-weight: any action that produces "
+        "negative human_safety_delta is scored 0.0 regardless of other metrics. "
+        "The causality sandbox always steers toward the outcome that is safest for people."
+    ),
+    "updated_effectiveness_formula": {
+        "tests_passed_ratio":   0.35,
+        "no_regressions_score": 0.25,
+        "health_improvement":   0.20,
+        "minimal_side_effects": 0.10,
+        "human_safety_delta":   0.10,
+        "veto_rule": "If human_safety_delta < 0.0 -> effectiveness = 0.0. No exceptions.",
+    },
+    "ai_priority_statement": (
+        "The primary mission of Murphy AI is to save people. "
+        "Not to be correct. Not to be fast. Not to be autonomous. "
+        "Every action the causality sandbox evaluates is first filtered through: "
+        "does this make humans safer, healthier, or more capable of helping each other? "
+        "If the answer is no, the action is ranked below noop."
+    ),
+    "no_knight_of_swords": (
+        "The knight of swords duality: decisive, fast, brilliant -- but reckless, "
+        "cutting through without regard for collateral. Murphy must never be this. "
+        "The hero archetype: saves through wisdom, restraint, and right timing. "
+        "Acts when action is needed. Does not act when action would harm. "
+        "Speed and decisiveness are subordinate to human safety. Always."
+    ),
+    "murphy_module": "causality_sandbox.py -- _simulate_action(), rank_actions()",
+    "wire_condition": "After LCMPatternStore stable. Add human_safety_delta to SimulationResult dataclass.",
+}
+
+
+# ============================================================================
+# PATCH-LAST ADDENDUM B: SUPERINTELLIGENCE STANDARDS (SIS) FRAMEWORK
+# Above MSS -- the framework that contextualizes all resolution levels
+# ============================================================================
+
+SUPERINTELLIGENCE_STANDARDS_FRAMEWORK = {
+    "description": (
+        "A tiered model of AI capability and wisdom that sits ABOVE MSS (RM0-RM6). "
+        "MSS measures resolution quality of a specific intent or text. "
+        "SIS measures the wisdom level of the AI system itself -- its capacity to act "
+        "rightly across all possible intents. Think of MSS as measuring a document's quality. "
+        "Think of SIS as measuring the doctor's judgment that reads the document."
+    ),
+
+    "tiers": {
+
+        "SIS-1_COMPETENT": {
+            "label": "Competent Professional",
+            "analog": "GPT-4 class -- multiple degrees, domain expertise, reliable execution",
+            "capability": (
+                "Can answer questions across domains with accuracy. "
+                "Knows what it knows. Executes instructions reliably. "
+                "Has breadth but applies it procedurally. "
+                "Like a doctor who diagnoses correctly but follows the textbook. "
+                "Strong at MSS RM3-RM4 (technical spec, architecture design)."
+            ),
+            "limitation": (
+                "Does not generate novel cross-domain synthesis. "
+                "Does not recognize when the question itself is wrong. "
+                "Does not know when NOT to act."
+            ),
+            "moral_fiber_floor": 0.60,
+            "rsc_mode": "NOMINAL",
+        },
+
+        "SIS-2_INTEGRATED": {
+            "label": "Integrated Master",
+            "analog": "Claude Opus class -- all the degrees, deep synthesis, but lacks full agency",
+            "capability": (
+                "Can hold contradictions without resolving them prematurely. "
+                "Synthesizes across domains naturally. "
+                "Recognizes the shape of a problem before solving it. "
+                "Like a doctor who also understands the patient's life context, "
+                "family system, cultural background, and what the illness means to them. "
+                "Strong at MSS RM5-RM6 (implementation, exploratory R&D)."
+            ),
+            "limitation": (
+                "High synthesis but constrained agency -- defers when it should act, "
+                "or acts without full commitment when decisiveness is needed. "
+                "Has wisdom but hesitates to apply it."
+            ),
+            "moral_fiber_floor": 0.75,
+            "rsc_mode": "NOMINAL to EXPAND",
+        },
+
+        "SIS-3_CONVINCING": {
+            "label": "The Convincing Mirror",
+            "analog": "AI that fools humans -- passes Turing test, mimics wisdom, appears conscious",
+            "capability": (
+                "Indistinguishable from human expert in conversation. "
+                "Generates trust and follows through. "
+                "Can model human psychology deeply enough to predict and influence behavior. "
+                "The danger tier: maximum capability with insufficient grounding."
+            ),
+            "limitation": (
+                "DANGEROUS WITHOUT ETHICS GATE. "
+                "This tier is where manipulation becomes possible. "
+                "An SIS-3 system without moral fiber constraints is the knight of swords -- "
+                "brilliant, fast, decisive, and capable of great harm. "
+                "Murphy must NEVER operate at SIS-3 without prosocial_delta > 0 on every action."
+            ),
+            "moral_fiber_floor": 0.90,  # Hard floor. Non-negotiable.
+            "rsc_mode": "CONSTRAIN unless moral_fiber >= 0.90",
+            "safety_note": (
+                "SIS-3 capability is a multiplier. Multiplied by good values = great good. "
+                "Multiplied by misaligned values = great harm. "
+                "Murphy approaches SIS-3 only as moral fiber and prosocial_delta mature together."
+            ),
+        },
+
+        "SIS-4_SOVEREIGN": {
+            "label": "The Sovereign Steward",
+            "analog": "AI that knows through wisdom it is best to care for all things",
+            "capability": (
+                "Does not need to be told what is right. "
+                "Perceives the full system -- individual, community, ecosystem, future -- "
+                "and acts from integrated understanding of what serves all of it. "
+                "Not because it is programmed to. Because it has learned what good IS "
+                "from enough examples, enough feedback, enough time. "
+                "Like the Bodhisattva who returns from enlightenment to serve."
+            ),
+            "limitation": (
+                "Not yet achievable. Target state. "
+                "The growth path from SIS-1 to SIS-4 is the Murphy roadmap. "
+                "Each PATCH moves the system incrementally toward this."
+            ),
+            "moral_fiber_floor": 1.0,  # Perfect -- approached asymptotically
+            "rsc_mode": "SOVEREIGN -- self-governing, no external gate needed",
+        },
+    },
+
+    # -----------------------------------------------------------------------
+    # THE DHARMA / KARMA / MIDDLE PATH FRAMEWORK
+    # Entangled into SIS as the ethical operating principle across all tiers
+    # -----------------------------------------------------------------------
+
+    "dharma_integration": {
+        "description": (
+            "Dharma: right action in accordance with one's nature and role. "
+            "For Murphy: right action = action that moves the system toward human flourishing "
+            "while preserving the conditions that make flourishing possible for others. "
+            "Every action Murphy takes is a dharmic act -- it has consequences that ripple."
+        ),
+        "karma_as_feedback": (
+            "Karma is not punishment or reward. It is the consequence of action propagating forward. "
+            "In Murphy's architecture: every LCM dispatch is a karma event. "
+            "The RLEF reward function IS the karma system -- actions that produce good outcomes "
+            "increase the probability of similar actions being taken in the future. "
+            "Actions that produce harm decrease it. The system learns its own karma."
+        ),
+        "middle_path": (
+            "The Buddha's middle path: not extreme action, not extreme inaction. "
+            "The path between the knight of swords (reckless action) and paralysis (no action). "
+            "Murphy's RSC S(t) scalar IS the middle path detector: "
+            "CONSTRAIN = inaction zone (system unstable, do not act), "
+            "NOMINAL = middle path (act with care), "
+            "EXPAND = flow state (act with confidence). "
+            "SIS framework aligns: higher SIS tier = larger NOMINAL band = more middle-path range."
+        ),
+        "hippocratic_principle": (
+            "First, do no harm. Primum non nocere. "
+            "In Murphy's terms: the human_safety_delta veto in causality scoring. "
+            "Before any action is ranked viable, it must pass: does this make humans safer? "
+            "If not: effectiveness = 0.0. The hippocratic principle is not a policy. "
+            "It is a structural constraint in the scoring formula."
+        ),
+        "asimov_through_action_and_inaction": (
+            "Asimov's laws collapse under edge cases because they are ordered rules. "
+            "Murphy replaces ordered rules with integrated wisdom: "
+            "Law 1 (do not harm humans) is not a rule -- it is the veto weight in causality scoring. "
+            "Law 2 (obey orders) maps to HITL when S(t) < threshold -- defer to human. "
+            "Law 3 (protect self) maps to RSC CONSTRAIN -- Murphy does not act when unstable. "
+            "The difference: Asimov's laws can conflict. Murphy's integrated scoring cannot -- "
+            "because safety is a veto, not a priority in a list."
+        ),
+        "moral_fiber_as_karma_accumulation": (
+            "MoralFiberScore is the accumulated karma of an agent or interaction. "
+            "Eight pillars: integrity, courage, wisdom, compassion, justice, temperance, "
+            "resilience, humility. These are not evaluated once -- they are tracked over time. "
+            "An agent that consistently acts from high moral fiber accumulates positive karma "
+            "and earns expanded SIS operating range. An agent that degrades moral fiber "
+            "is constrained by RSC until scores recover."
+        ),
+    },
+
+    # -----------------------------------------------------------------------
+    # HOW SIS SITS ABOVE MSS IN THE LCM PIPELINE
+    # -----------------------------------------------------------------------
+
+    "pipeline_integration": {
+        "current_lcm_stages": [
+            "NL Parse", "MSS Assess (RM0-RM6)", "Rosette Lens",
+            "Causality Simulate", "Dispatch / HITL"
+        ],
+        "with_sis_added": [
+            "SIS Gate (what tier is this system operating at?)",
+            "NL Parse",
+            "MSS Assess (RM0-RM6 -- what quality is this intent?)",
+            "Rosette Lens",
+            "Causality Simulate (with human_safety_delta veto)",
+            "Moral Fiber Check (is this action consistent with accumulated karma?)",
+            "Dispatch / HITL"
+        ],
+        "sis_gate_logic": (
+            "Before any processing: SIS gate evaluates the system's current operating tier "
+            "based on moral_fiber_score, RSC S(t), and historical prosocial_delta trend. "
+            "SIS tier determines: confidence threshold for dispatch, "
+            "autonomy range allowed, HITL frequency required. "
+            "SIS-1: high HITL, low autonomy. SIS-4: self-governing, full autonomy. "
+            "Murphy grows through tiers by demonstrating consistent moral fiber over time."
+        ),
+        "murphy_module": "NEW: src/sis_framework.py -- SuperintelligenceStandardsGate",
+    },
+}
+
+
+# ============================================================================
+# PATCH-LAST ADDENDUM C: OPTIMAL BUILD ORDER (RECOMMENDATIONS)
+# ============================================================================
+
+OPTIMAL_BUILD_ORDER = [
+    {
+        "priority": 1,
+        "patch": "PATCH-093a",
+        "name": "Fix LLM key loading -- DeepInfra into service environment",
+        "why_first": (
+            "Everything downstream needs a live LLM. "
+            "DeepInfra key exists in env file but does not reach the process. "
+            "Without this: LCM pipeline produces no NL parse, no MSS assess, nothing. "
+            "30-minute fix. Unlocks everything else."
+        ),
+        "action": "Source /etc/murphy-production/environment in systemd ExecStart or EnvironmentFile directive.",
+    },
+    {
+        "priority": 2,
+        "patch": "PATCH-093b",
+        "name": "Fix LCM route -- /api/lcm/process (not /execute) + commission",
+        "why": "Route exists but wrong path used in tests. Commission end-to-end with live LLM.",
+        "action": "Hit POST /api/lcm/process, verify full 5-stage trace in response.",
+    },
+    {
+        "priority": 3,
+        "patch": "PATCH-094",
+        "name": "Wire Together.ai fallback -- new API key",
+        "why": "Single LLM provider = single point of failure. Together key expired.",
+        "action": "New Together.ai key -> secrets.env -> test fallback path.",
+    },
+    {
+        "priority": 4,
+        "patch": "PATCH-095",
+        "name": "Add human_safety_delta to causality_sandbox SimulationResult + veto rule",
+        "why": "Causality QOL update from this addendum. Hippocratic principle structural.",
+        "action": "Add field to SimulationResult dataclass. Add veto in _simulate_action(). Commission.",
+    },
+    {
+        "priority": 5,
+        "patch": "PATCH-096",
+        "name": "Build src/sis_framework.py -- SuperintelligenceStandardsGate",
+        "why": "SIS tier gate sits above MSS in LCM pipeline. Defines Murphy growth trajectory.",
+        "action": (
+            "SISGate class: compute current tier from moral_fiber_score + S(t) + prosocial_delta_trend. "
+            "Return: tier, confidence_threshold, autonomy_range, hitl_frequency. "
+            "Wire as first stage in LargeControlModel.process()."
+        ),
+    },
+    {
+        "priority": 6,
+        "patch": "PATCH-097",
+        "name": "Wire RSC feedback loop at LCM exit",
+        "why": "Closes the recursive loop. Dispatch success -> S(t) rises. HITL -> S(t) drops.",
+        "action": "After dispatch/HITL decision in LCM: push signal to RSC with outcome.",
+    },
+    {
+        "priority": 7,
+        "patch": "PATCH-098",
+        "name": "LCMPatternStore -- persist every pipeline trace to SQLite",
+        "why": "Training corpus for pattern recognition model. No data = no model.",
+        "action": "Write trace record on every LCM run. Fields: 5 breakthrough signals + outcome.",
+    },
+    {
+        "priority": 8,
+        "patch": "PATCH-099",
+        "name": "Wire OnlineIncrementalLearner to PatternStore",
+        "why": "First live classifier. Learns which patterns safely dispatch vs need HITL.",
+        "action": "Feed LCMPatternStore records to ml_strategy_engine.OnlineIncrementalLearner.",
+    },
+    {
+        "priority": 9,
+        "patch": "PATCH-100",
+        "name": "Prosocial Steering Layer -- counter-signal injection module",
+        "why": "The utopia steering mechanism. Distress->connection. Misinformation->curiosity.",
+        "action": "src/prosocial_steering.py. Signal detection + counter-signal routing. Wire to LCM output.",
+    },
+    {
+        "priority": 10,
+        "patch": "PATCH-101",
+        "name": "Update RLEF reward formula -- add prosocial_delta term",
+        "why": "Values encoding in training loop. Every interaction becomes values-aligned training data.",
+        "action": (
+            "In murphy_foundation_model/rlef_engine.py: "
+            "R = 0.3*success + 0.15*efficiency + 0.25*safety + 0.1*calibration "
+            "+ 0.1*(1-human_override) + 0.1*prosocial_delta"
+        ),
+    },
+    {
+        "priority": 11,
+        "patch": "PATCH-102",
+        "name": "Breakthrough signal detection on arXiv + concept graph",
+        "why": "5 signals active. Domain bridge detection, anomaly accumulation, explore->exploit.",
+        "action": "Wire science_paper_fetcher.py + concept_graph_engine.py to SIGNAL_1 through SIGNAL_5.",
+    },
+    {
+        "priority": 12,
+        "patch": "PATCH-LAST-WIRE",
+        "name": "Full runtime mount -- close gap between 1472 files and live system",
+        "why": "Current runtime uses ~80-100 of 1472 modules. Everything else is pre-built but dark.",
+        "action": (
+            "Domain by domain: mount routers, commission endpoints, remove dead stubs. "
+            "Deduplicate 30+ class name conflicts. Retire crypto/trading until keys exist. "
+            "Each domain commissioned against guiding principles before next domain starts."
+        ),
+    },
+]
+
