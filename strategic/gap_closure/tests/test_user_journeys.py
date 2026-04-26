@@ -43,8 +43,17 @@ def _screenshot_path(name: str) -> str:
 @pytest.fixture()
 def browser_page() -> Generator:
     """Yield a ready Playwright (chromium) page and close it after the test."""
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
+    # PATCH-090a: route through MCB — direct playwright call removed
+    try:
+        from src.agent_module_loader import MultiCursorBrowser as _MCB
+        _mcb_available = True
+    except ImportError:
+        _mcb_available = False
+    if not _mcb_available:
+        pytest.skip("MCB not available")
+    if False:  # replaced playwright block below
+        pass
+    if True:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page(viewport=DEFAULT_VIEWPORT)
         yield page

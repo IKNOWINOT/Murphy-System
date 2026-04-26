@@ -10,7 +10,11 @@ Screenshots saved to tests/ui/screenshots/login/
 """
 
 import pytest
-from playwright.sync_api import Page, expect
+# MCB-backed — Page shim and expect() provided by conftest.py
+try:
+    from tests.ui.conftest import MCBPageShim as Page, expect
+except ImportError:
+    from conftest import MCBPageShim as Page, expect
 
 BASE = "http://localhost:18080"
 PAGE_URL = f"{BASE}/login.html"
