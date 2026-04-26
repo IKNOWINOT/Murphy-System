@@ -367,8 +367,17 @@ class HardwareTelemetryEngine:
     # ── Latency ──────────────────────────────────────────────────────────────
 
     def _measure_latency(self) -> LatencyStats:
-        # External ping
-        ping_ms = loss = None
+        """
+        Dual-probe latency:
+        1. ICMP ping via /bin/ping (requires cap_net_raw — may fail inside uvicorn)
+        2. Fallback: TCP connect to 8.8.8.8:53 (DNS port — no ICMP needed)
+        Also measures local loopback API round-trip.
+        """
+        import socket as _sock
+        ping_ms: Optional[float] = None
+        loss: float = 0.0
+
+        # Attempt 1: ICMP ping
         try:
             result = subprocess.run(
                 ["/bin/ping", "-c", str(_PING_COUNT), "-W", "1", _PING_HOST],
@@ -376,7 +385,6 @@ class HardwareTelemetryEngine:
             )
             for line in result.stdout.split("\n"):
                 if "rtt" in line and "avg" in line:
-                    # rtt min/avg/max/mdev = 15.3/15.4/15.5/0.06 ms
                     parts = line.split("=")[1].strip().split("/")
                     ping_ms = float(parts[1])
                 if "packet loss" in line:
@@ -386,12 +394,31 @@ class HardwareTelemetryEngine:
         except Exception:
             pass
 
-        # Local API round-trip
-        local_ms = None
+        # Attempt 2: TCP connect fallback if ICMP failed
+        if ping_ms is None:
+            try:
+                t0 = time.monotonic()
+                s = _sock.create_connection((_PING_HOST, 53), timeout=2)
+                s.close()
+                ping_ms = round((time.monotonic() - t0) * 1000, 2)
+                loss = 0.0  # TCP connected = no loss
+            except Exception:
+                try:
+                    # Last resort: try 1.1.1.1 (Cloudflare)
+                    t0 = time.monotonic()
+                    s = _sock.create_connection(("1.1.1.1", 53), timeout=2)
+                    s.close()
+                    ping_ms = round((time.monotonic() - t0) * 1000, 2)
+                    loss = 0.0
+                except Exception:
+                    loss = 100.0
+
+        # Local API round-trip (direct TCP, bypasses uvicorn routing overhead)
+        local_ms: Optional[float] = None
         try:
-            import urllib.request
             t0 = time.monotonic()
-            urllib.request.urlopen("http://127.0.0.1:8000/api/health", timeout=3)
+            s = _sock.create_connection(("127.0.0.1", 8000), timeout=2)
+            s.close()
             local_ms = round((time.monotonic() - t0) * 1000, 2)
         except Exception:
             pass
@@ -399,7 +426,7 @@ class HardwareTelemetryEngine:
         return LatencyStats(
             host          = _PING_HOST,
             ping_ms       = round(ping_ms, 2) if ping_ms is not None else None,
-            ping_loss_pct = loss if loss is not None else 100.0,
+            ping_loss_pct = loss,
             local_api_ms  = local_ms,
         )
 
