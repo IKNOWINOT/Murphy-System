@@ -11602,6 +11602,9 @@ def create_app() -> FastAPI:
             "/ui/service-module": "service_module.html",
             "/ui/video-demo": "demo_video.html",
             "/ui/guest-portal": "guest_portal.html",
+        
+            "/ui/hack-graph": "hack_graph.html",
+            "/ui/honeypot": "honeypot.html",
         }
 
         # ── Route classification: public vs auth-required ──────────
@@ -16546,6 +16549,23 @@ def create_app() -> FastAPI:
         logger.info("PATCH-085b: /api/hack/nodes/* mounted — transport layer live (Tor + proxy nodes)")
     except Exception as _htr_exc:
         logger.warning("PATCH-085b: Hack transport router failed: %s", _htr_exc)
+    # ── PATCH-086: Recursive Stream Hacking Feed + Attack Graph ──────────────
+    try:
+        from src.hack_stream_graph import router as _hack_graph_router
+        app.include_router(_hack_graph_router)
+        logger.info("PATCH-086: /api/hack/feed/* + /api/hack/graph/* mounted — recursive stream graph live")
+    except Exception as _hsg_exc:
+        logger.warning("PATCH-086: Hack stream graph failed: %s", _hsg_exc)
+    # ── PATCH-087: Honeypot + Counter-Intelligence Engine ────────────────────
+    try:
+        from src.honeypot_engine import api_router as _hp_api, trap_router as _hp_trap, HoneypotMiddleware as _HpMw
+        app.include_router(_hp_api)
+        # Trap router mounts LAST so it doesn't shadow real routes
+        app.include_router(_hp_trap)
+        app.add_middleware(_HpMw)
+        logger.info("PATCH-087: Honeypot active — 37 traps, passive fingerprint middleware, counter-scan via Tor")
+    except Exception as _hp_exc:
+        logger.warning("PATCH-087: Honeypot engine failed: %s", _hp_exc)
 
     # ── PATCH-077d: Unmounted routers — wire all verified importable routers ──
     _unmounted = [

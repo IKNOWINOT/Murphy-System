@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="murphy-public" content="true">
+<title>Murphy — Honeypot Control</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+  :root {
+    --bg:#07090d; --panel:#0e1117; --panel2:#131720;
+    --border:#1a2030; --text:#c0c8dc; --muted:#3d4a60;
+    --accent:#00e5ff; --red:#ff2d55; --orange:#ff8c42;
+    --yellow:#ffd166; --green:#00e59b; --purple:#a855f7;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono','Fira Code',monospace;font-size:12px;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+  header{display:flex;align-items:center;gap:14px;padding:9px 20px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0}
+  header h1{font-size:13px;color:var(--red);letter-spacing:2px;text-transform:uppercase}
+  .badge{padding:2px 7px;border-radius:3px;font-size:9px;font-weight:700;letter-spacing:1px}
+  .badge-live{background:var(--red);color:#fff;animation:blink 1s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+  .hdr-stats{display:flex;gap:22px;margin-left:auto;align-items:center}
+  .hstat{text-align:center}
+  .hstat-val{font-size:22px;font-weight:700}
+  .hstat-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .c-caught{color:var(--red)} .c-high{color:var(--orange)} .c-scanned{color:var(--green)} .c-traps{color:var(--accent)}
+
+  .main{display:flex;flex:1;overflow:hidden}
+
+  /* Left panel — alerts feed */
+  .left{width:340px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+  .panel-hdr{padding:10px 14px;border-bottom:1px solid var(--border);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:8px}
+  .alert-feed{flex:1;overflow-y:auto;padding:4px 0}
+  .alert-item{padding:7px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+  .alert-item:hover{background:var(--panel2)}
+  .alert-ip{font-weight:700;color:var(--accent);font-size:11px}
+  .alert-path{color:var(--muted);font-size:10px;margin-top:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .alert-meta{display:flex;gap:8px;margin-top:3px;align-items:center}
+  .sev{padding:1px 5px;border-radius:2px;font-size:9px;font-weight:700}
+  .sev-critical{background:rgba(255,45,85,.2);color:var(--red)}
+  .sev-high{background:rgba(255,140,66,.2);color:var(--orange)}
+  .sev-medium{background:rgba(255,209,102,.2);color:var(--yellow)}
+  .sev-low{background:rgba(0,229,155,.15);color:var(--green)}
+  .sev-info{background:rgba(61,74,96,.3);color:var(--muted)}
+  .alert-ts{font-size:9px;color:var(--muted)}
+
+  /* Center — attack graph */
+  .center{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  .graph-wrap{flex:1;position:relative;overflow:hidden}
+  svg{width:100%;height:100%}
+  .tooltip{position:absolute;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-size:11px;pointer-events:none;max-width:260px;z-index:10;display:none}
+  .tt-title{color:var(--accent);font-weight:700;margin-bottom:4px}
+  .tt-row{margin-bottom:2px;color:var(--text)}
+  .tt-key{color:var(--muted)}
+
+  /* Right panel — dossier detail */
+  .right{width:310px;flex-shrink:0;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+  .dossier-scroll{flex:1;overflow-y:auto;padding:12px 14px}
+  .no-sel{color:var(--muted);font-size:11px;padding:20px 14px}
+  .dos-ip{font-size:18px;font-weight:700;color:var(--red);margin-bottom:8px}
+  .dos-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:11px}
+  .dos-key{color:var(--muted)}
+  .dos-val{color:var(--text);font-weight:600;text-align:right;max-width:160px;overflow:hidden;text-overflow:ellipsis}
+  .dos-section{margin-top:10px;margin-bottom:4px;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .tag{display:inline-block;padding:2px 6px;border-radius:3px;font-size:9px;margin:2px;background:var(--panel2);border:1px solid var(--border)}
+  .tag-tool{color:var(--orange)}
+  .tag-path{color:var(--accent)}
+  .finding-row{padding:5px 8px;border-radius:4px;margin-bottom:3px;font-size:10px;border-left:3px solid var(--muted)}
+  .fr-crit{border-color:var(--red);background:rgba(255,45,85,.07)}
+  .fr-high{border-color:var(--orange);background:rgba(255,140,66,.07)}
+  .fr-med{border-color:var(--yellow);background:rgba(255,209,102,.07)}
+  .fr-low{border-color:var(--green);background:rgba(0,229,155,.06)}
+  .btn-counter{width:100%;padding:8px;margin-top:10px;background:var(--red);color:#fff;border:none;border-radius:4px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:1px}
+  .btn-counter:hover{opacity:.85}
+  .btn-whitelist{width:100%;padding:6px;margin-top:6px;background:var(--muted);color:#fff;border:none;border-radius:4px;font-family:inherit;font-size:10px;cursor:pointer}
+
+  /* Controls bar */
+  .controls-bar{display:flex;gap:10px;padding:8px 14px;background:var(--panel2);border-bottom:1px solid var(--border);align-items:center;flex-shrink:0}
+  .cb-label{font-size:10px;color:var(--muted)}
+  .cb-val{font-size:11px;font-weight:700;color:var(--text);margin-left:4px}
+  .toggle{display:flex;align-items:center;gap:5px}
+  input[type=range]{width:80px;accent-color:var(--accent)}
+  .btn-sm{padding:3px 10px;border-radius:3px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-family:inherit;font-size:10px;cursor:pointer}
+  .btn-sm:hover{border-color:var(--accent);color:var(--accent)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🪤 Honeypot Control</h1>
+  <span class="badge badge-live" id="live-badge">LIVE</span>
+  <div class="hdr-stats">
+    <div class="hstat"><div class="hstat-val c-caught" id="s-caught">0</div><div class="hstat-lbl">Caught</div></div>
+    <div class="hstat"><div class="hstat-val c-high"   id="s-high">0</div><div class="hstat-lbl">High Risk</div></div>
+    <div class="hstat"><div class="hstat-val c-scanned" id="s-scanned">0</div><div class="hstat-lbl">Counter-Scanned</div></div>
+    <div class="hstat"><div class="hstat-val c-traps"  id="s-traps">37</div><div class="hstat-lbl">Active Traps</div></div>
+  </div>
+</header>
+
+<!-- Controls bar -->
+<div class="controls-bar">
+  <span class="cb-label">Suspicion Threshold:</span>
+  <input type="range" id="ctrl-threshold" min="10" max="100" value="60" oninput="updateThresholdLabel(this.value)">
+  <span class="cb-val" id="thresh-val">60</span>
+  <span class="cb-label" style="margin-left:12px">Tarpit:</span>
+  <input type="checkbox" id="ctrl-tarpit" checked onchange="updateConfig()">
+  <span class="cb-label" style="margin-left:12px">Counter-Scan:</span>
+  <input type="checkbox" id="ctrl-counter" checked onchange="updateConfig()">
+  <span class="cb-label" style="margin-left:12px">Transport:</span>
+  <select id="ctrl-transport" onchange="updateConfig()" style="background:var(--panel);border:1px solid var(--border);color:var(--text);padding:2px 5px;font-family:inherit;font-size:10px;border-radius:3px">
+    <option value="tor">Tor</option>
+    <option value="rotate">Rotating</option>
+    <option value="direct">Direct</option>
+  </select>
+  <button class="btn-sm" onclick="updateConfig()" style="margin-left:4px">Apply</button>
+  <button class="btn-sm" onclick="clearDossier()" style="margin-left:auto">Clear All</button>
+</div>
+
+<div class="main">
+  <!-- Alert feed -->
+  <div class="left">
+    <div class="panel-hdr">
+      <span style="color:var(--red)">⚡</span> Live Alerts
+      <span id="alert-count" style="margin-left:auto;color:var(--muted)">0 events</span>
+    </div>
+    <div class="alert-feed" id="alert-feed"></div>
+  </div>
+
+  <!-- Graph -->
+  <div class="center">
+    <div class="graph-wrap" id="graph-area">
+      <svg id="graph-svg"></svg>
+      <div class="tooltip" id="tooltip"></div>
+    </div>
+  </div>
+
+  <!-- Dossier panel -->
+  <div class="right">
+    <div class="panel-hdr"><span style="color:var(--purple)">📋</span> Attacker Dossier</div>
+    <div class="dossier-scroll" id="dossier">
+      <div class="no-sel">Click an alert or graph node to view dossier</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Graph state ─────────────────────────────────────────────────────────────
+const SEV_COLOR = {critical:'#ff2d55',high:'#ff8c42',medium:'#ffd166',low:'#00e59b',info:'#3d4a60'};
+let nodes=[],links=[],nodeMap={},linkSet=new Set();
+let simulation,svg,g;
+let alertCount=0, selectedIp=null;
+let dashData={};
+
+// ── Init D3 ─────────────────────────────────────────────────────────────────
+function initGraph(){
+  svg=d3.select('#graph-svg');
+  const W=document.getElementById('graph-area').clientWidth;
+  const H=document.getElementById('graph-area').clientHeight;
+  svg.selectAll('*').remove();
+  svg.append('defs').append('marker').attr('id','arr').attr('viewBox','0 -4 8 8')
+    .attr('refX',18).attr('refY',0).attr('markerWidth',5).attr('markerHeight',5).attr('orient','auto')
+    .append('path').attr('d','M0,-4L8,0L0,4').attr('fill','#1a2030');
+  g=svg.append('g');
+  svg.call(d3.zoom().scaleExtent([0.05,5]).on('zoom',e=>g.attr('transform',e.transform)));
+  g.append('g').attr('class','links');
+  g.append('g').attr('class','nodes');
+  simulation=d3.forceSimulation(nodes)
+    .force('link',d3.forceLink(links).id(d=>d.id).distance(d=>d.rel==='has_finding'?70:140).strength(0.7))
+    .force('charge',d3.forceManyBody().strength(-350))
+    .force('center',d3.forceCenter(W/2,H/2))
+    .force('collision',d3.forceCollide().radius(d=>nodeR(d)+6))
+    .on('tick',ticked);
+}
+
+function nodeR(d){
+  if(d.type==='target') return d.is_attacker?22:16;
+  if(d.type==='finding') return 9;
+  if(d.type==='port') return 11;
+  return 9;
+}
+
+function nodeColor(d){
+  if(d.type==='finding') return SEV_COLOR[d.severity]||SEV_COLOR.info;
+  if(d.is_attacker) return '#ff2d55';
+  if(d.type==='target') return '#00e5ff';
+  if(d.type==='port') return '#a855f7';
+  return '#3d4a60';
+}
+
+function ticked(){
+  g.select('.links').selectAll('line')
+    .attr('x1',d=>d.source.x).attr('y1',d=>d.source.y)
+    .attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+  g.select('.nodes').selectAll('.ng')
+    .attr('transform',d=>`translate(${d.x},${d.y})`);
+}
+
+function addNode(nd){
+  if(nodeMap[nd.id]) return;
+  const n={...nd};
+  nodes.push(n); nodeMap[n.id]=n;
+  const ng=g.select('.nodes').append('g').attr('class','ng').attr('data-id',n.id)
+    .call(d3.drag()
+      .on('start',(e,d)=>{if(!e.active)simulation.alphaTarget(0.3).restart();d.fx=d.x;d.fy=d.y})
+      .on('drag',(e,d)=>{d.fx=e.x;d.fy=e.y})
+      .on('end',(e,d)=>{if(!e.active)simulation.alphaTarget(0);d.fx=null;d.fy=null}))
+    .on('mouseover',(e,d)=>showTip(e,d))
+    .on('mousemove',moveTip).on('mouseout',hideTip)
+    .on('click',(e,d)=>{if(d.ip||d.is_attacker) loadDossier(d.ip||d.id.replace('attacker:',''))});
+  const r=nodeR(n);
+  if(n.is_attacker){
+    ng.append('circle').attr('r',r+6).attr('fill','none').attr('stroke','#ff2d55').attr('stroke-width',1.5).attr('opacity',0.3)
+      .attr('stroke-dasharray','4,3');
+    ng.append('circle').attr('r',r+3).attr('fill','none').attr('stroke','#ff2d55').attr('stroke-width',0.5).attr('opacity',0.2);
+  }
+  ng.append('circle').attr('r',r).attr('fill',nodeColor(n)).attr('fill-opacity',0.9)
+    .attr('stroke',n.is_attacker?'#ff2d55':'#07090d').attr('stroke-width',1.5);
+  if(n.type==='target'){
+    const lbl=(n.url||n.id).replace(/https?:\/\//,'').slice(0,20);
+    ng.append('text').attr('y',r+11).attr('text-anchor','middle').attr('font-size','8px').attr('fill','#c0c8dc').text(lbl);
+  }
+  if(n.type==='finding'){
+    ng.append('text').attr('text-anchor','middle').attr('dominant-baseline','middle')
+      .attr('font-size','7px').attr('fill','#000').attr('font-weight','700')
+      .text(n.severity?.slice(0,1).toUpperCase()||'?');
+  }
+  simulation.nodes(nodes);
+  simulation.alpha(0.5).restart();
+}
+
+function addEdge(ed){
+  const key=`${ed.src}→${ed.dst}`;
+  if(linkSet.has(key)) return;
+  linkSet.add(key);
+  const s=nodeMap[ed.src],t=nodeMap[ed.dst];
+  if(!s||!t) return;
+  const lk={source:ed.src,target:ed.dst,rel:ed.rel};
+  links.push(lk);
+  g.select('.links').append('line')
+    .attr('stroke',ed.rel==='has_finding'?'#1a2030':'#1a2030')
+    .attr('stroke-width',ed.rel==='discovered_via'?1.5:0.7)
+    .attr('stroke-dasharray',ed.rel==='discovered_via'?'3,2':null)
+    .attr('marker-end','url(#arr)').datum(lk);
+  simulation.force('link').links(links);
+  simulation.alpha(0.3).restart();
+}
+
+// ── Tooltip ──────────────────────────────────────────────────────────────────
+const tip=document.getElementById('tooltip');
+function showTip(e,d){
+  let h=`<div class="tt-title">${d.is_attacker?'⚠ ATTACKER':d.type?.toUpperCase()}</div>`;
+  if(d.url)      h+=`<div class="tt-row"><span class="tt-key">URL: </span>${d.url}</div>`;
+  if(d.ip)       h+=`<div class="tt-row"><span class="tt-key">IP: </span>${d.ip}</div>`;
+  if(d.title)    h+=`<div class="tt-row"><span class="tt-key">Finding: </span>${d.title}</div>`;
+  if(d.severity) h+=`<div class="tt-row"><span class="tt-key">Sev: </span><span style="color:${SEV_COLOR[d.severity]}">${d.severity}</span></div>`;
+  if(d.endpoint) h+=`<div class="tt-row"><span class="tt-key">Port: </span>${d.endpoint}</div>`;
+  tip.innerHTML=h; tip.style.display='block'; moveTip(e);
+}
+function moveTip(e){tip.style.left=(e.offsetX+16)+'px';tip.style.top=(e.offsetY+16)+'px'}
+function hideTip(){tip.style.display='none'}
+
+// ── Alert feed ───────────────────────────────────────────────────────────────
+function addAlert(ev){
+  alertCount++;
+  document.getElementById('alert-count').textContent=alertCount+' events';
+
+  const feed=document.getElementById('alert-feed');
+  const sev=ev.risk||'info';
+  const ts=new Date(ev.ts||Date.now()).toTimeString().slice(0,8);
+  const el=document.createElement('div');
+  el.className='alert-item';
+  el.dataset.ip=ev.ip||'';
+
+  let icon='';
+  if(ev.event==='trap_hit')             icon='🪤';
+  else if(ev.event==='suspicious_request') icon='👁';
+  else if(ev.event==='counter_scan_complete') icon='🔫';
+  else icon='ℹ';
+
+  el.innerHTML=`
+    <div class="alert-ip">${icon} ${ev.ip||'unknown'}</div>
+    <div class="alert-path">${ev.path||ev.event}</div>
+    <div class="alert-meta">
+      <span class="sev sev-${sev}">${sev.toUpperCase()}</span>
+      ${(ev.tools||[]).map(t=>`<span class="tag tag-tool">${t}</span>`).join('')}
+      <span class="alert-ts" style="margin-left:auto">${ts}</span>
+    </div>`;
+  el.onclick=()=>{ selectedIp=ev.ip; loadDossier(ev.ip); };
+  feed.prepend(el);
+  while(feed.children.length>300) feed.removeChild(feed.lastChild);
+
+  // Auto-add attacker node to graph if counter-scanned
+  if(ev.event==='counter_scan_complete'&&ev.ip){
+    const nid='attacker:'+ev.ip;
+    addNode({id:nid,type:'target',url:'http://'+ev.ip,ip:ev.ip,is_attacker:true,depth:0});
+  }
+}
+
+// ── SSE connections ──────────────────────────────────────────────────────────
+let honeypotSSE=null, graphSSE=null;
+
+function connectHoneypotSSE(){
+  if(honeypotSSE) honeypotSSE.close();
+  honeypotSSE=new EventSource('/api/honeypot/stream');
+  honeypotSSE.onmessage=e=>{ try{ addAlert(JSON.parse(e.data)); } catch{} };
+  honeypotSSE.onerror=()=>setTimeout(connectHoneypotSSE,5000);
+}
+
+function connectGraphSSE(){
+  if(graphSSE) graphSSE.close();
+  graphSSE=new EventSource('/api/hack/graph/stream');
+  graphSSE.onmessage=e=>{
+    try{
+      const ev=JSON.parse(e.data);
+      if(ev.event==='snapshot'){
+        ev.graph.nodes.forEach(n=>addNode(n));
+        ev.graph.edges.forEach(ed=>addEdge(ed));
+      } else if(ev.event==='node_add') addNode({id:ev.id,type:ev.type,...ev.attrs});
+      else if(ev.event==='edge_add')  addEdge(ev);
+    } catch{}
+  };
+  graphSSE.onerror=()=>setTimeout(connectGraphSSE,5000);
+}
+
+// ── Dashboard polling ─────────────────────────────────────────────────────────
+function pollDashboard(){
+  fetch('/api/honeypot/dashboard',{credentials:'include'})
+    .then(r=>r.json()).then(d=>{
+      dashData=d;
+      document.getElementById('s-caught').textContent=d.total_caught||0;
+      document.getElementById('s-high').textContent=d.high_risk||0;
+      document.getElementById('s-scanned').textContent=d.counter_scanned||0;
+    }).catch(()=>{});
+}
+
+// ── Dossier panel ─────────────────────────────────────────────────────────────
+function loadDossier(ip){
+  if(!ip) return;
+  fetch('/api/honeypot/dossier/'+encodeURIComponent(ip),{credentials:'include'})
+    .then(r=>r.json()).then(d=>{
+      if(d.error){ renderDossier(null,ip); return; }
+      renderDossier(d,ip);
+    }).catch(()=>{});
+}
+
+function renderDossier(d,ip){
+  const el=document.getElementById('dossier');
+  if(!d){
+    el.innerHTML=`<div class="no-sel">No dossier for ${ip}</div>`;
+    return;
+  }
+  const risk=d.risk||'info';
+  const c=SEV_COLOR[risk]||'#3d4a60';
+  let html=`<div class="dos-ip" style="color:${c}">${d.ip}</div>`;
+  html+=row('Risk',`<span style="color:${c}">${(d.risk||'info').toUpperCase()}</span>`);
+  html+=row('Suspicion',d.suspicion_score+'/100');
+  html+=row('Hits',d.hit_count);
+  html+=row('First seen',(d.first_seen||'').slice(0,19).replace('T',' '));
+  html+=row('Last seen',(d.last_seen||'').slice(0,19).replace('T',' '));
+  html+=row('Tarpit',d.tarpit_applied?'✓ Applied':'—');
+  html+=row('Counter-scanned',d.counter_scanned?`<span style="color:var(--green)">✓ ${d.counter_risk_level||'done'}</span>`:'Not yet');
+  html+=row('Counter findings',d.counter_findings_count||0);
+
+  if(d.tool_signatures?.length){
+    html+=`<div class="dos-section">Detected Tools</div>`;
+    html+=d.tool_signatures.map(t=>`<span class="tag tag-tool">${t}</span>`).join('');
+  }
+  if(d.trapped_paths?.length){
+    html+=`<div class="dos-section">Trapped Paths</div>`;
+    html+=d.trapped_paths.slice(0,10).map(p=>`<span class="tag tag-path">${p}</span>`).join('');
+  }
+  if(d.user_agents?.length){
+    html+=`<div class="dos-section">User-Agents</div>`;
+    html+=d.user_agents.slice(0,3).map(ua=>`<div style="font-size:9px;color:var(--muted);margin:2px 0;word-break:break-all">${ua.slice(0,90)}</div>`).join('');
+  }
+  if(d.counter_findings?.length){
+    html+=`<div class="dos-section">Counter-Scan Findings (${d.counter_findings.length})</div>`;
+    html+=d.counter_findings.slice(0,8).map(f=>`
+      <div class="finding-row fr-${f.severity==='critical'?'crit':f.severity==='high'?'high':f.severity==='medium'?'med':'low'}">
+        <div style="font-weight:700;color:${SEV_COLOR[f.severity]||'#3d4a60'}">${f.title||''}</div>
+        <div style="font-size:9px;color:var(--muted)">${f.category||''}</div>
+      </div>`).join('');
+  }
+  if(!d.counter_scanned){
+    html+=`<button class="btn-counter" onclick="manualCounterScan('${d.ip}')">⚡ COUNTER-SCAN NOW</button>`;
+  }
+  html+=`<button class="btn-whitelist" onclick="whitelistIp('${d.ip}')">✓ Whitelist (safe IP)</button>`;
+  el.innerHTML=html;
+}
+
+function row(k,v){return`<div class="dos-row"><span class="dos-key">${k}</span><span class="dos-val">${v}</span></div>`}
+
+function manualCounterScan(ip){
+  fetch('/api/hack/scan',{
+    method:'POST',credentials:'include',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({target:'http://'+ip,authorized:true,transport_mode:'tor',new_tor_circuit:true})
+  }).then(r=>r.json()).then(d=>{ if(d.job_id) addAlert({event:'counter_scan_started',ip,ts:new Date().toISOString(),risk:'high'}); });
+}
+
+function whitelistIp(ip){
+  fetch('/api/honeypot/whitelist',{
+    method:'POST',credentials:'include',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ip,reason:'manual whitelist'})
+  }).then(()=>loadDossier(ip));
+}
+
+// ── Config controls ────────────────────────────────────────────────────────────
+function updateThresholdLabel(v){
+  document.getElementById('thresh-val').textContent=v;
+}
+function updateConfig(){
+  const body={
+    suspicion_threshold:parseInt(document.getElementById('ctrl-threshold').value),
+    tarpit_enabled:document.getElementById('ctrl-tarpit').checked,
+    counter_scan_enabled:document.getElementById('ctrl-counter').checked,
+    counter_scan_transport:document.getElementById('ctrl-transport').value,
+  };
+  fetch('/api/honeypot/config',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+}
+function clearDossier(){
+  if(!confirm('Clear all dossier data?')) return;
+  document.getElementById('alert-feed').innerHTML='';
+  alertCount=0;
+  nodes=[];links=[];nodeMap={};linkSet=new Set();
+  initGraph();
+  document.getElementById('dossier').innerHTML='<div class="no-sel">Cleared</div>';
+}
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+window.addEventListener('load',()=>{
+  initGraph();
+  connectHoneypotSSE();
+  connectGraphSSE();
+  pollDashboard();
+  setInterval(pollDashboard,5000);
+});
+window.addEventListener('resize',initGraph);
+</script>
+</body>
+</html>
