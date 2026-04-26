@@ -16635,6 +16635,35 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
 
+    # ── PATCH-101: Autonomous Self-Improvement Loop ───────────────────────────
+
+    @app.post("/api/self/autonomous")
+    async def _autonomous_cycle(request: Request):
+        """
+        PATCH-101 — Murphy's autonomous self-improvement loop.
+        Identifies gaps, runs CIDP + Model Team review, PCC gate, applies patch.
+
+        Body (all optional):
+          max_patches: int = 1       — max patches per cycle
+          min_priority: str = MEDIUM — minimum gap priority to action
+          dry_run: bool = true       — rehearse without writing (default: SAFE)
+
+        Requires auth.
+        """
+        try:
+            from src.self_modification import self_mod
+            body = await request.json()
+            result = self_mod.run_autonomous_cycle(
+                max_patches  = int(body.get("max_patches",  1)),
+                min_priority = body.get("min_priority", "MEDIUM"),
+                dry_run      = bool(body.get("dry_run", True)),
+            )
+            return JSONResponse({"success": True, "cycle": result})
+        except Exception as exc:
+            logger.error("autonomous cycle error: %s", exc, exc_info=True)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
     # ── PATCH-099: PCC — Predictive Convergence Correction API ────────────────
 
     @app.get("/api/pcc/status")
