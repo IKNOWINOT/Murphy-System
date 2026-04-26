@@ -358,7 +358,7 @@ class GlobalFeedbackDispatcher:
                 component="large_control_model",
                 metadata={"tool_name": tool_name, "args": args or {}, "caller_type": caller_type},
             )
-            return {"submission_id": submission.submission_id, "status": "dispatched"}
+            return {"submission_id": submission.id, "status": "dispatched"}  # PATCH-093b: field is .id not .submission_id
         except Exception as exc:
             logger.debug("GlobalFeedbackDispatcher.dispatch suppressed: %s", exc)
             return {"status": "suppressed", "error": str(exc)}
