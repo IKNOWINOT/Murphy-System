@@ -448,12 +448,20 @@ class SelfModificationEngine:
                 end   = raw.rfind("}") + 1
                 if start >= 0 and end > start:
                     parsed = json.loads(raw[start:end])
-                    _gaps = parsed.get("gaps", [])
-                    report["known_gaps"] = _gaps
-                    report["gaps"]       = _gaps  # PATCH-103c: normalize key
+                    llm_gaps = parsed.get("gaps", [])
+                    # PATCH-104c: LLM provides strategy; static list is ground truth.
+                    # Use static gaps (set in except fallback) as authoritative source.
+                    # LLM gaps inform recommended_next but do NOT replace known state.
+                    _static_ids = {"GAP-6","GAP-7","GAP-10","GAP-11","GAP-12",
+                                   "GAP-13","GAP-14","GAP-15","GAP-16","GAP-17"}
+                    _new_from_llm = [g for g in llm_gaps if g.get("id") not in _static_ids]
+                    report["llm_gaps_added"]  = len(_new_from_llm)
                     report["recommended_next"]= parsed.get("recommended_next", [])
                     report["llm_audit"]       = True
                     report["audit_model"]     = getattr(llm_out, "model", "?")
+                    # Note: known_gaps/gaps will be set below from _static_gaps fallback;
+                    # this ensures static truth is always the base.
+                    raise ValueError("PATCH-104c: defer to static gap list (authoritative)")
                 else:
                     raise ValueError("No JSON object in LLM response")
             else:
