@@ -4,7 +4,7 @@ PATCH-098: RROM Phase 1 — Ratio Resource Orchestration Model (Measurement)
 Phase 1 is measurement only. No throttling. No lifecycle changes.
 We are learning R_observed for each module cluster before we steer anything.
 
-The six Rubik faces:
+The seven Rubik faces (PATCH-102: +hardware_health):
   M1 shield_util       — Shield Wall + Honeypot + Conduct checks per minute
   M2 auth_util         — OIDC + session validation per minute
   M3 llm_demand        — LLM completions in-flight (semaphore)
@@ -230,6 +230,23 @@ class RROMEngine:
                 util_ratio   = round(util, 4),
                 r_fair       = r_fair,
             )
+        # PATCH-102: inject hardware_health face from HardwareTelemetryEngine
+        try:
+            from src.hardware_telemetry import hardware_telemetry as _hw
+            _hw_summary = _hw.summary()
+            # util_ratio = 1 - health_score (0 = healthy, 1 = critical)
+            _hw_util = round(1.0 - _hw_summary.get("health_score", 0.8), 4)
+            faces["hardware_health"] = ModuleMetric(
+                face         = "hardware_health",
+                timestamp    = time.monotonic(),
+                rate_per_min = 0.0,
+                in_flight    = 0,
+                util_ratio   = _hw_util,
+                r_fair       = _hw_util,
+            )
+        except Exception as _hw_exc:
+            logger.debug("RROM hardware face error (non-blocking): %s", _hw_exc)
+
         overall = sum(m.util_ratio for m in faces.values()) / len(faces)
         # Pressure classification
         if overall < 0.3:

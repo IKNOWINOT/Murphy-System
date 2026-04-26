@@ -16607,6 +16607,46 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
 
+    # ── PATCH-102: Hardware Telemetry API ──────────────────────────────────────
+
+    @app.get("/api/hardware/snapshot")
+    async def _hw_snapshot():
+        """PATCH-102 — Full hardware telemetry snapshot (CPU, RAM, disk, network, latency, uptime, health)."""
+        try:
+            from src.hardware_telemetry import hardware_telemetry
+            return JSONResponse({"success": True, "snapshot": hardware_telemetry.snapshot().to_dict()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/hardware/summary")
+    async def _hw_summary():
+        """PATCH-102 — Lightweight hardware health summary (for dashboards and RROM)."""
+        try:
+            from src.hardware_telemetry import hardware_telemetry
+            return JSONResponse({"success": True, **hardware_telemetry.summary()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/hardware/history")
+    async def _hw_history(n: int = 12):
+        """PATCH-102 — Historical hardware telemetry (last N snapshots, default 12)."""
+        try:
+            from src.hardware_telemetry import hardware_telemetry
+            return JSONResponse({"success": True, "history": hardware_telemetry.history(n)})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/hardware/specs")
+    async def _hw_specs():
+        """PATCH-102 — Static hardware specifications."""
+        try:
+            from src.hardware_telemetry import hardware_telemetry
+            from dataclasses import asdict
+            return JSONResponse({"success": True, "specs": asdict(hardware_telemetry._get_specs())})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
     # ── PATCH-100: CIDP Persistence API ───────────────────────────────────────
 
     @app.get("/api/cidp/reports")

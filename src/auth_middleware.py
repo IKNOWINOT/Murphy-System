@@ -82,6 +82,9 @@ _EXEMPT_PREFIXES = (
     # PATCH-099: PCC
     "/api/pcc/",
     "/api/pcc",
+    # PATCH-102: Hardware telemetry (public read-only)
+    "/api/hardware/",
+    "/api/hardware",
     # PATCH-100: CIDP (public stats only)
     "/api/cidp/stats",
     "/api/cidp/stats/",
