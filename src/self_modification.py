@@ -428,7 +428,8 @@ class SelfModificationEngine:
                 f"For each: id (GAP-N), priority (HIGH/MEDIUM/LOW), one-line description, "
                 f"and the exact file+function where the fix belongs. "
                 f"Then list 3 recommended next actions in order. "
-                f"IMPORTANT: Return ONLY a raw JSON object. No markdown, no explanation, no text before or after. "\n                f'Format exactly: {{"gaps": [{{"id":"GAP-N","priority":"HIGH|MEDIUM|LOW","desc":"...","file":"..."}}], "recommended_next": ["action 1","action 2","action 3"]}}'
+                f"IMPORTANT: Return ONLY a raw JSON object. No markdown, no explanation. "
+                f'Format: {{"gaps": [{{"id":"GAP-N","priority":"HIGH|MEDIUM|LOW","desc":"..."}}], "recommended_next": ["action 1"]}}'
             )
             llm_out = _llm_get().complete(
                 audit_prompt,
