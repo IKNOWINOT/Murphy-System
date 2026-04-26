@@ -94,6 +94,7 @@ CAUSAL_CHAINS: Dict[str, float] = {
     "complexity_injection":      0.15,
     "autonomy_preservation":     0.20,
     "default":                   0.40,  # unknown chain
+    "world_state_pressure":      0.55,  # PATCH-103: systemic world risk — moderate correction
 }
 
 

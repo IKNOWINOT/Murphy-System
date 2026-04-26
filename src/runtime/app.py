@@ -17427,6 +17427,14 @@ def main():
 
 if __name__ == "__main__":
     # INC-06 / H-01: Print feature-availability summary based on env vars
+    # PATCH-103: Start World State Engine background refresh loop
+    try:
+        from src.world_state_engine import world_state as _wse
+        _wse.start()
+        logger.info("PATCH-103: WorldStateEngine background refresh started")
+    except Exception as _wse_err:
+        logger.warning("WorldStateEngine start failed (non-critical): %s", _wse_err)
+
     try:
         from src.startup_feature_summary import print_feature_summary
         print_feature_summary()
