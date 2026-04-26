@@ -354,7 +354,7 @@ class GlobalFeedbackDispatcher:
                 title=f"LCM dispatch: {tool_name}",
                 description=f"Tool={tool_name} intent={intent!r} caller={caller_type}:{caller_id}",
                 severity="low",
-                source="internal_monitor"  # PATCH-093b: lcm_pipeline not a valid FeedbackSource,
+                source="internal_monitor",  # PATCH-093b: lcm_pipeline not a valid FeedbackSource
                 component="large_control_model",
                 metadata={"tool_name": tool_name, "args": args or {}, "caller_type": caller_type},
             )
