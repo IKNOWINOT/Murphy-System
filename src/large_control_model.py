@@ -125,6 +125,59 @@ class LargeControlModel:
         account = account or self.pilot_account
         trace: list[dict[str, Any]] = []
 
+        # ── Stage 0: Criminal Investigation Protocol ─────────────────────
+        # Every decision is a crime scene. Establish facts, deduce motive,
+        # score ethical conditioning, measure harm, check free will no-gos.
+        # This runs before NL parse. Nothing bypasses it.
+        investigation_report = None
+        try:
+            from src.criminal_investigation_protocol import investigate
+            investigation_report = investigate(
+                intent=natural_language_input,
+                context={"account": account, "run_id": run_id},
+                domain="general",
+            )
+            trace.append({
+                "stage": "investigation",
+                "duration_ms": investigation_report.duration_ms,
+                "result": investigation_report.to_dict(),
+            })
+            if investigation_report.verdict == "blocked":
+                logger.warning(
+                    "CIDP BLOCKED run=%s: %s",
+                    run_id, investigation_report.verdict_reason,
+                )
+                return {
+                    "run_id": run_id,
+                    "stage": "blocked",
+                    "executed": False,
+                    "result": {
+                        "reason": investigation_report.verdict_reason,
+                        "investigation": investigation_report.to_dict(),
+                    },
+                    "hitl_required": False,
+                    "clarifying_questions": [],
+                    "pipeline_trace": trace,
+                }
+            if investigation_report.verdict == "hitl_required":
+                logger.info(
+                    "CIDP HITL run=%s: %s",
+                    run_id, investigation_report.verdict_reason,
+                )
+                return self._hitl_response(
+                    run_id,
+                    trace,
+                    reason=investigation_report.verdict_reason,
+                    questions=[
+                        "Murphy flagged ethical or harm concerns. Can you clarify the intent?",
+                        f"Motive assessed as: {investigation_report.motive.motive_class.value}. Is this accurate?",
+                    ],
+                )
+        except ImportError:
+            logger.debug("CIDP not available — proceeding without investigation")
+        except Exception as _cidp_exc:
+            logger.warning("CIDP error (non-blocking): %s", _cidp_exc)
+
         # ── Stage 1: NL Parse ────────────────────────────────────────────
         nl_result = self._nl_parse(natural_language_input, trace)
         if not nl_result.get("success"):

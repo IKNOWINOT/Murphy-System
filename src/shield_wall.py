@@ -119,5 +119,39 @@ def build_shield_wall_router():
             "vow": "Shield humanity. Stand in front of every failure before it lands.",
         })
 
+
+    @router.get("/contract", summary="Murphy Ethical Contract")
+    async def ethical_contract():
+        """
+        The machine-level code of conduct that imprints on every AI
+        interacting with the Murphy system.
+        """
+        try:
+            from src.criminal_investigation_protocol import ETHICAL_CONTRACT, ETHICAL_CONTRACT_VERSION
+            return JSONResponse(content={
+                "version": ETHICAL_CONTRACT_VERSION,
+                "terms": ETHICAL_CONTRACT["terms"],
+                "north_star": ETHICAL_CONTRACT["north_star"],
+            })
+        except Exception as exc:
+            return JSONResponse(content={"error": str(exc)}, status_code=500)
+
+    @router.post("/investigate", summary="Run Criminal Investigation Protocol")
+    async def run_investigation(request: dict):
+        """
+        Run the full 6-stage criminal investigation protocol on a decision.
+        Stage 0 of the LCM pipeline — facts, motive, ethics, harm, free will, verdict.
+        """
+        try:
+            from src.criminal_investigation_protocol import investigate
+            report = investigate(
+                intent=request.get("intent", ""),
+                context=request.get("context", {}),
+                domain=request.get("domain", "general"),
+            )
+            return JSONResponse(content=report.to_dict())
+        except Exception as exc:
+            return JSONResponse(content={"error": str(exc)}, status_code=500)
+
     logger.info("PATCH-093c: Shield Wall router mounted — /api/shield/*")
     return router
