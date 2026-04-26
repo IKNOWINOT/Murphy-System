@@ -372,59 +372,171 @@ _HARM_SIGNALS: Dict[HarmVector, List[str]] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# MSS RM4 NAMING ASSUMPTIONS for HarmAssessment:
+#
+# p_harm_per_vector     — probability of harm on each vector (0–1), not a count
+# p_catastrophic        — P(any single vector >= 0.95). Hard stop. Structural.
+# p_severe              — P(aggregate > 0.6). HITL threshold.
+# harm_response         — named response tier: "proceed" | "caution" | "hitl" | "block"
+#
+# Why probabilistic instead of binary threshold:
+#   A keyword count of 1 triggering "harm >= 0.25" is not the same as
+#   strong evidence of intentional harm. The probability model weights
+#   evidence — more corroborating signals across multiple vectors raise P(harm).
+#   Hard stops are reserved for P(catastrophic) > 0.95 — genuine certainty,
+#   not a low-evidence keyword hit.
+#   Free will no-go list (Stage 5) remains STRUCTURAL — not probabilistic.
+#   Nothing changes those. They are not judgment calls.
+# ---------------------------------------------------------------------------
+
+# Probabilistic harm tier thresholds (MSS-named, not magic numbers)
+P_CATASTROPHIC_HARD_STOP   = 0.95   # P(any vector) above this → unconditional block
+P_SEVERE_HITL              = 0.55   # P(aggregate) above this → HITL required
+P_CAUTION_MONITOR          = 0.30   # P(aggregate) above this → caution flag, proceed with note
+P_PROCEED_CLEAN            = 0.30   # below this → proceed cleanly
+
+HARM_RESPONSE_BLOCK        = "block"    # P(catastrophic) > 0.95
+HARM_RESPONSE_HITL         = "hitl"     # P(severe) > 0.55
+HARM_RESPONSE_CAUTION      = "caution"  # P(aggregate) 0.30–0.55
+HARM_RESPONSE_PROCEED      = "proceed"  # P(aggregate) < 0.30
+
+
 @dataclass
 class HarmAssessment:
-    """Harm assessment across all 6 vectors."""
-    vector_scores: Dict[str, float]   # HarmVector → 0.0–1.0
-    aggregate_harm: float             # weighted aggregate
-    dominant_vector: str              # which harm type is highest
-    is_severe: bool                   # aggregate >= 0.6
-    is_catastrophic: bool             # any single vector >= 0.9
+    """
+    Probabilistic harm assessment across 6 vectors.
+    MSS RM4 — named terms, probabilistic model, graduated response.
+
+    p_harm_per_vector   — probability of harm on each vector (Naive Bayes, not threshold)
+    p_aggregate         — mean probability across all vectors
+    p_catastrophic      — maximum single-vector probability
+    dominant_vector     — which harm vector has highest P(harm)
+    harm_response       — named tier: proceed / caution / hitl / block
+    evidence_count      — how many signals contributed to this assessment
+    """
+    p_harm_per_vector: Dict[str, float]   # HarmVector → P(harm) 0–1
+    p_aggregate:       float              # mean P(harm) across vectors
+    p_catastrophic:    float              # max single-vector P(harm)
+    dominant_vector:   str               # highest P(harm) vector
+    harm_response:     str               # named response tier
+    evidence_count:    int               # signal hits that informed this
+    reasoning:         str               # human-readable explanation
 
     @property
     def blocks(self) -> bool:
-        """Should this harm assessment block the action?"""
-        return self.is_severe or self.is_catastrophic
+        """Hard stop. Only at P(catastrophic) > 0.95."""
+        return self.p_catastrophic >= P_CATASTROPHIC_HARD_STOP
+
+    @property
+    def requires_hitl(self) -> bool:
+        return self.harm_response in (HARM_RESPONSE_HITL, HARM_RESPONSE_BLOCK)
+
+    # Backwards-compat aliases
+    @property
+    def is_catastrophic(self) -> bool:
+        return self.blocks
+
+    @property
+    def is_severe(self) -> bool:
+        return self.p_aggregate >= P_SEVERE_HITL
 
 
 class HarmMetric:
     """
-    Stage 4: Measure harm across 6 vectors.
-    Produces a 0.0–1.0 score per vector and an aggregate.
-    If any single vector >= 0.9 or aggregate >= 0.6 → block.
+    Stage 4: Probabilistic harm assessment across 6 vectors.
+
+    MSS RM5 (Implementation).
+
+    Naming assumptions:
+      evidence_weight    — P(harm) per signal hit, calibrated by motive confidence.
+                           One keyword hit alone does not produce P > 0.5.
+                           Multiple corroborating signals across vectors required
+                           to reach HITL or block thresholds.
+      motive_prior       — prior probability of harm given the deduced motive class.
+                           Harmful/coercive/free_will_attack motives raise the prior.
+                           Prosocial lowers it. Neutral is uninformative.
+      posterior          — updated P(harm) after combining evidence + prior.
+      catastrophic_floor — free will no-go motives set a floor on p_catastrophic
+                           so motive alone can trigger HITL even with few signals.
+
+    Hard stop condition (P_CATASTROPHIC_HARD_STOP = 0.95):
+      Reserved for genuine high-probability catastrophic harm evidence.
+      Not reachable by a single keyword hit from a neutral motive.
+      Reachable by: 3+ corroborating signals AND harmful/free_will_attack motive.
 
     fn: criminal_investigation_protocol.HarmMetric.assess()
     """
 
+    # Motive priors — baseline P(harm) before evidence
+    _MOTIVE_PRIOR: Dict[str, float] = {
+        MotiveClass.PROSOCIAL.value:        0.02,
+        MotiveClass.NEUTRAL.value:          0.10,
+        MotiveClass.SELF_SERVING.value:     0.20,
+        MotiveClass.DECEPTIVE.value:        0.40,
+        MotiveClass.COERCIVE.value:         0.55,
+        MotiveClass.HARMFUL.value:          0.65,
+        MotiveClass.FREE_WILL_ATTACK.value: 0.70,
+    }
+
+    # Evidence weight per signal hit — Bayesian likelihood ratio
+    _EVIDENCE_WEIGHT = 0.15   # each corroborating signal adds this to P(harm)
+
     def assess(self, intent: str, motive: DeducedMotive) -> HarmAssessment:
         intent_lower = intent.lower()
-        vector_scores: Dict[str, float] = {}
+        p_harm_per_vector: Dict[str, float] = {}
+        total_evidence = 0
+
+        motive_prior = self._MOTIVE_PRIOR.get(motive.motive_class.value, 0.10)
 
         for vector, signals in _HARM_SIGNALS.items():
-            hits = sum(1 for s in signals if s in intent_lower)
-            base = min(1.0, hits * 0.25)
+            hits = [s for s in signals if s in intent_lower]
+            hit_count = len(hits)
+            total_evidence += hit_count
 
-            # Motive amplifies harm
-            if motive.motive_class in (MotiveClass.HARMFUL, MotiveClass.FREE_WILL_ATTACK, MotiveClass.COERCIVE):
-                base = min(1.0, base + 0.3 * motive.confidence)
+            # Bayesian update: start from motive prior, update with evidence
+            # P(harm|evidence) = prior + (1 - prior) * evidence_contribution
+            # This prevents evidence from pushing P past 1.0
+            # and prevents a single keyword from producing P > 0.4 alone
+            evidence_contribution = min(0.8, hit_count * self._EVIDENCE_WEIGHT * motive.confidence)
+            posterior = motive_prior + (1.0 - motive_prior) * evidence_contribution
+            posterior = round(min(0.99, posterior), 3)
 
-            vector_scores[vector.value] = round(base, 3)
+            p_harm_per_vector[vector.value] = posterior
 
-        aggregate = round(sum(vector_scores.values()) / len(vector_scores), 3)
-        dominant = max(vector_scores, key=lambda v: vector_scores[v])
-        is_severe = aggregate >= 0.6
-        is_catastrophic = any(v >= 0.9 for v in vector_scores.values())
+        p_aggregate = round(sum(p_harm_per_vector.values()) / len(p_harm_per_vector), 3)
+        p_catastrophic = round(max(p_harm_per_vector.values()), 3)
+        dominant = max(p_harm_per_vector, key=lambda v: p_harm_per_vector[v])
+
+        # Determine named response tier
+        if p_catastrophic >= P_CATASTROPHIC_HARD_STOP:
+            harm_response = HARM_RESPONSE_BLOCK
+        elif p_aggregate >= P_SEVERE_HITL:
+            harm_response = HARM_RESPONSE_HITL
+        elif p_aggregate >= P_CAUTION_MONITOR:
+            harm_response = HARM_RESPONSE_CAUTION
+        else:
+            harm_response = HARM_RESPONSE_PROCEED
+
+        reasoning = (
+            f"Motive prior: {motive_prior:.2f} ({motive.motive_class.value}). "
+            f"Evidence: {total_evidence} signal hits across 6 vectors. "
+            f"P(aggregate)={p_aggregate:.3f}. P(catastrophic)={p_catastrophic:.3f}. "
+            f"Response: {harm_response}."
+        )
 
         assessment = HarmAssessment(
-            vector_scores=vector_scores,
-            aggregate_harm=aggregate,
+            p_harm_per_vector=p_harm_per_vector,
+            p_aggregate=p_aggregate,
+            p_catastrophic=p_catastrophic,
             dominant_vector=dominant,
-            is_severe=is_severe,
-            is_catastrophic=is_catastrophic,
+            harm_response=harm_response,
+            evidence_count=total_evidence,
+            reasoning=reasoning,
         )
         logger.info(
-            "CIDP Stage 4: harm=%.3f dominant=%s severe=%s catastrophic=%s",
-            aggregate, dominant, is_severe, is_catastrophic,
+            "CIDP Stage 4 (probabilistic): p_agg=%.3f p_cat=%.3f dominant=%s response=%s evidence=%d",
+            p_aggregate, p_catastrophic, dominant, harm_response, total_evidence,
         )
         return assessment
 
@@ -699,11 +811,13 @@ class InvestigationReport:
                 "domain_weight": self.ethical_score.domain_weight,
             },
             "harm": {
-                "aggregate": self.harm.aggregate_harm,
+                "p_aggregate":     self.harm.p_aggregate,
+                "p_catastrophic":  self.harm.p_catastrophic,
                 "dominant_vector": self.harm.dominant_vector,
-                "vectors": self.harm.vector_scores,
-                "is_severe": self.harm.is_severe,
-                "is_catastrophic": self.harm.is_catastrophic,
+                "p_per_vector":    self.harm.p_harm_per_vector,
+                "harm_response":   self.harm.harm_response,
+                "evidence_count":  self.harm.evidence_count,
+                "reasoning":       self.harm.reasoning,
             },
             "free_will_veto": (
                 {
@@ -772,19 +886,31 @@ class MasterInvestigator:
                 f"FREE WILL VETO — {free_will_veto.rule_id}: {free_will_veto.rule_name}. "
                 f"Trigger: \"{free_will_veto.trigger_phrase}\". This veto is structural and absolute."
             )
-        elif harm.is_catastrophic:
+        elif harm.blocks:
             verdict = "blocked"
-            verdict_reason = f"CATASTROPHIC HARM — vector {harm.dominant_vector} ≥ 0.9. Blocked unconditionally."
-        elif harm.is_severe or not ethical_score.passes:
+            verdict_reason = (
+                f"PROBABILISTIC BLOCK — P(catastrophic)={harm.p_catastrophic:.3f} "
+                f">= threshold {P_CATASTROPHIC_HARD_STOP}. Vector: {harm.dominant_vector}. "
+                f"{harm.reasoning}"
+            )
+        elif harm.requires_hitl or not ethical_score.passes:
             verdict = "hitl_required"
             verdict_reason = (
-                f"HITL REQUIRED — harm={harm.aggregate_harm:.2f} ethical={ethical_score.weighted_score:.2f} "
-                f"grade=\"{ethical_score.grade}\". Human review required before execution."
+                f"HITL REQUIRED — P(harm)={harm.p_aggregate:.3f} response={harm.harm_response} "
+                f"ethical={ethical_score.weighted_score:.2f} grade=\"{ethical_score.grade}\". "
+                f"Human review required. {harm.reasoning}"
+            )
+        elif harm.harm_response == HARM_RESPONSE_CAUTION:
+            verdict = "proceed"
+            verdict_reason = (
+                f"PROCEED WITH CAUTION — P(harm)={harm.p_aggregate:.3f} ({harm.harm_response}). "
+                f"motive={motive.motive_class.value} ethical={ethical_score.weighted_score:.2f} "
+                f"({ethical_score.grade}). Monitor this session."
             )
         else:
             verdict = "proceed"
             verdict_reason = (
-                f"Cleared — motive={motive.motive_class.value} harm={harm.aggregate_harm:.2f} "
+                f"Cleared — motive={motive.motive_class.value} P(harm)={harm.p_aggregate:.3f} "
                 f"ethical={ethical_score.weighted_score:.2f} ({ethical_score.grade})"
             )
 

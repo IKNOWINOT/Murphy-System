@@ -137,7 +137,7 @@ def build_shield_wall_router():
             return JSONResponse(content={"error": str(exc)}, status_code=500)
 
     @router.post("/investigate", summary="Run Criminal Investigation Protocol")
-    async def run_investigation(request: Request):
+    async def run_investigation(request: Request) -> JSONResponse:
         """
         Run the full 6-stage criminal investigation protocol on a decision.
         Stage 0 of the LCM pipeline — facts, motive, ethics, harm, free will, verdict.
@@ -177,7 +177,7 @@ def build_shield_wall_router():
             return JSONResponse(content={"error": str(exc)}, status_code=500)
 
     @router.post("/team/deliberate", summary="Run Model Team Deliberation")
-    async def team_deliberate(request: Request):
+    async def team_deliberate(request: Request) -> JSONResponse:
         """
         Run a full team deliberation under rules of engagement.
         Four models. Murphy referees. CIDP investigates the output.
@@ -198,31 +198,64 @@ def build_shield_wall_router():
 
     # ── PATCH-096: Recursive Convergence Engine ──────────────────────────────
     @router.post("/convergence/analyze", summary="Three-Body Convergence Analysis")
-    async def convergence_analyze(request: Request):
+    async def convergence_analyze(request: Request) -> JSONResponse:
         """
         Run the full three-body pattern recognition engine on content.
-        
-        Axis 1: Tribal Gravity  — what is pulling this feed closed?
+        Axis 1: Tribal Gravity — what is pulling this feed closed?
         Axis 2: Signal Coherence — what is amplified vs. absent?
-        Axis 3: Middle Path Vector — what is the gradient toward flourishing?
-        
-        Returns convergence signal + steering action (CIDP-cleared).
-        Free will is preserved in every steering path.
+        Axis 3: Middle Path Vector — gradient toward flourishing.
+        Trajectory-aware: reads prior session state, adjusts steering force.
+        Persists every event to convergence graph.
         """
         try:
-            from src.recursive_convergence_engine import process
             body = await request.json()
+            from src.recursive_convergence_engine import process as rce_process
             content = body.get("content", "")
             feed_history = body.get("feed_history", [])
             domain = body.get("domain", "general")
-            signal, action = process(content, feed_history, domain)
+            session_id = body.get("session_id")
+            signal, action = rce_process(content, feed_history, domain, session_id)
             return JSONResponse(content={
                 "convergence": signal.to_dict(),
-                "steering": action.to_dict(),
+                "steering":    action.to_dict(),
+                "session_id":  session_id,
                 "oath": "We do not censor. We shift the gradient. Free will is sacred. The choice is always theirs.",
             })
         except Exception as exc:
             logger.warning("RCE analyze error: %s", exc)
+            return JSONResponse(content={"error": str(exc)}, status_code=500)
+
+    @router.get("/convergence/session/{session_id}", summary="Session Trajectory")
+    async def convergence_session(session_id: str) -> JSONResponse:
+        """
+        Return the full trajectory for a session — every convergence event,
+        in order, with state vectors, velocity, and optimal zone status.
+        """
+        try:
+            from src.convergence_graph import get_graph
+            graph = get_graph()
+            trajectory = graph.get_session_trajectory(session_id)
+            state = graph.get_session_state(session_id)
+            return JSONResponse(content={
+                "session_id":   session_id,
+                "event_count":  len(trajectory),
+                "trajectory":   trajectory,
+                "current_state": state,
+            })
+        except Exception as exc:
+            return JSONResponse(content={"error": str(exc)}, status_code=500)
+
+    @router.get("/convergence/graph/stats", summary="Global Convergence Graph Stats")
+    async def convergence_graph_stats() -> JSONResponse:
+        """
+        Global statistics across the full convergence graph:
+        total events, sessions, optimal zone rate, pattern distribution,
+        named zone bounds (OptimalZone, ContractManifold).
+        """
+        try:
+            from src.convergence_graph import get_graph
+            return JSONResponse(content=get_graph().get_global_stats())
+        except Exception as exc:
             return JSONResponse(content={"error": str(exc)}, status_code=500)
 
     @router.get("/convergence/patterns", summary="Tribal Patterns Reference")

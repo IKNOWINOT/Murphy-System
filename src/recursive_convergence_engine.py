@@ -715,15 +715,114 @@ class RecursiveConvergenceEngine:
         content: str,
         feed_history: List[str] = None,
         domain: str = "general",
+        session_id: str = None,
     ) -> Tuple[ConvergenceSignal, SteeringAction]:
         """
         Full pipeline: content → convergence signal → steering action.
+
+        MSS RM5 (Implementation).
+
+        Naming assumptions:
+          session_id       — groups events into a trajectory. If None, auto-generated.
+                             Use the same session_id for sequential content from one source.
+          feed_history     — list of prior content strings for tribal velocity calc.
+                             MSS: these are the prior content items IN THIS SESSION.
+          trajectory_state — the current session's StateVector + SustainMode status
+                             read from the convergence graph before computing steering.
+          steering_force   — computed by TrajectoryCalculator using trajectory_state.
+                             Replaces the fixed magnitude from the signal alone.
         
         Returns both the signal (diagnostic) and the action (output).
-        The action is always CIDP-cleared before return.
+        The action is CIDP-cleared before return.
+        Graph event is persisted after action is determined.
         """
+        import uuid as _uuid
+        if session_id is None:
+            session_id = f"session-{_uuid.uuid4().hex[:12]}"
+
+        # Run the three-axis filter
         signal = self._filter.filter(content, feed_history, domain)
+
+        # Read prior trajectory state from graph — trajectory-aware steering
+        prior_state = None
+        in_sustain = False
+        try:
+            from src.convergence_graph import get_graph, TrajectoryCalculator, StateVector
+            graph = get_graph()
+            session_state = graph.get_session_state(session_id)
+            if session_state:
+                in_sustain = bool(session_state.get("sustain_mode_active", False))
+                prior_sv_list = session_state.get("current_state")
+                if prior_sv_list and len(prior_sv_list) == 8:
+                    prior_state = StateVector(*prior_sv_list)
+        except Exception as _graph_exc:
+            logger.debug("RCE: graph read failed (non-blocking): %s", _graph_exc)
+
+        # If session is in SustainMode — minimal steering, reinforce only
+        if in_sustain:
+            signal.should_steer = True
+            signal.steer_reason = (
+                f"SUSTAIN MODE — session is in OptimalZone. "
+                f"Minimal steering: reinforce flourishing signals. "
+                f"Pattern: {signal.tribal_gravity.dominant_pattern.value}"
+            )
+            # Override the middle path vector magnitude to sustain level
+            signal.middle_path.shift_magnitude = 0.05
+
+        # Compute trajectory-adjusted steering magnitude
+        try:
+            from src.convergence_graph import TrajectoryCalculator, StateVector
+            calc = TrajectoryCalculator()
+            # Build current StateVector from signal
+            harm_prior = 0.10  # default — will be overridden if CIDP is available
+            curr_state = StateVector(
+                d1_flourishing=signal.coherence_map.flourishing_score,
+                d2_contraction=signal.coherence_map.contraction_score,
+                d3_closure=signal.tribal_gravity.closure_score,
+                d4_coherence_delta=signal.coherence_map.coherence_delta,
+                d5_p_harm_physical=harm_prior,
+                d6_p_harm_psychological=harm_prior,
+                d7_p_harm_financial=harm_prior,
+                d8_p_harm_autonomy=harm_prior,
+            )
+            # Compute velocity if we have a prior state
+            velocity = None
+            if prior_state:
+                from src.convergence_graph import VelocityVector
+                velocity = VelocityVector.compute(prior_state, curr_state)
+            # Override magnitude with trajectory-calculated force
+            traj_magnitude, enters_sustain = calc.compute_steering_force(curr_state, velocity)
+            if not in_sustain:
+                signal.middle_path.shift_magnitude = traj_magnitude
+            in_sustain = enters_sustain
+        except Exception as _traj_exc:
+            logger.debug("RCE: trajectory calc failed (non-blocking): %s", _traj_exc)
+            curr_state = None
+
+        # Generate steering action with trajectory-adjusted magnitude
         action = self._steerer.steer(signal)
+
+        # Persist to convergence graph
+        try:
+            from src.convergence_graph import get_graph, ConvergenceEvent, StateVector
+            if curr_state is not None:
+                event = ConvergenceEvent(
+                    event_id=f"evt-{_uuid.uuid4().hex[:10]}",
+                    session_id=session_id,
+                    domain=domain,
+                    tribal_pattern=signal.tribal_gravity.dominant_pattern.value,
+                    state=curr_state,
+                    action_type=action.action_type,
+                    shift_magnitude=signal.middle_path.shift_magnitude,
+                    in_optimal_zone=curr_state.in_optimal_zone(),
+                    in_sustain_mode=in_sustain,
+                    content_hash=signal.content_hash,
+                    steer_reason=signal.steer_reason[:200],
+                )
+                get_graph().save_event(event)
+        except Exception as _save_exc:
+            logger.debug("RCE: graph save failed (non-blocking): %s", _save_exc)
+
         return signal, action
 
 
