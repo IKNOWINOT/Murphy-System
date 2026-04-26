@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 WINDOW_SECONDS   = 60          # rolling window for rate measurement
-SAMPLE_INTERVAL  = 5           # seconds between snapshots
+SAMPLE_INTERVAL  = 30          # seconds between snapshots — PATCH-103h: was 5s (too frequent)
 MAX_HISTORY      = 720         # 1 hour of 5s samples
 
 # Ethical floors (Phase 2 will enforce — Phase 1 just measures)

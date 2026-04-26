@@ -229,7 +229,7 @@ class AutonomousScheduler:
 
         # Configuration
         self.max_concurrent_tasks = 4
-        self.scheduling_interval = 0.1  # seconds
+        self.scheduling_interval = 5.0  # seconds — PATCH-103h: was 0.1 (CPU hog), throttled to 5s
 
     def schedule_task(self, task: Task) -> bool:
         """Schedule a task for execution"""
