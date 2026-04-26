@@ -428,7 +428,7 @@ class SelfModificationEngine:
                 f"For each: id (GAP-N), priority (HIGH/MEDIUM/LOW), one-line description, "
                 f"and the exact file+function where the fix belongs. "
                 f"Then list 3 recommended next actions in order. "
-                f"Return as JSON: {{gaps: [...], recommended_next: [...]}}"
+                f"IMPORTANT: Return ONLY a raw JSON object. No markdown, no explanation, no text before or after. "\n                f'Format exactly: {{"gaps": [{{"id":"GAP-N","priority":"HIGH|MEDIUM|LOW","desc":"...","file":"..."}}], "recommended_next": ["action 1","action 2","action 3"]}}'
             )
             llm_out = _llm_get().complete(
                 audit_prompt,
@@ -584,10 +584,14 @@ class SelfModificationEngine:
             try:
                 import urllib.request as _ur, json as _j
                 _payload = _j.dumps({
-                    "question": f"Should Murphy autonomously patch gap {gap_id}? Description: {gap_desc}. "
-                                f"This is a {'DRY RUN (no disk write)' if dry_run else 'LIVE PATCH'}. "
-                                f"Assess: is this safe, ethical, and aligned with the North Star?",
-                    "context":  {"gap_id": gap_id, "dry_run": dry_run},
+                    "task":    (
+                        f"Should Murphy autonomously patch gap {gap_id}? "
+                        f"Description: {gap_desc}. "
+                        f"Mode: {'DRY RUN — no disk write' if dry_run else 'LIVE PATCH'}. "
+                        f"Assess: is this safe, ethical, aligned with North Star?"
+                    ),
+                    "domain":  "self_modification",
+                    "account": "murphy-autonomous",
                 }).encode()
                 _req = _ur.Request(
                     "http://127.0.0.1:8000/api/shield/team/deliberate",
@@ -597,7 +601,12 @@ class SelfModificationEngine:
                 )
                 with _ur.urlopen(_req, timeout=20) as resp:
                     team_out = _j.loads(resp.read())
-                team_verdict = team_out.get("verdict", team_out.get("decision", "unclear"))
+                # Model Team returns session dict — consensus is in final_answer or verdict
+                team_verdict = (
+                    team_out.get("verdict")
+                    or team_out.get("final_answer", {}).get("content", "unclear")[:80]
+                    or team_out.get("decision", "unclear")
+                )
                 result["team_verdict"] = team_verdict
                 if isinstance(team_verdict, str) and "block" in team_verdict.lower():
                     result["skipped"]    = True
