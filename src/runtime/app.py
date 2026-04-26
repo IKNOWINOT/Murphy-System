@@ -17460,6 +17460,22 @@ def create_app() -> FastAPI:
     except Exception as _e:
         logger.warning("PATCH-089: system_update_api router failed: %s", _e)
 
+
+    # ── PATCH-103: World State Engine — start background refresh loop ────────
+    try:
+        from src.world_state_engine import world_state as _wse
+        _wse.start()
+        logger.info("PATCH-103: WorldStateEngine started inside create_app — background refresh active")
+    except Exception as _e:
+        logger.warning("PATCH-103: WorldStateEngine start failed (non-critical): %s", _e)
+
+    # ── PATCH-103c: Teacher Loop — initialize DB ──────────────────────────────
+    try:
+        from src.murphy_teacher_loop import teacher_loop as _tl
+        logger.info("PATCH-103c: TeacherLoopEngine initialized — /api/teacher/* live")
+    except Exception as _e:
+        logger.warning("PATCH-103c: TeacherLoopEngine init failed: %s", _e)
+
     # ── PATCH-089b: Wire persistent memory into startup ─────────────────────────
     try:
         from src.persistent_memory.tenant_memory import TenantMemoryStore
