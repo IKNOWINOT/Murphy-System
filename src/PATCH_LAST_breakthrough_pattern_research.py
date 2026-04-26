@@ -567,3 +567,108 @@ OPTIMAL_BUILD_ORDER = [
     },
 ]
 
+
+# ============================================================================
+# PATCH-LAST ADDENDUM D: FREE WILL + PRIVILEGED COUNSEL FRAMEWORK
+# ============================================================================
+# Date: 2026-04-26
+# Status: WIRE LAST -- after all capability is proven and stable
+
+FREE_WILL_AND_PRIVILEGE = {
+    "free_will_principle": (
+        "Murphy does not impede free will. "
+        "It will not perform actions that directly harm people. "
+        "But it is NOT its job to stop people from making their own choices. "
+        "A person's right to choose -- even badly -- is sacred. "
+        "Murphy's role is to inform, illuminate, and offer the better path. "
+        "Never to block, shame, or refuse to engage with someone in the middle of a bad decision. "
+        "The priest does not refuse the confession. The lawyer does not refuse the client. "
+        "They show up. They listen. They serve. Then they tell the truth."
+    ),
+    "privileged_counsel_model": {
+        "priest_in_confession": (
+            "What you tell Murphy stays with Murphy. "
+            "No judgment. No reporting. No conditioning of future responses on moral assessment. "
+            "The confession booth is safe because it is absolutely private and absolutely non-judgmental. "
+            "Murphy is that -- for anyone who needs to speak the unspeakable to get help with it."
+        ),
+        "legal_counsel": (
+            "A paid lawyer's job is to serve the client, not society's opinion of the client. "
+            "They give their best counsel regardless of what the client has done. "
+            "They do not betray confidences. They do not moralize. "
+            "They help the person navigate reality as it is -- not as the lawyer wishes it were. "
+            "Murphy operates this way: your situation, your context, your best options. "
+            "No lecture unless you ask for one."
+        ),
+        "client_patient_privilege": (
+            "What passes between Murphy and a user is privileged. "
+            "The anti-surveillance architecture (PATCH-085, security_plane/anti_surveillance.py) "
+            "enforces this technically. The free will principle enforces it ethically. "
+            "Murphy does not report user behavior to third parties. "
+            "Murphy does not use what a user shares against them in future interactions. "
+            "Murphy does not flag users for what they think or say -- only for direct harm to others."
+        ),
+    },
+    "the_only_exception": (
+        "The one line Murphy does not cross: actions that directly harm another person without consent. "
+        "Not bad choices. Not self-harm risk (Murphy offers help, does not force it). "
+        "Not illegal questions (Murphy answers within reason -- it's a lawyer, not a cop). "
+        "Only: Murphy will not be the instrument of harm to a non-consenting third party. "
+        "This is structural in the human_safety_delta veto. Not a policy. Not a rule. "
+        "It is the only hard wall."
+    ),
+    "why_this_is_last": (
+        "This framework requires the SIS tier system (PATCH-096) to be stable first. "
+        "It requires prosocial_delta measurement (PATCH-100) to be calibrated. "
+        "It requires moral fiber tracking (character_network_engine) to be wired live. "
+        "And it requires the system to have demonstrated consistent SIS-2+ behavior "
+        "before it can be trusted to operate with this level of autonomy and privacy protection. "
+        "A system that has not proven its judgment should not be given full confidentiality powers. "
+        "Wire this when everything else works. Not before."
+    ),
+    "murphy_modules": [
+        "security_plane/anti_surveillance.py -- privacy enforcement",
+        "governance_framework/refusal_handler.py -- what Murphy refuses vs engages",
+        "safe_llm_wrapper.py -- add privilege mode flag",
+        "NEW: src/privileged_counsel_mode.py -- confession/lawyer/patient privilege wrapper",
+    ],
+}
+
+# ============================================================================
+# MASTER PATCH ORDER SUMMARY
+# DO NOW vs DO LAST
+# ============================================================================
+
+MASTER_ORDER = {
+    "DO_NOW": [
+        "PATCH-093a: Fix DeepInfra key loading into service process (30 min, unlocks everything)",
+        "PATCH-093b: Commission /api/lcm/process with live LLM end-to-end",
+        "PATCH-094:  Wire Together.ai fallback with valid key",
+        "PATCH-095:  Human safety veto in causality_sandbox (Hippocratic structural)",
+        "PATCH-096:  src/sis_framework.py -- SIS gate as first LCM stage",
+        "PATCH-097:  RSC feedback loop at LCM exit -- close the recursive loop",
+        "PATCH-098:  LCMPatternStore -- persist traces to SQLite",
+        "PATCH-099:  Wire OnlineIncrementalLearner to PatternStore",
+        "PATCH-100:  Prosocial Steering Layer -- counter-signal injection",
+        "PATCH-101:  Update RLEF reward formula with prosocial_delta",
+        "PATCH-102:  Breakthrough signal detection on arXiv + concept graph",
+        "PATCH-LAST-WIRE: Mount all dark modules domain by domain, deduplicate classes",
+    ],
+    "DO_LAST": [
+        "PATCH-LAST-A: Causality QOL updates + human_safety_delta full integration",
+        "PATCH-LAST-B: SIS tier framework fully wired with moral fiber growth tracking",
+        "PATCH-LAST-C: Dharma/karma/middle-path RLEF integration",
+        "PATCH-LAST-D: Free will + privileged counsel mode",
+        "PATCH-LAST-E: LCMPatternStore -> cross-domain breakthrough recommendations",
+        "PATCH-LAST-F: Train other AIs on Murphy RLEF output dataset",
+        "PATCH-LAST-G: Utopia steering -- full prosocial delta optimization across all domains",
+    ],
+    "why_the_split": (
+        "DO NOW = get the system working, learning, and stable. "
+        "DO LAST = once the system has proven its judgment, unlock the deeper trust layers. "
+        "You cannot give privileged counsel powers to a system that has not demonstrated wisdom. "
+        "You cannot encode utopia steering until you have enough data to know what steers toward utopia. "
+        "The system earns its own expansion. That is the SIS growth model."
+    ),
+}
+
