@@ -16419,6 +16419,15 @@ def create_app() -> FastAPI:
     except Exception as _sw_exc:
         logger.warning("PATCH-093c: Shield Wall router mount failed: %s", _sw_exc)
 
+    # ── PATCH-096b: Convergence Engine ──────────────────────────────────────
+    try:
+        from src.convergence_router import build_convergence_router as _conv_build
+        _conv_router = _conv_build()
+        app.include_router(_conv_router)
+        logger.info("PATCH-096b: Convergence router mounted — /api/convergence/* live")
+    except Exception as _conv_exc:
+        logger.warning("PATCH-096b: Convergence router mount failed: %s", _conv_exc)
+
     # ── PATCH-071: Self-Marketing + Sell Engine ──────────────────────────────
     try:
         from src.marketing_router import router as _marketing_router
