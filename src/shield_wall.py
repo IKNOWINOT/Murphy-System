@@ -94,7 +94,7 @@ def build_shield_wall_router():
     Returns a FastAPI APIRouter. Called from runtime/app.py.
     """
     try:
-        from fastapi import APIRouter
+        from fastapi import APIRouter, Request
         from fastapi.responses import JSONResponse
     except ImportError:
         logger.warning("FastAPI not available — Shield Wall router not mounted")
@@ -137,17 +137,18 @@ def build_shield_wall_router():
             return JSONResponse(content={"error": str(exc)}, status_code=500)
 
     @router.post("/investigate", summary="Run Criminal Investigation Protocol")
-    async def run_investigation(request: dict):
+    async def run_investigation(request: Request):
         """
         Run the full 6-stage criminal investigation protocol on a decision.
         Stage 0 of the LCM pipeline — facts, motive, ethics, harm, free will, verdict.
         """
         try:
             from src.criminal_investigation_protocol import investigate
+            body = await request.json()
             report = investigate(
-                intent=request.get("intent", ""),
-                context=request.get("context", {}),
-                domain=request.get("domain", "general"),
+                intent=body.get("intent", ""),
+                context=body.get("context", {}),
+                domain=body.get("domain", "general"),
             )
             return JSONResponse(content=report.to_dict())
         except Exception as exc:
@@ -176,17 +177,18 @@ def build_shield_wall_router():
             return JSONResponse(content={"error": str(exc)}, status_code=500)
 
     @router.post("/team/deliberate", summary="Run Model Team Deliberation")
-    async def team_deliberate(request: dict):
+    async def team_deliberate(request: Request):
         """
         Run a full team deliberation under rules of engagement.
         Four models. Murphy referees. CIDP investigates the output.
         """
         try:
             from src.model_team import deliberate
+            body = await request.json()
             session = deliberate(
-                task=request.get("task", ""),
-                domain=request.get("domain", "general"),
-                account=request.get("account", "unknown"),
+                task=body.get("task", ""),
+                domain=body.get("domain", "general"),
+                account=body.get("account", "unknown"),
             )
             return JSONResponse(content=session.to_dict())
         except Exception as exc:
@@ -196,7 +198,7 @@ def build_shield_wall_router():
 
     # ── PATCH-096: Recursive Convergence Engine ──────────────────────────────
     @router.post("/convergence/analyze", summary="Three-Body Convergence Analysis")
-    async def convergence_analyze(request: dict):
+    async def convergence_analyze(request: Request):
         """
         Run the full three-body pattern recognition engine on content.
         
@@ -209,9 +211,10 @@ def build_shield_wall_router():
         """
         try:
             from src.recursive_convergence_engine import process
-            content = request.get("content", "")
-            feed_history = request.get("feed_history", [])
-            domain = request.get("domain", "general")
+            body = await request.json()
+            content = body.get("content", "")
+            feed_history = body.get("feed_history", [])
+            domain = body.get("domain", "general")
             signal, action = process(content, feed_history, domain)
             return JSONResponse(content={
                 "convergence": signal.to_dict(),
