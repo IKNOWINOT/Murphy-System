@@ -16607,6 +16607,18 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
 
+    @app.post("/api/rrom/enforce")
+    async def _rrom_enforce(request: Request):
+        """PATCH-103e: RROM Phase 2 — run enforcement cycle and return actions taken."""
+        try:
+            from src.rrom import rrom
+            import asyncio
+            report = await asyncio.get_event_loop().run_in_executor(None, rrom.enforce)
+            return JSONResponse({"success": True, **report})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
     # ── PATCH-103c: Teacher Loop API ───────────────────────────────────────────
 
     @app.get("/api/teacher/status")

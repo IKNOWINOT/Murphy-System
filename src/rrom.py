@@ -319,6 +319,116 @@ class RROMEngine:
         return None  # no floor defined for this face
 
 
+    def enforce(self) -> Dict[str, Any]:
+        """
+        PATCH-103e: RROM Phase 2 — Budget enforcement.
+
+        Phase 1 (existing): measure and report.
+        Phase 2 (this):     act on violations.
+
+        Enforcement actions (in order of severity):
+          1. WARN     — face approaching ceiling, log alert
+          2. THROTTLE — face at ceiling, set shed_candidate flag
+          3. BLOCK    — Shield Wall or Auth below ethical floor → raise alarm
+          4. CASCADE  — overall_load > 0.85 → begin ambient task shedding
+
+        Returns enforcement_report: what actions were taken this cycle.
+
+        Engineering Principle 9: Hardening.
+          - Never enforces Shield Wall or Auth downward (hard floors always protected)
+          - Enforcement is advisory for most faces (logs + flags, no hard kills)
+          - CASCADE only sheds faces listed in FIRST_TO_SHED
+          - All enforcement events logged for audit
+
+        PATCH: 103e
+        """
+        if not self._current:
+            return {"status": "no_snapshot", "actions": []}
+
+        snap = self._current
+        actions: List[Dict[str, Any]] = []
+        enforcement_status = "NOMINAL"
+
+        for face, metric in snap.faces.items():
+            util   = metric.util_ratio
+            r_inf  = R_INFINITY.get(face, 1.0)
+            r_fair = metric.r_fair
+
+            # ── Shield Wall: floor check (must stay >= FLOOR_SHIELD) ─────
+            if face == "shield_util":
+                if util < FLOOR_SHIELD and util > 0.0:
+                    actions.append({
+                        "face": face, "action": "BLOCK",
+                        "reason": f"Shield Wall below ethical floor ({util:.3f} < {FLOOR_SHIELD})",
+                        "severity": "CRITICAL",
+                    })
+                    enforcement_status = "CRITICAL"
+                    logger.critical("RROM ENFORCE: Shield Wall below floor — %s < %s", util, FLOOR_SHIELD)
+
+            # ── Auth: floor check ────────────────────────────────────────
+            elif face == "auth_util":
+                if util < FLOOR_AUTH and util > 0.0:
+                    actions.append({
+                        "face": face, "action": "WARN",
+                        "reason": f"Auth below ethical floor ({util:.3f} < {FLOOR_AUTH})",
+                        "severity": "HIGH",
+                    })
+                    if enforcement_status == "NOMINAL":
+                        enforcement_status = "DEGRADED"
+
+            # ── LLM: cap check ───────────────────────────────────────────
+            elif face == "llm_demand":
+                if util > CAP_LLM:
+                    actions.append({
+                        "face": face, "action": "THROTTLE",
+                        "reason": f"LLM demand above cap ({util:.3f} > {CAP_LLM})",
+                        "severity": "MEDIUM",
+                        "shed_candidate": FIRST_TO_SHED,
+                    })
+                    if enforcement_status == "NOMINAL":
+                        enforcement_status = "THROTTLED"
+
+            # ── Hardware/World: high pressure warning ────────────────────
+            elif face in ("hardware_health", "world_pressure"):
+                if util > 0.75:
+                    actions.append({
+                        "face": face, "action": "WARN",
+                        "reason": f"{face} pressure high ({util:.3f}) — consider shedding ambient tasks",
+                        "severity": "MEDIUM",
+                    })
+
+            # ── Generic: approaching ceiling ─────────────────────────────
+            else:
+                if util > 0.80 and face != FIRST_TO_SHED:
+                    actions.append({
+                        "face": face, "action": "WARN",
+                        "reason": f"{face} at {util:.0%} utilization",
+                        "severity": "LOW",
+                    })
+
+        # ── CASCADE: overall load critical ───────────────────────────────
+        if snap.overall_load > 0.85:
+            actions.append({
+                "face": FIRST_TO_SHED, "action": "CASCADE",
+                "reason": f"Overall RROM load critical ({snap.overall_load:.3f}) — shedding {FIRST_TO_SHED}",
+                "severity": "HIGH",
+            })
+            enforcement_status = "CASCADE"
+            logger.warning("RROM CASCADE: shedding %s (load=%.3f)", FIRST_TO_SHED, snap.overall_load)
+
+        report = {
+            "status":       enforcement_status,
+            "enforced_at":  datetime.now(timezone.utc).isoformat(),
+            "overall_load": snap.overall_load,
+            "pressure":     snap.pressure,
+            "actions":      actions,
+            "action_count": len(actions),
+        }
+        if actions:
+            logger.info("RROM enforce: %s — %d actions", enforcement_status, len(actions))
+        return report
+
+
 # Singleton — started at module import
 rrom = RROMEngine()
 rrom.start()

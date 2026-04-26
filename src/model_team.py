@@ -132,7 +132,7 @@ ROLE_CONFIG: Dict[TeamRole, Dict[str, Any]] = {
         "model_hint":  "chat",
         "authority":   "Adversarial review. Find what went wrong. Raise RoE-HOLD if needed.",
         "constraint":  "Do not replace the answer. Find its failure modes.",
-        "max_tokens":  400,
+        "max_tokens":  200,   # PATCH-103e: reduced for speed — adversarial review is concise
         "temperature": 0.5,
         "provider":    "ollama",   # local — air-gapped, uninfluenced by API state
     },
@@ -342,7 +342,7 @@ class MurphyReferee:
                 }).encode()
                 req = ur.Request("http://127.0.0.1:11434/api/generate", data=body,
                                  headers={"Content-Type": "application/json"})
-                with ur.urlopen(req, timeout=15) as r:
+                with ur.urlopen(req, timeout=25) as r:  # PATCH-103e: phi3 needs up to 20s on complex prompts
                     d = json.loads(r.read())
                     content = d.get("response", "").strip()
             else:

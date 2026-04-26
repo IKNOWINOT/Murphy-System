@@ -427,12 +427,12 @@ class SelfModificationEngine:
                 f"evaluate_self gaps key mismatch; PCC causal chains need world_state wired; "
                 f"No integration tests for hardware/world endpoints; "
                 f"Peace Finance Engine not yet built (PATCH-104 planned).\n\n"
-                f"List exactly 5 specific engineering gaps ordered by impact. "
-                f"For each: id (GAP-N), priority (HIGH/MEDIUM/LOW), one-line description, "
-                f"and the exact file+function where the fix belongs. "
-                f"Then list 3 recommended next actions in order. "
-                f"IMPORTANT: Return ONLY a raw JSON object. No markdown, no explanation. "
-                f'Format: {{"gaps": [{{"id":"GAP-N","priority":"HIGH|MEDIUM|LOW","desc":"..."}}], "recommended_next": ["action 1"]}}'
+                "List exactly 5 specific engineering gaps ordered by impact. "
+                "For each gap provide: id (like GAP-12), priority (HIGH or MEDIUM or LOW), "
+                "desc (one-line description of what needs fixing). "
+                "Then list 3 recommended next actions. "
+                "Return ONLY a JSON object with two keys: gaps (array) and recommended_next (array of strings). "
+                "No markdown. No explanation. No code fences. Just the JSON object."
             )
             llm_out = _llm_get().complete(
                 audit_prompt,
@@ -462,11 +462,13 @@ class SelfModificationEngine:
             logger.warning("evaluate_self: LLM audit failed (%s) — falling back to static gaps", exc)
             # ── Fallback static gap list (updated after PATCH-097/098) ──────
             _static_gaps = [
-                {"id": "GAP-6",  "priority": "LOW",    "desc": "Sentinel (phi3) timeouts — src/model_team.py SENTINEL config"},
-                {"id": "GAP-7",  "priority": "LOW",    "desc": "SendGrid key missing — /etc/murphy-production/secrets.env"},
-                {"id": "GAP-9",  "priority": "MEDIUM", "desc": "Autonomous self-patch loop not closed — src/self_modification.py run_autonomous_cycle()"},
-                {"id": "GAP-10", "priority": "LOW",    "desc": "RROM Phase 2 (enforcement) not built — src/rrom.py enforce()"},
-                {"id": "GAP-11", "priority": "LOW",    "desc": "D9 harmonic balance not in StateVector — src/convergence_graph.py"},
+                {"id": "GAP-6",  "priority": "LOW",    "desc": "Sentinel phi3 too slow — swap for mistral:7b in src/model_team.py"},
+                {"id": "GAP-7",  "priority": "LOW",    "desc": "SendGrid key missing — 1 dormant Shield Wall layer — add to secrets.env"},
+                {"id": "GAP-10", "priority": "MEDIUM", "desc": "RROM Phase 2 enforcement not built — add budget caps + graceful degradation to src/rrom.py"},
+                {"id": "GAP-11", "priority": "LOW",    "desc": "D9 harmonic balance not wired into StateVector in src/convergence_graph.py"},
+                {"id": "GAP-12", "priority": "HIGH",   "desc": "evaluate_self LLM audit fails — onboard model returns non-JSON — fix prompt in src/self_modification.py evaluate_self()"},
+                {"id": "GAP-13", "priority": "HIGH",   "desc": "World State Engine first-refresh not confirmed — WSI may be stale — commission /api/world/snapshot"},
+                {"id": "GAP-14", "priority": "MEDIUM", "desc": "Peace Finance Engine (PATCH-104) not yet built — ConflictPricingEngine + DeterrenceBondProtocol"},
             ]
             report["known_gaps"]  = _static_gaps
             report["gaps"]        = _static_gaps  # PATCH-103c normalize
