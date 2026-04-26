@@ -102,6 +102,19 @@ class GhostPageHandle:
                    timeout: int = 30000) -> Any:
         self._vis.invalidate_cache()
         self._b.navigate(self._tid, url, timeout=timeout/1000)
+        # Auto-detect and handle CAPTCHA after every navigation
+        try:
+            captcha_result = await self._vis.handle_captcha(page=self)
+            if captcha_result.detected:
+                import logging as _log
+                _log.getLogger(__name__).info(
+                    "[GhostPage] CAPTCHA %s → %s resolved=%s",
+                    captcha_result.type.value,
+                    captcha_result.strategy.value if captcha_result.strategy else "none",
+                    captcha_result.resolved,
+                )
+        except Exception as _ce:
+            pass  # CAPTCHA detection is best-effort, never block navigation
         return type("Resp", (), {"status": 200, "url": url})()
 
     async def reload(self, wait_until: str = "domcontentloaded", timeout: int = 30000):
@@ -335,14 +348,6 @@ class GhostPageHandle:
                                   {"type": "mouseReleased", "x": tx, "y": ty, "button": "left"})
 
     # ── Scroll ────────────────────────────────────────────────────
-
-    async def mouse(self):
-        return self  # proxy
-
-    async def wheel(self, delta_x: float = 0, delta_y: float = 300):
-        self._b._ws_command(self._tid, "Input.dispatchMouseEvent",
-                             {"type": "mouseWheel", "x": 640, "y": 400,
-                              "deltaX": delta_x, "deltaY": delta_y})
 
     # ── Keyboard ─────────────────────────────────────────────────
 
@@ -2109,15 +2114,15 @@ class MultiCursorBrowser:
             elif action_type == AT.SET_COOKIES:
                 pass  # TODO: CDP Network.setCookies
             elif action_type == AT.CLEAR_COOKIES:
-                if self._pw_context:
-                    await self._pw_context.clear_cookies()
+                if self._ghost_browser and zone_id in self._ghost_tabs:
+                    self._ghost_browser._ws_command(
+                        self._ghost_tabs[zone_id], "Network.clearBrowserCookies", {}
+                    )
 
             # STORAGE_STATE
             elif action_type == AT.STORAGE_STATE:
-                if self._pw_context:
-                    state = await self._pw_context.storage_state(
-                        path=params.get("path")
-                    )
+                if self._ghost_browser and zone_id in self._ghost_tabs:
+                    state = {}  # TODO: CDP Storage.getUsageAndQuota
                     data["storage_state"] = state
 
             # FRAME_LOCATOR

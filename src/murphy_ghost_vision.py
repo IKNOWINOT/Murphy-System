@@ -382,6 +382,10 @@ class OCRLocator:
         self._available = False
         try:
             import pytesseract
+            # Ensure tesseract binary is found — wire to system path if needed
+            import shutil
+            tess_bin = shutil.which("tesseract") or "/usr/bin/tesseract"
+            pytesseract.pytesseract.tesseract_cmd = tess_bin
             self._available = True
         except ImportError:
             logger.warning("[OCR] pytesseract not available")
