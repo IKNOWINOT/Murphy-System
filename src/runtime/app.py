@@ -16428,6 +16428,51 @@ def create_app() -> FastAPI:
     except Exception as _conv_exc:
         logger.warning("PATCH-096b: Convergence router mount failed: %s", _conv_exc)
 
+    # ── PATCH-096b: Direct convergence POST endpoints (bypass router validation) ──
+    @app.post("/api/convergence/analyze")
+    async def _convergence_analyze(request: Request):
+        """Three-body convergence analysis — trajectory-aware, graph-persisted."""
+        try:
+            body = await request.json()
+            from src.recursive_convergence_engine import process as _rce
+            content = (body.get("content") or "").strip()
+            if not content:
+                return JSONResponse({"success": False, "error": "content required"}, status_code=400)
+            signal, action = _rce(
+                content,
+                body.get("feed_history", []),
+                body.get("domain", "general"),
+                body.get("session_id"),
+            )
+            return JSONResponse({"success": True, "data": {
+                "convergence": signal.to_dict(),
+                "steering":    action.to_dict(),
+                "session_id":  body.get("session_id"),
+                "oath": "We do not censor. We shift the gradient. Free will is sacred.",
+            }})
+        except Exception as exc:
+            logger.error("convergence/analyze error: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/convergence/investigate")
+    async def _convergence_investigate(request: Request):
+        """Probabilistic CIDP — Bayesian harm P(catastrophic)>0.95 hard stop only."""
+        try:
+            body = await request.json()
+            from src.criminal_investigation_protocol import investigate as _cidp
+            intent = (body.get("intent") or "").strip()
+            if not intent:
+                return JSONResponse({"success": False, "error": "intent required"}, status_code=400)
+            report = _cidp(
+                intent=intent,
+                context=body.get("context", {}),
+                domain=body.get("domain", "general"),
+            )
+            return JSONResponse({"success": True, "data": report.to_dict()})
+        except Exception as exc:
+            logger.error("convergence/investigate error: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
     # ── PATCH-071: Self-Marketing + Sell Engine ──────────────────────────────
     try:
         from src.marketing_router import router as _marketing_router
