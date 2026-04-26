@@ -762,3 +762,55 @@ class GhostVision:
             "patterns":      list(set(patterns_found)),
             "ocr_text":      ocr_text[:2000],
         }
+    def get_captcha_engine(self, capsolver_key: str = None,
+                            two_captcha_key: str = None) -> "CaptchaEngine":
+        """Get or create a CaptchaEngine for this page.
+
+        Lazily initialised — only created when a CAPTCHA is detected.
+        Pass capsolver_key or two_captcha_key to enable token API solving.
+        Also reads CAPSOLVER_API_KEY / TWO_CAPTCHA_KEY env vars automatically.
+        """
+        if not hasattr(self, '_captcha_engine') or self._captcha_engine is None:
+            try:
+                from src.murphy_captcha import CaptchaEngine
+            except ImportError:
+                from murphy_captcha import CaptchaEngine
+            self._captcha_engine = CaptchaEngine(
+                browser=self._browser,
+                tab_id=self._tab_id,
+                capsolver_key=capsolver_key,
+                two_captcha_key=two_captcha_key,
+            )
+        return self._captcha_engine
+
+    async def handle_captcha(self, page: Any = None,
+                              capsolver_key: str = None,
+                              two_captcha_key: str = None) -> "CaptchaResult":
+        """Detect and handle any CAPTCHA on the current page.
+
+        Called automatically by GhostPageHandle before every navigation.
+        Also callable manually from MCB actions.
+
+        Returns CaptchaResult with .resolved, .type, .strategy, .notes.
+        """
+        try:
+            from src.murphy_captcha import CaptchaDetector
+        except ImportError:
+            from murphy_captcha import CaptchaDetector
+        ps = self._get_page()
+        html = ps.html or ""
+        if not html:
+            ps = self._browser.get_page_state(self._tab_id)
+            html = ps.html
+        detector = CaptchaDetector()
+        ctype = detector.detect(html, ps.url)
+        if ctype.value == "none":
+            try:
+                from src.murphy_captcha import CaptchaResult, CaptchaType
+            except ImportError:
+                from murphy_captcha import CaptchaResult, CaptchaType
+            return CaptchaResult(detected=False)
+        logger.info("[GhostVision] CAPTCHA detected: %s — invoking engine", ctype.value)
+        engine = self.get_captcha_engine(capsolver_key, two_captcha_key)
+        return await engine.handle(html, ps.url, page)
+
