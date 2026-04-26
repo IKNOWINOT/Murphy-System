@@ -7063,8 +7063,8 @@ def create_app() -> FastAPI:
                 "company": account.get("company", ""),
                 "role": account.get("role", "user"),
                 "tier": tier,
-                "email_validated": account.get("email_validated", False),
-                "eula_accepted": account.get("eula_accepted", False),
+                "email_validated": account.get("email_validated") if account.get("email_validated") is not None else (account.get("role", "user") in ("owner", "admin")),
+                "eula_accepted": account.get("eula_accepted") if account.get("eula_accepted") is not None else (account.get("role", "user") in ("owner", "admin")),
                 "created_at": account.get("created_at", ""),
                 "daily_usage": usage,
                 "terminal_config": {
@@ -12486,12 +12486,48 @@ def create_app() -> FastAPI:
         "billing_cycle": "monthly",
         "next_billing_date": None,
         "created_at": _now_iso(),
+        "email_validated": True,
+        "eula_accepted": True,
+        "role": "owner",
     }
     _account_statements: List[Dict[str, Any]] = []
 
     @app.get("/api/account/profile")
-    async def account_profile():
-        """Get account profile and subscription info."""
+    async def account_profile(request: Request):
+        """Get account profile and subscription info — real auth-aware lookup."""
+        # Try to get the real authenticated user first
+        token = None
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+        if not token:
+            cookie = request.cookies.get("murphy_session", "")
+            if cookie:
+                token = cookie
+        if token:
+            account_id = _session_store.get(token)
+            if account_id:
+                account = _user_store.get(account_id)
+                if account:
+                    tier = account.get("tier", "free")
+                    role = account.get("role", "user")
+                    return JSONResponse({
+                        "success": True,
+                        "id": account_id,
+                        "email": account.get("email", ""),
+                        "name": account.get("full_name", account.get("name", "")),
+                        "full_name": account.get("full_name", ""),
+                        "role": role,
+                        "tier": tier,
+                        "plan": tier,
+                        "plan_name": tier.title() + " Tier",
+                        "billing_cycle": "monthly",
+                        "next_billing_date": None,
+                        "email_validated": account.get("email_validated") if account.get("email_validated") is not None else (role in ("owner", "admin")),
+                        "eula_accepted": account.get("eula_accepted") if account.get("eula_accepted") is not None else (role in ("owner", "admin")),
+                        "created_at": account.get("created_at", ""),
+                    })
+        # Fallback to static account data
         return JSONResponse({"success": True, **_account_data})
 
     @app.put("/api/account/profile")
