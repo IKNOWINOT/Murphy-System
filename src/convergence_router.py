@@ -40,54 +40,10 @@ def _err(msg: str, status: int = 500):
 
 def build_convergence_router():
     """Build and return the convergence APIRouter. Called from runtime/app.py."""
-    from fastapi import APIRouter, Request
+    from fastapi import APIRouter
     from fastapi.responses import JSONResponse
 
     router = APIRouter(prefix="/api/convergence", tags=["convergence"])
-
-    # ── POST /api/convergence/analyze ─────────────────────────────────────
-    @router.post("/analyze")
-    async def analyze(request: Request) -> JSONResponse:
-        """
-        Three-body convergence analysis + trajectory-aware steering.
-
-        Body:
-          content      — text content to analyze (required)
-          session_id   — groups events into a trajectory (optional, auto-generated)
-          feed_history — prior content strings for tribal velocity (optional)
-          domain       — content domain: media, political, personal, general (optional)
-
-        Returns convergence signal, steering action, session_id.
-        Every call persists a node to the convergence graph.
-        """
-        try:
-            body = await request.json()
-        except Exception:
-            return _err("Invalid JSON body", 400)
-
-        content = (body.get("content") or "").strip()
-        if not content:
-            return _err("'content' field required", 400)
-
-        session_id   = body.get("session_id")
-        feed_history = body.get("feed_history", [])
-        domain       = body.get("domain", "general")
-
-        try:
-            from src.recursive_convergence_engine import process as rce_process
-            signal, action = rce_process(content, feed_history, domain, session_id)
-            return _ok({
-                "convergence": signal.to_dict(),
-                "steering":    action.to_dict(),
-                "session_id":  session_id,
-                "oath": (
-                    "We do not censor. We shift the gradient. "
-                    "Free will is sacred. The choice is always theirs."
-                ),
-            })
-        except Exception as exc:
-            logger.exception("convergence/analyze error")
-            return _err(str(exc))
 
     # ── GET /api/convergence/session/{session_id} ──────────────────────────
     @router.get("/session/{session_id}")
@@ -172,36 +128,6 @@ def build_convergence_router():
                 ),
             })
         except Exception as exc:
-            return _err(str(exc))
-
-    # ── POST /api/convergence/investigate ─────────────────────────────────
-    @router.post("/investigate")
-    async def investigate(request: Request) -> JSONResponse:
-        """
-        Run the full 6-stage CIDP criminal investigation on a decision.
-        Stage 4 now uses probabilistic harm (Bayesian) not binary thresholds.
-        Hard stop only at P(catastrophic) > 0.95.
-        Free will no-go list remains structural (Stage 5) — not probabilistic.
-        """
-        try:
-            body = await request.json()
-        except Exception:
-            return _err("Invalid JSON body", 400)
-
-        intent = (body.get("intent") or "").strip()
-        if not intent:
-            return _err("'intent' field required", 400)
-
-        try:
-            from src.criminal_investigation_protocol import investigate as cidp_investigate
-            report = cidp_investigate(
-                intent=intent,
-                context=body.get("context", {}),
-                domain=body.get("domain", "general"),
-            )
-            return _ok(report.to_dict())
-        except Exception as exc:
-            logger.exception("convergence/investigate error")
             return _err(str(exc))
 
     logger.info("PATCH-096b: Convergence router mounted — /api/convergence/* live")
