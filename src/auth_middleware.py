@@ -364,6 +364,15 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/demo/",
         "/api/system/",
         "/api/self/",          # PATCH-066c: auth enforced inside self_manifest_router
+        # PATCH-098: RROM monitoring (public)
+        "/api/rrom/",
+        "/api/rrom",
+        # PATCH-099: PCC (public)
+        "/api/pcc/",
+        "/api/pcc",
+        # PATCH-100: CIDP stats (public read-only)
+        "/api/cidp/stats",
+        "/api/cidp/stats/",
         # PATCH-048: /api/account/* and /api/admin/* use murphy_session
         # cookie auth inside app.py (_get_account_from_session).
         # OIDCAuthMiddleware only knows murphy_sid — exempt these so they
