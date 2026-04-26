@@ -16539,6 +16539,13 @@ def create_app() -> FastAPI:
         logger.info("PATCH-085: /api/hack/* mounted — Ethical Hacking Engine live")
     except Exception as _hack_exc:
         logger.warning("PATCH-085: Ethical Hacking Engine failed to mount: %s", _hack_exc)
+    # ── PATCH-085b: Transport Layer (location masking + node routing) ────────
+    try:
+        from src.hack_transport import router as _hack_transport_router
+        app.include_router(_hack_transport_router)
+        logger.info("PATCH-085b: /api/hack/nodes/* mounted — transport layer live (Tor + proxy nodes)")
+    except Exception as _htr_exc:
+        logger.warning("PATCH-085b: Hack transport router failed: %s", _htr_exc)
 
     # ── PATCH-077d: Unmounted routers — wire all verified importable routers ──
     _unmounted = [

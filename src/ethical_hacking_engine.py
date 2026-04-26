@@ -52,6 +52,17 @@ from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urljoin, urlparse
 
 import httpx
+
+# PATCH-085b: location masking + node routing transport layer
+try:
+    from src.hack_transport import build_client, TransportMode, _registry as _node_registry, _new_tor_circuit
+    _TRANSPORT_AVAILABLE = True
+except Exception as _te:
+    _TRANSPORT_AVAILABLE = False
+    build_client = None
+    TransportMode = None
+    logger.warning = lambda *a, **k: None  # pre-logger
+
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -606,14 +617,28 @@ def _port_scan(host: str, ports: List[int] = COMMON_PORTS) -> List[Finding]:
 # Full scan runner
 # ---------------------------------------------------------------------------
 
-async def _run_scan(job: ScanJob, authorized: bool) -> None:
+async def _run_scan(job: ScanJob, authorized: bool, transport_mode: str = 'direct', node_ids=None, new_circuit: bool = False) -> None:
     target = job.target
     all_findings: List[Finding] = []
 
     try:
         job.status = ScanStatus.RUNNING
 
-        async with httpx.AsyncClient(verify=False, timeout=15) as client:
+        # PATCH-085b: build transport-aware client
+        if _TRANSPORT_AVAILABLE and transport_mode != "direct":
+            if new_circuit and transport_mode == "tor":
+                await _new_tor_circuit()
+                await asyncio.sleep(2)
+            try:
+                _mode = TransportMode(transport_mode)
+                _scan_client = build_client(mode=_mode, node_ids=node_ids, verify_ssl=False)
+            except Exception as _te:
+                logger.warning("ETH-HACK-002: transport build failed (%s), falling back to direct", _te)
+                _scan_client = httpx.AsyncClient(verify=False, timeout=15)
+        else:
+            _scan_client = httpx.AsyncClient(verify=False, timeout=15)
+
+        async with _scan_client as client:
             # Run all probes concurrently
             probe_tasks = [
                 _probe_headers(target, client),
@@ -696,6 +721,10 @@ async def _run_scan(job: ScanJob, authorized: bool) -> None:
 class ScanRequest(BaseModel):
     target: str
     authorized: bool = False  # Must be True for intrusive probes
+    # PATCH-085b: transport options
+    transport_mode: str = "direct"   # direct | tor | proxy | rotate | chain
+    node_ids: Optional[List[str]] = None   # required for proxy/chain modes
+    new_tor_circuit: bool = False    # request fresh Tor exit IP before scan
 
 
 class SelfScanRequest(BaseModel):
@@ -710,6 +739,9 @@ async def launch_scan(req: ScanRequest):
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
         raise HTTPException(status_code=400, detail="Invalid target URL. Must be http:// or https://")
 
+    # Validate transport mode
+    t_mode = req.transport_mode if _TRANSPORT_AVAILABLE else "direct"
+
     job = ScanJob(
         job_id=str(uuid.uuid4()),
         target=req.target,
@@ -717,10 +749,21 @@ async def launch_scan(req: ScanRequest):
     )
     _store_job(job)
 
-    # Fire and forget
-    asyncio.create_task(_run_scan(job, authorized=req.authorized))
+    # Fire and forget (with transport params)
+    asyncio.create_task(_run_scan(
+        job,
+        authorized=req.authorized,
+        transport_mode=t_mode,
+        node_ids=req.node_ids,
+        new_circuit=req.new_tor_circuit,
+    ))
 
-    return {"job_id": job.job_id, "status": "pending", "target": req.target}
+    return {
+        "job_id": job.job_id,
+        "status": "pending",
+        "target": req.target,
+        "transport_mode": t_mode,
+    }
 
 
 @router.post("/self")
@@ -735,7 +778,7 @@ async def self_scan(req: SelfScanRequest = SelfScanRequest()):
     )
     _store_job(job)
 
-    asyncio.create_task(_run_scan(job, authorized=req.include_intrusive))
+    asyncio.create_task(_run_scan(job, authorized=req.include_intrusive, transport_mode="direct"))
 
     return {"job_id": job.job_id, "status": "pending", "target": target, "note": "Self-scan always authorized"}
 
