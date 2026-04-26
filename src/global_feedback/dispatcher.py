@@ -5,7 +5,7 @@
 Module: global_feedback/dispatcher.py
 Subsystem: Global Feedback System
 Design Label: GFB-002
-Purpose: Orchestrates the full feedback lifecycle — collection, validation,
+Purpose: Orchestrates the full feedback lifecycle ? collection, validation,
          categorisation, remediation planning, and GitHub repository_dispatch
          for automated patch creation.
 Status: Production
@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
-# Optional httpx for GitHub API calls — graceful fallback when unavailable
+# Optional httpx for GitHub API calls ? graceful fallback when unavailable
 try:
     import httpx
     _HTTPX_AVAILABLE = True
@@ -43,8 +43,8 @@ class GlobalFeedbackDispatcher:
     Design Label: GFB-002
 
     Lifecycle:
-        submit → validate → categorise → analyse (remediation) →
-        dispatch to GitHub → track resolution
+        submit ? validate ? categorise ? analyse (remediation) ?
+        dispatch to GitHub ? track resolution
     """
 
     def __init__(
@@ -60,7 +60,7 @@ class GlobalFeedbackDispatcher:
         self._plans: Dict[str, RemediationPlan] = {}
         self._max_store = max_store_size
 
-        # GitHub configuration — read from env with explicit overrides
+        # GitHub configuration ? read from env with explicit overrides
         self._github_token = github_token or os.environ.get("GITHUB_TOKEN", "")
         self._github_owner = github_owner or os.environ.get(
             "MURPHY_GITHUB_OWNER", "IKNOWINOT")
@@ -274,7 +274,7 @@ class GlobalFeedbackDispatcher:
             }
 
         if not _HTTPX_AVAILABLE:
-            logger.warning("httpx not installed — dispatch recorded but not sent")
+            logger.warning("httpx not installed ? dispatch recorded but not sent")
             return {
                 "success": True,
                 "dispatched": False,
@@ -329,3 +329,37 @@ class GlobalFeedbackDispatcher:
             labels.append(f"source:{sub.source.value}")
         labels.extend(sub.tags[:5])  # cap imported tags
         return labels
+
+    def dispatch(self, tool_name, args=None, caller_id="system", caller_type="internal"):
+        """Route LCM tool execution results into the global feedback pipeline.
+
+        Called by LargeControlModel._dispatch() after pipeline completion.
+        Translates LCM tool calls into GlobalFeedbackSubmission records
+        so LCM outputs become traceable feedback events.
+
+        Args:
+            tool_name: The LCM tool that was executed (e.g. "lcm_execute").
+            args: Dict of arguments passed to the tool.
+            caller_id: Account or session that triggered the LCM cycle.
+            caller_type: Source type (e.g. "lcm", "user", "automation").
+
+        Returns:
+            Dict with submission_id and status.
+        """
+        try:
+            intent = (args or {}).get("intent", "")
+            account = (args or {}).get("account", caller_id)
+            submission = self.submit(
+                user_id=account or caller_id or "system",
+                title=f"LCM dispatch: {tool_name}",
+                description=f"Tool={tool_name} intent={intent!r} caller={caller_type}:{caller_id}",
+                severity="low",
+                source="lcm_pipeline",
+                component="large_control_model",
+                metadata={"tool_name": tool_name, "args": args or {}, "caller_type": caller_type},
+            )
+            return {"submission_id": submission.submission_id, "status": "dispatched"}
+        except Exception as exc:
+            logger.debug("GlobalFeedbackDispatcher.dispatch suppressed: %s", exc)
+            return {"status": "suppressed", "error": str(exc)}
+

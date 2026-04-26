@@ -373,6 +373,7 @@ class LargeControlModel:
                     gap_id = "lcm_whatif"
                     description = text
                     root_cause = nl_result.get("intent", text)
+                    category = "lcm_intent"
                     suggested_fixes: list = []
 
                 fake_loop = self._causality_sandbox._factory()

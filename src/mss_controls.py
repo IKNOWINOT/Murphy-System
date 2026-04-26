@@ -1,7 +1,7 @@
 """
-Murphy System — MSS Transformation Controls
+Murphy System ? MSS Transformation Controls
 Design Label: MSS-001
-Copyright © 2020 Inoni Limited Liability Company
+Copyright ? 2020 Inoni Limited Liability Company
 Creator: Corey Post
 License: BSL 1.1
 """
@@ -159,11 +159,11 @@ class MSSController:
         """Determine the governance status for a transformation.
 
         Rules (evaluated in order):
-        1. If solidify and simulation risk is high/unacceptable → blocked.
-        2. If input_quality recommendation is block → blocked.
-        3. If input_quality recommendation is clarify → conditional.
+        1. If solidify and simulation risk is high/unacceptable ? blocked.
+        2. If input_quality recommendation is block ? blocked.
+        3. If input_quality recommendation is clarify ? conditional.
         4. If a governance kernel is available, attempt enforcement.
-        5. Otherwise → approved.
+        5. Otherwise ? approved.
         """
         if (
             operator == "solidify"
@@ -247,7 +247,7 @@ class MSSController:
                 goal = concept.get("goal", "")
                 action = concept.get("action", "")
                 if goal:
-                    requirements.append(f"{action} — {goal}" if action else goal)
+                    requirements.append(f"{action} ? {goal}" if action else goal)
 
             compliance = list(analogue.regulatory_frameworks)
 
@@ -553,3 +553,62 @@ class MSSController:
                 simulation=simulation,
                 governance_status=gov_status,
             )
+
+    def assess(self, intent, context=None):
+        """Assess resolution level of an intent string (RM1-RM5).
+
+        LCM calls this before routing through the full pipeline.
+        Returns a TransformationResult with resolution_level set.
+        Lightweight - no full transformation is performed.
+        """
+        if not intent or not intent.strip():
+            return TransformationResult(
+                operator="assess",
+                input_text=intent or "",
+                output={"resolution_level": "RM2", "assessed": True},
+                input_quality=None,
+                output_quality=None,
+                target_rm="RM2",
+                qc_metadata=self._build_qc_metadata("assess", context),
+                simulation=None,
+                governance_status="approved",
+                resolution_level="RM2",
+            )
+
+        try:
+            input_quality = self._iqe.assess(intent, context)
+        except Exception:
+            input_quality = None
+
+        score = 0.5
+        if input_quality is not None:
+            try:
+                score = float(getattr(input_quality, "overall_score",
+                              getattr(input_quality, "score", 0.5)))
+            except Exception:
+                pass
+
+        if score >= 0.85:
+            rm = "RM5"
+        elif score >= 0.70:
+            rm = "RM4"
+        elif score >= 0.50:
+            rm = "RM3"
+        elif score >= 0.30:
+            rm = "RM2"
+        else:
+            rm = "RM1"
+
+        return TransformationResult(
+            operator="assess",
+            input_text=intent,
+            output={"resolution_level": rm, "quality_score": score, "assessed": True},
+            input_quality=input_quality,
+            output_quality=None,
+            target_rm=rm,
+            qc_metadata=self._build_qc_metadata("assess", context),
+            simulation=None,
+            governance_status="approved",
+            resolution_level=rm,
+        )
+

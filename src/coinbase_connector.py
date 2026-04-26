@@ -235,6 +235,12 @@ class CoinbaseConnector:
         payload: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Send an authenticated request and return the parsed JSON body."""
+        # Guard: skip silently when no API credentials are configured.
+        # Prevents 401 log spam when running in demo/placeholder mode.
+        if not self.api_key or not self.api_secret:
+            logger.debug("Coinbase: no API credentials configured -- request skipped (%s %s)", method, path)
+            return {"error": "no_credentials", "detail": "COINBASE_API_KEY not set"}
+
         try:
             import requests  # lazy import
         except ImportError as exc:
