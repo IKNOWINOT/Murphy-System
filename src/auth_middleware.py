@@ -376,6 +376,8 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         # PATCH-099: PCC (public)
         "/api/pcc/",
         "/api/pcc",
+        # PATCH-103c: Teacher loop status (public read-only)
+        "/api/teacher/status",
         # PATCH-103: World State Engine (public read-only)
         "/api/world/",
         "/api/world",

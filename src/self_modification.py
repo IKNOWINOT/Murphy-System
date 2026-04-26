@@ -418,12 +418,15 @@ class SelfModificationEngine:
                 f"Shield Wall: {sw_str}\n"
                 f"Front-of-Line: {fl_str}\n"
                 f"RROM faces: {rrom_str}\n\n"
-                f"Known implemented modules: Rules of Conduct, Ledger Engine, Front-of-Line gate, "
-                f"Convergence Engine (GAP-1 + GAP-2 just fixed), RROM Phase 1 (just deployed), "
-                f"Criminal Investigation Protocol, Model Team, Self-Modification Engine, "
-                f"Honeypot/Counter-Intelligence, Shield Wall.\n\n"
-                f"Known open gaps: PCC formula not in code, CIDP reports not persisted, "
-                f"Sentinel model too slow, SendGrid dormant, self-mod not wired to PCC cycle.\n\n"
+                f"Implemented modules (PATCH-103 state): Shield Wall (19/20 active), RROM (8 faces incl hardware+world), "
+                f"PCC (8 causal chains, hard floors), CIDP (SQLite persisted), Model Team (4 LLMs), "
+                f"HardwareTelemetryEngine (CPU/RAM/disk/net/latency), WorldStateEngine (8 domains, WSI), "
+                f"GhostBrowser (Chromium/CDP), Self-Modification Engine, Honeypot, Convergence Engine.\n\n"
+                f"Known open gaps: Sentinel (phi3) too slow; SendGrid key missing (1 dormant shield); "
+                f"RROM Phase 2 enforcement not built; WorldState first-refresh not yet seen; "
+                f"evaluate_self gaps key mismatch; PCC causal chains need world_state wired; "
+                f"No integration tests for hardware/world endpoints; "
+                f"Peace Finance Engine not yet built (PATCH-104 planned).\n\n"
                 f"List exactly 5 specific engineering gaps ordered by impact. "
                 f"For each: id (GAP-N), priority (HIGH/MEDIUM/LOW), one-line description, "
                 f"and the exact file+function where the fix belongs. "
@@ -445,7 +448,9 @@ class SelfModificationEngine:
                 end   = raw.rfind("}") + 1
                 if start >= 0 and end > start:
                     parsed = json.loads(raw[start:end])
-                    report["known_gaps"]      = parsed.get("gaps", [])
+                    _gaps = parsed.get("gaps", [])
+                    report["known_gaps"] = _gaps
+                    report["gaps"]       = _gaps  # PATCH-103c: normalize key
                     report["recommended_next"]= parsed.get("recommended_next", [])
                     report["llm_audit"]       = True
                     report["audit_model"]     = getattr(llm_out, "model", "?")
@@ -456,13 +461,15 @@ class SelfModificationEngine:
         except Exception as exc:
             logger.warning("evaluate_self: LLM audit failed (%s) — falling back to static gaps", exc)
             # ── Fallback static gap list (updated after PATCH-097/098) ──────
-            report["known_gaps"] = [
+            _static_gaps = [
                 {"id": "GAP-6",  "priority": "LOW",    "desc": "Sentinel (phi3) timeouts — src/model_team.py SENTINEL config"},
                 {"id": "GAP-7",  "priority": "LOW",    "desc": "SendGrid key missing — /etc/murphy-production/secrets.env"},
                 {"id": "GAP-9",  "priority": "MEDIUM", "desc": "Autonomous self-patch loop not closed — src/self_modification.py run_autonomous_cycle()"},
                 {"id": "GAP-10", "priority": "LOW",    "desc": "RROM Phase 2 (enforcement) not built — src/rrom.py enforce()"},
                 {"id": "GAP-11", "priority": "LOW",    "desc": "D9 harmonic balance not in StateVector — src/convergence_graph.py"},
             ]
+            report["known_gaps"]  = _static_gaps
+            report["gaps"]        = _static_gaps  # PATCH-103c normalize
             report["recommended_next"] = [
                 "Run autonomous self-patch cycle — evaluate gaps, CIDP review, Model Team deliberation, PCC gate, apply",
                 "Swap Sentinel phi3 for mistral:7b — faster adversarial review in model_team.py",

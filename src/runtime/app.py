@@ -16607,6 +16607,163 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
 
+    # ── PATCH-103c: Teacher Loop API ───────────────────────────────────────────
+
+    @app.get("/api/teacher/status")
+    async def _teacher_status():
+        """PATCH-103c — Teacher loop: session stats + recent grading history."""
+        try:
+            from src.murphy_teacher_loop import teacher_loop
+            return JSONResponse({"success": True, **teacher_loop.status()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/teacher/assign")
+    async def _teacher_assign(request: Request):
+        """PATCH-103c — Assign Murphy a gap to fix and let it attempt immediately."""
+        try:
+            body = await request.json()
+            from src.murphy_teacher_loop import teacher_loop
+            import asyncio
+            result = await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: teacher_loop.command_and_attempt(
+                    gap_id       = body.get("gap_id", "GAP-X"),
+                    description  = body.get("description", ""),
+                    acceptance   = body.get("acceptance", []),
+                    teacher_notes= body.get("teacher_notes", ""),
+                )
+            )
+            return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/teacher/grade")
+    async def _teacher_grade(request: Request):
+        """PATCH-103c — Steve grades Murphy's submission. Grade A/B = apply patch."""
+        try:
+            body = await request.json()
+            from src.murphy_teacher_loop import teacher_loop, TeacherSession, HomeworkSubmission
+            session_id    = body.get("session_id")
+            submission_id = body.get("submission_id")
+            grade_letter  = body.get("grade", "C")
+            feedback      = body.get("feedback", "")
+            issues        = body.get("specific_issues", [])
+            apply_patch   = body.get("apply_patch", False)
+            revision_req  = body.get("revision_request")
+
+            # Load session from DB
+            sess_data = teacher_loop._db.get_session(session_id)
+            if not sess_data:
+                return JSONResponse({"success": False, "error": "Session not found"}, status_code=404)
+
+            # Reconstruct minimal objects for grading
+            from src.murphy_teacher_loop import HomeworkAssignment, HomeworkSubmission as HS, TeacherGrade, TeacherSession as TS
+            from dataclasses import fields
+            assign = HomeworkAssignment(**sess_data["assignment"])
+            session = TS(
+                id           = sess_data["id"],
+                assignment   = assign,
+                submissions  = [HS(**s) for s in sess_data["submissions"]],
+                grades       = [],
+                final_outcome = sess_data["final_outcome"],
+                patch_applied = sess_data["patch_applied"],
+                completed_at  = sess_data.get("completed_at"),
+            )
+            # Re-attach existing grades
+            for g in sess_data.get("grades", []):
+                session.grades.append(TeacherGrade(**g))
+
+            # Find the submission being graded
+            sub = next((s for s in session.submissions if s.id == submission_id), None)
+            if not sub:
+                sub = session.submissions[-1] if session.submissions else None
+            if not sub:
+                return JSONResponse({"success": False, "error": "No submission found"}, status_code=404)
+
+            import asyncio
+            grade = await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: teacher_loop.grade(session, sub, grade_letter, feedback, issues, apply_patch, revision_req)
+            )
+
+            # If failed and needs revision, Murphy attempts again
+            next_submission = None
+            if not grade.passed and session.final_outcome == "pending":
+                next_submission = await asyncio.get_event_loop().run_in_executor(
+                    None, lambda: teacher_loop.murphy_attempt(session)
+                )
+
+            return JSONResponse({
+                "success":          True,
+                "grade":            grade.grade,
+                "score":            grade.score,
+                "passed":           grade.passed,
+                "patch_applied":    session.patch_applied,
+                "session_outcome":  session.final_outcome,
+                "next_submission":  {
+                    "id":           next_submission.id,
+                    "syntax_ok":    next_submission.syntax_ok,
+                    "cidp":         next_submission.cidp_verdict,
+                    "code_preview": next_submission.proposed_code[:400],
+                    "murphy_notes": next_submission.murphy_notes[:200],
+                } if next_submission else None,
+            })
+        except Exception as exc:
+            import traceback
+            return JSONResponse({"success": False, "error": str(exc), "trace": traceback.format_exc()[-300:]}, status_code=500)
+
+    @app.get("/api/teacher/session/{session_id}")
+    async def _teacher_session(session_id: str):
+        """PATCH-103c — Full session detail: assignment, all submissions, all grades."""
+        try:
+            from src.murphy_teacher_loop import teacher_loop
+            data = teacher_loop._db.get_session(session_id)
+            if not data:
+                return JSONResponse({"success": False, "error": "Not found"}, status_code=404)
+            return JSONResponse({"success": True, "session": data})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/teacher/autonomous")
+    async def _teacher_autonomous(request: Request):
+        """PATCH-103c — Murphy self-assigns from its own gap list, attempts, submits for grading."""
+        try:
+            body = await request.json()
+            from src.self_modification import SelfModificationEngine
+            from src.murphy_teacher_loop import teacher_loop
+            import asyncio
+            # Step 1: Murphy evaluates itself
+            sme = SelfModificationEngine()
+            evaluation = await asyncio.get_event_loop().run_in_executor(None, sme.evaluate_self)
+            gaps = evaluation.get("gaps") or evaluation.get("known_gaps", [])
+            if not gaps:
+                return JSONResponse({"success": True, "message": "No gaps found — system self-assessed as healthy"})
+            # Pick highest priority gap
+            prio_map = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
+            gaps_sorted = sorted(gaps, key=lambda g: prio_map.get(g.get("priority","LOW"), 2))
+            gap = gaps_sorted[0]
+            # Assign and attempt
+            result = await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: teacher_loop.command_and_attempt(
+                    gap_id       = gap.get("id", "GAP-?"),
+                    description  = gap.get("desc", gap.get("description", "")),
+                    acceptance   = [f"Fix: {gap.get('desc', gap.get('description',''))}",
+                                    "Syntax valid Python", "No Shield Wall modifications",
+                                    "Includes docstring with PATCH number"],
+                    teacher_notes= f"Murphy self-assigned. Priority: {gap.get('priority','?')}. "
+                                   f"Auto-generated from evaluate_self.",
+                )
+            )
+            result["gap_selected"] = gap
+            result["total_gaps"]   = len(gaps)
+            return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            import traceback
+            return JSONResponse({"success": False, "error": str(exc), "trace": traceback.format_exc()[-300:]}, status_code=500)
+
+
     # ── PATCH-103: World State Engine API ─────────────────────────────────────
 
     @app.get("/api/world/snapshot")
