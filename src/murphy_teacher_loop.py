@@ -31,6 +31,7 @@ from dataclasses import dataclass, asdict, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -258,10 +259,10 @@ class TeacherLoopEngine:
         # Step 1: CIDP investigates the intent
         cidp_verdict = "proceed"
         try:
-            from src.criminal_investigation_protocol import criminal_investigation_protocol as cidp
-            report = cidp.investigate(
+            from src.criminal_investigation_protocol import investigate as cidp_investigate
+            report = cidp_investigate(
+                intent=f"Self-patch: {assignment.description}",
                 context={
-                    "intent": f"Self-patch: {assignment.description}",
                     "gap_id": assignment.gap_id,
                     "revision": revision,
                     "teacher_notes": assignment.teacher_notes,
@@ -343,10 +344,17 @@ class TeacherLoopEngine:
 
             if result and result.content:
                 raw = result.content.strip()
+                # Strip markdown code fences if present
+                if "```" in raw:
+                    raw = re.sub(r"```(?:json)?\n?", "", raw).strip()
                 start = raw.find("{")
                 end   = raw.rfind("}") + 1
                 if start >= 0 and end > start:
-                    parsed = json.loads(raw[start:end])
+                    try:
+                        parsed = json.loads(raw[start:end])
+                    except json.JSONDecodeError:
+                        # Try to extract code block from malformed JSON
+                        parsed = {"code": raw, "notes": "LLM returned non-JSON", "target_file": "unknown", "target_function": "unknown"}
                     proposed_code = parsed.get("code", "")
                     murphy_notes  = parsed.get("notes", "")
                     target_file   = parsed.get("target_file", "unknown")
