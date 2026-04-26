@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 _SERVICE_NAME     = "murphy-production"
 _NETWORK_IFACE    = "eth0"
 _PING_HOST        = "8.8.8.8"
-_PING_COUNT       = 2
+_PING_COUNT       = 1
 _BUFFER_SIZE      = 60          # 5 min at 5s intervals
 _HEALTH_WEIGHTS   = {
     "cpu":        0.25,
@@ -371,8 +371,8 @@ class HardwareTelemetryEngine:
         ping_ms = loss = None
         try:
             result = subprocess.run(
-                ["/bin/ping", "-c", str(_PING_COUNT), "-W", "2", _PING_HOST],
-                capture_output=True, text=True, timeout=6
+                ["/bin/ping", "-c", str(_PING_COUNT), "-W", "1", _PING_HOST],
+                capture_output=True, text=True, timeout=4
             )
             for line in result.stdout.split("\n"):
                 if "rtt" in line and "avg" in line:
