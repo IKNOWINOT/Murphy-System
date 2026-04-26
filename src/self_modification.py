@@ -352,7 +352,7 @@ class SelfModificationEngine:
         # Murphy uses its own LLM to assess system state and prioritize gaps.
         # This is Principle 4: does the test profile reflect the full range?
         try:
-            from src.llm_provider import llm_provider
+            from src.llm_provider import get_llm as _llm_get
             sw_str  = json.dumps(report.get("shield_wall", {}))
             fl_str  = json.dumps(report.get("front_of_line", {}))
             rrom_str= json.dumps(report.get("rrom", {}).get("faces", {}) if isinstance(report.get("rrom"), dict) else {})
@@ -385,7 +385,7 @@ class SelfModificationEngine:
                 f"Then list 3 recommended next actions in order. "
                 f"Return as JSON: {{gaps: [...], recommended_next: [...]}}"
             )
-            llm_out = llm_provider.complete(
+            llm_out = _llm_get().complete(
                 audit_prompt,
                 system="You are Murphy's engineering audit engine. Return only valid JSON.",
                 model_hint="chat",

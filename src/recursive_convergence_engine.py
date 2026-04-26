@@ -705,7 +705,7 @@ class GradientSteerer:
         # This is the upgrade from "template output" to "Murphy actually speaking".
         if action.payload and action.action_type != "none":
             try:
-                from src.llm_provider import llm_provider
+                from src.llm_provider import get_llm as _llm_get
                 pattern   = signal.tribal_gravity.dominant_pattern.value
                 mag_label = "high" if mag >= 0.5 else "medium" if mag >= 0.3 else "low"
                 domain    = getattr(signal, "domain", "general")
@@ -721,7 +721,7 @@ class GradientSteerer:
                     f"(the user decides what to do with it), and domain-appropriate for: {domain}. "
                     f"Return ONLY the final payload text. No preamble, no labels."
                 )
-                enriched = llm_provider.complete(
+                enriched = _llm_get().complete(
                     enrich_prompt,
                     system=(
                         "You are the Murphy convergence engine's payload writer. "
