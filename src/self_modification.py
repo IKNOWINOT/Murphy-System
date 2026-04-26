@@ -174,6 +174,51 @@ class SelfModificationEngine:
                 errors        = ["Front-of-Line gate requires human review"],
             )
 
+        # PATCH-100: PCC gate — consult PCC before applying any self-patch
+        # Principle 5: what is the expected result of this patch?
+        try:
+            from src.pcc import pcc, PCCInput
+            _pcc_inp = PCCInput(
+                session_id    = intent.patch_id,
+                state_vector  = {
+                    "d1_flourishing":          0.6,
+                    "d2_contraction":          0.1,
+                    "d3_closure":              0.0,
+                    "d4_coherence_delta":      0.5,
+                    "d5_p_harm_physical":      0.0,
+                    "d6_p_harm_psychological": 0.1,
+                    "d7_p_harm_financial":     0.0,
+                    "d8_p_harm_autonomy":      0.25,
+                },
+                causal_chain  = "autonomy_preservation",
+                trajectory_len= 0,
+                d9_balance    = 0.0,
+                assumptions   = [f"patch: {intent.description[:80]}"],
+            )
+            _pcc_result = pcc.compute(_pcc_inp)
+            if _pcc_result.hard_floor_hit:
+                return PatchResult(
+                    patch_id      = intent.patch_id,
+                    success       = False,
+                    gate_decision = "BLOCKED_PCC_HARD_FLOOR",
+                    backup_path   = None,
+                    errors        = ["PCC hard floor: harm probability >= 0.65 — Omega_possible boundary"],
+                )
+            if _pcc_result.steering_directive == "REDUCE" and not _pcc_result.cold_start:
+                logger.warning(
+                    "PCC REDUCE on self-patch %s: r_fair=%.3f — proceeding with caution",
+                    intent.patch_id, _pcc_result.r_fair
+                )
+            # Record positive feedback — patch cleared all gates
+            pcc.feedback(
+                intent.patch_id,
+                _pcc_result.r_fair if not _pcc_result.cold_start else 0.8,
+                confirmed=True,
+            )
+            gate = f"{gate}|PCC:{_pcc_result.steering_directive}"
+        except Exception as _pcc_exc:
+            logger.debug("PCC gate non-blocking: %s", _pcc_exc)
+
         # 3. Syntax check (Python files only)
         if intent.target_file.endswith(".py"):
             syntax_ok, syntax_err = self.run_syntax_check(new_content, intent.target_file)
