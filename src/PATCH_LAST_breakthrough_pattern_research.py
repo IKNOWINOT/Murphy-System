@@ -672,3 +672,67 @@ MASTER_ORDER = {
     ),
 }
 
+
+# ============================================================================
+# PATCH-LAST ADDENDUM E: GOVERNING BUILD PRINCIPLE
+# ============================================================================
+# Date: 2026-04-26
+# Author: Corey Post
+# This is the master rule that overrides all patch ordering above.
+
+GOVERNING_BUILD_PRINCIPLE = {
+    "rule": (
+        "Build incrementally. "
+        "Only add a capability when the system genuinely needs it to remain safe. "
+        "Do not build speculatively. Do not build for completeness. "
+        "Build because the gap between what exists and what is needed "
+        "creates a safety or integrity risk if left unfilled."
+    ),
+
+    "what_this_means_in_practice": {
+        "PATCH-093a_is_real": (
+            "Fix the LLM key NOW because a system with no working LLM "
+            "cannot assess safety, cannot run causality simulation, "
+            "cannot produce HITL questions. It is effectively blind. "
+            "A blind system cannot be safe."
+        ),
+        "PATCH-095_is_real": (
+            "Add the human_safety_delta veto to causality NOW because "
+            "the causality sandbox is already running and ranking actions "
+            "without a safety primacy term. That gap is live risk."
+        ),
+        "everything_else_waits": (
+            "SIS framework, prosocial steering, RLEF update, PatternStore, "
+            "breakthrough detection, privileged counsel -- none of these are "
+            "urgent safety gaps. They are capability expansions. "
+            "They wait until the system demonstrates it needs them "
+            "to maintain safe operation at its current scale."
+        ),
+    },
+
+    "the_trigger_model": (
+        "Each new capability is triggered by a signal, not a schedule: "
+        "-- RSC S(t) persistently in CONSTRAIN despite healthy inputs -> wire PatternStore "
+        "-- LCM dispatching actions with no safety check in causality -> wire PATCH-095 now "
+        "-- System operating at scale with users whose data needs protection -> wire privilege mode "
+        "-- Prosocial steering gap observed in real interactions -> wire PATCH-100 "
+        "The system tells you when it needs the next layer. Listen to it."
+    ),
+
+    "what_never_waits": [
+        "Any gap that allows harm to a person through direct action",
+        "Any gap in the human_safety_delta veto chain",
+        "Any gap in the RSC CONSTRAIN enforcement",
+        "Any gap in client-privilege / data protection once users are active",
+        "Any gap between what the system claims to do and what it actually does",
+    ],
+
+    "the_deeper_principle": (
+        "A system that only builds what it needs is a system that understands itself. "
+        "Over-engineering is its own safety risk -- more surface area, more failure modes, "
+        "more dark code that no one is watching. "
+        "Murphy stays small and honest until scale demands otherwise. "
+        "Then it grows exactly as much as it needs to. No more."
+    ),
+}
+
