@@ -49,6 +49,13 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
+
+def _get_internal_token() -> str:
+    try:
+        from src.honeypot_engine import MURPHY_INTERNAL_TOKEN
+        return MURPHY_INTERNAL_TOKEN
+    except Exception:
+        return ""
 router = APIRouter(prefix="/api/hack", tags=["hack_stream_graph"])
 
 # ---------------------------------------------------------------------------

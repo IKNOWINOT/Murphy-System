@@ -84,6 +84,13 @@ trap_router = APIRouter(tags=["honeypot_traps"])   # no prefix — traps live at
 # Config
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Internal request token — Murphy signs its own requests with this header.
+# Set via MURPHY_INTERNAL_TOKEN env var; generated on first use if absent.
+import os as _os, secrets as _secrets
+_INTERNAL_TOKEN: str = _os.environ.get("MURPHY_INTERNAL_TOKEN") or _secrets.token_hex(32)
+# Export so other modules can sign internal requests
+MURPHY_INTERNAL_TOKEN = _INTERNAL_TOKEN
+
 @dataclass
 class HoneypotConfig:
     suspicion_threshold: int   = 60    # 0–100: trigger counter-scan above this
@@ -94,8 +101,19 @@ class HoneypotConfig:
     max_dossiers: int          = 500   # cap stored attacker records
     rotate_circuit_every: int  = 5     # new Tor circuit every N counter-scans
     whitelist: Set[str]        = field(default_factory=lambda: {
-        "127.0.0.1", "::1", "5.78.41.114"
+        # Localhost / loopback
+        "127.0.0.1", "::1", "::ffff:127.0.0.1",
+        # Server's own public IP (self-scans arrive here)
+        "5.78.41.114",
+        # RFC-1918 private ranges handled by _is_whitelisted() via ipaddress lib
     })
+    # Path prefixes that are NEVER scored — Murphy's own API surface
+    safe_prefixes: tuple = (
+        "/api/health", "/api/auth", "/api/ambient", "/api/lcm",
+        "/api/mgmt", "/api/rsc", "/api/hack", "/api/honeypot",
+        "/api/mail", "/api/admin", "/api/billing", "/api/demo",
+        "/static", "/ui/", "/_",
+    )
 
 _config = HoneypotConfig()
 _counter_scan_count = 0
@@ -317,13 +335,33 @@ def _client_ip(request: Request) -> str:
 
 
 def _is_whitelisted(ip: str) -> bool:
+    """
+    Returns True if the IP or request should be exempt from all honeypot logic.
+    Covers: explicit whitelist, RFC-1918 private ranges, loopback, link-local,
+    and Murphy's own Tor exit IPs (tracked in _tor_exit_ips).
+    """
     if ip in _config.whitelist:
         return True
     try:
         addr = ipaddress.ip_address(ip)
-        return addr.is_private or addr.is_loopback
+        if addr.is_private or addr.is_loopback or addr.is_link_local:
+            return True
     except ValueError:
-        return False
+        pass
+    # Check dynamic Tor exit IP registry (populated when counter-scans go out)
+    if ip in _tor_exit_ips:
+        return True
+    return False
+
+
+# Dynamic registry of Tor exit IPs Murphy has used — exempted from counter-scan
+_tor_exit_ips: Set[str] = set()
+
+
+def register_tor_exit_ip(ip: str):
+    """Called by hack_transport when a new Tor circuit is established."""
+    _tor_exit_ips.add(ip)
+    logger.debug("ETH-HACK-004: Registered Tor exit IP as safe: %s", ip)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Counter-scan trigger
@@ -416,6 +454,10 @@ async def _handle_trap(request: Request, trap_name: str, fake_response: Any, con
     ip = _client_ip(request)
 
     if _is_whitelisted(ip):
+        return Response(status_code=404)
+
+    # Murphy internal bypass — signed requests from Murphy itself pass through
+    if request.headers.get("x-murphy-internal") == _INTERNAL_TOKEN:
         return Response(status_code=404)
 
     ua = request.headers.get("user-agent", "")
@@ -677,8 +719,8 @@ class HoneypotMiddleware:
         path = scope.get("path", "")
         headers = dict(scope.get("headers", []))
 
-        # Skip our own honeypot API and static assets
-        if any(path.startswith(p) for p in self.SKIP_PREFIXES):
+        # Skip safe path prefixes (Murphy's own API surface)
+        if any(path.startswith(p) for p in _config.safe_prefixes):
             await self.app(scope, receive, send)
             return
 
@@ -690,6 +732,12 @@ class HoneypotMiddleware:
             ip = xff.split(",")[0].strip()
 
         if _is_whitelisted(ip):
+            await self.app(scope, receive, send)
+            return
+
+        # Murphy internal signed request — always pass through, never score
+        int_token = headers.get(b"x-murphy-internal", b"").decode()
+        if int_token == _INTERNAL_TOKEN:
             await self.app(scope, receive, send)
             return
 

@@ -634,9 +634,15 @@ async def _run_scan(job: ScanJob, authorized: bool, transport_mode: str = 'direc
                 _scan_client = build_client(mode=_mode, node_ids=node_ids, verify_ssl=False)
             except Exception as _te:
                 logger.warning("ETH-HACK-002: transport build failed (%s), falling back to direct", _te)
-                _scan_client = httpx.AsyncClient(verify=False, timeout=15)
+                _scan_client = httpx.AsyncClient(
+                verify=False, timeout=15,
+                headers={"X-Murphy-Internal": _get_internal_token()},
+            )
         else:
-            _scan_client = httpx.AsyncClient(verify=False, timeout=15)
+            _scan_client = httpx.AsyncClient(
+                verify=False, timeout=15,
+                headers={"X-Murphy-Internal": _get_internal_token()},
+            )
 
         async with _scan_client as client:
             # Run all probes concurrently

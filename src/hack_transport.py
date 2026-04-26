@@ -51,6 +51,13 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
+
+def _get_internal_token() -> str:
+    try:
+        from src.honeypot_engine import MURPHY_INTERNAL_TOKEN
+        return MURPHY_INTERNAL_TOKEN
+    except Exception:
+        return ""
 router = APIRouter(prefix="/api/hack", tags=["ethical_hacking_transport"])
 
 # ---------------------------------------------------------------------------
@@ -246,7 +253,10 @@ def build_client(
     ua = "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0"
 
     if mode == TransportMode.DIRECT:
-        return httpx.AsyncClient(verify=verify_ssl, timeout=20, headers={"User-Agent": ua})
+        return httpx.AsyncClient(
+            verify=verify_ssl, timeout=20,
+            headers={"User-Agent": ua, "X-Murphy-Internal": _get_internal_token()},
+        )
 
     elif mode == TransportMode.TOR:
         return _get_tor_client(verify_ssl=verify_ssl)
@@ -255,7 +265,10 @@ def build_client(
         healthy = _registry.healthy()
         if not healthy:
             logger.warning("ETH-HACK-002: ROTATE mode — no healthy nodes, falling back to direct")
-            return httpx.AsyncClient(verify=verify_ssl, timeout=20, headers={"User-Agent": ua})
+            return httpx.AsyncClient(
+            verify=verify_ssl, timeout=20,
+            headers={"User-Agent": ua, "X-Murphy-Internal": _get_internal_token()},
+        )
         node = random.choice(healthy)
         logger.info("ETH-HACK-002: ROTATE selected node %s (%s)", node.node_id, node.label)
         if node.node_type == NodeType.TOR:
@@ -279,7 +292,10 @@ def build_client(
         return httpx.AsyncClient(transport=transport, verify=verify_ssl, timeout=20, headers={"User-Agent": ua})
 
     else:
-        return httpx.AsyncClient(verify=verify_ssl, timeout=20, headers={"User-Agent": ua})
+        return httpx.AsyncClient(
+            verify=verify_ssl, timeout=20,
+            headers={"User-Agent": ua, "X-Murphy-Internal": _get_internal_token()},
+        )
 
 
 # ---------------------------------------------------------------------------
