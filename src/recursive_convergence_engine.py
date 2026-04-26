@@ -843,6 +843,7 @@ def process(
     content: str,
     feed_history: List[str] = None,
     domain: str = "general",
+    session_id: str = None,
 ) -> Tuple[ConvergenceSignal, SteeringAction]:
     """Convenience function — run the full three-body convergence engine."""
-    return get_engine().process(content, feed_history, domain)
+    return get_engine().process(content, feed_history, domain, session_id)
