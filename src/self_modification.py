@@ -526,7 +526,7 @@ class SelfModificationEngine:
         - dry_run=True default — safe by default
         - Every decision logged in cycle_report
         """
-        priority_order = {"HIGH": 0, "MEDIUM": 1, "LOW": 2, "FIXED": 99}
+        priority_order = {"HIGH": 0, "MEDIUM": 1, "LOW": 2, "FIXED": 999}  # FIXED gaps never actioned
         min_rank = priority_order.get(min_priority, 1)
 
         cycle_report: Dict[str, Any] = {
@@ -638,8 +638,33 @@ class SelfModificationEngine:
 
             # Step 3f: Apply (or rehearse) via write_patch
             # Extract target file from gap desc if present
-            target_file = "src/self_modification.py"  # default
+            # PATCH-104b: Expanded target mapping — default to the most relevant file
             desc_lower = gap_desc.lower()
+            target_file = "src/self_modification.py"  # fallback only
+            for keyword, path in [
+                ("rrom",               "src/rrom.py"),
+                ("world state",        "src/world_state_engine.py"),
+                ("wse",                "src/world_state_engine.py"),
+                ("pcc",                "src/pcc.py"),
+                ("model_team",         "src/model_team.py"),
+                ("model team",         "src/model_team.py"),
+                ("sentinel",           "src/model_team.py"),
+                ("teacher",            "src/self_modification.py"),
+                ("criminal_investig",  "src/criminal_investigation_protocol.py"),
+                ("cidp",               "src/criminal_investigation_protocol.py"),
+                ("convergence_graph",  "src/convergence_graph.py"),
+                ("convergence",        "src/convergence_graph.py"),
+                ("sendgrid",           "src/murphy_mail.py"),
+                ("llm",                "src/llm_provider.py"),
+                ("llm_provider",       "src/llm_provider.py"),
+                ("hardware",           "src/hardware_telemetry.py"),
+                ("shield",             "src/shield_wall.py"),
+                ("evaluate_self",      "src/self_modification.py"),
+            ]:
+                if keyword in desc_lower:
+                    target_file = path
+                    break
+            desc_lower_unused = desc_lower  # keep linter happy
             for candidate in [
                 ("model_team.py", "src/model_team.py"),
                 ("pcc.py",        "src/pcc.py"),
