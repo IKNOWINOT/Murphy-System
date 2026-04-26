@@ -1072,7 +1072,7 @@ def create_app() -> FastAPI:
 
     # ── CRM Module (Phase 8 – Monday.com parity) ──────────────────
     try:
-        from crm.api import create_crm_router
+        from src.crm.api import create_crm_router
         _crm_router = create_crm_router()
         app.include_router(_crm_router)
         logger.info("CRM API registered at /api/crm")
@@ -16406,6 +16406,15 @@ def create_app() -> FastAPI:
         _lcm_router = _lcm_build_router()
         app.include_router(_lcm_router)
         logger.info("PATCH-073: LCM router mounted — /api/lcm/* live")
+
+    try:
+        from src.shield_wall import build_shield_wall_router as _sw_router_fn
+        _sw_router = _sw_router_fn()
+        if _sw_router is not None:
+            app.include_router(_sw_router)
+            logger.info("PATCH-093c: Shield Wall router mounted — /api/shield/* live")
+    except Exception as _sw_exc:
+        logger.warning("PATCH-093c: Shield Wall router mount failed: %s", _sw_exc)
     except Exception as _lcm_exc:
         logger.warning("PATCH-073: LCM router mount failed: %s", _lcm_exc)
 
@@ -16683,6 +16692,114 @@ def create_app() -> FastAPI:
         logger.info("PATCH-084: /api/modules/* mounted — 31 unwired modules now inspectable")
     except Exception as _aw_exc:
         logger.warning("PATCH-084: auto_wire_router failed: %s", _aw_exc)
+
+
+    # ── PATCH-089: Quick-win router wiring ─────────────────────────────────────
+    # Wire all routers that existed but were never mounted.
+
+    # CRM
+    try:
+        from src.crm.api import create_crm_router
+        _crm_r = create_crm_router()
+        app.include_router(_crm_r)
+        logger.info("PATCH-089: CRM router mounted — /api/crm/* live")
+    except Exception as _e:
+        logger.warning("PATCH-089: crm router failed: %s", _e)
+
+    # Time tracking
+    try:
+        from src.time_tracking.api import create_time_tracking_router as _tt_f
+        app.include_router(_tt_f())
+        logger.info("PATCH-089: Time tracking router mounted — /api/time-tracking/* live")
+    except Exception as _e:
+        logger.warning("PATCH-089: time_tracking router failed: %s", _e)
+
+    # Collaboration
+    try:
+        from src.collaboration.api import create_collaboration_router as _collab_f
+        app.include_router(_collab_f())
+        logger.info("PATCH-089: Collaboration router mounted — /api/collaboration/* live")
+    except Exception as _e:
+        logger.warning("PATCH-089: collaboration router failed: %s", _e)
+
+    # Portfolio
+    try:
+        from src.portfolio.api import create_portfolio_router as _port_f
+        app.include_router(_port_f())
+        logger.info("PATCH-089: Portfolio router mounted — /api/portfolio/* live")
+    except Exception as _e:
+        logger.warning("PATCH-089: portfolio router failed: %s", _e)
+
+    # Dashboards
+    try:
+        from src.dashboards.api import create_dashboard_router as _dash_f
+        app.include_router(_dash_f())
+        logger.info("PATCH-089: Dashboards router mounted — /api/dashboards/* live")
+    except Exception as _e:
+        logger.warning("PATCH-089: dashboards router failed: %s", _e)
+
+    # Guest collab
+    try:
+        from src.guest_collab.api import create_guest_router as _guest_f
+        app.include_router(_guest_f())
+        logger.info("PATCH-089: Guest collab router mounted — /api/guest/* live")
+    except Exception as _e:
+        logger.warning("PATCH-089: guest_collab router failed: %s", _e)
+
+    # ML
+    try:
+        from src.ml.api import create_ml_router as _ml_f
+        app.include_router(_ml_f())
+        logger.info("PATCH-089: ML router mounted — /api/ml/* live")
+    except Exception as _e:
+        logger.warning("PATCH-089: ml router failed: %s", _e)
+
+    # System updates
+    try:
+        from src.system_update_api import create_system_update_router as _sysupd_f
+        app.include_router(_sysupd_f())
+        logger.info("PATCH-089: System update router mounted — /api/system-updates/* live")
+    except Exception as _e:
+        logger.warning("PATCH-089: system_update_api router failed: %s", _e)
+
+    # ── PATCH-089b: Wire persistent memory into startup ─────────────────────────
+    try:
+        from src.persistent_memory.tenant_memory import TenantMemoryStore
+        _tenant_mem = TenantMemoryStore()
+        app.state.tenant_memory = _tenant_mem
+        logger.info("PATCH-089b: TenantMemoryStore wired — persistent memory active")
+    except Exception as _e:
+        logger.warning("PATCH-089b: tenant_memory failed: %s", _e)
+
+    # ── PATCH-089c: LLM cost ledger — tap llm_provider, accumulate to SQLite ───
+    try:
+        from src.llm_cost_ledger import LLMCostLedger, patch_llm_provider, cost_router as _cost_router
+        _cost_ledger = LLMCostLedger()
+        patch_llm_provider(_cost_ledger)
+        app.state.llm_cost_ledger = _cost_ledger
+        app.include_router(_cost_router)
+        logger.info("PATCH-089c: LLM cost ledger active — /api/llm-cost/* live")
+    except Exception as _e:
+        logger.warning("PATCH-089c: llm_cost_ledger failed: %s", _e)
+
+    # ── PATCH-089d: System-wide audit trail ─────────────────────────────────────
+    try:
+        from src.murphy_audit_trail import AuditTrail, audit_router
+        _audit = AuditTrail()
+        app.state.audit_trail = _audit
+        app.include_router(audit_router)
+        logger.info("PATCH-089d: Audit trail active — /api/audit/* live")
+    except Exception as _e:
+        logger.warning("PATCH-089d: audit_trail failed: %s", _e)
+
+    # ── PATCH-089e: MCP plugin router ───────────────────────────────────────────
+    try:
+        from src.mcp_plugin import create_mcp_router
+        _mcp_r = create_mcp_router()
+        app.include_router(_mcp_r)
+        logger.info("PATCH-089e: MCP plugin router mounted — /api/mcp/* live")
+    except Exception as _e:
+        logger.warning("PATCH-089e: mcp_plugin router failed: %s", _e)
 
 
     return app
