@@ -123,6 +123,12 @@ SHIELD_LAYERS: List[Tuple[str, str, str, str | None]] = [
         "Single-model blind spots — Triage, Analyst, Specialist, Sentinel",
         "DEEPINFRA_API_KEY",
     ),
+    (
+        "RecursiveConvergenceEngine",
+        "recursive_convergence_engine.RecursiveFilter.filter() — 3-axis pattern recognition",
+        "Feed tribalism, echo chambers, outrage loops — gradient steering to middle path",
+        None,
+    ),
 ]
 
 # ---------------------------------------------------------------------------

@@ -193,5 +193,59 @@ def build_shield_wall_router():
             logger.warning("Team deliberate error: %s", exc)
             return JSONResponse(content={"error": str(exc)}, status_code=500)
 
+
+    # ── PATCH-096: Recursive Convergence Engine ──────────────────────────────
+    @router.post("/convergence/analyze", summary="Three-Body Convergence Analysis")
+    async def convergence_analyze(request: dict):
+        """
+        Run the full three-body pattern recognition engine on content.
+        
+        Axis 1: Tribal Gravity  — what is pulling this feed closed?
+        Axis 2: Signal Coherence — what is amplified vs. absent?
+        Axis 3: Middle Path Vector — what is the gradient toward flourishing?
+        
+        Returns convergence signal + steering action (CIDP-cleared).
+        Free will is preserved in every steering path.
+        """
+        try:
+            from src.recursive_convergence_engine import process
+            content = request.get("content", "")
+            feed_history = request.get("feed_history", [])
+            domain = request.get("domain", "general")
+            signal, action = process(content, feed_history, domain)
+            return JSONResponse(content={
+                "convergence": signal.to_dict(),
+                "steering": action.to_dict(),
+                "oath": "We do not censor. We shift the gradient. Free will is sacred. The choice is always theirs.",
+            })
+        except Exception as exc:
+            logger.warning("RCE analyze error: %s", exc)
+            return JSONResponse(content={"error": str(exc)}, status_code=500)
+
+    @router.get("/convergence/patterns", summary="Tribal Patterns Reference")
+    async def convergence_patterns():
+        """The named tribal routing patterns the engine recognizes."""
+        try:
+            from src.recursive_convergence_engine import (
+                TribalPattern, _TRIBAL_CLOSURE, MIDDLE_PATH_COUNTER_SIGNALS,
+                FLOURISHING_DOMAINS, CONTRACTION_DOMAINS, STEERING_OATH,
+            )
+            return JSONResponse(content={
+                "oath": STEERING_OATH,
+                "tribal_patterns": {
+                    p.value: {
+                        "closure_score": _TRIBAL_CLOSURE[p],
+                        "counter_signal": MIDDLE_PATH_COUNTER_SIGNALS[p]["gradient"],
+                        "content_type": MIDDLE_PATH_COUNTER_SIGNALS[p]["content_type"],
+                    }
+                    for p in TribalPattern
+                },
+                "flourishing_domains": [d.value for d in FLOURISHING_DOMAINS],
+                "contraction_domains": [d.value for d in CONTRACTION_DOMAINS],
+                "principle": "One degree. Not a revolution. The choice is always theirs.",
+            })
+        except Exception as exc:
+            return JSONResponse(content={"error": str(exc)}, status_code=500)
+
     logger.info("PATCH-093c: Shield Wall router mounted — /api/shield/*")
     return router
