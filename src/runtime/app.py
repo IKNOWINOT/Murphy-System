@@ -90,6 +90,7 @@ def _normalize_mss_context(raw_context: "Any") -> "Optional[Dict[str, Any]]":
     return None
 
 
+from contextlib import asynccontextmanager
 def create_app() -> FastAPI:
     """Create FastAPI application"""
 
@@ -97,6 +98,52 @@ def create_app() -> FastAPI:
         raise ImportError("FastAPI not installed. Install with: pip install fastapi uvicorn")
 
     _is_prod = os.environ.get("MURPHY_ENV", "").lower() in ("production", "staging")
+
+    @asynccontextmanager
+    async def _lifespan(app):
+        """
+        PATCH-122: Proper lifespan startup — runs after app is initialized.
+        Starts scheduler, wires swarm, triggers first corpus collect.
+        """
+        import asyncio
+
+        def _startup_tasks():
+            try:
+                # SwarmScheduler — must start in lifespan, not create_app()
+                from src.swarm_scheduler import get_scheduler
+                sched = get_scheduler()
+                if not sched._started:
+                    sched.start()
+                    logger.info("PATCH-122: SwarmScheduler started — %d jobs", len(sched._jobs))
+
+                # Rosetta Soul + Coordinator
+                from src.rosetta_core import get_rosetta_soul, get_swarm_coordinator
+                from src.exec_admin_agent import get_exec_admin
+                from src.prod_ops_agent import get_prod_ops
+                soul = get_rosetta_soul()
+                soul.refresh_world_context()
+                coord = get_swarm_coordinator()
+                if "exec_admin" not in coord._agents:
+                    coord.register("exec_admin", get_exec_admin())
+                if "prod_ops" not in coord._agents:
+                    coord.register("prod_ops", get_prod_ops())
+                logger.info("PATCH-122: Swarm wired — %d agents", len(coord._agents))
+
+                # WorldCorpus — init (collect happens via scheduler)
+                from src.world_corpus import get_world_corpus
+                wc = get_world_corpus()
+                logger.info("PATCH-122: WorldCorpus ready — %d records", wc.stats()["total_records"])
+
+            except Exception as exc:
+                logger.error("PATCH-122: lifespan startup error: %s", exc)
+
+        import threading
+        t = threading.Thread(target=_startup_tasks, daemon=True, name="murphy-lifespan-startup")
+        t.start()
+        t.join(timeout=30)  # wait max 30s for startup tasks
+        yield  # app is now running
+        # shutdown: nothing to tear down (scheduler threads are daemon)
+
     app = FastAPI(
         title="Murphy System 1.0",
         description="Universal AI Automation System",
@@ -104,6 +151,7 @@ def create_app() -> FastAPI:
         docs_url=None if _is_prod else "/docs",
         redoc_url=None if _is_prod else "/redoc",
         openapi_url=None if _is_prod else "/openapi.json",
+        lifespan=_lifespan,
     )
 
     # ── Utility: ISO timestamp helper ───────────────────────────

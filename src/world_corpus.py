@@ -226,8 +226,13 @@ class WorldCorpus:
 
         re_ = self.collect_reddit("economics", "finance", ["finance"])
         if re_ == 0:
-            re_ = self.collect_rss("https://feeds.reuters.com/reuters/businessNews",
-                                   "finance", "reuters_biz", ["finance", "business"])
+            # Reuters DNS unavailable on this server — use BBC Business RSS
+            re_ = self.collect_rss("https://feeds.bbci.co.uk/news/business/rss.xml",
+                                   "finance", "bbc_business", ["finance", "business"])
+        if re_ == 0:
+            # Fallback: WSJ (public RSS)
+            re_ = self.collect_rss("https://feeds.content.dowjones.io/public/rss/mw_topstories",
+                                   "finance", "marketwatch", ["finance", "markets"])
         counts["economics"] = re_
 
         counts["total"] = sum(v for k, v in counts.items() if k != "total")
@@ -329,11 +334,22 @@ class WorldCorpus:
             from src.llm_provider import MurphyLLMProvider
             llm = MurphyLLMProvider()
             newline = chr(10)
-            obs = newline.join("- " + r.content.split(" | ")[0] for r in top)
+            # Cluster by domain for structured context
+            by_domain = {}
+            for r in top:
+                d = r.domain
+                by_domain.setdefault(d, []).append(r.content.split(" | ")[0])
+            cluster_lines = []
+            for dom, items in by_domain.items():
+                cluster_lines.append(dom.upper() + ":")
+                for item in items[:4]:
+                    cluster_lines.append("  - " + item)
+            obs = newline.join(cluster_lines)
             prompt = (
-                "You are Murphy, an AI operating system analyzing world signals." + newline
-                + "Based on these recent observations:" + newline + obs + newline + newline
-                + "Answer concisely (2-3 sentences): " + question
+                "You are Murphy, an AI operating system. Analyze these world signals and answer the question." + newline
+                + "Signals by domain:" + newline + obs + newline + newline
+                + "Question: " + question + newline
+                + "Answer in 2-3 sentences. Be specific about what the signals suggest."
             )
             result = llm.complete(prompt=prompt, max_tokens=250)
             answer = result.content.strip()
