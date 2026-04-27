@@ -440,6 +440,24 @@ class MurphyMind:
         ctx = self._build_context()
         prev = ctx.get("previous_self_model") or {}
 
+        # PATCH-125e: Filter stale gaps — remove any that correspond to now-FIXED FMs
+        fixed_fms = {v["id"] for v in ctx.get("fm_verification", []) if v["status"] == "fixed"}
+        _stale_keywords = {
+            "FM-001": ["generate(", ".chat(", "llm api shape"],
+            "FM-002": ["thread-unsafe sqlite", "sqlite in __init__"],
+            "FM-003": ["like scan", "deduplication", "dedup", "duplicate knowledge", "rss items"],
+            "FM-004": ["module-level llm", "circular import"],
+            "FM-008": ["singleton", "no lock", "thread-safe init"],
+        }
+        filtered_prev_gaps = [
+            g for g in prev.get("active_gaps", [])
+            if not any(
+                any(kw in g.lower() for kw in kws)
+                for fm_id, kws in _stale_keywords.items()
+                if fm_id in fixed_fms
+            )
+        ]
+
         # Build the prompt — Murphy thinking about itself
         patches_str = "\n".join("  " + p for p in ctx["recent_patches"][:6])
         errors_str = "\n".join("  - " + e[:120] for e in ctx["boot_errors"][:5]) or "  None"
@@ -448,7 +466,7 @@ class MurphyMind:
         )
         inventory_str = json.dumps(ctx["source_inventory"])
 
-        prev_gaps = prev.get("active_gaps", [])
+        prev_gaps = filtered_prev_gaps  # PATCH-125e: stale FMs removed
         prev_priority = prev.get("priority_gap", "None identified yet")
         prev_action = prev.get("proposed_action", "None yet")
 
