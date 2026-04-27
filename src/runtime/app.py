@@ -17376,22 +17376,30 @@ def create_app() -> FastAPI:
 
 
     # ── PATCH-082d: Mount modules with existing api.py but previously unwired ──
-    _unwired_modules = [
-        ("form_intake.api",                "router",  "/api/forms",    "Form Intake"),
-        ("document_export.api",            "create_router", "/api/export", "Document Export"),
-        ("telemetry_learning.api",         "app",     "/api/telemetry","Telemetry Learning"),
+    # PATCH-109d: telemetry_learning exports a full FastAPI app, not a router
+    # Mount it as a sub-application; form_intake and document_export use routers
+    _router_modules = [
+        ("form_intake.api",      "router",        "/api/forms",    "Form Intake"),
+        ("document_export.api",  "create_router", "/api/export",   "Document Export"),
     ]
-    for _mod_path, _attr, _prefix, _label in _unwired_modules:
+    for _mod_path, _attr, _prefix, _label in _router_modules:
         try:
             import importlib
             _mod = importlib.import_module(f"src.{_mod_path}")
             _r = getattr(_mod, _attr)
             if callable(_r) and not hasattr(_r, "routes"):
-                _r = _r()  # call factory if it's create_router()
+                _r = _r()
             app.include_router(_r)
-            logger.info("PATCH-082d: %s mounted at %s", _label, _prefix)
+            logger.info("PATCH-109d: %s mounted at %s", _label, _prefix)
         except Exception as _e:
-            logger.warning("PATCH-082d: %s failed: %s", _label, _e)
+            logger.warning("PATCH-109d: %s failed: %s", _label, _e)
+
+    try:
+        from src.telemetry_learning.api import app as _telem_app
+        app.mount("/api/telemetry", _telem_app)
+        logger.info("PATCH-109d: Telemetry Learning mounted as sub-app at /api/telemetry")
+    except Exception as _e:
+        logger.warning("PATCH-109d: Telemetry Learning sub-app mount failed: %s", _e)
 
 
     # ── PATCH-084: Auto-Wire Router — exposes all 31 unwired modules ──────────
@@ -17463,13 +17471,13 @@ def create_app() -> FastAPI:
     except Exception as _e:
         logger.warning("PATCH-089: ml router failed: %s", _e)
 
-    # System updates
+    # System updates — PATCH-109b: module exports 'router' directly, not factory fn
     try:
-        from src.system_update_api import create_system_update_router as _sysupd_f
-        app.include_router(_sysupd_f())
-        logger.info("PATCH-089: System update router mounted — /api/system-updates/* live")
+        from src.system_update_api import router as _sysupd_r
+        app.include_router(_sysupd_r)
+        logger.info("PATCH-109b: System update router mounted — /api/system-updates/* live")
     except Exception as _e:
-        logger.warning("PATCH-089: system_update_api router failed: %s", _e)
+        logger.warning("PATCH-109b: system_update_api router failed: %s", _e)
 
 
     # ── PATCH-103: World State Engine — start background refresh loop ────────

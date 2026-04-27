@@ -61,14 +61,14 @@ else:
 try:
     from universal_control_plane import UniversalControlPlane
 except ImportError as exc:
-    logger.warning("Could not import UniversalControlPlane: %s", exc)
+    logger.debug("Could not import UniversalControlPlane (planned module): %s", exc)  # PATCH-109c
     UniversalControlPlane = None
 
 # Inoni Business Automation
 try:
     from inoni_business_automation import InoniBusinessAutomation
 except ImportError as exc:
-    logger.warning("Could not import InoniBusinessAutomation: %s", exc)
+    logger.debug("Could not import InoniBusinessAutomation (planned module): %s", exc)  # PATCH-109c
     InoniBusinessAutomation = None
 
 # Integration Engine
@@ -83,7 +83,7 @@ except ImportError as exc:
 try:
     from two_phase_orchestrator import TwoPhaseOrchestrator
 except ImportError as exc:
-    logger.warning("Could not import TwoPhaseOrchestrator: %s", exc)
+    logger.debug("Could not import TwoPhaseOrchestrator (planned module): %s", exc)  # PATCH-109c
     TwoPhaseOrchestrator = None
 
 # Phase 1-5 Components (optional - may not all be available)

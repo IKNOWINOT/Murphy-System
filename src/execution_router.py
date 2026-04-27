@@ -68,7 +68,7 @@ def _initialize_orchestrators() -> None:
         log.info("✓ TwoPhaseOrchestrator loaded")
     except Exception as e:
         _init_errors.append(f"TwoPhaseOrchestrator: {e}")
-        log.warning("✗ TwoPhaseOrchestrator failed: %s", e)
+        log.debug("✗ TwoPhaseOrchestrator not installed (planned): %s", e)  # PATCH-109c
 
     # ── Universal Control Plane ──
     try:
@@ -77,7 +77,7 @@ def _initialize_orchestrators() -> None:
         log.info("✓ UniversalControlPlane loaded")
     except Exception as e:
         _init_errors.append(f"UniversalControlPlane: {e}")
-        log.warning("✗ UniversalControlPlane failed: %s", e)
+        log.debug("✗ UniversalControlPlane not installed (planned): %s", e)  # PATCH-109c
 
     # ── Execution Orchestrator ──
     try:

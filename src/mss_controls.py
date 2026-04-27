@@ -92,6 +92,7 @@ class TransformationResult:
     qc_metadata: Dict[str, str]
     simulation: Optional[SimulationResult]
     governance_status: str
+    resolution_level: str = "RM0"  # PATCH-109a: added — assess() sets this; RM0=unknown/default
 
 
 # ---------------------------------------------------------------------------
