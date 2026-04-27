@@ -1,20 +1,7 @@
 """
-PATCH-117 — src/prod_ops_agent.py
-Murphy System — Swarm Rosetta Production Ops Agent
-
-Automates production operations:
-  - Health watchdog (every 5 min — checks services + auto-heals)
-  - Incident detection + response (error spike → classify → runbook → alert)
-  - Deploy trigger (git push to main → build + test + deploy)
-  - Self-patch scheduling (daily 3am → run_autonomous_cycle)
-  - Capacity alerts (CPU/RAM >85% → scale warning + throttle)
-
-Triggered by: hardware_telemetry signals, git webhooks, cron schedule.
-
-Copyright © 2020-2026 Inoni LLC — Created by Corey Post
-License: BSL 1.1
+PATCH-117 + PATCH-115b — src/prod_ops_agent.py
+Murphy System — Production Ops Agent (inherits AgentBase / RosettaSoul)
 """
-
 from __future__ import annotations
 
 import logging
@@ -22,22 +9,40 @@ import subprocess
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+try:
+    from src.rosetta_core import AgentBase
+except Exception:
+    AgentBase = object
+
 logger = logging.getLogger("murphy.prod_ops")
 
 
-class ProdOpsAgent:
+class ProdOpsAgent(AgentBase):
     """
     PATCH-117: Production Operations automation agent.
-    Handles the infrastructure and system ops layer of the swarm.
+    Carries RosettaSoul via AgentBase inheritance.
     """
 
     HEALTH_THRESHOLDS = {
-        "cpu_percent":    85.0,
-        "ram_percent":    85.0,
-        "disk_percent":   90.0,
-        "latency_ms":    500.0,
-        "error_rate":      0.05,
+        "cpu_percent":  85.0,
+        "ram_percent":  85.0,
+        "disk_percent": 90.0,
+        "latency_ms":  500.0,
+        "error_rate":    0.05,
     }
+
+    def __init__(self):
+        super().__init__("prod_ops")
+
+    def act(self, signal: dict) -> dict:
+        """AgentBase interface — route signal to correct prod_ops task."""
+        signal_type = signal.get("signal_type", "")
+        if signal_type == "git":
+            return self.handle_git_event(signal)
+        elif signal_type in ("telemetry", "incident"):
+            return self.handle_incident(signal)
+        else:
+            return self.health_watchdog()
 
     def health_watchdog(self) -> Dict:
         """Check system health. Return status + any auto-heal actions taken."""

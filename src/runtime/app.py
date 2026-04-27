@@ -1480,6 +1480,33 @@ def create_app() -> FastAPI:
         response = {**info, "success": True, "system": info}
         return JSONResponse(response)
 
+
+    # ── PATCH-115b: Rosetta Soul + Swarm Coordinator startup ──────────────────
+    try:
+        from src.rosetta_core import get_rosetta_soul, get_swarm_coordinator
+        from src.exec_admin_agent import get_exec_admin
+        from src.prod_ops_agent import get_prod_ops
+
+        _soul = get_rosetta_soul()
+        _soul.refresh_world_context()   # load world influence on boot
+
+        _coord = get_swarm_coordinator()
+        _coord.register("exec_admin", get_exec_admin())
+        _coord.register("prod_ops", get_prod_ops())
+
+        logger.info("PATCH-115b: Rosetta Soul live — %d agents, world_topics=%d",
+                    len(_coord._agents), len(_soul.world_context.get("trending_topics", [])))
+    except Exception as _e:
+        logger.warning("PATCH-115b: Rosetta Soul startup failed: %s", _e)
+
+    # ── PATCH-118: SwarmScheduler startup ─────────────────────────────────────
+    try:
+        from src.swarm_scheduler import get_scheduler
+        get_scheduler().start()
+        logger.info("PATCH-118: SwarmScheduler started")
+    except Exception as _e:
+        logger.warning("PATCH-118: SwarmScheduler startup failed: %s", _e)
+
     @app.get("/api/health")
     async def health_check(deep: bool = False):
         """Health check endpoint.
@@ -16990,150 +17017,129 @@ def create_app() -> FastAPI:
 
 
 
-    # ══════════════════════════════════════════════════════════════════════
-    # PATCH-112 through PATCH-117: Swarm Rosetta — NL→Workflow Engine
-    # ══════════════════════════════════════════════════════════════════════
+
+    # ── PATCH-115b: Rosetta Soul API ──────────────────────────────────────────
+
+    @app.get("/api/rosetta/soul")
+    async def _rosetta_soul():
+        """Full soul status: principles, character roster, world context."""
+        try:
+            from src.rosetta_core import get_rosetta_soul
+            return JSONResponse({"success": True, **get_rosetta_soul().soul_status()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
     @app.get("/api/rosetta/status")
-    async def _rosetta_status():
-        """PATCH-115 — Swarm status: all agents, active workflows, signal queue."""
+    async def _rosetta_status_v2():
+        """Swarm coordinator status: all agents with soul character + runtime state."""
         try:
-            from src.rosetta_core import get_rosetta
-            r = get_rosetta()
-            return JSONResponse({"success": True, **r.swarm_status()})
+            from src.rosetta_core import get_swarm_coordinator
+            return JSONResponse({"success": True, **get_swarm_coordinator().swarm_status()})
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
-    @app.post("/api/rosetta/translate")
-    async def _rosetta_translate(request: Request):
-        """PATCH-115 — Translate NL text → WorkflowSpec + DAGGraph."""
+    @app.get("/api/influence/snapshot")
+    async def _influence_snapshot():
+        """Current world influence snapshot."""
         try:
-            from src.rosetta_core import get_rosetta
-            body = await request.json()
-            text = body.get("text", "")
-            account = body.get("account", "unknown")
-            execute = bool(body.get("execute", False))
-            if not text:
-                return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
-            result = get_rosetta().translate(text, account=account, execute=execute)
-            return JSONResponse({"success": True, **result})
-        except Exception as exc:
-            logger.error("Rosetta translate error: %s", exc)
-            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
-
-    @app.get("/api/signals/latest")
-    async def _signals_latest(signal_type: str = None, limit: int = 50):
-        """PATCH-112 — Latest ingested signals."""
-        try:
-            from src.signal_collector import get_collector
-            c = get_collector()
-            return JSONResponse({"success": True, "signals": c.latest(signal_type=signal_type, limit=limit), "stats": c.stats()})
-        except Exception as exc:
-            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
-
-    @app.post("/api/signals/ingest")
-    async def _signals_ingest(request: Request):
-        """PATCH-112 — Manually ingest a signal."""
-        try:
-            from src.signal_collector import get_collector
-            body = await request.json()
-            c = get_collector()
-            rec = c.ingest(
-                signal_type=body.get("signal_type", "manual"),
-                source=body.get("source", "api"),
-                payload=body.get("payload", {}),
-                domain=body.get("domain", "system"),
-                urgency=body.get("urgency", "ambient"),
-                stake=body.get("stake", "low"),
-                intent_hint=body.get("intent_hint", ""),
-                entities=body.get("entities", []),
-            )
-            return JSONResponse({"success": True, "signal_id": rec.signal_id})
-        except Exception as exc:
-            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
-
-    @app.get("/api/workflows/recent")
-    async def _workflows_recent(domain: str = None, limit: int = 20):
-        """PATCH-113 — Recent workflow runs."""
-        try:
-            from src.workflow_dag import get_workflow_db
-            db = get_workflow_db()
-            return JSONResponse({"success": True, "workflows": db.list_recent(limit=limit, domain=domain), "stats": db.stats()})
-        except Exception as exc:
-            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
-
-    @app.post("/api/workflow/build")
-    async def _workflow_build(request: Request):
-        """PATCH-114 — Build a DAG from NL text (parse only, no execution)."""
-        try:
-            from src.nl_workflow_parser import get_parser
-            body = await request.json()
-            text = body.get("text", "")
-            account = body.get("account", "unknown")
-            if not text:
-                return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
-            parser = get_parser()
-            spec, dag = parser.parse_and_build_dag(text, account=account)
+            from src.influence_collector import get_influence_collector
+            snap = get_influence_collector().last_snapshot()
+            if snap is None:
+                snap = get_influence_collector().fetch_snapshot()
             return JSONResponse({"success": True,
-                "spec": {"intent": spec.intent, "domain": spec.domain, "urgency": spec.urgency,
-                         "stake": spec.stake, "constraints": spec.constraints, "confidence": spec.confidence},
-                "dag": dag.to_dict()})
+                "timestamp": snap.timestamp,
+                "trending_topics": snap.trending_topics[:10],
+                "global_sentiment": snap.global_sentiment,
+                "volatility_index": snap.volatility_index,
+                "top_domains": snap.top_domains,
+            })
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
-    @app.post("/api/workflow/run")
-    async def _workflow_run(request: Request):
-        """PATCH-113 — Build AND execute a workflow from NL text."""
+    @app.get("/api/influence/trending")
+    async def _influence_trending(domain: str = None, limit: int = 10):
+        """Trending topics with demographic affinity scores."""
         try:
-            from src.rosetta_core import get_rosetta
+            from src.influence_collector import get_influence_collector
+            snap = get_influence_collector().last_snapshot()
+            if snap is None:
+                snap = get_influence_collector().fetch_snapshot()
+            topics = snap.trending_topics
+            if domain:
+                domain_seg_map = {
+                    "exec_admin": ["enterprise","policy_maker"],
+                    "prod_ops": ["developer","tech_early_adopter"],
+                    "comms": ["consumer","enterprise"],
+                }
+                segs = domain_seg_map.get(domain, ["tech_early_adopter"])
+                topics = [t for t in topics if any(
+                    t.get("demographic_affinity",{}).get(s,0) > 0.1 for s in segs
+                )]
+            return JSONResponse({"success": True, "topics": topics[:limit], "domain_filter": domain})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/rosetta/dispatch")
+    async def _rosetta_dispatch(request: Request):
+        """Dispatch a signal directly through the SwarmCoordinator."""
+        try:
+            from src.rosetta_core import get_swarm_coordinator
             body = await request.json()
-            text = body.get("text", "")
-            account = body.get("account", "unknown")
-            if not text:
-                return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
-            result = get_rosetta().translate(text, account=account, execute=True)
-            return JSONResponse({"success": True, **result})
+            coord = get_swarm_coordinator()
+            dag_id = coord.dispatch(body)
+            return JSONResponse({"success": True, "dag_id": dag_id})
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
-    @app.post("/api/exec/brief")
-    async def _exec_brief(request: Request):
-        """PATCH-116 — Generate executive morning brief."""
+    @app.get("/api/hitl/pending")
+    async def _hitl_pending():
+        """List pending HITL approval requests."""
         try:
-            from src.exec_admin_agent import get_exec_admin
+            from src.hitl_gate_swarm import get_hitl_queue
+            return JSONResponse({"success": True, "pending": get_hitl_queue().pending(),
+                                 "stats": get_hitl_queue().stats()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/hitl/approve/{hitl_id}")
+    async def _hitl_approve(hitl_id: str, request: Request):
+        """Approve a HITL request and resume the blocked DAG."""
+        try:
+            from src.hitl_gate_swarm import get_hitl_queue
             body = await request.json()
-            account = body.get("account", "cpost@murphy.systems")
-            result = get_exec_admin().run_morning_brief(account=account)
-            return JSONResponse({"success": True, **result})
+            result = get_hitl_queue().approve(hitl_id, approved_by=body.get("approved_by","api"))
+            if result is None:
+                return JSONResponse({"success": False, "error": "not found or not pending"}, status_code=404)
+            return JSONResponse({"success": True, "result": result})
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
-    @app.post("/api/prodops/health")
-    async def _prodops_health():
-        """PATCH-117 — Production health watchdog check."""
+    @app.post("/api/hitl/reject/{hitl_id}")
+    async def _hitl_reject(hitl_id: str, request: Request):
+        """Reject a HITL request."""
         try:
-            from src.prod_ops_agent import get_prod_ops
-            result = get_prod_ops().health_watchdog()
-            return JSONResponse({"success": True, **result})
-        except Exception as exc:
-            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
-
-    @app.post("/api/prodops/deploy")
-    async def _prodops_deploy(request: Request):
-        """PATCH-117 — Trigger a deployment workflow."""
-        try:
-            from src.prod_ops_agent import get_prod_ops
+            from src.hitl_gate_swarm import get_hitl_queue
             body = await request.json()
-            signal = {
-                "raw_payload": {
-                    "branch": body.get("branch", "main"),
-                    "author": body.get("author", "api"),
-                    "message": body.get("message", "manual deploy"),
-                },
-                "intent_hint": f"Deploy {body.get('branch','main')}",
-            }
-            result = get_prod_ops().handle_git_event(signal)
-            return JSONResponse({"success": True, **result})
+            get_hitl_queue().reject(hitl_id, rejected_by=body.get("rejected_by","api"))
+            return JSONResponse({"success": True})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/scheduler/status")
+    async def _scheduler_status():
+        """SwarmScheduler job list and status."""
+        try:
+            from src.swarm_scheduler import get_scheduler
+            return JSONResponse({"success": True, **get_scheduler().status()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/patterns/stats")
+    async def _pattern_stats():
+        """PatternLibrary stats."""
+        try:
+            from src.pattern_library import get_pattern_library
+            return JSONResponse({"success": True, **get_pattern_library().stats()})
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 

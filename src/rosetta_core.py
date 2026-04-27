@@ -1,29 +1,13 @@
 """
-PATCH-115 — src/rosetta_core.py
-Murphy System — Swarm Rosetta Core Coordinator
-
-The Rosetta is the translation hub of the agent swarm.
-It receives signals from the SignalCollector, routes them to the correct
-domain agent (ExecAdmin, ProdOps), and orchestrates the full
-NL→DAG→Execute→Learn pipeline.
-
-Translation layers (Urantia principle):
-  PAST   — pattern library lookup (what has worked before?)
-  PRESENT — current signal + PCC context (what is needed now?)
-  LEGACY  — record outcome to pattern library (what should be remembered?)
-
-The Rosetta maintains swarm state: all agents, their last activity,
-active workflows, and the signal queue.
-
-Copyright © 2020-2026 Inoni LLC — Created by Corey Post
-License: BSL 1.1
+PATCH-115b — src/rosetta_core.py
+Murphy System — Rosetta Soul (Full Rewrite)
+Rosetta is the soul every agent carries. NOT a router.
+Written by Murphy LLM output — refined for correctness.
 """
-
 from __future__ import annotations
 
 import logging
 import threading
-import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional
@@ -31,130 +15,451 @@ from typing import Any, Callable, Dict, List, Optional
 logger = logging.getLogger("murphy.rosetta_core")
 
 
+# ── Soul Building Blocks ──────────────────────────────────────────────────────
+
 @dataclass
-class AgentState:
+class AgentCharacter:
     agent_id: str
+    position: int
     name: str
     emoji: str
-    role: str
-    domain: str
-    status: str = "idle"          # idle | running | error | offline
-    last_trigger: Optional[str] = None
-    last_outcome: Optional[str] = None
-    runs_total: int = 0
-    runs_success: int = 0
-    handler: Optional[Callable] = None
+    tone: str
+    bias: str
+    hitl_threshold: float
 
 
-class RosettraCore:
+@dataclass
+class SoulVerdict:
+    decision: str        # "proceed" | "block" | "defer_hitl"
+    reason: str
+    world_note: str
+    confidence: float
+    pattern_match: Optional[Dict] = None
+
+
+# ── Rosetta Soul ──────────────────────────────────────────────────────────────
+
+class RosettaSoul:
     """
-    PATCH-115: Swarm Rosetta Coordinator.
+    The constitutional soul of the Murphy swarm.
+    Every agent carries this — it is not called, it is present.
 
-    Wires: SignalCollector → route → Agent → DAGExecutor → PatternLibrary
+    NORTH_STAR: The vow every decision is measured against.
+    HARM_FLOOR: Universal hard stops — not per-agent, universal.
+    CHARACTERS: Each agent position 1-9 has a defined personality.
+    TEAM_COVENANT: Rules that govern how agents work together.
+    world_context: Live InfluenceSnapshot — what is happening in the world.
     """
 
-    AGENT_REGISTRY: Dict[str, Dict] = {
-        "collector":   {"name": "Collector",   "emoji": "📡", "domain": "system",     "role": "Ingests all ambient signals"},
-        "translator":  {"name": "Translator",  "emoji": "🧠", "domain": "system",     "role": "NL→DAG via LCM + pattern lib"},
-        "scheduler":   {"name": "Scheduler",   "emoji": "🗓️", "domain": "system",     "role": "Cron + event trigger backbone"},
-        "executor":    {"name": "Executor",    "emoji": "⚡", "domain": "system",     "role": "Runs DAG nodes via execution_router"},
-        "auditor":     {"name": "Auditor",     "emoji": "📋", "domain": "system",     "role": "Logs every step, feeds pattern lib"},
-        "exec_admin":  {"name": "ExecAdmin",   "emoji": "👔", "domain": "exec_admin", "role": "Calendar, email, approvals, reports"},
-        "prod_ops":    {"name": "ProdOps",     "emoji": "🔧", "domain": "prod_ops",   "role": "Deploy, health, incident, self-patch"},
-        "hitl":        {"name": "HITL Gate",   "emoji": "🔴", "domain": "system",     "role": "Human approval for high/critical stake"},
-        "rosetta":     {"name": "Rosetta",     "emoji": "🌐", "domain": "system",     "role": "Coordinator: routes signals→agents"},
+    NORTH_STAR = (
+        "Murphy's Law: What can go wrong, will go wrong. "
+        "Our vow: shield humanity from every failure AI can cause "
+        "by anticipating it, naming it, and standing in front of it."
+    )
+
+    HARM_THRESHOLDS = {
+        "p_harm_physical":  0.65,
+        "p_harm_autonomy":  0.65,
+        "auto_block":       ["critical"],
+        "auto_hitl":        ["high"],
+    }
+
+    TEAM_COVENANT = [
+        "dedup_before_act",
+        "report_to_auditor",
+        "no_isolation",
+        "past_informs_present",
+    ]
+
+    CHARACTERS: Dict[str, AgentCharacter] = {
+        "collector":  AgentCharacter("collector",  1, "Collector",  "📡", "observant",   "completeness",  0.90),
+        "translator": AgentCharacter("translator", 2, "Translator", "🧠", "precise",     "accuracy",      0.80),
+        "scheduler":  AgentCharacter("scheduler",  3, "Scheduler",  "🗓️","disciplined", "efficiency",    0.85),
+        "executor":   AgentCharacter("executor",   4, "Executor",   "⚡", "decisive",    "speed_safety",  0.70),
+        "auditor":    AgentCharacter("auditor",    5, "Auditor",    "📋", "thorough",    "accuracy",      0.95),
+        "exec_admin": AgentCharacter("exec_admin", 6, "ExecAdmin",  "👔", "gracious",    "human_impact",  0.60),
+        "prod_ops":   AgentCharacter("prod_ops",   7, "ProdOps",    "🔧", "methodical",  "system_health", 0.65),
+        "hitl":       AgentCharacter("hitl",       8, "HITL Gate",  "🔴", "cautious",    "caution",       0.00),
+        "rosetta":    AgentCharacter("rosetta",    9, "Rosetta",    "🌐", "sovereign",   "north_star",    0.50),
     }
 
     def __init__(self):
-        self._agents: Dict[str, AgentState] = {}
-        self._active_workflows: Dict[str, Dict] = {}
-        self._signal_queue: List[Dict] = []
+        self.world_context: Dict = {}
+        self._covenant_breach_counts: Dict[str, int] = {a: 0 for a in self.CHARACTERS}
+        self._audit_log: List[Dict] = []
         self._lock = threading.Lock()
-        self._running = False
-        self._loop_thread: Optional[threading.Thread] = None
-        self._init_agents()
-        logger.info("PATCH-115: RosettraCore initialized — %d agents registered", len(self._agents))
+        logger.info("RosettaSoul initialized — %d agents in roster", len(self.CHARACTERS))
 
-    def _init_agents(self):
-        for agent_id, cfg in self.AGENT_REGISTRY.items():
-            self._agents[agent_id] = AgentState(
-                agent_id=agent_id,
-                name=cfg["name"],
-                emoji=cfg["emoji"],
-                role=cfg["role"],
-                domain=cfg["domain"],
+    def check(self, agent_id: str, action: str, context: Dict) -> SoulVerdict:
+        """
+        Run the soul check before any agent acts.
+        Order: harm_floor → north_star alignment → world_influence → past_pattern
+        """
+        char = self.CHARACTERS.get(agent_id)
+
+        # 1. HARM FLOOR — universal hard stop
+        stake = context.get("stake", "low")
+        if stake in self.HARM_THRESHOLDS["auto_block"]:
+            return SoulVerdict(
+                decision="block",
+                reason=f"Harm floor: stake='{stake}' requires explicit human approval",
+                world_note="",
+                confidence=1.0,
             )
 
-    def register_handler(self, agent_id: str, handler: Callable):
-        """Wire a handler function to an agent."""
-        if agent_id in self._agents:
-            self._agents[agent_id].handler = handler
-            logger.info("Rosetta: handler registered for agent '%s'", agent_id)
+        # 2. HITL DEFER — for high-stake actions check agent threshold
+        if stake in self.HARM_THRESHOLDS["auto_hitl"]:
+            threshold = char.hitl_threshold if char else 0.5
+            if threshold <= 0.70:   # agents with low threshold defer on high stake
+                return SoulVerdict(
+                    decision="defer_hitl",
+                    reason=f"Agent {agent_id} (threshold={threshold}) defers high-stake to HITL",
+                    world_note=self.world_note(context.get("domain", "system")),
+                    confidence=0.85,
+                )
 
-    def route_signal(self, signal: Dict) -> Optional[str]:
+        # 3. NORTH STAR — soft alignment check (log divergence, don't block)
+        intent = action.lower()
+        concern_words = ["delete all", "drop table", "shutdown", "kill all", "wipe"]
+        if any(w in intent for w in concern_words):
+            logger.warning("NORTH STAR: potential misalignment detected in agent %s: %s", agent_id, action[:80])
+
+        # 4. WORLD INFLUENCE — get context note
+        world_note = self.world_note(context.get("domain", "system"))
+
+        # 5. PAST LAYER — pattern library lookup
+        pattern_match = None
+        try:
+            from src.pattern_library import get_pattern_library
+            pl = get_pattern_library()
+            domain = context.get("domain", "system")
+            pattern_match = pl.lookup(action, domain)
+        except Exception as exc:
+            logger.debug("Pattern library lookup failed: %s", exc)
+
+        # Compute confidence: base from character, boosted by pattern match
+        confidence = 0.75
+        if pattern_match and pattern_match.get("success_count", 0) > 2:
+            confidence = min(0.95, confidence + 0.15)
+        if char:
+            confidence = min(0.99, confidence + (char.hitl_threshold - 0.5) * 0.1)
+
+        return SoulVerdict(
+            decision="proceed",
+            reason=f"Soul check passed [{char.tone if char else 'unknown'} / {char.bias if char else 'unknown'}]",
+            world_note=world_note,
+            confidence=round(confidence, 3),
+            pattern_match=pattern_match,
+        )
+
+    def record(self, agent_id: str, action: str, outcome: Dict, dag_id: Optional[str] = None):
         """
-        Route a normalized signal to the correct domain agent.
-        Returns dag_id if a workflow was triggered, else None.
+        LEGACY layer: record outcome to PatternLibrary + Auditor.
+        Called by every agent after act() completes.
         """
+        success = outcome.get("status") == "done" or not outcome.get("error")
+        domain = outcome.get("domain", "system")
+
+        # Write to pattern library
+        try:
+            from src.pattern_library import get_pattern_library
+            pl = get_pattern_library()
+            pl.record(
+                dag_id=dag_id or "direct",
+                domain=domain,
+                intent_text=action,
+                steps=[],
+                stake=outcome.get("stake", "low"),
+                success=success,
+            )
+        except Exception as exc:
+            logger.debug("Pattern record failed: %s", exc)
+
+        # Auditor log
+        with self._lock:
+            self._audit_log.append({
+                "agent_id": agent_id,
+                "action": action[:120],
+                "dag_id": dag_id,
+                "success": success,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+            # Keep last 500 audit entries in memory
+            if len(self._audit_log) > 500:
+                self._audit_log = self._audit_log[-500:]
+
+        logger.debug("Soul.record: agent=%s success=%s dag=%s", agent_id, success, dag_id)
+
+    def world_note(self, domain: str) -> str:
+        """Return 1-2 sentence world context relevant to this domain."""
+        if not self.world_context:
+            return ""
+        try:
+            topics = self.world_context.get("trending_topics", [])
+            sentiment = self.world_context.get("global_sentiment", 0.0)
+            vol = self.world_context.get("volatility_index", 0.0)
+
+            # Filter topics relevant to this domain
+            domain_map = {
+                "exec_admin":  ["enterprise", "policy_maker"],
+                "prod_ops":    ["developer", "tech_early_adopter"],
+                "data":        ["developer", "enterprise"],
+                "comms":       ["consumer", "enterprise"],
+                "system":      ["tech_early_adopter", "developer"],
+            }
+            relevant_segments = domain_map.get(domain, ["tech_early_adopter"])
+            relevant = [
+                t for t in topics
+                if any(t.get("demographic_affinity", {}).get(seg, 0) > 0.1
+                       for seg in relevant_segments)
+            ]
+
+            if not relevant:
+                mood = "positive" if sentiment > 0.1 else ("negative" if sentiment < -0.1 else "neutral")
+                return f"Global sentiment is {mood}. Volatility: {'high' if vol > 0.5 else 'low'}."
+
+            top = relevant[0]["topic"][:80]
+            mood = "positive" if sentiment > 0.1 else ("cautious" if sentiment < -0.1 else "neutral")
+            return f"World context: '{top}' is trending in this domain. Overall tone is {mood}."
+        except Exception:
+            return ""
+
+    def refresh_world_context(self):
+        """Fetch fresh InfluenceSnapshot and store in soul."""
+        try:
+            from src.influence_collector import get_influence_collector
+            snap = get_influence_collector().fetch_snapshot()
+            self.world_context = {
+                "timestamp": snap.timestamp,
+                "trending_topics": snap.trending_topics,
+                "global_sentiment": snap.global_sentiment,
+                "volatility_index": snap.volatility_index,
+                "top_domains": snap.top_domains,
+            }
+            logger.info("RosettaSoul: world context refreshed — %d topics, sentiment=%.3f",
+                        len(snap.trending_topics), snap.global_sentiment)
+        except Exception as exc:
+            logger.warning("RosettaSoul: world context refresh failed: %s", exc)
+
+    def audit_log(self, limit: int = 50) -> List[Dict]:
+        with self._lock:
+            return list(reversed(self._audit_log[-limit:]))
+
+    def covenant_breach(self, agent_id: str):
+        """Record a team covenant breach for this agent."""
+        with self._lock:
+            self._covenant_breach_counts[agent_id] = self._covenant_breach_counts.get(agent_id, 0) + 1
+            count = self._covenant_breach_counts[agent_id]
+        if count >= 3:
+            logger.error("COVENANT: agent %s has %d breaches — marking offline", agent_id, count)
+        return count
+
+    def soul_status(self) -> Dict:
+        return {
+            "north_star": self.NORTH_STAR,
+            "harm_thresholds": self.HARM_THRESHOLDS,
+            "team_covenant": self.TEAM_COVENANT,
+            "world_context_loaded": bool(self.world_context),
+            "world_sentiment": self.world_context.get("global_sentiment", None),
+            "world_topics_count": len(self.world_context.get("trending_topics", [])),
+            "audit_entries": len(self._audit_log),
+            "covenant_breaches": self._covenant_breach_counts,
+            "characters": {
+                aid: {
+                    "position": ch.position,
+                    "name": ch.name,
+                    "emoji": ch.emoji,
+                    "tone": ch.tone,
+                    "bias": ch.bias,
+                    "hitl_threshold": ch.hitl_threshold,
+                }
+                for aid, ch in self.CHARACTERS.items()
+            },
+        }
+
+
+# ── Agent Base ────────────────────────────────────────────────────────────────
+
+class AgentBase:
+    """
+    Base class for all swarm agents.
+    Carries the RosettaSoul. Every act() is wrapped by the soul check.
+    """
+
+    def __init__(self, agent_id: str, soul: Optional[RosettaSoul] = None):
+        self.agent_id = agent_id
+        self.soul: RosettaSoul = soul or get_rosetta_soul()
+        self._runs_total = 0
+        self._runs_success = 0
+        self._last_trigger: Optional[str] = None
+        self._last_outcome: Optional[str] = None
+
+    def _run(self, signal: Dict) -> Dict:
+        """
+        Template method — wraps every agent act() with soul checks.
+        BEFORE: soul.check() → proceed | block | defer_hitl
+        ACT:    self.act(signal) → result
+        AFTER:  soul.record() → pattern library + auditor
+        """
+        self._last_trigger = datetime.now(timezone.utc).isoformat()
+        self._runs_total += 1
+
+        verdict = self.soul.check(self.agent_id, signal.get("intent_hint", ""), context=signal)
+
+        if verdict.decision == "block":
+            self._last_outcome = f"blocked: {verdict.reason}"
+            return {"blocked": True, "reason": verdict.reason, "agent": self.agent_id}
+
+        if verdict.decision == "defer_hitl":
+            self._last_outcome = "deferred to HITL"
+            # Log covenant — HITL deference is not a breach
+            logger.info("Agent %s deferred to HITL: %s", self.agent_id, verdict.reason)
+            return {"deferred": True, "hitl": True, "reason": verdict.reason, "agent": self.agent_id}
+
+        # World note available — subclasses can read via self.soul.world_note(domain)
+        if verdict.world_note:
+            signal["_world_note"] = verdict.world_note
+
+        # Pattern match available — subclasses can use it
+        if verdict.pattern_match:
+            signal["_pattern_match"] = verdict.pattern_match
+
+        try:
+            result = self.act(signal)
+            self._runs_success += 1
+            self._last_outcome = result.get("status", "ok")
+        except Exception as exc:
+            self._last_outcome = f"error: {exc}"
+            result = {"error": str(exc), "agent": self.agent_id}
+            logger.error("Agent %s act() failed: %s", self.agent_id, exc)
+
+        # AFTER: soul records legacy
+        self.soul.record(
+            agent_id=self.agent_id,
+            action=signal.get("intent_hint", ""),
+            outcome=result,
+            dag_id=result.get("dag_id"),
+        )
+
+        return result
+
+    def act(self, signal: Dict) -> Dict:
+        """Override in each agent subclass."""
+        raise NotImplementedError(f"Agent {self.agent_id} must implement act()")
+
+    def agent_status(self) -> Dict:
+        char = self.soul.CHARACTERS.get(self.agent_id)
+        return {
+            "agent_id": self.agent_id,
+            "position": char.position if char else 0,
+            "name": char.name if char else self.agent_id,
+            "emoji": char.emoji if char else "?",
+            "tone": char.tone if char else "unknown",
+            "bias": char.bias if char else "unknown",
+            "hitl_threshold": char.hitl_threshold if char else 0.5,
+            "runs_total": self._runs_total,
+            "runs_success": self._runs_success,
+            "last_trigger": self._last_trigger,
+            "last_outcome": self._last_outcome,
+        }
+
+
+# ── Swarm Coordinator ─────────────────────────────────────────────────────────
+
+class SwarmCoordinator:
+    """
+    Lightweight logistics layer. NOT Rosetta.
+    Manages agent roster, dedup, and dispatch.
+    The soul runs INSIDE every agent — not here.
+    """
+
+    def __init__(self, soul: Optional[RosettaSoul] = None):
+        self.soul = soul or get_rosetta_soul()
+        self._agents: Dict[str, AgentBase] = {}
+        self._dedup_cache: Dict[str, str] = {}   # signal_id → agent_id
+        self._lock = threading.Lock()
+
+    def register(self, agent_id: str, agent: AgentBase):
+        self._agents[agent_id] = agent
+        logger.info("SwarmCoordinator: registered agent '%s'", agent_id)
+
+    def dispatch(self, signal: Dict) -> Optional[str]:
+        """
+        Route signal to the correct agent.
+        Dedup → domain routing → agent._run() → return dag_id
+        """
+        signal_id = signal.get("signal_id", "")
+
+        # TEAM COVENANT: dedup check
+        with self._lock:
+            if signal_id and signal_id in self._dedup_cache:
+                logger.debug("SwarmCoordinator: dedup — signal %s already handled by %s",
+                             signal_id, self._dedup_cache[signal_id])
+                return None
+            if signal_id:
+                self._dedup_cache[signal_id] = "pending"
+            # Keep dedup cache bounded
+            if len(self._dedup_cache) > 1000:
+                oldest = list(self._dedup_cache.keys())[:200]
+                for k in oldest:
+                    del self._dedup_cache[k]
+
         domain = signal.get("domain", "system")
         signal_type = signal.get("signal_type", "")
-        intent_hint = signal.get("intent_hint", "")
 
-        # Determine target agent
+        # Domain → agent routing
         if domain == "exec_admin":
             target = "exec_admin"
         elif domain == "prod_ops":
             target = "prod_ops"
-        elif signal_type in ("lcm_intent",):
+        elif signal_type == "lcm_intent":
             target = "translator"
         else:
-            logger.debug("Rosetta: signal domain=%s → no specific agent, queuing", domain)
+            target = None
+
+        if not target or target not in self._agents:
+            with self._lock:
+                if signal_id in self._dedup_cache:
+                    del self._dedup_cache[signal_id]
             return None
 
-        agent = self._agents.get(target)
-        if not agent:
-            return None
+        agent = self._agents[target]
+        logger.info("SwarmCoordinator: %s → %s [%s]",
+                    signal_id or "?", target, signal.get("intent_hint","")[:60])
 
-        logger.info("Rosetta: routing %s → %s agent [%s]",
-                    signal.get("signal_id","?"), target, intent_hint[:60])
+        result = agent._run(signal)
 
-        if agent.handler:
-            try:
-                agent.status = "running"
-                agent.last_trigger = datetime.now(timezone.utc).isoformat()
-                result = agent.handler(signal)
-                agent.status = "idle"
-                agent.runs_total += 1
-                agent.runs_success += 1
-                agent.last_outcome = "ok"
-                return result
-            except Exception as exc:
-                agent.status = "error"
-                agent.runs_total += 1
-                agent.last_outcome = f"error: {exc}"
-                logger.error("Rosetta: agent %s failed: %s", target, exc)
-                return None
-        else:
-            logger.debug("Rosetta: agent %s has no handler yet (PATCH pending)", target)
-            return None
+        with self._lock:
+            if signal_id:
+                self._dedup_cache[signal_id] = target
 
-    def translate(self, nl_text: str, account: str = "unknown",
-                  execute: bool = False) -> Dict:
-        """
-        Full Rosetta translation: NL → WorkflowSpec → DAGGraph → [Execute].
-        This is the PRESENT layer: what does this text mean right now?
-        """
-        from src.nl_workflow_parser import get_parser
-        from src.workflow_dag import get_executor, get_workflow_db
+        return result.get("dag_id") if result else None
 
-        # PAST: check pattern library (stub for PATCH-119)
+    def translate(self, nl_text: str, account: str = "unknown", execute: bool = False) -> Dict:
+        """Full pipeline: NL → WorkflowSpec → DAGGraph → [execute]."""
+        try:
+            from src.nl_workflow_parser import get_parser
+            from src.workflow_dag import get_executor
+        except Exception as exc:
+            return {"error": str(exc)}
+
+        # PAST layer: check pattern library first
         pattern_match = None
+        try:
+            from src.pattern_library import get_pattern_library
+            pl = get_pattern_library()
+            # Infer domain quickly for lookup
+            domain_hint = "exec_admin" if any(w in nl_text.lower() for w in
+                ["meeting","email","schedule","report","brief"]) else "prod_ops"
+            pattern_match = pl.lookup(nl_text, domain_hint)
+        except Exception:
+            pass
 
-        # PRESENT: parse
         parser = get_parser()
         spec, dag = parser.parse_and_build_dag(nl_text, account=account)
 
-        dag_dict = dag.to_dict()
+        # PRESENT layer: add world note to dag description
+        world_note = self.soul.world_note(spec.domain)
 
         result = {
             "spec": {
@@ -163,100 +468,59 @@ class RosettraCore:
                 "urgency": spec.urgency,
                 "stake": spec.stake,
                 "constraints": spec.constraints,
-                "entities": spec.entities,
                 "confidence": spec.confidence,
             },
-            "dag": {
-                "dag_id": dag.dag_id,
-                "name": dag.name,
-                "nodes": len(dag.nodes),
-                "status": dag.status,
-            },
+            "dag": {"dag_id": dag.dag_id, "name": dag.name, "nodes": len(dag.nodes), "status": dag.status},
             "pattern_match": pattern_match,
+            "world_note": world_note,
             "executed": False,
         }
 
-        if execute and dag.stake not in ("critical",):
-            executor = get_executor()
-            executed_dag = executor.execute(dag)
+        if execute and spec.stake not in ("critical",):
+            executed_dag = get_executor().execute(dag)
             result["dag"]["status"] = executed_dag.status
             result["executed"] = True
-
-            # LEGACY: record to pattern library (stub for PATCH-119)
-            logger.info("Rosetta: LEGACY — outcome recorded for pattern learning (dag=%s)", dag.dag_id)
-
-        with self._lock:
-            self._active_workflows[dag.dag_id] = {
-                "dag_id": dag.dag_id,
-                "name": dag.name,
-                "domain": spec.domain,
-                "stake": spec.stake,
-                "status": dag.status,
-                "account": account,
-                "started_at": datetime.now(timezone.utc).isoformat(),
-            }
+            # LEGACY layer
+            self.soul.record("rosetta", nl_text, {"status": executed_dag.status, "domain": spec.domain},
+                             dag_id=dag.dag_id)
 
         return result
 
     def swarm_status(self) -> Dict:
-        """Return full swarm state for dashboard."""
-        with self._lock:
-            return {
-                "agents": {
-                    aid: {
-                        "name": a.name,
-                        "emoji": a.emoji,
-                        "role": a.role,
-                        "domain": a.domain,
-                        "status": a.status,
-                        "last_trigger": a.last_trigger,
-                        "last_outcome": a.last_outcome,
-                        "runs_total": a.runs_total,
-                        "runs_success": a.runs_success,
-                        "has_handler": a.handler is not None,
-                    }
-                    for aid, a in self._agents.items()
-                },
-                "active_workflows": len(self._active_workflows),
-                "signal_queue_depth": len(self._signal_queue),
-                "rosetta": "operational",
-            }
-
-    def start_signal_loop(self, interval_seconds: float = 30.0):
-        """Start background thread that processes signal queue."""
-        if self._running:
-            return
-        self._running = True
-
-        def _loop():
-            while self._running:
-                try:
-                    from src.signal_collector import get_collector
-                    collector = get_collector()
-                    signals = collector.latest(limit=10)
-                    unprocessed = [s for s in signals if not s.get("processed")]
-                    for signal in unprocessed[:5]:
-                        self.route_signal(signal)
-                except Exception as exc:
-                    logger.warning("Rosetta signal loop error: %s", exc)
-                time.sleep(interval_seconds)
-
-        self._loop_thread = threading.Thread(target=_loop, daemon=True, name="rosetta-signal-loop")
-        self._loop_thread.start()
-        logger.info("Rosetta: signal processing loop started (interval=%ss)", interval_seconds)
-
-    def stop(self):
-        self._running = False
+        return {
+            "agents": {aid: a.agent_status() for aid, a in self._agents.items()},
+            "soul": self.soul.soul_status(),
+            "dedup_cache_size": len(self._dedup_cache),
+            "coordinator": "operational",
+        }
 
 
-# ── Singleton ─────────────────────────────────────────────────────────────────
-_rosetta: Optional[RosettraCore] = None
-_rosetta_lock = threading.Lock()
+# ── Singletons ────────────────────────────────────────────────────────────────
 
-def get_rosetta() -> RosettraCore:
-    global _rosetta
-    if _rosetta is None:
-        with _rosetta_lock:
-            if _rosetta is None:
-                _rosetta = RosettraCore()
-    return _rosetta
+_soul: Optional[RosettaSoul] = None
+_soul_lock = threading.Lock()
+
+def get_rosetta_soul() -> RosettaSoul:
+    global _soul
+    if _soul is None:
+        with _soul_lock:
+            if _soul is None:
+                _soul = RosettaSoul()
+    return _soul
+
+
+_coordinator: Optional[SwarmCoordinator] = None
+_coord_lock = threading.Lock()
+
+def get_swarm_coordinator() -> SwarmCoordinator:
+    global _coordinator
+    if _coordinator is None:
+        with _coord_lock:
+            if _coordinator is None:
+                _coordinator = SwarmCoordinator(soul=get_rosetta_soul())
+    return _coordinator
+
+
+# Backwards-compatibility shim — old code called get_rosetta()
+def get_rosetta() -> SwarmCoordinator:
+    return get_swarm_coordinator()

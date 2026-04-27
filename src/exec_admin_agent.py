@@ -1,67 +1,57 @@
 """
-PATCH-116 — src/exec_admin_agent.py
-Murphy System — Swarm Rosetta Executive Admin Agent
-
-Automates executive admin tasks:
-  - Morning brief (daily 8am — aggregate signals + summarize)
-  - Email triage (classify intent, draft reply, flag for approval)
-  - Meeting scheduling (calendar gap-finding + invite generation)
-  - Report generation (weekly rollup of workflows + outcomes)
-  - Approval routing (stake-based: auto-approve low, HITL for high)
-
-Triggered by: schedule, NL input, incoming signals (email, calendar).
-Routes through RosettraCore → DAGExecutor for execution.
-
-Copyright © 2020-2026 Inoni LLC — Created by Corey Post
-License: BSL 1.1
+PATCH-116 + PATCH-115b — src/exec_admin_agent.py
+Murphy System — Executive Admin Agent (inherits AgentBase / RosettaSoul)
 """
-
 from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
+try:
+    from src.rosetta_core import AgentBase
+except Exception:
+    AgentBase = object  # graceful fallback
+
 logger = logging.getLogger("murphy.exec_admin")
 
 
-class ExecAdminAgent:
+class ExecAdminAgent(AgentBase):
     """
     PATCH-116: Executive Admin automation agent.
-    Handles the human-facing layer of the swarm.
+    Carries RosettaSoul via AgentBase inheritance.
     """
 
     TASK_TEMPLATES = {
-        "morning_brief": {
-            "steps": ["collect_overnight_signals", "summarize_with_llm",
-                      "compile_calendar_view", "send_brief_to_executive"],
-            "domain": "exec_admin", "urgency": "scheduled", "stake": "low",
-        },
-        "email_triage": {
-            "steps": ["fetch_unread_emails", "classify_intent_per_email",
-                      "draft_replies_for_routine", "flag_high_stake_for_human"],
-            "domain": "exec_admin", "urgency": "scheduled", "stake": "medium",
-        },
-        "schedule_meeting": {
-            "steps": ["find_calendar_gaps", "propose_time_slots",
-                      "send_invite", "confirm_attendees"],
-            "domain": "exec_admin", "urgency": "scheduled", "stake": "low",
-        },
-        "weekly_report": {
-            "steps": ["aggregate_workflow_outcomes", "compute_kpis",
-                      "generate_pdf_summary", "email_to_stakeholders"],
-            "domain": "exec_admin", "urgency": "scheduled", "stake": "low",
-        },
-        "approve_request": {
-            "steps": ["load_approval_request", "assess_stake_level",
-                      "auto_approve_if_low", "hitl_gate_if_high"],
-            "domain": "exec_admin", "urgency": "immediate", "stake": "medium",
-        },
+        "morning_brief": {"domain": "exec_admin", "urgency": "scheduled", "stake": "low"},
+        "email_triage":  {"domain": "exec_admin", "urgency": "scheduled", "stake": "medium"},
+        "schedule_meeting": {"domain": "exec_admin", "urgency": "scheduled", "stake": "low"},
+        "weekly_report": {"domain": "exec_admin", "urgency": "scheduled", "stake": "low"},
+        "approve_request": {"domain": "exec_admin", "urgency": "immediate", "stake": "medium"},
     }
 
     def __init__(self, llm_provider=None, signal_collector=None):
+        super().__init__("exec_admin")
         self._llm = llm_provider
         self._collector = signal_collector
+
+    def act(self, signal: dict) -> dict:
+        """AgentBase interface — route signal to the right exec_admin task."""
+        intent = signal.get("intent_hint", "").lower()
+        world_note = signal.get("_world_note", "")
+        if "email" in intent:
+            return self.triage_email(signal.get("raw_payload", {}))
+        elif "meeting" in intent or "schedule" in intent:
+            return self.schedule_meeting(
+                participants=signal.get("entities", []),
+                topic=intent[:60],
+                account=signal.get("source", "unknown"),
+            )
+        else:
+            result = self.run_morning_brief(account=signal.get("source", "cpost@murphy.systems"))
+            if world_note:
+                result["world_context"] = world_note
+            return result
 
     def run_morning_brief(self, account: str = "cpost@murphy.systems") -> Dict:
         """Generate and (eventually) deliver a morning brief."""

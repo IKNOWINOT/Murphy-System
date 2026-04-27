@@ -416,6 +416,18 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/admin",
         # PATCH-072: Ambient AI + Management AI — session-cookie auth inside routers
         "/api/ambient/",
+        # PATCH-115b: Soul, Influence, HITL, Scheduler, Patterns (public)
+        "/api/influence/",
+        "/api/influence",
+        "/api/hitl/",
+        "/api/hitl",
+        "/api/scheduler/",
+        "/api/scheduler",
+        "/api/patterns/",
+        "/api/patterns",
+        "/api/rosetta/soul",
+        "/api/rosetta/dispatch",
+
     "/api/shield/",  # PATCH-093c: Shield Wall — public status endpoint
         # PATCH-112-117: Swarm Rosetta public endpoints
         "/api/rosetta/",
