@@ -237,13 +237,18 @@ class SwarmScheduler:
         return False
 
     def list_jobs(self) -> List[Dict]:
-        jobs = list(self._jobs.values())
-        if self._scheduler:
-            for job in self._scheduler.get_jobs():
-                existing = next((j for j in jobs if j.get("id") == job.id), None)
-                if not existing:
-                    jobs.append({"id": job.id, "name": job.name, "next_run": str(job.next_run_time)})
-        return jobs
+        result = []
+        for jid, jinfo in self._jobs.items():
+            entry = {"id": jid, **jinfo}
+            if self._scheduler:
+                try:
+                    apjob = self._scheduler.get_job(jid)
+                    if apjob:
+                        entry["next_run"] = str(apjob.next_run_time)
+                except Exception:
+                    pass
+            result.append(entry)
+        return result
 
     def status(self) -> Dict:
         return {

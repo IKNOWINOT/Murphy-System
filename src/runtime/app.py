@@ -17144,6 +17144,125 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
 
+
+    # ── PATCH-115b restored routes (exec, prodops, signals, workflows) ─────────
+
+    @app.post("/api/exec/brief")
+    async def _exec_brief(request: Request):
+        """PATCH-116 — Executive morning brief (soul-wrapped)."""
+        try:
+            from src.exec_admin_agent import get_exec_admin
+            body = await request.json()
+            result = get_exec_admin().run_morning_brief(account=body.get("account","cpost@murphy.systems"))
+            return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/prodops/health")
+    async def _prodops_health():
+        """PATCH-117 — ProdOps health watchdog (soul-wrapped)."""
+        try:
+            from src.prod_ops_agent import get_prod_ops
+            result = get_prod_ops().health_watchdog()
+            return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/prodops/deploy")
+    async def _prodops_deploy(request: Request):
+        """PATCH-117 — Trigger deploy workflow."""
+        try:
+            from src.prod_ops_agent import get_prod_ops
+            body = await request.json()
+            result = get_prod_ops().handle_git_event({"raw_payload": body,
+                "intent_hint": f"Deploy {body.get('branch','main')}"})
+            return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/signals/latest")
+    async def _signals_latest(signal_type: str = None, limit: int = 50):
+        """PATCH-112 — Latest signals."""
+        try:
+            from src.signal_collector import get_collector
+            col = get_collector()
+            return JSONResponse({"success": True, "signals": col.latest(signal_type=signal_type, limit=limit), "stats": col.stats()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/signals/ingest")
+    async def _signals_ingest(request: Request):
+        """PATCH-112 — Ingest a signal."""
+        try:
+            from src.signal_collector import get_collector
+            body = await request.json()
+            rec = get_collector().ingest(
+                signal_type=body.get("signal_type","manual"), source=body.get("source","api"),
+                payload=body.get("payload",{}), domain=body.get("domain","system"),
+                urgency=body.get("urgency","ambient"), stake=body.get("stake","low"),
+                intent_hint=body.get("intent_hint",""), entities=body.get("entities",[]),
+            )
+            return JSONResponse({"success": True, "signal_id": rec.signal_id})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/workflows/recent")
+    async def _workflows_recent(domain: str = None, limit: int = 20):
+        """PATCH-113 — Recent workflow runs."""
+        try:
+            from src.workflow_dag import get_workflow_db
+            db = get_workflow_db()
+            return JSONResponse({"success": True, "workflows": db.list_recent(limit=limit, domain=domain), "stats": db.stats()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/workflow/build")
+    async def _workflow_build(request: Request):
+        """PATCH-114 — Parse NL to DAG (no execution)."""
+        try:
+            from src.nl_workflow_parser import get_parser
+            body = await request.json()
+            text = body.get("text","")
+            if not text:
+                return JSONResponse({"success": False, "error": "text required"}, status_code=400)
+            spec, dag = get_parser().parse_and_build_dag(text, account=body.get("account","unknown"))
+            return JSONResponse({"success": True,
+                "spec": {"intent":spec.intent,"domain":spec.domain,"urgency":spec.urgency,
+                         "stake":spec.stake,"confidence":spec.confidence},
+                "dag": dag.to_dict()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/workflow/run")
+    async def _workflow_run(request: Request):
+        """PATCH-113 — Build + execute workflow from NL."""
+        try:
+            from src.rosetta_core import get_swarm_coordinator
+            body = await request.json()
+            text = body.get("text","")
+            if not text:
+                return JSONResponse({"success": False, "error": "text required"}, status_code=400)
+            result = get_swarm_coordinator().translate(text, account=body.get("account","unknown"), execute=True)
+            return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/rosetta/translate")
+    async def _rosetta_translate(request: Request):
+        """PATCH-115b — NL translate via soul-aware SwarmCoordinator."""
+        try:
+            from src.rosetta_core import get_swarm_coordinator
+            body = await request.json()
+            text = body.get("text","")
+            if not text:
+                return JSONResponse({"success": False, "error": "text required"}, status_code=400)
+            result = get_swarm_coordinator().translate(text,
+                account=body.get("account","unknown"), execute=bool(body.get("execute",False)))
+            return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
     # ── PATCH-099: PCC — Predictive Convergence Correction API ────────────────
 
     @app.get("/api/pcc/status")

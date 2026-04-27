@@ -62,11 +62,31 @@ class InfluenceCollector:
                     continue
 
             demographic_segments = {
-                "tech_early_adopter": ["tech", "startup", "innovation", "ai", "software"],
-                "enterprise":         ["business", "corporate", "management", "enterprise", "market"],
-                "consumer":           ["product", "review", "shopping", "price", "buy"],
-                "policy_maker":       ["politics", "government", "regulation", "policy", "law"],
-                "developer":          ["code", "programming", "development", "github", "api"]
+                "tech_early_adopter": [
+                    "tech","startup","innovation","ai","software","open source","llm",
+                    "model","neural","launch","release","tool","framework","saas","cloud",
+                    "funding","raise","series","vc","founder","build","ship","feature"
+                ],
+                "enterprise": [
+                    "business","corporate","management","enterprise","market","revenue",
+                    "quarter","earnings","acquisition","merger","ceo","exec","board",
+                    "strategy","ops","deploy","scale","workforce","hire","layoff"
+                ],
+                "consumer": [
+                    "product","review","shopping","price","buy","deal","app","phone",
+                    "game","stream","netflix","amazon","apple","google","user","people",
+                    "experience","free","subscription","cancel","refund"
+                ],
+                "policy_maker": [
+                    "politics","government","regulation","policy","law","senate","congress",
+                    "white house","federal","court","ruling","ban","bill","act","election",
+                    "vote","administration","agency","compliance","gdpr","antitrust"
+                ],
+                "developer": [
+                    "code","programming","development","github","api","python","javascript",
+                    "rust","golang","open source","library","sdk","cli","docker","kubernetes",
+                    "devops","ci","cd","git","repo","commit","patch","bug","pr","merge"
+                ]
             }
             trending_topics = []
             all_stories = hacker_news_stories + reddit_stories
@@ -74,7 +94,9 @@ class InfluenceCollector:
                 topic_score = {}
                 title_lower = story["title"].lower()
                 for segment, keywords in demographic_segments.items():
-                    score = sum(1 for kw in keywords if kw in title_lower) / len(keywords)
+                    # Presence-based: any keyword hit scores. Multiple hits score higher.
+                    hits = sum(1 for kw in keywords if kw in title_lower)
+                    score = min(1.0, hits * 0.25)  # 4 keyword hits = max score
                     topic_score[segment] = round(score, 3)
                 trending_topics.append({
                     "topic": story["title"],
