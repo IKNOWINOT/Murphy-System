@@ -476,15 +476,15 @@ class MurphyMind:
             "  Priority gap: " + prev_priority,
             "  Proposed action: " + prev_action,
             "",
-            "KNOWN FAILURE MODES (from MurphyCritic):",
-            "  FM-001: Wrong LLM API shape (.generate vs .complete)",
-            "  FM-002: Thread-unsafe SQLite in __init__",
-            "  FM-003: Dedup via LIKE scan (broken)",
-            "  FM-004: Module-level LLM import (circular)",
-            "  FM-005: Tag filtering on JSON arrays",
-            "  FM-006: No stop-word stripping in scoring",
-            "  FM-008: Singleton without double-checked lock",
-            "  FM-010: Route shadowing in app.py",
+            "KNOWN FAILURE MODES (LIVE-VERIFIED against source code):",
+            # PATCH-125: fm_verification contains actual scan results
+            # Each entry: FM-XXX [ACTIVE|FIXED]: name -- evidence
+            *[
+                f"  {v['id']} [{v['status'].upper()}]: {v['name']} -- {v['evidence'][:80]}"
+                for v in ctx.get("fm_verification", [])
+            ],
+            "CRITICAL INSTRUCTION: Only report an FM as active if its status above is [ACTIVE].",
+            "Do NOT report [FIXED] FMs as active gaps or failure modes.",
             "",
             "Now answer these questions about yourself:",
             "1. ARCHITECTURE SUMMARY: In 2 sentences, what is Murphy and how does it hold together right now?",
@@ -537,19 +537,21 @@ class MurphyMind:
                 " live subsystems. The swarm layer (RosettaSoul + 2 agents) runs on top of "
                 "12 Shield Wall protection layers with WorldCorpus providing world state."
             ),
-            known_failure_modes=parsed.get("known_failure_modes", [
-                "Wrong LLM API shape: .generate() called instead of .complete()",
-                "Thread-unsafe SQLite connections stored in __init__",
-                "Dedup broken via LIKE content scan (hash never in content)",
-                "Route shadowing: new routes silently ignored by existing ones",
-                "Module-level LLM imports causing circular import at startup",
-            ]),
+            known_failure_modes=parsed.get("known_failure_modes",
+                # PATCH-125: fall back to live scan results, not stale hardcoded list
+                [f"{v['id']} [{v['status'].upper()}]: {v['name']}"
+                 for v in ctx.get("fm_verification", []) if v["status"] == "active"]
+                or ["No active failure modes detected by live scan"]
+            ),
             active_gaps=parsed.get("active_gaps", prev_gaps or [
                 "Only 2 of 9 swarm agents instantiated",
                 "Morning brief fires but produces no LLM output",
                 "MurphyCritic not wired into self-patch pipeline",
                 "HITL notifications log-only — no Telegram delivery",
                 "Finance corpus thin — only BBC Business RSS",
+                # PATCH-125: append any live-verified active FMs
+                *[f"{v['id']}: {v['name']} — {v['evidence']}"
+                  for v in ctx.get("fm_verification", []) if v["status"] == "active"]
             ]),
             invariants=parsed.get("invariants", [
                 "Shield Wall must have all 12 layers active before any user request is processed",
