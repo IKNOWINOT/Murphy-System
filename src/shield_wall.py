@@ -17,6 +17,17 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List
 
+# PATCH-111d: Module-level FastAPI/Starlette imports so FastAPI's dependency
+# injection correctly resolves Request as a special type (not a query param)
+# when routes are defined inside a factory function (build_shield_wall_router).
+try:
+    from fastapi import APIRouter
+    from starlette.requests import Request
+    from starlette.responses import JSONResponse
+    _FASTAPI_AVAILABLE = True
+except ImportError:
+    _FASTAPI_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -101,10 +112,7 @@ def build_shield_wall_router():
 
     Returns a FastAPI APIRouter. Called from runtime/app.py.
     """
-    try:
-        from fastapi import APIRouter, Request
-        from fastapi.responses import JSONResponse
-    except ImportError:
+    if not _FASTAPI_AVAILABLE:
         logger.warning("FastAPI not available — Shield Wall router not mounted")
         return None
 
