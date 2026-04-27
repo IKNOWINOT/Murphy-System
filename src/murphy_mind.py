@@ -146,6 +146,19 @@ class MindStore:
                     result.error,
                 ))
 
+    def get_recent(self, n: int = 3) -> List[Dict]:
+        """Return the n most recent self-model entries as dicts."""
+        with self._lock:
+            try:
+                conn = sqlite3.connect(str(self._db_path), timeout=10)
+                rows = conn.execute(
+                    "SELECT content FROM self_model ORDER BY cycle DESC LIMIT ?", (n,)
+                ).fetchall()
+                conn.close()
+                return [json.loads(r[0]) for r in rows]
+            except Exception:
+                return []
+
     def latest_entry(self) -> Optional[Dict]:
         with self._conn() as conn:
             row = conn.execute(
@@ -270,6 +283,98 @@ def _verify_failure_modes() -> List[Dict]:
 
 
 
+
+
+
+# ── PATCH-128: System Awareness Helpers ──────────────────────────────────────
+
+def _llm_status() -> Dict[str, Any]:
+    """Check if real LLM providers are available or we're on onboard fallback."""
+    try:
+        import urllib.request as _ur
+        req = _ur.Request(
+            "http://127.0.0.1:8000/api/rosetta/soul",
+            headers={"Accept": "application/json"}
+        )
+        with _ur.urlopen(req, timeout=4) as resp:
+            data = json.loads(resp.read())
+            # If soul endpoint responds, check last mind cycle model
+            return {"available": True, "note": "providers reachable"}
+    except Exception:
+        pass
+    # Try to detect onboard fallback by checking environment
+    try:
+        import os
+        has_together = bool(os.getenv("TOGETHER_API_KEY"))
+        has_deepinfra = bool(os.getenv("DEEPINFRA_API_KEY"))
+        return {
+            "available": has_together or has_deepinfra,
+            "together": has_together,
+            "deepinfra": has_deepinfra,
+            "note": "key present but provider may be rate-limited"
+        }
+    except Exception as e:
+        return {"available": False, "note": str(e)[:60]}
+
+
+def _corpus_freshness() -> Dict[str, Any]:
+    """Check how fresh the WorldCorpus data is."""
+    try:
+        import urllib.request as _ur
+        req = _ur.Request(
+            "http://127.0.0.1:8000/api/corpus/stats",
+            headers={"Accept": "application/json"}
+        )
+        with _ur.urlopen(req, timeout=4) as resp:
+            data = json.loads(resp.read())
+            newest = data.get("newest", "")
+            total = data.get("total_records", 0)
+            age_hours = None
+            if newest:
+                from datetime import datetime, timezone
+                try:
+                    dt = datetime.fromisoformat(newest.replace("Z", "+00:00"))
+                    age_hours = round((datetime.now(timezone.utc) - dt).total_seconds() / 3600, 1)
+                except Exception:
+                    pass
+            return {
+                "total_records": total,
+                "newest_record": newest[:19] if newest else "unknown",
+                "age_hours": age_hours,
+                "stale": age_hours is not None and age_hours > 1.0,
+            }
+    except Exception as e:
+        return {"error": str(e)[:60], "stale": True}
+
+
+def _agent_coverage() -> Dict[str, Any]:
+    """Check how many swarm agents are registered vs expected."""
+    try:
+        import urllib.request as _ur
+        req = _ur.Request(
+            "http://127.0.0.1:8000/api/rosetta/status",
+            headers={"Accept": "application/json"}
+        )
+        with _ur.urlopen(req, timeout=4) as resp:
+            data = json.loads(resp.read())
+            agents = data.get("agents", [])
+            if isinstance(agents, dict):
+                registered = list(agents.keys())
+            elif isinstance(agents, list):
+                registered = [a.get("name", a.get("agent_id", "?")) for a in agents]
+            else:
+                registered = []
+            expected_count = 9  # Full RosettaSoul team
+            missing = expected_count - len(registered)
+            return {
+                "registered": len(registered),
+                "expected": expected_count,
+                "missing": missing,
+                "registered_names": registered,
+                "gap": f"{missing} of {expected_count} swarm agents unregistered" if missing > 0 else "full coverage",
+            }
+    except Exception as e:
+        return {"error": str(e)[:60], "registered": 0, "expected": 9, "missing": 9}
 
 # ── PATCH-127: Proposed Action Validator ─────────────────────────────────────
 
@@ -514,6 +619,9 @@ class MurphyMind:
             "hitl_decisions": _hitl_recent_decisions(),
             "module_health": _module_health(),
             "source_inventory": _source_inventory(),
+            "llm_status": _llm_status(),         # PATCH-128: provider health
+            "corpus_freshness": _corpus_freshness(),  # PATCH-128: data staleness
+            "agent_coverage": _agent_coverage(),  # PATCH-128: swarm completeness
             "previous_self_model": self._store.latest_entry(),
             "fm_verification": _verify_failure_modes(),  # PATCH-125: live FM scan
         }
@@ -593,6 +701,11 @@ class MurphyMind:
             "  Priority gap: " + prev_priority,
             "  Proposed action: " + prev_action,
             "",
+            "SYSTEM HEALTH (PATCH-128):",
+            "  LLM provider: " + ("LIVE" if ctx.get("llm_status", {}).get("available") else "ONBOARD FALLBACK — real providers down"),
+            "  World corpus: " + (f"STALE ({ctx.get('corpus_freshness', {}).get('age_hours')} hrs old, {ctx.get('corpus_freshness', {}).get('total_records')} records)" if ctx.get("corpus_freshness", {}).get("stale") else f"FRESH ({ctx.get('corpus_freshness', {}).get('total_records')} records)"),
+            "  Swarm agents: " + ctx.get("agent_coverage", {}).get("gap", "unknown"),
+            "",
             "LIVE FAILURE MODE SCAN (run seconds ago against actual source files):",
             fm_section,
             "RULE: fm_lines marked [FIXED ✓] are RESOLVED. Do NOT list them as active.",
@@ -638,6 +751,35 @@ class MurphyMind:
 
         # Build self-model entry — use parsed LLM output or fall back to context
         recent_patches = [p.split(" ", 1)[1] if " " in p else p for p in ctx["recent_patches"][:5]]
+
+        # PATCH-128d: Loop detection — break speculative repeat loop
+        # If Murphy proposes the same speculative action 2+ cycles in a row, redirect to a real gap.
+        _proposed_raw = parsed.get("proposed_action", "")
+        _recent_3 = self._store.get_recent(3)
+        _repeat_count = sum(
+            1 for _e in _recent_3
+            if _e.get("proposed_action", "") == _proposed_raw
+            and _e.get("proposed_action_validation", {}).get("speculative", False)
+        )
+        if _repeat_count >= 2 and _validate_proposed_action(_proposed_raw).get("speculative"):
+            _agent_cov = ctx.get("agent_coverage", {})
+            _corpus_f = ctx.get("corpus_freshness", {})
+            if _agent_cov.get("missing", 0) > 0:
+                parsed["proposed_action"] = (
+                    "Fix file: src/exec_admin_agent.py — register the "
+                    + str(_agent_cov["missing"])
+                    + " missing RosettaSoul agents ("
+                    + str(_agent_cov["registered"]) + "/" + str(_agent_cov["expected"])
+                    + " currently registered). Each needs agent_id, position, soul_fragment, act()."
+                )
+                logger.info("PATCH-128d: Loop broken — redirected to agent coverage gap (missing=%d)", _agent_cov["missing"])
+            elif _corpus_f.get("stale"):
+                parsed["proposed_action"] = (
+                    "Fix file: src/murphy_mind.py, function: _run_cycle() — corpus is "
+                    + str(_corpus_f.get("age_hours", "?"))
+                    + " hours stale. Check corpus_collect scheduler job interval."
+                )
+                logger.info("PATCH-128d: Loop broken — redirected to corpus staleness")
 
         entry = SelfModelEntry(
             entry_id=f"mind-{cycle}-{uuid.uuid4().hex[:8]}",
