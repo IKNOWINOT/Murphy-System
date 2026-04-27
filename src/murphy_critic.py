@@ -50,6 +50,9 @@ _FM_PATTERNS: Dict[str, List[str]] = {
         r"response\[.choices.\]",
     ],
     "FM-002": [
+        # PATCH-131b: Only the specific self._conn pattern is safe to match via regex.
+        # General bare-assignment pattern has false positives (lock-wrapped singletons).
+        # Rely on check_sqlite_thread_safety AST checker for broader detection.
         r"self\._conn\s*=\s*sqlite3\.connect\(",
         r"self\.conn\s*=\s*sqlite3\.connect\(",
     ],
@@ -74,7 +77,8 @@ _FM_PATTERNS: Dict[str, List[str]] = {
         r"story\[.url.\]\s*\+\s*story\[.title.\]",
     ],
     "FM-008": [
-        r"if _\w+ is None:",
+        # PATCH-131b: Regex removed — too many false positives on lock-wrapped singletons.
+        # AST checker (check_singleton_thread_safety) handles this with full context.
     ],
     "FM-010": [
         r"@app\.(get|post|put|delete)\s*\(\s*[\"\']/api/(scheduler|patterns|hitl)/",
@@ -207,18 +211,31 @@ def check_llm_api_calls(tree: ast.AST, source: str) -> List[Dict]:
 
 
 def check_sqlite_thread_safety(tree: ast.AST, source: str) -> List[Dict]:
+    """PATCH-131b: detect thread-unsafe sqlite — both __init__ pattern and bare module-level."""
     findings = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.FunctionDef) and node.name == "__init__":
+        if isinstance(node, ast.FunctionDef):
             seg = ast.get_source_segment(source, node) or ""
-            if "sqlite3.connect" in seg and ("self._conn" in seg or "self.conn" in seg):
+            # Pattern 1: sqlite3.connect stored in __init__ without lock
+            if node.name == "__init__" and "sqlite3.connect" in seg and ("self._conn" in seg or "self.conn" in seg):
                 findings.append({
                     "line": node.lineno,
                     "detail": (
                         "sqlite3.connect() stored as self._conn in __init__. "
-                        "Not thread-safe. Use per-method connections."
+                        "Not thread-safe. Use per-method connections with a lock."
                     )
                 })
+            # Pattern 2: sqlite3.connect called in any function, no lock in scope
+            elif "sqlite3.connect" in seg and "Lock" not in seg and "with _" not in seg:
+                # Only flag if the connection result is assigned (not just checked)
+                if "= sqlite3.connect" in seg or "=sqlite3.connect" in seg:
+                    findings.append({
+                        "line": node.lineno,
+                        "detail": (
+                            f"sqlite3.connect() in function '{node.name}' without a threading.Lock. "
+                            "Not thread-safe under concurrent requests."
+                        )
+                    })
     return findings
 
 
@@ -253,22 +270,42 @@ def check_stop_word_stripping(tree: ast.AST, source: str) -> List[Dict]:
 
 
 def check_singleton_thread_safety(tree: ast.AST, source: str) -> List[Dict]:
+    """PATCH-131b: only flag singletons that lack a lock WRAPPING the if-None block."""
+    # Build parent map so we can walk up the AST
+    parent_map: dict = {}
+    for node in ast.walk(tree):
+        for child in ast.iter_child_nodes(node):
+            parent_map[id(child)] = node
+
     findings = []
     for node in ast.walk(tree):
         if isinstance(node, ast.If):
             test_src = ast.get_source_segment(source, node.test) or ""
-            if "is None" in test_src:
-                body_src = "".join(
-                    ast.get_source_segment(source, s) or "" for s in node.body
-                )
-                if "with _" not in body_src and "Lock" not in body_src and "= " in body_src:
-                    findings.append({
-                        "line": getattr(node, "lineno", "?"),
-                        "detail": (
-                            "Singleton assignment inside 'if X is None' without Lock. "
-                            "Race condition under concurrent startup."
-                        )
-                    })
+            if "is None" not in test_src:
+                continue
+            body_src = "".join(
+                ast.get_source_segment(source, s) or "" for s in node.body
+            )
+            if "= " not in body_src:
+                continue  # no assignment — not a singleton pattern
+            # Walk up: check if this If is inside a `with` that mentions a lock
+            parent = parent_map.get(id(node))
+            lock_found = False
+            while parent is not None:
+                if isinstance(parent, ast.With):
+                    with_src = ast.get_source_segment(source, parent) or ""
+                    if "lock" in with_src.lower() or "_lock" in with_src or "Lock" in with_src:
+                        lock_found = True
+                        break
+                parent = parent_map.get(id(parent))
+            if not lock_found:
+                findings.append({
+                    "line": getattr(node, "lineno", "?"),
+                    "detail": (
+                        "Global singleton initialized with 'if _inst is None: _inst = X' without a lock. "
+                        "Race condition under concurrent startup."
+                    )
+                })
     return findings
 
 

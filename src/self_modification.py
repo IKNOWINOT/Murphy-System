@@ -231,6 +231,73 @@ class SelfModificationEngine:
                     errors        = [f"Syntax check failed: {syntax_err}"],
                 )
 
+        # 3b. PATCH-131: MurphyCritic gate — runs on every .py self-patch
+        #     BLOCK  → reject immediately, no file write
+        #     WARN   → queue to HITL pending queue, await human decision
+        #     PASS   → proceed to backup + write
+        if intent.target_file.endswith(".py") and new_content:
+            try:
+                from src.murphy_critic import get_critic
+                _critic_verdict = get_critic().review(
+                    new_content,
+                    filename=intent.target_file,
+                    use_llm=False,  # static checks only — fast, no external calls
+                )
+                _vdict = _critic_verdict.to_dict()
+                logger.info(
+                    "PATCH-131: MurphyCritic verdict=%s score=%.2f findings=%d on %s",
+                    _critic_verdict.verdict,
+                    _critic_verdict.score,
+                    len(_critic_verdict.findings),
+                    intent.target_file,
+                )
+                if _critic_verdict.verdict == "BLOCK":
+                    _block_reasons = [
+                        f"{f.fid}: {f.detail[:60]}"
+                        for f in _critic_verdict.findings
+                        if f.severity in ("critical", "high")
+                    ]
+                    return PatchResult(
+                        patch_id      = intent.patch_id,
+                        success       = False,
+                        gate_decision = "BLOCKED_BY_CRITIC",
+                        backup_path   = None,
+                        errors        = [
+                            f"MurphyCritic BLOCKED: score={_critic_verdict.score:.2f}",
+                            *_block_reasons,
+                        ],
+                    )
+                elif _critic_verdict.verdict == "WARN":
+                    # Queue to HITL — do not write until human approves
+                    _warn_reasons = [
+                        f"{f.fid}: {f.detail[:60]}"
+                        for f in _critic_verdict.findings
+                    ]
+                    try:
+                        from src.hitl_agent import get_hitl_agent
+                        _hitl = get_hitl_agent()
+                        _hitl.act({
+                            "action": f"self-patch {intent.patch_id}: {intent.description[:60]}",
+                            "stake": "high",
+                            "p_harm": 0.4,
+                            "domain": "self_modification",
+                        })
+                    except Exception as _hitl_exc:
+                        logger.warning("PATCH-131: HITL queue failed: %s", _hitl_exc)
+                    return PatchResult(
+                        patch_id      = intent.patch_id,
+                        success       = False,
+                        gate_decision = "WARN_QUEUED_FOR_HITL",
+                        backup_path   = None,
+                        errors        = [
+                            f"MurphyCritic WARN: score={_critic_verdict.score:.2f} — queued for human review",
+                            *_warn_reasons,
+                        ],
+                    )
+                # PASS → fall through to backup + write
+            except ImportError:
+                logger.warning("PATCH-131: MurphyCritic not available — proceeding without review")
+
         # 4. Backup
         backup_path = None
         target = PROJ_ROOT / intent.target_file
