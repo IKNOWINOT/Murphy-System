@@ -37,7 +37,7 @@ try:
 except ImportError as exc:
     # Fall back to simple wrapper without external dependencies
     import logging
-    logging.getLogger(__name__).warning(
+    logging.getLogger(__name__).debug(  # PATCH-110c: torch_geometric not installed — expected, simple wrapper active
         "Using simplified neuro-symbolic model due to missing dependencies: %s", exc,
     )
 

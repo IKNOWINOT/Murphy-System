@@ -546,9 +546,8 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
 
     murphy_env = os.environ.get("MURPHY_ENV", "development")
     if murphy_env == "development":
-        logger.warning(
-            "WARNING: Running in development mode — authentication is DISABLED. "
-            "Set MURPHY_ENV=staging or MURPHY_ENV=production for deployment."
+        logger.info(  # PATCH-110b: demote — flask_security initializes at import time, before full env load
+            "Running in development mode — authentication DISABLED (flask_security)"
         )
 
     logger.info(

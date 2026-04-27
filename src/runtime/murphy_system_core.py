@@ -1320,7 +1320,7 @@ class MurphySystem:
             logger.info("Initializing Universal Control Plane...")
             self.control_plane = UniversalControlPlane()
         else:
-            logger.warning("Universal Control Plane not available")
+            logger.debug("Universal Control Plane not available (planned module)")  # PATCH-110a
             self.control_plane = None
 
         # Initialize Inoni Business Automation
@@ -1328,7 +1328,7 @@ class MurphySystem:
             logger.info("Initializing Inoni Business Automation...")
             self.inoni_automation = InoniBusinessAutomation()
         else:
-            logger.warning("Inoni Business Automation not available")
+            logger.debug("Inoni Business Automation not available (planned module)")  # PATCH-110a
             self.inoni_automation = None
 
         # Initialize Integration Engine
@@ -1344,7 +1344,7 @@ class MurphySystem:
             logger.info("Initializing Two-Phase Orchestrator...")
             self.orchestrator = TwoPhaseOrchestrator()
         else:
-            logger.warning("Two-Phase Orchestrator not available")
+            logger.debug("Two-Phase Orchestrator not available (planned module)")  # PATCH-110a
             self.orchestrator = None
 
         # Initialize Phase 1-5 Components
