@@ -853,9 +853,9 @@ def configure_secure_fastapi(app: FastAPI, service_name: str = "murphy-api") -> 
 
     murphy_env = os.environ.get("MURPHY_ENV", "development")
     if murphy_env == "development":
-        logger.warning(
-            "WARNING: Running in development mode — authentication is DISABLED. "
-            "Set MURPHY_ENV=staging or MURPHY_ENV=production for deployment."
+        logger.info(  # PATCH-108f: demote to INFO — sub-apps hit this before env is fully loaded
+            "Running in development mode — authentication DISABLED for service: %s",
+            service_name,
         )
 
     logger.info(

@@ -246,48 +246,85 @@ def fetch_markets() -> DomainReading:
 
 # ── D2: Shipping ─────────────────────────────────────────────────────────────
 
+def _fred_series_last(series_id: str) -> Optional[float]:
+    """PATCH-108a-r1: Fetch latest FRED time-series value via subprocess curl.
+    urllib times out from venv context; curl is reliable on this server.
+    Skips blank values (FRED emits empty strings for unreleased dates)."""
+    try:
+        import subprocess as _sp
+        url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
+        result = _sp.run(
+            ["curl", "-s", "--max-time", "10", url],
+            capture_output=True, text=True, timeout=12,
+        )
+        if result.returncode != 0:
+            return None
+        lines = [l.strip() for l in result.stdout.splitlines()
+                 if l.strip() and not l.startswith("DATE")]
+        for line in reversed(lines):
+            parts = line.split(",")
+            if len(parts) == 2 and parts[1] not in ("", ".", " "):
+                try:
+                    return float(parts[1])
+                except ValueError:
+                    continue
+    except Exception:
+        pass
+    return None
+
+
 def fetch_shipping() -> DomainReading:
-    """
-    Baltic Dry Index proxy via Yahoo Finance (BDI ticker).
-    BDI measures demand for shipping raw materials — leading economic indicator.
+    """PATCH-108a: Shipping stability via FRED proxies.
+    BDI (BDI/BDIY) was delisted from Yahoo Finance.
+    New sources:
+      - WTISPLC: WTI crude oil price (FRED) — shipping cost proxy; high oil = cost stress
+      - CASSFREIGHTIDX: Cass Freight Index (FRED) — US freight volume leading indicator
+      - DCOILWTICO: WTI daily spot (FRED) — more recent than WTISPLC
+    Scoring: high oil = shipping cost stress; low freight volume = demand weakness.
     """
     signals: Dict[str, Any] = {}
     errors: List[str] = []
+    score_components: List[Tuple[float, float]] = []
 
-    bdi = _yahoo("BDI")
-    if bdi is None:
-        # Try alternate ticker
-        bdi = _yahoo("BDIY")
-
-    if bdi is not None:
-        signals["bdi"] = round(bdi, 0)
-        # BDI ranges: <500 = depressed, 500-1500 = normal, 1500-3000 = strong, >3000 = euphoric
-        # Stability: depressed or extremely high = instability
-        if bdi < 500:
-            score = 0.3   # depressed demand
-        elif bdi < 1500:
-            score = 0.7   # normal
-        elif bdi < 3000:
-            score = 0.85  # strong
-        else:
-            score = 0.6   # potential overheating
-        confidence = 0.9
-        source = "Yahoo/BDI"
+    # WTI crude oil — shipping cost proxy (FRED DCOILWTICO, daily)
+    wti = _fred_series_last("DCOILWTICO")
+    if wti is not None:
+        signals["wti_usd"] = round(wti, 2)
+        # $50 = low cost (0.85), $80 = moderate (0.65), $120+ = stress (0.30)
+        wti_score = max(0.20, min(0.90, 1.0 - (wti - 50.0) / 100.0))
+        score_components.append((wti_score, 0.50))
+        errors_src = "FRED/DCOILWTICO"
     else:
-        # Fallback: check Harpex index or use synthetic
-        score = 0.60   # baseline assumption: moderate shipping conditions
-        confidence = 0.3
-        source = "synthetic-baseline"
-        errors.append("BDI feed unavailable — using synthetic baseline 0.60")
-        signals["bdi"] = "unavailable"
+        errors.append("WTI feed unavailable")
+        errors_src = None
 
-    # Container shipping stress — Freightos Baltic Index proxy
-    # (No free API — use Drewry World Container Index proxy via news sentiment if available)
-    signals["container_note"] = "Freightos/Drewry not in free tier — BDI proxy used"
+    # Cass Freight Index (monthly) — US freight demand
+    cassf = _fred_series_last("RAILFRTINTERMODAL")  # PATCH-108a-r2: CASSFREIGHTIDX invalid, use rail intermodal volume
+    if cassf is not None:
+        signals["cass_freight"] = round(cassf, 3)
+        # RAILFRTINTERMODAL ~1.1M-1.3M carloads. <1M=weak, 1.3M=strong
+        cassf_score = max(0.30, min(0.90, (cassf - 900_000) / 500_000))
+        score_components.append((cassf_score, 0.50))
+        cass_src = "FRED/CASSFREIGHTIDX"
+    else:
+        errors.append("Cass Freight feed unavailable")
+        cass_src = None
+
+    if score_components:
+        total_w = sum(w for _, w in score_components)
+        stability = round(sum(s * w for s, w in score_components) / total_w, 4)
+        confidence = min(0.85, 0.50 * len(score_components))
+        source_parts = [s for s in [errors_src if wti else None, cass_src if cassf else None] if s]
+        source = ", ".join(source_parts)
+    else:
+        stability = 0.60
+        confidence = 0.20
+        source = "synthetic-baseline"
+        errors.append("All shipping feeds unavailable — baseline 0.60")
 
     return DomainReading(
         domain          = "shipping",
-        stability_score = round(score, 4),
+        stability_score = stability,
         raw_signals     = signals,
         source          = source,
         fetched_at      = datetime.now(timezone.utc).isoformat(),

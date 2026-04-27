@@ -114,7 +114,7 @@ class MatrixConfig:
         """
         token = os.environ.get("MATRIX_ACCESS_TOKEN", "")
         if not token:
-            logger.warning(
+            logger.debug(  # PATCH-108c: known gap — downgrade to DEBUG, not a runtime error
                 "MATRIX_ACCESS_TOKEN is not set; bridge will operate in "
                 "offline/mock mode."
             )

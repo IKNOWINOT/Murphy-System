@@ -395,7 +395,7 @@ def synthesize(
             ]
             prompt = " ".join(_parts)
             completion = _provider.complete(
-                user=prompt,
+                prompt=prompt,      # PATCH-108e: correct kwarg (not 'user')
                 max_tokens=600,
                 temperature=0.4,
             )

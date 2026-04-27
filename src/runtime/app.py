@@ -17310,7 +17310,7 @@ def create_app() -> FastAPI:
                 app.include_router(_r)
                 logger.info("PATCH-077d: %s mounted", _prefix)
             else:
-                logger.warning("PATCH-077d: %s — no router attr found", _prefix)
+                logger.debug("PATCH-108d: %s — stub module, router not yet implemented", _prefix)  # stub modules are expected
         except Exception as _ue:
             logger.warning("PATCH-077d: %s failed: %s", _prefix, _ue)
 

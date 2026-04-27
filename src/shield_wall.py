@@ -63,6 +63,7 @@ def get_shield_wall_status() -> Dict[str, Any]:
             "blocks": blocks,
             "requires_env": env_var,
             "active": active,
+            "status": "active" if active else "dormant",  # PATCH-108b: explicit status field
         })
 
     active_count  = sum(1 for l in layers if l["active"])
