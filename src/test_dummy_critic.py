@@ -1,9 +1,18 @@
 
+import threading
 import sqlite3
+from pathlib import Path
+
+_lock = threading.Lock()
+_conn = None
+
 def get_conn():
-    conn = sqlite3.connect('/tmp/test.db')  # FM-002: module-level, no lock
-    return conn
+    global _conn
+    with _lock:
+        if _conn is None:
+            _conn = sqlite3.connect(str(Path('/tmp/test.db')), check_same_thread=False)
+        return _conn
 
 def run_query(sql):
-    conn = get_conn()
-    return conn.execute(sql).fetchall()
+    with _lock:
+        return get_conn().execute(sql).fetchall()
