@@ -142,14 +142,13 @@ def create_app() -> FastAPI:
         t.start()
         t.join(timeout=30)  # wait max 30s for startup tasks
 
-                # MurphyMind — continuous self-awareness loop
-                try:
-                    from src.murphy_mind import get_mind
-                    _mind = get_mind()
-                    _mind.start()
-                    logger.info("PATCH-124: MurphyMind started -- 10min self-awareness cycle")
-                except Exception as _me:
-                    logger.warning("PATCH-124: MurphyMind startup failed: %s", _me)
+        # MurphyMind — continuous self-awareness loop
+        try:
+            from src.murphy_mind import get_mind
+            get_mind().start()
+            logger.info("PATCH-124: MurphyMind started -- 10min self-awareness cycle")
+        except Exception as _me:
+            logger.warning("PATCH-124: MurphyMind startup failed: %s", _me)
 
         yield  # app is now running
         # shutdown: nothing to tear down (scheduler threads are daemon)
