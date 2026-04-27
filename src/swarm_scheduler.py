@@ -189,7 +189,27 @@ class SwarmScheduler:
         )
         self._jobs["morning_brief"] = {"name": "Morning Brief", "interval": "daily 08:00 UTC", "type": "builtin"}
 
-        logger.info("SwarmScheduler: 3 built-in jobs registered")
+
+        # Job 4: WorldCorpus collect — every 15 minutes
+        def corpus_collect():
+            try:
+                from src.world_corpus import get_world_corpus
+                counts = get_world_corpus().collect_all()
+                logger.info("WorldCorpus collect: %s", counts)
+            except Exception as exc:
+                logger.warning("WorldCorpus collect error: %s", exc)
+
+        self._scheduler.add_job(
+            corpus_collect,
+            trigger=IntervalTrigger(minutes=15),
+            id="corpus_collect",
+            name="WorldCorpus data collection",
+            replace_existing=True,
+            max_instances=1,
+        )
+        self._jobs["corpus_collect"] = {"name": "WorldCorpus Collect", "interval": "15min", "type": "builtin"}
+
+        logger.info("SwarmScheduler: 4 built-in jobs registered")
 
     def add_nl_job(self, nl_text: str, cron_expr: str, account: str = "unknown") -> str:
         """Add a dynamically-scheduled job from an NL-specified schedule."""

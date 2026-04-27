@@ -191,38 +191,37 @@ class RosettaSoul:
         logger.debug("Soul.record: agent=%s success=%s dag=%s", agent_id, success, dag_id)
 
     def world_note(self, domain: str) -> str:
-        """Return 1-2 sentence world context relevant to this domain."""
+        """
+        Return 1-2 sentence world context for this domain.
+        PATCH-121: Now queries WorldCorpus instead of live fetch.
+        Falls back to InfluenceSnapshot if corpus is empty.
+        """
+        # Try WorldCorpus first (collect -> store -> inference model)
+        try:
+            from src.world_corpus import get_world_corpus
+            corpus = get_world_corpus()
+            stats = corpus.stats()
+            if stats["total_records"] > 0:
+                domain_q_map = {
+                    "exec_admin": "What business or enterprise trends should executives know about?",
+                    "prod_ops":   "What technology or infrastructure events are relevant to production systems?",
+                    "finance":    "What economic or financial signals are worth noting?",
+                    "system":     "What technology developments are trending in AI and software?",
+                }
+                question = domain_q_map.get(domain, "What is most notable in the world right now?")
+                result = corpus.infer(question=question, domain=None, limit=5)
+                if result.get("confidence", 0) > 0:
+                    return result["answer"][:200]
+        except Exception as exc:
+            logger.debug("WorldCorpus world_note failed, falling back: %s", exc)
+
+        # Fallback: InfluenceSnapshot sentiment summary
         if not self.world_context:
             return ""
-        try:
-            topics = self.world_context.get("trending_topics", [])
-            sentiment = self.world_context.get("global_sentiment", 0.0)
-            vol = self.world_context.get("volatility_index", 0.0)
-
-            # Filter topics relevant to this domain
-            domain_map = {
-                "exec_admin":  ["enterprise", "policy_maker"],
-                "prod_ops":    ["developer", "tech_early_adopter"],
-                "data":        ["developer", "enterprise"],
-                "comms":       ["consumer", "enterprise"],
-                "system":      ["tech_early_adopter", "developer"],
-            }
-            relevant_segments = domain_map.get(domain, ["tech_early_adopter"])
-            relevant = [
-                t for t in topics
-                if any(t.get("demographic_affinity", {}).get(seg, 0) > 0.1
-                       for seg in relevant_segments)
-            ]
-
-            if not relevant:
-                mood = "positive" if sentiment > 0.1 else ("negative" if sentiment < -0.1 else "neutral")
-                return f"Global sentiment is {mood}. Volatility: {'high' if vol > 0.5 else 'low'}."
-
-            top = relevant[0]["topic"][:80]
-            mood = "positive" if sentiment > 0.1 else ("cautious" if sentiment < -0.1 else "neutral")
-            return f"World context: '{top}' is trending in this domain. Overall tone is {mood}."
-        except Exception:
-            return ""
+        sentiment = self.world_context.get("global_sentiment", 0.0)
+        vol = self.world_context.get("volatility_index", 0.0)
+        mood = "positive" if sentiment > 0.1 else ("cautious" if sentiment < -0.1 else "neutral")
+        return "Global mood is " + mood + ". Volatility: " + ("high" if vol > 0.5 else "low") + "."
 
     def refresh_world_context(self):
         """Fetch fresh InfluenceSnapshot and store in soul."""

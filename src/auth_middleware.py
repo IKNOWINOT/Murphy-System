@@ -417,6 +417,8 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         # PATCH-072: Ambient AI + Management AI — session-cookie auth inside routers
         "/api/ambient/",
         # PATCH-115b: Soul, Influence, HITL, Scheduler, Patterns (public)
+        "/api/corpus/",
+        "/api/corpus",
         "/api/influence/",
         "/api/influence",
         "/api/hitl/",

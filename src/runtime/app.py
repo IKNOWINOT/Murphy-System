@@ -1499,6 +1499,15 @@ def create_app() -> FastAPI:
     except Exception as _e:
         logger.warning("PATCH-115b: Rosetta Soul startup failed: %s", _e)
 
+
+    # ── PATCH-121: WorldCorpus startup ────────────────────────────────────────
+    try:
+        from src.world_corpus import get_world_corpus
+        _corpus = get_world_corpus()
+        logger.info("PATCH-121: WorldCorpus ready — %d records", _corpus.stats()["total_records"])
+    except Exception as _e:
+        logger.warning("PATCH-121: WorldCorpus startup failed: %s", _e)
+
     # ── PATCH-118: SwarmScheduler startup ─────────────────────────────────────
     try:
         from src.swarm_scheduler import get_scheduler
@@ -17259,6 +17268,58 @@ def create_app() -> FastAPI:
             result = get_swarm_coordinator().translate(text,
                 account=body.get("account","unknown"), execute=bool(body.get("execute",False)))
             return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
+
+    # ── PATCH-121: WorldCorpus API ────────────────────────────────────────────
+
+    @app.post("/api/corpus/collect")
+    async def _corpus_collect():
+        """Trigger full world data collection run."""
+        try:
+            from src.world_corpus import get_world_corpus
+            counts = get_world_corpus().collect_all()
+            return JSONResponse({"success": True, "collected": counts})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/corpus/stats")
+    async def _corpus_stats():
+        """WorldCorpus stats."""
+        try:
+            from src.world_corpus import get_world_corpus
+            return JSONResponse({"success": True, **get_world_corpus().stats()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/corpus/infer")
+    async def _corpus_infer(request: Request):
+        """Inference against stored corpus. No live API calls."""
+        try:
+            from src.world_corpus import get_world_corpus
+            body = await request.json()
+            question = body.get("question", "")
+            domain = body.get("domain", None)
+            if not question:
+                return JSONResponse({"success": False, "error": "question required"}, status_code=400)
+            result = get_world_corpus().infer(question=question, domain=domain, limit=body.get("limit", 10))
+            return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/corpus/query")
+    async def _corpus_query(domain: str = None, limit: int = 20, since_hours: int = 24):
+        """Query stored corpus records."""
+        try:
+            from src.world_corpus import get_world_corpus
+            records = get_world_corpus().query(domain=domain, limit=limit, since_hours=since_hours)
+            return JSONResponse({"success": True,
+                "records": [{"id": r.record_id, "source": r.source, "domain": r.domain,
+                              "content": r.content, "timestamp": r.timestamp, "tags": r.tags}
+                             for r in records],
+                "count": len(records)})
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
