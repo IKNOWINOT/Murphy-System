@@ -418,6 +418,8 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/ambient/",
         # PATCH-115b: Soul, Influence, HITL, Scheduler, Patterns (public)
         "/api/corpus/",
+        "/api/swarm/",
+        "/api/swarm",
         "/api/corpus",
         "/api/influence/",
         "/api/influence",

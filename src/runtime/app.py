@@ -17148,8 +17148,8 @@ def create_app() -> FastAPI:
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
-    @app.get("/api/hitl/pending")
-    async def _hitl_pending():
+    @app.get("/api/swarm/hitl/pending")
+    async def _swarm_hitl_pending():
         """List pending HITL approval requests."""
         try:
             from src.hitl_gate_swarm import get_hitl_queue
@@ -17158,8 +17158,8 @@ def create_app() -> FastAPI:
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
-    @app.post("/api/hitl/approve/{hitl_id}")
-    async def _hitl_approve(hitl_id: str, request: Request):
+    @app.post("/api/swarm/hitl/approve/{hitl_id}")
+    async def _swarm_hitl_approve(hitl_id: str, request: Request):
         """Approve a HITL request and resume the blocked DAG."""
         try:
             from src.hitl_gate_swarm import get_hitl_queue
@@ -17171,8 +17171,8 @@ def create_app() -> FastAPI:
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
-    @app.post("/api/hitl/reject/{hitl_id}")
-    async def _hitl_reject(hitl_id: str, request: Request):
+    @app.post("/api/swarm/hitl/reject/{hitl_id}")
+    async def _swarm_hitl_reject(hitl_id: str, request: Request):
         """Reject a HITL request."""
         try:
             from src.hitl_gate_swarm import get_hitl_queue
@@ -17182,8 +17182,8 @@ def create_app() -> FastAPI:
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
-    @app.get("/api/scheduler/status")
-    async def _scheduler_status():
+    @app.get("/api/swarm/scheduler")
+    async def _swarm_scheduler_status():
         """SwarmScheduler job list and status."""
         try:
             from src.swarm_scheduler import get_scheduler
@@ -17191,8 +17191,8 @@ def create_app() -> FastAPI:
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
-    @app.get("/api/patterns/stats")
-    async def _pattern_stats():
+    @app.get("/api/swarm/patterns")
+    async def _swarm_pattern_stats():
         """PatternLibrary stats."""
         try:
             from src.pattern_library import get_pattern_library
