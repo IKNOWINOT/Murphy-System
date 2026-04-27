@@ -14264,7 +14264,20 @@ def create_app() -> FastAPI:
             try:
                 from src.forge_rate_limiter import get_forge_rate_limiter
                 _forge_limiter = get_forge_rate_limiter()
-                _forge_result = _forge_limiter.check_and_record(request)
+                # PATCH-105: inject session account tier into forge rate limiter
+                # so authenticated users get their correct tier (not "anonymous").
+                if account:
+                    _acct_tier = (account.get("tier") or account.get("subscription_tier") or "free").lower()
+                    _acct_id   = account.get("account_id") or account.get("id") or "session-user"
+                    # Monkeypatch headers on a shim so rate limiter sees the right user
+                    class _ReqShim:
+                        headers = dict(request.headers)
+                        client  = request.client
+                    _ReqShim.headers["X-User-ID"]           = _acct_id
+                    _ReqShim.headers["X-Subscription-Tier"] = _acct_tier
+                    _forge_result = _forge_limiter.check_and_record(_ReqShim())
+                else:
+                    _forge_result = _forge_limiter.check_and_record(request)
                 if not _forge_result.get("allowed", True):
                     return JSONResponse(
                         {
@@ -14288,14 +14301,12 @@ def create_app() -> FastAPI:
         librarian_context: str = ""
         try:
             lib_result = murphy.librarian_ask(query, mode="ask")
-            # Extract the text answer from whichever key is populated
             librarian_context = (
                 lib_result.get("reply_text")
                 or lib_result.get("response")
                 or lib_result.get("message")
                 or ""
             )
-            # Truncate to a sane length to avoid bloating the deliverable
             if librarian_context:
                 librarian_context = librarian_context[:1500]
         except Exception as _lib_exc:

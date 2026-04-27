@@ -158,34 +158,37 @@ class LLMCostLedger:
 
 
 def patch_llm_provider(ledger: LLMCostLedger):
-    """Monkey-patch llm_provider.call_llm to tap token counts."""
+    """PATCH-107b: Hook LLMCostLedger into MurphyLLMProvider.complete_messages().
+    The old call_llm function was removed in PATCH-106b; we now wrap the provider
+    singleton's complete_messages method directly."""
     try:
         import src.llm_provider as lp
-        _orig = lp.call_llm
+        provider = lp.get_llm()
+        _orig = provider.complete_messages
 
         @functools.wraps(_orig)
-        async def _patched(*args, **kwargs):
+        def _patched(*args, **kwargs):
             t0 = time.monotonic()
-            result = await _orig(*args, **kwargs)
+            result = _orig(*args, **kwargs)
             latency = (time.monotonic() - t0) * 1000
             try:
-                model   = getattr(result, "model", kwargs.get("model", "unknown"))
+                model   = getattr(result, "model", "unknown")
                 prov    = getattr(result, "provider", "unknown")
                 pt      = getattr(result, "tokens_prompt", 0) or 0
                 ct      = getattr(result, "tokens_completion", 0) or 0
-                success = not getattr(result, "error", False)
+                success = getattr(result, "success", True)
                 ledger.record(model=str(model), provider=str(prov),
                               prompt_tokens=pt, completion_tokens=ct,
                               latency_ms=latency, caller="llm_provider",
                               success=success)
             except Exception as _e:
-                logger.debug("PATCH-089c: tap error: %s", _e)
+                logger.debug("PATCH-107b: tap error: %s", _e)
             return result
 
-        lp.call_llm = _patched
-        logger.info("PATCH-089c: llm_provider.call_llm patched for cost tracking")
+        provider.complete_messages = _patched
+        logger.info("PATCH-107b: LLMCostLedger hooked into provider.complete_messages")
     except Exception as e:
-        logger.warning("PATCH-089c: could not patch llm_provider: %s", e)
+        logger.warning("PATCH-107b: could not patch llm_provider: %s", e)
 
 
 # ── REST API ─────────────────────────────────────────────────────────────

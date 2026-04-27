@@ -258,7 +258,7 @@ class LLMDeterminismGuard:
         # After receiving a response:
         audit = guard.record_response(
             messages=messages, model="meta-llama/...",
-            temperature=params["temperature"], max_tokens=131072,
+            temperature=params["temperature"], max_tokens=8192,  # PATCH-106a: capped
             seed=params.get("seed"), deterministic=True,
             content="...", provider="deepinfra", latency_s=1.23,
         )

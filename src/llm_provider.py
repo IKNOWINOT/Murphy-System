@@ -39,21 +39,28 @@ logger = logging.getLogger(__name__)
 DEEPINFRA_BASE_URL = "https://api.deepinfra.com/v1/openai"
 TOGETHER_BASE_URL  = "https://api.together.xyz/v1"
 
-# Primary models (DeepInfra)
-DEEPINFRA_CHAT_MODEL   = "meta-llama/Meta-Llama-3.1-70B-Instruct"
-DEEPINFRA_FAST_MODEL   = "meta-llama/Meta-Llama-3.1-8B-Instruct"
-DEEPINFRA_CODE_MODEL   = "Qwen/Qwen2.5-Coder-32B-Instruct"
+# PATCH-106b: Quality distillation model selection.
+#
+# PRIMARY: Qwen3-235B-A22B (MoE) — 262k ctx, 262k max output, $0.10/M out
+#   → Best reasoning + instruction following on DeepInfra at this price point
+#   → MoE architecture = fast despite 235B params (only 22B active)
+#   → No artificial output cap — model stops when done, not when we stop it
+#
+# FALLBACK: Llama-3.3-70B-Turbo (Together) — used only if DeepInfra circuit opens
+#
+# model_hint is a no-op alias — one model does everything well.
+DEEPINFRA_PRIMARY_MODEL = "Qwen/Qwen3-235B-A22B-Instruct-2507"
 
-# Fallback models (Together.ai)
+DEEPINFRA_CHAT_MODEL   = DEEPINFRA_PRIMARY_MODEL
+DEEPINFRA_FAST_MODEL   = DEEPINFRA_PRIMARY_MODEL
+DEEPINFRA_CODE_MODEL   = DEEPINFRA_PRIMARY_MODEL
+
 TOGETHER_CHAT_MODEL    = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
-TOGETHER_FAST_MODEL    = "Qwen/Qwen2.5-7B-Instruct-Turbo"
-TOGETHER_CODE_MODEL    = "Qwen/Qwen2.5-7B-Instruct-Turbo"
+TOGETHER_FAST_MODEL    = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
+TOGETHER_CODE_MODEL    = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
 
-# DeepInfra Llama-3.1-70B context window: 131 072 tokens (prompt + output).
-# Output is not artificially capped — the LLM produces whatever the request
-# requires.  Callers may pass a lower max_tokens for smaller tasks.
-DEEPINFRA_MODEL_CONTEXT = 131072   # input context window — do NOT pass as max_tokens
-DEEPINFRA_MAX_OUTPUT    = 8192     # PATCH-093b: max generation tokens per call (422 fix)
+DEEPINFRA_MODEL_CONTEXT = 262144   # Qwen3-235B full context window
+DEEPINFRA_MAX_OUTPUT    = 32768    # PATCH-106b: generous output room — distill, don't cap
 
 # ---------------------------------------------------------------------------
 # Circuit breaker

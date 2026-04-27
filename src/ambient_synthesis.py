@@ -379,50 +379,34 @@ def synthesize(
 
     if use_llm and _llm_available():
         try:
-            LLMController, LLMRequest = _try_import_llm_controller()
-            if LLMController is not None:
-                ctrl = LLMController()
-                # PATCH-072j: Build prompt safely — no f-string interpolation of JSON
-                _parts = [
-                    "You are Murphy, an AI operating system.",
-                    "Analyse these ambient context signals and return ONLY a JSON array.",
-                    "No markdown, no explanation — just the raw JSON array.",
-                    "Each element: id (string), title (string), summary (string),",
-                    "confidence (0-1 float), category (perf/business/infra/risk),",
-                    "priority (high/medium/low), source (always 'server').",
-                    "Signals:",
-                    json.dumps(grouped, default=str)[:2000],
-                ]
-                prompt = " ".join(_parts)
-                req = LLMRequest(prompt=prompt, max_tokens=600, temperature=0.4)
-                import asyncio as _asyncio
-                import inspect as _inspect
-                _coro = ctrl.query_llm(req)
-                if _inspect.iscoroutine(_coro):
-                    try:
-                        loop = _asyncio.get_event_loop()
-                        if loop.is_running():
-                            import concurrent.futures as _cf
-                            with _cf.ThreadPoolExecutor(max_workers=1) as _pool:
-                                future = _pool.submit(_asyncio.run, ctrl.query_llm(req))
-                                resp = future.result(timeout=25)
-                        else:
-                            resp = loop.run_until_complete(_coro)
-                    except Exception as _aio_exc:
-                        logger.warning("PATCH-072i: asyncio run failed: %s", _aio_exc)
-                        resp = None
-                else:
-                    resp = _coro
-                if resp is None:
-                    raise ValueError("No response from LLM")
-                raw = getattr(resp, "content", getattr(resp, "text", str(resp)))
-                match = _re.search(r"\[.*?\]", raw, _re.DOTALL)
-                if match:
-                    parsed = json.loads(match.group())
-                    if isinstance(parsed, list) and parsed:
-                        logger.info("PATCH-072h: LLM synthesized %d insights", len(parsed))
-                        _feed_insights_to_lcm(parsed)  # PATCH-075: Ambient → LCM
-                        return parsed
+            # PATCH-107c: Drop LLMController async tangle — call get_llm() directly.
+            # get_llm().complete() is synchronous; no asyncio bridge needed.
+            from src.llm_provider import get_llm as _get_llm
+            _provider = _get_llm()
+            _parts = [
+                "You are Murphy, an AI operating system.",
+                "Analyse these ambient context signals and return ONLY a JSON array.",
+                "No markdown, no explanation — just the raw JSON array.",
+                "Each element: id (string), title (string), summary (string),",
+                "confidence (0-1 float), category (perf/business/infra/risk),",
+                "priority (high/medium/low), source (always 'server').",
+                "Signals:",
+                json.dumps(grouped, default=str)[:2000],
+            ]
+            prompt = " ".join(_parts)
+            completion = _provider.complete(
+                user=prompt,
+                max_tokens=600,
+                temperature=0.4,
+            )
+            raw = getattr(completion, "content", "") or ""
+            match = _re.search(r"\[.*?\]", raw, _re.DOTALL)
+            if match:
+                parsed = json.loads(match.group())
+                if isinstance(parsed, list) and parsed:
+                    logger.info("PATCH-107c: LLM synthesized %d insights", len(parsed))
+                    _feed_insights_to_lcm(parsed)  # PATCH-075: Ambient → LCM
+                    return parsed
         except Exception as _exc:
             logger.warning("PATCH-072h: LLM synthesis failed, using template: %s", _exc)
 

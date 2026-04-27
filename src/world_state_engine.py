@@ -148,7 +148,18 @@ def _fetch_url(url: str, timeout: int = 8) -> Optional[Dict]:
 
 
 def _yahoo(ticker: str) -> Optional[float]:
-    """Fetch last close from Yahoo Finance."""
+    """PATCH-107a: Fetch last close via yfinance (handles rate-limits, proper headers).
+    Falls back to raw urllib if yfinance import fails."""
+    try:
+        import yfinance as _yf
+        t = _yf.Ticker(ticker)
+        h = t.history(period="5d", auto_adjust=True)
+        if not h.empty:
+            return float(h["Close"].iloc[-1])
+        return None
+    except Exception:
+        pass
+    # urllib fallback (original path)
     url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=5d"
     data = _fetch_url(url)
     if not data:

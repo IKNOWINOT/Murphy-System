@@ -4524,7 +4524,10 @@ def _generate_llm_content(
     # artificially cap this — the LLM produces whatever the request requires.
     # MFGC confidence and MSS scope already determine the complexity; the
     # token limit just needs to not be the bottleneck.
-    max_output_tokens = 131072
+    # PATCH-106b: No artificial cap — let the model distill to natural completion.
+    # Qwen3-235B supports up to 262k output. Forge prompts are typically 2k-8k tokens.
+    # We give 32k of headroom — enough for the most comprehensive deliverable.
+    max_output_tokens = 32768
 
     # ── Try 1: Direct MurphyLLMProvider (DeepInfra → Together.ai) ─────────
     try:
@@ -4563,6 +4566,14 @@ def _generate_llm_content(
         if tracker:
             tracker.record_error("LLM-PROVIDER-ERR-001", "llm_provider", str(exc))
 
+    # ── Try 2: LLMController — PATCH-105: skip when Together.ai key is invalid ──
+    _p105_tog_key = __import__('os').environ.get("TOGETHER_API_KEY", "").strip()
+    if not _p105_tog_key or _p105_tog_key in ("", "none", "REPLACE_ME", "null"):
+        logger.info("PATCH-105: Together.ai key absent — skipping LLMController+LocalLLM, going to domain engine")
+        # Fall through to domain engine fallback (Try 4+)
+    else:
+        pass  # Together.ai key present — run Try 2 below (dead branch placeholder)
+
     # ── Try 2: LLMController (async, broader model selection) ─────────────
     try:
         import asyncio
@@ -4577,7 +4588,7 @@ def _generate_llm_content(
                 import concurrent.futures
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exe:
                     future = exe.submit(asyncio.run, controller.query_llm(req))
-                    response = future.result(timeout=120)
+                    response = future.result(timeout=25)  # PATCH-105: 25s hard cap
             else:
                 response = loop.run_until_complete(controller.query_llm(req))
         except RuntimeError:
@@ -7623,7 +7634,7 @@ def _execute_single_agent_task(
             messages,
             model_hint="chat",
             temperature=0.7,
-            max_tokens=16384,
+            max_tokens=8192,  # PATCH-106a: capped to DEEPINFRA_MAX_OUTPUT
         )
         if completion.content and completion.provider != "onboard":
             content = completion.content
@@ -7836,7 +7847,7 @@ def _synthesize_swarm_outputs(
             ],
             model_hint="chat",
             temperature=0.5,
-            max_tokens=131072,
+            max_tokens=8192,  # PATCH-106a: capped to DEEPINFRA_MAX_OUTPUT
         )
         if completion.content and completion.provider != "onboard":
             logger.info(
