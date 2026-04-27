@@ -49,8 +49,35 @@ def _get_lcm():
     return _lcm
 
 
+def _safe(obj: Any, _depth: int = 0) -> Any:
+    """PATCH-109e: Recursively sanitize LCM result for JSON serialization.
+    Dataclasses (TransformationResult, InformationQuality, etc.) are
+    not JSON-serializable — convert them to their __dict__ or str repr."""
+    if _depth > 12:
+        return str(obj)
+    if obj is None or isinstance(obj, (bool, int, float, str)):
+        return obj
+    if isinstance(obj, dict):
+        return {str(k): _safe(v, _depth + 1) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_safe(i, _depth + 1) for i in obj]
+    if hasattr(obj, "__dataclass_fields__"):
+        return _safe(obj.__dict__, _depth + 1)
+    if hasattr(obj, "__dict__"):
+        try:
+            return _safe(obj.__dict__, _depth + 1)
+        except Exception:
+            return str(obj)
+    try:
+        import json as _j
+        _j.dumps(obj)
+        return obj
+    except (TypeError, ValueError):
+        return str(obj)
+
+
 def _ok(data: Any = None) -> "JSONResponse":
-    return JSONResponse({"ok": True, "data": data})
+    return JSONResponse({"ok": True, "data": _safe(data)})
 
 
 def _err(msg: str, status: int = 500) -> "JSONResponse":
