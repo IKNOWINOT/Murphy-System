@@ -222,17 +222,18 @@ def _verify_failure_modes() -> List[Dict]:
         target_files = fm.get("files", [])
 
         if not patterns:
-            # FM-010: duplicate route scan
+            # FM-010: duplicate route scan — PATCH-126d: key on METHOD+PATH (capturing group)
             app_py = _SRC_ROOT / "runtime" / "app.py"
             if app_py.exists():
                 routes, dupes = [], []
                 for line in app_py.read_text(errors="replace").splitlines():
-                    m2 = _re.search(r'@app\.(?:get|post|put|delete|patch)\("([^"]+)"', line)
+                    # Capturing group for method so key = "GET /api/foo" not just "/api/foo"
+                    m2 = _re.search(r'@app\.(get|post|put|delete|patch)\("([^"]+)"', line)
                     if m2:
-                        r = "PATH " + m2.group(1)  # PATCH-126c: method in (?:) is non-capturing, group(1)=path
-                        if r in routes:
-                            dupes.append(r)
-                        routes.append(r)
+                        key = m2.group(1).upper() + " " + m2.group(2)
+                        if key in routes:
+                            dupes.append(key)
+                        routes.append(key)
                 results.append({"id": fm["id"], "name": fm["name"],
                                  "status": "active" if dupes else "fixed",
                                  "evidence": f"Dupes: {list(set(dupes))[:2]}" if dupes else "No duplicates"})
