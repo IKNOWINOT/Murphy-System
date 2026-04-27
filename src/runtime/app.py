@@ -116,23 +116,51 @@ def create_app() -> FastAPI:
                     sched.start()
                     logger.info("PATCH-122: SwarmScheduler started — %d jobs", len(sched._jobs))
 
-                # Rosetta Soul + Coordinator
+                # Rosetta Soul + Coordinator — PATCH-130: all 9 agents registered
                 from src.rosetta_core import get_rosetta_soul, get_swarm_coordinator
                 from src.exec_admin_agent import get_exec_admin
                 from src.prod_ops_agent import get_prod_ops
+                from src.collector_agent import get_collector_agent
+                from src.translator_agent import get_translator_agent
+                from src.scheduler_agent import get_scheduler_agent
+                from src.executor_agent import get_executor_agent
+                from src.auditor_agent import get_auditor_agent
+                from src.hitl_agent import get_hitl_agent
+                from src.rosetta_agent import get_rosetta_agent
                 soul = get_rosetta_soul()
                 soul.refresh_world_context()
                 coord = get_swarm_coordinator()
-                if "exec_admin" not in coord._agents:
-                    coord.register("exec_admin", get_exec_admin())
-                if "prod_ops" not in coord._agents:
-                    coord.register("prod_ops", get_prod_ops())
-                logger.info("PATCH-122: Swarm wired — %d agents", len(coord._agents))
+                _agent_map = {
+                    "collector":  get_collector_agent,
+                    "translator": get_translator_agent,
+                    "scheduler":  get_scheduler_agent,
+                    "executor":   get_executor_agent,
+                    "auditor":    get_auditor_agent,
+                    "exec_admin": get_exec_admin,
+                    "prod_ops":   get_prod_ops,
+                    "hitl":       get_hitl_agent,
+                    "rosetta":    get_rosetta_agent,
+                }
+                for _aid, _factory in _agent_map.items():
+                    if _aid not in coord._agents:
+                        try:
+                            coord.register(_aid, _factory())
+                        except Exception as _e:
+                            logger.warning("PATCH-130: could not register agent %s: %s", _aid, _e)
+                logger.info("PATCH-130: Swarm wired — %d/9 agents", len(coord._agents))
 
-                # WorldCorpus — init (collect happens via scheduler)
+                # WorldCorpus — init + immediate refresh if stale
                 from src.world_corpus import get_world_corpus
                 wc = get_world_corpus()
-                logger.info("PATCH-122: WorldCorpus ready — %d records", wc.stats()["total_records"])
+                _wc_stats = wc.stats()
+                logger.info("PATCH-130: WorldCorpus ready — %d records", _wc_stats["total_records"])
+                # PATCH-130: trigger an immediate collect if corpus has fewer than 100 records
+                if _wc_stats.get("total_records", 0) < 100:
+                    try:
+                        counts = wc.collect_all()
+                        logger.info("PATCH-130: WorldCorpus refreshed at startup — %s", counts)
+                    except Exception as _exc:
+                        logger.warning("PATCH-130: WorldCorpus startup collect failed: %s", _exc)
 
             except Exception as exc:
                 logger.error("PATCH-122: lifespan startup error: %s", exc)
