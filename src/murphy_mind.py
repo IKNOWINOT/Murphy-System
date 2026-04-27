@@ -229,7 +229,7 @@ def _verify_failure_modes() -> List[Dict]:
                 for line in app_py.read_text(errors="replace").splitlines():
                     m2 = _re.search(r'@app\.(?:get|post|put|delete|patch)\("([^"]+)"', line)
                     if m2:
-                        r = m2.group(1).upper() + " " + m2.group(2)
+                        r = "PATH " + m2.group(1)  # PATCH-126c: method in (?:) is non-capturing, group(1)=path
                         if r in routes:
                             dupes.append(r)
                         routes.append(r)
