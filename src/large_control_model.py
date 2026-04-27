@@ -412,10 +412,26 @@ class LargeControlModel:
         trace: list[dict[str, Any]],
     ) -> dict[str, Any]:
         t0 = time.monotonic()
+        # PATCH-111b: Replace stub with LLM-generated outcome summary
+        _intent = nl_result.get("intent", text) or text
+        _simulated = f"Simulated: {_intent}"  # fallback
+        try:
+            from src.llm_provider import MurphyLLMProvider as _LLMProv
+            _llm = _LLMProv()
+            _prompt = (
+                f"You are Murphy, a civilizational AI OS. A user issued this intent: '{_intent[:200]}'. "
+                "In 1-2 sentences, describe concisely what action you would take in response. "
+                "Be specific and practical. Do not use hedging language."
+            )
+            _resp = _llm.complete(prompt=_prompt, max_tokens=120)
+            if _resp and getattr(_resp, "content", "").strip():
+                _simulated = _resp.content.strip()
+        except Exception as _exc:
+            logger.debug("LCM simulated_outcome LLM failed, using stub: %s", _exc)
         result: dict[str, Any] = {
             "confidence": 0.9,
             "stability_score": 0.9,
-            "simulated_outcome": f"Simulated: {nl_result.get('intent', text)}",
+            "simulated_outcome": _simulated,
             "clarifying_questions": [],
         }
 

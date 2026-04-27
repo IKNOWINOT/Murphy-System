@@ -91,6 +91,12 @@ _EXEMPT_PREFIXES = (
     # PATCH-100: CIDP (public stats only)
     "/api/cidp/stats",
     "/api/cidp/stats/",
+    # PATCH-111a: Shield Wall — all /api/shield/* routes are public (north star, status, team)
+    "/api/shield/",
+    "/api/shield",
+    # PATCH-111a: LCM — /api/lcm/process is auth-gated but signal/history are internal
+    "/api/lcm/",
+    "/api/lcm",
 )
 
 

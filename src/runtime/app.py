@@ -16936,11 +16936,14 @@ def create_app() -> FastAPI:
 
     # ── PATCH-101: Autonomous Self-Improvement Loop ───────────────────────────
 
+    # PATCH-111c: autonomous loop — fire in background thread so HTTP returns instantly
+    _autonomous_jobs: dict = {}
+
     @app.post("/api/self/autonomous")
     async def _autonomous_cycle(request: Request):
         """
-        PATCH-101 — Murphy's autonomous self-improvement loop.
-        Identifies gaps, runs CIDP + Model Team review, PCC gate, applies patch.
+        PATCH-111c — Murphy's autonomous self-improvement loop (non-blocking).
+        Returns job_id immediately. Poll /api/self/autonomous/{job_id} for result.
 
         Body (all optional):
           max_patches: int = 1       — max patches per cycle
@@ -16949,18 +16952,40 @@ def create_app() -> FastAPI:
 
         Requires auth.
         """
+        import threading, uuid
         try:
             from src.self_modification import self_mod
             body = await request.json()
-            result = self_mod.run_autonomous_cycle(
-                max_patches  = int(body.get("max_patches",  1)),
-                min_priority = body.get("min_priority", "MEDIUM"),
-                dry_run      = bool(body.get("dry_run", True)),
-            )
-            return JSONResponse({"success": True, "cycle": result})
+            max_patches  = int(body.get("max_patches",  1))
+            min_priority = body.get("min_priority", "MEDIUM")
+            dry_run      = bool(body.get("dry_run", True))
+            job_id = str(uuid.uuid4())[:8]
+            _autonomous_jobs[job_id] = {"status": "running", "result": None, "error": None}
+
+            def _run():
+                try:
+                    result = self_mod.run_autonomous_cycle(
+                        max_patches=max_patches, min_priority=min_priority, dry_run=dry_run
+                    )
+                    _autonomous_jobs[job_id] = {"status": "done", "result": result, "error": None}
+                except Exception as exc:
+                    _autonomous_jobs[job_id] = {"status": "error", "result": None, "error": str(exc)}
+
+            threading.Thread(target=_run, daemon=True, name=f"autonomous-{job_id}").start()
+            return JSONResponse({"success": True, "job_id": job_id,
+                                 "poll": f"/api/self/autonomous/{job_id}",
+                                 "dry_run": dry_run})
         except Exception as exc:
             logger.error("autonomous cycle error: %s", exc, exc_info=True)
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/self/autonomous/{job_id}")
+    async def _autonomous_status(job_id: str):
+        """PATCH-111c — Poll autonomous cycle job status."""
+        job = _autonomous_jobs.get(job_id)
+        if not job:
+            return JSONResponse({"success": False, "error": "job not found"}, status_code=404)
+        return JSONResponse({"success": True, **job})
 
 
     # ── PATCH-099: PCC — Predictive Convergence Correction API ────────────────
