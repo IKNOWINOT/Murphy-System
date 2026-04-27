@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forge — Murphy System</title>
+  <link rel="stylesheet" href="static/murphy-design-system.css">
+  <style>
+    /* ── Forge-specific styles ── */
+    .forge-layout { display:flex; gap:0; height:calc(100vh - var(--topbar-height,56px)); }
+    .forge-sidebar { width:280px; flex-shrink:0; border-right:1px solid var(--border-subtle);
+      overflow-y:auto; background:var(--bg-surface); display:flex; flex-direction:column; }
+    .forge-main   { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+    .forge-editor { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+    .forge-output { height:220px; border-top:1px solid var(--border-subtle); flex-shrink:0;
+      background:var(--bg-base); overflow-y:auto; padding:var(--space-3);
+      font-family:var(--font-mono); font-size:var(--text-xs); }
+
+    /* Type pills */
+    .type-pills { display:flex; gap:var(--space-2); flex-wrap:wrap; margin-bottom:var(--space-3); }
+    .type-pill { padding:.25rem .75rem; border-radius:999px; border:1px solid var(--border-default);
+      background:transparent; color:var(--text-secondary); cursor:pointer; font-size:var(--text-xs);
+      font-family:var(--font-ui); transition:all .15s; }
+    .type-pill:hover  { border-color:var(--teal); color:var(--teal); }
+    .type-pill.active { background:var(--teal); border-color:var(--teal); color:var(--bg-base); font-weight:600; }
+
+    /* Code editor area */
+    .code-pane { flex:1; display:flex; flex-direction:column; overflow:hidden; padding:var(--space-4); }
+    #code-editor {
+      flex:1; width:100%; min-height:300px; resize:none;
+      background:var(--bg-base); border:1px solid var(--border-subtle);
+      border-radius:var(--radius-md); padding:var(--space-3);
+      font-family:var(--font-mono); font-size:13px; line-height:1.6;
+      color:var(--teal); outline:none; transition:border-color .2s;
+    }
+    #code-editor:focus { border-color:var(--teal); }
+
+    /* Sidebar items */
+    .forge-item-card { padding:var(--space-3); border-bottom:1px solid var(--border-subtle);
+      cursor:pointer; transition:background .15s; }
+    .forge-item-card:hover { background:var(--bg-elevated); }
+    .forge-item-card.active { background:rgba(0,212,170,.08); border-left:2px solid var(--teal); }
+    .item-badge { display:inline-block; padding:1px 6px; border-radius:4px; font-size:10px;
+      font-weight:700; text-transform:uppercase; }
+    .badge-function     { background:rgba(0,212,170,.15); color:var(--teal); }
+    .badge-module       { background:rgba(100,180,255,.15); color:#64b4ff; }
+    .badge-internal_api { background:rgba(255,200,0,.15); color:#ffd000; }
+    .badge-external_api { background:rgba(255,120,80,.15); color:#ff7850; }
+
+    /* Output lines */
+    .out-line { margin:2px 0; }
+    .out-ok  { color:var(--teal); }
+    .out-err { color:var(--danger, #ff4444); }
+    .out-inf { color:var(--text-secondary); }
+    .out-code{ color:#aee6f5; }
+
+    /* Test panel */
+    .test-panel { padding:var(--space-3); border-top:1px solid var(--border-subtle);
+      background:var(--bg-surface); }
+    #test-args { font-family:var(--font-mono); font-size:12px; }
+
+    /* Topbar for forge */
+    .forge-topbar { display:flex; align-items:center; gap:var(--space-3);
+      padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--border-subtle);
+      background:var(--bg-surface); flex-shrink:0; }
+    .forge-topbar input { flex:1; }
+  </style>
+</head>
+<body>
+<script src="static/murphy-components.js"></script>
+<script src="static/murphy-auth-guard.js"></script>
+
+<murphy-header app-name="Forge" icon="⚡"></murphy-header>
+
+<div class="forge-layout">
+
+  <!-- ── Sidebar: item list ── -->
+  <aside class="forge-sidebar">
+    <div style="padding:var(--space-4);border-bottom:1px solid var(--border-subtle)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3)">
+        <span style="font-weight:700;font-size:var(--text-sm)">⚡ Forge Items</span>
+        <button class="murphy-btn murphy-btn-ghost" style="padding:.2rem .5rem;font-size:11px" id="btn-refresh-list" title="Refresh">↺</button>
+      </div>
+      <input type="text" class="murphy-input" id="sidebar-search" placeholder="Filter items…" style="font-size:var(--text-xs)">
+    </div>
+    <div id="sidebar-items" style="flex:1;overflow-y:auto">
+      <div class="out-inf" style="padding:var(--space-4);font-size:var(--text-xs)">Loading…</div>
+    </div>
+  </aside>
+
+  <!-- ── Main editor area ── -->
+  <main class="forge-main">
+
+    <!-- Build bar -->
+    <div class="forge-topbar">
+      <div class="type-pills">
+        <button class="type-pill active" data-type="function">ƒ Function</button>
+        <button class="type-pill" data-type="module">◈ Module</button>
+        <button class="type-pill" data-type="internal_api">⚙ Internal API</button>
+        <button class="type-pill" data-type="external_api">🌐 External API</button>
+      </div>
+    </div>
+
+    <div class="forge-topbar" style="padding-top:0;border-top:none">
+      <input type="text" class="murphy-input" id="forge-desc"
+        placeholder="Describe what to build…  e.g. 'calculate compound interest given principal, rate, years'"
+        style="flex:1">
+      <input type="text" class="murphy-input" id="forge-name"
+        placeholder="name (optional)" style="width:160px">
+      <input type="text" class="murphy-input" id="forge-service"
+        placeholder="service (ext only)" style="width:140px;display:none" id="service-input">
+      <button class="murphy-btn murphy-btn-primary" id="btn-forge">⚡ Forge</button>
+    </div>
+
+    <!-- Code editor + output -->
+    <div class="forge-editor">
+      <div class="code-pane">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-2)">
+          <span id="editor-label" style="font-size:var(--text-xs);color:var(--text-secondary)">Generated code will appear here</span>
+          <div style="display:flex;gap:var(--space-2)">
+            <button class="murphy-btn murphy-btn-ghost" id="btn-copy" style="font-size:11px" title="Copy code">Copy</button>
+            <button class="murphy-btn murphy-btn-secondary" id="btn-edit-nl" style="font-size:11px" title="Edit via NL">✏ Edit</button>
+            <button class="murphy-btn murphy-btn-danger"  id="btn-delete" style="font-size:11px;display:none">Delete</button>
+          </div>
+        </div>
+        <textarea id="code-editor" spellcheck="false" placeholder="# Your generated code appears here
+# You can edit it directly or use '✏ Edit' to modify via natural language"></textarea>
+      </div>
+
+      <!-- Test panel -->
+      <div class="test-panel">
+        <div style="display:flex;gap:var(--space-3);align-items:flex-end;flex-wrap:wrap">
+          <div style="flex:1">
+            <label class="murphy-label" style="font-size:11px;margin-bottom:4px">Test args (JSON)</label>
+            <input type="text" class="murphy-input murphy-input-sm" id="test-args"
+              placeholder='{"arg1": "value"}' style="font-family:var(--font-mono);font-size:12px">
+          </div>
+          <button class="murphy-btn murphy-btn-secondary" id="btn-invoke" style="flex-shrink:0">▶ Invoke</button>
+        </div>
+      </div>
+
+      <!-- Output terminal -->
+      <div class="forge-output" id="forge-output">
+        <div class="out-inf">⚡ Forge terminal ready. Describe what to build and press Forge.</div>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<!-- Edit-via-NL modal -->
+<div id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);
+  z-index:1000;display:none;align-items:center;justify-content:center">
+  <div class="murphy-card" style="width:520px;max-width:90vw">
+    <h3 style="margin-bottom:var(--space-3)">✏ Edit via Natural Language</h3>
+    <textarea id="edit-desc" class="murphy-input" rows="3" style="width:100%;resize:vertical"
+      placeholder="Describe the change…  e.g. 'add input validation that rejects negative values'"></textarea>
+    <div style="display:flex;gap:var(--space-3);margin-top:var(--space-3);justify-content:flex-end">
+      <button class="murphy-btn murphy-btn-secondary" id="btn-edit-cancel">Cancel</button>
+      <button class="murphy-btn murphy-btn-primary" id="btn-edit-confirm">✏ Apply Edit</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── ForgeUI — PATCH-133 ── */
+(function() {
+  var api       = new MurphyAPI();
+  var output    = document.getElementById('forge-output');
+  var codeEditor= document.getElementById('code-editor');
+  var editorLbl = document.getElementById('editor-label');
+  var sidebar   = document.getElementById('sidebar-items');
+  var searchIn  = document.getElementById('sidebar-search');
+
+  var _currentType   = 'function';
+  var _currentItem   = null;   // the active forge item object
+  var _currentItemId = null;
+
+  function log(msg, cls) {
+    cls = cls || 'out-inf';
+    var d = document.createElement('div');
+    d.className = 'out-line ' + cls;
+    d.textContent = msg;
+    output.appendChild(d);
+    output.scrollTop = output.scrollHeight;
+  }
+
+  /* ── Type pills ── */
+  document.querySelectorAll('.type-pill').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.type-pill').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      _currentType = btn.dataset.type;
+      var svc = document.getElementById('service-input') || document.getElementById('forge-service');
+      if (svc) svc.style.display = (_currentType === 'external_api') ? '' : 'none';
+      var desc = document.getElementById('forge-desc');
+      var placeholders = {
+        function:     "e.g. 'calculate compound interest given principal, rate, and years'",
+        module:       "e.g. 'a task manager with create, update, delete, and list methods'",
+        internal_api: "e.g. 'CRUD endpoints for a simple contact list'",
+        external_api: "e.g. 'Stripe billing: create customer, create subscription, get invoices'",
+      };
+      if (desc) desc.placeholder = 'Describe what to build…  ' + (placeholders[_currentType] || '');
+    });
+  });
+
+  /* ── Forge ── */
+  document.getElementById('btn-forge').addEventListener('click', async function() {
+    var desc    = document.getElementById('forge-desc').value.trim();
+    var name    = document.getElementById('forge-name').value.trim() || null;
+    var service = document.getElementById('forge-service').value.trim() || null;
+    if (!desc) { document.getElementById('forge-desc').focus(); return; }
+
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = '⏳ Forging…';
+    log('⚡ Forging ' + _currentType + ': "' + desc.slice(0,60) + (desc.length>60?'…':'"') + '"…', 'out-inf');
+
+    try {
+      var body = { description: desc, item_type: _currentType };
+      if (name)    body.name    = name;
+      if (service) body.service = service;
+
+      var res = await api.post('/api/forge/create', body);
+
+      if (!res.ok) {
+        var detail = (res.data && res.data.detail) ? res.data.detail : res;
+        log('✗ ' + JSON.stringify(detail), 'out-err');
+      } else {
+        var item = res.data.forge_item;
+        _currentItem   = item;
+        _currentItemId = item.id;
+
+        codeEditor.value = item.source_code || '';
+        editorLbl.textContent = item.item_type + ' · ' + item.name +
+          (item.route ? '  →  ' + item.route : '');
+
+        document.getElementById('btn-delete').style.display = '';
+
+        log('✓ Created ' + item.item_type + ' "' + item.name + '" (' + item.critic_verdict + ')', 'out-ok');
+
+        if (item.test_result) {
+          var tr = item.test_result;
+          log('  smoke test: ' + (tr.passed ? '✓ PASSED' : '✗ FAILED') +
+              (tr.signature ? '  sig: ' + tr.signature : '') +
+              (tr.routes ? '  routes: ' + tr.routes.join(', ') : '') +
+              (tr.methods ? '  methods: ' + tr.methods.join(', ') : ''), 
+              tr.passed ? 'out-ok' : 'out-err');
+        }
+
+        if (item.route) {
+          log('  API mounted: ' + item.route, 'out-ok');
+        }
+
+        /* Set test args hint */
+        var argsHint = {};
+        if (item.item_type === 'module' || item.item_type === 'external_api') {
+          argsHint.method = item.test_result && item.test_result.methods ?
+            item.test_result.methods[0] : 'health_check';
+        }
+        document.getElementById('test-args').value = JSON.stringify(argsHint);
+
+        refreshSidebar();
+      }
+    } catch(e) {
+      log('✗ Network error: ' + e.message, 'out-err');
+    }
+    btn.disabled = false;
+    btn.textContent = '⚡ Forge';
+  });
+
+  /* ── Invoke ── */
+  document.getElementById('btn-invoke').addEventListener('click', async function() {
+    if (!_currentItem) { log('⚠ No item selected — forge or click an item first', 'out-inf'); return; }
+    var argsRaw = document.getElementById('test-args').value.trim() || '{}';
+    var args;
+    try { args = JSON.parse(argsRaw); } catch(e) { log('✗ Invalid JSON args: ' + e.message, 'out-err'); return; }
+
+    var btn = this;
+    btn.disabled = true;
+    log('▶ Invoking ' + _currentItem.name + ' with ' + argsRaw + '…', 'out-inf');
+
+    try {
+      var res = await api.post('/api/forge/invoke', { name: _currentItem.name, args: args });
+      if (!res.ok) {
+        log('✗ ' + JSON.stringify(res.data && res.data.detail || res.data), 'out-err');
+      } else {
+        log('← ' + JSON.stringify(res.data.result !== undefined ? res.data.result : res.data, null, 2), 'out-code');
+      }
+    } catch(e) {
+      log('✗ Network error: ' + e.message, 'out-err');
+    }
+    btn.disabled = false;
+  });
+
+  /* ── Copy ── */
+  document.getElementById('btn-copy').addEventListener('click', function() {
+    var code = codeEditor.value;
+    if (!code) return;
+    navigator.clipboard.writeText(code).then(function() {
+      log('✓ Copied to clipboard', 'out-ok');
+    });
+  });
+
+  /* ── Delete ── */
+  document.getElementById('btn-delete').addEventListener('click', async function() {
+    if (!_currentItemId) return;
+    if (!confirm('Delete this forge item?')) return;
+    await api.request('DELETE', '/api/forge/item/' + _currentItemId);
+    log('✓ Deleted', 'out-ok');
+    codeEditor.value = '';
+    editorLbl.textContent = 'Generated code will appear here';
+    _currentItem = null; _currentItemId = null;
+    document.getElementById('btn-delete').style.display = 'none';
+    refreshSidebar();
+  });
+
+  /* ── Edit modal ── */
+  var editModal = document.getElementById('edit-modal');
+  document.getElementById('btn-edit-nl').addEventListener('click', function() {
+    if (!_currentItem) { log('⚠ No item selected', 'out-inf'); return; }
+    editModal.style.display = 'flex';
+    document.getElementById('edit-desc').focus();
+  });
+  document.getElementById('btn-edit-cancel').addEventListener('click', function() {
+    editModal.style.display = 'none';
+  });
+  document.getElementById('btn-edit-confirm').addEventListener('click', async function() {
+    var editDesc = document.getElementById('edit-desc').value.trim();
+    if (!editDesc) return;
+    editModal.style.display = 'none';
+    log('✏ Editing "' + _currentItem.name + '": ' + editDesc.slice(0,60) + '…', 'out-inf');
+
+    var btn = this;
+    btn.disabled = true;
+
+    try {
+      var res = await api.post('/api/forge/edit', { name: _currentItem.name, edit_description: editDesc });
+      if (!res.ok) {
+        log('✗ Edit failed: ' + JSON.stringify(res.data && res.data.detail || res.data), 'out-err');
+      } else {
+        codeEditor.value = res.data.source_code || '';
+        log('✓ Edit applied', 'out-ok');
+        refreshSidebar();
+      }
+    } catch(e) {
+      log('✗ ' + e.message, 'out-err');
+    }
+    btn.disabled = false;
+  });
+
+  /* ── Sidebar ── */
+  async function refreshSidebar() {
+    try {
+      var res = await api.get('/api/forge/list');
+      if (!res.ok) { sidebar.innerHTML = '<div class="out-err" style="padding:var(--space-4)">Load failed</div>'; return; }
+      var items = res.data.items || [];
+      var q = searchIn.value.toLowerCase();
+      if (q) items = items.filter(function(i){ return i.name.includes(q) || (i.description||'').toLowerCase().includes(q); });
+      if (items.length === 0) {
+        sidebar.innerHTML = '<div class="out-inf" style="padding:var(--space-4);font-size:var(--text-xs)">No items yet. Describe something and click ⚡ Forge.</div>';
+        return;
+      }
+      sidebar.innerHTML = items.map(function(it) {
+        return '<div class="forge-item-card' + (it.id===_currentItemId?' active':'') + '" data-id="'+it.id+'">' +
+          '<span class="item-badge badge-'+it.item_type+'">'+it.item_type.replace('_',' ')+'</span> ' +
+          '<strong style="font-size:var(--text-xs);font-family:var(--font-mono)">' + it.name + '</strong>' +
+          '<div style="font-size:10px;color:var(--text-secondary);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' +
+          (it.description||'').slice(0,60) + '</div>' +
+          (it.route ? '<div style="font-size:9px;color:var(--teal);margin-top:2px">'+it.route+'</div>' : '') +
+          '</div>';
+      }).join('');
+
+      sidebar.querySelectorAll('.forge-item-card').forEach(function(card) {
+        card.addEventListener('click', async function() {
+          var id = this.dataset.id;
+          var res2 = await api.get('/api/forge/item/' + id);
+          if (!res2.ok) return;
+          var item = res2.data;
+          _currentItem   = item;
+          _currentItemId = item.id;
+          codeEditor.value = item.source_code || '';
+          editorLbl.textContent = item.item_type + ' · ' + item.name +
+            (item.route ? '  →  ' + item.route : '');
+          document.getElementById('btn-delete').style.display = '';
+          /* Set type pill */
+          document.querySelectorAll('.type-pill').forEach(function(b){
+            b.classList.toggle('active', b.dataset.type === item.item_type);
+          });
+          _currentType = item.item_type;
+          sidebar.querySelectorAll('.forge-item-card').forEach(function(c){
+            c.classList.toggle('active', c.dataset.id === id);
+          });
+        });
+      });
+    } catch(e) {
+      sidebar.innerHTML = '<div class="out-err" style="padding:var(--space-4);font-size:var(--text-xs)">'+e.message+'</div>';
+    }
+  }
+
+  searchIn.addEventListener('input', refreshSidebar);
+  document.getElementById('btn-refresh-list').addEventListener('click', refreshSidebar);
+
+  /* Enter on desc to forge */
+  document.getElementById('forge-desc').addEventListener('keydown', function(e){
+    if ((e.ctrlKey||e.metaKey) && e.key==='Enter') document.getElementById('btn-forge').click();
+  });
+
+  /* Init */
+  refreshSidebar();
+})();
+</script>
+</body>
+</html>

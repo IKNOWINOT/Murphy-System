@@ -17936,6 +17936,17 @@ def create_app() -> FastAPI:
         logger.warning("PATCH-089e: mcp_plugin router failed: %s", _e)
 
 
+    # ── ForgeEngine (PATCH-133) ──────────────────────────────────────────────
+    try:
+        from src.forge_router import router as _forge_router
+        from src.forge_engine import register_with_app as _forge_register
+        app.include_router(_forge_router)
+        _forge_register(app)
+        logger.info("PATCH-133: ForgeEngine online — /api/forge/*")
+    except Exception as _fe_exc:
+        logger.warning("PATCH-133: ForgeEngine not available: %s", _fe_exc)
+
+
     return app
 
 
