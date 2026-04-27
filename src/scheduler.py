@@ -164,7 +164,7 @@ class MurphyScheduler:
             from inoni_business_automation import InoniBusinessAutomation
             automation = self._automation or InoniBusinessAutomation()
         except Exception as exc:
-            logger.warning("Could not instantiate InoniBusinessAutomation: %s", exc)
+            logger.debug("Could not instantiate InoniBusinessAutomation (planned module): %s", exc)  # PATCH-109f
             result = {
                 "status": "error",
                 "error": str(exc),
