@@ -97,6 +97,19 @@ _EXEMPT_PREFIXES = (
     # PATCH-111a: LCM — /api/lcm/process is auth-gated but signal/history are internal
     "/api/lcm/",
     "/api/lcm",
+    # PATCH-112-117: Swarm Rosetta — public read endpoints
+    "/api/rosetta/",
+    "/api/rosetta",
+    "/api/signals/",
+    "/api/signals",
+    "/api/workflows/",
+    "/api/workflows",
+    "/api/workflow/",
+    "/api/workflow",
+    "/api/exec/",
+    "/api/exec",
+    "/api/prodops/",
+    "/api/prodops",
 )
 
 

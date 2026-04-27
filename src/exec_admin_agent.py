@@ -1,0 +1,183 @@
+"""
+PATCH-116 — src/exec_admin_agent.py
+Murphy System — Swarm Rosetta Executive Admin Agent
+
+Automates executive admin tasks:
+  - Morning brief (daily 8am — aggregate signals + summarize)
+  - Email triage (classify intent, draft reply, flag for approval)
+  - Meeting scheduling (calendar gap-finding + invite generation)
+  - Report generation (weekly rollup of workflows + outcomes)
+  - Approval routing (stake-based: auto-approve low, HITL for high)
+
+Triggered by: schedule, NL input, incoming signals (email, calendar).
+Routes through RosettraCore → DAGExecutor for execution.
+
+Copyright © 2020-2026 Inoni LLC — Created by Corey Post
+License: BSL 1.1
+"""
+
+from __future__ import annotations
+
+import logging
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional
+
+logger = logging.getLogger("murphy.exec_admin")
+
+
+class ExecAdminAgent:
+    """
+    PATCH-116: Executive Admin automation agent.
+    Handles the human-facing layer of the swarm.
+    """
+
+    TASK_TEMPLATES = {
+        "morning_brief": {
+            "steps": ["collect_overnight_signals", "summarize_with_llm",
+                      "compile_calendar_view", "send_brief_to_executive"],
+            "domain": "exec_admin", "urgency": "scheduled", "stake": "low",
+        },
+        "email_triage": {
+            "steps": ["fetch_unread_emails", "classify_intent_per_email",
+                      "draft_replies_for_routine", "flag_high_stake_for_human"],
+            "domain": "exec_admin", "urgency": "scheduled", "stake": "medium",
+        },
+        "schedule_meeting": {
+            "steps": ["find_calendar_gaps", "propose_time_slots",
+                      "send_invite", "confirm_attendees"],
+            "domain": "exec_admin", "urgency": "scheduled", "stake": "low",
+        },
+        "weekly_report": {
+            "steps": ["aggregate_workflow_outcomes", "compute_kpis",
+                      "generate_pdf_summary", "email_to_stakeholders"],
+            "domain": "exec_admin", "urgency": "scheduled", "stake": "low",
+        },
+        "approve_request": {
+            "steps": ["load_approval_request", "assess_stake_level",
+                      "auto_approve_if_low", "hitl_gate_if_high"],
+            "domain": "exec_admin", "urgency": "immediate", "stake": "medium",
+        },
+    }
+
+    def __init__(self, llm_provider=None, signal_collector=None):
+        self._llm = llm_provider
+        self._collector = signal_collector
+
+    def run_morning_brief(self, account: str = "cpost@murphy.systems") -> Dict:
+        """Generate and (eventually) deliver a morning brief."""
+        from src.signal_collector import get_collector
+        from src.workflow_dag import build_dag, task_node, get_executor
+
+        collector = get_collector()
+        recent = collector.latest(limit=20)
+        stats = collector.stats()
+
+        brief_parts = [
+            f"🌅 MURPHY MORNING BRIEF — {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}",
+            f"",
+            f"📊 Signal Summary:",
+            f"  Total signals (all time): {stats['total']}",
+            f"  Unprocessed: {stats['unprocessed']}",
+            f"  By type: {stats['by_type']}",
+            f"",
+            f"🔄 Recent Signals (last 5):",
+        ]
+        for sig in recent[:5]:
+            brief_parts.append(f"  [{sig['signal_type']}] {sig['intent_hint'][:80]}")
+
+        if self._llm:
+            try:
+                summary_prompt = (
+                    f"You are Murphy's executive assistant. Summarize this signal data "
+                    f"into a 3-sentence morning brief for the executive: {stats}"
+                )
+                resp = self._llm.complete(prompt=summary_prompt, max_tokens=150)
+                brief_parts.append(f"\n🤖 Murphy's Assessment:\n  {resp.content.strip()}")
+            except Exception as exc:
+                logger.warning("LLM brief summary failed: %s", exc)
+
+        brief = "\n".join(brief_parts)
+
+        dag = build_dag("morning_brief", "Daily executive morning brief",
+                        domain="exec_admin", stake="low", account=account)
+        dag.add_node(task_node("collect_signals", "aggregate_signal_data"))
+        dag.add_node(task_node("compile_brief", "format_morning_brief",
+                               depends_on=["collect_signals"]))
+        dag.add_node(task_node("deliver_brief", "send_to_executive",
+                               depends_on=["compile_brief"]))
+        result = get_executor().execute(dag)
+
+        return {
+            "brief": brief,
+            "dag_id": dag.dag_id,
+            "dag_status": result.status,
+            "signal_count": len(recent),
+        }
+
+    def triage_email(self, email_data: Dict) -> Dict:
+        """Classify an incoming email and decide action."""
+        subject = email_data.get("subject", "")
+        body = email_data.get("body", "")
+        sender = email_data.get("from", "")
+
+        # Record as signal
+        from src.signal_collector import get_collector
+        get_collector().ingest(
+            signal_type="email",
+            source=f"email:{sender}",
+            payload=email_data,
+            domain="exec_admin",
+            urgency="scheduled",
+            stake="low",
+            intent_hint=f"Email from {sender}: {subject[:60]}",
+            entities=[sender],
+        )
+
+        # Classify
+        urgency_words = ["urgent", "asap", "critical", "emergency", "immediate"]
+        is_urgent = any(w in (subject + body).lower() for w in urgency_words)
+
+        classification = {
+            "sender": sender,
+            "subject": subject,
+            "intent_class": "urgent_action" if is_urgent else "routine",
+            "stake": "high" if is_urgent else "low",
+            "recommended_action": "flag_for_human" if is_urgent else "draft_reply",
+            "auto_reply": not is_urgent,
+        }
+        return classification
+
+    def schedule_meeting(self, participants: list, topic: str,
+                         duration_mins: int = 60, account: str = "unknown") -> Dict:
+        """Build a meeting scheduling workflow."""
+        from src.workflow_dag import build_dag, task_node, get_executor
+
+        dag = build_dag(f"schedule_meeting_{topic[:30]}", topic,
+                        domain="exec_admin", stake="low", account=account)
+        dag.add_node(task_node("find_gaps", "calendar_gap_finder",
+                               args={"participants": participants, "duration": duration_mins}))
+        dag.add_node(task_node("propose_slots", "generate_time_proposals",
+                               depends_on=["find_gaps"]))
+        dag.add_node(task_node("send_invite", "calendar_invite_sender",
+                               args={"topic": topic, "participants": participants},
+                               depends_on=["propose_slots"]))
+        result = get_executor().execute(dag)
+        return {"dag_id": dag.dag_id, "status": result.status, "topic": topic}
+
+
+# ── Singleton ──────────────────────────────────────────────────────────────────
+_exec_admin: Optional[ExecAdminAgent] = None
+
+def get_exec_admin() -> ExecAdminAgent:
+    global _exec_admin
+    if _exec_admin is None:
+        try:
+            from src.llm_provider import MurphyLLMProvider
+            from src.signal_collector import get_collector
+            _exec_admin = ExecAdminAgent(
+                llm_provider=MurphyLLMProvider(),
+                signal_collector=get_collector()
+            )
+        except Exception:
+            _exec_admin = ExecAdminAgent()
+    return _exec_admin

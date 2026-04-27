@@ -16988,6 +16988,156 @@ def create_app() -> FastAPI:
         return JSONResponse({"success": True, **job})
 
 
+
+
+    # ══════════════════════════════════════════════════════════════════════
+    # PATCH-112 through PATCH-117: Swarm Rosetta — NL→Workflow Engine
+    # ══════════════════════════════════════════════════════════════════════
+
+    @app.get("/api/rosetta/status")
+    async def _rosetta_status():
+        """PATCH-115 — Swarm status: all agents, active workflows, signal queue."""
+        try:
+            from src.rosetta_core import get_rosetta
+            r = get_rosetta()
+            return JSONResponse({"success": True, **r.swarm_status()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/rosetta/translate")
+    async def _rosetta_translate(request: Request):
+        """PATCH-115 — Translate NL text → WorkflowSpec + DAGGraph."""
+        try:
+            from src.rosetta_core import get_rosetta
+            body = await request.json()
+            text = body.get("text", "")
+            account = body.get("account", "unknown")
+            execute = bool(body.get("execute", False))
+            if not text:
+                return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
+            result = get_rosetta().translate(text, account=account, execute=execute)
+            return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            logger.error("Rosetta translate error: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/signals/latest")
+    async def _signals_latest(signal_type: str = None, limit: int = 50):
+        """PATCH-112 — Latest ingested signals."""
+        try:
+            from src.signal_collector import get_collector
+            c = get_collector()
+            return JSONResponse({"success": True, "signals": c.latest(signal_type=signal_type, limit=limit), "stats": c.stats()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/signals/ingest")
+    async def _signals_ingest(request: Request):
+        """PATCH-112 — Manually ingest a signal."""
+        try:
+            from src.signal_collector import get_collector
+            body = await request.json()
+            c = get_collector()
+            rec = c.ingest(
+                signal_type=body.get("signal_type", "manual"),
+                source=body.get("source", "api"),
+                payload=body.get("payload", {}),
+                domain=body.get("domain", "system"),
+                urgency=body.get("urgency", "ambient"),
+                stake=body.get("stake", "low"),
+                intent_hint=body.get("intent_hint", ""),
+                entities=body.get("entities", []),
+            )
+            return JSONResponse({"success": True, "signal_id": rec.signal_id})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/workflows/recent")
+    async def _workflows_recent(domain: str = None, limit: int = 20):
+        """PATCH-113 — Recent workflow runs."""
+        try:
+            from src.workflow_dag import get_workflow_db
+            db = get_workflow_db()
+            return JSONResponse({"success": True, "workflows": db.list_recent(limit=limit, domain=domain), "stats": db.stats()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/workflow/build")
+    async def _workflow_build(request: Request):
+        """PATCH-114 — Build a DAG from NL text (parse only, no execution)."""
+        try:
+            from src.nl_workflow_parser import get_parser
+            body = await request.json()
+            text = body.get("text", "")
+            account = body.get("account", "unknown")
+            if not text:
+                return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
+            parser = get_parser()
+            spec, dag = parser.parse_and_build_dag(text, account=account)
+            return JSONResponse({"success": True,
+                "spec": {"intent": spec.intent, "domain": spec.domain, "urgency": spec.urgency,
+                         "stake": spec.stake, "constraints": spec.constraints, "confidence": spec.confidence},
+                "dag": dag.to_dict()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/workflow/run")
+    async def _workflow_run(request: Request):
+        """PATCH-113 — Build AND execute a workflow from NL text."""
+        try:
+            from src.rosetta_core import get_rosetta
+            body = await request.json()
+            text = body.get("text", "")
+            account = body.get("account", "unknown")
+            if not text:
+                return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
+            result = get_rosetta().translate(text, account=account, execute=True)
+            return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/exec/brief")
+    async def _exec_brief(request: Request):
+        """PATCH-116 — Generate executive morning brief."""
+        try:
+            from src.exec_admin_agent import get_exec_admin
+            body = await request.json()
+            account = body.get("account", "cpost@murphy.systems")
+            result = get_exec_admin().run_morning_brief(account=account)
+            return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/prodops/health")
+    async def _prodops_health():
+        """PATCH-117 — Production health watchdog check."""
+        try:
+            from src.prod_ops_agent import get_prod_ops
+            result = get_prod_ops().health_watchdog()
+            return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/prodops/deploy")
+    async def _prodops_deploy(request: Request):
+        """PATCH-117 — Trigger a deployment workflow."""
+        try:
+            from src.prod_ops_agent import get_prod_ops
+            body = await request.json()
+            signal = {
+                "raw_payload": {
+                    "branch": body.get("branch", "main"),
+                    "author": body.get("author", "api"),
+                    "message": body.get("message", "manual deploy"),
+                },
+                "intent_hint": f"Deploy {body.get('branch','main')}",
+            }
+            result = get_prod_ops().handle_git_event(signal)
+            return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
     # ── PATCH-099: PCC — Predictive Convergence Correction API ────────────────
 
     @app.get("/api/pcc/status")
