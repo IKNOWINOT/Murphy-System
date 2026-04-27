@@ -76,6 +76,7 @@ class SelfModelEntry:
     recent_patches: List[str]      # last 5 patch IDs
     critic_findings_summary: str   # what MurphyCritic has been catching lately
     llm_model: str                 # which model produced this cycle
+    proposed_action_validation: Dict[str, Any] = field(default_factory=dict)  # PATCH-127
 
 
 @dataclass
@@ -267,6 +268,95 @@ def _verify_failure_modes() -> List[Dict]:
                          "evidence": f"In: {found_in[:2]}" if found_in else "Pattern absent"})
     return results
 
+
+
+
+# ── PATCH-127: Proposed Action Validator ─────────────────────────────────────
+
+def _validate_proposed_action(action: str) -> Dict[str, Any]:
+    """Check whether the file and function named in a proposed action exist.
+
+    Murphy consistently proposes fixes to files/functions that don't exist —
+    its generative bias favours 'build a better X' over 'delete the broken X'.
+    This validator catches that pattern and flags the action as speculative,
+    so confidence is penalised automatically.
+
+    Returns:
+        {
+          "speculative": bool,
+          "file_found": bool | None,
+          "fn_found": bool | None,
+          "reason": str
+        }
+    """
+    import re as _re
+
+    result: Dict[str, Any] = {
+        "speculative": False,
+        "file_found": None,
+        "fn_found": None,
+        "reason": "ok",
+    }
+
+    # Extract "Fix file: <path>" pattern
+    file_match = _re.search(
+        r"[Ff]ix(?:ing)? (?:file[:]?\s*)([\w./\-]+\.py)", action
+    )
+    fn_match = _re.search(
+        r"function[:]?\s*([\w_]+)\s*\(", action
+    )
+
+    if not file_match:
+        # No file named — can't validate, not necessarily speculative
+        result["reason"] = "no file named in action"
+        return result
+
+    named_file = file_match.group(1).lstrip("/")
+
+    # Search for the file under _SRC_ROOT and _PROJECT_ROOT
+    candidates = list(_SRC_ROOT.rglob("*.py")) + list((_PROJECT_ROOT / "src").rglob("*.py"))
+    # Deduplicate
+    seen_paths = set()
+    unique_candidates = []
+    for p in candidates:
+        if str(p) not in seen_paths:
+            seen_paths.add(str(p))
+            unique_candidates.append(p)
+
+    # Match by filename or partial path
+    named_stem = Path(named_file).name  # e.g. "api.py"
+    named_parts = Path(named_file).parts  # e.g. ("scheduler", "api.py")
+
+    matching = [
+        p for p in unique_candidates
+        if p.name == named_stem and all(part in str(p) for part in named_parts[:-1])
+    ]
+
+    result["file_found"] = len(matching) > 0
+
+    if not result["file_found"]:
+        result["speculative"] = True
+        result["reason"] = "named file '" + named_file + "' not found in src tree"
+        return result
+
+    # File found — now check for the function
+    if fn_match:
+        fn_name = fn_match.group(1)
+        fn_found = False
+        for p in matching:
+            try:
+                text = p.read_text(errors="replace")
+                if _re.search(rf"def {_re.escape(fn_name)}\s*\(", text):
+                    fn_found = True
+                    break
+            except Exception:
+                pass
+        result["fn_found"] = fn_found
+        if not fn_found:
+            result["speculative"] = True
+            result["reason"] = "function '" + fn_name + "' not found in " + named_file
+
+    return result
 
 def _git_recent_patches(n: int = 8) -> List[str]:
     """Get last N patch commit messages."""
@@ -590,7 +680,15 @@ class MurphyMind:
                 "Wire MurphyCritic into /api/self/patch: before writing any file, call "
                 "get_critic().review(new_content). BLOCK → reject. WARN → HITL queue. PASS → proceed."
             ),
-            confidence=float(parsed.get("confidence", 0.6)),
+            confidence=float(parsed.get("confidence", 0.6)) * (
+                # PATCH-127: penalise confidence if proposed action names a non-existent file/function
+                0.75 if _validate_proposed_action(
+                    parsed.get("proposed_action", "")
+                ).get("speculative") else 1.0
+            ),
+            proposed_action_validation=_validate_proposed_action(
+                parsed.get("proposed_action", "")
+            ),
             recent_patches=recent_patches,
             critic_findings_summary=json.dumps(ctx["critic_findings"]),
             llm_model=llm_model,

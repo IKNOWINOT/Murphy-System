@@ -17106,6 +17106,7 @@ def create_app() -> FastAPI:
                 "duration_s": round(result.duration_s, 1),
                 "priority_gap": result.entry.priority_gap,
                 "proposed_action": result.entry.proposed_action,
+                "proposed_action_validation": getattr(result.entry, "proposed_action_validation", {}),  # PATCH-127
                 "confidence": result.entry.confidence,
                 "llm_model": result.entry.llm_model,
                 "active_gaps": result.entry.active_gaps,
