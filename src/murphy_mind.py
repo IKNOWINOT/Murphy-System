@@ -190,6 +190,83 @@ class MindStore:
 
 # ---- Context Gatherers -------------------------------------------------------
 
+
+# ── PATCH-125: Live Failure Mode Verifier ─────────────────────────────────────
+
+_FM_SIGNATURES = [
+    {"id": "FM-001", "name": "Wrong LLM API shape (.generate/.chat)",
+     "patterns": [r"\.generate\(", r"\.chat\(.*messages"],
+     "files": ["llm_integration.py"], "exclude": ["llm_provider.py", "murphy_critic.py", "murphy_mind.py"]},
+    {"id": "FM-002", "name": "Thread-unsafe SQLite in __init__",
+     "patterns": [r"self\._conn\s*=\s*sqlite3\.connect"],
+     "files": [], "exclude": ["murphy_critic.py", "murphy_mind.py"]},
+    {"id": "FM-003", "name": "Dedup via LIKE content scan",
+     "patterns": [r"content\s+LIKE\s+", r"WHERE\s+content\s+LIKE"],
+     "files": ["world_corpus.py"], "exclude": ["murphy_critic.py", "murphy_mind.py"]},
+    {"id": "FM-008", "name": "Unsafe singleton (no lock)",
+     "patterns": [r"if _\w+_instance is None:\n    _\w+_instance\s*="],
+     "files": ["system_update_api.py", "local_llm_fallback.py"],
+     "exclude": ["murphy_critic.py", "murphy_mind.py"]},
+    {"id": "FM-010", "name": "Route shadowing",
+     "patterns": [], "files": ["runtime/app.py"], "exclude": []},
+]
+
+
+def _verify_failure_modes() -> List[Dict]:
+    """PATCH-125: Scan live source to verify which FMs are still active."""
+    import re as _re
+    results = []
+    for fm in _FM_SIGNATURES:
+        patterns = fm.get("patterns", [])
+        exclude = set(fm.get("exclude", []))
+        target_files = fm.get("files", [])
+
+        if not patterns:
+            # FM-010: duplicate route scan
+            app_py = _SRC_ROOT / "runtime" / "app.py"
+            if app_py.exists():
+                routes, dupes = [], []
+                for line in app_py.read_text(errors="replace").splitlines():
+                    m2 = _re.search(r'@app\.(?:get|post|put|delete|patch)\("([^"]+)"', line)
+                    if m2:
+                        r = m2.group(1)
+                        if r in routes:
+                            dupes.append(r)
+                        routes.append(r)
+                results.append({"id": fm["id"], "name": fm["name"],
+                                 "status": "active" if dupes else "fixed",
+                                 "evidence": f"Dupes: {list(set(dupes))[:2]}" if dupes else "No duplicates"})
+            continue
+
+        search_paths: List[Path] = []
+        if target_files:
+            for tf in target_files:
+                p = _SRC_ROOT / tf
+                if p.exists():
+                    search_paths.append(p)
+        else:
+            search_paths = [f for f in _SRC_ROOT.rglob("*.py")
+                            if "__pycache__" not in str(f) and f.name not in exclude]
+
+        found_in = []
+        for path in search_paths:
+            if path.name in exclude:
+                continue
+            try:
+                text = path.read_text(errors="replace")
+                for pat in patterns:
+                    if _re.search(pat, text, _re.MULTILINE):
+                        found_in.append(path.name)
+                        break
+            except Exception:
+                pass
+
+        results.append({"id": fm["id"], "name": fm["name"],
+                         "status": "active" if found_in else "fixed",
+                         "evidence": f"In: {found_in[:2]}" if found_in else "Pattern absent"})
+    return results
+
+
 def _git_recent_patches(n: int = 8) -> List[str]:
     """Get last N patch commit messages."""
     try:
