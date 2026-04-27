@@ -141,6 +141,16 @@ def create_app() -> FastAPI:
         t = threading.Thread(target=_startup_tasks, daemon=True, name="murphy-lifespan-startup")
         t.start()
         t.join(timeout=30)  # wait max 30s for startup tasks
+
+                # MurphyMind — continuous self-awareness loop
+                try:
+                    from src.murphy_mind import get_mind
+                    _mind = get_mind()
+                    _mind.start()
+                    logger.info("PATCH-124: MurphyMind started -- 10min self-awareness cycle")
+                except Exception as _me:
+                    logger.warning("PATCH-124: MurphyMind startup failed: %s", _me)
+
         yield  # app is now running
         # shutdown: nothing to tear down (scheduler threads are daemon)
 
@@ -17330,6 +17340,76 @@ def create_app() -> FastAPI:
 
 
 
+
+
+    # ── PATCH-124: MurphyMind API ─────────────────────────────────────────────
+
+    @app.get("/api/swarm/mind/status")
+    async def _mind_status():
+        """MurphyMind current status — cycle count, running, confidence."""
+        try:
+            from src.murphy_mind import get_mind
+            return JSONResponse({"success": True, **get_mind().stats()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/swarm/mind/self-model")
+    async def _mind_self_model():
+        """Murphy's latest self-model — what it currently knows about itself."""
+        try:
+            from src.murphy_mind import get_mind
+            model = get_mind().current_self_model()
+            if not model:
+                return JSONResponse({"success": True, "self_model": None,
+                                     "message": "No cycle run yet"})
+            return JSONResponse({"success": True, "self_model": model})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/swarm/mind/run-cycle")
+    async def _mind_run_cycle():
+        """Trigger one self-awareness cycle immediately (async, returns when done)."""
+        try:
+            from src.murphy_mind import get_mind
+            import asyncio
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(None, get_mind().run_once)
+            return JSONResponse({
+                "success": True,
+                "cycle": result.cycle,
+                "duration_s": round(result.duration_s, 1),
+                "priority_gap": result.entry.priority_gap,
+                "proposed_action": result.entry.proposed_action,
+                "confidence": result.entry.confidence,
+                "llm_model": result.entry.llm_model,
+                "active_gaps": result.entry.active_gaps,
+                "known_failure_modes": result.entry.known_failure_modes,
+            })
+        except Exception as exc:
+            logger.error("mind/run-cycle error: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/swarm/mind/history")
+    async def _mind_history():
+        """Last 5 self-model entries — how Murphy's self-awareness has evolved."""
+        try:
+            from src.murphy_mind import get_mind
+            entries = get_mind()._store.recent_entries(5)
+            return JSONResponse({
+                "success": True,
+                "entries": [
+                    {
+                        "cycle": e["cycle"],
+                        "timestamp": e["timestamp"],
+                        "priority_gap": e["priority_gap"],
+                        "confidence": e["confidence"],
+                        "proposed_action": e["proposed_action"],
+                    }
+                    for e in entries
+                ],
+            })
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
     # ── PATCH-123: MurphyCritic API ──────────────────────────────────────────
 
