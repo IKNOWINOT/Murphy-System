@@ -1548,6 +1548,15 @@ def create_app() -> FastAPI:
         logger.warning("PATCH-115b: Rosetta Soul startup failed: %s", _e)
 
 
+
+    # ── PATCH-123: MurphyCritic startup ──────────────────────────────────────
+    try:
+        from src.murphy_critic import get_critic
+        _critic = get_critic()
+        logger.info("PATCH-123: MurphyCritic ready -- 10 failure modes loaded")
+    except Exception as _e:
+        logger.warning("PATCH-123: MurphyCritic startup failed: %s", _e)
+
     # ── PATCH-121: WorldCorpus startup ────────────────────────────────────────
     try:
         from src.world_corpus import get_world_corpus
@@ -17319,6 +17328,47 @@ def create_app() -> FastAPI:
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
+
+
+
+    # ── PATCH-123: MurphyCritic API ──────────────────────────────────────────
+
+    @app.post("/api/swarm/critic/review")
+    async def _critic_review(request: Request):
+        """
+        Pre-deploy code review gate.
+        POST {"source": "...python code...", "filename": "file.py", "use_llm": true}
+        Returns verdict: PASS | WARN | BLOCK
+        """
+        try:
+            from src.murphy_critic import get_critic
+            body = await request.json()
+            source = body.get("source", "")
+            filename = body.get("filename", "generated.py")
+            use_llm = body.get("use_llm", True)
+            if not source:
+                return JSONResponse({"success": False, "error": "source required"}, status_code=400)
+            verdict = get_critic().review(source, filename=filename, use_llm=use_llm)
+            return JSONResponse({"success": True, **verdict.to_dict()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/swarm/critic/modes")
+    async def _critic_modes():
+        """List all known failure modes the critic checks for."""
+        try:
+            from src.murphy_critic import _FM_META
+            return JSONResponse({
+                "success": True,
+                "failure_modes": [
+                    {"fid": fid, "name": m["name"], "severity": m["severity"],
+                     "description": m["description"], "remediation": m["remediation"]}
+                    for fid, m in _FM_META.items()
+                ],
+                "total": len(_FM_META),
+            })
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
 
     # ── PATCH-121: WorldCorpus API ────────────────────────────────────────────
