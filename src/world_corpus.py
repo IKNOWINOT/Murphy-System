@@ -129,14 +129,14 @@ class WorldCorpus:
         try:
             req = urllib.request.Request(
                 "https://hacker-news.firebaseio.com/v0/topstories.json",
-                headers={"User-Agent": "Murphy/1.0 (murphy.systems)"}
+                headers={"User-Agent": "Mozilla/5.0 (compatible; Murphy/1.0; +https://murphy.systems)"}
             )
             ids = json.loads(urllib.request.urlopen(req, timeout=6).read())[:15]
             for story_id in ids:
                 try:
                     sreq = urllib.request.Request(
                         f"https://hacker-news.firebaseio.com/v0/item/{story_id}.json",
-                        headers={"User-Agent": "Murphy/1.0 (murphy.systems)"}
+                        headers={"User-Agent": "Mozilla/5.0 (compatible; Murphy/1.0; +https://murphy.systems)"}
                     )
                     item = json.loads(urllib.request.urlopen(sreq, timeout=5).read())
                     title = item.get("title", "").strip()
@@ -161,7 +161,7 @@ class WorldCorpus:
         try:
             req = urllib.request.Request(
                 f"https://www.reddit.com/r/{subreddit}/top.json?limit=15&t=day",
-                headers={"User-Agent": "Murphy/1.0 (murphy.systems)"}
+                headers={"User-Agent": "Mozilla/5.0 (compatible; Murphy/1.0; +https://murphy.systems)"}
             )
             data = json.loads(urllib.request.urlopen(req, timeout=6).read())
             for post in data["data"]["children"]:
@@ -180,15 +180,57 @@ class WorldCorpus:
         logger.info("WorldCorpus: reddit/%s collected %d new records", subreddit, stored)
         return stored
 
+
+    def collect_rss(self, url: str, domain: str, source: str, tags: List[str] = None) -> int:
+        """Fetch an RSS/Atom feed and store titles as corpus records."""
+        stored = 0
+        try:
+            req = urllib.request.Request(url,
+                headers={"User-Agent": "Murphy/1.0 (murphy.systems)"})
+            data = urllib.request.urlopen(req, timeout=8).read().decode("utf-8", errors="replace")
+            # Simple regex extraction — no external XML parser needed
+            import re
+            titles = re.findall(r"<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?</title>", data, re.DOTALL)
+            links  = re.findall(r"<link[^>]*>(https?://[^<]+)</link>", data)
+            # Skip feed-level title (usually first one)
+            for i, title in enumerate(titles[1:21], 0):
+                title = title.strip()
+                if not title or len(title) < 5:
+                    continue
+                url_str = links[i] if i < len(links) else ""
+                content = f"{title} | {url_str}" if url_str else title
+                rid = self.ingest(source, domain, content, tags=tags or [source])
+                if rid:
+                    stored += 1
+        except Exception as exc:
+            logger.warning("WorldCorpus.collect_rss(%s) failed: %s", url, exc)
+        logger.info("WorldCorpus: RSS %s collected %d new records", source, stored)
+        return stored
+
     def collect_all(self) -> Dict[str, int]:
         """Run all collectors. Returns per-source new record counts."""
-        counts = {
-            "hn":        self.collect_hn(),
-            "worldnews": self.collect_reddit("worldnews",  "geopolitics", ["world"]),
-            "technology":self.collect_reddit("technology", "tech",        ["tech"]),
-            "economics": self.collect_reddit("economics",  "finance",     ["finance"]),
-        }
-        counts["total"] = sum(counts.values())
+        counts = {"hn": self.collect_hn()}
+
+        # Reddit with fallback to RSS on 403
+        rn = self.collect_reddit("worldnews", "geopolitics", ["world"])
+        if rn == 0:
+            rn = self.collect_rss("https://feeds.bbci.co.uk/news/world/rss.xml",
+                                  "geopolitics", "bbc_world", ["world", "news"])
+        counts["worldnews"] = rn
+
+        rt = self.collect_reddit("technology", "tech", ["tech"])
+        if rt == 0:
+            rt = self.collect_rss("https://techcrunch.com/feed/",
+                                  "tech", "techcrunch", ["tech", "startup"])
+        counts["technology"] = rt
+
+        re_ = self.collect_reddit("economics", "finance", ["finance"])
+        if re_ == 0:
+            re_ = self.collect_rss("https://feeds.reuters.com/reuters/businessNews",
+                                   "finance", "reuters_biz", ["finance", "business"])
+        counts["economics"] = re_
+
+        counts["total"] = sum(v for k, v in counts.items() if k != "total")
         logger.info("WorldCorpus.collect_all: %s", counts)
         return counts
 
