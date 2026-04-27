@@ -191,6 +191,141 @@ def create_app() -> FastAPI:
         lifespan=_lifespan,
     )
 
+    # ── PATCH-132a: Static files mount + UI page router ─────────────────────
+    # Mount /static/ so CSS/JS/assets load correctly.
+    # Catch-all /ui/{page_name} → serve *.html from project root.
+    import os as _os_132
+    from fastapi.staticfiles import StaticFiles as _StaticFiles132
+    from fastapi.responses import FileResponse as _FileResponse132, HTMLResponse as _HTMLResponse132
+
+    _PROJ_ROOT_132 = _os_132.path.abspath(
+        _os_132.path.join(_os_132.path.dirname(__file__), "..", "..")
+    )
+    _STATIC_DIR_132 = _os_132.path.join(_PROJ_ROOT_132, "static")
+
+    try:
+        app.mount("/static", _StaticFiles132(directory=_STATIC_DIR_132), name="static")
+        logger.info("PATCH-132a: /static → %s mounted", _STATIC_DIR_132)
+    except Exception as _e132:
+        logger.warning("PATCH-132a: StaticFiles mount failed: %s", _e132)
+
+    # Slug → filename mapping for known pages (hyphen ↔ underscore)
+    _UI_PAGE_MAP_132 = {
+        "terminal-unified":        "terminal_unified.html",
+        "workflow-canvas":         "workflow_canvas.html",
+        "workflow-designer":       "workflow_canvas.html",
+        "roi-calendar":            "roi_calendar.html",
+        "production-wizard":       "production_wizard.html",
+        "production-editor":       "production_wizard.html",
+        "terminal-integrated":     "terminal_integrated.html",
+        "terminal-orchestrator":   "terminal_orchestrator.html",
+        "terminal-architect":      "terminal_architect.html",
+        "terminal-costs":          "terminal_costs.html",
+        "terminal-integrations":   "terminal_integrations.html",
+        "terminal-orgchart":       "terminal_orgchart.html",
+        "terminal-worker":         "terminal_worker.html",
+        "terminal-enhanced":       "terminal_enhanced.html",
+        "system-visualizer":       "system_visualizer.html",
+        "compliance":              "compliance_dashboard.html",
+        "compliance-dashboard":    "compliance_dashboard.html",
+        "hitl-dashboard":          "hitl_dashboard.html",
+        "risk-dashboard":          "risk_dashboard.html",
+        "paper-trading":           "paper_trading_dashboard.html",
+        "paper-trading-dashboard": "paper_trading_dashboard.html",
+        "trading-dashboard":       "trading_dashboard.html",
+        "calendar":                "calendar.html",
+        "dashboard":               "dashboard.html",
+        "dashboards":              "dashboards.html",
+        "crm":                     "crm.html",
+        "docs":                    "docs.html",
+        "blog":                    "blog.html",
+        "careers":                 "careers.html",
+        "pricing":                 "pricing.html",
+        "legal":                   "legal.html",
+        "privacy":                 "privacy.html",
+        "onboarding":              "onboarding_wizard.html",
+        "onboarding-wizard":       "onboarding_wizard.html",
+        "grant-wizard":            "grant_wizard.html",
+        "grant-dashboard":         "grant_dashboard.html",
+        "grant-application":       "grant_application.html",
+        "workspace":               "workspace.html",
+        "workdocs":                "workdocs.html",
+        "boards":                  "boards.html",
+        "automations":             "automations.html",
+        "management":              "management.html",
+        "admin":                   "admin_panel.html",
+        "admin-panel":             "admin_panel.html",
+        "wallet":                  "wallet.html",
+        "portfolio":               "portfolio.html",
+        "communication-hub":       "communication_hub.html",
+        "meeting-intelligence":    "meeting_intelligence.html",
+        "matrix-integration":      "matrix_integration.html",
+        "time-tracking":           "time_tracking.html",
+        "dispatch":                "dispatch.html",
+        "aionmind":                "aionmind.html",
+        "ambient-intelligence":    "ambient_intelligence.html",
+        "financing":               "financing_options.html",
+        "org-portal":              "org_portal.html",
+        "community":               "community_forum.html",
+        "partner-request":         "partner_request.html",
+        "dev-module":              "dev_module.html",
+        "hack-graph":              "hack_graph.html",
+        "game-creation":           "game_creation.html",
+        "game-demo":               "game_demo.html",
+        "demo":                    "demo.html",
+        "demo-config":             "demo_config.html",
+    }
+
+    @app.get("/ui/{page_name:path}")
+    async def serve_ui_page(page_name: str, request: Request):
+        """PATCH-132a: Serve Murphy UI pages from project root HTML files."""
+        # Normalise: strip trailing slashes and fragment
+        slug = page_name.rstrip("/").split("?")[0].split("#")[0].lower()
+
+        # Direct map lookup
+        filename = _UI_PAGE_MAP_132.get(slug)
+
+        # Fallback: try underscore variant
+        if filename is None:
+            underscore = slug.replace("-", "_") + ".html"
+            candidate = _os_132.path.join(_PROJ_ROOT_132, underscore)
+            if _os_132.path.isfile(candidate):
+                filename = underscore
+
+        # Fallback: try hyphen variant
+        if filename is None:
+            hyphen = slug.replace("_", "-") + ".html"
+            for fname in _os_132.listdir(_PROJ_ROOT_132):
+                if fname.lower() == hyphen:
+                    filename = fname
+                    break
+
+        if filename is None:
+            return _HTMLResponse132(
+                f'''<!DOCTYPE html><html><head><title>404 — Murphy</title>
+<link rel="stylesheet" href="/static/murphy-design-system.css"></head>
+<body style="background:#0a0a0a;color:#00ff41;font-family:monospace;padding:2rem;">
+<h2>404 — Page not found: <code>{slug}</code></h2>
+<p><a href="/" style="color:#00D4AA">← Back to Murphy</a></p>
+</body></html>''',
+                status_code=404
+            )
+
+        full_path = _os_132.path.join(_PROJ_ROOT_132, filename)
+        if not _os_132.path.isfile(full_path):
+            return _HTMLResponse132(
+                f'''<!DOCTYPE html><html><head><title>404 — Murphy</title></head>
+<body style="background:#0a0a0a;color:#00ff41;font-family:monospace;padding:2rem;">
+<h2>File missing: <code>{filename}</code></h2>
+<p><a href="/" style="color:#00D4AA">← Back to Murphy</a></p>
+</body></html>''',
+                status_code=404
+            )
+
+        return _FileResponse132(full_path, media_type="text/html")
+    # ── end PATCH-132a ───────────────────────────────────────────────────────
+
+
     # ── Utility: ISO timestamp helper ───────────────────────────
     def _now_iso():
         return datetime.now(timezone.utc).isoformat()
@@ -5902,164 +6037,136 @@ def create_app() -> FastAPI:
     # ── AI Workflow Generation ────────────────────────────────────────────
     @app.post("/api/workflows/generate")
     async def generate_workflow(request: Request):
-        """Generate a DAG workflow from natural language using AIWorkflowGenerator.
-
+        """PATCH-132b: NL → WorkflowBlueprint via BuildAgent (tenant-scoped).
         Body: { "description": "...", "context": {} }
-        Returns the generated workflow definition ready to save/execute.
+        Returns canvas-ready workflow + ROI estimates.
         """
         try:
             data = await request.json()
-            description = data.get("description", "").strip()
-            if not description:
-                return JSONResponse(
-                    {"success": False, "error": "description is required"},
-                    status_code=400,
-                )
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
 
-            # ── Tier enforcement — custom_workflows required ──
-            account = _get_account_from_session(request)
-            if account and _sub_manager is not None:
-                acct_id = account["account_id"]
-                tier = account.get("tier", "free")
-                usage = _sub_manager.record_usage(acct_id)
-                if not usage.get("allowed", True):
-                    return JSONResponse({
-                        "success": False,
-                        "error": usage.get("message", "Daily usage limit reached"),
-                    }, status_code=429)
+        description = (data.get("description") or "").strip()
+        if not description:
+            return JSONResponse({"success": False, "error": "description is required"}, status_code=400)
 
-            # Generate via AI workflow engine
-            gen = getattr(murphy, "ai_workflow_generator", None)
-            if gen is None:
-                try:
-                    from src.ai_workflow_generator import AIWorkflowGenerator
-                    gen = AIWorkflowGenerator()
-                except ImportError:
-                    return JSONResponse({
-                        "success": False,
-                        "error": "AI workflow generator not available",
-                    }, status_code=503)
+        account = _get_account_from_session(request)
+        account_id = (account or {}).get("account_id", "anonymous")
 
-            wf = gen.generate_workflow(
-                description=description,
-                context=data.get("context"),
-            )
+        # Tier check
+        if account and _sub_manager is not None:
+            usage = _sub_manager.record_usage(account_id)
+            if not usage.get("allowed", True):
+                return JSONResponse({"success": False, "error": usage.get("message", "Usage limit reached")}, status_code=429)
 
-            # Auto-save the generated workflow with schedule metadata
-            wf_id = wf.get("workflow_id", str(uuid4()))
-            now_iso = datetime.now(timezone.utc).isoformat()
+        try:
+            from src.nl_workflow_engine import get_engine as _get_nl_engine
+            from src.llm_provider import get_llm as _get_llm132
+            llm = None
+            try:
+                llm = _get_llm132()
+            except Exception:
+                pass
+            engine = _get_nl_engine(llm)
+            if llm:
+                engine.set_llm(llm)
 
-            # ── Infer schedule from description ──
-            desc_lower = description.lower()
-            schedule_interval = data.get("schedule_interval")
-            if schedule_interval is None:
-                if any(k in desc_lower for k in ("daily", "every day", "each day")):
-                    schedule_interval = "daily"
-                elif any(k in desc_lower for k in ("weekly", "every week", "each week")):
-                    schedule_interval = "weekly"
-                elif any(k in desc_lower for k in ("monthly", "every month", "each month")):
-                    schedule_interval = "monthly"
-                elif any(k in desc_lower for k in ("hourly", "every hour")):
-                    schedule_interval = "hourly"
-                else:
-                    schedule_interval = "on_demand"
+            bp = engine.build(description, account_id, context=data.get("context"))
 
-            # ── Infer API integration suggestions from workflow steps ──
-            api_suggestions = []
-            _API_KEYWORDS = {
-                "email": {"name": "SendGrid", "env_var": "SENDGRID_API_KEY",
-                          "description": "Transactional & marketing email delivery",
-                          "signup_url": "https://signup.sendgrid.com/"},
-                "slack": {"name": "Slack", "env_var": "SLACK_BOT_TOKEN",
-                          "description": "Team messaging and workflow notifications",
-                          "signup_url": "https://api.slack.com/apps"},
-                "crm": {"name": "HubSpot", "env_var": "HUBSPOT_API_KEY",
-                         "description": "CRM contacts, deals, and pipeline automation",
-                         "signup_url": "https://developers.hubspot.com/"},
-                "invoice": {"name": "Stripe", "env_var": "STRIPE_SECRET_KEY",
-                            "description": "Payment processing and invoicing",
-                            "signup_url": "https://dashboard.stripe.com/register"},
-                "payment": {"name": "Stripe", "env_var": "STRIPE_SECRET_KEY",
-                            "description": "Payment processing and invoicing",
-                            "signup_url": "https://dashboard.stripe.com/register"},
-                "calendar": {"name": "Google Calendar", "env_var": "GOOGLE_CALENDAR_API_KEY",
-                             "description": "Calendar event scheduling and management",
-                             "signup_url": "https://console.cloud.google.com/"},
-                "spreadsheet": {"name": "Google Sheets", "env_var": "GOOGLE_SHEETS_API_KEY",
-                                "description": "Spreadsheet data sync and reporting",
-                                "signup_url": "https://console.cloud.google.com/"},
-                "database": {"name": "PostgreSQL", "env_var": "DATABASE_URL",
-                             "description": "Relational database for structured data",
-                             "signup_url": "https://www.postgresql.org/download/"},
-                "sms": {"name": "Twilio", "env_var": "TWILIO_AUTH_TOKEN",
-                        "description": "SMS and voice communication",
-                        "signup_url": "https://www.twilio.com/try-twilio"},
-                "github": {"name": "GitHub", "env_var": "GITHUB_TOKEN",
-                           "description": "Source control and CI/CD automation",
-                           "signup_url": "https://github.com/settings/tokens"},
-                "monitor": {"name": "Datadog", "env_var": "DATADOG_API_KEY",
-                            "description": "Infrastructure and application monitoring",
-                            "signup_url": "https://www.datadoghq.com/free-datadog-trial/"},
-                "weather": {"name": "OpenWeatherMap", "env_var": "OPENWEATHER_API_KEY",
-                            "description": "Weather data for location-based automation",
-                            "signup_url": "https://openweathermap.org/api"},
-                "hvac": {"name": "BACnet/IP Gateway", "env_var": "BACNET_GATEWAY_URL",
-                         "description": "Building automation system integration",
-                         "signup_url": ""},
-                "sensor": {"name": "IoT Hub", "env_var": "IOT_HUB_CONNECTION_STRING",
-                           "description": "IoT sensor data ingestion",
-                           "signup_url": ""},
+            # Also register in legacy _workflows_store for backwards compat
+            _workflows_store[bp.workflow_id] = {
+                "id": bp.workflow_id,
+                "name": bp.name,
+                "description": bp.description,
+                "nodes": bp.canvas_nodes,
+                "connections": bp.canvas_edges,
+                "schedule": bp.schedule,
+                "status": "idle",
+                "created_at": bp.created_at,
+                "updated_at": bp.updated_at,
             }
-            seen_apis = set()
-            for kw, suggestion in _API_KEYWORDS.items():
-                if kw in desc_lower and suggestion["name"] not in seen_apis:
-                    api_suggestions.append(suggestion)
-                    seen_apis.add(suggestion["name"])
 
-            saved = {
-                "id": wf_id,
-                "name": wf.get("name", "Generated Workflow"),
-                "nodes": [
-                    {"id": s.get("name", f"step_{i}"),
-                     "label": s.get("description", s.get("name", "")),
-                     "type": s.get("type", "task"),
-                     "data": s}
-                    for i, s in enumerate(wf.get("steps", []))
-                ],
-                "connections": [],
-                "status": "generated",
-                "created_at": now_iso,
-                "updated_at": now_iso,
-                "generated_from": description[:200],
-                "schedule": {
-                    "interval": schedule_interval,
-                    "next_run": now_iso,
-                    "enabled": schedule_interval != "on_demand",
-                    "cron": {
-                        "daily": "0 8 * * *",
-                        "weekly": "0 8 * * 1",
-                        "monthly": "0 8 1 * *",
-                        "hourly": "0 * * * *",
-                    }.get(schedule_interval),
-                },
-                "api_suggestions": api_suggestions,
-            }
-            _workflows_store[wf_id] = saved
+            return JSONResponse(bp.to_canvas_payload())
 
-            return JSONResponse({
-                "success": True,
-                "workflow": saved,
-                "generation_meta": {
-                    "strategy": wf.get("strategy"),
-                    "template_used": wf.get("template_used"),
-                    "step_count": wf.get("step_count"),
-                },
-            })
         except Exception as exc:
-            logger.exception("Workflow generation failed")
+            logger.exception("PATCH-132b: workflow generate failed: %s", exc)
             return _safe_error_response(exc, 500)
 
-    # ==================== AGENTS ENDPOINTS ====================
+    @app.post("/api/workflows/edit")
+    async def edit_workflow_nl(request: Request):
+        """PATCH-132b: Edit an existing workflow via natural language (EditAgent).
+        Body: { "workflow_id": "...", "instruction": "add a HITL gate before delivery" }
+        """
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+        workflow_id  = (data.get("workflow_id") or "").strip()
+        instruction  = (data.get("instruction") or "").strip()
+        if not workflow_id or not instruction:
+            return JSONResponse({"success": False, "error": "workflow_id and instruction required"}, status_code=400)
+
+        account = _get_account_from_session(request)
+        account_id = (account or {}).get("account_id", "anonymous")
+
+        try:
+            from src.nl_workflow_engine import get_engine as _get_nl_engine
+            from src.llm_provider import get_llm as _get_llm132b
+            llm = None
+            try:
+                llm = _get_llm132b()
+            except Exception:
+                pass
+            engine = _get_nl_engine(llm)
+            bp = engine.edit(workflow_id, account_id, instruction)
+            if not bp:
+                return JSONResponse({"success": False, "error": f"Workflow {workflow_id!r} not found for this account"}, status_code=404)
+
+            # Sync to legacy store
+            _workflows_store[bp.workflow_id] = {
+                "id": bp.workflow_id,
+                "name": bp.name,
+                "nodes": bp.canvas_nodes,
+                "connections": bp.canvas_edges,
+                "schedule": bp.schedule,
+                "status": "idle",
+                "updated_at": bp.updated_at,
+            }
+
+            return JSONResponse({"success": True, "workflow": bp.to_canvas_payload()["workflow"]})
+
+        except Exception as exc:
+            logger.exception("PATCH-132b: workflow edit failed: %s", exc)
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/workflows/list")
+    async def list_workflows_tenant(request: Request):
+        """PATCH-132b: List all workflows for the current tenant account."""
+        account = _get_account_from_session(request)
+        account_id = (account or {}).get("account_id", "anonymous")
+        try:
+            from src.nl_workflow_engine import get_engine as _get_nl_engine
+            engine = _get_nl_engine()
+            wfs = engine.list(account_id)
+            return JSONResponse({"success": True, "workflows": wfs, "total": len(wfs)})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/workflows/{workflow_id}/blueprint")
+    async def get_workflow_blueprint(workflow_id: str, request: Request):
+        """PATCH-132b: Get full blueprint for a workflow."""
+        account = _get_account_from_session(request)
+        account_id = (account or {}).get("account_id", "anonymous")
+        try:
+            from src.nl_workflow_engine import get_engine as _get_nl_engine
+            bp = _get_nl_engine().get(workflow_id, account_id)
+            if not bp:
+                return JSONResponse({"success": False, "error": "Not found"}, status_code=404)
+            return JSONResponse({"success": True, "blueprint": bp.to_dict()})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
 
     @app.get("/api/agents")
     async def list_agents():

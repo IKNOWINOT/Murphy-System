@@ -314,6 +314,16 @@
   <span id="murphy-error-banner-msg" style="flex:1"></span>
   <button onclick="document.getElementById('murphy-error-banner').style.display='none'" aria-label="Dismiss" style="background:transparent;border:1px solid rgba(255,255,255,0.6);color:#fff;cursor:pointer;padding:2px 8px;border-radius:3px;font-size:13px;">✕</button>
 </div>
+
+    <!-- PATCH-132b: NL quick-add bar -->
+    <div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:.75rem 2rem;display:flex;gap:.75rem;align-items:center">
+      <input id="roi-nl-input" type="text" placeholder="Describe a task or automation to add to the ROI calendar…"
+        style="flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;padding:.5rem .85rem;color:var(--text);font-size:.83rem;outline:none;transition:border-color .2s"
+        onfocus="this.style.borderColor='var(--teal)'" onblur="this.style.borderColor='var(--border2)'">
+      <button id="roi-nl-btn" style="background:var(--teal);color:#0a0a0a;border:none;border-radius:7px;padding:.5rem 1.1rem;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap">
+        ✨ Add to Calendar
+      </button>
+    </div>
 <script>
 function showMurphyError(msg) {
   var b = document.getElementById('murphy-error-banner');
@@ -934,7 +944,64 @@ document.addEventListener('murphy:roi_update',function(e){
 });
 
 })();
-</script>
+
+    /* PATCH-132b: ROI calendar NL quick-add */
+    (function(){
+      var nlIn  = document.getElementById('roi-nl-input');
+      var nlBtn = document.getElementById('roi-nl-btn');
+      if (!nlIn || !nlBtn) return;
+
+      async function addToCalendar() {
+        var desc = nlIn.value.trim();
+        if (!desc) { nlIn.focus(); return; }
+        nlBtn.textContent = '⏳ Generating…';
+        nlBtn.disabled = true;
+
+        try {
+          var res = await fetch('/api/workflows/generate', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            credentials: 'include',
+            body: JSON.stringify({ description: desc })
+          });
+          var data = await res.json();
+          var wf  = (data.workflow || {});
+          var roi = (wf.roi || {});
+
+          await fetch('/api/roi-calendar/events', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            credentials: 'include',
+            body: JSON.stringify({
+              title: wf.name || desc.slice(0,60),
+              description: desc,
+              human_cost_estimate: roi.human_cost_usd  || 0,
+              agent_compute_cost:  roi.agent_cost_usd  || 0,
+              overhead_cost: 0,
+              status: 'queued'
+            })
+          });
+
+          nlIn.value = '';
+          /* Refresh the calendar view */
+          if (typeof loadCalendar === 'function') loadCalendar();
+          else if (typeof refreshCalendar === 'function') refreshCalendar();
+          else location.reload();
+        } catch(e) {
+          alert('Failed: ' + (e.message || 'Network error'));
+        }
+        nlBtn.textContent = '✨ Add to Calendar';
+        nlBtn.disabled = false;
+      }
+
+      nlBtn.addEventListener('click', addToCalendar);
+      nlIn.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') addToCalendar();
+      });
+    })();
+    /* end PATCH-132b ROI NL */
+
+  </script>
 
 </body>
 </html>

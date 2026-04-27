@@ -37,7 +37,7 @@
     </div>
     <div class="murphy-topbar-right">
       <input type="text" class="murphy-input" placeholder="Describe a workflow in plain English…"
-             id="nl-input" aria-label="Natural language workflow input">
+             id="nl-input" aria-label="Natural language workflow input" title="Press Enter to generate workflow from description">
       <button class="murphy-btn murphy-btn-primary" id="btn-run" title="Run workflow">
         <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-play"></use></svg> Run
       </button>
@@ -137,7 +137,7 @@
   </div>
 
   <script src="static/murphy-components.js"></script>
-<script src="murphy_auth.js"></script>
+<script src="static/murphy-auth-guard.js"></script>
   <script src="static/murphy-canvas.js"></script>
   <script>
   /* ──────────────────────────────────────────────────────────
@@ -891,8 +891,14 @@
     /* ── Run workflow ────────────────────────────────────── */
     $btnRun.addEventListener('click', function () {
       var data = canvas.toJSON();
+      /* If no nodes but NL input has text → generate first */
+      if ((!data.nodes || data.nodes.length === 0) && $nlInput.value.trim()) {
+        var evt = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true });
+        $nlInput.dispatchEvent(evt);
+        return;
+      }
       if (!data.nodes || data.nodes.length === 0) {
-        terminal.output('⚠ No nodes on the canvas to run.');
+        terminal.output('⚠ Type a workflow description above and press Enter or Run.');
         return;
       }
 

@@ -502,7 +502,27 @@
   <div id="view-proposal" class="murphy-view" style="display:none">
     <div class="murphy-page-header">
       <h2 class="murphy-page-title">Submit Production Proposal</h2>
-      <p class="murphy-page-subtitle">Define regulatory context, deliverable spec, and required confidence gates.</p>
+      <p class="murphy-page-subtitle">Describe your project in plain English — Murphy fills in all the details automatically.</p>
+    </div>
+
+    <!-- PATCH-132b: NL intake bar -->
+    <div class="murphy-card" id="nl-intake-bar" style="margin-bottom:var(--space-5);border-color:rgba(0,212,170,0.3)">
+      <div style="display:flex;gap:var(--space-3);align-items:flex-start">
+        <div style="flex:1">
+          <label class="murphy-label" for="nl-proposal-input">
+            ✨ Describe your project
+            <span style="color:var(--text-secondary);font-weight:400"> — Murphy will fill in the blanks</span>
+          </label>
+          <textarea id="nl-proposal-input" class="murphy-input" rows="2"
+            placeholder="e.g. Build a HIPAA-compliant patient intake form with automated compliance checks and weekly audit reports for a healthcare client in California…"
+            style="width:100%;resize:vertical;margin-top:var(--space-2)"></textarea>
+        </div>
+        <button id="btn-nl-generate" class="murphy-btn murphy-btn-primary" style="margin-top:1.6rem;white-space:nowrap">
+          <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-play"></use></svg>
+          Generate Proposal
+        </button>
+      </div>
+      <div id="nl-generate-status" style="margin-top:var(--space-2);font-size:var(--text-sm);color:var(--text-secondary);display:none"></div>
     </div>
 
     <div class="murphy-card">
@@ -783,7 +803,7 @@
 </main><!-- end main -->
 
 <script src="static/murphy-components.js"></script>
-<script src="murphy_auth.js"></script>
+<script src="static/murphy-auth-guard.js"></script>
 <script>
 /* Production Wizard — PROD-001
    © 2020 Inoni Limited Liability Company · BSL 1.1 */
@@ -1873,6 +1893,105 @@ document.getElementById('btn-clear-log').addEventListener('click', () => {
   showView('dashboard');
 })();
 </script>
-<script src="static/murphy-session-context.js"></script>
+<script src="static/murphy-session-context.js">
+    /* ── PATCH-132b: NL Proposal Generation ── */
+    (function() {
+      var nlInput  = document.getElementById('nl-proposal-input');
+      var nlBtn    = document.getElementById('btn-nl-generate');
+      var nlStatus = document.getElementById('nl-generate-status');
+      if (!nlBtn || !nlInput) return;
+
+      function showStatus(msg, color) {
+        if (!nlStatus) return;
+        nlStatus.textContent = msg;
+        nlStatus.style.color = color || 'var(--text-secondary)';
+        nlStatus.style.display = 'block';
+      }
+
+      async function generateProposal() {
+        var desc = nlInput.value.trim();
+        if (!desc) { nlInput.focus(); return; }
+
+        nlBtn.disabled = true;
+        nlBtn.textContent = '⏳ Generating…';
+        showStatus('Murphy is analysing your description and filling in the proposal…', 'var(--teal)');
+
+        try {
+          /* 1. Generate workflow blueprint */
+          var res = await apiFetch('/api/workflows/generate', {
+            method: 'POST',
+            body: JSON.stringify({ description: desc })
+          });
+
+          if (res && res.workflow) {
+            var wf = res.workflow;
+
+            /* 2. Fill proposal form from NL blueprint */
+            var propSpec  = document.getElementById('prop-spec');
+            var propId    = document.getElementById('prop-id');
+            var propIndustry = document.getElementById('prop-industry');
+
+            if (propSpec)    propSpec.value    = desc + '\n\n--- Murphy-generated workflow plan ---\n' +
+              (wf.steps || []).map(function(s,i){ return (i+1)+'. ['+s.type+'] '+s.label; }).join('\n');
+            if (propId)      propId.value      = 'prop-' + Date.now().toString(36);
+            if (propIndustry) {
+              /* Infer industry from description */
+              var d = desc.toLowerCase();
+              if (d.includes('health') || d.includes('hipaa') || d.includes('patient'))    propIndustry.value = 'Healthcare';
+              else if (d.includes('finance') || d.includes('payment') || d.includes('bank')) propIndustry.value = 'Finance';
+              else if (d.includes('legal') || d.includes('contract') || d.includes('compliance')) propIndustry.value = 'Legal';
+              else if (d.includes('construction') || d.includes('build') || d.includes('project')) propIndustry.value = 'Construction';
+              else propIndustry.value = 'SaaS / Tech';
+            }
+
+            /* 3. Auto-check gates from compliance signals */
+            var d = desc.toLowerCase();
+            ['HIPAA','GDPR','SOC2','LEGAL','SECURITY','QUALITY_ASSURANCE'].forEach(function(gate) {
+              if (d.includes(gate.toLowerCase())) {
+                var chip = document.querySelector('.gate-chip input[value="'+gate+'"]');
+                if (chip) chip.checked = true;
+              }
+            });
+
+            /* 4. ROI info */
+            var roi = wf.roi || {};
+            showStatus(
+              '✓ Proposal filled in — ' + (wf.steps||[]).length + ' workflow steps generated. ' +
+              (roi.savings_usd ? 'Estimated ROI: $' + roi.savings_usd.toLocaleString() + ' savings vs manual. ' : '') +
+              'Review and submit below.',
+              'var(--teal)'
+            );
+
+            /* 5. Push to ROI calendar */
+            apiFetch('/api/roi-calendar/events', {
+              method: 'POST',
+              body: JSON.stringify({
+                title: wf.name || desc.slice(0,60),
+                description: desc,
+                human_cost_estimate: roi.human_cost_usd || 0,
+                agent_compute_cost:  roi.agent_cost_usd  || 0,
+                overhead_cost: 0,
+                workflow_id: wf.workflow_id
+              })
+            }).catch(function(){});
+
+          } else {
+            showStatus('⚠ Could not generate workflow — fill in the form manually.', 'var(--warning)');
+          }
+        } catch(e) {
+          showStatus('✗ Generation failed: ' + (e.message || 'Network error'), 'var(--danger)');
+        }
+        nlBtn.disabled = false;
+        nlBtn.textContent = '✨ Regenerate';
+      }
+
+      nlBtn.addEventListener('click', generateProposal);
+      nlInput.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') generateProposal();
+      });
+    })();
+    /* ── end PATCH-132b NL intake ── */
+
+  </script>
 </body>
 </html>
