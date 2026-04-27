@@ -211,17 +211,19 @@ class LLMEnhancedMFGC:
         """
         Initialize LLM-enhanced MFGC
 
-        Args:
-            llm_provider: LLM provider to use
-            model_name: Model name for the provider
+        PATCH-125: Redirected to MurphyLLMProvider (FM-001 fix).
+        OllamaLLM is a legacy backend; MurphyLLMProvider handles
+        DeepInfra→Together.ai fallback transparently.
         """
         self.llm_provider = llm_provider
-
-        if llm_provider == LLMProvider.OLLAMA:
-            self.llm = OllamaLLM(model_name)
-        else:
-            self.llm = None
-            logger.info("⚠ No LLM provider - using rule-based fallback")
+        # Use unified LLM provider regardless of legacy enum value
+        try:
+            from src.llm_provider import MurphyLLMProvider
+            self._unified_llm = MurphyLLMProvider.from_env()
+        except Exception:
+            self._unified_llm = None
+        # Keep self.llm = None to signal legacy path is disabled
+        self.llm = None
 
     def generate_candidates(self, task: str, phase: str,
                           existing_candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -251,7 +253,11 @@ Format your response as JSON:
   ...
 ]"""
 
-        response = self.llm.generate(prompt, temperature=0.8, max_tokens=500)
+        if self._unified_llm:
+            result = self._unified_llm.complete(prompt=prompt, max_tokens=500)
+            response = result.content if result else ""
+        else:
+            response = ""
 
         # Try to parse JSON response
         try:
@@ -292,7 +298,11 @@ Format as JSON:
   ...
 ]"""
 
-        response = self.llm.generate(prompt, temperature=0.5, max_tokens=500)
+        if self._unified_llm:
+            result = self._unified_llm.complete(prompt=prompt, max_tokens=500)
+            response = result.content if result else ""
+        else:
+            response = ""
 
         try:
             risks = json.loads(response)
@@ -328,7 +338,11 @@ Each gate should be a clear checkpoint or validation step.
 Format as JSON array of strings:
 ["Gate 1", "Gate 2", ...]"""
 
-        response = self.llm.generate(prompt, temperature=0.3, max_tokens=300)
+        if self._unified_llm:
+            result = self._unified_llm.complete(prompt=prompt, max_tokens=300)
+            response = result.content if result else ""
+        else:
+            response = ""
 
         try:
             gates = json.loads(response)
@@ -364,8 +378,11 @@ Format as JSON array of strings:
             }
         ]
 
-        response = self.llm.chat(messages, temperature=0.7, max_tokens=500)
-        return response
+        if self._unified_llm:
+            msgs_text = "\n".join(m.get("content", "") for m in messages)
+            result = self._unified_llm.complete(prompt=msgs_text, max_tokens=500)
+            return result.content if result else None
+        return None
 
 
 def get_system_info() -> Dict[str, Any]:

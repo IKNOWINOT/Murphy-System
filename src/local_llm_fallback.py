@@ -542,12 +542,15 @@ Get a free DeepInfra key at https://deepinfra.com/keys for the best experience."
         )
 
 
-# Singleton instance
+# Singleton instance — PATCH-125: FM-008 fix (double-checked locking)
 _fallback_instance = None
+_fallback_lock = __import__("threading").Lock()
 
 def get_fallback_llm() -> LocalLLMFallback:
-    """Get or create the fallback LLM instance"""
+    """Get or create the fallback LLM instance (thread-safe)."""
     global _fallback_instance
     if _fallback_instance is None:
-        _fallback_instance = LocalLLMFallback()
+        with _fallback_lock:
+            if _fallback_instance is None:
+                _fallback_instance = LocalLLMFallback()
     return _fallback_instance

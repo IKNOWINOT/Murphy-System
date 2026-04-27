@@ -347,6 +347,7 @@ class MurphyMind:
             "module_health": _module_health(),
             "source_inventory": _source_inventory(),
             "previous_self_model": self._store.latest_entry(),
+            "fm_verification": _verify_failure_modes(),  # PATCH-125: live FM scan
         }
 
     def _run_cycle(self) -> MindCycleResult:

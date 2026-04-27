@@ -82,13 +82,19 @@ except Exception as exc:  # pragma: no cover
 _engine_instance: Optional[Any] = None
 
 
+_engine_lock = __import__("threading").Lock()
+
 def _get_engine() -> Any:
-    """Return the shared engine instance, initialising it on first call."""
+    """Return the shared engine instance, initialising it on first call.
+    PATCH-125: Double-checked locking (FM-008 fix).
+    """
     global _engine_instance
     if _engine_instance is None:
-        if not _ENGINE_AVAILABLE or SystemUpdateRecommendationEngine is None:
-            raise RuntimeError("SystemUpdateRecommendationEngine is not available.")
-        _engine_instance = SystemUpdateRecommendationEngine()
+        with _engine_lock:
+            if _engine_instance is None:
+                if not _ENGINE_AVAILABLE or SystemUpdateRecommendationEngine is None:
+                    raise RuntimeError("SystemUpdateRecommendationEngine is not available.")
+                _engine_instance = SystemUpdateRecommendationEngine()
     return _engine_instance
 
 
