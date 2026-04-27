@@ -376,6 +376,96 @@ def _agent_coverage() -> Dict[str, Any]:
     except Exception as e:
         return {"error": str(e)[:60], "registered": 0, "expected": 9, "missing": 9}
 
+
+
+# ── PATCH-129: Gap-to-File Map ────────────────────────────────────────────────
+
+# Real filenames for every known active gap category.
+# Murphy's LLM hallucinates paths — this table overrides those hallucinations.
+_GAP_FILE_MAP: Dict[str, Dict[str, str]] = {
+    "corpus_stale": {
+        "file": "src/world_corpus.py",
+        "function": "collect_all",
+        "fix": (
+            "Call WorldCorpus().collect_all() immediately to refresh stale data, "
+            "then verify the corpus_collect scheduler job is firing every 15 minutes."
+        ),
+    },
+    "agent_missing": {
+        "file": "src/exec_admin_agent.py",
+        "function": "act",
+        "fix": (
+            "Register the 7 missing RosettaSoul agents by extending the agent registry "
+            "in exec_admin_agent.py — each agent needs agent_id, position, soul_fragment, act()."
+        ),
+    },
+    "critic_unwired": {
+        "file": "src/murphy_critic.py",
+        "function": "review",
+        "fix": (
+            "Wire MurphyCritic.review() into the self-patch endpoint so every "
+            "autonomous code change passes BLOCK/WARN/PASS before touching disk."
+        ),
+    },
+    "morning_brief_silent": {
+        "file": "src/exec_admin_agent.py",
+        "function": "act",
+        "fix": (
+            "Hook ExecAdmin.act() output to the LLM in the morning_brief scheduler job "
+            "so the daily brief produces real analysis, not a no-op."
+        ),
+    },
+}
+
+
+def _ground_proposed_action(
+    priority_gap: str,
+    agent_coverage: Dict[str, Any],
+    corpus_freshness: Dict[str, Any],
+) -> Optional[str]:
+    """
+    PATCH-129: Given the current priority gap and system state, return a
+    concrete proposed_action that names a REAL file and function.
+
+    Returns None if no grounded action can be determined (falls back to LLM output).
+    """
+    pg_lower = priority_gap.lower()
+
+    if corpus_freshness.get("stale") and ("corpus" in pg_lower or "stale" in pg_lower or "world" in pg_lower):
+        m = _GAP_FILE_MAP["corpus_stale"]
+        age = corpus_freshness.get("age_hours", "?")
+        records = corpus_freshness.get("total_records", "?")
+        return (
+            f"Fix file: {m['file']}, function: {m['function']}() — "
+            f"corpus is {age} hrs old ({records} records). {m['fix']}"
+        )
+
+    if agent_coverage.get("missing", 0) > 0 and ("agent" in pg_lower or "swarm" in pg_lower or "register" in pg_lower):
+        m = _GAP_FILE_MAP["agent_missing"]
+        missing = agent_coverage.get("missing", 0)
+        registered = agent_coverage.get("registered", 0)
+        expected = agent_coverage.get("expected", 9)
+        return (
+            f"Fix file: {m['file']}, function: {m['function']}() — "
+            f"{missing} of {expected} agents unregistered (only {registered} active). {m['fix']}"
+        )
+
+    if "critic" in pg_lower or "self-patch" in pg_lower or "self_patch" in pg_lower:
+        m = _GAP_FILE_MAP["critic_unwired"]
+        return (
+            f"Fix file: {m['file']}, function: {m['function']}() — "
+            f"{m['fix']}"
+        )
+
+    if "morning" in pg_lower or "brief" in pg_lower:
+        m = _GAP_FILE_MAP["morning_brief_silent"]
+        return (
+            f"Fix file: {m['file']}, function: {m['function']}() — "
+            f"{m['fix']}"
+        )
+
+    return None  # No grounded override — use LLM output as-is
+
 # ── PATCH-127: Proposed Action Validator ─────────────────────────────────────
 
 def _validate_proposed_action(action: str) -> Dict[str, Any]:
@@ -706,6 +796,14 @@ class MurphyMind:
             "  World corpus: " + (f"STALE ({ctx.get('corpus_freshness', {}).get('age_hours')} hrs old, {ctx.get('corpus_freshness', {}).get('total_records')} records)" if ctx.get("corpus_freshness", {}).get("stale") else f"FRESH ({ctx.get('corpus_freshness', {}).get('total_records')} records)"),
             "  Swarm agents: " + ctx.get("agent_coverage", {}).get("gap", "unknown"),
             "",
+            "REAL SOURCE FILES FOR KNOWN GAPS (PATCH-129 — use these exact paths):",
+            "  Corpus staleness → src/world_corpus.py, function: collect_all()",
+            "  Missing agents   → src/exec_admin_agent.py, function: act()",
+            "  Critic unwired   → src/murphy_critic.py, function: review()",
+            "  Morning brief    → src/exec_admin_agent.py, function: act()",
+            "RULE: When proposing an action, use ONLY the file paths listed above.",
+            "RULE: Do NOT invent paths like scheduler/api.py or world_corpus/sync.py — they do not exist.",
+            "",
             "LIVE FAILURE MODE SCAN (run seconds ago against actual source files):",
             fm_section,
             "RULE: fm_lines marked [FIXED ✓] are RESOLVED. Do NOT list them as active.",
@@ -751,6 +849,21 @@ class MurphyMind:
 
         # Build self-model entry — use parsed LLM output or fall back to context
         recent_patches = [p.split(" ", 1)[1] if " " in p else p for p in ctx["recent_patches"][:5]]
+
+        # PATCH-129b: Ground the proposed action using real filenames
+        _priority_gap_raw = parsed.get(
+            "priority_gap",
+            prev_priority if prev_priority != "None identified yet" else ""
+        )
+        _grounded = _ground_proposed_action(
+            _priority_gap_raw,
+            ctx.get("agent_coverage", {}),
+            ctx.get("corpus_freshness", {}),
+        )
+        if _grounded and _validate_proposed_action(parsed.get("proposed_action", "")).get("speculative"):
+            # LLM proposed a speculative path — override with grounded real file
+            parsed["proposed_action"] = _grounded
+            logger.info("PATCH-129b: Grounded proposed action → %s", _grounded[:80])
 
         # PATCH-128d: Loop detection — break speculative repeat loop
         # If Murphy proposes the same speculative action 2+ cycles in a row, redirect to a real gap.
