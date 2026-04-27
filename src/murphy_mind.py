@@ -452,10 +452,18 @@ class MurphyMind:
         prev_priority = prev.get("priority_gap", "None identified yet")
         prev_action = prev.get("proposed_action", "None yet")
 
+        # Build FM verification string for the prompt
+        fm_lines = []
+        for v in ctx.get("fm_verification", []):
+            status_tag = "ACTIVE ⚠" if v["status"] == "active" else "FIXED ✓"
+            fm_lines.append(f"  {v['id']} [{status_tag}]: {v['name']} — {v['evidence'][:80]}")
+        fm_section = "\n".join(fm_lines) if fm_lines else "  (no FM data)"
+
         prompt = "\n".join([
-            "You are Murphy — an AI operating system thinking about yourself.",
-            "Apply the 7 engineering questions to your current state.",
-            "Be specific. Name modules. Name bugs. Name the one thing that matters most.",
+            "You are Murphy — an AI operating system performing a self-assessment.",
+            "Your job: produce an accurate self-model based ONLY on the data below.",
+            "Do NOT invent failure modes. Do NOT cite your training knowledge about Murphy.",
+            "Everything you report must be grounded in the facts provided here.",
             "",
             "YOUR NORTH STAR: Shield humanity from AI failure by anticipating every way things can go wrong.",
             "",
@@ -476,20 +484,15 @@ class MurphyMind:
             "  Priority gap: " + prev_priority,
             "  Proposed action: " + prev_action,
             "",
-            "KNOWN FAILURE MODES (LIVE-VERIFIED against source code):",
-            # PATCH-125: fm_verification contains actual scan results
-            # Each entry: FM-XXX [ACTIVE|FIXED]: name -- evidence
-            *[
-                f"  {v['id']} [{v['status'].upper()}]: {v['name']} -- {v['evidence'][:80]}"
-                for v in ctx.get("fm_verification", [])
-            ],
-            "CRITICAL INSTRUCTION: Only report an FM as active if its status above is [ACTIVE].",
-            "Do NOT report [FIXED] FMs as active gaps or failure modes.",
+            "LIVE FAILURE MODE SCAN (run seconds ago against actual source files):",
+            fm_section,
+            "RULE: fm_lines marked [FIXED ✓] are RESOLVED. Do NOT list them as active.",
+            "RULE: Only fm_lines marked [ACTIVE ⚠] count as current problems.",
             "",
             "Now answer these questions about yourself:",
             "1. ARCHITECTURE SUMMARY: In 2 sentences, what is Murphy and how does it hold together right now?",
-            "2. KNOWN FAILURE MODES: List 3-5 specific patterns you have seen repeatedly.",
-            "3. ACTIVE GAPS: List 3-5 things that are missing or broken right now.",
+            "2. KNOWN FAILURE MODES: From the LIVE SCAN above, list only the [ACTIVE ⚠] ones. If none are active, say so.",
+            "3. ACTIVE GAPS: Based on LIVE SCAN + module health above, what is genuinely broken NOW?",
             "4. INVARIANTS: List 3 things that must always be true for Murphy to hold.",
             "5. PRIORITY GAP: What is the single most important gap? One sentence.",
             "6. PROPOSED ACTION: What is the concrete next patch? Name the file, the function, the fix.",
