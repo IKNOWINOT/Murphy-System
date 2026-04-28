@@ -210,10 +210,11 @@ def _safe_name(s: str) -> str:
 
 # ── LLM codegen ───────────────────────────────────────────────────────────────
 def _llm_generate(prompt: str, max_tokens: int = 2048) -> str:
-    """Generate code via the Murphy LLM provider (unified, with fallback)."""
+    """Generate code via the Murphy LLM provider (unified, with fallback).
+    Uses a fresh provider instance to pick up current env keys."""
     try:
-        from src.llm_provider import get_llm
-        llm = get_llm()
+        from src.llm_provider import MurphyLLMProvider
+        llm = MurphyLLMProvider()  # fresh instance — not singleton, so env keys are current
         system_msg = (
             "You are an expert Python developer. Generate ONLY clean Python code — "
             "no markdown fences, no triple backticks, no explanations, no extra text. "
