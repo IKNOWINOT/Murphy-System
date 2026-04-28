@@ -203,7 +203,7 @@ _SCHEDULE_TRIGGERS = [
     (r'\bhourly\b|\bevery\s+hour\b',
      lambda d, m: {"type": "cron", "expr": "0 * * * *", "label": "Every hour"}),
     # Quarterly
-    (r'\bquarterly\b|\bevery\s+quarter\b',
+    (r'\bquarterly\b|\bevery\s+quarter\b|\beach\s+quarter\b|\bend\s+of\s+(?:each|every|the)?\s*quarter\b',
      lambda d, m: (lambda h, mn:
          {"type": "cron", "expr": f"{mn} {h} 1 1,4,7,10 *",
           "label": "Quarterly (1st of Jan, Apr, Jul, Oct)"})(*_extract_time(d))),
