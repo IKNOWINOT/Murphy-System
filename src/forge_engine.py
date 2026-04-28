@@ -210,22 +210,64 @@ def _safe_name(s: str) -> str:
 
 # ── LLM codegen ───────────────────────────────────────────────────────────────
 def _llm_generate(prompt: str, max_tokens: int = 2048) -> str:
+    """Generate code via LLM. Tries Together.ai directly first, then Murphy LLM provider."""
+    import os as _os
+    import urllib.request as _ur
+    import urllib.error  as _ue
+
+    # ── Path 1: Together.ai direct (most reliable) ────────────────────────
+    together_key = _os.environ.get("TOGETHER_API_KEY", "")
+    if together_key:
+        try:
+            import json as _json
+            payload = _json.dumps({
+                "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+                "messages": [
+                    {"role": "system", "content":
+                        "You are an expert Python developer. Generate only clean Python code — "
+                        "no markdown fences, no explanations, no extra text. "
+                        "Code must be syntactically valid and immediately importable."},
+                    {"role": "user", "content": prompt},
+                ],
+                "max_tokens": max_tokens,
+                "temperature": 0.1,
+            }).encode()
+            req = _ur.Request(
+                "https://api.together.xyz/v1/chat/completions",
+                data=payload,
+                headers={
+                    "Authorization": f"Bearer {together_key}",
+                    "Content-Type": "application/json",
+                },
+            )
+            with _ur.urlopen(req, timeout=90) as resp:
+                data = _json.loads(resp.read())
+            code = data["choices"][0]["message"]["content"].strip()
+            code = re.sub(r"^```(?:python)?\n?", "", code)
+            code = re.sub(r"\n?```$", "", code)
+            return code.strip()
+        except Exception as e:
+            logger.warning("Together.ai direct call failed: %s — falling back to provider", e)
+
+    # ── Path 2: Murphy LLM provider (fallback) ────────────────────────────
     try:
         from src.llm_provider import get_llm
         llm = get_llm()
         completion = llm.complete(prompt, max_tokens=max_tokens, temperature=0.1)
-        # LLMCompletion object — extract text
         if hasattr(completion, "content"):
             code = completion.content or ""
         elif hasattr(completion, "text"):
             code = completion.text or ""
         else:
             code = str(completion)
+        if "API providers unavailable" in code or "Request acknowledged" in code:
+            raise RuntimeError("All LLM providers unavailable (onboard fallback only)")
         code = code.strip()
-        # Strip markdown fences if the LLM ignored instructions
         code = re.sub(r"^```(?:python)?\n?", "", code)
         code = re.sub(r"\n?```$", "", code)
         return code.strip()
+    except RuntimeError:
+        raise
     except Exception as e:
         logger.error("LLM codegen failed: %s", e)
         raise RuntimeError(f"LLM unavailable: {e}") from e
