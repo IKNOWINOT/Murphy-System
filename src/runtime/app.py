@@ -1739,9 +1739,12 @@ def create_app() -> FastAPI:
 
     # ── PATCH-118: SwarmScheduler startup ─────────────────────────────────────
     try:
-        from src.swarm_scheduler import get_scheduler
+        from src.swarm_scheduler import get_scheduler, restore_workflow_schedules
         get_scheduler().start()
         logger.info("PATCH-118: SwarmScheduler started")
+        # PATCH-140: re-register all persisted workflow cron jobs at boot
+        _restored_wf = restore_workflow_schedules()
+        logger.info("PATCH-140: %d workflow schedules restored at boot", _restored_wf)
     except Exception as _e:
         logger.warning("PATCH-118: SwarmScheduler startup failed: %s", _e)
 

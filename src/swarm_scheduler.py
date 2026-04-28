@@ -290,3 +290,83 @@ def get_scheduler() -> SwarmScheduler:
             if _scheduler is None:
                 _scheduler = SwarmScheduler()
     return _scheduler
+
+
+def restore_workflow_schedules() -> int:
+    """PATCH-140: Re-register all active cron workflow schedules from DB at boot.
+    Source: nl_workflows.db blueprints table (data JSON field).
+    """
+    count = 0
+    try:
+        import sqlite3 as _sq, json as _json
+        db_path = "/var/lib/murphy-production/nl_workflows.db"
+        conn = _sq.connect(db_path)
+        rows = conn.execute(
+            "SELECT workflow_id, account_id, data FROM blueprints"
+        ).fetchall()
+        conn.close()
+        # Convert to expected format: (blueprint_id, job_id, account_id, data_json)
+        rows = [(r[0], f"wf_{r[0][:8]}", r[1], r[2]) for r in rows]
+
+        sched = get_scheduler()
+        _aps  = sched._scheduler
+        if _aps is None:
+            logger.warning("PATCH-140: restore_workflow_schedules — APScheduler not available")
+            return 0
+
+        for bp_id, job_id, account_id, data_json in rows:
+            try:
+                if not data_json:
+                    continue
+                blueprint = _json.loads(data_json)
+                schedule  = blueprint.get("schedule", {})
+                expr      = schedule.get("expr") or blueprint.get("trigger", {}).get("expr")
+                label     = schedule.get("label", job_id)
+                steps     = blueprint.get("steps", [])
+                wf_id     = blueprint.get("workflow_id", bp_id)
+
+                if not expr:
+                    continue
+
+                # Skip if already registered (survive multiple calls)
+                if _aps.get_job(job_id):
+                    continue
+
+                from apscheduler.triggers.cron import CronTrigger as _CT
+
+                def _make_runner(steps_=steps, wf_id_=wf_id, account_id_=account_id, job_id_=job_id):
+                    def _run():
+                        try:
+                            from src.workflow_executor import execute_workflow
+                            from src.automation_request import _save_run
+                            ctx = execute_workflow(steps_, wf_id_, account_id_, {"cron_fired": True})
+                            _save_run(ctx)
+                        except Exception as e:
+                            logger.error("Restored workflow job %s error: %s", job_id_, e)
+                    return _run
+
+                parts = expr.strip().split()
+                if len(parts) == 5:
+                    trigger = _CT(minute=parts[0], hour=parts[1], day=parts[2],
+                                  month=parts[3], day_of_week=parts[4])
+                else:
+                    continue
+
+                _aps.add_job(
+                    _make_runner(), trigger=trigger, id=job_id,
+                    name=f"wf: {label[:60]}", replace_existing=True, max_instances=1,
+                )
+                sched._jobs[job_id] = {
+                    "name": label[:60], "cron": expr,
+                    "account": account_id, "type": "workflow", "wf_id": wf_id,
+                }
+                count += 1
+                logger.info("PATCH-140: restored workflow job %s [%s] cron=%s", job_id, wf_id[:8], expr)
+            except Exception as e:
+                logger.warning("PATCH-140: failed to restore job %s: %s", job_id, e)
+
+    except Exception as e:
+        logger.error("PATCH-140: restore_workflow_schedules error: %s", e)
+
+    logger.info("PATCH-140: boot schedule restore complete — %d jobs re-registered", count)
+    return count

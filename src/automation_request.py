@@ -321,32 +321,59 @@ def _calc_roi(steps: List[Dict], schedule: Dict) -> Dict:
 # ── Schedule registration ────────────────────────────────────────────────────
 
 def _register_schedule(blueprint: Dict, account_id: str) -> Optional[str]:
+    """PATCH-140: Register a workflow cron job via SwarmScheduler (not app._scheduler)."""
     schedule = blueprint.get("schedule", {})
     expr     = schedule.get("expr")
     wf_id    = blueprint.get("workflow_id", blueprint.get("id", ""))
+    label    = schedule.get("label", wf_id)
     if not expr or schedule.get("type") not in ("cron",):
         return None
     try:
-        from src.runtime.app import _scheduler
+        from src.swarm_scheduler import get_scheduler
+        sched  = get_scheduler()
         job_id = f"wf_{wf_id[:8]}"
         steps  = blueprint.get("steps", [])
+
         def _run_workflow():
-            from src.workflow_executor import execute_workflow
-            from src.automation_request import _save_run
-            ctx = execute_workflow(steps, wf_id, account_id, {"cron_fired": True})
-            _save_run(ctx)
+            try:
+                from src.workflow_executor import execute_workflow
+                from src.automation_request import _save_run
+                ctx = execute_workflow(steps, wf_id, account_id, {"cron_fired": True})
+                _save_run(ctx)
+            except Exception as _e:
+                logger.error("Workflow cron job %s error: %s", job_id, _e)
+
+        # SwarmScheduler.add_nl_job wraps CronTrigger correctly
+        # But we need direct APScheduler access for workflow steps fn (not NL text)
+        # So use _scheduler internal directly after start() guard
+        _aps = sched._scheduler
+        if _aps is None:
+            logger.error("PATCH-140: APScheduler not available — schedule skipped")
+            return None
         try:
-            _scheduler.remove_job(job_id)
+            _aps.remove_job(job_id)
         except Exception:
             pass
-        _scheduler.add_job(
-            _run_workflow, "cron", id=job_id,
-            **_parse_cron(expr), replace_existing=True, max_instances=1,
+        from apscheduler.triggers.cron import CronTrigger as _CT
+        parts = expr.strip().split()
+        if len(parts) == 5:
+            trigger = _CT(minute=parts[0], hour=parts[1], day=parts[2],
+                          month=parts[3], day_of_week=parts[4])
+        else:
+            trigger = _CT(hour=9, minute=0)   # safe default
+        _aps.add_job(
+            _run_workflow, trigger=trigger, id=job_id,
+            name=f"wf: {label[:60]}", replace_existing=True, max_instances=1,
         )
-        logger.info("Schedule registered: job=%s wf=%s cron=%s", job_id, wf_id, expr)
+        # Also register in sched._jobs for list_jobs() visibility
+        sched._jobs[job_id] = {
+            "name": label[:60], "cron": expr,
+            "account": account_id, "type": "workflow", "wf_id": wf_id,
+        }
+        logger.info("PATCH-140: Schedule registered job=%s wf=%s cron=%s", job_id, wf_id, expr)
         return job_id
     except Exception as e:
-        logger.error("Schedule registration failed: %s", e)
+        logger.error("PATCH-140: Schedule registration failed: %s", e)
         return None
 
 
