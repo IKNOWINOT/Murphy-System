@@ -434,6 +434,35 @@ class SwarmCoordinator:
 
         return result.get("dag_id") if result else None
 
+    # ── PATCH-134a: handler registry ─────────────────────────────────────────
+    def register_handler(self, domain: str, handler: "Callable[[Dict], Optional[str]]") -> None:
+        """
+        Register a domain-specific callback handler.
+        swarm_scheduler calls this to wire exec_admin and prod_ops handlers.
+        When dispatch() routes a signal whose domain matches, it calls the handler.
+        """
+        with self._lock:
+            if not hasattr(self, "_domain_handlers"):
+                self._domain_handlers: Dict[str, Any] = {}
+            self._domain_handlers[domain] = handler
+        logger.info("SwarmCoordinator: registered handler for domain '%s'", domain)
+
+    def route_signal(self, signal: Dict) -> Optional[str]:
+        """
+        Alias for dispatch() — used by swarm_scheduler signal drain loop.
+        Also tries registered domain handlers before falling back to agent dispatch.
+        """
+        domain = signal.get("domain", signal.get("signal_type", "general"))
+        handlers = getattr(self, "_domain_handlers", {})
+        if domain in handlers:
+            try:
+                dag_id = handlers[domain](signal)
+                return dag_id
+            except Exception as e:
+                logger.error("Domain handler '%s' failed: %s", domain, e)
+        # Fallback to normal dispatch
+        return self.dispatch(signal)
+
     def translate(self, nl_text: str, account: str = "unknown", execute: bool = False) -> Dict:
         """Full pipeline: NL → WorkflowSpec → DAGGraph → [execute]."""
         try:
