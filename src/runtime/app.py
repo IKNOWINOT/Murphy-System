@@ -17946,94 +17946,95 @@ def create_app() -> FastAPI:
     except Exception as _fe_exc:
         logger.warning("PATCH-133: ForgeEngine not available: %s", _fe_exc)
 
-        # ── PATCH-135: Business Automation Control ─────────────────────────────────
-        # /api/automation/* (singular) — agent-initiated NL automation creation.
-        # Any agent, org-chart node, or UI can POST to create a real automation.
-        try:
-            from src.automation_request import (
-                request_automation as _req_automation,
-                list_requests      as _list_auto_requests,
-                list_runs          as _list_auto_runs,
-                _save_run          as _save_auto_run,
+    # ── PATCH-135: Business Automation Control ─────────────────────────────────
+    # /api/automation/* — NL-driven automation from any agent, org node, or UI.
+    try:
+        from src.automation_request import (
+            request_automation as _req_automation,
+            list_requests      as _list_auto_requests,
+            list_runs          as _list_auto_runs,
+            _save_run          as _save_auto_run,
+        )
+        from src.workflow_executor import execute_workflow as _exec_workflow
+
+        @app.post("/api/automation/request")
+        async def automation_request_endpoint(request: Request):
+            """NL → automation blueprint + schedule. Any agent or UI can call this."""
+            account  = _get_account_from_session(request)
+            acct_id  = account["account_id"] if account else "anonymous"
+            body     = await request.json()
+            result   = _req_automation(
+                description   = body.get("description", ""),
+                account_id    = acct_id,
+                requester     = body.get("requester", "user"),
+                priority      = body.get("priority", "normal"),
+                context       = body.get("context", {}),
+                auto_schedule = body.get("auto_schedule", True),
             )
-            from src.workflow_executor import execute_workflow as _exec_workflow
+            return JSONResponse(result)
 
-            @app.post("/api/automation/request")
-            async def automation_request_endpoint(request: Request):
-                """NL → automation blueprint + schedule. Any agent or UI can call this."""
-                account  = _get_account_from_session(request)
-                acct_id  = account["account_id"] if account else "anonymous"
-                body     = await request.json()
-                result   = _req_automation(
-                    description   = body.get("description", ""),
-                    account_id    = acct_id,
-                    requester     = body.get("requester", "user"),
-                    priority      = body.get("priority", "normal"),
-                    context       = body.get("context", {}),
-                    auto_schedule = body.get("auto_schedule", True),
-                )
-                return JSONResponse(result)
+        @app.get("/api/automation/requests")
+        async def list_automation_requests_ep(request: Request):
+            """List all automation requests for current tenant."""
+            account = _get_account_from_session(request)
+            acct_id = account["account_id"] if account else "anonymous"
+            items   = _list_auto_requests(acct_id)
+            return JSONResponse({"success": True, "items": items, "count": len(items)})
 
-            @app.get("/api/automation/requests")
-            async def list_automation_requests_ep(request: Request):
-                """List all automation requests for current tenant."""
-                account = _get_account_from_session(request)
-                acct_id = account["account_id"] if account else "anonymous"
-                items   = _list_auto_requests(acct_id)
-                return JSONResponse({"success": True, "items": items, "count": len(items)})
+        @app.get("/api/automation/runs")
+        async def list_automation_runs_ep(request: Request):
+            """List all workflow execution runs for current tenant."""
+            account = _get_account_from_session(request)
+            acct_id = account["account_id"] if account else "anonymous"
+            runs    = _list_auto_runs(acct_id)
+            return JSONResponse({"success": True, "runs": runs, "count": len(runs)})
 
-            @app.get("/api/automation/runs")
-            async def list_automation_runs_ep(request: Request):
-                """List all workflow execution runs for current tenant."""
-                account = _get_account_from_session(request)
-                acct_id = account["account_id"] if account else "anonymous"
-                runs    = _list_auto_runs(acct_id)
-                return JSONResponse({"success": True, "runs": runs, "count": len(runs)})
-
-            @app.post("/api/automation/{workflow_id}/run")
-            async def run_automation_now_ep(workflow_id: str, request: Request):
-                """Manually trigger a workflow now — bypasses its schedule."""
-                account      = _get_account_from_session(request)
-                acct_id      = account["account_id"] if account else "anonymous"
-                body         = await request.json()
-                trigger_data = body.get("trigger_data", {})
-                try:
-                    from src.nl_workflow_engine import get_engine as _get_nl_engine
-                    engine = _get_nl_engine()
-                    bp     = engine.get(workflow_id, acct_id)
-                    if not bp:
-                        return JSONResponse({"success": False, "error": "Workflow not found"}, status_code=404)
-                    steps = bp.steps if hasattr(bp, "steps") else bp.get("steps", [])
-                    ctx   = _exec_workflow(steps, workflow_id, acct_id, trigger_data)
-                    _save_auto_run(ctx)
-                    return JSONResponse({
-                        "success":  True,
-                        "run_id":   ctx.run_id,
-                        "status":   ctx.status,
-                        "step_log": ctx.log,
-                        "output":   ctx.get("final_output", {}),
-                    })
-                except Exception as _exc:
-                    return JSONResponse({"success": False, "error": str(_exc)}, status_code=500)
-
-            @app.get("/api/automation/status")
-            async def automation_system_status_ep(request: Request):
-                """Health + capabilities for the PATCH-135 automation system."""
-                from pathlib import Path as _Path
+        @app.post("/api/automation/{workflow_id}/run")
+        async def run_automation_now_ep(workflow_id: str, request: Request):
+            """Manually trigger a workflow now — bypasses its schedule."""
+            account      = _get_account_from_session(request)
+            acct_id      = account["account_id"] if account else "anonymous"
+            body         = await request.json()
+            trigger_data = body.get("trigger_data", {})
+            try:
+                from src.nl_workflow_engine import get_engine as _get_nl_engine
+                engine = _get_nl_engine()
+                bp     = engine.get(workflow_id, acct_id)
+                if not bp:
+                    return JSONResponse({"success": False, "error": "Workflow not found"}, status_code=404)
+                steps = bp.steps if hasattr(bp, "steps") else bp.get("steps", [])
+                ctx   = _exec_workflow(steps, workflow_id, acct_id, trigger_data)
+                _save_auto_run(ctx)
                 return JSONResponse({
-                    "success": True,
-                    "status":  "online",
-                    "capabilities": [
-                        "nl_to_blueprint", "schedule_registration",
-                        "agent_initiated", "exec_admin_request",
-                        "prod_ops_request", "rosetta_signal", "real_step_execution",
-                    ],
-                    "db_ready": _Path("/var/lib/murphy-production/automations.db").exists(),
+                    "success":  True,
+                    "run_id":   ctx.run_id,
+                    "status":   ctx.status,
+                    "step_log": ctx.log,
                 })
+            except Exception as _exc:
+                return JSONResponse({"success": False, "error": str(_exc)}, status_code=500)
 
-            logger.info("PATCH-135: Business Automation Control online — /api/automation/*")
-        except Exception as _p135_exc:
-            logger.warning("PATCH-135: Automation Control not available: %s", _p135_exc)
+        @app.get("/api/automation/status")
+        async def automation_system_status_ep(request: Request):
+            """Health + capabilities for the PATCH-135 automation system."""
+            from pathlib import Path as _Path
+            return JSONResponse({
+                "success": True,
+                "status":  "online",
+                "patch":   "PATCH-135e",
+                "capabilities": [
+                    "nl_to_blueprint", "schedule_registration",
+                    "agent_initiated", "exec_admin_request",
+                    "prod_ops_request", "rosetta_signal",
+                    "real_step_execution", "canvas_nodes",
+                ],
+                "db_ready": _Path("/var/lib/murphy-production/automations.db").exists(),
+            })
+
+        logger.info("PATCH-135: Business Automation Control online — /api/automation/*")
+    except Exception as _p135_exc:
+        logger.warning("PATCH-135: Automation Control not available: %s", _p135_exc)
+
 
 
 
