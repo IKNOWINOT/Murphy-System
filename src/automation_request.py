@@ -467,8 +467,9 @@ def request_automation(
         "version":      2,
     }
 
-    # ROI gate
-    if roi["roi_ratio"] < 1.0 and priority not in ("high", "critical"):
+    # ROI gate — pass if: high/critical priority, OR has a real schedule, OR ratio >= 1.0
+    has_schedule = trigger.get("type") in ("cron", "event")
+    if roi["roi_ratio"] < 1.0 and priority not in ("high", "critical") and not has_schedule:
         return {"success": False, "error": "Automation ROI < 1.0 — costs more than it saves",
                 "roi": roi, "request_id": request_id}
 
