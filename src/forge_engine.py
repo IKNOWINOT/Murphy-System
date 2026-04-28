@@ -244,10 +244,61 @@ def _llm_generate(prompt: str, max_tokens: int = 2048) -> str:
 _mounted_routers: Dict[str, Any] = {}   # name → router
 _app_ref: Any = None                    # set by register_with_app()
 
+# ── PATCH-139: Async job store for background forge/create ───────────────────
+import threading as _threading
+_forge_jobs: Dict[str, Any] = {}        # job_id → {status, result, error}
+_forge_jobs_lock = _threading.Lock()
+
+def _job_set(job_id: str, status: str, result: Any = None, error: str = None) -> None:
+    with _forge_jobs_lock:
+        _forge_jobs[job_id] = {"status": status, "result": result, "error": error}
+
+def get_job(job_id: str) -> Optional[Dict[str, Any]]:
+    with _forge_jobs_lock:
+        return _forge_jobs.get(job_id)
+
 def register_with_app(app: Any) -> None:
     global _app_ref
     _app_ref = app
     logger.info("ForgeEngine: app reference registered, dynamic routing enabled")
+
+def remount_all_internal_apis() -> int:
+    """PATCH-139: Re-mount all persisted internal_api routes from DB at boot."""
+    if _app_ref is None:
+        logger.warning("ForgeEngine.remount_all: app not registered yet — skipping")
+        return 0
+    count = 0
+    try:
+        with _get_db() as conn:
+            rows = conn.execute(
+                "SELECT name, tenant_id, file_path FROM forge_items "
+                "WHERE item_type='internal_api' AND status='active'"
+            ).fetchall()
+        for name, tenant_id, file_path in rows:
+            try:
+                import importlib.util as _ilu, sys as _sys
+                mod_name = f"src.user_modules.{_safe_name(tenant_id)}.{_safe_name(name)}"
+                spec = _ilu.spec_from_file_location(mod_name, file_path)
+                if spec is None:
+                    continue
+                module = _ilu.module_from_spec(spec)
+                _sys.modules[mod_name] = module
+                spec.loader.exec_module(module)
+                inner_router = getattr(module, "router", None)
+                if inner_router is None:
+                    continue
+                route_key = f"forge_{_safe_name(tenant_id)}_{_safe_name(name)}"
+                if route_key not in _mounted_routers:
+                    _mounted_routers[route_key] = inner_router
+                    _app_ref.include_router(inner_router)
+                    count += 1
+                    logger.info("PATCH-139: remounted internal_api '%s' (tenant=%s)", name, tenant_id)
+            except Exception as e:
+                logger.warning("PATCH-139: failed to remount '%s': %s", name, e)
+    except Exception as e:
+        logger.error("PATCH-139: remount_all error: %s", e)
+    logger.info("PATCH-139: boot remount complete — %d routes restored", count)
+    return count
 
 def _mount_router(name: str, tenant_id: str, router: Any) -> str:
     """Mount a new APIRouter on the live app."""

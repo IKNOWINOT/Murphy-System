@@ -17939,10 +17939,11 @@ def create_app() -> FastAPI:
     # ── ForgeEngine (PATCH-133): on-the-fly code creation ─────────────────────
     try:
         from src.forge_router import router as _forge_router
-        from src.forge_engine import register_with_app as _forge_register
+        from src.forge_engine import register_with_app as _forge_register, remount_all_internal_apis as _forge_remount
         app.include_router(_forge_router)
         _forge_register(app)
-        logger.info("PATCH-133: ForgeEngine online — /api/forge/*")
+        _remounted = _forge_remount()
+        logger.info("PATCH-133: ForgeEngine online — /api/forge/* | PATCH-139: %d internal APIs remounted", _remounted)
     except Exception as _fe_exc:
         logger.warning("PATCH-133: ForgeEngine not available: %s", _fe_exc)
 

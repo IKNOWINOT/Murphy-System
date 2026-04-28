@@ -7,9 +7,10 @@ modules, internal APIs, and external API wrappers on the fly.
 from __future__ import annotations
 
 import logging
+import uuid
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger("forge_router")
@@ -52,33 +53,78 @@ def _get_forge():
 
 # ── Routes ─────────────────────────────────────────────────────────────────────
 
+def _run_forge_create(job_id: str, description: str, item_type: str,
+                      name, tenant: str, service, extra_context) -> None:
+    """Background worker — runs forge.create() and stores result in job store."""
+    from src.forge_engine import _job_set
+    try:
+        _job_set(job_id, "running")
+        forge = _get_forge()
+        result = forge.create(
+            description=description,
+            item_type=item_type,
+            name=name,
+            tenant_id=tenant,
+            service=service,
+            extra_context=extra_context,
+        )
+        if "error" in result:
+            _job_set(job_id, "failed", error=str(result.get("error", result)))
+        else:
+            _job_set(job_id, "done", result=result)
+    except Exception as exc:
+        from src.forge_engine import _job_set as _js
+        _js(job_id, "failed", error=str(exc))
+
+
 @router.post("/create")
-async def forge_create(req: ForgeCreateRequest, request: Request):
+async def forge_create(req: ForgeCreateRequest, request: Request,
+                       background_tasks: BackgroundTasks):
     """
-    Create a function, module, internal API, or external API wrapper from NL.
+    PATCH-139: Async forge create — returns job_id immediately.
+    LLM codegen runs in background; poll GET /api/forge/job/{job_id} for result.
 
     Examples:
       {"description": "calculate compound interest given principal, rate, years", "item_type": "function"}
-      {"description": "Stripe billing wrapper: create customer, create subscription, get invoice", "item_type": "external_api", "service": "stripe"}
+      {"description": "Stripe billing wrapper", "item_type": "external_api", "service": "stripe"}
       {"description": "CRUD endpoints for a simple task list", "item_type": "internal_api"}
     """
-    tenant = _tenant(request)
-    forge = _get_forge()
+    tenant  = _tenant(request)
+    job_id  = str(uuid.uuid4())
 
-    result = forge.create(
-        description=req.description,
-        item_type=req.item_type,
-        name=req.name,
-        tenant_id=tenant,
-        service=req.service,
-        extra_context=req.extra_context,
+    # Kick off background task — returns instantly
+    background_tasks.add_task(
+        _run_forge_create,
+        job_id, req.description, req.item_type,
+        req.name, tenant, req.service, req.extra_context,
     )
 
-    if "error" in result:
-        status_code = 422 if result.get("status") == "blocked" else 500
-        raise HTTPException(status_code=status_code, detail=result)
+    return {
+        "success":     True,
+        "job_id":      job_id,
+        "status":      "queued",
+        "poll_url":    f"/api/forge/job/{job_id}",
+        "message":     "Forge job queued. Poll poll_url for result (usually ready in 5-30s).",
+    }
 
-    return {"success": True, "forge_item": result}
+
+@router.get("/job/{job_id}")
+async def forge_job_status(job_id: str, request: Request):
+    """
+    PATCH-139: Poll the status of a background forge/create job.
+    Returns status: queued | running | done | failed
+    When done, includes forge_item with full details.
+    """
+    from src.forge_engine import get_job
+    job = get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"Job {job_id!r} not found")
+    resp = {"job_id": job_id, "status": job["status"]}
+    if job["status"] == "done":
+        resp["forge_item"] = job["result"]
+    elif job["status"] == "failed":
+        resp["error"] = job["error"]
+    return resp
 
 
 @router.post("/invoke")
