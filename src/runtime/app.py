@@ -17936,7 +17936,7 @@ def create_app() -> FastAPI:
         logger.warning("PATCH-089e: mcp_plugin router failed: %s", _e)
 
 
-    # ── ForgeEngine (PATCH-133) ──────────────────────────────────────────────
+    # ── ForgeEngine (PATCH-133): on-the-fly code creation ─────────────────────
     try:
         from src.forge_router import router as _forge_router
         from src.forge_engine import register_with_app as _forge_register
