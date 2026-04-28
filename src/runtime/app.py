@@ -18059,8 +18059,9 @@ if __name__ == "__main__":
     main()
 
     # ── PATCH-135: Business Automation Control ─────────────────────────────────
+    # Using /api/automation/ (singular) to avoid conflict with existing
+    # /api/automations/ router (src.automations.api). Routes are equivalent.
     # Any agent, org-chart node, or UI can POST an NL automation request.
-    # The system builds a blueprint, registers schedule, and returns canvas nodes.
 
     try:
         from src.automation_request import (
@@ -18071,7 +18072,7 @@ if __name__ == "__main__":
         )
         from src.workflow_executor import execute_workflow as _exec_workflow
 
-        @app.post("/api/automations/request")
+        @app.post("/api/automation/request")
         async def automation_request_endpoint(request: Request):
             """
             Create an automation from any source (agent, UI, Rosetta).
@@ -18091,7 +18092,7 @@ if __name__ == "__main__":
             )
             return JSONResponse(result)
 
-        @app.get("/api/automations/requests")
+        @app.get("/api/automation/requests")
         async def list_automation_requests(request: Request):
             """List all automation requests for the current tenant."""
             account = _get_account_from_session(request)
@@ -18099,7 +18100,7 @@ if __name__ == "__main__":
             items   = _list_auto_requests(acct_id)
             return JSONResponse({"success": True, "items": items, "count": len(items)})
 
-        @app.get("/api/automations/runs")
+        @app.get("/api/automation/runs")
         async def list_automation_runs(request: Request):
             """List all workflow execution runs for the current tenant."""
             account = _get_account_from_session(request)
@@ -18107,7 +18108,7 @@ if __name__ == "__main__":
             runs    = _list_auto_runs(acct_id)
             return JSONResponse({"success": True, "runs": runs, "count": len(runs)})
 
-        @app.post("/api/automations/{workflow_id}/run")
+        @app.post("/api/automation/{workflow_id}/run")
         async def run_automation_now(workflow_id: str, request: Request):
             """
             Manually trigger an automation right now (bypasses schedule).
@@ -18118,7 +18119,6 @@ if __name__ == "__main__":
             body       = await request.json()
             trigger_data = body.get("trigger_data", {})
 
-            # Fetch the blueprint from the NL workflow store
             try:
                 from src.nl_workflow_engine import get_engine as _get_nl_engine
                 engine = _get_nl_engine()
@@ -18139,10 +18139,9 @@ if __name__ == "__main__":
                 logger.exception("PATCH-135: run_automation_now failed: %s", exc)
                 return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
-        @app.get("/api/automations/status")
+        @app.get("/api/automation/status")
         async def automation_system_status(request: Request):
             """Health check for the automation request system."""
-            import os as _os
             from pathlib import Path as _Path
             db_ok = _Path("/var/lib/murphy-production/automations.db").exists()
             return JSONResponse({
@@ -18158,10 +18157,10 @@ if __name__ == "__main__":
                     "real_step_execution",
                 ],
                 "db_ready": db_ok,
+                "note": "Use /api/automation/* (singular) — /api/automations/* is the legacy rule engine",
             })
 
-        logger.info("PATCH-135: Business Automation Control online — /api/automations/*")
+        logger.info("PATCH-135: Business Automation Control online — /api/automation/*")
     except Exception as _p135_exc:
         logger.warning("PATCH-135: Automation Control not available: %s", _p135_exc)
-
 
