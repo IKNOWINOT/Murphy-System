@@ -518,7 +518,11 @@ class MurphyLLMProvider:
                 )
                 elapsed = time.monotonic() - start
                 self._di_circuit.record_success()
-                content = data["choices"][0]["message"]["content"]
+                # Guard against "Model busy" soft-error returned as 200
+                _di_msg = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                if not _di_msg or "Model busy" in data.get("error", {}).get("message", ""):
+                    raise RuntimeError(f"DeepInfra model busy or empty response")
+                content = _di_msg
                 usage   = data.get("usage", {})
                 logger.info("DeepInfra ✅ %.2fs | %s", elapsed, model)
                 try:
