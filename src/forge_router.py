@@ -262,18 +262,22 @@ async def forge_dispatch(forge_name: str, path: str, request: Request):
                 body = await request.json()
             except Exception:
                 body = {}
-            for k, v in body.items():
-                if k in sig.parameters:
-                    kwargs[k] = v
-            # Also support Pydantic models as first non-Request param
             for pname, param in sig.parameters.items():
-                if pname == "request":
+                if pname == "request" or pname in kwargs:
                     continue
-                if pname not in kwargs and hasattr(param.annotation, "model_fields"):
+                ann = param.annotation
+                # dict annotation → pass body dict directly
+                if ann is dict or ann == _inspect.Parameter.empty and pname == "data":
+                    kwargs[pname] = body
+                # Pydantic model → instantiate
+                elif hasattr(ann, "model_fields"):
                     try:
-                        kwargs[pname] = param.annotation(**body)
+                        kwargs[pname] = ann(**body)
                     except Exception:
-                        pass
+                        kwargs[pname] = ann.model_validate(body)
+                # plain param present in body → pass value
+                elif pname in body:
+                    kwargs[pname] = body[pname]
 
         # Pass request if handler wants it
         if "request" in sig.parameters:
