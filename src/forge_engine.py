@@ -34,7 +34,7 @@ logger = logging.getLogger("forge_engine")
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 _DB_PATH    = Path("/var/lib/murphy-production/forge.db")
-_MOD_ROOT   = Path("/opt/Murphy-System/src/user_modules")
+_MOD_ROOT   = Path("/var/lib/murphy-production/user_modules")
 _MOD_ROOT.mkdir(parents=True, exist_ok=True)
 (_MOD_ROOT / "__init__.py").touch(exist_ok=True)
 
