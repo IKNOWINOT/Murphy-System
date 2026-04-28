@@ -349,7 +349,17 @@ class BuildAgent:
         )
 
         workflow_id = str(uuid.uuid4())[:12]
-        schedule = _infer_schedule(description)
+        # PATCH-137a: use shared intent_parser for consistent NL handling
+        try:
+            from src.intent_parser import parse_intent as _pi
+            _parsed_intent = _pi(description)
+            schedule = _parsed_intent["trigger"]
+            # Inject parsed steps as canvas hint for heuristic builder
+            _intent_steps = _parsed_intent["steps"]
+        except Exception:
+            _parsed_intent = None
+            _intent_steps  = []
+            schedule = _infer_schedule(description)
 
         # Try LLM first, fall back to heuristic
         if self._llm:
@@ -427,6 +437,22 @@ class BuildAgent:
             step_id_ctr[0] += 1
             steps.append({"id": sid, "type": stype, "label": label,
                           "config": config or {}, "depends_on": []})
+
+        # PATCH-137a: use intent_parser steps if available
+        if _intent_steps and len(_intent_steps) > 1:
+            return WorkflowBlueprint(
+                workflow_id=wf_id,
+                account_id=account_id,
+                name=description[:80],
+                description=description,
+                trigger={"type": schedule["type"], "label": schedule.get("label","")},
+                steps=_intent_steps,
+                agents=_assign_agents(description),
+                schedule=schedule,
+                inputs=[],
+                outputs=["result"],
+                roi=_estimate_roi(_intent_steps),
+            )
 
         # Trigger
         if any(k in text for k in ("webhook", "form submit", "on submit", "when.*submits")):

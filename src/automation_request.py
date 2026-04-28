@@ -407,11 +407,20 @@ def request_automation(
     except Exception as e:
         logger.debug("PCC skip: %s", e)
 
-    # ── Parse NL → trigger + steps ────────────────────────────────────────────
-    trigger  = _parse_nl_schedule(description)
-    steps    = _parse_nl_steps(description, trigger)
-    canvas   = _steps_to_canvas(steps)
-    roi      = _calc_roi(steps, trigger)
+    # ── Parse NL → trigger + steps (PATCH-137a: intent_parser) ─────────────
+    try:
+        from src.intent_parser import parse_intent as _parse_intent
+        _parsed  = _parse_intent(description)
+        trigger  = _parsed["trigger"]
+        steps    = _parsed["steps"]
+        canvas   = _parsed["canvas"]
+        roi      = _parsed["roi"]
+    except Exception as _ip_exc:
+        logger.warning("intent_parser unavailable (%s) — using legacy parser", _ip_exc)
+        trigger  = _parse_nl_schedule(description)
+        steps    = _parse_nl_steps(description, trigger)
+        canvas   = _steps_to_canvas(steps)
+        roi      = _calc_roi(steps, trigger)
 
     # ── Assign agent based on requester + context ────────────────────────────
     agent_map = {
