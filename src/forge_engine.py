@@ -213,8 +213,15 @@ def _llm_generate(prompt: str, max_tokens: int = 2048) -> str:
     try:
         from src.llm_provider import get_llm
         llm = get_llm()
-        result = llm.complete(prompt, max_tokens=max_tokens, temperature=0.1)
-        code = result.strip()
+        completion = llm.complete(prompt, max_tokens=max_tokens, temperature=0.1)
+        # LLMCompletion object — extract text
+        if hasattr(completion, "content"):
+            code = completion.content or ""
+        elif hasattr(completion, "text"):
+            code = completion.text or ""
+        else:
+            code = str(completion)
+        code = code.strip()
         # Strip markdown fences if the LLM ignored instructions
         code = re.sub(r"^```(?:python)?\n?", "", code)
         code = re.sub(r"\n?```$", "", code)
