@@ -240,7 +240,10 @@ let _unsaved = false;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function apiFetch(path, opts={}) {
-  return fetch(path, {credentials:'same-origin', headers:HEADERS, ...opts}).then(r=>r.json());
+  const h = {'Content-Type':'application/json'};
+  if (opts.headers) Object.assign(h, opts.headers);
+  const {headers: _h, ...rest} = opts;
+  return fetch(path, {credentials:'same-origin', headers:h, ...rest}).then(r=>r.json());
 }
 function toast(msg, err=false) {
   const t = document.getElementById('toast');
