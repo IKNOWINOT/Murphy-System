@@ -150,3 +150,141 @@ async def forge_status(request: Request):
         "active_items": len(items),
         "by_type": by_type,
     }
+
+
+# ── Runtime API Dispatcher ─────────────────────────────────────────────────────
+# Since FastAPI can't add routes after startup, we use a wildcard dispatcher
+# that routes /api/user/{tenant}/{name}/{path} to the appropriate forge module.
+
+@router.api_route(
+    "/dispatch/{forge_name}/{path:path}",
+    methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
+)
+async def forge_dispatch(forge_name: str, path: str, request: Request):
+    """
+    Runtime dispatcher for forged internal APIs.
+    Forwards /api/forge/dispatch/{name}/{path} → the forged router.
+
+    The client calls:  /api/forge/dispatch/kv_store/set
+    Which routes to the kv_store module's /set endpoint.
+    """
+    tenant = _tenant(request)
+    forge  = _get_forge()
+    item   = forge._get_by_name(forge_name, tenant)
+
+    if not item or item["item_type"] != "internal_api":
+        raise HTTPException(
+            status_code=404,
+            detail=f"No internal_api forge item named '{forge_name}' for tenant '{tenant}'",
+        )
+
+    # Hot-load the module
+    import importlib.util, sys, re as _re
+    file_path = item["file_path"]
+    mod_key   = f"forge_dispatch.{tenant}.{forge_name}"
+    try:
+        spec   = importlib.util.spec_from_file_location(mod_key, file_path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[mod_key] = module
+        spec.loader.exec_module(module)
+        inner_router = getattr(module, "router", None)
+        if inner_router is None:
+            raise HTTPException(status_code=500, detail="Forge module has no 'router'")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Module load error: {e}")
+
+    # Find the matching route in the inner router
+    method = request.method
+    target_path = "/" + path.lstrip("/")
+
+    from fastapi.routing import APIRoute
+    from starlette.routing import Match
+    from starlette.datastructures import URL
+
+    matched_route = None
+    matched_params: dict = {}
+    for route in inner_router.routes:
+        if not isinstance(route, APIRoute):
+            continue
+        # Build a mock scope to test match
+        scope = {
+            "type": "http",
+            "method": method,
+            "path": target_path,
+            "query_string": request.url.query.encode(),
+            "headers": [],
+        }
+        match, child_scope = route.matches(scope)
+        if match == Match.FULL:
+            matched_route = route
+            matched_params = child_scope.get("path_params", {})
+            break
+
+    if matched_route is None:
+        available = [
+            f"{list(r.methods)[0] if r.methods else '?'} {r.path}"
+            for r in inner_router.routes
+            if isinstance(r, APIRoute)
+        ]
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": f"No route '{method} {target_path}' in forge module '{forge_name}'",
+                "available": available,
+            },
+        )
+
+    # Execute the matched endpoint
+    try:
+        # Inject path params into request scope
+        request._state.__dict__.update(matched_params)
+        # Build kwargs for the handler
+        import inspect as _inspect
+        sig    = _inspect.signature(matched_route.endpoint)
+        kwargs: dict = {}
+
+        # Pass path params
+        for k, v in matched_params.items():
+            if k in sig.parameters:
+                kwargs[k] = v
+
+        # Pass query params
+        query_params = dict(request.query_params)
+        for k, v in query_params.items():
+            if k in sig.parameters:
+                kwargs[k] = v
+
+        # Pass body
+        if method in ("POST", "PUT", "PATCH"):
+            try:
+                body = await request.json()
+            except Exception:
+                body = {}
+            for k, v in body.items():
+                if k in sig.parameters:
+                    kwargs[k] = v
+            # Also support Pydantic models as first non-Request param
+            for pname, param in sig.parameters.items():
+                if pname == "request":
+                    continue
+                if pname not in kwargs and hasattr(param.annotation, "model_fields"):
+                    try:
+                        kwargs[pname] = param.annotation(**body)
+                    except Exception:
+                        pass
+
+        # Pass request if handler wants it
+        if "request" in sig.parameters:
+            kwargs["request"] = request
+
+        result = await matched_route.endpoint(**kwargs) \
+                 if _inspect.iscoroutinefunction(matched_route.endpoint) \
+                 else matched_route.endpoint(**kwargs)
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Handler error: {e}")
