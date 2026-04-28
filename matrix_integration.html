@@ -10,8 +10,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System — Matrix Integration</title>
-<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="static/murphy-design-system.css">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/murphy-design-system.css">
 <style>
   .matrix-room-card {
     background: var(--color-surface-raised);
@@ -98,58 +98,58 @@
      ============================================================ -->
 <nav class="murphy-sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
   <div class="murphy-sidebar-logo">
-    <svg width="24" height="24"><use href="static/murphy-icons.svg#icon-message-circle"></use></svg>
+    <svg width="24" height="24"><use href="/static/murphy-icons.svg#icon-message-circle"></use></svg>
     <span>Matrix</span>
   </div>
 
   <div class="murphy-sidebar-nav" id="sidebar-nav">
     <div class="murphy-sidebar-section">Overview</div>
     <a href="#dashboard" class="murphy-sidebar-item active" data-view="dashboard" aria-label="Dashboard">
-      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-dashboard"></use></svg>
+      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-dashboard"></use></svg>
       <span>Dashboard</span>
     </a>
     <a href="#status" class="murphy-sidebar-item" data-view="status" aria-label="Connection Status">
-      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-activity"></use></svg>
+      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-activity"></use></svg>
       <span>Connection</span>
     </a>
 
     <div class="murphy-sidebar-section">Rooms</div>
     <a href="#rooms" class="murphy-sidebar-item" data-view="rooms" aria-label="Room Registry">
-      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-layers"></use></svg>
+      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-layers"></use></svg>
       <span>Room Registry</span>
     </a>
     <a href="#send" class="murphy-sidebar-item" data-view="send" aria-label="Send Message">
-      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-message-circle"></use></svg>
+      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-message-circle"></use></svg>
       <span>Send Message</span>
     </a>
 
     <div class="murphy-sidebar-section">HITL</div>
     <a href="#hitl" class="murphy-sidebar-item" data-view="hitl" aria-label="HITL Approvals">
-      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-bell"></use></svg>
+      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-bell"></use></svg>
       <span>HITL Approvals</span>
     </a>
     <a href="#escalations" class="murphy-sidebar-item" data-view="escalations" aria-label="Escalations">
-      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-zap"></use></svg>
+      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-zap"></use></svg>
       <span>Escalations</span>
     </a>
 
     <div class="murphy-sidebar-section">Config</div>
     <a href="#config" class="murphy-sidebar-item" data-view="config" aria-label="Bridge Config">
-      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-settings"></use></svg>
+      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-settings"></use></svg>
       <span>Bridge Config</span>
     </a>
 
     <div class="murphy-sidebar-section">External Links</div>
     <a href="/ui/terminal-integrations" class="murphy-sidebar-item" target="_blank" rel="noopener">
-      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-plug"></use></svg>
+      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-plug"></use></svg>
       <span>Integrations</span>
     </a>
     <a href="/ui/production-wizard" class="murphy-sidebar-item" target="_blank" rel="noopener">
-      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-play"></use></svg>
+      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-play"></use></svg>
       <span>Production Wizard</span>
     </a>
     <a href="/ui/terminal-unified" class="murphy-sidebar-item" target="_blank" rel="noopener">
-      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-zap"></use></svg>
+      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-zap"></use></svg>
       <span>Unified Hub</span>
     </a>
   </div>
@@ -165,7 +165,7 @@
 <header class="murphy-topbar" role="banner" aria-label="Top bar">
   <div class="murphy-topbar-left">
     <button class="murphy-btn murphy-btn-icon" id="btn-sidebar-toggle" aria-label="Toggle sidebar">
-      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-menu"></use></svg>
+      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-menu"></use></svg>
     </button>
     <h1 class="murphy-topbar-title">Matrix Integration</h1>
   </div>
@@ -176,7 +176,7 @@
     </span>
     <span class="murphy-badge murphy-badge-success" id="api-status-badge" style="margin-left:var(--space-2)">Connecting…</span>
     <button class="murphy-btn murphy-btn-icon" id="btn-theme-toggle" aria-label="Toggle theme" style="margin-left:var(--space-2)">
-      <svg width="18" height="18" id="theme-icon"><use href="static/murphy-icons.svg#icon-moon"></use></svg>
+      <svg width="18" height="18" id="theme-icon"><use href="/static/murphy-icons.svg#icon-moon"></use></svg>
     </button>
   </div>
 </header>
@@ -232,15 +232,15 @@
     <!-- Quick actions -->
     <div class="murphy-grid murphy-grid-3">
       <button class="murphy-btn murphy-btn-primary" id="btn-check-connection">
-        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-activity"></use></svg>
+        <svg width="16" height="16"><use href="/static/murphy-icons.svg#icon-activity"></use></svg>
         Check Connection
       </button>
       <button class="murphy-btn murphy-btn-secondary" id="btn-go-send">
-        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-message-circle"></use></svg>
+        <svg width="16" height="16"><use href="/static/murphy-icons.svg#icon-message-circle"></use></svg>
         Send Message
       </button>
       <button class="murphy-btn murphy-btn-secondary" id="btn-go-hitl">
-        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-bell"></use></svg>
+        <svg width="16" height="16"><use href="/static/murphy-icons.svg#icon-bell"></use></svg>
         HITL Approvals
       </button>
     </div>
@@ -285,7 +285,7 @@
     </div>
     <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4)">
       <button class="murphy-btn murphy-btn-primary" id="btn-refresh-rooms">
-        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-refresh"></use></svg>
+        <svg width="16" height="16"><use href="/static/murphy-icons.svg#icon-refresh"></use></svg>
         Refresh
       </button>
     </div>
@@ -378,7 +378,7 @@
         </div>
         <div style="display:flex;gap:var(--space-2)">
           <button type="submit" class="murphy-btn murphy-btn-primary" id="btn-send-msg">
-            <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-message-circle"></use></svg>
+            <svg width="16" height="16"><use href="/static/murphy-icons.svg#icon-message-circle"></use></svg>
             Send
           </button>
           <button type="reset" class="murphy-btn murphy-btn-secondary">Clear</button>
@@ -406,7 +406,7 @@
     </div>
     <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4)">
       <button class="murphy-btn murphy-btn-primary" id="btn-refresh-hitl">
-        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-refresh"></use></svg>
+        <svg width="16" height="16"><use href="/static/murphy-icons.svg#icon-refresh"></use></svg>
         Refresh
       </button>
     </div>
@@ -442,7 +442,7 @@
     </div>
     <div class="murphy-card" style="margin-bottom:var(--space-4)">
       <div class="murphy-alert murphy-alert-warning" style="margin-bottom:var(--space-4)">
-        <svg width="16" height="16" style="vertical-align:middle;margin-right:6px"><use href="static/murphy-icons.svg#icon-lock"></use></svg>
+        <svg width="16" height="16" style="vertical-align:middle;margin-right:6px"><use href="/static/murphy-icons.svg#icon-lock"></use></svg>
         Access tokens and passwords are sourced from environment variables only and are never displayed here.
       </div>
       <table class="murphy-table">
@@ -468,7 +468,7 @@
       <p class="text-sm text-muted" style="margin-bottom:var(--space-3)">Check if the Murphy API can reach the Matrix homeserver using the configured environment variables.</p>
       <div style="display:flex;gap:var(--space-2)">
         <button class="murphy-btn murphy-btn-primary" id="btn-verify-config">
-          <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-activity"></use></svg>
+          <svg width="16" height="16"><use href="/static/murphy-icons.svg#icon-activity"></use></svg>
           Verify Connection
         </button>
       </div>
@@ -478,7 +478,7 @@
 
 </main><!-- end main -->
 
-<script src="static/murphy-components.js"></script>
+<script src="/static/murphy-components.js"></script>
 <script src="murphy_auth.js"></script>
 <script>
 /* Matrix Integration — MTX-CFG-001
@@ -703,8 +703,8 @@ document.getElementById('btn-theme-toggle').addEventListener('click', () => {
   document.documentElement.classList.toggle('dark');
   const icon = document.getElementById('theme-icon');
   icon.innerHTML = document.documentElement.classList.contains('dark')
-    ? '<use href="static/murphy-icons.svg#icon-sun"></use>'
-    : '<use href="static/murphy-icons.svg#icon-moon"></use>';
+    ? '<use href="/static/murphy-icons.svg#icon-sun"></use>'
+    : '<use href="/static/murphy-icons.svg#icon-moon"></use>';
 });
 
 // ── Init ──────────────────────────────────────────────────────

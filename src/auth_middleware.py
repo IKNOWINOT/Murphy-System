@@ -376,6 +376,22 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/openapi.json",
         "/favicon.ico",
         "/",
+        # PATCH-142b: demo page public endpoints (no auth required)
+        "/api/roi-calendar/summary",
+        "/api/roi-calendar/events",
+        "/api/ambient/stats",
+        "/api/ambient/settings",
+        "/api/forge/list",
+        "/api/forge/status",
+        "/api/swarm/mind/status",
+        "/api/corpus/stats",
+        "/api/automation/requests",
+        "/api/compliance/report",
+        "/api/compliance/toggles",
+        "/api/compliance/recommended",
+        "/api/compliance/scan",
+        "/api/shield/status",
+        "/api/shield/north-star",
     }
     EXEMPT_PREFIXES: Tuple[str, ...] = (
         "/static",

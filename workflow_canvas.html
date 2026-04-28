@@ -10,8 +10,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Murphy System — Workflow Designer</title>
-  <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="static/murphy-design-system.css">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/murphy-design-system.css">
 <style>
   /* Neon terminal theme */
   .murphy-terminal, .murphy-output, pre, code {
@@ -31,7 +31,7 @@
   <header class="murphy-topbar" role="banner">
     <div class="murphy-topbar-left">
       <a href="/ui/terminal-unified" title="Back to Hub" class="murphy-btn murphy-btn-icon murphy-btn-sm">
-        <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-chevron-left"></use></svg>
+        <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-chevron-left"></use></svg>
       </a>
       <h1 class="murphy-topbar-title">Workflow Designer</h1>
     </div>
@@ -39,17 +39,17 @@
       <input type="text" class="murphy-input" placeholder="Describe a workflow in plain English…"
              id="nl-input" aria-label="Natural language workflow input" title="Press Enter to generate workflow from description">
       <button class="murphy-btn murphy-btn-primary" id="btn-run" title="Run workflow">
-        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-play"></use></svg> Run
+        <svg width="16" height="16"><use href="/static/murphy-icons.svg#icon-play"></use></svg> Run
       </button>
       <button class="murphy-btn murphy-btn-secondary" id="btn-save" title="Save workflow">
-        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-check"></use></svg> Save
+        <svg width="16" height="16"><use href="/static/murphy-icons.svg#icon-check"></use></svg> Save
       </button>
       <button class="murphy-btn murphy-btn-ghost" id="btn-load" title="Load workflow">Load</button>
       <button class="murphy-btn murphy-btn-ghost" id="btn-layout" title="Auto-layout nodes">
-        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-topology"></use></svg>
+        <svg width="16" height="16"><use href="/static/murphy-icons.svg#icon-topology"></use></svg>
       </button>
       <button id="btn-theme" class="murphy-btn murphy-btn-icon" title="Toggle theme">
-        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-moon"></use></svg>
+        <svg width="16" height="16"><use href="/static/murphy-icons.svg#icon-moon"></use></svg>
       </button>
     </div>
   </header>
@@ -136,9 +136,9 @@
     <div class="murphy-split-pane-bottom" id="terminal-area"></div>
   </div>
 
-  <script src="static/murphy-components.js"></script>
-<script src="static/murphy-auth-guard.js"></script>
-  <script src="static/murphy-canvas.js"></script>
+  <script src="/static/murphy-components.js"></script>
+<script src="/static/murphy-auth-guard.js"></script>
+  <script src="/static/murphy-canvas.js"></script>
   <script>
   /* ──────────────────────────────────────────────────────────
      Murphy Workflow Designer — Initialization

@@ -210,70 +210,67 @@ def create_app() -> FastAPI:
         logger.warning("PATCH-132a: StaticFiles mount failed: %s", _e132)
 
     # Slug → filename mapping for known pages (hyphen ↔ underscore)
+    # PATCH-142: Cleaned route map — removed dead/deleted pages
     _UI_PAGE_MAP_132 = {
-        "terminal-unified":        "terminal_unified.html",
-        "workflow-canvas":         "workflow_canvas.html",
-        "workflow-designer":       "workflow_canvas.html",
-        "roi-calendar":            "roi_calendar.html",
-        "production-wizard":       "production_wizard.html",
-        "production-editor":       "production_wizard.html",
-        "terminal-integrated":     "terminal_integrated.html",
-        "terminal-orchestrator":   "terminal_orchestrator.html",
-        "terminal-architect":      "terminal_architect.html",
-        "terminal-costs":          "terminal_costs.html",
-        "terminal-integrations":   "terminal_integrations.html",
-        "terminal-orgchart":       "terminal_orgchart.html",
-        "terminal-worker":         "terminal_worker.html",
-        "terminal-enhanced":       "terminal_enhanced.html",
-        "system-visualizer":       "system_visualizer.html",
+        # Core product
+        "dashboard":               "dashboard.html",
+        "automations":             "automations.html",
+        "forge":                   "forge.html",
         "compliance":              "compliance_dashboard.html",
         "compliance-dashboard":    "compliance_dashboard.html",
         "hitl-dashboard":          "hitl_dashboard.html",
+        "roi-calendar":            "roi_calendar.html",
+        "ambient-intelligence":    "ambient_intelligence.html",
+        "matrix-integration":      "matrix_integration.html",
+        "workflow-canvas":         "workflow_canvas.html",
+        "workflow-designer":       "workflow_canvas.html",
+        "production-wizard":       "production_wizard.html",
+        "production-editor":       "production_wizard.html",
+        "management":              "management.html",
+        "admin":                   "admin_panel.html",
+        "admin-panel":             "admin_panel.html",
+        # Finance & trading
         "risk-dashboard":          "risk_dashboard.html",
         "paper-trading":           "paper_trading_dashboard.html",
         "paper-trading-dashboard": "paper_trading_dashboard.html",
         "trading-dashboard":       "trading_dashboard.html",
+        "wallet":                  "wallet.html",
+        "portfolio":               "portfolio.html",
+        "financing":               "financing_options.html",
+        # Workspace
+        "workspace":               "workspace.html",
+        "workdocs":                "workdocs.html",
+        "boards":                  "boards.html",
         "calendar":                "calendar.html",
-        "dashboard":               "dashboard.html",
-        "dashboards":              "dashboards.html",
         "crm":                     "crm.html",
+        "time-tracking":           "time_tracking.html",
+        "communication-hub":       "communication_hub.html",
+        "meeting-intelligence":    "meeting_intelligence.html",
+        # People & community
+        "onboarding":              "onboarding_wizard.html",
+        "onboarding-wizard":       "onboarding_wizard.html",
+        "org-portal":              "org_portal.html",
+        "community":               "community_forum.html",
+        "partner-request":         "partner_request.html",
+        "dev-module":              "dev_module.html",
+        # Auth pages
+        "login":                   "login.html",
+        "signup":                  "signup.html",
+        "change-password":         "change_password.html",
+        "reset-password":          "reset_password.html",
+        # Public pages
+        "demo":                    "demo.html",
+        "forge":                   "forge.html",
         "docs":                    "docs.html",
         "blog":                    "blog.html",
         "careers":                 "careers.html",
         "pricing":                 "pricing.html",
         "legal":                   "legal.html",
         "privacy":                 "privacy.html",
-        "onboarding":              "onboarding_wizard.html",
-        "onboarding-wizard":       "onboarding_wizard.html",
-        "grant-wizard":            "grant_wizard.html",
-        "grant-dashboard":         "grant_dashboard.html",
-        "grant-application":       "grant_application.html",
-        "workspace":               "workspace.html",
-        "workdocs":                "workdocs.html",
-        "boards":                  "boards.html",
-        "automations":             "automations.html",
-        "management":              "management.html",
-        "admin":                   "admin_panel.html",
-        "admin-panel":             "admin_panel.html",
-        "wallet":                  "wallet.html",
-        "portfolio":               "portfolio.html",
-        "communication-hub":       "communication_hub.html",
-        "meeting-intelligence":    "meeting_intelligence.html",
-        "matrix-integration":      "matrix_integration.html",
-        "time-tracking":           "time_tracking.html",
-        "dispatch":                "dispatch.html",
-        "aionmind":                "aionmind.html",
-        "ambient-intelligence":    "ambient_intelligence.html",
-        "financing":               "financing_options.html",
-        "org-portal":              "org_portal.html",
-        "community":               "community_forum.html",
-        "partner-request":         "partner_request.html",
-        "dev-module":              "dev_module.html",
-        "hack-graph":              "hack_graph.html",
-        "game-creation":           "game_creation.html",
-        "game-demo":               "game_demo.html",
-        "demo":                    "demo.html",
-        "demo-config":             "demo_config.html",
+        # Steve 2028 — DO NOT TOUCH
+        "voteforsteve2028":        "voteforsteve2028.html",
+        "steve2028merch":          "steve2028merch.html",
+        "stevewiki":               "stevewiki.html",
     }
 
     @app.get("/ui/{page_name:path}")
@@ -4960,11 +4957,77 @@ def create_app() -> FastAPI:
     # Tracks automation tasks with human vs agent cost/ROI visualisation.
     # Each event block starts at human cost estimate and shrinks as agents
     # complete work; QC failures/HITL reviews cause fluctuations.
-    _roi_calendar_store: list = []
+    # PATCH-142: ROI Calendar — SQLite persistent storage (replaces in-memory list)
+    import sqlite3 as _sqlite3_roi
+    import json as _json_roi_db
+    _ROI_DB_PATH = "/var/lib/murphy-production/roi_calendar.db"
+
+    def _roi_db_init():
+        con = _sqlite3_roi.connect(_ROI_DB_PATH)
+        con.execute("""CREATE TABLE IF NOT EXISTS roi_events (
+            event_id TEXT PRIMARY KEY,
+            data TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )""")
+        con.commit()
+        con.close()
+
+    def _roi_db_list():
+        con = _sqlite3_roi.connect(_ROI_DB_PATH)
+        rows = con.execute("SELECT data FROM roi_events ORDER BY updated_at ASC").fetchall()
+        con.close()
+        return [_json_roi_db.loads(r[0]) for r in rows]
+
+    def _roi_db_get(event_id):
+        con = _sqlite3_roi.connect(_ROI_DB_PATH)
+        row = con.execute("SELECT data FROM roi_events WHERE event_id=?", (event_id,)).fetchone()
+        con.close()
+        return _json_roi_db.loads(row[0]) if row else None
+
+    def _roi_db_upsert(event):
+        con = _sqlite3_roi.connect(_ROI_DB_PATH)
+        con.execute("INSERT OR REPLACE INTO roi_events (event_id, data, updated_at) VALUES (?,?,?)",
+                    (event["event_id"], _json_roi_db.dumps(event), event.get("updated_at", _now_iso())))
+        con.commit()
+        con.close()
+
+    def _roi_db_seed():
+        """Seed default automation events if DB is empty."""
+        existing = _roi_db_list()
+        if existing:
+            return
+        import uuid as _uuid_seed
+        seeds = [
+            {"title": "Report Generation", "description": "Automated KPI and analytics reporting", "human_cost_estimate": 480.0, "human_time_estimate_hours": 8, "agent_compute_cost": 6.20, "overhead_cost": 14.40, "status": "complete", "progress_pct": 100},
+            {"title": "Customer Onboarding", "description": "End-to-end SMB onboarding automation", "human_cost_estimate": 960.0, "human_time_estimate_hours": 16, "agent_compute_cost": 12.80, "overhead_cost": 28.80, "status": "complete", "progress_pct": 100},
+            {"title": "Compliance Audit", "description": "SOC2 + GDPR automated compliance scan", "human_cost_estimate": 1200.0, "human_time_estimate_hours": 20, "agent_compute_cost": 15.60, "overhead_cost": 36.00, "status": "running", "progress_pct": 72},
+            {"title": "Contract Review", "description": "AI-assisted legal document review", "human_cost_estimate": 720.0, "human_time_estimate_hours": 12, "agent_compute_cost": 9.40, "overhead_cost": 21.60, "status": "running", "progress_pct": 45},
+            {"title": "Invoice Processing", "description": "Automated AP/AR invoice matching and filing", "human_cost_estimate": 360.0, "human_time_estimate_hours": 6, "agent_compute_cost": 4.80, "overhead_cost": 10.80, "status": "pending", "progress_pct": 0},
+            {"title": "Market Research Brief", "description": "Competitive intelligence and market analysis", "human_cost_estimate": 1440.0, "human_time_estimate_hours": 24, "agent_compute_cost": 18.40, "overhead_cost": 43.20, "status": "pending", "progress_pct": 0},
+            {"title": "HR Screening", "description": "Resume screening and candidate shortlisting", "human_cost_estimate": 480.0, "human_time_estimate_hours": 8, "agent_compute_cost": 6.20, "overhead_cost": 14.40, "status": "pending", "progress_pct": 0},
+            {"title": "Incident Response", "description": "Automated triage and escalation workflow", "human_cost_estimate": 600.0, "human_time_estimate_hours": 10, "agent_compute_cost": 7.80, "overhead_cost": 18.00, "status": "running", "progress_pct": 88},
+            {"title": "Email Campaign", "description": "Personalised outreach automation", "human_cost_estimate": 240.0, "human_time_estimate_hours": 4, "agent_compute_cost": 3.20, "overhead_cost": 7.20, "status": "complete", "progress_pct": 100},
+            {"title": "Data Migration", "description": "Legacy system to cloud migration pipeline", "human_cost_estimate": 2400.0, "human_time_estimate_hours": 40, "agent_compute_cost": 31.20, "overhead_cost": 72.00, "status": "pending", "progress_pct": 0},
+        ]
+        now_ts = _now_iso()
+        for s in seeds:
+            eid = "seed-" + _uuid_seed.uuid4().hex[:10]
+            event = {
+                "event_id": eid, "automation_id": None, "start": now_ts, "end": None,
+                "agents": [], "hitl_reviews": [], "qc_passes": 0, "qc_failures": 0,
+                "cost_adjustments": [], "created_at": now_ts, "updated_at": now_ts,
+            }
+            event.update(s)
+            event["roi"] = event["human_cost_estimate"] - event["agent_compute_cost"] - event["overhead_cost"]
+            _roi_db_upsert(event)
+
+    _roi_db_init()
+    _roi_db_seed()
 
     @app.get("/api/roi-calendar/events")
     async def roi_calendar_events_list(request: Request):
-        return JSONResponse({"ok": True, "events": list(_roi_calendar_store), "total": len(_roi_calendar_store)})
+        events = _roi_db_list()
+        return JSONResponse({"ok": True, "events": events, "total": len(events)})
 
     @app.post("/api/roi-calendar/events")
     async def roi_calendar_event_create(request: Request):
@@ -4995,13 +5058,13 @@ def create_app() -> FastAPI:
             "created_at": now_ts,
             "updated_at": now_ts,
         }
-        _roi_calendar_store.append(event)
+        _roi_db_upsert(event)
         return JSONResponse({"ok": True, "event": event}, status_code=201)
 
     @app.patch("/api/roi-calendar/events/{event_id}")
     async def roi_calendar_event_update(event_id: str, request: Request):
         body = await request.json()
-        event = next((e for e in _roi_calendar_store if e["event_id"] == event_id), None)
+        event = _roi_db_get(event_id)
         if not event:
             return JSONResponse({"ok": False, "error": "Event not found"}, status_code=404)
         for field in ["title", "description", "status", "progress_pct", "agent_compute_cost",
@@ -5028,17 +5091,19 @@ def create_app() -> FastAPI:
                 event["agent_compute_cost"] += delta
                 event["roi"] = event["human_cost_estimate"] - event["agent_compute_cost"] - event["overhead_cost"]
         event["updated_at"] = _now_iso()
+        _roi_db_upsert(event)
         return JSONResponse({"ok": True, "event": event})
 
     @app.get("/api/roi-calendar/summary")
     async def roi_calendar_summary():
-        if not _roi_calendar_store:
+        events = _roi_db_list()
+        if not events:
             return JSONResponse({"ok": True, "total_human_cost_estimate": 0, "total_agent_cost": 0,
                                  "total_roi": 0, "total_overhead": 0, "active_tasks": 0,
                                  "completed_tasks": 0, "total_tasks": 0, "roi_pct": 0})
-        total_human = sum(e["human_cost_estimate"] for e in _roi_calendar_store)
-        total_agent = sum(e["agent_compute_cost"] for e in _roi_calendar_store)
-        total_overhead = sum(e["overhead_cost"] for e in _roi_calendar_store)
+        total_human = sum(e["human_cost_estimate"] for e in events)
+        total_agent = sum(e["agent_compute_cost"] for e in events)
+        total_overhead = sum(e["overhead_cost"] for e in events)
         total_roi = total_human - total_agent - total_overhead
         roi_pct = round((total_roi / total_human * 100) if total_human > 0 else 0, 1)
         return JSONResponse({"ok": True,
@@ -5046,132 +5111,30 @@ def create_app() -> FastAPI:
             "total_agent_cost": round(total_agent, 2),
             "total_roi": round(total_roi, 2),
             "total_overhead": round(total_overhead, 2),
-            "active_tasks": sum(1 for e in _roi_calendar_store if e["status"] in ("running", "qc", "hitl_review")),
-            "completed_tasks": sum(1 for e in _roi_calendar_store if e["status"] == "complete"),
-            "total_tasks": len(_roi_calendar_store),
+            "active_tasks": sum(1 for e in events if e["status"] in ("running", "qc", "hitl_review")),
+            "completed_tasks": sum(1 for e in events if e["status"] == "complete"),
+            "total_tasks": len(events),
             "roi_pct": roi_pct})
-
-    @app.get("/api/roi-calendar/stream")
-    async def roi_calendar_stream(request: Request):
-        from starlette.responses import StreamingResponse
-        import asyncio as _asyncio_roi
-        import json as _json_roi
-        import random as _rand_sse
-
-        _STATUS_SEQ = ["pending", "running", "qc", "complete"]
-        _HITL_CHANCE = 0.15  # 15% chance of hitl_review before qc
-
-        async def _gen():
-            last_states: dict = {}
-            ticks_to_advance = _rand_sse.randint(3, 8)
-            for tick in range(600):  # up to 10 minutes
-                await _asyncio_roi.sleep(1)
-                ticks_to_advance -= 1
-
-                if ticks_to_advance <= 0:
-                    # Pick a non-complete, non-error event to advance
-                    candidates = [e for e in _roi_calendar_store
-                                  if e.get("status") not in ("complete", "error")]
-                    if candidates:
-                        ev = _rand_sse.choice(candidates)
-                        delta_pct = _rand_sse.randint(5, 15)
-                        ev["progress_pct"] = min(100, ev.get("progress_pct", 0) + delta_pct)
-
-                        # Advance checklist: mark next running/pending item as done
-                        checklist = ev.get("checklist", [])
-                        for ci, item in enumerate(checklist):
-                            if item.get("status") == "running":
-                                item["status"] = "complete"
-                                item["completed_at"] = _now_iso()
-                                # Mark next pending item as running
-                                for nitem in checklist[ci + 1:]:
-                                    if nitem.get("status") == "pending":
-                                        nitem["status"] = "running"
-                                        break
-                                break
-                            elif item.get("status") == "pending":
-                                item["status"] = "running"
-                                break
-
-                        # Increment agent compute cost incrementally
-                        step_cost = round(_rand_sse.uniform(0.02, 0.50), 2)
-                        ev["agent_compute_cost"] = round(ev.get("agent_compute_cost", 0) + step_cost, 2)
-
-                        # Update ROI
-                        hc = ev.get("human_cost_estimate", 0)
-                        ac = ev.get("agent_compute_cost", 0)
-                        oh = ev.get("overhead_cost", 0)
-                        ev["roi"] = round(hc - ac - oh, 2)
-
-                        # Transition status based on progress
-                        cur_status = ev.get("status", "pending")
-                        pct = ev["progress_pct"]
-                        if cur_status == "pending" and pct > 5:
-                            ev["status"] = "running"
-                        elif cur_status == "running" and pct >= 90:
-                            if _rand_sse.random() < _HITL_CHANCE:
-                                ev["status"] = "hitl_review"
-                                ev["hitl_reviews"].append({
-                                    "decision": "pending",
-                                    "notes": "Automated HITL review triggered",
-                                    "ts": _now_iso(),
-                                    "cost_delta": 0,
-                                })
-                            else:
-                                ev["status"] = "qc"
-                        elif cur_status in ("qc", "hitl_review") and pct >= 95:
-                            ev["status"] = "complete"
-                            ev["progress_pct"] = 100
-                            # Mark all checklist items as complete
-                            for item in checklist:
-                                if item.get("status") != "complete":
-                                    item["status"] = "complete"
-                                    if not item.get("completed_at"):
-                                        item["completed_at"] = _now_iso()
-                            ev["qc_passes"] = ev.get("qc_passes", 0) + 1
-
-                        ev["updated_at"] = _now_iso()
-
-                    ticks_to_advance = _rand_sse.randint(3, 8)
-
-                # Broadcast changed events
-                for ev in _roi_calendar_store:
-                    eid = ev["event_id"]
-                    ac = ev.get("agent_compute_cost", 0)
-                    sk = f"{ev.get('progress_pct', 0)}:{ev.get('status', '')}:{ac:.2f}"
-                    if last_states.get(eid) != sk:
-                        last_states[eid] = sk
-                        yield f"event: roi_update\ndata: {_json_roi.dumps(ev)}\n\n"
-                yield "event: ping\ndata: {}\n\n"
-
-        return StreamingResponse(_gen(), media_type="text/event-stream",
-                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
     @app.get("/api/roi-calendar/export")
     async def roi_calendar_export(fmt: str = "json"):
         """Export ROI calendar data as JSON or CSV."""
-        import json as _json_exp
         import io as _io_exp
+        events = _roi_db_list()
         if fmt == "csv":
             import csv as _csv_exp
             output = _io_exp.StringIO()
             fieldnames = ["event_id", "title", "status", "progress_pct",
                           "human_cost_estimate", "human_time_estimate_hours",
-                          "agent_compute_cost", "overhead_cost", "roi", "start", "end"]
+                          "agent_compute_cost", "overhead_cost", "roi", "created_at"]
             writer = _csv_exp.DictWriter(output, fieldnames=fieldnames, extrasaction="ignore")
             writer.writeheader()
-            for ev in _roi_calendar_store:
-                writer.writerow(ev)
-            content = output.getvalue()
-            from starlette.responses import Response as _Resp
-            return _Resp(content=content, media_type="text/csv",
-                         headers={"Content-Disposition": "attachment; filename=roi-calendar.csv"})
-        else:
-            from starlette.responses import Response as _Resp
-            content = _json_exp.dumps({"ok": True, "events": _roi_calendar_store}, indent=2)
-            return _Resp(content=content, media_type="application/json",
-                         headers={"Content-Disposition": "attachment; filename=roi-calendar.json"})
-
+            writer.writerows(events)
+            return Response(content=output.getvalue(), media_type="text/csv",
+                            headers={"Content-Disposition": "attachment; filename=roi-calendar.csv"})
+        return Response(content=_json_roi_db.dumps({"ok": True, "events": events}, indent=2),
+                        media_type="application/json",
+                        headers={"Content-Disposition": "attachment; filename=roi-calendar.json"})
 
 
     @app.post("/api/onboarding/employees")
@@ -13463,7 +13426,7 @@ def create_app() -> FastAPI:
         class _APIKeyMiddleware(_BHMW):
             """Legacy inline X-API-Key fallback (Release-N back-compat)."""
 
-            EXEMPT_PATHS = {"/api/health", "/api/info", "/api/manifest", "/api/v1/ping"}
+            EXEMPT_PATHS = {"/api/health", "/api/info", "/api/manifest", "/api/v1/ping", "/api/roi-calendar/summary", "/api/roi-calendar/events", "/api/ambient/stats", "/api/ambient/settings", "/api/forge/list", "/api/forge/status", "/api/swarm/mind/status", "/api/corpus/stats", "/api/automation/requests", "/api/compliance/report", "/api/compliance/toggles"}
             EXEMPT_PREFIXES = (
                 "/api/auth/",
                 "/api/demo/",

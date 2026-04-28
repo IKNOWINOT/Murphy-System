@@ -14,8 +14,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System — Community Forum</title>
-<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="static/murphy-design-system.css">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/murphy-design-system.css">
 <style>
   /* =====================================================
      FORUM LAYOUT — three-column Discord/Teams shell
@@ -1336,11 +1336,11 @@
   <div class="forum-topbar-left">
     <button class="murphy-btn murphy-btn-icon forum-btn-toggle-channels" id="btn-toggle-channels"
             aria-label="Toggle channel list">
-      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-menu"></use></svg>
+      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-menu"></use></svg>
     </button>
 
     <a href="/ui/landing" class="forum-topbar-brand" aria-label="Murphy System home">
-      <img src="static/favicon.svg" alt="Murphy gear and eye logo">
+      <img src="/static/favicon.svg" alt="Murphy gear and eye logo">
       <span>MURPHY</span>
     </a>
 
@@ -1352,13 +1352,13 @@
          title="Connected"></div>
 
     <button class="forum-notif-btn" id="btn-notifications" aria-label="Notifications">
-      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-bell"></use></svg>
+      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-bell"></use></svg>
       <span class="forum-notif-badge" id="global-notif-badge" hidden aria-live="polite">0</span>
     </button>
 
     <button class="murphy-btn murphy-btn-icon forum-btn-toggle-members" id="btn-toggle-members"
             aria-label="Toggle member list">
-      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-users"></use></svg>
+      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-users"></use></svg>
     </button>
 
     <div class="forum-user-pill" id="user-pill" aria-label="Current user">
@@ -1381,7 +1381,7 @@
     <div class="forum-channels-section" id="section-topics">
       <span>Forum Topics</span>
       <button class="forum-section-toggle" aria-label="Add forum topic">
-        <svg width="12" height="12"><use href="static/murphy-icons.svg#icon-plus"></use></svg>
+        <svg width="12" height="12"><use href="/static/murphy-icons.svg#icon-plus"></use></svg>
       </button>
     </div>
     <div id="forum-topics-list" role="list" aria-label="Forum topic channels">
@@ -1392,7 +1392,7 @@
     <div class="forum-channels-section" id="section-groups">
       <span>Org Groups</span>
       <button class="forum-section-toggle" aria-label="Add org group">
-        <svg width="12" height="12"><use href="static/murphy-icons.svg#icon-plus"></use></svg>
+        <svg width="12" height="12"><use href="/static/murphy-icons.svg#icon-plus"></use></svg>
       </button>
     </div>
     <div id="forum-groups-list" role="list" aria-label="Organization group channels">
@@ -1408,7 +1408,7 @@
     </div>
 
     <button class="forum-add-channel-btn" id="btn-create-channel" aria-label="Create new channel">
-      <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-plus"></use></svg>
+      <svg width="14" height="14"><use href="/static/murphy-icons.svg#icon-plus"></use></svg>
       New Channel
     </button>
 
@@ -1687,7 +1687,7 @@
                 aria-label="Message input"
                 aria-describedby="composer-hint"></textarea>
       <button class="forum-composer-btn" id="btn-send" aria-label="Send message" title="Send">
-        <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-execute"></use></svg>
+        <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-execute"></use></svg>
       </button>
     </div>
     <div class="forum-composer-hint" id="composer-hint">
@@ -1702,12 +1702,12 @@
 <aside class="forum-members" id="forum-members" role="complementary" aria-label="Channel members">
   <div class="forum-members-header">
     <div class="forum-members-title">
-      <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-users"></use></svg>
+      <svg width="16" height="16"><use href="/static/murphy-icons.svg#icon-users"></use></svg>
       Members
     </div>
     <button class="murphy-btn murphy-btn-icon" id="btn-close-members" aria-label="Close member list"
             title="Close">
-      <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-x"></use></svg>
+      <svg width="16" height="16"><use href="/static/murphy-icons.svg#icon-x"></use></svg>
     </button>
   </div>
 
@@ -1719,15 +1719,15 @@
     <div class="forum-org-info-title">Organization</div>
     <div class="forum-org-name" id="org-name">—</div>
     <div class="forum-org-stat" id="org-member-count">
-      <svg width="12" height="12"><use href="static/murphy-icons.svg#icon-users"></use></svg>
+      <svg width="12" height="12"><use href="/static/murphy-icons.svg#icon-users"></use></svg>
       <span>— members</span>
     </div>
     <div class="forum-org-stat" id="org-channel-count">
-      <svg width="12" height="12"><use href="static/murphy-icons.svg#icon-message-circle"></use></svg>
+      <svg width="12" height="12"><use href="/static/murphy-icons.svg#icon-message-circle"></use></svg>
       <span>— channels</span>
     </div>
     <button class="forum-invite-btn" id="btn-invite" hidden aria-label="Invite user to organization">
-      <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-user"></use></svg>
+      <svg width="14" height="14"><use href="/static/murphy-icons.svg#icon-user"></use></svg>
       Invite User
     </button>
   </div>
@@ -1740,7 +1740,7 @@
      role="dialog" aria-modal="true" aria-labelledby="modal-create-title">
   <div class="forum-modal">
     <div class="forum-modal-title" id="modal-create-title">
-      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-plus"></use></svg>
+      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-plus"></use></svg>
       Create Channel
     </div>
     <div class="forum-form-group">
@@ -1764,7 +1764,7 @@
     <div class="forum-modal-footer">
       <button class="murphy-btn" id="btn-modal-cancel">Cancel</button>
       <button class="murphy-btn murphy-btn-primary" id="btn-modal-create">
-        <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-plus"></use></svg>
+        <svg width="14" height="14"><use href="/static/murphy-icons.svg#icon-plus"></use></svg>
         Create
       </button>
     </div>
@@ -1778,7 +1778,7 @@
      role="dialog" aria-modal="true" aria-labelledby="modal-invite-title">
   <div class="forum-modal">
     <div class="forum-modal-title" id="modal-invite-title">
-      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-user"></use></svg>
+      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-user"></use></svg>
       Invite User
     </div>
     <div class="forum-form-group">
@@ -1797,7 +1797,7 @@
     <div class="forum-modal-footer">
       <button class="murphy-btn" id="btn-invite-cancel">Cancel</button>
       <button class="murphy-btn murphy-btn-primary" id="btn-invite-send">
-        <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-execute"></use></svg>
+        <svg width="14" height="14"><use href="/static/murphy-icons.svg#icon-execute"></use></svg>
         Send Invite
       </button>
     </div>
@@ -1807,7 +1807,7 @@
 <!-- ============================================================
      JAVASCRIPT
      ============================================================ -->
-<script src="static/murphy-components.js"></script>
+<script src="/static/murphy-components.js"></script>
 <script src="murphy_auth.js"></script>
 <script>
 (function () {

@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy — Dashboard</title>
-<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -245,7 +245,7 @@ async function fetchAll(){
       fetch('/api/shield/status',{credentials:'same-origin'}).then(r=>r.json()),
       fetch('/api/swarm/mind/status',{credentials:'same-origin'}).then(r=>r.json()),
       fetch('/api/forge/status',{credentials:'same-origin'}).then(r=>r.json()),
-      fetch('/api/corpus/status',{credentials:'same-origin'}).then(r=>r.json()),
+      fetch('/api/corpus/stats',{credentials:'same-origin'}).then(r=>r.json()),
       fetch('/api/automation/requests?status=scheduled&limit=20',{credentials:'same-origin'}).then(r=>r.json()),
     ]);
 

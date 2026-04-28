@@ -79,7 +79,7 @@ try:
     _HAS_REAL_PQC = True
     _log.info("SEC-003: Real PQC available (liboqs)")
 except ImportError:
-    _log.warning("SEC-003: liboqs not available — using HMAC simulation for PQC")
+    _log.info("SEC-003: liboqs not available — using HMAC simulation for PQC (expected in VM)")  # PATCH-110d
 
 
 class HashAlgorithm(Enum):
