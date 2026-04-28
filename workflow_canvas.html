@@ -618,9 +618,11 @@ async function loadWorkflowById(id) {
   try {
     const r = await apiFetch('/api/canvas/workflows/'+id);
     if (r.success&&r.workflow) {
-      // Map legacy format (nodes array) to canvas format
+      // Map legacy format: prefer canvas_nodes, fall back to nodes
       const wf = r.workflow;
-      wf.canvas_nodes = wf.nodes || [];
+      if (!wf.canvas_nodes || !wf.canvas_nodes.length) {
+        wf.canvas_nodes = wf.nodes || [];
+      }
       loadWorkflow(wf);
     } else {
       toast('Failed to load workflow',true);
