@@ -30,9 +30,10 @@ class ExecAdminAgent(AgentBase):
         "approve_request": {"domain": "exec_admin", "urgency": "immediate", "stake": "medium"},
     }
 
-    def __init__(self, llm_provider=None, signal_collector=None):
+    def __init__(self, llm_provider=None, signal_collector=None, account_id: str = "cpost@murphy.systems"):
         super().__init__("exec_admin")
         self._llm = llm_provider
+        self._account_id = account_id
         self._collector = signal_collector
 
     def act(self, signal: dict) -> dict:
@@ -156,6 +157,28 @@ class ExecAdminAgent(AgentBase):
 
 
 # ── Singleton ──────────────────────────────────────────────────────────────────
+    def request_automation(self, description: str, priority: str = "normal",
+                           context: dict = None) -> dict:
+        """
+        PATCH-135b: Request a new automation from the NL pipeline.
+        Called when exec_admin identifies a repeating task that should be automated.
+        """
+        try:
+            from src.automation_request import request_automation as _req
+            account = getattr(self, "_account_id", "cpost@murphy.systems")
+            return _req(
+                description=description,
+                account_id=account,
+                requester="exec_admin",
+                priority=priority,
+                context=context or {},
+                auto_schedule=True,
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger("murphy.exec_admin").error("request_automation failed: %s", e)
+            return {"success": False, "error": str(e), "requester": "exec_admin"}
+
 _exec_admin: Optional[ExecAdminAgent] = None
 
 def get_exec_admin() -> ExecAdminAgent:

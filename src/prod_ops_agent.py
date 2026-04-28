@@ -161,6 +161,27 @@ class ProdOpsAgent(AgentBase):
 
 
 # ── Singleton ──────────────────────────────────────────────────────────────────
+    def request_automation(self, description: str, priority: str = "normal",
+                           context: dict = None) -> dict:
+        """
+        PATCH-135b: Request a new automation from the NL pipeline.
+        Called when prod_ops detects a recurring ops pattern needing automation.
+        """
+        try:
+            from src.automation_request import request_automation as _req
+            return _req(
+                description=description,
+                account_id="cpost@murphy.systems",
+                requester="prod_ops",
+                priority=priority,
+                context=context or {},
+                auto_schedule=True,
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger("murphy.prod_ops").error("request_automation failed: %s", e)
+            return {"success": False, "error": str(e), "requester": "prod_ops"}
+
 _prod_ops: Optional[ProdOpsAgent] = None
 
 def get_prod_ops() -> ProdOpsAgent:
