@@ -442,6 +442,8 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/workflows",
         "/api/workflow/",
         "/api/workflow",
+        "/api/automation/",   # PATCH-135e
+        "/api/automation",
         "/api/exec/",
         "/api/exec",
         "/api/prodops/",
