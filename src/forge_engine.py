@@ -364,11 +364,20 @@ class ForgeEngine:
             from src.murphy_critic import MurphyCritic
             critic = MurphyCritic()
             result = critic.review(source, filename=f"{name}.py")
-            critic_verdict = result.get("verdict", "unknown")
-            if critic_verdict == "BLOCK":
-                return {"error": f"MurphyCritic BLOCKED: {result.get('summary', 'unsafe code')}",
+            # Handle CriticVerdict dataclass OR dict
+            if hasattr(result, 'verdict'):
+                critic_verdict = result.verdict or "PASS"
+                _blocked = critic_verdict == "BLOCK"
+                _summary = getattr(result, 'summary', 'unsafe code')
+                _result_repr = {"verdict": critic_verdict, "summary": _summary}
+            else:
+                critic_verdict = result.get("verdict", "PASS") if isinstance(result, dict) else "PASS"
+                _blocked = critic_verdict == "BLOCK"
+                _result_repr = result if isinstance(result, dict) else {}
+            if _blocked:
+                return {"error": f"MurphyCritic BLOCKED: {_result_repr.get('summary','unsafe code')}",
                         "status": "blocked", "step": "critic",
-                        "critic_result": result, "source_code": source}
+                        "critic_result": _result_repr, "source_code": source}
         except Exception as ce:
             logger.warning("MurphyCritic unavailable — skipping: %s", ce)
             critic_verdict = "skipped"
