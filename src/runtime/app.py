@@ -5876,6 +5876,86 @@ def create_app() -> FastAPI:
         _workflows_store[workflow_id] = workflow
         return JSONResponse({"success": True, "workflow": workflow})
 
+
+    # ── Canvas API — PATCH-144 (clean paths, no routing conflict) ────────────────
+    @app.get("/api/canvas/workflows")
+    async def canvas_list_workflows(request: Request):
+        """PATCH-144: List all workflows from DB for canvas page."""
+        account = _get_account_from_session(request)
+        account_id = (account or {}).get("account_id", "anonymous")
+        try:
+            from src.nl_workflow_engine import get_engine as _get_nl_engine_c
+            engine = _get_nl_engine_c()
+            wfs = engine.list(account_id)
+            # Also merge in-memory store items not in DB
+            db_ids = {w.get("workflow_id",w.get("id","")) for w in wfs}
+            for wf in _workflows_store.values():
+                if wf.get("id") not in db_ids:
+                    wfs.append({"workflow_id":wf["id"],"name":wf.get("name","Untitled"),"canvas_nodes":wf.get("nodes",[]),"status":wf.get("status","idle")})
+            return JSONResponse({"success":True, "workflows":wfs, "total":len(wfs)})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/canvas/workflows/{wf_id}")
+    async def canvas_get_workflow(wf_id: str, request: Request):
+        """PATCH-144: Get a single workflow for canvas editing."""
+        account = _get_account_from_session(request)
+        account_id = (account or {}).get("account_id", "anonymous")
+        # Try DB first
+        try:
+            from src.nl_workflow_engine import get_engine as _get_nl_engine_c2
+            bp = _get_nl_engine_c2().get(wf_id, account_id)
+            if bp:
+                return JSONResponse({"success":True, "workflow":bp.to_dict()})
+        except Exception:
+            pass
+        # Fall back to in-memory store
+        wf = _workflows_store.get(wf_id)
+        if wf:
+            return JSONResponse({"success":True, "workflow":wf})
+        return JSONResponse({"success":False, "error":"Not found"}, status_code=404)
+
+    @app.post("/api/canvas/workflows")
+    async def canvas_save_workflow(request: Request):
+        """PATCH-144: Save/update a workflow from canvas edits."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success":False, "error":"Invalid JSON"}, status_code=400)
+        from uuid import uuid4 as _uuid4_c
+        account = _get_account_from_session(request)
+        account_id = (account or {}).get("account_id", "anonymous")
+        wf_id = data.get("id") or str(_uuid4_c())
+        name = data.get("name", "Untitled Workflow")
+        nodes = data.get("nodes", [])
+        connections = data.get("connections", [])
+        status = data.get("status", "idle")
+        import datetime as _dt_c
+        now = _dt_c.datetime.now(_dt_c.timezone.utc).isoformat()
+        # Save to in-memory store
+        _workflows_store[wf_id] = {"id":wf_id, "name":name, "nodes":nodes, "connections":connections, "status":status, "updated_at":now}
+        # Also persist to NL workflows DB
+        try:
+            from src.nl_workflow_engine import get_engine as _get_nl_engine_c3
+            import json as _json_c3
+            engine = _get_nl_engine_c3()
+            payload = {"workflow_id":wf_id, "account_id":account_id, "name":name, "canvas_nodes":nodes, "canvas_edges":connections, "status":status, "updated_at":now}
+            # Upsert into blueprints table
+            db = engine._db if hasattr(engine,'_db') else None
+            if db is None:
+                import sqlite3 as _sq_c
+                db = _sq_c.connect(engine._db_path if hasattr(engine,'_db_path') else '/var/lib/murphy-production/nl_workflows.db')
+            import sqlite3 as _sq_c3
+            _db3 = _sq_c3.connect('/var/lib/murphy-production/nl_workflows.db')
+            _db3.execute(
+                "INSERT OR REPLACE INTO blueprints (workflow_id, account_id, name, data, created_at, updated_at) VALUES (?,?,?,?,COALESCE((SELECT created_at FROM blueprints WHERE workflow_id=?),?),?)",
+                (wf_id, account_id, name, _json_c3.dumps(payload), wf_id, now, now)
+            )
+            _db3.commit(); _db3.close()
+        except Exception as _e_c3:
+            logger.warning("canvas save to DB failed: %s", _e_c3)
+        return JSONResponse({"success":True, "workflow":{"id":wf_id,"name":name,"nodes":nodes,"connections":connections,"status":status,"updated_at":now}})
+
     @app.get("/api/workflows/{workflow_id}")
     async def get_workflow(workflow_id: str):
         """Get workflow details by ID."""
