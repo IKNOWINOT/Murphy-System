@@ -8717,6 +8717,24 @@ def create_app() -> FastAPI:
             # Complete the OAuth flow — creates or links a Murphy account
             account = _account_manager.complete_oauth_signup(state, code)
 
+            # PATCH-154: Provision Matrix account for OAuth user
+            try:
+                from src.matrix_client import provision_user as _mx_provision
+                import secrets as _mx_secrets
+                _mx_pw = _mx_secrets.token_urlsafe(24)  # random — stored in matrix, user uses SSO
+                _mx_email = getattr(account, "email", "") or ""
+                _mx_name = getattr(account, "full_name", "") or _mx_email.split("@")[0]
+                _mx_result = _mx_provision(
+                    email=_mx_email,
+                    password=_mx_pw,
+                    display_name=_mx_name,
+                )
+                if _mx_result.get("ok"):
+                    logger.info("Matrix OAuth account provisioned: %s", _mx_result.get("matrix_user_id"))
+            except Exception as _mx_exc:
+                logger.warning("Matrix OAuth provision error: %s", _mx_exc)
+
+
             # Mint a cryptographically-random session token
             import secrets as _secrets
             import urllib.parse
@@ -8820,6 +8838,24 @@ def create_app() -> FastAPI:
             }
             _email_to_account[email] = account_id
 
+            # PATCH-154: Provision Matrix account for new user
+            try:
+                from src.matrix_client import provision_user as _mx_provision
+                _mx_result = _mx_provision(
+                    email=email,
+                    password=password,
+                    display_name=full_name or email.split("@")[0],
+                )
+                if _mx_result.get("ok"):
+                    _user_store[account_id]["matrix_user_id"] = _mx_result.get("matrix_user_id")
+                    _user_store[account_id]["matrix_access_token"] = _mx_result.get("matrix_access_token")
+                    logger.info("Matrix account provisioned for %s: %s", email, _mx_result.get("matrix_user_id"))
+                else:
+                    logger.warning("Matrix provision failed for %s: %s", email, _mx_result.get("error"))
+            except Exception as _mx_exc:
+                logger.warning("Matrix provision error for %s: %s", email, _mx_exc)
+
+
             # Create a free-tier subscription record
             if _sub_manager is not None and _SubTier is not None:
                 _sub_tier_val = (
@@ -8900,6 +8936,8 @@ def create_app() -> FastAPI:
                 "account_id": account_id,
                 "email": email,
                 "email_sent": _email_sent,
+                "matrix_user_id": _user_store[account_id].get("matrix_user_id"),
+                "matrix_homeserver": "https://murphy.systems",
             }, status_code=201)
         except Exception as exc:
             logger.exception("Signup failed")
