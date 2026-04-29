@@ -248,7 +248,7 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
 <div id="readiness-overlay">
   <!-- Topbar clone -->
   <div class="rdy-topbar">
-    <a href="/ui/landing" class="m-brand" aria-label="Murphy System home">
+    <a href="/" class="m-brand" aria-label="Murphy System home">
       <svg width="24" height="24" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#00D4AA"/><text x="12" y="17" text-anchor="middle" fill="#000" font-size="13" font-weight="700" font-family="Inter,sans-serif">M</text></svg>
       <span>MURPHY</span>
     </a>
@@ -287,7 +287,7 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
     <button class="m-btn-icon" id="sidebar-toggle" aria-label="Toggle sidebar">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
-    <a href="/ui/landing" class="m-brand" aria-label="Murphy System home">
+    <a href="/" class="m-brand" aria-label="Murphy System home">
       <svg width="24" height="24" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#00D4AA"/><text x="12" y="17" text-anchor="middle" fill="#000" font-size="13" font-weight="700" font-family="Inter,sans-serif">M</text></svg>
       <span>MURPHY</span>
     </a>
@@ -295,7 +295,7 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
   <nav class="m-topbar-right" aria-label="Top navigation">
     <button class="m-btn m-btn-sm" id="btn-readiness-again" onclick="showReadiness()" title="Re-run readiness check">&#x1F50D; Readiness</button>
     <a href="/ui/workspace" class="m-btn">Workspace</a>
-    <a href="/ui/terminal-unified" class="m-btn">Terminal</a>
+    <a href="/ui/dashboard" class="m-btn">Terminal</a>
     <div class="m-avatar" aria-label="User: Corey Post">CP</div>
   </nav>
 </header>
@@ -515,7 +515,7 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
 
 <!-- FOOTER -->
 <footer class="m-footer" role="contentinfo">
-  <a href="/ui/landing">Home</a>
+  <a href="/">Home</a>
   <a href="/ui/workspace">Workspace</a>
   <a href="/ui/management">Management</a>
   <a href="/ui/calendar">Calendar</a>
@@ -746,7 +746,7 @@ function rdyCardHTML(api_def, state, statusText) {
       ${api_def.fixSteps.map((step, i) => `<div class="rdy-fix-step"><span class="rdy-fix-step-num">${i+1}.</span><span>${escHtml(step)}</span></div>`).join('')}
       <div class="rdy-fix-links">
         <a href="/docs#/${escHtml(api_def.docsAnchor || '')}" target="_blank" rel="noopener">&#x1F4D6; API Docs (/docs#/${escHtml(api_def.docsAnchor || '')})</a>
-        <a href="/ui/terminal-unified#${escHtml(api_def.docsAnchor || '')}" target="_blank" rel="noopener">&#x1F4BB; Try in Terminal</a>
+        <a href="/ui/dashboard#${escHtml(api_def.docsAnchor || '')}" target="_blank" rel="noopener">&#x1F4BB; Try in Terminal</a>
         <a href="javascript:void(0)" onclick="recheckOne('${escHtml(api_def.id)}', this)" style="color:var(--teal)">&#x21BB; Retry this check</a>
       </div>
     </div>` : '';
@@ -859,7 +859,7 @@ function errorCard(containerId, endpoint, method, error, docsAnchor) {
     <div class="error-card-msg">${escHtml(String(error))}</div>
     <div class="error-card-links">
       <a href="/docs#/${encodeURIComponent(anchor)}" target="_blank" rel="noopener">&#x2192; Open API Docs (/docs#/${escHtml(anchor)})</a>
-      <a href="/ui/terminal-unified#${encodeURIComponent(anchor)}" target="_blank" rel="noopener">&#x2192; Try in Terminal</a>
+      <a href="/ui/dashboard#${encodeURIComponent(anchor)}" target="_blank" rel="noopener">&#x2192; Try in Terminal</a>
       <a href="javascript:void(0)" onclick="showReadiness()" style="color:var(--teal)">&#x2192; Re-run Readiness Check</a>
     </div>`;
   container.appendChild(card);

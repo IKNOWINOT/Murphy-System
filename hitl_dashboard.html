@@ -519,6 +519,68 @@
   </script>
 <script src="/static/murphy-auth-guard.js"></script>
 <script src="/static/murphy-session-context.js"></script>
-<script>MurphyAuth.requireAuth();</script>
+<script>MurphyAuth.requireAuth();
+  // PATCH-153b: Missing modal/action functions
+  function inspectItem(id) {
+    var item = pendingItems.find(function(x){ return x.id === id; });
+    if (!item) return;
+    document.getElementById('inspectTitle').textContent = item.description || item.title || 'Action #' + id;
+    document.getElementById('inspectBody').innerHTML =
+      '<pre style="white-space:pre-wrap;font-size:.8rem;color:var(--text-dim)">' +
+      JSON.stringify(item, null, 2) + '</pre>';
+    document.getElementById('inspectModal').style.display = 'flex';
+    document.getElementById('inspectModal').setAttribute('data-item-id', id);
+  }
+  function approveItem(id) {
+    var itemId = id || document.getElementById('inspectModal').getAttribute('data-item-id');
+    murphyPost('/api/hitl/approve', { item_id: itemId, decision: 'approve', reason: 'Approved via UI' })
+      .then(function(){ showToast('Approved ✓', 'success'); closeInspectModal(); loadPending(); })
+      .catch(function(e){ showToast('Error: ' + e, 'error'); });
+  }
+  function openRejectModal(id) {
+    var itemId = id || document.getElementById('inspectModal').getAttribute('data-item-id');
+    document.getElementById('rejectModal').style.display = 'flex';
+    document.getElementById('rejectModal').setAttribute('data-item-id', itemId);
+  }
+  function closeRejectModal() {
+    document.getElementById('rejectModal').style.display = 'none';
+  }
+  function submitRejection() {
+    var itemId = document.getElementById('rejectModal').getAttribute('data-item-id');
+    var reason = document.getElementById('rejectReason') ? document.getElementById('rejectReason').value : 'Rejected via UI';
+    murphyPost('/api/hitl/reject', { item_id: itemId, decision: 'reject', reason: reason })
+      .then(function(){ showToast('Rejected', 'warning'); closeRejectModal(); closeInspectModal(); loadPending(); })
+      .catch(function(e){ showToast('Error: ' + e, 'error'); });
+  }
+  function closeInspectModal() {
+    var m = document.getElementById('inspectModal');
+    if (m) m.style.display = 'none';
+  }
+
+</script>
+
+<!-- PATCH-153b: Inspect + Reject Modals -->
+<div id="inspectModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#1a1a1a;border:1px solid #00D4AA;border-radius:8px;padding:1.5rem;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;">
+    <h3 id="inspectTitle" style="color:#00D4AA;margin:0 0 1rem"></h3>
+    <div id="inspectBody"></div>
+    <div style="margin-top:1rem;display:flex;gap:.5rem;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeInspectModal()">Close</button>
+      <button class="btn btn-danger" onclick="openRejectModal()">Reject</button>
+      <button class="btn btn-primary" onclick="approveItem()">Approve ✓</button>
+    </div>
+  </div>
+</div>
+<div id="rejectModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10000;align-items:center;justify-content:center;">
+  <div style="background:#1a1a1a;border:1px solid #ff4444;border-radius:8px;padding:1.5rem;max-width:400px;width:90%;">
+    <h3 style="color:#ff4444;margin:0 0 1rem">Reject Action</h3>
+    <textarea id="rejectReason" rows="3" style="width:100%;background:#111;color:#eee;border:1px solid #333;border-radius:4px;padding:.5rem;resize:vertical;" placeholder="Reason for rejection..."></textarea>
+    <div style="margin-top:1rem;display:flex;gap:.5rem;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeRejectModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="submitRejection()">Submit Rejection</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

@@ -22,7 +22,7 @@
 
 <!-- TOPBAR -->
 <header class="murphy-topbar" role="banner">
-  <a class="topbar-brand" href="/ui/landing" aria-label="Murphy System home">
+  <a class="topbar-brand" href="/" aria-label="Murphy System home">
     <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="14" fill="none" stroke="#00D4AA" stroke-width="2"/><path d="M8 22L12 10l4 8 4-8 4 12" stroke="#00ff41" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <span class="topbar-brand-name">Murphy System</span>
   </a>
@@ -32,7 +32,7 @@
     <a href="#demo" role="menuitem">Demo</a>
     <a href="#partner" role="menuitem">Partner</a>
     <a href="#pricing" role="menuitem">Pricing</a>
-    <a href="/ui/grant-wizard" role="menuitem">Financing</a>
+    <a href="/ui/forge" role="menuitem">Financing</a>
   </nav>
   <div class="topbar-right">
     <span class="sys-pill" id="sys-status-pill" title="Live system status"><span class="dot"></span><span id="sys-status-text">checking&#8230;</span></span>
@@ -89,7 +89,7 @@
       <span class="lstat" id="lstat-swarm"><span class="ld ld-ok"></span>Swarm Engine</span>
       <span class="lstat" id="lstat-trading"><span class="ld ld-ok"></span>Trading Engine</span>
     </div>
-    <a href="/ui/terminal-integrations#llm" class="btn-s ml-5" >Configure &#8594;</a>
+    <a href="/ui/dashboard#llm" class="btn-s ml-5" >Configure &#8594;</a>
   </div>
 </section>
 
@@ -116,7 +116,7 @@
         <h3>Unified Communications</h3>
         <p>Murphy ships with a hosted mail server, Matrix messaging bridge, and 287 communication rooms. One platform. One bill. One admin panel.</p>
         <span class="sol-outcome">&#9660; One bill, one admin panel</span>
-        <a class="btn-s" href="/ui/terminal-integrations#connections">Kill the Sprawl &#8594;</a>
+        <a class="btn-s" href="/ui/dashboard#connections">Kill the Sprawl &#8594;</a>
       </div>
 
       <div class="sol-card" role="listitem">
@@ -143,7 +143,7 @@
         <h3>Custom Integrations</h3>
         <p>Murphy's universal integration framework connects any external service. Register, configure, and execute &#8212; all through a unified API. 100+ services pre-wired.</p>
         <span class="sol-outcome">&#9889; 100+ services wired</span>
-        <a class="btn-s" href="/ui/partner">Request Integration &#8594;</a>
+        <a class="btn-s" href="/ui/partner-request">Request Integration &#8594;</a>
       </div>
 
       <div class="sol-card" role="listitem">
@@ -152,7 +152,7 @@
         <h3>Local AI / Privacy First</h3>
         <p>Murphy runs Ollama on your own infrastructure. Every inference is private. Cloud LLM providers are strictly opt-in fallbacks &#8212; you choose per request.</p>
         <span class="sol-outcome">&#128274; Zero data leakage</span>
-        <a class="btn-s" href="/ui/terminal-integrations#llm">Go Private &#8594;</a>
+        <a class="btn-s" href="/ui/dashboard#llm">Go Private &#8594;</a>
       </div>
 
     </div>
@@ -236,7 +236,7 @@
           <li>API-first, embed anywhere</li>
           <li>Partner revenue sharing</li>
         </ul>
-        <a class="btn-s" href="/ui/partner">Partner Program &#8594;</a>
+        <a class="btn-s" href="/ui/partner-request">Partner Program &#8594;</a>
       </div>
 
       <div class="ind-card" role="listitem">
@@ -378,8 +378,8 @@
           <li>Fully auditable &#8212; every inference logged</li>
         </ul>
         <div class="ml-13" >
-          <a class="btn-p" href="/ui/terminal-integrations#llm">Configure LLM</a>
-          <a class="btn-s" href="/ui/terminal-unified#status">View Status</a>
+          <a class="btn-p" href="/ui/dashboard#llm">Configure LLM</a>
+          <a class="btn-s" href="/ui/dashboard#status">View Status</a>
         </div>
       </div>
       <div class="seg-vis" aria-hidden="true">
@@ -585,11 +585,11 @@
         <div class="pname">Enterprise</div>
         <div class="pamt">Custom</div>
         <p class="pdesc">Full source &#183; Hetzner deploy scripts &#183; SLA &#183; Dedicated support &#183; Custom modules</p>
-        <a class="btn-p" href="/ui/partner">Talk to Us</a>
+        <a class="btn-p" href="/ui/partner-request">Talk to Us</a>
       </div>
     </div>
     <p class="ml-16" >All plans include access to all 453 API endpoints. <a href="/ui/pricing" class="ml-17" >See full comparison &#8594;</a></p>
-    <p class="ml-18" >Need financing? <a href="/ui/grant-wizard" class="ml-17" >Apply for grants &amp; financing &#8594;</a></p>
+    <p class="ml-18" >Need financing? <a href="/ui/forge" class="ml-17" >Apply for grants &amp; financing &#8594;</a></p>
   </div>
 </section>
 
@@ -617,7 +617,7 @@
       </div>
     </div>
     <div class="ml-19" >
-      <a class="btn-p lg" href="/ui/partner">&#128338; Request a Custom Integration</a>
+      <a class="btn-p lg" href="/ui/partner-request">&#128338; Request a Custom Integration</a>
     </div>
   </div>
 </section>
@@ -697,7 +697,7 @@
     <div class="fcbtns">
       <a class="btn-p lg" href="/ui/signup">&#9889; Start Free Trial</a>
       <a class="btn-s lg" href="#demo">&#9654; Live Demo</a>
-      <a class="btn-s lg" href="/ui/partner">&#129309; Partner With Us</a>
+      <a class="btn-s lg" href="/ui/partner-request">&#129309; Partner With Us</a>
     </div>
   </div>
 </section>
@@ -707,16 +707,16 @@
 <footer>
   <div class="footer-inner">
     <nav class="flinks" aria-label="Footer navigation">
-      <a href="/ui/landing">Home</a>
+      <a href="/">Home</a>
       <a href="#solutions">Solutions</a>
       <a href="#industries">Industries</a>
       <a href="#demo">Demo</a>
       <a href="#pricing">Pricing</a>
-      <a href="/ui/grant-wizard">Financing</a>
-      <a href="/ui/partner">Partner</a>
+      <a href="/ui/forge">Financing</a>
+      <a href="/ui/partner-request">Partner</a>
       <a href="/ui/compliance">Compliance</a>
       <a href="/ui/docs">Docs</a>
-      <a href="/ui/terminal-unified">Dashboard</a>
+      <a href="/ui/dashboard">Dashboard</a>
       <a href="/ui/matrix">Matrix</a>
       <a href="/ui/paper-trading">Trading</a>
       <a href="/ui/blog">Blog</a>

@@ -97,31 +97,31 @@ function showMurphyError(msg) {
   var selectedIntegrations = [];
   var credentials = {};
   var safetyLevel = 3;
-  var recommendedTerminal = '/ui/terminal-unified';
+  var recommendedTerminal = '/ui/dashboard';
   var userRole = ''; // 'founder_admin' | 'manager' | 'worker' | '' (unknown/not-yet-set)
   var librarianConfig = null;
 
   // ── Role-based dashboard access rules ─────────────────
   var ROLE_DASHBOARD_ACCESS = {
-    'founder_admin': ['/ui/terminal-unified', '/ui/terminal-worker', '/ui/terminal-enhanced', '/ui/terminal-architect'],
-    'owner':         ['/ui/terminal-unified', '/ui/terminal-worker', '/ui/terminal-enhanced', '/ui/terminal-architect'],
-    'admin':         ['/ui/terminal-unified', '/ui/terminal-enhanced', '/ui/terminal-architect'],
-    'manager':       ['/ui/terminal-enhanced', '/ui/terminal-worker'],
-    'operator':      ['/ui/terminal-enhanced', '/ui/terminal-worker'],
-    'worker':        ['/ui/terminal-worker'],
-    'viewer':        ['/ui/terminal-worker'],
-    '':              ['/ui/terminal-unified', '/ui/terminal-worker', '/ui/terminal-enhanced', '/ui/terminal-architect']
+    'founder_admin': ['/ui/dashboard', '/ui/dashboard', '/ui/dashboard', '/ui/dashboard'],
+    'owner':         ['/ui/dashboard', '/ui/dashboard', '/ui/dashboard', '/ui/dashboard'],
+    'admin':         ['/ui/dashboard', '/ui/dashboard', '/ui/dashboard'],
+    'manager':       ['/ui/dashboard', '/ui/dashboard'],
+    'operator':      ['/ui/dashboard', '/ui/dashboard'],
+    'worker':        ['/ui/dashboard'],
+    'viewer':        ['/ui/dashboard'],
+    '':              ['/ui/dashboard', '/ui/dashboard', '/ui/dashboard', '/ui/dashboard']
   };
 
   var ROLE_DEFAULT_TERMINAL = {
-    'founder_admin': '/ui/terminal-unified',
-    'owner':         '/ui/terminal-unified',
-    'admin':         '/ui/terminal-architect',
-    'manager':       '/ui/terminal-enhanced',
-    'operator':      '/ui/terminal-enhanced',
-    'worker':        '/ui/terminal-worker',
-    'viewer':        '/ui/terminal-worker',
-    '':              '/ui/terminal-unified'
+    'founder_admin': '/ui/dashboard',
+    'owner':         '/ui/dashboard',
+    'admin':         '/ui/dashboard',
+    'manager':       '/ui/dashboard',
+    'operator':      '/ui/dashboard',
+    'worker':        '/ui/dashboard',
+    'viewer':        '/ui/dashboard',
+    '':              '/ui/dashboard'
   };
 
   // ── DOM refs ───────────────────────────────────────────
@@ -325,7 +325,7 @@ function showMurphyError(msg) {
                 userRole = detectedRole;
                 // Auto-set recommendedTerminal when role is first detected (unless manually overridden)
                 if (roleChanged && !res.data.config.recommended_terminal) {
-                  recommendedTerminal = ROLE_DEFAULT_TERMINAL[userRole] || '/ui/terminal-unified';
+                  recommendedTerminal = ROLE_DEFAULT_TERMINAL[userRole] || '/ui/dashboard';
                 }
               }
             }
@@ -859,10 +859,10 @@ function showMurphyError(msg) {
     var termBody = el('div', { className: 'murphy-card-body' });
 
     var allDashboards = [
-      { value: '/ui/terminal-unified', label: 'Unified Dashboard', desc: 'Full overview of everything' },
-      { value: '/ui/terminal-worker', label: 'Worker Dashboard', desc: 'Task-focused view' },
-      { value: '/ui/terminal-enhanced', label: 'Manager Dashboard', desc: 'Team and project oversight' },
-      { value: '/ui/terminal-architect', label: 'Admin Dashboard', desc: 'System configuration and control' }
+      { value: '/ui/dashboard', label: 'Unified Dashboard', desc: 'Full overview of everything' },
+      { value: '/ui/dashboard', label: 'Worker Dashboard', desc: 'Task-focused view' },
+      { value: '/ui/dashboard', label: 'Manager Dashboard', desc: 'Team and project oversight' },
+      { value: '/ui/dashboard', label: 'Admin Dashboard', desc: 'System configuration and control' }
     ];
 
     var allowedValues = ROLE_DASHBOARD_ACCESS[userRole] || ROLE_DASHBOARD_ACCESS[''];
@@ -876,7 +876,7 @@ function showMurphyError(msg) {
 
     // Ensure recommendedTerminal is within allowed set
     if (allowedValues.indexOf(recommendedTerminal) === -1) {
-      recommendedTerminal = ROLE_DEFAULT_TERMINAL[userRole] || allowedValues[0] || '/ui/terminal-unified';
+      recommendedTerminal = ROLE_DEFAULT_TERMINAL[userRole] || allowedValues[0] || '/ui/dashboard';
     }
 
     var recDash = dashboards.filter(function (db) { return db.value === recommendedTerminal; })[0]

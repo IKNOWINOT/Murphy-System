@@ -1217,6 +1217,19 @@
     }
 
   }());
-  </script>
+  
+  // PATCH-153b: Modal/error helpers
+  function closeModal() {
+    document.querySelectorAll('.modal, [id$="Modal"], [id$="-modal"]').forEach(function(m){
+      m.style.display = 'none';
+    });
+  }
+  function dismissError() {
+    document.querySelectorAll('.error-banner, .alert-error, [id*="error"]').forEach(function(el){
+      el.style.display = 'none';
+    });
+  }
+
+</script>
 </body>
 </html>

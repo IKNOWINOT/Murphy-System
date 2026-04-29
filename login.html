@@ -376,7 +376,7 @@
 <footer class="murphy-footer" role="contentinfo">
   <div class="murphy-footer-inner">
     <nav class="murphy-footer-links" aria-label="Footer navigation">
-      <a href="/ui/terminal-unified">Dashboard</a>
+      <a href="/ui/dashboard">Dashboard</a>
       <a href="/ui/landing#features">Features</a>
       <a href="/ui/pricing">Pricing</a>
       <a href="/ui/docs">Docs</a>
@@ -565,7 +565,7 @@
         }
         // Redirect to requested page or terminal
         var urlParams = new URLSearchParams(window.location.search);
-        var next = urlParams.get('next') || '/ui/terminal-unified';
+        var next = urlParams.get('next') || '/ui/dashboard';
         window.location.href = next;
       } else {
         var errMsg = result.data.message || result.data.error || result.data.detail || 'Sign in failed. Please try again.';

@@ -385,13 +385,16 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/forge/status",
         "/api/swarm/mind/status",
         "/api/corpus/stats",
-        "/api/automation/requests",
         "/api/compliance/report",
         "/api/compliance/toggles",
         "/api/compliance/recommended",
         "/api/compliance/scan",
         "/api/shield/status",
         "/api/shield/north-star",
+        "/api/wallet/balances",
+        "/api/wallet/addresses",
+        "/api/wallet/transactions",
+        "/api/crypto/status",
     }
     EXEMPT_PREFIXES: Tuple[str, ...] = (
         "/static",
@@ -596,38 +599,64 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         ):
             enforced = True
 
-        # ── Path 1: Bearer JWT (OIDC) ────────────────────────────────
+        # ── Path 1: Bearer JWT (OIDC) or Session Token ─────────────
+        # PATCH-152e: Bearer can be either an OIDC JWT OR a murphy
+        # session token (urlsafe_b64, issued by /api/auth/login).
+        # Try OIDC first; on failure fall through to session validation
+        # instead of hard-rejecting — this unblocks browser clients
+        # that send the session_token as Authorization: Bearer.
         bearer = _extract_bearer(request)
         verifier = self._get_verifier()
-        if bearer and verifier is not None:
-            try:
-                claims = verifier.verify(bearer)
-            except Exception as exc:
-                # Distinguish transport failure (503, per ADR's "no
-                # silent fallback" rule) from token-specific failure
-                # (401).  ``OIDCDiscoveryError`` is the only transport
-                # error type the verifier raises.
-                err_name = type(exc).__name__
-                if err_name == "OIDCDiscoveryError":
-                    logger.error("OIDC discovery / JWKS failure: %s", exc)
-                    return JSONResponse(
-                        {"error": "Identity provider unavailable",
-                         "code": "OIDC_DISCOVERY_FAILED"},
-                        status_code=503,
+        if bearer:
+            oidc_ok = False
+            if verifier is not None:
+                try:
+                    claims = verifier.verify(bearer)
+                    request.state.actor_user_sub = claims.sub
+                    request.state.actor_tenant = claims.tenant
+                    request.state.actor_kind = "oidc"
+                    oidc_ok = True
+                    return await call_next(request)
+                except Exception as exc:
+                    err_name = type(exc).__name__
+                    if err_name == "OIDCDiscoveryError":
+                        logger.error("OIDC discovery / JWKS failure: %s", exc)
+                        return JSONResponse(
+                            {"error": "Identity provider unavailable",
+                             "code": "OIDC_DISCOVERY_FAILED"},
+                            status_code=503,
+                        )
+                    # Not an OIDC JWT — fall through to session check
+                    logger.debug(
+                        "Bearer not a valid OIDC token on %s — trying session store",
+                        path,
                     )
-                # Token problem.
-                reason = getattr(exc, "reason", "invalid_token")
-                logger.info("OIDC token rejected on %s: reason=%s", path, reason)
-                return JSONResponse(
-                    {"error": "Invalid OIDC token",
-                     "code": "OIDC_TOKEN_INVALID",
-                     "reason": reason},
-                    status_code=401,
-                )
-            request.state.actor_user_sub = claims.sub
-            request.state.actor_tenant = claims.tenant
-            request.state.actor_kind = "oidc"
-            return await call_next(request)
+
+            if not oidc_ok:
+                # PATCH-152e: try bearer as a murphy session token
+                try:
+                    from src.fastapi_security import _session_validator as _sv
+                    if _sv is not None and _sv(bearer):
+                        # Resolve account details from session store
+                        _account_id = ""
+                        _tenant_id = "default"
+                        try:
+                            from src.runtime.app import _session_store, _session_lock
+                            with _session_lock:
+                                _account_id = _session_store.get(bearer, "")
+                        except Exception:
+                            pass
+                        request.state.actor_user_sub = _account_id or "session_user"
+                        request.state.actor_tenant = _tenant_id
+                        request.state.actor_kind = "session_bearer"
+                        request.state.actor_account_id = _account_id
+                        logger.debug(
+                            "Session-bearer auth accepted for account %s on %s",
+                            _account_id, path,
+                        )
+                        return await call_next(request)
+                except Exception as _se:
+                    logger.debug("Session-bearer check error: %s", _se)
 
         # ── Path 2: server-side session cookie ───────────────────────
         # PATCH-060-auth: accept both murphy_sid (OIDC store) and
@@ -655,6 +684,34 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
                     return await call_next(request)
             except Exception:
                 pass
+
+        # ── Path 1.5: session token via Authorization: Bearer ────────
+        # PATCH-152e: catches urlsafe session tokens that _extract_bearer
+        # rejects (not a 3-segment JWT). Checked BEFORE the API-key
+        # fallback so the value isn't treated as a legacy key.
+        raw_bearer = _extract_raw_bearer(request)
+        if raw_bearer:
+            try:
+                from src.fastapi_security import _session_validator as _sv_15
+                if _sv_15 is not None and _sv_15(raw_bearer):
+                    _acct_15 = ""
+                    try:
+                        from src.runtime.app import _session_store as _ss_15, _session_lock as _sl_15
+                        with _sl_15:
+                            _acct_15 = _ss_15.get(raw_bearer, "")
+                    except Exception:
+                        pass
+                    request.state.actor_user_sub = _acct_15 or "session_bearer_user"
+                    request.state.actor_tenant = "default"
+                    request.state.actor_kind = "session_bearer"
+                    request.state.actor_account_id = _acct_15
+                    logger.debug(
+                        "PATCH-152e: session-bearer accepted for account=%s on %s",
+                        _acct_15, path,
+                    )
+                    return await call_next(request)
+            except Exception as _e15:
+                logger.debug("PATCH-152e: session-bearer check failed: %s", _e15)
 
         # ── Path 3: deprecated API-key fallback ──────────────────────
         api_key = _extract_api_key(request)
@@ -701,9 +758,26 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
                 "(ADR-0012 Release N+1 disables this path by default)",
                 path,
             )
-            request.state.actor_user_sub = ""
-            request.state.actor_tenant = ""
+            # PATCH-152d: resolve account_id from correct SQLite path
+            _api_acct_id = ""
+            try:
+                import sqlite3 as _sq_mw
+                _founder_email = os.environ.get("MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems")
+                # DB lives in service WorkingDirectory (/opt/Murphy-System/murphy.db)
+                _db_mw = _sq_mw.connect("/opt/Murphy-System/murphy.db", timeout=2)
+                _row_mw = _db_mw.execute(
+                    "SELECT account_id FROM user_accounts WHERE email=? LIMIT 1",
+                    (_founder_email,)
+                ).fetchone()
+                _db_mw.close()
+                if _row_mw:
+                    _api_acct_id = _row_mw[0]
+            except Exception:
+                pass
+            request.state.actor_user_sub = _api_acct_id or ""
+            request.state.actor_tenant = "founder" if _api_acct_id else ""
             request.state.actor_kind = "api_key"
+            request.state.actor_account_id = _api_acct_id
             return await call_next(request)
 
         # ── No credentials presented ──────────────────────────────────
@@ -738,3 +812,13 @@ def _extract_bearer(request: Request) -> Optional[str]:
     if candidate.count(".") == 2 and len(candidate) > 20:
         return candidate
     return None
+
+
+def _extract_raw_bearer(request: Request) -> Optional[str]:
+    """Return the raw bearer value regardless of whether it looks like a JWT.
+    Used by PATCH-152e to validate session tokens sent as Authorization: Bearer.
+    """
+    auth = request.headers.get("Authorization", "")
+    if not auth.lower().startswith("bearer "):
+        return None
+    return auth[7:].strip() or None

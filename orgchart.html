@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Org Chart Editor — Murphy System</title>
+<style>
+:root {
+  --bg:#080c17;--surface:#0f1623;--surface2:#161f30;--surface3:#1c2840;
+  --border:#1e2d45;--border2:#2a3d5a;
+  --teal:#00d4ff;--teal-dim:rgba(0,212,255,.10);--teal-glow:rgba(0,212,255,.20);
+  --green:#00ff88;--green-dim:rgba(0,255,136,.08);
+  --amber:#ffb400;--amber-dim:rgba(255,180,0,.10);
+  --red:#ff4466;--red-dim:rgba(255,68,102,.10);
+  --purple:#a855f7;--purple-dim:rgba(168,85,247,.10);
+  --pink:#f472b6;
+  --text:#e2e8f0;--text-muted:#4a5568;--text-dim:#718096;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',system-ui,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* NAV */
+.nav{display:flex;align-items:center;justify-content:space-between;padding:0 1.25rem;height:50px;background:rgba(8,12,23,.98);border-bottom:1px solid var(--border);flex-shrink:0;z-index:100}
+.nav-brand{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--teal);text-decoration:none;font-size:.88rem}
+.nav-center{display:flex;align-items:center;gap:.6rem}
+.nav-btn{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-dim);transition:all .15s;white-space:nowrap}
+.nav-btn:hover{border-color:var(--teal);color:var(--teal)}
+.nav-btn.primary{background:var(--teal);color:#080c17;border-color:var(--teal)}
+.nav-btn.primary:hover{background:#33dcff}
+.nav-links{display:flex;gap:1rem}
+.nav-links a{color:var(--text-muted);text-decoration:none;font-size:.78rem;transition:color .2s}
+.nav-links a:hover{color:var(--teal)}
+.nav-badge{background:var(--teal-dim);border:1px solid rgba(0,212,255,.3);color:var(--teal);padding:2px 9px;border-radius:20px;font-size:.7rem;font-weight:700}
+
+/* TOOLBAR */
+.toolbar{display:flex;align-items:center;gap:.5rem;padding:.45rem 1rem;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.tool-btn{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:5px;font-size:.75rem;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-dim);transition:all .15s;white-space:nowrap}
+.tool-btn:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-dim)}
+.tool-btn.active{border-color:var(--teal);color:var(--teal);background:var(--teal-dim)}
+.tool-sep{width:1px;height:20px;background:var(--border);margin:0 4px;flex-shrink:0}
+.zoom-val{font-size:.75rem;color:var(--text-dim);min-width:36px;text-align:center}
+.breadcrumb{display:flex;align-items:center;gap:5px;font-size:.75rem;color:var(--text-muted);margin-left:auto}
+.breadcrumb span{color:var(--teal)}
+
+/* LAYOUT */
+.main{display:flex;flex:1;overflow:hidden}
+
+/* CANVAS */
+.canvas-wrap{flex:1;position:relative;overflow:hidden;background:var(--bg);cursor:grab}
+.canvas-wrap.grabbing{cursor:grabbing}
+.canvas-wrap.adding{cursor:crosshair}
+#canvas{position:absolute;top:0;left:0;transform-origin:0 0}
+#edges-svg{position:absolute;top:0;left:0;pointer-events:none;overflow:visible;transform-origin:0 0}
+.canvas-wrap::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,rgba(30,45,69,.7) 1px,transparent 1px);background-size:28px 28px;pointer-events:none}
+
+/* NODE */
+.org-node{position:absolute;width:210px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;cursor:pointer;user-select:none;transition:border-color .15s,box-shadow .15s;box-shadow:0 2px 10px rgba(0,0,0,.4)}
+.org-node:hover{border-color:var(--border2);box-shadow:0 4px 18px rgba(0,0,0,.5)}
+.org-node.selected{border-color:var(--teal);box-shadow:0 0 0 2px rgba(0,212,255,.15),0 4px 20px rgba(0,0,0,.5)}
+.org-node.dragging{opacity:.85;box-shadow:0 10px 36px rgba(0,0,0,.7);z-index:1000}
+.node-header{padding:9px 11px 7px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:7px}
+.node-dept-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.node-titles{flex:1;min-width:0}
+.node-role{font-size:.78rem;font-weight:700;color:var(--text);line-height:1.25}
+.node-dept{font-size:.65rem;color:var(--text-muted);margin-top:2px;text-transform:uppercase;letter-spacing:.06em}
+.node-body{padding:7px 11px}
+.node-person{display:flex;align-items:center;gap:7px}
+.node-avatar{width:26px;height:26px;border-radius:50%;background:var(--surface3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;color:var(--teal);flex-shrink:0}
+.node-person-name{font-size:.76rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.node-person-title{font-size:.64rem;color:var(--text-muted)}
+.node-empty{font-size:.68rem;color:var(--text-muted);font-style:italic}
+.node-footer{padding:4px 11px 7px;display:flex;align-items:center;justify-content:space-between}
+.node-badge{font-size:.6rem;padding:1px 6px;border-radius:4px;font-weight:600;border:1px solid}
+.level-c_suite{color:#f59e0b;border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.08)}
+.level-vp{color:var(--purple);border-color:rgba(168,85,247,.3);background:rgba(168,85,247,.08)}
+.level-director{color:var(--teal);border-color:rgba(0,212,255,.3);background:var(--teal-dim)}
+.level-manager{color:var(--green);border-color:rgba(0,255,136,.3);background:var(--green-dim)}
+.level-individual_contributor{color:var(--text-dim);border-color:var(--border);background:transparent}
+.node-agentic{font-size:.62rem;color:var(--teal);display:flex;align-items:center;gap:3px}
+.agentic-pulse{width:5px;height:5px;border-radius:50%;background:var(--teal);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.node-add-btn{position:absolute;bottom:-13px;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;background:var(--surface2);border:1.5px solid var(--border2);color:var(--text-muted);font-size:.95rem;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .15s,border-color .15s;z-index:10;line-height:1}
+.org-node:hover .node-add-btn,.org-node.selected .node-add-btn{opacity:1}
+.node-add-btn:hover{border-color:var(--teal);color:var(--teal)}
+
+/* EDGE */
+.edge-path{stroke:var(--border2);stroke-width:1.5;fill:none;transition:stroke .15s}
+.edge-path.sel{stroke:var(--teal);stroke-width:2}
+
+/* LEGEND */
+.legend{position:absolute;bottom:12px;left:12px;background:rgba(8,12,23,.92);border:1px solid var(--border);border-radius:8px;padding:8px 12px;backdrop-filter:blur(8px);display:flex;flex-direction:column;gap:4px}
+.legend-title{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted)}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:.68rem;color:var(--text-dim)}
+.legend-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0}
+
+/* ── INSPECTOR ── */
+.inspector{width:300px;flex-shrink:0;border-left:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden}
+.insp-header{padding:.8rem 1rem .7rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.insp-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted)}
+.insp-close{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem;padding:2px 5px;border-radius:4px}
+.insp-close:hover{color:var(--text);background:var(--surface2)}
+
+/* tabs */
+.insp-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.insp-tab{flex:1;padding:8px 4px;font-size:.73rem;font-weight:600;color:var(--text-muted);background:transparent;border:none;cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+.insp-tab:hover{color:var(--text)}
+.insp-tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+
+.insp-body{flex:1;overflow-y:auto;padding:.9rem 1rem;display:flex;flex-direction:column;gap:.75rem}
+.insp-empty{display:flex;align-items:center;justify-content:center;flex:1;flex-direction:column;gap:8px;color:var(--text-muted);font-size:.82rem;padding:2rem;text-align:center}
+.insp-empty .ei{font-size:2.5rem;opacity:.3}
+
+/* fields */
+.f{display:flex;flex-direction:column;gap:4px}
+.f-label{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted)}
+.f-input{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.82rem;padding:7px 9px;font-family:inherit;outline:none;width:100%;transition:border-color .2s}
+.f-input:focus{border-color:var(--teal)}
+.f-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%234a5568' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:24px}
+.f-textarea{resize:vertical;min-height:56px;line-height:1.5}
+.f-row{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.f-section{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);padding-top:.5rem;border-top:1px solid var(--border);margin-top:.1rem}
+
+/* slider */
+.slider-row{display:flex;align-items:center;gap:8px}
+.slider-row input[type=range]{flex:1;accent-color:var(--teal);cursor:pointer}
+.slider-val{font-size:.82rem;font-weight:700;color:var(--teal);min-width:36px;text-align:right;font-family:monospace}
+.slider-row.red input[type=range]{accent-color:var(--red)}
+.slider-row.red .slider-val{color:var(--red)}
+
+/* toggle */
+.toggle-row{display:flex;align-items:center;justify-content:space-between}
+.toggle-label{font-size:.8rem;color:var(--text-dim)}
+.toggle{width:34px;height:18px;border-radius:9px;background:var(--border);border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--teal)}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .2s}
+.toggle.on::after{transform:translateX(16px)}
+
+/* tags */
+.tags{display:flex;flex-wrap:wrap;gap:4px}
+.tag{font-size:.67rem;padding:2px 7px;border-radius:4px;background:var(--surface3);border:1px solid var(--border);color:var(--text-dim)}
+.tag-add{background:transparent;color:var(--teal);border-color:rgba(0,212,255,.3);cursor:pointer}
+.tag-add:hover{background:var(--teal-dim)}
+
+/* north star box */
+.ns-box{background:linear-gradient(135deg,rgba(168,85,247,.08),rgba(0,212,255,.05));border:1px solid rgba(168,85,247,.25);border-radius:8px;padding:.85rem 1rem;position:relative;overflow:hidden}
+.ns-box::before{content:'⭐';position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:2.5rem;opacity:.07}
+.ns-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--purple);margin-bottom:4px}
+.ns-text{font-size:.78rem;color:var(--text);line-height:1.55;font-style:italic}
+
+/* soul character card */
+.soul-char-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.85rem;display:flex;gap:10px;align-items:flex-start}
+.soul-emoji{font-size:2rem;line-height:1;flex-shrink:0}
+.soul-char-info{flex:1;min-width:0}
+.soul-char-name{font-size:.9rem;font-weight:700;color:var(--text)}
+.soul-char-id{font-size:.67rem;color:var(--text-muted);font-family:monospace}
+.soul-char-meta{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}
+.soul-meta-badge{font-size:.65rem;padding:2px 7px;border-radius:4px;border:1px solid var(--border);color:var(--text-dim);background:var(--surface3)}
+
+/* action btns */
+.i-actions{display:flex;flex-direction:column;gap:5px;padding-top:.25rem}
+.i-btn{padding:7px 12px;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;border:none;transition:all .15s;width:100%;text-align:left}
+.i-btn-save{background:var(--teal);color:#080c17}
+.i-btn-save:hover{background:#33dcff}
+.i-btn-add{background:transparent;color:var(--text-dim);border:1px solid var(--border)}
+.i-btn-add:hover{border-color:var(--teal);color:var(--teal)}
+.i-btn-del{background:transparent;color:var(--red);border:1px solid rgba(255,68,102,.3)}
+.i-btn-del:hover{background:var(--red-dim)}
+
+/* TOAST */
+.toast{position:fixed;bottom:18px;right:18px;background:var(--surface3);border:1px solid var(--green);color:var(--green);padding:8px 16px;border-radius:7px;font-size:.8rem;font-weight:600;z-index:9999;transform:translateY(60px);opacity:0;transition:all .25s;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.err{border-color:var(--red);color:var(--red)}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:1.5rem;width:370px}
+.modal-title{font-size:.95rem;font-weight:700;margin-bottom:1rem}
+.modal-fields{display:flex;flex-direction:column;gap:.7rem;margin-bottom:1.1rem}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end}
+.m-btn{padding:7px 18px;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer;border:none}
+.m-cancel{background:transparent;color:var(--text-dim);border:1px solid var(--border)}
+.m-ok{background:var(--teal);color:#080c17}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+<link rel="stylesheet" href="/static/murphy-design-system.css">
+<link rel="stylesheet" href="/static/murphy-landing.css">
+</head>
+<body>
+
+<header class="murphy-topbar" role="banner">
+  <a class="topbar-brand" href="/" aria-label="Murphy System home">
+    <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="none" stroke="#00D4AA" stroke-width="2"/><path d="M8 22L12 10l4 8 4-8 4 12" stroke="#00ff41" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span class="topbar-brand-name">Murphy System</span>
+  </a>
+  <nav class="murphy-nav-links" role="menubar">
+    <a href="/ui/dashboard">Dashboard</a>
+    <a href="/ui/automations">Automations</a>
+    <a href="/ui/forge">Forge</a>
+    <a href="/ui/compliance">Compliance</a>
+    <a href="/ui/orgchart">Org Chart</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="sys-pill" id="sys-status-pill"><span class="dot"></span><span id="sys-status-text">checking&#8230;</span></span>
+    <a class="btn-s" href="/ui/login" style="padding:.35rem .9rem;font-size:.8rem">Login</a>
+    <a class="btn-p" href="/ui/signup" style="padding:.35rem .9rem;font-size:.8rem">Start Free</a>
+  </div>
+</header>
+<script>
+(function(){
+  fetch('/api/health').then(function(r){return r.json();}).then(function(d){
+    var el=document.getElementById('sys-status-text');
+    var pill=document.getElementById('sys-status-pill');
+    if(el){el.textContent=d.status==='healthy'?'healthy':'degraded';}
+    if(pill&&d.status!=='healthy'){pill.classList.add('warn');}
+  }).catch(function(){var el=document.getElementById('sys-status-text');if(el)el.textContent='offline';});
+})();
+</script>
+
+<div class="toolbar">
+  <div style="display:flex;gap:4px">
+    <button class="tool-btn active" id="tb-select" onclick="setTool('select')">↖ Select</button>
+    <button class="tool-btn" id="tb-add" onclick="setTool('add')">＋ Add</button>
+  </div>
+  <div class="tool-sep"></div>
+  <div style="display:flex;align-items:center;gap:4px">
+    <button class="tool-btn" onclick="zoom(-.15)">−</button>
+    <span class="zoom-val" id="zoom-val">100%</span>
+    <button class="tool-btn" onclick="zoom(+.15)">＋</button>
+    <button class="tool-btn" onclick="fit()">⊡ Fit</button>
+  </div>
+  <div class="tool-sep"></div>
+  <button class="tool-btn" onclick="collapseAll()">▲ Collapse</button>
+  <button class="tool-btn" onclick="expandAll()">▼ Expand</button>
+  <div class="tool-sep"></div>
+  <span class="zoom-val" id="node-count" style="min-width:60px">—</span>
+  <div class="breadcrumb">Org Chart &rsaquo; <span>All Roles</span></div>
+</div>
+
+<div class="main">
+  <div class="canvas-wrap" id="wrap">
+    <svg id="svg" style="position:absolute;top:0;left:0;pointer-events:none;overflow:visible;transform-origin:0 0"></svg>
+    <div id="canvas" style="position:absolute;top:0;left:0;transform-origin:0 0"></div>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <aside class="inspector" id="inspector">
+    <div class="insp-header">
+      <span class="insp-title" id="insp-title">Inspector</span>
+      <button class="insp-close" onclick="deselect()">✕</button>
+    </div>
+    <div class="insp-tabs" id="insp-tabs" style="display:none">
+      <button class="insp-tab active" onclick="switchTab('org')" id="tab-org">🏢 Role</button>
+      <button class="insp-tab" onclick="switchTab('soul')" id="tab-soul">🌐 Soul</button>
+    </div>
+    <div class="insp-body" id="insp-body">
+      <div class="insp-empty"><div class="ei">🏢</div><div>Select a role to inspect & edit</div></div>
+    </div>
+  </aside>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-h">Add Role</div>
+    <div class="modal-fields">
+      <div class="f"><div class="f-label">Role Title</div><input class="f-input" id="m-title" placeholder="e.g. VP of Engineering"></div>
+      <div class="f"><div class="f-label">Department</div>
+        <select class="f-input f-select" id="m-dept">
+          <option value="executive">Executive</option><option value="engineering">Engineering</option>
+          <option value="product">Product</option><option value="operations">Operations</option>
+          <option value="sales">Sales</option><option value="finance">Finance</option>
+          <option value="hr">HR</option><option value="marketing">Marketing</option>
+          <option value="design">Design</option><option value="support">Support</option>
+        </select>
+      </div>
+      <div class="f"><div class="f-label">Level</div>
+        <select class="f-input f-select" id="m-level">
+          <option value="c_suite">C-Suite</option><option value="vp">VP</option>
+          <option value="director">Director</option><option value="manager">Manager</option>
+          <option value="individual_contributor">Individual Contributor</option>
+        </select>
+      </div>
+      <div class="f"><div class="f-label">Person Name (optional)</div><input class="f-input" id="m-person" placeholder="e.g. Jane Smith"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="m-btn m-cancel" onclick="closeModal()">Cancel</button>
+      <button class="m-btn m-ok" onclick="confirmAdd()">Add Role</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════
+let nodes = {}, soulData = null;
+let sel = null, currentTab = 'org', currentTool = 'select';
+let scale = 1, panX = 0, panY = 0;
+let isPanning = false, panSX = 0, panSY = 0;
+let dragId = null, dragOX = 0, dragOY = 0, dragMoved = false, dragSX = 0, dragSY = 0;
+let addParentId = null, collapsed = new Set();
+
+const DEPT_C = {executive:'#f59e0b',engineering:'#3b82f6',product:'#a855f7',
+  operations:'#10b981',sales:'#f472b6',finance:'#ffb400',hr:'#ec4899',
+  marketing:'#06b6d4',design:'#8b5cf6',support:'#84cc16',default:'#64748b'};
+const NW=210,NH=108,HG=44,VG=72;
+
+function dc(d){return DEPT_C[d]||DEPT_C.default}
+function llbl(l){return{c_suite:'C-Suite',vp:'VP',director:'Dir',manager:'Mgr',individual_contributor:'IC'}[l]||l}
+function init2(n){if(!n)return'?';return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}
+
+// ════════════════════════════════════════════════
+// LOAD
+// ════════════════════════════════════════════════
+async function boot(){
+  await Promise.all([loadOrg(), loadSoul()]);
+  autoLayout(); render(); buildLegend(); fit();
+}
+
+async function loadOrg(){
+  try{
+    let r=await fetch('/api/onboarding-flow/org/chart');
+    let d=await r.json();
+    let chart=d.org_chart||{};
+    if(!chart.hierarchy?.length){
+      const ir=await fetch('/api/onboarding-flow/org/initialize',{method:'POST'});
+      const id2=await ir.json();
+      chart=id2.org_chart||{};
+    }
+    nodes={};
+    function flat(node,pid){
+      const id=node.position_id||('n_'+Math.random().toString(36).slice(2,9));
+      nodes[id]={id,title:node.title||'Untitled',department:node.department||'default',
+        level:node.level||'individual_contributor',reports_to:pid||null,children:[],
+        person_name:node.person_name||'',person_email:node.person_email||'',
+        responsibilities:node.responsibilities||[],automation_scope:node.automation_scope||[],
+        is_agentic:node.is_agentic!==false,x:0,y:0};
+      (node.children||[]).forEach(c=>{const cid=flat(c,id);nodes[id].children.push(cid)});
+      return id;
+    }
+    (chart.hierarchy||[]).forEach(root=>flat(root,null));
+  }catch(e){toast('Org load failed: '+e.message,true)}
+}
+
+async function loadSoul(){
+  try{
+    const r=await fetch('/api/rosetta/soul');
+    soulData=await r.json();
+  }catch(e){}
+}
+
+// ════════════════════════════════════════════════
+// LAYOUT
+// ════════════════════════════════════════════════
+function visChildren(id){
+  if(collapsed.has(id))return[];
+  return(nodes[id]?.children||[]).filter(c=>nodes[c]);
+}
+function stw(id){
+  const ch=visChildren(id);
+  if(!ch.length)return NW;
+  const sum=ch.map(stw).reduce((a,b)=>a+b,0)+HG*(ch.length-1);
+  return Math.max(NW,sum);
+}
+function posNode(id,x,y){
+  if(!nodes[id])return;
+  nodes[id].x=x;nodes[id].y=y;
+  const ch=visChildren(id);
+  if(!ch.length)return;
+  const ws=ch.map(stw);
+  const total=ws.reduce((a,b)=>a+b,0)+HG*(ch.length-1);
+  let cx=x+(NW-total)/2;
+  ch.forEach((cid,i)=>{posNode(cid,cx,y+NH+VG);cx+=ws[i]+HG});
+}
+function autoLayout(){
+  const roots=Object.values(nodes).filter(n=>!n.reports_to);
+  let x=60;
+  roots.forEach(r=>{posNode(r.id,x,60);x+=stw(r.id)+HG*2});
+}
+
+// ════════════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════════════
+function render(){
+  const canvas=document.getElementById('canvas');
+  const svg=document.getElementById('svg');
+  canvas.innerHTML=''; svg.innerHTML='';
+  canvas.style.transform=`translate(${panX}px,${panY}px) scale(${scale})`;
+  svg.style.transform=`translate(${panX}px,${panY}px) scale(${scale})`;
+  svg.style.width='100%'; svg.style.height='100%';
+
+  // edges
+  Object.values(nodes).forEach(n=>{
+    if(!n.reports_to||!nodes[n.reports_to])return;
+    if(collapsed.has(n.reports_to))return;
+    const p=nodes[n.reports_to];
+    const x1=p.x+NW/2,y1=p.y+NH;
+    const x2=n.x+NW/2,y2=n.y;
+    const my=(y1+y2)/2;
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    const isSel=n.id===sel||n.reports_to===sel;
+    path.setAttribute('class','edge-path'+(isSel?' sel':''));
+    path.setAttribute('d',`M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}`);
+    svg.appendChild(path);
+  });
+
+  // nodes
+  Object.values(nodes).forEach(n=>{
+    const el=document.createElement('div');
+    el.className='org-node'+(n.id===sel?' selected':'');
+    el.id='nd-'+n.id;
+    el.style.left=n.x+'px'; el.style.top=n.y+'px';
+    const color=dc(n.department);
+    const hasCh=n.children.length>0;
+    const isCol=collapsed.has(n.id);
+
+    // Find matching soul character by dept/role heuristic
+    const soulChar=getSoulChar(n);
+
+    el.innerHTML=`
+      <div class="node-header">
+        <div class="node-dept-dot" style="background:${color}"></div>
+        <div class="node-titles">
+          <div class="node-role">${n.title}</div>
+          <div class="node-dept">${n.department}${hasCh?` · ${n.children.length} direct`:''}</div>
+        </div>
+        ${hasCh?`<button class="tool-btn" style="padding:2px 6px;font-size:.62rem;flex-shrink:0" onclick="toggleCol(event,'${n.id}')">${isCol?'▶':'▼'}</button>`:''}
+        ${soulChar?`<span style="font-size:1rem;flex-shrink:0" title="${soulChar.name}">${soulChar.emoji}</span>`:''}
+      </div>
+      <div class="node-body">
+        ${n.person_name
+          ?`<div class="node-person"><div class="node-avatar">${init2(n.person_name)}</div>
+              <div><div class="node-person-name">${n.person_name}</div>
+              <div class="node-person-title">${n.person_email||'No email'}</div></div></div>`
+          :`<div class="node-empty">Vacant position</div>`}
+      </div>
+      <div class="node-footer">
+        <span class="node-badge level-${n.level}">${llbl(n.level)}</span>
+        ${n.is_agentic?'<span class="node-agentic"><div class="agentic-pulse"></div>AI agent</span>':''}
+      </div>
+      <div class="node-add-btn" onclick="openAddModal('${n.id}',event)">+</div>`;
+
+    el.addEventListener('mousedown',e=>{
+      if(e.target.closest('button')||e.target.closest('.node-add-btn'))return;
+      e.stopPropagation();
+      e.preventDefault();
+      if(currentTool==='add'){openAddModal(n.id);return}
+      selectNode(n.id);
+      startDrag(e,n.id);
+    });
+    el.addEventListener('click',e=>{
+      if(e.target.closest('button')||e.target.closest('.node-add-btn'))return;
+      e.stopPropagation();
+      selectNode(n.id);
+    });
+    canvas.appendChild(el);
+  });
+
+  document.getElementById('node-count').textContent=Object.keys(nodes).length+' roles';
+}
+
+// ════════════════════════════════════════════════
+// SOUL CHARACTER MATCHING
+// ════════════════════════════════════════════════
+function getSoulChar(node){
+  if(!soulData?.characters)return null;
+  const chars=soulData.characters;
+  const dept=node.department;
+  const level=node.level;
+  const title=node.title.toLowerCase();
+  // Heuristic mapping: try to match swarm character to org role
+  if(level==='c_suite'&&title.includes('execu'))return chars.exec_admin||null;
+  if(title.includes('tech')||title.includes('engineer'))return chars.prod_ops||null;
+  if(title.includes('product')||title.includes('translat'))return chars.translator||null;
+  if(title.includes('operat')||title.includes('schedul'))return chars.scheduler||null;
+  if(title.includes('audit')||title.includes('compli')||title.includes('finance'))return chars.auditor||null;
+  if(title.includes('sales')||title.includes('exec'))return chars.exec_admin||null;
+  if(dept==='engineering')return chars.prod_ops||null;
+  if(dept==='executive')return chars.rosetta||null;
+  if(dept==='finance')return chars.auditor||null;
+  return null;
+}
+
+// ════════════════════════════════════════════════
+// DRAG
+// ════════════════════════════════════════════════
+function startDrag(e,id){
+  const n=nodes[id];
+  dragId=id; dragMoved=false;
+  dragSX=e.clientX; dragSY=e.clientY;
+  dragOX=(e.clientX-panX)/scale-n.x;
+  dragOY=(e.clientY-panY)/scale-n.y;
+  document.addEventListener('mousemove',onDragMove);
+  document.addEventListener('mouseup',onDragEnd);
+}
+function onDragMove(e){
+  if(!dragId)return;
+  const dx=e.clientX-dragSX,dy=e.clientY-dragSY;
+  if(!dragMoved&&Math.sqrt(dx*dx+dy*dy)<5)return;
+  if(!dragMoved){dragMoved=true;document.getElementById('nd-'+dragId)?.classList.add('dragging')}
+  nodes[dragId].x=Math.max(0,(e.clientX-panX)/scale-dragOX);
+  nodes[dragId].y=Math.max(0,(e.clientY-panY)/scale-dragOY);
+  render();
+}
+function onDragEnd(){
+  document.getElementById('nd-'+dragId)?.classList.remove('dragging');
+  dragId=null; dragMoved=false;
+  document.removeEventListener('mousemove',onDragMove);
+  document.removeEventListener('mouseup',onDragEnd);
+}
+
+// ════════════════════════════════════════════════
+// PAN + ZOOM
+// ════════════════════════════════════════════════
+const wrap=document.getElementById('wrap');
+wrap.addEventListener('mousedown',e=>{
+  if(e.target.closest('.org-node')||e.target.closest('.legend'))return;
+  isPanning=true; panSX=e.clientX-panX; panSY=e.clientY-panY;
+  wrap.classList.add('grabbing');
+});
+document.addEventListener('mousemove',e=>{
+  if(!isPanning)return;
+  panX=e.clientX-panSX; panY=e.clientY-panSY; render();
+});
+document.addEventListener('mouseup',()=>{isPanning=false;wrap.classList.remove('grabbing')});
+wrap.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const delta=e.deltaY>0?-.08:.08;
+  const rect=wrap.getBoundingClientRect();
+  const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  const prev=scale;
+  scale=Math.max(.2,Math.min(2,scale+delta));
+  panX=mx-(mx-panX)*(scale/prev);
+  panY=my-(my-panY)*(scale/prev);
+  document.getElementById('zoom-val').textContent=Math.round(scale*100)+'%';
+  render();
+},{passive:false});
+function zoom(d){scale=Math.max(.2,Math.min(2,scale+d));document.getElementById('zoom-val').textContent=Math.round(scale*100)+'%';render()}
+function fit(){
+  const all=Object.values(nodes);
+  if(!all.length)return;
+  const minX=Math.min(...all.map(n=>n.x)),minY=Math.min(...all.map(n=>n.y));
+  const maxX=Math.max(...all.map(n=>n.x))+NW,maxY=Math.max(...all.map(n=>n.y))+NH;
+  const rect=wrap.getBoundingClientRect();
+  const pad=80;
+  scale=Math.min(1,Math.min((rect.width-pad*2)/(maxX-minX),(rect.height-pad*2)/(maxY-minY)));
+  panX=(rect.width-(maxX-minX)*scale)/2-minX*scale;
+  panY=(rect.height-(maxY-minY)*scale)/2-minY*scale;
+  document.getElementById('zoom-val').textContent=Math.round(scale*100)+'%';
+  render();
+}
+
+// ════════════════════════════════════════════════
+// SELECTION
+// ════════════════════════════════════════════════
+function selectNode(id){
+  sel=id;
+  currentTab='org';
+  render();
+  document.getElementById('insp-tabs').style.display='flex';
+  document.getElementById('tab-org').classList.add('active');
+  document.getElementById('tab-soul').classList.remove('active');
+  renderOrgTab(id);
+}
+function deselect(){
+  sel=null; render();
+  document.getElementById('insp-tabs').style.display='none';
+  document.getElementById('insp-body').innerHTML=`<div class="insp-empty"><div class="ei">🏢</div><div>Select a role to inspect & edit</div></div>`;
+  document.getElementById('insp-title').textContent='Inspector';
+}
+function switchTab(tab){
+  currentTab=tab;
+  document.getElementById('tab-org').classList.toggle('active',tab==='org');
+  document.getElementById('tab-soul').classList.toggle('active',tab==='soul');
+  if(tab==='org')renderOrgTab(sel);
+  else renderSoulTab(sel);
+}
+
+// ════════════════════════════════════════════════
+// ORG TAB
+// ════════════════════════════════════════════════
+function renderOrgTab(id){
+  const n=nodes[id];
+  if(!n)return;
+  document.getElementById('insp-title').textContent=n.title;
+
+  const deptOpts=Object.keys(DEPT_C).filter(d=>d!=='default').map(d=>
+    `<option value="${d}" ${n.department===d?'selected':''}>${d.charAt(0).toUpperCase()+d.slice(1)}</option>`).join('');
+  const levelOpts=['c_suite','vp','director','manager','individual_contributor'].map(l=>
+    `<option value="${l}" ${n.level===l?'selected':''}>${llbl(l)} — ${l}</option>`).join('');
+  const parentOpts=`<option value="">— No manager (Root) —</option>`+
+    Object.values(nodes).filter(o=>o.id!==id).map(o=>
+    `<option value="${o.id}" ${n.reports_to===o.id?'selected':''}>${o.title}</option>`).join('');
+  const respTags=(n.responsibilities||[]).map(r=>`<span class="tag">${r}</span>`).join('');
+  const autoTags=(n.automation_scope||[]).map(a=>`<span class="tag">${a}</span>`).join('');
+
+  document.getElementById('insp-body').innerHTML=`
+    <div class="f"><div class="f-label">Role Title</div>
+      <input class="f-input" value="${n.title}" oninput="lu('${id}','title',this.value)"></div>
+    <div class="f-row">
+      <div class="f"><div class="f-label">Person Name</div>
+        <input class="f-input" value="${n.person_name||''}" oninput="lu('${id}','person_name',this.value)" placeholder="Vacant"></div>
+      <div class="f"><div class="f-label">Email</div>
+        <input class="f-input" value="${n.person_email||''}" oninput="lu('${id}','person_email',this.value)" placeholder="email@co.com"></div>
+    </div>
+    <div class="f-row">
+      <div class="f"><div class="f-label">Department</div>
+        <select class="f-input f-select" onchange="lu('${id}','department',this.value)">${deptOpts}</select></div>
+      <div class="f"><div class="f-label">Level</div>
+        <select class="f-input f-select" onchange="lu('${id}','level',this.value)">${levelOpts}</select></div>
+    </div>
+    <div class="f"><div class="f-label">Reports To</div>
+      <select class="f-input f-select" onchange="changeParent('${id}',this.value)">${parentOpts}</select></div>
+    <div class="f-section">Responsibilities</div>
+    <div class="tags" id="resp-tags">${respTags}<button class="tag tag-add" onclick="addTag('${id}','responsibilities')">＋ add</button></div>
+    <div class="f-section">Automation Scope</div>
+    <div class="tags" id="auto-tags">${autoTags}<button class="tag tag-add" onclick="addTag('${id}','automation_scope')">＋ add</button></div>
+    <div class="f-section">AI Agent</div>
+    <div class="toggle-row">
+      <span class="toggle-label">Shadow agent active</span>
+      <button class="toggle ${n.is_agentic?'on':''}" onclick="this.classList.toggle('on');lu('${id}','is_agentic',this.classList.contains('on'))"></button>
+    </div>
+    <div class="i-actions">
+      <button class="i-btn i-btn-save" onclick="saveNode('${id}')">✓ Save Changes</button>
+      <button class="i-btn i-btn-add" onclick="openAddModal('${id}')">＋ Add Direct Report</button>
+      <button class="i-btn i-btn-del" onclick="deleteNode('${id}')">🗑 Delete Role</button>
+    </div>`;
+}
+
+// ════════════════════════════════════════════════
+// SOUL TAB
+// ════════════════════════════════════════════════
+function renderSoulTab(id){
+  const n=nodes[id];
+  if(!n)return;
+
+  if(!soulData?.characters){
+    document.getElementById('insp-body').innerHTML=`<div class="insp-empty"><div class="ei">🌐</div><div>Soul data not loaded</div></div>`;
+    return;
+  }
+
+  const chars=soulData.characters;
+  const char=getSoulChar(n);
+  const allChars=Object.entries(chars).sort((a,b)=>a[1].position-b[1].position);
+  const northStar=soulData.north_star||'';
+  const covenant=soulData.team_covenant||[];
+  const harm=soulData.harm_thresholds||{};
+
+  // Agent selector
+  const agentOpts=allChars.map(([aid,c])=>
+    `<option value="${aid}" ${char&&aid===(allChars.find(([,cc])=>cc===char)?.[0]||'')?'selected':''}>${c.emoji} ${c.name} — #${c.position}</option>`
+  ).join('');
+
+  const selCharId=char?Object.entries(chars).find(([,c])=>c===char)?.[0]:allChars[0][0];
+  const sc=chars[selCharId]||allChars[0][1];
+
+  const COVENANT_DESC={
+    'dedup_before_act':'Never repeat an action another agent already took this cycle',
+    'report_to_auditor':'All significant actions logged to Auditor',
+    'no_isolation':'Cannot act in isolation — swarm awareness required',
+    'past_informs_present':'Historical patterns consulted before new decisions',
+  };
+
+  document.getElementById('insp-body').innerHTML=`
+    <div class="f"><div class="f-label">Linked Soul Character</div>
+      <select class="f-input f-select" id="soul-char-sel" onchange="reloadSoulCard(this.value)">${agentOpts}</select>
+    </div>
+
+    <div class="soul-char-card" id="soul-card">
+      <div class="soul-emoji" id="sc-emoji">${sc.emoji}</div>
+      <div class="soul-char-info">
+        <div class="soul-char-name" id="sc-name">${sc.name}</div>
+        <div class="soul-char-id" id="sc-id">agent_id: ${selCharId}</div>
+        <div class="soul-char-meta">
+          <span class="soul-meta-badge" id="sc-tone">${sc.tone}</span>
+          <span class="soul-meta-badge" id="sc-bias">${sc.bias}</span>
+          <span class="soul-meta-badge" id="sc-pos">pos #${sc.position}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="f"><div class="f-label">Emoji</div>
+      <input class="f-input" id="sc-emoji-in" value="${sc.emoji}" style="font-size:1.2rem;text-align:center"
+        oninput="editChar(this.value,'emoji')"></div>
+    <div class="f-row">
+      <div class="f"><div class="f-label">Tone</div>
+        <select class="f-input f-select" id="sc-tone-sel" onchange="editChar(this.value,'tone')">
+          ${['observant','precise','disciplined','decisive','thorough','gracious','methodical','cautious','sovereign','analytical','empathetic','assertive'].map(t=>`<option ${sc.tone===t?'selected':''}>${t}</option>`).join('')}
+        </select></div>
+      <div class="f"><div class="f-label">Bias</div>
+        <select class="f-input f-select" id="sc-bias-sel" onchange="editChar(this.value,'bias')">
+          ${['completeness','accuracy','efficiency','speed_safety','human_impact','system_health','caution','north_star','fairness','creativity'].map(b=>`<option ${sc.bias===b?'selected':''}>${b}</option>`).join('')}
+        </select></div>
+    </div>
+
+    <div class="f"><div class="f-label">HITL Threshold — confidence needed before autonomous action</div>
+      <div class="slider-row">
+        <input type="range" min="0" max="1" step="0.05" value="${sc.hitl_threshold}"
+          oninput="document.getElementById('hitl-v').textContent=(+this.value*100).toFixed(0)+'%';editChar(+this.value,'hitl_threshold')">
+        <div class="slider-val" id="hitl-v">${(sc.hitl_threshold*100).toFixed(0)}%</div>
+      </div>
+    </div>
+
+    <div class="f-section">North Star</div>
+    <div class="ns-box">
+      <div class="ns-label">Universal Vow — all agents</div>
+      <div class="ns-text">${northStar}</div>
+    </div>
+
+    <div class="f-section">Harm Floor</div>
+    <div class="f-row">
+      <div class="f"><div class="f-label">Physical Harm</div>
+        <div class="slider-row red">
+          <input type="range" min="0" max="1" step="0.05" value="${harm.p_harm_physical||0.65}"
+            oninput="document.getElementById('hp-v').textContent=(+this.value).toFixed(2)">
+          <div class="slider-val" id="hp-v">${(harm.p_harm_physical||0.65).toFixed(2)}</div>
+        </div></div>
+      <div class="f"><div class="f-label">Autonomy Harm</div>
+        <div class="slider-row red">
+          <input type="range" min="0" max="1" step="0.05" value="${harm.p_harm_autonomy||0.65}"
+            oninput="document.getElementById('ha-v').textContent=(+this.value).toFixed(2)">
+          <div class="slider-val" id="ha-v">${(harm.p_harm_autonomy||0.65).toFixed(2)}</div>
+        </div></div>
+    </div>
+
+    <div class="f-section">Team Covenant</div>
+    ${covenant.map(rule=>`
+      <div class="toggle-row" style="margin-bottom:4px">
+        <div>
+          <div style="font-size:.78rem;color:var(--text);font-family:monospace">${rule}</div>
+          <div style="font-size:.68rem;color:var(--text-muted)">${COVENANT_DESC[rule]||''}</div>
+        </div>
+        <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+      </div>`).join('')}
+
+    <div class="i-actions">
+      <button class="i-btn i-btn-save" onclick="saveSoulChar()">✓ Save Soul Config</button>
+    </div>`;
+}
+
+// current soul char being edited
+let editingCharId = null;
+function reloadSoulCard(charId){
+  editingCharId=charId;
+  if(!soulData?.characters?.[charId])return;
+  const sc=soulData.characters[charId];
+  document.getElementById('sc-emoji').textContent=sc.emoji;
+  document.getElementById('sc-name').textContent=sc.name;
+  document.getElementById('sc-id').textContent='agent_id: '+charId;
+  document.getElementById('sc-tone').textContent=sc.tone;
+  document.getElementById('sc-bias').textContent=sc.bias;
+  document.getElementById('sc-pos').textContent='pos #'+sc.position;
+  document.getElementById('sc-emoji-in').value=sc.emoji;
+  document.getElementById('sc-tone-sel').value=sc.tone;
+  document.getElementById('sc-bias-sel').value=sc.bias;
+  document.querySelector('#insp-body .slider-row input[type=range]').value=sc.hitl_threshold;
+  document.getElementById('hitl-v').textContent=Math.round(sc.hitl_threshold*100)+'%';
+}
+function editChar(val,field){
+  const charId=document.getElementById('soul-char-sel')?.value;
+  if(!charId||!soulData?.characters?.[charId])return;
+  soulData.characters[charId][field]=val;
+  if(field==='emoji'){
+    document.getElementById('sc-emoji').textContent=val;
+    render();
+  }
+  if(field==='tone') document.getElementById('sc-tone').textContent=val;
+  if(field==='bias') document.getElementById('sc-bias').textContent=val;
+}
+async function saveSoulChar(){
+  const charId=document.getElementById('soul-char-sel')?.value;
+  if(!charId||!soulData?.characters?.[charId]){toast('No character selected',true);return}
+  const edits=soulData.characters[charId];
+  try{
+    const r=await fetch('/api/rosetta/soul-edit',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({agent_id:charId,edits})});
+    toast('✓ Soul config saved');
+  }catch(e){toast('✓ Soul updated (session only)')}
+  render();
+}
+
+// ════════════════════════════════════════════════
+// ORG HELPERS
+// ════════════════════════════════════════════════
+function lu(id,field,val){if(nodes[id])nodes[id][field]=val;render()}
+function changeParent(id,newPid){
+  const n=nodes[id];
+  if(n.reports_to&&nodes[n.reports_to])
+    nodes[n.reports_to].children=nodes[n.reports_to].children.filter(c=>c!==id);
+  n.reports_to=newPid||null;
+  if(newPid&&nodes[newPid])nodes[newPid].children.push(id);
+  autoLayout();render();renderOrgTab(id);toast('Reporting line updated');
+}
+function addTag(id,field){
+  const v=prompt('Add:');if(!v?.trim())return;
+  nodes[id][field]=[...(nodes[id][field]||[]),v.trim()];
+  renderOrgTab(id);
+}
+function saveNode(id){toast('✓ '+nodes[id]?.title+' saved')}
+function deleteNode(id){
+  if(!confirm(`Delete "${nodes[id]?.title}"?`))return;
+  const n=nodes[id];
+  const gp=n.reports_to;
+  (n.children||[]).forEach(cid=>{if(nodes[cid]){nodes[cid].reports_to=gp;if(gp&&nodes[gp])nodes[gp].children.push(cid)}});
+  if(gp&&nodes[gp])nodes[gp].children=nodes[gp].children.filter(c=>c!==id);
+  delete nodes[id];
+  deselect();autoLayout();render();buildLegend();toast('Role deleted');
+}
+
+// ════════════════════════════════════════════════
+// COLLAPSE
+// ════════════════════════════════════════════════
+function toggleCol(e,id){
+  e.stopPropagation();
+  if(collapsed.has(id))collapsed.delete(id);else collapsed.add(id);
+  autoLayout();render();
+}
+function collapseAll(){Object.values(nodes).forEach(n=>{if(n.children.length)collapsed.add(n.id)});autoLayout();render()}
+function expandAll(){collapsed.clear();autoLayout();render()}
+
+// ════════════════════════════════════════════════
+// ADD MODAL
+// ════════════════════════════════════════════════
+function openAddModal(pid,e){
+  if(e)e.stopPropagation();
+  addParentId=pid;
+  document.getElementById('modal-h').textContent=pid?'Add Direct Report':'Add Root Role';
+  document.getElementById('m-title').value='';
+  document.getElementById('m-person').value='';
+  document.getElementById('modal').classList.add('open');
+  setTimeout(()=>document.getElementById('m-title').focus(),50);
+}
+function closeModal(){document.getElementById('modal').classList.remove('open')}
+function confirmAdd(){
+  const title=document.getElementById('m-title').value.trim();
+  if(!title){toast('Title required',true);return}
+  const id='n_'+Math.random().toString(36).slice(2,10);
+  nodes[id]={id,title,department:document.getElementById('m-dept').value,
+    level:document.getElementById('m-level').value,reports_to:addParentId,children:[],
+    person_name:document.getElementById('m-person').value.trim(),person_email:'',
+    responsibilities:[],automation_scope:[],is_agentic:true,x:0,y:0};
+  if(addParentId&&nodes[addParentId])nodes[addParentId].children.push(id);
+  closeModal();autoLayout();render();buildLegend();selectNode(id);toast('✓ Role added');
+}
+
+// ════════════════════════════════════════════════
+// TOOLS / SAVE / LEGEND
+// ════════════════════════════════════════════════
+function setTool(t){
+  currentTool=t;
+  ['select','add'].forEach(n=>document.getElementById('tb-'+n)?.classList.toggle('active',t===n));
+  document.getElementById('wrap').classList.toggle('adding',t==='add');
+}
+async function save(){
+  const btn=document.getElementById('save-btn');btn.textContent='⏳…';
+  try{
+    function toJ(n){return{position_id:n.id,title:n.title,department:n.department,level:n.level,
+      reports_to:n.reports_to,person_name:n.person_name,person_email:n.person_email,
+      responsibilities:n.responsibilities,automation_scope:n.automation_scope,is_agentic:n.is_agentic,
+      children:(n.children||[]).filter(c=>nodes[c]).map(c=>toJ(nodes[c]))}}
+    const roots=Object.values(nodes).filter(n=>!n.reports_to).map(toJ);
+    await fetch('/api/orgchart/save',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({org_chart:{hierarchy:roots,total_positions:Object.keys(nodes).length}})});
+    toast('✓ Org chart saved');
+  }catch(e){toast('Save failed',true)}
+  finally{btn.textContent='💾 Save'}
+}
+function resetLayout(){collapsed.clear();autoLayout();render();fit()}
+function buildLegend(){
+  const depts=[...new Set(Object.values(nodes).map(n=>n.department))];
+  document.getElementById('legend').innerHTML='<div class="legend-title">Departments</div>'+
+    depts.map(d=>`<div class="legend-item"><div class="legend-dot" style="background:${dc(d)}"></div>${d}</div>`).join('');
+}
+
+// ════════════════════════════════════════════════
+// KEYBOARD
+// ════════════════════════════════════════════════
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){deselect();closeModal();setTool('select')}
+  if(e.key==='Delete'&&sel&&document.activeElement.tagName==='BODY')deleteNode(sel);
+  if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();save()}
+});
+document.getElementById('m-title').addEventListener('keydown',e=>{if(e.key==='Enter')confirmAdd()});
+
+// TOAST
+function toast(msg,err=false){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className='toast show'+(err?' err':'');
+  clearTimeout(el._t);el._t=setTimeout(()=>el.className='toast',2500);
+}
+
+// INIT
+boot();
+</script>
+</body>
+</html>

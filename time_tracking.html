@@ -892,6 +892,59 @@
   })();
   </script>
 <script src="/static/murphy-auth-guard.js"></script>
-<script>MurphyAuth.requireAuth();</script>
+<script>MurphyAuth.requireAuth();
+  // PATCH-153b: Time tracking missing functions
+  var _timerRunning = false;
+  var _timerInterval = null;
+  var _timerStart = null;
+  function toggleTimer() {
+    _timerRunning = !_timerRunning;
+    var btn = document.getElementById('timerBtn') || document.querySelector('[onclick*="toggleTimer"]');
+    if (_timerRunning) {
+      _timerStart = Date.now();
+      if (btn) btn.textContent = '⏸ Pause';
+      _timerInterval = setInterval(function(){
+        var el = document.getElementById('timerDisplay');
+        if (el) {
+          var s = Math.floor((Date.now() - _timerStart) / 1000);
+          el.textContent = new Date(s * 1000).toISOString().substr(11, 8);
+        }
+      }, 1000);
+      if (typeof showToast === 'function') showToast('Timer started', 'success');
+    } else {
+      clearInterval(_timerInterval);
+      if (btn) btn.textContent = '▶ Start Timer';
+      if (typeof showToast === 'function') showToast('Timer paused', 'info');
+    }
+  }
+  function closeModal() {
+    document.querySelectorAll('.modal, [id$="Modal"]').forEach(function(m){ m.style.display='none'; });
+  }
+  function dismissError() {
+    document.querySelectorAll('.error-banner,.alert-error,[id*="error"]').forEach(function(el){ el.style.display='none'; });
+  }
+  function loadTimesheets() {
+    var container = document.getElementById('timesheetList') || document.getElementById('timesheets');
+    if (!container) return;
+    if (typeof murphyFetch === 'function') {
+      murphyFetch('/api/time-tracking/entries').then(function(data){
+        container.innerHTML = (data.entries||data||[]).length ? 
+          (data.entries||data).map(function(e){ return '<div class="entry-row"><span>'+e.description+'</span><span>'+e.duration+'</span></div>'; }).join('') :
+          '<p style="color:var(--text-dim)">No entries yet.</p>';
+      }).catch(function(){ container.innerHTML = '<p style="color:var(--text-dim)">Could not load entries.</p>'; });
+    }
+  }
+  function loadReports() {
+    var container = document.getElementById('reportsContainer') || document.getElementById('reports');
+    if (!container) return;
+    container.innerHTML = '<p style="color:var(--text-dim)">Generating report…</p>';
+    if (typeof murphyFetch === 'function') {
+      murphyFetch('/api/time-tracking/report').then(function(data){
+        container.innerHTML = '<pre style="color:#eee;font-size:.8rem">' + JSON.stringify(data, null, 2) + '</pre>';
+      }).catch(function(){ container.innerHTML = '<p style="color:var(--text-dim)">Could not load report.</p>'; });
+    }
+  }
+
+</script>
 </body>
 </html>
