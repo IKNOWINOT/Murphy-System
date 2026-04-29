@@ -2,11 +2,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System — Ambient Intelligence</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/static/murphy-design-system.css">
+<!-- DS superseded by murphy-app-shell.css PATCH-154 -->
 <style>
 /* Neon terminal theme — Color Key: green=#00ff41, cyan=#00ffff, teal=#00D4AA, bg=#0a0a0a */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -182,52 +183,7 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
 <div class="amb-shell">
 
   <!-- SIDEBAR -->
-  <aside class="amb-sidebar" aria-label="Ambient intelligence navigation">
-    <div class="amb-sidebar-section">
-      <div class="amb-sidebar-label">Views</div>
-      <button class="amb-nav-item active" data-panel="panel-stream" aria-label="Context stream">
-        <span class="amb-nav-icon">⚡</span>Context Stream
-        <span class="amb-nav-badge" id="badge-stream">0</span>
-      </button>
-      <button class="amb-nav-item" data-panel="panel-feed" aria-label="Proactive feed">
-        <span class="amb-nav-icon">📬</span>Proactive Feed
-        <span class="amb-nav-badge" id="badge-feed">0</span>
-      </button>
-      <button class="amb-nav-item" data-panel="panel-email-log" aria-label="Email delivery log">
-        <span class="amb-nav-icon">📧</span>Email Log
-        <span class="amb-nav-badge" id="badge-email">0</span>
-      </button>
-      <button class="amb-nav-item" data-panel="panel-settings" aria-label="Settings">
-        <span class="amb-nav-icon">⚙</span>Settings
-      </button>
-    </div>
-
-    <div class="amb-sidebar-section">
-      <div class="amb-sidebar-label">Context Sources</div>
-      <button class="amb-nav-item" data-panel="panel-stream" aria-label="Calendar context">
-        <span class="amb-nav-icon">📅</span>Calendar
-      </button>
-      <button class="amb-nav-item" data-panel="panel-stream" aria-label="Meetings context">
-        <span class="amb-nav-icon">🧠</span>Meetings
-      </button>
-      <button class="amb-nav-item" data-panel="panel-stream" aria-label="Tasks context">
-        <span class="amb-nav-icon">✅</span>Tasks
-      </button>
-      <button class="amb-nav-item" data-panel="panel-stream" aria-label="Workspace context">
-        <span class="amb-nav-icon">💬</span>Workspace
-      </button>
-    </div>
-
-    <div class="amb-sidebar-bottom">
-      <div class="amb-engine-status" role="status" aria-label="Engine status">
-        <div class="amb-engine-title">Engine Status</div>
-        <div class="amb-engine-row"><div class="amb-engine-dot" id="dot-context"></div><span>Context collector</span></div>
-        <div class="amb-engine-row"><div class="amb-engine-dot" id="dot-synthesis"></div><span>Synthesis engine</span></div>
-        <div class="amb-engine-row"><div class="amb-engine-dot" id="dot-delivery"></div><span>Delivery pipeline</span></div>
-        <div class="amb-engine-row"><div class="amb-engine-dot warn" id="dot-prezi"></div><span>Prezi integration</span></div>
-      </div>
-    </div>
-  </aside>
+  <!-- sidebar injected by murphy-nav.js PATCH-154c -->
 
   <!-- MAIN -->
   <main class="amb-main" id="amb-main" tabindex="-1">
@@ -546,5 +502,6 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
 
 })();
 </script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

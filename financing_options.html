@@ -7,6 +7,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System — Financing Options</title>
@@ -20,28 +21,13 @@
 <a class="murphy-skip-link" href="#financing-content">Skip to content</a>
 
 <!-- ── Top Navigation Bar ── -->
-<nav class="murphy-topbar" role="navigation" aria-label="Main navigation">
-  <div class="murphy-topbar-left flex items-center gap-3">
-    <a href="/" class="murphy-topbar-brand">
-      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-        <rect width="32" height="32" rx="8" fill="var(--teal)"/>
-        <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700" font-family="Inter, sans-serif">M</text>
-      </svg>
-      <span class="murphy-topbar-brand-name">Murphy System</span>
-    </a>
-    <div class="murphy-nav-links nav-links-desktop">
-      <a href="/"          class="murphy-btn murphy-btn-ghost murphy-btn-sm">Home</a>
-      <a href="/ui/dashboard" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Terminal</a>
-      <a href="/ui/onboarding"       class="murphy-btn murphy-btn-ghost murphy-btn-sm">Onboarding</a>
-      <a href="/ui/compliance"       class="murphy-btn murphy-btn-ghost murphy-btn-sm">Compliance</a>
-      <a href="#" aria-current="page" class="murphy-btn murphy-btn-ghost murphy-btn-sm" style="color:#00D4AA;">Financing &amp; Grants</a>
-    </div>
-  </div>
-  <div class="murphy-topbar-right flex items-center gap-2">
-    <a href="/ui/forge"    class="murphy-btn murphy-btn-ghost murphy-btn-sm">Find Grants</a>
-    <a href="/ui/grant-dashboard" class="murphy-btn murphy-btn-primary murphy-btn-sm">My Applications</a>
-  </div>
-</nav>
+<!-- topbar injected by murphy-nav.js PATCH-154c -->
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
 
 <!-- ── Main Content ── -->
 <main id="financing-content" role="main" aria-label="Financing Options Comparison">
@@ -275,5 +261,6 @@
   © 2020 Inoni Limited Liability Company · Creator: Corey Post · License: BSL 1.1
 </footer>
 
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

@@ -7,6 +7,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System — Partner Integration Request</title>
@@ -546,36 +547,13 @@
     </header>
 
     <!-- Step Indicators -->
-    <nav aria-label="Integration request progress" class="partner-steps" role="tablist">
-      <div class="partner-step-indicator" data-step="1" data-active="true" role="tab" aria-selected="true" aria-label="Step 1: Define Request">
-        <span class="partner-step-number">1</span>
-        <span class="partner-step-label">Define</span>
-      </div>
-      <div class="partner-step-indicator" data-step="2" role="tab" aria-selected="false" aria-label="Step 2: Plan">
-        <span class="partner-step-number">2</span>
-        <span class="partner-step-label">Plan</span>
-      </div>
-      <div class="partner-step-indicator" data-step="3" role="tab" aria-selected="false" aria-label="Step 3: Execute">
-        <span class="partner-step-number">3</span>
-        <span class="partner-step-label">Execute</span>
-      </div>
-      <div class="partner-step-indicator" data-step="4" role="tab" aria-selected="false" aria-label="Step 4: Verify">
-        <span class="partner-step-number">4</span>
-        <span class="partner-step-label">Verify</span>
-      </div>
-      <div class="partner-step-indicator" data-step="5" role="tab" aria-selected="false" aria-label="Step 5: Harden">
-        <span class="partner-step-number">5</span>
-        <span class="partner-step-label">Harden</span>
-      </div>
-      <div class="partner-step-indicator" data-step="6" role="tab" aria-selected="false" aria-label="Step 6: HITL Review">
-        <span class="partner-step-number">6</span>
-        <span class="partner-step-label">Review</span>
-      </div>
-      <div class="partner-step-indicator" data-step="7" role="tab" aria-selected="false" aria-label="Step 7: Delivery">
-        <span class="partner-step-number">7</span>
-        <span class="partner-step-label">Delivery</span>
-      </div>
-    </nav>
+    <!-- topbar injected by murphy-nav.js PATCH-154c -->
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
 
     <!-- Dynamic step content -->
     <div id="step-container" aria-live="polite">
@@ -1538,5 +1516,6 @@
 
 })();
 </script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

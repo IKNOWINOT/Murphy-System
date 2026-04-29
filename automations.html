@@ -7,12 +7,7 @@
 <title>Murphy — Automations</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <style>
-:root{
-  --bg:#0a0f0a;--surface:#111811;--surface2:#161e16;--border:#1e2e1e;
-  --teal:#00e5a0;--teal-dim:rgba(0,229,160,.12);--teal-glow:rgba(0,229,160,.25);
-  --text:#e8f0e8;--text-dim:#6b8c6b;--danger:#ff4f4f;--warn:#f5a623;
-  --radius:10px;--font:'Inter',system-ui,sans-serif;
-}
+/* :root removed by PATCH-154 — using murphy-app-shell.css */
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;display:flex;flex-direction:column;}
 a{color:var(--teal);text-decoration:none;}
@@ -88,26 +83,16 @@ tr:hover td{background:rgba(0,229,160,.04);}
 </head>
 <body>
 
-<nav>
-  <a href="/ui/landing" class="brand">⚡ Murphy</a>
-  <div class="nav-links">
-    <a href="/ui/dashboard" class="nav-link">Dashboard</a>
-    <a href="/ui/compliance" class="nav-link">Compliance</a>
-    <a href="/ui/automations" class="nav-link active">Automations</a>
-    <a href="/ui/forge" class="nav-link">Forge</a>
-  </div>
-  <button class="btn btn-ghost" onclick="location.href='/api/auth/logout'">Sign Out</button>
-</nav>
+<!-- topbar injected by murphy-nav.js PATCH-154c -->
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
 
 <div class="layout">
-  <aside class="sidebar">
-    <a href="/ui/dashboard" class="side-link"><span class="icon">📊</span> Dashboard</a>
-    <a href="/ui/compliance" class="side-link"><span class="icon">🛡️</span> Compliance</a>
-    <a href="/ui/automations" class="side-link active"><span class="icon">⚡</span> Automations</a>
-    <a href="/ui/forge" class="side-link"><span class="icon">🔨</span> Forge</a>
-    <a href="/ui/hitl-dashboard" class="side-link"><span class="icon">👁️</span> HITL</a>
-    <a href="/ui/management" class="side-link"><span class="icon">⚙️</span> Management</a>
-  </aside>
+  <!-- sidebar injected by murphy-nav.js PATCH-154c -->
 
   <main class="main">
     <div class="page-header">
@@ -297,5 +282,6 @@ async function createAutomation() {
   }catch(e){await refreshAll();}
 })();
 </script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

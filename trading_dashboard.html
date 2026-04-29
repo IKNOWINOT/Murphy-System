@@ -2,11 +2,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System — Trading Dashboard</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/static/murphy-design-system.css">
+<!-- DS superseded by murphy-app-shell.css PATCH-154 -->
 <style>
 /* ── Neon terminal theme — Color Key: green=#00ff41, cyan=#00ffff, teal=#00D4AA, bg=#0a0a0a ── */
 *:focus-visible{outline:2px solid #00ff41;outline-offset:2px}
@@ -114,7 +115,9 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);mar
 </style>
 </head>
 <body>
-<div class="td-layout">
+<div class="td-layout" style="display:flex;min-height:0;overflow:hidden;">
+<!-- sidebar injected by murphy-nav.js PATCH-154c -->
+
 
   <!-- Back nav -->
   <a href="/ui/wallet" class="td-back">← Wallet</a>
@@ -733,5 +736,6 @@ document.addEventListener('DOMContentLoaded', async()=>{
 </script>
 <script src="/static/murphy-auth-guard.js"></script>
 <script>MurphyAuth.requireAuth();</script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

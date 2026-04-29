@@ -19,6 +19,8 @@ from __future__ import annotations
 import fnmatch
 import hmac
 import logging
+import sqlite3 as _sqlite3_audit
+from datetime import datetime as _dt_audit, timezone as _tz_audit
 import os
 import threading
 from typing import Dict, List, Optional, Set, Tuple
@@ -503,6 +505,34 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/pcc/",
         "/api/pcc",
     )
+
+
+    _AUDIT_DB = "/var/lib/murphy-production/murphy_audit.db"
+
+    @staticmethod
+    def _write_audit_event(
+        event_type: str,
+        actor: str = "",
+        resource: str = "",
+        action: str = "",
+        outcome: str = "success",
+        details: str = "",
+        ip: str = "",
+        session_id: str = "",
+    ) -> None:
+        """Write a single audit event to the persistent audit log (PATCH-155)."""
+        try:
+            ts = _dt_audit.now(_tz_audit.utc).isoformat()
+            with _sqlite3_audit.connect(OIDCAuthMiddleware._AUDIT_DB, timeout=3) as conn:
+                conn.execute(
+                    "INSERT INTO audit_log (ts, event_type, actor, resource, action, outcome, details, ip, session_id) "
+                    "VALUES (?,?,?,?,?,?,?,?,?)",
+                    (ts, event_type, actor, resource, action, outcome, details, ip, session_id),
+                )
+                conn.commit()
+        except Exception:
+            pass  # Never block a request on audit failure
+
 
     def __init__(
         self,

@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System — End User Agreement</title>
@@ -166,51 +167,19 @@
 <a class="murphy-skip-link" href="#legal-main">Skip to content</a>
 
 <!-- ── Top Navigation Bar ── -->
-<nav class="murphy-topbar" role="navigation" aria-label="Main navigation">
-  <div class="murphy-topbar-left flex items-center gap-3">
-    <a href="/" class="murphy-topbar-brand">
-      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-        <rect width="32" height="32" rx="8" fill="var(--teal)"/>
-        <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700" font-family="Inter, sans-serif">M</text>
-      </svg>
-      <span class="murphy-topbar-brand-name">Murphy System</span>
-    </a>
-    <div class="murphy-nav-links nav-links-desktop">
-      <a href="/#features" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Features</a>
-      <a href="/ui/pricing" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Pricing</a>
-      <a href="/ui/docs" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Docs</a>
-    </div>
-  </div>
-  <div class="murphy-topbar-right flex items-center gap-2">
-    <button class="murphy-btn murphy-btn-ghost murphy-btn-icon" id="theme-toggle-btn" aria-label="Toggle theme" title="Toggle theme">🌙</button>
-    <a href="/ui/login" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Sign In</a>
-    <a href="/ui/signup" class="murphy-btn murphy-btn-primary murphy-btn-sm">Get Started</a>
-  </div>
-</nav>
+<!-- topbar injected by murphy-nav.js PATCH-154c -->
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
 
 <!-- ── Layout ── -->
 <div class="legal-layout">
 
   <!-- Sidebar TOC -->
-  <aside class="legal-sidebar" aria-label="Table of contents">
-    <div class="legal-sidebar-title">On this page</div>
-    <a href="#s1-alpha" class="legal-toc-link">1. Alpha Software Disclaimer</a>
-    <a href="#s2-liability" class="legal-toc-link">2. Liability Split</a>
-    <a href="#s3-data" class="legal-toc-link">3. Data and Logs</a>
-    <a href="#s4-scope" class="legal-toc-link">4. Scope of Automation</a>
-    <a href="#s5-acceptance" class="legal-toc-link">5. Automation Acceptance</a>
-    <a href="#s6-inoni-liability" class="legal-toc-link">6. Limitation of Liability</a>
-    <a href="#s7-risk" class="legal-toc-link">7. Risk Transfer</a>
-    <a href="#s8-privacy" class="legal-toc-link">8. Data Privacy</a>
-    <a href="#s9-contractor" class="legal-toc-link">9. Contractor Responsibility</a>
-    <a href="#s10-credential" class="legal-toc-link">10. Credentialed HITL</a>
-    <a href="#s11-dispute" class="legal-toc-link">11. Dispute Resolution</a>
-    <a href="#s12-license" class="legal-toc-link">12. License (BSL 1.1)</a>
-    <a href="#s13-ip" class="legal-toc-link">13. Intellectual Property</a>
-    <a href="#s14-shadow" class="legal-toc-link">14. Shadow Agent &amp; Forfeiture</a>
-    <a href="#s15-general" class="legal-toc-link">15. General Provisions</a>
-    <a href="#s16-contact" class="legal-toc-link">16. Contact</a>
-  </aside>
+  <!-- sidebar injected by murphy-nav.js PATCH-154c -->
 
   <!-- Main content -->
   <main id="legal-main" class="legal-main" role="main" aria-label="End User Agreement">
@@ -580,5 +549,6 @@
   }
 })();
 </script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

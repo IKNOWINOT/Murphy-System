@@ -7,11 +7,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System — No-Code Welcome</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/static/murphy-design-system.css">
+<!-- DS superseded by murphy-app-shell.css PATCH-154 -->
 <style>
   /* Neon terminal theme */
   /* Color Key: green=#00ff41, cyan=#00ffff, bg=#0a0a0a */
@@ -62,13 +63,13 @@ function showMurphyError(msg) {
   </div>
 
   <!-- Step Indicator Dots -->
-  <nav aria-label="Onboarding progress" class="flex justify-center gap-2" style="margin-bottom:2rem;">
-    <span class="step-dot" data-step="1" role="img" aria-label="Step 1: Conversation"></span>
-    <span class="step-dot" data-step="2" role="img" aria-label="Step 2: Plan"></span>
-    <span class="step-dot" data-step="3" role="img" aria-label="Step 3: Connections"></span>
-    <span class="step-dot" data-step="4" role="img" aria-label="Step 4: Safety"></span>
-    <span class="step-dot" data-step="5" role="img" aria-label="Step 5: Ready"></span>
-  </nav>
+  <!-- topbar injected by murphy-nav.js PATCH-154c -->
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
 
   <!-- Dynamic Content Area -->
   <div id="step-container" aria-live="polite"></div>
@@ -1073,5 +1074,6 @@ function showMurphyError(msg) {
 </script>
 
 <script src="/static/murphy-session-context.js"></script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

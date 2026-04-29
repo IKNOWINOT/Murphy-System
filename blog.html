@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System — Blog</title>
@@ -263,28 +264,13 @@
 <a class="murphy-skip-link" href="#blog-main">Skip to content</a>
 
 <!-- ── Top Navigation Bar ── -->
-<nav class="murphy-topbar" role="navigation" aria-label="Main navigation">
-  <div class="murphy-topbar-left flex items-center gap-3">
-    <a href="/" class="murphy-topbar-brand">
-      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-        <rect width="32" height="32" rx="8" fill="var(--teal)"/>
-        <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700" font-family="Inter, sans-serif">M</text>
-      </svg>
-      <span class="murphy-topbar-brand-name">Murphy System</span>
-    </a>
-    <div class="murphy-nav-links nav-links-desktop">
-      <a href="/#features" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Features</a>
-      <a href="/ui/pricing" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Pricing</a>
-      <a href="/ui/docs" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Docs</a>
-      <a href="/ui/blog" class="murphy-btn murphy-btn-ghost murphy-btn-sm" aria-current="page">Blog</a>
-    </div>
-  </div>
-  <div class="murphy-topbar-right flex items-center gap-2">
-    <button class="murphy-btn murphy-btn-ghost murphy-btn-icon" id="theme-toggle-btn" aria-label="Toggle theme" title="Toggle theme">🌙</button>
-    <a href="/ui/login" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Sign In</a>
-    <a href="/ui/signup" class="murphy-btn murphy-btn-primary murphy-btn-sm">Get Started</a>
-  </div>
-</nav>
+<!-- topbar injected by murphy-nav.js PATCH-154c -->
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
 
 <!-- ── Layout ── -->
 <div class="blog-layout">
@@ -408,48 +394,7 @@
   </main>
 
   <!-- Sidebar -->
-  <aside class="blog-sidebar" aria-label="Blog categories and newsletter">
-
-    <div class="blog-sidebar-section">
-      <div class="blog-sidebar-title">Categories</div>
-      <a href="#" class="blog-cat-link">
-        All Posts <span class="blog-cat-count">5</span>
-      </a>
-      <a href="#" class="blog-cat-link">
-        Releases <span class="blog-cat-count">2</span>
-      </a>
-      <a href="#" class="blog-cat-link">
-        Engineering <span class="blog-cat-count">2</span>
-      </a>
-      <a href="#" class="blog-cat-link">
-        Company <span class="blog-cat-count">1</span>
-      </a>
-    </div>
-
-    <div class="blog-sidebar-section">
-      <div class="blog-newsletter">
-        <h3>Stay Updated</h3>
-        <p>Get new posts delivered to your inbox. No spam, unsubscribe any time.</p>
-        <input
-          type="email"
-          id="newsletter-email"
-          class="blog-newsletter-input"
-          placeholder="you@company.com"
-          aria-label="Your email address for newsletter"
-        >
-        <button type="button" class="blog-newsletter-btn" id="newsletter-btn">Subscribe</button>
-      </div>
-    </div>
-
-    <div class="blog-sidebar-section">
-      <div class="blog-sidebar-title">Quick Links</div>
-      <a href="/ui/docs" class="blog-cat-link">Documentation</a>
-      <a href="/ui/pricing" class="blog-cat-link">Pricing</a>
-      <a href="/ui/signup" class="blog-cat-link">Get Started</a>
-      <a href="/ui/partner-request" class="blog-cat-link">Partner Program</a>
-    </div>
-
-  </aside>
+  <!-- sidebar injected by murphy-nav.js PATCH-154c -->
 
 </div>
 
@@ -498,5 +443,6 @@
   }
 })();
 </script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

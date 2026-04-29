@@ -7,11 +7,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System — Production Wizard</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/static/murphy-design-system.css">
+<!-- DS superseded by murphy-app-shell.css PATCH-154 -->
 <style>
   .prod-step-indicator {
     display: flex;
@@ -277,74 +278,13 @@
 <!-- ============================================================
      SIDEBAR
      ============================================================ -->
-<nav class="murphy-sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
-  <div class="murphy-sidebar-logo">
-    <svg width="24" height="24"><use href="/static/murphy-icons.svg#icon-zap"></use></svg>
-    <span>Production</span>
-  </div>
-
-  <div class="murphy-sidebar-nav" id="sidebar-nav">
-    <div class="murphy-sidebar-section">Overview</div>
-    <a href="#dashboard" class="murphy-sidebar-item active" data-view="dashboard" aria-label="Dashboard">
-      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-dashboard"></use></svg>
-      <span>Dashboard</span>
-    </a>
-    <a href="#queue" class="murphy-sidebar-item" data-view="queue" aria-label="Production Queue">
-      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-layers"></use></svg>
-      <span>Queue</span>
-    </a>
-
-    <div class="murphy-sidebar-section">Wizard</div>
-    <a href="#proposal" class="murphy-sidebar-item" data-view="proposal" aria-label="New Proposal">
-      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-file-text"></use></svg>
-      <span>New Proposal</span>
-    </a>
-    <a href="#workorder" class="murphy-sidebar-item" data-view="workorder" aria-label="Work Order">
-      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-play"></use></svg>
-      <span>Work Order</span>
-    </a>
-    <a href="#validate" class="murphy-sidebar-item" data-view="validate" aria-label="Validate">
-      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-check"></use></svg>
-      <span>Validate</span>
-    </a>
-    <a href="#profiles" class="murphy-sidebar-item" data-view="profiles" aria-label="Profiles">
-      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-database"></use></svg>
-      <span>Profiles</span>
-    </a>
-
-    <div class="murphy-sidebar-section">Quality</div>
-    <a href="#hitl" class="murphy-sidebar-item" data-view="hitl" aria-label="HITL Review">
-      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-bell"></use></svg>
-      <span>HITL Review</span>
-    </a>
-    <a href="#schedule" class="murphy-sidebar-item" data-view="schedule" aria-label="Automation Schedule">
-      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-activity"></use></svg>
-      <span>Schedule</span>
-    </a>
-    <a href="#deliverables" class="murphy-sidebar-item" data-view="deliverables" aria-label="Deliverables">
-      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-layers"></use></svg>
-      <span>Deliverables</span>
-    </a>
-
-    <div class="murphy-sidebar-section">External Links</div>
-    <a href="/ui/terminal-unified" class="murphy-sidebar-item" target="_blank" rel="noopener">
-      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-zap"></use></svg>
-      <span>Unified Hub</span>
-    </a>
-    <a href="/ui/matrix" class="murphy-sidebar-item" target="_blank" rel="noopener">
-      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-message-circle"></use></svg>
-      <span>Matrix Bridge</span>
-    </a>
-    <a href="/ui/compliance" class="murphy-sidebar-item" target="_blank" rel="noopener">
-      <svg width="18" height="18"><use href="/static/murphy-icons.svg#icon-lock"></use></svg>
-      <span>Compliance</span>
-    </a>
-  </div>
-
-  <div class="murphy-sidebar-footer">
-    <span class="text-xs text-muted">PROD-001 · Murphy System</span>
-  </div>
-</nav>
+<!-- topbar injected by murphy-nav.js PATCH-154c -->
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
 
 <!-- ============================================================
      TOPBAR
@@ -1993,5 +1933,6 @@ document.getElementById('btn-clear-log').addEventListener('click', () => {
     /* ── end PATCH-132b NL intake ── */
 
   </script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

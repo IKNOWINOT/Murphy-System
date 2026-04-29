@@ -2,11 +2,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System — Calendar</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/static/murphy-design-system.css">
+<!-- DS superseded by murphy-app-shell.css PATCH-154 -->
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);overflow:hidden;height:100vh;display:flex;flex-direction:column}
@@ -158,48 +159,20 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
       <span>MURPHY</span>
     </a>
   </div>
-  <nav style="display:flex;align-items:center;gap:8px" aria-label="Top navigation">
-    <a href="/ui/management" class="c-btn">Management</a>
-    <a href="/ui/workspace" class="c-btn">Workspace</a>
-    <div style="width:32px;height:32px;border-radius:50%;background:var(--teal);color:#000;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center" aria-label="User: Corey Post">CP</div>
-  </nav>
+  <!-- topbar injected by murphy-nav.js PATCH-154c -->
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
 </header>
 
 <!-- SHELL -->
 <div class="c-shell">
 
   <!-- SIDEBAR -->
-  <aside class="c-sidebar" aria-label="Calendar sidebar">
-
-    <!-- Mini calendars -->
-    <div class="mini-cal" id="mini-cal-container"></div>
-
-    <!-- My Calendars -->
-    <div class="c-sidebar-section">
-      <div class="c-sidebar-label">My Calendars</div>
-      <label class="cal-item"><input type="checkbox" checked data-cal="personal"> <span class="cal-dot" style="background:#00D4AA"></span> Personal</label>
-      <label class="cal-item"><input type="checkbox" checked data-cal="work"> <span class="cal-dot" style="background:#3b9eff"></span> Work</label>
-      <label class="cal-item"><input type="checkbox" checked data-cal="team"> <span class="cal-dot" style="background:#e879f9"></span> Team</label>
-      <label class="cal-item"><input type="checkbox" checked data-cal="murphy"> <span class="cal-dot" style="background:#ffa63e"></span> Murphy AI</label>
-      <button class="c-btn" style="margin:4px 14px;font-size:12px;width:calc(100% - 28px)">+ Add Calendar</button>
-    </div>
-
-    <!-- Upcoming -->
-    <div class="c-sidebar-section">
-      <div class="c-sidebar-label">Upcoming</div>
-      <div id="upcoming-events"></div>
-    </div>
-
-    <!-- AI Widget -->
-    <div class="ai-widget">
-      <div class="ai-widget-title">🤖 Murphy AI</div>
-      <div class="ai-widget-body">Based on #general activity, I've drafted a meeting agenda for your 3pm standup.</div>
-      <div class="ai-widget-actions">
-        <button class="ai-link" onclick="alert('Opening draft agenda…')">Preview</button>
-        <button class="ai-link" style="color:var(--text-muted)">Dismiss</button>
-      </div>
-    </div>
-  </aside>
+  <!-- sidebar injected by murphy-nav.js PATCH-154c -->
 
   <!-- MAIN -->
   <main class="c-main" id="cal-main">
@@ -596,5 +569,6 @@ loadEvents();
 renderView();
 renderUpcoming();
 </script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

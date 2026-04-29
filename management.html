@@ -2,11 +2,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System — System Management — Founder Operations</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/static/murphy-design-system.css">
+<!-- DS superseded by murphy-app-shell.css PATCH-154 -->
 <style>
 :root {
   --sidebar-width: 260px;
@@ -292,12 +293,13 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
       <span>MURPHY</span>
     </a>
   </div>
-  <nav class="m-topbar-right" aria-label="Top navigation">
-    <button class="m-btn m-btn-sm" id="btn-readiness-again" onclick="showReadiness()" title="Re-run readiness check">&#x1F50D; Readiness</button>
-    <a href="/ui/workspace" class="m-btn">Workspace</a>
-    <a href="/ui/dashboard" class="m-btn">Terminal</a>
-    <div class="m-avatar" aria-label="User: Corey Post">CP</div>
-  </nav>
+  <!-- topbar injected by murphy-nav.js PATCH-154c -->
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
 </header>
 
 <!-- MURPHY AGENT BAR -->
@@ -324,43 +326,7 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
 <div class="m-shell">
 
   <!-- SIDEBAR -->
-  <aside class="m-sidebar" id="m-sidebar" aria-label="System navigation">
-    <div class="m-sidebar-header">
-      <span class="m-sidebar-title">Systems</span>
-    </div>
-    <div class="m-sidebar-section">
-      <div class="m-sidebar-item active" id="nav-health" onclick="switchView('health')">
-        <span>&#x1F3E5;</span> Health Overview
-      </div>
-      <div class="m-sidebar-item" id="nav-scans" onclick="switchView('scans')">
-        <span>&#x1F50D;</span> Run Scans
-      </div>
-      <div class="m-sidebar-item" id="nav-board" onclick="switchView('board')">
-        <span>&#x1F4CB;</span> Recommendations
-        <span class="m-sidebar-badge teal" id="badge-pending" style="display:none">0</span>
-      </div>
-      <div class="m-sidebar-item" id="nav-subsystems" onclick="switchView('subsystems')">
-        <span>&#x1F527;</span> Subsystems
-      </div>
-      <div class="m-sidebar-item" id="nav-reports" onclick="switchView('reports')">
-        <span>&#x1F4CA;</span> Reports
-      </div>
-      <div class="m-sidebar-item" id="nav-founder" onclick="switchView('founder')">
-        <span>&#x1F4CA;</span> Founder Update
-      </div>
-      <div class="m-sidebar-item" id="nav-inbox" onclick="switchView('board')">
-        <span>&#x1F4EC;</span> Inbox
-        <span class="m-sidebar-badge" id="badge-inbox" style="display:none">0</span>
-      </div>
-    </div>
-    <div class="m-user">
-      <div class="m-avatar">CP</div>
-      <div>
-        <div style="font-size:13px;font-weight:500">Corey Post</div>
-        <div style="font-size:11px;color:var(--text-muted)">Founder</div>
-      </div>
-    </div>
-  </aside>
+  <!-- sidebar injected by murphy-nav.js PATCH-154c -->
 
   <!-- MAIN -->
   <main class="m-main" id="main-content">
@@ -1444,5 +1410,6 @@ document.getElementById('sidebar-toggle').addEventListener('click', () => {
 // ================================================================
 runReadinessCheck();
 </script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

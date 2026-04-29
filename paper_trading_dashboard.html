@@ -2,11 +2,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System — Paper Trading</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/static/murphy-design-system.css">
+<!-- DS superseded by murphy-app-shell.css PATCH-154 -->
 <style>
   /* Neon terminal theme — matching wallet.html color scheme */
   *:focus-visible { outline: 2px solid #00ff41; outline-offset: 2px; }
@@ -179,7 +180,9 @@
 </style>
 </head>
 <body>
-<div class="pt-layout">
+<div class="pt-layout" style="display:flex;min-height:0;overflow:hidden;">
+<!-- sidebar injected by murphy-nav.js PATCH-154c -->
+
 
   <!-- Back navigation -->
   <a class="pt-back-link" href="/ui/wallet">← Back to Wallet</a>
@@ -869,5 +872,6 @@
 </script>
 <script src="/static/murphy-auth-guard.js"></script>
 <script>MurphyAuth.requireAuth();</script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

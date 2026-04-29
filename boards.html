@@ -2,11 +2,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Boards — Murphy System</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/static/murphy-design-system.css">
+  <!-- DS superseded by murphy-app-shell.css PATCH-154 -->
   <style>
     :root {
       --bg-base: #0C1017; --bg-surface: #131A24; --bg-elevated: #1A2332;
@@ -349,7 +350,9 @@
   </div>
 
   <!-- ── App layout ──────────────────────────────────────────── -->
-  <div class="app-layout">
+  <div class="app-layout" style="display:flex;min-height:0;overflow:hidden;">
+<!-- sidebar injected by murphy-nav.js PATCH-154c -->
+
     <murphy-sidebar active="BOARDS"></murphy-sidebar>
 
     <!-- Board list sidebar -->
@@ -1231,5 +1234,6 @@
   }
 
 </script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

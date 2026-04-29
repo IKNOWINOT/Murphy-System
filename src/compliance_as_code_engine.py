@@ -241,6 +241,68 @@ class ComplianceAsCodeEngine:
         self._history: List[dict] = []
         self._max_rules = max_rules
         self._max_executions = max_executions
+        self._register_defaults()
+
+    def _register_defaults(self) -> None:
+        """Register built-in compliance rules for all supported frameworks (PATCH-155)."""
+        # Skip if already populated (idempotent)
+        if self._rules:
+            return
+        _defs = [
+            # GDPR
+            ("gdpr-001", "GDPR: Data Minimisation",         "gdpr",     "high",     "Collected data must be limited to what is necessary.",                    "data_minimisation_enabled",      "Enable data minimisation controls."),
+            ("gdpr-002", "GDPR: Consent Mechanism",          "gdpr",     "critical", "Explicit user consent must be obtained before processing personal data.", "consent_mechanism_active",       "Implement consent collection before processing."),
+            ("gdpr-003", "GDPR: Data Retention Policy",      "gdpr",     "high",     "Personal data must not be retained beyond its purpose.",                 "retention_policy_defined",       "Define and enforce data retention schedules."),
+            ("gdpr-004", "GDPR: Right to Erasure",           "gdpr",     "high",     "Users must be able to request deletion of their data.",                  "erasure_workflow_active",        "Implement data erasure request workflow."),
+            # SOC 2
+            ("soc2-001", "SOC2: Access Control",             "soc2",     "critical", "Access to systems must be controlled and authenticated.",                "auth_enabled",                   "Enable MFA and role-based access control."),
+            ("soc2-002", "SOC2: Audit Logging",              "soc2",     "high",     "All access and changes must be logged for audit purposes.",              "audit_logging_active",           "Enable comprehensive audit logging."),
+            ("soc2-003", "SOC2: Encryption in Transit",      "soc2",     "critical", "All data in transit must be encrypted.",                                  "tls_enforced",                   "Enforce TLS 1.2+ for all communications."),
+            ("soc2-004", "SOC2: Availability Monitoring",    "soc2",     "medium",   "System availability must be continuously monitored.",                    "health_monitoring_active",       "Implement uptime monitoring and alerting."),
+            ("soc2-005", "SOC2: Incident Response",          "soc2",     "high",     "An incident response plan must be defined and tested.",                  "incident_response_plan",         "Document and test incident response procedures."),
+            # HIPAA
+            ("hipaa-001", "HIPAA: PHI Access Control",       "hipaa",    "critical", "PHI access must be restricted to authorised personnel.",                 "phi_access_controls",            "Implement role-based PHI access restrictions."),
+            ("hipaa-002", "HIPAA: PHI Audit Trail",          "hipaa",    "critical", "All access to PHI must be logged.",                                       "phi_audit_trail",                "Enable comprehensive PHI access logging."),
+            ("hipaa-003", "HIPAA: PHI Encryption",           "hipaa",    "critical", "PHI must be encrypted at rest and in transit.",                           "phi_encryption_active",          "Encrypt all PHI storage and transmission channels."),
+            # PCI-DSS
+            ("pci-001",  "PCI-DSS: No Raw Card Data",        "pci_dss",  "critical", "Raw cardholder data must never be stored.",                              "not raw_card_data_stored",      "Use tokenisation. Never store PANs."),
+            ("pci-002",  "PCI-DSS: Network Segmentation",    "pci_dss",  "high",     "Cardholder data environment must be network-segmented.",                 "network_segmentation",           "Implement firewall rules isolating CDE."),
+            ("pci-003",  "PCI-DSS: Vulnerability Scanning",  "pci_dss",  "high",     "Systems must be scanned for vulnerabilities quarterly.",                 "vuln_scanning_active",           "Schedule quarterly vulnerability scans."),
+            # ISO 27001
+            ("iso-001",  "ISO 27001: Risk Assessment",       "iso_27001","high",     "Information security risks must be formally assessed.",                  "risk_assessment_current",        "Conduct a formal information security risk assessment."),
+            ("iso-002",  "ISO 27001: Asset Inventory",       "iso_27001","medium",   "All information assets must be inventoried.",                            "asset_inventory_maintained",     "Maintain a current information asset register."),
+            ("iso-003",  "ISO 27001: Supplier Security",     "iso_27001","medium",   "Third-party supplier security must be assessed.",                        "supplier_security_assessed",     "Assess security of all material suppliers."),
+            # CCPA
+            ("ccpa-001", "CCPA: Right to Know",              "ccpa",     "high",     "Consumers must be informed of data collection practices.",               "privacy_notice_published",       "Publish a comprehensive privacy notice."),
+            ("ccpa-002", "CCPA: Right to Delete",            "ccpa",     "high",     "Consumers must be able to request deletion of their data.",              "deletion_request_workflow",      "Implement a consumer data deletion request mechanism."),
+            ("ccpa-003", "CCPA: Opt-Out of Sale",            "ccpa",     "high",     "Consumers must be able to opt out of data sale.",                        "opt_out_of_sale_enabled",        "Implement a Do Not Sell mechanism."),
+            # SOX
+            ("sox-001",  "SOX: Financial Reporting Controls","sox",      "critical", "Financial reporting must have documented internal controls.",             "financial_controls_documented",  "Document all financial reporting controls."),
+            ("sox-002",  "SOX: Change Management",           "sox",      "high",     "Changes to financial systems must follow a controlled process.",         "change_management_enforced",     "Enforce change management for financial system changes."),
+            # NIST CSF
+            ("nist-001", "NIST CSF: Asset Management",       "nist_csf", "medium",   "Physical and software assets must be inventoried.",                     "asset_management_active",        "Implement continuous asset discovery."),
+            ("nist-002", "NIST CSF: Access Control",         "nist_csf", "high",     "Access to assets must be limited to authorised users.",                  "access_control_enforced",        "Enforce least-privilege access across all systems."),
+            ("nist-003", "NIST CSF: Anomaly Detection",      "nist_csf", "high",     "Anomalous activity must be detected.",                                   "anomaly_detection_active",       "Deploy anomaly detection and alerting systems."),
+            ("nist-004", "NIST CSF: Incident Management",    "nist_csf", "high",     "Incident response processes must be in place.",                          "incident_management_active",     "Implement and test incident response procedures."),
+            ("nist-005", "NIST CSF: Recovery Planning",      "nist_csf", "medium",   "Recovery plans must be maintained and tested.",                          "recovery_plan_active",           "Develop, document, and test recovery plans."),
+        ]
+        for rule_id, name, framework, severity, description, expression, remediation in _defs:
+            try:
+                rule = ComplianceRule(
+                    id=rule_id,
+                    name=name,
+                    description=description,
+                    framework=framework,
+                    severity=severity,
+                    expression=expression,
+                    remediation=remediation,
+                )
+                with self._lock:
+                    self._rules[rule.id] = rule
+            except Exception:
+                pass  # Never crash init
+
+
     # -- Rules CRUD ---------------------------------------------------------
 
     def create_rule(

@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Guest Portal — Murphy System</title>
@@ -261,7 +262,9 @@
   </div>
 
   <!-- ── App layout ──────────────────────────────────────────── -->
-  <div class="app-layout">
+  <div class="app-layout" style="display:flex;min-height:0;overflow:hidden;">
+<!-- sidebar injected by murphy-nav.js PATCH-154c -->
+
     <murphy-sidebar active="GUEST PORTAL"></murphy-sidebar>
 
     <div class="main-area">
@@ -955,5 +958,6 @@
 
   })();
   </script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

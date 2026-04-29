@@ -2,11 +2,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System — Wallet</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/static/murphy-design-system.css">
+<!-- DS superseded by murphy-app-shell.css PATCH-154 -->
 <style>
   /* Neon terminal theme — Color Key: green=#00ff41, cyan=#00ffff, teal=#00D4AA, bg=#0a0a0a */
   *:focus-visible { outline: 2px solid #00ff41; outline-offset: 2px; }
@@ -269,27 +270,13 @@
 <a class="murphy-skip-link" href="#wallet-main">Skip to content</a>
 
 <!-- ── Topbar ── -->
-<nav class="murphy-topbar" role="navigation" aria-label="Main navigation">
-  <div class="murphy-topbar-left flex items-center gap-3">
-    <a href="/ui/landing" class="murphy-topbar-brand">
-      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-        <rect width="32" height="32" rx="8" fill="var(--teal)"/>
-        <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700" font-family="Inter,sans-serif">M</text>
-      </svg>
-      <span class="murphy-topbar-brand-name">Murphy System</span>
-    </a>
-    <div class="murphy-nav-links nav-links-desktop">
-      <a href="/ui/dashboard"  class="murphy-btn murphy-btn-ghost murphy-btn-sm">Dashboard</a>
-      <a href="/ui/management"        class="murphy-btn murphy-btn-ghost murphy-btn-sm">Management</a>
-      <a href="/ui/workspace"         class="murphy-btn murphy-btn-ghost murphy-btn-sm">Workspace</a>
-    </div>
-  </div>
-  <div class="murphy-topbar-right flex items-center gap-2">
-    <button class="murphy-btn murphy-btn-ghost murphy-btn-icon" id="theme-toggle-btn" aria-label="Toggle theme">🌙</button>
-    <a href="/ui/login"  class="murphy-btn murphy-btn-ghost murphy-btn-sm">Sign In</a>
-    <a href="/ui/signup" class="murphy-btn murphy-btn-primary murphy-btn-sm">Get Started</a>
-  </div>
-</nav>
+<!-- topbar injected by murphy-nav.js PATCH-154c -->
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
 
 <!-- ── Main ── -->
 <main id="wallet-main" class="wallet-layout" role="main" aria-label="Crypto Wallet">
@@ -1041,5 +1028,6 @@
 
 })();
 </script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

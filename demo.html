@@ -10,21 +10,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System — Live Demo</title>
 <style>
-  :root {
-    --bg: #0a0f0a;
-    --surface: #111811;
-    --surface2: #161e16;
-    --border: #1e2e1e;
-    --teal: #00e5a0;
-    --teal-dim: rgba(0,229,160,0.12);
-    --teal-glow: rgba(0,229,160,0.25);
-    --text: #e8f5e9;
-    --muted: #6b8f6b;
-    --red: #ff4444;
-    --amber: #ffaa00;
-    --blue: #4fc3f7;
-    --purple: #ce93d8;
-  }
+  /* :root removed by PATCH-154 — using murphy-app-shell.css */
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; min-height: 100vh; }
 
@@ -145,19 +131,13 @@
 </head>
 <body>
 
-<nav>
-  <div class="nav-brand">
-    <svg viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="13" stroke="#00e5a0" stroke-width="1.5"/><path d="M8 14l4 4 8-8" stroke="#00e5a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Murphy System
-    <span class="nav-badge">LIVE DEMO</span>
-  </div>
-  <div class="nav-links">
-    <a href="/">Home</a>
-    <a href="/ui/pricing">Pricing</a>
-    <a href="/ui/docs">Docs</a>
-    <a href="/login" class="btn-primary">Get Started</a>
-  </div>
-</nav>
+<!-- topbar injected by murphy-nav.js PATCH-154c -->
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
 
 <div class="hero">
   <div class="hero-pill">
@@ -649,5 +629,6 @@ async function loadAutoCount() {
   await Promise.all([loadMetrics(), loadSwarm(), loadROI(), loadAmbient(), loadCompliance(), loadForgeCount(), loadAutoCount()]);
 })();
 </script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

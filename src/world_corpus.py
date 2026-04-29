@@ -208,39 +208,35 @@ class WorldCorpus:
         return stored
 
     def collect_all(self) -> Dict[str, int]:
-        """Run all collectors. Returns per-source new record counts."""
-        counts = {"hn": self.collect_hn()}
+        """PATCH-155: Collect from all live sources — Reddit removed (403), replaced with diverse RSS."""
+        counts: Dict[str, int] = {}
 
-        # Reddit with fallback to RSS on 403
-        rn = self.collect_reddit("worldnews", "geopolitics", ["world"])
-        if rn == 0:
-            rn = self.collect_rss("https://feeds.bbci.co.uk/news/world/rss.xml",
-                                  "geopolitics", "bbc_world", ["world", "news"])
-        counts["worldnews"] = rn
+        # Hacker News — always works
+        counts["hn"] = self.collect_hn()
 
-        rt = self.collect_reddit("technology", "tech", ["tech"])
-        if rt == 0:
-            rt = self.collect_rss("https://techcrunch.com/feed/",
-                                  "tech", "techcrunch", ["tech", "startup"])
-        counts["technology"] = rt
+        # News RSS feeds — verified working
+        rss_feeds = [
+            ("https://feeds.bbci.co.uk/news/world/rss.xml",    "news",    "bbc_world",    ["world","politics"]),
+            ("https://feeds.bbci.co.uk/news/business/rss.xml", "finance", "bbc_business", ["finance","markets"]),
+            ("https://techcrunch.com/feed/",                    "tech",    "techcrunch",   ["tech","startups"]),
+            ("https://feeds.content.dowjones.io/public/rss/mw_topstories", "finance", "marketwatch", ["finance","markets"]),
+            ("https://feeds.npr.org/1001/rss.xml",             "news",    "npr",          ["news","usa"]),
+            ("https://feeds.a.dj.com/rss/RSSWorldNews.xml",   "news",    "wsj_world",    ["world","news"]),
+            ("https://www.theguardian.com/world/rss",          "news",    "guardian",     ["world","politics"]),
+            ("https://feeds.arstechnica.com/arstechnica/index","tech",    "ars_technica", ["tech","science"]),
+            ("https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml","tech","nytimes_tech",["tech"]),
+            ("https://rss.nytimes.com/services/xml/rss/nyt/World.xml","news","nytimes_world",["world"]),
+        ]
+        for url, domain, source, tags in rss_feeds:
+            try:
+                counts[source] = self.collect_rss(url, domain, source, tags)
+            except Exception as e:
+                logger.warning("WorldCorpus: %s failed: %s", source, e)
+                counts[source] = 0
 
-        re_ = self.collect_reddit("economics", "finance", ["finance"])
-        if re_ == 0:
-            # Reuters DNS unavailable on this server — use BBC Business RSS
-            re_ = self.collect_rss("https://feeds.bbci.co.uk/news/business/rss.xml",
-                                   "finance", "bbc_business", ["finance", "business"])
-        if re_ == 0:
-            # Fallback: WSJ (public RSS)
-            re_ = self.collect_rss("https://feeds.content.dowjones.io/public/rss/mw_topstories",
-                                   "finance", "marketwatch", ["finance", "markets"])
-        counts["economics"] = re_
-
-        counts["total"] = sum(v for k, v in counts.items() if k != "total")
+        counts["total"] = sum(counts.values())
         logger.info("WorldCorpus.collect_all: %s", counts)
         return counts
-
-    # ── QUERY ─────────────────────────────────────────────────────────────────
-
     def query(self, domain: str = None, tags: List[str] = None,
               limit: int = 20, since_hours: int = 24) -> List[CorpusRecord]:
         """Return recent records matching filters."""

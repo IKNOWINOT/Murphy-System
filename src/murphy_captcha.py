@@ -54,6 +54,14 @@ from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
+# Self-hosted solver (PATCH-154a)
+try:
+    from murphy_captcha_solver import get_solver as _get_murphy_solver
+    _MURPHY_SOLVER_AVAILABLE = True
+except ImportError:
+    _MURPHY_SOLVER_AVAILABLE = False
+    logger.warning("[CaptchaEngine] murphy_captcha_solver not found — falling back to HITL")
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CAPTCHA TAXONOMY
@@ -546,6 +554,21 @@ class CaptchaEngine:
             return result
 
         # Step 5: HITL
+        # MurphySolver audio path (PATCH-154a)
+        if _MURPHY_SOLVER_AVAILABLE and page:
+            try:
+                _solver = _get_murphy_solver()
+                _sol_result = await _solver.solve_recaptcha_v2(
+                    self._extract_recaptcha_sitekey(html) or "", url, page
+                )
+                if _sol_result.success and _sol_result.token:
+                    result.resolved = True
+                    result.strategy = CaptchaStrategy.AUDIO_SOLVE
+                    result.token = _sol_result.token
+                    return result
+            except Exception as _e:
+                logger.warning("[CaptchaEngine] MurphySolver reCAPTCHA error: %s", _e)
+
         return await self._hitl_escalate(page, CaptchaType.RECAPTCHA_V2)
 
     # ── 2. reCAPTCHA v3 ────────────────────────────────────────────────────
@@ -671,6 +694,24 @@ class CaptchaEngine:
                     result.strategy = CaptchaStrategy.TOKEN_INJECT
                     result.token = token
                     return result
+
+        # MurphySolver self-hosted captcha solving (PATCH-154a)
+        if _MURPHY_SOLVER_AVAILABLE and page:
+            try:
+                _solver = _get_murphy_solver()
+                sitekey = self._extract_hcaptcha_sitekey(html) or ""
+                _sol_result = await _solver.solve_hcaptcha(sitekey, url, page)
+                if _sol_result.success and _sol_result.token:
+                    await self._inject_hcaptcha_token(page, _sol_result.token)
+                    result.resolved = True
+                    result.strategy = CaptchaStrategy.TOKEN_INJECT
+                    result.token = _sol_result.token
+                    logger.info("[CaptchaEngine] MurphySolver success via %s", _sol_result.strategy)
+                    return result
+                else:
+                    logger.warning("[CaptchaEngine] MurphySolver failed: %s", _sol_result.error)
+            except Exception as _e:
+                logger.warning("[CaptchaEngine] MurphySolver exception: %s", _e)
 
         return await self._hitl_escalate(page, CaptchaType.HCAPTCHA)
 

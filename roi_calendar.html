@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ROI Calendar — Murphy System</title>
@@ -340,21 +341,13 @@ function showMurphyError(msg) {
   };
 })();
 </script>
-<nav class="nav">
-  <a href="/" class="nav-brand">⚙ Murphy System</a>
-  <ul class="nav-links">
-    <li><a href="/ui/dashboard">Dashboard</a></li>
-    <li><a href="/ui/roi-calendar" class="active">ROI Calendar</a></li>
-    <li><a href="/ui/system-visualizer">Visualizer</a></li>
-    <li><a href="/ui/dashboard">Terminal</a></li>
-  </ul>
-  <div class="nav-right">
-    <div class="live-badge"><span class="live-dot"></span>Live</div>
-    <button class="btn btn-s" onclick="exportData('csv')" title="Export as CSV">&#8659; CSV</button>
-    <button class="btn btn-s" onclick="exportData('json')" title="Export as JSON">&#8659; JSON</button>
-    <button class="btn btn-p" onclick="openAddTask()">+ Add Task</button>
-  </div>
-</nav>
+<!-- topbar injected by murphy-nav.js PATCH-154c -->
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
 
 <div class="summary-bar">
   <div class="summary-card"><span class="summary-val" style="color:var(--yellow)" id="sum-human">$0</span><span class="summary-lbl">Human Cost Est.</span></div>
@@ -1003,5 +996,6 @@ document.addEventListener('murphy:roi_update',function(e){
 
   </script>
 
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

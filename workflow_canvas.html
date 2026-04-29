@@ -7,13 +7,7 @@
 <title>Murphy — Workflow Canvas</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <style>
-:root{
-  --bg:#0a0f0a;--surface:#111811;--surface2:#161e16;--border:#1e2e1e;
-  --teal:#00e5a0;--teal-dim:rgba(0,229,160,.12);--teal-glow:rgba(0,229,160,.3);
-  --text:#e8f0e8;--text-dim:#6b8c6b;--danger:#ff4f4f;--warn:#f5a623;
-  --node-trigger:#0d2b1a;--node-action:#0d1f2b;--node-logic:#1f1a0d;--node-gate:#2b0d0d;
-  --radius:10px;--font:'Inter',system-ui,sans-serif;
-}
+/* :root removed by PATCH-154 — using murphy-app-shell.css */
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:var(--font);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
 
@@ -120,20 +114,13 @@ textarea.field-input{resize:vertical;min-height:68px;}
 <body>
 
 <!-- NAV -->
-<nav>
-  <a href="/ui/landing" class="brand">⚡ Murphy</a>
-  <div class="nav-links">
-    <a href="/ui/dashboard" class="nav-link">Dashboard</a>
-    <a href="/ui/automations" class="nav-link">Automations</a>
-    <a href="/ui/workflow-canvas" class="nav-link active">Canvas</a>
-    <a href="/ui/forge" class="nav-link">Forge</a>
-  </div>
-  <div class="nav-actions">
-    <button class="btn btn-ghost" onclick="newWorkflow()">+ New</button>
-    <button class="btn btn-teal" onclick="saveWorkflow()" id="saveBtn">Save</button>
-    <button class="btn btn-ghost" onclick="location.href='/api/auth/logout'" style="margin-left:4px;">Sign Out</button>
-  </div>
-</nav>
+<!-- topbar injected by murphy-nav.js PATCH-154c -->
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
 
 <!-- TOOLBAR -->
 <div class="toolbar">
@@ -644,5 +631,6 @@ async function loadWorkflowById(id) {
   }
 })();
 </script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

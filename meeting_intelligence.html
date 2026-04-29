@@ -2,11 +2,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System — Meeting Intelligence</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/static/murphy-design-system.css">
+<!-- DS superseded by murphy-app-shell.css PATCH-154 -->
 <style>
 /* Neon terminal theme — Color Key: green=#00ff41, cyan=#00ffff, teal=#00D4AA, bg=#0a0a0a */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -216,21 +217,7 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
 <div class="mi-shell">
 
   <!-- SIDEBAR: Session List -->
-  <aside class="mi-sidebar" aria-label="Sessions sidebar">
-    <div class="mi-sidebar-header">
-      <div class="mi-sidebar-title">Sessions</div>
-      <input class="mi-session-search" type="search" placeholder="Search sessions…" id="session-search" aria-label="Search sessions">
-    </div>
-    <div class="mi-session-list" id="session-list" role="list" aria-label="Meeting sessions">
-      <!-- Populated by JS -->
-    </div>
-    <div class="mi-sidebar-footer">
-      <div class="mi-org-cap">
-        <span>🧠</span>
-        <span>Org capability: <strong id="footer-org-sessions">0</strong> sessions</span>
-      </div>
-    </div>
-  </aside>
+  <!-- sidebar injected by murphy-nav.js PATCH-154c -->
 
   <!-- MAIN -->
   <main class="mi-main" id="mi-main" tabindex="-1">
@@ -261,13 +248,13 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
     </section>
 
     <!-- TABS -->
-    <nav class="mi-tabs" role="tablist" aria-label="Session sections">
-      <button class="mi-tab active" role="tab" aria-selected="true" data-panel="panel-drafts">📋 Drafts</button>
-      <button class="mi-tab" role="tab" aria-selected="false" data-panel="panel-suggestions">💡 Suggestions</button>
-      <button class="mi-tab" role="tab" aria-selected="false" data-panel="panel-transcript">📝 Transcript</button>
-      <button class="mi-tab" role="tab" aria-selected="false" data-panel="panel-royalties">💰 Royalties</button>
-      <button class="mi-tab" role="tab" aria-selected="false" data-panel="panel-org">🧠 Org Intelligence</button>
-    </nav>
+    <!-- topbar injected by murphy-nav.js PATCH-154c -->
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
 
     <!-- ── PANEL: Drafts ── -->
     <section class="mi-panel active" id="panel-drafts" role="tabpanel" aria-label="Generated drafts">
@@ -934,5 +921,6 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
 
 })();
 </script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

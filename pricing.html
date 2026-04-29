@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System Pricing — Free Tier, Solo $99/mo, Business $299/mo, Professional $599/mo | AI Automation</title>
@@ -513,27 +514,13 @@
 <a class="murphy-skip-link" href="#pricing-content">Skip to content</a>
 
 <!-- ── Top Navigation Bar ── -->
-<nav class="murphy-topbar" role="navigation" aria-label="Main navigation">
-  <div class="murphy-topbar-left flex items-center gap-3">
-    <a href="/ui/landing" class="murphy-topbar-brand">
-      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-        <rect width="32" height="32" rx="8" fill="var(--teal)"/>
-        <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700" font-family="Inter, sans-serif">M</text>
-      </svg>
-      <span class="murphy-topbar-brand-name">Murphy System</span>
-    </a>
-    <div class="murphy-nav-links nav-links-desktop">
-      <a href="/ui/landing#features" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Features</a>
-      <a href="/ui/landing#how-it-works" class="murphy-btn murphy-btn-ghost murphy-btn-sm">How It Works</a>
-      <a href="/ui/login?next=/ui/dashboard" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Terminals</a>
-      <a href="/ui/grant-wizard" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Financing &amp; Grants</a>
-    </div>
-  </div>
-  <div class="murphy-topbar-right flex items-center gap-2">
-    <a href="/ui/login" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Sign In</a>
-    <a href="/ui/signup" class="murphy-btn murphy-btn-primary murphy-btn-sm">Get Started</a>
-  </div>
-</nav>
+<!-- topbar injected by murphy-nav.js PATCH-154c -->
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
 
 <!-- ── Main Content ── -->
 <main id="pricing-content" role="main" aria-label="Pricing">
@@ -1084,5 +1071,6 @@
 
 })();
 </script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

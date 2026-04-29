@@ -2,11 +2,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System — Platform Admin</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/static/murphy-design-system.css">
+<!-- DS superseded by murphy-app-shell.css PATCH-154 -->
 <style>
 :root{--sidebar-width:220px;--topbar-h:52px}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -119,11 +120,13 @@ tbody tr:hover .row-actions{opacity:1}
     </a>
     <span class="admin-badge">Platform Admin</span>
   </div>
-  <nav class="m-topbar-right" aria-label="Top navigation">
-    <a href="/ui/dashboard" class="m-btn">Terminal</a>
-    <a href="/ui/dashboard" class="m-btn">Dashboard</a>
-    <span id="topbar-user" class="m-btn" style="cursor:default">—</span>
-  </nav>
+  <!-- topbar injected by murphy-nav.js PATCH-154c -->
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
 </header>
 
 <!-- SHELL -->
@@ -972,5 +975,6 @@ if (document.readyState === 'loading') {
   setTimeout(init, 0);
 }
 </script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

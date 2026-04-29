@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System Documentation — API Reference, Guides, Architecture</title>
@@ -227,99 +228,19 @@
 <a class="murphy-skip-link" href="#docs-main">Skip to content</a>
 
 <!-- ── Top Navigation Bar ── -->
-<nav class="murphy-topbar" role="navigation" aria-label="Main navigation">
-  <div class="murphy-topbar-left flex items-center gap-3">
-    <a href="/" class="murphy-topbar-brand">
-      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-        <rect width="32" height="32" rx="8" fill="var(--teal)"/>
-        <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700" font-family="Inter, sans-serif">M</text>
-      </svg>
-      <span class="murphy-topbar-brand-name">Murphy System</span>
-    </a>
-    <div class="murphy-nav-links nav-links-desktop">
-      <a href="/#features" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Features</a>
-      <a href="/ui/pricing" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Pricing</a>
-      <a href="/ui/docs" class="murphy-btn murphy-btn-ghost murphy-btn-sm" aria-current="page">Docs</a>
-      <a href="/ui/blog" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Blog</a>
-    </div>
-  </div>
-  <div class="murphy-topbar-right flex items-center gap-2">
-    <button class="murphy-btn murphy-btn-ghost murphy-btn-icon" id="theme-toggle-btn" aria-label="Toggle theme" title="Toggle theme">🌙</button>
-    <a href="/ui/login" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Sign In</a>
-    <a href="/ui/signup" class="murphy-btn murphy-btn-primary murphy-btn-sm">Get Started</a>
-  </div>
-</nav>
+<!-- topbar injected by murphy-nav.js PATCH-154c -->
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
 
 <!-- ── Layout ── -->
 <div class="docs-layout">
 
   <!-- Sidebar -->
-  <aside class="docs-sidebar" aria-label="Documentation navigation">
-    <div class="docs-search-wrap">
-      <svg class="docs-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-      </svg>
-      <input type="search" id="docs-search" class="docs-search" placeholder="Search docs…" aria-label="Search documentation">
-    </div>
-
-    <div class="docs-sidebar-section">
-      <div class="docs-sidebar-title">Getting Started</div>
-      <div class="docs-sidebar-links-wrap">
-        <a href="#getting-started" class="docs-sidebar-link active">Overview</a>
-        <a href="#installation" class="docs-sidebar-link">Installation</a>
-        <a href="#quickstart" class="docs-sidebar-link">Quickstart</a>
-        <a href="#configuration" class="docs-sidebar-link">Configuration</a>
-      </div>
-    </div>
-
-    <div class="docs-sidebar-section">
-      <div class="docs-sidebar-title">API Reference</div>
-      <div class="docs-sidebar-links-wrap">
-        <a href="#api-auth" class="docs-sidebar-link">Authentication</a>
-        <a href="#api-agents" class="docs-sidebar-link">Agents</a>
-        <a href="#api-channels" class="docs-sidebar-link">Channels</a>
-        <a href="#api-workflows" class="docs-sidebar-link">Workflows</a>
-      </div>
-    </div>
-
-    <div class="docs-sidebar-section">
-      <div class="docs-sidebar-title">Terminals</div>
-      <div class="docs-sidebar-links-wrap">
-        <a href="#terminal-unified" class="docs-sidebar-link">Unified</a>
-        <a href="#terminal-architect" class="docs-sidebar-link">Architect</a>
-        <a href="#terminal-worker" class="docs-sidebar-link">Worker</a>
-        <a href="#terminal-costs" class="docs-sidebar-link">Finance</a>
-      </div>
-    </div>
-
-    <div class="docs-sidebar-section">
-      <div class="docs-sidebar-title">Integrations</div>
-      <div class="docs-sidebar-links-wrap">
-        <a href="#integrations-overview" class="docs-sidebar-link">Overview</a>
-        <a href="#integrations-slack" class="docs-sidebar-link">Slack / Teams</a>
-        <a href="#integrations-matrix" class="docs-sidebar-link">Matrix</a>
-        <a href="#integrations-stripe" class="docs-sidebar-link">Stripe</a>
-      </div>
-    </div>
-
-    <div class="docs-sidebar-section">
-      <div class="docs-sidebar-title">MFGC Pipeline</div>
-      <div class="docs-sidebar-links-wrap">
-        <a href="#mfgc-overview" class="docs-sidebar-link">Overview</a>
-        <a href="#mfgc-gates" class="docs-sidebar-link">Gates</a>
-        <a href="#mfgc-causality" class="docs-sidebar-link">Causality Engine</a>
-      </div>
-    </div>
-
-    <div class="docs-sidebar-section">
-      <div class="docs-sidebar-title">Security</div>
-      <div class="docs-sidebar-links-wrap">
-        <a href="#security-compliance" class="docs-sidebar-link">Compliance</a>
-        <a href="#security-rbac" class="docs-sidebar-link">RBAC</a>
-        <a href="#security-audit" class="docs-sidebar-link">Audit Logs</a>
-      </div>
-    </div>
-  </aside>
+  <!-- sidebar injected by murphy-nav.js PATCH-154c -->
 
   <!-- Main content -->
   <main id="docs-main" class="docs-main" role="main" aria-label="Documentation">
@@ -525,5 +446,6 @@
   });
 })();
 </script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

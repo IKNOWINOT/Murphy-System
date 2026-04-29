@@ -11,11 +11,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System — Community Forum</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/static/murphy-design-system.css">
+<!-- DS superseded by murphy-app-shell.css PATCH-154 -->
 <style>
   /* =====================================================
      FORUM LAYOUT — three-column Discord/Teams shell
@@ -1371,95 +1372,13 @@
 <!-- ============================================================
      CHANNEL SIDEBAR (LEFT)
      ============================================================ -->
-<nav class="forum-channels" id="forum-channels" role="navigation" aria-label="Forum channels">
-  <div class="forum-channels-header">
-    <span>Community</span>
-  </div>
-  <div class="forum-channels-scroll" id="channels-scroll">
-
-    <!-- Forum Topics -->
-    <div class="forum-channels-section" id="section-topics">
-      <span>Forum Topics</span>
-      <button class="forum-section-toggle" aria-label="Add forum topic">
-        <svg width="12" height="12"><use href="/static/murphy-icons.svg#icon-plus"></use></svg>
-      </button>
-    </div>
-    <div id="forum-topics-list" role="list" aria-label="Forum topic channels">
-      <!-- Dynamic forum channels rendered here -->
-    </div>
-
-    <!-- Org Groups -->
-    <div class="forum-channels-section" id="section-groups">
-      <span>Org Groups</span>
-      <button class="forum-section-toggle" aria-label="Add org group">
-        <svg width="12" height="12"><use href="/static/murphy-icons.svg#icon-plus"></use></svg>
-      </button>
-    </div>
-    <div id="forum-groups-list" role="list" aria-label="Organization group channels">
-      <!-- Dynamic org group channels rendered here -->
-    </div>
-
-    <!-- Direct Messages -->
-    <div class="forum-channels-section" id="section-dms">
-      <span>Direct Messages</span>
-    </div>
-    <div id="forum-dm-list" role="list" aria-label="Direct message channels">
-      <!-- Dynamic DM channels rendered here -->
-    </div>
-
-    <button class="forum-add-channel-btn" id="btn-create-channel" aria-label="Create new channel">
-      <svg width="14" height="14"><use href="/static/murphy-icons.svg#icon-plus"></use></svg>
-      New Channel
-    </button>
-
-    <!-- ── Voice Channels ───────────────────────── -->
-    <div class="forum-channels-section">
-      <span>Voice Channels</span>
-    </div>
-
-    <div class="forum-voice-channel-item" data-voice-channel="community-lounge"
-         role="button" tabindex="0" aria-label="Join Community Lounge voice channel">
-      <svg class="forum-voice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.07 1.18 2 2 0 012.07 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
-      </svg>
-      <span>Community Lounge</span>
-      <div class="forum-voice-dots" id="fvc-dots-community-lounge"></div>
-    </div>
-
-    <div class="forum-voice-channel-item" data-voice-channel="office-hours"
-         role="button" tabindex="0" aria-label="Join Office Hours voice channel">
-      <svg class="forum-voice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.07 1.18 2 2 0 012.07 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
-      </svg>
-      <span>Office Hours</span>
-      <div class="forum-voice-dots" id="fvc-dots-office-hours"></div>
-    </div>
-
-    <!-- ── Video Channels ───────────────────────── -->
-    <div class="forum-channels-section">
-      <span>Video Channels</span>
-    </div>
-
-    <div class="forum-voice-channel-item" data-voice-channel="community-stage" data-video="true"
-         role="button" tabindex="0" aria-label="Join Community Stage video channel">
-      <svg class="forum-voice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-      </svg>
-      <span>Community Stage</span>
-      <div class="forum-voice-dots" id="fvc-dots-community-stage"></div>
-    </div>
-
-    <div class="forum-voice-channel-item" data-voice-channel="events-room" data-video="true"
-         role="button" tabindex="0" aria-label="Join Events Room video channel">
-      <svg class="forum-voice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-      </svg>
-      <span>Events Room</span>
-      <div class="forum-voice-dots" id="fvc-dots-events-room"></div>
-    </div>
-
-  </div>
-</nav>
+<!-- topbar injected by murphy-nav.js PATCH-154c -->
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
 
 <!-- ============================================================
      FORUM VOICE STATUS BAR
@@ -1699,39 +1618,7 @@
 <!-- ============================================================
      MEMBERS SIDEBAR (RIGHT)
      ============================================================ -->
-<aside class="forum-members" id="forum-members" role="complementary" aria-label="Channel members">
-  <div class="forum-members-header">
-    <div class="forum-members-title">
-      <svg width="16" height="16"><use href="/static/murphy-icons.svg#icon-users"></use></svg>
-      Members
-    </div>
-    <button class="murphy-btn murphy-btn-icon" id="btn-close-members" aria-label="Close member list"
-            title="Close">
-      <svg width="16" height="16"><use href="/static/murphy-icons.svg#icon-x"></use></svg>
-    </button>
-  </div>
-
-  <div class="forum-members-scroll" id="members-scroll">
-    <!-- Member list rendered by JS -->
-  </div>
-
-  <div class="forum-org-info" id="org-info-panel">
-    <div class="forum-org-info-title">Organization</div>
-    <div class="forum-org-name" id="org-name">—</div>
-    <div class="forum-org-stat" id="org-member-count">
-      <svg width="12" height="12"><use href="/static/murphy-icons.svg#icon-users"></use></svg>
-      <span>— members</span>
-    </div>
-    <div class="forum-org-stat" id="org-channel-count">
-      <svg width="12" height="12"><use href="/static/murphy-icons.svg#icon-message-circle"></use></svg>
-      <span>— channels</span>
-    </div>
-    <button class="forum-invite-btn" id="btn-invite" hidden aria-label="Invite user to organization">
-      <svg width="14" height="14"><use href="/static/murphy-icons.svg#icon-user"></use></svg>
-      Invite User
-    </button>
-  </div>
-</aside>
+<!-- sidebar injected by murphy-nav.js PATCH-154c -->
 
 <!-- ============================================================
      CREATE CHANNEL MODAL
@@ -3587,3 +3474,5 @@
 
 })();
 </script>
+
+<script src="/static/murphy-nav.js"></script>

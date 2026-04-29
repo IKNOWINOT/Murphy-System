@@ -14,11 +14,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System — Communication Hub</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/static/murphy-design-system.css">
+<!-- DS superseded by murphy-app-shell.css PATCH-154 -->
 <style>
   /* ── Layout ─────────────────────────────────────────────────── */
   :root {
@@ -240,40 +241,13 @@
 
 <div class="hub-body">
   <!-- ── Sidebar ────────────────────────────────────────────────────── -->
-  <nav class="hub-sidebar">
-    <div class="sidebar-section" style="margin-top:var(--space-3)">
-      <h3>Messaging</h3>
-      <div class="nav-item active" data-panel="im">
-        <span class="icon">💬</span> Instant Messages
-        <span class="badge" id="im-badge" style="display:none"></span>
-      </div>
-      <div class="nav-item" data-panel="email">
-        <span class="icon">📧</span> Email
-        <span class="badge" id="email-badge" style="display:none"></span>
-      </div>
-    </div>
-    <div class="sidebar-section" style="margin-top:var(--space-3)">
-      <h3>Calls</h3>
-      <div class="nav-item" data-panel="voice">
-        <span class="icon">📞</span> Voice Calls
-      </div>
-      <div class="nav-item" data-panel="video">
-        <span class="icon">📹</span> Video Calls
-      </div>
-    </div>
-    <div class="sidebar-section" style="margin-top:var(--space-3)">
-      <h3>Automation</h3>
-      <div class="nav-item" data-panel="automation">
-        <span class="icon">⚡</span> Automation Rules
-      </div>
-    </div>
-    <div class="sidebar-section" style="margin-top:var(--space-3)">
-      <h3>Moderation</h3>
-      <div class="nav-item" data-panel="moderator">
-        <span class="icon">🛡️</span> Moderator Console
-      </div>
-    </div>
-  </nav>
+  <!-- topbar injected by murphy-nav.js PATCH-154c -->
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
 
   <!-- ── Main content ───────────────────────────────────────────────── -->
   <main class="hub-main">
@@ -998,5 +972,6 @@ function formatTime(iso) {
 // ── Boot ─────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', init);
 </script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

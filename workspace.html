@@ -11,11 +11,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System — Workspace</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/static/murphy-design-system.css">
+<!-- DS superseded by murphy-app-shell.css PATCH-154 -->
 <style>
   /* =====================================================
      WORKSPACE LAYOUT — three-column shell
@@ -966,113 +967,13 @@ function showMurphyError(msg) {
 <!-- ============================================================
      CHANNEL SIDEBAR
      ============================================================ -->
-<nav class="ws-channels" id="ws-channels" role="navigation" aria-label="Channel list">
-  <div class="ws-channels-header">Workspace</div>
-  <div class="ws-channels-scroll" id="channels-scroll">
-
-    <!-- System Channels -->
-    <div class="ws-channels-section">System Channels</div>
-
-    <a href="#system" class="ws-channel-item" data-channel="system" aria-label="system channel">
-      <span class="ws-ch-dot status-success" data-ch="system"></span>
-      <span class="ws-ch-name">#system</span>
-      <span class="ws-ch-badge" id="badge-system" hidden>0</span>
-    </a>
-
-    <a href="#hitl" class="ws-channel-item" data-channel="hitl" aria-label="hitl channel">
-      <span class="ws-ch-dot status-idle" data-ch="hitl"></span>
-      <span class="ws-ch-name">#hitl</span>
-      <span class="ws-ch-badge" id="badge-hitl" hidden>0</span>
-    </a>
-
-    <a href="#workflows" class="ws-channel-item" data-channel="workflows" aria-label="workflows channel">
-      <span class="ws-ch-dot status-idle" data-ch="workflows"></span>
-      <span class="ws-ch-name">#workflows</span>
-      <span class="ws-ch-badge" id="badge-workflows" hidden>0</span>
-    </a>
-
-    <a href="#security" class="ws-channel-item" data-channel="security" aria-label="security channel">
-      <span class="ws-ch-dot status-idle" data-ch="security"></span>
-      <span class="ws-ch-name">#security</span>
-      <span class="ws-ch-badge" id="badge-security" hidden>0</span>
-    </a>
-
-    <a href="#costs" class="ws-channel-item" data-channel="costs" aria-label="costs channel">
-      <span class="ws-ch-dot status-idle" data-ch="costs"></span>
-      <span class="ws-ch-name">#costs</span>
-      <span class="ws-ch-badge" id="badge-costs" hidden>0</span>
-    </a>
-
-    <a href="#agents" class="ws-channel-item" data-channel="agents" aria-label="agents channel">
-      <span class="ws-ch-dot status-idle" data-ch="agents"></span>
-      <span class="ws-ch-name">#agents</span>
-      <span class="ws-ch-badge" id="badge-agents" hidden>0</span>
-    </a>
-
-    <!-- Founder-only: hidden until auth confirms founder_admin -->
-    <a href="#architect" class="ws-channel-item" data-channel="architect" id="ch-architect"
-       aria-label="architect channel" style="display:none;">
-      <span class="ws-ch-dot status-learning" data-ch="architect"></span>
-      <span class="ws-ch-name">#architect</span>
-      <span class="ws-ch-badge" id="badge-architect" hidden>0</span>
-    </a>
-
-    <!-- Custom Channels -->
-    <div class="ws-channels-section">Custom Channels</div>
-
-    <div id="custom-channels-list">
-      <!-- Dynamic custom channels injected here -->
-    </div>
-
-    <button class="ws-add-channel-btn" id="btn-add-channel" aria-label="Create new channel">
-      <svg width="14" height="14"><use href="/static/murphy-icons.svg#icon-plus"></use></svg>
-      Create Channel
-    </button>
-
-    <!-- ── Voice Channels ───────────────────────── -->
-    <div class="ws-channels-section">Voice Channels</div>
-
-    <div class="ws-voice-channel-item" data-voice-channel="general-voice" id="vc-general-voice"
-         role="button" tabindex="0" aria-label="Join General voice channel">
-      <svg class="ws-voice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.07 1.18 2 2 0 012.07 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
-      </svg>
-      <span>General Voice</span>
-      <div class="ws-voice-participants" id="vc-dots-general-voice"></div>
-    </div>
-
-    <div class="ws-voice-channel-item" data-voice-channel="team-standup" id="vc-team-standup"
-         role="button" tabindex="0" aria-label="Join Team Standup voice channel">
-      <svg class="ws-voice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.07 1.18 2 2 0 012.07 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
-      </svg>
-      <span>Team Standup</span>
-      <div class="ws-voice-participants" id="vc-dots-team-standup"></div>
-    </div>
-
-    <!-- ── Video Channels ───────────────────────── -->
-    <div class="ws-channels-section">Video Channels</div>
-
-    <div class="ws-voice-channel-item" data-voice-channel="all-hands" data-video="true" id="vc-all-hands"
-         role="button" tabindex="0" aria-label="Join All Hands video channel">
-      <svg class="ws-voice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-      </svg>
-      <span>All Hands</span>
-      <div class="ws-voice-participants" id="vc-dots-all-hands"></div>
-    </div>
-
-    <div class="ws-voice-channel-item" data-voice-channel="client-calls" data-video="true" id="vc-client-calls"
-         role="button" tabindex="0" aria-label="Join Client Calls video channel">
-      <svg class="ws-voice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-      </svg>
-      <span>Client Calls</span>
-      <div class="ws-voice-participants" id="vc-dots-client-calls"></div>
-    </div>
-
-  </div>
-</nav>
+<!-- topbar injected by murphy-nav.js PATCH-154c -->
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
+<style>
+@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+</style>
 
 <!-- ============================================================
      VOICE STATUS BAR (shows when connected to a voice channel)
@@ -1374,20 +1275,7 @@ function showMurphyError(msg) {
 <!-- ============================================================
      RIGHT PANEL — MURPHY ASSISTANT
      ============================================================ -->
-<aside class="ws-assistant" id="ws-assistant" role="complementary" aria-label="Murphy Assistant">
-  <div class="ws-assistant-header">
-    <div class="ws-assistant-title">
-      <svg width="16" height="16"><use href="/static/murphy-icons.svg#icon-message-circle"></use></svg>
-      Murphy Assistant
-    </div>
-    <button class="murphy-btn murphy-btn-icon" id="btn-close-assistant" aria-label="Close assistant panel" title="Close">
-      <svg width="16" height="16"><use href="/static/murphy-icons.svg#icon-x"></use></svg>
-    </button>
-  </div>
-  <div class="ws-assistant-body">
-    <murphy-librarian-chat id="ws-librarian"></murphy-librarian-chat>
-  </div>
-</aside>
+<!-- sidebar injected by murphy-nav.js PATCH-154c -->
 
 <!-- ============================================================
      CREATE CHANNEL MODAL
@@ -3755,3 +3643,5 @@ function showMurphyError(msg) {
 
 })();
 </script>
+
+<script src="/static/murphy-nav.js"></script>

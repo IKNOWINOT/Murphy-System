@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 
 CHROMIUM_BIN = (
     os.environ.get("MURPHY_CHROMIUM_BIN")
-    or "/root/.cache/ms-playwright/chromium-1208/chrome-linux64/chrome"
+    or "/opt/Murphy-System/.cache/ms-playwright/chromium-1217/chrome-linux64/chrome"
 )
 CHROMIUM_FLAGS = [
     "--headless=new",
@@ -62,6 +62,7 @@ CHROMIUM_FLAGS = [
     "--disable-background-networking",
     "--disable-default-apps",
     "--mute-audio",
+    "--remote-allow-origins=*",
 ]
 
 # Common website UI patterns — text hints that identify element types
@@ -234,6 +235,13 @@ class GhostBrowser:
         with urllib.request.urlopen(req, timeout=15) as r:
             return json.loads(r.read()) if r.length else {}
 
+
+    def _dt_put(self, path: str):
+        url = f'http://127.0.0.1:{self._port}{path}'
+        req = urllib.request.Request(url, data=b'', method='PUT')
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return json.loads(r.read()) if r.length else {}
+
     def _ws_command(self, tab_id: str, method: str, params: Dict = None) -> Dict:
         """Send a single CDP command via WebSocket and return the result."""
         import websocket  # websocket-client — already in requirements
@@ -256,7 +264,7 @@ class GhostBrowser:
     # ── Tab management ─────────────────────────────────────────────────────
 
     def new_tab(self) -> str:
-        tab = self._dt_post("/json/new")
+        tab = self._dt_put("/json/new")
         tab_id = tab.get("id", "")
         self._tabs[tab_id] = PageState(debug_port=self._port)
         return tab_id

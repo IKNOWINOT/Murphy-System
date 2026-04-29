@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Forge — Murphy System</title>
-  <link rel="stylesheet" href="/static/murphy-design-system.css">
+  <!-- DS superseded by murphy-app-shell.css PATCH-154 -->
   <style>
     /* ── Forge-specific styles ── */
     .forge-layout { display:flex; gap:0; height:calc(100vh - var(--topbar-height,56px)); }
@@ -75,18 +76,7 @@
 <div class="forge-layout">
 
   <!-- ── Sidebar: item list ── -->
-  <aside class="forge-sidebar">
-    <div style="padding:var(--space-4);border-bottom:1px solid var(--border-subtle)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3)">
-        <span style="font-weight:700;font-size:var(--text-sm)">⚡ Forge Items</span>
-        <button class="murphy-btn murphy-btn-ghost" style="padding:.2rem .5rem;font-size:11px" id="btn-refresh-list" title="Refresh">↺</button>
-      </div>
-      <input type="text" class="murphy-input" id="sidebar-search" placeholder="Filter items…" style="font-size:var(--text-xs)">
-    </div>
-    <div id="sidebar-items" style="flex:1;overflow-y:auto">
-      <div class="out-inf" style="padding:var(--space-4);font-size:var(--text-xs)">Loading…</div>
-    </div>
-  </aside>
+  <!-- sidebar injected by murphy-nav.js PATCH-154c -->
 
   <!-- ── Main editor area ── -->
   <main class="forge-main">
@@ -410,5 +400,6 @@
   refreshSidebar();
 })();
 </script>
+<script src="/static/murphy-nav.js"></script>
 </body>
 </html>

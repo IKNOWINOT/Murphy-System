@@ -11,7 +11,9 @@ License: BSL 1.1
 
 from __future__ import annotations
 
+import json
 import logging
+import sqlite3
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -219,10 +221,66 @@ class ComplianceToggleManager:
         report = mgr.generate_compliance_report("tenant-abc")
     """
 
+    _DB_PATH = "/var/lib/murphy-production/compliance_toggles.db"
+
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._configs: Dict[str, TenantFrameworkConfig] = {}
         self._audit_log: List[Dict[str, Any]] = []
+        self._db_init()
+        self._load_from_db()
+
+    def _db_init(self) -> None:
+        """Create SQLite table if it doesn't exist."""
+        try:
+            with sqlite3.connect(self._DB_PATH, timeout=10) as conn:
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS tenant_frameworks (
+                        tenant_id TEXT PRIMARY KEY,
+                        frameworks_json TEXT NOT NULL,
+                        last_updated TEXT NOT NULL,
+                        updated_by TEXT DEFAULT ''
+                    )
+                """)
+                conn.commit()
+        except Exception as exc:
+            logger.warning("[ToggleManager] DB init failed: %s", exc)
+
+    def _load_from_db(self) -> None:
+        """Load all persisted tenant configs into memory on startup."""
+        try:
+            with sqlite3.connect(self._DB_PATH, timeout=10) as conn:
+                rows = conn.execute(
+                    "SELECT tenant_id, frameworks_json, last_updated, updated_by FROM tenant_frameworks"
+                ).fetchall()
+            for tenant_id, fw_json, last_updated, updated_by in rows:
+                frameworks = json.loads(fw_json)
+                self._configs[tenant_id] = TenantFrameworkConfig(
+                    tenant_id=tenant_id,
+                    enabled_frameworks=frameworks,
+                    last_updated=last_updated,
+                    updated_by=updated_by or "",
+                )
+            logger.info("[ToggleManager] Loaded %d tenant configs from DB", len(rows))
+        except Exception as exc:
+            logger.warning("[ToggleManager] DB load failed: %s", exc)
+
+    def _persist_to_db(self, cfg: "TenantFrameworkConfig") -> None:
+        """Upsert one tenant config to SQLite."""
+        try:
+            with sqlite3.connect(self._DB_PATH, timeout=10) as conn:
+                conn.execute(
+                    """INSERT INTO tenant_frameworks (tenant_id, frameworks_json, last_updated, updated_by)
+                       VALUES (?, ?, ?, ?)
+                       ON CONFLICT(tenant_id) DO UPDATE SET
+                           frameworks_json=excluded.frameworks_json,
+                           last_updated=excluded.last_updated,
+                           updated_by=excluded.updated_by""",
+                    (cfg.tenant_id, json.dumps(cfg.enabled_frameworks), cfg.last_updated, cfg.updated_by),
+                )
+                conn.commit()
+        except Exception as exc:
+            logger.warning("[ToggleManager] DB persist failed: %s", exc)
 
     # ------------------------------------------------------------------
     # Recommendations
@@ -316,6 +374,7 @@ class ComplianceToggleManager:
                 "count": len(validated),
                 "updated_by": updated_by,
             })
+        self._persist_to_db(cfg)
         logger.info("Frameworks saved for tenant %s (%d frameworks)", tenant_id, len(validated))
         return cfg
 

@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HITL Dashboard — Murphy System</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/static/murphy-design-system.css">
+  <!-- DS superseded by murphy-app-shell.css PATCH-154 -->
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -221,7 +222,9 @@
   <script src="/static/murphy-nav.js"></script>
 
   <main id="main-content">
-    <div class="page-wrap">
+    <div class="page-wrap" style="display:flex;min-height:0;overflow:hidden;">
+<!-- sidebar injected by murphy-nav.js PATCH-154c -->
+
       <h1 class="page-title">Human-in-the-Loop Dashboard</h1>
       <p class="page-subtitle">Review, approve, or reject pending deliverables requiring human oversight</p>
 
