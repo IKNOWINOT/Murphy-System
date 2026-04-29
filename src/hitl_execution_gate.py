@@ -231,6 +231,21 @@ class HITLExecutionGate:
                 model=model_name[:38],
             )
             try:
+                # PATCH-153: Notify via Matrix before blocking for input
+                if _matrix_hitl_alert:
+                    try:
+                        _matrix_hitl_alert(
+                            title=step_description[:80],
+                            details=(
+                                f"Risk: {risk_level:.0%}  Confidence: {confidence:.0%}\n"
+                                f"Model: {model_name}\n"
+                                f"Cost: ${estimated_cost:.4f}\n"
+                                "Awaiting human approval on server console."
+                            ),
+                            severity="warn"
+                        )
+                    except Exception as _me:
+                        logger.debug("Matrix HITL notify failed: %s", _me)
                 answer = input(banner).strip().lower()
             except (EOFError, KeyboardInterrupt):
                 answer = "n"
@@ -260,6 +275,13 @@ def _safe_call(fn: Callable, *args: Any, **kwargs: Any) -> Any:
 # Re-export type hint used inside gate_execution
 # ---------------------------------------------------------------------------
 from typing import Dict  # noqa: E402  (needed for return annotation above)
+
+# PATCH-153: Matrix HITL notifications
+try:
+    from matrix_client import send_hitl_alert as _matrix_hitl_alert
+except ImportError:
+    _matrix_hitl_alert = None
+
 
 __all__ = [
     "HITLExecutionGate",
