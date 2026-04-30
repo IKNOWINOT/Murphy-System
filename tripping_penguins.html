@@ -15,7 +15,7 @@ canvas { display:block; touch-action:none; }
 #hyper-bar-wrap { width:160px; height:8px; background:rgba(255,255,255,0.15); border-radius:4px; margin:6px auto 0; border:1px solid rgba(255,255,255,0.3); }
 #hyper-bar { height:100%; width:0%; background:linear-gradient(90deg,#f0f,#0ff); border-radius:4px; transition:width 0.1s; box-shadow:0 0 6px #f0f; }
 #hyper-label { font-size:10px; color:#f0f; letter-spacing:2px; margin-top:2px; }
-#overlay { position:absolute; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.85); color:#fff; text-align:center; pointer-events:all; }
+#overlay { position:absolute; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.88); color:#fff; text-align:center; pointer-events:all; overflow-y:auto; z-index:200; }
 #overlay h1 { font-size:42px; color:#0ff; text-shadow:0 0 20px #0ff, 0 0 40px #0ff; margin-bottom:8px; letter-spacing:4px; }
 #overlay .sub { font-size:14px; color:#aaa; margin-bottom:30px; max-width:340px; line-height:1.6; }
 #overlay button { background:transparent; border:2px solid #0ff; color:#0ff; padding:12px 36px; font-size:16px; font-family:inherit; letter-spacing:3px; cursor:pointer; text-transform:uppercase; transition:all 0.2s; }
@@ -407,7 +407,7 @@ canvas { display:block; touch-action:none; }
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="_debug_score" style="position:fixed;top:130px;left:50%;transform:translateX(-50%);background:rgba(255,0,0,0.8);color:#fff;font-size:11px;padding:3px 8px;z-index:9999;font-family:monospace;border-radius:4px;pointer-events:none;"></div>
+<div id="_debug_score" style="display:block;position:fixed;top:130px;left:50%;transform:translateX(-50%);background:rgba(255,0,0,0.8);color:#fff;font-size:11px;padding:3px 8px;z-index:9999;font-family:monospace;border-radius:4px;pointer-events:none;"></div>
 <div id="ui">
   <div id="hud">
     <div id="score-val">0</div>
@@ -788,7 +788,7 @@ const LANE_STEP     = 44;    // px per tap
 const LANES         = 5;     // virtual lanes: -2,-1,0,1,2 → x = lane * 44
 const SHROOM_NEED   = 5;
 const HYPER_MULT    = 1.9;
-const SPEED_BASE    = 1.1;
+const SPEED_BASE    = 0.22;   // PATCH-156: 80% slower start
 const SPEED_DIFF    = 0.015; // +1.5% per score unit
 const SPEED_CAP     = 14;
 const SPRING_K      = 0.22;
@@ -811,9 +811,18 @@ let state = 'menu';
 let lastTime = 0;
 let score = 0, hiScore = parseInt(localStorage.getItem('tp_hi')||'0');
 let speed = SPEED_BASE;
+let gameStartTime = 0;  // PATCH-156: time-based difficulty
 let lap   = 0;
 let biomeIdx = 0;
 let psy   = 0;
+let psychBoost = 0;        // extra psy from mushrooms, decays over time
+let psychDecay = 0.0008;   // per ms
+let chromaShift = 0;       // global hue rotation offset (degrees)
+let breathPhase = 0;       // tunnel breathing oscillator
+let deathCause = '';           // cause of death string
+let psyPulse   = 0;            // short-lived flash on each mushroom collect (0→1, decays fast)
+let psyPulseHue = 0;           // hue of last mushroom collected
+let lastTripTime = 0;      // tracks when last mushroom was collected
 
 // Player
 let px = 0, pvx = 0; // x position + velocity
@@ -870,7 +879,14 @@ let ringTimer = 0;
 // ── Init / Reset ────────────────────────────────────────────────
 function initGame() {
   lastTime = 0;
-  score = 0; lap = 0; biomeIdx = 0; psy = 0; speed = SPEED_BASE;
+  score = 0; lap = 0; biomeIdx = 0; psy = 0; psychBoost = 0; chromaShift = 0; breathPhase = 0; speed = SPEED_BASE; gameStartTime = performance.now();  // PATCH-156
+  deathCause = '';
+  psyPulse = 0; psyPulseHue = 0;
+  // URL override for visual testing: ?biome=N&freeze=1
+  const _urlp = new URLSearchParams(location.search);
+  const _bp = _urlp.get('biome');
+  if (_bp !== null) { biomeIdx = parseInt(_bp) || 0; psy = BIOMES[biomeIdx].psy; }
+  if (_urlp.get('freeze') === '1') { setTimeout(() => { state = 'paused'; }, 80); }
   px = 0; pvx = 0; targetX = 0;
   playerY = H() * 0.72;
   playerBob = 0;
@@ -882,9 +898,19 @@ function initGame() {
   showGhostTrack = false;
   gridZ = 0;
   particles = []; obstacles = []; mushrooms = []; bands = []; creatures = []; rings = [];
-  obsTimer = 0; shroomTimer = 0; ringTimer = 0;
+  obsTimer = 3000; shroomTimer = 1500; ringTimer = 500;  // PATCH-156b: grace period
   tint = { r:0,g:0,b:0,a:0 };
   updateHUD();
+  // Powers + gold shroom reset (merged from PATCH-156e)
+  goldMushroomsHeld = 0;
+  powers.laser    = { charges:0, active:false, timer:0, duration:0, shots:3 };
+  powers.phase    = { charges:0, active:false, timer:0, duration:8000 };
+  powers.umbrella = { charges:0, active:false, timer:0, duration:20000 };
+  laserBeams = [];
+  laserCooldown = 0;
+  applyLevelStats();
+  updatePowerHUD();
+  updateGoldHUD();
 }
 
 // ── HUD ─────────────────────────────────────────────────────────
@@ -899,6 +925,14 @@ function updateHUD() {
 
 // ── Input ────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
+  // DEV cheat: B key cycles biomes
+  if (e.key === 'b' || e.key === 'B') {
+    const thresholds = [0, 400, 900, 1600, 2500];
+    const next = (biomeIdx + 1) % 5;
+    score = thresholds[next] + 10;
+    updateBiome();
+    return;
+  }
   if (state !== 'playing') return;
   if (e.key === 'ArrowLeft'  || e.key === 'a' || e.key === 'A') { moveLeft  = true; e.preventDefault(); }
   if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { moveRight = true; e.preventDefault(); }
@@ -944,8 +978,9 @@ function startGameLoop() {
       _dbgLastErr = e.message + ' @ ' + (e.stack||'').split('\n')[1];
       clearInterval(_gameLoopHandle);
       _gameLoopHandle = null;
-      state = 'dead';
+      deathCause = 'Glitched out of reality';
       console.error('[GAME LOOP ERROR]', e);
+      try { gameOver(); } catch(_e2) { state = 'dead'; }  // PATCH-156: always show score screen
       const dbgEl2 = document.getElementById('_debug_score');
       if (dbgEl2) { dbgEl2.textContent = 'ERR after tick '+_dbgTickCount+': '+_dbgLastErr; dbgEl2.style.fontSize='14px'; dbgEl2.style.maxWidth='90vw'; dbgEl2.style.whiteSpace='pre-wrap'; }
     }
@@ -995,8 +1030,8 @@ function spawnObstacle() {
     usedLanes.add(lane);
     obstacles.push({
       x: lane * LANE_STEP,
-      z: -1800,
-      w: 48, h: 38,
+      z: -550,
+      w: 58, h: 46,  // PATCH-156b: balanced size
       type: Math.random() < 0.4 ? 'rock' : 'stalagmite',
       hue: randInt(0,360)
     });
@@ -1004,13 +1039,18 @@ function spawnObstacle() {
 }
 
 function spawnMushroom() {
-  const lane = randInt(-2, 2);
-  const color = SHROOM_COLORS[randInt(0, SHROOM_COLORS.length-1)];
-  mushrooms.push({ x: lane * LANE_STEP, z: -1800, color, bob:Math.random()*Math.PI*2 });
+  if (Math.random() < 0.10) {
+    // Gold mushroom (10% chance)
+    mushrooms.push({ x: [-2,-1,0,1,2][Math.floor(Math.random()*5)] * LANE_STEP, z:-550, color:'#ffd700', bob:Math.random()*Math.PI*2, gold:true });
+  } else {
+    const lane = randInt(-2, 2);
+    const color = SHROOM_COLORS[randInt(0, SHROOM_COLORS.length-1)];
+    mushrooms.push({ x: lane * LANE_STEP, z: -550, color, bob:Math.random()*Math.PI*2 });
+  }
 }
 
 function spawnRing() {
-  rings.push({ z:-1200, r: W()*0.44, alpha:0.7 });
+  rings.push({ z:-550, r: W()*0.44, alpha:0.7 });
 }
 
 // ── Particle burst ───────────────────────────────────────────────
@@ -1073,79 +1113,145 @@ function _drawTunnelGeometry(dt) {
   const b  = BIOMES[biomeIdx];
   const v  = vp();
   const cw = W(), ch = H();
+  const now = Date.now();
 
-  // Background gradient
-  const bg = ctx.createRadialGradient(v.x, v.y, 20, v.x, v.y, Math.max(cw,ch));
-  bg.addColorStop(0, b.mid);
-  bg.addColorStop(1, b.sky);
+  // ── Per-biome rich background ─────────────────────────────────
+  // Acid layer: lerp biome colors toward rotating hue when tripping
+  const acidT   = Math.max(0, (psy - 0.15) / 0.85);  // 0→1 as psy 0.15→1.0
+  const biomeHue = [195, 210, 10, 280, 330][biomeIdx]; // ice/depths/lava/crystal/core
+  const shiftH   = (biomeHue + chromaShift) % 360;
+
+  // Background: each biome has its own gradient palette
+  const bg = ctx.createRadialGradient(v.x, v.y, 30, v.x, v.y, Math.max(cw, ch) * 0.9);
+  if (acidT > 0) {
+    // Acid: push saturation and rotate hue
+    const s1 = Math.floor(40 + acidT * 60), l1 = Math.floor(6  + acidT * 12);
+    const s2 = Math.floor(60 + acidT * 40), l2 = Math.floor(2  + acidT * 8);
+    bg.addColorStop(0, `hsl(${shiftH},${s1}%,${l1}%)`);
+    bg.addColorStop(1, `hsl(${(shiftH+40)%360},${s2}%,${l2}%)`);
+  } else if (psyPulse > 0.05) {
+    // Mushroom pulse — flash the biome toward the mushroom hue
+    const pp = psyPulse;
+    const ppH = psyPulseHue;
+    bg.addColorStop(0, `hsl(${ppH},${30+pp*50}%,${6+pp*10}%)`);
+    bg.addColorStop(0.5, `hsl(${(ppH+20)%360},${25+pp*40}%,${4+pp*7}%)`);
+    bg.addColorStop(1, `hsl(${(ppH+40)%360},${20+pp*35}%,${2+pp*5}%)`);
+  } else {
+    // Pure biome colours
+    const palettes = [
+      // Ice Caves — deep arctic blue
+      ['#051428','#0a2850','#0d3a6e'],
+      // Sunken Depths — midnight ocean
+      ['#020b14','#031524','#041a2e'],
+      // Lava Tunnels — deep red-orange
+      ['#1e0400','#360800','#1a0200'],
+      // Crystal Vaults — deep violet
+      ['#0a001e','#14003a','#0d0028'],
+      // The Core — pure void + hot pink
+      ['#080000','#110002','#000'],
+    ];
+    const p = palettes[biomeIdx];
+    bg.addColorStop(0,   p[1]);
+    bg.addColorStop(0.5, p[0]);
+    bg.addColorStop(1,   p[2]);
+  }
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, cw, ch);
 
-  // Rainbow tunnel bands (psy)
-  if (psy > 0.05) {
-    const bandCount = Math.floor(3 + psy * 8);
+  // ── Biome-specific environmental layer ────────────────────────
+  ctx.save();
+  if (biomeIdx === 0) {
+    // ICE CAVES — frost crystal starfield + icicle stalactites
+    drawIceCaveEnv(cw, ch, v, acidT, now);
+  } else if (biomeIdx === 1) {
+    // SUNKEN DEPTHS — bioluminescent particles + caustic light rays
+    drawSunkenEnv(cw, ch, v, acidT, now);
+  } else if (biomeIdx === 2) {
+    // LAVA TUNNELS — lava glow floor + ember particles
+    drawLavaEnv(cw, ch, v, acidT, now);
+  } else if (biomeIdx === 3) {
+    // CRYSTAL VAULTS — faceted gem reflections
+    drawCrystalEnv(cw, ch, v, acidT, now);
+  } else {
+    // THE CORE — plasma pulse rings + heat distortion
+    drawCoreEnv(cw, ch, v, acidT, now);
+  }
+  ctx.restore();
+
+  // ── Acid vignette pulse ───────────────────────────────────────
+  if (psy > 0.25) {
+    const vigSize = Math.max(cw, ch) * (0.6 + 0.2 * Math.sin(breathPhase * 0.8));
+    const vigH = (shiftH + 180) % 360;
+    const vig = ctx.createRadialGradient(v.x, v.y, vigSize * 0.2, v.x, v.y, vigSize);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(0.5, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, `hsla(${vigH},80%,12%,${(psy - 0.25) * 0.85})`);
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, cw, ch);
+  }
+
+  // ── Rainbow tunnel bands (psy) ─────────────────────────────────
+  if (psy > 0.02 || psyPulse > 0.1) {
+    const bandCount = Math.floor(3 + psy * 10);
     for (let i = 0; i < bandCount; i++) {
-      const t = ((Date.now() * 0.0003 + i / bandCount) % 1);
-      const radius = t * Math.max(cw, ch) * 0.75;
-      const hue = (i * 37 + Date.now() * 0.05) % 360;
-      const alpha = psy * 0.18 * (1 - t);
+      const t = ((now * 0.00035 + i / bandCount) % 1);
+      const radius = t * Math.max(cw, ch) * 0.78;
+      const hue = (chromaShift + i * 36 + now * 0.06 * (1 + psy * 5)) % 360;
+      const alpha = psy * 0.32 * (1 - t);
       ctx.beginPath();
-      ctx.ellipse(v.x, v.y, radius * 0.6, radius * 0.35, 0, 0, Math.PI * 2);
+      ctx.ellipse(v.x, v.y, radius * 0.6, radius * 0.32, 0, 0, Math.PI * 2);
       ctx.strokeStyle = hsl(hue, 100, 65, alpha);
-      ctx.lineWidth = 2 + psy * 4;
+      ctx.lineWidth = 2 + psy * 5;
       ctx.stroke();
     }
   }
 
-  // Grid scroll — tied to speed now
+  // ── Tunnel grid lines ──────────────────────────────────────────
   gridZ = (gridZ + speed * dt * 0.12) % 1;
-  const gridLines = 16;
   ctx.save();
   ctx.translate(v.x, v.y);
   ctx.rotate(twistAngle);
   ctx.translate(-v.x, -v.y);
 
-  // Left and right tunnel walls — converging lines
-  const wallCount = 10;
+  // Horizontal bands
+  const wallCount = 12;
   for (let i = 0; i <= wallCount; i++) {
     const t = (i / wallCount + gridZ) % 1;
-    const farX1 = v.x - W()*0.5 * (1-t);
-    const farX2 = v.x + W()*0.5 * (1-t);
-    const farY  = v.y + (ch - v.y) * (1-t) * 0.1;
-    const nearY = v.y + (ch - v.y) * t;
-    const nearX1= v.x - W()*0.52 * t;
-    const nearX2= v.x + W()*0.52 * t;
-    const alpha = t * 0.35 + 0.05;
-    const lineHue = psy > 0.3 ? (Date.now()*0.05 + i*30) % 360 : 200;
-    ctx.strokeStyle = hsl(lineHue, 80, 60, alpha);
-    ctx.lineWidth = 1;
-    // Horizontal bands
+    const nearY  = v.y + (ch - v.y) * t;
+    const nearX1 = v.x - W()*0.52 * t;
+    const nearX2 = v.x + W()*0.52 * t;
+    const alpha  = t * 0.4 + 0.06;
+    const lineHue = (psy > 0.1 || psyPulse > 0.1) ? (chromaShift + biomeHue + psyPulseHue*psyPulse*0.5 + now*0.05 + i*28) % 360 : biomeHue;
+    const breathe = psy > 0.15 ? Math.sin(breathPhase + i * 0.9) * psy * 22 : 0;
+    ctx.strokeStyle = hsl(lineHue, 70 + psy*30 + psyPulse*40, 55 + psy*20 + psyPulse*15, alpha + psy*0.2 + psyPulse*0.35);
+    ctx.lineWidth   = 1 + psy * 2.5;
     ctx.beginPath();
-    ctx.moveTo(nearX1, nearY);
-    ctx.lineTo(nearX2, nearY);
+    ctx.moveTo(nearX1 - breathe, nearY);
+    ctx.lineTo(nearX2 + breathe, nearY);
     ctx.stroke();
   }
 
-  // Vertical tunnel lines
-  const vLines = 8;
+  // Vertical lines
+  const vLines = 10;
   for (let i = 0; i <= vLines; i++) {
-    const frac = i / vLines; // 0→1
-    const farX = v.x + (frac - 0.5) * W() * 0.12;
-    const nearX = v.x + (frac - 0.5) * W() * 1.1;
-    const lineHue = psy > 0.3 ? (Date.now()*0.04 + i*45) % 360 : 200;
+    const frac  = i / vLines;
+    const farX  = v.x + (frac - 0.5) * W() * 0.12;
+    const nearX = v.x + (frac - 0.5) * W() * 1.15;
+    const lineHue = (psy > 0.1 || psyPulse > 0.1) ? (chromaShift + biomeHue + psyPulseHue*psyPulse*0.4 + now*0.04 + i*40) % 360 : biomeHue;
+    const warpX   = psy > 0.15 ? Math.sin(breathPhase * 1.4 + i * 1.2) * psy * 30 : 0;
+    ctx.strokeStyle = hsl(lineHue, 70 + psy*30 + psyPulse*40, 55 + psy*20 + psyPulse*15, 0.2 + psy*0.3 + psyPulse*0.3);
+    ctx.lineWidth   = 1 + psy * 2;
     ctx.beginPath();
-    ctx.moveTo(farX, v.y);
-    ctx.lineTo(nearX, ch);
-    ctx.strokeStyle = hsl(lineHue, 70, 55, 0.18 + psy*0.15);
-    ctx.lineWidth = 1;
+    ctx.moveTo(farX + warpX * 0.15, v.y);
+    ctx.lineTo(nearX + warpX, ch);
     ctx.stroke();
   }
   ctx.restore();
 
-  // Ghost future track (shown when twist angle is strong)
+  // Ghost track
   if (showGhostTrack) {
     ctx.save();
-    ctx.globalAlpha = 0.18;
+    ctx.globalAlpha = 0.2;
     ctx.translate(v.x, v.y);
     ctx.rotate(twistTarget * 0.6);
     ctx.translate(-v.x, -v.y);
@@ -1153,14 +1259,330 @@ function _drawTunnelGeometry(dt) {
     ctx.lineWidth = 2;
     ctx.setLineDash([8, 14]);
     ctx.beginPath();
-    ctx.moveTo(v.x - 30, v.y);
-    ctx.lineTo(v.x - 80, ch);
-    ctx.moveTo(v.x + 30, v.y);
-    ctx.lineTo(v.x + 80, ch);
+    ctx.moveTo(v.x - 30, v.y);  ctx.lineTo(v.x - 80, ch);
+    ctx.moveTo(v.x + 30, v.y);  ctx.lineTo(v.x + 80, ch);
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.restore();
   }
+}
+
+// ─── Biome environment painters ───────────────────────────────────
+
+function drawIceCaveEnv(cw, ch, v, acidT, now) {
+  // ── REACT TO PSY PULSE ──────────────────────────────────────────
+  const pp = psyPulse;                    // 0→1 flash per mushroom
+  const ppH = psyPulseHue;               // hue of mushroom collected
+  const totalAcid = Math.max(acidT, pp * 0.6);  // pulse lifts acid locally
+
+  // ── BACKGROUND: deep ice-blue cavern gradient ──────────────────
+  // Shifts toward mushroom hue when pulse fires
+  const baseH = pp > 0.05 ? (195 + (ppH - 195) * pp * 0.7) % 360 : 195;
+  const bg2 = ctx.createRadialGradient(v.x, v.y * 0.8, 20, v.x, v.y, Math.max(cw, ch) * 0.85);
+  bg2.addColorStop(0,   `hsl(${(baseH+10)%360},55%,${10 + pp*18}%)`);
+  bg2.addColorStop(0.5, `hsl(${baseH},70%,${6 + pp*12}%)`);
+  bg2.addColorStop(1,   `hsl(${(baseH-15+360)%360},80%,${3 + pp*8}%)`);
+  ctx.fillStyle = bg2;
+  ctx.fillRect(0, 0, cw, ch);
+
+  // ── CAVE WALLS: jagged rock silhouette left & right ─────────────
+  // Left wall
+  ctx.save();
+  ctx.fillStyle = `hsl(${(baseH-20+360)%360},40%,${6 + pp*6}%)`;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  const lwPoints = [0,0.08,0.18,0.28,0.38,0.5,0.6,0.72,0.85,0.95,1.0];
+  const lwX      = [cw*0.28, cw*0.22, cw*0.30, cw*0.18, cw*0.26, cw*0.15, cw*0.24, cw*0.19, cw*0.28, cw*0.22, cw*0.25];
+  for (let i=0; i<lwPoints.length; i++) ctx.lineTo(lwX[i], ch*lwPoints[i]);
+  ctx.lineTo(0, ch); ctx.closePath(); ctx.fill();
+  // Right wall (mirrored)
+  ctx.fillStyle = `hsl(${(baseH-25+360)%360},40%,${5 + pp*6}%)`;
+  ctx.beginPath();
+  ctx.moveTo(cw, 0);
+  for (let i=0; i<lwPoints.length; i++) ctx.lineTo(cw - lwX[i], ch*lwPoints[i]);
+  ctx.lineTo(cw, ch); ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  // ── CEILING ICE STALACTITES (many, varied sizes) ──────────────────
+  for (let i = 0; i < 22; i++) {
+    const ix = (i / 22) * cw * 1.05 - cw * 0.025;
+    const baseLen = 22 + ((i * 73 + 11) % 70);
+    const ilen = baseLen + Math.sin(now * 0.0007 + i * 1.3) * 3;
+    const iw   = 4 + (i % 5) * 2.2;
+    const icePulseH = pp > 0.05 ? (baseH + (ppH - baseH) * pp * 0.5) % 360 : baseH;
+    const iceAlpha  = 0.55 + totalAcid * 0.35;
+    const grad = ctx.createLinearGradient(ix, 0, ix, ilen);
+    grad.addColorStop(0,   `hsla(${icePulseH},75%,78%,${iceAlpha})`);
+    grad.addColorStop(0.6, `hsla(${(icePulseH+15)%360},90%,88%,${iceAlpha * 0.6})`);
+    grad.addColorStop(1,   `hsla(${icePulseH},95%,95%,0)`);
+    ctx.fillStyle = grad;
+    // Glow on pulse
+    if (pp > 0.1) { ctx.shadowColor = `hsla(${ppH},100%,75%,${pp*0.7})`; ctx.shadowBlur = pp * 18; }
+    ctx.beginPath();
+    ctx.moveTo(ix - iw*0.5, 0);
+    ctx.lineTo(ix + iw*0.5, 0);
+    ctx.lineTo(ix + iw*0.15, ilen * 0.75);
+    ctx.lineTo(ix, ilen);
+    ctx.lineTo(ix - iw*0.15, ilen * 0.75);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // Small secondary icicle beside main
+    if (i % 3 === 0) {
+      const ix2 = ix + iw * 1.1;
+      const ilen2 = ilen * 0.45;
+      const iw2 = iw * 0.45;
+      ctx.beginPath();
+      ctx.moveTo(ix2 - iw2*0.5, 0);
+      ctx.lineTo(ix2 + iw2*0.5, 0);
+      ctx.lineTo(ix2, ilen2);
+      ctx.closePath();
+      ctx.fillStyle = `hsla(${icePulseH},70%,85%,${iceAlpha * 0.5})`;
+      ctx.fill();
+    }
+  }
+
+  // ── FLOOR STALAGMITES (growing from bottom) ────────────────────
+  for (let i = 0; i < 14; i++) {
+    const fx   = (i / 14) * cw * 1.1 - cw * 0.05;
+    const flen = 18 + ((i * 89 + 7) % 55) + Math.sin(now * 0.0005 + i * 2.1) * 2;
+    const fw   = 5 + (i % 4) * 2.5;
+    const fH   = pp > 0.05 ? (baseH + 10 + (ppH - baseH) * pp * 0.4) % 360 : (baseH + 10) % 360;
+    const grad = ctx.createLinearGradient(fx, ch, fx, ch - flen);
+    grad.addColorStop(0,   `hsla(${fH},65%,35%,0.7)`);
+    grad.addColorStop(0.5, `hsla(${fH},80%,60%,0.55)`);
+    grad.addColorStop(1,   `hsla(${fH},95%,85%,0)`);
+    ctx.fillStyle = grad;
+    if (pp > 0.1) { ctx.shadowColor = `hsla(${ppH},100%,70%,${pp*0.5})`; ctx.shadowBlur = pp * 12; }
+    ctx.beginPath();
+    ctx.moveTo(fx - fw*0.5, ch);
+    ctx.lineTo(fx + fw*0.5, ch);
+    ctx.lineTo(fx + fw*0.12, ch - flen * 0.7);
+    ctx.lineTo(fx, ch - flen);
+    ctx.lineTo(fx - fw*0.12, ch - flen * 0.7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // ── ICE SHEEN / FLOOR REFLECTION ─────────────────────────────────
+  const iceH2 = pp > 0.05 ? (baseH + ppH * pp * 0.3) % 360 : baseH;
+  const iceGrad = ctx.createLinearGradient(0, ch * 0.72, 0, ch);
+  iceGrad.addColorStop(0,   `hsla(${iceH2},75%,55%,0)`);
+  iceGrad.addColorStop(0.3, `hsla(${iceH2},85%,62%,${0.14 + totalAcid * 0.25})`);
+  iceGrad.addColorStop(1,   `hsla(${iceH2},70%,35%,${0.32 + totalAcid * 0.3})`);
+  ctx.fillStyle = iceGrad;
+  ctx.fillRect(0, ch * 0.72, cw, ch * 0.28);
+
+  // ── FROST CRYSTALS on walls (star sparkles) ───────────────────────
+  for (let i = 0; i < 40; i++) {
+    const sx = ((i * 137.5 + 42) % 1) * cw;
+    const sy = ((i * 97.3  + 42) % 1) * ch * 0.9;
+    const pulse = 0.3 + 0.7 * Math.abs(Math.sin(now * 0.0009 * ((i % 5)*0.4+0.6) + i));
+    const r     = (1.2 + (i % 3) * 0.8) * (0.7 + totalAcid * 0.9);
+    const sparkH = pp > 0.05 ? (ppH + i * 8) % 360 : (baseH + i * 5) % 360;
+    ctx.beginPath();
+    ctx.arc(sx, sy, r, 0, Math.PI*2);
+    ctx.fillStyle = `hsla(${sparkH},85%,92%,${pulse * (0.35 + totalAcid * 0.55)})`;
+    if (pp > 0.15) { ctx.shadowColor = `hsl(${ppH},100%,80%)`; ctx.shadowBlur = r * 4 * pp; }
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // ── FULL-SCREEN PULSE WASH on mushroom collect ─────────────────
+  if (pp > 0.02) {
+    const wash = ctx.createRadialGradient(v.x, v.y, 0, v.x, v.y, Math.max(cw, ch) * 0.95);
+    wash.addColorStop(0,   `hsla(${ppH},100%,70%,${pp * 0.22})`);
+    wash.addColorStop(0.5, `hsla(${ppH},90%,55%,${pp * 0.10})`);
+    wash.addColorStop(1,   `hsla(${ppH},80%,40%,0)`);
+    ctx.fillStyle = wash;
+    ctx.fillRect(0, 0, cw, ch);
+  }
+}
+
+function drawSunkenEnv(cw, ch, v, acidT, now) {
+  // Deep water caustic light rays from above
+  for (let i = 0; i < 8; i++) {
+    const angle = (-0.4 + i * 0.12) + Math.sin(now * 0.00045 + i * 0.9) * 0.06;
+    const ox = cw * (0.1 + i * 0.11);
+    const rayH = acidT > 0 ? (200 + chromaShift + i * 25) % 360 : 200;
+    const grad = ctx.createLinearGradient(ox, 0, ox + Math.tan(angle)*ch, ch);
+    grad.addColorStop(0, `hsla(${rayH},90%,65%,${0.07 + acidT*0.1})`);
+    grad.addColorStop(0.5, `hsla(${rayH},80%,55%,${0.03 + acidT*0.06})`);
+    grad.addColorStop(1, `hsla(${rayH},70%,40%,0)`);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(ox - 8, 0);
+    ctx.lineTo(ox + 8, 0);
+    ctx.lineTo(ox + Math.tan(angle)*ch + 55, ch);
+    ctx.lineTo(ox + Math.tan(angle)*ch - 55, ch);
+    ctx.closePath();
+    ctx.fill();
+  }
+  // Bioluminescent particles drifting upward
+  for (let i = 0; i < 30; i++) {
+    const px2 = ((i * 113.7 + (now * 0.00002 + i * 0.03)) % 1) * cw;
+    const py2 = ch - ((now * (0.015 + (i%5)*0.008) + i * ch/30) % ch);
+    const psize = 1 + (i % 4) * 0.7;
+    const pH  = acidT > 0 ? (180 + chromaShift + i * 12) % 360 : 185;
+    ctx.beginPath();
+    ctx.arc(px2, py2, psize, 0, Math.PI*2);
+    ctx.fillStyle = `hsla(${pH},100%,75%,${0.35 + acidT*0.4})`;
+    ctx.shadowColor = `hsl(${pH},100%,65%)`;
+    ctx.shadowBlur  = 6 + acidT * 8;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+  // Deep floor glow
+  const fGrad = ctx.createLinearGradient(0, ch*0.75, 0, ch);
+  const fH = acidT > 0 ? (200 + chromaShift) % 360 : 200;
+  fGrad.addColorStop(0, `hsla(${fH},80%,20%,0)`);
+  fGrad.addColorStop(1, `hsla(${fH},90%,25%,${0.25 + acidT*0.3})`);
+  ctx.fillStyle = fGrad;
+  ctx.fillRect(0, ch*0.75, cw, ch*0.25);
+}
+
+function drawLavaEnv(cw, ch, v, acidT, now) {
+  // Lava floor glow
+  const lavH = acidT > 0 ? (10 + chromaShift) % 360 : 15;
+  const lavGrad = ctx.createLinearGradient(0, ch*0.7, 0, ch);
+  lavGrad.addColorStop(0, `hsla(${lavH},100%,30%,0)`);
+  lavGrad.addColorStop(0.4, `hsla(${lavH},100%,40%,${0.35 + acidT*0.4})`);
+  lavGrad.addColorStop(1,   `hsla(${(lavH+15)%360},100%,50%,${0.55 + acidT*0.3})`);
+  ctx.fillStyle = lavGrad;
+  ctx.fillRect(0, ch*0.7, cw, ch*0.3);
+
+  // Lava crack lines on floor
+  for (let i = 0; i < 7; i++) {
+    const cx2 = (cw * 0.1) + i * (cw * 0.13);
+    const crackH = acidT > 0 ? (lavH + i * 15 + chromaShift) % 360 : (lavH + i * 8);
+    const glow = ctx.createLinearGradient(cx2, ch*0.75, cx2 + 20, ch);
+    glow.addColorStop(0, `hsla(${crackH},100%,65%,${0.4 + acidT*0.4})`);
+    glow.addColorStop(1, `hsla(${crackH},100%,50%,0)`);
+    ctx.strokeStyle = glow;
+    ctx.lineWidth = 1.5 + acidT * 2;
+    ctx.shadowColor = `hsl(${crackH},100%,60%)`;
+    ctx.shadowBlur  = 8 + acidT * 12;
+    ctx.beginPath();
+    ctx.moveTo(cx2, ch*0.78);
+    ctx.bezierCurveTo(cx2+10, ch*0.85, cx2-8, ch*0.92, cx2+5, ch);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+  // Ember/ash particles rising
+  for (let i = 0; i < 25; i++) {
+    const ex = ((i * 127.3 + (now * 0.00003 + i * 0.04)) % 1) * cw;
+    const ey = ch - ((now * (0.025 + (i%6)*0.012) + i * ch/25) % (ch * 0.65));
+    const eH = acidT > 0 ? (lavH + i * 18 + chromaShift) % 360 : (lavH + (i%4)*10);
+    ctx.beginPath();
+    ctx.arc(ex, ey, 1.2 + (i%3)*0.8, 0, Math.PI*2);
+    ctx.fillStyle = `hsla(${eH},100%,70%,${0.5 + acidT*0.3})`;
+    ctx.shadowColor = `hsl(${eH},100%,65%)`;
+    ctx.shadowBlur  = 5 + acidT * 8;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+  // Ceiling heat shimmer — dark red glow from above
+  const ceilGrad = ctx.createLinearGradient(0, 0, 0, ch*0.4);
+  ceilGrad.addColorStop(0, `hsla(${lavH},80%,15%,${0.5 + acidT*0.3})`);
+  ceilGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = ceilGrad;
+  ctx.fillRect(0, 0, cw, ch*0.4);
+}
+
+function drawCrystalEnv(cw, ch, v, acidT, now) {
+  // Crystal spires rising from floor
+  for (let i = 0; i < 12; i++) {
+    const cx2  = (i / 12) * cw + cw * 0.04;
+    const ch2  = 40 + (i * 67) % 90;
+    const cw2  = 6 + (i % 4) * 4;
+    const cH   = acidT > 0 ? (270 + chromaShift + i * 22) % 360 : (270 + i * 18) % 360;
+    const pulse = 0.5 + 0.5 * Math.sin(now * 0.0012 * ((i%3)*0.5+0.7) + i * 1.1);
+    const grad = ctx.createLinearGradient(cx2, ch, cx2, ch - ch2);
+    grad.addColorStop(0, `hsla(${cH},90%,30%,0.6)`);
+    grad.addColorStop(0.6, `hsla(${cH},100%,60%,${0.5 + acidT*0.4})`);
+    grad.addColorStop(1,   `hsla(${cH},100%,90%,${0.3 + acidT*0.4})`);
+    ctx.fillStyle = grad;
+    ctx.shadowColor = `hsl(${cH},100%,65%)`;
+    ctx.shadowBlur  = 12 + pulse * 10 + acidT * 15;
+    ctx.beginPath();
+    ctx.moveTo(cx2 - cw2/2, ch);
+    ctx.lineTo(cx2 + cw2/2, ch);
+    ctx.lineTo(cx2 + cw2*0.3, ch - ch2 * 0.8);
+    ctx.lineTo(cx2, ch - ch2);
+    ctx.lineTo(cx2 - cw2*0.3, ch - ch2 * 0.8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+  // Ceiling crystal drips (mirrored)
+  for (let i = 0; i < 10; i++) {
+    const cx2  = cw * 0.05 + (i / 10) * cw * 0.9;
+    const ch2  = 25 + (i * 53) % 60;
+    const cH   = acidT > 0 ? (280 + chromaShift + i * 25) % 360 : (260 + i * 22) % 360;
+    ctx.fillStyle = `hsla(${cH},90%,65%,${0.35 + acidT*0.4})`;
+    ctx.shadowColor = `hsl(${cH},100%,70%)`;
+    ctx.shadowBlur  = 8 + acidT * 12;
+    ctx.beginPath();
+    ctx.moveTo(cx2 - 4, 0);
+    ctx.lineTo(cx2 + 4, 0);
+    ctx.lineTo(cx2, ch2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+  // Ambient purple glow floor
+  const fGrad = ctx.createLinearGradient(0, ch*0.72, 0, ch);
+  const fH = acidT > 0 ? (270 + chromaShift) % 360 : 270;
+  fGrad.addColorStop(0, `hsla(${fH},80%,20%,0)`);
+  fGrad.addColorStop(1, `hsla(${fH},90%,30%,${0.35 + acidT*0.35})`);
+  ctx.fillStyle = fGrad;
+  ctx.fillRect(0, ch*0.72, cw, ch*0.28);
+}
+
+function drawCoreEnv(cw, ch, v, acidT, now) {
+  // Plasma pulse rings from center
+  for (let i = 0; i < 6; i++) {
+    const phase = (now * 0.0006 + i / 6) % 1;
+    const maxR  = Math.max(cw, ch) * 0.6;
+    const r     = phase * maxR;
+    const cH    = acidT > 0 ? (330 + chromaShift + i * 40) % 360 : (330 + i * 30) % 360;
+    ctx.beginPath();
+    ctx.arc(v.x, v.y, r, 0, Math.PI * 2);
+    ctx.strokeStyle = `hsla(${cH},100%,60%,${(1-phase) * (0.25 + acidT * 0.35)})`;
+    ctx.lineWidth   = 2 + (1-phase) * 5 + acidT * 4;
+    ctx.shadowColor = `hsl(${cH},100%,65%)`;
+    ctx.shadowBlur  = 15 + acidT * 20;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+  // Magma floor
+  const mH = acidT > 0 ? (330 + chromaShift) % 360 : 335;
+  const mGrad = ctx.createLinearGradient(0, ch*0.65, 0, ch);
+  mGrad.addColorStop(0,   `hsla(${mH},100%,25%,0)`);
+  mGrad.addColorStop(0.3, `hsla(${mH},100%,35%,${0.4 + acidT*0.3})`);
+  mGrad.addColorStop(1,   `hsla(${(mH+20)%360},100%,50%,${0.65 + acidT*0.25})`);
+  ctx.fillStyle = mGrad;
+  ctx.fillRect(0, ch*0.65, cw, ch*0.35);
+  // Heat particles rising from floor
+  for (let i = 0; i < 20; i++) {
+    const ex = ((i * 149.3 + (now * 0.00004 + i * 0.05)) % 1) * cw;
+    const ey = ch - ((now * (0.03 + (i%5)*0.015) + i * ch/20) % (ch * 0.55));
+    const eH = acidT > 0 ? (mH + i*20 + chromaShift) % 360 : (mH + i*15) % 360;
+    ctx.beginPath();
+    ctx.arc(ex, ey, 1.5 + (i%4)*0.9, 0, Math.PI*2);
+    ctx.fillStyle = `hsla(${eH},100%,75%,${0.55 + acidT*0.3})`;
+    ctx.shadowColor = `hsl(${eH},100%,65%)`;
+    ctx.shadowBlur  = 8 + acidT * 12;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+  // Ceiling inferno glow
+  const cGrad = ctx.createLinearGradient(0, 0, 0, ch * 0.45);
+  cGrad.addColorStop(0, `hsla(${mH},100%,20%,${0.6 + acidT*0.2})`);
+  cGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = cGrad;
+  ctx.fillRect(0, 0, cw, ch * 0.45);
 }
 
 // ── Draw rings ───────────────────────────────────────────────────
@@ -1189,34 +1611,51 @@ function drawObstacles() {
     const sy = proj.sy - h;
 
     if (obs.type === 'rock') {
-      const grad = ctx.createRadialGradient(proj.sx, proj.sy-h*0.5, 1, proj.sx, proj.sy-h*0.5, w);
-      grad.addColorStop(0, hsl(obs.hue, 40, 70));
-      grad.addColorStop(1, hsl(obs.hue, 30, 25));
+      const rw = Math.max(2, w), rh = Math.max(2, h);
+      const grad = ctx.createRadialGradient(proj.sx, proj.sy-h*0.5, 1, proj.sx, proj.sy-h*0.5, Math.max(1, rw));
+      const acidHue = psy > 0.2 ? (obs.hue + chromaShift) % 360 : obs.hue;
+      grad.addColorStop(0, hsl(acidHue, 40 + psy*60, 70 + psy*20));
+      grad.addColorStop(1, hsl((acidHue+60)%360, 30 + psy*50, 25 + psy*15));
       ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.roundRect(sx, sy, w, h, w*0.3);
+      ctx.roundRect(sx, sy, rw, rh, rw*0.3);
       ctx.fill();
-      if (psy > 0.3) {
-        ctx.shadowColor = hsl(obs.hue, 100, 70);
-        ctx.shadowBlur = 12 * psy * proj.scale;
+      if (psy > 0.15) {
+        const glowH = (acidHue + Date.now()*0.08) % 360;
+        ctx.shadowColor = hsl(glowH, 100, 70);
+        ctx.shadowBlur = (8 + 20 * psy) * proj.scale;
         ctx.fill();
         ctx.shadowBlur = 0;
       }
-    } else {
+    } else if (w > 0 && h > 0) {
       // Stalagmite — triangle
-      ctx.fillStyle = hsl(obs.hue, 50, 45);
+      const stalaHue = psy > 0.2 ? (obs.hue + chromaShift) % 360 : obs.hue;
+      ctx.fillStyle = hsl(stalaHue, 50 + psy*50, 45 + psy*20);
       ctx.beginPath();
       ctx.moveTo(proj.sx, proj.sy - h*1.3);
       ctx.lineTo(proj.sx - w*0.55, proj.sy);
       ctx.lineTo(proj.sx + w*0.55, proj.sy);
       ctx.closePath();
       ctx.fill();
-      if (psy > 0.4) {
-        ctx.shadowColor = hsl(obs.hue, 100, 80);
+      if (psy > 0.2) {
+        ctx.shadowColor = hsl((stalaHue + 120) % 360, 100, 80);
         ctx.shadowBlur = 10 * psy;
         ctx.fill();
         ctx.shadowBlur = 0;
       }
+    }
+
+    // ── Danger warning glow when obstacle close ── PATCH-156
+    if (obs.z > -200 && obs.z < 120) {
+      const dangerAlpha = Math.max(0, (obs.z + 200) / 320) * 0.55;
+      const laneX = W()/2 + obs.x;
+      const grad = ctx.createRadialGradient(laneX, playerY + 10, 5, laneX, playerY + 10, 55);
+      grad.addColorStop(0, `rgba(255,40,40,${dangerAlpha})`);
+      grad.addColorStop(1, 'rgba(255,40,40,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.ellipse(laneX, playerY + 10, 55, 18, 0, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 }
@@ -1784,44 +2223,49 @@ function updateGoldHUD() {
   document.getElementById('gold-bar').style.width = (goldMushroomsHeld / GOLD_NEEDED * 100) + '%';
 }
 
-// ── Gold mushroom spawn ─────────────────────────────────────────
-// Piggyback on existing mushroom spawn — 10% chance to be gold
-const _origSpawnMushroom = spawnMushroom;
-function spawnMushroom() {
-  if (Math.random() < 0.10) {
-    // Spawn gold mushroom
-    mushrooms.push({ x: [-2,-1,0,1,2][Math.floor(Math.random()*5)] * LANE_STEP, z:-1800, color:'#ffd700', bob:Math.random()*Math.PI*2, gold:true });
-  } else {
-    _origSpawnMushroom();
-  }
-}
+// spawnMushroom with gold: merged into primary definition above (PATCH-158)
 
-// ── Gold mushroom collection (patched into collectMushroom) ─────
-// We store the current collectMushroom and extend it
-const _prevCollectMushroom = collectMushroom;
+// ── collectMushroom — merged primary definition (PATCH-158) ─────
 function collectMushroom(color, sx, sy) {
-  // Check if this was a gold mushroom
   const wasGold = (color === '#ffd700');
-  // Call normal collection
-  _prevCollectMushroom(color, sx, sy);
-  // Award XP per mushroom
+  // Normal mushroom economy + hyper
+  if (!wasGold) {
+    shroomsCollected++;
+    awardMushroom();
+    burst(sx, sy, color, 18);
+    if (shroomsCollected >= SHROOM_NEED) {
+      shroomsCollected = 0;
+      hyperActive = true;
+      hyperTimer = 4000;
+      const el = document.getElementById('hyper-active');
+      el.style.animation = 'none';
+      void el.offsetWidth;
+      el.style.animation = 'hyperFlash 0.8s ease-out forwards';
+    }
+    updateHUD();
+  }
+  // XP for any mushroom
   awardXP(wasGold ? 5 : 1);
+  // Acid boost — each mushroom spikes the psy level
+  psychBoost = Math.min(1.0, psychBoost + (wasGold ? 0.55 : 0.22));
+  // Reactive flash — whole world pulses with mushroom color
+  psyPulse = wasGold ? 1.0 : 0.75;
+  const _mushroomHues = {'#ff3cac':320,'#00f5d4':174,'#f5a623':37,'#a855f7':280,'#22d3ee':192,'#f97316':25,'#ffd700':50};
+  psyPulseHue = _mushroomHues[color] || Math.floor(Math.random()*360);
+  lastTripTime = Date.now();
   if (wasGold) {
     goldMushroomsHeld++;
     updateGoldHUD();
     burst(sx, sy, '#ffd700', 32);
     burst(sx, sy, '#fff700', 16);
-    // Check for power charge
     if (goldMushroomsHeld >= GOLD_NEEDED) {
       goldMushroomsHeld = 0;
       updateGoldHUD();
-      // Pick a random power to charge (or cycle)
       const available = ['laser','phase','umbrella'];
-      // Weight: umbrella rarest, laser most common
       const weights = [0.4, 0.35, 0.25];
-      let r = Math.random(), chosen = 'laser';
+      let r2 = Math.random(), chosen = 'laser';
       let cum = 0;
-      for (let i=0; i<available.length; i++) { cum+=weights[i]; if(r<cum){chosen=available[i];break;} }
+      for (let i=0; i<available.length; i++) { cum+=weights[i]; if(r2<cum){chosen=available[i];break;} }
       chargePower(chosen);
     }
   }
@@ -2024,10 +2468,11 @@ function checkCollisions() {
   const px_screen = W()/2 + px;
   for (let i = obstacles.length-1; i >= 0; i--) {
     const obs = obstacles[i];
-    if (obs.z > 0 && obs.z < 60) {
+    if (obs.z > -60 && obs.z < 120) {
       const proj = project(obs.x, obs.z + 600);
-      const w = obs.w * proj.scale * 1.1;
-      if (Math.abs(px_screen - proj.sx) < w * 0.5 + 14) {
+      const w = obs.w * proj.scale * 1.1;  // PATCH-156
+      if (Math.abs(px_screen - proj.sx) < w * 0.5 + 8) {  // PATCH-156b: tighter hitbox
+        deathCause = obs.type === 'rock' ? 'Crushed by a rock' : 'Impaled on a stalagmite';
         gameOver();
         return;
       }
@@ -2067,8 +2512,22 @@ function drawFlash() {
 // The draw order inside loop() ends with requestAnimationFrame(loop)
 // We inject via a wrapper on the existing loop function
 
-const _origLoop = loop;
+// _origLoop removed — no longer needed (PATCH-158)
 // Redefine loop to add power layer
+
+// ── Draw particles ────────────────────────────────────────────
+function drawParticles() {
+  for (const p of particles) {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillStyle = p.color || '#fff';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, Math.max(0.5, (p.r || 3) * p.life), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
 function loop(ts) {
   if (state !== 'playing') return;
   const dt = Math.min((ts - lastTime) / 16.67, 3);
@@ -2078,11 +2537,12 @@ function loop(ts) {
   const lsc = window._levelSpeedCap || 14;
   const lsm = window._levelSpringMult || 1;
 
-  // ── Speed ──
+  // ── Speed (PATCH-156: time-based difficulty, 1.5%/min) ──
   const effectiveSpeed = hyperActive ? speed * HYPER_MULT : (powers.umbrella.active ? speed * 1.3 : speed);
   score += effectiveSpeed * dt * 0.5;
-  const diff = score * SPEED_DIFF;
-  speed = clamp(SPEED_BASE + diff, SPEED_BASE, lsc);
+  const _minsElapsed = (performance.now() - gameStartTime) / 60000;
+  const _diffMult = 1 + 0.015 * _minsElapsed;
+  speed = clamp(SPEED_BASE * _diffMult, SPEED_BASE, lsc);
 
   // ── Player movement ──
   if (moveLeft  && !flash.active) targetX = clamp(targetX - LANE_STEP * dt * 0.8 * lsm, -LANE_SPREAD, LANE_SPREAD);
@@ -2107,8 +2567,21 @@ function loop(ts) {
   // ── Biome ──
   updateBiome();
 
+  // ── Psychedelic decay ──
+  if (psychBoost > 0) {
+    psychBoost = Math.max(0, psychBoost - psychDecay * dt * 16.67);
+    const biomePsy = BIOMES[biomeIdx].psy + Math.min(lap * 0.2, 0.5);
+    psy = clamp(biomePsy + psychBoost * (1 - biomePsy), 0, 1);
+  }
+  // breathPhase for tunnel wall oscillation
+  breathPhase += dt * 0.04 * (1 + psy * 3);
+  // chromaShift rotates the entire hue wheel when tripping
+  chromaShift = (chromaShift + dt * (psy > 0.3 ? 2.5 * psy : 0)) % 360;
+  // Decay psy pulse (fast — it's a flash, not sustained)
+  if (psyPulse > 0) psyPulse = Math.max(0, psyPulse - dt * 0.06);
+
   // ── Spawns ──
-  obsTimer-=dt*16.67; if(obsTimer<=0){spawnObstacle();obsTimer=Math.max(600,1800-score*0.3)/effectiveSpeed;}
+  obsTimer-=dt*16.67; if(obsTimer<=0){spawnObstacle();obsTimer=Math.max(500,2000-score*0.25)/effectiveSpeed;}  // PATCH-156b: ramping
   shroomTimer-=dt*16.67; if(shroomTimer<=0){if(Math.random()<0.7)spawnMushroom();shroomTimer=rand(1800,3500);}
   ringTimer-=dt*16.67; if(ringTimer<=0){spawnRing();ringTimer=rand(600,1400);}
 
@@ -2156,6 +2629,29 @@ function loop(ts) {
   drawParticles();
   drawFlash();
 
+  // ── Acid color wash overlay ──
+  if (psy > 0.3) {
+    const washH = (chromaShift + Date.now() * 0.03) % 360;
+    const washAlpha = (psy - 0.3) * 0.22;
+    ctx.save();
+    ctx.globalCompositeOperation = 'color';
+    ctx.fillStyle = `hsla(${washH},100%,55%,${washAlpha})`;
+    ctx.fillRect(0, 0, W(), H());
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.restore();
+  }
+
+  // ── Screen ripple / barrel distortion hint via edge glow ──
+  if (psy > 0.6) {
+    const rippleH = (chromaShift + 60) % 360;
+    const ripple = ctx.createRadialGradient(W()/2, H()/2, H()*0.2, W()/2, H()/2, Math.max(W(),H())*0.7);
+    ripple.addColorStop(0, 'rgba(0,0,0,0)');
+    ripple.addColorStop(0.75, 'rgba(0,0,0,0)');
+    ripple.addColorStop(1, `hsla(${rippleH},100%,50%,${(psy-0.6)*0.5})`);
+    ctx.fillStyle = ripple;
+    ctx.fillRect(0, 0, W(), H());
+  }
+
   // Fog + vignette
   const b=BIOMES[biomeIdx];
   const fogGrad=ctx.createLinearGradient(0,0,0,H());
@@ -2171,22 +2667,11 @@ function loop(ts) {
 }
 
 // ── Patch initGame to reset powers + gold shrooms ───────────────
-const _prevInitGame = initGame;
-function initGame() {
-  _prevInitGame();
-  goldMushroomsHeld = 0;
-  powers.laser    = { charges:0, active:false, timer:0, duration:0, shots:3 };
-  powers.phase    = { charges:0, active:false, timer:0, duration:8000 };
-  powers.umbrella = { charges:0, active:false, timer:0, duration:20000 };
-  laserBeams = [];
-  laserCooldown = 0;
-  applyLevelStats();
-  updatePowerHUD();
-  updateGoldHUD();
-}
+// _prevInitGame removed — initGame merged (PATCH-158)
+// initGame powers/gold reset: merged into primary definition above (PATCH-158)
 
 // ── Patch gameOver to award XP ──────────────────────────────────
-const _prevGameOver2 = gameOver;
+// PATCH-156: removed circular _prevGameOver2
 function gameOver() {
   state = 'dead';
   if (score > hiScore) { hiScore = Math.floor(score); localStorage.setItem('tp_hi', hiScore); }
@@ -2205,25 +2690,92 @@ function showMenu(poopEarned) {
   const ov = document.getElementById('overlay');
   ov.style.display = 'flex';
   const d = getSenseiSave().sensei;
-  const poopLine = poopEarned ? `<div style="font-size:12px;color:#c8a46e;margin-top:8px;">💩 +${poopEarned} poop earned — trade Herb for drip 🦎</div>` : '';
-  const xpLine = `<div style="font-size:11px;color:#8f8;margin-top:6px;">⭐ Sensei LV ${d.level} · XP ${d.xp}/${xpForLevel(d.level)}</div>`;
+
+  // ── Leaderboard (localStorage top-5) ──────────────────────────
+  const lbKey = 'tp_scores';
+  let scores = JSON.parse(localStorage.getItem(lbKey) || '[]');
+  const finalScore = Math.floor(score);
+  if (finalScore > 0) {
+    scores.push({ s: finalScore, biome: BIOMES[biomeIdx].name, cause: deathCause || 'Lost in the void', ts: Date.now() });
+    scores.sort((a,b) => b.s - a.s);
+    scores = scores.slice(0, 10);
+    localStorage.setItem(lbKey, JSON.stringify(scores));
+  }
+  const top5 = scores.slice(0,5);
+
+  const biomeColor = ['#4dd2ff','#00b4d8','#ff6d00','#c77dff','#ff3860'][biomeIdx] || '#0ff';
+  const biomeName  = BIOMES[biomeIdx].name;
+
+  // ── Death messages per cause ──────────────────────────────────
+  const deathLines = {
+    'Crushed by a rock':       ['The rocks win.', 'Geology: 1 | You: 0', 'That rock had beef with you.'],
+    'Impaled on a stalagmite': ['Sharp end up.', 'Stalagmites: still pointy.', 'Nature said no.'],
+    'Glitched out of reality': ['Reality had a bug.', 'The matrix sneezed.', 'Even the void glitches.'],
+  };
+  const msgs = deathLines[deathCause] || ['The cave had other plans.', 'Pingo laughs. Again.', 'Deeper next time.'];
+  const deathMsg = msgs[Math.floor(Math.random()*msgs.length)];
+
+  // ── Leaderboard HTML ──────────────────────────────────────────
+  const lbRows = top5.map((entry, i) => {
+    const medal = ['🥇','🥈','🥉','4️⃣','5️⃣'][i];
+    const isYou = (entry.ts === scores[0]?.ts && i === 0 && finalScore > 0) ? ' style="color:#0ff;font-weight:bold;"' : '';
+    return `<tr${isYou}><td>${medal}</td><td>${entry.s.toLocaleString()}</td><td style="font-size:10px;opacity:0.7;">${entry.biome||'?'}</td></tr>`;
+  }).join('');
+
+  const poopLine = poopEarned ? `<div style="font-size:12px;color:#c8a46e;margin:6px 0 0;">💩 +${poopEarned} poop earned</div>` : '';
+
   ov.innerHTML = `
-    <h1>🐧 TRIPPING<br>PENGUINS</h1>
-    <div class="sub">You made it to score <b style="color:#0ff">\${Math.floor(score)}</b>!<br>Pingo laughs. Again.</div>
-    <button id="start-btn">TRY AGAIN</button>
-    <div class="high">🏆 BEST: \${hiScore}</div>
-    \${poopLine}
-    \${xpLine}
-    <div style="font-size:11px;color:#888;margin-top:8px;">🍄 \${economy.mushrooms} coins · 💩 \${economy.poop} poop · 🌿 \${economy.fertilizer||0} fertilizer</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:0;padding:20px 16px;max-width:380px;width:100%;box-sizing:border-box;">
+
+      <!-- Score block -->
+      <div style="font-size:13px;color:#888;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">SCORE</div>
+      <div style="font-size:64px;font-weight:900;color:#0ff;text-shadow:0 0 24px #0ff,0 0 48px #0ff;line-height:1;margin-bottom:2px;">${finalScore.toLocaleString()}</div>
+      <div style="font-size:13px;color:#f0f;margin-bottom:2px;">🏆 BEST: ${hiScore.toLocaleString()}</div>
+
+      <!-- Death info -->
+      <div style="margin:10px 0 4px;padding:10px 18px;border:1px solid rgba(255,80,80,0.3);border-radius:8px;background:rgba(255,40,40,0.08);text-align:center;">
+        <div style="font-size:11px;color:#f88;letter-spacing:1px;text-transform:uppercase;">CAUSE OF DEATH</div>
+        <div style="font-size:15px;color:#fff;margin:4px 0 2px;">${deathCause || 'Lost in the void'}</div>
+        <div style="font-size:12px;color:#aaa;font-style:italic;">${deathMsg}</div>
+      </div>
+
+      <!-- Biome reached -->
+      <div style="font-size:12px;color:${biomeColor};margin:6px 0;letter-spacing:1px;">⬇ Reached: <b>${biomeName}</b></div>
+
+      ${poopLine}
+
+      <!-- Play again -->
+      <button id="start-btn" style="margin:14px 0 10px;background:transparent;border:2px solid #0ff;color:#0ff;padding:14px 48px;font-size:16px;font-family:inherit;letter-spacing:3px;cursor:pointer;text-transform:uppercase;transition:all 0.2s;border-radius:4px;">PLAY AGAIN</button>
+
+      <!-- Leaderboard -->
+      ${top5.length > 0 ? `
+      <div style="width:100%;margin-top:8px;">
+        <div style="font-size:11px;color:#666;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;text-align:center;">TOP RUNS</div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;color:#ccc;">
+          <thead><tr style="color:#555;font-size:10px;text-transform:uppercase;letter-spacing:1px;">
+            <th style="padding:3px 4px;text-align:left;"></th>
+            <th style="padding:3px 4px;text-align:right;">Score</th>
+            <th style="padding:3px 4px;text-align:right;">Biome</th>
+          </tr></thead>
+          <tbody>${lbRows}</tbody>
+        </table>
+      </div>` : ''}
+
+      <!-- XP line -->
+      <div style="font-size:11px;color:#8f8;margin-top:10px;opacity:0.7;">⭐ Sensei LV ${d.level} · XP ${d.xp}/${xpForLevel(d.level)}</div>
+    </div>
   `;
-  document.getElementById('start-btn').addEventListener('click', () => {
+  ov.querySelector('#start-btn').addEventListener('click', () => {
     ov.style.display = 'none';
     initGame();
     state = 'playing';
     startGameLoop();
   });
+  // Hover effect
+  const btn = ov.querySelector('#start-btn');
+  btn.addEventListener('mouseenter', () => { btn.style.background='#0ff'; btn.style.color='#000'; btn.style.boxShadow='0 0 20px #0ff'; });
+  btn.addEventListener('mouseleave', () => { btn.style.background='transparent'; btn.style.color='#0ff'; btn.style.boxShadow=''; });
 }
-
 
 // ── PATCH-157b: Restored shop + payment functions from 156d ──
 
