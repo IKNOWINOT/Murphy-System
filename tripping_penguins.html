@@ -642,6 +642,80 @@ const OUTFIT_SHEET_COLS = 5;
 const OUTFIT_SHEET_ROWS = 2;
 const OUTFIT_IDS = ['default','wizard','cowboy','astronaut','skeleton','lava','crystal','shaman','vaporwave','ancient'];
 
+const OUTFITS = [
+  {
+    id:'default', name:'Classic Pingo', emoji:'🐧',
+    desc:'The OG. Born naked, lives blessed.',
+    priceMushrooms:0, priceFert:0, priceUSD:0,
+    bodyColor:['#111','#000'], bellyColor:'#f5f5f0', eyeColor:'#00cfff',
+    free:true,
+  },
+  {
+    id:'wizard',  name:'Wizard Penguin', emoji:'🧙',
+    desc:'Arcane robes. Smells like spell components.',
+    priceMushrooms:25, priceFert:5, priceUSD:1.99,
+    bodyColor:['#2a0060','#1a0040'], bellyColor:'#c8a0ff', eyeColor:'#ffdd00',
+    hat:'🎩', hatOffset:[-2,-32], accent:'#9b59ff',
+  },
+  {
+    id:'cowboy',  name:'Cowboy Pingo',   emoji:'🤠',
+    desc:'Rootin\' tootin\' cave-runnin\'.',
+    priceMushrooms:20, priceFert:4, priceUSD:1.99,
+    bodyColor:['#3d2b1f','#2a1a0f'], bellyColor:'#f5deb3', eyeColor:'#8B4513',
+    hat:'🤠', hatOffset:[-3,-30], accent:'#c8860a',
+  },
+  {
+    id:'astronaut', name:'Space Pingo', emoji:'👨‍🚀',
+    desc:'One small waddle for penguinkind.',
+    priceMushrooms:35, priceFert:7, priceUSD:2.99,
+    bodyColor:['#d0d8e0','#a0aab5'], bellyColor:'#ffffff', eyeColor:'#4fc3f7',
+    helmetGlow:'#4fc3f7', accent:'#4fc3f7',
+  },
+  {
+    id:'skeleton', name:'Spooky Bones',  emoji:'💀',
+    desc:'Death visited. Left in style.',
+    priceMushrooms:30, priceFert:6, priceUSD:2.49,
+    bodyColor:['#e8e8e8','#c0c0c0'], bellyColor:'#ffffff', eyeColor:'#ff3333',
+    accent:'#ff3333', boneLines:true,
+  },
+  {
+    id:'lava',    name:'Lava Lord',      emoji:'🌋',
+    desc:'Born in The Core. Chill about it.',
+    priceMushrooms:50, priceFert:10, priceUSD:3.99,
+    bodyColor:['#8b1a00','#5a0000'], bellyColor:'#ff6633', eyeColor:'#ffaa00',
+    glowColor:'#ff4400', accent:'#ff4400',
+  },
+  {
+    id:'crystal', name:'Crystal Being',  emoji:'💎',
+    desc:'Transcended flesh. Became mineral.',
+    priceMushrooms:60, priceFert:12, priceUSD:3.99,
+    bodyColor:['#1a3a5c','#0a1f3a'], bellyColor:'#a8d8ff', eyeColor:'#00ffff',
+    glowColor:'#00cfff', shimmer:true, accent:'#00cfff',
+  },
+  {
+    id:'shaman',  name:'Mushroom Shaman', emoji:'🍄',
+    desc:'One with the spores. Many with the visions.',
+    priceMushrooms:45, priceFert:9, priceUSD:3.49,
+    bodyColor:['#1a3300','#0d2200'], bellyColor:'#88cc44', eyeColor:'#ff3cac',
+    hat:'🍄', hatOffset:[-2,-28], accent:'#88cc44', glowColor:'#44ff00',
+  },
+  {
+    id:'vaporwave', name:'Vaporwave Babe', emoji:'🌸',
+    desc:'Aesthetic transcendence. ａｅｓｔｈｅｔｉｃ',
+    priceMushrooms:40, priceFert:8, priceUSD:2.99,
+    bodyColor:['#ff6ec7','#c026d3'], bellyColor:'#ffd6f5', eyeColor:'#a855f7',
+    accent:'#ff6ec7', glowColor:'#ff6ec7', shimmer:true,
+  },
+  {
+    id:'ancient',  name:'Ancient One',    emoji:'🗿',
+    desc:'Pre-dates the cave. Pre-dates the penguin.',
+    priceMushrooms:80, priceFert:15, priceUSD:4.99,
+    bodyColor:['#5a4a3a','#3a2a1a'], bellyColor:'#c8b89a', eyeColor:'#gold',
+    accent:'#c8a46e', runes:true,
+  },
+];
+
+
 function getOutfitSheetCell(outfitId) {
   const idx = OUTFIT_IDS.indexOf(outfitId);
   if (idx < 0) return {col:0,row:0};
@@ -2050,6 +2124,176 @@ function showMenu(poopEarned) {
   });
 }
 
+
+// ── PATCH-157b: Restored shop + payment functions from 156d ──
+
+function getEquippedOutfit() {
+  return OUTFITS.find(o => o.id === economy.equippedOutfit) || OUTFITS[0];
+}
+
+// ── Render outfit grid ────────────────────────────────────────────
+let shopActiveTab = 'outfits';
+let payingForOutfit = null;
+
+function renderOutfitGrid() {
+  const grid = document.getElementById('outfit-grid');
+  grid.innerHTML = '';
+  OUTFITS.forEach(outfit => {
+    const owned    = economy.ownedOutfits.includes(outfit.id);
+    const equipped = economy.equippedOutfit === outfit.id;
+    const card     = document.createElement('div');
+    card.className = 'outfit-card' + (owned ? ' owned' : '') + (equipped ? ' equipped' : '');
+
+    let priceHTML = '';
+    if (outfit.free) {
+      priceHTML = '<div class="oprice">✨ Free</div>';
+    } else if (owned) {
+      priceHTML = '<div class="oprice" style="color:#0fa">✓ Owned</div>';
+    } else {
+      priceHTML = `<div class="oprice">🍄 ${outfit.priceMushrooms} <span style="color:#555">or</span> 🌿 ${outfit.priceFert}</div>
+                  <div class="ocurrency">💳 $${outfit.priceUSD} · ₿ crypto</div>`;
+    }
+
+    card.innerHTML = `
+      <div class="preview">${outfit.emoji}</div>
+      <div class="oname">${outfit.name}</div>
+      ${priceHTML}
+      <div class="obadge">${equipped ? 'ON' : owned ? 'OWN' : ''}</div>
+    `;
+
+    card.addEventListener('click', () => {
+      if (equipped) return; // already on
+      if (owned) {
+        equipOutfit(outfit.id);
+      } else {
+        openPayModal(outfit);
+      }
+    });
+
+    grid.appendChild(card);
+  });
+}
+
+function equipOutfit(id) {
+  economy.equippedOutfit = id;
+  saveEconomy(economy);
+  renderOutfitGrid();
+  const o = OUTFITS.find(x => x.id === id);
+  setLizardLine(`Yooo that ${o.name} is *immaculate* on you. Fly as the cave itself. ✌️`);
+}
+
+function setLizardLine(line) {
+  document.getElementById('lizard-line').textContent = line;
+}
+
+// ── randomLizardLine helper ──────────────────────────────────────
+const LIZARD_LINES = [
+  "Yoooo welcome to the drip emporium. No shoes no shirt no problem. We got FITS though 🦎",
+  "Everything you see is art. Even the poop. Especially the poop.",
+  "You got mushrooms? I got style. Let's make a deal.",
+  "The cave don't care what you look like. I do though. I care deeply.",
+  "Fresh fits only in these tunnels. The ice caves demand RESPECT.",
+  "Fertilizer economy is booming rn ngl. Convert that poop. It's just science.",
+  "Bro I've been here since before the cave. I am the original drip.",
+];
+function randomLizardLine() {
+  return LIZARD_LINES[Math.floor(Math.random() * LIZARD_LINES.length)];
+}
+
+// ── openPayModal ──────────────────────────────────────────────────
+function openPayModal(outfit) {
+  payingForOutfit = outfit;
+  document.getElementById('pay-outfit-emoji').textContent = outfit.emoji;
+  document.getElementById('pay-outfit-desc').textContent  = outfit.name + ' — "' + outfit.desc + '"';
+  document.getElementById('pm-shroom-detail').textContent = outfit.priceMushrooms + ' mushrooms (you have ' + economy.mushrooms + ')';
+  document.getElementById('pm-fert-detail').textContent   = (outfit.priceFert||0) + ' fertilizer (you have ' + (economy.fertilizer||0) + ')';
+  document.getElementById('pm-stripe-detail').textContent = '$' + outfit.priceUSD + ' USD';
+  const cryptoEl = document.getElementById('pm-crypto-detail');
+  if (cryptoEl) cryptoEl.textContent = 'Pay with crypto (coming soon)';
+  document.getElementById('pay-modal').classList.add('open');
+}
+
+// ── Shop open/close ──────────────────────────────────────────────
+document.getElementById('shop-btn').addEventListener('click', e => {
+  e.stopPropagation();
+  if (state === 'playing') state = 'shop';
+  setLizardLine(randomLizardLine());
+  updateEconHUD();
+  renderOutfitGrid();
+  document.getElementById('shop-modal').classList.add('open');
+});
+
+document.getElementById('shop-close').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('shop-modal').classList.remove('open');
+  if (state === 'shop') {
+    state = 'playing';
+    requestAnimationFrame(loop);
+  }
+});
+
+// ── Pay modal: mushroom purchase ─────────────────────────────────
+document.getElementById('pm-mushrooms').addEventListener('click', () => {
+  if (!payingForOutfit) return;
+  const o = payingForOutfit;
+  if (economy.mushrooms < o.priceMushrooms) {
+    setLizardLine("Not enough mushrooms bro 🍄 Go run the cave.");
+    return;
+  }
+  economy.mushrooms -= o.priceMushrooms;
+  if (!economy.ownedOutfits.includes(o.id)) economy.ownedOutfits.push(o.id);
+  economy.equippedOutfit = o.id;
+  saveEconomy(economy);
+  document.getElementById('pay-modal').classList.remove('open');
+  renderOutfitGrid();
+  updateEconHUD();
+  setLizardLine('Transaction complete. You are now ' + o.name + '. Live the truth. 🦎✨');
+});
+
+// ── Pay modal: fertilizer purchase ────────────────────────────────
+document.getElementById('pm-fertilizer').addEventListener('click', () => {
+  if (!payingForOutfit) return;
+  const o = payingForOutfit;
+  const fert = economy.fertilizer || 0;
+  if (fert < (o.priceFert||999)) {
+    setLizardLine("Not enough fertilizer. Convert some poop at the exchange tab 💩");
+    return;
+  }
+  economy.fertilizer = fert - (o.priceFert||0);
+  if (!economy.ownedOutfits.includes(o.id)) economy.ownedOutfits.push(o.id);
+  economy.equippedOutfit = o.id;
+  saveEconomy(economy);
+  document.getElementById('pay-modal').classList.remove('open');
+  renderOutfitGrid();
+  updateEconHUD();
+  setLizardLine('Paid in fertilizer. Eco-friendly DRIP. 🌿✨');
+});
+
+// ── Pay modal: close ─────────────────────────────────────────────
+document.getElementById('pay-close').addEventListener('click', () => {
+  document.getElementById('pay-modal').classList.remove('open');
+});
+
+// ── Shop tabs ────────────────────────────────────────────────────
+document.querySelectorAll('.shop-tab').forEach(tab => {
+  tab.addEventListener('click', e => {
+    e.stopPropagation();
+    document.querySelectorAll('.shop-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    shopActiveTab = tab.dataset.tab;
+    const outfitGrid = document.getElementById('outfit-grid');
+    const fertExchange = document.getElementById('fert-exchange');
+    if (shopActiveTab === 'outfits') {
+      if (outfitGrid) outfitGrid.style.display = 'grid';
+      if (fertExchange) fertExchange.style.display = 'none';
+    } else {
+      if (outfitGrid) outfitGrid.style.display = 'none';
+      if (fertExchange) fertExchange.style.display = 'block';
+    }
+  });
+});
+
+
 // ══════════════════════════════════════════════
 //  SLIDE SENSEI UI
 // ══════════════════════════════════════════════
@@ -2131,12 +2375,7 @@ function showSenseiMsg(msg, color='#4fc3f7') {
   el._t = setTimeout(() => el.textContent='', 4000);
 }
 
-// ── Hook sensei panel into shop open ────────────────────────────
-const _prevShopOpen = document.getElementById('shop-btn').onclick;
-document.getElementById('shop-btn').addEventListener('click', () => {
-  document.getElementById('sensei-line').textContent = SENSEI_LINES[Math.floor(Math.random()*SENSEI_LINES.length)];
-  renderSenseiPanel();
-});
+
 
 
 // ── drawMushrooms: gold handling already in primary function (line ~1192) — PATCH-157
