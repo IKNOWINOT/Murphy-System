@@ -807,6 +807,7 @@ const SHROOM_COLORS = ['#ff3cac','#00f5d4','#f5a623','#a855f7','#22d3ee','#f9731
 
 // ── State ───────────────────────────────────────────────────────
 let state = 'menu';
+let lastTime = 0;
 let score = 0, hiScore = parseInt(localStorage.getItem('tp_hi')||'0');
 let speed = SPEED_BASE;
 let lap   = 0;
@@ -867,6 +868,7 @@ let ringTimer = 0;
 
 // ── Init / Reset ────────────────────────────────────────────────
 function initGame() {
+  lastTime = 0;
   score = 0; lap = 0; biomeIdx = 0; psy = 0; speed = SPEED_BASE;
   px = 0; pvx = 0; targetX = 0;
   playerY = H() * 0.72;
@@ -2040,6 +2042,7 @@ const _origLoop = loop;
 // Redefine loop to add power layer
 function loop(ts) {
   if (state !== 'playing') return;
+  if (!lastTime) { lastTime = ts; requestAnimationFrame(loop); return; }
   const dt = Math.min((ts - lastTime) / 16.67, 3);
   lastTime = ts;
   playerY = H() * 0.72;
