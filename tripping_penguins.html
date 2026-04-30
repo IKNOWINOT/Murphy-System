@@ -604,6 +604,160 @@ canvas { display:block; touch-action:none; }
 </div>
 
 <script>
+
+// ═══════════════════════════════════════════════════════════════
+//  SPRITE LOADER — PATCH-156f
+//  All AI-generated art wired as Image() objects.
+//  Falls back to canvas drawing if image hasn't loaded yet.
+// ═══════════════════════════════════════════════════════════════
+
+const SPRITE_SHEETS = {
+  outfits:   'https://media.base44.com/images/public/69d6fe941ece93557d302bce/4cd74177c_generated_image.png',
+  npcs:      'https://media.base44.com/images/public/69d6fe941ece93557d302bce/39f1082b9_generated_image.png',
+  mushrooms: 'https://media.base44.com/images/public/69d6fe941ece93557d302bce/8447df9e3_generated_image.png',
+  biomes:    'https://media.base44.com/images/public/69d6fe941ece93557d302bce/b823c0583_generated_image.png',
+  icons:     'https://media.base44.com/images/public/69d6fe941ece93557d302bce/6afc32fdc_generated_image.png',
+};
+
+const SPR = {};   // loaded Image objects keyed by name
+let spritesReady = 0;
+const SPRITE_TOTAL = Object.keys(SPRITE_SHEETS).length;
+
+(function loadSprites() {
+  Object.entries(SPRITE_SHEETS).forEach(([key, url]) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload  = () => { SPR[key] = img; spritesReady++; };
+    img.onerror = () => { console.warn('Sprite failed:', key); spritesReady++; };
+    img.src = url;
+  });
+})();
+
+function spritesLoaded() { return spritesReady >= SPRITE_TOTAL; }
+
+// ── Outfit sprite map ─────────────────────────────────────────
+// Sheet is ~1024×512, 2 rows × 5 cols
+// Each cell ~204×256
+const OUTFIT_SHEET_COLS = 5;
+const OUTFIT_SHEET_ROWS = 2;
+const OUTFIT_IDS = ['default','wizard','cowboy','astronaut','skeleton','lava','crystal','shaman','vaporwave','ancient'];
+
+function getOutfitSheetCell(outfitId) {
+  const idx = OUTFIT_IDS.indexOf(outfitId);
+  if (idx < 0) return {col:0,row:0};
+  return { col: idx % OUTFIT_SHEET_COLS, row: Math.floor(idx / OUTFIT_SHEET_COLS) };
+}
+
+// ── NPC sprite positions ──────────────────────────────────────
+// NPC sheet: Herb left half, Sensei right half
+// Herb ≈ left 50%, Sensei ≈ right 50%
+
+// ── Mushroom sheet ────────────────────────────────────────────
+// Row 0: 6 normal mushrooms (pink,teal,orange,purple,cyan,flame)
+// Row 1 center: gold mushroom | far right: golden umbrella
+
+// ── Biome sheet ───────────────────────────────────────────────
+// 5 vertical strips side by side
+
+// ── Draw helpers ─────────────────────────────────────────────
+
+function drawSpriteOutfit(outfitId, cx, cy, w, h) {
+  if (!SPR.outfits) return false;
+  const cell = getOutfitSheetCell(outfitId);
+  const img  = SPR.outfits;
+  const cellW = img.naturalWidth  / OUTFIT_SHEET_COLS;
+  const cellH = img.naturalHeight / OUTFIT_SHEET_ROWS;
+  const sx = cell.col * cellW;
+  const sy = cell.row * cellH;
+  ctx.drawImage(img, sx, sy, cellW, cellH, cx - w/2, cy - h, w, h);
+  return true;
+}
+
+function drawSpriteNPC(which, cx, cy, w, h) {
+  // which: 'herb' | 'sensei'
+  if (!SPR.npcs) return false;
+  const img  = SPR.npcs;
+  const halfW = img.naturalWidth / 2;
+  const sx = (which === 'herb') ? 0 : halfW;
+  ctx.drawImage(img, sx, 0, halfW, img.naturalHeight, cx - w/2, cy - h, w, h);
+  return true;
+}
+
+function drawSpriteMushroom(type, cx, cy, r) {
+  // type: 'gold' | 0-5 (normal index) | 'umbrella'
+  if (!SPR.mushrooms) return false;
+  const img = SPR.mushrooms;
+  const cols = 8;  // 8 mushrooms across the sheet
+  const cellW = img.naturalWidth  / cols;
+  const cellH = img.naturalHeight / 2;
+  let sx, sy;
+  if (type === 'gold') {
+    sx = 6 * cellW; sy = cellH; // row 1, col 6
+  } else if (type === 'umbrella') {
+    sx = 7 * cellW; sy = cellH; // row 1, col 7
+  } else {
+    sx = (type % 6) * cellW; sy = 0; // row 0
+  }
+  const size = r * 2.5;
+  ctx.drawImage(img, sx, sy, cellW, cellH, cx - size/2, cy - size, size, size);
+  return true;
+}
+
+function drawSpriteBiomeBackground(biomeIdx) {
+  if (!SPR.biomes) return false;
+  const img = SPR.biomes;
+  const stripW = img.naturalWidth / 5;
+  const sx = biomeIdx * stripW;
+  // Draw as full background
+  ctx.drawImage(img, sx, 0, stripW, img.naturalHeight, 0, 0, W(), H());
+  return true;
+}
+
+function drawSpriteIcon(iconIdx, cx, cy, size) {
+  if (!SPR.icons) return false;
+  const img = SPR.icons;
+  const cols = 7;
+  const cellW = img.naturalWidth / cols;
+  const sx = iconIdx * cellW;
+  ctx.drawImage(img, sx, 0, cellW, img.naturalHeight, cx - size/2, cy - size/2, size, size);
+  return true;
+}
+
+// ── NPC face renders in shop (DOM img tags) ───────────────────
+function injectNPCImages() {
+  // Herb
+  const herbEl = document.getElementById('lizard-art');
+  if (herbEl && SPR.npcs) {
+    const c = document.createElement('canvas');
+    c.width = 80; c.height = 100;
+    const cx2 = c.getContext('2d');
+    const img = SPR.npcs;
+    cx2.drawImage(img, 0, 0, img.naturalWidth/2, img.naturalHeight, 0, 0, 80, 100);
+    herbEl.innerHTML = '';
+    herbEl.appendChild(c);
+    herbEl.style.fontSize = '0';
+  }
+  // Sensei
+  const senseiEl = document.getElementById('sensei-art');
+  if (senseiEl && SPR.npcs) {
+    const c = document.createElement('canvas');
+    c.width = 80; c.height = 100;
+    const cx2 = c.getContext('2d');
+    const img = SPR.npcs;
+    cx2.drawImage(img, img.naturalWidth/2, 0, img.naturalWidth/2, img.naturalHeight, 0, 0, 80, 100);
+    senseiEl.innerHTML = '';
+    senseiEl.appendChild(c);
+    senseiEl.style.fontSize = '0';
+  }
+}
+
+// Retry NPC injection until sprites are loaded
+(function waitForNPCs() {
+  if (SPR.npcs) { injectNPCImages(); }
+  else setTimeout(waitForNPCs, 200);
+})();
+
+
 // ═══════════════════════════════════════════════════════════════
 //  TRIPPING PENGUINS — v1.0
 //  Endless psychedelic cave runner, Temple Run perspective
@@ -871,6 +1025,16 @@ function updateBiome() {
 
 // ── Draw tunnel ──────────────────────────────────────────────────
 function drawTunnel(dt) {
+  if (spritesLoaded() && drawSpriteBiomeBackground(biomeIdx)) {
+    ctx.fillStyle = 'rgba(0,0,0,0.48)';
+    ctx.fillRect(0,0,W(),H());
+    // Still draw tunnel rings/walls for depth cues
+    _drawTunnelGeometry(dt);
+    return;
+  }
+  _drawTunnelGeometry(dt);
+}
+function _drawTunnelGeometry(dt) {
   const b  = BIOMES[biomeIdx];
   const v  = vp();
   const cw = W(), ch = H();
@@ -965,6 +1129,7 @@ function drawTunnel(dt) {
 }
 
 // ── Draw rings ───────────────────────────────────────────────────
+
 function drawRings() {
   for (const ring of rings) {
     const proj = project(0, ring.z + 600);
@@ -1031,1127 +1196,36 @@ function drawMushrooms(t) {
     const bob = Math.sin(sh.bob) * 3 * proj.scale;
     const sx = proj.sx, sy = proj.sy + bob;
 
-    // Cap
-    ctx.beginPath();
-    ctx.ellipse(sx, sy - r, r, r*0.6, 0, 0, Math.PI);
-    ctx.fillStyle = sh.color;
-    ctx.fill();
-    // Stalk
-    ctx.fillStyle = '#fff8e1';
-    ctx.fillRect(sx - r*0.25, sy - r, r*0.5, r);
-    // Dots
-    ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    ctx.beginPath(); ctx.arc(sx - r*0.3, sy - r*0.9, r*0.15, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(sx + r*0.25, sy - r*0.6, r*0.12, 0, Math.PI*2); ctx.fill();
+    ctx.save();
+    ctx.globalAlpha = proj.scale * 1.2;
 
-    // Glow
-    ctx.shadowColor = sh.color;
-    ctx.shadowBlur = 14 * proj.scale * (0.7 + 0.3*Math.sin(sh.bob));
-    ctx.beginPath();
-    ctx.ellipse(sx, sy - r*0.5, r*0.5, r*0.3, 0, 0, Math.PI*2);
-    ctx.fillStyle = sh.color;
-    ctx.globalAlpha = 0.3;
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    ctx.shadowBlur = 0;
-  }
-}
-
-// ── Draw player (penguin) ─────────────────────────────────────────
-function drawPlayer() {
-  const x = W()/2 + px;
-  const y = playerY + Math.sin(playerBob) * 4;
-
-  ctx.save();
-
-  // Shadow
-  ctx.ellipse && ctx.beginPath();
-  ctx.beginPath();
-  ctx.ellipse(x, y + 28, 22, 8, 0, 0, Math.PI*2);
-  ctx.fillStyle = 'rgba(0,0,0,0.4)';
-  ctx.fill();
-
-  // Body
-  const grad = ctx.createRadialGradient(x, y+10, 4, x, y+10, 28);
-  grad.addColorStop(0, '#222');
-  grad.addColorStop(1, '#000');
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.ellipse(x, y+10, 18, 28, 0, 0, Math.PI*2);
-  ctx.fill();
-
-  // Belly
-  ctx.fillStyle = '#f5f5f0';
-  ctx.beginPath();
-  ctx.ellipse(x, y+14, 10, 18, 0, 0, Math.PI*2);
-  ctx.fill();
-
-  // Head
-  ctx.fillStyle = '#111';
-  ctx.beginPath();
-  ctx.arc(x, y-16, 15, 0, Math.PI*2);
-  ctx.fill();
-
-  // Eyes
-  ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.arc(x-5, y-18, 4.5, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(x+5, y-18, 4.5, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#00cfff';
-  ctx.beginPath(); ctx.arc(x-5, y-18, 2.5, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(x+5, y-18, 2.5, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#000';
-  ctx.beginPath(); ctx.arc(x-5, y-18, 1.2, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(x+5, y-18, 1.2, 0, Math.PI*2); ctx.fill();
-
-  // Beak
-  ctx.fillStyle = '#ffa500';
-  ctx.beginPath();
-  ctx.moveTo(x-3, y-14); ctx.lineTo(x+3, y-14); ctx.lineTo(x, y-9);
-  ctx.closePath(); ctx.fill();
-
-  // Flippers
-  const flipAng = Math.sin(playerBob*2) * 0.3;
-  ctx.fillStyle = '#111';
-  ctx.save();
-  ctx.translate(x-18, y+5);
-  ctx.rotate(-Math.PI*0.2 - flipAng);
-  ctx.beginPath(); ctx.ellipse(0,0,6,14,0,0,Math.PI*2); ctx.fill();
-  ctx.restore();
-  ctx.save();
-  ctx.translate(x+18, y+5);
-  ctx.rotate(Math.PI*0.2 + flipAng);
-  ctx.beginPath(); ctx.ellipse(0,0,6,14,0,0,Math.PI*2); ctx.fill();
-  ctx.restore();
-
-  // Hyper glow
-  if (hyperActive) {
-    const glowAlpha = 0.5 + 0.4*Math.sin(Date.now()*0.01);
-    ctx.shadowColor = '#f0f';
-    ctx.shadowBlur = 30;
-    ctx.strokeStyle = `rgba(255,0,255,${glowAlpha})`;
-    ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(x, y, 32, 0, Math.PI*2); ctx.stroke();
-    ctx.shadowBlur = 0;
-  }
-
-  // Psy creature aura
-  if (psy > 0.5) {
-    const auraHue = (Date.now()*0.05)%360;
-    ctx.globalAlpha = (psy - 0.5) * 0.6;
-    ctx.shadowColor = hsl(auraHue, 100, 65);
-    ctx.shadowBlur = 22;
-    ctx.beginPath(); ctx.arc(x, y, 36, 0, Math.PI*2);
-    ctx.strokeStyle = hsl(auraHue, 100, 65, 0.5);
-    ctx.lineWidth = 2; ctx.stroke();
-    ctx.shadowBlur = 0;
-    ctx.globalAlpha = 1;
-  }
-
-  ctx.restore();
-}
-
-// ── Mushroom flash ────────────────────────────────────────────────
-function drawFlash() {
-  if (!flash.active) return;
-  const t  = flash.t / flash.duration;
-  const t2 = 1 - t;
-  const v  = vp();
-  const c  = flash.color;
-
-  // Screen wash
-  ctx.globalAlpha = t2 * 0.35;
-  ctx.fillStyle = c;
-  ctx.fillRect(0, 0, W(), H());
-  ctx.globalAlpha = 1;
-
-  // Radial bloom
-  const bloom = ctx.createRadialGradient(v.x, v.y, 0, v.x, v.y, W()*0.8*t2);
-  bloom.addColorStop(0, c.replace(')', `,${t2*0.7})`).replace('rgb','rgba').replace('#', 'rgba(').replace(/^rgba\(([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/, (m,r,g,b) => `rgba(${parseInt(r,16)},${parseInt(g,16)},${parseInt(b,16)}`));
-  // simpler approach
-  ctx.save();
-  ctx.globalAlpha = t2 * 0.4;
-  ctx.beginPath();
-  ctx.arc(v.x, v.y, W()*0.8*(1-t*0.3), 0, Math.PI*2);
-  ctx.fillStyle = c;
-  ctx.fill();
-  ctx.globalAlpha = 1;
-  ctx.restore();
-
-  // Expanding rings
-  for (let i = 0; i < 4; i++) {
-    const phase = (t + i*0.2) % 1;
-    ctx.beginPath();
-    ctx.arc(v.x, v.y, phase * W() * 0.7, 0, Math.PI*2);
-    ctx.strokeStyle = c;
-    ctx.globalAlpha = (1-phase) * t2 * 0.6;
-    ctx.lineWidth = 3 + (1-phase)*6;
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
-
-  // Starburst rays
-  const rays = 12;
-  for (let i = 0; i < rays; i++) {
-    const ang = (i/rays)*Math.PI*2 + t*1.2;
-    const len = W()*0.55 * t2;
-    ctx.beginPath();
-    ctx.moveTo(v.x, v.y);
-    ctx.lineTo(v.x + Math.cos(ang)*len, v.y + Math.sin(ang)*len);
-    ctx.strokeStyle = c;
-    ctx.globalAlpha = t2 * 0.25;
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
-
-  // Tunnel color bands
-  for (let i = 0; i < 6; i++) {
-    const phase = ((t*3 + i/6) % 1);
-    const r = W()*0.15 + phase*W()*0.45;
-    ctx.beginPath();
-    ctx.ellipse(v.x, v.y, r, r*0.38, 0, 0, Math.PI*2);
-    ctx.strokeStyle = c;
-    ctx.globalAlpha = (1-phase) * t2 * 0.4;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
-}
-
-// ── Particles ─────────────────────────────────────────────────────
-function drawParticles() {
-  for (const p of particles) {
-    ctx.globalAlpha = p.life;
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-}
-
-// ── Collision ─────────────────────────────────────────────────────
-function checkCollisions() {
-  const px_screen = W()/2 + px;
-
-  // Obstacles
-  for (let i = obstacles.length-1; i >= 0; i--) {
-    const obs = obstacles[i];
-    if (obs.z > 0 && obs.z < 60) {
-      const proj = project(obs.x, obs.z + 600);
-      const w = obs.w * proj.scale * 1.1;
-      if (Math.abs(px_screen - proj.sx) < w * 0.5 + 14) {
-        gameOver();
-        return;
+    if (sh.gold) {
+      // Try sprite first
+      if (!drawSpriteMushroom('gold', sx, sy, r)) {
+        // Fallback canvas gold mushroom
+        ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 18*proj.scale;
+        const cg = ctx.createRadialGradient(sx-r*0.3,sy-r*1.2,1,sx,sy-r,r*1.1);
+        cg.addColorStop(0,'#fffacd'); cg.addColorStop(0.5,'#ffd700'); cg.addColorStop(1,'#b8860b');
+        ctx.fillStyle=cg;
+        ctx.beginPath(); ctx.ellipse(sx,sy-r,r*1.25,r*0.75,0,0,Math.PI); ctx.fill();
+        ctx.shadowBlur=0; ctx.fillStyle='#fff8dc';
+        ctx.fillRect(sx-r*0.25,sy-r,r*0.5,r);
       }
-    }
-  }
-
-  // Mushrooms
-  for (let i = mushrooms.length-1; i >= 0; i--) {
-    const sh = mushrooms[i];
-    if (sh.z > 0 && sh.z < 80) {
-      const proj = project(sh.x, sh.z + 600);
-      if (Math.abs(px_screen - proj.sx) < 28) {
-        mushrooms.splice(i, 1);
-        collectMushroom(sh.color, proj.sx, proj.sy);
-      }
-    }
-  }
-}
-
-function collectMushroom(color, sx, sy) {
-  shroomsCollected++;
-  burst(sx, sy, color, 24);
-  flash = { active:true, color, t:0, duration:5000 };
-  if (shroomsCollected >= SHROOM_NEED) {
-    shroomsCollected = 0;
-    triggerHyper();
-  }
-  updateHUD();
-}
-
-function triggerHyper() {
-  hyperActive = true;
-  hyperTimer  = HYPER_DURATION;
-  const el = document.getElementById('hyper-active');
-  el.style.animation = 'none';
-  el.offsetHeight; // reflow
-  el.style.animation = 'hyperFlash 0.8s ease-out';
-}
-
-function gameOver() {
-  state = 'dead';
-  if (score > hiScore) {
-    hiScore = Math.floor(score);
-    localStorage.setItem('tp_hi', hiScore);
-  }
-  setTimeout(showMenu, 900);
-}
-
-function showMenu() {
-  const ov = document.getElementById('overlay');
-  ov.style.display = 'flex';
-  ov.innerHTML = `
-    <h1>🐧 TRIPPING<br>PENGUINS</h1>
-    <div class="sub">You made it to score <b style="color:#0ff">${Math.floor(score)}</b>!<br>Pingo laughs. Again.</div>
-    <button id="start-btn">TRY AGAIN</button>
-    <div class="high">🏆 BEST: ${hiScore}</div>
-  `;
-  document.getElementById('start-btn').addEventListener('click', () => {
-    ov.style.display = 'none';
-    initGame();
-    state = 'playing';
-    requestAnimationFrame(loop);
-  });
-}
-
-// ── Main loop ─────────────────────────────────────────────────────
-let lastTime = 0;
-function loop(ts) {
-  if (state !== 'playing') return;
-  const dt = Math.min((ts - lastTime) / 16.67, 3); // normalize to ~60fps frames
-  lastTime = ts;
-
-  playerY = H() * 0.72;
-
-  // ── Speed ──────────────────────────────────────────────────────
-  const effectiveSpeed = hyperActive ? speed * HYPER_MULT : speed;
-
-  // ── Score ──────────────────────────────────────────────────────
-  score += effectiveSpeed * dt * 0.5;
-  // Speed ramp
-  const diff = score * SPEED_DIFF;
-  speed = clamp(SPEED_BASE + diff, SPEED_BASE, SPEED_CAP);
-
-  // ── Player movement (spring) ────────────────────────────────────
-  if (moveLeft  && !flash.active) targetX = clamp(targetX - LANE_STEP * dt * 0.8, -LANE_SPREAD, LANE_SPREAD);
-  if (moveRight && !flash.active) targetX = clamp(targetX + LANE_STEP * dt * 0.8, -LANE_SPREAD, LANE_SPREAD);
-  // Spring toward target
-  const springF = (targetX - px) * SPRING_K;
-  pvx = (pvx + springF) * DAMP;
-  px += pvx * dt;
-  px = clamp(px, -LANE_SPREAD, LANE_SPREAD);
-  playerBob += 0.12 * dt * (0.5 + effectiveSpeed * 0.1);
-
-  // ── Hyper timer ─────────────────────────────────────────────────
-  if (hyperActive) {
-    hyperTimer -= dt * 16.67;
-    if (hyperTimer <= 0) { hyperActive = false; hyperTimer = 0; }
-  }
-
-  // ── Flash timer ─────────────────────────────────────────────────
-  if (flash.active) {
-    flash.t += dt * 16.67;
-    if (flash.t >= flash.duration) flash.active = false;
-  }
-
-  // ── Tunnel twist ────────────────────────────────────────────────
-  twistTimer -= dt * 16.67;
-  if (twistTimer <= 0) {
-    twistTarget = rand(-0.35 - psy*0.3, 0.35 + psy*0.3);
-    twistTimer  = rand(3000, 6000);
-    showGhostTrack = Math.abs(twistTarget) > 0.18;
-  }
-  const twistSpring = (twistTarget - twistAngle) * TWIST_SPRING;
-  twistVel = (twistVel + twistSpring) * TWIST_DAMP;
-  twistAngle += twistVel * dt;
-
-  // ── Biome ───────────────────────────────────────────────────────
-  updateBiome();
-
-  // ── Spawn obstacles ─────────────────────────────────────────────
-  obsTimer -= dt * 16.67;
-  if (obsTimer <= 0) {
-    spawnObstacle();
-    obsTimer = Math.max(600, 1800 - score * 0.3) / effectiveSpeed;
-  }
-
-  // ── Spawn mushrooms ─────────────────────────────────────────────
-  shroomTimer -= dt * 16.67;
-  if (shroomTimer <= 0) {
-    if (Math.random() < 0.7) spawnMushroom();
-    shroomTimer = rand(1800, 3500);
-  }
-
-  // ── Spawn rings ─────────────────────────────────────────────────
-  ringTimer -= dt * 16.67;
-  if (ringTimer <= 0) {
-    spawnRing();
-    ringTimer = rand(600, 1400);
-  }
-
-  // ── Move obstacles, mushrooms, rings ────────────────────────────
-  const moveZ = effectiveSpeed * 22 * dt;
-  for (const obs of obstacles) obs.z += moveZ;
-  for (const sh  of mushrooms) sh.z  += moveZ;
-  for (const r   of rings)     r.z   += moveZ * 1.4;
-
-  // Prune
-  obstacles = obstacles.filter(o => o.z < 700);
-  mushrooms = mushrooms.filter(s => s.z < 700);
-  rings     = rings.filter(r => r.z < 700);
-
-  // ── Particles ───────────────────────────────────────────────────
-  if (psy > 0.2 && Math.random() < psy * 0.4 * dt) spawnPsyParticle();
-  for (const p of particles) {
-    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 0.08 * dt;
-    p.life -= p.decay * dt;
-  }
-  particles = particles.filter(p => p.life > 0);
-
-  // ── Collisions ──────────────────────────────────────────────────
-  checkCollisions();
-
-  // ── HUD update (throttled) ──────────────────────────────────────
-  if (Math.random() < 0.15) updateHUD();
-
-  // ════════════════ DRAW ════════════════
-  ctx.clearRect(0, 0, W(), H());
-
-  drawTunnel(dt);
-  drawRings();
-  drawObstacles();
-  drawMushrooms(Date.now());
-  drawPlayer();
-  drawParticles();
-  drawFlash();
-
-  // Fog overlay (depth cue)
-  const b = BIOMES[biomeIdx];
-  const fogGrad = ctx.createLinearGradient(0, 0, 0, H());
-  fogGrad.addColorStop(0, b.fog.replace('#','').match(/.{2}/g)
-    ? `rgba(${parseInt(b.fog.slice(1,3),16)},${parseInt(b.fog.slice(3,5),16)},${parseInt(b.fog.slice(5,7),16)},0.25)`
-    : 'rgba(100,200,255,0.15)');
-  fogGrad.addColorStop(0.4, 'rgba(0,0,0,0)');
-  fogGrad.addColorStop(1, 'rgba(0,0,0,0.15)');
-  ctx.fillStyle = fogGrad;
-  ctx.fillRect(0, 0, W(), H());
-
-  // Vignette
-  const vig = ctx.createRadialGradient(W()/2,H()/2,H()*0.3, W()/2,H()/2,H()*0.8);
-  vig.addColorStop(0,'rgba(0,0,0,0)');
-  vig.addColorStop(1,'rgba(0,0,0,0.55)');
-  ctx.fillStyle = vig;
-  ctx.fillRect(0,0,W(),H());
-
-  requestAnimationFrame(loop);
-}
-
-// ── Show hi score on menu ────────────────────────────────────────
-if (hiScore > 0) {
-  document.getElementById('hi-score-disp').textContent = '🏆 BEST: ' + hiScore;
-}
-
-// ── Check mobile ────────────────────────────────────────────────
-const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth < 600;
-if (!isMobile) {
-  document.getElementById('mobile-ctrl').style.display = 'none';
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  MUSIC SYSTEM — YouTube IFrame API
-// ═══════════════════════════════════════════════════════════════
-
-let ytPlayer     = null;
-let ytReady      = false;
-let ytPlaying    = false;
-let ytVolume     = 70;
-let ytShuffled   = false;
-let currentVibe  = null;   // active vibe btn element
-let nowPlayingTimer = null;
-
-// Load YouTube IFrame API
-(function() {
-  const tag = document.createElement('script');
-  tag.src = 'https://www.youtube.com/iframe_api';
-  document.head.appendChild(tag);
-})();
-
-// Called by YT API when ready
-window.onYouTubeIframeAPIReady = function() {
-  ytReady = true;
-};
-
-function createYTPlayer(playlistId) {
-  if (!ytReady) {
-    // Retry after a moment
-    setTimeout(() => createYTPlayer(playlistId), 400);
-    return;
-  }
-  setBtnState('buffering');
-  setNowPlaying('Loading…');
-
-  if (ytPlayer) {
-    try { ytPlayer.destroy(); } catch(e) {}
-    ytPlayer = null;
-  }
-
-  ytPlayer = new YT.Player('yt-player', {
-    height: '1',
-    width:  '1',
-    playerVars: {
-      listType:    'playlist',
-      list:        playlistId,
-      autoplay:    1,
-      controls:    0,
-      loop:        1,
-      shuffle:     1,
-      playsinline: 1,
-      enablejsapi: 1,
-      origin:      window.location.origin,
-    },
-    events: {
-      onReady:       onYTReady,
-      onStateChange: onYTStateChange,
-      onError:       onYTError,
-    }
-  });
-}
-
-function onYTReady(e) {
-  e.target.setVolume(ytVolume);
-  e.target.playVideo();
-}
-
-function onYTStateChange(e) {
-  const S = YT.PlayerState;
-  if (e.data === S.PLAYING) {
-    ytPlaying = true;
-    setBtnState('playing');
-    document.getElementById('mc-play').textContent = '⏸';
-    updateNowPlaying();
-  } else if (e.data === S.PAUSED) {
-    ytPlaying = false;
-    setBtnState('idle');
-    document.getElementById('mc-play').textContent = '▶';
-  } else if (e.data === S.BUFFERING) {
-    setBtnState('buffering');
-  } else if (e.data === S.ENDED) {
-    setBtnState('idle');
-  }
-}
-
-function onYTError(e) {
-  setBtnState('idle');
-  setNowPlaying('⚠ playlist error — try another');
-}
-
-function setBtnState(s) {
-  const btn = document.getElementById('music-btn');
-  btn.classList.remove('playing','buffering');
-  if (s === 'playing')   btn.classList.add('playing');
-  if (s === 'buffering') btn.classList.add('buffering');
-  btn.textContent = s === 'playing' ? '🔊' : s === 'buffering' ? '⏳' : '🎵';
-}
-
-function setNowPlaying(text) {
-  const el = document.getElementById('music-now-playing');
-  el.textContent = text;
-  el.classList.toggle('active', text !== '— no track loaded —' && !text.startsWith('⚠') && text !== 'Loading…');
-}
-
-function updateNowPlaying() {
-  if (!ytPlayer || typeof ytPlayer.getVideoData !== 'function') return;
-  try {
-    const data  = ytPlayer.getVideoData();
-    const title = data && data.title ? data.title : '—';
-    setNowPlaying('♪ ' + title);
-  } catch(e) {}
-  // Re-poll while playing
-  clearTimeout(nowPlayingTimer);
-  if (ytPlaying) nowPlayingTimer = setTimeout(updateNowPlaying, 5000);
-}
-
-function loadPlaylistById(plid, vibeBtn) {
-  // Deactivate old vibe btn
-  if (currentVibe) currentVibe.classList.remove('active');
-  currentVibe = vibeBtn || null;
-  if (currentVibe) currentVibe.classList.add('active');
-  createYTPlayer(plid);
-}
-
-function extractPlaylistId(url) {
-  // Handles: full URL with ?list=, or bare ID
-  try {
-    const u = new URL(url);
-    return u.searchParams.get('list') || url.trim();
-  } catch(e) {
-    // Bare playlist ID
-    return url.trim();
-  }
-}
-
-// ── Panel toggle ────────────────────────────────────────────────
-document.getElementById('music-btn').addEventListener('click', e => {
-  e.stopPropagation();
-  document.getElementById('music-panel').classList.toggle('open');
-});
-// Click outside closes panel
-document.addEventListener('click', e => {
-  const panel = document.getElementById('music-panel');
-  const btn   = document.getElementById('music-btn');
-  if (!panel.contains(e.target) && e.target !== btn) {
-    panel.classList.remove('open');
-  }
-});
-
-// ── Vibe buttons ────────────────────────────────────────────────
-document.querySelectorAll('.vibe-btn').forEach(btn => {
-  btn.addEventListener('click', e => {
-    e.stopPropagation();
-    loadPlaylistById(btn.dataset.plid, btn);
-  });
-});
-
-// ── Custom URL ──────────────────────────────────────────────────
-document.getElementById('music-load-btn').addEventListener('click', e => {
-  e.stopPropagation();
-  const raw = document.getElementById('music-url-input').value.trim();
-  if (!raw) return;
-  const plid = extractPlaylistId(raw);
-  if (!plid) { setNowPlaying('⚠ invalid playlist URL'); return; }
-  loadPlaylistById(plid, null);
-});
-document.getElementById('music-url-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('music-load-btn').click();
-  e.stopPropagation(); // don't trigger game controls
-});
-
-// ── Volume ──────────────────────────────────────────────────────
-document.getElementById('vol-slider').addEventListener('input', e => {
-  ytVolume = parseInt(e.target.value);
-  if (ytPlayer && typeof ytPlayer.setVolume === 'function') ytPlayer.setVolume(ytVolume);
-});
-
-// ── Playback controls ────────────────────────────────────────────
-document.getElementById('mc-play').addEventListener('click', e => {
-  e.stopPropagation();
-  if (!ytPlayer) return;
-  if (ytPlaying) ytPlayer.pauseVideo();
-  else           ytPlayer.playVideo();
-});
-document.getElementById('mc-prev').addEventListener('click', e => {
-  e.stopPropagation();
-  if (!ytPlayer) return;
-  ytPlayer.previousVideo();
-  setTimeout(updateNowPlaying, 1200);
-});
-document.getElementById('mc-next').addEventListener('click', e => {
-  e.stopPropagation();
-  if (!ytPlayer) return;
-  ytPlayer.nextVideo();
-  setTimeout(updateNowPlaying, 1200);
-});
-document.getElementById('mc-shuf').addEventListener('click', e => {
-  e.stopPropagation();
-  ytShuffled = !ytShuffled;
-  if (ytPlayer && typeof ytPlayer.setShuffle === 'function') ytPlayer.setShuffle(ytShuffled);
-  document.getElementById('mc-shuf').style.color = ytShuffled ? '#0fa' : '';
-  document.getElementById('mc-shuf').style.borderColor = ytShuffled ? '#0fa' : '';
-});
-
-// ── Stop music on game over ──────────────────────────────────────
-// (optional: keep playing through game over for vibe continuity — leaving it on)
-
-
-// ═══════════════════════════════════════════════════════════════
-//  ECONOMY & SHOP SYSTEM
-// ═══════════════════════════════════════════════════════════════
-
-// ── Persistence ─────────────────────────────────────────────────
-const SAVE_KEY = 'tp_economy';
-function loadEconomy() {
-  try { return JSON.parse(localStorage.getItem(SAVE_KEY)) || {}; } catch(e) { return {}; }
-}
-function saveEconomy(d) { localStorage.setItem(SAVE_KEY, JSON.stringify(d)); }
-
-let economy = Object.assign({
-  mushrooms:   0,
-  poop:        0,
-  fertilizer:  0,
-  ownedOutfits:['default'],
-  equippedOutfit:'default',
-  totalRuns:   0,
-  totalDist:   0,
-}, loadEconomy());
-
-// Poop generation: earn 1 poop every 300 score units, tracked per-run
-let poopThreshold = 300;
-let nextPoopAt    = poopThreshold;
-
-// ── Outfit Catalogue ─────────────────────────────────────────────
-const OUTFITS = [
-  {
-    id:'default', name:'Classic Pingo', emoji:'🐧',
-    desc:'The OG. Born naked, lives blessed.',
-    priceMushrooms:0, priceFert:0, priceUSD:0,
-    bodyColor:['#111','#000'], bellyColor:'#f5f5f0', eyeColor:'#00cfff',
-    free:true,
-  },
-  {
-    id:'wizard',  name:'Wizard Penguin', emoji:'🧙',
-    desc:'Arcane robes. Smells like spell components.',
-    priceMushrooms:25, priceFert:5, priceUSD:1.99,
-    bodyColor:['#2a0060','#1a0040'], bellyColor:'#c8a0ff', eyeColor:'#ffdd00',
-    hat:'🎩', hatOffset:[-2,-32], accent:'#9b59ff',
-  },
-  {
-    id:'cowboy',  name:'Cowboy Pingo',   emoji:'🤠',
-    desc:'Rootin\' tootin\' cave-runnin\'.',
-    priceMushrooms:20, priceFert:4, priceUSD:1.99,
-    bodyColor:['#3d2b1f','#2a1a0f'], bellyColor:'#f5deb3', eyeColor:'#8B4513',
-    hat:'🤠', hatOffset:[-3,-30], accent:'#c8860a',
-  },
-  {
-    id:'astronaut', name:'Space Pingo', emoji:'👨‍🚀',
-    desc:'One small waddle for penguinkind.',
-    priceMushrooms:35, priceFert:7, priceUSD:2.99,
-    bodyColor:['#d0d8e0','#a0aab5'], bellyColor:'#ffffff', eyeColor:'#4fc3f7',
-    helmetGlow:'#4fc3f7', accent:'#4fc3f7',
-  },
-  {
-    id:'skeleton', name:'Spooky Bones',  emoji:'💀',
-    desc:'Death visited. Left in style.',
-    priceMushrooms:30, priceFert:6, priceUSD:2.49,
-    bodyColor:['#e8e8e8','#c0c0c0'], bellyColor:'#ffffff', eyeColor:'#ff3333',
-    accent:'#ff3333', boneLines:true,
-  },
-  {
-    id:'lava',    name:'Lava Lord',      emoji:'🌋',
-    desc:'Born in The Core. Chill about it.',
-    priceMushrooms:50, priceFert:10, priceUSD:3.99,
-    bodyColor:['#8b1a00','#5a0000'], bellyColor:'#ff6633', eyeColor:'#ffaa00',
-    glowColor:'#ff4400', accent:'#ff4400',
-  },
-  {
-    id:'crystal', name:'Crystal Being',  emoji:'💎',
-    desc:'Transcended flesh. Became mineral.',
-    priceMushrooms:60, priceFert:12, priceUSD:3.99,
-    bodyColor:['#1a3a5c','#0a1f3a'], bellyColor:'#a8d8ff', eyeColor:'#00ffff',
-    glowColor:'#00cfff', shimmer:true, accent:'#00cfff',
-  },
-  {
-    id:'shaman',  name:'Mushroom Shaman', emoji:'🍄',
-    desc:'One with the spores. Many with the visions.',
-    priceMushrooms:45, priceFert:9, priceUSD:3.49,
-    bodyColor:['#1a3300','#0d2200'], bellyColor:'#88cc44', eyeColor:'#ff3cac',
-    hat:'🍄', hatOffset:[-2,-28], accent:'#88cc44', glowColor:'#44ff00',
-  },
-  {
-    id:'vaporwave', name:'Vaporwave Babe', emoji:'🌸',
-    desc:'Aesthetic transcendence. ａｅｓｔｈｅｔｉｃ',
-    priceMushrooms:40, priceFert:8, priceUSD:2.99,
-    bodyColor:['#ff6ec7','#c026d3'], bellyColor:'#ffd6f5', eyeColor:'#a855f7',
-    accent:'#ff6ec7', glowColor:'#ff6ec7', shimmer:true,
-  },
-  {
-    id:'ancient',  name:'Ancient One',    emoji:'🗿',
-    desc:'Pre-dates the cave. Pre-dates the penguin.',
-    priceMushrooms:80, priceFert:15, priceUSD:4.99,
-    bodyColor:['#5a4a3a','#3a2a1a'], bellyColor:'#c8b89a', eyeColor:'#gold',
-    accent:'#c8a46e', runes:true,
-  },
-];
-
-// ── Lizard dialogue pool ────────────────────────────────────────
-const LIZARD_LINES = [
-  "Heyyy maaaan… you smell like fertilizer potential. Trade me that sweet poop and I'll hook you UP with some drip. 🌿✌️",
-  "The cave gives and the cave takes, my dude. But fashion? Fashion is FOREVER. 👁️",
-  "Poop is just unfinished fertilizer. Life is just unfinished tripping. ✨",
-  "I've been here since before the ice caves, bro. I've seen THINGS. Also I sell hats now.",
-  "Every mushroom you collect is a tiny universe trusting you. Also it's currency now.",
-  "My grandmother was a gecko. My grandfather was a philosophy professor. I am BOTH. 🦎📚",
-  "The penguin you dress is the penguin you become. Deep, right? That'll be 25 mushrooms.",
-];
-function randomLizardLine() {
-  return LIZARD_LINES[Math.floor(Math.random() * LIZARD_LINES.length)];
-}
-
-// ── Economy HUD ─────────────────────────────────────────────────
-function updateEconHUD() {
-  document.getElementById('econ-shrooms').textContent = economy.mushrooms;
-  document.getElementById('econ-poop').textContent    = economy.poop;
-  // Update exchange display
-  document.getElementById('ex-poop-have').textContent = economy.poop;
-  const fertGet = Math.floor((parseInt(document.getElementById('exchange-input').value)||0) / 10);
-  document.getElementById('ex-fert-get').textContent = fertGet;
-}
-
-// Persist mushrooms collected during a run
-function awardMushroom() {
-  economy.mushrooms++;
-  // Poop generation
-  if (score >= nextPoopAt) {
-    economy.poop++;
-    nextPoopAt += poopThreshold;
-  }
-  saveEconomy(economy);
-  updateEconHUD();
-}
-
-// Called at run start
-function resetRunEconomy() {
-  nextPoopAt = poopThreshold;
-  // Award poop for distance
-}
-// Called at run end
-function endRunEconomy() {
-  // 1 poop per 200 score
-  const poopEarned = Math.floor(score / 200);
-  economy.poop += poopEarned;
-  economy.totalRuns = (economy.totalRuns||0) + 1;
-  economy.totalDist = (economy.totalDist||0) + Math.floor(score);
-  saveEconomy(economy);
-  updateEconHUD();
-}
-
-// ── Outfit rendering ─────────────────────────────────────────────
-// The main drawPlayer() function checks equippedOutfit and styles accordingly
-function getEquippedOutfit() {
-  return OUTFITS.find(o => o.id === economy.equippedOutfit) || OUTFITS[0];
-}
-
-// ── Render outfit grid ────────────────────────────────────────────
-let shopActiveTab = 'outfits';
-let payingForOutfit = null;
-
-function renderOutfitGrid() {
-  const grid = document.getElementById('outfit-grid');
-  grid.innerHTML = '';
-  OUTFITS.forEach(outfit => {
-    const owned    = economy.ownedOutfits.includes(outfit.id);
-    const equipped = economy.equippedOutfit === outfit.id;
-    const card     = document.createElement('div');
-    card.className = 'outfit-card' + (owned ? ' owned' : '') + (equipped ? ' equipped' : '');
-
-    let priceHTML = '';
-    if (outfit.free) {
-      priceHTML = '<div class="oprice">✨ Free</div>';
-    } else if (owned) {
-      priceHTML = '<div class="oprice" style="color:#0fa">✓ Owned</div>';
     } else {
-      priceHTML = `<div class="oprice">🍄 ${outfit.priceMushrooms} <span style="color:#555">or</span> 🌿 ${outfit.priceFert}</div>
-                  <div class="ocurrency">💳 $${outfit.priceUSD} · ₿ crypto</div>`;
-    }
-
-    card.innerHTML = `
-      <div class="preview">${outfit.emoji}</div>
-      <div class="oname">${outfit.name}</div>
-      ${priceHTML}
-      <div class="obadge">${equipped ? 'ON' : owned ? 'OWN' : ''}</div>
-    `;
-
-    card.addEventListener('click', () => {
-      if (equipped) return; // already on
-      if (owned) {
-        equipOutfit(outfit.id);
-      } else {
-        openPayModal(outfit);
-      }
-    });
-
-    grid.appendChild(card);
-  });
-}
-
-function equipOutfit(id) {
-  economy.equippedOutfit = id;
-  saveEconomy(economy);
-  renderOutfitGrid();
-  const o = OUTFITS.find(x => x.id === id);
-  setLizardLine(`Yooo that ${o.name} is *immaculate* on you. Fly as the cave itself. ✌️`);
-}
-
-function setLizardLine(line) {
-  document.getElementById('lizard-line').textContent = line;
-}
-
-// ── Shop open/close ──────────────────────────────────────────────
-document.getElementById('shop-btn').addEventListener('click', e => {
-  e.stopPropagation();
-  // Pause game while in shop
-  if (state === 'playing') state = 'shop';
-  setLizardLine(randomLizardLine());
-  updateEconHUD();
-  renderOutfitGrid();
-  document.getElementById('shop-modal').classList.add('open');
-});
-
-document.getElementById('shop-close').addEventListener('click', e => {
-  e.stopPropagation();
-  document.getElementById('shop-modal').classList.remove('open');
-  if (state === 'shop') {
-    state = 'playing';
-    requestAnimationFrame(loop);
-  }
-});
-
-// ── Shop tabs ───────────────────────────────────────────────────
-document.querySelectorAll('.shop-tab').forEach(tab => {
-  tab.addEventListener('click', e => {
-    e.stopPropagation();
-    document.querySelectorAll('.shop-tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    shopActiveTab = tab.dataset.tab;
-    if (shopActiveTab === 'outfits') {
-      document.getElementById('outfit-grid').style.display = 'grid';
-      document.getElementById('fert-exchange').style.display = 'block';
-    } else {
-      document.getElementById('outfit-grid').style.display = 'none';
-      document.getElementById('fert-exchange').style.display = 'block';
-    }
-  });
-});
-
-// ── Fertilizer exchange ──────────────────────────────────────────
-document.getElementById('exchange-input').addEventListener('input', () => {
-  const val = parseInt(document.getElementById('exchange-input').value)||0;
-  document.getElementById('ex-fert-get').textContent = Math.floor(val/10);
-});
-document.getElementById('exchange-input').addEventListener('keydown', e => e.stopPropagation());
-
-document.getElementById('exchange-btn').addEventListener('click', e => {
-  e.stopPropagation();
-  const poopAmt = parseInt(document.getElementById('exchange-input').value)||0;
-  if (poopAmt < 10) { showExMsg('Need at least 10 poop for 1 fertilizer, maaaan. 💩', '#f88'); return; }
-  if (poopAmt > economy.poop) { showExMsg("You don't have that much poop, dude.", '#f88'); return; }
-  const fertGained = Math.floor(poopAmt/10);
-  economy.poop -= poopAmt;
-  economy.fertilizer = (economy.fertilizer||0) + fertGained;
-  saveEconomy(economy);
-  updateEconHUD();
-  showExMsg(`Sweet trade! Got ${fertGained} 🌿 fertilizer. Herb smiles. ✌️`, '#8f8');
-  renderOutfitGrid();
-});
-
-function showExMsg(msg, color) {
-  const el = document.getElementById('exchange-msg');
-  el.textContent = msg;
-  el.style.color = color || '#8f8';
-  clearTimeout(el._t);
-  el._t = setTimeout(() => el.textContent = '', 3500);
-}
-
-// ── Payment modal ────────────────────────────────────────────────
-function openPayModal(outfit) {
-  payingForOutfit = outfit;
-  document.getElementById('pay-outfit-emoji').textContent = outfit.emoji;
-  document.getElementById('pay-outfit-desc').textContent  = outfit.name + '\n"' + outfit.desc + '"';
-  document.getElementById('pm-shroom-detail').textContent = `${outfit.priceMushrooms} mushrooms (you have ${economy.mushrooms})`;
-  document.getElementById('pm-fert-detail').textContent   = `${outfit.priceFert} fertilizer (you have ${economy.fertilizer||0})`;
-  document.getElementById('pm-stripe-detail').textContent = `$${outfit.priceUSD} USD`;
-  document.getElementById('pay-modal').classList.add('open');
-}
-
-document.getElementById('pay-close').addEventListener('click', e => {
-  e.stopPropagation();
-  document.getElementById('pay-modal').classList.remove('open');
-  payingForOutfit = null;
-});
-
-// Pay with mushrooms
-document.getElementById('pm-mushrooms').addEventListener('click', e => {
-  e.stopPropagation();
-  if (!payingForOutfit) return;
-  if (economy.mushrooms < payingForOutfit.priceMushrooms) {
-    setLizardLine(`You need ${payingForOutfit.priceMushrooms} mushrooms but only have ${economy.mushrooms}. Run more, bro. 🍄`);
-    document.getElementById('pay-modal').classList.remove('open');
-    return;
-  }
-  economy.mushrooms -= payingForOutfit.priceMushrooms;
-  unlockOutfit(payingForOutfit.id);
-  document.getElementById('pay-modal').classList.remove('open');
-});
-
-// Pay with fertilizer
-document.getElementById('pm-fertilizer').addEventListener('click', e => {
-  e.stopPropagation();
-  if (!payingForOutfit) return;
-  const fert = economy.fertilizer || 0;
-  if (fert < payingForOutfit.priceFert) {
-    setLizardLine(`${payingForOutfit.priceFert} fertilizer needed. You've got ${fert}. Trade more poop, friend. 💩`);
-    document.getElementById('pay-modal').classList.remove('open');
-    return;
-  }
-  economy.fertilizer -= payingForOutfit.priceFert;
-  unlockOutfit(payingForOutfit.id);
-  document.getElementById('pay-modal').classList.remove('open');
-});
-
-// Pay with card (Stripe placeholder — opens alert)
-document.getElementById('pm-stripe').addEventListener('click', e => {
-  e.stopPropagation();
-  if (!payingForOutfit) return;
-  document.getElementById('pay-modal').classList.remove('open');
-  // Stripe integration placeholder
-  alert(`💳 Stripe checkout coming soon!\n\n${payingForOutfit.emoji} ${payingForOutfit.name} — $${payingForOutfit.priceUSD}\n\nFor now, earn mushrooms in-game or trade poop with Herb! 🦎`);
-});
-
-// Pay with crypto
-document.getElementById('pm-crypto').addEventListener('click', e => {
-  e.stopPropagation();
-  if (!payingForOutfit) return;
-  document.getElementById('pay-modal').classList.remove('open');
-  openCryptoModal(payingForOutfit);
-});
-
-function unlockOutfit(id) {
-  if (!economy.ownedOutfits.includes(id)) economy.ownedOutfits.push(id);
-  economy.equippedOutfit = id;
-  saveEconomy(economy);
-  renderOutfitGrid();
-  updateEconHUD();
-  const o = OUTFITS.find(x => x.id === id);
-  setLizardLine(`YESSS! ${o.emoji} ${o.name} unlocked! You're literally glowing. ✨🦎`);
-}
-
-// ── Crypto modal ─────────────────────────────────────────────────
-// Demo wallet addresses (replace with real addresses)
-const CRYPTO_ADDRS = {
-  BTC:  'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-  ETH:  '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
-  SOL:  'DRpbCBMxVnDK7maPGv7GQTe7gHEGQRsJnGeepTGMmnfX',
-  USDC: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
-};
-let activeChain = 'BTC';
-
-function openCryptoModal(outfit) {
-  document.getElementById('crypto-outfit-name').textContent =
-    outfit.emoji + ' ' + outfit.name + ' — $' + outfit.priceUSD + ' equivalent';
-  renderQR(CRYPTO_ADDRS[activeChain]);
-  document.getElementById('crypto-addr').textContent = CRYPTO_ADDRS[activeChain];
-  document.getElementById('crypto-modal').classList.add('open');
-}
-
-document.querySelectorAll('.chain-tab').forEach(tab => {
-  tab.addEventListener('click', e => {
-    e.stopPropagation();
-    document.querySelectorAll('.chain-tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    activeChain = tab.dataset.chain;
-    const addr = CRYPTO_ADDRS[activeChain];
-    renderQR(addr);
-    document.getElementById('crypto-addr').textContent = addr;
-  });
-});
-
-document.getElementById('crypto-copy').addEventListener('click', e => {
-  e.stopPropagation();
-  navigator.clipboard.writeText(CRYPTO_ADDRS[activeChain]).then(() => {
-    document.getElementById('crypto-copy').textContent = '✓ COPIED';
-    setTimeout(() => document.getElementById('crypto-copy').textContent = 'COPY ADDRESS', 2000);
-  });
-});
-
-document.getElementById('crypto-back').addEventListener('click', e => {
-  e.stopPropagation();
-  document.getElementById('crypto-modal').classList.remove('open');
-  if (payingForOutfit) openPayModal(payingForOutfit);
-});
-
-// Simple QR code generator (no external lib — draw a placeholder with text)
-function renderQR(addr) {
-  const canvas = document.getElementById('qr-canvas');
-  canvas.width  = 144;
-  canvas.height = 144;
-  const c = canvas.getContext('2d');
-  // Draw a symbolic QR-like pattern
-  c.fillStyle = '#fff';
-  c.fillRect(0,0,144,144);
-  c.fillStyle = '#000';
-  // Corner squares
-  function sq(x,y,s){ c.fillRect(x,y,s,s); c.fillStyle='#fff'; c.fillRect(x+2,y+2,s-4,s-4); c.fillStyle='#000'; c.fillRect(x+4,y+4,s-8,s-8); }
-  sq(8,8,28); sq(108,8,28); sq(8,108,28);
-  // Data dots from address hash
-  c.fillStyle = '#000';
-  let hash = 0;
-  for(let i=0;i<addr.length;i++) hash = ((hash<<5)-hash+addr.charCodeAt(i))|0;
-  const rng = (seed) => { seed = (seed^61)^(seed>>>16); seed+=seed<<3; seed^=seed>>>4; seed=(seed*0x27d4eb2d)|0; seed^=seed>>>15; return (seed>>>0)/4294967296; };
-  for(let r=0;r<10;r++){
-    for(let cc=0;cc<10;cc++){
-      if(rng(hash+r*10+cc) > 0.45){
-        const x = 44 + cc*7, y = 44 + r*7;
-        c.fillRect(x,y,6,6);
+      // Normal mushroom color index
+      const colorOrder = ['#ff3cac','#00D4AA','#ff7700','#a855f7','#00cfff','#ff4400'];
+      const colorIdx = colorOrder.indexOf(sh.color);
+      const ci = colorIdx >= 0 ? colorIdx : 0;
+      if (!drawSpriteMushroom(ci, sx, sy, r)) {
+        // Fallback canvas mushroom
+        ctx.shadowColor=sh.color; ctx.shadowBlur=14*proj.scale;
+        ctx.beginPath(); ctx.ellipse(sx,sy-r,r,r*0.6,0,0,Math.PI); ctx.fillStyle=sh.color; ctx.fill();
+        ctx.shadowBlur=0; ctx.fillStyle='#fff8e1'; ctx.fillRect(sx-r*0.25,sy-r,r*0.5,r);
       }
     }
+    ctx.globalAlpha=1;
+    ctx.restore();
   }
-  // Label
-  c.fillStyle='#333';
-  c.font='8px monospace';
-  c.textAlign='center';
-  c.fillText(activeChain, 72, 138);
-}
-
-// ── Hook into collectMushroom (patch existing function) ───────────
-// We wrap the existing collectMushroom to also award economy mushrooms
-const _origCollectMushroom = collectMushroom;
-// Redefine to add economy tracking
-// (We define a new version below that replaces it)
-
-// ── Patch drawPlayer to use outfit ──────────────────────────────
-// Store the original and redefine
-const _origDrawPlayer = drawPlayer;
-window._drawPlayerOrig = drawPlayer;
-
-// We redefine drawPlayer in-place below ↓
-
-// ── Poop earnig per run ──────────────────────────────────────────
-// Hook into gameOver
-const _origGameOver = gameOver;
-// Redefine gameOver
-
-
-// ── Redefined collectMushroom (adds economy tracking) ───────────
-function collectMushroom(color, sx, sy) {
-  shroomsCollected++;
-  burst(sx, sy, color, 24);
-  flash = { active:true, color, t:0, duration:5000 };
-  // ECONOMY: count every mushroom
-  economy.mushrooms++;
-  saveEconomy(economy);
-  updateEconHUD();
-  if (shroomsCollected >= SHROOM_NEED) {
-    shroomsCollected = 0;
-    triggerHyper();
-  }
-  updateHUD();
-}
-
-// ── Redefined gameOver (adds poop reward) ──────────────────────
-function gameOver() {
-  state = 'dead';
-  if (score > hiScore) {
-    hiScore = Math.floor(score);
-    localStorage.setItem('tp_hi', hiScore);
-  }
-  // Earn poop from run distance
-  const poopEarned = Math.max(1, Math.floor(score / 200));
-  economy.poop += poopEarned;
-  saveEconomy(economy);
-  updateEconHUD();
-  setTimeout(() => showMenu(poopEarned), 900);
-}
-
-// ── Redefined showMenu (shows poop earned) ─────────────────────
-function showMenu(poopEarned) {
-  const ov = document.getElementById('overlay');
-  ov.style.display = 'flex';
-  const poopLine = poopEarned ? `<div style="font-size:12px;color:#c8a46e;margin-top:8px;">💩 +${poopEarned} poop earned — trade Herb for drip 🦎</div>` : '';
-  ov.innerHTML = `
-    <h1>🐧 TRIPPING<br>PENGUINS</h1>
-    <div class="sub">You made it to score <b style="color:#0ff">${Math.floor(score)}</b>!<br>Pingo laughs. Again.</div>
-    <button id="start-btn">TRY AGAIN</button>
-    <div class="high">🏆 BEST: ${hiScore}</div>
-    ${poopLine}
-    <div style="font-size:11px;color:#888;margin-top:10px;">🍄 ${economy.mushrooms} coins · 💩 ${economy.poop} poop · 🌿 ${economy.fertilizer||0} fertilizer</div>
-  `;
-  document.getElementById('start-btn').addEventListener('click', () => {
-    ov.style.display = 'none';
-    initGame();
-    state = 'playing';
-    requestAnimationFrame(loop);
-  });
 }
 
 // ── Outfit-aware drawPlayer ────────────────────────────────────
@@ -2160,6 +1234,56 @@ function drawPlayer() {
   const x = W()/2 + px;
   const y = playerY + Math.sin(playerBob) * 4;
 
+  ctx.save();
+
+  // Shadow
+  ctx.beginPath();
+  ctx.ellipse(x, y + 28, 22, 8, 0, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fill();
+
+  // ── Try sprite sheet first ────────────────────────────────
+  const sprW = 72, sprH = 96;
+  const drewSprite = drawSpriteOutfit(outfit.id, x, y + 14, sprW, sprH);
+
+  if (!drewSprite) {
+    // Fallback: canvas-drawn outfit
+    _drawPlayerCanvas(outfit, x, y);
+  } else {
+    // Sprite drawn — add eyes glow + hat emoji on top for flair
+    if (outfit.hat) {
+      ctx.font = Math.round(22 * (sprW/80)) + 'px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(outfit.hat, x + (outfit.hatOffset||[0,0])[0], y + (outfit.hatOffset||[0,-28])[1] - 8);
+    }
+  }
+
+  // Hyper glow (always)
+  if (hyperActive) {
+    ctx.shadowColor = outfit.accent || '#f0f';
+    ctx.shadowBlur = 30;
+    ctx.strokeStyle = 'rgba(255,0,255,0.6)';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(x, y, 36, 0, Math.PI*2); ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  // Psy aura (always)
+  if (psy > 0.5) {
+    const auraHue = (Date.now()*0.05)%360;
+    ctx.globalAlpha = (psy-0.5)*0.6;
+    ctx.shadowColor = `hsl(${auraHue},100%,65%)`; ctx.shadowBlur = 22;
+    ctx.beginPath(); ctx.arc(x,y,38,0,Math.PI*2);
+    ctx.strokeStyle = `hsla(${auraHue},100%,65%,0.5)`;
+    ctx.lineWidth=2; ctx.stroke();
+    ctx.shadowBlur=0; ctx.globalAlpha=1;
+  }
+
+  ctx.restore();
+}
+
+// Canvas fallback player (renamed from original drawPlayer body)
+function _drawPlayerCanvas(outfit, x, y) {
   ctx.save();
 
   // Shadow
@@ -3031,11 +2155,9 @@ function drawMushrooms(t) {
       ctx.globalAlpha=1; ctx.shadowBlur=0;
     }
   }
+
 }
 
-// ── Initial render ───────────────────────────────────────────────
-updatePowerHUD();
-updateGoldHUD();
 
 </script>
 </body>
