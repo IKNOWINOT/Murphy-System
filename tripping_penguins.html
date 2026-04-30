@@ -1538,11 +1538,6 @@ const OUTFITS = [
   },
 ];
 
-// ── Lizard dialogue pool ────────────────────────────────────────
-function randomLizardLine() {
-  return LIZARD_LINES[Math.floor(Math.random() * LIZARD_LINES.length)];
-}
-
 // ── Economy HUD ─────────────────────────────────────────────────
 function updateEconHUD() {
   document.getElementById('econ-shrooms').textContent = economy.mushrooms;
