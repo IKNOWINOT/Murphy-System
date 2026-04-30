@@ -2203,7 +2203,7 @@ function showMenu(poopEarned) {
     ov.style.display = 'none';
     initGame();
     state = 'playing';
-    requestAnimationFrame(loop);
+    startGameLoop();
   });
 }
 
@@ -2307,7 +2307,7 @@ document.getElementById('shop-close').addEventListener('click', e => {
   document.getElementById('shop-modal').classList.remove('open');
   if (state === 'shop') {
     state = 'playing';
-    requestAnimationFrame(loop);
+    startGameLoop();
   }
 });
 
