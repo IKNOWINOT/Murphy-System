@@ -407,6 +407,7 @@ canvas { display:block; touch-action:none; }
 </head>
 <body>
 <canvas id="c"></canvas>
+<div id="_debug_score" style="position:fixed;top:130px;left:50%;transform:translateX(-50%);background:rgba(255,0,0,0.8);color:#fff;font-size:11px;padding:3px 8px;z-index:9999;font-family:monospace;border-radius:4px;pointer-events:none;"></div>
 <div id="ui">
   <div id="hud">
     <div id="score-val">0</div>
@@ -927,14 +928,30 @@ canvas.addEventListener('touchend', e => {
 
 // ── Start button ────────────────────────────────────────────────
 let _gameLoopHandle = null;
+let _dbgTickCount = 0;
+let _dbgLastErr = '';
 
 function startGameLoop() {
   if (_gameLoopHandle) clearInterval(_gameLoopHandle);
-  // Use setInterval as primary loop driver (works in headless/background tabs)
+  _dbgTickCount = 0;
   _gameLoopHandle = setInterval(() => {
+    _dbgTickCount++;
     if (state !== 'playing') { clearInterval(_gameLoopHandle); _gameLoopHandle = null; return; }
     const ts = performance.now();
-    loop(ts);
+    try {
+      loop(ts);
+    } catch(e) {
+      _dbgLastErr = e.message + ' @ ' + (e.stack||'').split('\n')[1];
+      clearInterval(_gameLoopHandle);
+      _gameLoopHandle = null;
+      state = 'dead';
+      console.error('[GAME LOOP ERROR]', e);
+    }
+    // Debug: update a visible counter every 30 ticks
+    if (_dbgTickCount % 30 === 0) {
+      const dbgEl = document.getElementById('_debug_score');
+      if (dbgEl) dbgEl.textContent = 'tick:'+_dbgTickCount+' score:'+Math.floor(score)+' state:'+state+((_dbgLastErr)?' ERR:'+_dbgLastErr:'');
+    }
   }, 1000/60);
 }
 
