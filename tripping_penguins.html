@@ -1025,14 +1025,16 @@ function updateBiome() {
 
 // ── Draw tunnel ──────────────────────────────────────────────────
 function drawTunnel(dt) {
-  if (spritesLoaded() && drawSpriteBiomeBackground(biomeIdx)) {
-    ctx.fillStyle = 'rgba(0,0,0,0.48)';
-    ctx.fillRect(0,0,W(),H());
-    // Still draw tunnel rings/walls for depth cues
-    _drawTunnelGeometry(dt);
-    return;
-  }
   _drawTunnelGeometry(dt);
+  // Sprite biome texture overlay (subtle, on top of geometry)
+  if (SPR.biomes && SPR.biomes.complete) {
+    const img = SPR.biomes;
+    const stripW = img.naturalWidth / 5;
+    const sx = biomeIdx * stripW;
+    ctx.globalAlpha = 0.18;
+    ctx.drawImage(img, sx, 0, stripW, img.naturalHeight, 0, 0, W(), H());
+    ctx.globalAlpha = 1;
+  }
 }
 function _drawTunnelGeometry(dt) {
   const b  = BIOMES[biomeIdx];
@@ -1872,6 +1874,22 @@ function checkCollisions() {
 
 // ── Patch game loop to call updatePowers + draw effects ────────
 // We extend the main loop by hooking into the draw phase
+
+// ── Draw flash overlay ───────────────────────────────────────────────────────
+function drawFlash() {
+  if (!flash || !flash.active) return;
+  flash.t += 16.67;
+  const progress = flash.t / flash.duration;
+  if (progress >= 1) { flash.active = false; return; }
+  const alpha = (1 - progress) * 0.7;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = flash.color || '#ffffff';
+  ctx.fillRect(0, 0, W(), H());
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
 // The draw order inside loop() ends with requestAnimationFrame(loop)
 // We inject via a wrapper on the existing loop function
 
@@ -2008,6 +2026,30 @@ function gameOver() {
   setTimeout(() => showMenu(poopEarned), 900);
 }
 
+// ── showMenu — PATCH-157: restored after 156f deletion ──────────
+function showMenu(poopEarned) {
+  const ov = document.getElementById('overlay');
+  ov.style.display = 'flex';
+  const d = getSenseiSave().sensei;
+  const poopLine = poopEarned ? `<div style="font-size:12px;color:#c8a46e;margin-top:8px;">💩 +${poopEarned} poop earned — trade Herb for drip 🦎</div>` : '';
+  const xpLine = `<div style="font-size:11px;color:#8f8;margin-top:6px;">⭐ Sensei LV ${d.level} · XP ${d.xp}/${xpForLevel(d.level)}</div>`;
+  ov.innerHTML = \`
+    <h1>🐧 TRIPPING<br>PENGUINS</h1>
+    <div class="sub">You made it to score <b style="color:#0ff">\${Math.floor(score)}</b>!<br>Pingo laughs. Again.</div>
+    <button id="start-btn">TRY AGAIN</button>
+    <div class="high">🏆 BEST: \${hiScore}</div>
+    \${poopLine}
+    \${xpLine}
+    <div style="font-size:11px;color:#888;margin-top:8px;">🍄 \${economy.mushrooms} coins · 💩 \${economy.poop} poop · 🌿 \${economy.fertilizer||0} fertilizer</div>
+  \`;
+  document.getElementById('start-btn').addEventListener('click', () => {
+    ov.style.display = 'none';
+    initGame();
+    state = 'playing';
+    requestAnimationFrame(loop);
+  });
+}
+
 // ══════════════════════════════════════════════
 //  SLIDE SENSEI UI
 // ══════════════════════════════════════════════
@@ -2096,67 +2138,9 @@ document.getElementById('shop-btn').addEventListener('click', () => {
   renderSenseiPanel();
 });
 
-// ── Gold mushroom draw — patch drawMushrooms ────────────────────
-const _origDrawMushrooms = drawMushrooms;
-function drawMushrooms(t) {
-  for (const sh of mushrooms) {
-    sh.bob += 0.05;
-    const proj = project(sh.x, sh.z + 600);
-    if (!proj) continue;
-    const r = 12 * proj.scale;
-    const bob = Math.sin(sh.bob) * 3 * proj.scale;
-    const sx = proj.sx, sy = proj.sy + bob;
 
-    if (sh.gold) {
-      // Golden mushroom — special render
-      ctx.save();
-      ctx.shadowColor = '#ffd700';
-      ctx.shadowBlur  = 18 * proj.scale * (0.8 + 0.3*Math.sin(sh.bob*2));
-      // Cap
-      const capGrad = ctx.createRadialGradient(sx-r*0.3, sy-r*1.2, 1, sx, sy-r, r*1.1);
-      capGrad.addColorStop(0,'#fffacd');
-      capGrad.addColorStop(0.5,'#ffd700');
-      capGrad.addColorStop(1,'#b8860b');
-      ctx.fillStyle = capGrad;
-      ctx.beginPath();
-      ctx.ellipse(sx, sy-r, r*1.25, r*0.75, 0, 0, Math.PI);
-      ctx.fill();
-      // Stalk
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = '#fff8dc';
-      ctx.fillRect(sx-r*0.25, sy-r, r*0.5, r);
-      // Sparkle dots
-      ctx.fillStyle='rgba(255,255,200,0.9)';
-      [[-r*0.5,-r*1.1],[0,-r*1.35],[r*0.45,-r*1.1],[-r*0.2,-r*0.85]].forEach(([dx,dy])=>{
-        ctx.beginPath(); ctx.arc(sx+dx,sy+dy, r*0.16*(0.7+0.3*Math.sin(sh.bob*3)),0,Math.PI*2); ctx.fill();
-      });
-      // Orbiting star particles
-      for(let i=0;i<4;i++){
-        const ang=(sh.bob*1.5+i*Math.PI/2);
-        const or=r*1.8*proj.scale;
-        ctx.beginPath(); ctx.arc(sx+Math.cos(ang)*or, sy-r*0.5+Math.sin(ang)*or*0.5,r*0.12,0,Math.PI*2);
-        ctx.fillStyle=`rgba(255,215,0,${0.5+0.4*Math.sin(sh.bob+i)})`;
-        ctx.fill();
-      }
-      ctx.restore();
-    } else {
-      // Normal mushroom
-      ctx.beginPath();
-      ctx.ellipse(sx, sy-r, r, r*0.6, 0, 0, Math.PI);
-      ctx.fillStyle = sh.color;
-      ctx.fill();
-      ctx.fillStyle='#fff8e1'; ctx.fillRect(sx-r*0.25,sy-r,r*0.5,r);
-      ctx.fillStyle='rgba(255,255,255,0.6)';
-      ctx.beginPath(); ctx.arc(sx-r*0.3,sy-r*0.9,r*0.15,0,Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(sx+r*0.25,sy-r*0.6,r*0.12,0,Math.PI*2); ctx.fill();
-      ctx.shadowColor=sh.color; ctx.shadowBlur=14*proj.scale*(0.7+0.3*Math.sin(sh.bob));
-      ctx.beginPath(); ctx.ellipse(sx,sy-r*0.5,r*0.5,r*0.3,0,0,Math.PI*2);
-      ctx.fillStyle=sh.color; ctx.globalAlpha=0.3; ctx.fill();
-      ctx.globalAlpha=1; ctx.shadowBlur=0;
-    }
-  }
+// ── drawMushrooms: gold handling already in primary function (line ~1192) — PATCH-157
 
-}
 
 
 </script>
