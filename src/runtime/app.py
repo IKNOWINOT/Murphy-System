@@ -281,6 +281,9 @@ def create_app() -> FastAPI:
         "trading":                 "trading_dashboard.html",
         "risk":                    "risk_dashboard.html",
         "partner":                 "partner_request.html",
+        # Games
+        "tripping-penguins":       "tripping_penguins.html",
+        "penguins":                "tripping_penguins.html",
         # Steve 2028 — DO NOT TOUCH
         "voteforsteve2028":        "voteforsteve2028.html",
         "steve2028merch":          "steve2028merch.html",
@@ -11486,26 +11489,6 @@ def create_app() -> FastAPI:
                 return JSONResponse({"success": False, "error": "FleetOrchestrator unavailable"}, status_code=503)
             results = _fleet_orch.dispatch_all()
             return JSONResponse({"success": True, "dispatched": results if isinstance(results, list) else str(results)})
-        except Exception as exc:
-            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
-
-    @app.get("/api/robotics/sensors/read-all")
-    async def robotics_sensors_read_all():
-        """Read all sensors across the fleet."""
-        try:
-            if _sensor_engine is None:
-                return JSONResponse({"success": False, "error": "SensorEngine unavailable"}, status_code=503)
-            # read_all_sensors(robot_id) — gather from all registered robots
-            all_readings = []
-            robot_ids = list(getattr(_sensor_engine, "_robot_sensors", {}).keys())[:5] or ["robot-001"]
-            for rid in robot_ids:
-                try:
-                    rds = _sensor_engine.read_all_sensors(rid)
-                    all_readings.extend(rds if isinstance(rds,list) else [])
-                except Exception: pass
-            return JSONResponse({"success": True,
-                "readings": [r.__dict__ if hasattr(r,"__dict__") else str(r) for r in all_readings],
-                "count": len(all_readings), "robots_queried": len(robot_ids)})
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 

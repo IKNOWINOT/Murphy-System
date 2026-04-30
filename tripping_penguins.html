@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Tripping Penguins</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; overflow:hidden; font-family:'Courier New',monospace; }
+canvas { display:block; touch-action:none; }
+#ui { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+#hud { position:absolute; top:12px; left:50%; transform:translateX(-50%); text-align:center; color:#fff; text-shadow:0 0 8px #0ff; }
+#score-val { font-size:28px; font-weight:bold; letter-spacing:2px; }
+#biome-label { font-size:12px; opacity:0.7; margin-top:2px; color:#0ff; letter-spacing:3px; text-transform:uppercase; }
+#hyper-bar-wrap { width:160px; height:8px; background:rgba(255,255,255,0.15); border-radius:4px; margin:6px auto 0; border:1px solid rgba(255,255,255,0.3); }
+#hyper-bar { height:100%; width:0%; background:linear-gradient(90deg,#f0f,#0ff); border-radius:4px; transition:width 0.1s; box-shadow:0 0 6px #f0f; }
+#hyper-label { font-size:10px; color:#f0f; letter-spacing:2px; margin-top:2px; }
+#overlay { position:absolute; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.85); color:#fff; text-align:center; pointer-events:all; }
+#overlay h1 { font-size:42px; color:#0ff; text-shadow:0 0 20px #0ff, 0 0 40px #0ff; margin-bottom:8px; letter-spacing:4px; }
+#overlay .sub { font-size:14px; color:#aaa; margin-bottom:30px; max-width:340px; line-height:1.6; }
+#overlay button { background:transparent; border:2px solid #0ff; color:#0ff; padding:12px 36px; font-size:16px; font-family:inherit; letter-spacing:3px; cursor:pointer; text-transform:uppercase; transition:all 0.2s; }
+#overlay button:hover { background:#0ff; color:#000; box-shadow:0 0 20px #0ff; }
+#overlay .high { font-size:13px; color:#f0f; margin-top:16px; text-shadow:0 0 8px #f0f; }
+#mobile-ctrl { position:absolute; bottom:24px; left:50%; transform:translateX(-50%); display:flex; gap:32px; pointer-events:all; opacity:0.6; }
+#mobile-ctrl button { background:rgba(255,255,255,0.1); border:2px solid rgba(255,255,255,0.4); color:#fff; width:64px; height:64px; font-size:28px; border-radius:12px; cursor:pointer; touch-action:none; user-select:none; -webkit-user-select:none; }
+#mobile-ctrl button:active { background:rgba(255,255,255,0.3); }
+#hyper-active { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:22px; color:#fff; text-shadow:0 0 20px #f0f; letter-spacing:6px; opacity:0; pointer-events:none; animation:none; }
+@keyframes hyperFlash { 0%{opacity:1;transform:translate(-50%,-50%) scale(1.4)} 100%{opacity:0;transform:translate(-50%,-50%) scale(0.8)} }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+  <div id="hud">
+    <div id="score-val">0</div>
+    <div id="biome-label">Ice Caves</div>
+    <div id="hyper-bar-wrap"><div id="hyper-bar"></div></div>
+    <div id="hyper-label">HYPER ●●●●●</div>
+  </div>
+  <div id="hyper-active">⚡ HYPER MODE ⚡</div>
+  <div id="mobile-ctrl">
+    <button id="btn-left">◀</button>
+    <button id="btn-right">▶</button>
+  </div>
+</div>
+<div id="overlay">
+  <h1>🐧 TRIPPING<br>PENGUINS</h1>
+  <div class="sub">Pingo shoved you in.<br>Reality warps the deeper you go.</div>
+  <button id="start-btn">DIVE IN</button>
+  <div class="high" id="hi-score-disp"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  TRIPPING PENGUINS — v1.0
+//  Endless psychedelic cave runner, Temple Run perspective
+// ═══════════════════════════════════════════════════════════════
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = () => canvas.width;
+const H = () => canvas.height;
+
+// ── Resize ──────────────────────────────────────────────────────
+function resize() {
+  const maxW = Math.min(window.innerWidth, 480);
+  const maxH = window.innerHeight;
+  canvas.width  = maxW;
+  canvas.height = maxH;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ── Constants ───────────────────────────────────────────────────
+const LANE_SPREAD   = 220;   // player movement range ±220
+const OBS_SPREAD    = 220;   // obstacle range (fixed from spec — was ±130, now matched)
+const LANE_STEP     = 44;    // px per tap
+const LANES         = 5;     // virtual lanes: -2,-1,0,1,2 → x = lane * 44
+const SHROOM_NEED   = 5;
+const HYPER_MULT    = 1.9;
+const SPEED_BASE    = 1.1;
+const SPEED_DIFF    = 0.015; // +1.5% per score unit
+const SPEED_CAP     = 14;
+const SPRING_K      = 0.22;
+const DAMP          = 0.74;
+
+// ── Biomes ──────────────────────────────────────────────────────
+const BIOMES = [
+  { name:'Ice Caves',      sky:'#0a1a2e', mid:'#0e2a4e', fog:'#7af3ff', psy:0.0, threshold:0   },
+  { name:'Sunken Depths',  sky:'#030f1a', mid:'#041530', fog:'#00b4d8', psy:0.2, threshold:400  },
+  { name:'Lava Tunnels',   sky:'#1a0400', mid:'#2d0800', fog:'#ff4500', psy:0.45, threshold:900 },
+  { name:'Crystal Vaults', sky:'#0d0020', mid:'#1a003a', fog:'#bf00ff', psy:0.65, threshold:1600},
+  { name:'The Core',       sky:'#000',    mid:'#100000', fog:'#ff006e', psy:1.0,  threshold:2500},
+];
+
+// ── Mushroom colors ─────────────────────────────────────────────
+const SHROOM_COLORS = ['#ff3cac','#00f5d4','#f5a623','#a855f7','#22d3ee','#f97316'];
+
+// ── State ───────────────────────────────────────────────────────
+let state = 'menu';
+let score = 0, hiScore = parseInt(localStorage.getItem('tp_hi')||'0');
+let speed = SPEED_BASE;
+let lap   = 0;
+let biomeIdx = 0;
+let psy   = 0;
+
+// Player
+let px = 0, pvx = 0; // x position + velocity
+let targetX = 0;
+let playerY = 0;     // set at runtime
+let playerBob = 0;
+let moveLeft = false, moveRight = false;
+
+// Hyper
+let shroomsCollected = 0;
+let hyperActive = false;
+let hyperTimer  = 0;
+const HYPER_DURATION = 7000;
+
+// Mushroom flash
+let flash = { active:false, color:'#fff', t:0, duration:5000 };
+
+// Tunnel twist
+let twistAngle   = 0;  // current roll angle (radians)
+let twistTarget  = 0;
+let twistVel     = 0;
+let twistTimer   = 0;
+const TWIST_SPRING = 0.04;
+const TWIST_DAMP   = 0.85;
+let showGhostTrack = false;
+
+// Grid scroll
+let gridZ = 0;
+
+// Particles
+let particles = [];
+
+// Obstacles
+let obstacles = [];
+let obsTimer  = 0;
+
+// Mushrooms
+let mushrooms = [];
+let shroomTimer = 0;
+
+// Rainbow bands
+let bands = [];
+
+// Screen tint
+let tint = { r:0, g:0, b:0, a:0 };
+
+// Creatures (psy aura blobs)
+let creatures = [];
+
+// Tunnel rings
+let rings = [];
+let ringTimer = 0;
+
+// ── Init / Reset ────────────────────────────────────────────────
+function initGame() {
+  score = 0; lap = 0; biomeIdx = 0; psy = 0; speed = SPEED_BASE;
+  px = 0; pvx = 0; targetX = 0;
+  playerY = H() * 0.72;
+  playerBob = 0;
+  moveLeft = false; moveRight = false;
+  shroomsCollected = 0;
+  hyperActive = false; hyperTimer = 0;
+  flash = { active:false, color:'#fff', t:0, duration:5000 };
+  twistAngle = 0; twistTarget = 0; twistVel = 0; twistTimer = 0;
+  showGhostTrack = false;
+  gridZ = 0;
+  particles = []; obstacles = []; mushrooms = []; bands = []; creatures = []; rings = [];
+  obsTimer = 0; shroomTimer = 0; ringTimer = 0;
+  tint = { r:0,g:0,b:0,a:0 };
+  updateHUD();
+}
+
+// ── HUD ─────────────────────────────────────────────────────────
+function updateHUD() {
+  document.getElementById('score-val').textContent = Math.floor(score);
+  document.getElementById('biome-label').textContent = BIOMES[biomeIdx].name + (lap > 0 ? ` × LAP ${lap+1}` : '');
+  const pct = (shroomsCollected / SHROOM_NEED) * 100;
+  document.getElementById('hyper-bar').style.width = pct + '%';
+  const dots = '●'.repeat(shroomsCollected) + '○'.repeat(Math.max(0, SHROOM_NEED - shroomsCollected));
+  document.getElementById('hyper-label').textContent = 'HYPER ' + dots;
+}
+
+// ── Input ────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (state !== 'playing') return;
+  if (e.key === 'ArrowLeft'  || e.key === 'a' || e.key === 'A') { moveLeft  = true; e.preventDefault(); }
+  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { moveRight = true; e.preventDefault(); }
+});
+document.addEventListener('keyup', e => {
+  if (e.key === 'ArrowLeft'  || e.key === 'a' || e.key === 'A') moveLeft  = false;
+  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') moveRight = false;
+});
+
+// Mobile buttons
+document.getElementById('btn-left').addEventListener('pointerdown',  e => { moveLeft  = true;  e.preventDefault(); });
+document.getElementById('btn-left').addEventListener('pointerup',    e => { moveLeft  = false; });
+document.getElementById('btn-left').addEventListener('pointerleave', e => { moveLeft  = false; });
+document.getElementById('btn-right').addEventListener('pointerdown', e => { moveRight = true;  e.preventDefault(); });
+document.getElementById('btn-right').addEventListener('pointerup',   e => { moveRight = false; });
+document.getElementById('btn-right').addEventListener('pointerleave',e => { moveRight = false; });
+
+// Touch swipe
+let touchStartX = null;
+canvas.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive:true });
+canvas.addEventListener('touchend', e => {
+  if (touchStartX === null || state !== 'playing') return;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 20) { targetX = clamp(targetX + Math.sign(dx) * LANE_STEP, -LANE_SPREAD, LANE_SPREAD); }
+  touchStartX = null;
+}, { passive:true });
+
+// ── Start button ────────────────────────────────────────────────
+document.getElementById('start-btn').addEventListener('click', () => {
+  document.getElementById('overlay').style.display = 'none';
+  initGame();
+  state = 'playing';
+  requestAnimationFrame(loop);
+});
+
+// ── Helpers ─────────────────────────────────────────────────────
+function clamp(v,mn,mx) { return Math.min(mx,Math.max(mn,v)); }
+function lerp(a,b,t)    { return a + (b-a)*t; }
+function rand(a,b)      { return a + Math.random()*(b-a); }
+function randInt(a,b)   { return Math.floor(rand(a,b+1)); }
+function hsl(h,s,l,a=1){ return `hsla(${h},${s}%,${l}%,${a})`; }
+
+// Vanishing point
+function vp() { return { x: W()*0.5, y: H()*0.28 }; }
+
+// Project a 3D tunnel point to screen
+function project(wx, wz) {
+  const v = vp();
+  const scale = 600 / (600 + wz);
+  return {
+    sx: v.x + wx * scale,
+    sy: v.y + (playerY - v.y) * scale,
+    scale
+  };
+}
+
+// ── Spawn helpers ────────────────────────────────────────────────
+function spawnObstacle() {
+  // 1–3 obstacles per row, in random lanes, width matches player range
+  const count = randInt(1, Math.min(3, 1 + Math.floor(score/300)));
+  const usedLanes = new Set();
+  for (let i = 0; i < count; i++) {
+    let lane;
+    let attempts = 0;
+    do { lane = randInt(-2, 2); attempts++; } while (usedLanes.has(lane) && attempts < 10);
+    usedLanes.add(lane);
+    obstacles.push({
+      x: lane * LANE_STEP,
+      z: -1800,
+      w: 48, h: 38,
+      type: Math.random() < 0.4 ? 'rock' : 'stalagmite',
+      hue: randInt(0,360)
+    });
+  }
+}
+
+function spawnMushroom() {
+  const lane = randInt(-2, 2);
+  const color = SHROOM_COLORS[randInt(0, SHROOM_COLORS.length-1)];
+  mushrooms.push({ x: lane * LANE_STEP, z: -1800, color, bob:Math.random()*Math.PI*2 });
+}
+
+function spawnRing() {
+  rings.push({ z:-1200, r: W()*0.44, alpha:0.7 });
+}
+
+// ── Particle burst ───────────────────────────────────────────────
+function burst(x, y, color, n=18) {
+  for (let i=0; i<n; i++) {
+    const ang = rand(0, Math.PI*2);
+    const spd = rand(1.5, 5);
+    particles.push({ x, y, vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd - 1.5,
+      life:1, decay:rand(0.02,0.05), r:rand(2,6), color });
+  }
+}
+
+function spawnPsyParticle() {
+  if (psy < 0.1) return;
+  const v = vp();
+  const ang = rand(0, Math.PI*2);
+  const dist = rand(30, 200*psy);
+  particles.push({
+    x: v.x + Math.cos(ang)*dist*0.3,
+    y: v.y + Math.sin(ang)*dist*0.3,
+    vx: Math.cos(ang)*rand(0.2,1.2)*psy,
+    vy: Math.sin(ang)*rand(0.2,1.2)*psy - 0.3,
+    life:1, decay:rand(0.005, 0.015), r:rand(1,4),
+    color: hsl(randInt(0,360),100,70,0.8)
+  });
+}
+
+// ── Biome update ─────────────────────────────────────────────────
+function updateBiome() {
+  const lapBonus = lap * 2600;
+  const adjScore = score - lapBonus;
+  let newBiome = 0;
+  for (let i = BIOMES.length-1; i >= 0; i--) {
+    if (adjScore >= BIOMES[i].threshold) { newBiome = i; break; }
+  }
+  if (newBiome !== biomeIdx) {
+    biomeIdx = newBiome;
+    if (newBiome === 0 && score > 10) lap++;
+    updateHUD();
+  }
+  const b = BIOMES[biomeIdx];
+  const lapPsy = Math.min(lap * 0.2, 0.5);
+  psy = clamp(b.psy + lapPsy, 0, 1);
+}
+
+// ── Draw tunnel ──────────────────────────────────────────────────
+function drawTunnel(dt) {
+  const b  = BIOMES[biomeIdx];
+  const v  = vp();
+  const cw = W(), ch = H();
+
+  // Background gradient
+  const bg = ctx.createRadialGradient(v.x, v.y, 20, v.x, v.y, Math.max(cw,ch));
+  bg.addColorStop(0, b.mid);
+  bg.addColorStop(1, b.sky);
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, cw, ch);
+
+  // Rainbow tunnel bands (psy)
+  if (psy > 0.05) {
+    const bandCount = Math.floor(3 + psy * 8);
+    for (let i = 0; i < bandCount; i++) {
+      const t = ((Date.now() * 0.0003 + i / bandCount) % 1);
+      const radius = t * Math.max(cw, ch) * 0.75;
+      const hue = (i * 37 + Date.now() * 0.05) % 360;
+      const alpha = psy * 0.18 * (1 - t);
+      ctx.beginPath();
+      ctx.ellipse(v.x, v.y, radius * 0.6, radius * 0.35, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = hsl(hue, 100, 65, alpha);
+      ctx.lineWidth = 2 + psy * 4;
+      ctx.stroke();
+    }
+  }
+
+  // Grid scroll — tied to speed now
+  gridZ = (gridZ + speed * dt * 0.12) % 1;
+  const gridLines = 16;
+  ctx.save();
+  ctx.translate(v.x, v.y);
+  ctx.rotate(twistAngle);
+  ctx.translate(-v.x, -v.y);
+
+  // Left and right tunnel walls — converging lines
+  const wallCount = 10;
+  for (let i = 0; i <= wallCount; i++) {
+    const t = (i / wallCount + gridZ) % 1;
+    const farX1 = v.x - W()*0.5 * (1-t);
+    const farX2 = v.x + W()*0.5 * (1-t);
+    const farY  = v.y + (ch - v.y) * (1-t) * 0.1;
+    const nearY = v.y + (ch - v.y) * t;
+    const nearX1= v.x - W()*0.52 * t;
+    const nearX2= v.x + W()*0.52 * t;
+    const alpha = t * 0.35 + 0.05;
+    const lineHue = psy > 0.3 ? (Date.now()*0.05 + i*30) % 360 : 200;
+    ctx.strokeStyle = hsl(lineHue, 80, 60, alpha);
+    ctx.lineWidth = 1;
+    // Horizontal bands
+    ctx.beginPath();
+    ctx.moveTo(nearX1, nearY);
+    ctx.lineTo(nearX2, nearY);
+    ctx.stroke();
+  }
+
+  // Vertical tunnel lines
+  const vLines = 8;
+  for (let i = 0; i <= vLines; i++) {
+    const frac = i / vLines; // 0→1
+    const farX = v.x + (frac - 0.5) * W() * 0.12;
+    const nearX = v.x + (frac - 0.5) * W() * 1.1;
+    const lineHue = psy > 0.3 ? (Date.now()*0.04 + i*45) % 360 : 200;
+    ctx.beginPath();
+    ctx.moveTo(farX, v.y);
+    ctx.lineTo(nearX, ch);
+    ctx.strokeStyle = hsl(lineHue, 70, 55, 0.18 + psy*0.15);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Ghost future track (shown when twist angle is strong)
+  if (showGhostTrack) {
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    ctx.translate(v.x, v.y);
+    ctx.rotate(twistTarget * 0.6);
+    ctx.translate(-v.x, -v.y);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 14]);
+    ctx.beginPath();
+    ctx.moveTo(v.x - 30, v.y);
+    ctx.lineTo(v.x - 80, ch);
+    ctx.moveTo(v.x + 30, v.y);
+    ctx.lineTo(v.x + 80, ch);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+}
+
+// ── Draw rings ───────────────────────────────────────────────────
+function drawRings() {
+  for (const ring of rings) {
+    const proj = project(0, ring.z + 600);
+    const r = ring.r * proj.scale;
+    const hue = (Date.now()*0.05 + ring.z) % 360;
+    ctx.beginPath();
+    ctx.ellipse(proj.sx, proj.sy, r, r * 0.35, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = hsl(hue, 100, 70, ring.alpha * proj.scale);
+    ctx.lineWidth = 3 * proj.scale;
+    ctx.stroke();
+  }
+}
+
+// ── Draw obstacles ────────────────────────────────────────────────
+function drawObstacles() {
+  for (const obs of obstacles) {
+    const proj = project(obs.x, obs.z + 600);
+    if (!proj) continue;
+    const w = obs.w * proj.scale;
+    const h = obs.h * proj.scale;
+    const sx = proj.sx - w/2;
+    const sy = proj.sy - h;
+
+    if (obs.type === 'rock') {
+      const grad = ctx.createRadialGradient(proj.sx, proj.sy-h*0.5, 1, proj.sx, proj.sy-h*0.5, w);
+      grad.addColorStop(0, hsl(obs.hue, 40, 70));
+      grad.addColorStop(1, hsl(obs.hue, 30, 25));
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.roundRect(sx, sy, w, h, w*0.3);
+      ctx.fill();
+      if (psy > 0.3) {
+        ctx.shadowColor = hsl(obs.hue, 100, 70);
+        ctx.shadowBlur = 12 * psy * proj.scale;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    } else {
+      // Stalagmite — triangle
+      ctx.fillStyle = hsl(obs.hue, 50, 45);
+      ctx.beginPath();
+      ctx.moveTo(proj.sx, proj.sy - h*1.3);
+      ctx.lineTo(proj.sx - w*0.55, proj.sy);
+      ctx.lineTo(proj.sx + w*0.55, proj.sy);
+      ctx.closePath();
+      ctx.fill();
+      if (psy > 0.4) {
+        ctx.shadowColor = hsl(obs.hue, 100, 80);
+        ctx.shadowBlur = 10 * psy;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    }
+  }
+}
+
+// ── Draw mushrooms ────────────────────────────────────────────────
+function drawMushrooms(t) {
+  for (const sh of mushrooms) {
+    sh.bob += 0.05;
+    const proj = project(sh.x, sh.z + 600);
+    if (!proj) continue;
+    const r = 12 * proj.scale;
+    const bob = Math.sin(sh.bob) * 3 * proj.scale;
+    const sx = proj.sx, sy = proj.sy + bob;
+
+    // Cap
+    ctx.beginPath();
+    ctx.ellipse(sx, sy - r, r, r*0.6, 0, 0, Math.PI);
+    ctx.fillStyle = sh.color;
+    ctx.fill();
+    // Stalk
+    ctx.fillStyle = '#fff8e1';
+    ctx.fillRect(sx - r*0.25, sy - r, r*0.5, r);
+    // Dots
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.beginPath(); ctx.arc(sx - r*0.3, sy - r*0.9, r*0.15, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(sx + r*0.25, sy - r*0.6, r*0.12, 0, Math.PI*2); ctx.fill();
+
+    // Glow
+    ctx.shadowColor = sh.color;
+    ctx.shadowBlur = 14 * proj.scale * (0.7 + 0.3*Math.sin(sh.bob));
+    ctx.beginPath();
+    ctx.ellipse(sx, sy - r*0.5, r*0.5, r*0.3, 0, 0, Math.PI*2);
+    ctx.fillStyle = sh.color;
+    ctx.globalAlpha = 0.3;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+  }
+}
+
+// ── Draw player (penguin) ─────────────────────────────────────────
+function drawPlayer() {
+  const x = W()/2 + px;
+  const y = playerY + Math.sin(playerBob) * 4;
+
+  ctx.save();
+
+  // Shadow
+  ctx.ellipse && ctx.beginPath();
+  ctx.beginPath();
+  ctx.ellipse(x, y + 28, 22, 8, 0, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fill();
+
+  // Body
+  const grad = ctx.createRadialGradient(x, y+10, 4, x, y+10, 28);
+  grad.addColorStop(0, '#222');
+  grad.addColorStop(1, '#000');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.ellipse(x, y+10, 18, 28, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Belly
+  ctx.fillStyle = '#f5f5f0';
+  ctx.beginPath();
+  ctx.ellipse(x, y+14, 10, 18, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Head
+  ctx.fillStyle = '#111';
+  ctx.beginPath();
+  ctx.arc(x, y-16, 15, 0, Math.PI*2);
+  ctx.fill();
+
+  // Eyes
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(x-5, y-18, 4.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+5, y-18, 4.5, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#00cfff';
+  ctx.beginPath(); ctx.arc(x-5, y-18, 2.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+5, y-18, 2.5, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.arc(x-5, y-18, 1.2, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+5, y-18, 1.2, 0, Math.PI*2); ctx.fill();
+
+  // Beak
+  ctx.fillStyle = '#ffa500';
+  ctx.beginPath();
+  ctx.moveTo(x-3, y-14); ctx.lineTo(x+3, y-14); ctx.lineTo(x, y-9);
+  ctx.closePath(); ctx.fill();
+
+  // Flippers
+  const flipAng = Math.sin(playerBob*2) * 0.3;
+  ctx.fillStyle = '#111';
+  ctx.save();
+  ctx.translate(x-18, y+5);
+  ctx.rotate(-Math.PI*0.2 - flipAng);
+  ctx.beginPath(); ctx.ellipse(0,0,6,14,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+  ctx.save();
+  ctx.translate(x+18, y+5);
+  ctx.rotate(Math.PI*0.2 + flipAng);
+  ctx.beginPath(); ctx.ellipse(0,0,6,14,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // Hyper glow
+  if (hyperActive) {
+    const glowAlpha = 0.5 + 0.4*Math.sin(Date.now()*0.01);
+    ctx.shadowColor = '#f0f';
+    ctx.shadowBlur = 30;
+    ctx.strokeStyle = `rgba(255,0,255,${glowAlpha})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(x, y, 32, 0, Math.PI*2); ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  // Psy creature aura
+  if (psy > 0.5) {
+    const auraHue = (Date.now()*0.05)%360;
+    ctx.globalAlpha = (psy - 0.5) * 0.6;
+    ctx.shadowColor = hsl(auraHue, 100, 65);
+    ctx.shadowBlur = 22;
+    ctx.beginPath(); ctx.arc(x, y, 36, 0, Math.PI*2);
+    ctx.strokeStyle = hsl(auraHue, 100, 65, 0.5);
+    ctx.lineWidth = 2; ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.restore();
+}
+
+// ── Mushroom flash ────────────────────────────────────────────────
+function drawFlash() {
+  if (!flash.active) return;
+  const t  = flash.t / flash.duration;
+  const t2 = 1 - t;
+  const v  = vp();
+  const c  = flash.color;
+
+  // Screen wash
+  ctx.globalAlpha = t2 * 0.35;
+  ctx.fillStyle = c;
+  ctx.fillRect(0, 0, W(), H());
+  ctx.globalAlpha = 1;
+
+  // Radial bloom
+  const bloom = ctx.createRadialGradient(v.x, v.y, 0, v.x, v.y, W()*0.8*t2);
+  bloom.addColorStop(0, c.replace(')', `,${t2*0.7})`).replace('rgb','rgba').replace('#', 'rgba(').replace(/^rgba\(([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/, (m,r,g,b) => `rgba(${parseInt(r,16)},${parseInt(g,16)},${parseInt(b,16)}`));
+  // simpler approach
+  ctx.save();
+  ctx.globalAlpha = t2 * 0.4;
+  ctx.beginPath();
+  ctx.arc(v.x, v.y, W()*0.8*(1-t*0.3), 0, Math.PI*2);
+  ctx.fillStyle = c;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // Expanding rings
+  for (let i = 0; i < 4; i++) {
+    const phase = (t + i*0.2) % 1;
+    ctx.beginPath();
+    ctx.arc(v.x, v.y, phase * W() * 0.7, 0, Math.PI*2);
+    ctx.strokeStyle = c;
+    ctx.globalAlpha = (1-phase) * t2 * 0.6;
+    ctx.lineWidth = 3 + (1-phase)*6;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // Starburst rays
+  const rays = 12;
+  for (let i = 0; i < rays; i++) {
+    const ang = (i/rays)*Math.PI*2 + t*1.2;
+    const len = W()*0.55 * t2;
+    ctx.beginPath();
+    ctx.moveTo(v.x, v.y);
+    ctx.lineTo(v.x + Math.cos(ang)*len, v.y + Math.sin(ang)*len);
+    ctx.strokeStyle = c;
+    ctx.globalAlpha = t2 * 0.25;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // Tunnel color bands
+  for (let i = 0; i < 6; i++) {
+    const phase = ((t*3 + i/6) % 1);
+    const r = W()*0.15 + phase*W()*0.45;
+    ctx.beginPath();
+    ctx.ellipse(v.x, v.y, r, r*0.38, 0, 0, Math.PI*2);
+    ctx.strokeStyle = c;
+    ctx.globalAlpha = (1-phase) * t2 * 0.4;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ── Particles ─────────────────────────────────────────────────────
+function drawParticles() {
+  for (const p of particles) {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ── Collision ─────────────────────────────────────────────────────
+function checkCollisions() {
+  const px_screen = W()/2 + px;
+
+  // Obstacles
+  for (let i = obstacles.length-1; i >= 0; i--) {
+    const obs = obstacles[i];
+    if (obs.z > 0 && obs.z < 60) {
+      const proj = project(obs.x, obs.z + 600);
+      const w = obs.w * proj.scale * 1.1;
+      if (Math.abs(px_screen - proj.sx) < w * 0.5 + 14) {
+        gameOver();
+        return;
+      }
+    }
+  }
+
+  // Mushrooms
+  for (let i = mushrooms.length-1; i >= 0; i--) {
+    const sh = mushrooms[i];
+    if (sh.z > 0 && sh.z < 80) {
+      const proj = project(sh.x, sh.z + 600);
+      if (Math.abs(px_screen - proj.sx) < 28) {
+        mushrooms.splice(i, 1);
+        collectMushroom(sh.color, proj.sx, proj.sy);
+      }
+    }
+  }
+}
+
+function collectMushroom(color, sx, sy) {
+  shroomsCollected++;
+  burst(sx, sy, color, 24);
+  flash = { active:true, color, t:0, duration:5000 };
+  if (shroomsCollected >= SHROOM_NEED) {
+    shroomsCollected = 0;
+    triggerHyper();
+  }
+  updateHUD();
+}
+
+function triggerHyper() {
+  hyperActive = true;
+  hyperTimer  = HYPER_DURATION;
+  const el = document.getElementById('hyper-active');
+  el.style.animation = 'none';
+  el.offsetHeight; // reflow
+  el.style.animation = 'hyperFlash 0.8s ease-out';
+}
+
+function gameOver() {
+  state = 'dead';
+  if (score > hiScore) {
+    hiScore = Math.floor(score);
+    localStorage.setItem('tp_hi', hiScore);
+  }
+  setTimeout(showMenu, 900);
+}
+
+function showMenu() {
+  const ov = document.getElementById('overlay');
+  ov.style.display = 'flex';
+  ov.innerHTML = `
+    <h1>🐧 TRIPPING<br>PENGUINS</h1>
+    <div class="sub">You made it to score <b style="color:#0ff">${Math.floor(score)}</b>!<br>Pingo laughs. Again.</div>
+    <button id="start-btn">TRY AGAIN</button>
+    <div class="high">🏆 BEST: ${hiScore}</div>
+  `;
+  document.getElementById('start-btn').addEventListener('click', () => {
+    ov.style.display = 'none';
+    initGame();
+    state = 'playing';
+    requestAnimationFrame(loop);
+  });
+}
+
+// ── Main loop ─────────────────────────────────────────────────────
+let lastTime = 0;
+function loop(ts) {
+  if (state !== 'playing') return;
+  const dt = Math.min((ts - lastTime) / 16.67, 3); // normalize to ~60fps frames
+  lastTime = ts;
+
+  playerY = H() * 0.72;
+
+  // ── Speed ──────────────────────────────────────────────────────
+  const effectiveSpeed = hyperActive ? speed * HYPER_MULT : speed;
+
+  // ── Score ──────────────────────────────────────────────────────
+  score += effectiveSpeed * dt * 0.5;
+  // Speed ramp
+  const diff = score * SPEED_DIFF;
+  speed = clamp(SPEED_BASE + diff, SPEED_BASE, SPEED_CAP);
+
+  // ── Player movement (spring) ────────────────────────────────────
+  if (moveLeft  && !flash.active) targetX = clamp(targetX - LANE_STEP * dt * 0.8, -LANE_SPREAD, LANE_SPREAD);
+  if (moveRight && !flash.active) targetX = clamp(targetX + LANE_STEP * dt * 0.8, -LANE_SPREAD, LANE_SPREAD);
+  // Spring toward target
+  const springF = (targetX - px) * SPRING_K;
+  pvx = (pvx + springF) * DAMP;
+  px += pvx * dt;
+  px = clamp(px, -LANE_SPREAD, LANE_SPREAD);
+  playerBob += 0.12 * dt * (0.5 + effectiveSpeed * 0.1);
+
+  // ── Hyper timer ─────────────────────────────────────────────────
+  if (hyperActive) {
+    hyperTimer -= dt * 16.67;
+    if (hyperTimer <= 0) { hyperActive = false; hyperTimer = 0; }
+  }
+
+  // ── Flash timer ─────────────────────────────────────────────────
+  if (flash.active) {
+    flash.t += dt * 16.67;
+    if (flash.t >= flash.duration) flash.active = false;
+  }
+
+  // ── Tunnel twist ────────────────────────────────────────────────
+  twistTimer -= dt * 16.67;
+  if (twistTimer <= 0) {
+    twistTarget = rand(-0.35 - psy*0.3, 0.35 + psy*0.3);
+    twistTimer  = rand(3000, 6000);
+    showGhostTrack = Math.abs(twistTarget) > 0.18;
+  }
+  const twistSpring = (twistTarget - twistAngle) * TWIST_SPRING;
+  twistVel = (twistVel + twistSpring) * TWIST_DAMP;
+  twistAngle += twistVel * dt;
+
+  // ── Biome ───────────────────────────────────────────────────────
+  updateBiome();
+
+  // ── Spawn obstacles ─────────────────────────────────────────────
+  obsTimer -= dt * 16.67;
+  if (obsTimer <= 0) {
+    spawnObstacle();
+    obsTimer = Math.max(600, 1800 - score * 0.3) / effectiveSpeed;
+  }
+
+  // ── Spawn mushrooms ─────────────────────────────────────────────
+  shroomTimer -= dt * 16.67;
+  if (shroomTimer <= 0) {
+    if (Math.random() < 0.7) spawnMushroom();
+    shroomTimer = rand(1800, 3500);
+  }
+
+  // ── Spawn rings ─────────────────────────────────────────────────
+  ringTimer -= dt * 16.67;
+  if (ringTimer <= 0) {
+    spawnRing();
+    ringTimer = rand(600, 1400);
+  }
+
+  // ── Move obstacles, mushrooms, rings ────────────────────────────
+  const moveZ = effectiveSpeed * 22 * dt;
+  for (const obs of obstacles) obs.z += moveZ;
+  for (const sh  of mushrooms) sh.z  += moveZ;
+  for (const r   of rings)     r.z   += moveZ * 1.4;
+
+  // Prune
+  obstacles = obstacles.filter(o => o.z < 700);
+  mushrooms = mushrooms.filter(s => s.z < 700);
+  rings     = rings.filter(r => r.z < 700);
+
+  // ── Particles ───────────────────────────────────────────────────
+  if (psy > 0.2 && Math.random() < psy * 0.4 * dt) spawnPsyParticle();
+  for (const p of particles) {
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 0.08 * dt;
+    p.life -= p.decay * dt;
+  }
+  particles = particles.filter(p => p.life > 0);
+
+  // ── Collisions ──────────────────────────────────────────────────
+  checkCollisions();
+
+  // ── HUD update (throttled) ──────────────────────────────────────
+  if (Math.random() < 0.15) updateHUD();
+
+  // ════════════════ DRAW ════════════════
+  ctx.clearRect(0, 0, W(), H());
+
+  drawTunnel(dt);
+  drawRings();
+  drawObstacles();
+  drawMushrooms(Date.now());
+  drawPlayer();
+  drawParticles();
+  drawFlash();
+
+  // Fog overlay (depth cue)
+  const b = BIOMES[biomeIdx];
+  const fogGrad = ctx.createLinearGradient(0, 0, 0, H());
+  fogGrad.addColorStop(0, b.fog.replace('#','').match(/.{2}/g)
+    ? `rgba(${parseInt(b.fog.slice(1,3),16)},${parseInt(b.fog.slice(3,5),16)},${parseInt(b.fog.slice(5,7),16)},0.25)`
+    : 'rgba(100,200,255,0.15)');
+  fogGrad.addColorStop(0.4, 'rgba(0,0,0,0)');
+  fogGrad.addColorStop(1, 'rgba(0,0,0,0.15)');
+  ctx.fillStyle = fogGrad;
+  ctx.fillRect(0, 0, W(), H());
+
+  // Vignette
+  const vig = ctx.createRadialGradient(W()/2,H()/2,H()*0.3, W()/2,H()/2,H()*0.8);
+  vig.addColorStop(0,'rgba(0,0,0,0)');
+  vig.addColorStop(1,'rgba(0,0,0,0.55)');
+  ctx.fillStyle = vig;
+  ctx.fillRect(0,0,W(),H());
+
+  requestAnimationFrame(loop);
+}
+
+// ── Show hi score on menu ────────────────────────────────────────
+if (hiScore > 0) {
+  document.getElementById('hi-score-disp').textContent = '🏆 BEST: ' + hiScore;
+}
+
+// ── Check mobile ────────────────────────────────────────────────
+const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth < 600;
+if (!isMobile) {
+  document.getElementById('mobile-ctrl').style.display = 'none';
+}
+</script>
+</body>
+</html>

@@ -296,7 +296,7 @@ def _llm_status() -> Dict[str, Any]:
             "http://127.0.0.1:8000/api/rosetta/soul",
             headers={"Accept": "application/json"}
         )
-        with _ur.urlopen(req, timeout=4) as resp:
+        with _ur.urlopen(req, timeout=10) as resp:
             data = json.loads(resp.read())
             # If soul endpoint responds, check last mind cycle model
             return {"available": True, "note": "providers reachable"}
@@ -325,7 +325,7 @@ def _corpus_freshness() -> Dict[str, Any]:
             "http://127.0.0.1:8000/api/corpus/stats",
             headers={"Accept": "application/json"}
         )
-        with _ur.urlopen(req, timeout=4) as resp:
+        with _ur.urlopen(req, timeout=10) as resp:
             data = json.loads(resp.read())
             newest = data.get("newest", "")
             total = data.get("total_records", 0)
@@ -355,7 +355,7 @@ def _agent_coverage() -> Dict[str, Any]:
             "http://127.0.0.1:8000/api/rosetta/status",
             headers={"Accept": "application/json"}
         )
-        with _ur.urlopen(req, timeout=4) as resp:
+        with _ur.urlopen(req, timeout=10) as resp:
             data = json.loads(resp.read())
             agents = data.get("agents", [])
             if isinstance(agents, dict):
@@ -495,7 +495,7 @@ def _validate_proposed_action(action: str) -> Dict[str, Any]:
 
     # Extract "Fix file: <path>" pattern
     file_match = _re.search(
-        r"[Ff]ix(?:ing)? (?:file[:]?\s*)([\w./\-]+\.py)", action
+        r"(?:[Ff]ix(?:ing)?|[Pp]atch(?:ing)?)\s+(?:file[:]?\s*)?([\w./\-]+\.py)", action
     )
     fn_match = _re.search(
         r"function[:]?\s*([\w_]+)\s*\(", action
@@ -635,7 +635,7 @@ def _module_health() -> Dict:
     }
     for name, url in checks.items():
         try:
-            with urllib.request.urlopen(url, timeout=4) as r:
+            with urllib.request.urlopen(url, timeout=10) as r:
                 data = json.loads(r.read())
                 results[name] = "ok" if (
                     data.get("success") is not False
