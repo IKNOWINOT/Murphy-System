@@ -26,6 +26,79 @@ canvas { display:block; touch-action:none; }
 #mobile-ctrl button:active { background:rgba(255,255,255,0.3); }
 #hyper-active { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:22px; color:#fff; text-shadow:0 0 20px #f0f; letter-spacing:6px; opacity:0; pointer-events:none; animation:none; }
 @keyframes hyperFlash { 0%{opacity:1;transform:translate(-50%,-50%) scale(1.4)} 100%{opacity:0;transform:translate(-50%,-50%) scale(0.8)} }
+
+/* ── MUSIC SYSTEM ───────────────────────────────────────── */
+#music-btn {
+  position:absolute; top:12px; right:14px;
+  width:38px; height:38px; border-radius:50%;
+  background:rgba(0,0,0,0.55); border:2px solid rgba(0,255,170,0.5);
+  color:#0fa; font-size:17px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  pointer-events:all; z-index:20;
+  transition:border-color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 0 0px #0fa;
+}
+#music-btn.playing { border-color:#0fa; box-shadow:0 0 10px #0fa; animation:musicPulse 2s infinite; }
+#music-btn.buffering { border-color:#ff0; box-shadow:0 0 8px #ff0; }
+@keyframes musicPulse { 0%,100%{box-shadow:0 0 6px #0fa} 50%{box-shadow:0 0 16px #0fa, 0 0 30px #0fa3} }
+
+#music-panel {
+  position:absolute; top:58px; right:10px;
+  width:280px; background:rgba(0,0,0,0.92);
+  border:1px solid rgba(0,255,170,0.35); border-radius:12px;
+  padding:14px; pointer-events:all; z-index:21;
+  display:none; backdrop-filter:blur(8px);
+  box-shadow:0 0 20px rgba(0,255,170,0.15);
+}
+#music-panel.open { display:block; }
+#music-panel h3 { font-size:11px; letter-spacing:3px; color:#0fa; margin-bottom:10px; text-transform:uppercase; }
+.vibe-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:12px; }
+.vibe-btn {
+  background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.2);
+  color:#ccc; padding:7px 4px; font-size:10px; font-family:inherit;
+  letter-spacing:1px; border-radius:6px; cursor:pointer; text-align:center;
+  transition:all 0.15s; line-height:1.3;
+}
+.vibe-btn:hover { background:rgba(0,255,170,0.15); border-color:#0fa; color:#0fa; }
+.vibe-btn.active { background:rgba(0,255,170,0.2); border-color:#0fa; color:#0fa; box-shadow:0 0 8px rgba(0,255,170,0.3); }
+#music-custom { display:flex; gap:6px; margin-bottom:10px; }
+#music-url-input {
+  flex:1; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2);
+  color:#fff; padding:6px 8px; font-size:10px; font-family:inherit;
+  border-radius:6px; outline:none;
+}
+#music-url-input:focus { border-color:#0fa; }
+#music-url-input::placeholder { color:rgba(255,255,255,0.3); }
+#music-load-btn {
+  background:rgba(0,255,170,0.15); border:1px solid #0fa; color:#0fa;
+  padding:6px 10px; font-size:10px; font-family:inherit;
+  border-radius:6px; cursor:pointer; white-space:nowrap;
+}
+#music-load-btn:hover { background:rgba(0,255,170,0.3); }
+.music-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.music-row label { font-size:10px; color:#888; width:52px; letter-spacing:1px; }
+#vol-slider {
+  flex:1; -webkit-appearance:none; appearance:none;
+  height:4px; border-radius:2px; background:rgba(255,255,255,0.2); outline:none; cursor:pointer;
+}
+#vol-slider::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:#0fa; cursor:pointer; box-shadow:0 0 6px #0fa; }
+#vol-slider::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:#0fa; cursor:pointer; border:none; }
+#music-now-playing {
+  font-size:9px; color:#666; letter-spacing:1px; text-align:center;
+  min-height:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  margin-top:4px;
+}
+#music-now-playing.active { color:#0fa; }
+#music-controls { display:flex; gap:8px; justify-content:center; margin-bottom:8px; }
+#music-controls button {
+  background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.2);
+  color:#ccc; width:30px; height:30px; border-radius:50%; font-size:13px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:all 0.15s;
+}
+#music-controls button:hover { background:rgba(0,255,170,0.15); border-color:#0fa; color:#0fa; }
+#yt-player-wrap { position:absolute; width:1px; height:1px; overflow:hidden; left:-9999px; top:-9999px; }
+
 </style>
 </head>
 <body>
@@ -42,6 +115,37 @@ canvas { display:block; touch-action:none; }
     <button id="btn-left">◀</button>
     <button id="btn-right">▶</button>
   </div>
+
+  <!-- MUSIC SYSTEM -->
+  <button id="music-btn" title="Music">🎵</button>
+  <div id="music-panel">
+    <h3>🎵 Background Music</h3>
+    <div class="vibe-grid">
+      <button class="vibe-btn" data-plid="PLFgquLnL59alCl_2TQttaKMKAi9SjeKN3" data-name="Synthwave">🌆 Synthwave</button>
+      <button class="vibe-btn" data-plid="PLofht4SFhNVDPDo3QFJRVgCyxgCAWLm4y" data-name="Lo-Fi Chill">☁️ Lo-Fi Chill</button>
+      <button class="vibe-btn" data-plid="PLw-VjHDlEOguU2Kxq_jJrLmAi-lWAJBmg" data-name="Psychedelic">🍄 Psychedelic</button>
+      <button class="vibe-btn" data-plid="PLH9S7rGcRPFWQFM5SbFJTjYy3JIj1a8lv" data-name="Drum & Bass">⚡ Drum & Bass</button>
+      <button class="vibe-btn" data-plid="PLw-VjHDlEOgs658kAHR_LAaILBXb-s6Q5" data-name="Dark Ambient">🌑 Dark Ambient</button>
+      <button class="vibe-btn" data-plid="PLbpi8FgMVIMxv52j1XFaWHJMUt3QHPVhE" data-name="EDM/Rave">🎆 EDM / Rave</button>
+    </div>
+    <div id="music-custom">
+      <input id="music-url-input" type="text" placeholder="Paste YouTube playlist URL…" />
+      <button id="music-load-btn">LOAD</button>
+    </div>
+    <div class="music-row">
+      <label>VOLUME</label>
+      <input id="vol-slider" type="range" min="0" max="100" value="70">
+    </div>
+    <div id="music-controls">
+      <button id="mc-prev" title="Previous">⏮</button>
+      <button id="mc-play" title="Play/Pause">⏸</button>
+      <button id="mc-next" title="Next">⏭</button>
+      <button id="mc-shuf" title="Shuffle" style="font-size:11px;letter-spacing:0">🔀</button>
+    </div>
+    <div id="music-now-playing">— no track loaded —</div>
+  </div>
+  <div id="yt-player-wrap"><div id="yt-player"></div></div>
+
 </div>
 <div id="overlay">
   <h1>🐧 TRIPPING<br>PENGUINS</h1>
@@ -895,6 +999,212 @@ const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || window
 if (!isMobile) {
   document.getElementById('mobile-ctrl').style.display = 'none';
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  MUSIC SYSTEM — YouTube IFrame API
+// ═══════════════════════════════════════════════════════════════
+
+let ytPlayer     = null;
+let ytReady      = false;
+let ytPlaying    = false;
+let ytVolume     = 70;
+let ytShuffled   = false;
+let currentVibe  = null;   // active vibe btn element
+let nowPlayingTimer = null;
+
+// Load YouTube IFrame API
+(function() {
+  const tag = document.createElement('script');
+  tag.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(tag);
+})();
+
+// Called by YT API when ready
+window.onYouTubeIframeAPIReady = function() {
+  ytReady = true;
+};
+
+function createYTPlayer(playlistId) {
+  if (!ytReady) {
+    // Retry after a moment
+    setTimeout(() => createYTPlayer(playlistId), 400);
+    return;
+  }
+  setBtnState('buffering');
+  setNowPlaying('Loading…');
+
+  if (ytPlayer) {
+    try { ytPlayer.destroy(); } catch(e) {}
+    ytPlayer = null;
+  }
+
+  ytPlayer = new YT.Player('yt-player', {
+    height: '1',
+    width:  '1',
+    playerVars: {
+      listType:    'playlist',
+      list:        playlistId,
+      autoplay:    1,
+      controls:    0,
+      loop:        1,
+      shuffle:     1,
+      playsinline: 1,
+      enablejsapi: 1,
+      origin:      window.location.origin,
+    },
+    events: {
+      onReady:       onYTReady,
+      onStateChange: onYTStateChange,
+      onError:       onYTError,
+    }
+  });
+}
+
+function onYTReady(e) {
+  e.target.setVolume(ytVolume);
+  e.target.playVideo();
+}
+
+function onYTStateChange(e) {
+  const S = YT.PlayerState;
+  if (e.data === S.PLAYING) {
+    ytPlaying = true;
+    setBtnState('playing');
+    document.getElementById('mc-play').textContent = '⏸';
+    updateNowPlaying();
+  } else if (e.data === S.PAUSED) {
+    ytPlaying = false;
+    setBtnState('idle');
+    document.getElementById('mc-play').textContent = '▶';
+  } else if (e.data === S.BUFFERING) {
+    setBtnState('buffering');
+  } else if (e.data === S.ENDED) {
+    setBtnState('idle');
+  }
+}
+
+function onYTError(e) {
+  setBtnState('idle');
+  setNowPlaying('⚠ playlist error — try another');
+}
+
+function setBtnState(s) {
+  const btn = document.getElementById('music-btn');
+  btn.classList.remove('playing','buffering');
+  if (s === 'playing')   btn.classList.add('playing');
+  if (s === 'buffering') btn.classList.add('buffering');
+  btn.textContent = s === 'playing' ? '🔊' : s === 'buffering' ? '⏳' : '🎵';
+}
+
+function setNowPlaying(text) {
+  const el = document.getElementById('music-now-playing');
+  el.textContent = text;
+  el.classList.toggle('active', text !== '— no track loaded —' && !text.startsWith('⚠') && text !== 'Loading…');
+}
+
+function updateNowPlaying() {
+  if (!ytPlayer || typeof ytPlayer.getVideoData !== 'function') return;
+  try {
+    const data  = ytPlayer.getVideoData();
+    const title = data && data.title ? data.title : '—';
+    setNowPlaying('♪ ' + title);
+  } catch(e) {}
+  // Re-poll while playing
+  clearTimeout(nowPlayingTimer);
+  if (ytPlaying) nowPlayingTimer = setTimeout(updateNowPlaying, 5000);
+}
+
+function loadPlaylistById(plid, vibeBtn) {
+  // Deactivate old vibe btn
+  if (currentVibe) currentVibe.classList.remove('active');
+  currentVibe = vibeBtn || null;
+  if (currentVibe) currentVibe.classList.add('active');
+  createYTPlayer(plid);
+}
+
+function extractPlaylistId(url) {
+  // Handles: full URL with ?list=, or bare ID
+  try {
+    const u = new URL(url);
+    return u.searchParams.get('list') || url.trim();
+  } catch(e) {
+    // Bare playlist ID
+    return url.trim();
+  }
+}
+
+// ── Panel toggle ────────────────────────────────────────────────
+document.getElementById('music-btn').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('music-panel').classList.toggle('open');
+});
+// Click outside closes panel
+document.addEventListener('click', e => {
+  const panel = document.getElementById('music-panel');
+  const btn   = document.getElementById('music-btn');
+  if (!panel.contains(e.target) && e.target !== btn) {
+    panel.classList.remove('open');
+  }
+});
+
+// ── Vibe buttons ────────────────────────────────────────────────
+document.querySelectorAll('.vibe-btn').forEach(btn => {
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    loadPlaylistById(btn.dataset.plid, btn);
+  });
+});
+
+// ── Custom URL ──────────────────────────────────────────────────
+document.getElementById('music-load-btn').addEventListener('click', e => {
+  e.stopPropagation();
+  const raw = document.getElementById('music-url-input').value.trim();
+  if (!raw) return;
+  const plid = extractPlaylistId(raw);
+  if (!plid) { setNowPlaying('⚠ invalid playlist URL'); return; }
+  loadPlaylistById(plid, null);
+});
+document.getElementById('music-url-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('music-load-btn').click();
+  e.stopPropagation(); // don't trigger game controls
+});
+
+// ── Volume ──────────────────────────────────────────────────────
+document.getElementById('vol-slider').addEventListener('input', e => {
+  ytVolume = parseInt(e.target.value);
+  if (ytPlayer && typeof ytPlayer.setVolume === 'function') ytPlayer.setVolume(ytVolume);
+});
+
+// ── Playback controls ────────────────────────────────────────────
+document.getElementById('mc-play').addEventListener('click', e => {
+  e.stopPropagation();
+  if (!ytPlayer) return;
+  if (ytPlaying) ytPlayer.pauseVideo();
+  else           ytPlayer.playVideo();
+});
+document.getElementById('mc-prev').addEventListener('click', e => {
+  e.stopPropagation();
+  if (!ytPlayer) return;
+  ytPlayer.previousVideo();
+  setTimeout(updateNowPlaying, 1200);
+});
+document.getElementById('mc-next').addEventListener('click', e => {
+  e.stopPropagation();
+  if (!ytPlayer) return;
+  ytPlayer.nextVideo();
+  setTimeout(updateNowPlaying, 1200);
+});
+document.getElementById('mc-shuf').addEventListener('click', e => {
+  e.stopPropagation();
+  ytShuffled = !ytShuffled;
+  if (ytPlayer && typeof ytPlayer.setShuffle === 'function') ytPlayer.setShuffle(ytShuffled);
+  document.getElementById('mc-shuf').style.color = ytShuffled ? '#0fa' : '';
+  document.getElementById('mc-shuf').style.borderColor = ytShuffled ? '#0fa' : '';
+});
+
+// ── Stop music on game over ──────────────────────────────────────
+// (optional: keep playing through game over for vibe continuity — leaving it on)
+
 </script>
 </body>
 </html>
