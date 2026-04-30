@@ -926,11 +926,23 @@ canvas.addEventListener('touchend', e => {
 }, { passive:true });
 
 // ── Start button ────────────────────────────────────────────────
+let _gameLoopHandle = null;
+
+function startGameLoop() {
+  if (_gameLoopHandle) clearInterval(_gameLoopHandle);
+  // Use setInterval as primary loop driver (works in headless/background tabs)
+  _gameLoopHandle = setInterval(() => {
+    if (state !== 'playing') { clearInterval(_gameLoopHandle); _gameLoopHandle = null; return; }
+    const ts = performance.now();
+    loop(ts);
+  }, 1000/60);
+}
+
 document.getElementById('start-btn').addEventListener('click', () => {
   document.getElementById('overlay').style.display = 'none';
   initGame();
   state = 'playing';
-  requestAnimationFrame(loop);
+  startGameLoop();
 });
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -2042,7 +2054,6 @@ const _origLoop = loop;
 // Redefine loop to add power layer
 function loop(ts) {
   if (state !== 'playing') return;
-  if (!lastTime) { lastTime = ts; requestAnimationFrame(loop); return; }
   const dt = Math.min((ts - lastTime) / 16.67, 3);
   lastTime = ts;
   playerY = H() * 0.72;
@@ -2139,7 +2150,7 @@ function loop(ts) {
   vig.addColorStop(0,'rgba(0,0,0,0)'); vig.addColorStop(1,'rgba(0,0,0,0.55)');
   ctx.fillStyle=vig; ctx.fillRect(0,0,W(),H());
 
-  requestAnimationFrame(loop);
+  // Loop driven by setInterval in startGameLoop() — no rAF call needed here
 }
 
 // ── Patch initGame to reset powers + gold shrooms ───────────────
