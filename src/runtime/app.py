@@ -382,6 +382,16 @@ def create_app() -> FastAPI:
         _make_bare_route()
     # PATCH-155: bare public routes
 
+    @app.get("/trippingpenguins")
+    async def tripping_penguins_top():
+        import os as _tos
+        p = _tos.path.join("/opt/Murphy-System", "tripping_penguins.html")
+        if _tos.path.isfile(p):
+            with open(p, "r", encoding="utf-8") as _f: return _HTMLResponse132(_f.read())
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse("/ui/tripping-penguins")
+
+
 
     # ── Utility: ISO timestamp helper ───────────────────────────
     def _now_iso():
