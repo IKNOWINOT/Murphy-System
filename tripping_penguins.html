@@ -2176,7 +2176,7 @@ function showMenu(poopEarned) {
   const d = getSenseiSave().sensei;
   const poopLine = poopEarned ? `<div style="font-size:12px;color:#c8a46e;margin-top:8px;">💩 +${poopEarned} poop earned — trade Herb for drip 🦎</div>` : '';
   const xpLine = `<div style="font-size:11px;color:#8f8;margin-top:6px;">⭐ Sensei LV ${d.level} · XP ${d.xp}/${xpForLevel(d.level)}</div>`;
-  ov.innerHTML = \`
+  ov.innerHTML = `
     <h1>🐧 TRIPPING<br>PENGUINS</h1>
     <div class="sub">You made it to score <b style="color:#0ff">\${Math.floor(score)}</b>!<br>Pingo laughs. Again.</div>
     <button id="start-btn">TRY AGAIN</button>
@@ -2184,7 +2184,7 @@ function showMenu(poopEarned) {
     \${poopLine}
     \${xpLine}
     <div style="font-size:11px;color:#888;margin-top:8px;">🍄 \${economy.mushrooms} coins · 💩 \${economy.poop} poop · 🌿 \${economy.fertilizer||0} fertilizer</div>
-  \`;
+  `;
   document.getElementById('start-btn').addEventListener('click', () => {
     ov.style.display = 'none';
     initGame();
