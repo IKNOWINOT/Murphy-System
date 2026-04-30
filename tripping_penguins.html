@@ -99,6 +99,208 @@ canvas { display:block; touch-action:none; }
 #music-controls button:hover { background:rgba(0,255,170,0.15); border-color:#0fa; color:#0fa; }
 #yt-player-wrap { position:absolute; width:1px; height:1px; overflow:hidden; left:-9999px; top:-9999px; }
 
+
+/* ── ECONOMY HUD ─────────────────────────────────────── */
+#econ-hud {
+  position:absolute; top:12px; left:14px;
+  display:flex; flex-direction:column; gap:4px;
+  pointer-events:none;
+}
+.econ-pill {
+  display:flex; align-items:center; gap:5px;
+  background:rgba(0,0,0,0.55); border:1px solid rgba(255,255,255,0.15);
+  border-radius:20px; padding:3px 10px 3px 7px;
+  font-size:12px; color:#fff; letter-spacing:1px;
+}
+.econ-pill span { font-weight:bold; }
+.econ-pill.shrooms { border-color:rgba(255,60,172,0.5); color:#ff9de2; }
+.econ-pill.poop    { border-color:rgba(139,90,43,0.6);  color:#c8a46e; }
+
+/* ── SHOP BUTTON ─────────────────────────────────────── */
+#shop-btn {
+  position:absolute; top:58px; right:14px;
+  width:38px; height:38px; border-radius:50%;
+  background:rgba(0,0,0,0.55); border:2px solid rgba(180,120,60,0.6);
+  color:#c8a; font-size:18px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  pointer-events:all; z-index:20; transition:all 0.2s;
+}
+#shop-btn:hover { border-color:#c8a; box-shadow:0 0 10px rgba(200,160,100,0.4); }
+
+/* ── SHOP MODAL ──────────────────────────────────────── */
+#shop-modal {
+  position:absolute; inset:0;
+  background:rgba(0,0,0,0.93);
+  display:none; flex-direction:column;
+  align-items:center; overflow-y:auto;
+  pointer-events:all; z-index:50;
+  padding:16px 12px 80px;
+}
+#shop-modal.open { display:flex; }
+
+#shop-header {
+  width:100%; max-width:440px;
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:14px;
+}
+#shop-header h2 {
+  font-size:20px; color:#c8a; letter-spacing:3px;
+  text-shadow:0 0 12px rgba(200,160,100,0.5);
+}
+#shop-close {
+  background:transparent; border:1px solid rgba(255,255,255,0.2);
+  color:#aaa; width:32px; height:32px; border-radius:50%;
+  font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
+#shop-close:hover { border-color:#fff; color:#fff; }
+
+/* Lizard NPC */
+#lizard-npc {
+  width:100%; max-width:440px;
+  background:linear-gradient(135deg,rgba(30,60,10,0.7),rgba(10,30,5,0.7));
+  border:1px solid rgba(80,160,40,0.4); border-radius:14px;
+  padding:14px; margin-bottom:14px; position:relative;
+  display:flex; align-items:flex-start; gap:12px;
+}
+#lizard-art {
+  font-size:52px; line-height:1; flex-shrink:0;
+  filter:drop-shadow(0 0 8px rgba(80,200,40,0.4));
+  animation:lizardBob 3s ease-in-out infinite;
+}
+@keyframes lizardBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+#lizard-speech { flex:1; }
+#lizard-speech .name { font-size:10px; color:#8f8; letter-spacing:2px; margin-bottom:4px; }
+#lizard-speech .line { font-size:12px; color:#bdb; line-height:1.5; font-style:italic; }
+
+/* Fertilizer exchange */
+#fert-exchange {
+  width:100%; max-width:440px;
+  background:rgba(20,10,0,0.6); border:1px solid rgba(139,90,43,0.4);
+  border-radius:12px; padding:12px; margin-bottom:14px;
+}
+#fert-exchange h3 { font-size:10px; color:#c8a46e; letter-spacing:3px; margin-bottom:10px; text-transform:uppercase; }
+.exchange-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.exchange-row label { font-size:11px; color:#888; width:70px; letter-spacing:1px; flex-shrink:0; }
+.exchange-row .amt { flex:1; font-size:14px; color:#fff; font-weight:bold; }
+.exchange-row .rate { font-size:10px; color:#666; }
+#exchange-input {
+  width:72px; background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.2); color:#fff;
+  padding:5px 8px; font-size:13px; font-family:inherit;
+  border-radius:6px; outline:none; text-align:center;
+}
+#exchange-input:focus { border-color:#c8a; }
+#exchange-btn {
+  background:rgba(139,90,43,0.3); border:1px solid #c8a46e; color:#c8a46e;
+  padding:7px 16px; font-size:11px; font-family:inherit; letter-spacing:2px;
+  border-radius:8px; cursor:pointer; transition:all 0.15s;
+}
+#exchange-btn:hover { background:rgba(139,90,43,0.5); box-shadow:0 0 8px rgba(200,160,80,0.3); }
+#exchange-msg { font-size:10px; color:#8f8; min-height:14px; margin-top:4px; letter-spacing:1px; }
+
+/* Shop tabs */
+#shop-tabs {
+  width:100%; max-width:440px;
+  display:flex; gap:6px; margin-bottom:12px;
+}
+.shop-tab {
+  flex:1; padding:7px; font-size:10px; font-family:inherit;
+  letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+  border-radius:8px; border:1px solid rgba(255,255,255,0.15);
+  background:rgba(255,255,255,0.05); color:#888; transition:all 0.15s;
+}
+.shop-tab.active { border-color:#c8a46e; color:#c8a46e; background:rgba(200,164,110,0.1); }
+
+/* Outfit grid */
+#outfit-grid {
+  width:100%; max-width:440px;
+  display:grid; grid-template-columns:repeat(2,1fr); gap:10px;
+}
+.outfit-card {
+  background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12);
+  border-radius:12px; padding:12px; text-align:center; cursor:pointer;
+  transition:all 0.15s; position:relative;
+}
+.outfit-card:hover { border-color:rgba(255,255,255,0.3); }
+.outfit-card.owned   { border-color:rgba(0,255,170,0.4); }
+.outfit-card.equipped { border-color:#0fa; box-shadow:0 0 12px rgba(0,255,170,0.25); }
+.outfit-card .preview { font-size:42px; margin-bottom:6px; line-height:1; }
+.outfit-card .oname  { font-size:11px; color:#ddd; letter-spacing:1px; margin-bottom:4px; }
+.outfit-card .oprice { font-size:10px; color:#888; }
+.outfit-card .obadge {
+  position:absolute; top:6px; right:6px;
+  font-size:8px; letter-spacing:1px; padding:2px 5px;
+  border-radius:4px; background:rgba(0,0,0,0.6);
+}
+.outfit-card.owned   .obadge { color:#0fa; border:1px solid #0fa; }
+.outfit-card.equipped .obadge { color:#ff0; border:1px solid #ff0; }
+.outfit-card .ocurrency { font-size:9px; color:#aaa; margin-top:2px; }
+
+/* Payment modal */
+#pay-modal {
+  position:absolute; inset:0; background:rgba(0,0,0,0.95);
+  display:none; flex-direction:column; align-items:center; justify-content:center;
+  z-index:60; pointer-events:all; padding:20px;
+}
+#pay-modal.open { display:flex; }
+#pay-modal h3 { font-size:16px; color:#c8a; letter-spacing:3px; margin-bottom:6px; }
+#pay-modal .pay-outfit { font-size:48px; margin:10px 0; }
+#pay-modal .pay-sub { font-size:12px; color:#888; margin-bottom:20px; text-align:center; line-height:1.6; }
+.pay-methods { display:flex; flex-direction:column; gap:10px; width:100%; max-width:300px; margin-bottom:16px; }
+.pay-method {
+  background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.2);
+  color:#ddd; padding:12px 16px; border-radius:10px; cursor:pointer;
+  font-family:inherit; font-size:13px; text-align:left; transition:all 0.15s;
+  display:flex; align-items:center; gap:10px;
+}
+.pay-method:hover { border-color:#c8a; color:#c8a; background:rgba(200,164,110,0.1); }
+.pay-method .pm-icon { font-size:22px; }
+.pay-method .pm-detail { font-size:9px; color:#666; margin-top:2px; letter-spacing:1px; }
+#pay-close {
+  background:transparent; border:1px solid rgba(255,255,255,0.2);
+  color:#888; padding:8px 24px; border-radius:8px; cursor:pointer;
+  font-family:inherit; font-size:11px; letter-spacing:2px;
+}
+#pay-close:hover { color:#fff; border-color:#fff; }
+
+/* Crypto QR overlay */
+#crypto-modal {
+  position:absolute; inset:0; background:rgba(0,0,0,0.97);
+  display:none; flex-direction:column; align-items:center; justify-content:center;
+  z-index:70; pointer-events:all; padding:20px;
+}
+#crypto-modal.open { display:flex; }
+#crypto-modal h3 { font-size:14px; color:#f7931a; letter-spacing:3px; margin-bottom:4px; }
+#crypto-modal .crypto-sub { font-size:11px; color:#888; margin-bottom:16px; text-align:center; }
+#crypto-qr-wrap {
+  width:160px; height:160px; background:#fff;
+  border-radius:8px; display:flex; align-items:center; justify-content:center;
+  margin-bottom:12px; padding:8px;
+}
+#crypto-qr-wrap canvas { width:144px !important; height:144px !important; }
+#crypto-addr {
+  font-size:9px; color:#aaa; word-break:break-all; text-align:center;
+  max-width:280px; margin-bottom:6px; letter-spacing:0.5px;
+}
+#crypto-copy {
+  background:rgba(247,147,26,0.15); border:1px solid #f7931a; color:#f7931a;
+  padding:6px 18px; border-radius:6px; font-family:inherit; font-size:10px;
+  letter-spacing:2px; cursor:pointer; margin-bottom:14px;
+}
+#crypto-copy:hover { background:rgba(247,147,26,0.3); }
+.chain-tabs { display:flex; gap:6px; margin-bottom:14px; }
+.chain-tab {
+  padding:5px 12px; font-size:9px; font-family:inherit; letter-spacing:1px;
+  border-radius:6px; border:1px solid rgba(255,255,255,0.15);
+  background:rgba(255,255,255,0.05); color:#888; cursor:pointer; transition:all 0.15s;
+}
+.chain-tab.active { border-color:#f7931a; color:#f7931a; background:rgba(247,147,26,0.1); }
+#crypto-back {
+  background:transparent; border:1px solid rgba(255,255,255,0.2);
+  color:#888; padding:7px 20px; border-radius:8px; cursor:pointer;
+  font-family:inherit; font-size:10px; letter-spacing:2px; margin-top:4px;
+}
+
 </style>
 </head>
 <body>
@@ -145,6 +347,106 @@ canvas { display:block; touch-action:none; }
     <div id="music-now-playing">— no track loaded —</div>
   </div>
   <div id="yt-player-wrap"><div id="yt-player"></div></div>
+
+  <!-- ECONOMY HUD -->
+  <div id="econ-hud">
+    <div class="econ-pill shrooms">🍄 <span id="econ-shrooms">0</span></div>
+    <div class="econ-pill poop">💩 <span id="econ-poop">0</span></div>
+  </div>
+
+  <!-- SHOP BUTTON -->
+  <button id="shop-btn" title="Shop">🦎</button>
+
+  <!-- SHOP MODAL -->
+  <div id="shop-modal">
+    <div id="shop-header">
+      <h2>🦎 LIZARD'S DEN</h2>
+      <button id="shop-close">✕</button>
+    </div>
+
+    <!-- Lizard NPC -->
+    <div id="lizard-npc">
+      <div id="lizard-art">🦎</div>
+      <div id="lizard-speech">
+        <div class="name">HERB THE LIZARD MAN</div>
+        <div class="line" id="lizard-line">Heyyy maaaan… you smell like fertilizer potential. Trade me that sweet poop and I'll hook you UP with some drip. 🌿✌️</div>
+      </div>
+    </div>
+
+    <!-- Fertilizer Exchange -->
+    <div id="fert-exchange">
+      <h3>💩 → 🌿 Poop-to-Fertilizer Exchange</h3>
+      <div class="exchange-row">
+        <label>YOU HAVE</label>
+        <div class="amt">💩 <span id="ex-poop-have">0</span></div>
+      </div>
+      <div class="exchange-row">
+        <label>TRADE</label>
+        <input id="exchange-input" type="number" min="1" value="10" />
+        <div class="rate">💩 = 1 🌿 per 10 poop</div>
+      </div>
+      <div class="exchange-row">
+        <label>YOU GET</label>
+        <div class="amt">🌿 <span id="ex-fert-get">1</span> fertilizer</div>
+      </div>
+      <button id="exchange-btn">TRADE ✌️</button>
+      <div id="exchange-msg"></div>
+    </div>
+
+    <!-- Tabs -->
+    <div id="shop-tabs">
+      <button class="shop-tab active" data-tab="outfits">👗 OUTFITS</button>
+      <button class="shop-tab" data-tab="fertilizer">🌿 FERTILIZER</button>
+    </div>
+
+    <!-- Outfit Grid -->
+    <div id="outfit-grid"></div>
+  </div>
+
+  <!-- PAYMENT MODAL -->
+  <div id="pay-modal">
+    <h3>UNLOCK OUTFIT</h3>
+    <div class="pay-outfit" id="pay-outfit-emoji"></div>
+    <div class="pay-sub" id="pay-outfit-desc"></div>
+    <div class="pay-methods">
+      <button class="pay-method" id="pm-mushrooms">
+        <span class="pm-icon">🍄</span>
+        <div><div>Mushroom Coins</div><div class="pm-detail" id="pm-shroom-detail"></div></div>
+      </button>
+      <button class="pay-method" id="pm-fertilizer">
+        <span class="pm-icon">🌿</span>
+        <div><div>Fertilizer (from Herb)</div><div class="pm-detail" id="pm-fert-detail"></div></div>
+      </button>
+      <button class="pay-method" id="pm-stripe">
+        <span class="pm-icon">💳</span>
+        <div><div>Card / Apple Pay / Google Pay</div><div class="pm-detail" id="pm-stripe-detail"></div></div>
+      </button>
+      <button class="pay-method" id="pm-crypto">
+        <span class="pm-icon">₿</span>
+        <div><div>Crypto</div><div class="pm-detail">BTC · ETH · SOL · USDC</div></div>
+      </button>
+    </div>
+    <button id="pay-close">CANCEL</button>
+  </div>
+
+  <!-- CRYPTO MODAL -->
+  <div id="crypto-modal">
+    <h3>PAY WITH CRYPTO</h3>
+    <div class="crypto-sub" id="crypto-outfit-name"></div>
+    <div class="chain-tabs">
+      <button class="chain-tab active" data-chain="BTC">₿ BTC</button>
+      <button class="chain-tab" data-chain="ETH">Ξ ETH</button>
+      <button class="chain-tab" data-chain="SOL">◎ SOL</button>
+      <button class="chain-tab" data-chain="USDC">$ USDC</button>
+    </div>
+    <div id="crypto-qr-wrap"><canvas id="qr-canvas"></canvas></div>
+    <div id="crypto-addr"></div>
+    <button id="crypto-copy">COPY ADDRESS</button>
+    <div style="font-size:9px;color:#555;text-align:center;max-width:260px;line-height:1.5;margin-bottom:10px;">
+      Send exact amount to this address. After payment, DM proof to @trippingpenguins and we'll manually unlock your outfit. ✌️
+    </div>
+    <button id="crypto-back">← BACK</button>
+  </div>
 
 </div>
 <div id="overlay">
@@ -1204,6 +1506,669 @@ document.getElementById('mc-shuf').addEventListener('click', e => {
 
 // ── Stop music on game over ──────────────────────────────────────
 // (optional: keep playing through game over for vibe continuity — leaving it on)
+
+
+// ═══════════════════════════════════════════════════════════════
+//  ECONOMY & SHOP SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+// ── Persistence ─────────────────────────────────────────────────
+const SAVE_KEY = 'tp_economy';
+function loadEconomy() {
+  try { return JSON.parse(localStorage.getItem(SAVE_KEY)) || {}; } catch(e) { return {}; }
+}
+function saveEconomy(d) { localStorage.setItem(SAVE_KEY, JSON.stringify(d)); }
+
+let economy = Object.assign({
+  mushrooms:   0,
+  poop:        0,
+  fertilizer:  0,
+  ownedOutfits:['default'],
+  equippedOutfit:'default',
+  totalRuns:   0,
+  totalDist:   0,
+}, loadEconomy());
+
+// Poop generation: earn 1 poop every 300 score units, tracked per-run
+let poopThreshold = 300;
+let nextPoopAt    = poopThreshold;
+
+// ── Outfit Catalogue ─────────────────────────────────────────────
+const OUTFITS = [
+  {
+    id:'default', name:'Classic Pingo', emoji:'🐧',
+    desc:'The OG. Born naked, lives blessed.',
+    priceMushrooms:0, priceFert:0, priceUSD:0,
+    bodyColor:['#111','#000'], bellyColor:'#f5f5f0', eyeColor:'#00cfff',
+    free:true,
+  },
+  {
+    id:'wizard',  name:'Wizard Penguin', emoji:'🧙',
+    desc:'Arcane robes. Smells like spell components.',
+    priceMushrooms:25, priceFert:5, priceUSD:1.99,
+    bodyColor:['#2a0060','#1a0040'], bellyColor:'#c8a0ff', eyeColor:'#ffdd00',
+    hat:'🎩', hatOffset:[-2,-32], accent:'#9b59ff',
+  },
+  {
+    id:'cowboy',  name:'Cowboy Pingo',   emoji:'🤠',
+    desc:'Rootin\' tootin\' cave-runnin\'.',
+    priceMushrooms:20, priceFert:4, priceUSD:1.99,
+    bodyColor:['#3d2b1f','#2a1a0f'], bellyColor:'#f5deb3', eyeColor:'#8B4513',
+    hat:'🤠', hatOffset:[-3,-30], accent:'#c8860a',
+  },
+  {
+    id:'astronaut', name:'Space Pingo', emoji:'👨‍🚀',
+    desc:'One small waddle for penguinkind.',
+    priceMushrooms:35, priceFert:7, priceUSD:2.99,
+    bodyColor:['#d0d8e0','#a0aab5'], bellyColor:'#ffffff', eyeColor:'#4fc3f7',
+    helmetGlow:'#4fc3f7', accent:'#4fc3f7',
+  },
+  {
+    id:'skeleton', name:'Spooky Bones',  emoji:'💀',
+    desc:'Death visited. Left in style.',
+    priceMushrooms:30, priceFert:6, priceUSD:2.49,
+    bodyColor:['#e8e8e8','#c0c0c0'], bellyColor:'#ffffff', eyeColor:'#ff3333',
+    accent:'#ff3333', boneLines:true,
+  },
+  {
+    id:'lava',    name:'Lava Lord',      emoji:'🌋',
+    desc:'Born in The Core. Chill about it.',
+    priceMushrooms:50, priceFert:10, priceUSD:3.99,
+    bodyColor:['#8b1a00','#5a0000'], bellyColor:'#ff6633', eyeColor:'#ffaa00',
+    glowColor:'#ff4400', accent:'#ff4400',
+  },
+  {
+    id:'crystal', name:'Crystal Being',  emoji:'💎',
+    desc:'Transcended flesh. Became mineral.',
+    priceMushrooms:60, priceFert:12, priceUSD:3.99,
+    bodyColor:['#1a3a5c','#0a1f3a'], bellyColor:'#a8d8ff', eyeColor:'#00ffff',
+    glowColor:'#00cfff', shimmer:true, accent:'#00cfff',
+  },
+  {
+    id:'shaman',  name:'Mushroom Shaman', emoji:'🍄',
+    desc:'One with the spores. Many with the visions.',
+    priceMushrooms:45, priceFert:9, priceUSD:3.49,
+    bodyColor:['#1a3300','#0d2200'], bellyColor:'#88cc44', eyeColor:'#ff3cac',
+    hat:'🍄', hatOffset:[-2,-28], accent:'#88cc44', glowColor:'#44ff00',
+  },
+  {
+    id:'vaporwave', name:'Vaporwave Babe', emoji:'🌸',
+    desc:'Aesthetic transcendence. ａｅｓｔｈｅｔｉｃ',
+    priceMushrooms:40, priceFert:8, priceUSD:2.99,
+    bodyColor:['#ff6ec7','#c026d3'], bellyColor:'#ffd6f5', eyeColor:'#a855f7',
+    accent:'#ff6ec7', glowColor:'#ff6ec7', shimmer:true,
+  },
+  {
+    id:'ancient',  name:'Ancient One',    emoji:'🗿',
+    desc:'Pre-dates the cave. Pre-dates the penguin.',
+    priceMushrooms:80, priceFert:15, priceUSD:4.99,
+    bodyColor:['#5a4a3a','#3a2a1a'], bellyColor:'#c8b89a', eyeColor:'#gold',
+    accent:'#c8a46e', runes:true,
+  },
+];
+
+// ── Lizard dialogue pool ────────────────────────────────────────
+const LIZARD_LINES = [
+  "Heyyy maaaan… you smell like fertilizer potential. Trade me that sweet poop and I'll hook you UP with some drip. 🌿✌️",
+  "The cave gives and the cave takes, my dude. But fashion? Fashion is FOREVER. 👁️",
+  "Poop is just unfinished fertilizer. Life is just unfinished tripping. ✨",
+  "I've been here since before the ice caves, bro. I've seen THINGS. Also I sell hats now.",
+  "Every mushroom you collect is a tiny universe trusting you. Also it's currency now.",
+  "My grandmother was a gecko. My grandfather was a philosophy professor. I am BOTH. 🦎📚",
+  "The penguin you dress is the penguin you become. Deep, right? That'll be 25 mushrooms.",
+];
+function randomLizardLine() {
+  return LIZARD_LINES[Math.floor(Math.random() * LIZARD_LINES.length)];
+}
+
+// ── Economy HUD ─────────────────────────────────────────────────
+function updateEconHUD() {
+  document.getElementById('econ-shrooms').textContent = economy.mushrooms;
+  document.getElementById('econ-poop').textContent    = economy.poop;
+  // Update exchange display
+  document.getElementById('ex-poop-have').textContent = economy.poop;
+  const fertGet = Math.floor((parseInt(document.getElementById('exchange-input').value)||0) / 10);
+  document.getElementById('ex-fert-get').textContent = fertGet;
+}
+
+// Persist mushrooms collected during a run
+function awardMushroom() {
+  economy.mushrooms++;
+  // Poop generation
+  if (score >= nextPoopAt) {
+    economy.poop++;
+    nextPoopAt += poopThreshold;
+  }
+  saveEconomy(economy);
+  updateEconHUD();
+}
+
+// Called at run start
+function resetRunEconomy() {
+  nextPoopAt = poopThreshold;
+  // Award poop for distance
+}
+// Called at run end
+function endRunEconomy() {
+  // 1 poop per 200 score
+  const poopEarned = Math.floor(score / 200);
+  economy.poop += poopEarned;
+  economy.totalRuns = (economy.totalRuns||0) + 1;
+  economy.totalDist = (economy.totalDist||0) + Math.floor(score);
+  saveEconomy(economy);
+  updateEconHUD();
+}
+
+// ── Outfit rendering ─────────────────────────────────────────────
+// The main drawPlayer() function checks equippedOutfit and styles accordingly
+function getEquippedOutfit() {
+  return OUTFITS.find(o => o.id === economy.equippedOutfit) || OUTFITS[0];
+}
+
+// ── Render outfit grid ────────────────────────────────────────────
+let shopActiveTab = 'outfits';
+let payingForOutfit = null;
+
+function renderOutfitGrid() {
+  const grid = document.getElementById('outfit-grid');
+  grid.innerHTML = '';
+  OUTFITS.forEach(outfit => {
+    const owned    = economy.ownedOutfits.includes(outfit.id);
+    const equipped = economy.equippedOutfit === outfit.id;
+    const card     = document.createElement('div');
+    card.className = 'outfit-card' + (owned ? ' owned' : '') + (equipped ? ' equipped' : '');
+
+    let priceHTML = '';
+    if (outfit.free) {
+      priceHTML = '<div class="oprice">✨ Free</div>';
+    } else if (owned) {
+      priceHTML = '<div class="oprice" style="color:#0fa">✓ Owned</div>';
+    } else {
+      priceHTML = `<div class="oprice">🍄 ${outfit.priceMushrooms} <span style="color:#555">or</span> 🌿 ${outfit.priceFert}</div>
+                  <div class="ocurrency">💳 $${outfit.priceUSD} · ₿ crypto</div>`;
+    }
+
+    card.innerHTML = `
+      <div class="preview">${outfit.emoji}</div>
+      <div class="oname">${outfit.name}</div>
+      ${priceHTML}
+      <div class="obadge">${equipped ? 'ON' : owned ? 'OWN' : ''}</div>
+    `;
+
+    card.addEventListener('click', () => {
+      if (equipped) return; // already on
+      if (owned) {
+        equipOutfit(outfit.id);
+      } else {
+        openPayModal(outfit);
+      }
+    });
+
+    grid.appendChild(card);
+  });
+}
+
+function equipOutfit(id) {
+  economy.equippedOutfit = id;
+  saveEconomy(economy);
+  renderOutfitGrid();
+  const o = OUTFITS.find(x => x.id === id);
+  setLizardLine(`Yooo that ${o.name} is *immaculate* on you. Fly as the cave itself. ✌️`);
+}
+
+function setLizardLine(line) {
+  document.getElementById('lizard-line').textContent = line;
+}
+
+// ── Shop open/close ──────────────────────────────────────────────
+document.getElementById('shop-btn').addEventListener('click', e => {
+  e.stopPropagation();
+  // Pause game while in shop
+  if (state === 'playing') state = 'shop';
+  setLizardLine(randomLizardLine());
+  updateEconHUD();
+  renderOutfitGrid();
+  document.getElementById('shop-modal').classList.add('open');
+});
+
+document.getElementById('shop-close').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('shop-modal').classList.remove('open');
+  if (state === 'shop') {
+    state = 'playing';
+    requestAnimationFrame(loop);
+  }
+});
+
+// ── Shop tabs ───────────────────────────────────────────────────
+document.querySelectorAll('.shop-tab').forEach(tab => {
+  tab.addEventListener('click', e => {
+    e.stopPropagation();
+    document.querySelectorAll('.shop-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    shopActiveTab = tab.dataset.tab;
+    if (shopActiveTab === 'outfits') {
+      document.getElementById('outfit-grid').style.display = 'grid';
+      document.getElementById('fert-exchange').style.display = 'block';
+    } else {
+      document.getElementById('outfit-grid').style.display = 'none';
+      document.getElementById('fert-exchange').style.display = 'block';
+    }
+  });
+});
+
+// ── Fertilizer exchange ──────────────────────────────────────────
+document.getElementById('exchange-input').addEventListener('input', () => {
+  const val = parseInt(document.getElementById('exchange-input').value)||0;
+  document.getElementById('ex-fert-get').textContent = Math.floor(val/10);
+});
+document.getElementById('exchange-input').addEventListener('keydown', e => e.stopPropagation());
+
+document.getElementById('exchange-btn').addEventListener('click', e => {
+  e.stopPropagation();
+  const poopAmt = parseInt(document.getElementById('exchange-input').value)||0;
+  if (poopAmt < 10) { showExMsg('Need at least 10 poop for 1 fertilizer, maaaan. 💩', '#f88'); return; }
+  if (poopAmt > economy.poop) { showExMsg("You don't have that much poop, dude.", '#f88'); return; }
+  const fertGained = Math.floor(poopAmt/10);
+  economy.poop -= poopAmt;
+  economy.fertilizer = (economy.fertilizer||0) + fertGained;
+  saveEconomy(economy);
+  updateEconHUD();
+  showExMsg(`Sweet trade! Got ${fertGained} 🌿 fertilizer. Herb smiles. ✌️`, '#8f8');
+  renderOutfitGrid();
+});
+
+function showExMsg(msg, color) {
+  const el = document.getElementById('exchange-msg');
+  el.textContent = msg;
+  el.style.color = color || '#8f8';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.textContent = '', 3500);
+}
+
+// ── Payment modal ────────────────────────────────────────────────
+function openPayModal(outfit) {
+  payingForOutfit = outfit;
+  document.getElementById('pay-outfit-emoji').textContent = outfit.emoji;
+  document.getElementById('pay-outfit-desc').textContent  = outfit.name + '\n"' + outfit.desc + '"';
+  document.getElementById('pm-shroom-detail').textContent = `${outfit.priceMushrooms} mushrooms (you have ${economy.mushrooms})`;
+  document.getElementById('pm-fert-detail').textContent   = `${outfit.priceFert} fertilizer (you have ${economy.fertilizer||0})`;
+  document.getElementById('pm-stripe-detail').textContent = `$${outfit.priceUSD} USD`;
+  document.getElementById('pay-modal').classList.add('open');
+}
+
+document.getElementById('pay-close').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('pay-modal').classList.remove('open');
+  payingForOutfit = null;
+});
+
+// Pay with mushrooms
+document.getElementById('pm-mushrooms').addEventListener('click', e => {
+  e.stopPropagation();
+  if (!payingForOutfit) return;
+  if (economy.mushrooms < payingForOutfit.priceMushrooms) {
+    setLizardLine(`You need ${payingForOutfit.priceMushrooms} mushrooms but only have ${economy.mushrooms}. Run more, bro. 🍄`);
+    document.getElementById('pay-modal').classList.remove('open');
+    return;
+  }
+  economy.mushrooms -= payingForOutfit.priceMushrooms;
+  unlockOutfit(payingForOutfit.id);
+  document.getElementById('pay-modal').classList.remove('open');
+});
+
+// Pay with fertilizer
+document.getElementById('pm-fertilizer').addEventListener('click', e => {
+  e.stopPropagation();
+  if (!payingForOutfit) return;
+  const fert = economy.fertilizer || 0;
+  if (fert < payingForOutfit.priceFert) {
+    setLizardLine(`${payingForOutfit.priceFert} fertilizer needed. You've got ${fert}. Trade more poop, friend. 💩`);
+    document.getElementById('pay-modal').classList.remove('open');
+    return;
+  }
+  economy.fertilizer -= payingForOutfit.priceFert;
+  unlockOutfit(payingForOutfit.id);
+  document.getElementById('pay-modal').classList.remove('open');
+});
+
+// Pay with card (Stripe placeholder — opens alert)
+document.getElementById('pm-stripe').addEventListener('click', e => {
+  e.stopPropagation();
+  if (!payingForOutfit) return;
+  document.getElementById('pay-modal').classList.remove('open');
+  // Stripe integration placeholder
+  alert(`💳 Stripe checkout coming soon!\n\n${payingForOutfit.emoji} ${payingForOutfit.name} — $${payingForOutfit.priceUSD}\n\nFor now, earn mushrooms in-game or trade poop with Herb! 🦎`);
+});
+
+// Pay with crypto
+document.getElementById('pm-crypto').addEventListener('click', e => {
+  e.stopPropagation();
+  if (!payingForOutfit) return;
+  document.getElementById('pay-modal').classList.remove('open');
+  openCryptoModal(payingForOutfit);
+});
+
+function unlockOutfit(id) {
+  if (!economy.ownedOutfits.includes(id)) economy.ownedOutfits.push(id);
+  economy.equippedOutfit = id;
+  saveEconomy(economy);
+  renderOutfitGrid();
+  updateEconHUD();
+  const o = OUTFITS.find(x => x.id === id);
+  setLizardLine(`YESSS! ${o.emoji} ${o.name} unlocked! You're literally glowing. ✨🦎`);
+}
+
+// ── Crypto modal ─────────────────────────────────────────────────
+// Demo wallet addresses (replace with real addresses)
+const CRYPTO_ADDRS = {
+  BTC:  'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+  ETH:  '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
+  SOL:  'DRpbCBMxVnDK7maPGv7GQTe7gHEGQRsJnGeepTGMmnfX',
+  USDC: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
+};
+let activeChain = 'BTC';
+
+function openCryptoModal(outfit) {
+  document.getElementById('crypto-outfit-name').textContent =
+    outfit.emoji + ' ' + outfit.name + ' — $' + outfit.priceUSD + ' equivalent';
+  renderQR(CRYPTO_ADDRS[activeChain]);
+  document.getElementById('crypto-addr').textContent = CRYPTO_ADDRS[activeChain];
+  document.getElementById('crypto-modal').classList.add('open');
+}
+
+document.querySelectorAll('.chain-tab').forEach(tab => {
+  tab.addEventListener('click', e => {
+    e.stopPropagation();
+    document.querySelectorAll('.chain-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    activeChain = tab.dataset.chain;
+    const addr = CRYPTO_ADDRS[activeChain];
+    renderQR(addr);
+    document.getElementById('crypto-addr').textContent = addr;
+  });
+});
+
+document.getElementById('crypto-copy').addEventListener('click', e => {
+  e.stopPropagation();
+  navigator.clipboard.writeText(CRYPTO_ADDRS[activeChain]).then(() => {
+    document.getElementById('crypto-copy').textContent = '✓ COPIED';
+    setTimeout(() => document.getElementById('crypto-copy').textContent = 'COPY ADDRESS', 2000);
+  });
+});
+
+document.getElementById('crypto-back').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('crypto-modal').classList.remove('open');
+  if (payingForOutfit) openPayModal(payingForOutfit);
+});
+
+// Simple QR code generator (no external lib — draw a placeholder with text)
+function renderQR(addr) {
+  const canvas = document.getElementById('qr-canvas');
+  canvas.width  = 144;
+  canvas.height = 144;
+  const c = canvas.getContext('2d');
+  // Draw a symbolic QR-like pattern
+  c.fillStyle = '#fff';
+  c.fillRect(0,0,144,144);
+  c.fillStyle = '#000';
+  // Corner squares
+  function sq(x,y,s){ c.fillRect(x,y,s,s); c.fillStyle='#fff'; c.fillRect(x+2,y+2,s-4,s-4); c.fillStyle='#000'; c.fillRect(x+4,y+4,s-8,s-8); }
+  sq(8,8,28); sq(108,8,28); sq(8,108,28);
+  // Data dots from address hash
+  c.fillStyle = '#000';
+  let hash = 0;
+  for(let i=0;i<addr.length;i++) hash = ((hash<<5)-hash+addr.charCodeAt(i))|0;
+  const rng = (seed) => { seed = (seed^61)^(seed>>>16); seed+=seed<<3; seed^=seed>>>4; seed=(seed*0x27d4eb2d)|0; seed^=seed>>>15; return (seed>>>0)/4294967296; };
+  for(let r=0;r<10;r++){
+    for(let cc=0;cc<10;cc++){
+      if(rng(hash+r*10+cc) > 0.45){
+        const x = 44 + cc*7, y = 44 + r*7;
+        c.fillRect(x,y,6,6);
+      }
+    }
+  }
+  // Label
+  c.fillStyle='#333';
+  c.font='8px monospace';
+  c.textAlign='center';
+  c.fillText(activeChain, 72, 138);
+}
+
+// ── Hook into collectMushroom (patch existing function) ───────────
+// We wrap the existing collectMushroom to also award economy mushrooms
+const _origCollectMushroom = collectMushroom;
+// Redefine to add economy tracking
+// (We define a new version below that replaces it)
+
+// ── Patch drawPlayer to use outfit ──────────────────────────────
+// Store the original and redefine
+const _origDrawPlayer = drawPlayer;
+window._drawPlayerOrig = drawPlayer;
+
+// We redefine drawPlayer in-place below ↓
+
+// ── Poop earnig per run ──────────────────────────────────────────
+// Hook into gameOver
+const _origGameOver = gameOver;
+// Redefine gameOver
+
+
+// ── Redefined collectMushroom (adds economy tracking) ───────────
+function collectMushroom(color, sx, sy) {
+  shroomsCollected++;
+  burst(sx, sy, color, 24);
+  flash = { active:true, color, t:0, duration:5000 };
+  // ECONOMY: count every mushroom
+  economy.mushrooms++;
+  saveEconomy(economy);
+  updateEconHUD();
+  if (shroomsCollected >= SHROOM_NEED) {
+    shroomsCollected = 0;
+    triggerHyper();
+  }
+  updateHUD();
+}
+
+// ── Redefined gameOver (adds poop reward) ──────────────────────
+function gameOver() {
+  state = 'dead';
+  if (score > hiScore) {
+    hiScore = Math.floor(score);
+    localStorage.setItem('tp_hi', hiScore);
+  }
+  // Earn poop from run distance
+  const poopEarned = Math.max(1, Math.floor(score / 200));
+  economy.poop += poopEarned;
+  saveEconomy(economy);
+  updateEconHUD();
+  setTimeout(() => showMenu(poopEarned), 900);
+}
+
+// ── Redefined showMenu (shows poop earned) ─────────────────────
+function showMenu(poopEarned) {
+  const ov = document.getElementById('overlay');
+  ov.style.display = 'flex';
+  const poopLine = poopEarned ? `<div style="font-size:12px;color:#c8a46e;margin-top:8px;">💩 +${poopEarned} poop earned — trade Herb for drip 🦎</div>` : '';
+  ov.innerHTML = `
+    <h1>🐧 TRIPPING<br>PENGUINS</h1>
+    <div class="sub">You made it to score <b style="color:#0ff">${Math.floor(score)}</b>!<br>Pingo laughs. Again.</div>
+    <button id="start-btn">TRY AGAIN</button>
+    <div class="high">🏆 BEST: ${hiScore}</div>
+    ${poopLine}
+    <div style="font-size:11px;color:#888;margin-top:10px;">🍄 ${economy.mushrooms} coins · 💩 ${economy.poop} poop · 🌿 ${economy.fertilizer||0} fertilizer</div>
+  `;
+  document.getElementById('start-btn').addEventListener('click', () => {
+    ov.style.display = 'none';
+    initGame();
+    state = 'playing';
+    requestAnimationFrame(loop);
+  });
+}
+
+// ── Outfit-aware drawPlayer ────────────────────────────────────
+function drawPlayer() {
+  const outfit = getEquippedOutfit();
+  const x = W()/2 + px;
+  const y = playerY + Math.sin(playerBob) * 4;
+
+  ctx.save();
+
+  // Shadow
+  ctx.beginPath();
+  ctx.ellipse(x, y + 28, 22, 8, 0, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fill();
+
+  // Outfit glow (if defined)
+  if (outfit.glowColor || outfit.shimmer) {
+    const gc = outfit.glowColor || outfit.accent || '#fff';
+    const glowAlpha = 0.35 + 0.2*Math.sin(Date.now()*0.003);
+    ctx.shadowColor = gc;
+    ctx.shadowBlur  = outfit.shimmer ? 20 + 10*Math.sin(Date.now()*0.005) : 14;
+  }
+
+  // Body
+  const bColors = outfit.bodyColor || ['#222','#000'];
+  const grad = ctx.createRadialGradient(x, y+10, 4, x, y+10, 28);
+  grad.addColorStop(0, bColors[0]);
+  grad.addColorStop(1, bColors[1]);
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.ellipse(x, y+10, 18, 28, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Rune markings (Ancient One)
+  if (outfit.runes) {
+    ctx.strokeStyle = '#c8a46e';
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath(); ctx.moveTo(x-8, y+2); ctx.lineTo(x-4, y+10); ctx.lineTo(x-8, y+18); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+8, y+2); ctx.lineTo(x+4, y+10); ctx.lineTo(x+8, y+18); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // Bone lines (Skeleton)
+  if (outfit.boneLines) {
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath(); ctx.moveTo(x, y-5); ctx.lineTo(x, y+20); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x-12, y+5); ctx.lineTo(x+12, y+5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x-12, y+14); ctx.lineTo(x+12, y+14); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // Shimmer overlay (Crystal / Vaporwave)
+  if (outfit.shimmer) {
+    const t = Date.now() * 0.002;
+    for (let i=0;i<3;i++) {
+      const hue = (t*60 + i*120) % 360;
+      ctx.beginPath();
+      ctx.ellipse(x, y+10, 18, 28, 0, 0, Math.PI*2);
+      ctx.strokeStyle = `hsla(${hue},100%,70%,0.2)`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+
+  // Belly
+  ctx.fillStyle = outfit.bellyColor || '#f5f5f0';
+  ctx.beginPath();
+  ctx.ellipse(x, y+14, 10, 18, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Helmet (Astronaut)
+  if (outfit.helmetGlow) {
+    ctx.beginPath();
+    ctx.arc(x, y-16, 18, 0, Math.PI*2);
+    ctx.strokeStyle = outfit.helmetGlow;
+    ctx.lineWidth = 3;
+    ctx.globalAlpha = 0.6;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    ctx.arc(x, y-16, 18, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(150,220,255,0.08)';
+    ctx.fill();
+  }
+
+  // Head
+  ctx.fillStyle = bColors[0];
+  ctx.beginPath();
+  ctx.arc(x, y-16, 15, 0, Math.PI*2);
+  ctx.fill();
+
+  // Eyes
+  const eyeC = outfit.eyeColor || '#00cfff';
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(x-5, y-18, 4.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+5, y-18, 4.5, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = eyeC === 'gold' ? '#ffd700' : eyeC;
+  ctx.beginPath(); ctx.arc(x-5, y-18, 2.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+5, y-18, 2.5, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.arc(x-5, y-18, 1.2, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+5, y-18, 1.2, 0, Math.PI*2); ctx.fill();
+
+  // Beak
+  ctx.fillStyle = outfit.accent || '#ffa500';
+  ctx.beginPath();
+  ctx.moveTo(x-3, y-14); ctx.lineTo(x+3, y-14); ctx.lineTo(x, y-9);
+  ctx.closePath(); ctx.fill();
+
+  // Flippers
+  const flipAng = Math.sin(playerBob*2) * 0.3;
+  ctx.fillStyle = bColors[1] || '#111';
+  ctx.save();
+  ctx.translate(x-18, y+5);
+  ctx.rotate(-Math.PI*0.2 - flipAng);
+  ctx.beginPath(); ctx.ellipse(0,0,6,14,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+  ctx.save();
+  ctx.translate(x+18, y+5);
+  ctx.rotate(Math.PI*0.2 + flipAng);
+  ctx.beginPath(); ctx.ellipse(0,0,6,14,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // Hat emoji (wizard, cowboy, shaman)
+  if (outfit.hat) {
+    ctx.font = '22px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(outfit.hat, x + (outfit.hatOffset||[0,0])[0], y + (outfit.hatOffset||[0,-28])[1]);
+  }
+
+  // Hyper glow
+  if (hyperActive) {
+    const glowAlpha = 0.5 + 0.4*Math.sin(Date.now()*0.01);
+    ctx.shadowColor = outfit.accent || '#f0f';
+    ctx.shadowBlur = 30;
+    ctx.strokeStyle = `rgba(255,0,255,${glowAlpha})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(x, y, 32, 0, Math.PI*2); ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  // Psy creature aura
+  if (psy > 0.5) {
+    const auraHue = (Date.now()*0.05)%360;
+    ctx.globalAlpha = (psy - 0.5) * 0.6;
+    ctx.shadowColor = `hsl(${auraHue},100%,65%)`;
+    ctx.shadowBlur = 22;
+    ctx.beginPath(); ctx.arc(x, y, 36, 0, Math.PI*2);
+    ctx.strokeStyle = `hsla(${auraHue},100%,65%,0.5)`;
+    ctx.lineWidth = 2; ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.restore();
+}
+
+// ── Init economy HUD on load ─────────────────────────────────────
+updateEconHUD();
 
 </script>
 </body>
