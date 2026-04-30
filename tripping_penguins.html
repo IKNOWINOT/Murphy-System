@@ -642,78 +642,6 @@ const OUTFIT_SHEET_COLS = 5;
 const OUTFIT_SHEET_ROWS = 2;
 const OUTFIT_IDS = ['default','wizard','cowboy','astronaut','skeleton','lava','crystal','shaman','vaporwave','ancient'];
 
-const OUTFITS = [
-  {
-    id:'default', name:'Classic Pingo', emoji:'🐧',
-    desc:'The OG. Born naked, lives blessed.',
-    priceMushrooms:0, priceFert:0, priceUSD:0,
-    bodyColor:['#111','#000'], bellyColor:'#f5f5f0', eyeColor:'#00cfff',
-    free:true,
-  },
-  {
-    id:'wizard',  name:'Wizard Penguin', emoji:'🧙',
-    desc:'Arcane robes. Smells like spell components.',
-    priceMushrooms:25, priceFert:5, priceUSD:1.99,
-    bodyColor:['#2a0060','#1a0040'], bellyColor:'#c8a0ff', eyeColor:'#ffdd00',
-    hat:'🎩', hatOffset:[-2,-32], accent:'#9b59ff',
-  },
-  {
-    id:'cowboy',  name:'Cowboy Pingo',   emoji:'🤠',
-    desc:'Rootin\' tootin\' cave-runnin\'.',
-    priceMushrooms:20, priceFert:4, priceUSD:1.99,
-    bodyColor:['#3d2b1f','#2a1a0f'], bellyColor:'#f5deb3', eyeColor:'#8B4513',
-    hat:'🤠', hatOffset:[-3,-30], accent:'#c8860a',
-  },
-  {
-    id:'astronaut', name:'Space Pingo', emoji:'👨‍🚀',
-    desc:'One small waddle for penguinkind.',
-    priceMushrooms:35, priceFert:7, priceUSD:2.99,
-    bodyColor:['#d0d8e0','#a0aab5'], bellyColor:'#ffffff', eyeColor:'#4fc3f7',
-    helmetGlow:'#4fc3f7', accent:'#4fc3f7',
-  },
-  {
-    id:'skeleton', name:'Spooky Bones',  emoji:'💀',
-    desc:'Death visited. Left in style.',
-    priceMushrooms:30, priceFert:6, priceUSD:2.49,
-    bodyColor:['#e8e8e8','#c0c0c0'], bellyColor:'#ffffff', eyeColor:'#ff3333',
-    accent:'#ff3333', boneLines:true,
-  },
-  {
-    id:'lava',    name:'Lava Lord',      emoji:'🌋',
-    desc:'Born in The Core. Chill about it.',
-    priceMushrooms:50, priceFert:10, priceUSD:3.99,
-    bodyColor:['#8b1a00','#5a0000'], bellyColor:'#ff6633', eyeColor:'#ffaa00',
-    glowColor:'#ff4400', accent:'#ff4400',
-  },
-  {
-    id:'crystal', name:'Crystal Being',  emoji:'💎',
-    desc:'Transcended flesh. Became mineral.',
-    priceMushrooms:60, priceFert:12, priceUSD:3.99,
-    bodyColor:['#1a3a5c','#0a1f3a'], bellyColor:'#a8d8ff', eyeColor:'#00ffff',
-    glowColor:'#00cfff', shimmer:true, accent:'#00cfff',
-  },
-  {
-    id:'shaman',  name:'Mushroom Shaman', emoji:'🍄',
-    desc:'One with the spores. Many with the visions.',
-    priceMushrooms:45, priceFert:9, priceUSD:3.49,
-    bodyColor:['#1a3300','#0d2200'], bellyColor:'#88cc44', eyeColor:'#ff3cac',
-    hat:'🍄', hatOffset:[-2,-28], accent:'#88cc44', glowColor:'#44ff00',
-  },
-  {
-    id:'vaporwave', name:'Vaporwave Babe', emoji:'🌸',
-    desc:'Aesthetic transcendence. ａｅｓｔｈｅｔｉｃ',
-    priceMushrooms:40, priceFert:8, priceUSD:2.99,
-    bodyColor:['#ff6ec7','#c026d3'], bellyColor:'#ffd6f5', eyeColor:'#a855f7',
-    accent:'#ff6ec7', glowColor:'#ff6ec7', shimmer:true,
-  },
-  {
-    id:'ancient',  name:'Ancient One',    emoji:'🗿',
-    desc:'Pre-dates the cave. Pre-dates the penguin.',
-    priceMushrooms:80, priceFert:15, priceUSD:4.99,
-    bodyColor:['#5a4a3a','#3a2a1a'], bellyColor:'#c8b89a', eyeColor:'#gold',
-    accent:'#c8a46e', runes:true,
-  },
-];
 
 
 function getOutfitSheetCell(outfitId) {
@@ -1611,15 +1539,6 @@ const OUTFITS = [
 ];
 
 // ── Lizard dialogue pool ────────────────────────────────────────
-const LIZARD_LINES = [
-  "Heyyy maaaan… you smell like fertilizer potential. Trade me that sweet poop and I'll hook you UP with some drip. 🌿✌️",
-  "The cave gives and the cave takes, my dude. But fashion? Fashion is FOREVER. 👁️",
-  "Poop is just unfinished fertilizer. Life is just unfinished tripping. ✨",
-  "I've been here since before the ice caves, bro. I've seen THINGS. Also I sell hats now.",
-  "Every mushroom you collect is a tiny universe trusting you. Also it's currency now.",
-  "My grandmother was a gecko. My grandfather was a philosophy professor. I am BOTH. 🦎📚",
-  "The penguin you dress is the penguin you become. Deep, right? That'll be 25 mushrooms.",
-];
 function randomLizardLine() {
   return LIZARD_LINES[Math.floor(Math.random() * LIZARD_LINES.length)];
 }
@@ -2281,10 +2200,6 @@ function showMenu(poopEarned) {
 
 
 // ── PATCH-157b: Restored shop + payment functions from 156d ──
-
-function getEquippedOutfit() {
-  return OUTFITS.find(o => o.id === economy.equippedOutfit) || OUTFITS[0];
-}
 
 // ── Render outfit grid ────────────────────────────────────────────
 let shopActiveTab = 'outfits';
