@@ -946,12 +946,12 @@ function startGameLoop() {
       _gameLoopHandle = null;
       state = 'dead';
       console.error('[GAME LOOP ERROR]', e);
+      const dbgEl2 = document.getElementById('_debug_score');
+      if (dbgEl2) { dbgEl2.textContent = 'ERR after tick '+_dbgTickCount+': '+_dbgLastErr; dbgEl2.style.fontSize='14px'; dbgEl2.style.maxWidth='90vw'; dbgEl2.style.whiteSpace='pre-wrap'; }
     }
-    // Debug: update a visible counter every 30 ticks
-    if (_dbgTickCount % 30 === 0) {
-      const dbgEl = document.getElementById('_debug_score');
-      if (dbgEl) dbgEl.textContent = 'tick:'+_dbgTickCount+' score:'+Math.floor(score)+' state:'+state+((_dbgLastErr)?' ERR:'+_dbgLastErr:'');
-    }
+    // Debug: update a visible counter every tick
+    const dbgEl = document.getElementById('_debug_score');
+    if (dbgEl) dbgEl.textContent = 'tick:'+_dbgTickCount+' score:'+Math.floor(score)+' state:'+state+((_dbgLastErr)?' ERR:'+_dbgLastErr:'');
   }, 1000/60);
 }
 
