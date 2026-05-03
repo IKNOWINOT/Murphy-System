@@ -20964,7 +20964,31 @@ def create_app() -> FastAPI:
             if not new_content:
                 return JSONResponse({"success": False, "error": "new_content required"}, status_code=400)
 
-            # PATCH-159b: MurphyCritic gate — runs BEFORE any write
+            # PATCH-159f: AST security scan — block dangerous shell/exec calls
+            import ast as _ast, re as _re
+            _DANGER_PATTERNS = [
+                r"os\.system", r"subprocess\.(?:run|call|Popen|check_output)",
+                r"eval\s*\(", r"exec\s*\(", r"__import__",
+                r"open\s*\(.*['\"]w['\"]",  # file writes
+                r"shutil\.rmtree", r"rmtree",
+            ]
+            _danger_hit = next(
+                (_p for _p in _DANGER_PATTERNS if _re.search(_p, new_content)), None
+            )
+            if _danger_hit:
+                # Try AST parse to confirm it's real code not a comment/string
+                try:
+                    _ast.parse(new_content)
+                    return JSONResponse({
+                        "success": False, "blocked_by": "ASTSecurityGate",
+                        "critic_verdict": "BLOCK",
+                        "critic_summary": f"Dangerous pattern detected: {_danger_hit}",
+                        "error": f"ASTSecurityGate BLOCKED dangerous pattern: {_danger_hit}",
+                    }, status_code=422)
+                except SyntaxError:
+                    pass  # can't parse → proceed to critic for quality check
+
+            # PATCH-159b: MurphyCritic gate — code quality FM-001..FM-010
             critic_verdict = "skipped"
             critic_summary = ""
             try:

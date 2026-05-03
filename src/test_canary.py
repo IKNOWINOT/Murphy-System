@@ -1,2 +1,1 @@
-def hello():
-    return 42
+def canary(): return 42
