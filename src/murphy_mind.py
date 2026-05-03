@@ -411,7 +411,7 @@ def _corpus_freshness() -> Dict[str, Any]:
                 "total_records": total,
                 "newest_record": newest[:19] if newest else "unknown",
                 "age_hours": age_hours,
-                "stale": age_hours is not None and age_hours > 1.0,
+                "stale": age_hours is not None and age_hours > 3.0,  # PATCH-165: 15min collect interval, newest advances only on new items; 3hr threshold avoids false-positive "stale" gaps
             }
     except Exception as e:
         return {"error": str(e)[:60], "stale": True}
@@ -926,6 +926,32 @@ class MurphyMind:
             "priority_gap",
             prev_priority if prev_priority != "None identified yet" else ""
         )
+
+        # PATCH-165: Gap-repeat suppressor — if same gap has appeared 5+ recent cycles
+        # without a clear fix path, it is likely a false positive. Log and neutralize.
+        try:
+            _recent_gaps = [
+                e.get("priority_gap", "") for e in self._store.get_recent(10)
+            ]
+            _gap_repeat_count = sum(
+                1 for g in _recent_gaps
+                if _priority_gap_raw and _priority_gap_raw[:60] in g
+            )
+            if _gap_repeat_count >= 5:
+                logger.info(
+                    "PATCH-165: Gap '%s...' has repeated %d/10 recent cycles — "
+                    "suppressed as likely false-positive. Seeking new gap.",
+                    _priority_gap_raw[:60], _gap_repeat_count,
+                )
+                # Override: mark gap as suppressed so the system can surface real issues
+                _priority_gap_raw = (
+                    f"[SUPPRESSED REPEAT x{_gap_repeat_count}: '{_priority_gap_raw[:50]}...'] "
+                    "Identify a DIFFERENT priority gap — do not repeat this one."
+                )
+                parsed["priority_gap"] = _priority_gap_raw
+        except Exception as _gre:
+            logger.debug("PATCH-165: gap-repeat check failed: %s", _gre)
+
         _grounded = _ground_proposed_action(
             _priority_gap_raw,
             ctx.get("agent_coverage", {}),
