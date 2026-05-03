@@ -77,6 +77,7 @@
   }
 }
 </style>
+  <script src="/static/murphy-nav.js"></script>
 </head>
 <body>
 <script src="/static/murphy-components.js"></script>
@@ -271,7 +272,8 @@
   });
 
   /* ── Invoke ── */
-  document.getElementById('btn-invoke').addEventListener('click', async function() {
+  var _btnInvoke = document.getElementById('btn-invoke');
+  if (_btnInvoke) _btnInvoke.addEventListener('click', async function() {
     if (!_currentItem) { log('⚠ No item selected — forge or click an item first', 'out-inf'); return; }
     var argsRaw = document.getElementById('test-args').value.trim() || '{}';
     var args;
@@ -411,6 +413,6 @@
   refreshSidebar();
 })();
 </script>
-<script src="/static/murphy-nav.js"></script>
+
 </body>
 </html>
