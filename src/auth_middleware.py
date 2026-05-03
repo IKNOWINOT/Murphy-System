@@ -479,15 +479,26 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/ambient/",
 
     "/api/shield/",  # PATCH-093c: Shield Wall — public status endpoint
-        # PATCH-160: Targeted public swarm endpoints only — no blanket /api/swarm/ exemption
-        "/api/swarm/mind/status",    # read-only status — public
-        "/api/rosetta/soul",         # soul constitution — public read
-        "/api/corpus/stats",         # corpus stats — public read
-        "/api/swarm/corpus/stats",   # alias
-        "/api/signals/latest",       # latest signals — public read
-        # Workflows/automation: auth enforced at handler level via _perm_execute
-        "/api/automation/loop/",     # PATCH-135e: automation loop (session-auth inside)
-        "/api/workflows/",           # NL workflow engine (session-auth inside)
+        # PATCH-160c: Read-only internal monitoring endpoints — GET only, no state mutation
+        # Mind cycle reads these to build its self-model; must stay accessible
+        "/api/swarm/mind/status",       # public status
+        "/api/swarm/status",            # swarm health — read-only
+        "/api/swarm/scheduler",         # scheduler status — read-only
+        "/api/swarm/patterns",          # pattern registry — read-only
+        "/api/swarm/critic/modes",      # critic failure modes list — read-only
+        "/api/rosetta/status",          # rosetta status — read-only
+        "/api/rosetta/soul",            # soul constitution — read-only
+        "/api/confidence/status",       # confidence score — read-only
+        "/api/self-fix/status",         # self-fix status — read-only
+        "/api/repair/proposals",        # repair proposals — read-only
+        "/api/gate-synthesis/health",   # gate health — read-only
+        "/api/self/code-gen/status",    # code-gen status — read-only
+        "/api/corpus/stats",            # corpus stats — read-only
+        "/api/swarm/corpus/stats",      # alias
+        "/api/signals/latest",          # latest signals — read-only
+        # Workflows/automation: session-auth enforced inside handlers
+        "/api/automation/loop/",
+        "/api/workflows/",
 
         "/api/ambient",
         "/api/mgmt/",
