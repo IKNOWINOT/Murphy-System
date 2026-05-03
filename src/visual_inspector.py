@@ -10,12 +10,24 @@ from typing import Optional, List
 _SNAP_DIR = Path("/var/lib/murphy-production/snapshots")
 _SNAP_DIR.mkdir(parents=True, exist_ok=True)
 
+import os as _os
+# Ensure playwright finds the browsers installed in the project cache
+_os.environ.setdefault(
+    "PLAYWRIGHT_BROWSERS_PATH",
+    str(Path("/opt/Murphy-System/.cache/ms-playwright"))
+)
+
 PLAYWRIGHT_ARGS = [
     "--no-sandbox",
     "--disable-dev-shm-usage",
     "--disable-gpu",
     "--disable-extensions",
+    "--disable-background-networking",
+    "--disable-background-timer-throttling",
 ]
+
+# Explicit path to the chromium binary available to the murphy service user
+_CHROMIUM_EXEC = "/opt/Murphy-System/.cache/ms-playwright/chromium-1217/chrome-linux64/chrome"
 
 BASE_URL = os.environ.get("MURPHY_BASE_URL", "https://murphy.systems")
 
@@ -26,7 +38,11 @@ async def screenshot_url(url: str, full_page: bool = False, width: int = 1280,
     from playwright.async_api import async_playwright
     start = time.time()
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True, args=PLAYWRIGHT_ARGS)
+        _exec = _CHROMIUM_EXEC if Path(_CHROMIUM_EXEC).exists() else None
+        _launch_kwargs = {"headless": True, "args": PLAYWRIGHT_ARGS}
+        if _exec:
+            _launch_kwargs["executable_path"] = _exec
+        browser = await p.chromium.launch(**_launch_kwargs)
         ctx_kwargs = {"viewport": {"width": width, "height": height}}
         if session_token:
             domain = url.split("/")[2].split(":")[0]
