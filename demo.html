@@ -10,7 +10,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Murphy System — Live Demo</title>
 <style>
-  /* :root removed by PATCH-154 — using murphy-app-shell.css */
+  :root{
+  --bg:#0a0a0a;--bg2:#111;--surface:#111;--elevated:#1a1a1a;
+  --border:rgba(0,212,170,.12);--border-mid:rgba(0,212,170,.22);
+  --text:#e0e6ea;--text-dim:#6b8090;--muted:#6b8090;
+  --teal:#00D4AA;--teal-dim:rgba(0,212,170,.08);--teal-border:rgba(0,212,170,.25);
+  --green:#00ff41;--font:Inter,system-ui,sans-serif;--radius:10px;
+}
+/* :root inline — PATCH-157 fallback */
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; min-height: 100vh; }
 

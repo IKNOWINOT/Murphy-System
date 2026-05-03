@@ -118,14 +118,17 @@ canvas { display:block; touch-action:none; }
 
 /* ── SHOP BUTTON ─────────────────────────────────────── */
 #shop-btn {
-  position:absolute; top:58px; right:14px;
-  width:38px; height:38px; border-radius:50%;
-  background:rgba(0,0,0,0.55); border:2px solid rgba(180,120,60,0.6);
-  color:#c8a; font-size:18px; cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
+  position:absolute; top:54px; right:10px;
+  width:52px; height:52px; border-radius:14px;
+  background:linear-gradient(135deg,rgba(40,20,5,0.9),rgba(20,10,2,0.9));
+  border:2px solid rgba(200,160,80,0.8);
+  color:#c8a; font-size:20px; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0px;
   pointer-events:all; z-index:20; transition:all 0.2s;
+  box-shadow:0 0 14px rgba(200,160,80,0.3);
 }
-#shop-btn:hover { border-color:#c8a; box-shadow:0 0 10px rgba(200,160,100,0.4); }
+#shop-btn::after { content:'DRIP'; font-size:7px; letter-spacing:2px; color:#c8a46e; margin-top:1px; }
+#shop-btn:hover { border-color:#ffcc66; box-shadow:0 0 18px rgba(255,200,80,0.5); transform:scale(1.05); }
 
 /* ── SHOP MODAL ──────────────────────────────────────── */
 #shop-modal {
@@ -133,7 +136,7 @@ canvas { display:block; touch-action:none; }
   background:rgba(0,0,0,0.93);
   display:none; flex-direction:column;
   align-items:center; overflow-y:auto;
-  pointer-events:all; z-index:50;
+  pointer-events:all; z-index:250;
   padding:16px 12px 80px;
 }
 #shop-modal.open { display:flex; }
@@ -214,18 +217,18 @@ canvas { display:block; touch-action:none; }
 /* Outfit grid */
 #outfit-grid {
   width:100%; max-width:440px;
-  display:grid; grid-template-columns:repeat(2,1fr); gap:10px;
+  display:grid; grid-template-columns:repeat(3,1fr); gap:8px;
 }
 .outfit-card {
   background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12);
-  border-radius:12px; padding:12px; text-align:center; cursor:pointer;
+  border-radius:12px; padding:8px; text-align:center; cursor:pointer;
   transition:all 0.15s; position:relative;
 }
 .outfit-card:hover { border-color:rgba(255,255,255,0.3); }
 .outfit-card.owned   { border-color:rgba(0,255,170,0.4); }
 .outfit-card.equipped { border-color:#0fa; box-shadow:0 0 12px rgba(0,255,170,0.25); }
 .outfit-card .preview { font-size:42px; margin-bottom:6px; line-height:1; }
-.outfit-card .oname  { font-size:11px; color:#ddd; letter-spacing:1px; margin-bottom:4px; }
+.outfit-card .oname  { font-size:9px; color:#ddd; letter-spacing:1px; margin-bottom:2px; }
 .outfit-card .oprice { font-size:10px; color:#888; }
 .outfit-card .obadge {
   position:absolute; top:6px; right:6px;
@@ -240,7 +243,7 @@ canvas { display:block; touch-action:none; }
 #pay-modal {
   position:absolute; inset:0; background:rgba(0,0,0,0.95);
   display:none; flex-direction:column; align-items:center; justify-content:center;
-  z-index:60; pointer-events:all; padding:20px;
+  z-index:260; pointer-events:all; padding:20px;
 }
 #pay-modal.open { display:flex; }
 #pay-modal h3 { font-size:16px; color:#c8a; letter-spacing:3px; margin-bottom:6px; }
@@ -267,7 +270,7 @@ canvas { display:block; touch-action:none; }
 #crypto-modal {
   position:absolute; inset:0; background:rgba(0,0,0,0.97);
   display:none; flex-direction:column; align-items:center; justify-content:center;
-  z-index:70; pointer-events:all; padding:20px;
+  z-index:270; pointer-events:all; padding:20px;
 }
 #crypto-modal.open { display:flex; }
 #crypto-modal h3 { font-size:14px; color:#f7931a; letter-spacing:3px; margin-bottom:4px; }
@@ -417,9 +420,10 @@ canvas { display:block; touch-action:none; }
   </div>
   <div id="hyper-active">⚡ HYPER MODE ⚡</div>
   <div id="mobile-ctrl">
-    <button id="btn-left">◀</button>
-    <button id="btn-right">▶</button>
-  </div>
+  <button id="btn-left">◀</button>
+  <button id="btn-jump">▲</button>
+  <button id="btn-right">▶</button>
+</div>
 
   <!-- MUSIC SYSTEM -->
   <button id="music-btn" title="Music">🎵</button>
@@ -615,8 +619,8 @@ canvas { display:block; touch-action:none; }
 const SPRITE_SHEETS = {
   outfits:   'https://media.base44.com/images/public/69d6fe941ece93557d302bce/4cd74177c_generated_image.png',
   npcs:      'https://media.base44.com/images/public/69d6fe941ece93557d302bce/39f1082b9_generated_image.png',
-  mushrooms: 'https://media.base44.com/images/public/69d6fe941ece93557d302bce/8447df9e3_generated_image.png',
-  biomes:    'https://media.base44.com/images/public/69d6fe941ece93557d302bce/b823c0583_generated_image.png',
+  mushrooms: 'https://media.base44.com/images/public/69d6fe941ece93557d302bce/b89171835_generated_image.png',
+  biomes:    'https://media.base44.com/images/public/69d6fe941ece93557d302bce/108f43c44_generated_image.png',
   icons:     'https://media.base44.com/images/public/69d6fe941ece93557d302bce/6afc32fdc_generated_image.png',
 };
 
@@ -665,15 +669,9 @@ function getOutfitSheetCell(outfitId) {
 // ── Draw helpers ─────────────────────────────────────────────
 
 function drawSpriteOutfit(outfitId, cx, cy, w, h) {
-  if (!SPR.outfits) return false;
-  const cell = getOutfitSheetCell(outfitId);
-  const img  = SPR.outfits;
-  const cellW = img.naturalWidth  / OUTFIT_SHEET_COLS;
-  const cellH = img.naturalHeight / OUTFIT_SHEET_ROWS;
-  const sx = cell.col * cellW;
-  const sy = cell.row * cellH;
-  ctx.drawImage(img, sx, sy, cellW, cellH, cx - w/2, cy - h, w, h);
-  return true;
+  // Use canvas fallback — sprite sheets have opaque dark backgrounds
+  // Canvas fallback in _drawPlayerCanvas produces clean transparent art
+  return false;
 }
 
 function drawSpriteNPC(which, cx, cy, w, h) {
@@ -702,7 +700,11 @@ function drawSpriteMushroom(type, cx, cy, r) {
     sx = (type % 6) * cellW; sy = 0; // row 0
   }
   const size = r * 2.5;
+  // Use screen blending to strip dark background from mushroom sprite
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
   ctx.drawImage(img, sx, sy, cellW, cellH, cx - size/2, cy - size, size, size);
+  ctx.restore();
   return true;
 }
 
@@ -826,6 +828,23 @@ let lastTripTime = 0;      // tracks when last mushroom was collected
 
 // Player
 let px = 0, pvx = 0; // x position + velocity
+// ── Jump state ──
+let jumpVY = 0;           // vertical velocity (screen-space, upward = negative)
+let jumpY  = 0;           // vertical offset from playerY (0 = ground)
+let isGrounded = true;
+const JUMP_FORCE  = -18;  // initial jump impulse
+const JUMP_GRAV   = 1.1;  // gravity per frame
+const JUMP_GRAV_FALL = 1.8; // faster fall
+// ── Track-branch state ──
+let trackBranch = 0;      // current track offset: -1, 0, +1
+let trackBranchTarget = 0;
+let trackBranchV = 0;
+let trackBranchAnim = 0;  // 0-1 flash when branching
+let trackBranchTimer = 0; // countdown to next branch opportunity (ms)
+let trackBranchAvail = false; // true when a branch is available
+const TRACK_NAMES = ['LEFT FORK', 'MAIN PATH', 'RIGHT FORK'];
+const TRACK_OFFSETS = [-LANE_SPREAD * 0.6, 0, LANE_SPREAD * 0.6];
+let currentBiomeOverride = -1; // -1 = no override (use score-based biome)
 let targetX = 0;
 let playerY = 0;     // set at runtime
 let playerBob = 0;
@@ -888,6 +907,9 @@ function initGame() {
   if (_bp !== null) { biomeIdx = parseInt(_bp) || 0; psy = BIOMES[biomeIdx].psy; }
   if (_urlp.get('freeze') === '1') { setTimeout(() => { state = 'paused'; }, 80); }
   px = 0; pvx = 0; targetX = 0;
+  jumpVY = 0; jumpY = 0; isGrounded = true;
+  trackBranch = 0; trackBranchTarget = 0; trackBranchV = 0; trackBranchAnim = 0;
+  currentBiomeOverride = -1;
   playerY = H() * 0.72;
   playerBob = 0;
   moveLeft = false; moveRight = false;
@@ -936,6 +958,9 @@ document.addEventListener('keydown', e => {
   if (state !== 'playing') return;
   if (e.key === 'ArrowLeft'  || e.key === 'a' || e.key === 'A') { moveLeft  = true; e.preventDefault(); }
   if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { moveRight = true; e.preventDefault(); }
+  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') { doJump(); e.preventDefault(); }
+  if (e.key === 'q' || e.key === 'Q') { switchTrack(-1); e.preventDefault(); }
+  if (e.key === 'e' || e.key === 'E') { switchTrack(1);  e.preventDefault(); }
 });
 document.addEventListener('keyup', e => {
   if (e.key === 'ArrowLeft'  || e.key === 'a' || e.key === 'A') moveLeft  = false;
@@ -949,6 +974,12 @@ document.getElementById('btn-left').addEventListener('pointerleave', e => { move
 document.getElementById('btn-right').addEventListener('pointerdown', e => { moveRight = true;  e.preventDefault(); });
 document.getElementById('btn-right').addEventListener('pointerup',   e => { moveRight = false; });
 document.getElementById('btn-right').addEventListener('pointerleave',e => { moveRight = false; });
+
+// Mobile jump button
+const _btnJump = document.getElementById('btn-jump');
+if (_btnJump) {
+  _btnJump.addEventListener('pointerdown',  e => { doJump(); e.preventDefault(); });
+}
 
 // Touch swipe
 let touchStartX = null;
@@ -1008,12 +1039,14 @@ function hsl(h,s,l,a=1){ return `hsla(${h},${s}%,${l}%,${a})`; }
 function vp() { return { x: W()*0.5, y: H()*0.28 }; }
 
 // Project a 3D tunnel point to screen
-function project(wx, wz) {
+// dist=0 → at player (large), dist=1200 → far away (small)
+function project(wx, dist) {
   const v = vp();
-  const scale = 600 / (600 + wz);
+  if (dist < -80) return null;
+  const scale = 600 / (600 + Math.max(0, dist));
   return {
     sx: v.x + wx * scale,
-    sy: v.y + (playerY - v.y) * scale,
+    sy: playerY - (playerY - v.y) * (1 - scale),
     scale
   };
 }
@@ -1030,7 +1063,7 @@ function spawnObstacle() {
     usedLanes.add(lane);
     obstacles.push({
       x: lane * LANE_STEP,
-      z: -550,
+      dist: 1200,
       w: 58, h: 46,  // PATCH-156b: balanced size
       type: Math.random() < 0.4 ? 'rock' : 'stalagmite',
       hue: randInt(0,360)
@@ -1041,18 +1074,90 @@ function spawnObstacle() {
 function spawnMushroom() {
   if (Math.random() < 0.10) {
     // Gold mushroom (10% chance)
-    mushrooms.push({ x: [-2,-1,0,1,2][Math.floor(Math.random()*5)] * LANE_STEP, z:-550, color:'#ffd700', bob:Math.random()*Math.PI*2, gold:true });
+    mushrooms.push({ x: [-2,-1,0,1,2][Math.floor(Math.random()*5)] * LANE_STEP, dist:1200, color:'#ffd700', bob:Math.random()*Math.PI*2, gold:true });
   } else {
     const lane = randInt(-2, 2);
     const color = SHROOM_COLORS[randInt(0, SHROOM_COLORS.length-1)];
-    mushrooms.push({ x: lane * LANE_STEP, z: -550, color, bob:Math.random()*Math.PI*2 });
+    mushrooms.push({ x: lane * LANE_STEP, dist: 1200, color, bob:Math.random()*Math.PI*2 });
   }
 }
 
 function spawnRing() {
-  rings.push({ z:-550, r: W()*0.44, alpha:0.7 });
+  rings.push({ dist:1200, r: W()*0.44, alpha:0.7 });
 }
 
+// ── Jump ─────────────────────────────────────────────────────────
+function doJump() {
+  if (state !== 'playing') return;
+  if (isGrounded || jumpY < -8) {  // allow single mid-air double-jump when jumpY is close to ground
+    jumpVY = JUMP_FORCE;
+    isGrounded = false;
+    burst(W()/2 + px, playerY + jumpY + 20, '#00f5d4', 12);
+  }
+}
+
+// ── Track branching ───────────────────────────────────────────────
+function switchTrack(dir) {
+  if (state !== 'playing') return;
+  const newBranch = Math.max(-1, Math.min(1, trackBranch + dir));
+  if (newBranch === trackBranch) return;
+  trackBranch = newBranch;
+  trackBranchTarget = TRACK_OFFSETS[trackBranch + 1];
+  trackBranchAnim = 1.0;
+  // Override biome on left/right fork
+  currentBiomeOverride = (trackBranch === 0) ? -1 : (trackBranch === -1 ? 1 : 2);
+  // Clear obstacles ahead that we'd clip on transition
+  obstacles = obstacles.filter(o => o.z < 100);
+  // Announce track
+  const names = ['← LEFT FORK', '▶ MAIN PATH', 'RIGHT FORK →'];
+  const colors = ['#f59e0b', '#00D4AA', '#a78bfa'];
+  showPowerAnnounce(names[trackBranch + 1], colors[trackBranch + 1]);
+  // Show track label in HUD
+  const _tl = document.getElementById('track-label');
+  if (_tl) { _tl.textContent = names[trackBranch + 1]; _tl.style.color = colors[trackBranch + 1]; _tl.style.opacity = '1'; setTimeout(() => { _tl.style.opacity = '0'; }, 2000); }
+  burst(W()/2, playerY + jumpY, colors[trackBranch + 1], 20);
+}
+
+// ── Boundary rail check ────────────────────────────────────────────
+function applyBoundaryRails() {
+  // Hard clamp with bounce
+  if (px <= -LANE_SPREAD) {
+    px = -LANE_SPREAD;
+    if (pvx < 0) { pvx = Math.abs(pvx) * 0.25; } // gentle bounce
+  }
+  if (px >= LANE_SPREAD) {
+    px = LANE_SPREAD;
+    if (pvx > 0) { pvx = -Math.abs(pvx) * 0.25; }
+  }
+}
+
+// ── Boundary rail draw ────────────────────────────────────────────
+function drawRails() {
+  const leftX  = W()/2 - LANE_SPREAD - 8;
+  const rightX = W()/2 + LANE_SPREAD + 8;
+  const vProj  = vp();
+  const vpX    = vProj.x;
+  const vpY    = vProj.y;
+  // Compute rail lines in perspective: from player bottom edge to vanishing point
+  const _railAlpha = 0.35 + trackBranchAnim * 0.55;
+  const railColor = `hsla(${(Date.now()*0.05)%360},100%,65%,${_railAlpha})`;
+  ctx.save();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = railColor;
+  ctx.shadowColor = railColor;
+  ctx.shadowBlur  = 8;
+  ctx.beginPath();
+  ctx.moveTo(leftX,  playerY + 18);
+  ctx.lineTo(vpX - 12, vpY);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(rightX, playerY + 18);
+  ctx.lineTo(vpX + 12, vpY);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ──
 // ── Particle burst ───────────────────────────────────────────────
 function burst(x, y, color, n=18) {
   for (let i=0; i<n; i++) {
@@ -1094,21 +1199,70 @@ function updateBiome() {
   const b = BIOMES[biomeIdx];
   const lapPsy = Math.min(lap * 0.2, 0.5);
   psy = clamp(b.psy + lapPsy, 0, 1);
+  // Fork track biome override
+  if (currentBiomeOverride >= 0) {
+    biomeIdx = Math.min(currentBiomeOverride, BIOMES.length-1);
+  }
 }
 
 // ── Draw tunnel ──────────────────────────────────────────────────
 function drawTunnel(dt) {
-  _drawTunnelGeometry(dt);
-  // Sprite biome texture overlay (subtle, on top of geometry)
+  // Draw biome background FIRST (under geometry) for rich scenery
   if (SPR.biomes && SPR.biomes.complete) {
     const img = SPR.biomes;
     const stripW = img.naturalWidth / 5;
-    const sx = biomeIdx * stripW;
-    ctx.globalAlpha = 0.18;
-    ctx.drawImage(img, sx, 0, stripW, img.naturalHeight, 0, 0, W(), H());
+    const panX = Math.sin(Date.now() * 0.00008) * stripW * 0.04;
+    const sx = Math.max(0, biomeIdx * stripW + panX);
+    ctx.globalAlpha = 0.60;
+    ctx.drawImage(img, sx, 0, Math.min(stripW, img.naturalWidth - sx), img.naturalHeight, 0, 0, W(), H());
     ctx.globalAlpha = 1;
   }
+  _drawTunnelGeometry(dt);
 }
+// ── Cave wall decorations (PATCH-157b) ───────────────────────────
+function _drawCaveWalls(cw, ch, now) {
+  const biomeHues = [195, 210, 10, 280, 330];
+  const H2 = biomeHues[biomeIdx] || 195;
+  const scroll = ((now * 0.00015 * speed) % 1 + 1) % 1;
+  const acidT = Math.max(0, (psy - 0.15) / 0.85);
+
+  for (let side = 0; side < 2; side++) {
+    for (let i = 0; i < 7; i++) {
+      const t = ((i / 7) + scroll) % 1;
+      const yPos = t * ch * 1.2 - ch * 0.1;
+      const size = 28 + (i * 37) % 55;
+      const hue = acidT > 0 ? (H2 + chromaShift + i * 28) % 360 : (H2 + i * 18) % 360;
+      ctx.save();
+      ctx.globalAlpha = 0.38 + acidT * 0.35;
+      ctx.fillStyle = `hsl(${hue},55%,30%)`;
+      ctx.shadowColor = `hsl(${hue},100%,60%)`;
+      ctx.shadowBlur = 10 + acidT * 18;
+      ctx.beginPath();
+      if (side === 0) {
+        ctx.moveTo(0, yPos - size*0.15); ctx.lineTo(size*0.9, yPos); ctx.lineTo(0, yPos + size*0.15);
+      } else {
+        ctx.moveTo(cw, yPos - size*0.15); ctx.lineTo(cw - size*0.9, yPos); ctx.lineTo(cw, yPos + size*0.15);
+      }
+      ctx.closePath(); ctx.fill(); ctx.restore();
+    }
+  }
+
+  // Scrolling floor tiles
+  const floorY = playerY + 18;
+  const tileW = cw / 7;
+  for (let i = 0; i < 9; i++) {
+    const t2 = ((i / 8) + scroll * 1.8) % 1;
+    const fx = t2 * (cw + tileW) - tileW;
+    const fHue = acidT > 0 ? (H2 + chromaShift + i * 45) % 360 : H2;
+    ctx.save();
+    ctx.globalAlpha = 0.14 + acidT * 0.2;
+    ctx.fillStyle = `hsl(${fHue},75%,55%)`;
+    ctx.shadowColor = `hsl(${fHue},100%,65%)`; ctx.shadowBlur = 14;
+    ctx.fillRect(fx, floorY, tileW * 0.8, 5 + (i%3)*3);
+    ctx.restore();
+  }
+}
+
 function _drawTunnelGeometry(dt) {
   const b  = BIOMES[biomeIdx];
   const v  = vp();
@@ -1206,8 +1360,11 @@ function _drawTunnelGeometry(dt) {
     }
   }
 
+  // ── Cave wall decorations ─────────────────────────────
+  _drawCaveWalls(W(), H(), Date.now());
+
   // ── Tunnel grid lines ──────────────────────────────────────────
-  gridZ = (gridZ + speed * dt * 0.12) % 1;
+  gridZ = (gridZ + speed * dt * 0.22) % 1;
   ctx.save();
   ctx.translate(v.x, v.y);
   ctx.rotate(twistAngle);
@@ -1217,14 +1374,14 @@ function _drawTunnelGeometry(dt) {
   const wallCount = 12;
   for (let i = 0; i <= wallCount; i++) {
     const t = (i / wallCount + gridZ) % 1;
-    const nearY  = v.y + (ch - v.y) * t;
+    const nearY  = playerY - playerY * t;
     const nearX1 = v.x - W()*0.52 * t;
     const nearX2 = v.x + W()*0.52 * t;
-    const alpha  = t * 0.4 + 0.06;
+    const alpha  = t * 0.65 + 0.12;
     const lineHue = (psy > 0.1 || psyPulse > 0.1) ? (chromaShift + biomeHue + psyPulseHue*psyPulse*0.5 + now*0.05 + i*28) % 360 : biomeHue;
     const breathe = psy > 0.15 ? Math.sin(breathPhase + i * 0.9) * psy * 22 : 0;
     ctx.strokeStyle = hsl(lineHue, 70 + psy*30 + psyPulse*40, 55 + psy*20 + psyPulse*15, alpha + psy*0.2 + psyPulse*0.35);
-    ctx.lineWidth   = 1 + psy * 2.5;
+    ctx.lineWidth   = 1.5 + psy * 3;
     ctx.beginPath();
     ctx.moveTo(nearX1 - breathe, nearY);
     ctx.lineTo(nearX2 + breathe, nearY);
@@ -1243,7 +1400,7 @@ function _drawTunnelGeometry(dt) {
     ctx.lineWidth   = 1 + psy * 2;
     ctx.beginPath();
     ctx.moveTo(farX + warpX * 0.15, v.y);
-    ctx.lineTo(nearX + warpX, ch);
+    ctx.lineTo(nearX + warpX, 0);
     ctx.stroke();
   }
   ctx.restore();
@@ -1589,7 +1746,8 @@ function drawCoreEnv(cw, ch, v, acidT, now) {
 
 function drawRings() {
   for (const ring of rings) {
-    const proj = project(0, ring.z + 600);
+    const proj = project(0, ring.dist);
+    if (!proj) continue;
     const r = ring.r * proj.scale;
     const hue = (Date.now()*0.05 + ring.z) % 360;
     ctx.beginPath();
@@ -1603,51 +1761,55 @@ function drawRings() {
 // ── Draw obstacles ────────────────────────────────────────────────
 function drawObstacles() {
   for (const obs of obstacles) {
-    const proj = project(obs.x, obs.z + 600);
+    const proj = project(obs.x, obs.dist);
     if (!proj) continue;
-    const w = obs.w * proj.scale;
-    const h = obs.h * proj.scale;
+    const w = obs.w * proj.scale * 2.2;
+    const h = obs.h * proj.scale * 2.2;
     const sx = proj.sx - w/2;
     const sy = proj.sy - h;
 
+    const rw = Math.max(4, w), rh = Math.max(4, h);
+    const acidHue = psy > 0.2 ? (obs.hue + chromaShift) % 360 : obs.hue;
     if (obs.type === 'rock') {
-      const rw = Math.max(2, w), rh = Math.max(2, h);
-      const grad = ctx.createRadialGradient(proj.sx, proj.sy-h*0.5, 1, proj.sx, proj.sy-h*0.5, Math.max(1, rw));
-      const acidHue = psy > 0.2 ? (obs.hue + chromaShift) % 360 : obs.hue;
-      grad.addColorStop(0, hsl(acidHue, 40 + psy*60, 70 + psy*20));
-      grad.addColorStop(1, hsl((acidHue+60)%360, 30 + psy*50, 25 + psy*15));
+      // Boulder — bright gradient with neon glow border
+      const grad = ctx.createRadialGradient(proj.sx, proj.sy-rh*0.5, 2, proj.sx, proj.sy-rh*0.5, Math.max(4, rw*0.8));
+      grad.addColorStop(0, hsl(acidHue, 60 + psy*40, 72 + psy*20));
+      grad.addColorStop(0.6, hsl(acidHue, 50 + psy*50, 48 + psy*15));
+      grad.addColorStop(1, hsl((acidHue+60)%360, 40 + psy*50, 22 + psy*15));
       ctx.fillStyle = grad;
+      ctx.shadowColor = hsl(acidHue, 100, 70);
+      ctx.shadowBlur = (10 + 22 * psy) * proj.scale;
       ctx.beginPath();
-      ctx.roundRect(sx, sy, rw, rh, rw*0.3);
+      ctx.roundRect(proj.sx - rw/2, proj.sy - rh, rw, rh, rw*0.3);
       ctx.fill();
-      if (psy > 0.15) {
-        const glowH = (acidHue + Date.now()*0.08) % 360;
-        ctx.shadowColor = hsl(glowH, 100, 70);
-        ctx.shadowBlur = (8 + 20 * psy) * proj.scale;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      }
-    } else if (w > 0 && h > 0) {
-      // Stalagmite — triangle
+      // Bright neon outline
+      ctx.strokeStyle = hsl(acidHue, 100, 85, 0.85);
+      ctx.lineWidth = 2 * proj.scale;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    } else {
+      // Stalagmite — sharp crystal spike with glow
       const stalaHue = psy > 0.2 ? (obs.hue + chromaShift) % 360 : obs.hue;
-      ctx.fillStyle = hsl(stalaHue, 50 + psy*50, 45 + psy*20);
+      ctx.shadowColor = hsl(stalaHue, 100, 75);
+      ctx.shadowBlur = (12 + 25 * psy) * proj.scale;
+      ctx.fillStyle = hsl(stalaHue, 65 + psy*35, 50 + psy*25);
       ctx.beginPath();
-      ctx.moveTo(proj.sx, proj.sy - h*1.3);
-      ctx.lineTo(proj.sx - w*0.55, proj.sy);
-      ctx.lineTo(proj.sx + w*0.55, proj.sy);
+      ctx.moveTo(proj.sx, proj.sy - rh*1.4);
+      ctx.lineTo(proj.sx - rw*0.18, proj.sy - rh*0.5);
+      ctx.lineTo(proj.sx - rw*0.55, proj.sy);
+      ctx.lineTo(proj.sx + rw*0.55, proj.sy);
+      ctx.lineTo(proj.sx + rw*0.18, proj.sy - rh*0.5);
       ctx.closePath();
       ctx.fill();
-      if (psy > 0.2) {
-        ctx.shadowColor = hsl((stalaHue + 120) % 360, 100, 80);
-        ctx.shadowBlur = 10 * psy;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      }
+      ctx.strokeStyle = hsl((stalaHue+60)%360, 100, 80, 0.7);
+      ctx.lineWidth = 1.5 * proj.scale;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
     }
 
     // ── Danger warning glow when obstacle close ── PATCH-156
-    if (obs.z > -200 && obs.z < 120) {
-      const dangerAlpha = Math.max(0, (obs.z + 200) / 320) * 0.55;
+    if (obs.dist < 300 && obs.dist > 0) {
+      const dangerAlpha = Math.max(0, (300 - obs.dist) / 300) * 0.55;
       const laneX = W()/2 + obs.x;
       const grad = ctx.createRadialGradient(laneX, playerY + 10, 5, laneX, playerY + 10, 55);
       grad.addColorStop(0, `rgba(255,40,40,${dangerAlpha})`);
@@ -1664,20 +1826,20 @@ function drawObstacles() {
 function drawMushrooms(t) {
   for (const sh of mushrooms) {
     sh.bob += 0.05;
-    const proj = project(sh.x, sh.z + 600);
+    const proj = project(sh.x, sh.dist);
     if (!proj) continue;
-    const r = 12 * proj.scale;
+    const r = 28 * proj.scale;  // PATCH-157b: bigger
     const bob = Math.sin(sh.bob) * 3 * proj.scale;
     const sx = proj.sx, sy = proj.sy + bob;
 
     ctx.save();
-    ctx.globalAlpha = proj.scale * 1.2;
+    ctx.globalAlpha = Math.min(1, proj.scale * 1.8 + 0.2);
 
+    ctx.shadowColor = sh.gold ? '#ffd700' : sh.color;
+    ctx.shadowBlur = 20 * proj.scale * (1 + 0.3 * Math.sin(sh.bob * 2));
     if (sh.gold) {
-      // Try sprite first
       if (!drawSpriteMushroom('gold', sx, sy, r)) {
-        // Fallback canvas gold mushroom
-        ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 18*proj.scale;
+        ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 25*proj.scale;
         const cg = ctx.createRadialGradient(sx-r*0.3,sy-r*1.2,1,sx,sy-r,r*1.1);
         cg.addColorStop(0,'#fffacd'); cg.addColorStop(0.5,'#ffd700'); cg.addColorStop(1,'#b8860b');
         ctx.fillStyle=cg;
@@ -1692,9 +1854,9 @@ function drawMushrooms(t) {
       const ci = colorIdx >= 0 ? colorIdx : 0;
       if (!drawSpriteMushroom(ci, sx, sy, r)) {
         // Fallback canvas mushroom
-        ctx.shadowColor=sh.color; ctx.shadowBlur=14*proj.scale;
-        ctx.beginPath(); ctx.ellipse(sx,sy-r,r,r*0.6,0,0,Math.PI); ctx.fillStyle=sh.color; ctx.fill();
-        ctx.shadowBlur=0; ctx.fillStyle='#fff8e1'; ctx.fillRect(sx-r*0.25,sy-r,r*0.5,r);
+        ctx.shadowColor=sh.color; ctx.shadowBlur=22*proj.scale;
+        ctx.beginPath(); ctx.ellipse(sx,sy-r*0.8,r*1.1,r*0.7,0,0,Math.PI); ctx.fillStyle=sh.color; ctx.fill();
+        ctx.shadowBlur=0; ctx.fillStyle='#fffbe6'; ctx.fillRect(sx-r*0.3,sy-r*0.6,r*0.6,r*0.9);
       }
     }
     ctx.globalAlpha=1;
@@ -1706,7 +1868,7 @@ function drawMushrooms(t) {
 function drawPlayer() {
   const outfit = getEquippedOutfit();
   const x = W()/2 + px;
-  const y = playerY + Math.sin(playerBob) * 4;
+  const y = playerY + jumpY + Math.sin(playerBob) * 4;
 
   ctx.save();
 
@@ -2003,8 +2165,43 @@ const OUTFITS = [
     id:'ancient',  name:'Ancient One',    emoji:'🗿',
     desc:'Pre-dates the cave. Pre-dates the penguin.',
     priceMushrooms:80, priceFert:15, priceUSD:4.99,
-    bodyColor:['#5a4a3a','#3a2a1a'], bellyColor:'#c8b89a', eyeColor:'#gold',
+    bodyColor:['#5a4a3a','#3a2a1a'], bellyColor:'#c8b89a', eyeColor:'#c8a46e',
     accent:'#c8a46e', runes:true,
+  },
+  {
+    id:'neon',  name:'Neon Racer', emoji:'⚡',
+    desc:'Tokyo drift, cave edition.',
+    priceMushrooms:35, priceFert:7, priceUSD:2.49,
+    bodyColor:['#001a33','#000a1a'], bellyColor:'#00ffff', eyeColor:'#ff00ff',
+    accent:'#00ffff', glowColor:'#00ffff', shimmer:true,
+  },
+  {
+    id:'ghost',  name:'Ghost Mode', emoji:'👻',
+    desc:'Transparent. Transcendent. Terrifying.',
+    priceMushrooms:45, priceFert:9, priceUSD:3.49,
+    bodyColor:['rgba(220,240,255,0.35)','rgba(180,200,240,0.25)'], bellyColor:'rgba(255,255,255,0.5)',
+    eyeColor:'#ff3333', accent:'#aaccff', glowColor:'#aaccff', shimmer:true,
+  },
+  {
+    id:'king',  name:'The King 👑', emoji:'👑',
+    desc:'Born to rule the cave. Born to collect fungi.',
+    priceMushrooms:100, priceFert:20, priceUSD:5.99,
+    bodyColor:['#2a1a00','#1a0d00'], bellyColor:'#ffd700', eyeColor:'#ffd700',
+    hat:'👑', hatOffset:[0,-32], accent:'#ffd700', glowColor:'#ffaa00',
+  },
+  {
+    id:'cyber',  name:'Cyborg Pingo', emoji:'🤖',
+    desc:'Half penguin. Half machine. All cave.',
+    priceMushrooms:55, priceFert:11, priceUSD:3.99,
+    bodyColor:['#111a22','#0a1118'], bellyColor:'#4ade80', eyeColor:'#ff0000',
+    accent:'#4ade80', glowColor:'#4ade80',
+  },
+  {
+    id:'rainbow',  name:'Rainbow Lord', emoji:'🌈',
+    desc:'Too powerful for one color. Chose all of them.',
+    priceMushrooms:150, priceFert:30, priceUSD:9.99,
+    bodyColor:['#ff0055','#7700ff'], bellyColor:'#ffffff', eyeColor:'#ffffff',
+    accent:'#ff0', glowColor:'#ff0055', shimmer:true, rainbow:true,
   },
 ];
 
@@ -2283,8 +2480,8 @@ function fireLaser(dt) {
   // Find nearest obstacle ahead in player's lane
   let target = null, minDist = Infinity;
   for (const obs of obstacles) {
-    if (obs.z < -100) continue; // behind spawning
-    const proj = project(obs.x, obs.z + 600);
+    if (obs.dist > 500) continue; // too far away
+    const proj = project(obs.x, obs.dist);
     const dx = Math.abs(proj.sx - playerScreenX);
     if (dx < 60 && obs.z < minDist) { minDist = obs.z; target = obs; }
   }
@@ -2453,7 +2650,7 @@ function checkCollisions() {
     for (let i = mushrooms.length-1; i >= 0; i--) {
       const sh = mushrooms[i];
       if (sh.z > 0 && sh.z < 80) {
-        const proj = project(sh.x, sh.z + 600);
+        const proj = project(sh.x, sh.dist);
         // Magnet range from level
         const magnetRange = 28 + (window._levelShroomRange || 0);
         if (Math.abs(px_screen - proj.sx) < magnetRange) {
@@ -2466,12 +2663,14 @@ function checkCollisions() {
   }
   // Normal collision with mushroom magnet level bonus
   const px_screen = W()/2 + px;
+  // Airborne = above ground level, skip solid obstacle hits
+  const _isAirborne = jumpY < -20;
   for (let i = obstacles.length-1; i >= 0; i--) {
     const obs = obstacles[i];
     if (obs.z > -60 && obs.z < 120) {
-      const proj = project(obs.x, obs.z + 600);
+      const proj = project(obs.x, obs.dist);
       const w = obs.w * proj.scale * 1.1;  // PATCH-156
-      if (Math.abs(px_screen - proj.sx) < w * 0.5 + 8) {  // PATCH-156b: tighter hitbox
+      if (!_isAirborne && Math.abs(px_screen - proj.sx) < w * 0.5 + 8) {  // PATCH-156b: tighter hitbox
         deathCause = obs.type === 'rock' ? 'Crushed by a rock' : 'Impaled on a stalagmite';
         gameOver();
         return;
@@ -2481,7 +2680,7 @@ function checkCollisions() {
   for (let i = mushrooms.length-1; i >= 0; i--) {
     const sh = mushrooms[i];
     if (sh.z > 0 && sh.z < 80) {
-      const proj = project(sh.x, sh.z + 600);
+      const proj = project(sh.x, sh.dist);
       const magnetRange = 28 + (window._levelShroomRange || 0);
       if (Math.abs(px_screen - proj.sx) < magnetRange) {
         mushrooms.splice(i, 1);
@@ -2545,12 +2744,25 @@ function loop(ts) {
   speed = clamp(SPEED_BASE * _diffMult, SPEED_BASE, lsc);
 
   // ── Player movement ──
-  if (moveLeft  && !flash.active) targetX = clamp(targetX - LANE_STEP * dt * 0.8 * lsm, -LANE_SPREAD, LANE_SPREAD);
-  if (moveRight && !flash.active) targetX = clamp(targetX + LANE_STEP * dt * 0.8 * lsm, -LANE_SPREAD, LANE_SPREAD);
+  if (moveLeft  && !flash.active) targetX = clamp(targetX - LANE_STEP * dt * 0.8 * lsm, -LANE_SPREAD + trackBranchTarget + LANE_STEP, LANE_SPREAD + trackBranchTarget - LANE_STEP);
+  if (moveRight && !flash.active) targetX = clamp(targetX + LANE_STEP * dt * 0.8 * lsm, -LANE_SPREAD + trackBranchTarget + LANE_STEP, LANE_SPREAD + trackBranchTarget - LANE_STEP);
   const springF = (targetX - px) * SPRING_K * lsm;
   pvx = (pvx + springF) * DAMP;
   px += pvx * dt;
-  px = clamp(px, -LANE_SPREAD, LANE_SPREAD);
+  // ── Boundary rails: hard clamp with bounce ──
+  applyBoundaryRails();
+  // ── Jump physics ──
+  if (!isGrounded) {
+    jumpVY += (jumpVY < 0 ? JUMP_GRAV : JUMP_GRAV_FALL) * dt;
+    jumpY  += jumpVY * dt;
+    if (jumpY >= 0) { jumpY = 0; jumpVY = 0; isGrounded = true; }
+  }
+  // ── Track branch smooth slide ──
+  const branchSpring = (trackBranchTarget - trackBranchV) * 0.08;
+  trackBranchV += branchSpring;
+  if (trackBranchAnim > 0) trackBranchAnim = Math.max(0, trackBranchAnim - dt * 0.04);
+  // ── Biome override on fork tracks (handled AFTER updateBiome so we can override) ──
+  // (override applied inside updateBiome extension below)
   playerBob += 0.12 * dt * (0.5 + effectiveSpeed * 0.1);
 
   // ── Hyper ──
@@ -2587,12 +2799,12 @@ function loop(ts) {
 
   // ── Move objects ──
   const moveZ=effectiveSpeed*22*dt;
-  for(const obs of obstacles) obs.z+=moveZ;
-  for(const sh  of mushrooms) sh.z +=moveZ;
-  for(const r   of rings)     r.z  +=moveZ*1.4;
-  obstacles=obstacles.filter(o=>o.z<700);
-  mushrooms=mushrooms.filter(s=>s.z<700);
-  rings=rings.filter(r=>r.z<700);
+  for(const obs of obstacles) obs.dist-=moveZ;
+  for(const sh  of mushrooms) sh.dist -=moveZ;
+  for(const r   of rings)     r.dist  -=moveZ*1.4;
+  obstacles=obstacles.filter(o=>o.dist>-60);
+  mushrooms=mushrooms.filter(s=>s.dist>-60);
+  rings=rings.filter(r=>r.dist>-80);
 
   // ── Particles ──
   if(psy>0.2&&Math.random()<psy*0.4*dt) spawnPsyParticle();
@@ -2618,6 +2830,7 @@ function loop(ts) {
   // Phase effect (behind player)
   drawPhaseEffect();
 
+  drawRails();
   drawPlayer();
 
   // Umbrella (above player)
@@ -2782,6 +2995,330 @@ function showMenu(poopEarned) {
 // ── Render outfit grid ────────────────────────────────────────────
 let shopActiveTab = 'outfits';
 let payingForOutfit = null;
+let prevStateBeforeShop = 'menu';
+
+
+
+// ── OUTFIT PREVIEW ANIMATION SYSTEM ─────────────────────────────
+// Each outfit card has its own animation loop via requestAnimationFrame.
+// _drawOutfitPreview(canvas, outfit) draws one frame; the RAF loop calls it continuously.
+
+const _previewRAFs = new Map(); // canvas → raf handle
+
+function _stopPreviewAnim(canvas) {
+  if (_previewRAFs.has(canvas)) {
+    cancelAnimationFrame(_previewRAFs.get(canvas));
+    _previewRAFs.delete(canvas);
+  }
+}
+
+function _startPreviewAnim(canvas, outfit) {
+  _stopPreviewAnim(canvas);
+  function loop() {
+    _drawOutfitPreview(canvas, outfit);
+    _previewRAFs.set(canvas, requestAnimationFrame(loop));
+  }
+  _previewRAFs.set(canvas, requestAnimationFrame(loop));
+}
+
+function _drawOutfitPreview(canvas, outfit) {
+  const ctx2 = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx2.clearRect(0, 0, W, H);
+  const t = Date.now() * 0.001; // time in seconds
+
+  // ── Background ───────────────────────────────────────────────
+  const bg = ctx2.createRadialGradient(W/2, H/2, 4, W/2, H/2, W*0.6);
+  bg.addColorStop(0, 'rgba(22,22,32,0.95)');
+  bg.addColorStop(1, 'rgba(5,5,10,1)');
+  ctx2.fillStyle = bg;
+  ctx2.beginPath(); ctx2.roundRect(0, 0, W, H, 10); ctx2.fill();
+
+  // ── Per-outfit background FX ─────────────────────────────────
+  _outfitBgFX(ctx2, W, H, t, outfit);
+
+  // ── Penguin position (some outfits float/bounce) ──────────────
+  const cx = W/2;
+  let cy = H/2 + 6;
+  if (outfit.id === 'astronaut') cy += Math.sin(t * 1.2) * 5; // float
+  if (outfit.id === 'ghost')     cy += Math.sin(t * 0.8) * 4;
+  if (outfit.id === 'wizard')    cy += Math.sin(t * 2.0) * 2; // slight sway
+  if (outfit.id === 'shaman')    cy += Math.sin(t * 1.5) * 3;
+
+  // ── Body ──────────────────────────────────────────────────────
+  ctx2.save();
+  if (outfit.id === 'skeleton') {
+    // Skeleton rattles
+    const shake = Math.sin(t * 12) * 1.5;
+    ctx2.translate(shake, 0);
+  }
+  if (outfit.id === 'ghost') {
+    ctx2.globalAlpha = 0.55 + 0.35 * Math.abs(Math.sin(t * 1.5));
+  }
+
+  // Body fill
+  if (outfit.id === 'rainbow') {
+    const rg = ctx2.createLinearGradient(cx-16, cy-20, cx+16, cy+20);
+    const hue = (t * 60) % 360;
+    rg.addColorStop(0,   `hsl(${hue},100%,55%)`);
+    rg.addColorStop(0.33,`hsl(${(hue+120)%360},100%,55%)`);
+    rg.addColorStop(0.66,`hsl(${(hue+240)%360},100%,55%)`);
+    rg.addColorStop(1,   `hsl(${hue},100%,55%)`);
+    ctx2.fillStyle = rg;
+  } else {
+    const bc = Array.isArray(outfit.bodyColor) ? outfit.bodyColor[0] : '#222';
+    ctx2.fillStyle = bc;
+  }
+
+  // Glow
+  const glowActive = outfit.glowColor || outfit.shimmer || outfit.id === 'lava' || outfit.id === 'neon';
+  if (glowActive) {
+    ctx2.shadowColor = outfit.glowColor || outfit.accent || '#fff';
+    ctx2.shadowBlur = outfit.shimmer
+      ? 14 + 8 * Math.abs(Math.sin(t * 3))
+      : (outfit.id === 'lava' ? 12 + 8 * Math.abs(Math.sin(t * 2.5)) : 10);
+  }
+
+  // Body ellipse
+  ctx2.beginPath();
+  ctx2.ellipse(cx, cy, 14, 19, 0, 0, Math.PI * 2);
+  ctx2.fill();
+  ctx2.shadowBlur = 0;
+
+  // Belly
+  ctx2.fillStyle = outfit.bellyColor || '#f5f5f0';
+  ctx2.globalAlpha = outfit.id === 'ghost'
+    ? 0.4 + 0.3 * Math.abs(Math.sin(t * 1.5))
+    : (ctx2.globalAlpha || 1);
+  ctx2.beginPath();
+  ctx2.ellipse(cx, cy + 3, 8, 12, 0, 0, Math.PI * 2);
+  ctx2.fill();
+  ctx2.globalAlpha = 1;
+
+  // Bone lines (skeleton)
+  if (outfit.boneLines) {
+    ctx2.strokeStyle = 'rgba(30,30,30,0.7)'; ctx2.lineWidth = 1.5;
+    for (let b = 0; b < 4; b++) {
+      ctx2.beginPath();
+      ctx2.moveTo(cx - 9, cy - 6 + b * 6);
+      ctx2.lineTo(cx + 9, cy - 6 + b * 6);
+      ctx2.stroke();
+    }
+  }
+
+  // Runes (ancient) — orbiting glyphs
+  if (outfit.runes) {
+    ctx2.font = '9px serif'; ctx2.textAlign = 'center'; ctx2.fillStyle = '#c8a46e';
+    const glyphs = ['ᚱ','ᚾ','ᛏ','ᚢ'];
+    glyphs.forEach((g, i) => {
+      const a = t * 0.8 + i * (Math.PI / 2);
+      const rx = cx + Math.cos(a) * 22;
+      const ry = cy + Math.sin(a) * 14;
+      ctx2.globalAlpha = 0.6 + 0.4 * Math.sin(t + i);
+      ctx2.fillText(g, rx, ry);
+    });
+    ctx2.globalAlpha = 1;
+  }
+
+  // Cyborg scan line
+  if (outfit.id === 'cyber') {
+    const scanY = (cy - 19) + ((t * 30) % 40);
+    ctx2.strokeStyle = 'rgba(74,222,128,0.5)';
+    ctx2.lineWidth = 1.2;
+    ctx2.beginPath(); ctx2.moveTo(cx - 14, scanY); ctx2.lineTo(cx + 14, scanY);
+    ctx2.stroke();
+  }
+
+  // Neon speed streaks
+  if (outfit.id === 'neon') {
+    ctx2.strokeStyle = outfit.glowColor || '#00ffff';
+    ctx2.lineWidth = 1;
+    for (let s = 0; s < 4; s++) {
+      const streakX = cx - 28 + ((t * 80 + s * 20) % 60);
+      const streakY = cy - 10 + s * 6;
+      ctx2.globalAlpha = 0.4;
+      ctx2.beginPath(); ctx2.moveTo(streakX, streakY); ctx2.lineTo(streakX + 14, streakY);
+      ctx2.stroke();
+    }
+    ctx2.globalAlpha = 1;
+  }
+
+  // Eyes
+  const eyeC = (outfit.id === 'cyber' && Math.sin(t * 7) > 0.7)
+    ? '#ff000088' // flicker
+    : (outfit.eyeColor || '#00cfff');
+  ctx2.fillStyle = eyeC;
+  ctx2.shadowColor = eyeC; ctx2.shadowBlur = 6;
+  ctx2.beginPath(); ctx2.arc(cx - 5, cy - 8, 2.5, 0, Math.PI * 2); ctx2.fill();
+  ctx2.beginPath(); ctx2.arc(cx + 5, cy - 8, 2.5, 0, Math.PI * 2); ctx2.fill();
+  ctx2.shadowBlur = 0;
+
+  // Flippers
+  const flipperC = Array.isArray(outfit.bodyColor) ? outfit.bodyColor[0] : '#222';
+  ctx2.fillStyle = outfit.id === 'rainbow' ? ctx2.fillStyle : flipperC; // keep rainbow gradient
+  const flipAngle = outfit.id === 'astronaut' ? Math.sin(t * 1.2) * 0.15 : 0;
+  ctx2.beginPath(); ctx2.ellipse(cx - 18, cy + flipAngle * 10, 5, 10, -0.3 + flipAngle, 0, Math.PI * 2); ctx2.fill();
+  ctx2.beginPath(); ctx2.ellipse(cx + 18, cy - flipAngle * 10, 5, 10, 0.3 - flipAngle, 0, Math.PI * 2); ctx2.fill();
+
+  // Beak
+  ctx2.fillStyle = outfit.accent || '#ffa500';
+  ctx2.shadowBlur = 0;
+  ctx2.beginPath();
+  ctx2.moveTo(cx, cy - 4);
+  ctx2.lineTo(cx - 4, cy - 1);
+  ctx2.lineTo(cx + 4, cy - 1);
+  ctx2.closePath(); ctx2.fill();
+
+  // Hat (wizard, cowboy, shaman, king)
+  if (outfit.hat) {
+    const ho = outfit.hatOffset || [0, -28];
+    if (outfit.id === 'wizard') {
+      // Staff spark
+      ctx2.shadowColor = '#9b59ff'; ctx2.shadowBlur = 10 + 6 * Math.abs(Math.sin(t * 4));
+    }
+    ctx2.font = (outfit.id === 'king' ? '18' : '20') + 'px serif';
+    ctx2.textAlign = 'center'; ctx2.textBaseline = 'alphabetic';
+    ctx2.fillText(outfit.hat, cx + ho[0], cy + ho[1] * 0.6 + 4);
+    ctx2.shadowBlur = 0;
+    // Wizard staff
+    if (outfit.id === 'wizard') {
+      ctx2.strokeStyle = '#7040b0'; ctx2.lineWidth = 2;
+      ctx2.beginPath(); ctx2.moveTo(cx + 14, cy + 14); ctx2.lineTo(cx + 18, cy - 10); ctx2.stroke();
+      ctx2.fillStyle = '#9b59ff';
+      ctx2.shadowColor = '#9b59ff'; ctx2.shadowBlur = 8 + 5 * Math.abs(Math.sin(t * 5));
+      ctx2.beginPath(); ctx2.arc(cx + 18, cy - 11, 3, 0, Math.PI * 2); ctx2.fill();
+      ctx2.shadowBlur = 0;
+    }
+  }
+
+  // King crown sparkles
+  if (outfit.id === 'king') {
+    for (let s = 0; s < 5; s++) {
+      const sa = t * 2.5 + s * (Math.PI * 2 / 5);
+      const sr = 18 + 4 * Math.sin(t * 3 + s);
+      const sx = cx + Math.cos(sa) * sr * 0.7;
+      const sy = (cy - 28) + Math.sin(sa) * sr * 0.4;
+      ctx2.fillStyle = `hsl(${50 + s * 15},100%,${65 + 20*Math.sin(t*4+s)}%)`;
+      ctx2.globalAlpha = 0.7 + 0.3 * Math.sin(t * 6 + s);
+      ctx2.beginPath(); ctx2.arc(sx, sy, 1.5, 0, Math.PI * 2); ctx2.fill();
+    }
+    ctx2.globalAlpha = 1;
+  }
+
+  // Shaman spores drifting up
+  if (outfit.id === 'shaman') {
+    for (let p = 0; p < 6; p++) {
+      const age = ((t * 0.6 + p * 0.25) % 1.5) / 1.5; // 0→1 over 1.5s
+      const sx = cx + (-12 + p * 5) + Math.sin(t + p) * 4;
+      const sy = cy + 18 - age * 45;
+      ctx2.fillStyle = '#88cc44';
+      ctx2.globalAlpha = (1 - age) * 0.6;
+      ctx2.beginPath(); ctx2.arc(sx, sy, 1.5, 0, Math.PI * 2); ctx2.fill();
+    }
+    ctx2.globalAlpha = 1;
+  }
+
+  // Vaporwave scanlines sweeping
+  if (outfit.id === 'vaporwave') {
+    for (let row = 0; row < 5; row++) {
+      const scanY2 = (cy - 20) + row * 10 + ((t * 20) % 10);
+      if (scanY2 > cy - 22 && scanY2 < cy + 22) {
+        ctx2.strokeStyle = 'rgba(255,110,199,0.2)';
+        ctx2.lineWidth = 1;
+        ctx2.beginPath(); ctx2.moveTo(cx - 14, scanY2); ctx2.lineTo(cx + 14, scanY2); ctx2.stroke();
+      }
+    }
+  }
+
+  ctx2.restore();
+
+  // ── Lock overlay ─────────────────────────────────────────────
+  const owned = economy ? economy.ownedOutfits.includes(outfit.id) : false;
+  if (!owned && !outfit.free) {
+    ctx2.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx2.beginPath(); ctx2.roundRect(0, 0, W, H, 10); ctx2.fill();
+    ctx2.font = '20px serif'; ctx2.textAlign = 'center'; ctx2.textBaseline = 'middle';
+    ctx2.fillText('🔒', W/2, H/2);
+    ctx2.textBaseline = 'alphabetic';
+  }
+}
+
+// ── Per-outfit background particle FX ────────────────────────────
+function _outfitBgFX(ctx2, W, H, t, outfit) {
+  const cx = W/2, cy = H/2;
+  switch(outfit.id) {
+    case 'lava':
+      // rising ember particles
+      for (let i = 0; i < 5; i++) {
+        const age = ((t * 0.5 + i * 0.3) % 1.5) / 1.5;
+        const ex = cx + (-18 + i * 9) + Math.sin(t + i * 1.3) * 5;
+        const ey = H - 4 - age * (H - 8);
+        ctx2.fillStyle = `hsl(${20 + i*8},100%,${50 + 20*age}%)`;
+        ctx2.globalAlpha = (1 - age) * 0.7;
+        ctx2.beginPath(); ctx2.arc(ex, ey, 2.5 - age*1.5, 0, Math.PI*2); ctx2.fill();
+      }
+      ctx2.globalAlpha = 1;
+      break;
+    case 'crystal':
+      // rotating facet lines
+      for (let f = 0; f < 6; f++) {
+        const a = t * 0.4 + f * (Math.PI / 3);
+        const r = 32;
+        ctx2.strokeStyle = `hsla(${190 + f*15},100%,70%,0.18)`;
+        ctx2.lineWidth = 1;
+        ctx2.beginPath();
+        ctx2.moveTo(cx, cy);
+        ctx2.lineTo(cx + Math.cos(a)*r, cy + Math.sin(a)*r*0.6);
+        ctx2.stroke();
+      }
+      break;
+    case 'astronaut':
+      // stars
+      for (let s = 0; s < 12; s++) {
+        const sx = (s * 17 + 7) % W;
+        const sy = (s * 23 + 5) % H;
+        ctx2.fillStyle = '#fff';
+        ctx2.globalAlpha = 0.3 + 0.3*Math.sin(t*2 + s);
+        ctx2.beginPath(); ctx2.arc(sx, sy, 0.8, 0, Math.PI*2); ctx2.fill();
+      }
+      ctx2.globalAlpha = 1;
+      break;
+    case 'ghost':
+      // wispy rings
+      for (let r = 0; r < 3; r++) {
+        const rad = 10 + r*10 + Math.sin(t*1.5 + r)*4;
+        ctx2.strokeStyle = 'rgba(150,180,255,0.12)';
+        ctx2.lineWidth = 1.5;
+        ctx2.beginPath(); ctx2.arc(cx, cy, rad, 0, Math.PI*2); ctx2.stroke();
+      }
+      break;
+    case 'rainbow':
+      // color burst background
+      const rg = ctx2.createRadialGradient(cx, cy, 2, cx, cy, 38);
+      const hue = (t * 50) % 360;
+      rg.addColorStop(0, `hsla(${hue},100%,50%,0.15)`);
+      rg.addColorStop(1, 'transparent');
+      ctx2.fillStyle = rg;
+      ctx2.beginPath(); ctx2.roundRect(0, 0, W, H, 10); ctx2.fill();
+      break;
+    case 'neon':
+      // grid lines
+      ctx2.strokeStyle = 'rgba(0,255,255,0.07)';
+      ctx2.lineWidth = 0.8;
+      for (let g = 0; g < W; g += 12) { ctx2.beginPath(); ctx2.moveTo(g,0); ctx2.lineTo(g,H); ctx2.stroke(); }
+      for (let g = 0; g < H; g += 12) { ctx2.beginPath(); ctx2.moveTo(0,g); ctx2.lineTo(W,g); ctx2.stroke(); }
+      break;
+    case 'king':
+      // subtle gold radial
+      const kg = ctx2.createRadialGradient(cx, cy, 5, cx, cy, 40);
+      kg.addColorStop(0, 'rgba(255,215,0,0.12)');
+      kg.addColorStop(1, 'transparent');
+      ctx2.fillStyle = kg;
+      ctx2.beginPath(); ctx2.roundRect(0,0,W,H,10); ctx2.fill();
+      break;
+  }
+}
+
 
 function renderOutfitGrid() {
   const grid = document.getElementById('outfit-grid');
@@ -2803,7 +3340,7 @@ function renderOutfitGrid() {
     }
 
     card.innerHTML = `
-      <div class="preview">${outfit.emoji}</div>
+      <canvas class="preview-canvas" width="80" height="80" style="display:block;margin:0 auto 6px;border-radius:10px;"></canvas>
       <div class="oname">${outfit.name}</div>
       ${priceHTML}
       <div class="obadge">${equipped ? 'ON' : owned ? 'OWN' : ''}</div>
@@ -2819,6 +3356,9 @@ function renderOutfitGrid() {
     });
 
     grid.appendChild(card);
+    // Start animated preview loop for this card
+    const prevC = card.querySelector('.preview-canvas');
+    if (prevC) _startPreviewAnim(prevC, outfit);
   });
 }
 
@@ -2864,16 +3404,28 @@ function openPayModal(outfit) {
 // ── Shop open/close ──────────────────────────────────────────────
 document.getElementById('shop-btn').addEventListener('click', e => {
   e.stopPropagation();
+  prevStateBeforeShop = state;
   if (state === 'playing') state = 'shop';
   setLizardLine(randomLizardLine());
   updateEconHUD();
   renderOutfitGrid();
   document.getElementById('shop-modal').classList.add('open');
+  // Hide overlay so it doesn't show over shop
+  const ov = document.getElementById('overlay');
+  if (ov) ov.style.display = 'none';
 });
 
 document.getElementById('shop-close').addEventListener('click', e => {
   e.stopPropagation();
   document.getElementById('shop-modal').classList.remove('open');
+  // Stop all preview animations to free RAF handles
+  _previewRAFs.forEach((handle, canvas) => cancelAnimationFrame(handle));
+  _previewRAFs.clear();
+  // Restore overlay visibility based on game state
+  const ov = document.getElementById('overlay');
+  if (ov && (prevStateBeforeShop === 'menu' || prevStateBeforeShop === 'dead')) {
+    ov.style.display = '';
+  }
   if (state === 'shop') {
     state = 'playing';
     startGameLoop();

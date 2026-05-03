@@ -55,7 +55,7 @@
 
     /* ── Layout ──────────────────────────────────────────────── */
     .app-layout {
-      display: flex; height: calc(100vh - 56px);
+      display: flex; min-height:0;
     }
     .sidebar-slot { flex-shrink: 0; }
     .main-area {
@@ -234,9 +234,20 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--border-default); }
-  </style>
+  
+@media(max-width:768px){
+  .shell,.layout,.app-layout,.page-wrap{flex-direction:column!important;}
+  main,.main-content,.content,.page-content{
+    padding:16px 12px!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+    min-height:0!important;
+    flex:1!important;
+  }
+}
+</style>
 </head>
-<body>
+<body data-skip-nav-sidebar="true">
 
   <!-- ── Topbar ──────────────────────────────────────────────── -->
   <div class="topbar">
@@ -264,8 +275,6 @@
   <!-- ── App layout ──────────────────────────────────────────── -->
   <div class="app-layout" style="display:flex;min-height:0;overflow:hidden;">
 <!-- sidebar injected by murphy-nav.js PATCH-154c -->
-
-    <murphy-sidebar active="GUEST PORTAL"></murphy-sidebar>
 
     <div class="main-area">
       <!-- Tab bar -->

@@ -62,7 +62,7 @@
   .topbar-status { font-size: 12px; color: var(--text-muted); }
 
   /* ── Layout ──────────────────────────────────────────── */
-  .layout { display: flex; height: calc(100vh - 56px); }
+  .layout { display: flex; min-height:0; }
   .doc-sidebar {
     width: 280px; min-width: 280px; background: var(--bg-surface);
     border-right: 1px solid var(--border-subtle); display: flex; flex-direction: column;
@@ -252,9 +252,20 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--border-focus); }
+
+@media(max-width:768px){
+  .shell,.layout,.app-layout,.page-wrap{flex-direction:column!important;}
+  main,.main-content,.content,.page-content{
+    padding:16px 12px!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+    min-height:0!important;
+    flex:1!important;
+  }
+}
 </style>
 </head>
-<body>
+<body data-skip-nav-sidebar="true">
 
 <!-- Error Banner -->
 <div class="error-banner" id="error-banner">
@@ -273,8 +284,6 @@
     <span class="topbar-status" id="refresh-status"></span>
   </div>
 </div>
-
-<murphy-sidebar active="WORKDOCS"></murphy-sidebar>
 
 <!-- Layout -->
 <div class="layout" style="display:flex;min-height:0;overflow:hidden;">

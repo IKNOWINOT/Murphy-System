@@ -158,7 +158,7 @@ def create_time_tracking_router(
 
     @router.get("/timesheets")
     async def list_timesheets(user_id: str = Query("")):
-        sheets = tracker.list_timesheets(user_id)
+        sheets = tracker.list_sheets(user_id=user_id if user_id else None)
         return JSONResponse([s.to_dict() for s in sheets])
 
     return router

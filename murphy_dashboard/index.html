@@ -821,7 +821,7 @@ function renderTicker() {
 // ===========================================================================
 async function loadOverview() {
   const [health, labor, hitl, execs, setup, campaigns] = await Promise.all([
-    apiFetch('/health'),
+    apiFetch('/api/health?extended=true'),
     apiFetch('/api/labor-cost'),
     apiFetch('/api/hitl/queue?status=pending'),
     apiFetch('/api/executions?limit=20'),
@@ -829,18 +829,18 @@ async function loadOverview() {
     apiFetch('/api/marketing/campaigns'),
   ]);
   const savings = labor.summary?.total_monthly_savings || 0;
-  document.getElementById('kpi-autos').textContent = health.active_automations;
+  document.getElementById('kpi-autos').textContent = health.active_automations ?? health.total_automations ?? '0';
   document.getElementById('kpi-savings').textContent = fmtMoney(savings);
   document.getElementById('kpi-execs').textContent = execs.total;
 
   document.getElementById('overviewKPIs').innerHTML = `
-    <div class="kpi"><div class="kpi-val" style="color:var(--green)">${health.active_automations}</div><div class="kpi-label">Active Automations</div></div>
-    <div class="kpi"><div class="kpi-val" style="color:var(--hitl)">${hitl.pending}</div><div class="kpi-label">HITL Pending</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--green)">${health.active_automations ?? health.total_automations ?? '0'}</div><div class="kpi-label">Active Automations</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--hitl)">${hitl.pending_count ?? hitl.pending ?? 0}</div><div class="kpi-label">HITL Pending</div></div>
     <div class="kpi"><div class="kpi-val" style="color:var(--blue)">${fmtMoney(savings)}</div><div class="kpi-label">Monthly Savings</div></div>
-    <div class="kpi"><div class="kpi-val" style="color:var(--orange)">${health.tenants}</div><div class="kpi-label">Tenants</div></div>
-    <div class="kpi"><div class="kpi-val" style="color:var(--purple)">${health.campaigns}</div><div class="kpi-label">Campaigns Live</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--orange)">${health.tenants ?? 1}</div><div class="kpi-label">Tenants</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--purple)">${health.campaigns ?? campaigns?.total ?? 0}</div><div class="kpi-label">Campaigns Live</div></div>
   `;
-  updateHITLBadge({pending: hitl.pending});
+  updateHITLBadge({pending: hitl.pending_count ?? hitl.pending ?? 0});
   await updateAutoBlocks();
   refreshHITLPreview();
   updateCampaignMini(campaigns.campaigns);

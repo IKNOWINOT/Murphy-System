@@ -107,21 +107,11 @@ class QuestionManager:
         return self.context.copy()
 
     def format_next_question(self) -> Optional[str]:
-        """Format the next question with progress indicator"""
+        """Format the next question cleanly — no markdown headers."""
         next_q = self.get_next_question()
         if not next_q:
             return None
-
-        progress = self.get_progress()
-
-        formatted = f"""## Question ({progress})
-
-{next_q}
-
-*Please provide your answer, and I'll ask the next question.*
-"""
-
-        return formatted
+        return str(next_q).strip()
 
     def should_ask_questions(self) -> bool:
         """Determine if we should be in questioning mode"""

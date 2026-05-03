@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Game Studio — Murphy System</title>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
+<style>
+.gs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+@media(max-width:768px){ .gs-grid { grid-template-columns: 1fr; } }
+.card { background: rgba(255,255,255,.04); border: 1px solid rgba(0,212,170,.2); border-radius: 12px; padding: 1.5rem; }
+.card h3 { color: #00D4AA; margin: 0 0 1rem 0; font-size: 1rem; }
+.form-row { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1rem; }
+label { font-size: .8rem; color: #aaa; text-transform: uppercase; letter-spacing: .05em; }
+select, input[type=text] {
+  background: rgba(0,0,0,.4); border: 1px solid rgba(0,212,170,.3);
+  border-radius: 6px; color: #e0e0e0; padding: .5rem .75rem; font-size: .9rem; width: 100%;
+}
+select:focus, input:focus { outline: none; border-color: #00D4AA; }
+.btn { padding: .6rem 1.4rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: .9rem; transition: all .2s; }
+.btn-primary { background: #00D4AA; color: #0a0a0a; }
+.btn-primary:hover { background: #00ffcc; }
+.btn-secondary { background: rgba(0,212,170,.15); color: #00D4AA; border: 1px solid rgba(0,212,170,.3); }
+.btn-secondary:hover { background: rgba(0,212,170,.25); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.badge { display: inline-block; padding: .2rem .6rem; border-radius: 20px; font-size: .75rem; font-weight: 600; }
+.badge-green { background: rgba(0,212,170,.15); color: #00D4AA; border: 1px solid rgba(0,212,170,.3); }
+.badge-blue  { background: rgba(100,180,255,.15); color: #64b4ff; border: 1px solid rgba(100,180,255,.3); }
+.badge-yellow{ background: rgba(255,214,0,.15); color: #ffd600; border: 1px solid rgba(255,214,0,.3); }
+.world-list { max-height: 340px; overflow-y: auto; }
+.world-row { display: flex; justify-content: space-between; align-items: center; padding: .6rem .4rem; border-bottom: 1px solid rgba(255,255,255,.06); font-size: .85rem; }
+.world-row:last-child { border-bottom: none; }
+.world-name { color: #e0e0e0; font-weight: 600; }
+.world-meta { color: #888; font-size: .78rem; margin-top: .1rem; }
+.stat-box { text-align: center; }
+.stat-num { font-size: 2rem; font-weight: 700; color: #00D4AA; }
+.stat-label { font-size: .75rem; color: #888; text-transform: uppercase; letter-spacing: .06em; margin-top: .2rem; }
+.types-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: .5rem; margin-top: .5rem; }
+.type-chip { text-align: center; padding: .5rem .4rem; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); border-radius: 8px; cursor: pointer; font-size: .8rem; color: #ccc; transition: all .15s; }
+.type-chip:hover, .type-chip.active { background: rgba(0,212,170,.15); border-color: #00D4AA; color: #00D4AA; }
+.type-chip .chip-icon { font-size: 1.4rem; display: block; margin-bottom: .2rem; }
+.result-box { background: rgba(0,0,0,.4); border: 1px solid rgba(0,212,170,.25); border-radius: 8px; padding: 1rem; margin-top: 1rem; font-size: .85rem; color: #ccc; display: none; }
+.result-box.show { display: block; }
+.result-box pre { white-space: pre-wrap; word-break: break-word; }
+</style>
+</head>
+<body>
+<div id="murphy-nav-root"></div>
+<div class="murphy-page-content" style="padding: 2rem;">
+  <div style="display:flex;align-items:center;gap:1rem;margin-bottom:2rem;">
+    <h1 style="margin:0;font-size:1.6rem;">🎮 Game Studio</h1>
+    <span class="badge badge-green">LIVE</span>
+  </div>
+
+  <!-- Stats row -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:2rem;" id="statsRow">
+    <div class="card stat-box"><div class="stat-num" id="statWorlds">—</div><div class="stat-label">Worlds Created</div></div>
+    <div class="card stat-box"><div class="stat-num" id="statTypes">15</div><div class="stat-label">Game Types</div></div>
+    <div class="card stat-box"><div class="stat-num" id="statThemes">20</div><div class="stat-label">Themes</div></div>
+    <div class="card stat-box"><div class="stat-num" id="statZones">—</div><div class="stat-label">Total Zones</div></div>
+  </div>
+
+  <div class="gs-grid">
+    <!-- LEFT: World Generator -->
+    <div>
+      <div class="card" style="margin-bottom:1.5rem;">
+        <h3>🌍 Generate New World</h3>
+
+        <!-- Game Type chips -->
+        <div class="form-row">
+          <label>Game Type</label>
+          <div class="types-grid" id="typeChips"></div>
+        </div>
+
+        <div class="form-row">
+          <label>Theme</label>
+          <select id="themeSelect"></select>
+        </div>
+
+        <div class="form-row">
+          <label>World Name (optional)</label>
+          <input type="text" id="worldName" placeholder="Auto-generated if empty">
+        </div>
+
+        <button class="btn btn-primary" id="generateBtn" onclick="generateWorld()">⚡ Generate World</button>
+
+        <div class="result-box" id="genResult"></div>
+      </div>
+
+      <!-- Pipeline start -->
+      <div class="card">
+        <h3>🏭 Start Release Pipeline</h3>
+        <p style="font-size:.85rem;color:#888;margin:0 0 1rem 0;">Kick off a full 7-stage quality-gated release pipeline for any game genre.</p>
+        <div class="form-row">
+          <label>Genre (uses selection above)</label>
+          <select id="pipelineGameType"></select>
+        </div>
+        <div class="form-row">
+          <label>Theme</label>
+          <select id="pipelineTheme"></select>
+        </div>
+        <div class="form-row">
+          <label>World Name</label>
+          <input type="text" id="pipelineWorldName" placeholder="e.g. Shadow Realm v1">
+        </div>
+        <button class="btn btn-secondary" id="pipelineBtn" onclick="startPipeline()">▶ Start Pipeline</button>
+        <div class="result-box" id="pipelineResult"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: World list + pipeline runs -->
+    <div>
+      <div class="card" style="margin-bottom:1.5rem;">
+        <h3>🗺️ Generated Worlds</h3>
+        <div class="world-list" id="worldList">
+          <div style="color:#888;font-size:.85rem;">Loading...</div>
+        </div>
+        <button class="btn btn-secondary" style="margin-top:1rem;font-size:.8rem;" onclick="loadWorlds()">↻ Refresh</button>
+      </div>
+
+      <div class="card">
+        <h3>📋 Pipeline Runs</h3>
+        <div class="world-list" id="pipelineList">
+          <div style="color:#888;font-size:.85rem;">Loading...</div>
+        </div>
+        <button class="btn btn-secondary" style="margin-top:1rem;font-size:.8rem;" onclick="loadPipelines()">↻ Refresh</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/murphy-runtime.js"></script>
+<script src="/static/murphy-nav.js"></script>
+<script>
+// Auth via session cookie (PATCH-158)
+
+const TYPE_ICONS = {
+  MMORPG: '⚔️', PLATFORMER: '🏃', PUZZLE: '🧩', RUNNER: '🏁',
+  SHOOTER: '🔫', STRATEGY: '♟️', SURVIVAL: '🏕️', ADVENTURE: '🗺️',
+  RACING: '🏎️', TOWER_DEFENSE: '🗼', ROGUELIKE: '🎲', VISUAL_NOVEL: '📖',
+  SANDBOX: '🏗️', FIGHTING: '🥊', HORROR: '👻',
+};
+
+let selectedType = 'MMORPG';
+let gameTypes = [];
+let themes = [];
+
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(path, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...opts.headers },
+    ...opts,
+  });
+  return res.json();
+}
+
+async function loadTypes() {
+  try {
+    const data = await apiFetch('/api/game/types');
+    gameTypes = data.game_types || [];
+    themes    = data.themes    || [];
+
+    // Render type chips
+    const container = document.getElementById('typeChips');
+    container.innerHTML = gameTypes.map(t => `
+      <div class="type-chip ${t.id === selectedType ? 'active' : ''}" onclick="selectType('${t.id}', this)">
+        <span class="chip-icon">${TYPE_ICONS[t.id] || '🎮'}</span>
+        ${t.label}
+      </div>
+    `).join('');
+
+    // Populate theme selects
+    const themeOpts = themes.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
+    document.getElementById('themeSelect').innerHTML = themeOpts;
+    document.getElementById('pipelineTheme').innerHTML = themeOpts;
+
+    // Populate pipeline game type select
+    const typeOpts = gameTypes.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
+    document.getElementById('pipelineGameType').innerHTML = typeOpts;
+
+    // Update stats
+    document.getElementById('statTypes').textContent = gameTypes.length;
+    document.getElementById('statThemes').textContent = themes.length;
+  } catch(e) {
+    console.error('Failed to load types:', e);
+  }
+}
+
+function selectType(id, el) {
+  selectedType = id;
+  document.querySelectorAll('.type-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+async function loadWorlds() {
+  const box = document.getElementById('worldList');
+  try {
+    const data = await apiFetch('/api/game/worlds');
+    const worlds = data.worlds || [];
+    document.getElementById('statWorlds').textContent = worlds.length;
+    const totalZones = worlds.reduce((sum, w) => sum + (w.zone_count || 0), 0);
+    document.getElementById('statZones').textContent = totalZones;
+    if (!worlds.length) {
+      box.innerHTML = '<div style="color:#888;font-size:.85rem;padding:.5rem 0;">No worlds generated yet — create your first one!</div>';
+      return;
+    }
+    box.innerHTML = worlds.map(w => `
+      <div class="world-row">
+        <div>
+          <div class="world-name">${w.name || w.world_id}</div>
+          <div class="world-meta">
+            ${TYPE_ICONS[w.game_type?.toUpperCase()] || '🎮'} ${(w.game_type || 'mmorpg').toUpperCase()} &nbsp;·&nbsp;
+            🎨 ${(w.theme || '').replace(/_/g,' ')} &nbsp;·&nbsp;
+            🗺️ ${w.zone_count} zones
+          </div>
+        </div>
+        <span class="badge ${w.active ? 'badge-green' : 'badge-yellow'}">${w.active ? 'Active' : 'Inactive'}</span>
+      </div>
+    `).join('');
+  } catch(e) {
+    box.innerHTML = '<div style="color:#f44;font-size:.85rem;">Failed to load worlds</div>';
+  }
+}
+
+async function loadPipelines() {
+  const box = document.getElementById('pipelineList');
+  try {
+    const data = await apiFetch('/api/game/pipeline/runs');
+    const runs = data.runs || [];
+    if (!runs.length) {
+      box.innerHTML = '<div style="color:#888;font-size:.85rem;padding:.5rem 0;">No pipeline runs yet.</div>';
+      return;
+    }
+    box.innerHTML = runs.map(r => `
+      <div class="world-row">
+        <div>
+          <div class="world-name">${r.run_id?.substring(0,8) || '—'}</div>
+          <div class="world-meta">
+            🎨 ${(r.theme || '').replace(/_/g,' ')} &nbsp;·&nbsp; Stage: ${r.current_stage || '—'}
+          </div>
+        </div>
+        <span class="badge ${r.status === 'completed' ? 'badge-green' : r.status === 'running' ? 'badge-blue' : 'badge-yellow'}">${r.status || '—'}</span>
+      </div>
+    `).join('');
+  } catch(e) {
+    box.innerHTML = '<div style="color:#f44;font-size:.85rem;">Failed to load pipelines</div>';
+  }
+}
+
+async function generateWorld() {
+  const btn = document.getElementById('generateBtn');
+  const box = document.getElementById('genResult');
+  btn.disabled = true;
+  btn.textContent = '⚙️ Generating...';
+  box.classList.remove('show');
+  try {
+    const data = await apiFetch('/api/game/worlds', {
+      method: 'POST',
+      body: JSON.stringify({
+        name:      document.getElementById('worldName').value.trim() || null,
+        theme:     document.getElementById('themeSelect').value,
+        game_type: selectedType,
+      }),
+    });
+    box.classList.add('show');
+    if (data.success) {
+      box.innerHTML = `
+        <div style="color:#00D4AA;font-weight:700;margin-bottom:.5rem;">✅ World Created!</div>
+        <div><b>Name:</b> ${data.name}</div>
+        <div><b>Type:</b> ${TYPE_ICONS[data.game_type?.toUpperCase()] || ''} ${(data.game_type || '').toUpperCase()}</div>
+        <div><b>Theme:</b> ${data.theme}</div>
+        <div><b>Zones:</b> ${data.zone_count}</div>
+        <div style="color:#888;font-size:.8rem;margin-top:.4rem;">ID: ${data.world_id}</div>
+      `;
+      loadWorlds();
+    } else {
+      box.innerHTML = `<div style="color:#f44;">❌ ${data.error || 'Unknown error'}</div>`;
+    }
+  } catch(e) {
+    box.classList.add('show');
+    box.innerHTML = `<div style="color:#f44;">❌ Request failed: ${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ Generate World';
+  }
+}
+
+async function startPipeline() {
+  const btn = document.getElementById('pipelineBtn');
+  const box = document.getElementById('pipelineResult');
+  btn.disabled = true;
+  btn.textContent = '⚙️ Starting...';
+  box.classList.remove('show');
+  try {
+    const data = await apiFetch('/api/game/pipeline/start', {
+      method: 'POST',
+      body: JSON.stringify({
+        world_name: document.getElementById('pipelineWorldName').value.trim() || null,
+        theme:      document.getElementById('pipelineTheme').value,
+        game_type:  document.getElementById('pipelineGameType').value,
+      }),
+    });
+    box.classList.add('show');
+    if (data.success) {
+      box.innerHTML = `
+        <div style="color:#00D4AA;font-weight:700;margin-bottom:.5rem;">✅ Pipeline Started!</div>
+        <div><b>Run ID:</b> ${data.run_id}</div>
+        <div><b>Theme:</b> ${data.theme}</div>
+        <div><b>Status:</b> ${data.status}</div>
+      `;
+      loadPipelines();
+    } else {
+      box.innerHTML = `<div style="color:#f44;">❌ ${data.error || 'Unknown error'}</div>`;
+    }
+  } catch(e) {
+    box.classList.add('show');
+    box.innerHTML = `<div style="color:#f44;">❌ Request failed: ${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ Start Pipeline';
+  }
+}
+
+// Init
+loadTypes().then(() => {
+  loadWorlds();
+  loadPipelines();
+});
+</script>
+</body>
+</html>

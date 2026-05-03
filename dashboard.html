@@ -7,9 +7,19 @@
 <title>Murphy — Dashboard</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <style>
+:root{
+  --bg:#0a0a0a;--bg2:#111;--bg3:#161616;
+  --surface:#111;--elevated:#1a1a1a;
+  --border:rgba(0,212,170,.12);--border-mid:rgba(0,212,170,.22);
+  --text:#e0e6ea;--text-dim:#6b8090;--muted:#6b8090;
+  --teal:#00D4AA;--teal-dim:rgba(0,212,170,.08);--teal-border:rgba(0,212,170,.25);
+  --green:#00ff41;--font:Inter,system-ui,sans-serif;
+  --radius:10px;
+}
+
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 /* :root removed by PATCH-154 — using murphy-app-shell.css */
-body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;display:flex;flex-direction:column}
+body{background:var(--bg,#0a0a0a);color:var(--text,#e0e6ea);font-family:var(--font,Inter,system-ui,sans-serif);min-height:100vh;display:flex;flex-direction:column}
 
 /* NAV */
 nav{height:56px;background:rgba(10,15,10,.9);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
@@ -30,7 +40,7 @@ nav{height:56px;background:rgba(10,15,10,.9);border-bottom:1px solid var(--borde
 .btn-ghost:hover{color:var(--text);border-color:rgba(255,255,255,.2)}
 
 /* SHELL */
-.shell{display:flex;flex:1;overflow:hidden;height:calc(100vh - 56px)}
+.shell{display:flex;flex:1;min-height:0;}
 
 /* SIDEBAR */
 aside{width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;padding:16px 8px}
@@ -43,7 +53,7 @@ aside{width:220px;background:var(--surface);border-right:1px solid var(--border)
 .side-user{padding:10px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
 
 /* MAIN */
-main{flex:1;overflow-y:auto;padding:28px 32px}
+main{flex:1;overflow-y:auto;padding:20px 16px;min-height:0;}
 h1{font-size:20px;font-weight:700;margin-bottom:4px}
 .sub{font-size:13px;color:var(--muted);margin-bottom:24px}
 
@@ -93,6 +103,17 @@ select.forge-input{cursor:pointer}
 .forge-status{font-size:12px;color:var(--muted);min-height:20px}
 .forge-status.ok{color:var(--teal)}
 .forge-status.err{color:#f87171}
+
+@media(max-width:768px){
+  .shell{flex-direction:column;}
+  main{padding:16px 12px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+}
+
+/* Loading skeleton */
+.skeleton{background:linear-gradient(90deg,rgba(0,212,170,.05) 25%,rgba(0,212,170,.12) 50%,rgba(0,212,170,.05) 75%);
+  background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;min-height:20px;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
 </style>
 </head>
 <body>
@@ -120,7 +141,7 @@ select.forge-input{cursor:pointer}
     <div class="metric-grid">
       <div class="metric-card">
         <div class="mc-label">System Status</div>
-        <div class="mc-value teal" id="m-status">—</div>
+        <div class="mc-value teal" id="m-status" style="min-height:24px">Loading…</div>
         <div class="mc-sub">health check</div>
       </div>
       <div class="metric-card">
@@ -204,12 +225,29 @@ select.forge-input{cursor:pointer}
 // ── Auth check ───────────────────────────────────────────────────────────────
 async function authCheck(){
   try{
-    const r=await fetch('/api/auth/me',{credentials:'same-origin'});
+    // Path 1: cookie-based (same-origin)
+    let r=await fetch('/api/auth/me',{credentials:'same-origin'});
+    if(r.status===401){
+      // Path 2: localStorage session_token as Bearer
+      const tok=localStorage.getItem('murphy_session_token');
+      if(tok){
+        r=await fetch('/api/auth/me',{headers:{'Authorization':'Bearer '+tok}});
+      }
+    }
     if(r.status===401){location.href='/ui/login';return;}
     const d=await r.json();
     const u=d.user||d;
-    document.getElementById('side-user').textContent=u.email||u.name||'User';
-  }catch(e){location.href='/ui/login';}
+    const el=document.getElementById('side-user');
+    if(el) el.textContent=u.email||u.name||'User';
+  }catch(e){
+    // Network error (mobile timeout etc) — retry once before redirect
+    console.warn('[Murphy] authCheck failed, retrying...', e);
+    setTimeout(function(){
+      fetch('/api/auth/me',{credentials:'same-origin'})
+        .then(function(r){ if(r.status===401) location.href='/ui/login'; })
+        .catch(function(){ /* still failing — silently skip redirect on mobile */ });
+    }, 3000);
+  }
 }
 
 // ── Data fetch ───────────────────────────────────────────────────────────────
@@ -327,9 +365,22 @@ async function pollForge(){
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────────
-authCheck();
-fetchAll();
-setInterval(fetchAll,10000);
+// Wait for full DOM, then auth → then fetch data
+(function boot(){
+  function run(){
+    authCheck().then(function(){
+      fetchAll();
+      setInterval(fetchAll, 30000);
+    }).catch(function(){
+      // Auth failed — redirect handled inside authCheck
+    });
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', run);
+  } else {
+    run();
+  }
+})();
 </script>
 <script src="/static/murphy-nav.js"></script>
 </body>

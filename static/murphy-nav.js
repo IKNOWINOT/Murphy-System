@@ -8,6 +8,30 @@
 (function () {
   "use strict";
 
+  // ── Global fetch interceptor — auto-adds Bearer token for /api/ calls ──────
+  (function patchFetch() {
+    var _origFetch = window.fetch.bind(window);
+    window.fetch = function(url, opts) {
+      opts = opts || {};
+      var urlStr = (url && url.toString) ? url.toString() : String(url);
+      // Only intercept internal /api/ calls
+      if (urlStr.indexOf('/api/') !== -1) {
+        var tok = localStorage.getItem('murphy_session_token');
+        if (tok) {
+          opts.headers = opts.headers || {};
+          // Don't overwrite an existing Authorization header
+          if (!opts.headers['Authorization'] && !opts.headers['authorization']) {
+            opts.headers['Authorization'] = 'Bearer ' + tok;
+          }
+        }
+        // Always send credentials for cookie fallback too
+        if (!opts.credentials) opts.credentials = 'same-origin';
+      }
+      return _origFetch(url, opts);
+    };
+  })();
+
+
   // ---------------------------------------------------------------------------
   // Nav structure — parents in topbar, children in sidebar
   // ---------------------------------------------------------------------------
@@ -22,8 +46,9 @@
         { icon: "📅", label: "ROI Calendar",         href: "/ui/roi-calendar" },
         { icon: "🧠", label: "Ambient Intelligence", href: "/ui/ambient-intelligence" },
         { icon: "💬", label: "Matrix",               href: "/ui/matrix-integration" },
+        { icon: "🗨️", label: "Chat",                 href: "/ui/matrix-chat" },
         { icon: "⚙️", label: "Management",           href: "/ui/management" },
-        { icon: "🔧", label: "Admin Panel",          href: "/ui/admin" },
+        { icon: "🔧", label: "Admin Panel",          href: "/ui/admin-panel" },
       ],
     },
     {
@@ -47,6 +72,14 @@
       href: "/ui/forge",
       children: [
         { icon: "🔨", label: "Forge",               href: "/ui/forge" },
+        { icon: "🧠", label: "Swarm Command",       href: "/ui/swarm-command" },
+        { icon: "🌍", label: "World Intelligence",  href: "/ui/world-intelligence" },
+        { icon: "🔧", label: "Self-Healing",        href: "/ui/self-healing" },
+        { icon: "⏰", label: "Scheduler",           href: "/ui/scheduler" },
+        { icon: "🔌", label: "Integrations",        href: "/ui/integrations" },
+        { icon: "🎙", label: "Voice",               href: "/ui/voice" },
+        { icon: "📚", label: "Teacher",             href: "/ui/teacher" },
+        { icon: "🎮", label: "Game Studio",         href: "/ui/game-studio" },
         { icon: "🧬", label: "Dev Module",          href: "/ui/dev-module" },
         { icon: "📊", label: "Org Chart",           href: "/ui/orgchart" },
         { icon: "📖", label: "Docs",                href: "/ui/docs" },
@@ -72,12 +105,13 @@
       icon: "💰",
       href: "/ui/wallet",
       children: [
+        { icon: "💸", label: "Grants & Loans",     href: "/ui/financing-options" },
         { icon: "💰", label: "Wallet",             href: "/ui/wallet" },
-        { icon: "📈", label: "Trading",            href: "/ui/trading" },
-        { icon: "📉", label: "Paper Trading",      href: "/ui/paper-trading" },
+        { icon: "📈", label: "Trading",            href: "/ui/trading-dashboard" },
+        { icon: "📉", label: "Paper Trading",      href: "/ui/paper-trading-dashboard" },
+        { icon: "🧪", label: "Backtester",         href: "/ui/backtester" },
         { icon: "⚠️", label: "Risk Dashboard",     href: "/ui/risk-dashboard" },
         { icon: "💼", label: "Portfolio",          href: "/ui/portfolio" },
-        { icon: "💳", label: "Financing",          href: "/ui/financing" },
         { icon: "🏷", label: "Pricing",            href: "/ui/pricing" },
       ],
     },
@@ -85,9 +119,10 @@
       id: "compliance",
       label: "Compliance",
       icon: "🛡",
-      href: "/ui/compliance",
+      href: "/ui/compliance-dashboard",
       children: [
-        { icon: "🛡", label: "Compliance",        href: "/ui/compliance" },
+        { icon: "🛡", label: "Compliance",        href: "/ui/compliance-dashboard" },
+        { icon: "🔐", label: "Security Ops",       href: "/ui/security-ops" },
         { icon: "⚖️", label: "Legal",              href: "/ui/legal" },
         { icon: "🔒", label: "Privacy",            href: "/ui/privacy" },
       ],
@@ -99,8 +134,8 @@
       href: "/ui/org-portal",
       children: [
         { icon: "👥", label: "Org Portal",        href: "/ui/org-portal" },
-        { icon: "🧙", label: "Onboarding",        href: "/ui/onboarding" },
-        { icon: "🌐", label: "Community",         href: "/ui/community" },
+        { icon: "🧙", label: "Onboarding",        href: "/ui/onboarding-wizard" },
+        { icon: "🌐", label: "Community",         href: "/ui/community-forum" },
         { icon: "🤝", label: "Partner Request",   href: "/ui/partner-request" },
         { icon: "🚪", label: "Guest Portal",      href: "/ui/guest-portal" },
         { icon: "💼", label: "Careers",           href: "/ui/careers" },
@@ -114,7 +149,7 @@
       children: [
         { icon: "🎯", label: "Demo",              href: "/ui/demo" },
         { icon: "📝", label: "Blog",              href: "/ui/blog" },
-        { icon: "🏠", label: "Landing",           href: "/ui/landing" },
+        { icon: "🏠", label: "Landing",           href: "/ui/murphy-landing-page" },
       ],
     },
   ];
@@ -266,6 +301,9 @@
     "@media(max-width:768px){",
     "  .mn-links{display:none;}",
     "  #murphy-shared-sidebar{display:none;}",
+    "  .murphy-app-shell{flex-direction:column;}",
+    "  .murphy-app-main{overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;flex:1;}",
+    "  body{overflow-y:auto;}",
     "}",
   ].join("\n");
 
@@ -295,7 +333,7 @@
       '<a href="/ui/management">⚙️ Settings</a>' +
       '<a href="/ui/management#billing">💳 Billing</a>' +
       '<a href="/ui/wallet">💰 Wallet</a>' +
-      '<a href="/ui/compliance">🛡 Compliance</a>' +
+      '<a href="/ui/compliance-dashboard">🛡 Compliance</a>' +
       '<a href="/ui/change-password">🔑 Change Password</a>' +
       '<div class="mn-ud-divider"></div>' +
       '<a href="/api/auth/logout" class="mn-signout">↩ Sign Out</a>' +
@@ -304,7 +342,7 @@
 
     return (
       '<nav id="murphy-shared-nav" role="navigation" aria-label="Murphy System navigation">' +
-      '<a href="/ui/landing" class="mn-brand" aria-label="Murphy System home">' +
+      '<a href="/ui/murphy-landing-page" class="mn-brand" aria-label="Murphy System home">' +
       '<svg width="26" height="26" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#00D4AA"/>' +
       '<text x="16" y="22" text-anchor="middle" fill="#0a0a0a" font-size="18" font-weight="800" font-family="Inter,sans-serif">M</text></svg>' +
       'Murphy System</a>' +
@@ -418,6 +456,11 @@
   // Main injection
   // ---------------------------------------------------------------------------
   function boot() {
+    // Skip nav on auth-only pages (login, signup, reset)
+    var _authPages = ['/ui/login', '/ui/signup', '/ui/reset-password', '/ui/change-password'];
+    var _path = window.location.pathname;
+    if (_authPages.some(function(p){ return _path === p || _path.startsWith(p + '?'); })) return;
+
     // Idempotent
     if (document.getElementById("murphy-shared-nav")) return;
 
@@ -430,14 +473,21 @@
     navWrap.innerHTML = buildTopbar(user);
     var navEl = navWrap.firstChild;
 
+    // Insert topbar before the shell (not before main inside shell)
+    var shell = document.querySelector(".murphy-app-shell,.shell,.layout,.app-layout,.page-wrap");
     var main = document.querySelector("main");
-    if (main && main.parentNode) {
-      main.parentNode.insertBefore(navEl, main);
+    var insertTarget = shell || main;
+    if (insertTarget && insertTarget.parentNode) {
+      insertTarget.parentNode.insertBefore(navEl, insertTarget);
     } else {
       document.body.insertBefore(navEl, document.body.firstChild);
     }
 
     // ── Sidebar ──
+    // Skip sidebar injection if page opts out (has its own sidebar)
+    if (document.body.getAttribute('data-skip-nav-sidebar') === 'true') {
+      // Page has its own sidebar — skip nav sidebar injection
+    } else {
     // Replace any existing #murphy-shared-sidebar with fresh one
     var existingSidebar = document.getElementById("murphy-shared-sidebar");
     var sbWrap = document.createElement("div");
@@ -456,6 +506,8 @@
       }
       // If no shell found, sidebar stays out — nav.js topbar still works standalone
     }
+
+    } // end sidebar injection
 
     // ── Wire interactions ──
     wireTopbarButtons(navEl, sidebarEl);

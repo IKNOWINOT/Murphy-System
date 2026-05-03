@@ -9,26 +9,26 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 /* :root removed by PATCH-154 — using murphy-app-shell.css */
-body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;display:flex;flex-direction:column}
+body{background:var(--bg,#0a0a0a);color:var(--text,#e0e6ea);font-family:var(--font,Inter,system-ui,sans-serif);min-height:100vh;display:flex;flex-direction:column}
 nav{height:56px;background:rgba(10,15,10,.9);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--teal);font-weight:700;font-size:1rem;letter-spacing:.04em}
 .nav-links{display:flex;align-items:center;gap:4px}
 .nav-link{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:7px;color:var(--muted);font-size:13px;text-decoration:none;transition:.15s}
-.nav-link:hover{color:var(--text);background:rgba(255,255,255,.05)}
+.nav-link:hover{color:var(--text,#e0e6ea);background:rgba(255,255,255,.05)}
 .nav-link.active{color:var(--teal);background:var(--teal-dim)}
 .nav-right{display:flex;align-items:center;gap:10px}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:var(--font);transition:.15s}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:var(--font,Inter,system-ui,sans-serif);transition:.15s}
 .btn-primary{background:var(--teal);color:#000}
 .btn-primary:hover{background:#00b890}
 .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
-.btn-ghost:hover{color:var(--text);border-color:rgba(255,255,255,.2)}
+.btn-ghost:hover{color:var(--text,#e0e6ea);border-color:rgba(255,255,255,.2)}
 .btn-sm{padding:5px 10px;font-size:12px}
 
-.shell{display:flex;flex:1;overflow:hidden;height:calc(100vh - 56px)}
+.shell{display:flex;flex:1;overflow:visible;min-height:0}
 aside{width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;padding:16px 8px}
 .sidebar-section{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;padding:8px 8px 4px}
 .side-link{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;color:var(--muted);font-size:13px;text-decoration:none;transition:.15s;margin-bottom:1px}
-.side-link:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.side-link:hover{color:var(--text,#e0e6ea);background:rgba(255,255,255,.04)}
 .side-link.active{color:var(--teal);background:var(--teal-dim)}
 .side-link .icon{font-size:15px;width:18px;text-align:center}
 .sidebar-spacer{flex:1}
@@ -76,7 +76,7 @@ h1{font-size:20px;font-weight:700;margin-bottom:4px}
 .scan-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:28px}
 .panel-title{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:6px}
 .scan-controls{display:flex;gap:8px;align-items:center;margin-bottom:14px}
-.scan-input{flex:1;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;font-family:var(--font);outline:none;transition:.15s}
+.scan-input{flex:1;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text,#e0e6ea);font-size:13px;font-family:var(--font,Inter,system-ui,sans-serif);outline:none;transition:.15s}
 .scan-input:focus{border-color:var(--teal-border)}
 .scan-input::placeholder{color:var(--muted)}
 #scan-results{font-size:13px}
@@ -112,6 +112,17 @@ select.scan-input{cursor:pointer}
 .empty{color:var(--muted);text-align:center;padding:24px;font-size:13px}
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+@media(max-width:768px){
+  .shell,.layout,.app-layout,.page-wrap{flex-direction:column!important;}
+  main,.main-content,.content,.page-content{
+    padding:16px 12px!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+    min-height:0!important;
+    flex:1!important;
+  }
+}
 </style>
 </head>
 <body>
@@ -204,12 +215,28 @@ select.scan-input{cursor:pointer}
 // Auth
 async function authCheck(){
   try{
-    const r=await fetch('/api/auth/me',{credentials:'same-origin'});
+    // Path 1: cookie-based (same-origin)
+    let r=await fetch('/api/auth/me',{credentials:'same-origin'});
+    if(r.status===401){
+      // Path 2: localStorage session_token as Bearer
+      const tok=localStorage.getItem('murphy_session_token');
+      if(tok){
+        r=await fetch('/api/auth/me',{headers:{'Authorization':'Bearer '+tok}});
+      }
+    }
     if(r.status===401){location.href='/ui/login';return;}
     const d=await r.json();
     const u=d.user||d;
-    document.getElementById('side-user').textContent=u.email||u.name||'User';
-  }catch(e){location.href='/ui/login';}
+    const el=document.getElementById('side-user');
+    if(el) el.textContent=u.email||u.name||'User';
+  }catch(e){
+    console.warn('[Murphy] authCheck failed, retrying...', e);
+    setTimeout(function(){
+      fetch('/api/auth/me',{credentials:'same-origin'})
+        .then(function(r){ if(r.status===401) location.href='/ui/login'; })
+        .catch(function(){});
+    }, 3000);
+  }
 }
 
 // ── Framework definitions (displayed in UI, synced with toggles API) ─────────
@@ -236,7 +263,7 @@ async function loadToggles(){
 async function toggleFramework(id,enabled){
   const next=enabled?[..._enabledFrameworks,id]:[..._enabledFrameworks].filter(x=>x!==id);
   try{
-    await fetch('/api/compliance/toggles',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled_ids:next})});
+    await fetch('/api/compliance/toggles',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:[...next]})});
     _enabledFrameworks=new Set(next);
     renderFrameworks();
     loadReport();
@@ -322,7 +349,7 @@ async function loadRecommended(){
 async function enableFramework(id){
   if(!_enabledFrameworks.has(id)){
     _enabledFrameworks.add(id);
-    await fetch('/api/compliance/toggles',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled_ids:[..._enabledFrameworks]})});
+    await fetch('/api/compliance/toggles',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:[..._enabledFrameworks]})});
     renderFrameworks();
     loadReport();
   }

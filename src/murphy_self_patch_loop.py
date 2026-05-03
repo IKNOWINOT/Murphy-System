@@ -29,6 +29,41 @@ from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
+# ─────────────────────────────────────────────────────────────────────────────
+# PATCH-155: _read_file_context — public helper for LLM-aware file reading
+# Reads a source file with intelligent truncation for patch context injection.
+# ─────────────────────────────────────────────────────────────────────────────
+def _read_file_context(rel_path: str, max_chars: int = 12000) -> str:
+    """Read a source file from project root for LLM patch context.
+
+    Keeps first 6000 chars (imports + class defs) and last 6000 chars
+    (end of file where injection points often live). Returns truncated
+    content with a marker so the LLM knows the file was snipped.
+
+    Used by: murphy_code_gen.py, self-patch pipeline, commission tests.
+    PATCH-155.
+    """
+    from pathlib import Path as _Path
+    _ROOT = _Path("/opt/Murphy-System")
+    try:
+        full = _ROOT / rel_path
+        if not full.exists():
+            full = _ROOT / "src" / rel_path
+        if not full.exists():
+            return f"# FILE NOT FOUND: {rel_path}"
+        text = full.read_text(encoding="utf-8", errors="replace")
+        if len(text) <= max_chars:
+            return text
+        half = max_chars // 2
+        return (
+            text[:half]
+            + f"\n\n# ... [{len(text)} chars total — middle truncated for LLM context] ...\n\n"
+            + text[-half:]
+        )
+    except Exception as exc:
+        return f"# ERROR reading {rel_path}: {exc}"
+
+
 # -----------------------------------------------------------------------
 # Data models
 # -----------------------------------------------------------------------

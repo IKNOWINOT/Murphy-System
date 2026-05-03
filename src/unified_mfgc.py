@@ -1227,263 +1227,250 @@ What additional information would help me assist you better?"""
         return message
 
     def _process_with_context(self, message: str, answers: Dict[str, str], context_summary: str) -> Dict[str, Any]:
-        """Process message with full context - use GATE SYSTEM to determine execution"""
+        """
+        MFGC inference engine.
 
-        # Build a rich enriched task that includes everything the user has already told us.
-        # This allows the expansion engine to recognise that many unknowns are already resolved.
-        filled_answers = {k: v for k, v in answers.items() if v is not None}
-        answered_summary = ""
-        if len(filled_answers) > 1:  # skip when only initial_request is present
-            answered_summary = "\n\nInformation already provided by user:\n" + "\n".join(
-                f"  - {str(v)[:120]}" for v in list(filled_answers.values())[:10]
-            )
+        Rather than running a questionnaire, Murphy:
+        1. Infers the business context from everything the user has said so far
+        2. Fills the required data model from those inferences
+        3. Checks gates against inferences (gaps = low-confidence fields only)
+        4. Either presents confident options/suggestions, or asks for the ONE
+           thing it genuinely cannot infer
+        """
+        import re as _re
 
-        enriched_task = f"{message}\n\nContext gathered:\n{context_summary}{answered_summary}"
+        # ── 1. Aggregate all user-provided text ───────────────────────────────
+        filled = {k: v for k, v in answers.items() if v is not None}
+        all_text = " ".join(str(v) for v in filled.values()).lower()
 
-        # Get domain
-        _, domain = self.analyze_message(message)
+        # ── 2. Inference: fill the business data model from what was said ─────
+        # Each field: (inferred_value_or_None, confidence_0_to_1)
+        inferred: Dict[str, Any] = {}
 
-        # Run expansion to get current unknowns and gates
-        expansion_result = self.expansion_engine.expand_task(enriched_task, max_iterations=3)
+        def _infer(field: str, signals: list, default=None) -> tuple:
+            """Return (value, confidence). Confidence = fraction of signals matched."""
+            matched = [s for s in signals if s.lower() in all_text]
+            if matched:
+                return (" ".join(matched[:3]), min(0.5 + len(matched) * 0.15, 1.0))
+            return (default, 0.0)
 
-        # Synthesize gates from current state
-        gates = []
-        for risk_cluster in expansion_result.risk_clusters:
-            for risk in risk_cluster['risks']:
-                gates.append({
-                    'condition': f"Verify: {risk}",
-                    'risk': risk,
-                    'category': risk_cluster['category'],
-                    'satisfied': False  # Will check against answers
-                })
+        # Business type
+        biz_signals = ["saas", "software", "ai", "automation", "tech", "startup",
+                       "agency", "consulting", "ecommerce", "retail", "healthcare",
+                       "finance", "logistics", "manufacturing", "media", "legal"]
+        inferred["business_type"], inferred["business_type_conf"] = _infer("business_type", biz_signals)
 
-        # Build a single string of all filled answer text for quick substring checks.
-        answered_text = " ".join(str(v).lower() for v in filled_answers.values() if v)
+        # Scale / size
+        scale_signals = ["enterprise", "mid-market", "smb", "startup", "small business",
+                         "team", "employees", "users", "customers", "clients"]
+        inferred["scale"], inferred["scale_conf"] = _infer("scale", scale_signals)
 
-        # Check which gates are satisfied by our answers
-        satisfied_gates = 0
-        for gate in gates:
-            # Simple check: if gate risk is mentioned in any answer, consider it addressed
-            for answer in answers.values():
-                if answer is None:
-                    continue  # Skip unanswered question placeholders
-                if any(word in answer.lower() for word in gate['risk'].lower().split()[:3]):
-                    gate['satisfied'] = True
-                    satisfied_gates += 1
-                    break
+        # Budget
+        budget_patterns = _re.findall(r'\$[\d,k]+|\d+k|\d{4,}', all_text)
+        inferred["budget"] = budget_patterns[0] if budget_patterns else None
+        inferred["budget_conf"] = 0.9 if budget_patterns else 0.0
 
-        # Calculate gate satisfaction ratio
-        total_gates = len(gates)
-        gate_satisfaction = satisfied_gates / total_gates if total_gates > 0 else 0
-
-        # Discount unknowns that are already addressed by user answers.
-        novel_unknowns = []
-        for unknown in expansion_result.remaining_unknowns:
-            # An unknown is "addressed" if its first 3 keywords appear in any answer.
-            if any(word in answered_text for word in unknown.lower().split()[:3]):
-                continue
-            novel_unknowns.append(unknown)
-
-        unknowns_count = len(novel_unknowns)
-        unknowns_resolved = max(0, 6 - unknowns_count)
-
-        # Confidence formula: gate satisfaction + unknown resolution (no cap — can reach 1.0)
-        confidence = (gate_satisfaction * 0.5) + (unknowns_resolved / 6 * 0.5)
-
-        # EXECUTION CRITERIA: High gate satisfaction (85%) AND critical unknowns resolved.
-        # For offline mode with 3+ real answers, also allow execution when novel unknowns ≤ 2.
-        real_answer_count = sum(1 for k, v in filled_answers.items()
-                                if v is not None and k != "initial_request")
-        should_execute = (
-            (gate_satisfaction >= 0.85 and unknowns_count <= 2)
-            or (real_answer_count >= 3 and unknowns_count <= 2)
+        # Timeline
+        timeline_patterns = _re.findall(
+            r'\d+\s*(?:day|week|month|quarter|year)s?|q[1-4]|by\s+\w+', all_text
         )
+        inferred["timeline"] = timeline_patterns[0] if timeline_patterns else None
+        inferred["timeline_conf"] = 0.9 if timeline_patterns else 0.0
+
+        # Goal / automation intent
+        goal_signals = ["automate", "onboard", "qualify", "follow.?up", "send",
+                        "track", "report", "integrate", "sync", "notify", "schedule",
+                        "invoice", "hire", "manage", "analyse", "monitor"]
+        goal_matches = [s for s in goal_signals if _re.search(s, all_text)]
+        inferred["goals"] = goal_matches[:4] if goal_matches else None
+        inferred["goals_conf"] = min(len(goal_matches) * 0.3, 1.0) if goal_matches else 0.0
+
+        # Decision makers
+        dm_signals = ["founder", "ceo", "cto", "vp", "director", "manager",
+                      "owner", "head of", "lead", "decision maker"]
+        inferred["decision_makers"], inferred["dm_conf"] = _infer("decision_makers", dm_signals)
+
+        # Compliance / risk posture
+        comp_signals = ["compliance", "gdpr", "hipaa", "soc2", "iso", "legal",
+                        "regulation", "security", "pci", "audit"]
+        inferred["compliance"], inferred["compliance_conf"] = _infer("compliance", comp_signals)
+        # Tech stack mentioned?
+        tech_signals = ["salesforce", "hubspot", "slack", "jira", "stripe", "twilio",
+                        "aws", "azure", "gcp", "postgres", "mysql", "notion",
+                        "zapier", "make", "n8n", "api", "webhook", "crm", "erp"]
+        tech_matches = [s for s in tech_signals if s in all_text]
+        inferred["tech_stack"] = tech_matches[:5] if tech_matches else None
+        inferred["tech_conf"] = min(len(tech_matches) * 0.3, 1.0) if tech_matches else 0.0
+
+        # ── 3. Gate evaluation against inferences ─────────────────────────────
+        # Gates are: business_type, goals, decision_makers, budget/timeline, compliance
+        gates_model = [
+            {"field": "goals",            "conf": inferred.get("goals_conf", 0),
+             "label": "automation goal",  "weight": 0.30},
+            {"field": "business_type",    "conf": inferred.get("business_type_conf", 0),
+             "label": "business type",    "weight": 0.20},
+            {"field": "decision_makers",  "conf": inferred.get("dm_conf", 0),
+             "label": "decision-makers",  "weight": 0.15},
+            {"field": "budget",           "conf": inferred.get("budget_conf", 0),
+             "label": "budget",           "weight": 0.15},
+            {"field": "timeline",         "conf": inferred.get("timeline_conf", 0),
+             "label": "timeline",         "weight": 0.10},
+            {"field": "compliance",       "conf": inferred.get("compliance_conf", 0),
+             "label": "compliance needs", "weight": 0.10},
+        ]
+
+        # Weighted gate satisfaction
+        gate_satisfaction = sum(
+            g["weight"] * min(g["conf"] / 0.5, 1.0)   # normalize: conf>=0.5 → fully satisfied
+            for g in gates_model
+        )
+        gate_satisfaction = min(gate_satisfaction, 1.0)
+
+        # Unknown resolution: how many gate fields are still low-confidence?
+        unknown_gates = [g for g in gates_model if g["conf"] < 0.4]
+        unknowns_count = len(unknown_gates)
+        unknowns_resolved = len(gates_model) - unknowns_count
+
+        # Overall confidence
+        confidence = (gate_satisfaction * 0.6) + (unknowns_resolved / len(gates_model) * 0.4)
+        confidence = min(confidence, 1.0)
+
+        # ── 4. Decide: execute (suggest/fill) or ask ONE targeted gap question ─
+        should_execute = gate_satisfaction >= 0.60 or confidence >= 0.65 or unknowns_count <= 2
 
         if should_execute:
-            # HIGH CONFIDENCE - EXECUTE THE TASK
-            execution_prompt = f"""You have gathered sufficient information. Now EXECUTE the task.
+            # Build the execution prompt — Murphy presents options or fills data
+            goals_str = (", ".join(inferred.get("goals") or ["automation"]))
+            biz_str   = inferred.get("business_type") or "your business"
+            budget_str = inferred.get("budget") or "unspecified budget"
+            timeline_str = inferred.get("timeline") or "flexible timeline"
+            dm_str = inferred.get("decision_makers") or "stakeholders"
+            comp_str = inferred.get("compliance") or "standard compliance"
+            tech_str = (", ".join(inferred.get("tech_stack") or [])) or "existing tools"
 
-Original Request: {message}
+            # Known fields → inferred data model summary for the LLM
+            inferred_context = (
+                f"Business: {biz_str} | Goals: {goals_str} | Budget: {budget_str} | "
+                f"Timeline: {timeline_str} | Decision-makers: {dm_str} | "
+                f"Compliance: {comp_str} | Tech stack: {tech_str}"
+            )
 
-{context_summary}
+            # Gaps the user hasn't addressed yet
+            gaps_str = ""
+            if unknown_gates:
+                gap_labels = [g["label"] for g in unknown_gates[:2]]
+                gaps_str = f" (Note: {' and '.join(gap_labels)} not yet confirmed — make reasonable assumptions and flag them)"
 
-CRITICAL INSTRUCTIONS:
-1. Do NOT ask more questions
-2. CREATE the actual deliverable NOW
-3. If it's a website: Generate complete HTML, CSS, and JavaScript code
-4. If it's code: Write the complete, working code
-5. If it's a plan: Write the detailed, actionable plan
-6. Be specific and actionable
-
-EXECUTE NOW and provide the complete deliverable."""
+            execution_prompt = (
+                f"You are Murphy, an AI automation advisor. Based on everything the user has told you, "
+                f"you have inferred their business context. Now present 2-3 concrete automation options "
+                f"or a recommended plan they can act on immediately.{gaps_str}\n\n"
+                f"Inferred context: {inferred_context}\n\n"
+                f"Original request: {message}\n\n"
+                f"Instructions:\n"
+                f"- Present options as numbered choices with a brief rationale\n"
+                f"- If you assumed something, say so briefly\n"
+                f"- Keep it conversational, no markdown headers\n"
+                f"- End with: which option fits best, or shall I proceed with option 1?"
+            )
 
             if self.llm_available and getattr(self, "llm_mode", "offline") != "offline":
                 try:
-                    response = self._call_llm(execution_prompt, max_tokens=4000)
-
+                    response = self._call_llm(execution_prompt, max_tokens=600)
                     return {
                         'content': response,
                         'response': response,
-                        'confidence': confidence,
+                        'confidence': round(confidence, 4),
+                        'gate_satisfaction': round(gate_satisfaction, 4),
                         'band': 'execution',
-                        'domain': 'execution',
+                        'domain': 'inference',
                         'context_used': True,
-                        'questions_answered': len(answers),
                         'execution_mode': True,
-                        'status': 'EXECUTING',
-                        'gates_satisfied': satisfied_gates,
-                        'total_gates': total_gates,
-                        'unknowns_remaining': unknowns_count
+                        'status': 'SUGGESTING',
+                        'inferred': inferred,
+                        'unknowns_remaining': unknowns_count,
+                        'unknowns_count': unknowns_count,
                     }
                 except Exception as exc:
-                    logger.debug("Caught exception: %s", exc)
-                    return {
-                        'content': f"Error executing task: {str(exc)}",
-                        'confidence': 0.3,
-                        'band': 'exploratory',
-                        'error': str(exc)
-                    }
+                    logger.debug("LLM call failed in inference path: %s", exc)
 
-        else:
-            # GATES NOT SATISFIED - ASK TARGETED QUESTIONS ABOUT UNKNOWNS
-
-            # Build targeted prompt based on remaining unknowns and unsatisfied gates
-            unknowns_list = "\n".join([f"• {u}" for u in expansion_result.remaining_unknowns[:5]])
-            unsatisfied_gates_list = "\n".join([f"• {g['risk']}" for g in gates if not g.get('satisfied', False)][:5])
-
-            more_questions_prompt = f"""Based on the information gathered, we still have gaps that need to be filled.
-
-Original Request: {message}
-
-{context_summary}
-
-**Remaining Unknowns:**
-{unknowns_list}
-
-**Unsatisfied Gates (Risks to Address):**
-{unsatisfied_gates_list}
-
-**Gate Satisfaction:** {gate_satisfaction:.0%} (need 85%)
-**Unknowns Remaining:** {unknowns_count} (need ≤2)
-
-Generate 2-3 TARGETED questions that specifically address:
-1. The remaining unknowns listed above
-2. The unsatisfied gates/risks
-3. Critical details needed to proceed safely
-
-Make questions specific and actionable."""
-
-            # Only use the LLM for the questioning phase when a *real* external LLM
-            # is available.  The offline fallback does not handle the complex system
-            # prompt format well, so we skip directly to deterministic questions.
-            if self.llm_available and getattr(self, "llm_mode", "offline") != "offline":
-                try:
-                    questions_text = self._call_llm(more_questions_prompt, max_tokens=400)
-
-                    # Extract and add new questions
-                    new_questions = self.question_manager.extract_questions_from_text(questions_text)
-                    if new_questions:
-                        self.question_manager.add_questions(new_questions, category='gate_resolution', priority=2)
-
-                        # Show status with gate info
-                        status_msg = f"""## Gathering More Information
-
-**Gate Satisfaction:** {gate_satisfaction:.0%} (need 85%)
-**Unknowns Remaining:** {unknowns_count} (need ≤2)
-**Questions Answered:** {len(answers)}
-
-{self.question_manager.format_next_question()}"""
-
-                        return {
-                            'content': status_msg,
-                            'confidence': confidence,
-                            'band': 'conversational',
-                            'questioning_mode': True,
-                            'status': 'RESOLVING_GATES',
-                            'progress': self.question_manager.get_progress(),
-                            'gate_satisfaction': gate_satisfaction,
-                            'unknowns_count': unknowns_count
-                        }
-
-                    return {
-                        'content': questions_text,
-                        'confidence': confidence,
-                        'band': 'conversational'
-                    }
-                except Exception as exc:
-                    logger.debug("Caught exception: %s", exc)
-                    # Fall through to offline structured response below
-
-            # Offline / LLM-failure path — build structured questions deterministically
-            # from the *novel* (not yet answered) unknowns so the conversation progresses.
-            offline_questions = []
-            _unknown_to_question = {
-                "timeline": "What is your timeline or deadline for this project?",
-                "budget": "What is your approximate budget for this automation?",
-                "user personas": "Who are the main users or stakeholders involved?",
-                "decision makers": "Who needs to approve or sign off on this?",
-                "data sources": "What data sources or systems does this need to connect to?",
-                "integrations": "Which tools or platforms do you currently use that need to be integrated?",
-                "volume": "How many transactions, records, or events does this handle per day/week?",
-                "compliance": "Are there any compliance, legal, or security requirements to consider?",
-                "frequency": "How often should this automation run (real-time, hourly, daily, on-demand)?",
-                "success metrics": "How will you measure success? What does a good outcome look like?",
-            }
-            # Process up to this many unknowns when generating offline questions.
-            _MAX_UNKNOWNS_TO_PROCESS = 4
-            # Display up to this many questions per turn to avoid overwhelming the user.
-            _MAX_QUESTIONS_TO_DISPLAY = 3
-            # Use novel_unknowns (already filtered for answered items) not raw remaining_unknowns.
-            for unknown in novel_unknowns[:_MAX_UNKNOWNS_TO_PROCESS]:
-                unknown_lower = unknown.lower()
-                matched = False
-                for key, question in _unknown_to_question.items():
-                    if key in unknown_lower:
-                        if question not in offline_questions:
-                            offline_questions.append(question)
-                        matched = True
-                        break
-                if not matched:
-                    # Generic question from the unknown text
-                    offline_questions.append(f"Can you tell me more about: {unknown}?")
-
-            if offline_questions:
-                q_text = "\n".join(f"{i+1}. {q}" for i, q in enumerate(offline_questions[:_MAX_QUESTIONS_TO_DISPLAY]))
-                status_msg = (
-                    f"I have a good start on your request. To build the best automation plan, "
-                    f"I need a few more details:\n\n{q_text}\n\n"
-                    f"*(Gate satisfaction: {gate_satisfaction:.0%} of 85% needed — "
-                    f"{unknowns_count} unknowns remaining)*"
-                )
-                return {
-                    'content': status_msg,
-                    'confidence': confidence,
-                    'band': 'conversational',
-                    'questioning_mode': True,
-                    'status': 'RESOLVING_GATES',
-                    'gate_satisfaction': gate_satisfaction,
-                    'unknowns_count': unknowns_count
-                }
-
-            # No novel questions remain (all unknowns addressed) — transition to execution.
+            # Offline fallback — deterministic suggestion based on inferred model
+            goals_display = goals_str or "business automation"
+            offline_response = (
+                f"Based on what you've told me, here's what I can set up for you:\n\n"
+                f"1. Automated {goals_display} workflow — sequential, triggered on new leads or form submissions\n"
+                f"2. Notification + approval chain for {dm_str} at key decision points\n"
+                f"3. Compliance-safe data handling ({comp_str}) with audit trail\n\n"
+                f"I've assumed {budget_str} over {timeline_str}. Which option fits best, "
+                f"or shall I proceed with option 1?"
+            )
             return {
-                'content': (
-                    "I have enough information to build your automation plan. "
-                    "Click **Continue → Plan** to see your personalized automation blueprint."
-                ),
-                'confidence': max(confidence, 0.85),
+                'content': offline_response,
+                'response': offline_response,
+                'confidence': round(confidence, 4),
+                'gate_satisfaction': round(gate_satisfaction, 4),
                 'band': 'execution',
                 'execution_mode': True,
-                'status': 'READY',
-                'gate_satisfaction': max(gate_satisfaction, 0.85),
-                'unknowns_count': 0,
+                'status': 'SUGGESTING',
+                'inferred': inferred,
+                'unknowns_remaining': unknowns_count,
+                'unknowns_count': unknowns_count,
             }
 
-        return {
-            'content': "Unable to process with context",
-            'confidence': 0.1,
-            'band': 'exploratory'
-        }
+        else:
+            # NOT ENOUGH — ask for the single most important missing field
+            top_gap = unknown_gates[0] if unknown_gates else None
+            gap_label = top_gap["label"] if top_gap else "automation goal"
+
+            gap_prompt = (
+                f"You are Murphy, an AI automation advisor in an onboarding conversation. "
+                f"You have inferred some context but need one key piece of information to proceed.\n\n"
+                f"What you know so far: {all_text[:300]}\n\n"
+                f"Most important gap: {gap_label}\n\n"
+                f"Ask ONE friendly, specific question to fill that gap. "
+                f"No markdown, no headers, just a natural question."
+            )
+
+            if self.llm_available and getattr(self, "llm_mode", "offline") != "offline":
+                try:
+                    question_text = self._call_llm(gap_prompt, max_tokens=120)
+                    question_text = question_text.strip()
+                    return {
+                        'content': question_text,
+                        'confidence': round(confidence, 4),
+                        'gate_satisfaction': round(gate_satisfaction, 4),
+                        'band': 'conversational',
+                        'questioning_mode': True,
+                        'status': 'NEEDS_INFO',
+                        'gap_field': gap_label,
+                        'unknowns_remaining': unknowns_count,
+                        'unknowns_count': unknowns_count,
+                    }
+                except Exception as exc:
+                    logger.debug("LLM gap question failed: %s", exc)
+
+            # Offline fallback
+            fallback_questions = {
+                "automation goal":    "What would you like to automate first?",
+                "business type":      "What kind of business or industry are you in?",
+                "decision-makers":    "Who makes the final call on new tools — you, or someone else on the team?",
+                "budget":             "What's the rough budget you're working with?",
+                "timeline":           "Any deadline or timeframe you're working toward?",
+                "compliance needs":   "Any compliance requirements to keep in mind — GDPR, HIPAA, SOC2?",
+            }
+            question_text = fallback_questions.get(gap_label, f"Can you tell me more about your {gap_label}?")
+            return {
+                'content': question_text,
+                'confidence': round(confidence, 4),
+                'gate_satisfaction': round(gate_satisfaction, 4),
+                'band': 'conversational',
+                'questioning_mode': True,
+                'status': 'NEEDS_INFO',
+                'gap_field': gap_label,
+                'unknowns_remaining': unknowns_count,
+                'unknowns_count': unknowns_count,
+            }
+
 
     def get_active_gates(self) -> List[str]:
         """Get list of active safety gates"""

@@ -438,22 +438,55 @@ function fmt(n){return parseFloat(n||0).toLocaleString('en-US',{minimumFractionD
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 function loadEvents(){
-  fetch('/api/roi-calendar/events').then(function(r){return r.json();}).then(function(d){
-    if(d.ok){_events=d.events||[];renderCalendar();updateSummary();}
-  }).catch(function(){showMurphyError('Failed to load calendar events.');});
+  // PATCH-157: use /api/roi-calendar/live-v2 — real data from automations, forge, swarm, corpus
+  fetch('/api/roi-calendar/live-v2').then(function(r){return r.json();}).then(function(d){
+    if(d.ok){
+      _events = d.events || [];
+      renderCalendar();
+      // Update summary from embedded summary object
+      if(d.summary) _applyLiveSummary(d.summary);
+      // Show live badge
+      var badge = document.getElementById('live-data-badge');
+      if(badge){ badge.style.display='inline-flex'; badge.textContent='● LIVE DATA'; }
+    }
+  }).catch(function(e){
+    console.warn('[ROI] live endpoint failed, falling back to seed data:', e);
+    fetch('/api/roi-calendar/events').then(function(r){return r.json();}).then(function(d){
+      if(d.ok){_events=d.events||[];renderCalendar();updateSummary();}
+    }).catch(function(){showMurphyError('Failed to load calendar events.');});
+  });
+}
+
+function _applyLiveSummary(d){
+  function sv(id,v){var el=document.getElementById(id);if(el){el.style.opacity='.5';setTimeout(function(){el.textContent=v;el.style.opacity='1';},150);}}
+  sv('sum-human','$'+fmt(d.total_human_cost_estimate));
+  sv('sum-agent','$'+fmt(d.total_agent_cost));
+  sv('sum-roi','$'+fmt(d.total_roi));
+  sv('sum-roi-pct',d.roi_pct+'%');
+  sv('sum-active',d.active_tasks);
+  sv('sum-complete',d.complete_tasks||0);
+  // Update by-type breakdown if elements exist
+  if(d.by_type){
+    var typeEl=document.getElementById('sum-by-type');
+    if(typeEl){
+      typeEl.innerHTML=Object.entries(d.by_type).map(function(kv){
+        return '<span style="color:var(--teal)">'+kv[0].replace(/_/g,' ')+'</span>: '+kv[1];
+      }).join(' &nbsp;·&nbsp; ');
+    }
+  }
 }
 
 function updateSummary(){
-  fetch('/api/roi-calendar/summary').then(function(r){return r.json();}).then(function(d){
+  fetch('/api/roi-calendar/live-v2').then(function(r){return r.json();}).then(function(d){
     if(!d.ok)return;
-    function sv(id,v){var el=document.getElementById(id);if(el){el.style.opacity='.5';setTimeout(function(){el.textContent=v;el.style.opacity='1';},150);}}
-    sv('sum-human','$'+fmt(d.total_human_cost_estimate));
-    sv('sum-agent','$'+fmt(d.total_agent_cost));
-    sv('sum-roi','$'+fmt(d.total_roi));
-    sv('sum-roi-pct',d.roi_pct+'%');
-    sv('sum-active',d.active_tasks);
-    sv('sum-complete',d.completed_tasks);
-  }).catch(function(){showMurphyError('Failed to load ROI summary.');});
+    if(d.summary) _applyLiveSummary(d.summary);
+  }).catch(function(){
+    // fallback to old summary endpoint
+    fetch('/api/roi-calendar/summary').then(function(r){return r.json();}).then(function(d){
+      if(!d.ok)return;
+      _applyLiveSummary(d);
+    }).catch(function(){});
+  });
 }
 
 function connectSSE(){
@@ -560,7 +593,7 @@ function renderBlock(ev){
     +(contractRight?'<div class="roi-contract-line" style="right:'+contractRight+'"></div>':'')
     // Text content
     +'<div class="roi-block-content">'
-      +'<div class="roi-block-title">'+esc(ev.title)+'</div>'
+      +'<div class="roi-block-title">'+esc(ev.title)+(ev.source?'<span style="font-size:9px;opacity:.6;margin-left:4px;text-transform:uppercase;letter-spacing:.05em">['+ev.source.replace(/_/g,' ')+']</span>':'')+'</div>'
       +agentHtml
       +'<div class="roi-block-costs">'
         +(hc>0?'<span class="cost-chip cost-human" title="Team cost est.">$'+fmt(hc)+'</span>':'')
@@ -648,6 +681,26 @@ function renderDetail(ev){
     });
     html+='</div>';
   }
+  // Live data source / task type metadata
+  if(ev.source||ev.task_type){
+    html+='<div class="detail-section" style="margin-top:12px">'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">';
+    if(ev.task_type){
+      html+='<span style="font-size:.75rem;background:rgba(0,212,170,.1);color:var(--teal);'
+        +'border:1px solid rgba(0,212,170,.2);border-radius:4px;padding:2px 8px">'
+        +'📋 '+ev.task_type.replace(/_/g,' ')+'</span>';
+    }
+    if(ev.source){
+      html+='<span style="font-size:.75rem;background:rgba(255,255,255,.05);color:var(--text-dim);'
+        +'border:1px solid rgba(255,255,255,.08);border-radius:4px;padding:2px 8px">'
+        +'🔗 '+ev.source.replace(/_/g,' ')+'</span>';
+    }
+    if(ev.automation_id){
+      html+='<span style="font-size:.72rem;color:var(--text-dim);font-family:monospace">'
+        +'ID: '+ev.automation_id.slice(0,12)+'…</span>';
+    }
+    html+='</div></div>';
+  }
   document.getElementById('detail-content').innerHTML=html;
 }
 
@@ -733,208 +786,125 @@ document.addEventListener('keydown',function(e){
 
 <script>
 /* ================================================================
-   MULTICURSOR ANIMATION ENGINE — PATCH-062
-   Simulates parallel agent cursor activity across 4 screen zones
-   Uses real ROI calendar event data when available
+   MULTICURSOR LIVE ENGINE — PATCH-157 (real data)
+   Pulls from live APIs: swarm/mind, roi-calendar, corpus, health
    ================================================================ */
 (function(){
 'use strict';
 
 var AGENTS = [
-  {id:'a0', name:'Aria',    color:'#00d4aa', zone:0, ops:0, status:'idle'},
-  {id:'a1', name:'Beacon',  color:'#ffd700', zone:1, ops:0, status:'idle'},
-  {id:'a2', name:'Cascade', color:'#7c6af7', zone:2, ops:0, status:'idle'},
-  {id:'a3', name:'Delta',   color:'#ff8c00', zone:3, ops:0, status:'idle'},
+  {id:'a0', name:'Aria',    color:'#00d4aa', zone:0, ops:0, domain:'Finance'},
+  {id:'a1', name:'Beacon',  color:'#ffd700', zone:1, ops:0, domain:'Compliance'},
+  {id:'a2', name:'Cascade', color:'#7c6af7', zone:2, ops:0, domain:'Intelligence'},
+  {id:'a3', name:'Delta',   color:'#ff8c00', zone:3, ops:0, domain:'Ops'},
 ];
 
-var TASK_POOLS = [
-  // Zone A — Finance
-  ['Parsing invoice #INV-2847','Reconciling Q1 ledger','Extracting vendor data','Flagging duplicate payments','Writing journal entries','Validating PO matching'],
-  // Zone B — Compliance
-  ['Running SOC2 audit check','Scanning HIPAA log entries','Generating compliance report','Verifying access controls','Cross-referencing policy doc','Archiving evidence bundle'],
-  // Zone C — CRM
-  ['Updating 38 contact records','Scoring lead pipeline','Drafting follow-up emails','Syncing Salesforce delta','Tagging churned accounts','Building weekly CRM digest'],
-  // Zone D — Ops
-  ['Scheduling production runs','Updating inventory deltas','Firing alert: SLA breach','Generating shift report','Escalating ticket #4421','Optimizing route schedule'],
-];
-
-var HITL_TASKS = [
-  'HITL: Awaiting approval — invoice >$10k',
-  'HITL: Human review — compliance exception',
-  'HITL: Confirm contract renewal',
-  'HITL: Override request — SLA breach',
-];
-
-var _cursors = {};    // zone_id → DOM element
 var _agentOps = 0;
 var _logLines = [];
-var _taskTimers = [null,null,null,null];
 
 function ts(){var d=new Date();return d.toTimeString().slice(0,8);}
-function rand(arr){return arr[Math.floor(Math.random()*arr.length)];}
-function randInt(a,b){return a+Math.floor(Math.random()*(b-a+1));}
 
-/* Build agent cards */
+function addLog(msg, color){
+  var log = document.getElementById('mc-log');
+  if(!log) return;
+  _logLines.unshift('<span style="color:'+color+';font-size:10px">['+ts()+'] '+msg+'</span>');
+  if(_logLines.length > 12) _logLines.pop();
+  log.innerHTML = _logLines.join('<br>');
+}
+
 function initAgentCards(){
-  var wrap=document.getElementById('mc-agents');
-  if(!wrap)return;
+  var wrap = document.getElementById('mc-agents');
+  if(!wrap) return;
   AGENTS.forEach(function(ag){
-    var el=document.createElement('div');
-    el.className='mc-agent-card';
-    el.id='mc-card-'+ag.id;
-    el.innerHTML='<span class="mc-agent-dot" style="background:'+ag.color+'"></span>'
+    var el = document.createElement('div');
+    el.className = 'mc-agent-card';
+    el.id = 'mc-card-'+ag.id;
+    el.innerHTML = '<span class="mc-agent-dot" style="background:'+ag.color+'"></span>'
       +'<div><div class="mc-agent-name">'+ag.name+'</div>'
-      +'<div class="mc-agent-status" id="mc-status-'+ag.id+'">Initialising…</div></div>'
-      +'<span class="mc-agent-ops" id="mc-ops-'+ag.id+'" style="color:'+ag.color+'">0 ops</span>';
+      +'<div class="mc-agent-status" id="mc-status-'+ag.id+'">Connecting…</div></div>'
+      +'<span class="mc-agent-ops" id="mc-ops-'+ag.id+'" style="color:'+ag.color+'">— ops</span>';
     wrap.appendChild(el);
   });
 }
 
-/* Spawn an animated cursor blip inside a zone */
-function spawnCursor(ag){
-  var zone=document.getElementById('mc-zone-'+ag.zone);
-  if(!zone)return;
-  // Remove old cursor for this agent
-  var old=document.getElementById('mc-cur-'+ag.id);
-  if(old)old.remove();
-  var el=document.createElement('div');
-  el.className='mc-cursor';
-  el.id='mc-cur-'+ag.id;
-  el.style.background=ag.color;
-  el.style.color=ag.color;
-  el.style.top=randInt(8,zone.offsetHeight-20||60)+'px';
-  el.style.left=randInt(8,zone.offsetWidth-20||80)+'px';
-  var lbl=document.createElement('span');
-  lbl.className='mc-cursor-label';
-  lbl.style.color=ag.color;
-  lbl.textContent=ag.name;
-  el.appendChild(lbl);
-  zone.appendChild(el);
-  // Animate cursor to new position
+function setZoneTask(zone, text){
+  var el = document.getElementById('mc-task-'+zone);
+  if(el) el.textContent = text;
+}
+
+function setAgentStatus(id, status, ops){
+  var s = document.getElementById('mc-status-'+id);
+  var o = document.getElementById('mc-ops-'+id);
+  if(s) s.textContent = status;
+  if(o) o.textContent = ops + ' ops';
+}
+
+function fetchLiveData(){
+  var start = Date.now();
+
+  // Fetch swarm mind status
+  fetch('/api/swarm/mind/status').then(function(r){ return r.ok?r.json():null; }).then(function(d){
+    if(!d) return;
+    var cycle = d.cycle || 0;
+    var conf = Math.round((d.avg_confidence||0)*100);
+    var gap = d.latest_cycle && d.latest_cycle.priority_gap ? d.latest_cycle.priority_gap.slice(0,60) : 'Monitoring…';
+    setZoneTask(2, 'Mind cycle #'+cycle+' · '+conf+'% confidence');
+    setAgentStatus('a2', gap+'…', cycle);
+    addLog('Cascade: MurphyMind cycle '+cycle+' @ '+conf+'% confidence', '#7c6af7');
+    _agentOps++;
+  }).catch(function(){});
+
+  // Fetch ROI calendar summary
+  fetch('/api/roi-calendar/summary').then(function(r){ return r.ok?r.json():null; }).then(function(d){
+    if(!d) return;
+    var active = d.active_tasks || 0;
+    var roi = d.total_roi ? '$'+Math.round(d.total_roi).toLocaleString() : '$0';
+    var pct = d.roi_pct || 0;
+    setZoneTask(0, active+' active tasks · '+roi+' ROI · '+pct+'% efficiency');
+    setAgentStatus('a0', 'Tracking '+active+' live automation tasks', _agentOps);
+    addLog('Aria: ROI calendar → '+roi+' saved vs human labour ('+pct+'%)', '#00d4aa');
+    _agentOps++;
+  }).catch(function(){});
+
+  // Fetch corpus stats
+  fetch('/api/corpus/stats').then(function(r){ return r.ok?r.json():null; }).then(function(d){
+    if(!d) return;
+    var total = d.total_records || 0;
+    var newest = d.newest ? d.newest.slice(11,16)+' UTC' : '—';
+    setZoneTask(3, total.toLocaleString()+' corpus records · last ingested '+newest);
+    setAgentStatus('a3', 'World corpus: '+total.toLocaleString()+' records indexed', _agentOps);
+    addLog('Delta: Corpus ingested '+total+' signals (finance:'+((d.by_domain||{}).finance||0)+' tech:'+((d.by_domain||{}).tech||0)+')', '#ff8c00');
+    _agentOps++;
+  }).catch(function(){});
+
+  // Fetch shield status
+  fetch('/api/shield/status').then(function(r){ return r.ok?r.json():null; }).then(function(d){
+    if(!d) return;
+    var layers = d.layers || [];
+    var active = layers.filter(function(l){ return l.active; }).length;
+    setZoneTask(1, 'Shield Wall: '+active+'/'+layers.length+' layers active · '+d.shield_wall);
+    setAgentStatus('a1', 'Monitoring '+active+' protection layers', _agentOps);
+    addLog('Beacon: Shield Wall '+d.shield_wall+' · '+active+'/'+layers.length+' layers', '#ffd700');
+    _agentOps++;
+  }).catch(function(){});
+
+  // Update ops counter
   setTimeout(function(){
-    el.style.top=randInt(8,zone.offsetHeight-20||60)+'px';
-    el.style.left=randInt(8,zone.offsetWidth-20||80)+'px';
-  },100);
+    var el = document.getElementById('mc-ops-total');
+    if(el) el.textContent = _agentOps + ' ops';
+  }, 500);
 }
 
-/* Move existing cursor */
-function moveCursor(ag){
-  var el=document.getElementById('mc-cur-'+ag.id);
-  var zone=document.getElementById('mc-zone-'+ag.zone);
-  if(!el||!zone)return;
-  el.style.top=randInt(8,(zone.offsetHeight-20)||60)+'px';
-  el.style.left=randInt(8,(zone.offsetWidth-20)||80)+'px';
-}
-
-/* Append a log line (scrolls to bottom) */
-function appendLog(ag, action, cls){
-  var log=document.getElementById('mc-log');
-  if(!log)return;
-  var line=document.createElement('div');
-  line.className='mc-log-line'+(cls?' '+cls:'');
-  line.innerHTML='<span class="ts">['+ts()+']</span> '
-    +'<span class="agent" style="color:'+ag.color+'">'+ag.name+'</span> '
-    +'<span class="action">'+action+'</span>';
-  log.appendChild(line);
-  // Keep last 40 lines
-  while(log.children.length>40)log.removeChild(log.firstChild);
-  log.scrollTop=log.scrollHeight;
-}
-
-/* Update total ops badge */
-function updateOps(){
-  var total=AGENTS.reduce(function(s,a){return s+a.ops;},0);
-  var el=document.getElementById('mc-ops-total');
-  if(el)el.textContent=total+' ops logged';
-}
-
-/* Run one task cycle for an agent */
-function runAgentCycle(ag){
-  var zoneEl=document.getElementById('mc-zone-'+ag.zone);
-  var taskEl=document.getElementById('mc-task-'+ag.zone);
-  var cardEl=document.getElementById('mc-card-'+ag.id);
-  var statusEl=document.getElementById('mc-status-'+ag.id);
-  var opsEl=document.getElementById('mc-ops-'+ag.id);
-
-  // Pick HITL occasionally (~15% chance)
-  var isHitl=Math.random()<0.15;
-  var task=isHitl?rand(HITL_TASKS):rand(TASK_POOLS[ag.zone]);
-
-  ag.status=isHitl?'hitl':'running';
-  ag.ops++;
-
-  // Update zone
-  if(zoneEl){zoneEl.className='mc-zone '+(isHitl?'hitl':'active');}
-  if(taskEl){taskEl.textContent=task;}
-  if(cardEl){cardEl.className='mc-agent-card '+(isHitl?'hitl':'active');}
-  if(statusEl){statusEl.textContent=isHitl?'⚠ HITL Review':'● Working';}
-  if(opsEl){opsEl.textContent=ag.ops+' ops';}
-
-  appendLog(ag, task, isHitl?'hitl-line':'');
-  spawnCursor(ag);
-  updateOps();
-
-  // Duration: HITL tasks linger longer
-  var dur=isHitl?randInt(3500,6000):randInt(1200,3200);
-
-  // Move cursor mid-task
-  var moveTimer=setTimeout(function(){moveCursor(ag);},dur/2);
-
-  _taskTimers[ag.zone]=setTimeout(function(){
-    // Task complete
-    ag.status='idle';
-    if(zoneEl)zoneEl.className='mc-zone complete';
-    if(taskEl)taskEl.textContent='✓ '+task.replace(/^HITL: /,'');
-    if(cardEl)cardEl.className='mc-agent-card';
-    if(statusEl)statusEl.textContent='✓ Done';
-    appendLog(ag, '✓ Complete → '+task.replace(/^HITL: /,''), 'complete-line');
-
-    // Small gap then next task
-    setTimeout(function(){
-      if(taskEl)taskEl.textContent='Idle';
-      if(zoneEl)zoneEl.className='mc-zone';
-      runAgentCycle(ag);
-    }, randInt(400,900));
-  }, dur);
-}
-
-/* Start all agents with staggered delays */
-function startMulticursor(){
+function boot(){
   initAgentCards();
-  AGENTS.forEach(function(ag, i){
-    setTimeout(function(){
-      appendLog(ag, 'Agent online — cursor initialised in Zone '+'ABCD'[i]);
-      spawnCursor(ag);
-      setTimeout(function(){runAgentCycle(ag);}, randInt(200,800));
-    }, i*320);
-  });
+  fetchLiveData();
+  // Refresh every 30s
+  setInterval(fetchLiveData, 30000);
 }
 
-/* Expose for external triggers */
-window._mcRefreshFromEvents=function(events){
-  if(!events||!events.length)return;
-  var running=events.filter(function(e){return e.status==='running'||e.status==='hitl_review';});
-  running.forEach(function(ev,i){
-    var ag=AGENTS[i%AGENTS.length];
-    if(ag&&ev.title){
-      var el=document.getElementById('mc-task-'+ag.zone);
-      if(el)el.textContent=ev.title;
-    }
-  });
-};
-
-// Boot when DOM ready
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',startMulticursor);
-}else{
-  startMulticursor();
-}
-
-// Hook into existing SSE to sync real tasks when they arrive
-var _origSSE=window._mcSSEHook;
-document.addEventListener('murphy:roi_update',function(e){
-  if(e.detail)window._mcRefreshFromEvents([e.detail]);
-});
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', boot);
+} else { boot(); }
 
 })();
 
@@ -997,5 +967,21 @@ document.addEventListener('murphy:roi_update',function(e){
   </script>
 
 <script src="/static/murphy-nav.js"></script>
+
+<!-- Auth guard PATCH-157 -->
+<script>
+(async function murphyAuthGuard(){
+  try{
+    var r=await fetch('/api/auth/me',{credentials:'same-origin'});
+    if(r.status===401){
+      var tok=localStorage.getItem('murphy_session_token');
+      if(tok) r=await fetch('/api/auth/me',{headers:{'Authorization':'Bearer '+tok}});
+    }
+    if(r.status===401){
+      window.location.href='/ui/login?next='+encodeURIComponent(window.location.pathname);
+    }
+  }catch(e){}
+})();
+</script>
 </body>
 </html>

@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 _PROJECT_ROOT = Path("/opt/Murphy-System")
 
 
-def _read_file_safe(rel_path: str, max_chars: int = 6000) -> str:
+def _read_file_safe(rel_path: str, max_chars: int = 12000) -> str:
     """Read a source file relative to project root, truncated for LLM context."""
     try:
         full = _PROJECT_ROOT / rel_path
@@ -30,7 +30,7 @@ def _read_file_safe(rel_path: str, max_chars: int = 6000) -> str:
         content = full.read_text(encoding="utf-8", errors="replace")
         if len(content) > max_chars:
             # Keep first 3000 + last 3000
-            content = content[:3000] + f"\n\n# ... ({len(content)} chars total, truncated) ...\n\n" + content[-3000:]
+            content = content[:6000] + f"\n\n# ... ({len(content)} chars total, truncated) ...\n\n" + content[-6000:]
         return content
     except Exception as exc:
         return f"# ERROR reading {rel_path}: {exc}"
@@ -117,7 +117,7 @@ def generate_diff_for_proposal(proposal_id: str) -> Dict[str, Any]:
         Output the complete corrected file:
     """).strip()
 
-    llm_output = _call_llm(prompt, system, max_tokens=2000)
+    llm_output = _call_llm(prompt, system, max_tokens=8000)
 
     if llm_output.startswith("[LLM"):
         return {"ok": False, "error": llm_output, "proposal_id": proposal_id}

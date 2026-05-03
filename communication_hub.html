@@ -224,6 +224,17 @@
   .tag-warn    { color:#f59e0b; }
   .tag-danger  { color:#ef4444; }
   .loading { opacity:.5; pointer-events:none; }
+
+@media(max-width:768px){
+  .shell,.layout,.app-layout,.page-wrap{flex-direction:column!important;}
+  main,.main-content,.content,.page-content{
+    padding:16px 12px!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+    min-height:0!important;
+    flex:1!important;
+  }
+}
 </style>
 </head>
 <body>
@@ -460,7 +471,9 @@ let pollTimer = null;
 
 async function init() {
   try {
-    const me = await fetch('/api/profiles/me').then(r => r.json());
+    const _tok=localStorage.getItem('murphy_session_token');
+    const _meOpts=_tok?{headers:{'Authorization':'Bearer '+_tok}}:{credentials:'same-origin'};
+    const me = await fetch('/api/auth/me',_meOpts).then(r => r.json());
     currentUser = me.email || me.username || me.account_id || 'guest@murphy.systems';
   } catch (e) {
     currentUser = 'guest@murphy.systems';

@@ -585,5 +585,21 @@
   </div>
 </div>
 
+
+<!-- Auth guard PATCH-157 -->
+<script>
+(async function murphyAuthGuard(){
+  try{
+    var r=await fetch('/api/auth/me',{credentials:'same-origin'});
+    if(r.status===401){
+      var tok=localStorage.getItem('murphy_session_token');
+      if(tok) r=await fetch('/api/auth/me',{headers:{'Authorization':'Bearer '+tok}});
+    }
+    if(r.status===401){
+      window.location.href='/ui/login?next='+encodeURIComponent(window.location.pathname);
+    }
+  }catch(e){}
+})();
+</script>
 </body>
 </html>

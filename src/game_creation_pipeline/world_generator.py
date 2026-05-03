@@ -1,16 +1,17 @@
 """
-World Generator — Procedural World Generation Engine
+World Generator — Procedural World & Level Generation Engine
 
-Generates complete MMORPG world instances on-demand. Each world is a
-versioned game instance with unique zones, NPCs, quests, and lore.
-Characters can travel between worlds (the multiverse framework).
+Generates complete game instances on-demand across any genre. Each world is a
+versioned game instance with unique zones/levels, NPCs, objectives, and lore.
+Supports MMORPG, platformer, puzzle, runner, shooter, strategy, survival, and more.
 
 Provides:
-  - Zone templates (cities, dungeons, wilderness, raids)
-  - NPC population seeding
-  - Quest chain generation
+  - Zone / level templates (cities, dungeons, platformer stages, puzzle rooms, etc.)
+  - NPC / enemy population seeding
+  - Objective / quest chain generation
   - Lore generation
   - World rules and physics parameters
+  - Genre-aware defaults per game type
 """
 
 from __future__ import annotations
@@ -41,8 +42,9 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class ZoneType(Enum):
-    """Type classification for a generated zone."""
+    """Type classification for a generated zone / level."""
 
+    # MMORPG / Adventure
     CITY = "city"
     TOWN = "town"
     DUNGEON = "dungeon"
@@ -51,6 +53,50 @@ class ZoneType(Enum):
     INSTANCED = "instanced"
     UNDERWATER = "underwater"
     AERIAL = "aerial"
+    # Platformer
+    PLATFORMER_STAGE = "platformer_stage"
+    BOSS_STAGE = "boss_stage"
+    # Puzzle
+    PUZZLE_ROOM = "puzzle_room"
+    ESCAPE_ROOM = "escape_room"
+    # Shooter / Combat
+    ARENA = "arena"
+    BATTLEFIELD = "battlefield"
+    STEALTH_ZONE = "stealth_zone"
+    # Survival / Open World
+    OVERWORLD = "overworld"
+    BASE_CAMP = "base_camp"
+    RESOURCE_ZONE = "resource_zone"
+    # Racing / Runner
+    TRACK = "track"
+    OBSTACLE_COURSE = "obstacle_course"
+    # Tower Defense / Strategy
+    STRATEGIC_MAP = "strategic_map"
+    DEFENSE_LANE = "defense_lane"
+    # Hub / Meta
+    HUB = "hub"
+    TUTORIAL = "tutorial"
+    CUTSCENE = "cutscene"
+
+
+class GameType(Enum):
+    """Primary genre / game type for a generated world."""
+
+    MMORPG = "mmorpg"
+    PLATFORMER = "platformer"
+    PUZZLE = "puzzle"
+    RUNNER = "runner"
+    SHOOTER = "shooter"
+    STRATEGY = "strategy"
+    SURVIVAL = "survival"
+    ADVENTURE = "adventure"
+    RACING = "racing"
+    TOWER_DEFENSE = "tower_defense"
+    ROGUELIKE = "roguelike"
+    VISUAL_NOVEL = "visual_novel"
+    SANDBOX = "sandbox"
+    FIGHTING = "fighting"
+    HORROR = "horror"
 
 
 class WorldTheme(Enum):
@@ -62,6 +108,20 @@ class WorldTheme(Enum):
     COSMIC_HORROR = "cosmic_horror"
     MYTHOLOGICAL = "mythological"
     POST_APOCALYPTIC = "post_apocalyptic"
+    CYBERPUNK = "cyberpunk"
+    MEDIEVAL = "medieval"
+    SCI_FI = "sci_fi"
+    HORROR = "horror"
+    WESTERN = "western"
+    UNDERWATER = "underwater"
+    SPACE = "space"
+    JUNGLE = "jungle"
+    ARCTIC = "arctic"
+    DESERT = "desert"
+    URBAN = "urban"
+    RETRO = "retro"
+    ABSTRACT = "abstract"
+    CARTOON = "cartoon"
 
 
 class NPCRole(Enum):
@@ -156,13 +216,14 @@ class WorldRules:
 
 @dataclass
 class WorldInstance:
-    """A fully generated world instance."""
+    """A fully generated world / game instance."""
 
     world_id: str
     name: str
     theme: WorldTheme
-    version: int
-    rules: WorldRules
+    game_type: "GameType" = None   # genre — defaults to MMORPG for backwards compat
+    version: int = 1
+    rules: WorldRules = None
     zones: List[Zone] = field(default_factory=list)
     lore_summary: str = ""
     generated_at: float = field(default_factory=time.time)

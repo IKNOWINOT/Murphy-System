@@ -1,19 +1,20 @@
 """
-MMORPG Game Creation Pipeline — Murphy System
+Game Creation Pipeline — Murphy System
 
 This package provides the foundational engine for Murphy to procedurally
-generate, assemble, test, and release complete MMORPG games on a weekly
-cadence.
+generate, assemble, test, and release complete games of any genre on a weekly
+cadence. Supported genres: MMORPG, platformer, puzzle, runner, shooter,
+strategy, survival, adventure, racing, tower defense, roguelike, and more.
 
-All games produced by this pipeline enforce:
-  - Multiplayer-required gameplay (cooperation is the core loop)
-  - Synergy casting and combination skills (simultaneous cast magnifiers)
-  - Luck as a first-class high-impact stat
-  - AI companion system (employer/employee dynamic)
+Default game features (configurable per genre):
+  - Genre-aware world/level generation
+  - Luck as a high-impact stat (optional per genre)
+  - AI companion system (optional per genre)
   - Murphy agent participation (agents play on their off-time)
-  - In-game billboard advertisement system (proximity-based, no pay-to-win)
-  - Deep streaming integration
   - Cosmetic-only monetization (no pay-to-win)
+  - Deep streaming integration
+  - In-game billboard advertisement system (proximity-based)
+  - Multiplayer cooperation mechanics (optional — not required for solo genres)
 
 Modules:
     luck_system               — High-impact Luck stat and roll system
@@ -86,6 +87,7 @@ from .streaming_integration import (
     StreamingIntegration,
 )
 from .world_generator import (
+    GameType,
     WorldGenerator,
     WorldInstance,
     WorldRules,
@@ -125,7 +127,7 @@ __all__ = [
     # streaming_integration
     "CameraMode", "StreamEventType", "StreamingIntegration",
     # world_generator
-    "WorldGenerator", "WorldInstance", "WorldRules", "WorldTheme",
+    "GameType", "WorldGenerator", "WorldInstance", "WorldRules", "WorldTheme",
     "Zone", "ZoneType",
     # weekly_release_orchestrator
     "PipelineRun", "PipelineStage", "QualityGateResult",

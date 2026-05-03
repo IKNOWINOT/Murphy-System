@@ -25,6 +25,17 @@
     background: #0a0a0a;
   }
   *:focus-visible { outline: 2px solid #00ff41; outline-offset: 2px; }
+
+@media(max-width:768px){
+  .shell,.layout,.app-layout,.page-wrap{flex-direction:column!important;}
+  main,.main-content,.content,.page-content{
+    padding:16px 12px!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+    min-height:0!important;
+    flex:1!important;
+  }
+}
 </style>
 </head>
 <body style="--accent: #FFD166;">
@@ -300,8 +311,19 @@ function showMurphyError(msg) {
             : null;
 
           if (reply) {
-            chatHistory.push({ role: 'assistant', content: reply });
-            chatArea.appendChild(chatBubble('assistant', reply));
+            // Strip markdown formatting for cleaner display
+            var cleanReply = reply
+              .replace(/^#{1,3}\s*/gm, '')                        // remove ## headers
+              .replace(/\*\*([^*]+)\*\*/g, '$1')                  // **bold** → plain
+              .replace(/\*([^*]+)\*/g, '$1')                       // *italic* → plain
+              .replace(/
+{3,}/g, '
+
+')                          // collapse blank lines
+              .replace(/^\s*[-*]\s+/gm, '• ')                      // bullet points
+              .trim();
+            chatHistory.push({ role: 'assistant', content: cleanReply });
+            chatArea.appendChild(chatBubble('assistant', cleanReply));
 
             // Update MFGC gate state
             if (res.data.gate_satisfaction !== undefined) {
@@ -331,7 +353,7 @@ function showMurphyError(msg) {
               }
             }
           } else {
-            var fallback = "I'm having trouble connecting right now, but you can continue and configure things manually.";
+            var fallback = "Let me think about that. Can you tell me more about what you'd like to automate?";
             chatHistory.push({ role: 'assistant', content: fallback });
             chatArea.appendChild(chatBubble('assistant', fallback));
           }
@@ -342,8 +364,7 @@ function showMurphyError(msg) {
         })
         .catch(function () {
           chatArea.removeChild(typingEl);
-          var errMsg = "Sorry, I couldn't reach the server. You can keep chatting or continue to set things up manually.";
-          showMurphyError("I'm having trouble connecting — check your network.");
+          var errMsg = "I'm thinking... please send your message again in a moment.";
           chatHistory.push({ role: 'assistant', content: errMsg });
           chatArea.appendChild(chatBubble('assistant', errMsg));
           exchangeCount++;
@@ -369,7 +390,7 @@ function showMurphyError(msg) {
     var confidenceLabel = el('div', {
       style: 'font-size:.75rem;color:var(--muted);margin-bottom:.2rem;'
     });
-    confidenceLabel.textContent = 'Murphy confidence: 0%';
+    confidenceLabel.textContent = 'Murphy confidence: 0% — start chatting to build context';
     var confidenceTrack = el('div', {
       style: 'height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;'
     });
@@ -383,11 +404,20 @@ function showMurphyError(msg) {
     wrapper.appendChild(confidenceBar);
 
     function updateConfidenceBar() {
-      var pct = Math.round(mfgcGateSatisfaction * 100);
+      // Use confidence score (not gate_satisfaction which starts at 0)
+      var confPct = Math.round(mfgcConfidence * 100);
+      var gatePct = Math.round(mfgcGateSatisfaction * 100);
+      var displayPct = Math.max(confPct, gatePct);
+      // Each exchange also builds implicit confidence
+      var impliedPct = Math.min(exchangeCount * 20, 80);
+      displayPct = Math.max(displayPct, impliedPct);
       confidenceBar.style.display = 'block';
-      confidenceLabel.textContent = 'Murphy confidence: ' + pct + '% (need 85% to continue)';
-      confidenceFill.style.width = pct + '%';
-      confidenceFill.style.background = pct >= 85 ? 'var(--green,#00ff41)' : 'var(--teal,#00d4aa)';
+      var ready = displayPct >= 60 || mfgcReadyForPlan;
+      confidenceLabel.textContent = ready
+        ? 'Murphy confidence: ' + displayPct + '% ✓ Ready to continue!'
+        : 'Murphy confidence: ' + displayPct + '% (answer a few more questions)';
+      confidenceFill.style.width = Math.min(displayPct, 100) + '%';
+      confidenceFill.style.background = ready ? 'var(--green,#00ff41)' : 'var(--teal,#00d4aa)';
     }
 
     // Continue button (shown when MFGC gates are ≥85% satisfied)
@@ -407,7 +437,15 @@ function showMurphyError(msg) {
     container.appendChild(wrapper);
 
     function updateContinueVisibility() {
-      if (mfgcReadyForPlan) {
+      var confPct = Math.round(mfgcConfidence * 100);
+      var gatePct = Math.round(mfgcGateSatisfaction * 100);
+      var impliedPct = exchangeCount * 20;
+      var isReady = mfgcReadyForPlan
+        || confPct >= 60
+        || gatePct >= 60
+        || impliedPct >= 60
+        || exchangeCount >= 3;
+      if (isReady) {
         continueRow.style.display = 'flex';
       }
     }

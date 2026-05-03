@@ -801,7 +801,7 @@ class MurphyMind:
             "  Missing agents   → src/exec_admin_agent.py, function: act()",
             "  Critic unwired   → src/murphy_critic.py, function: review()",
             "  Morning brief    → src/exec_admin_agent.py, function: act()",
-            "RULE: When proposing an action, use ONLY the file paths listed above.",
+            "RULE: When proposing an action, use ONLY the file paths listed above.\n""RULE: Before proposing code changes, use GET /api/self/read?file=<path> to read the live source.\n""RULE: Use GET /api/self/grep?pattern=<fn>&file=<path> to find the exact function before patching.\n""RULE: /api/self/patch now runs MurphyCritic automatically — BLOCK=rejected, WARN=HITL queue, PASS=applied.",
             "RULE: Do NOT invent paths like scheduler/api.py or world_corpus/sync.py — they do not exist.",
             "",
             "LIVE FAILURE MODE SCAN (run seconds ago against actual source files):",
