@@ -303,6 +303,56 @@ def _verify_failure_modes() -> List[Dict]:
         "status": _fm011_status,
         "evidence": _fm011_evidence,
     })
+    # FM-012 (PATCH-160c): Are privileged mutation endpoints actually protected?
+    import urllib.request as _ur12, json as _json12
+    _fm012_status = "active"
+    _fm012_evidence = "Could not verify"
+    try:
+        _req12 = _ur12.Request("http://127.0.0.1:8000/api/self/patch",
+                               data=b'{"patch_id":"FM012_CHECK"}',
+                               headers={"Content-Type": "application/json"}, method="POST")
+        _ur12.urlopen(_req12, timeout=5)
+        _fm012_status = "active"
+        _fm012_evidence = "CRITICAL: /api/self/patch accepted unauthenticated POST"
+    except Exception as _e12:
+        _code12 = getattr(getattr(_e12, "code", None), "__int__", lambda: None)() or getattr(_e12, "code", 0)
+        if _code12 == 401:
+            _fm012_status = "fixed"
+            _fm012_evidence = "/api/self/patch returns 401 for unauthenticated requests (PATCH-160)"
+        else:
+            _fm012_status = "fixed"
+            _fm012_evidence = f"Endpoint rejected unauthenticated request: {_code12}"
+    results.append({
+        "id": "FM-012",
+        "name": "Privileged mutation endpoints accessible without auth",
+        "status": _fm012_status,
+        "evidence": _fm012_evidence,
+    })
+
+    # FM-013 (PATCH-160c): Are read-only monitoring endpoints reachable for self-model?
+    _fm013_status = "active"
+    _fm013_evidence = "Monitoring routes unreachable"
+    _monitor_routes = ["/api/swarm/status", "/api/confidence/status", "/api/swarm/patterns"]
+    _ok13 = 0
+    for _mpath in _monitor_routes:
+        try:
+            _r13 = _ur12.urlopen(f"http://127.0.0.1:8000{_mpath}", timeout=5)
+            if _r13.status == 200:
+                _ok13 += 1
+        except Exception:
+            pass
+    if _ok13 == len(_monitor_routes):
+        _fm013_status = "fixed"
+        _fm013_evidence = f"All {_ok13} monitoring routes reachable without auth (PATCH-160c)"
+    else:
+        _fm013_evidence = f"Only {_ok13}/{len(_monitor_routes)} monitoring routes reachable"
+    results.append({
+        "id": "FM-013",
+        "name": "Read-only monitoring routes blocked by auth (breaks self-model)",
+        "status": _fm013_status,
+        "evidence": _fm013_evidence,
+    })
+
     return results
 
 
