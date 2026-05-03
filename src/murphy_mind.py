@@ -279,11 +279,31 @@ def _verify_failure_modes() -> List[Dict]:
         results.append({"id": fm["id"], "name": fm["name"],
                          "status": "active" if found_in else "fixed",
                          "evidence": f"In: {found_in[:2]}" if found_in else "Pattern absent"})
+    # FM-011 (PATCH-159): Live check — is MurphyCritic wired into /api/self/patch?
+    import re as _re11
+    _app_py = _SRC_ROOT / "runtime" / "app.py"
+    _fm011_status = "active"
+    _fm011_evidence = "MurphyCritic not found in _self_patch handler"
+    if _app_py.exists():
+        _handler_text = ""
+        _in_handler = False
+        for _line in _app_py.read_text(errors="ignore").splitlines():
+            if "async def _self_patch" in _line:
+                _in_handler = True
+            if _in_handler:
+                _handler_text += _line + "\n"
+                if _in_handler and len(_handler_text) > 300 and "async def " in _line and "_self_patch" not in _line:
+                    break
+        if "MurphyCritic" in _handler_text and "critic_verdict" in _handler_text:
+            _fm011_status = "fixed"
+            _fm011_evidence = "MurphyCritic.review() is live in _self_patch handler (PATCH-159)"
+    results.append({
+        "id": "FM-011",
+        "name": "MurphyCritic not wired into /api/self/patch",
+        "status": _fm011_status,
+        "evidence": _fm011_evidence,
+    })
     return results
-
-
-
-
 
 
 # ── PATCH-128: System Awareness Helpers ──────────────────────────────────────
@@ -737,6 +757,7 @@ class MurphyMind:
             "FM-003": ["like scan", "deduplication", "dedup", "duplicate knowledge", "rss items"],
             "FM-004": ["module-level llm", "circular import"],
             "FM-008": ["singleton", "no lock", "thread-safe init"],
+        "FM-011": ["critic module is not integrated", "critic not wired", "murphycritic not wired"],
         }
         filtered_prev_gaps = [
             g for g in prev.get("active_gaps", [])
