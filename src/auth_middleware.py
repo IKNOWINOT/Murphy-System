@@ -450,7 +450,6 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/comms/",
         "/api/matrix/chat",
         "/api/system/",
-        "/api/self/",          # PATCH-066c: auth enforced inside self_manifest_router
         # PATCH-098: RROM monitoring (public)
         "/api/rrom/",
         "/api/rrom",
@@ -478,38 +477,18 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/admin",
         # PATCH-072: Ambient AI + Management AI — session-cookie auth inside routers
         "/api/ambient/",
-        # PATCH-115b: Soul, Influence, HITL, Scheduler, Patterns (public)
-        "/api/corpus/",
-        "/api/swarm/",
-        "/api/swarm",
-        "/api/corpus",
-        "/api/influence/",
-        "/api/influence",
-        "/api/hitl/",
-        "/api/hitl",
-        "/api/scheduler/",
-        "/api/scheduler",
-        "/api/patterns/",
-        "/api/patterns",
-        "/api/rosetta/soul",
-        "/api/rosetta/dispatch",
 
     "/api/shield/",  # PATCH-093c: Shield Wall — public status endpoint
-        # PATCH-112-117: Swarm Rosetta public endpoints
-        "/api/rosetta/",
-        "/api/rosetta",
-        "/api/signals/",
-        "/api/signals",
-        "/api/workflows/",
-        "/api/workflows",
-        "/api/workflow/",
-        "/api/workflow",
-        "/api/automation/",   # PATCH-135e
-        "/api/automation",
-        "/api/exec/",
-        "/api/exec",
-        "/api/prodops/",
-        "/api/prodops",
+        # PATCH-160: Targeted public swarm endpoints only — no blanket /api/swarm/ exemption
+        "/api/swarm/mind/status",    # read-only status — public
+        "/api/rosetta/soul",         # soul constitution — public read
+        "/api/corpus/stats",         # corpus stats — public read
+        "/api/swarm/corpus/stats",   # alias
+        "/api/signals/latest",       # latest signals — public read
+        # Workflows/automation: auth enforced at handler level via _perm_execute
+        "/api/automation/loop/",     # PATCH-135e: automation loop (session-auth inside)
+        "/api/workflows/",           # NL workflow engine (session-auth inside)
+
         "/api/ambient",
         "/api/mgmt/",
         "/api/mgmt",
@@ -523,7 +502,6 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/billing/plans",
         "/api/billing/currencies",
         "/api/billing/checkout",
-        "/api/self/",          # PATCH-066b: auth enforced inside self_manifest_router
         # PATCH-065: Public API, OAuth AS, Connector Agent
         "/api/v1/",
         "/oauth/",
@@ -536,8 +514,6 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/ledger",
         "/api/frontline/",
         "/api/frontline",
-        # PATCH-097b: Self-modification API
-        "/api/self/modify",
         "/api/self/patch",
         # PATCH-098: RROM monitoring
         "/api/rrom/",
