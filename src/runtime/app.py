@@ -21901,9 +21901,8 @@ def create_app() -> FastAPI:
             session_token = tok
         try:
             from src.visual_inspector import screenshot_url
-            result = screenshot_url(url, full_page=full_page, session_token=session_token)
-            # Don't return the full b64 in normal response — too large; save to disk
-            result.pop("png_b64", None)
+            result = await screenshot_url(url, full_page=full_page, session_token=session_token)
+            result.pop("png_b64", None)  # strip raw bytes from default response
             return JSONResponse({"success": True, **result})
         except Exception as exc:
             logger.error("visual/screenshot error: %s", exc)
@@ -21921,7 +21920,7 @@ def create_app() -> FastAPI:
         session_token = request.headers.get("Authorization","").removeprefix("Bearer ").strip()
         try:
             from src.visual_inspector import screenshot_url
-            result = screenshot_url(url, full_page=full_page, session_token=session_token)
+            result = await screenshot_url(url, full_page=full_page, session_token=session_token)
             return JSONResponse({"success": True, **result})
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
@@ -21936,20 +21935,29 @@ def create_app() -> FastAPI:
         pages = body.get("pages", None)  # None = all default pages
         session_token = request.headers.get("Authorization","").removeprefix("Bearer ").strip()
         try:
-            from src.visual_inspector import audit_all_murphy_pages, MURPHY_PAGES, BASE_URL, audit_pages
+            from src.visual_inspector import audit_pages, MURPHY_PAGES, BASE_URL
             if pages:
                 urls = [f"{BASE_URL}{p}" if p.startswith("/") else p for p in pages]
-                results = audit_pages(urls, session_token=session_token)
+                results = await audit_pages(urls, session_token=session_token)
                 summary = {
                     "total": len(results),
                     "ok": sum(1 for r in results if r.get("status") == 200),
                     "errors": sum(1 for r in results if r.get("error")),
+                    "js_error_pages": [r["url"] for r in results if r.get("js_errors")],
+                    "broken_image_pages": [r["url"] for r in results if r.get("broken_images")],
                     "pages": [{k:v for k,v in r.items() if k != "png_b64"} for r in results],
                 }
             else:
-                summary = audit_all_murphy_pages(session_token=session_token)
-                summary["pages"] = [{k:v for k,v in r.items() if k != "png_b64"}
-                                     for r in summary.get("pages", [])]
+                urls = [f"{BASE_URL}{p}" for p in MURPHY_PAGES]
+                results = await audit_pages(urls, session_token=session_token)
+                summary = {
+                    "total": len(results),
+                    "ok": sum(1 for r in results if r.get("status") == 200),
+                    "errors": sum(1 for r in results if r.get("error")),
+                    "js_error_pages": [r["url"] for r in results if r.get("js_errors")],
+                    "broken_image_pages": [r["url"] for r in results if r.get("broken_images")],
+                    "pages": [{k:v for k,v in r.items() if k != "png_b64"} for r in results],
+                }
             return JSONResponse({"success": True, **summary})
         except Exception as exc:
             logger.error("visual/audit error: %s", exc)

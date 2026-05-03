@@ -1,11 +1,11 @@
 """
-Murphy Visual Inspector — PATCH-161
+Murphy Visual Inspector — PATCH-161b
 Playwright-based screenshot + page audit engine.
-Murphy can photograph any of its own pages and analyze them.
+All functions are async-native — call with await from FastAPI handlers.
 """
 import asyncio, base64, io, json, time, os, re
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 _SNAP_DIR = Path("/var/lib/murphy-production/snapshots")
 _SNAP_DIR.mkdir(parents=True, exist_ok=True)
@@ -15,27 +15,26 @@ PLAYWRIGHT_ARGS = [
     "--disable-dev-shm-usage",
     "--disable-gpu",
     "--disable-extensions",
-    "--disable-background-networking",
 ]
 
 BASE_URL = os.environ.get("MURPHY_BASE_URL", "https://murphy.systems")
-INTERNAL_URL = "http://127.0.0.1:8000"
 
 
-async def _screenshot_url(url: str, full_page: bool = False, width: int = 1280,
-                           height: int = 900, session_token: str = "") -> dict:
-    """Take a screenshot of a URL, optionally injecting a session cookie."""
+async def screenshot_url(url: str, full_page: bool = False, width: int = 1280,
+                          height: int = 900, session_token: str = "") -> dict:
+    """Take a screenshot of a URL. Async — await this from FastAPI handlers."""
     from playwright.async_api import async_playwright
     start = time.time()
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True, args=PLAYWRIGHT_ARGS)
         ctx_kwargs = {"viewport": {"width": width, "height": height}}
         if session_token:
+            domain = url.split("/")[2].split(":")[0]
             ctx_kwargs["storage_state"] = {
                 "cookies": [{
                     "name": "murphy_session",
                     "value": session_token,
-                    "domain": url.split("/")[2].split(":")[0],
+                    "domain": domain,
                     "path": "/",
                     "httpOnly": True,
                     "secure": url.startswith("https"),
@@ -43,93 +42,63 @@ async def _screenshot_url(url: str, full_page: bool = False, width: int = 1280,
             }
         ctx = await browser.new_context(**ctx_kwargs)
         page = await ctx.new_page()
-        # Capture JS console errors
-        errors = []
-        page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
-        page.on("pageerror", lambda e: errors.append(str(e)))
+        js_errors = []
+        page.on("console", lambda m: js_errors.append(m.text) if m.type == "error" else None)
+        page.on("pageerror", lambda e: js_errors.append(str(e)))
         try:
             resp = await page.goto(url, wait_until="networkidle", timeout=30000)
-            status = resp.status if resp else 0
+            http_status = resp.status if resp else 0
             title = await page.title()
-            # Check for broken elements
             broken_imgs = await page.eval_on_selector_all(
-                "img", "els => els.filter(e=>!e.complete||e.naturalWidth===0).map(e=>e.src)"
+                "img",
+                "els => els.filter(e => !e.complete || e.naturalWidth === 0).map(e => e.src)"
             )
             png = await page.screenshot(full_page=full_page)
             b64 = base64.b64encode(png).decode()
-            # Save to disk
             slug = re.sub(r"[^a-z0-9]", "_", url.lower())[-40:]
             ts = int(time.time())
             snap_path = _SNAP_DIR / f"{ts}_{slug}.png"
             snap_path.write_bytes(png)
         finally:
             await browser.close()
-        return {
-            "url": url,
-            "status": status,
-            "title": title,
-            "duration_s": round(time.time() - start, 2),
-            "full_page": full_page,
-            "png_b64": b64,
-            "snap_path": str(snap_path),
-            "js_errors": errors[:10],
-            "broken_images": broken_imgs[:10],
-            "size_kb": round(len(png) / 1024, 1),
-        }
+    return {
+        "url": url,
+        "status": http_status,
+        "title": title,
+        "duration_s": round(time.time() - start, 2),
+        "full_page": full_page,
+        "png_b64": b64,
+        "snap_path": str(snap_path),
+        "snap_filename": snap_path.name,
+        "js_errors": js_errors[:10],
+        "broken_images": broken_imgs[:10],
+        "size_kb": round(len(png) / 1024, 1),
+    }
 
 
-def screenshot_url(url: str, full_page: bool = False, session_token: str = "") -> dict:
-    """Sync wrapper."""
-    return asyncio.run(_screenshot_url(url, full_page=full_page, session_token=session_token))
-
-
-async def _audit_pages(pages: list, session_token: str = "") -> list:
+async def audit_pages(pages: List[str], session_token: str = "") -> List[dict]:
     """Screenshot multiple pages concurrently (max 3 at a time)."""
-    import asyncio
     sem = asyncio.Semaphore(3)
-    async def bounded(url):
+    async def bounded(url: str) -> dict:
         async with sem:
             try:
-                return await _screenshot_url(url, session_token=session_token)
+                return await screenshot_url(url, session_token=session_token)
             except Exception as e:
-                return {"url": url, "error": str(e)}
-    return await asyncio.gather(*[bounded(u) for u in pages])
+                return {"url": url, "error": str(e), "status": 0}
+    return list(await asyncio.gather(*[bounded(u) for u in pages]))
 
 
-def audit_pages(pages: list, session_token: str = "") -> list:
-    return asyncio.run(_audit_pages(pages, session_token=session_token))
-
-
-# All Murphy UI pages
 MURPHY_PAGES = [
     "/",
     "/login",
     "/ui/terminal-unified",
     "/ui/game-studio",
     "/ui/matrix-chat",
-    "/ui/org-chart",
     "/ui/compliance",
     "/ui/roi-calendar",
-    "/ui/forge",
     "/ui/ambient",
     "/ui/trading",
     "/ui/robotics",
     "/ui/onboarding",
     "/ui/workflow-builder",
-    "/ui/swarm-status",
 ]
-
-
-def audit_all_murphy_pages(session_token: str = "") -> dict:
-    """Screenshot all Murphy UI pages and return a summary audit."""
-    urls = [f"{BASE_URL}{p}" for p in MURPHY_PAGES]
-    results = audit_pages(urls, session_token=session_token)
-    summary = {
-        "total": len(results),
-        "ok": sum(1 for r in results if r.get("status") == 200 and not r.get("error")),
-        "errors": sum(1 for r in results if r.get("error") or r.get("status", 0) >= 400),
-        "js_error_pages": [r["url"] for r in results if r.get("js_errors")],
-        "broken_image_pages": [r["url"] for r in results if r.get("broken_images")],
-        "pages": results,
-    }
-    return summary
