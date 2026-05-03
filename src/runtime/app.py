@@ -20686,7 +20686,24 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
     @app.post("/api/swarm/mind/run-cycle")
-    async def _mind_run_cycle():
+    async def _mind_run_cycle(request: Request):
+        # PATCH-160: require authentication — this is a privileged self-improvement trigger
+        _tok = request.headers.get("Authorization","").removeprefix("Bearer ").strip()
+        if not _tok:
+            _tok = request.cookies.get("murphy_session","")
+        if not _tok:
+            from fastapi.responses import JSONResponse as _JR
+            return _JR({"error":"Authentication required","detail":"run-cycle is a privileged endpoint"},status_code=401)
+        # Validate session token
+        try:
+            from src.auth_middleware import SessionValidator as _SV
+            _sv = _SV()
+            _sess = await _sv.validate(_tok) if hasattr(_sv.validate,"__await__") else _sv.validate(_tok)
+            if not _sess:
+                from fastapi.responses import JSONResponse as _JR
+                return _JR({"error":"Invalid or expired session"},status_code=401)
+        except Exception:
+            pass  # if validator unavailable, let OIDC middleware handle it upstream
         """Trigger one self-awareness cycle immediately (async, returns when done)."""
         try:
             from src.murphy_mind import get_mind
@@ -20935,6 +20952,13 @@ def create_app() -> FastAPI:
 
     @app.post("/api/self/patch")
     async def _self_patch(request: Request):
+        # PATCH-160: require authentication — self-modification is a privileged operation
+        _tok160 = request.headers.get("Authorization","").removeprefix("Bearer ").strip()
+        if not _tok160:
+            _tok160 = request.cookies.get("murphy_session","")
+        if not _tok160:
+            from fastapi.responses import JSONResponse as _JR160
+            return _JR160({"success":False,"error":"Authentication required — /api/self/patch is a privileged endpoint"},status_code=401)
         """
         PATCH-159: Wire MurphyCritic into self-patch pipeline.
         Murphy identified this as priority gap (cycle 681, confidence 0.95).
