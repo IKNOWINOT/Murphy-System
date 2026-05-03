@@ -21879,6 +21879,183 @@ def create_app() -> FastAPI:
         logger.warning("PATCH-153c: Voice Engine not available: %s", _p153c_exc)
 
 
+
+    # ════════════════════════════════════════════════════════════════
+    # PATCH-161: Visual Inspector + File Handler endpoints
+    # Murphy can now screenshot its own pages and handle file uploads
+    # ════════════════════════════════════════════════════════════════
+
+    @app.post("/api/visual/screenshot")
+    async def _visual_screenshot(request: Request):
+        """Screenshot any URL. Returns PNG as base64 + page metadata."""
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        url = body.get("url", "https://murphy.systems")
+        full_page = body.get("full_page", False)
+        # Pass session token so authenticated pages render correctly
+        session_token = ""
+        tok = request.headers.get("Authorization","").removeprefix("Bearer ").strip()
+        if tok:
+            session_token = tok
+        try:
+            from src.visual_inspector import screenshot_url
+            result = screenshot_url(url, full_page=full_page, session_token=session_token)
+            # Don't return the full b64 in normal response — too large; save to disk
+            result.pop("png_b64", None)
+            return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            logger.error("visual/screenshot error: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/visual/screenshot/b64")
+    async def _visual_screenshot_b64(request: Request):
+        """Screenshot a URL and return full base64 PNG (for programmatic use)."""
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        url = body.get("url", "https://murphy.systems")
+        full_page = body.get("full_page", False)
+        session_token = request.headers.get("Authorization","").removeprefix("Bearer ").strip()
+        try:
+            from src.visual_inspector import screenshot_url
+            result = screenshot_url(url, full_page=full_page, session_token=session_token)
+            return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/visual/audit")
+    async def _visual_audit(request: Request):
+        """Screenshot multiple Murphy pages and return audit report."""
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        pages = body.get("pages", None)  # None = all default pages
+        session_token = request.headers.get("Authorization","").removeprefix("Bearer ").strip()
+        try:
+            from src.visual_inspector import audit_all_murphy_pages, MURPHY_PAGES, BASE_URL, audit_pages
+            if pages:
+                urls = [f"{BASE_URL}{p}" if p.startswith("/") else p for p in pages]
+                results = audit_pages(urls, session_token=session_token)
+                summary = {
+                    "total": len(results),
+                    "ok": sum(1 for r in results if r.get("status") == 200),
+                    "errors": sum(1 for r in results if r.get("error")),
+                    "pages": [{k:v for k,v in r.items() if k != "png_b64"} for r in results],
+                }
+            else:
+                summary = audit_all_murphy_pages(session_token=session_token)
+                summary["pages"] = [{k:v for k,v in r.items() if k != "png_b64"}
+                                     for r in summary.get("pages", [])]
+            return JSONResponse({"success": True, **summary})
+        except Exception as exc:
+            logger.error("visual/audit error: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/visual/snapshots")
+    async def _visual_snapshots():
+        """List recent screenshots saved to disk."""
+        from pathlib import Path
+        snap_dir = Path("/var/lib/murphy-production/snapshots")
+        if not snap_dir.exists():
+            return JSONResponse({"snapshots": []})
+        files = sorted(snap_dir.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)[:50]
+        return JSONResponse({"snapshots": [
+            {"name": f.name, "size_kb": round(f.stat().st_size/1024,1),
+             "ts": f.stat().st_mtime}
+            for f in files if f.is_file()
+        ]})
+
+    @app.get("/api/visual/snapshot/{filename}")
+    async def _visual_snapshot_file(filename: str):
+        """Serve a saved screenshot PNG."""
+        from fastapi.responses import FileResponse
+        from pathlib import Path
+        import re
+        if not re.match(r'^[a-zA-Z0-9_.-]+\.png$', filename):
+            return JSONResponse({"error": "Invalid filename"}, status_code=400)
+        path = Path("/var/lib/murphy-production/snapshots") / filename
+        if not path.exists():
+            return JSONResponse({"error": "Not found"}, status_code=404)
+        return FileResponse(str(path), media_type="image/png")
+
+    # ── File Upload + Archive Reader ─────────────────────────────────
+
+    @app.post("/api/files/upload")
+    async def _file_upload(request: Request):
+        """Upload any file (multipart or raw bytes). Returns file metadata."""
+        from fastapi import UploadFile
+        content_type = request.headers.get("content-type", "")
+        try:
+            if "multipart" in content_type:
+                form = await request.form()
+                uploaded = []
+                for field_name, field_val in form.items():
+                    if hasattr(field_val, "read"):
+                        data = await field_val.read()
+                        fname = getattr(field_val, "filename", field_name) or field_name
+                        from src.file_handler import save_upload
+                        r = save_upload(fname, data, uploader="api")
+                        uploaded.append(r)
+                return JSONResponse({"success": True, "files": uploaded})
+            else:
+                # Raw body upload — filename from Content-Disposition or query param
+                fname = request.query_params.get("filename", "upload.bin")
+                data = await request.body()
+                from src.file_handler import save_upload
+                r = save_upload(fname, data, uploader="api")
+                return JSONResponse({"success": r.get("success"), **r})
+        except Exception as exc:
+            logger.error("files/upload error: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/files/list")
+    async def _file_list():
+        """List uploaded files."""
+        from src.file_handler import list_uploads
+        return JSONResponse({"files": list_uploads()})
+
+    @app.post("/api/files/inspect")
+    async def _file_inspect(request: Request):
+        """Inspect a file by path or name. Returns content/archive manifest."""
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        path = body.get("path") or body.get("name")
+        if not path:
+            return JSONResponse({"success": False, "error": "path required"}, status_code=400)
+        from pathlib import Path as P
+        from src.file_handler import inspect_file, _UPLOAD_DIR
+        # Resolve to upload dir if not absolute
+        full = P(path) if P(path).is_absolute() else _UPLOAD_DIR / path
+        from src.file_handler import inspect_file
+        return JSONResponse(inspect_file(str(full)))
+
+    @app.post("/api/files/read-zip")
+    async def _file_read_zip(request: Request):
+        """Read a ZIP archive by path or uploaded bytes."""
+        content_type = request.headers.get("content-type","")
+        try:
+            if "multipart" in content_type:
+                form = await request.form()
+                field = next(iter(form.values()))
+                data = await field.read()
+                from src.file_handler import read_zip
+                return JSONResponse(read_zip(data))
+            else:
+                body = await request.json()
+                path = body.get("path")
+                from src.file_handler import read_zip
+                return JSONResponse(read_zip(path))
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    # ── end PATCH-161 visual + file endpoints ────────────────────────
+
     return app
 
 

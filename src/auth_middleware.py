@@ -482,6 +482,9 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         # PATCH-160c: Read-only internal monitoring endpoints — GET only, no state mutation
         # Mind cycle reads these to build its self-model; must stay accessible
         "/api/swarm/mind/status",       # public status
+        "/api/visual/snapshot/",      # PATCH-161: public screenshot serving (GET)
+        "/api/visual/snapshots",      # PATCH-161: snapshot list (GET)
+
         "/api/swarm/status",            # swarm health — read-only
         "/api/swarm/scheduler",         # scheduler status — read-only
         "/api/swarm/patterns",          # pattern registry — read-only
