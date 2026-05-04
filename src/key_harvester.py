@@ -54,6 +54,18 @@ from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
+# PATCH-177: Pre-fight engine — routes to Ghost or Playwright based on captcha probe
+try:
+    from src.automation_prefight import run_prefight, AutomationMethod as _AutoMethod
+    _HAS_PREFIGHT = True
+except ImportError:
+    try:
+        from automation_prefight import run_prefight, AutomationMethod as _AutoMethod
+        _HAS_PREFIGHT = True
+    except ImportError:
+        _HAS_PREFIGHT = False
+        logger.warning("PATCH-177: automation_prefight not available — pre-fight skipped")
+
 # ---------------------------------------------------------------------------
 # Lazy imports
 # ---------------------------------------------------------------------------
@@ -1094,7 +1106,53 @@ class KeyHarvester:
                 provider=recipe.name, status=AcquisitionStatus.BLOCKED_PAYMENT
             )
 
-        # Step 3: Check native automation is available
+        # Step 3: PATCH-177 Pre-fight — probe URL and select automation method
+        _prefight_method = None
+        _prefight_rationale = "pre-fight skipped"
+        if _HAS_PREFIGHT:
+            try:
+                _pf = run_prefight(recipe.signup_url, timeout=8.0)
+                _prefight_method = _pf.method
+                _prefight_rationale = _pf.rationale
+                logger.info(
+                    "PATCH-177: pre-fight for '%s' → method=%s captcha=%s confidence=%.2f",
+                    recipe.name, _pf.method.value, _pf.captcha.value, _pf.confidence
+                )
+                # If Ghost recommended and Ghost not available → fall through to Playwright check
+                # If HITL recommended → escalate now
+                if _prefight_method == _AutoMethod.HITL:
+                    logger.warning("PATCH-177: pre-fight recommends HITL for '%s': %s", recipe.name, _prefight_rationale)
+                    return HarvestResult(
+                        provider=recipe.name,
+                        status=AcquisitionStatus.BLOCKED_CAPTCHA,
+                        error=f"Pre-fight HITL escalation: {_prefight_rationale}",
+                    )
+            except Exception as _pfe:
+                logger.warning("PATCH-177: pre-fight error for '%s': %s — falling back to native", recipe.name, _pfe)
+
+        # Step 3b: Playwright path (PATCH-177: selected by pre-fight OR native unavailable)
+        if _prefight_method == _AutoMethod.PLAYWRIGHT or (
+            _HAS_PREFIGHT and _prefight_method is not None and not _HAS_NATIVE_AUTOMATION
+        ):
+            logger.info("PATCH-177: routing '%s' to Playwright (reason: %s)", recipe.name, _prefight_rationale[:60])
+            try:
+                from src.playwright_signup_runner import PlaywrightSignupRunner
+                _pw_runner = PlaywrightSignupRunner(headless=True)
+                import asyncio as _aio
+                _pw_result = _aio.get_event_loop().run_until_complete(
+                    _pw_runner.run_generic(recipe=recipe, email=self._user_email, password=self._user_password)
+                ) if hasattr(_pw_runner, 'run_generic') else None
+                if _pw_result and _pw_result.get("success"):
+                    return HarvestResult(
+                        provider=recipe.name,
+                        status=AcquisitionStatus.SUCCESS,
+                        api_key=_pw_result.get("api_key", ""),
+                        error=None,
+                    )
+            except Exception as _pwe:
+                logger.warning("PATCH-177: Playwright path failed for '%s': %s — falling back to Ghost", recipe.name, _pwe)
+
+        # Step 3c: Check native automation (Ghost) is available
         if not _HAS_NATIVE_AUTOMATION:
             logger.warning(
                 "Provider '%s': murphy_native_automation not available.", recipe.name

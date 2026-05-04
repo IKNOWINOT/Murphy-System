@@ -149,6 +149,87 @@ def create_app() -> FastAPI:
                             logger.warning("PATCH-130: could not register agent %s: %s", _aid, _e)
                 logger.info("PATCH-130: Swarm wired — %d/9 agents", len(coord._agents))
 
+                # PATCH-170d: Start Redis bus listeners for each agent domain
+                try:
+                    from src.swarm_bus import get_listener
+                    _domain_map = {
+                        "exec_admin": ["exec_admin"],
+                        "prod_ops":   ["prod_ops", "collector"],
+                        "auditor":    ["auditor"],
+                        "hitl":       ["hitl"],
+                        "rosetta":    ["system", "planning"],
+                    }
+                    def _make_dispatch_cb(_coord):
+                        def _cb(signal):
+                            try:
+                                _coord.dispatch(signal)
+                            except Exception as _e:
+                                pass
+                        return _cb
+                    _dispatch_cb = _make_dispatch_cb(coord)
+                    for _aid, _domains in _domain_map.items():
+                        _listener = get_listener(_aid, _domains)
+                        _listener.start(_dispatch_cb)
+                    logger.info("PATCH-170d: Bus listeners started for %d agents", len(_domain_map))
+                except Exception as _be:
+                    logger.warning("PATCH-170d: Bus listener startup failed: %s", _be)
+
+                # PATCH-170d: Seed org chart DB from Rosetta CHARACTERS
+                try:
+                    import sqlite3 as _sq
+                    _oc_db = "/var/lib/murphy-production/orgchart.db"
+                    _oc = _sq.connect(_oc_db, timeout=5)
+                    _oc.execute("""
+                        CREATE TABLE IF NOT EXISTS positions (
+                            id TEXT PRIMARY KEY,
+                            position INTEGER,
+                            name TEXT,
+                            emoji TEXT,
+                            role TEXT,
+                            department TEXT,
+                            tone TEXT,
+                            bias TEXT,
+                            hitl_threshold REAL,
+                            reports_to TEXT,
+                            updated_at TEXT
+                        )
+                    """)
+                    _ROLE_LABELS = {
+                        "rosetta":"Chief Alignment Officer","exec_admin":"Executive Operations",
+                        "auditor":"Chief Auditor","hitl":"Human-in-the-Loop Gate",
+                        "prod_ops":"Production Operations","executor":"Task Executor",
+                        "scheduler":"Workflow Scheduler","translator":"Signal Translator",
+                        "collector":"Signal Collector",
+                    }
+                    _DEPT_MAP = {
+                        "rosetta":"Governance","exec_admin":"Operations","auditor":"Compliance",
+                        "hitl":"Safety","prod_ops":"Engineering","executor":"Engineering",
+                        "scheduler":"Operations","translator":"Intelligence","collector":"Intelligence",
+                    }
+                    _REPORTS_TO = {
+                        "exec_admin":"rosetta","auditor":"rosetta","hitl":"rosetta",
+                        "prod_ops":"exec_admin","executor":"exec_admin","scheduler":"exec_admin",
+                        "translator":"collector","collector":"prod_ops",
+                    }
+                    _now_iso = __import__('datetime').datetime.utcnow().isoformat()
+                    for _ch in soul.CHARACTERS.values():
+                        _oc.execute("""
+                            INSERT OR REPLACE INTO positions
+                            (id, position, name, emoji, role, department, tone, bias, hitl_threshold, reports_to, updated_at)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                        """, (
+                            _ch.agent_id, _ch.position, _ch.name, _ch.emoji,
+                            _ROLE_LABELS.get(_ch.agent_id, _ch.name),
+                            _DEPT_MAP.get(_ch.agent_id, "Operations"),
+                            _ch.tone, _ch.bias, _ch.hitl_threshold,
+                            _REPORTS_TO.get(_ch.agent_id), _now_iso,
+                        ))
+                    _oc.commit()
+                    _oc.close()
+                    logger.info("PATCH-170d: Org chart DB seeded — 9 positions")
+                except Exception as _oe:
+                    logger.warning("PATCH-170d: Org chart DB seed failed: %s", _oe)
+
                 # WorldCorpus — init + immediate refresh if stale
                 from src.world_corpus import get_world_corpus
                 wc = get_world_corpus()
@@ -293,6 +374,41 @@ def create_app() -> FastAPI:
 
 
     # PATCH-152: Top-level campaign shortcut routes
+    @app.get("/api/self/status")
+    async def self_status():
+        """PATCH-175c: Murphy live self-model — accurate system introspection."""
+        try:
+            from src.self_model import build_self_model
+            model = build_self_model()
+            from fastapi.responses import JSONResponse as _JSR175c
+            return _JSR175c({"success": True, **model})
+        except Exception as _e:
+            from fastapi.responses import JSONResponse as _JSR175c
+            return _JSR175c({"success": False, "error": str(_e)}, status_code=500)
+
+    @app.get("/api/self/summary")
+    async def self_summary():
+        """PATCH-175c: Compact text summary for LLM context injection."""
+        try:
+            from src.self_model import get_llm_context_summary
+            from fastapi.responses import JSONResponse as _JSR175cs
+            return _JSR175cs({"success": True, "summary": get_llm_context_summary()})
+        except Exception as _e:
+            from fastapi.responses import JSONResponse as _JSR175cs
+            return _JSR175cs({"success": False, "error": str(_e)}, status_code=500)
+
+    @app.get("/ui/customers")
+    @app.get("/customers")
+    async def customers_dashboard():
+        """PATCH-175: Customer management dashboard."""
+        from fastapi.responses import FileResponse as _FR175
+        import os as _os175
+        p = _os175.path.join("/opt/Murphy-System", "customers.html")
+        if _os175.path.exists(p):
+            return _FR175(p, media_type="text/html")
+        from fastapi.responses import HTMLResponse as _HR175
+        return _HR175("<h1>customers.html not found</h1>", status_code=404)
+
     @app.get("/voteforsteve2028")
     async def vote_for_steve_top():
         import os as _tos
@@ -1221,6 +1337,18 @@ def create_app() -> FastAPI:
         logger.info("PATCH-062: UniversalToolRegistry real tools registered")
     except Exception as _te_exc:
         logger.warning("PATCH-062: Tool registration failed at boot: %s", _te_exc)
+
+    # PATCH-173: Register Cognitive Executive capability in AionMind on boot
+    try:
+        from src.cognitive_executive import _get_kernel, _register_revenue_capability
+        _boot_kernel = _get_kernel()
+        if _boot_kernel is not None:
+            _register_revenue_capability(_boot_kernel)
+            logger.info("PATCH-173: Cognitive Executive — revenue_driver capability registered at boot")
+        else:
+            logger.warning("PATCH-173: AionMind kernel not ready at boot — capability will be registered on first cycle")
+    except Exception as _cog_exc:
+        logger.warning("PATCH-173: Cognitive Executive boot registration failed: %s", _cog_exc)
 
     # PATCH-063: Restore Rosetta agent states from disk
     try:
@@ -6573,11 +6701,95 @@ def create_app() -> FastAPI:
         return JSONResponse({"success": True, **result})
 
     @app.get("/api/onboarding-flow/org/chart")
-    async def get_org_chart():
-        """Get the full corporate org chart."""
-        if _onboarding_flow is None:
-            return JSONResponse({"success": False, "error": "Onboarding flow not available"}, status_code=503)
-        return JSONResponse({"success": True, "org_chart": _onboarding_flow.org_chart.get_org_chart()})
+    async def get_org_chart(request: Request):
+        """PATCH-169c: Serve org chart from Rosetta CHARACTERS (live soul data)."""
+        try:
+            from src.rosetta_core import get_rosetta_soul
+            soul = get_rosetta_soul()
+            chars = soul.CHARACTERS  # dict of agent_id → AgentCharacter
+
+            # Build hierarchy: Rosetta (9) at top, then positions 1-8
+            hierarchy = []
+            sorted_chars = sorted(chars.values(), key=lambda c: c.position)
+
+            # Map character positions to org chart nodes
+            ROLE_LABELS = {
+                "rosetta":    "Chief Alignment Officer",
+                "exec_admin": "Executive Operations",
+                "auditor":    "Chief Auditor",
+                "hitl":       "Human-in-the-Loop Gate",
+                "prod_ops":   "Production Operations",
+                "executor":   "Task Executor",
+                "scheduler":  "Workflow Scheduler",
+                "translator": "Signal Translator",
+                "collector":  "Signal Collector",
+            }
+            DEPT_MAP = {
+                "rosetta":    "Governance",
+                "exec_admin": "Operations",
+                "auditor":    "Compliance",
+                "hitl":       "Safety",
+                "prod_ops":   "Engineering",
+                "executor":   "Engineering",
+                "scheduler":  "Operations",
+                "translator": "Intelligence",
+                "collector":  "Intelligence",
+            }
+
+            # Build tree: Rosetta → [exec_admin, auditor, hitl] → [prod_ops, executor, scheduler, translator, collector]
+            REPORTS_TO = {
+                "exec_admin":  "rosetta",
+                "auditor":     "rosetta",
+                "hitl":        "rosetta",
+                "prod_ops":    "exec_admin",
+                "executor":    "exec_admin",
+                "scheduler":   "exec_admin",
+                "translator":  "collector",
+                "collector":   "prod_ops",
+            }
+
+            for ch in sorted_chars:
+                aid = ch.agent_id
+                hierarchy.append({
+                    "id":          aid,
+                    "position":    ch.position,
+                    "name":        ch.name,
+                    "emoji":       ch.emoji,
+                    "role":        ROLE_LABELS.get(aid, ch.name),
+                    "department":  DEPT_MAP.get(aid, "Operations"),
+                    "tone":        ch.tone,
+                    "bias":        ch.bias,
+                    "hitl_threshold": ch.hitl_threshold,
+                    "reports_to":  REPORTS_TO.get(aid, None),
+                    "north_star":  soul.NORTH_STAR,
+                })
+
+            # Also fetch live run stats from coordinator
+            try:
+                from src.rosetta_core import get_swarm_coordinator
+                coord = get_swarm_coordinator()
+                for node in hierarchy:
+                    agent = coord._agents.get(node["id"])
+                    if agent:
+                        node["runs_total"]   = agent._runs_total
+                        node["runs_success"] = agent._runs_success
+                        node["last_trigger"] = agent._last_trigger
+                        node["last_outcome"] = agent._last_outcome
+            except Exception:
+                pass  # stats optional
+
+            return JSONResponse({
+                "success":         True,
+                "ip_classification": "business_ip",
+                "total_positions": len(hierarchy),
+                "hierarchy":       hierarchy,
+                "soul_version":    "PATCH-169c",
+                "north_star":      soul.NORTH_STAR,
+                "team_covenant":   soul.TEAM_COVENANT,
+            })
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
 
     @app.get("/api/onboarding-flow/org/positions")
     async def list_org_positions():
@@ -10035,6 +10247,7 @@ def create_app() -> FastAPI:
                 "eula_accepted": True,      # accepted at signup form
                 "role": _assigned_role,
                 "created_at": _now_iso(),
+                "first_login": True,   # PATCH-177: flag cleared after first login
             }
             _email_to_account[email] = account_id
 
@@ -10394,6 +10607,11 @@ def create_app() -> FastAPI:
             # Mint session token
             session_token = _create_session(account_id)
 
+            # PATCH-177: First-login detection — set flag in response, clear it in store
+            _first_login = account.get("first_login", False)
+            if _first_login:
+                account["first_login"] = False
+                _user_store[account_id] = account
             from starlette.responses import JSONResponse as _SJR
             resp = _SJR({
                 "success": True,
@@ -10403,6 +10621,8 @@ def create_app() -> FastAPI:
                 "email": account["email"],
                 "name": account.get("full_name", ""),
                 "tier": account.get("tier", "free"),
+                "first_login": _first_login,
+                "onboarding_url": "/ui/onboarding" if _first_login else None,
             })
             resp.set_cookie(
                 key="murphy_session",
@@ -12884,6 +13104,51 @@ def create_app() -> FastAPI:
         logger.info("Playwright runner router registered at /api/playwright-runner/*")
     except Exception as _pwr_exc:
         logger.warning("Playwright runner not available: %s", _pwr_exc)
+
+    # ── PATCH-177: Automation Pre-Fight API ──────────────────────────────────
+    @app.post("/api/automation/prefight")
+    async def automation_prefight_endpoint(request: Request):
+        """PATCH-177: Probe a URL and return automation method recommendation.
+        Body: {"url": "https://...", "timeout": 8.0}
+        Returns: method, captcha_profile, confidence, rationale
+        """
+        try:
+            data = await request.json()
+            url = data.get("url", "")
+            timeout_val = float(data.get("timeout", 8.0))
+            if not url:
+                return JSONResponse({"success": False, "error": "url required"}, status_code=400)
+            from src.automation_prefight import run_prefight as _run_pf
+            _decision = _run_pf(url, timeout=timeout_val)
+            return JSONResponse({
+                "success": True,
+                "url": url,
+                "method": _decision.method.value,
+                "captcha_profile": _decision.captcha.value,
+                "confidence": _decision.confidence,
+                "rationale": _decision.rationale,
+                "ghost_available": _decision.ghost_ok,
+                "playwright_available": _decision.playwright_ok,
+                "probe": {
+                    "reachable": _decision.probe.reachable if _decision.probe else None,
+                    "status_code": _decision.probe.status_code if _decision.probe else None,
+                    "probe_time_ms": _decision.probe.probe_time_ms if _decision.probe else None,
+                    "signatures": _decision.probe.raw_signatures if _decision.probe else [],
+                } if _decision.probe else None,
+                "patch": "PATCH-177",
+            })
+        except Exception as _pfe:
+            logger.exception("PATCH-177: pre-fight endpoint error")
+            return JSONResponse({"success": False, "error": str(_pfe)}, status_code=500)
+
+    @app.get("/api/automation/prefight/status")
+    async def automation_prefight_status():
+        """PATCH-177: Engine availability status — no auth required."""
+        try:
+            from src.automation_prefight import prefight_status as _pfs
+            return JSONResponse({"success": True, **_pfs()})
+        except Exception as _pfe2:
+            return JSONResponse({"success": False, "error": str(_pfe2)}, status_code=500)
 
     # ── PATCH-155: Ghost Runner — standalone provider API key acquisition ─────
     try:
@@ -18170,6 +18435,11 @@ def create_app() -> FastAPI:
         from fastapi.responses import RedirectResponse
         return RedirectResponse(url="/ui/financing", status_code=307)
 
+    @app.get("/ui/self-vision")
+    async def ui_self_vision():
+        """PATCH-163: Murphy's Self-Vision Loop UI page."""
+        return FileResponse("/opt/Murphy-System/self_vision.html")
+
     @app.get("/ui/game-studio")
     async def ui_game_studio():
         """Game Studio — multi-genre game world and pipeline management."""
@@ -20486,6 +20756,108 @@ def create_app() -> FastAPI:
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
+    @app.get("/api/swarm/bus/status")
+    async def swarm_bus_status():
+        """PATCH-170e: Redis signal bus status."""
+        try:
+            from src.swarm_bus import bus_status
+            return JSONResponse({"success": True, **bus_status()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/swarm/bus/feed")
+    async def swarm_bus_feed(limit: int = 30):
+        """PATCH-170e: Recent bus events for UI live feed."""
+        try:
+            from src.swarm_bus import get_bus_feed
+            events = get_bus_feed(limit=limit)
+            return JSONResponse({"success": True, "events": events, "count": len(events)})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/swarm/bus/publish")
+    async def swarm_bus_publish(request: Request):
+        """PATCH-170e: Publish a signal to the bus (UI dispatch panel)."""
+        try:
+            from src.swarm_bus import publish, dispatch_planning, SignalMode
+            body = await request.json()
+            mode = body.get("mode", SignalMode.SEPARATE)
+            task = body.get("task", body.get("intent_hint", ""))
+            domain = body.get("domain", "exec_admin")
+
+            if mode == SignalMode.PLANNING:
+                pipeline = body.get("pipeline", ["collector", "translator", "exec_admin"])
+                sids = dispatch_planning(task, pipeline=pipeline, payload=body.get("payload",{}))
+                return JSONResponse({"success": True, "mode": mode, "signal_ids": sids, "pipeline": pipeline})
+            else:
+                sid = publish(
+                    signal_type=body.get("signal_type", "manual"),
+                    intent_hint=task,
+                    domain=domain,
+                    mode=mode,
+                    payload=body.get("payload", {}),
+                    origin_agent="ui",
+                )
+                return JSONResponse({"success": True, "mode": mode, "signal_id": sid, "domain": domain})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/swarm/agents/status")
+    async def swarm_agents_status():
+        """PATCH-170e: All 9 agents with live run stats + soul data."""
+        try:
+            from src.rosetta_core import get_swarm_coordinator, get_rosetta_soul
+            coord = get_swarm_coordinator()
+            soul = get_rosetta_soul()
+            ROLE_LABELS = {
+                "rosetta":"Chief Alignment Officer","exec_admin":"Executive Operations",
+                "auditor":"Chief Auditor","hitl":"Human-in-the-Loop Gate",
+                "prod_ops":"Production Operations","executor":"Task Executor",
+                "scheduler":"Workflow Scheduler","translator":"Signal Translator",
+                "collector":"Signal Collector",
+            }
+            DEPT_MAP = {
+                "rosetta":"Governance","exec_admin":"Operations","auditor":"Compliance",
+                "hitl":"Safety","prod_ops":"Engineering","executor":"Engineering",
+                "scheduler":"Operations","translator":"Intelligence","collector":"Intelligence",
+            }
+            REPORTS_TO = {
+                "exec_admin":"rosetta","auditor":"rosetta","hitl":"rosetta",
+                "prod_ops":"exec_admin","executor":"exec_admin","scheduler":"exec_admin",
+                "translator":"collector","collector":"prod_ops",
+            }
+            agents = []
+            for aid, char in sorted(soul.CHARACTERS.items(), key=lambda x: x[1].position):
+                agent = coord._agents.get(aid)
+                agents.append({
+                    "agent_id": aid,
+                    "position": char.position,
+                    "name": char.name,
+                    "emoji": char.emoji,
+                    "role": ROLE_LABELS.get(aid, char.name),
+                    "department": DEPT_MAP.get(aid, "Operations"),
+                    "tone": char.tone,
+                    "bias": char.bias,
+                    "hitl_threshold": char.hitl_threshold,
+                    "reports_to": REPORTS_TO.get(aid),
+                    "runs_total": agent._runs_total if agent else 0,
+                    "runs_success": agent._runs_success if agent else 0,
+                    "last_trigger": agent._last_trigger if agent else None,
+                    "last_outcome": agent._last_outcome if agent else None,
+                    "registered": agent is not None,
+                })
+            from src.swarm_bus import bus_status as _bs
+            return JSONResponse({
+                "success": True,
+                "agents": agents,
+                "total": len(agents),
+                "bus": _bs(),
+                "north_star": soul.NORTH_STAR,
+                "team_covenant": soul.TEAM_COVENANT,
+            })
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
     @app.get("/api/swarm/hitl/pending")
     async def _swarm_hitl_pending():
         """List pending HITL approval requests."""
@@ -20542,6 +20914,25 @@ def create_app() -> FastAPI:
 
     # ── PATCH-115b restored routes (exec, prodops, signals, workflows) ─────────
 
+    @app.get("/api/capabilities/registry")
+    async def _api_registry():
+        """PATCH-174 — Autonomous API registry status (public)."""
+        try:
+            from src.autonomous_api_acquirer import get_registry_status
+            return JSONResponse(get_registry_status())
+        except Exception as exc:
+            return JSONResponse({"error": str(exc)}, status_code=500)
+
+    @app.post("/api/capabilities/acquire")
+    async def _api_acquire(request: Request):
+        """PATCH-174 — Trigger an API acquisition cycle (auth required)."""
+        try:
+            from src.autonomous_api_acquirer import run_acquisition_cycle
+            result = run_acquisition_cycle()
+            return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
     @app.post("/api/exec/brief")
     async def _exec_brief(request: Request):
         """PATCH-116 — Executive morning brief (soul-wrapped)."""
@@ -20549,6 +20940,16 @@ def create_app() -> FastAPI:
             from src.exec_admin_agent import get_exec_admin
             body = await request.json()
             result = get_exec_admin().run_morning_brief(account=body.get("account","cpost@murphy.systems"))
+            return JSONResponse({"success": True, **result})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/exec/drive")
+    async def _exec_drive(request: Request):
+        """PATCH-173 — Cognitive Executive Revenue Driver (AionMind → ExecAdmin)."""
+        try:
+            from src.cognitive_executive import run_cognitive_revenue_cycle
+            result = run_cognitive_revenue_cycle()
             return JSONResponse({"success": True, **result})
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
@@ -21160,6 +21561,106 @@ def create_app() -> FastAPI:
             return JSONResponse(result)
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    # ── PATCH-163: Self-Vision Loop endpoints ────────────────────────────────
+    try:
+        from src.murphy_self_vision_loop import get_vision_loop as _get_vl163
+        _vl163 = _get_vl163()
+
+        @app.post("/api/self/vision/run")
+        async def _vision_run(request: Request):
+            """PATCH-163: Start a self-vision cycle. Returns job_id immediately."""
+            _tok = request.headers.get("Authorization","").removeprefix("Bearer ").strip()
+            if not _tok:
+                _tok = request.cookies.get("murphy_session","")
+            if not _tok:
+                _tok = request.headers.get("X-API-Key","").strip()
+            if not _tok:
+                return JSONResponse({"success":False,"error":"Auth required"},status_code=401)
+            try:
+                body = await request.json()
+            except Exception:
+                body = {}
+            import asyncio as _aio163
+            import threading as _th163
+            _pages      = body.get("pages", None)
+            _auto_apply = body.get("auto_apply", True)
+            _triggered  = body.get("triggered_by", "api")
+            job_id = str(__import__("uuid").uuid4())[:12]
+            # Run in background thread so endpoint returns immediately
+            def _bg163():
+                loop = _aio163.new_event_loop()
+                _aio163.set_event_loop(loop)
+                try:
+                    run = loop.run_until_complete(
+                        _vl163.run_cycle(
+                            pages=_pages,
+                            session_token=_tok,
+                            triggered_by=_triggered,
+                            auto_apply=_auto_apply,
+                        )
+                    )
+                    logger.info("PATCH-163: background vision cycle complete run_id=%s", run.id)
+                except Exception as _be:
+                    logger.error("PATCH-163: background vision cycle failed: %s", _be)
+                finally:
+                    loop.close()
+            _th163.Thread(target=_bg163, daemon=True, name="vision-loop-163").start()
+            return JSONResponse({"success":True,"job_id":job_id,"message":"Vision cycle started — poll /api/self/vision/status"})
+
+        @app.get("/api/self/vision/status")
+        async def _vision_status():
+            """PATCH-163: Current vision loop run status."""
+            return JSONResponse(_vl163.get_status())
+
+        @app.get("/api/self/vision/proposals")
+        async def _vision_proposals(run_id: str = ""):
+            """PATCH-163: Get proposals from last run (or specific run_id)."""
+            from src.murphy_self_vision_loop import _load_proposals, _load_all_proposals
+            if run_id:
+                props = _load_proposals(run_id)
+            else:
+                st = _vl163.get_status()
+                lr = st.get("last_run") or {}
+                rid = lr.get("id","")
+                props = _load_proposals(rid) if rid else _load_all_proposals()
+            return JSONResponse({"proposals": props, "count": len(props)})
+
+        @app.post("/api/self/vision/proposals/{proposal_id}/apply")
+        async def _vision_apply(proposal_id: str, request: Request):
+            """PATCH-163: Manually apply a queued vision proposal."""
+            _tok = request.headers.get("Authorization","").removeprefix("Bearer ").strip()
+            if not _tok:
+                _tok = request.cookies.get("murphy_session","")
+            if not _tok:
+                _tok = request.headers.get("X-API-Key","").strip()
+            if not _tok:
+                return JSONResponse({"success":False,"error":"Auth required"},status_code=401)
+            result = _vl163.apply_proposal(proposal_id)
+            return JSONResponse(result)
+
+        @app.post("/api/self/vision/proposals/{proposal_id}/reject")
+        async def _vision_reject(proposal_id: str, request: Request):
+            """PATCH-163: Reject a vision proposal."""
+            _tok = request.headers.get("Authorization","").removeprefix("Bearer ").strip()
+            if not _tok:
+                _tok = request.cookies.get("murphy_session","")
+            if not _tok:
+                _tok = request.headers.get("X-API-Key","").strip()
+            if not _tok:
+                return JSONResponse({"success":False,"error":"Auth required"},status_code=401)
+            result = _vl163.reject_proposal(proposal_id)
+            return JSONResponse(result)
+
+        @app.get("/api/self/vision/history")
+        async def _vision_history(limit: int = 20):
+            """PATCH-163: Past vision run history."""
+            from src.murphy_self_vision_loop import _get_run_history
+            return JSONResponse({"runs": _get_run_history(limit)})
+
+        logger.info("PATCH-163: Self-Vision Loop mounted — /api/self/vision/* live")
+    except Exception as _vl163_exc:
+        logger.warning("PATCH-163: Self-Vision Loop failed to mount: %s", _vl163_exc)
 
     # ── PATCH-071: Self-Marketing + Sell Engine ──────────────────────────────
     try:
