@@ -309,6 +309,7 @@ def create_app() -> FastAPI:
         "roi-ops":                 "roi_ops.html",
         "manifold-planner":        "manifold_planner.html",
         "assembly-center":         "assembly_center.html",
+        "chain-center":            "chain_center.html",
         "workflow-designer":       "workflow_canvas.html",
         "production-wizard":       "production_wizard.html",
         "production-editor":       "production_wizard.html",
@@ -22156,6 +22157,15 @@ def create_app() -> FastAPI:
         logger.info("PATCH-182: Assembly Engine online — /api/assembly/* | 13 record types | product ship gate")
     except Exception as _asm_exc:
         logger.warning("PATCH-182: Assembly router not available: %s", _asm_exc)
+
+    # ── Workflow Chain Engine (PATCH-183) ──────────────────────────────────────
+    # /api/chains/* — ordered chain requests with compliance gating + info_id tracking
+    try:
+        from src.chain_router import router as _chain_router
+        app.include_router(_chain_router)
+        logger.info("PATCH-183: Chain Engine online — /api/chains/* | 7 templates | compliance gates | info_id tracking")
+    except Exception as _ce_exc:
+        logger.warning("PATCH-183: Chain Engine not available: %s", _ce_exc)
 
     # ── PATCH-135: Business Automation Control ─────────────────────────────────
     # /api/automation/* — NL-driven automation from any agent, org node, or UI.

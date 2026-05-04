@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Chain Center — Murphy System</title>
+<style>
+:root{
+  --bg:#080c17;--s1:#0f1623;--s2:#161f30;--s3:#1c2840;
+  --b1:#1e2d45;--b2:#2a3d5a;
+  --teal:#00d4ff;--teal-d:rgba(0,212,255,.10);
+  --green:#00ff88;--green-d:rgba(0,255,136,.10);
+  --amber:#ffb400;--amber-d:rgba(255,180,0,.12);
+  --red:#ff4466;--red-d:rgba(255,68,102,.12);
+  --purple:#a855f7;--purple-d:rgba(168,85,247,.12);
+  --text:#e2e8f0;--dim:#718096;--muted:#4a5568;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',system-ui,sans-serif;
+     display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+.tb{display:flex;align-items:center;gap:.5rem;padding:.4rem 1rem;background:var(--s1);
+    border-bottom:1px solid var(--b1);flex-shrink:0;flex-wrap:wrap}
+.tb-title{font-weight:800;font-size:.88rem;color:var(--teal)}
+.spacer{flex:1}
+.btn{display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:5px;
+     font-size:.73rem;font-weight:600;cursor:pointer;border:1px solid var(--b1);
+     background:transparent;color:var(--dim);transition:all .15s;white-space:nowrap}
+.btn:hover{border-color:var(--teal);color:var(--teal)}
+.btn.p{background:var(--teal);color:#080c17;border-color:var(--teal)}
+.btn.g{background:var(--green);color:#080c17}
+.btn.r{border-color:var(--red);color:var(--red)}
+.btn.r:hover{background:var(--red-d)}
+.btn.amber{border-color:var(--amber);color:var(--amber)}
+.btn.amber:hover{background:var(--amber-d)}
+select.btn option{background:var(--s2)}
+
+/* compliance badges */
+.comp-pill{display:inline-flex;padding:2px 6px;border-radius:10px;font-size:.6rem;
+           font-weight:700;margin:1px;border:1px solid}
+.comp-on{background:var(--green-d);color:var(--green);border-color:rgba(0,255,136,.3)}
+.comp-off{background:var(--s3);color:var(--muted);border-color:var(--b1)}
+
+/* ── 3-panel ── */
+.panels{display:grid;grid-template-columns:280px 1fr 340px;flex:1;overflow:hidden;min-height:0}
+.panel{display:flex;flex-direction:column;border-right:1px solid var(--b1);overflow:hidden}
+.panel:last-child{border-right:none;border-left:1px solid var(--b1)}
+.ph{padding:.45rem .7rem;background:var(--s1);border-bottom:1px solid var(--b1);
+    flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:.4rem}
+.ph-title{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.pb{flex:1;overflow-y:auto;padding:.5rem .6rem}
+
+/* chain template cards */
+.tmpl-card{background:var(--s2);border:1px solid var(--b1);border-radius:7px;
+           padding:.45rem .55rem;margin-bottom:.3rem;cursor:pointer;transition:all .15s}
+.tmpl-card:hover{border-color:var(--teal);background:var(--teal-d)}
+.tmpl-card.selected{border-color:var(--green);background:var(--green-d)}
+.tc-hdr{display:flex;align-items:center;gap:.4rem}
+.tc-icon{font-size:1rem;flex-shrink:0}
+.tc-name{font-size:.75rem;font-weight:700;flex:1}
+.tc-cat{font-size:.62rem;color:var(--dim)}
+.tc-steps{font-size:.62rem;color:var(--muted);margin-top:.15rem}
+
+/* active chain list */
+.chain-row{background:var(--s2);border:1px solid var(--b1);border-radius:6px;
+           padding:.4rem .55rem;margin-bottom:.3rem;cursor:pointer;transition:all .15s}
+.chain-row:hover{border-color:var(--teal)}
+.chain-row.selected{border-color:var(--teal);background:var(--teal-d)}
+.cr-hdr{display:flex;align-items:center;gap:.4rem}
+.cr-id{font-size:.6rem;font-family:monospace;color:var(--amber);background:var(--amber-d);
+       padding:1px 5px;border-radius:3px;flex-shrink:0}
+.cr-name{font-size:.72rem;font-weight:700;flex:1;min-width:0;overflow:hidden;
+         text-overflow:ellipsis;white-space:nowrap}
+.cr-status{font-size:.6rem;font-weight:700;padding:2px 5px;border-radius:3px}
+.st-active{background:var(--teal-d);color:var(--teal)}
+.st-fulfilled{background:var(--green-d);color:var(--green)}
+.st-suspended{background:var(--amber-d);color:var(--amber)}
+.cr-progress{height:3px;background:var(--b2);border-radius:2px;margin-top:.3rem;overflow:hidden}
+.cr-prog-bar{height:3px;border-radius:2px;transition:width .3s}
+.cr-meta{font-size:.62rem;color:var(--dim);margin-top:.2rem;display:flex;gap:.5rem}
+
+/* ── Chain step column (center) ── */
+.step-block{border-radius:8px;border:1px solid var(--b1);margin-bottom:.4rem;
+            overflow:hidden;transition:all .15s}
+.step-block.ready{border-color:var(--teal)}
+.step-block.complete{border-color:rgba(0,255,136,.3);opacity:.8}
+.step-block.blocked{border-color:var(--red)}
+.step-block.waived{border-color:var(--purple)}
+.step-block.pending{opacity:.5}
+.sb-hdr{display:flex;align-items:center;gap:.5rem;padding:.4rem .6rem;cursor:pointer}
+.sb-num{font-size:.65rem;font-weight:800;color:var(--teal);background:var(--teal-d);
+        padding:2px 6px;border-radius:4px;min-width:22px;text-align:center;flex-shrink:0}
+.sb-num.complete{background:var(--green-d);color:var(--green)}
+.sb-num.blocked{background:var(--red-d);color:var(--red)}
+.sb-num.waived{background:var(--purple-d);color:var(--purple)}
+.sb-name{font-size:.77rem;font-weight:700;flex:1}
+.sb-gate{font-size:.62rem;font-weight:700;padding:2px 6px;border-radius:3px;flex-shrink:0}
+.gate-pass{background:var(--green-d);color:var(--green)}
+.gate-blocked{background:var(--red-d);color:var(--red)}
+.gate-partial{background:var(--amber-d);color:var(--amber)}
+.gate-pending{background:var(--b2);color:var(--muted)}
+.sb-cost{font-size:.62rem;flex-shrink:0}
+.sb-body{padding:.3rem .6rem .5rem;border-top:1px solid var(--b1);display:none}
+.sb-body.open{display:block}
+.sb-desc{font-size:.68rem;color:var(--dim);line-height:1.5;margin-bottom:.3rem}
+/* compliance gate breakdown */
+.gate-detail{background:var(--s3);border-radius:5px;padding:.35rem .5rem;margin-bottom:.35rem}
+.gd-title{font-size:.63rem;font-weight:700;color:var(--teal);margin-bottom:.2rem}
+.gd-row{display:flex;align-items:center;gap:.3rem;margin-bottom:.15rem;font-size:.63rem}
+.gd-icon{flex-shrink:0}
+.gd-label{color:var(--dim);flex:1}
+.gd-pills{display:flex;flex-wrap:wrap;gap:2px}
+/* record types required */
+.rt-chips{display:flex;flex-wrap:wrap;gap:.25rem;margin-bottom:.3rem}
+.rt-chip{font-size:.6rem;padding:2px 6px;border-radius:3px;border:1px solid var(--b1);
+         background:var(--s3);cursor:pointer;transition:all .12s}
+.rt-chip:hover{border-color:var(--teal);color:var(--teal)}
+.rt-chip.admin{border-color:rgba(255,180,0,.3);color:var(--amber)}
+.rt-chip.production{border-color:rgba(0,212,255,.3);color:var(--teal)}
+/* action buttons */
+.step-actions{display:flex;gap:.3rem;margin-top:.3rem;flex-wrap:wrap}
+.co-banner{background:var(--red-d);border:1px solid rgba(255,68,102,.3);border-radius:5px;
+           padding:.3rem .5rem;margin-bottom:.3rem;font-size:.68rem;color:var(--red)}
+.cr-banner{background:var(--green-d);border:1px solid rgba(0,255,136,.3);border-radius:5px;
+           padding:.3rem .5rem;margin-bottom:.3rem;font-size:.68rem;color:var(--green)}
+
+/* ── Right panel: info_id summary + log ── */
+.info-section{margin-bottom:.6rem}
+.is-title{font-size:.65rem;font-weight:700;color:var(--teal);text-transform:uppercase;
+          letter-spacing:.05em;margin-bottom:.3rem;padding-bottom:.2rem;
+          border-bottom:1px solid var(--b1)}
+.fin-grid{display:grid;grid-template-columns:1fr 1fr;gap:.3rem;margin-bottom:.4rem}
+.fin-cell{background:var(--s2);border:1px solid var(--b1);border-radius:5px;
+          padding:.3rem .45rem;text-align:center}
+.fin-num{font-size:.9rem;font-weight:800;line-height:1}
+.fin-label{font-size:.6rem;color:var(--dim);margin-top:2px}
+.log-row{display:flex;gap:.35rem;padding:.2rem 0;border-bottom:1px solid rgba(255,255,255,.03);
+         font-size:.63rem;align-items:baseline}
+.log-ts{color:var(--muted);flex-shrink:0;font-size:.58rem}
+.log-type{font-size:.58rem;font-weight:700;padding:1px 4px;border-radius:2px;flex-shrink:0}
+.log-type.chain_created{background:var(--teal-d);color:var(--teal)}
+.log-type.step_complete{background:var(--green-d);color:var(--green)}
+.log-type.change_order{background:var(--red-d);color:var(--red)}
+.log-type.credit{background:var(--green-d);color:var(--green)}
+.log-type.waiver_raised{background:var(--purple-d);color:var(--purple)}
+.log-type.chain_fulfilled{background:var(--green-d);color:var(--green)}
+.log-msg{flex:1;color:var(--dim)}
+.log-delta{flex-shrink:0;font-weight:700}
+
+/* modal */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:300;
+          display:none;align-items:center;justify-content:center}
+.modal-ov.open{display:flex}
+.modal{background:var(--s1);border:1px solid var(--b2);border-radius:10px;
+       width:480px;max-height:82vh;overflow-y:auto;padding:1.2rem}
+.modal-title{font-size:.85rem;font-weight:700;color:var(--teal);margin-bottom:.7rem;
+             display:flex;justify-content:space-between;align-items:center}
+.fi{width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:5px;
+    padding:.3rem .45rem;font-size:.73rem;color:var(--text);font-family:inherit;margin-bottom:.3rem}
+.fi:focus{outline:none;border-color:var(--teal)}
+.fl{font-size:.68rem;font-weight:600;color:var(--dim);margin-bottom:.12rem;display:block}
+</style>
+</head>
+<body>
+<nav class="nav" id="main-nav"></nav>
+
+<div class="tb">
+  <span class="tb-title">🔗 Chain Center</span>
+  <select class="btn" id="project-sel" onchange="selectProject(this.value)" style="max-width:180px">
+    <option value="">— project —</option>
+  </select>
+  <button class="btn p" onclick="openNewChain()">＋ New Chain</button>
+  <button class="btn amber" onclick="regateAll()">⚡ Re-Gate All</button>
+  <div class="spacer"></div>
+  <div id="comp-bar" style="display:flex;flex-wrap:wrap;gap:2px;align-items:center">
+    <span style="font-size:.62rem;color:var(--muted);margin-right:3px">Compliance:</span>
+  </div>
+  <div id="kpi-bar" style="display:flex;gap:.8rem;font-size:.7rem;color:var(--dim)"></div>
+</div>
+
+<div class="panels">
+
+  <!-- LEFT: templates + active chains -->
+  <div class="panel">
+    <div class="ph">
+      <span class="ph-title" style="color:var(--teal)" id="left-title">🔗 Chain Templates</span>
+      <button class="btn" style="font-size:.6rem;padding:2px 6px" id="left-toggle"
+              onclick="toggleLeft()">📋 Active</button>
+    </div>
+    <div class="pb" id="left-panel"></div>
+  </div>
+
+  <!-- CENTER: chain steps -->
+  <div class="panel">
+    <div class="ph">
+      <div>
+        <span class="ph-title" style="color:var(--amber)" id="center-title">📋 Steps</span>
+        <div id="chain-id-badge" style="font-size:.6rem;font-family:monospace;color:var(--amber);margin-top:2px"></div>
+      </div>
+      <button class="btn" style="font-size:.6rem;padding:2px 6px" onclick="regateCurrentChain()">↻ Re-Gate</button>
+    </div>
+    <div class="pb" id="center-panel">
+      <div style="text-align:center;padding:2rem;color:var(--muted);font-size:.75rem">
+        Select a chain template to preview,<br>or pick an active chain to manage it.
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: info_id summary + log -->
+  <div class="panel">
+    <div class="ph">
+      <span class="ph-title" style="color:var(--green)" id="right-title">📊 Summary</span>
+      <button class="btn" style="font-size:.6rem;padding:2px 6px" onclick="toggleRight()">📜 Log</button>
+    </div>
+    <div class="pb" id="right-panel">
+      <div style="text-align:center;padding:2rem;color:var(--muted);font-size:.75rem">
+        Select a chain to see the info_id summary.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- New Chain Modal -->
+<div class="modal-ov" id="modal-new">
+  <div class="modal">
+    <div class="modal-title">🔗 Start Chain Request
+      <span style="cursor:pointer;color:var(--muted)" onclick="closeModal()">✕</span>
+    </div>
+    <label class="fl">Chain Template</label>
+    <select class="fi" id="nc-template" onchange="previewTemplate(this.value)"></select>
+    <div id="nc-preview" style="font-size:.65rem;color:var(--dim);margin-bottom:.4rem;
+         background:var(--s2);border-radius:5px;padding:.35rem .5rem;display:none"></div>
+    <label class="fl">Chain Name (optional)</label>
+    <input class="fi" id="nc-name" placeholder="Leave blank to auto-name">
+    <label class="fl">Requestor</label>
+    <input class="fi" id="nc-requestor" value="cpost@murphy.systems">
+    <div style="margin-bottom:.4rem">
+      <div class="fl" style="margin-bottom:.2rem">Active Compliance at Creation</div>
+      <div id="nc-compliance" style="display:flex;flex-wrap:wrap;gap:3px"></div>
+    </div>
+    <div style="display:flex;gap:.4rem;margin-top:.4rem">
+      <button class="btn p" onclick="submitChain()" style="flex:1">🚀 Start Chain</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/murphy-nav.js"></script>
+<script>
+const API = window.location.origin;
+let templates=[], chains=[], activeCompliance=[];
+let currentChain=null, currentTemplate=null, openSteps=new Set();
+let leftMode='templates', rightMode='summary';
+let currentProject=null;
+
+function authH(){
+  const t=localStorage.getItem('murphy_api_key')||localStorage.getItem('murphy_session_token')||'';
+  const h={'Content-Type':'application/json'};
+  if(t) h['Authorization']='Bearer '+t;
+  return h;
+}
+async function api(m,p,b=null){
+  const o={method:m,headers:authH()};
+  if(b) o.body=JSON.stringify(b);
+  const r=await fetch(API+p,o);
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||r.status);}
+  return r.json();
+}
+
+async function init(){
+  if(window.MurphyNav) MurphyNav.init('main-nav');
+  await Promise.all([loadTemplates(),loadCompliance(),loadProjects()]);
+  renderComplianceBar();
+  renderLeft();
+  setInterval(autoRefresh,20000);
+}
+
+async function autoRefresh(){
+  await Promise.all([loadCompliance(),loadChains()]);
+  renderComplianceBar();
+  renderLeft();
+  updateKPIs();
+  if(currentChain){
+    const fresh=await api('GET','/api/chains/requests/'+currentChain.id).catch(()=>null);
+    if(fresh){currentChain=fresh; renderCenter(); renderRight();}
+  }
+}
+
+async function loadTemplates(){
+  const d=await api('GET','/api/chains/templates');
+  templates=d.templates||[];
+}
+async function loadCompliance(){
+  try{
+    const d=await api('GET','/api/compliance/toggles');
+    activeCompliance=d.enabled||[];
+  }catch(e){ activeCompliance=['gdpr','soc2','hipaa','pci_dss','iso_27001','ccpa','sox','nist_csf']; }
+}
+async function loadProjects(){
+  try{
+    const d=await api('GET','/api/manifold/projects');
+    const sel=document.getElementById('project-sel');
+    sel.innerHTML='<option value="">— project —</option>'+(d.projects||[]).map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+    if((d.projects||[]).length===1) selectProject(d.projects[0].id);
+  }catch(e){}
+}
+async function selectProject(pid){
+  currentProject=pid||null;
+  await loadChains();
+  renderLeft(); updateKPIs();
+}
+async function loadChains(){
+  try{
+    const url='/api/chains/requests'+(currentProject?'?project_id='+currentProject:'');
+    const d=await api('GET',url+'&limit=40');
+    chains=d.chains||[];
+  }catch(e){}
+}
+
+function updateKPIs(){
+  const active=chains.filter(c=>c.status==='active').length;
+  const done=chains.filter(c=>c.status==='fulfilled').length;
+  document.getElementById('kpi-bar').innerHTML=
+    `<span><strong style="color:var(--teal)">${active}</strong> active</span>
+     <span><strong style="color:var(--green)">${done}</strong> fulfilled</span>
+     <span><strong style="color:var(--text)">${chains.length}</strong> total</span>`;
+}
+
+// ── Compliance bar ─────────────────────────────────────────────────────────────
+function renderComplianceBar(){
+  const bar=document.getElementById('comp-bar');
+  const all=['gdpr','soc2','hipaa','pci_dss','iso_27001','ccpa','sox','nist_csf'];
+  bar.innerHTML='<span style="font-size:.62rem;color:var(--muted);margin-right:3px">Compliance:</span>'+
+    all.map(c=>{
+      const on=activeCompliance.includes(c);
+      return `<span class="comp-pill ${on?'comp-on':'comp-off'}">${c.toUpperCase().replace('_',' ')}</span>`;
+    }).join('');
+}
+
+// ── Left panel ─────────────────────────────────────────────────────────────────
+function toggleLeft(){
+  leftMode=leftMode==='templates'?'chains':'templates';
+  document.getElementById('left-title').textContent=leftMode==='templates'?'🔗 Chain Templates':'📋 Active Chains';
+  document.getElementById('left-toggle').textContent=leftMode==='templates'?'📋 Active':'🔗 Templates';
+  renderLeft();
+}
+function renderLeft(){
+  if(leftMode==='templates') renderTemplates();
+  else renderChainList();
+}
+function renderTemplates(){
+  document.getElementById('left-panel').innerHTML=templates.map(t=>{
+    const isSel=currentTemplate&&currentTemplate.id===t.id&&!currentChain;
+    return `<div class="tmpl-card ${isSel?'selected':''}" onclick="previewTemplate('${t.id}')">
+      <div class="tc-hdr">
+        <span class="tc-icon">${t.icon||'🔗'}</span>
+        <span class="tc-name">${t.name}</span>
+      </div>
+      <div class="tc-cat">${t.category||''}</div>
+      <div class="tc-steps">${(t.steps||[]).length} steps · ~${t.estimated_days||'?'}d</div>
+    </div>`;
+  }).join('');
+}
+function renderChainList(){
+  if(!chains.length){
+    document.getElementById('left-panel').innerHTML=`<div style="text-align:center;padding:1.5rem;color:var(--muted);font-size:.73rem">
+      No chains yet.<br><button class="btn p" style="margin-top:.5rem" onclick="openNewChain()">＋ New Chain</button></div>`;
+    return;
+  }
+  document.getElementById('left-panel').innerHTML=chains.map(c=>{
+    const steps=c.total_steps||1;
+    const current=c.current_step_index||0;
+    const pct=Math.round(current/steps*100);
+    const isSel=currentChain&&currentChain.id===c.id;
+    return `<div class="chain-row ${isSel?'selected':''}" onclick="selectChain('${c.id}')">
+      <div class="cr-hdr">
+        <span class="cr-id">${c.id}</span>
+        <span class="cr-name">${c.name}</span>
+        <span class="cr-status st-${c.status}">${c.status}</span>
+      </div>
+      <div class="cr-progress"><div class="cr-prog-bar" style="width:${pct}%;background:var(--${c.status==='fulfilled'?'green':'teal'})"></div></div>
+      <div class="cr-meta">
+        <span>Step ${current}/${steps}</span>
+        <span>$${(c.total_cost_usd||0).toFixed(0)}</span>
+        ${c.compliance_cost_usd>0?`<span style="color:var(--amber)">+$${c.compliance_cost_usd.toFixed(0)} compliance</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Template preview ───────────────────────────────────────────────────────────
+function previewTemplate(tid){
+  currentTemplate=templates.find(t=>t.id===tid)||null;
+  currentChain=null;
+  renderTemplates();
+  if(!currentTemplate) return;
+  renderTemplatePreview();
+  document.getElementById('right-panel').innerHTML=`<div style="text-align:center;padding:1rem;color:var(--dim);font-size:.73rem">
+    Start this chain to see the info_id summary.<br>
+    <button class="btn p" style="margin-top:.5rem" onclick="openNewChain('${tid}')">🚀 Start Chain</button>
+  </div>`;
+  document.getElementById('center-title').textContent=`${currentTemplate.icon} ${currentTemplate.name}`;
+  document.getElementById('chain-id-badge').textContent='preview only';
+}
+function renderTemplatePreview(){
+  const t=currentTemplate;
+  const steps=t.steps||[];
+  let html=`<div style="font-size:.68rem;color:var(--dim);margin-bottom:.5rem">${t.description||''}</div>`;
+  steps.forEach(s=>{
+    const gate=evaluateGateLocal(s,activeCompliance);
+    const gateLabel={PASS:'PASS',BLOCKED:'BLOCKED',PARTIAL:'PARTIAL'}[gate.result];
+    const gateCls={PASS:'gate-pass',BLOCKED:'gate-blocked',PARTIAL:'gate-partial'}[gate.result];
+    const isOpen=openSteps.has('preview_'+s.index);
+    html+=`<div class="step-block ${gate.result==='BLOCKED'?'blocked':'ready'}" style="opacity:${gate.result==='BLOCKED'?'.6':'1'}">
+      <div class="sb-hdr" onclick="toggleStep('preview_${s.index}')">
+        <span class="sb-num ${gate.result==='BLOCKED'?'blocked':''}">${s.index}</span>
+        <span class="sb-name">${s.name}</span>
+        <span class="sb-gate ${gateCls}">${gateLabel}</span>
+        ${gate.cost_delta>0?`<span class="sb-cost" style="color:var(--amber)">+$${gate.cost_delta}</span>`:''}
+        ${gate.cost_delta<0?`<span class="sb-cost" style="color:var(--green)">$${gate.cost_delta}</span>`:''}
+      </div>
+      <div class="sb-body ${isOpen?'open':''}">
+        <div class="sb-desc">${s.description||''}</div>
+        ${renderGateDetail(s,gate)}
+        ${renderRecordChips(s.record_types||[])}
+        <div style="font-size:.63rem;color:var(--dim)">Base cost: $${s.base_cost_usd||0}</div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('center-panel').innerHTML=html;
+}
+
+// ── Select & render active chain ───────────────────────────────────────────────
+async function selectChain(chainId){
+  currentChain=await api('GET','/api/chains/requests/'+chainId);
+  currentTemplate=templates.find(t=>t.id===currentChain.template_id)||null;
+  renderChainList();
+  renderCenter();
+  renderRight();
+  document.getElementById('center-title').textContent=`${currentTemplate?.icon||'🔗'} ${currentChain.name}`;
+  document.getElementById('chain-id-badge').textContent=currentChain.id;
+}
+
+function renderCenter(){
+  if(!currentChain) return;
+  const steps=currentChain.steps||[];
+  const tmpl=currentTemplate;
+  let html='';
+
+  // Change order / credit banners
+  if(currentChain.pending_change_orders_usd>0){
+    html+=`<div class="co-banner">⚡ Change Orders: +$${currentChain.pending_change_orders_usd.toFixed(0)} — compliance cost added to this chain</div>`;
+  }
+  if(currentChain.pending_credits_usd>0){
+    html+=`<div class="cr-banner">✓ Credits: -$${currentChain.pending_credits_usd.toFixed(0)} — compliance savings on this chain</div>`;
+  }
+
+  steps.forEach(s=>{
+    const tmplStep=tmpl?.steps?.find(ts=>ts.index===s.step_index)||{};
+    const gate=s.latest_gate||{};
+    const status=s.gate_status||'pending';
+    const statusMap={ready:'ready',complete:'complete',blocked:'blocked',waived:'waived',pending:'pending'};
+    const numCls={complete:'complete',blocked:'blocked',waived:'waived'}[status]||'';
+    const statusIcon={complete:'✓',blocked:'✗',waived:'⚠',ready:'▶',pending:'○'}[status]||'○';
+    const isOpen=openSteps.has(s.id);
+    const gateCls={'PASS':'gate-pass','BLOCKED':'gate-blocked','PARTIAL':'gate-partial'}[gate.result]||'gate-pending';
+
+    html+=`<div class="step-block ${statusMap[status]}">
+      <div class="sb-hdr" onclick="toggleStep('${s.id}')">
+        <span class="sb-num ${numCls}">${statusIcon}${s.step_index}</span>
+        <span class="sb-name">${s.step_name}</span>
+        ${gate.result?`<span class="sb-gate ${gateCls}">${gate.result}</span>`:''}
+        ${(s.compliance_cost_usd||0)>0?`<span class="sb-cost" style="color:var(--amber)">+$${s.compliance_cost_usd}</span>`:''}
+        ${status==='complete'?`<span style="font-size:.6rem;color:var(--green)">✓ done</span>`:''}
+      </div>
+      <div class="sb-body ${isOpen?'open':''}">
+        <div class="sb-desc">${tmplStep.description||s.gate_reason||''}</div>`;
+
+    if(gate.result){
+      html+=renderGateDetail(tmplStep,{
+        result:gate.result,
+        required_met:gate.required_met||[],
+        required_missing:gate.required_missing||[],
+        optional_active:gate.optional_active||[],
+        blocked_by:gate.blocked_by||[],
+        cost_delta:gate.cost_delta||0,
+        reason:s.gate_reason||''
+      });
+    }
+
+    // Record types
+    if((s.record_types||[]).length){
+      html+=renderRecordChips(s.record_types);
+    }
+
+    // Records assembled
+    if((s.records||[]).length){
+      html+=`<div style="font-size:.63rem;color:var(--green);margin:.2rem 0">
+        ✓ ${s.records.length} record${s.records.length>1?'s':''} assembled</div>`;
+    }
+
+    // Step actions
+    html+=`<div class="step-actions">`;
+    if(status==='ready'||status==='partial'){
+      html+=`<button class="btn g" style="font-size:.63rem" onclick="advanceStep('${currentChain.id}',${s.step_index})">✓ Complete Step</button>`;
+      html+=`<button class="btn" style="font-size:.63rem" onclick="goAssemble('${s.id}','${currentChain.id}')">📝 Assemble Records</button>`;
+    }
+    if(status==='blocked'){
+      html+=`<button class="btn amber" style="font-size:.63rem" onclick="raiseWaiver('${currentChain.id}',${s.step_index})">⚠ Raise Waiver</button>`;
+    }
+    if(status==='pending'||status==='blocked'){
+      html+=`<button class="btn" style="font-size:.63rem" onclick="regateStep('${currentChain.id}',${s.step_index})">↻ Re-Gate</button>`;
+    }
+    html+=`</div></div></div>`;
+  });
+
+  if(currentChain.status!=='fulfilled'){
+    html+=`<button class="btn r" style="font-size:.65rem;margin-top:.3rem;width:100%;justify-content:center"
+             onclick="cancelChain('${currentChain.id}')">✕ Cancel Chain</button>`;
+  } else {
+    html+=`<div style="text-align:center;padding:.5rem;color:var(--green);font-size:.78rem;font-weight:700">🎉 Chain Fulfilled</div>`;
+  }
+
+  document.getElementById('center-panel').innerHTML=html;
+}
+
+function renderRight(){
+  if(rightMode==='log'){ renderLog(); return; }
+  if(!currentChain){ document.getElementById('right-panel').innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.73rem">Select a chain.</div>'; return; }
+  const c=currentChain;
+  const fin={
+    base: c.total_cost_usd||0,
+    compliance: c.compliance_cost_usd||0,
+    cos: c.change_orders_usd||0,
+    credits: c.credits_usd||0
+  };
+  fin.net=fin.base+fin.compliance+fin.cos-fin.credits;
+
+  let html=`
+  <div class="info-section">
+    <div class="is-title">📊 Financial Summary</div>
+    <div class="fin-grid">
+      <div class="fin-cell"><div class="fin-num" style="color:var(--text)">$${fin.base.toFixed(0)}</div><div class="fin-label">Base Cost</div></div>
+      <div class="fin-cell"><div class="fin-num" style="color:var(--amber)">$${fin.compliance.toFixed(0)}</div><div class="fin-label">Compliance Cost</div></div>
+      <div class="fin-cell"><div class="fin-num" style="color:var(--red)">+$${fin.cos.toFixed(0)}</div><div class="fin-label">Change Orders</div></div>
+      <div class="fin-cell"><div class="fin-num" style="color:var(--green)">-$${fin.credits.toFixed(0)}</div><div class="fin-label">Credits</div></div>
+    </div>
+    <div style="text-align:center;padding:.3rem;background:var(--s2);border-radius:5px;
+         font-size:.85rem;font-weight:800;color:var(--teal)">
+      Net: $${fin.net.toFixed(0)}
+    </div>
+  </div>`;
+
+  // Compliance profile at creation vs now
+  const created=c.compliance_profile||[];
+  const diffs=activeCompliance.filter(x=>!created.includes(x)).concat(created.filter(x=>!activeCompliance.includes(x)));
+  html+=`<div class="info-section">
+    <div class="is-title">🛡 Compliance Profile</div>
+    <div style="font-size:.63rem;color:var(--dim);margin-bottom:.2rem">At creation:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:.3rem">
+      ${created.map(c=>`<span class="comp-pill comp-on">${c.toUpperCase().replace('_',' ')}</span>`).join('')}
+    </div>
+    ${diffs.length?`<div style="font-size:.63rem;color:var(--amber)">⚠ Compliance changed since creation — re-gate recommended</div>`:''}
+  </div>`;
+
+  // Step summary
+  const steps=c.steps||[];
+  const done=steps.filter(s=>s.gate_status==='complete').length;
+  const blocked=steps.filter(s=>s.gate_status==='blocked').length;
+  html+=`<div class="info-section">
+    <div class="is-title">📋 Steps (${done}/${steps.length} complete)</div>
+    ${steps.map(s=>{
+      const col={complete:'var(--green)',blocked:'var(--red)',ready:'var(--teal)',
+                 waived:'var(--purple)',pending:'var(--muted)'}[s.gate_status]||'var(--muted)';
+      return `<div style="display:flex;align-items:center;gap:.4rem;padding:.15rem 0;font-size:.66rem">
+        <span style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0"></span>
+        <span style="flex:1">${s.step_name}</span>
+        <span style="color:${col};font-size:.6rem">${s.gate_status}</span>
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  html+=`<div style="text-align:center;margin-top:.4rem">
+    <button class="btn" onclick="copyInfoId('${c.id}')" style="font-size:.65rem">📋 Copy info_id</button>
+  </div>`;
+
+  document.getElementById('right-panel').innerHTML=html;
+}
+
+async function renderLog(){
+  const url='/api/chains/log'+(currentChain?'?chain_id='+currentChain.id:'')+'&limit=80';
+  const d=await api('GET',url).catch(()=>({log:[]}));
+  const log=d.log||[];
+  if(!log.length){document.getElementById('right-panel').innerHTML='<div style="text-align:center;padding:1rem;color:var(--muted);font-size:.73rem">No log entries.</div>';return;}
+  document.getElementById('right-panel').innerHTML=log.map(l=>{
+    const delta=l.financial_delta_usd||0;
+    const cls=l.event_type?.replace(/_/g,'_')||'';
+    return `<div class="log-row">
+      <span class="log-ts">${(l.timestamp||'').slice(11,16)}</span>
+      <span class="log-type ${cls}">${l.event_type||''}</span>
+      <span class="log-msg">${l.message||''}</span>
+      ${delta?`<span class="log-delta" style="color:${delta>=0?'var(--red)':'var(--green)'}">
+        ${delta>=0?'+':''}$${delta.toFixed(0)}</span>`:''}
+    </div>`;
+  }).join('');
+}
+
+function toggleRight(){
+  rightMode=rightMode==='summary'?'log':'summary';
+  document.querySelector('.panel:last-child .ph .btn').textContent=rightMode==='summary'?'📜 Log':'📊 Summary';
+  document.getElementById('right-title').textContent=rightMode==='summary'?'📊 Summary':'📜 Activity Log';
+  renderRight();
+}
+
+// ── Gate helpers ───────────────────────────────────────────────────────────────
+function evaluateGateLocal(stepDef, active){
+  const required=stepDef.required_compliance||[];
+  const optional=stepDef.optional_compliance||[];
+  const blocked_by=stepDef.blocked_by_compliance||[];
+  const activeSet=new Set(active.map(c=>c.toLowerCase()));
+  const triggered=blocked_by.filter(c=>activeSet.has(c.toLowerCase()));
+  if(triggered.length) return {result:'BLOCKED',blocked_by:triggered,required_met:[],required_missing:[],optional_active:[],cost_delta:-200};
+  const met=required.filter(c=>activeSet.has(c.toLowerCase()));
+  const missing=required.filter(c=>!activeSet.has(c.toLowerCase()));
+  const optActive=optional.filter(c=>activeSet.has(c.toLowerCase()));
+  const cost=met.length*400+optActive.length*300;
+  if(missing.length) return {result:'PARTIAL',blocked_by:[],required_met:met,required_missing:missing,optional_active:optActive,cost_delta:cost};
+  return {result:'PASS',blocked_by:[],required_met:met,required_missing:missing,optional_active:optActive,cost_delta:cost};
+}
+
+function renderGateDetail(stepDef, gate){
+  if(!gate||!gate.result) return '';
+  const costs={gdpr:400,soc2:500,hipaa:600,pci_dss:800,iso_27001:450,ccpa:300,sox:700,nist_csf:350};
+  let html=`<div class="gate-detail">
+    <div class="gd-title">⚡ Compliance Gate</div>`;
+  if((gate.required_met||[]).length){
+    html+=`<div class="gd-row"><span class="gd-icon">✓</span><span class="gd-label">Required (met):</span>
+      <div class="gd-pills">${gate.required_met.map(c=>`<span class="comp-pill comp-on">${c.toUpperCase().replace('_',' ')} +$${costs[c]||400}</span>`).join('')}</div></div>`;
+  }
+  if((gate.required_missing||[]).length){
+    html+=`<div class="gd-row"><span class="gd-icon">⚠</span><span class="gd-label">Required (missing):</span>
+      <div class="gd-pills">${gate.required_missing.map(c=>`<span class="comp-pill comp-off">${c.toUpperCase().replace('_',' ')}</span>`).join('')}</div></div>`;
+  }
+  if((gate.optional_active||[]).length){
+    html+=`<div class="gd-row"><span class="gd-icon">+</span><span class="gd-label">Optional (active):</span>
+      <div class="gd-pills">${gate.optional_active.map(c=>`<span class="comp-pill comp-on" style="border-color:rgba(255,180,0,.4);color:var(--amber)">${c.toUpperCase().replace('_',' ')} +$${costs[c]||300}</span>`).join('')}</div></div>`;
+  }
+  if((gate.blocked_by||[]).length){
+    html+=`<div class="gd-row"><span class="gd-icon">✗</span><span class="gd-label">Blocked by:</span>
+      <div class="gd-pills">${gate.blocked_by.map(c=>`<span class="comp-pill" style="background:var(--red-d);color:var(--red);border-color:rgba(255,68,102,.4)">${c.toUpperCase().replace('_',' ')}</span>`).join('')}</div></div>`;
+  }
+  if(gate.cost_delta){
+    html+=`<div style="font-size:.63rem;font-weight:700;margin-top:.2rem;color:${gate.cost_delta>0?'var(--amber)':'var(--green)'}">
+      Total compliance impact: ${gate.cost_delta>0?'+':''}$${gate.cost_delta}</div>`;
+  }
+  html+=`</div>`;
+  return html;
+}
+
+function renderRecordChips(recordTypes){
+  if(!recordTypes.length) return '';
+  const adminTypes=['decision_record','approval_record','audit_record','change_order','credit_memo','risk_register_entry'];
+  return `<div class="rt-chips">`+
+    recordTypes.map(rt=>{
+      const isAdmin=adminTypes.includes(rt);
+      const label=rt.replace(/_/g,' ');
+      return `<span class="rt-chip ${isAdmin?'admin':'production'}" onclick="goAssembleType('${rt}')">${label}</span>`;
+    }).join('')+`</div>`;
+}
+
+function toggleStep(stepId){
+  if(openSteps.has(stepId)) openSteps.delete(stepId);
+  else openSteps.add(stepId);
+  if(currentChain) renderCenter();
+  else if(currentTemplate) renderTemplatePreview();
+}
+
+// ── Actions ────────────────────────────────────────────────────────────────────
+async function advanceStep(chainId, stepIdx){
+  try{
+    currentChain=await api('POST','/api/chains/requests/'+chainId+'/advance',{
+      step_index:stepIdx, agent_id:'cpost@murphy.systems', notes:'UI advance'
+    });
+    renderCenter(); renderRight();
+    showToast('Step '+stepIdx+' complete ✓','green');
+  }catch(e){showToast('Error: '+e.message,'red');}
+}
+
+async function raiseWaiver(chainId, stepIdx){
+  const reason=prompt('Waiver reason — why are you overriding this compliance gate?');
+  if(!reason) return;
+  try{
+    currentChain=await api('POST','/api/chains/requests/'+chainId+'/waive',{
+      step_index:stepIdx,reason,waived_by:'cpost@murphy.systems'
+    });
+    renderCenter(); renderRight();
+    showToast('Waiver raised — compliance record created','amber');
+  }catch(e){showToast('Error: '+e.message,'red');}
+}
+
+async function regateCurrentChain(){
+  if(!currentChain) return;
+  const d=await api('POST','/api/chains/requests/'+currentChain.id+'/regate');
+  currentChain=await api('GET','/api/chains/requests/'+currentChain.id);
+  renderCenter(); renderRight();
+  const changes=d.changes||[];
+  if(changes.length){
+    showToast(`Re-gate: ${changes.length} change${changes.length>1?'s':''} detected`,'amber');
+  } else {
+    showToast('Re-gate: no changes','teal');
+  }
+}
+
+async function regateAll(){
+  await loadChains();
+  let changed=0;
+  for(const c of chains.filter(x=>x.status==='active')){
+    try{
+      const d=await api('POST','/api/chains/requests/'+c.id+'/regate');
+      changed+=(d.changes||[]).length;
+    }catch(e){}
+  }
+  await loadChains(); renderLeft();
+  showToast(`All chains re-gated — ${changed} total change${changed!==1?'s':''}`,'teal');
+}
+
+async function cancelChain(chainId){
+  if(!confirm('Cancel this chain?')) return;
+  await api('GET','/api/chains/requests/'+chainId); // just refresh for now
+  showToast('Chain cancel — use status update API','amber');
+}
+
+function goAssemble(stepId, chainId){
+  window.location.href='/ui/assembly-center?chain='+chainId;
+}
+function goAssembleType(recordTypeId){
+  window.location.href='/ui/assembly-center?type='+recordTypeId;
+}
+
+function copyInfoId(id){
+  navigator.clipboard.writeText(id).then(()=>showToast('info_id copied ✓','teal'));
+}
+
+async function regateStep(chainId, stepIdx){
+  await api('POST','/api/chains/requests/'+chainId+'/regate');
+  currentChain=await api('GET','/api/chains/requests/'+chainId);
+  renderCenter(); renderRight();
+  showToast('Step re-gated','teal');
+}
+
+// ── New chain modal ────────────────────────────────────────────────────────────
+function openNewChain(preselect=null){
+  const sel=document.getElementById('nc-template');
+  sel.innerHTML=templates.map(t=>`<option value="${t.id}">${t.icon} ${t.name} (${t.category})</option>`).join('');
+  if(preselect) sel.value=preselect;
+  // Show compliance state
+  const all=['gdpr','soc2','hipaa','pci_dss','iso_27001','ccpa','sox','nist_csf'];
+  document.getElementById('nc-compliance').innerHTML=all.map(c=>{
+    const on=activeCompliance.includes(c);
+    return `<span class="comp-pill ${on?'comp-on':'comp-off'}">${c.toUpperCase().replace('_',' ')}</span>`;
+  }).join('');
+  if(preselect) previewModal(preselect);
+  sel.onchange=()=>previewModal(sel.value);
+  document.getElementById('modal-new').classList.add('open');
+}
+
+function previewModal(tid){
+  const t=templates.find(x=>x.id===tid);
+  const el=document.getElementById('nc-preview');
+  if(!t){el.style.display='none';return;}
+  const steps=t.steps||[];
+  const gated=steps.filter(s=>{const g=evaluateGateLocal(s,activeCompliance);return g.result==='BLOCKED';});
+  const compCost=steps.reduce((sum,s)=>{const g=evaluateGateLocal(s,activeCompliance);return sum+(g.cost_delta>0?g.cost_delta:0);},0);
+  el.style.display='block';
+  el.innerHTML=`${t.description}<br><strong style="color:var(--teal)">${steps.length} steps</strong> · 
+    ${gated.length?`<strong style="color:var(--red)">${gated.length} blocked</strong> · `:''}
+    ~$${steps.reduce((s,x)=>s+(x.base_cost_usd||0),0)+compCost} total
+    ${compCost?`(<span style="color:var(--amber)">+$${compCost} compliance</span>)`:''}`;
+}
+
+function closeModal(){ document.getElementById('modal-new').classList.remove('open'); }
+
+async function submitChain(){
+  const tid=document.getElementById('nc-template').value;
+  if(!tid){showToast('Select a template','red');return;}
+  try{
+    const chain=await api('POST','/api/chains/requests',{
+      template_id:tid,
+      name:document.getElementById('nc-name').value||null,
+      requestor:document.getElementById('nc-requestor').value||'cpost@murphy.systems',
+      project_id:currentProject||null,
+    });
+    closeModal();
+    chains.unshift({...chain,name:chain.name||chain.id});
+    await selectChain(chain.id);
+    leftMode='chains'; renderLeft();
+    showToast('Chain started: '+chain.id,'green');
+  }catch(e){showToast('Error: '+e.message,'red');}
+}
+
+function showToast(msg,type){
+  const colors={green:'#00ff88',teal:'#00d4ff',amber:'#ffb400',red:'#ff4466'};
+  const t=document.createElement('div');
+  t.style.cssText=`position:fixed;bottom:1rem;right:1rem;background:var(--s2);border:1px solid ${colors[type]||colors.teal};color:${colors[type]||colors.teal};padding:.45rem .9rem;border-radius:6px;font-size:.76rem;font-weight:600;z-index:500`;
+  t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3500);
+}
+
+window.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
