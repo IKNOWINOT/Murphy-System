@@ -83,6 +83,7 @@ _EXEMPT_PREFIXES = (
     "/api/self/patch",
     "/api/self/backups",
     "/api/self/restore",
+    "/api/self/vision",
     # PATCH-098: RROM monitoring
     "/api/rrom/",
     "/api/rrom",
@@ -371,12 +372,14 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
     # Inline-middleware behaviour we MUST preserve so the existing
     # /api/auth/login flow keeps working:
     EXEMPT_PATHS: Set[str] = {
+        "/api/automation/prefight/status",   # PATCH-177: engine availability — public
         "/api/health",
         "/api/info",
         "/api/manifest",
         "/api/readiness",
         "/api/status/public",
         "/api/self/health",    # PATCH-066c: self health public
+        "/api/capabilities/registry",  # PATCH-174: API registry public
         "/health",
         "/docs",
         "/redoc",
@@ -529,6 +532,7 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/frontline/",
         "/api/frontline",
         "/api/self/patch",
+        "/api/self/vision",   # PATCH-163: vision loop — has own bearer check
         # PATCH-098: RROM monitoring
         "/api/rrom/",
         "/api/rrom",
