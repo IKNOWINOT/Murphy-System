@@ -558,29 +558,30 @@ def get_gaps(project_id: str = None, status: str = "open",
 
 def get_gap_summary(project_id: str = None) -> Dict:
     with _db() as conn:
-        base = "WHERE gp.status='open'" + (f" AND gp.project_id='{project_id}'" if project_id else "")
-        by_tier = conn.execute(f"""
-            SELECT risk_tier, COUNT(*) as count, SUM(financial_exposure_usd) as exposure
-            FROM gap_prescriptions {base} GROUP BY risk_tier
-        """).fetchall()
-        by_type = conn.execute(f"""
-            SELECT gap_type, COUNT(*) as count, SUM(financial_exposure_usd) as exposure
-            FROM gap_prescriptions {base} GROUP BY gap_type
-        """).fetchall()
-        total = conn.execute(f"""
-            SELECT COUNT(*) as c, SUM(financial_exposure_usd) as exp,
-                   SUM(CASE WHEN risk_tier='HIGH' THEN 1 ELSE 0 END) as high,
-                   SUM(CASE WHEN risk_tier='MEDIUM' THEN 1 ELSE 0 END) as medium,
-                   SUM(CASE WHEN risk_tier='LOW' THEN 1 ELSE 0 END) as low
-            FROM gap_prescriptions {base}
-        """).fetchone()
+        pid_filter = (" AND project_id='" + project_id + "'") if project_id else ""
+        base = "WHERE status='open'" + pid_filter
+        by_tier = conn.execute(
+            "SELECT risk_tier, COUNT(*) as count, SUM(financial_exposure_usd) as exposure "
+            "FROM gap_prescriptions " + base + " GROUP BY risk_tier"
+        ).fetchall()
+        by_type = conn.execute(
+            "SELECT gap_type, COUNT(*) as count, SUM(financial_exposure_usd) as exposure "
+            "FROM gap_prescriptions " + base + " GROUP BY gap_type"
+        ).fetchall()
+        total = conn.execute(
+            "SELECT COUNT(*) as c, SUM(financial_exposure_usd) as exp, "
+            "SUM(CASE WHEN risk_tier='HIGH' THEN 1 ELSE 0 END) as high, "
+            "SUM(CASE WHEN risk_tier='MEDIUM' THEN 1 ELSE 0 END) as medium, "
+            "SUM(CASE WHEN risk_tier='LOW' THEN 1 ELSE 0 END) as low "
+            "FROM gap_prescriptions " + base
+        ).fetchone()
         resolved = conn.execute(
-            "SELECT COUNT(*) FROM gap_prescriptions WHERE status='fulfilled'"
-            + (f" AND project_id='{project_id}'" if project_id else "")
+            "SELECT COUNT(*) FROM gap_prescriptions WHERE status='fulfilled'" +
+            ((" AND project_id='" + project_id + "'") if project_id else "")
         ).fetchone()[0]
         escalations = conn.execute(
-            "SELECT COUNT(*) FROM gap_escalations WHERE status='open'"
-            + (f" AND project_id='{project_id}'" if project_id else "")
+            "SELECT COUNT(*) FROM gap_escalations WHERE status='open'" +
+            ((" AND project_id='" + project_id + "'") if project_id else "")
         ).fetchone()[0]
         last_scan = conn.execute(
             "SELECT * FROM gap_scan_log ORDER BY scanned_at DESC LIMIT 1"
@@ -655,16 +656,15 @@ def escalate_gap(prescription_id: str, reason: str = "",
 def get_risk_exposure(project_id: str = None) -> Dict:
     """Full financial exposure picture across all open gaps."""
     with _db() as conn:
-        base_where = "WHERE gp.status='open'" + (f" AND gp.project_id='{project_id}'" if project_id else "")
-        rows = conn.execute(f"""
-            SELECT gp.gap_type, gp.risk_tier, gp.risk_score,
-                   gp.financial_exposure_usd, gp.downstream_count,
-                   me.title, me.entry_type, me.confidence
-            FROM gap_prescriptions gp
-            LEFT JOIN manifold_entries me ON me.id = gp.entry_id
-            {base_where}
-            ORDER BY gp.risk_score DESC
-        """).fetchall()
+        pid_clause = (" AND gp.project_id='" + project_id + "'") if project_id else ""
+        rows = conn.execute(
+            "SELECT gp.gap_type, gp.risk_tier, gp.risk_score, "
+            "gp.financial_exposure_usd, gp.downstream_count, "
+            "me.title, me.entry_type, me.confidence "
+            "FROM gap_prescriptions gp "
+            "LEFT JOIN manifold_entries me ON me.id = gp.entry_id "
+            "WHERE gp.status='open'" + pid_clause + " ORDER BY gp.risk_score DESC"
+        ).fetchall()
         total_exp = sum(float(r["financial_exposure_usd"] or 0) for r in rows)
         high_exp  = sum(float(r["financial_exposure_usd"] or 0) for r in rows if r["risk_tier"]=="HIGH")
     return {
