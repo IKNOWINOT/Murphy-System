@@ -305,6 +305,9 @@ def create_app() -> FastAPI:
         "matrix-integration":      "matrix_integration.html",
         "matrix-chat":             "matrix_chat.html",
         "workflow-canvas":         "workflow_canvas.html",
+        "ops-center":              "ops_center.html",
+        "roi-ops":                 "roi_ops.html",
+        "manifold-planner":        "manifold_planner.html",
         "workflow-designer":       "workflow_canvas.html",
         "production-wizard":       "production_wizard.html",
         "production-editor":       "production_wizard.html",
@@ -1862,6 +1865,7 @@ def create_app() -> FastAPI:
             {"id": "org_chart",          "name": "Org Chart Engine",      "status": "online", "icon": "🏢"},
             {"id": "shadow_agents",      "name": "Shadow Agent Network",  "status": "online", "icon": "👁"},
             {"id": "roi_calendar",       "name": "ROI Calendar",          "status": "online", "icon": "📊"},
+            {"id": "ops_center",       "name": "WorkOps Center",        "status": "online", "icon": "⚙️"},
             {"id": "llm_stack",          "name": "LLM Stack",             "status": "online" if llm_info.get("healthy") else "degraded", "icon": "🧠"},
             {"id": "api_gateway",        "name": "API Gateway",           "status": "online", "icon": "🔌"},
             {"id": "audit_trail",        "name": "Audit Trail",           "status": "online", "icon": "📋"},
@@ -22115,6 +22119,33 @@ def create_app() -> FastAPI:
         logger.info("PATCH-133: ForgeEngine online — /api/forge/* | PATCH-139: %d internal APIs remounted", _remounted)
     except Exception as _fe_exc:
         logger.warning("PATCH-133: ForgeEngine not available: %s", _fe_exc)
+
+    # ── WorkOps (PATCH-180): Workflow Operations Center ───────────────────────
+    # /api/ops/* — 9 workflow templates, pickup/putdown handoffs, Excel export
+    try:
+        from src.workflow_ops_router import router as _ops_router
+        app.include_router(_ops_router)
+        logger.info("PATCH-180: WorkOps online — /api/ops/* | 9 workflow templates | Excel export")
+    except Exception as _wops_exc:
+        logger.warning("PATCH-180: WorkOps router not available: %s", _wops_exc)
+
+    # ── ROI Ledger (PATCH-180b): Time-Money-Action ROI tracking ───────────────
+    try:
+        from src.roi_ledger_router import router as _roi_router
+        app.include_router(_roi_router)
+        logger.info("PATCH-180b: ROI Ledger online — /api/roi/* | prod vs admin lanes | Excel")
+    except Exception as _roi_exc:
+        logger.warning("PATCH-180b: ROI Ledger router not available: %s", _roi_exc)
+
+    # ── Manifold Planning Engine (PATCH-181) ───────────────────────────────────
+    # /api/manifold/* — Calendar→Milestone→Detail→Manifold drill-down
+    # Dependency chain propagation, change_order vs credit engine
+    try:
+        from src.manifold_router import router as _manifold_router
+        app.include_router(_manifold_router)
+        logger.info("PATCH-181: Manifold Engine online — /api/manifold/* | dependency propagation | change orders")
+    except Exception as _mf_exc:
+        logger.warning("PATCH-181: Manifold router not available: %s", _mf_exc)
 
     # ── PATCH-135: Business Automation Control ─────────────────────────────────
     # /api/automation/* — NL-driven automation from any agent, org node, or UI.

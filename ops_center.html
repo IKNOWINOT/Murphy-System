@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorkOps Center — Murphy System</title>
+<style>
+:root{
+  --bg:#080c17;--surface:#0f1623;--surface2:#161f30;--surface3:#1c2840;
+  --border:#1e2d45;--border2:#2a3d5a;
+  --teal:#00d4ff;--teal-dim:rgba(0,212,255,.10);
+  --green:#00ff88;--green-dim:rgba(0,255,136,.10);
+  --amber:#ffb400;--amber-dim:rgba(255,180,0,.12);
+  --red:#ff4466;--red-dim:rgba(255,68,102,.12);
+  --purple:#a855f7;--text:#e2e8f0;--text-muted:#4a5568;--text-dim:#718096;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',system-ui,sans-serif;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+/* ── Layout ── */
+.main{display:grid;grid-template-columns:300px 1fr 340px;grid-template-rows:1fr;gap:0;flex:1;overflow:hidden}
+.panel{display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden}
+.panel:last-child{border-right:none;border-left:1px solid var(--border)}
+.panel-header{padding:.6rem 1rem;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+.panel-title{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--teal)}
+.panel-body{flex:1;overflow-y:auto;padding:.5rem}
+
+/* ── Toolbar ── */
+.toolbar{background:var(--surface);border-bottom:1px solid var(--border);padding:.4rem 1rem;display:flex;align-items:center;gap:.5rem;flex-shrink:0}
+.toolbar-title{font-weight:700;font-size:.85rem;color:var(--teal);margin-right:.5rem}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-dim);transition:all .15s;white-space:nowrap}
+.btn:hover{border-color:var(--teal);color:var(--teal)}
+.btn.primary{background:var(--teal);color:#080c17;border-color:var(--teal)}
+.btn.primary:hover{background:#33dcff}
+.btn.green{background:var(--green);color:#080c17;border-color:var(--green)}
+.btn.amber{border-color:var(--amber);color:var(--amber)}
+.btn.amber:hover{background:var(--amber-dim)}
+.spacer{flex:1}
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:10px;font-size:.68rem;font-weight:700}
+.badge.teal{background:var(--teal-dim);color:var(--teal)}
+.badge.green{background:var(--green-dim);color:var(--green)}
+.badge.amber{background:var(--amber-dim);color:var(--amber)}
+.badge.red{background:var(--red-dim);color:var(--red)}
+.badge.purple{background:rgba(168,85,247,.12);color:var(--purple)}
+
+/* ── Org Chart ── */
+.org-tree{display:flex;flex-direction:column;gap:.35rem;padding:.25rem 0}
+.org-level{display:flex;gap:.3rem;flex-wrap:wrap;padding:.15rem 0}
+.org-level-label{font-size:.62rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;min-width:44px;display:flex;align-items:center}
+.org-node{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.35rem .5rem;cursor:pointer;transition:all .15s;flex:1;min-width:80px}
+.org-node:hover{border-color:var(--teal);background:var(--teal-dim)}
+.org-node.active-owner{border-color:var(--green);background:var(--green-dim)}
+.org-node.has-load{border-color:var(--amber)}
+.org-node-emoji{font-size:.95rem}
+.org-node-name{font-size:.7rem;font-weight:700;margin-top:1px}
+.org-node-role{font-size:.6rem;color:var(--text-muted);margin-top:1px}
+.org-node-load{font-size:.62rem;color:var(--amber);margin-top:2px}
+.org-connector{width:1px;background:var(--border2);margin:0 auto;height:10px}
+
+/* ── Workflow list ── */
+.wf-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:.4rem;overflow:hidden;cursor:pointer;transition:all .15s}
+.wf-card:hover{border-color:var(--teal)}
+.wf-card.selected{border-color:var(--teal);background:var(--teal-dim)}
+.wf-header{display:flex;align-items:center;gap:.5rem;padding:.45rem .6rem}
+.wf-icon{font-size:1rem;flex-shrink:0}
+.wf-info{flex:1;min-width:0}
+.wf-name{font-size:.78rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wf-meta{font-size:.65rem;color:var(--text-dim);margin-top:1px}
+.wf-steps{padding:0 .6rem .45rem;display:flex;gap:2px}
+.step-dot{height:5px;border-radius:2px;flex:1;background:var(--border)}
+.step-dot.done{background:var(--green)}
+.step-dot.active{background:var(--teal);animation:pulse 1.5s infinite}
+.step-dot.blocked{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.wf-progress{font-size:.65rem;color:var(--text-dim);padding:0 .6rem .35rem}
+
+/* ── Template Grid ── */
+.tmpl-grid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;padding:.25rem 0}
+.tmpl-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.5rem .6rem;cursor:pointer;transition:all .15s}
+.tmpl-card:hover{border-color:var(--teal);background:var(--teal-dim)}
+.tmpl-icon{font-size:1.2rem}
+.tmpl-name{font-size:.72rem;font-weight:700;margin-top:2px}
+.tmpl-cat{font-size:.62rem;color:var(--text-muted)}
+.tmpl-steps{font-size:.62rem;color:var(--text-dim);margin-top:2px}
+
+/* ── Step Detail ── */
+.step-list{display:flex;flex-direction:column;gap:.3rem}
+.step-row{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.45rem .6rem;transition:all .15s}
+.step-row.active-step{border-color:var(--teal);background:var(--teal-dim)}
+.step-row.done-step{border-color:var(--green);background:var(--green-dim)}
+.step-row.pending-step{opacity:.6}
+.step-hdr{display:flex;align-items:center;gap:.4rem;margin-bottom:.2rem}
+.step-num{font-size:.62rem;font-weight:700;color:var(--teal);background:var(--teal-dim);padding:1px 5px;border-radius:4px;min-width:20px;text-align:center}
+.step-name{font-size:.75rem;font-weight:700}
+.step-agents{display:flex;align-items:center;gap:.3rem;margin:.2rem 0}
+.agent-chip{font-size:.63rem;padding:2px 6px;border-radius:4px;background:var(--surface3);border:1px solid var(--border)}
+.arrow{color:var(--text-muted);font-size:.7rem}
+.step-form{margin-top:.3rem}
+.form-row{display:flex;gap:.3rem;margin-bottom:.25rem;flex-wrap:wrap}
+.form-label{font-size:.62rem;color:var(--text-dim);min-width:90px;padding-top:3px}
+.form-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 7px;font-size:.7rem;color:var(--text);font-family:inherit;min-width:0}
+.form-input:focus{outline:none;border-color:var(--teal)}
+.form-textarea{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 7px;font-size:.7rem;color:var(--text);font-family:inherit;min-width:0;resize:vertical;min-height:36px}
+.form-textarea:focus{outline:none;border-color:var(--teal)}
+.handoff-section{margin-top:.4rem;padding-top:.35rem;border-top:1px solid var(--border)}
+.handoff-title{font-size:.66rem;font-weight:700;color:var(--amber);margin-bottom:.2rem}
+
+/* ── Log stream ── */
+.log-row{font-size:.66rem;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.03);display:flex;gap:.4rem;align-items:baseline}
+.log-ts{color:var(--text-muted);flex-shrink:0;font-size:.6rem}
+.log-agent{font-weight:700;flex-shrink:0;min-width:70px}
+.log-event-type{flex-shrink:0;min-width:80px}
+.log-msg{color:var(--text-dim)}
+.log-start{color:var(--teal)}
+.log-pickup{color:var(--green)}
+.log-putdown{color:var(--amber)}
+.log-handoff{color:var(--purple)}
+.log-complete{color:var(--green)}
+
+/* ── Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:10px;width:520px;max-height:80vh;overflow-y:auto;padding:1.25rem}
+.modal-title{font-size:.88rem;font-weight:700;color:var(--teal);margin-bottom:.8rem}
+.modal-close{float:right;cursor:pointer;color:var(--text-muted);font-size:.9rem}
+.modal-close:hover{color:var(--red)}
+.input-group{margin-bottom:.6rem}
+.input-label{font-size:.7rem;font-weight:600;color:var(--text-dim);margin-bottom:.2rem}
+.input-field{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:.35rem .5rem;font-size:.78rem;color:var(--text);font-family:inherit}
+.input-field:focus{outline:none;border-color:var(--teal)}
+select.input-field option{background:var(--surface2)}
+
+/* ── Stats bar ── */
+.stats-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:.3rem 1rem;display:flex;gap:1.5rem;flex-shrink:0}
+.stat-item{font-size:.7rem;color:var(--text-dim)}
+.stat-item strong{color:var(--text);font-size:.8rem}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav" id="main-nav"></nav>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <span class="toolbar-title">⚙️ WorkOps Center</span>
+  <button class="btn primary" onclick="openNewWorkflow()">＋ New Workflow</button>
+  <button class="btn" onclick="loadTemplates()">📋 Templates</button>
+  <button class="btn amber" onclick="downloadExcel()">⬇ Export Excel</button>
+  <div class="spacer"></div>
+  <span id="stats-chips"></span>
+</div>
+
+<!-- STATS BAR -->
+<div class="stats-bar" id="stats-bar">
+  <span class="stat-item">Loading…</span>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT: Org Chart -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">🏢 Org Chart</span>
+      <button class="btn" style="font-size:.65rem;padding:2px 7px" onclick="refreshOrgChart()">↻</button>
+    </div>
+    <div class="panel-body" id="org-panel">
+      <div style="color:var(--text-muted);font-size:.75rem;padding:1rem">Loading org chart…</div>
+    </div>
+  </div>
+
+  <!-- CENTER: Active Workflows + Template Grid -->
+  <div class="panel" style="border-right:none">
+    <div class="panel-header">
+      <span class="panel-title" id="center-title">📊 Active Workflows</span>
+      <div style="display:flex;gap:.4rem">
+        <button class="btn" id="tab-active" onclick="showTab('active')" style="font-size:.65rem;padding:2px 8px">Active</button>
+        <button class="btn" id="tab-all" onclick="showTab('all')" style="font-size:.65rem;padding:2px 8px">All</button>
+        <button class="btn" id="tab-templates" onclick="showTab('templates')" style="font-size:.65rem;padding:2px 8px">Templates</button>
+      </div>
+    </div>
+    <div class="panel-body" id="center-panel">
+      <div style="color:var(--text-muted);font-size:.75rem;padding:1rem">Loading…</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Step Detail + Log -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title" id="right-title">📋 Step Detail</span>
+      <button class="btn" style="font-size:.65rem;padding:2px 7px" id="log-tab-btn" onclick="toggleRightTab()">📜 Log</button>
+    </div>
+    <div class="panel-body" id="right-panel">
+      <div style="color:var(--text-muted);font-size:.75rem;padding:.5rem 0">Select a workflow to see steps and handoff forms.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL: New Workflow -->
+<div class="modal-overlay" id="modal-new">
+  <div class="modal">
+    <span class="modal-close" onclick="closeModal('modal-new')">✕</span>
+    <div class="modal-title">＋ Start New Workflow</div>
+    <div class="input-group">
+      <div class="input-label">Workflow Template</div>
+      <select class="input-field" id="new-template-id">
+        <option value="">— select —</option>
+      </select>
+    </div>
+    <div id="tmpl-preview" style="margin-bottom:.6rem;font-size:.7rem;color:var(--text-dim)"></div>
+    <div class="input-group">
+      <div class="input-label">Priority</div>
+      <select class="input-field" id="new-priority">
+        <option value="critical">🔴 Critical</option>
+        <option value="high">🟠 High</option>
+        <option value="medium" selected>🟡 Medium</option>
+        <option value="low">🟢 Low</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <div class="input-label">Account / Context (optional)</div>
+      <input type="text" class="input-field" id="new-account" placeholder="cpost@murphy.systems">
+    </div>
+    <div style="display:flex;gap:.5rem;margin-top:.6rem">
+      <button class="btn primary" onclick="submitNewWorkflow()" style="flex:1">🚀 Start Workflow</button>
+      <button class="btn" onclick="closeModal('modal-new')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/murphy-nav.js"></script>
+<script>
+/* ── State ── */
+const API = window.location.origin;
+let orgData = null, instances = [], templates = [], log = [];
+let selectedInstance = null, selectedTemplate = null;
+let currentTab = 'active', rightTab = 'steps';
+
+/* ── Init ── */
+async function init() {
+  if (window.MurphyNav) MurphyNav.init('main-nav');
+  await Promise.all([loadOrgChart(), loadInstances('active'), loadTemplatesData(), loadLog()]);
+  showTab('active');
+  populateTemplateSelect();
+  setInterval(autoRefresh, 15000);
+}
+
+async function autoRefresh() {
+  await Promise.all([loadOrgChart(), loadInstances(currentTab === 'all' ? null : currentTab), loadLog()]);
+  if (currentTab !== 'templates') renderCenter();
+  renderOrgChart();
+  renderLog();
+  if (selectedInstance) {
+    const fresh = instances.find(i => i.id === selectedInstance.id);
+    if (fresh) { selectedInstance = fresh; renderStepDetail(); }
+  }
+}
+
+/* ── Data ── */
+async function loadOrgChart() {
+  try {
+    const r = await fetch(API + '/api/ops/orgchart', {headers: authHeaders()});
+    if (r.ok) orgData = await r.json();
+  } catch(e) {}
+}
+
+async function loadInstances(status) {
+  try {
+    const url = status ? `/api/ops/workflows?status=${status}&limit=80` : '/api/ops/workflows?limit=80';
+    const r = await fetch(API + url, {headers: authHeaders()});
+    if (r.ok) { const d = await r.json(); instances = d.instances || []; }
+  } catch(e) {}
+}
+
+async function loadTemplatesData() {
+  try {
+    const r = await fetch(API + '/api/ops/templates', {headers: authHeaders()});
+    if (r.ok) { const d = await r.json(); templates = d.templates || []; }
+  } catch(e) {}
+}
+
+async function loadLog() {
+  try {
+    const r = await fetch(API + '/api/ops/log?limit=200', {headers: authHeaders()});
+    if (r.ok) { const d = await r.json(); log = d.log || []; }
+  } catch(e) {}
+}
+
+function authHeaders() {
+  const token = localStorage.getItem('murphy_api_key') || localStorage.getItem('murphy_session_token') || '';
+  return token ? {'Authorization': 'Bearer ' + token} : {};
+}
+
+/* ── Org Chart ── */
+function renderOrgChart() {
+  if (!orgData) return;
+  const agents = orgData.agents || {};
+  const stats = orgData.stats || {};
+  const container = document.getElementById('org-panel');
+
+  // Build level groups
+  const levels = {};
+  Object.entries(agents).forEach(([id, info]) => {
+    const lvl = info.level || 0;
+    if (!levels[lvl]) levels[lvl] = [];
+    levels[lvl].push({id, ...info});
+  });
+
+  const statsHtml = `
+    <div style="display:flex;gap:.4rem;margin-bottom:.5rem;flex-wrap:wrap">
+      <span class="badge teal">Active: ${stats.active_count||0}</span>
+      <span class="badge green">Done: ${stats.complete_count||0}</span>
+      <span class="badge amber">Pending: ${stats.pending_count||0}</span>
+    </div>`;
+
+  let html = statsHtml + '<div class="org-tree">';
+  const levelLabels = {0:'C-Suite',1:'Director',2:'Ops',3:'Field'};
+  Object.keys(levels).sort().forEach(lvl => {
+    html += `<div style="display:flex;align-items:flex-start;gap:.4rem">
+      <div class="org-level-label">${levelLabels[lvl]||('L'+lvl)}</div>
+      <div class="org-level" style="flex:1">`;
+    levels[lvl].forEach(a => {
+      const hasLoad = a.active_workflows > 0;
+      const isOwner = selectedInstance && selectedInstance.owner_agent === a.id;
+      html += `<div class="org-node ${isOwner?'active-owner':''} ${hasLoad&&!isOwner?'has-load':''}"
+        onclick="filterByAgent('${a.id}')"
+        title="${a.role}${a.workflow_names ? '\nWorkflows: '+a.workflow_names : ''}">
+        <div class="org-node-emoji">${a.emoji||'🤖'}</div>
+        <div class="org-node-name">${a.name||a.id}</div>
+        <div class="org-node-role">${a.role||''}</div>
+        ${hasLoad ? `<div class="org-node-load">⚡ ${a.active_workflows} active</div>` : ''}
+        ${a.events_24h ? `<div class="org-node-load" style="color:var(--text-dim)">${a.events_24h} events/24h</div>` : ''}
+      </div>`;
+    });
+    html += '</div></div>';
+    if (parseInt(lvl) < Object.keys(levels).length - 1) {
+      html += '<div class="org-connector"></div>';
+    }
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function refreshOrgChart() { loadOrgChart().then(renderOrgChart); }
+
+function filterByAgent(agentId) {
+  const filtered = instances.filter(i => i.owner_agent === agentId || i.steps.some(s => s.pickup_agent === agentId));
+  if (filtered.length) renderWorkflowList(filtered);
+}
+
+/* ── Center Panel ── */
+function showTab(tab) {
+  currentTab = tab;
+  document.getElementById('center-title').textContent = tab === 'templates' ? '📋 Workflow Templates' : '📊 Workflows';
+  ['active','all','templates'].forEach(t => {
+    document.getElementById('tab-'+t).style.borderColor = t === tab ? 'var(--teal)' : '';
+    document.getElementById('tab-'+t).style.color = t === tab ? 'var(--teal)' : '';
+  });
+  if (tab === 'templates') { renderTemplates(); return; }
+  const filtered = tab === 'active' ? instances.filter(i => i.status === 'active') : instances;
+  renderWorkflowList(filtered);
+}
+
+function renderCenter() {
+  if (currentTab === 'templates') renderTemplates();
+  else showTab(currentTab);
+}
+
+function renderWorkflowList(list) {
+  const panel = document.getElementById('center-panel');
+  if (!list || !list.length) {
+    panel.innerHTML = '<div style="color:var(--text-muted);font-size:.75rem;padding:1rem;text-align:center">No workflows found.<br><br><button class="btn primary" onclick="openNewWorkflow()">＋ Start One</button></div>';
+    return;
+  }
+  const priorityColor = {critical:'var(--red)',high:'var(--amber)',medium:'var(--teal)',low:'var(--green)'};
+  const statusColor = {active:'var(--teal)',complete:'var(--green)',pending:'var(--text-muted)',failed:'var(--red)'};
+  let html = '';
+  list.forEach(inst => {
+    const pct = inst.progress_pct || 0;
+    const isSelected = selectedInstance && selectedInstance.id === inst.id;
+    const steps = inst.steps || [];
+    const dotsHtml = steps.map(s =>
+      `<div class="step-dot ${s.status==='complete'?'done':s.status==='active'?'active':''}" title="${s.step_name}: ${s.status}"></div>`
+    ).join('');
+    html += `<div class="wf-card ${isSelected?'selected':''}" onclick="selectInstance('${inst.id}')">
+      <div class="wf-header">
+        <span class="wf-icon">${getTemplateIcon(inst.template_id)}</span>
+        <div class="wf-info">
+          <div class="wf-name">${inst.name}</div>
+          <div class="wf-meta">${inst.category||''} · ${inst.id} · ${inst.account_id||''}</div>
+        </div>
+        <span class="badge" style="background:rgba(0,0,0,.3);color:${priorityColor[inst.priority]||'var(--text-dim)'};font-size:.62rem">${inst.priority||'med'}</span>
+        <span class="badge" style="background:rgba(0,0,0,.3);color:${statusColor[inst.status]||'var(--text-dim)'};font-size:.62rem">${inst.status}</span>
+      </div>
+      <div class="wf-steps">${dotsHtml}</div>
+      <div class="wf-progress">Step ${(inst.current_step||0)+1}/${inst.total_steps||steps.length} · ${pct}% · Owner: ${inst.owner_agent||'—'}</div>
+    </div>`;
+  });
+  panel.innerHTML = html;
+}
+
+function getTemplateIcon(tmplId) {
+  const t = templates.find(t => t.id === tmplId);
+  return t ? t.icon : '⚙️';
+}
+
+function renderTemplates() {
+  const panel = document.getElementById('center-panel');
+  let html = '<div class="tmpl-grid">';
+  templates.forEach(t => {
+    const stepCount = t.steps ? t.steps.length : '?';
+    html += `<div class="tmpl-card" onclick="startFromTemplate('${t.id}')">
+      <div class="tmpl-icon">${t.icon||'⚙️'}</div>
+      <div class="tmpl-name">${t.name}</div>
+      <div class="tmpl-cat">${t.category||''}</div>
+      <div class="tmpl-steps">${stepCount} steps</div>
+    </div>`;
+  });
+  html += '</div>';
+  panel.innerHTML = html;
+}
+
+function selectInstance(id) {
+  selectedInstance = instances.find(i => i.id === id) || null;
+  rightTab = 'steps';
+  document.getElementById('log-tab-btn').textContent = '📜 Log';
+  document.getElementById('right-title').textContent = '📋 Step Detail';
+  renderCenter();
+  renderStepDetail();
+  renderOrgChart();
+}
+
+/* ── Step Detail ── */
+function renderStepDetail() {
+  const panel = document.getElementById('right-panel');
+  if (!selectedInstance) {
+    panel.innerHTML = '<div style="color:var(--text-muted);font-size:.75rem;padding:.5rem 0">Select a workflow.</div>';
+    return;
+  }
+  const inst = selectedInstance;
+  const tmpl = templates.find(t => t.id === inst.template_id);
+  const tmplSteps = tmpl ? tmpl.steps : [];
+
+  let html = `<div style="margin-bottom:.5rem">
+    <div style="font-size:.78rem;font-weight:700">${inst.name}</div>
+    <div style="font-size:.65rem;color:var(--text-dim)">${inst.id} · ${inst.status} · ${inst.priority}</div>
+    <div style="font-size:.65rem;color:var(--text-dim);margin-top:2px">Started: ${inst.started_at ? inst.started_at.slice(0,16) : 'pending'}</div>
+  </div>
+  <div class="step-list">`;
+
+  inst.steps.forEach((step, i) => {
+    const tmplStep = tmplSteps.find(s => s.index === step.step_index) || {};
+    const isActive = step.status === 'active';
+    const isDone = step.status === 'complete';
+    const rowClass = isActive ? 'active-step' : isDone ? 'done-step' : 'pending-step';
+    const statusIcon = isDone ? '✅' : isActive ? '⚡' : '○';
+
+    html += `<div class="step-row ${rowClass}" id="step-row-${step.step_index}">
+      <div class="step-hdr">
+        <span class="step-num">${statusIcon} ${step.step_index}</span>
+        <span class="step-name">${step.step_name}</span>
+      </div>
+      <div class="step-agents">
+        <span class="agent-chip">${step.pickup_agent}</span>
+        <span class="arrow">→</span>
+        <span class="agent-chip" style="opacity:.6">${step.putdown_agent}</span>
+        ${step.duration_s ? `<span style="font-size:.62rem;color:var(--text-dim);margin-left:auto">${Math.round(step.duration_s)}s</span>` : ''}
+      </div>`;
+
+    if (tmplStep.description) {
+      html += `<div style="font-size:.63rem;color:var(--text-dim);margin:.1rem 0">${tmplStep.description}</div>`;
+    }
+
+    if (isActive && tmplStep.pickup_form) {
+      html += `<div class="step-form">
+        <div style="font-size:.64rem;font-weight:700;color:var(--teal);margin-bottom:.2rem">📥 Pickup Form</div>`;
+      tmplStep.pickup_form.forEach(field => {
+        const savedVal = tryParseJson(step.pickup_data, field);
+        html += `<div class="form-row">
+          <div class="form-label">${field}</div>
+          <input class="form-input" id="pickup_${step.step_index}_${field}" value="${savedVal}" placeholder="${field}">
+        </div>`;
+      });
+      html += `<button class="btn green" style="margin-top:.3rem;font-size:.68rem" onclick="doPickup('${inst.id}', ${step.step_index}, '${step.pickup_agent}')">
+        ↓ Pickup Step</button></div>`;
+    }
+
+    if (isActive && step.pickup_at && tmplStep.putdown_form) {
+      html += `<div class="handoff-section">
+        <div class="handoff-title">📤 Putdown / Handoff Form</div>`;
+      tmplStep.putdown_form.forEach(field => {
+        const savedVal = tryParseJson(step.putdown_data, field);
+        html += `<div class="form-row">
+          <div class="form-label">${field}</div>
+          <input class="form-input" id="putdown_${step.step_index}_${field}" value="${savedVal}" placeholder="${field}">
+        </div>`;
+      });
+      html += `<div class="form-row">
+        <div class="form-label">Notes</div>
+        <textarea class="form-textarea" id="notes_${step.step_index}" placeholder="Handoff notes for next agent…">${step.handoff_notes||''}</textarea>
+      </div>
+      <button class="btn amber" style="margin-top:.3rem;font-size:.68rem" onclick="doPutdown('${inst.id}', ${step.step_index}, '${step.putdown_agent}', ${JSON.stringify(tmplStep.putdown_form||[]).replace(/"/g,'&quot;')})">
+        → Putdown &amp; Handoff</button></div>`;
+    }
+
+    if (isDone && step.putdown_data) {
+      try {
+        const d = JSON.parse(step.putdown_data || '{}');
+        if (Object.keys(d).length) {
+          html += `<div style="font-size:.62rem;color:var(--text-muted);margin-top:.2rem">📦 Outputs: ${Object.entries(d).map(([k,v])=>`${k}=${v||'—'}`).join(', ')}</div>`;
+        }
+      } catch(e) {}
+    }
+
+    html += `</div>`;
+  });
+
+  html += '</div>';
+  panel.innerHTML = html;
+}
+
+function tryParseJson(jsonStr, field) {
+  try { const d = JSON.parse(jsonStr || '{}'); return d[field] || ''; } catch(e) { return ''; }
+}
+
+/* ── Pickup / Putdown ── */
+async function doPickup(instanceId, stepIndex, agentId) {
+  const tmpl = templates.find(t => t.id === selectedInstance.template_id);
+  const tmplStep = tmpl ? tmpl.steps.find(s => s.index === stepIndex) : null;
+  const pickupData = {};
+  if (tmplStep && tmplStep.pickup_form) {
+    tmplStep.pickup_form.forEach(field => {
+      const el = document.getElementById(`pickup_${stepIndex}_${field}`);
+      if (el) pickupData[field] = el.value;
+    });
+  }
+  const r = await fetch(API + '/api/ops/step/pickup', {
+    method: 'POST',
+    headers: {...authHeaders(), 'Content-Type': 'application/json'},
+    body: JSON.stringify({instance_id: instanceId, step_index: stepIndex, agent_id: agentId, pickup_data: pickupData})
+  });
+  if (r.ok) { showToast('Step picked up ✓', 'green'); await autoRefresh(); }
+  else { const e = await r.json(); showToast('Error: ' + (e.detail||'failed'), 'red'); }
+}
+
+async function doPutdown(instanceId, stepIndex, agentId, fields) {
+  const putdownData = {};
+  fields.forEach(field => {
+    const el = document.getElementById(`putdown_${stepIndex}_${field}`);
+    if (el) putdownData[field] = el.value;
+  });
+  const notesEl = document.getElementById(`notes_${stepIndex}`);
+  const notes = notesEl ? notesEl.value : '';
+  const r = await fetch(API + '/api/ops/step/putdown', {
+    method: 'POST',
+    headers: {...authHeaders(), 'Content-Type': 'application/json'},
+    body: JSON.stringify({instance_id: instanceId, step_index: stepIndex, agent_id: agentId, putdown_data: putdownData, handoff_notes: notes})
+  });
+  if (r.ok) {
+    const d = await r.json();
+    showToast(d.status === 'workflow_complete' ? '🎉 Workflow Complete!' : `↗ Handed off to ${d.next_agent} ✓`, d.status === 'workflow_complete' ? 'green' : 'amber');
+    await autoRefresh();
+  } else { const e = await r.json(); showToast('Error: ' + (e.detail||'failed'), 'red'); }
+}
+
+/* ── Log ── */
+function renderLog() {
+  if (rightTab !== 'log') return;
+  const panel = document.getElementById('right-panel');
+  const filteredLog = selectedInstance
+    ? log.filter(l => l.instance_id === selectedInstance.id)
+    : log.slice(0, 100);
+  if (!filteredLog.length) { panel.innerHTML = '<div style="color:var(--text-muted);font-size:.75rem;padding:.5rem">No log entries.</div>'; return; }
+  const colorMap = {workflow_started:'log-start', step_pickup:'log-pickup', step_putdown:'log-putdown', step_handoff:'log-handoff', workflow_complete:'log-complete'};
+  let html = filteredLog.map(l => {
+    const cls = colorMap[l.event_type] || '';
+    const ts = l.timestamp ? l.timestamp.slice(11,19) : '';
+    return `<div class="log-row">
+      <span class="log-ts">${ts}</span>
+      <span class="log-agent ${cls}">${l.agent_id||'—'}</span>
+      <span class="log-event-type" style="color:var(--text-muted)">${l.event_type||''}</span>
+      <span class="log-msg">${l.message||''}</span>
+    </div>`;
+  }).join('');
+  panel.innerHTML = html;
+}
+
+function toggleRightTab() {
+  if (rightTab === 'steps') {
+    rightTab = 'log';
+    document.getElementById('log-tab-btn').textContent = '📋 Steps';
+    document.getElementById('right-title').textContent = '📜 Activity Log';
+    renderLog();
+  } else {
+    rightTab = 'steps';
+    document.getElementById('log-tab-btn').textContent = '📜 Log';
+    document.getElementById('right-title').textContent = '📋 Step Detail';
+    renderStepDetail();
+  }
+}
+
+/* ── Stats bar ── */
+function updateStats() {
+  if (!orgData) return;
+  const s = orgData.stats || {};
+  const active = s.active_count || 0;
+  const done = s.complete_count || 0;
+  const pending = s.pending_count || 0;
+  document.getElementById('stats-bar').innerHTML = `
+    <span class="stat-item"><strong>${active}</strong> Active</span>
+    <span class="stat-item"><strong>${done}</strong> Complete</span>
+    <span class="stat-item"><strong>${pending}</strong> Pending</span>
+    <span class="stat-item"><strong>${templates.length}</strong> Templates</span>
+    <span class="stat-item"><strong>${instances.length}</strong> Instances (shown)</span>
+  `;
+}
+
+/* ── New Workflow Modal ── */
+function openNewWorkflow() {
+  populateTemplateSelect();
+  document.getElementById('modal-new').classList.add('open');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function populateTemplateSelect() {
+  const sel = document.getElementById('new-template-id');
+  sel.innerHTML = '<option value="">— select template —</option>';
+  templates.forEach(t => {
+    sel.innerHTML += `<option value="${t.id}">${t.icon||''} ${t.name} (${t.category})</option>`;
+  });
+  sel.onchange = () => {
+    const t = templates.find(x => x.id === sel.value);
+    document.getElementById('tmpl-preview').innerHTML = t
+      ? `${t.description||''}<br>${(t.steps||[]).length} steps: ${(t.steps||[]).map(s=>s.step_name).join(' → ')}`
+      : '';
+    if (t) document.getElementById('new-priority').value = t.priority_default || 'medium';
+  };
+}
+
+function startFromTemplate(tmplId) {
+  populateTemplateSelect();
+  document.getElementById('new-template-id').value = tmplId;
+  document.getElementById('new-template-id').dispatchEvent(new Event('change'));
+  document.getElementById('modal-new').classList.add('open');
+}
+
+async function submitNewWorkflow() {
+  const tmplId = document.getElementById('new-template-id').value;
+  if (!tmplId) { showToast('Select a template first', 'red'); return; }
+  const priority = document.getElementById('new-priority').value;
+  const account = document.getElementById('new-account').value || 'cpost@murphy.systems';
+  const r = await fetch(API + '/api/ops/workflow/start', {
+    method: 'POST',
+    headers: {...authHeaders(), 'Content-Type': 'application/json'},
+    body: JSON.stringify({template_id: tmplId, account_id: account, priority})
+  });
+  if (r.ok) {
+    const d = await r.json();
+    showToast(`✓ Started: ${d.name} (${d.instance_id})`, 'green');
+    closeModal('modal-new');
+    await loadInstances(null);
+    showTab('active');
+    const newInst = instances.find(i => i.id === d.instance_id);
+    if (newInst) selectInstance(newInst.id);
+  } else {
+    const e = await r.json();
+    showToast('Error: ' + (e.detail||'failed'), 'red');
+  }
+}
+
+/* ── Excel export ── */
+async function downloadExcel() {
+  showToast('Generating Excel workbook…', 'teal');
+  const a = document.createElement('a');
+  a.href = API + '/api/ops/export/excel';
+  const h = authHeaders();
+  if (h.Authorization) {
+    try {
+      const r = await fetch(a.href, {headers: h});
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      a.href = url; a.download = 'murphy_ops.xlsx'; a.click();
+      URL.revokeObjectURL(url);
+      showToast('Download started ✓', 'green');
+    } catch(e) { showToast('Export failed: ' + e.message, 'red'); }
+  } else {
+    a.download = 'murphy_ops.xlsx'; a.click();
+  }
+}
+
+/* ── Toast ── */
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  const colors = {green:'#00ff88',teal:'#00d4ff',amber:'#ffb400',red:'#ff4466'};
+  t.style.cssText = `position:fixed;bottom:1rem;right:1rem;background:var(--surface2);border:1px solid ${colors[type]||colors.teal};color:${colors[type]||colors.teal};padding:.5rem 1rem;border-radius:6px;font-size:.78rem;font-weight:600;z-index:500;animation:fadeIn .2s`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+/* ── Boot ── */
+window.addEventListener('DOMContentLoaded', async () => {
+  await init();
+  renderOrgChart();
+  showTab('active');
+  renderLog();
+  updateStats();
+});
+
+// Watch for data changes and re-render stats
+const _origRefresh = autoRefresh;
+window.autoRefresh = async function() {
+  await _origRefresh();
+  updateStats();
+  renderOrgChart();
+  if (rightTab === 'log') renderLog();
+};
+</script>
+</body>
+</html>

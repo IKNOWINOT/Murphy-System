@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manifold Planner — Murphy System</title>
+<style>
+:root{
+  --bg:#080c17;--s1:#0f1623;--s2:#161f30;--s3:#1c2840;
+  --b1:#1e2d45;--b2:#2a3d5a;
+  --teal:#00d4ff;--teal-d:rgba(0,212,255,.10);
+  --green:#00ff88;--green-d:rgba(0,255,136,.10);
+  --amber:#ffb400;--amber-d:rgba(255,180,0,.12);
+  --red:#ff4466;--red-d:rgba(255,68,102,.12);
+  --purple:#a855f7;--purple-d:rgba(168,85,247,.12);
+  --text:#e2e8f0;--dim:#718096;--muted:#4a5568;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',system-ui,sans-serif;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+/* ── Toolbar ── */
+.tb{display:flex;align-items:center;gap:.5rem;padding:.4rem 1rem;background:var(--s1);border-bottom:1px solid var(--b1);flex-shrink:0}
+.tb-title{font-weight:700;font-size:.85rem;color:var(--teal)}
+.spacer{flex:1}
+.btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:5px;font-size:.72rem;font-weight:600;cursor:pointer;border:1px solid var(--b1);background:transparent;color:var(--dim);transition:all .15s;white-space:nowrap}
+.btn:hover{border-color:var(--teal);color:var(--teal)}
+.btn.p{background:var(--teal);color:#080c17;border-color:var(--teal)}
+.btn.g{background:var(--green);color:#080c17;border-color:var(--green)}
+.btn.r{border-color:var(--red);color:var(--red)}
+select.btn{padding-right:6px}
+
+/* ── Main layout: horizontal drill-down columns ── */
+.drill{display:flex;flex:1;overflow-x:auto;overflow-y:hidden;gap:0}
+.col{width:280px;min-width:280px;border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:width .25s}
+.col.wide{width:360px;min-width:360px}
+.col.expanded{width:420px;min-width:420px}
+.col-hdr{padding:.5rem .7rem;background:var(--s1);border-bottom:1px solid var(--b1);flex-shrink:0;display:flex;align-items:center;gap:.4rem}
+.col-hdr-title{font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;flex:1}
+.col-body{flex:1;overflow-y:auto;padding:.4rem}
+
+/* ── Calendar view ── */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:.3rem 0}
+.cal-dow{font-size:.6rem;color:var(--muted);text-align:center;padding:2px 0;font-weight:600}
+.cal-day{min-height:52px;border-radius:5px;background:var(--s2);border:1px solid var(--b1);padding:2px 3px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+.cal-day:hover{border-color:var(--teal);background:var(--teal-d)}
+.cal-day.today{border-color:var(--teal)!important;background:var(--teal-d)}
+.cal-day.selected{border-color:var(--green)!important;background:var(--green-d)!important}
+.cal-day.has-block{border-left:3px solid var(--block-color,var(--teal))}
+.cal-day.other-month{opacity:.35}
+.cal-daynum{font-size:.6rem;color:var(--dim)}
+.cal-block-pill{font-size:.55rem;padding:1px 3px;border-radius:2px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.cal-month-nav{display:flex;align-items:center;justify-content:space-between;padding:.3rem .4rem;font-size:.78rem;font-weight:700}
+.cal-nav-btn{cursor:pointer;color:var(--dim);padding:2px 6px;border-radius:3px}
+.cal-nav-btn:hover{color:var(--teal)}
+
+/* ── Block pill in calendar ── */
+.block-bar{display:flex;align-items:center;gap:.4rem;padding:.35rem .5rem;border-radius:6px;margin-bottom:.3rem;cursor:pointer;border:1px solid transparent;transition:all .15s}
+.block-bar:hover{border-color:var(--teal);background:var(--teal-d)}
+.block-bar.selected{border-color:var(--green)!important;background:var(--green-d)!important}
+.block-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.block-name{font-size:.75rem;font-weight:700;flex:1}
+.block-dates{font-size:.62rem;color:var(--dim)}
+.block-ms-count{font-size:.62rem;color:var(--muted)}
+
+/* ── Milestone list ── */
+.ms-row{background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:.4rem .5rem;margin-bottom:.3rem;cursor:pointer;transition:all .15s}
+.ms-row:hover{border-color:var(--teal);background:var(--teal-d)}
+.ms-row.selected{border-color:var(--green);background:var(--green-d)}
+.ms-row-hdr{display:flex;align-items:center;gap:.4rem}
+.ms-status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.ms-name{font-size:.75rem;font-weight:700;flex:1}
+.ms-due{font-size:.62rem;color:var(--dim)}
+.ms-badges{display:flex;gap:.3rem;margin-top:.2rem;flex-wrap:wrap}
+.badge{display:inline-flex;padding:1px 5px;border-radius:3px;font-size:.6rem;font-weight:700}
+.badge.crit{background:var(--red-d);color:var(--red)}
+.badge.high{background:var(--amber-d);color:var(--amber)}
+.badge.med{background:var(--teal-d);color:var(--teal)}
+.badge.low{background:rgba(0,255,136,.08);color:var(--green)}
+.badge.complete{background:var(--green-d);color:var(--green)}
+.badge.blocked{background:var(--red-d);color:var(--red)}
+.badge.risk{background:var(--amber-d);color:var(--amber)}
+
+/* ── Detail items ── */
+.di-row{background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:.4rem .5rem;margin-bottom:.3rem;cursor:pointer;transition:all .15s}
+.di-row:hover{border-color:var(--teal);background:var(--teal-d)}
+.di-row.selected{border-color:var(--purple);background:var(--purple-d)}
+.di-row-hdr{display:flex;align-items:center;gap:.4rem}
+.di-type-icon{font-size:.75rem;flex-shrink:0}
+.di-name{font-size:.73rem;font-weight:600;flex:1}
+.di-manifold-count{font-size:.6rem;color:var(--muted);background:var(--s3);padding:1px 4px;border-radius:3px}
+
+/* ── Manifold entries ── */
+.manifold-entry{border-radius:7px;margin-bottom:.4rem;border:1px solid var(--b1);overflow:hidden}
+.me-header{display:flex;align-items:center;gap:.4rem;padding:.4rem .55rem;cursor:pointer}
+.me-header:hover{background:rgba(255,255,255,.03)}
+.me-type-badge{font-size:.6rem;font-weight:800;padding:2px 6px;border-radius:3px;flex-shrink:0;text-transform:uppercase;letter-spacing:.04em}
+.me-type-assumption{background:var(--amber-d);color:var(--amber);border:1px solid rgba(255,180,0,.3)}
+.me-type-actual{background:var(--green-d);color:var(--green);border:1px solid rgba(0,255,136,.3)}
+.me-type-info_gap{background:var(--red-d);color:var(--red);border:1px solid rgba(255,68,102,.3)}
+.me-type-decision{background:var(--teal-d);color:var(--teal);border:1px solid rgba(0,212,255,.3)}
+.me-type-known_at{background:var(--purple-d);color:var(--purple);border:1px solid rgba(168,85,247,.3)}
+.me-title{font-size:.72rem;font-weight:600;flex:1}
+.me-conf{font-size:.6rem;color:var(--muted);flex-shrink:0}
+.me-body{padding:.3rem .55rem .5rem;border-top:1px solid var(--b1);display:none}
+.me-body.open{display:block}
+.me-body-text{font-size:.7rem;color:var(--dim);line-height:1.5;white-space:pre-wrap}
+.me-meta{display:flex;gap:.6rem;margin-top:.3rem;font-size:.62rem;color:var(--muted);flex-wrap:wrap}
+.me-depends{margin-top:.3rem;font-size:.63rem;color:var(--amber);background:var(--amber-d);padding:.2rem .4rem;border-radius:4px;border-left:3px solid var(--amber)}
+.me-financial{font-size:.7rem;font-weight:700;flex-shrink:0}
+.me-financial.pos{color:var(--green)}
+.me-financial.neg{color:var(--red)}
+.me-financial.zero{color:var(--muted)}
+.me-resolved{background:var(--green-d);border-radius:3px;padding:1px 5px;font-size:.6rem;color:var(--green);margin-left:.2rem}
+.me-actions{display:flex;gap:.3rem;margin-top:.4rem}
+.conf-bar{height:3px;border-radius:2px;background:var(--b2);margin-top:3px;overflow:hidden}
+.conf-fill{height:3px;border-radius:2px;transition:width .3s}
+
+/* ── Change events banner ── */
+.change-banner{background:var(--amber-d);border:1px solid rgba(255,180,0,.3);border-radius:6px;padding:.4rem .6rem;margin-bottom:.4rem;font-size:.7rem}
+.change-order{color:var(--red)}
+.credit{color:var(--green)}
+.change-row{display:flex;align-items:center;gap:.4rem;padding:.2rem 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.change-row:last-child{border:none}
+
+/* ── Empty state ── */
+.empty{color:var(--muted);font-size:.73rem;padding:1rem .5rem;text-align:center}
+.empty-icon{font-size:1.5rem;margin-bottom:.3rem}
+
+/* ── Add forms inline ── */
+.add-form{background:var(--s3);border:1px solid var(--b2);border-radius:6px;padding:.5rem .6rem;margin-bottom:.4rem}
+.add-form-title{font-size:.7rem;font-weight:700;color:var(--teal);margin-bottom:.35rem}
+.fi{width:100%;background:var(--s1);border:1px solid var(--b1);border-radius:4px;padding:.28rem .4rem;font-size:.72rem;color:var(--text);font-family:inherit;margin-bottom:.25rem}
+.fi:focus{outline:none;border-color:var(--teal)}
+select.fi option{background:var(--s2)}
+.fi-row{display:grid;grid-template-columns:1fr 1fr;gap:.25rem}
+.fi-label{font-size:.62rem;color:var(--dim);margin-bottom:.1rem}
+textarea.fi{resize:vertical;min-height:48px}
+.form-btns{display:flex;gap:.3rem;margin-top:.3rem}
+
+/* ── Dependency chain visual ── */
+.dep-chain{border-left:2px solid var(--amber);padding-left:.5rem;margin:.3rem 0}
+.dep-link{font-size:.63rem;color:var(--amber);margin-bottom:.15rem}
+.dep-link::before{content:'↳ '}
+</style>
+</head>
+<body>
+<nav class="nav" id="main-nav"></nav>
+
+<div class="tb">
+  <span class="tb-title">🗂 Manifold Planner</span>
+  <select class="btn" id="project-sel" onchange="selectProject(this.value)">
+    <option value="">— select project —</option>
+  </select>
+  <button class="btn p" onclick="showAddProject()">＋ Project</button>
+  <div class="spacer"></div>
+  <span id="change-badge" style="display:none"></span>
+  <button class="btn" onclick="showChanges()">⚡ Changes</button>
+</div>
+
+<div class="drill" id="drill">
+  <!-- Col 0: Calendar -->
+  <div class="col" id="col-calendar">
+    <div class="col-hdr">
+      <span class="col-hdr-title" style="color:var(--teal)">📅 Calendar</span>
+    </div>
+    <div class="col-body" id="cal-body">
+      <div class="empty"><div class="empty-icon">📅</div>Select a project to begin</div>
+    </div>
+  </div>
+
+  <!-- Col 1: Block detail / Milestones -->
+  <div class="col" id="col-milestones" style="display:none">
+    <div class="col-hdr">
+      <span class="col-hdr-title" style="color:var(--green)" id="ms-col-title">📋 Milestones</span>
+      <button class="btn" style="font-size:.6rem;padding:2px 6px" onclick="showAddMilestone()">＋</button>
+    </div>
+    <div class="col-body" id="ms-body"></div>
+  </div>
+
+  <!-- Col 2: Detail items -->
+  <div class="col" id="col-details" style="display:none">
+    <div class="col-hdr">
+      <span class="col-hdr-title" style="color:var(--amber)" id="di-col-title">🔍 Detail Items</span>
+      <button class="btn" style="font-size:.6rem;padding:2px 6px" onclick="showAddDetail()">＋</button>
+    </div>
+    <div class="col-body" id="di-body"></div>
+  </div>
+
+  <!-- Col 3: Manifold (knowledge layer) -->
+  <div class="col wide" id="col-manifold" style="display:none">
+    <div class="col-hdr">
+      <span class="col-hdr-title" style="color:var(--purple)" id="mf-col-title">🧬 Manifold</span>
+      <button class="btn" style="font-size:.6rem;padding:2px 6px" onclick="showAddEntry()">＋ Entry</button>
+    </div>
+    <div class="col-body" id="mf-body"></div>
+  </div>
+</div>
+
+<!-- Add Project modal -->
+<div id="modal-project" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;align-items:center;justify-content:center">
+  <div style="background:var(--s1);border:1px solid var(--b2);border-radius:10px;width:440px;padding:1.2rem">
+    <div style="font-size:.85rem;font-weight:700;color:var(--teal);margin-bottom:.7rem;display:flex;justify-content:space-between">
+      ＋ New Project <span style="cursor:pointer;color:var(--muted)" onclick="closeModal('modal-project')">✕</span>
+    </div>
+    <label class="fi-label">Project Name</label>
+    <input class="fi" id="np-name" placeholder="e.g. Murphy Platform v2">
+    <label class="fi-label">Client</label>
+    <input class="fi" id="np-client" placeholder="Client name">
+    <label class="fi-label">Description</label>
+    <textarea class="fi" id="np-desc" placeholder="What is this project?"></textarea>
+    <div class="fi-row">
+      <div><label class="fi-label">Start Date</label><input type="date" class="fi" id="np-start"></div>
+      <div><label class="fi-label">End Date</label><input type="date" class="fi" id="np-end"></div>
+    </div>
+    <div class="fi-row">
+      <div><label class="fi-label">Budget ($)</label><input type="number" class="fi" id="np-budget" placeholder="0"></div>
+      <div><label class="fi-label">Color</label><input type="color" class="fi" id="np-color" value="#00d4ff" style="padding:2px;height:32px"></div>
+    </div>
+    <div class="form-btns">
+      <button class="btn g" onclick="submitProject()" style="flex:1">Create Project</button>
+      <button class="btn" onclick="closeModal('modal-project')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/murphy-nav.js"></script>
+<script>
+const API = window.location.origin;
+let projects=[], currentProject=null, currentBlock=null, currentMilestone=null, currentDetailItem=null;
+let allBlocks=[], calYear, calMonth, openManifoldEntries=new Set();
+let pendingAddTarget = null; // {type, context}
+
+function authH(extra={}) {
+  const t = localStorage.getItem('murphy_api_key')||localStorage.getItem('murphy_session_token')||'';
+  const h = {'Content-Type':'application/json'};
+  if (t) h['Authorization'] = 'Bearer ' + t;
+  return {...h, ...extra};
+}
+
+async function api(method, path, body=null) {
+  const opts = {method, headers: authH()};
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  if (!r.ok) { const e=await r.json().catch(()=>({})); throw new Error(e.detail||r.status); }
+  return r.json();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  if (window.MurphyNav) MurphyNav.init('main-nav');
+  const now = new Date();
+  calYear = now.getFullYear(); calMonth = now.getMonth();
+  await loadProjects();
+}
+
+async function loadProjects() {
+  const d = await api('GET', '/api/manifold/projects');
+  projects = d.projects || [];
+  const sel = document.getElementById('project-sel');
+  sel.innerHTML = '<option value="">— select project —</option>' +
+    projects.map(p=>`<option value="${p.id}">${p.name}${p.client?' · '+p.client:''}</option>`).join('');
+  if (projects.length === 1) selectProject(projects[0].id);
+}
+
+async function selectProject(pid) {
+  if (!pid) return;
+  currentProject = projects.find(p=>p.id===pid);
+  document.getElementById('project-sel').value = pid;
+  const d = await api('GET', `/api/manifold/blocks?project_id=${pid}`);
+  allBlocks = d.blocks || [];
+  renderCalendar();
+  updateChangeBadge(pid);
+}
+
+// ── Calendar ──────────────────────────────────────────────────────────────────
+function renderCalendar() {
+  const body = document.getElementById('cal-body');
+  const dows = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  const monthNames = ['January','February','March','April','May','June',
+                      'July','August','September','October','November','December'];
+
+  const first = new Date(calYear, calMonth, 1);
+  const last  = new Date(calYear, calMonth+1, 0);
+  const startDow = first.getDay();
+
+  let html = `
+    <div class="cal-month-nav">
+      <span class="cal-nav-btn" onclick="navMonth(-1)">◀</span>
+      <span>${monthNames[calMonth]} ${calYear}</span>
+      <span class="cal-nav-btn" onclick="navMonth(1)">▶</span>
+    </div>
+    <div class="cal-grid">
+    ${dows.map(d=>`<div class="cal-dow">${d}</div>`).join('')}`;
+
+  const today = new Date();
+  // Pad start
+  for (let i=0; i<startDow; i++) {
+    const d = new Date(calYear, calMonth, -startDow+i+1);
+    html += `<div class="cal-day other-month"><div class="cal-daynum">${d.getDate()}</div></div>`;
+  }
+
+  for (let day=1; day<=last.getDate(); day++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const isToday = today.getDate()===day && today.getMonth()===calMonth && today.getFullYear()===calYear;
+
+    // Find blocks that overlap this day
+    const dayBlocks = allBlocks.filter(b => b.start_date <= dateStr && b.end_date >= dateStr);
+    const hasBlock = dayBlocks.length > 0;
+    const blockColor = dayBlocks.length ? (dayBlocks[0].color||'var(--teal)') : '';
+    const isSelected = currentBlock && dayBlocks.some(b=>b.id===currentBlock.id);
+
+    let pillsHtml = dayBlocks.slice(0,2).map(b=>
+      `<div class="cal-block-pill" style="background:${b.color||'var(--teal)'}22;color:${b.color||'var(--teal)'}"
+            onclick="event.stopPropagation();selectBlock('${b.id}')">${b.name}</div>`
+    ).join('');
+
+    html += `<div class="cal-day ${isToday?'today':''} ${isSelected?'selected':''} ${hasBlock?'has-block':''}"
+              style="--block-color:${blockColor}"
+              onclick="onCalDayClick('${dateStr}', ${JSON.stringify(dayBlocks.map(b=>b.id))})">
+      <div class="cal-daynum">${day}</div>
+      ${pillsHtml}
+    </div>`;
+  }
+
+  html += '</div>';
+
+  // Block list below calendar
+  html += `<div style="margin-top:.6rem">
+    <div style="font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem">
+      Blocks in ${monthNames[calMonth]}
+    </div>`;
+  const monthBlocks = allBlocks.filter(b => {
+    const bs = b.start_date.slice(0,7), be = b.end_date.slice(0,7);
+    const cm = `${calYear}-${String(calMonth+1).padStart(2,'0')}`;
+    return bs <= cm && be >= cm;
+  });
+  if (monthBlocks.length) {
+    monthBlocks.forEach(b => {
+      const isSel = currentBlock && currentBlock.id === b.id;
+      html += `<div class="block-bar ${isSel?'selected':''}" onclick="selectBlock('${b.id}')">
+        <div class="block-dot" style="background:${b.color||'var(--teal)'}"></div>
+        <div>
+          <div class="block-name">${b.name}</div>
+          <div class="block-dates">${b.start_date} → ${b.end_date}</div>
+        </div>
+        <div class="block-ms-count">${b.milestone_count||0} ms</div>
+      </div>`;
+    });
+  } else {
+    html += `<div class="empty" style="padding:.5rem 0;text-align:left">No blocks this month
+      <button class="btn" style="margin-top:.3rem;display:block" onclick="showAddBlock()">＋ Add Block</button>
+    </div>`;
+  }
+
+  if (allBlocks.length) {
+    html += `<button class="btn" style="margin-top:.4rem;width:100%;justify-content:center" onclick="showAddBlock()">＋ Add Block</button>`;
+  }
+  html += '</div>';
+
+  body.innerHTML = html;
+}
+
+function navMonth(delta) {
+  calMonth += delta;
+  if (calMonth < 0) { calMonth=11; calYear--; }
+  if (calMonth > 11) { calMonth=0; calYear++; }
+  renderCalendar();
+}
+
+function onCalDayClick(dateStr, blockIds) {
+  if (blockIds.length === 1) selectBlock(blockIds[0]);
+  else if (blockIds.length > 1) {
+    // Show picker — for now just pick first
+    selectBlock(blockIds[0]);
+  }
+}
+
+async function selectBlock(blockId) {
+  const d = await api('GET', `/api/manifold/blocks/${blockId}`);
+  currentBlock = d;
+  currentMilestone = null;
+  currentDetailItem = null;
+  renderMilestoneColumn();
+  renderCalendar();
+  document.getElementById('col-milestones').style.display='';
+  document.getElementById('col-details').style.display='none';
+  document.getElementById('col-manifold').style.display='none';
+}
+
+// ── Milestones ─────────────────────────────────────────────────────────────────
+function renderMilestoneColumn() {
+  if (!currentBlock) return;
+  document.getElementById('ms-col-title').textContent = `📋 ${currentBlock.name}`;
+  const milestones = currentBlock.milestones || [];
+  let html = '';
+
+  if (!milestones.length) {
+    html = `<div class="empty"><div class="empty-icon">📋</div>No milestones yet<br>
+      <button class="btn g" style="margin-top:.4rem" onclick="showAddMilestone()">＋ Add Milestone</button></div>`;
+  } else {
+    milestones.forEach(m => {
+      const isSel = currentMilestone && currentMilestone.id === m.id;
+      const statusColor = {pending:'var(--muted)',in_progress:'var(--teal)',complete:'var(--green)',blocked:'var(--red)',at_risk:'var(--amber)'}[m.status]||'var(--muted)';
+      html += `<div class="ms-row ${isSel?'selected':''}" onclick="selectMilestone('${m.id}')">
+        <div class="ms-row-hdr">
+          <div class="ms-status-dot" style="background:${statusColor}"></div>
+          <div class="ms-name">${m.name}</div>
+          ${m.due_date ? `<div class="ms-due">${m.due_date.slice(5)}</div>` : ''}
+        </div>
+        <div class="ms-badges">
+          <span class="badge ${m.priority}">${m.priority}</span>
+          ${m.status!=='pending'?`<span class="badge ${m.status}">${m.status}</span>`:''}
+          ${m.estimated_cost_usd?`<span class="badge med">$${m.estimated_cost_usd.toLocaleString()}</span>`:''}
+        </div>
+        ${m.description?`<div style="font-size:.63rem;color:var(--dim);margin-top:.2rem">${m.description}</div>`:''}
+      </div>`;
+    });
+    html += `<button class="btn" style="width:100%;justify-content:center;margin-top:.2rem" onclick="showAddMilestone()">＋ Milestone</button>`;
+  }
+  document.getElementById('ms-body').innerHTML = html;
+}
+
+async function selectMilestone(milestoneId) {
+  const m = await api('GET', `/api/manifold/milestones/${milestoneId}`);
+  currentMilestone = m;
+  currentDetailItem = null;
+  // Re-render milestones to show selection
+  if (currentBlock) {
+    // Update milestone in block
+    const idx = (currentBlock.milestones||[]).findIndex(x=>x.id===milestoneId);
+    if (idx>=0) currentBlock.milestones[idx] = {...currentBlock.milestones[idx], ...m};
+  }
+  renderMilestoneColumn();
+  renderDetailColumn();
+  document.getElementById('col-details').style.display='';
+  document.getElementById('col-manifold').style.display='none';
+}
+
+// ── Detail Items ───────────────────────────────────────────────────────────────
+function renderDetailColumn() {
+  if (!currentMilestone) return;
+  document.getElementById('di-col-title').textContent = `🔍 ${currentMilestone.name}`;
+  const items = currentMilestone.detail_items || [];
+  const typeIcons = {task:'✅',question:'❓',requirement:'📐',risk:'⚠️',decision:'⚖️'};
+  let html = '';
+
+  // Cost summary
+  const est = currentMilestone.estimated_cost_usd||0;
+  const act = currentMilestone.actual_cost_usd||0;
+  if (est||act) {
+    html += `<div style="background:var(--s2);border:1px solid var(--b1);border-radius:5px;padding:.3rem .5rem;margin-bottom:.4rem;font-size:.68rem">
+      <span style="color:var(--dim)">Est: </span><span style="color:var(--amber)">$${est.toLocaleString()}</span>
+      &nbsp;·&nbsp;<span style="color:var(--dim)">Act: </span><span style="color:var(--green)">$${act.toLocaleString()}</span>
+      &nbsp;·&nbsp;<span style="color:var(--dim)">Δ: </span><span style="color:${act>est?'var(--red)':'var(--green)'}">$${(act-est).toLocaleString()}</span>
+    </div>`;
+  }
+
+  if (!items.length) {
+    html += `<div class="empty"><div class="empty-icon">🔍</div>No detail items yet</div>`;
+  } else {
+    items.forEach(di => {
+      const isSel = currentDetailItem && currentDetailItem.id === di.id;
+      const mCount = (di.manifold||[]).length;
+      const openGaps = (di.manifold||[]).filter(me=>me.entry_type==='info_gap'&&!me.is_resolved).length;
+      html += `<div class="di-row ${isSel?'selected':''}" onclick="selectDetailItem('${di.id}')">
+        <div class="di-row-hdr">
+          <span class="di-type-icon">${typeIcons[di.item_type]||'📌'}</span>
+          <span class="di-name">${di.name}</span>
+          <span class="di-manifold-count">${mCount} entries</span>
+        </div>
+        ${di.description?`<div style="font-size:.62rem;color:var(--dim);margin-top:.2rem;padding-left:1.2rem">${di.description}</div>`:''}
+        ${openGaps?`<div style="font-size:.62rem;color:var(--red);margin-top:.2rem;padding-left:1.2rem">⚠ ${openGaps} open gap${openGaps>1?'s':''}</div>`:''}
+      </div>`;
+    });
+  }
+  html += `<button class="btn" style="width:100%;justify-content:center;margin-top:.3rem" onclick="showAddDetail()">＋ Detail Item</button>`;
+  document.getElementById('di-body').innerHTML = html;
+}
+
+async function selectDetailItem(itemId) {
+  const di = await api('GET', `/api/manifold/detail-items/${itemId}`);
+  currentDetailItem = di;
+  renderDetailColumn();
+  renderManifoldColumn();
+  document.getElementById('col-manifold').style.display='';
+}
+
+// ── Manifold Column ────────────────────────────────────────────────────────────
+function renderManifoldColumn() {
+  if (!currentDetailItem) return;
+  const di = currentDetailItem;
+  document.getElementById('mf-col-title').textContent = `🧬 ${di.name.slice(0,30)}`;
+  const entries = di.manifold || [];
+  const typeOrder = {info_gap:0,assumption:1,decision:2,known_at:3,actual:4};
+  const sorted = [...entries].sort((a,b)=>((typeOrder[a.entry_type]||5)-(typeOrder[b.entry_type]||5)));
+
+  // Dependency chain summary
+  const infogaps = sorted.filter(e=>e.entry_type==='info_gap'&&!e.is_resolved);
+  const totalImpact = entries.reduce((s,e)=>s+(parseFloat(e.financial_impact_usd)||0),0);
+
+  let html = '';
+
+  // Header summary
+  html += `<div style="background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:.4rem .55rem;margin-bottom:.4rem">
+    <div style="font-size:.68rem;color:var(--dim)">${di.item_type} · ${di.status||'open'}</div>
+    <div style="display:flex;gap:.6rem;margin-top:.2rem;font-size:.68rem;flex-wrap:wrap">
+      <span style="color:${infogaps.length?'var(--red)':'var(--green)'}">
+        ${infogaps.length?`⚠ ${infogaps.length} unresolved gap${infogaps.length>1?'s':''}` : '✓ No open gaps'}
+      </span>
+      <span style="color:${totalImpact>=0?'var(--green)':'var(--red)'}">
+        ${totalImpact>=0?'':''}$${Math.abs(totalImpact).toFixed(0)} net impact
+      </span>
+    </div>
+    ${di.description?`<div style="font-size:.63rem;color:var(--dim);margin-top:.2rem">${di.description}</div>`:''}
+  </div>`;
+
+  if (!entries.length) {
+    html += `<div class="empty"><div class="empty-icon">🧬</div>No knowledge entries yet.<br>
+      <div style="font-size:.65rem;color:var(--muted);margin-top:.3rem">Add what you know, what you assume,<br>and what questions need answers.</div>
+    </div>`;
+  } else {
+    sorted.forEach(me => {
+      const isOpen = openManifoldEntries.has(me.id);
+      const impact = parseFloat(me.financial_impact_usd)||0;
+      const impactCls = impact>0?'pos':impact<0?'neg':'zero';
+      const impactStr = impact===0?'—':(impact>0?'+':'')+`$${Math.abs(impact).toFixed(0)}`;
+      const conf = parseFloat(me.confidence||0);
+
+      html += `<div class="manifold-entry" style="border-color:${me.is_resolved?'rgba(0,255,136,.2)':''}">
+        <div class="me-header" onclick="toggleEntry('${me.id}')">
+          <span class="me-type-badge me-type-${me.entry_type}">${me.entry_type.replace('_',' ')}</span>
+          <span class="me-title">${me.title}</span>
+          ${me.is_resolved?`<span class="me-resolved">✓ resolved</span>`:''}
+          <span class="me-financial ${impactCls}">${impactStr}</span>
+          <span style="color:var(--muted);font-size:.7rem">${isOpen?'▲':'▼'}</span>
+        </div>`;
+
+      // Confidence bar
+      if (!me.is_resolved) {
+        const confColor = conf>=0.8?'var(--green)':conf>=0.5?'var(--amber)':'var(--red)';
+        html += `<div style="padding:0 .55rem">
+          <div class="conf-bar"><div class="conf-fill" style="width:${conf*100}%;background:${confColor}"></div></div>
+        </div>`;
+      }
+
+      html += `<div class="me-body ${isOpen?'open':''}">
+          <div class="me-body-text">${me.body||'(no detail yet)'}</div>`;
+
+      if (me.depends_on_id) {
+        html += `<div class="me-depends">🔗 Depends on: entry ${me.depends_on_id.slice(0,12)}…<br>
+          <span style="font-size:.6rem;opacity:.8">Change this parent → this entry re-evaluates</span></div>`;
+      }
+
+      html += `<div class="me-meta">
+          <span>Known at: ${me.known_at?me.known_at.slice(0,16):''}</span>
+          ${me.known_by?`<span>By: ${me.known_by}</span>`:''}
+          <span>Confidence: ${Math.round(conf*100)}%</span>
+          ${me.version>1?`<span>v${me.version}</span>`:''}
+        </div>`;
+
+      if (!me.is_resolved) {
+        html += `<div class="me-actions">
+          <button class="btn g" style="font-size:.62rem" onclick="resolveEntry('${me.id}')">✓ Resolve</button>
+          <button class="btn" style="font-size:.62rem" onclick="addDependentEntry('${me.id}')">↳ Add Dependent</button>
+        </div>`;
+      }
+
+      html += `</div></div>`;
+    });
+  }
+
+  html += `<button class="btn p" style="width:100%;justify-content:center;margin-top:.4rem" onclick="showAddEntry()">＋ Add Entry</button>`;
+  document.getElementById('mf-body').innerHTML = html;
+}
+
+function toggleEntry(id) {
+  if (openManifoldEntries.has(id)) openManifoldEntries.delete(id);
+  else openManifoldEntries.add(id);
+  renderManifoldColumn();
+}
+
+// ── Inline add forms ────────────────────────────────────────────────────────────
+function showAddBlock() {
+  if (!currentProject) return;
+  const body = document.getElementById('cal-body');
+  const form = document.createElement('div');
+  form.className = 'add-form';
+  form.innerHTML = `<div class="add-form-title">＋ New Block</div>
+    <label class="fi-label">Name</label><input class="fi" id="nb-name" placeholder="e.g. Sprint 1">
+    <label class="fi-label">Type</label>
+    <select class="fi" id="nb-type"><option value="sprint">Sprint</option><option value="phase">Phase</option><option value="milestone_group">Milestone Group</option></select>
+    <div class="fi-row">
+      <div><label class="fi-label">Start</label><input type="date" class="fi" id="nb-start"></div>
+      <div><label class="fi-label">End</label><input type="date" class="fi" id="nb-end"></div>
+    </div>
+    <label class="fi-label">Color</label><input type="color" class="fi" id="nb-color" value="#00ff88" style="height:30px;padding:2px">
+    <div class="form-btns">
+      <button class="btn g" onclick="submitBlock()" style="flex:1">Create</button>
+      <button class="btn" onclick="this.closest('.add-form').remove()">✕</button>
+    </div>`;
+  body.prepend(form);
+}
+
+async function submitBlock() {
+  const name = document.getElementById('nb-name').value.trim();
+  if (!name) return;
+  await api('POST', '/api/manifold/blocks', {
+    project_id: currentProject.id,
+    name,
+    block_type: document.getElementById('nb-type').value,
+    start_date: document.getElementById('nb-start').value||new Date().toISOString().slice(0,10),
+    end_date: document.getElementById('nb-end').value||new Date().toISOString().slice(0,10),
+    color: document.getElementById('nb-color').value,
+  });
+  await selectProject(currentProject.id);
+  showToast('Block created ✓','green');
+}
+
+function showAddMilestone() {
+  if (!currentBlock) return showToast('Select a block first','amber');
+  const body = document.getElementById('ms-body');
+  if (body.querySelector('.add-form')) return;
+  const form = document.createElement('div');
+  form.className = 'add-form';
+  form.innerHTML = `<div class="add-form-title">＋ New Milestone</div>
+    <label class="fi-label">Name</label><input class="fi" id="nm-name" placeholder="Milestone name">
+    <label class="fi-label">Description</label><input class="fi" id="nm-desc" placeholder="What gets delivered?">
+    <div class="fi-row">
+      <div><label class="fi-label">Due Date</label><input type="date" class="fi" id="nm-due"></div>
+      <div><label class="fi-label">Priority</label>
+        <select class="fi" id="nm-pri"><option value="critical">Critical</option><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select>
+      </div>
+    </div>
+    <div class="fi-row">
+      <div><label class="fi-label">Est. Hours</label><input type="number" class="fi" id="nm-hrs" placeholder="0"></div>
+      <div><label class="fi-label">Est. Cost ($)</label><input type="number" class="fi" id="nm-cost" placeholder="0"></div>
+    </div>
+    <div class="form-btns">
+      <button class="btn g" onclick="submitMilestone()" style="flex:1">Create</button>
+      <button class="btn" onclick="this.closest('.add-form').remove()">✕</button>
+    </div>`;
+  body.prepend(form);
+}
+
+async function submitMilestone() {
+  const name = document.getElementById('nm-name').value.trim();
+  if (!name||!currentBlock) return;
+  const m = await api('POST', '/api/manifold/milestones', {
+    block_id: currentBlock.id,
+    project_id: currentProject.id,
+    name,
+    description: document.getElementById('nm-desc').value,
+    due_date: document.getElementById('nm-due').value||null,
+    priority: document.getElementById('nm-pri').value,
+    estimated_hours: parseFloat(document.getElementById('nm-hrs').value)||0,
+    estimated_cost_usd: parseFloat(document.getElementById('nm-cost').value)||0,
+  });
+  // Reload block
+  currentBlock = await api('GET', `/api/manifold/blocks/${currentBlock.id}`);
+  renderMilestoneColumn();
+  showToast('Milestone created ✓','green');
+}
+
+function showAddDetail() {
+  if (!currentMilestone) return showToast('Select a milestone first','amber');
+  const body = document.getElementById('di-body');
+  if (body.querySelector('.add-form')) return;
+  const form = document.createElement('div');
+  form.className = 'add-form';
+  form.innerHTML = `<div class="add-form-title">＋ New Detail Item</div>
+    <label class="fi-label">Name / Question</label>
+    <input class="fi" id="nd-name" placeholder="e.g. Is GDPR required?">
+    <label class="fi-label">Type</label>
+    <select class="fi" id="nd-type">
+      <option value="task">✅ Task</option>
+      <option value="question">❓ Question</option>
+      <option value="requirement">📐 Requirement</option>
+      <option value="risk">⚠️ Risk</option>
+      <option value="decision">⚖️ Decision</option>
+    </select>
+    <label class="fi-label">Description</label>
+    <textarea class="fi" id="nd-desc" placeholder="More context…"></textarea>
+    <div class="form-btns">
+      <button class="btn g" onclick="submitDetail()" style="flex:1">Create</button>
+      <button class="btn" onclick="this.closest('.add-form').remove()">✕</button>
+    </div>`;
+  body.prepend(form);
+}
+
+async function submitDetail() {
+  const name = document.getElementById('nd-name').value.trim();
+  if (!name||!currentMilestone) return;
+  const di = await api('POST', '/api/manifold/detail-items', {
+    milestone_id: currentMilestone.id,
+    project_id: currentProject.id,
+    block_id: currentBlock.id,
+    name,
+    item_type: document.getElementById('nd-type').value,
+    description: document.getElementById('nd-desc').value,
+  });
+  currentMilestone = await api('GET', `/api/manifold/milestones/${currentMilestone.id}`);
+  renderDetailColumn();
+  showToast('Detail item created ✓','green');
+}
+
+function showAddEntry(dependsOnId=null) {
+  if (!currentDetailItem) return showToast('Select a detail item first','amber');
+  const body = document.getElementById('mf-body');
+  if (body.querySelector('.add-form')) { body.querySelector('.add-form').remove(); }
+  const form = document.createElement('div');
+  form.className = 'add-form';
+  form.innerHTML = `<div class="add-form-title">＋ New Knowledge Entry</div>
+    <label class="fi-label">Type</label>
+    <select class="fi" id="ne-type">
+      <option value="info_gap">❓ Info Gap — "In order to know X, I need to know Y"</option>
+      <option value="assumption">💭 Assumption — what we believe right now</option>
+      <option value="actual">✅ Actual — confirmed fact</option>
+      <option value="decision">⚖️ Decision — a choice that was made</option>
+      <option value="known_at">📸 Known At — snapshot of knowledge at this time</option>
+    </select>
+    <label class="fi-label">Title / Statement</label>
+    <input class="fi" id="ne-title" placeholder="In order to know pricing, I first need to know…">
+    <label class="fi-label">Detail / Body</label>
+    <textarea class="fi" id="ne-body" placeholder="Full description, data, or reasoning…"></textarea>
+    <div class="fi-row">
+      <div><label class="fi-label">Financial Impact ($)</label>
+        <input type="number" step="0.01" class="fi" id="ne-impact" placeholder="0 (neg=cost, pos=value)"></div>
+      <div><label class="fi-label">Confidence (0-1)</label>
+        <input type="number" step="0.1" min="0" max="1" class="fi" id="ne-conf" placeholder="0.5"></div>
+    </div>
+    ${dependsOnId?`<input type="hidden" id="ne-depends" value="${dependsOnId}">
+    <div style="font-size:.65rem;color:var(--amber);margin-bottom:.3rem">↳ Depends on: ${dependsOnId.slice(0,12)}…</div>`:''}
+    <div class="form-btns">
+      <button class="btn p" onclick="submitEntry()" style="flex:1">Add Entry</button>
+      <button class="btn" onclick="this.closest('.add-form').remove()">✕</button>
+    </div>`;
+  body.prepend(form);
+}
+
+async function submitEntry() {
+  const title = document.getElementById('ne-title').value.trim();
+  if (!title) return;
+  const dependsEl = document.getElementById('ne-depends');
+  await api('POST', '/api/manifold/entries', {
+    detail_item_id: currentDetailItem.id,
+    entry_type: document.getElementById('ne-type').value,
+    title,
+    body: document.getElementById('ne-body').value,
+    financial_impact_usd: parseFloat(document.getElementById('ne-impact').value)||0,
+    confidence: parseFloat(document.getElementById('ne-conf').value)||0.5,
+    depends_on_id: dependsEl ? dependsEl.value : null,
+    known_by: 'cpost@murphy.systems',
+  });
+  currentDetailItem = await api('GET', `/api/manifold/detail-items/${currentDetailItem.id}`);
+  renderManifoldColumn();
+  showToast('Entry added ✓','green');
+}
+
+function addDependentEntry(parentId) {
+  showAddEntry(parentId);
+}
+
+async function resolveEntry(entryId) {
+  const body = prompt('What is the actual answer / resolution?');
+  if (body === null) return;
+  const impact = prompt('Updated financial impact ($ value, negative=cost, positive=value)?', '0');
+  await api('POST', `/api/manifold/entries/${entryId}/resolve`, {
+    resolved_by: 'cpost@murphy.systems',
+    actual_body: body,
+    new_financial_impact: parseFloat(impact)||0,
+  });
+  currentDetailItem = await api('GET', `/api/manifold/detail-items/${currentDetailItem.id}`);
+  renderManifoldColumn();
+  showToast('Entry resolved — checking downstream impact…','amber');
+  // Check for change events
+  setTimeout(() => updateChangeBadge(currentProject?.id), 500);
+}
+
+// ── Change events ──────────────────────────────────────────────────────────────
+async function updateChangeBadge(projectId) {
+  if (!projectId) return;
+  const d = await api('GET', `/api/manifold/changes?project_id=${projectId}&unacked_only=true&limit=50`);
+  const changes = d.changes || [];
+  const badge = document.getElementById('change-badge');
+  if (changes.length) {
+    const cos = changes.filter(c=>c.change_type==='change_order').length;
+    const crs = changes.filter(c=>c.change_type==='credit').length;
+    badge.style.display='';
+    badge.innerHTML = `
+      ${cos?`<span class="btn" style="border-color:var(--red);color:var(--red)">⚡ ${cos} change order${cos>1?'s':''}</span>`:''}
+      ${crs?`<span class="btn" style="border-color:var(--green);color:var(--green)">✓ ${crs} credit${crs>1?'s':''}</span>`:''}`;
+  } else {
+    badge.style.display='none';
+  }
+}
+
+async function showChanges() {
+  const pid = currentProject?.id;
+  const d = await api('GET', `/api/manifold/changes${pid?'?project_id='+pid:''}&limit=50`);
+  const changes = d.changes || [];
+  if (!changes.length) { showToast('No change events logged yet','teal'); return; }
+
+  let msg = `Change Events (${changes.length}):\n\n`;
+  changes.forEach(c => {
+    const ack = c.acknowledged ? '✓' : '⚠';
+    const sign = c.financial_delta_usd >= 0 ? '+' : '';
+    msg += `${ack} [${c.change_type.toUpperCase()}] $${sign}${c.financial_delta_usd.toFixed(0)}\n${c.description||''}\n\n`;
+  });
+  alert(msg);
+}
+
+// ── Modals ─────────────────────────────────────────────────────────────────────
+function showAddProject() {
+  document.getElementById('modal-project').style.display='flex';
+}
+function closeModal(id) {
+  document.getElementById(id).style.display='none';
+}
+
+async function submitProject() {
+  const name = document.getElementById('np-name').value.trim();
+  if (!name) return showToast('Name required','red');
+  await api('POST', '/api/manifold/projects', {
+    name,
+    client: document.getElementById('np-client').value,
+    description: document.getElementById('np-desc').value,
+    budget_usd: parseFloat(document.getElementById('np-budget').value)||0,
+    start_date: document.getElementById('np-start').value||null,
+    end_date: document.getElementById('np-end').value||null,
+    color: document.getElementById('np-color').value,
+  });
+  closeModal('modal-project');
+  await loadProjects();
+  showToast('Project created ✓','green');
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────────
+function showToast(msg, type) {
+  const colors={green:'#00ff88',teal:'#00d4ff',amber:'#ffb400',red:'#ff4466'};
+  const t=document.createElement('div');
+  t.style.cssText=`position:fixed;bottom:1rem;right:1rem;background:var(--s2);border:1px solid ${colors[type]||colors.teal};color:${colors[type]||colors.teal};padding:.45rem .9rem;border-radius:6px;font-size:.76rem;font-weight:600;z-index:500`;
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
+
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

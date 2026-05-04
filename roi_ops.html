@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ROI Operations — Murphy System</title>
+<style>
+:root{
+  --bg:#080c17;--surface:#0f1623;--surface2:#161f30;--surface3:#1c2840;
+  --border:#1e2d45;--border2:#2a3d5a;
+  --teal:#00d4ff;--teal-dim:rgba(0,212,255,.10);
+  --green:#00ff88;--green-dim:rgba(0,255,136,.10);
+  --amber:#ffb400;--amber-dim:rgba(255,180,0,.12);
+  --red:#ff4466;--red-dim:rgba(255,68,102,.12);
+  --purple:#a855f7;--text:#e2e8f0;--text-muted:#4a5568;--text-dim:#718096;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',system-ui,sans-serif;display:flex;flex-direction:column;min-height:100vh}
+
+/* Toolbar */
+.toolbar{background:var(--surface);border-bottom:1px solid var(--border);padding:.45rem 1.25rem;display:flex;align-items:center;gap:.6rem;flex-shrink:0}
+.toolbar-title{font-weight:700;font-size:.88rem;color:var(--teal)}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-dim);transition:all .15s}
+.btn:hover{border-color:var(--teal);color:var(--teal)}
+.btn.primary{background:var(--teal);color:#080c17;border-color:var(--teal)}
+.btn.green{background:var(--green);color:#080c17;border-color:var(--green)}
+.spacer{flex:1}
+.period-btn{padding:3px 9px;border-radius:4px;font-size:.7rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-muted)}
+.period-btn.active{border-color:var(--teal);color:var(--teal);background:var(--teal-dim)}
+
+/* Lane cards */
+.lane-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:1rem 1.25rem 0}
+.lane-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.lane-header{padding:.6rem 1rem;display:flex;align-items:center;gap:.5rem;border-bottom:1px solid var(--border)}
+.lane-icon{font-size:1.2rem}
+.lane-title{font-size:.85rem;font-weight:700}
+.lane-subtitle{font-size:.68rem;color:var(--text-dim);margin-top:1px}
+.lane-body{padding:.75rem 1rem}
+.lane-stat{display:flex;justify-content:space-between;align-items:baseline;padding:.2rem 0;border-bottom:1px solid rgba(255,255,255,.03)}
+.lane-stat:last-child{border:none}
+.ls-label{font-size:.72rem;color:var(--text-dim)}
+.ls-val{font-size:.82rem;font-weight:700}
+.ls-val.green{color:var(--green)}
+.ls-val.amber{color:var(--amber)}
+.ls-val.teal{color:var(--teal)}
+.ls-val.red{color:var(--red)}
+
+/* KPI bar */
+.kpi-bar{display:grid;grid-template-columns:repeat(5,1fr);gap:.75rem;padding:.75rem 1.25rem}
+.kpi-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.6rem .75rem}
+.kpi-num{font-size:1.25rem;font-weight:800;line-height:1}
+.kpi-label{font-size:.65rem;color:var(--text-dim);margin-top:3px}
+.kpi-delta{font-size:.68rem;margin-top:2px}
+
+/* Main grid */
+.main-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;padding:0 1.25rem 1rem;flex:1}
+.panel{background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+.panel-hdr{padding:.5rem .75rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.panel-title{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--teal)}
+.panel-body{flex:1;overflow-y:auto;padding:.5rem .75rem}
+
+/* Rows */
+.row-item{display:flex;align-items:center;gap:.5rem;padding:.3rem 0;border-bottom:1px solid rgba(255,255,255,.03)}
+.row-item:last-child{border:none}
+.row-icon{font-size:.9rem;flex-shrink:0}
+.row-name{font-size:.72rem;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-sub{font-size:.63rem;color:var(--text-dim)}
+.row-val{font-size:.75rem;font-weight:700;flex-shrink:0;text-align:right}
+.row-val.green{color:var(--green)}
+.row-val.amber{color:var(--amber)}
+.row-val.red{color:var(--red)}
+.row-val.teal{color:var(--teal)}
+
+/* Progress bar */
+.prog-wrap{background:var(--surface3);border-radius:3px;height:4px;margin-top:3px;overflow:hidden}
+.prog-bar{height:4px;border-radius:3px;transition:width .4s}
+
+/* Target vs Actual */
+.target-row{padding:.35rem 0;border-bottom:1px solid rgba(255,255,255,.03)}
+.target-row:last-child{border:none}
+.target-name{font-size:.72rem;font-weight:600;margin-bottom:.2rem}
+.target-line{display:flex;justify-content:space-between;font-size:.65rem;color:var(--text-dim);margin-bottom:.2rem}
+.target-pct{font-size:.68rem;font-weight:700}
+.target-pct.over{color:var(--green)}
+.target-pct.under{color:var(--red)}
+
+/* Log stream */
+.log-entry{font-size:.66rem;padding:.25rem 0;border-bottom:1px solid rgba(255,255,255,.03);display:flex;gap:.4rem}
+.log-ts{color:var(--text-muted);flex-shrink:0}
+.log-lane{flex-shrink:0;font-size:.6rem;font-weight:700;padding:1px 4px;border-radius:3px}
+.log-lane.production{background:var(--green-dim);color:var(--green)}
+.log-lane.admin{background:var(--amber-dim);color:var(--amber)}
+.log-body{flex:1;color:var(--text-dim)}
+.log-val{flex-shrink:0;font-weight:700}
+.log-val.pos{color:var(--green)}
+.log-val.neg{color:var(--red)}
+
+/* Chart */
+.chart-area{padding:.5rem 0;display:flex;align-items:flex-end;gap:3px;height:80px}
+.chart-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px}
+.chart-bar-prod{background:var(--green);border-radius:2px 2px 0 0;width:100%;min-height:2px;transition:height .3s}
+.chart-bar-admin{background:var(--amber);border-radius:2px 2px 0 0;width:100%;min-height:2px;transition:height .3s}
+.chart-label{font-size:.55rem;color:var(--text-muted);white-space:nowrap}
+
+/* Log Action modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:10px;width:480px;max-height:80vh;overflow-y:auto;padding:1.25rem}
+.modal-title{font-size:.88rem;font-weight:700;color:var(--teal);margin-bottom:.8rem;display:flex;justify-content:space-between}
+.modal-close{cursor:pointer;color:var(--text-muted)}
+.modal-close:hover{color:var(--red)}
+.input-group{margin-bottom:.55rem}
+.input-label{font-size:.7rem;font-weight:600;color:var(--text-dim);margin-bottom:.18rem;display:block}
+.input-field{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:.3rem .5rem;font-size:.77rem;color:var(--text);font-family:inherit}
+.input-field:focus{outline:none;border-color:var(--teal)}
+select.input-field option{background:var(--surface2)}
+</style>
+</head>
+<body>
+<nav class="nav" id="main-nav"></nav>
+
+<div class="toolbar">
+  <span class="toolbar-title">📈 ROI Operations — Production vs Admin</span>
+  <div style="display:flex;gap:.3rem">
+    <button class="period-btn active" onclick="setPeriod(1)" id="p1">1D</button>
+    <button class="period-btn" onclick="setPeriod(7)" id="p7">7D</button>
+    <button class="period-btn" onclick="setPeriod(30)" id="p30">30D</button>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn" onclick="openLogModal()">＋ Log Action</button>
+  <button class="btn primary" onclick="downloadExcel()">⬇ Excel</button>
+</div>
+
+<!-- KPI BAR -->
+<div class="kpi-bar" id="kpi-bar">
+  <div class="kpi-card"><div class="kpi-num" style="color:var(--green)">—</div><div class="kpi-label">Total Value</div></div>
+  <div class="kpi-card"><div class="kpi-num" style="color:var(--teal)">—</div><div class="kpi-label">Production Value</div></div>
+  <div class="kpi-card"><div class="kpi-num" style="color:var(--amber)">—</div><div class="kpi-label">Admin Value</div></div>
+  <div class="kpi-card"><div class="kpi-num" style="color:var(--text)">—</div><div class="kpi-label">Total Actions</div></div>
+  <div class="kpi-card"><div class="kpi-num" style="color:var(--purple)">—</div><div class="kpi-label">Avg ROI $/hr</div></div>
+</div>
+
+<!-- LANE CARDS -->
+<div class="lane-grid">
+  <div class="lane-card" id="prod-lane">
+    <div class="lane-header">
+      <span class="lane-icon">⚡</span>
+      <div><div class="lane-title" style="color:var(--green)">Production Lane</div>
+      <div class="lane-subtitle">Collector · Translator · Executor · ProdOps · Scheduler — value generation</div></div>
+    </div>
+    <div class="lane-body" id="prod-lane-body">Loading…</div>
+  </div>
+  <div class="lane-card" id="admin-lane">
+    <div class="lane-header">
+      <span class="lane-icon">🛡️</span>
+      <div><div class="lane-title" style="color:var(--amber)">Admin Lane</div>
+      <div class="lane-subtitle">ExecAdmin · Auditor · Rosetta · HITL — governance &amp; risk</div></div>
+    </div>
+    <div class="lane-body" id="admin-lane-body">Loading…</div>
+  </div>
+</div>
+
+<!-- MAIN GRID -->
+<div class="main-grid" style="margin-top:1rem">
+
+  <!-- By Agent -->
+  <div class="panel">
+    <div class="panel-hdr"><span class="panel-title">By Agent</span></div>
+    <div class="panel-body" id="agent-panel">Loading…</div>
+  </div>
+
+  <!-- Targets vs Actual -->
+  <div class="panel">
+    <div class="panel-hdr">
+      <span class="panel-title">Plan vs Actual</span>
+      <button class="btn" style="font-size:.62rem;padding:2px 7px" onclick="openTargetModal()">＋ Target</button>
+    </div>
+    <div class="panel-body" id="targets-panel">Loading…</div>
+  </div>
+
+  <!-- Trend chart + Live log -->
+  <div class="panel">
+    <div class="panel-hdr"><span class="panel-title">7D Trend</span></div>
+    <div class="panel-body" id="trend-panel">
+      <div class="chart-area" id="trend-chart"></div>
+      <div style="display:flex;gap:.6rem;margin:.3rem 0;font-size:.63rem">
+        <span style="color:var(--green)">■ Production</span>
+        <span style="color:var(--amber)">■ Admin</span>
+      </div>
+      <div style="font-size:.7rem;font-weight:700;color:var(--teal);margin:.4rem 0 .2rem">Live Log</div>
+      <div id="live-log"></div>
+    </div>
+  </div>
+
+  <!-- Top Actions -->
+  <div class="panel">
+    <div class="panel-hdr"><span class="panel-title">Top Actions</span></div>
+    <div class="panel-body" id="actions-panel">Loading…</div>
+  </div>
+
+  <!-- By Workflow -->
+  <div class="panel">
+    <div class="panel-hdr"><span class="panel-title">By Workflow</span></div>
+    <div class="panel-body" id="workflow-panel">Loading…</div>
+  </div>
+
+  <!-- Action Catalog -->
+  <div class="panel">
+    <div class="panel-hdr"><span class="panel-title">Action Catalog</span>
+      <span style="font-size:.63rem;color:var(--text-muted)">$ value per event</span>
+    </div>
+    <div class="panel-body" id="catalog-panel">Loading…</div>
+  </div>
+</div>
+
+<!-- Log Action Modal -->
+<div class="modal-overlay" id="modal-log">
+  <div class="modal">
+    <div class="modal-title">＋ Log Action <span class="modal-close" onclick="closeModal()">✕</span></div>
+    <div class="input-group">
+      <label class="input-label">Agent</label>
+      <select class="input-field" id="log-agent">
+        <option value="collector">📡 Collector (Production)</option>
+        <option value="translator">🧠 Translator (Production)</option>
+        <option value="executor">⚡ Executor (Production)</option>
+        <option value="prod_ops">🔧 ProdOps (Production)</option>
+        <option value="scheduler">🗓 Scheduler (Production)</option>
+        <option value="exec_admin">👔 ExecAdmin (Admin)</option>
+        <option value="auditor">📋 Auditor (Admin)</option>
+        <option value="rosetta">🌐 Rosetta (Admin)</option>
+        <option value="hitl">🔴 HITL (Admin)</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label class="input-label">Action Type</label>
+      <select class="input-field" id="log-action-type"></select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+      <div class="input-group">
+        <label class="input-label">Time Spent (seconds)</label>
+        <input type="number" class="input-field" id="log-time" placeholder="auto from catalog">
+      </div>
+      <div class="input-group">
+        <label class="input-label">Money Value ($)</label>
+        <input type="number" step="0.01" class="input-field" id="log-money" placeholder="auto from catalog">
+      </div>
+    </div>
+    <div class="input-group">
+      <label class="input-label">Workflow / Context (optional)</label>
+      <input type="text" class="input-field" id="log-workflow" placeholder="e.g. Lead to Customer">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Notes</label>
+      <input type="text" class="input-field" id="log-notes" placeholder="optional notes">
+    </div>
+    <div style="display:flex;gap:.5rem;margin-top:.5rem">
+      <button class="btn green" onclick="submitLogAction()" style="flex:1">Log Action</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/murphy-nav.js"></script>
+<script>
+const API = window.location.origin;
+let data = null, catalog = {}, days = 1;
+
+function authH() {
+  const t = localStorage.getItem('murphy_api_key') || localStorage.getItem('murphy_session_token') || '';
+  return t ? {'Authorization':'Bearer '+t,'Content-Type':'application/json'} : {'Content-Type':'application/json'};
+}
+
+async function load() {
+  try {
+    const [sumR, catR, tgtR, entR] = await Promise.all([
+      fetch(`${API}/api/roi/summary?days=${days}`, {headers: authH()}),
+      fetch(`${API}/api/roi/catalog`, {headers: authH()}),
+      fetch(`${API}/api/roi/targets`, {headers: authH()}),
+      fetch(`${API}/api/roi/entries?limit=50`, {headers: authH()}),
+    ]);
+    if (sumR.ok) data = await sumR.json();
+    if (catR.ok) { const cd = await catR.json(); catalog = cd.catalog || {}; }
+    const targets = tgtR.ok ? (await tgtR.json()).targets || [] : [];
+    const entries = entR.ok ? (await entR.json()).entries || [] : [];
+    render(targets, entries);
+  } catch(e) { console.error(e); }
+}
+
+function fmt$(v) {
+  if (!v && v !== 0) return '—';
+  v = parseFloat(v);
+  if (Math.abs(v) >= 1000) return (v>=0?'$':'−$') + Math.abs(v/1000).toFixed(1) + 'k';
+  return (v>=0?'$':'−$') + Math.abs(v).toFixed(0);
+}
+
+function fmtTime(s) {
+  if (!s) return '—';
+  s = parseFloat(s);
+  if (s < 60) return s.toFixed(0)+'s';
+  if (s < 3600) return (s/60).toFixed(1)+'m';
+  return (s/3600).toFixed(1)+'h';
+}
+
+function render(targets, entries) {
+  if (!data) return;
+  const ov = data.overall || {};
+  const lanes = {};
+  (data.by_lane || []).forEach(l => lanes[l.logic_lane] = l);
+  const prod = lanes.production || {};
+  const admin = lanes.admin || {};
+
+  // KPIs
+  const totalVal = parseFloat(ov.total_value_usd || 0);
+  const prodVal  = parseFloat(prod.value_usd || 0);
+  const adminVal = parseFloat(admin.value_usd || 0);
+  document.getElementById('kpi-bar').innerHTML = `
+    <div class="kpi-card"><div class="kpi-num" style="color:var(--green)">${fmt$(totalVal)}</div><div class="kpi-label">Total Value (${days}d)</div></div>
+    <div class="kpi-card"><div class="kpi-num" style="color:var(--teal)">${fmt$(prodVal)}</div><div class="kpi-label">Production</div><div class="kpi-delta" style="color:var(--text-dim)">${ov.total_actions||0} actions</div></div>
+    <div class="kpi-card"><div class="kpi-num" style="color:var(--amber)">${fmt$(adminVal)}</div><div class="kpi-label">Admin / Governance</div></div>
+    <div class="kpi-card"><div class="kpi-num">${parseInt(ov.total_actions||0)}</div><div class="kpi-label">Total Actions</div></div>
+    <div class="kpi-card"><div class="kpi-num" style="color:var(--purple)">${fmt$(ov.avg_roi_score)}/hr</div><div class="kpi-label">Avg ROI Rate</div></div>`;
+
+  // Lane cards
+  function laneStats(l, color) {
+    return `
+      <div class="lane-stat"><span class="ls-label">Value Generated</span><span class="ls-val ${color}">${fmt$(l.value_usd)}</span></div>
+      <div class="lane-stat"><span class="ls-label">Actions</span><span class="ls-val">${l.actions||0}</span></div>
+      <div class="lane-stat"><span class="ls-label">Time Spent</span><span class="ls-val">${fmtTime(l.time_s)}</span></div>
+      <div class="lane-stat"><span class="ls-label">Avg ROI Rate</span><span class="ls-val teal">${fmt$(l.avg_roi)}/hr</span></div>`;
+  }
+  document.getElementById('prod-lane-body').innerHTML = prod.actions ? laneStats(prod,'green') : '<span style="color:var(--text-muted);font-size:.72rem">No production actions yet.</span>';
+  document.getElementById('admin-lane-body').innerHTML = admin.actions ? laneStats(admin,'amber') : '<span style="color:var(--text-muted);font-size:.72rem">No admin actions yet.</span>';
+
+  // By Agent
+  const agentLanes = {collector:'production',translator:'production',executor:'production',prod_ops:'production',scheduler:'production',exec_admin:'admin',auditor:'admin',rosetta:'admin',hitl:'admin'};
+  const agentEmojis = {collector:'📡',translator:'🧠',executor:'⚡',prod_ops:'🔧',scheduler:'🗓',exec_admin:'👔',auditor:'📋',rosetta:'🌐',hitl:'🔴'};
+  const maxAgentVal = Math.max(...(data.by_agent||[]).map(a=>Math.abs(parseFloat(a.value_usd||0))), 1);
+  document.getElementById('agent-panel').innerHTML = (data.by_agent||[]).map(a => {
+    const val = parseFloat(a.value_usd||0);
+    const isAdmin = agentLanes[a.agent_id] === 'admin';
+    const pct = Math.round(Math.abs(val)/maxAgentVal*100);
+    const color = isAdmin ? 'amber' : (val >= 0 ? 'green' : 'red');
+    return `<div class="row-item">
+      <span class="row-icon">${agentEmojis[a.agent_id]||'🤖'}</span>
+      <div style="flex:1;min-width:0">
+        <div class="row-name">${a.agent_id}</div>
+        <div class="row-sub">${a.actions} actions · ${fmtTime(a.time_s)}</div>
+        <div class="prog-wrap"><div class="prog-bar" style="width:${pct}%;background:var(--${color})"></div></div>
+      </div>
+      <span class="row-val ${color}">${fmt$(val)}</span>
+    </div>`;
+  }).join('') || '<span style="color:var(--text-muted);font-size:.72rem">No agent data yet.</span>';
+
+  // Targets vs Actual
+  document.getElementById('targets-panel').innerHTML = targets.length ? targets.map(t => {
+    const pct = parseFloat(t.pct_achieved||0);
+    const over = pct >= 100;
+    const color = over ? 'var(--green)' : (pct >= 70 ? 'var(--amber)' : 'var(--red)');
+    return `<div class="target-row">
+      <div class="target-name">${t.target_name} <span style="font-size:.6rem;color:var(--text-muted)">[${t.logic_lane||'all'}]</span></div>
+      <div class="target-line">
+        <span>Target: ${fmt$(t.target_value_usd)}</span>
+        <span>Actual: ${fmt$(t.actual_value_usd)}</span>
+        <span class="target-pct ${over?'over':'under'}">${pct.toFixed(0)}%</span>
+      </div>
+      <div class="prog-wrap"><div class="prog-bar" style="width:${Math.min(pct,100)}%;background:${color}"></div></div>
+    </div>`;
+  }).join('') : '<span style="color:var(--text-muted);font-size:.72rem">No targets set yet. Click ＋ Target to set one.</span>';
+
+  // Trend chart
+  const daily = data.daily_trend || [];
+  const maxD = Math.max(...daily.map(d=>Math.max(Math.abs(parseFloat(d.prod_value||0)),Math.abs(parseFloat(d.admin_value||0)))), 1);
+  document.getElementById('trend-chart').innerHTML = daily.length ? daily.map(d => {
+    const ph = Math.round(Math.abs(parseFloat(d.prod_value||0))/maxD*70);
+    const ah = Math.round(Math.abs(parseFloat(d.admin_value||0))/maxD*70);
+    const day = (d.day||'').slice(5);
+    return `<div class="chart-bar-wrap">
+      <div style="display:flex;gap:1px;align-items:flex-end;flex:1;width:100%">
+        <div class="chart-bar-prod" style="height:${ph}px;flex:1"></div>
+        <div class="chart-bar-admin" style="height:${ah}px;flex:1"></div>
+      </div>
+      <div class="chart-label">${day}</div>
+    </div>`;
+  }).join('') : '<span style="color:var(--text-muted);font-size:.7rem">No trend data yet.</span>';
+
+  // Live log
+  document.getElementById('live-log').innerHTML = entries.slice(0,20).map(e => {
+    const val = parseFloat(e.money_value_usd||0);
+    return `<div class="log-entry">
+      <span class="log-ts">${(e.timestamp||'').slice(11,16)}</span>
+      <span class="log-lane ${e.logic_lane}">${e.logic_lane==='production'?'PROD':'ADMN'}</span>
+      <span class="log-body">${e.agent_id} · ${e.action_type}</span>
+      <span class="log-val ${val>=0?'pos':'neg'}">${fmt$(val)}</span>
+    </div>`;
+  }).join('') || '<span style="color:var(--text-muted);font-size:.7rem">No entries yet.</span>';
+
+  // Top actions
+  document.getElementById('actions-panel').innerHTML = (data.top_actions||[]).map(a => {
+    const val = parseFloat(a.total_value||0);
+    const cat = catalog[a.action_type] || {};
+    return `<div class="row-item">
+      <span class="row-icon">${cat.icon||'⚙️'}</span>
+      <div style="flex:1;min-width:0">
+        <div class="row-name">${a.action_type}</div>
+        <div class="row-sub">${a.count}× · avg ${fmtTime(a.avg_time_s)} · ${a.logic_lane}</div>
+      </div>
+      <span class="row-val ${val>=0?'green':'red'}">${fmt$(val)}</span>
+    </div>`;
+  }).join('') || '<span style="color:var(--text-muted);font-size:.72rem">No actions logged yet.</span>';
+
+  // By Workflow
+  document.getElementById('workflow-panel').innerHTML = (data.by_workflow||[]).map(w => {
+    const val = parseFloat(w.value_usd||0);
+    return `<div class="row-item">
+      <span class="row-icon">⚙️</span>
+      <div style="flex:1;min-width:0">
+        <div class="row-name">${w.workflow_name}</div>
+        <div class="row-sub">${w.steps} steps · ${fmtTime(w.time_s)}</div>
+      </div>
+      <span class="row-val ${val>=0?'green':'red'}">${fmt$(val)}</span>
+    </div>`;
+  }).join('') || '<span style="color:var(--text-muted);font-size:.72rem">No workflow data yet.</span>';
+
+  // Catalog
+  document.getElementById('catalog-panel').innerHTML = Object.entries(catalog).slice(0,20).map(([k,v]) => {
+    const val = parseFloat(v.value||0);
+    return `<div class="row-item">
+      <span class="row-icon">${v.icon||'⚙️'}</span>
+      <div style="flex:1;min-width:0">
+        <div class="row-name">${k}</div>
+        <div class="row-sub">${v.lane} · ~${fmtTime(v.time_s)}</div>
+      </div>
+      <span class="row-val ${val>=0?'green':'red'}">${fmt$(val)}</span>
+    </div>`;
+  }).join('');
+}
+
+function setPeriod(d) {
+  days = d;
+  ['p1','p7','p30'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById('p'+d).classList.add('active');
+  load();
+}
+
+/* Log Action Modal */
+function openLogModal() {
+  const sel = document.getElementById('log-action-type');
+  sel.innerHTML = Object.entries(catalog).map(([k,v]) =>
+    `<option value="${k}">${v.icon||''} ${k} (${v.lane}) → ${v.value>=0?'+':''}$${v.value}</option>`
+  ).join('');
+  sel.onchange = () => {
+    const cat = catalog[sel.value] || {};
+    document.getElementById('log-time').placeholder = cat.time_s ? `${cat.time_s}s (catalog)` : '';
+    document.getElementById('log-money').placeholder = cat.value !== undefined ? `$${cat.value} (catalog)` : '';
+  };
+  document.getElementById('modal-log').classList.add('open');
+}
+function closeModal() { document.getElementById('modal-log').classList.remove('open'); }
+function openTargetModal() { alert('Target setting coming — use /api/roi/targets POST for now.'); }
+
+async function submitLogAction() {
+  const body = {
+    agent_id: document.getElementById('log-agent').value,
+    action_type: document.getElementById('log-action-type').value,
+    workflow_name: document.getElementById('log-workflow').value || null,
+    notes: document.getElementById('log-notes').value,
+  };
+  const t = document.getElementById('log-time').value;
+  const m = document.getElementById('log-money').value;
+  if (t) body.time_spent_s = parseFloat(t);
+  if (m) body.money_value_usd = parseFloat(m);
+  const r = await fetch(`${API}/api/roi/log`, {method:'POST',headers:authH(),body:JSON.stringify(body)});
+  if (r.ok) { closeModal(); showToast('Action logged ✓','green'); load(); }
+  else { const e=await r.json(); showToast('Error: '+(e.detail||'failed'),'red'); }
+}
+
+function showToast(msg, type) {
+  const colors = {green:'#00ff88',teal:'#00d4ff',amber:'#ffb400',red:'#ff4466'};
+  const t = document.createElement('div');
+  t.style.cssText = `position:fixed;bottom:1rem;right:1rem;background:var(--surface2);border:1px solid ${colors[type]||colors.teal};color:${colors[type]||colors.teal};padding:.5rem 1rem;border-radius:6px;font-size:.78rem;font-weight:600;z-index:500`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+async function downloadExcel() {
+  showToast('Generating Excel…','teal');
+  try {
+    const r = await fetch(`${API}/api/ops/export/excel`, {headers: authH()});
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'murphy_ops.xlsx'; a.click();
+    URL.revokeObjectURL(url);
+    showToast('Download started ✓','green');
+  } catch(e) { showToast('Export failed','red'); }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  if (window.MurphyNav) MurphyNav.init('main-nav');
+  load();
+  setInterval(load, 20000);
+});
+</script>
+</body>
+</html>
