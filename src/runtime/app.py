@@ -22167,6 +22167,15 @@ def create_app() -> FastAPI:
     except Exception as _ce_exc:
         logger.warning("PATCH-183: Chain Engine not available: %s", _ce_exc)
 
+    # ── Dynamic Manifold Engine (PATCH-184) ────────────────────────────────────
+    # /api/manifold/gaps/* — gap scan, risk scoring, prescription dispatch
+    try:
+        from src.dynamic_manifold_router import router as _dm_router
+        app.include_router(_dm_router)
+        logger.info("PATCH-184: Dynamic Manifold online — /api/manifold/gaps/* | gap correction | risk mitigation")
+    except Exception as _dm_exc:
+        logger.warning("PATCH-184: Dynamic Manifold not available: %s", _dm_exc)
+
     # ── PATCH-135: Business Automation Control ─────────────────────────────────
     # /api/automation/* — NL-driven automation from any agent, org node, or UI.
     try:
