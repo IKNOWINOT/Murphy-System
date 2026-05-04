@@ -34,7 +34,7 @@ uvicorn==0.27.1
 
 # Web framework — sub-module API servers
 Flask==3.0.0
-flask-cors==4.0.0
+flask-cors==6.0.2
 
 # Data validation and models
 pydantic==2.0.0
