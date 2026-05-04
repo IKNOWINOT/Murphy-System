@@ -51,6 +51,7 @@ h1{font-size:20px;font-weight:700;margin-bottom:4px}
   }
 }
 </style>
+  <script src="/static/murphy-nav.js"></script>
 </head>
 <body>
 <div id="murphy-topbar"></div>
@@ -103,7 +104,7 @@ h1{font-size:20px;font-weight:700;margin-bottom:4px}
   </div>
 </main>
 </div>
-<script src="/static/murphy-nav.js"></script>
+
 <script>
 const H={'X-API-Key':'founder_ad6b1fade355dc1c6dfa89db96d77608886bf63b01b4fb70','Content-Type':'application/json'};
 async function get(p){try{const r=await fetch(p,{headers:H});return await r.json();}catch(e){return{};}}

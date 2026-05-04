@@ -193,8 +193,8 @@ services:
     ports:
       - "127.0.0.1:${MURPHY_WEBMAIL_PORT:-8443}:80"
     environment:
-      ROUNDCUBEMAIL_DEFAULT_HOST:       murphy-mailserver
-      ROUNDCUBEMAIL_DEFAULT_PORT:       "143"
+      ROUNDCUBEMAIL_DEFAULT_HOST:       "ssl://murphy-mailserver"
+      ROUNDCUBEMAIL_DEFAULT_PORT:       "993"
       ROUNDCUBEMAIL_SMTP_SERVER:        murphy-mailserver
       ROUNDCUBEMAIL_SMTP_PORT:          "587"
       ROUNDCUBEMAIL_SKIN:               elastic

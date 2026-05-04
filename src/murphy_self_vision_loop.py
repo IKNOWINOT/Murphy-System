@@ -76,6 +76,13 @@ class ProposalStatus(str, Enum):
     VERIFIED = "verified"
 
 
+class GateVerdict(str, Enum):
+    """PATCH-166: Steve guiding-principles gate verdict."""
+    APPROVE = "approve"
+    HOLD    = "hold"
+    REJECT  = "reject"
+
+
 class RunStatus(str, Enum):
     RUNNING   = "running"
     COMPLETED = "completed"
@@ -102,6 +109,8 @@ class VisionProposal:
     verified: bool = False
     verification_notes: str = ""
     confidence: float = 0.0
+    gate_verdict: str = "pending"    # PATCH-166
+    gate_notes: str = ""             # PATCH-166 principles reasoning
 
 
 @dataclass
@@ -158,7 +167,9 @@ def _get_db() -> sqlite3.Connection:
             applied_at TEXT DEFAULT '',
             verified INTEGER DEFAULT 0,
             verification_notes TEXT DEFAULT '',
-            confidence REAL DEFAULT 0.0
+            confidence REAL DEFAULT 0.0,
+            gate_verdict TEXT DEFAULT 'pending',
+            gate_notes TEXT DEFAULT ''
         );
     """)
     db.commit()
@@ -187,12 +198,14 @@ def _save_proposal(p: VisionProposal):
         INSERT OR REPLACE INTO proposals
         (id, run_id, page_url, target_file, issue_summary, rationale,
          patch_content, patch_mode, critic_verdict, critic_issues, status,
-         created_at, applied_at, verified, verification_notes, confidence)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         created_at, applied_at, verified, verification_notes, confidence,
+         gate_verdict, gate_notes)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     """, (p.id, p.run_id, p.page_url, p.target_file, p.issue_summary,
           p.rationale, p.patch_content, p.patch_mode, p.critic_verdict,
           json.dumps(p.critic_issues), p.status, p.created_at,
-          p.applied_at, int(p.verified), p.verification_notes, p.confidence))
+          p.applied_at, int(p.verified), p.verification_notes, p.confidence,
+          p.gate_verdict, p.gate_notes))
     db.commit()
     db.close()
 
@@ -498,6 +511,102 @@ RULES:
 
     # ── Step 5: GATE (MurphyCritic) ──────────────────────────────────────────
 
+
+    # ── PATCH-166: Steve's Guiding Principles Gate ────────────────────────────
+
+    _GATE_PROMPT = """You are Steve — engineering lead for the Murphy System.
+Murphy has identified a UI/code issue. Apply the 7 Engineering Guiding Principles
+to evaluate whether Murphy's recommended fix is sound BEFORE any code is written.
+
+PAGE: {page_url}
+TARGET FILE: {target_file}
+ISSUE MURPHY IDENTIFIED: {issue_summary}
+MURPHY'S RATIONALE: {rationale}
+PROPOSED FIX: {fix_description}
+MURPHY'S CONFIDENCE: {confidence}
+
+7 Engineering Guiding Principles:
+1. Does the module do what it was designed to do? (is this a real failure?)
+2. What exactly is the module supposed to do? (design intent clear?)
+3. What conditions are possible? (could this be a false positive or edge case?)
+4. Does the fix cover the full range of conditions? (not just happy path?)
+5. What is the expected result AFTER the fix? (will this actually solve it?)
+6. Is the root cause correctly identified? (or treating a symptom?)
+7. Will ancillary code or behaviour need updating too? (side-effects?)
+
+Output EXACTLY one JSON object on one line:
+{{"verdict": "approve|hold|reject", "gate_notes": "2-3 sentence reasoning", "q1": "...", "q2": "...", "q3": "...", "q4": "...", "q5": "...", "q6": "...", "q7": "...", "confidence_adjustment": -0.3}}
+
+VERDICT RULES:
+- approve: fix correctly addresses a real confirmed issue, no risky side-effects
+- hold: issue may be real but fix is incomplete, uncertain, or needs more context
+- reject: false positive, fix is wrong, or risk outweighs benefit
+Output ONLY the JSON, no other text.
+"""
+
+    def _guiding_principles_gate(self, raw: dict, page_url: str) -> tuple:
+        """PATCH-166: Steve gates Murphy recommendation via 7 guiding principles.
+
+        Returns (GateVerdict, gate_notes: str, adjusted_confidence: float).
+        Only APPROVE proceeds to patch generation.
+        """
+        import re as _re166
+        try:
+            from src.llm_provider import MurphyLLMProvider
+            llm = MurphyLLMProvider()
+            prompt = self._GATE_PROMPT.format(
+                page_url=page_url,
+                target_file=raw.get("target_file", ""),
+                issue_summary=raw.get("issue_summary", ""),
+                rationale=raw.get("rationale", ""),
+                fix_description=raw.get("fix_description", ""),
+                confidence=raw.get("confidence", 0.5),
+            )
+            _r = llm.complete(prompt, max_tokens=800, temperature=0.1)
+            response = _r.content if hasattr(_r, "content") else str(_r)
+            clean = _re166.sub(r"```[a-zA-Z]*", "", response).strip()
+
+            # Extract verdict via loose regex — bypasses JSON key-quoting issues
+            verd_pat  = r"verdict[^:]*:\s*[^a-z]*([a-z]+)"
+            notes_pat = r'gate_notes[^:]*:\s*"([^"]{5,})"'
+            adj_pat   = r"confidence_adjustment[^:]*:\s*([-\d.]+)"
+
+            verd_m  = _re166.search(verd_pat,  clean, _re166.IGNORECASE)
+            notes_m = _re166.search(notes_pat, clean, _re166.IGNORECASE | _re166.DOTALL)
+            adj_m   = _re166.search(adj_pat,   clean)
+
+            raw_v = verd_m.group(1).lower().strip() if verd_m else "hold"
+            if raw_v not in ("approve", "hold", "reject"):
+                raw_v = "hold"
+            verdict = GateVerdict(raw_v)
+
+            notes = notes_m.group(1).strip() if notes_m else ""
+            plines = []
+            for qi in range(1, 8):
+                qpat = r"q" + str(qi) + r'[^:]*:\s*"([^"]{3,})"'
+                qm = _re166.search(qpat, clean, _re166.IGNORECASE)
+                if qm:
+                    plines.append("Q" + str(qi) + ": " + qm.group(1).strip())
+            if plines:
+                notes = (notes + "\n" + "\n".join(plines)).strip()
+
+            try:
+                adj = float(adj_m.group(1)) if adj_m else 0.0
+            except (ValueError, TypeError):
+                adj = 0.0
+            base_conf = float(raw.get("confidence", 0.5))
+            adjusted_conf = max(0.0, min(1.0, base_conf + adj))
+
+            logger.info(
+                "PATCH-166: Gate=%s conf=%.2f file=%s",
+                verdict.value, adjusted_conf, raw.get("target_file", "")
+            )
+            return verdict, notes or "Gate evaluated.", adjusted_conf
+
+        except Exception as exc:
+            logger.error("PATCH-166: Gate error: %s", exc)
+            return GateVerdict.HOLD, "Gate error: " + str(exc), float(raw.get("confidence", 0.5))
+
     def _critic_gate(self, proposal: VisionProposal) -> VisionProposal:
         """Run MurphyCritic on the patch content. Only for .py files."""
         if not proposal.patch_content:
@@ -691,7 +800,7 @@ RULES:
         _save_run(run)
 
         try:
-            logger.info("PATCH-163: Vision loop starting — %d pages", len(pages))
+            logger.info("PATCH-166: Vision loop starting — %d pages | gate=guiding_principles", len(pages))
 
             # ── STEP 1: SEE ──────────────────────────────────────────────────
             page_results = await self._scan_pages(pages, session_token)
@@ -721,6 +830,48 @@ RULES:
                     if not target_file:
                         continue
 
+                    # ── PATCH-166: STEVE'S GUIDING PRINCIPLES GATE ──────────
+                    gate_verdict, gate_notes, adj_conf = self._guiding_principles_gate(raw, url)
+
+                    if gate_verdict == GateVerdict.REJECT:
+                        proposal = VisionProposal(
+                            run_id=run.id, page_url=url, target_file=target_file,
+                            issue_summary=raw.get("issue_summary", ""),
+                            rationale=raw.get("rationale", ""),
+                            confidence=adj_conf,
+                            gate_verdict=gate_verdict.value,
+                            gate_notes=gate_notes,
+                        )
+                        proposal.status = ProposalStatus.REJECTED
+                        proposal.critic_verdict = "BLOCK"
+                        proposal.critic_issues = [f"Gate REJECTED: {gate_notes[:200]}"]
+                        run.proposals_blocked += 1
+                        all_proposals.append(proposal)
+                        _save_proposal(proposal)
+                        logger.info("PATCH-166: Gate REJECTED %s — %s", target_file, gate_notes[:100])
+                        continue
+
+                    if gate_verdict == GateVerdict.HOLD:
+                        proposal = VisionProposal(
+                            run_id=run.id, page_url=url, target_file=target_file,
+                            issue_summary=raw.get("issue_summary", ""),
+                            rationale=raw.get("rationale", ""),
+                            confidence=adj_conf,
+                            gate_verdict=gate_verdict.value,
+                            gate_notes=gate_notes,
+                        )
+                        proposal.status = ProposalStatus.PENDING
+                        proposal.critic_verdict = "WARN"
+                        proposal.critic_issues = [f"Gate HELD: {gate_notes[:200]}"]
+                        run.proposals_queued += 1
+                        all_proposals.append(proposal)
+                        _save_proposal(proposal)
+                        logger.info("PATCH-166: Gate HELD %s — queued for human review", target_file)
+                        continue
+
+                    # ── GATE APPROVED — generate patch ───────────────────────
+                    logger.info("PATCH-166: Gate APPROVED %s — generating patch", target_file)
+
                     # ── READ SOURCE FOR PATCH GENERATION ────────────────────
                     src_content = self._read_source_file(target_file)
 
@@ -735,7 +886,9 @@ RULES:
                         rationale=raw.get("rationale", ""),
                         patch_content=patch_content,
                         patch_mode=raw.get("patch_mode", "replace"),
-                        confidence=float(raw.get("confidence", 0.5)),
+                        confidence=adj_conf,
+                        gate_verdict=gate_verdict.value,
+                        gate_notes=gate_notes,
                     )
 
                     # ── STEP 4: CRITIC GATE ──────────────────────────────────

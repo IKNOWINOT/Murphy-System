@@ -130,7 +130,16 @@ class SignalDB:
         return result
 
     def unprocessed(self, limit: int = 20) -> List[Dict]:
-        return self.latest(limit=limit)  # simplified — filter processed=0
+        """Return only signals where processed=0."""
+        with self._lock:
+            with self._conn() as conn:
+                rows = conn.execute(
+                    "SELECT * FROM signal_records WHERE processed=0 ORDER BY timestamp ASC LIMIT ?",
+                    (limit,)
+                ).fetchall()
+                cols = ["signal_id","signal_type","domain","urgency","timestamp",
+                        "intent_hint","entities","raw_payload","processed","workflow_triggered"]
+                return [dict(zip(cols, r)) for r in rows]
 
     def mark_processed(self, signal_id: str, workflow_id: Optional[str] = None):
         with self._lock:

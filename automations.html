@@ -87,6 +87,7 @@ tr:hover td{background:rgba(0,229,160,.04);}
 @keyframes spin{to{transform:rotate(360deg)}}
 .empty{color:var(--text-dim);font-size:.9rem;text-align:center;padding:40px 20px;}
 </style>
+  <script src="/static/murphy-nav.js"></script>
 </head>
 <body>
 
@@ -96,6 +97,13 @@ tr:hover td{background:rgba(0,229,160,.04);}
 </style>
 <style>
 @keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.4)}}
+
+@media (max-width: 768px) {
+  .layout { flex-direction: column !important; }
+  aside { display: none !important; }
+  main { width: 100% !important; padding: 12px !important; }
+  .compose-row, .stats-row { grid-template-columns: 1fr !important; }
+}
 </style>
 
 <div class="layout">
@@ -258,15 +266,35 @@ async function createAutomation() {
   resultEl.innerHTML = '<span class="spinner"></span> Building automation…';
 
   try {
-    const r = await apiFetch('/api/automation/request', {
-      method: 'POST',
-      body: JSON.stringify({description: desc, requester: 'user', priority: 'high'})
-    });
+    // PATCH-167b: Use /api/workflows/generate first (writes to canvas); fallback to /api/automation/request
+    let r;
+    try {
+      r = await apiFetch('/api/workflows/generate', {
+        method: 'POST',
+        body: JSON.stringify({description: desc, strategy: 'llm'})
+      });
+      // Normalise response shape to match automation/request shape
+      if (r && r.workflow_id) {
+        r = {success: true, blueprint_id: r.workflow_id, request: {status: 'built', roi_usd: r.roi?.savings_usd || 0, schedule_job: r.schedule?.label || null}, blueprint: r};
+      }
+    } catch(_fe) {
+      r = null;
+    }
+    if (!r || !r.success) {
+      r = await apiFetch('/api/automation/request', {
+        method: 'POST',
+        body: JSON.stringify({description: desc, requester: 'user', priority: 'high'})
+      });
+    }
     if (r.success) {
       const item = r.request || {};
       const sched = item.schedule_job ? ` · Schedule: <strong>${item.schedule_job}</strong>` : '';
-      resultEl.innerHTML = `✅ Built! Status: <strong>${item.status||'built'}</strong>${sched} · ROI estimate: <strong>$${(item.roi_usd||0).toFixed(2)}</strong>`;
-      toast('Automation created!');
+      const wfId = r.blueprint_id || (r.blueprint && r.blueprint.workflow_id) || '';
+      const canvasLink = wfId
+        ? ` <a href="/ui/workflow-canvas" style="color:#00D4AA;font-weight:600;margin-left:8px">→ View on Canvas</a>`
+        : ` <a href="/ui/workflow-canvas" style="color:#00D4AA;font-weight:600;margin-left:8px">→ Open Canvas</a>`;
+      resultEl.innerHTML = `✅ Built! Status: <strong>${item.status||'built'}</strong>${sched} · ROI: <strong>$${(item.roi_usd||0).toFixed(2)}</strong>${canvasLink}`;
+      toast('Automation created — visible on Workflow Canvas!');
       document.getElementById('nlInput').value = '';
       setTimeout(refreshAll, 800);
     } else {
@@ -293,6 +321,6 @@ async function createAutomation() {
   }catch(e){await refreshAll();}
 })();
 </script>
-<script src="/static/murphy-nav.js"></script>
+
 </body>
 </html>

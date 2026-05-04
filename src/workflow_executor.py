@@ -173,10 +173,48 @@ def run_message(step: Dict, ctx: StepContext) -> Dict:
             logger.error("SendGrid failed: %s", e)
             return {"status": "error", "error": str(e)}
     else:
-        # Log-only mode (no SendGrid key)
-        logger.info("[MSG-SIM] To=%s | Subject=%s | Body=%.200s", to, subject, body)
-        return {"status": "simulated", "to": to, "subject": subject,
-                "note": "SendGrid key not configured — message logged only"}
+        # PATCH-169a: Fall back to SMTP via own mail server (murphy@murphy.systems)
+        try:
+            import asyncio as _aio
+            import os as _os
+            _smtp_host = _os.environ.get("SMTP_HOST", "localhost")
+            if _smtp_host:
+                try:
+                    from src.email_integration import EmailService
+                except ImportError:
+                    from email_integration import EmailService
+                _svc = EmailService.from_env()
+                import threading as _thr2
+                _res_holder = [None]
+                def _wex_send():
+                    _wex_loop = _aio.new_event_loop()
+                    _aio.set_event_loop(_wex_loop)
+                    try:
+                        _res_holder[0] = _wex_loop.run_until_complete(_svc.send(
+                            to=[to] if isinstance(to, str) else to,
+                            subject=subject,
+                            body=body,
+                            from_addr=_os.environ.get("SMTP_FROM_EMAIL", "murphy@murphy.systems"),
+                        ))
+                    finally:
+                        _wex_loop.close()
+                _wex_t = _thr2.Thread(target=_wex_send, daemon=True)
+                _wex_t.start()
+                _wex_t.join(timeout=15)
+                _result = _res_holder[0]
+                if _result.success:
+                    logger.info("PATCH-169a: Email sent via SMTP to %s (%.2fs)", to, _result.latency_seconds)
+                    return {"status": "sent", "to": to, "subject": subject,
+                            "provider": "smtp", "latency": _result.latency_seconds}
+                else:
+                    raise Exception(_result.error or "SMTP send failed")
+            else:
+                raise Exception("No SMTP_HOST configured")
+        except Exception as _smtp_err:
+            logger.warning("PATCH-169a: SMTP fallback failed: %s — logging only", _smtp_err)
+            logger.info("[MSG-SIM] To=%s | Subject=%s | Body=%.200s", to, subject, body)
+            return {"status": "simulated", "to": to, "subject": subject,
+                    "note": f"SMTP fallback failed: {_smtp_err}"}
 
 
 def run_api_call(step: Dict, ctx: StepContext) -> Dict:

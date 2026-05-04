@@ -17,7 +17,8 @@
       // Only intercept internal /api/ calls
       if (urlStr.indexOf('/api/') !== -1) {
         var tok = localStorage.getItem('murphy_session_token');
-        if (tok) {
+        // Ensure token exists and is non-empty
+        if (tok && tok.trim() !== '') {
           opts.headers = opts.headers || {};
           // Don't overwrite an existing Authorization header
           if (!opts.headers['Authorization'] && !opts.headers['authorization']) {
@@ -119,9 +120,9 @@
       id: "compliance",
       label: "Compliance",
       icon: "🛡",
-      href: "/ui/compliance-dashboard",
+      href: "/ui/compliance-center",
       children: [
-        { icon: "🛡", label: "Compliance",        href: "/ui/compliance-dashboard" },
+        { icon: "🛡", label: "Compliance",        href: "/ui/compliance-center" },
         { icon: "🔐", label: "Security Ops",       href: "/ui/security-ops" },
         { icon: "⚖️", label: "Legal",              href: "/ui/legal" },
         { icon: "🔒", label: "Privacy",            href: "/ui/privacy" },
@@ -161,7 +162,19 @@
     // Exact or prefix match on children first
     for (var i = 0; i < NAV.length; i++) {
       var g = NAV[i];
-      for (var j = 0; j < g.children.length; j++) {
+      if (g.children) {
+        for (var j = 0; j < g.children.length; j++) {
+          if (g.children[j].href === path) {
+            return g.id;
+          }
+        }
+      }
+      if (g.href === path || path.indexOf(g.href + '/') === 0) {
+        return g.id;
+      }
+    }
+    return "dashboard"; // default fallback
+  }    for (var j = 0; j < g.children.length; j++) {
         if (path === g.children[j].href) return g.id;
       }
     }
@@ -294,16 +307,32 @@
     "#mns-children.mns-fade{opacity:0;}",
 
     /* Layout helpers */
-    ".murphy-app-shell{display:flex;flex:1;min-height:0;overflow:hidden;}",
-    ".murphy-app-main{flex:1;overflow-y:auto;background:#0a0a0a;}",
+    "html,body{height:100%;margin:0;padding:0;}",
+    "body{display:flex;flex-direction:column;min-height:100vh;overflow-x:hidden;}",
+    ".murphy-app-shell{display:flex;flex:1;min-height:0;overflow:visible;}",
+    ".murphy-app-main{flex:1;overflow-y:auto;overflow-x:hidden;background:#0a0a0a;min-width:0;}",
 
     /* Mobile */
+    /* Hamburger */
+    ".mn-hamburger{display:none;flex-direction:column;justify-content:center;",
+    "  gap:4px;background:transparent;border:none;cursor:pointer;padding:6px;}",
+    ".mn-hamburger span{display:block;width:20px;height:2px;background:#00D4AA;",
+    "  border-radius:2px;transition:all .2s;}",
+
+    /* Mobile drawer overlay */
+    "#mn-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1199;}",
+    "#mn-overlay.mn-open{display:block;}",
+    "#murphy-shared-sidebar.mn-open{display:flex!important;position:fixed;",
+    "  top:52px;left:0;bottom:0;z-index:1200;box-shadow:4px 0 20px rgba(0,0,0,.6);}",
+
     "@media(max-width:768px){",
     "  .mn-links{display:none;}",
-    "  #murphy-shared-sidebar{display:none;}",
-    "  .murphy-app-shell{flex-direction:column;}",
-    "  .murphy-app-main{overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;flex:1;}",
-    "  body{overflow-y:auto;}",
+    "  #murphy-shared-sidebar{display:none!important;}",
+    "  .mn-hamburger{display:flex;}",
+    "  .murphy-app-shell{flex-direction:column;overflow:visible;}",
+    "  .murphy-app-main{overflow-y:auto;-webkit-overflow-scrolling:touch;",
+    "    min-height:0;flex:1;width:100%;max-width:100vw;}",
+    "  body{overflow-y:auto;overflow-x:hidden;height:auto;min-height:100vh;}",
     "}",
   ].join("\n");
 
@@ -350,6 +379,8 @@
       '<div class="mn-right">' +
       '<div class="mn-live-pill"><span class="mn-dot"></span>LIVE</div>' +
       userMenu +
+      '<button class="mn-hamburger" id="mn-hamburger-btn" aria-label="Menu">' +
+      '<span></span><span></span><span></span></button>' +
       '</div></nav>'
     );
   }
@@ -484,33 +515,51 @@
     }
 
     // ── Sidebar ──
+    var sidebarEl = null;
     // Skip sidebar injection if page opts out (has its own sidebar)
-    if (document.body.getAttribute('data-skip-nav-sidebar') === 'true') {
-      // Page has its own sidebar — skip nav sidebar injection
-    } else {
-    // Replace any existing #murphy-shared-sidebar with fresh one
-    var existingSidebar = document.getElementById("murphy-shared-sidebar");
-    var sbWrap = document.createElement("div");
-    sbWrap.innerHTML = buildSidebar(user);
-    var sidebarEl = sbWrap.firstChild;
+    if (document.body.getAttribute('data-skip-nav-sidebar') !== 'true') {
+      // Replace any existing #murphy-shared-sidebar with fresh one
+      var existingSidebar = document.getElementById("murphy-shared-sidebar");
+      var sbWrap = document.createElement("div");
+      sbWrap.innerHTML = buildSidebar(user);
+      sidebarEl = sbWrap.firstChild;
 
-    if (existingSidebar) {
-      existingSidebar.parentNode.replaceChild(sidebarEl, existingSidebar);
-    } else {
-      // Try to find the shell div to prepend into
-      var shell = document.querySelector(
-        ".murphy-app-shell,.shell,.layout,.app-layout,.page-wrap,.td-layout,.pt-layout"
-      );
-      if (shell) {
-        shell.insertBefore(sidebarEl, shell.firstChild);
+      if (existingSidebar) {
+        existingSidebar.parentNode.replaceChild(sidebarEl, existingSidebar);
+      } else {
+        // Try to find the shell div to prepend into
+        var shell = document.querySelector(
+          ".murphy-app-shell,.shell,.layout,.app-layout,.page-wrap,.td-layout,.pt-layout"
+        );
+        if (shell) {
+          shell.insertBefore(sidebarEl, shell.firstChild);
+        }
+        // If no shell found, sidebar stays out — nav.js topbar still works standalone
       }
-      // If no shell found, sidebar stays out — nav.js topbar still works standalone
     }
 
-    } // end sidebar injection
-
     // ── Wire interactions ──
-    wireTopbarButtons(navEl, sidebarEl);
+    if (sidebarEl) { wireTopbarButtons(navEl, sidebarEl); }
+
+    // ── Mobile hamburger + overlay ──
+    var overlay = document.getElementById("mn-overlay");
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "mn-overlay";
+      document.body.appendChild(overlay);
+    }
+    var hbBtn = document.getElementById("mn-hamburger-btn");
+    function closeMobileNav() {
+      if (sidebarEl) sidebarEl.classList.remove("mn-open");
+      overlay.classList.remove("mn-open");
+    }
+    if (hbBtn && sidebarEl) {
+      hbBtn.addEventListener("click", function() {
+        var open = sidebarEl.classList.toggle("mn-open");
+        overlay.classList[open ? "add" : "remove"]("mn-open");
+      });
+      overlay.addEventListener("click", closeMobileNav);
+    }
   }
 
   if (document.readyState === "loading") {

@@ -519,6 +519,38 @@ def request_automation(
         finally:
             conn.close()
 
+    # PATCH-167a: Mirror blueprint to nl_workflows.db so Workflow Canvas shows it
+    try:
+        _nl_path = "/var/lib/murphy-production/nl_workflows.db"
+        _nl = sqlite3.connect(_nl_path, timeout=10)
+        _nl.execute("""CREATE TABLE IF NOT EXISTS blueprints (
+            workflow_id TEXT PRIMARY KEY,
+            account_id  TEXT NOT NULL,
+            name        TEXT,
+            data        TEXT NOT NULL,
+            created_at  TEXT,
+            updated_at  TEXT
+        )""")
+        _canvas = blueprint.get("canvas", {})
+        _bp_data = json.dumps({
+            **blueprint,
+            "canvas_nodes": _canvas.get("nodes", blueprint.get("canvas_nodes", [])),
+            "canvas_edges": _canvas.get("edges", blueprint.get("canvas_edges", [])),
+            "source": "automation_request",
+            "request_id": request_id,
+        })
+        _nl.execute(
+            "INSERT OR REPLACE INTO blueprints "
+            "(workflow_id, account_id, name, data, created_at, updated_at) "
+            "VALUES (?,?,?,?,?,?)",
+            (wf_id, account_id, description[:120], _bp_data, now_iso, now_iso)
+        )
+        _nl.commit()
+        _nl.close()
+        logger.info("PATCH-167a: Blueprint %s mirrored to canvas DB", wf_id)
+    except Exception as _e167:
+        logger.warning("PATCH-167a: Canvas mirror non-fatal: %s", _e167)
+
     logger.info("[AUTO-REQ] %s BUILT | trigger=%s | steps=%d | job=%s | roi_ratio=%.1f",
                 request_id, trigger["type"], len(steps), schedule_job, roi["roi_ratio"])
 

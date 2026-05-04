@@ -340,6 +340,42 @@ class AgentBase:
             dag_id=result.get("dag_id"),
         )
 
+        # PATCH-171: fire agent email chain (non-blocking daemon thread)
+        # Every completed task → agents email each other + CC cpost & hpost
+        try:
+            from src.agent_email_chain import fire_agent_email_chain
+            fire_agent_email_chain(
+                acting_agent=self.agent_id,
+                signal=signal,
+                result=result,
+                outcome=self._last_outcome or "ok",
+            )
+        except Exception:
+            pass  # email chain is best-effort — never block execution
+
+        # PATCH-170c: publish result to Redis bus (non-blocking, best-effort)
+        try:
+            from src.swarm_bus import publish_result, record_bus_event
+            _outcome_str = self._last_outcome or "ok"
+            publish_result(
+                agent_id=self.agent_id,
+                signal_id=signal.get("signal_id", ""),
+                outcome=_outcome_str,
+                result=result,
+            )
+            record_bus_event({
+                "type": "agent_run",
+                "agent_id": self.agent_id,
+                "signal_id": signal.get("signal_id", ""),
+                "domain": signal.get("domain", "system"),
+                "intent": signal.get("intent_hint", "")[:80],
+                "outcome": _outcome_str,
+                "runs_total": self._runs_total,
+                "ts": self._last_trigger,
+            })
+        except Exception:
+            pass  # bus is best-effort — never break agent execution
+
         return result
 
     def act(self, signal: Dict) -> Dict:
@@ -406,13 +442,24 @@ class SwarmCoordinator:
         domain = signal.get("domain", "system")
         signal_type = signal.get("signal_type", "")
 
-        # Domain → agent routing
-        if domain == "exec_admin":
-            target = "exec_admin"
-        elif domain == "prod_ops":
-            target = "prod_ops"
+        # PATCH-170: Domain → agent routing for all 9 agents
+        _all_domains = {
+            "exec_admin": "exec_admin",
+            "prod_ops":   "prod_ops",
+            "collector":  "collector",
+            "translator": "translator",
+            "auditor":    "auditor",
+            "hitl":       "hitl",
+            "scheduler":  "scheduler",
+            "executor":   "executor",
+            "rosetta":    "rosetta",
+        }
+        if domain in _all_domains:
+            target = _all_domains[domain]
         elif signal_type == "lcm_intent":
             target = "translator"
+        elif signal_type == "corpus_collect":
+            target = "collector"
         else:
             target = None
 
@@ -449,10 +496,19 @@ class SwarmCoordinator:
 
     def route_signal(self, signal: Dict) -> Optional[str]:
         """
-        Alias for dispatch() — used by swarm_scheduler signal drain loop.
-        Also tries registered domain handlers before falling back to agent dispatch.
+        PATCH-170: Route through dispatch() FIRST (calls agent._run() → runs_total increments).
+        Only fall back to domain handlers if agent is NOT in _agents roster.
         """
         domain = signal.get("domain", signal.get("signal_type", "general"))
+
+        # Prefer dispatch() — it calls _run() and increments counters
+        if domain in ("exec_admin", "prod_ops", "collector", "translator",
+                      "auditor", "hitl", "scheduler", "executor", "rosetta"):
+            dag_id = self.dispatch(signal)
+            if dag_id is not None or domain in self._agents:
+                return dag_id
+
+        # Fallback: legacy domain handlers for domains not in _agents
         handlers = getattr(self, "_domain_handlers", {})
         if domain in handlers:
             try:
@@ -460,7 +516,7 @@ class SwarmCoordinator:
                 return dag_id
             except Exception as e:
                 logger.error("Domain handler '%s' failed: %s", domain, e)
-        # Fallback to normal dispatch
+
         return self.dispatch(signal)
 
     def translate(self, nl_text: str, account: str = "unknown", execute: bool = False) -> Dict:

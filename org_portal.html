@@ -130,7 +130,46 @@ tbody tr:hover .row-actions{opacity:1}
 .toast.success{border-color:var(--teal);color:var(--teal)}
 .toast.error{border-color:#ef4444;color:#ef4444}
 @keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* PATCH-176: universal mobile responsive */
+@media(max-width:768px){
+  body{overflow-y:auto!important;overflow-x:hidden!important;height:auto!important;}
+  /* Any flex layout becomes column */
+  .shell,.app-layout,.layout,.forge-layout,.td-layout,.pt-layout,
+  .page-layout,.main-layout,.content-layout{flex-direction:column!important;overflow:visible!important;}
+  /* Hide any page-level sidebar (nav.js handles the shared one) */
+  aside,.sidebar,.side-nav,.left-panel,.nav-panel{display:none!important;}
+  /* Main content fills width */
+  main,.main-area,.main-content,.forge-main,.page-main,
+  .content-area,.right-panel{
+    width:100%!important;max-width:100vw!important;padding:14px!important;
+    overflow-x:hidden!important;min-width:0!important;
+  }
+  /* Collapse all grids */
+  [class*="grid-"],[class*="-grid"],
+  .panel-row,.stats-row,.compose-row,.metric-grid,
+  .kpi-grid,.fw-grid,.tier-grid,.card-grid,.feature-grid,
+  .two-col,.three-col,.four-col{
+    grid-template-columns:1fr!important;
+  }
+  /* Tables scroll */
+  .table-wrap,.table-container{overflow-x:auto!important;-webkit-overflow-scrolling:touch;}
+  table{min-width:420px;}
+  /* Flex rows become columns */
+  .row,.header-row,.page-header,.controls,.form-row,.input-row,
+  .filter-row,.action-row{flex-direction:column!important;align-items:flex-start!important;gap:8px!important;}
+  /* iOS font zoom fix */
+  input,select,textarea{font-size:16px!important;}
+  /* Typography */
+  h1{font-size:1.3rem!important;}h2{font-size:1.15rem!important;}
+}
+@media(max-width:480px){
+  main,.main-area,.main-content,.page-main{padding:10px!important;}
+  h1{font-size:1.1rem!important;}
+  .stat-value,.kpi-value{font-size:1.4rem!important;}
+}
 </style>
+  <script src="/static/murphy-nav.js"></script>
 </head>
 <body>
 <a href="#main-content" class="murphy-skip-link">Skip to main content</a>
@@ -741,6 +780,6 @@ document.addEventListener('keydown', e => {
 
 init();
 </script>
-<script src="/static/murphy-nav.js"></script>
+
 </body>
 </html>

@@ -20,6 +20,11 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 from murphy_identity import MURPHY_SYSTEM_IDENTITY
+try:
+    from murphy_identity import get_murphy_system_prompt as _get_murphy_prompt
+    _MURPHY_LIVE_PROMPT = _get_murphy_prompt()
+except Exception:
+    _MURPHY_LIVE_PROMPT = MURPHY_SYSTEM_IDENTITY
 
 # INC-01 / C-01: Import the OpenAI-compatible provider (unified LLM gateway)
 from openai_compatible_provider import (  # noqa: F401
@@ -416,7 +421,7 @@ class LLMController:
             if not api_key:
                 return await self._query_fallback(request)
 
-            messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
+            messages = [{"role": "system", "content": _MURPHY_LIVE_PROMPT}]
             if request.context:
                 messages.append({"role": "system", "content": f"Context: {request.context}"})
             messages.append({"role": "user", "content": request.prompt})
@@ -460,7 +465,7 @@ class LLMController:
             if not api_key:
                 return await self._query_fallback(request)
 
-            messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
+            messages = [{"role": "system", "content": _MURPHY_LIVE_PROMPT}]
             if request.context:
                 messages.append({"role": "system", "content": f"Context: {request.context}"})
             messages.append({"role": "user", "content": request.prompt})
@@ -504,7 +509,7 @@ class LLMController:
             if not api_key:
                 return await self._query_fallback(request)
 
-            messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
+            messages = [{"role": "system", "content": _MURPHY_LIVE_PROMPT}]
             if request.context:
                 messages.append({"role": "system", "content": f"Context: {request.context}"})
             messages.append({"role": "user", "content": request.prompt})

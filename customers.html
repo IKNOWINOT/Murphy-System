@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customers — Murphy</title>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
+<style>
+  body { background: #0a0a0f; color: #e2e8f0; font-family: 'Inter', sans-serif; margin: 0; }
+  .page-wrap { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+  h1 { font-size: 1.8rem; font-weight: 700; color: #fff; margin: 0 0 4px; }
+  .subtitle { color: #64748b; font-size: 0.88rem; margin: 0 0 28px; }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .kpi { background: #12121a; border: 1px solid #1e2030; border-radius: 12px; padding: 20px; }
+  .kpi-label { font-size: 0.72rem; color: #64748b; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+  .kpi-value { font-size: 2rem; font-weight: 700; color: #f1f5f9; }
+  .kpi-value.green  { color: #4ade80; }
+  .kpi-value.blue   { color: #60a5fa; }
+  .kpi-value.purple { color: #a78bfa; }
+
+  .tier-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); gap: 12px; margin-bottom: 28px; }
+  .tier-card { background: #12121a; border: 1px solid #1e2030; border-radius: 10px; padding: 14px; text-align: center; }
+  .tier-name { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px; }
+  .tier-count { font-size: 1.6rem; font-weight: 700; }
+  .tier-card.solo     .tier-count { color: #60a5fa; }
+  .tier-card.professional .tier-count { color: #a78bfa; }
+  .tier-card.business .tier-count { color: #4ade80; }
+  .tier-card.enterprise .tier-count { color: #fbbf24; }
+  .tier-card.free     .tier-count { color: #64748b; }
+
+  .controls { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+  .controls select, .controls input {
+    background: #12121a; border: 1px solid #1e2030; color: #e2e8f0;
+    padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; outline: none;
+  }
+  .controls select:focus, .controls input:focus { border-color: #6366f1; }
+  .count-badge { color: #64748b; font-size: 0.82rem; margin-left: auto; }
+
+  .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+  .btn-primary { background: #6366f1; color: #fff; }
+  .btn-primary:hover { background: #4f46e5; }
+  .refresh-btn { background: none; border: 1px solid #1e2030; color: #94a3b8;
+                 padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; margin-left: 12px; }
+  .refresh-btn:hover { border-color: #6366f1; color: #6366f1; }
+
+  .table-wrap { background: #12121a; border: 1px solid #1e2030; border-radius: 12px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #0d0d18; color: #64748b; font-size: 0.72rem; text-transform: uppercase;
+       letter-spacing: .05em; padding: 12px 16px; text-align: left; border-bottom: 1px solid #1e2030; }
+  td { padding: 12px 16px; border-bottom: 1px solid #0d0d18; font-size: 0.84rem; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #0d0d18; }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+  .badge-active    { background: rgba(74,222,128,.15);  color: #4ade80; }
+  .badge-cancelled { background: rgba(239,68,68,.15);   color: #f87171; }
+  .badge-past_due  { background: rgba(251,191,36,.15);  color: #fbbf24; }
+  .badge-paused    { background: rgba(148,163,184,.15); color: #94a3b8; }
+
+  .tier-pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; text-transform: capitalize; }
+  .tp-solo         { background: rgba(96,165,250,.12);  color: #60a5fa; }
+  .tp-professional { background: rgba(167,139,250,.12); color: #a78bfa; }
+  .tp-business     { background: rgba(74,222,128,.12);  color: #4ade80; }
+  .tp-enterprise   { background: rgba(251,191,36,.12);  color: #fbbf24; }
+  .tp-free         { background: rgba(100,116,139,.12); color: #64748b; }
+
+  .state-box { text-align: center; padding: 50px 20px; color: #475569; }
+  .state-box .icon { font-size: 2.8rem; margin-bottom: 10px; }
+  .state-box p { margin: 0 0 16px; font-size: 0.88rem; }
+
+  .pagination { display: flex; gap: 8px; justify-content: center; padding: 20px; align-items: center; }
+  .page-btn { background: #12121a; border: 1px solid #1e2030; color: #94a3b8;
+              padding: 5px 13px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+  .page-btn:hover, .page-btn.active { border-color: #6366f1; color: #6366f1; }
+  .page-btn:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
+
+  #error-banner { display:none; background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.3);
+                  border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; font-size: 0.85rem; color: #f87171; }
+
+/* PATCH-176: universal mobile responsive */
+@media(max-width:768px){
+  body{overflow-y:auto!important;overflow-x:hidden!important;height:auto!important;}
+  /* Any flex layout becomes column */
+  .shell,.app-layout,.layout,.forge-layout,.td-layout,.pt-layout,
+  .page-layout,.main-layout,.content-layout{flex-direction:column!important;overflow:visible!important;}
+  /* Hide any page-level sidebar (nav.js handles the shared one) */
+  aside,.sidebar,.side-nav,.left-panel,.nav-panel{display:none!important;}
+  /* Main content fills width */
+  main,.main-area,.main-content,.forge-main,.page-main,
+  .content-area,.right-panel{
+    width:100%!important;max-width:100vw!important;padding:14px!important;
+    overflow-x:hidden!important;min-width:0!important;
+  }
+  /* Collapse all grids */
+  [class*="grid-"],[class*="-grid"],
+  .panel-row,.stats-row,.compose-row,.metric-grid,
+  .kpi-grid,.fw-grid,.tier-grid,.card-grid,.feature-grid,
+  .two-col,.three-col,.four-col{
+    grid-template-columns:1fr!important;
+  }
+  /* Tables scroll */
+  .table-wrap,.table-container{overflow-x:auto!important;-webkit-overflow-scrolling:touch;}
+  table{min-width:420px;}
+  /* Flex rows become columns */
+  .row,.header-row,.page-header,.controls,.form-row,.input-row,
+  .filter-row,.action-row{flex-direction:column!important;align-items:flex-start!important;gap:8px!important;}
+  /* iOS font zoom fix */
+  input,select,textarea{font-size:16px!important;}
+  /* Typography */
+  h1{font-size:1.3rem!important;}h2{font-size:1.15rem!important;}
+}
+@media(max-width:480px){
+  main,.main-area,.main-content,.page-main{padding:10px!important;}
+  h1{font-size:1.1rem!important;}
+  .stat-value,.kpi-value{font-size:1.4rem!important;}
+}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
+    <h1>👥 Customers</h1>
+    <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+  </div>
+  <p class="subtitle">Live subscription data · PATCH-175</p>
+
+  <div id="error-banner"></div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Total</div><div class="kpi-value" id="kpi-total">—</div></div>
+    <div class="kpi"><div class="kpi-label">Active</div><div class="kpi-value green" id="kpi-active">—</div></div>
+    <div class="kpi"><div class="kpi-label">Est. MRR</div><div class="kpi-value blue" id="kpi-mrr">—</div></div>
+    <div class="kpi"><div class="kpi-label">Est. ARR</div><div class="kpi-value purple" id="kpi-arr">—</div></div>
+  </div>
+
+  <!-- Tier breakdown -->
+  <div class="tier-grid" id="tier-grid"></div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <select id="filter-tier" onchange="applyFilters()">
+      <option value="">All Tiers</option>
+      <option value="free">Free</option>
+      <option value="solo">Solo</option>
+      <option value="professional">Professional</option>
+      <option value="business">Business</option>
+      <option value="enterprise">Enterprise</option>
+    </select>
+    <select id="filter-status" onchange="applyFilters()">
+      <option value="">All Statuses</option>
+      <option value="active">Active</option>
+      <option value="cancelled">Cancelled</option>
+      <option value="past_due">Past Due</option>
+      <option value="paused">Paused</option>
+    </select>
+    <input id="search-box" type="text" placeholder="Search email or ID…" oninput="applyFilters()">
+    <span class="count-badge" id="count-badge"></span>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Account ID</th>
+          <th>Email</th>
+          <th>Name</th>
+          <th>Tier</th>
+          <th>Status</th>
+          <th>Interval</th>
+          <th>Period End</th>
+          <th>Since</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr><td colspan="8"><div class="state-box"><div class="icon">⏳</div><p>Loading…</p></div></td></tr>
+      </tbody>
+    </table>
+    <div class="pagination" id="pagination"></div>
+  </div>
+</div>
+
+<script>
+const PAGE_SIZE = 25;
+let allCustomers = [], filtered = [], currentPage = 1;
+
+// ── Auth token resolution (same pattern as dashboard.html) ────────────────
+function getToken() {
+  // 1. localStorage key used by murphy login
+  const t = localStorage.getItem('murphy_session_token');
+  if (t) return t;
+  // 2. legacy key
+  const t2 = localStorage.getItem('murphy_token');
+  if (t2) return t2;
+  // 3. session cookie
+  const cookie = document.cookie.split(';').map(s => s.trim()).find(s => s.startsWith('murphy_session='));
+  if (cookie) return cookie.split('=')[1];
+  return null;
+}
+
+function authHeaders() {
+  const tok = getToken();
+  const h = { 'Content-Type': 'application/json' };
+  if (tok) h['Authorization'] = 'Bearer ' + tok;
+  return h;
+}
+
+async function api(path, opts = {}) {
+  const res = await fetch('/api/billing' + path, {
+    credentials: 'same-origin',        // send session cookie automatically
+    headers: authHeaders(),
+    ...opts
+  });
+  if (res.status === 401 || res.status === 403) {
+    // Try redirect to login if totally unauthenticated
+    const body = await res.text();
+    throw new Error('Auth error ' + res.status + ': ' + body.slice(0, 120));
+  }
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error('HTTP ' + res.status + ': ' + body.slice(0, 200));
+  }
+  return res.json();
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-banner');
+  el.textContent = '⚠️ ' + msg;
+  el.style.display = 'block';
+}
+function clearError() {
+  document.getElementById('error-banner').style.display = 'none';
+}
+
+async function loadStats() {
+  try {
+    const s = await api('/customers/stats');
+    clearError();
+    document.getElementById('kpi-total').textContent  = s.total_customers ?? 0;
+    document.getElementById('kpi-active').textContent = s.active ?? 0;
+    const mrr = s.estimated_mrr_usd ?? 0;
+    document.getElementById('kpi-mrr').textContent = '$' + mrr.toLocaleString();
+    document.getElementById('kpi-arr').textContent = '$' + (mrr * 12).toLocaleString();
+
+    const tiers = s.by_tier || {};
+    const grid = document.getElementById('tier-grid');
+    grid.innerHTML = '';
+    ['solo','professional','business','enterprise','free'].forEach(t => {
+      const cnt = tiers[t] || 0;
+      if (!cnt) return;
+      grid.innerHTML += `<div class="tier-card ${t}"><div class="tier-name">${t}</div><div class="tier-count">${cnt}</div></div>`;
+    });
+  } catch(e) {
+    showError('Stats failed: ' + e.message);
+  }
+}
+
+async function loadCustomers() {
+  try {
+    const data = await api('/customers?limit=500');
+    allCustomers = data.customers || [];
+    if (allCustomers.length === 0) {
+      document.getElementById('tbody').innerHTML = `
+        <tr><td colspan="8"><div class="state-box">
+          <div class="icon">👤</div>
+          <p>No customers yet. They'll appear here automatically when someone completes a Stripe checkout.</p>
+          <button class="btn btn-primary" onclick="seedDemo()">Load Demo Data</button>
+        </div></td></tr>`;
+    } else {
+      applyFilters();
+    }
+  } catch(e) {
+    showError('Could not load customers: ' + e.message);
+    document.getElementById('tbody').innerHTML =
+      `<tr><td colspan="8"><div class="state-box"><div class="icon">⚠️</div><p>${e.message}</p></div></td></tr>`;
+  }
+}
+
+function applyFilters() {
+  const tier   = document.getElementById('filter-tier').value;
+  const status = document.getElementById('filter-status').value;
+  const q      = document.getElementById('search-box').value.toLowerCase();
+  filtered = allCustomers.filter(c => {
+    if (tier   && c.tier   !== tier)   return false;
+    if (status && c.status !== status) return false;
+    if (q && !c.account_id?.toLowerCase().includes(q) && !c.email?.toLowerCase().includes(q) && !c.full_name?.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  currentPage = 1;
+  renderTable();
+}
+
+function renderTable() {
+  const tbody = document.getElementById('tbody');
+  document.getElementById('count-badge').textContent = filtered.length + ' customer' + (filtered.length !== 1 ? 's' : '');
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="state-box"><div class="icon">🔍</div><p>No customers match this filter.</p></div></td></tr>`;
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const page  = filtered.slice(start, start + PAGE_SIZE);
+
+  tbody.innerHTML = page.map(c => `
+    <tr>
+      <td style="font-family:monospace;font-size:0.76rem;color:#64748b">${c.account_id || '—'}</td>
+      <td>${c.email || '<span style="color:#475569">—</span>'}</td>
+      <td style="color:#94a3b8">${c.full_name || '—'}</td>
+      <td><span class="tier-pill tp-${c.tier||'free'}">${c.tier||'free'}</span></td>
+      <td><span class="badge badge-${c.status||'active'}">${(c.status||'active').replace('_',' ')}</span></td>
+      <td style="color:#64748b;font-size:0.8rem">${c.interval||'—'}</td>
+      <td style="color:#64748b;font-size:0.78rem">${c.current_period_end ? new Date(c.current_period_end).toLocaleDateString() : '—'}</td>
+      <td style="color:#475569;font-size:0.76rem">${c.created_at ? new Date(c.created_at).toLocaleDateString() : '—'}</td>
+    </tr>`).join('');
+
+  renderPagination();
+}
+
+function renderPagination() {
+  const total = Math.ceil(filtered.length / PAGE_SIZE);
+  if (total <= 1) { document.getElementById('pagination').innerHTML = ''; return; }
+  let html = `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+  for (let i = 1; i <= total; i++) {
+    if (i===1||i===total||Math.abs(i-currentPage)<=1)
+      html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+    else if (Math.abs(i-currentPage)===2) html += '<span style="color:#475569;padding:0 4px">…</span>';
+  }
+  html += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===total?'disabled':''}>›</button>`;
+  document.getElementById('pagination').innerHTML = html;
+}
+
+function goPage(p) { currentPage = p; renderTable(); window.scrollTo(0,0); }
+
+async function seedDemo() {
+  try {
+    const r = await api('/seed-demo', { method: 'POST' });
+    if (r.ok) loadAll();
+  } catch(e) { showError('Seed failed: ' + e.message); }
+}
+
+async function loadAll() {
+  clearError();
+  await Promise.all([loadStats(), loadCustomers()]);
+}
+
+document.addEventListener('DOMContentLoaded', loadAll);
+</script>
+</body>
+</html>

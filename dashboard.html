@@ -114,7 +114,23 @@ select.forge-input{cursor:pointer}
   background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;min-height:20px;}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
+
+/* PATCH-176: Mobile responsive */
+@media (max-width: 768px) {
+  nav .nav-links { display: none !important; }
+  .shell { flex-direction: column !important; overflow: visible !important; }
+  aside  { display: none !important; }
+  main   { padding: 14px !important; overflow-y: auto !important; width: 100% !important; }
+  .metric-grid { grid-template-columns: repeat(2,1fr) !important; }
+  .panel-row   { grid-template-columns: 1fr !important; }
+  h1 { font-size: 1.2rem !important; }
+}
+@media (max-width: 480px) {
+  .metric-grid { grid-template-columns: 1fr !important; }
+  main { padding: 10px !important; }
+}
 </style>
+  <script src="/static/murphy-nav.js"></script>
 </head>
 <body>
 
@@ -382,6 +398,6 @@ async function pollForge(){
   }
 })();
 </script>
-<script src="/static/murphy-nav.js"></script>
+
 </body>
 </html>

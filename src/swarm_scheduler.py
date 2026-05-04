@@ -85,9 +85,8 @@ class SwarmScheduler:
                         account=signal.get("source", "unknown")
                     )
                 else:
-                    result = exec_admin.run_morning_brief(
-                        account=signal.get("source", "cpost@murphy.systems")
-                    )
+                    # Don't fire morning_brief on random signals — morning_brief has its own scheduled job
+                    result = {"dag_id": "noop", "status": "skipped", "reason": "no matching intent"}
                 dag_id = result.get("dag_id", "none")
                 return dag_id
 
@@ -115,18 +114,36 @@ class SwarmScheduler:
             return
 
         # Job 1: Signal drain — every 30 seconds
+        # PATCH-170a: route through SwarmCoordinator.dispatch() so soul gate fires
         def drain_signals():
             try:
                 from src.signal_collector import get_collector
-                from src.rosetta_core import get_rosetta
+                from src.rosetta_core import get_swarm_coordinator
+                from src.swarm_bus import publish_result, record_bus_event
+                import uuid as _uuid
                 collector = get_collector()
-                rosetta = get_rosetta()
-                signals = collector.latest(limit=10)
-                unprocessed = [s for s in signals if not s.get("processed")]
+                coord = get_swarm_coordinator()
+                unprocessed = collector._db.unprocessed(limit=10)
                 for sig in unprocessed[:5]:
-                    dag_id = rosetta.route_signal(sig)
+                    # Ensure signal has an id
+                    if not sig.get("signal_id"):
+                        sig["signal_id"] = str(_uuid.uuid4())
+                    dag_id = coord.dispatch(sig)
                     if dag_id:
-                        collector._db.mark_processed(sig["signal_id"], dag_id)
+                        try:
+                            collector._db.mark_processed(sig["signal_id"], dag_id)
+                        except Exception:
+                            pass
+                    # Record to bus feed for UI
+                    record_bus_event({
+                        "type": "signal_drain",
+                        "signal_id": sig.get("signal_id",""),
+                        "domain": sig.get("domain","system"),
+                        "intent": sig.get("intent_hint","")[:80],
+                        "dag_id": dag_id,
+                        "agent": sig.get("domain","system"),
+                        "ts": __import__('datetime').datetime.utcnow().isoformat(),
+                    })
             except Exception as exc:
                 logger.warning("Signal drain error: %s", exc)
 
@@ -141,41 +158,73 @@ class SwarmScheduler:
         self._jobs["signal_drain"] = {"name": "Signal Drain", "interval": "30s", "type": "builtin"}
 
         # Job 2: Health watchdog — every 5 minutes
+        # PATCH-170a: dispatch through coord so runs_total increments
         def health_watchdog():
             try:
-                from src.prod_ops_agent import get_prod_ops
-                from src.signal_collector import get_collector
-                result = get_prod_ops().health_watchdog()
-                if result.get("overall") != "healthy":
-                    get_collector().ingest(
-                        signal_type="incident",
-                        source="health_watchdog",
-                        payload=result,
-                        domain="prod_ops",
-                        urgency="immediate",
-                        stake="high",
-                        intent_hint=f"Health degraded: {result.get('overall')}",
-                    )
+                from src.rosetta_core import get_swarm_coordinator
+                from src.swarm_bus import publish_result, record_bus_event
+                import uuid as _uuid
+                coord = get_swarm_coordinator()
+                sig = {
+                    "signal_id": str(_uuid.uuid4()),
+                    "signal_type": "health_check",
+                    "domain": "prod_ops",
+                    "urgency": "scheduled",
+                    "stake": "low",
+                    "intent_hint": "Scheduled health watchdog",
+                    "source": "swarm_scheduler",
+                }
+                dag_id = coord.dispatch(sig)
+                record_bus_event({
+                    "type": "health_watchdog",
+                    "signal_id": sig["signal_id"],
+                    "domain": "prod_ops",
+                    "intent": "Scheduled health watchdog",
+                    "dag_id": dag_id,
+                    "agent": "prod_ops",
+                    "ts": __import__('datetime').datetime.utcnow().isoformat(),
+                })
             except Exception as exc:
                 logger.warning("Health watchdog error: %s", exc)
 
         self._scheduler.add_job(
             health_watchdog,
-            trigger=IntervalTrigger(minutes=5),
+            trigger=IntervalTrigger(minutes=30),
             id="health_watchdog",
             name="ProdOps health watchdog",
             replace_existing=True,
             max_instances=1,
         )
-        self._jobs["health_watchdog"] = {"name": "Health Watchdog", "interval": "5min", "type": "builtin"}
+        self._jobs["health_watchdog"] = {"name": "Health Watchdog", "interval": "30min", "type": "builtin"}
 
         # Job 3: Morning brief — daily at 08:00 UTC
+        # PATCH-170a: dispatch through coord
         def morning_brief():
             try:
-                from src.exec_admin_agent import get_exec_admin
-                result = get_exec_admin().run_morning_brief(account="cpost@murphy.systems")
-                logger.info("Morning brief complete: DAG=%s status=%s",
-                            result.get("dag_id"), result.get("dag_status"))
+                from src.rosetta_core import get_swarm_coordinator
+                from src.swarm_bus import publish_result, record_bus_event
+                import uuid as _uuid
+                coord = get_swarm_coordinator()
+                sig = {
+                    "signal_id": str(_uuid.uuid4()),
+                    "signal_type": "morning_brief",
+                    "domain": "exec_admin",
+                    "urgency": "scheduled",
+                    "stake": "low",
+                    "intent_hint": "Daily morning brief — generate and email",
+                    "source": "cpost@murphy.systems",
+                }
+                dag_id = coord.dispatch(sig)
+                record_bus_event({
+                    "type": "morning_brief",
+                    "signal_id": sig["signal_id"],
+                    "domain": "exec_admin",
+                    "intent": "Daily morning brief",
+                    "dag_id": dag_id,
+                    "agent": "exec_admin",
+                    "ts": __import__('datetime').datetime.utcnow().isoformat(),
+                })
+                logger.info("PATCH-170a: morning_brief dispatched via coord, dag_id=%s", dag_id)
             except Exception as exc:
                 logger.warning("Morning brief error: %s", exc)
 
@@ -191,11 +240,41 @@ class SwarmScheduler:
 
 
         # Job 4: WorldCorpus collect — every 15 minutes
+        # PATCH-170a: dispatch through coord (collector domain)
         def corpus_collect():
             try:
-                from src.world_corpus import get_world_corpus
-                counts = get_world_corpus().collect_all()
-                logger.info("WorldCorpus collect: %s", counts)
+                from src.rosetta_core import get_swarm_coordinator
+                from src.swarm_bus import record_bus_event
+                import uuid as _uuid
+                coord = get_swarm_coordinator()
+                sig = {
+                    "signal_id": str(_uuid.uuid4()),
+                    "signal_type": "corpus_collect",
+                    "domain": "collector",
+                    "urgency": "scheduled",
+                    "stake": "low",
+                    "intent_hint": "WorldCorpus scheduled collection",
+                    "source": "swarm_scheduler",
+                }
+                # collector agent handles corpus_collect
+                # if collector not wired for this signal_type, call directly and record
+                try:
+                    dag_id = coord.dispatch(sig)
+                except Exception:
+                    dag_id = None
+                if not dag_id:
+                    from src.world_corpus import get_world_corpus
+                    counts = get_world_corpus().collect_all()
+                    logger.info("WorldCorpus collect (direct): %s", counts)
+                record_bus_event({
+                    "type": "corpus_collect",
+                    "signal_id": sig["signal_id"],
+                    "domain": "collector",
+                    "intent": "WorldCorpus scheduled collection",
+                    "dag_id": dag_id,
+                    "agent": "collector",
+                    "ts": __import__('datetime').datetime.utcnow().isoformat(),
+                })
             except Exception as exc:
                 logger.warning("WorldCorpus collect error: %s", exc)
 
@@ -209,7 +288,100 @@ class SwarmScheduler:
         )
         self._jobs["corpus_collect"] = {"name": "WorldCorpus Collect", "interval": "15min", "type": "builtin"}
 
-        logger.info("SwarmScheduler: 4 built-in jobs registered")
+        # Job 5: Swarm heartbeat — every 5 minutes, all 9 agents get a status signal
+        # PATCH-170: ensures every agent runs, soul gate fires, runs_total increments for all
+        def swarm_heartbeat():
+            try:
+                from src.rosetta_core import get_swarm_coordinator
+                from src.swarm_bus import record_bus_event
+                import uuid as _uuid
+                coord = get_swarm_coordinator()
+                _ALL_DOMAINS = [
+                    "collector", "translator", "scheduler", "executor",
+                    "auditor", "exec_admin", "prod_ops", "hitl", "rosetta"
+                ]
+                _ts = __import__('datetime').datetime.utcnow().isoformat()
+                for _dom in _ALL_DOMAINS:
+                    _sid = str(_uuid.uuid4())
+                    coord.dispatch({
+                        "signal_id": _sid,
+                        "signal_type": "heartbeat",
+                        "domain": _dom,
+                        "urgency": "scheduled",
+                        "stake": "low",
+                        "intent_hint": f"Swarm heartbeat — {_dom}",
+                        "source": "swarm_scheduler",
+                    })
+                    record_bus_event({
+                        "type": "heartbeat",
+                        "signal_id": _sid,
+                        "domain": _dom,
+                        "agent_id": _dom,
+                        "intent": f"Swarm heartbeat — {_dom}",
+                        "ts": _ts,
+                    })
+            except Exception as exc:
+                logger.warning("Swarm heartbeat error: %s", exc)
+
+        self._scheduler.add_job(
+            swarm_heartbeat,
+            trigger=IntervalTrigger(minutes=5),
+            id="swarm_heartbeat",
+            name="Swarm-wide heartbeat",
+            replace_existing=True,
+            max_instances=1,
+        )
+        self._jobs["swarm_heartbeat"] = {"name": "Swarm Heartbeat", "interval": "30min", "type": "builtin"}
+
+        # PATCH-173: Cognitive Executive — AionMind runs the executive every 30 minutes
+        def revenue_driver_cycle():
+            try:
+                from src.cognitive_executive import run_cognitive_revenue_cycle
+                result = run_cognitive_revenue_cycle()
+                logger.info(
+                    "Cognitive executive cycle: status=%s blockers=%d directives=%d",
+                    result.get("cognitive_status", "?"),
+                    result.get("blockers_found", 0),
+                    result.get("directives_issued", 0),
+                )
+            except Exception as exc:
+                logger.warning("Cognitive executive cycle error: %s", exc)
+
+        self._scheduler.add_job(
+            revenue_driver_cycle,
+            trigger=IntervalTrigger(minutes=30),
+            id="revenue_driver",
+            name="Executive Revenue Driver",
+            replace_existing=True,
+            max_instances=1,
+        )
+        self._jobs["revenue_driver"] = {"name": "Revenue Driver", "interval": "30min", "type": "builtin"}
+
+        # PATCH-174: Autonomous API Acquirer — runs every 6 hours
+        def api_acquisition_cycle():
+            try:
+                from src.autonomous_api_acquirer import run_acquisition_cycle
+                result = run_acquisition_cycle()
+                logger.info(
+                    "API Acquirer: %d active, %d pending, %d failed",
+                    result.get("tier1_active", 0),
+                    result.get("tier2_pending", 0),
+                    result.get("failed", 0),
+                )
+            except Exception as exc:
+                logger.warning("API acquisition cycle error: %s", exc)
+
+        self._scheduler.add_job(
+            api_acquisition_cycle,
+            trigger=IntervalTrigger(hours=6),
+            id="api_acquisition",
+            name="Autonomous API Acquirer",
+            replace_existing=True,
+            max_instances=1,
+        )
+        self._jobs["api_acquisition"] = {"name": "API Acquirer", "interval": "6h", "type": "builtin"}
+
+        logger.info("SwarmScheduler: 7 built-in jobs registered")
 
     def add_nl_job(self, nl_text: str, cron_expr: str, account: str = "unknown") -> str:
         """Add a dynamically-scheduled job from an NL-specified schedule."""

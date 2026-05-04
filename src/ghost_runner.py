@@ -833,12 +833,347 @@ class OpenWeatherRunner(BaseProviderRunner):
 # PROVIDER REGISTRY
 # ══════════════════════════════════════════════════════════════════════════════
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# LINKEDIN RUNNER — PATCH-175
+# ══════════════════════════════════════════════════════════════════════════════
+
+class LinkedInRunner(BaseProviderRunner):
+    """
+    Logs into LinkedIn with personal account, then creates Murphy Systems
+    company page.
+    PATCH-175
+    """
+    PROVIDER = "linkedin"
+
+    LI_EMAIL    = "Corey.gfc@gmail.com"
+    LI_PASSWORD = "Sputnik12!"
+
+    COMPANY = {
+        "name":       "Murphy Systems",
+        "url_slug":   "murphy-systems-ai",
+        "website":    "https://murphy.systems",
+        "industry":   "Technology, Information and Internet",
+        "size":       "1-10",
+        "type":       "Privately Held",
+        "tagline":    "What can go wrong, will go wrong. We shield you from it.",
+        "description": (
+            "Murphy Systems is an AI-native platform that anticipates, names, "
+            "and shields against every failure AI can cause. Powered by a 9-agent "
+            "swarm, Shield Wall protection, and the Murphy North Star."
+        ),
+    }
+
+
+    def _poll_gmail(self, timeout: int = 180, poll_interval: int = 10) -> Optional[str]:
+        """
+        PATCH-175a: Poll Gmail API for LinkedIn verification PIN.
+        Uses OAuth token stored in env GMAIL_OAUTH_TOKEN.
+        Returns email body text or None on timeout.
+        """
+        import json as _json, time as _time, urllib.request as _ur
+        token = os.environ.get("GMAIL_OAUTH_TOKEN", "")
+        if not token:
+            logger.warning("[LinkedInGmail] GMAIL_OAUTH_TOKEN not set — falling back to IMAP")
+            return self._poll_imap(subject_pattern=r"linkedin|security|verification|PIN", timeout=timeout)
+
+        deadline = _time.time() + timeout
+        logger.info("[LinkedInGmail] Polling Gmail for LinkedIn PIN (timeout=%ds)", timeout)
+
+        seen_ids: set = set()
+        while _time.time() < deadline:
+            try:
+                req = _ur.Request(
+                    "https://gmail.googleapis.com/gmail/v1/users/me/messages"
+                    "?q=from:linkedin+subject:PIN&maxResults=5",
+                    headers={"Authorization": f"Bearer {token}"}
+                )
+                with _ur.urlopen(req, timeout=10) as r:
+                    data = _json.loads(r.read())
+                for msg in data.get("messages", []):
+                    mid = msg["id"]
+                    if mid in seen_ids:
+                        continue
+                    seen_ids.add(mid)
+                    # Fetch full message
+                    req2 = _ur.Request(
+                        f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{mid}?format=full",
+                        headers={"Authorization": f"Bearer {token}"}
+                    )
+                    with _ur.urlopen(req2, timeout=10) as r2:
+                        mdata = _json.loads(r2.read())
+                    # Decode body
+                    import base64 as _b64
+                    def _get_body(p):
+                        if p.get("body", {}).get("data"):
+                            return _b64.urlsafe_b64decode(p["body"]["data"]).decode("utf-8", "ignore")
+                        for part in p.get("parts", []):
+                            t = _get_body(part)
+                            if t:
+                                return t
+                        return ""
+                    body = _get_body(mdata["payload"])
+                    # Check it has a 6-digit code
+                    m = re.search(r"\b(\d{6})\b", body)
+                    if m:
+                        logger.info("[LinkedInGmail] Found PIN: %s", m.group(1))
+                        return body
+            except Exception as e:
+                logger.debug("[LinkedInGmail] Poll error: %s", e)
+            _time.sleep(poll_interval)
+
+        logger.warning("[LinkedInGmail] Timeout — no LinkedIn PIN email found in Gmail")
+        return None
+
+
+    async def _run(self, page) -> RunResult:
+        import asyncio, random, re
+
+        logger.info("[LinkedIn] Step 1: Navigate to login")
+        # Use slow approach — appear human before login page even loads
+        await page.goto("https://www.linkedin.com/", timeout=30000)
+        await asyncio.sleep(random.uniform(3, 6))
+        await page.mouse.move(random.randint(200,800), random.randint(100,500))
+        await asyncio.sleep(random.uniform(1, 2))
+
+        await page.goto("https://www.linkedin.com/login", timeout=30000)
+        await asyncio.sleep(random.uniform(3, 5))
+
+        logger.info("[LinkedIn] Step 2: Fill credentials")
+        await self._human_type(page, "input[type='email']", self.LI_EMAIL)
+        await asyncio.sleep(random.uniform(0.8, 1.5))
+        await self._human_type(page, "input[type='password']", self.LI_PASSWORD)
+        await asyncio.sleep(random.uniform(0.5, 1.0))
+
+        # Human-like mouse movement before click
+        await page.mouse.move(random.randint(300, 600), random.randint(350, 450))
+        await asyncio.sleep(random.uniform(0.3, 0.7))
+        await page.locator("button[type=submit]").first.click(timeout=8000)
+        await asyncio.sleep(random.uniform(5, 9))
+
+        url = page.url
+        html = await page.evaluate("document.documentElement.innerText")
+        logger.info("[LinkedIn] Post-login URL: %s", url)
+
+        # Handle checkpoint / verification code sent to email
+        if "checkpoint" in url or "challenge" in url or "verification" in url:
+            logger.info("[LinkedIn] Checkpoint detected — checking for email verification code")
+            # Poll IMAP for LinkedIn verification email
+            body = self._poll_gmail(timeout=120)
+            if body:
+                # Extract 6-digit code
+                code_match = re.search(r"\b(\d{6})\b", body)
+                if code_match:
+                    code = code_match.group(1)
+                    logger.info("[LinkedIn] Got verification code: %s", code)
+                    try:
+                        await self._human_type(page, "input[name='pin'], input[id*='pin'], input[type='number'], input[autocomplete*='one-time']", code)
+                        await asyncio.sleep(1)
+                        await page.click("button[type=submit]", timeout=5000)
+                        await asyncio.sleep(4)
+                        url = page.url
+                    except Exception as e:
+                        logger.warning("[LinkedIn] Could not enter verification code: %s", e)
+                else:
+                    logger.warning("[LinkedIn] No 6-digit code found in email body")
+            else:
+                logger.warning("[LinkedIn] No verification email received within timeout")
+
+        # Final check — are we logged in?
+        url = page.url
+        if "feed" not in url and "mynetwork" not in url and "in/" not in url:
+            if "login" in url or "checkpoint" in url:
+                return RunResult(
+                    provider=self.PROVIDER, success=False,
+                    error=f"Login blocked — URL: {url}"
+                )
+
+        logger.info("[LinkedIn] Logged in. URL: %s", url)
+        # PATCH-175a: Extract li_at cookie and store it
+        try:
+            cookies = await page.context.cookies()
+            li_at = next((c["value"] for c in cookies if c["name"] == "li_at"), None)
+            if li_at:
+                logger.info("[LinkedIn] Extracted li_at cookie (len=%d)", len(li_at))
+                self._store_credential("LINKEDIN_SESSION_COOKIE", li_at)
+                # Also write to secrets.env
+                env_line = f"\nLINKEDIN_LI_AT={li_at}\n"
+                try:
+                    with open("/etc/murphy-production/secrets.env", "a") as _ef:
+                        _ef.write(env_line)
+                    logger.info("[LinkedIn] li_at written to secrets.env")
+                except Exception as _ce:
+                    logger.warning("[LinkedIn] Could not write to secrets.env: %s", _ce)
+        except Exception as _ce:
+            logger.warning("[LinkedIn] Cookie extraction failed: %s", _ce)
+        logger.info("[LinkedIn] Step 3: Create company page")
+        await page.goto("https://www.linkedin.com/login", timeout=30000)
+        await asyncio.sleep(random.uniform(2, 4))
+
+        await self._human_type(page, "input[type='email']", self.LI_EMAIL)
+        await asyncio.sleep(random.uniform(0.4, 0.9))
+        await self._human_type(page, "input[type='password']", self.LI_PASSWORD)
+        await asyncio.sleep(random.uniform(0.3, 0.7))
+        await page.locator("button[type=submit]").first.click(timeout=8000)
+        await asyncio.sleep(random.uniform(4, 7))
+
+        # Handle checkpoint / verification
+        url = page.url
+        if "checkpoint" in url or "challenge" in url or "verification" in url:
+            logger.warning("[LinkedIn] Hit checkpoint — may need HITL")
+            await self._solve_captcha(page)
+            await asyncio.sleep(3)
+
+        # Confirm logged in
+        html = await page.evaluate("document.documentElement.innerText")
+        if "feed" not in page.url and "Sign in" in html:
+            return RunResult(
+                provider=self.PROVIDER, success=False,
+                error="Login failed — still on login page"
+            )
+
+        logger.info("[LinkedIn] Step 2: Navigate to company page creation")
+        await page.goto("https://www.linkedin.com/company/setup/new/", timeout=30000)
+        await asyncio.sleep(random.uniform(3, 5))
+
+        # Select company type — Small Business
+        try:
+            await page.click("div[data-test-id='small-business'], "
+                             "button:has-text('Small business'), "
+                             "label:has-text('Small business')", timeout=8000)
+            await asyncio.sleep(1)
+        except Exception:
+            logger.warning("[LinkedIn] Could not click Small Business tile — trying next")
+
+        # Company name
+        await self._wait_selector(page, "input[name='localizedName'], input[id*='name']", 15000)
+        try:
+            await self._human_type(page, "input[name='localizedName']", self.COMPANY["name"])
+        except Exception:
+            await self._human_type(page, "input[id*='name']", self.COMPANY["name"])
+        await asyncio.sleep(random.uniform(0.5, 1))
+
+        # URL slug
+        try:
+            slug_sel = "input[name='vanityName'], input[id*='vanity'], input[id*='url']"
+            await self._wait_selector(page, slug_sel, 5000)
+            slug_field = await page.query_selector(slug_sel)
+            if slug_field:
+                await slug_field.triple_click()
+                await asyncio.sleep(0.3)
+                await self._human_type(page, slug_sel, self.COMPANY["url_slug"])
+        except Exception:
+            logger.warning("[LinkedIn] Could not set URL slug — continuing")
+
+        # Website
+        try:
+            await self._human_type(page, "input[name='websiteUrl'], input[id*='website']",
+                                   self.COMPANY["website"])
+        except Exception:
+            logger.warning("[LinkedIn] Could not set website — continuing")
+
+        # Industry
+        try:
+            ind_sel = "input[id*='industry'], input[placeholder*='ndustry']"
+            await self._wait_selector(page, ind_sel, 5000)
+            await self._human_type(page, ind_sel, "Technology")
+            await asyncio.sleep(1.5)
+            await page.click("div[role=option]:first-child, li[role=option]:first-child",
+                             timeout=5000)
+        except Exception:
+            logger.warning("[LinkedIn] Could not set industry — continuing")
+
+        # Company size
+        try:
+            await page.select_option("select[name*='size'], select[id*='size']",
+                                     label="1-10 employees", timeout=5000)
+        except Exception:
+            try:
+                await page.click("label:has-text('1-10')", timeout=5000)
+            except Exception:
+                logger.warning("[LinkedIn] Could not set size — continuing")
+
+        # Company type
+        try:
+            await page.select_option("select[name*='type'], select[id*='type']",
+                                     label="Privately Held", timeout=5000)
+        except Exception:
+            logger.warning("[LinkedIn] Could not set type — continuing")
+
+        await asyncio.sleep(random.uniform(1, 2))
+
+        # Check terms checkbox if present
+        try:
+            await page.evaluate("""
+                () => {
+                    const cb = document.querySelector('input[type=checkbox]');
+                    if (cb && !cb.checked) cb.click();
+                }
+            """)
+        except Exception:
+            pass
+
+        # Submit
+        try:
+            await page.click(
+                "button[type=submit], button:has-text('Create page'), "
+                "button:has-text('Continue')", timeout=8000)
+            await asyncio.sleep(random.uniform(4, 6))
+        except Exception as e:
+            return RunResult(provider=self.PROVIDER, success=False,
+                             error=f"Could not click submit: {e}")
+
+        # Check result
+        url = page.url
+        logger.info("[LinkedIn] Post-submit URL: %s", url)
+
+        if "company" in url or "admin" in url:
+            # Add description / tagline if we land on the page
+            try:
+                await page.goto(url + "/edit/about/", timeout=20000)
+                await asyncio.sleep(2)
+                try:
+                    tl_sel = "input[name*='tagline'], textarea[name*='tagline']"
+                    await self._human_type(page, tl_sel, self.COMPANY["tagline"])
+                except Exception:
+                    pass
+                try:
+                    desc_sel = "textarea[name*='description'], textarea[id*='description']"
+                    await self._human_type(page, desc_sel, self.COMPANY["description"])
+                except Exception:
+                    pass
+                try:
+                    await page.click("button[type=submit]", timeout=5000)
+                    await asyncio.sleep(2)
+                except Exception:
+                    pass
+            except Exception:
+                logger.warning("[LinkedIn] Could not add tagline/description — continuing")
+
+            self._store("LINKEDIN_COMPANY_URL", url)
+            return RunResult(
+                provider=self.PROVIDER, success=True,
+                keys={"LINKEDIN_COMPANY_URL": url},
+                strategy="playwright"
+            )
+        else:
+            # Capture HTML for diagnosis
+            html_snippet = await page.evaluate(
+                "document.documentElement.innerText"
+            )
+            return RunResult(
+                provider=self.PROVIDER, success=False,
+                error=f"Unexpected post-submit URL: {url} | "
+                      f"Page snippet: {html_snippet[:300]}"
+            )
+
 PROVIDERS: Dict[str, type] = {
     "stripe":       StripeRunner,
     "sendgrid":     SendGridRunner,
     "deepinfra":    DeepInfraRunner,
     "together":     TogetherRunner,
     "openweather":  OpenWeatherRunner,
+    "linkedin":     LinkedInRunner,
 }
 
 

@@ -288,13 +288,107 @@ label { font-size: .82rem; font-weight: 600; color: var(--text-dim); display: bl
 .toast-error   { border-color: rgba(239,68,68,.4); }
 @keyframes toastIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 
-/* ── Responsive ──────────────────────────────────────────────────── */
+/* ── Responsive — PATCH-176 comprehensive mobile fix ─────────────── */
+
+/* ─ Tablet (≤1024px) ─ */
 @media (max-width: 1024px) {
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
   .grid-3 { grid-template-columns: repeat(2, 1fr); }
+
+  /* Common page-level panel rows (dashboard, compliance, etc.) */
+  .panel-row          { grid-template-columns: 1fr !important; }
+  .stats-row          { grid-template-columns: repeat(2,1fr) !important; }
+  .metric-grid        { grid-template-columns: repeat(2,1fr) !important; }
+  .kpi-grid           { grid-template-columns: repeat(2,1fr) !important; }
+  .fw-grid            { grid-template-columns: repeat(2,1fr) !important; }
+  .tier-grid          { grid-template-columns: repeat(3,1fr) !important; }
 }
-@media (max-width: 640px) {
-  .murphy-app-main { padding: 16px; }
-  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-  .page-header { flex-direction: column; }
+
+/* ─ Mobile (≤768px) — sidebar hidden by nav.js, content takes full width ─ */
+@media (max-width: 768px) {
+  /* ── Shell / layout ── */
+  .murphy-app-shell,
+  .shell,
+  .app-layout,
+  .layout,
+  .forge-layout      { flex-direction: column !important; overflow: visible !important; }
+
+  /* Sidebar: nav.js already hides it. Belt-and-suspenders here. */
+  #murphy-shared-sidebar,
+  aside              { display: none !important; }
+
+  /* Main content fills the screen */
+  .murphy-app-main,
+  main,
+  .main-area,
+  .forge-main,
+  .main-content      {
+    flex: 1 !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+    padding: 16px !important;
+  }
+
+  /* ── All grids collapse to 1 column ── */
+  .grid-2, .grid-3, .grid-4, .grid-auto,
+  .panel-row,
+  .metric-grid,
+  .kpi-grid,
+  .stats-row,
+  .compose-row,
+  .fw-grid,
+  .tier-grid,
+  .shield-grid       { grid-template-columns: 1fr !important; }
+
+  /* Tables — make scrollable rather than clipping */
+  .table-wrap,
+  .table-container   { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+  table              { min-width: 480px; }
+
+  /* Headers / flex rows */
+  .page-header,
+  .page-header-row,
+  .header-row,
+  .controls          { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+
+  /* Buttons in header rows should stack or wrap */
+  .page-header .btn,
+  .header-row .btn   { width: 100%; justify-content: center; }
+
+  /* Typography scale-down */
+  h1, .page-title    { font-size: 1.3rem !important; }
+  h2                 { font-size: 1.15rem !important; }
+  .stat-value        { font-size: 1.6rem !important; }
+
+  /* Cards shouldn't have hover transform on touch */
+  .card:hover        { transform: none !important; }
+
+  /* Modals & panels full-width */
+  .modal-content,
+  .panel             { width: 100% !important; max-width: 100% !important; box-sizing: border-box; }
+
+  /* Toast — keep off the edge */
+  .toast             { right: 12px !important; bottom: 12px !important; left: 12px !important; right: 12px !important; }
+
+  /* Forms */
+  .form-row,
+  .input-row         { flex-direction: column !important; gap: 10px !important; }
+  input, select, textarea { font-size: 16px !important; } /* prevent iOS zoom */
+
+  /* Body safe */
+  body               { overflow-y: auto !important; overflow-x: hidden !important;
+                       height: auto !important; min-height: 100vh; }
+}
+
+/* ─ Small mobile (≤480px) ─ */
+@media (max-width: 480px) {
+  .murphy-app-main,
+  main               { padding: 12px !important; }
+  h1, .page-title    { font-size: 1.1rem !important; }
+  .btn               { padding: 7px 14px !important; font-size: 0.8rem !important; }
+  .stat-value        { font-size: 1.4rem !important; }
+  table              { font-size: 0.78rem !important; }
+  th, td             { padding: 8px !important; }
 }

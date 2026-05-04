@@ -363,15 +363,31 @@ class SubscriptionManager:
         if tier == SubscriptionTier.ENTERPRISE:
             raise ValueError("Enterprise pricing is custom — use contact sales flow")
 
+        # PATCH-175: resolve price IDs at call time (env may not be set at module load)
+        price_env_map = {
+            (SubscriptionTier.SOLO, BillingInterval.MONTHLY): "STRIPE_PRICE_SOLO_MONTHLY",
+            (SubscriptionTier.SOLO, BillingInterval.ANNUAL): "STRIPE_PRICE_SOLO_ANNUAL",
+            (SubscriptionTier.BUSINESS, BillingInterval.MONTHLY): "STRIPE_PRICE_BUSINESS_MONTHLY",
+            (SubscriptionTier.BUSINESS, BillingInterval.ANNUAL): "STRIPE_PRICE_BUSINESS_ANNUAL",
+            (SubscriptionTier.PROFESSIONAL, BillingInterval.MONTHLY): "STRIPE_PRICE_PRO_MONTHLY",
+            (SubscriptionTier.PROFESSIONAL, BillingInterval.ANNUAL): "STRIPE_PRICE_PRO_ANNUAL",
+        }
+        env_key = price_env_map.get((tier, interval))
         price_id = (
-            plan.stripe_price_id_monthly
-            if interval == BillingInterval.MONTHLY
-            else plan.stripe_price_id_annual
+            (os.environ.get(env_key, "") if env_key else "")
+            or (plan.stripe_price_id_monthly if interval == BillingInterval.MONTHLY else plan.stripe_price_id_annual)
+        )
+
+        # PATCH-175: resolve API key at call time
+        live_api_key = (
+            self._stripe_api_key
+            or os.environ.get("STRIPE_SECRET_KEY", "")
+            or os.environ.get("STRIPE_API_KEY", "")
         )
 
         try:
             import stripe as _stripe  # lazy import — not a hard dependency
-            _stripe.api_key = self._stripe_api_key
+            _stripe.api_key = live_api_key
             session = _stripe.checkout.Session.create(
                 payment_method_types=["card"],
                 line_items=[{"price": price_id, "quantity": 1}],
