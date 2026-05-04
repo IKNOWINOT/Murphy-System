@@ -308,6 +308,7 @@ def create_app() -> FastAPI:
         "ops-center":              "ops_center.html",
         "roi-ops":                 "roi_ops.html",
         "manifold-planner":        "manifold_planner.html",
+        "assembly-center":         "assembly_center.html",
         "workflow-designer":       "workflow_canvas.html",
         "production-wizard":       "production_wizard.html",
         "production-editor":       "production_wizard.html",
@@ -22146,6 +22147,15 @@ def create_app() -> FastAPI:
         logger.info("PATCH-181: Manifold Engine online — /api/manifold/* | dependency propagation | change orders")
     except Exception as _mf_exc:
         logger.warning("PATCH-181: Manifold router not available: %s", _mf_exc)
+
+    # ── Records Assembly Engine (PATCH-182) ────────────────────────────────────
+    # /api/assembly/* — Admin + Production record types, product assembly, ship gate
+    try:
+        from src.records_router import router as _asm_router
+        app.include_router(_asm_router)
+        logger.info("PATCH-182: Assembly Engine online — /api/assembly/* | 13 record types | product ship gate")
+    except Exception as _asm_exc:
+        logger.warning("PATCH-182: Assembly router not available: %s", _asm_exc)
 
     # ── PATCH-135: Business Automation Control ─────────────────────────────────
     # /api/automation/* — NL-driven automation from any agent, org node, or UI.

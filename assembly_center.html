@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Assembly Center — Murphy System</title>
+<style>
+:root{
+  --bg:#080c17;--s1:#0f1623;--s2:#161f30;--s3:#1c2840;
+  --b1:#1e2d45;--b2:#2a3d5a;
+  --teal:#00d4ff;--teal-d:rgba(0,212,255,.10);
+  --green:#00ff88;--green-d:rgba(0,255,136,.10);
+  --amber:#ffb400;--amber-d:rgba(255,180,0,.12);
+  --red:#ff4466;--red-d:rgba(255,68,102,.12);
+  --purple:#a855f7;--purple-d:rgba(168,85,247,.12);
+  --text:#e2e8f0;--dim:#718096;--muted:#4a5568;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',system-ui,sans-serif;
+     display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+/* ── Toolbar ── */
+.tb{display:flex;align-items:center;gap:.5rem;padding:.4rem 1rem;
+    background:var(--s1);border-bottom:1px solid var(--b1);flex-shrink:0}
+.tb-title{font-weight:800;font-size:.88rem;color:var(--teal)}
+.spacer{flex:1}
+.btn{display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:5px;
+     font-size:.73rem;font-weight:600;cursor:pointer;border:1px solid var(--b1);
+     background:transparent;color:var(--dim);transition:all .15s;white-space:nowrap}
+.btn:hover{border-color:var(--teal);color:var(--teal)}
+.btn.p{background:var(--teal);color:#080c17;border-color:var(--teal)}
+.btn.p:hover{background:#33dcff}
+.btn.g{background:var(--green);color:#080c17;border-color:var(--green)}
+.btn.r{border-color:var(--red);color:var(--red)}
+.btn.r:hover{background:var(--red-d)}
+.btn.ship{background:linear-gradient(135deg,var(--green),var(--teal));color:#080c17;border:none;font-weight:800}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+select.btn{padding-right:6px}
+.badge{display:inline-flex;padding:2px 6px;border-radius:3px;font-size:.62rem;font-weight:700}
+.badge.draft{background:var(--b2);color:var(--dim)}
+.badge.in_review{background:var(--amber-d);color:var(--amber)}
+.badge.approved{background:var(--green-d);color:var(--green)}
+.badge.superseded{background:var(--purple-d);color:var(--purple)}
+.badge.rejected{background:var(--red-d);color:var(--red)}
+
+/* ── 3-panel layout ── */
+.panels{display:grid;grid-template-columns:260px 1fr 340px;flex:1;overflow:hidden}
+.panel{display:flex;flex-direction:column;border-right:1px solid var(--b1);overflow:hidden}
+.panel:last-child{border-right:none;border-left:1px solid var(--b1)}
+.ph{padding:.5rem .7rem;background:var(--s1);border-bottom:1px solid var(--b1);
+    flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+.ph-title{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.pb{flex:1;overflow-y:auto;padding:.5rem .6rem}
+
+/* ── Lane switcher ── */
+.lane-tabs{display:flex;gap:.3rem;margin-bottom:.5rem}
+.lane-tab{flex:1;padding:.35rem .5rem;border-radius:6px;border:1px solid var(--b1);
+          background:transparent;cursor:pointer;text-align:center;font-size:.72rem;
+          font-weight:700;color:var(--dim);transition:all .15s}
+.lane-tab.admin.active{background:var(--amber-d);border-color:var(--amber);color:var(--amber)}
+.lane-tab.production.active{background:var(--teal-d);border-color:var(--teal);color:var(--teal)}
+.lane-tab:hover{border-color:var(--teal);color:var(--teal)}
+
+/* ── Record type cards ── */
+.rt-card{display:flex;align-items:center;gap:.5rem;padding:.4rem .5rem;border-radius:6px;
+         border:1px solid var(--b1);background:var(--s2);margin-bottom:.3rem;cursor:pointer;
+         transition:all .15s}
+.rt-card:hover{border-color:var(--teal);background:var(--teal-d)}
+.rt-card.selected{border-color:var(--green);background:var(--green-d)}
+.rt-icon{font-size:1.1rem;flex-shrink:0}
+.rt-name{font-size:.73rem;font-weight:700}
+.rt-desc{font-size:.61rem;color:var(--dim);margin-top:1px;line-height:1.3}
+.rt-req{font-size:.58rem;color:var(--amber);margin-top:1px}
+
+/* ── Assembly form ── */
+.form-section{margin-bottom:.8rem}
+.fs-title{font-size:.68rem;font-weight:700;color:var(--teal);text-transform:uppercase;
+          letter-spacing:.05em;margin-bottom:.35rem;padding-bottom:.2rem;
+          border-bottom:1px solid var(--b1)}
+.field-group{margin-bottom:.45rem}
+.fl{font-size:.68rem;font-weight:600;color:var(--dim);margin-bottom:.15rem;display:flex;
+    align-items:center;gap:.3rem}
+.fl .req{color:var(--red);font-size:.7rem}
+.fl .gap{font-size:.58rem;color:var(--amber);background:var(--amber-d);padding:1px 4px;
+         border-radius:3px}
+.fi{width:100%;background:var(--s1);border:1px solid var(--b1);border-radius:5px;
+    padding:.3rem .45rem;font-size:.73rem;color:var(--text);font-family:inherit;
+    transition:border-color .15s}
+.fi:focus{outline:none;border-color:var(--teal)}
+.fi.has-value{border-color:rgba(0,255,136,.3)}
+.fi.missing{border-color:var(--red)!important}
+textarea.fi{resize:vertical;min-height:56px;line-height:1.5}
+select.fi option{background:var(--s2)}
+.fi-hint{font-size:.6rem;color:var(--muted);margin-top:.15rem}
+.impact-preview{background:var(--s3);border-radius:4px;padding:.25rem .4rem;
+                font-size:.68rem;margin-top:.2rem;display:flex;justify-content:space-between}
+.form-actions{display:flex;gap:.4rem;padding:.5rem 0;border-top:1px solid var(--b1);
+              margin-top:.5rem;flex-shrink:0}
+
+/* ── Right panel: Products + log ── */
+.product-card{background:var(--s2);border:1px solid var(--b1);border-radius:8px;
+              margin-bottom:.5rem;overflow:hidden}
+.pc-hdr{padding:.45rem .6rem;display:flex;align-items:center;gap:.4rem;cursor:pointer}
+.pc-hdr:hover{background:rgba(255,255,255,.02)}
+.pc-name{font-size:.76rem;font-weight:700;flex:1}
+.pc-pct{font-size:.7rem;font-weight:700}
+.progress-wrap{height:3px;background:var(--b2)}
+.progress-bar{height:3px;transition:width .3s}
+.req-list{padding:.35rem .6rem .45rem}
+.req-row{display:flex;align-items:center;gap:.4rem;padding:.2rem 0;
+         border-bottom:1px solid rgba(255,255,255,.03)}
+.req-row:last-child{border:none}
+.req-icon{font-size:.75rem;flex-shrink:0}
+.req-name{font-size:.68rem;flex:1}
+.req-status{font-size:.6rem;font-weight:700}
+.req-status.fulfilled{color:var(--green)}
+.req-status.missing{color:var(--red)}
+.pc-actions{padding:.35rem .6rem;border-top:1px solid var(--b1);display:flex;gap:.3rem}
+.new-product-form{background:var(--s3);border:1px solid var(--b2);border-radius:6px;
+                  padding:.5rem .6rem;margin-bottom:.4rem}
+.npf-title{font-size:.7rem;font-weight:700;color:var(--green);margin-bottom:.35rem}
+.req-picker{display:flex;flex-wrap:wrap;gap:.25rem;margin:.3rem 0}
+.req-pick-btn{padding:2px 7px;border-radius:3px;font-size:.62rem;font-weight:700;
+              cursor:pointer;border:1px solid var(--b1);background:transparent;
+              color:var(--dim);transition:all .15s}
+.req-pick-btn.selected{border-color:var(--teal);color:var(--teal);background:var(--teal-d)}
+
+/* ── Log stream ── */
+.log-entry{font-size:.64rem;padding:.2rem 0;border-bottom:1px solid rgba(255,255,255,.03);
+           display:flex;gap:.35rem;align-items:baseline}
+.log-ts{color:var(--muted);flex-shrink:0;font-size:.58rem}
+.log-evt{font-size:.59rem;font-weight:700;padding:1px 4px;border-radius:2px;flex-shrink:0}
+.log-evt.created{background:var(--teal-d);color:var(--teal)}
+.log-evt.amended{background:var(--amber-d);color:var(--amber)}
+.log-evt.shipped{background:var(--green-d);color:var(--green)}
+.log-msg{color:var(--dim);flex:1}
+
+/* ── Record list in left panel bottom ── */
+.rec-mini{display:flex;align-items:center;gap:.35rem;padding:.25rem .4rem;border-radius:4px;
+          border:1px solid transparent;cursor:pointer;transition:all .12s}
+.rec-mini:hover{background:var(--s3);border-color:var(--b1)}
+.rec-mini.selected-rec{background:var(--teal-d);border-color:var(--teal)}
+.rec-mini-icon{font-size:.75rem}
+.rec-mini-title{font-size:.66rem;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-mini-status{flex-shrink:0}
+
+/* ── Empty ── */
+.empty{text-align:center;padding:1.5rem .5rem;color:var(--muted);font-size:.73rem}
+.empty-icon{font-size:1.8rem;margin-bottom:.4rem}
+
+/* ── Section divider ── */
+.section-hdr{font-size:.63rem;font-weight:700;color:var(--muted);text-transform:uppercase;
+             letter-spacing:.05em;padding:.4rem 0 .2rem;margin-top:.4rem;
+             border-top:1px solid var(--b1);display:flex;align-items:center;
+             justify-content:space-between}
+</style>
+</head>
+<body>
+<nav class="nav" id="main-nav"></nav>
+
+<div class="tb">
+  <span class="tb-title">🏭 Assembly Center</span>
+  <select class="btn" id="project-sel" onchange="selectProject(this.value)" style="max-width:200px">
+    <option value="">— select project —</option>
+  </select>
+  <div class="spacer"></div>
+  <span id="stats-chips" style="font-size:.7rem;color:var(--dim)"></span>
+  <button class="btn" onclick="showNewProduct()">＋ Product</button>
+</div>
+
+<div class="panels">
+
+  <!-- LEFT: Lane + Record Type Catalog + Recent Records -->
+  <div class="panel">
+    <div class="ph"><span class="ph-title" style="color:var(--amber)">🏗 Record Types</span></div>
+    <div class="pb" id="left-panel">
+      <div class="lane-tabs">
+        <div class="lane-tab admin active" id="tab-admin" onclick="setLane('admin')">⚖️ Admin</div>
+        <div class="lane-tab production" id="tab-prod" onclick="setLane('production')">⚡ Production</div>
+      </div>
+      <div id="rt-list"></div>
+      <div class="section-hdr" id="recent-hdr" style="display:none">
+        Recent Records <span id="recent-count"></span>
+      </div>
+      <div id="recent-records"></div>
+    </div>
+  </div>
+
+  <!-- CENTER: Assembly form -->
+  <div class="panel">
+    <div class="ph">
+      <span class="ph-title" style="color:var(--teal)" id="form-title">📝 Assembly Form</span>
+      <div style="display:flex;gap:.3rem" id="form-actions-top"></div>
+    </div>
+    <div class="pb" id="center-panel">
+      <div class="empty">
+        <div class="empty-icon">📝</div>
+        Select a record type from the left to begin assembly.<br><br>
+        <div style="font-size:.65rem;color:var(--muted);line-height:1.6">
+          <strong style="color:var(--amber)">Admin records</strong> govern decisions, approvals,<br>
+          change orders, and credits.<br><br>
+          <strong style="color:var(--teal)">Production records</strong> log builds, tests,<br>
+          deliveries, and sign-offs.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Products + Log -->
+  <div class="panel">
+    <div class="ph">
+      <span class="ph-title" style="color:var(--green)" id="right-title">📦 Products</span>
+      <button class="btn" style="font-size:.6rem;padding:2px 6px" onclick="toggleRightTab()">📜 Log</button>
+    </div>
+    <div class="pb" id="right-panel">
+      <div class="empty"><div class="empty-icon">📦</div>Select a project to see products.</div>
+    </div>
+  </div>
+
+</div>
+
+<script src="/static/murphy-nav.js"></script>
+<script>
+const API = window.location.origin;
+let lane = 'admin', recordTypes = {admin:[], production:[]};
+let currentType = null, currentRecord = null, currentProject = null;
+let products = [], records = [], rightTab = 'products';
+let newProductReqs = [];
+
+function authH() {
+  const t=localStorage.getItem('murphy_api_key')||localStorage.getItem('murphy_session_token')||'';
+  const h={'Content-Type':'application/json'};
+  if(t) h['Authorization']='Bearer '+t;
+  return h;
+}
+async function api(method,path,body=null) {
+  const o={method,headers:authH()};
+  if(body) o.body=JSON.stringify(body);
+  const r=await fetch(API+path,o);
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||r.status);}
+  return r.json();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  if(window.MurphyNav) MurphyNav.init('main-nav');
+  await Promise.all([loadRecordTypes(), loadProjects()]);
+  setLane('admin');
+  setInterval(autoRefresh, 20000);
+}
+
+async function autoRefresh() {
+  if(!currentProject) return;
+  await Promise.all([loadProducts(), loadRecentRecords()]);
+  renderProducts();
+  renderRecentRecords();
+  updateStats();
+}
+
+async function loadRecordTypes() {
+  const d = await api('GET', '/api/assembly/record-types');
+  const all = d.record_types || [];
+  recordTypes.admin      = all.filter(t=>t.lane==='admin');
+  recordTypes.production = all.filter(t=>t.lane==='production');
+}
+
+async function loadProjects() {
+  try {
+    const d = await api('GET', '/api/manifold/projects');
+    const projects = d.projects || [];
+    const sel = document.getElementById('project-sel');
+    sel.innerHTML = '<option value="">— select project —</option>' +
+      projects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+    if(projects.length===1) selectProject(projects[0].id);
+  } catch(e) {}
+}
+
+async function selectProject(pid) {
+  if(!pid) return;
+  currentProject = pid;
+  await Promise.all([loadProducts(), loadRecentRecords()]);
+  renderProducts();
+  renderRecentRecords();
+  updateStats();
+}
+
+async function loadProducts() {
+  try {
+    const d = await api('GET', '/api/assembly/products?project_id='+currentProject);
+    products = d.products || [];
+  } catch(e) {}
+}
+
+async function loadRecentRecords() {
+  try {
+    const d = await api('GET', '/api/assembly/records?project_id='+currentProject+'&limit=30');
+    records = d.records || [];
+  } catch(e) {}
+}
+
+function updateStats() {
+  const admin = records.filter(r=>r.lane==='admin').length;
+  const prod  = records.filter(r=>r.lane==='production').length;
+  const shipped = products.filter(p=>p.status==='shipped').length;
+  document.getElementById('stats-chips').innerHTML =
+    `<span style="color:var(--amber)">⚖ ${admin} admin</span> &nbsp;
+     <span style="color:var(--teal)">⚡ ${prod} prod</span> &nbsp;
+     <span style="color:var(--green)">📦 ${products.length} products (${shipped} shipped)</span>`;
+}
+
+// ── Left panel ────────────────────────────────────────────────────────────────
+function setLane(l) {
+  lane = l;
+  document.getElementById('tab-admin').classList.toggle('active', l==='admin');
+  document.getElementById('tab-prod').classList.toggle('active', l==='production');
+  renderRecordTypes();
+}
+
+function renderRecordTypes() {
+  const types = recordTypes[lane] || [];
+  const laneColor = lane==='admin' ? 'var(--amber)' : 'var(--teal)';
+  document.getElementById('rt-list').innerHTML = types.map(t => {
+    const isSel = currentType && currentType.id===t.id;
+    return `<div class="rt-card ${isSel?'selected':''}" onclick="selectRecordType('${t.id}')">
+      <span class="rt-icon">${t.icon||'📄'}</span>
+      <div>
+        <div class="rt-name" style="color:${laneColor}">${t.name}</div>
+        <div class="rt-desc">${t.description||''}</div>
+        ${t.requires_approval?`<div class="rt-req">⚠ requires approval before ship</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderRecentRecords() {
+  const hdr = document.getElementById('recent-hdr');
+  const el  = document.getElementById('recent-records');
+  const laneRecs = records.filter(r=>r.lane===lane).slice(0,8);
+  if(!laneRecs.length||!currentProject) { hdr.style.display='none'; el.innerHTML=''; return; }
+  hdr.style.display='flex';
+  document.getElementById('recent-count').innerHTML =
+    `<span style="font-size:.6rem;color:var(--dim)">${laneRecs.length}</span>`;
+  el.innerHTML = laneRecs.map(r => {
+    const rt = r.record_type;
+    const isSel = currentRecord && currentRecord.id===r.id;
+    return `<div class="rec-mini ${isSel?'selected-rec':''}" onclick="loadRecord('${r.id}')">
+      <span class="rec-mini-icon">${rt?.icon||'📄'}</span>
+      <span class="rec-mini-title" title="${r.title}">${r.title}</span>
+      <span class="rec-mini-status"><span class="badge ${r.status}">${r.status}</span></span>
+    </div>`;
+  }).join('');
+}
+
+// ── Form ──────────────────────────────────────────────────────────────────────
+function selectRecordType(typeId) {
+  currentType = (recordTypes.admin.concat(recordTypes.production)).find(t=>t.id===typeId);
+  currentRecord = null;
+  renderRecordTypes();
+  renderForm();
+  document.getElementById('col-manifold') && (document.getElementById('col-manifold').style.display='none');
+}
+
+async function loadRecord(recordId) {
+  const r = await api('GET', '/api/assembly/records/'+recordId);
+  currentType = (recordTypes.admin.concat(recordTypes.production)).find(t=>t.id===r.record_type_id);
+  currentRecord = r;
+  renderRecordTypes();
+  renderForm(r.fields);
+}
+
+function renderForm(prefill={}) {
+  if(!currentType) return;
+  const rt = currentType;
+  const laneColor = rt.lane==='admin'?'var(--amber)':'var(--teal)';
+  const isExisting = !!currentRecord;
+
+  document.getElementById('form-title').textContent = `${rt.icon} ${rt.name}`;
+  document.getElementById('form-actions-top').innerHTML = isExisting
+    ? `<span class="badge ${currentRecord.status}">${currentRecord.status}</span>
+       ${currentRecord.status==='draft'?`<button class="btn" onclick="approveRecord()" style="font-size:.62rem">✓ Approve</button>`:''}
+       <button class="btn" onclick="amendRecord()" style="font-size:.62rem">📝 Amend</button>`
+    : '';
+
+  let html = `<div style="background:var(--s2);border:1px solid var(--b1);border-radius:6px;
+                padding:.4rem .6rem;margin-bottom:.6rem">
+    <div style="font-size:.65rem;color:var(--dim)">${rt.description}</div>
+    <div style="margin-top:.25rem;display:flex;gap:.5rem;font-size:.65rem">
+      <span style="color:${laneColor};font-weight:700;text-transform:uppercase">${rt.lane}</span>
+      ${rt.requires_approval?`<span style="color:var(--amber)">requires approval</span>`:''}
+    </div>
+  </div>`;
+
+  // Title field
+  html += `<div class="field-group">
+    <div class="fl"><span>Record Title</span><span class="req">*</span></div>
+    <input class="fi ${prefill._title?'has-value':''}" id="f_title"
+           value="${escHtml(prefill._title||currentRecord?.title||'')}"
+           placeholder="Give this record a clear title…">
+  </div>`;
+
+  html += `<div class="fs-title">Assembly Fields</div>`;
+
+  const requiredFields = rt.fields.filter(f=>f.required);
+  const optionalFields = rt.fields.filter(f=>!f.required);
+
+  function renderField(f) {
+    const val = prefill[f.key] !== undefined ? prefill[f.key] : (currentRecord?.fields?.[f.key]||'');
+    const hasVal = val !== '' && val !== null && val !== undefined;
+    const isFinancial = f.key === 'financial_impact' || f.key === 'credit_amount';
+    let input = '';
+    if(f.type==='textarea') {
+      input=`<textarea class="fi ${hasVal?'has-value':''}" id="f_${f.key}"
+               placeholder="${f.placeholder||''}">${escHtml(String(val))}</textarea>`;
+    } else if(f.type==='select') {
+      input=`<select class="fi ${hasVal?'has-value':''}" id="f_${f.key}">
+        <option value="">— select —</option>
+        ${(f.options||[]).map(o=>`<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('')}
+      </select>`;
+    } else if(f.type==='boolean') {
+      input=`<select class="fi" id="f_${f.key}">
+        <option value="">—</option>
+        <option value="true" ${val==='true'||val===true?'selected':''}>Yes</option>
+        <option value="false" ${val==='false'||val===false?'selected':''}>No</option>
+      </select>`;
+    } else {
+      input=`<input type="${f.type==='date'?'date':f.type==='number'?'number':'text'}"
+               class="fi ${hasVal?'has-value':''}" id="f_${f.key}"
+               value="${escHtml(String(val))}"
+               placeholder="${f.placeholder||''}"
+               ${f.type==='number'?'step="0.01"':''}
+               oninput="this.classList.toggle('has-value',this.value!=='')">`;
+    }
+    return `<div class="field-group">
+      <div class="fl">
+        <span>${f.label}</span>
+        ${f.required?`<span class="req">*</span>`:''}
+        ${!hasVal&&f.required?`<span class="gap">gap</span>`:''}
+      </div>
+      ${input}
+      ${isFinancial&&hasVal?`<div class="impact-preview">
+        <span style="color:var(--dim)">Financial Impact</span>
+        <span style="color:${parseFloat(val)>=0?'var(--green)':'var(--red)'}">
+          ${parseFloat(val)>=0?'+':''}$${Math.abs(parseFloat(val)||0).toFixed(2)}
+        </span>
+      </div>`:''}
+    </div>`;
+  }
+
+  requiredFields.forEach(f => { html += renderField(f); });
+
+  if(optionalFields.length) {
+    html += `<div class="section-hdr" style="cursor:pointer" onclick="toggleOptional(this)">
+      Optional Fields <span style="color:var(--teal)">▼ show</span>
+    </div>
+    <div id="optional-fields" style="display:none">`;
+    optionalFields.forEach(f => { html += renderField(f); });
+    html += `</div>`;
+  }
+
+  // Context link
+  if(currentProject) {
+    html += `<div class="section-hdr">Context</div>
+    <div class="field-group">
+      <div class="fl"><span>Link to Product (optional)</span></div>
+      <select class="fi" id="f_product_id">
+        <option value="">— none —</option>
+        ${products.map(p=>`<option value="${p.id}" ${currentRecord?.product_id===p.id?'selected':''}>${p.name}</option>`).join('')}
+      </select>
+    </div>`;
+  }
+
+  html += `<div style="height:.5rem"></div>`;
+  document.getElementById('center-panel').innerHTML = html;
+
+  // Sticky form actions
+  const actionsHtml = isExisting
+    ? `<button class="btn g" onclick="saveRecord()" style="flex:1">💾 Save Amendment</button>
+       <button class="btn r" onclick="currentRecord=null;renderForm()">New Record</button>`
+    : `<button class="btn p" onclick="saveRecord()" style="flex:1">💾 Save as Draft</button>
+       <button class="btn g" onclick="saveAndApprove()" style="flex:1">✓ Save & Approve</button>`;
+
+  const actionsDiv = document.createElement('div');
+  actionsDiv.className = 'form-actions';
+  actionsDiv.innerHTML = actionsHtml;
+  document.getElementById('center-panel').appendChild(actionsDiv);
+}
+
+function toggleOptional(hdr) {
+  const el = document.getElementById('optional-fields');
+  const showing = el.style.display !== 'none';
+  el.style.display = showing ? 'none' : 'block';
+  hdr.querySelector('span:last-child').textContent = showing ? '▼ show' : '▲ hide';
+}
+
+function collectFields() {
+  if(!currentType) return null;
+  const fields = {};
+  currentType.fields.forEach(f => {
+    const el = document.getElementById('f_'+f.key);
+    if(el) fields[f.key] = el.value;
+  });
+  fields._title = document.getElementById('f_title')?.value || '';
+  return fields;
+}
+
+function validateForm(fields) {
+  if(!fields._title?.trim()) { showToast('Record title is required','red'); return false; }
+  const missing = currentType.fields.filter(f => f.required && !fields[f.key]);
+  if(missing.length) {
+    missing.forEach(f => document.getElementById('f_'+f.key)?.classList.add('missing'));
+    showToast(`${missing.length} required field${missing.length>1?'s':''} missing — highlighted in red`, 'amber');
+  }
+  return true; // Allow saving draft even with gaps
+}
+
+async function saveRecord(approveAfter=false) {
+  const fields = collectFields();
+  if(!validateForm(fields)) return;
+  const title = fields._title; delete fields._title;
+  const productId = document.getElementById('f_product_id')?.value||null;
+
+  try {
+    let rec;
+    if(currentRecord) {
+      // Amendment
+      rec = await api('POST', '/api/assembly/records/'+currentRecord.id+'/amend', {
+        fields, amended_by:'cpost@murphy.systems', reason:'UI amendment'
+      });
+    } else {
+      rec = await api('POST', '/api/assembly/records', {
+        record_type_id: currentType.id, title, fields,
+        created_by:'cpost@murphy.systems',
+        project_id: currentProject||null,
+        product_id: productId||null,
+      });
+    }
+    if(approveAfter) {
+      rec = await api('PATCH', '/api/assembly/records/'+rec.id, {status:'approved', approved_by:'cpost@murphy.systems'});
+    }
+    currentRecord = rec;
+    showToast((currentRecord?'Amended':'Created')+' ✓ — '+rec.status,'green');
+    await Promise.all([loadProducts(), loadRecentRecords()]);
+    renderProducts();
+    renderRecentRecords();
+    renderForm(fields);
+    updateStats();
+  } catch(e) { showToast('Error: '+e.message,'red'); }
+}
+
+async function saveAndApprove() { await saveRecord(true); }
+
+async function approveRecord() {
+  if(!currentRecord) return;
+  const r = await api('PATCH', '/api/assembly/records/'+currentRecord.id, {
+    status:'approved', approved_by:'cpost@murphy.systems'
+  });
+  currentRecord = r;
+  showToast('Record approved ✓','green');
+  await Promise.all([loadProducts(), loadRecentRecords()]);
+  renderProducts(); renderRecentRecords(); renderForm(r.fields);
+}
+
+async function amendRecord() {
+  if(!currentRecord) return;
+  renderForm(currentRecord.fields);
+  showToast('Editing existing record — save will create an amendment','amber');
+}
+
+// ── Products (right panel) ────────────────────────────────────────────────────
+function renderProducts() {
+  if(rightTab!=='products') return;
+  document.getElementById('right-title').textContent='📦 Products';
+  const el = document.getElementById('right-panel');
+  if(!currentProject) { el.innerHTML='<div class="empty"><div class="empty-icon">📦</div>Select a project.</div>'; return; }
+  if(!products.length) {
+    el.innerHTML=`<div class="empty"><div class="empty-icon">📦</div>No products yet.<br>
+      <button class="btn g" style="margin-top:.5rem" onclick="showNewProduct()">＋ New Product</button></div>`;
+    return;
+  }
+
+  el.innerHTML = products.map(p => {
+    const pct = p.completion_pct||0;
+    const pctColor = pct>=100?'var(--green)':pct>=60?'var(--amber)':'var(--red)';
+    const reqs = p.requirements||[];
+    const canShip = p.can_ship && p.status!=='shipped';
+    return `<div class="product-card">
+      <div class="pc-hdr" onclick="toggleProduct('${p.id}')">
+        <span style="font-size:1rem">${p.status==='shipped'?'✅':'📦'}</span>
+        <div class="pc-name">${p.name}</div>
+        <span class="pc-pct" style="color:${pctColor}">${pct}%</span>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-bar" style="width:${Math.min(pct,100)}%;background:${pctColor}"></div>
+      </div>
+      <div class="req-list" id="prod-reqs-${p.id}">
+        ${reqs.map(r=>`<div class="req-row">
+          <span class="req-icon">${r.record_type?.icon||'📄'}</span>
+          <span class="req-name">${r.record_type?.name||r.record_type_id}</span>
+          <span class="req-status ${r.fulfilled_by_record_id?'fulfilled':'missing'}">
+            ${r.fulfilled_by_record_id?'✓':'✗ missing'}
+          </span>
+        </div>`).join('')}
+      </div>
+      <div class="pc-actions">
+        ${canShip?`<button class="btn ship" onclick="shipProduct('${p.id}')">🚀 Ship</button>`:''}
+        <button class="btn" style="font-size:.62rem" onclick="startRecordForProduct('${p.id}')">＋ Record</button>
+        ${p.total_financial_impact_usd?`<span style="font-size:.65rem;color:${p.total_financial_impact_usd>=0?'var(--green)':'var(--red)'}">
+          ${p.total_financial_impact_usd>=0?'+':''}$${Math.abs(p.total_financial_impact_usd).toFixed(0)}
+        </span>`:''}
+      </div>
+    </div>`;
+  }).join('') + `<button class="btn" style="width:100%;justify-content:center;margin-top:.3rem" onclick="showNewProduct()">＋ New Product</button>`;
+}
+
+function startRecordForProduct(productId) {
+  const p = products.find(x=>x.id===productId);
+  if(!p) return;
+  // Find first missing required record type
+  const missing = (p.requirements||[]).filter(r=>!r.fulfilled_by_record_id);
+  if(missing.length) {
+    const typeId = missing[0].record_type_id;
+    const rt = (recordTypes.admin.concat(recordTypes.production)).find(t=>t.id===typeId);
+    if(rt) {
+      setLane(rt.lane);
+      selectRecordType(typeId);
+      setTimeout(()=>{ const el=document.getElementById('f_product_id'); if(el) el.value=productId; },100);
+    }
+  }
+}
+
+async function shipProduct(productId) {
+  try {
+    await api('POST', '/api/assembly/products/'+productId+'/ship', {shipped_by:'cpost@murphy.systems'});
+    showToast('Product shipped! 🚀','green');
+    await loadProducts();
+    renderProducts();
+  } catch(e) { showToast('Cannot ship: '+e.message,'red'); }
+}
+
+// ── New Product form ──────────────────────────────────────────────────────────
+function showNewProduct() {
+  newProductReqs = [];
+  const el = document.getElementById('right-panel');
+  const allTypes = recordTypes.admin.concat(recordTypes.production);
+  el.innerHTML = `<div class="new-product-form">
+    <div class="npf-title">📦 Define Product</div>
+    <div class="fl" style="margin-bottom:.15rem">Product Name</div>
+    <input class="fi" id="np-name" placeholder="e.g. Billing Feature v2">
+    <div class="fl" style="margin:.3rem 0 .15rem">Description</div>
+    <textarea class="fi" id="np-desc" placeholder="What does this product deliver?" style="min-height:40px"></textarea>
+    <div class="fl" style="margin:.3rem 0 .15rem">Required Records</div>
+    <div style="font-size:.63rem;color:var(--dim);margin-bottom:.25rem">
+      Select which record types must be assembled before this product can ship:
+    </div>
+    <div class="req-picker">
+      ${allTypes.map(t=>`<button class="req-pick-btn" id="rp_${t.id}"
+          onclick="toggleReq('${t.id}',this)" title="${t.description}">
+          ${t.icon} ${t.name}
+        </button>`).join('')}
+    </div>
+    <div style="display:flex;gap:.3rem;margin-top:.5rem">
+      <button class="btn g" onclick="submitNewProduct()" style="flex:1">Create Product</button>
+      <button class="btn" onclick="renderProducts()">Cancel</button>
+    </div>
+  </div>` + (products.length?products.map(p=>`<div class="product-card" style="opacity:.5">
+    <div class="pc-hdr"><span>📦</span><div class="pc-name">${p.name}</div><span class="pc-pct">${p.completion_pct||0}%</span></div>
+  </div>`).join(''):'');
+}
+
+function toggleReq(typeId, btn) {
+  const idx = newProductReqs.indexOf(typeId);
+  if(idx>=0) { newProductReqs.splice(idx,1); btn.classList.remove('selected'); }
+  else { newProductReqs.push(typeId); btn.classList.add('selected'); }
+}
+
+async function submitNewProduct() {
+  const name = document.getElementById('np-name')?.value?.trim();
+  if(!name) { showToast('Product name required','red'); return; }
+  await api('POST', '/api/assembly/products', {
+    name, description: document.getElementById('np-desc')?.value||'',
+    project_id: currentProject||null,
+    created_by:'cpost@murphy.systems',
+    required_record_types: newProductReqs,
+  });
+  showToast('Product created ✓','green');
+  await loadProducts();
+  renderProducts();
+}
+
+// ── Log tab ────────────────────────────────────────────────────────────────────
+function toggleRightTab() {
+  rightTab = rightTab==='products'?'log':'products';
+  document.querySelector('.panel:last-child .ph .btn').textContent = rightTab==='products'?'📜 Log':'📦 Products';
+  document.getElementById('right-title').textContent = rightTab==='products'?'📦 Products':'📜 Assembly Log';
+  if(rightTab==='log') renderLog();
+  else renderProducts();
+}
+
+async function renderLog() {
+  const d = await api('GET', '/api/assembly/log?limit=80');
+  const log = d.log || [];
+  const el = document.getElementById('right-panel');
+  if(!log.length) { el.innerHTML='<div class="empty">No log entries yet.</div>'; return; }
+  el.innerHTML = log.map(l=>`<div class="log-entry">
+    <span class="log-ts">${l.timestamp?.slice(11,16)||''}</span>
+    <span class="log-evt ${l.event_type?.includes('amend')?'amended':l.event_type?.includes('ship')?'shipped':'created'}">${l.event_type||''}</span>
+    <span class="log-msg">${l.message||''}</span>
+  </div>`).join('');
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg,type) {
+  const colors={green:'#00ff88',teal:'#00d4ff',amber:'#ffb400',red:'#ff4466'};
+  const t=document.createElement('div');
+  t.style.cssText=`position:fixed;bottom:1rem;right:1rem;background:var(--s2);border:1px solid ${colors[type]||colors.teal};color:${colors[type]||colors.teal};padding:.45rem .9rem;border-radius:6px;font-size:.76rem;font-weight:600;z-index:500`;
+  t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
+}
+
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
