@@ -59,7 +59,7 @@ websocket-client==1.6.0
 # A5: murphy_1.0 floor is ccxt>=4.5.0
 ccxt==4.5.4
 # A3: murphy_1.0 floor is web3>=7.0.0,<9.0.0 (major-version conflict with old 6.x pin)
-web3==7.6.0
+web3==7.16.0
 
 # Market data feeds — stocks + crypto
 # A4: murphy_1.0 floor is yfinance>=1.2.0 (major-version conflict with old 0.2.x pin)
