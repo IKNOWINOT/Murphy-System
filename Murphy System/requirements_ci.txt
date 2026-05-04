@@ -18,7 +18,7 @@ flask>=3.0.0
 flask-cors>=4.0.0
 
 # Async / HTTP
-aiohttp>=3.13.3
+aiohttp>=3.13.5
 httpx>=0.25.0
 # PROD-HARD-SEC-001 (audit G18): XXE-safe XML parsing for untrusted input
 defusedxml>=0.7.1
