@@ -91,7 +91,7 @@ sympy==1.12.1
 
 # Terminal UI
 # A9: murphy_1.0 floor is rich>=13.7.0
-rich==13.7.1
+rich==15.0.0
 textual==1.0.0
 pyfiglet==1.0.0
 prompt-toolkit==3.0.0
