@@ -38,14 +38,18 @@ class AuditorAgent(AgentBase):
             logger.debug("AuditorAgent soul.record error: %s", exc)
 
         # Check for covenant violations
+        # PATCH-179: Skip breach counting for unidentified signals (agent_id="unknown")
+        # and for internal housekeeping jobs that don't participate in dedup protocol.
+        _SKIP_DEDUP_CHECK = {"heartbeat", "signal_drain", "corpus_collect", "health_watchdog", "unknown"}
         violations = []
-        if not outcome.get("dedup_checked"):
+        if agent_id not in _SKIP_DEDUP_CHECK and not outcome.get("dedup_checked"):
             violations.append("dedup_before_act")
-        if not outcome.get("reported"):
+        # report_to_auditor only applies to autonomous actions, not self-audit calls
+        if agent_id not in _SKIP_DEDUP_CHECK and not outcome.get("reported") and outcome.get("autonomous"):
             violations.append("report_to_auditor")
 
-        # Flag breaches
-        if violations:
+        # Flag breaches — never count against "unknown" (signal has no valid owner)
+        if violations and agent_id not in ("unknown", "", None):
             try:
                 from src.rosetta_core import get_rosetta_soul
                 soul = get_rosetta_soul()
@@ -54,6 +58,8 @@ class AuditorAgent(AgentBase):
                     logger.warning("AuditorAgent: covenant breach [%s] by %s", v, agent_id)
             except Exception:
                 pass
+        elif agent_id in ("unknown", "", None) and violations:
+            logger.debug("AuditorAgent: signal with unknown agent_id — breach not counted (fix signal source)")
 
         return {
             "status": "audited",

@@ -373,6 +373,7 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
     # /api/auth/login flow keeps working:
     EXEMPT_PATHS: Set[str] = {
         "/api/automation/prefight/status",   # PATCH-177: engine availability — public
+        "/api/billing/prices",               # PATCH-179b: public pricing endpoint for landing page
         "/api/health",
         "/api/info",
         "/api/manifest",

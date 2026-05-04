@@ -13150,6 +13150,41 @@ def create_app() -> FastAPI:
         except Exception as _pfe2:
             return JSONResponse({"success": False, "error": str(_pfe2)}, status_code=500)
 
+    # ── PATCH-179b: /api/billing/prices — public, returns Stripe price IDs ────
+    @app.get("/api/billing/prices")
+    async def billing_prices():
+        """PATCH-179b: Return live Stripe price IDs for each tier. Public endpoint.
+        Landing page and checkout flow use these to initiate correct Stripe session.
+        """
+        import os as _os
+        prices = {
+            "solo": {
+                "monthly": _os.getenv("STRIPE_PRICE_SOLO_MONTHLY", ""),
+                "annual":  _os.getenv("STRIPE_PRICE_SOLO_ANNUAL", ""),
+                "monthly_usd": 99,
+                "annual_usd": 79,
+                "name": "Solo",
+                "features": ["All Murphy modules", "1 user", "10GB storage", "HITL gates", "Email + Matrix"],
+            },
+            "professional": {
+                "monthly": _os.getenv("STRIPE_PRICE_PROFESSIONAL_MONTHLY", ""),
+                "annual":  _os.getenv("STRIPE_PRICE_PROFESSIONAL_ANNUAL", ""),
+                "monthly_usd": 299,
+                "annual_usd": 249,
+                "name": "Professional",
+                "features": ["All Solo features", "5 users", "Swarm agents", "ForgeEngine", "Compliance suite", "Priority HITL"],
+            },
+            "business": {
+                "monthly": _os.getenv("STRIPE_PRICE_BUSINESS_MONTHLY", ""),
+                "annual":  _os.getenv("STRIPE_PRICE_BUSINESS_ANNUAL", ""),
+                "monthly_usd": 599,
+                "annual_usd": 499,
+                "name": "Business",
+                "features": ["All Pro features", "Unlimited users", "Custom agents", "SLA support", "On-prem option"],
+            },
+        }
+        return JSONResponse({"success": True, "prices": prices, "currency": "USD"})
+
     # ── PATCH-155: Ghost Runner — standalone provider API key acquisition ─────
     try:
         from ghost_runner import create_ghost_runner_router as _create_gr_router

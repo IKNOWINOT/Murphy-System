@@ -251,7 +251,46 @@
     .login-card { padding: 1.75rem 1.25rem; }
     .login-header h1 { font-size: var(--text-xl); }
   }
+
+/* PATCH-176: universal mobile responsive */
+@media(max-width:768px){
+  body{overflow-y:auto!important;overflow-x:hidden!important;height:auto!important;}
+  /* Any flex layout becomes column */
+  .shell,.app-layout,.layout,.forge-layout,.td-layout,.pt-layout,
+  .page-layout,.main-layout,.content-layout{flex-direction:column!important;overflow:visible!important;}
+  /* Hide any page-level sidebar (nav.js handles the shared one) */
+  aside,.sidebar,.side-nav,.left-panel,.nav-panel{display:none!important;}
+  /* Main content fills width */
+  main,.main-area,.main-content,.forge-main,.page-main,
+  .content-area,.right-panel{
+    width:100%!important;max-width:100vw!important;padding:14px!important;
+    overflow-x:hidden!important;min-width:0!important;
+  }
+  /* Collapse all grids */
+  [class*="grid-"],[class*="-grid"],
+  .panel-row,.stats-row,.compose-row,.metric-grid,
+  .kpi-grid,.fw-grid,.tier-grid,.card-grid,.feature-grid,
+  .two-col,.three-col,.four-col{
+    grid-template-columns:1fr!important;
+  }
+  /* Tables scroll */
+  .table-wrap,.table-container{overflow-x:auto!important;-webkit-overflow-scrolling:touch;}
+  table{min-width:420px;}
+  /* Flex rows become columns */
+  .row,.header-row,.page-header,.controls,.form-row,.input-row,
+  .filter-row,.action-row{flex-direction:column!important;align-items:flex-start!important;gap:8px!important;}
+  /* iOS font zoom fix */
+  input,select,textarea{font-size:16px!important;}
+  /* Typography */
+  h1{font-size:1.3rem!important;}h2{font-size:1.15rem!important;}
+}
+@media(max-width:480px){
+  main,.main-area,.main-content,.page-main{padding:10px!important;}
+  h1{font-size:1.1rem!important;}
+  .stat-value,.kpi-value{font-size:1.4rem!important;}
+}
 </style>
+  <script src="/static/murphy-nav.js"></script>
 </head>
 <body class="murphy-no-sidebar login-page">
 
@@ -552,9 +591,19 @@
         if (result.data.session_token) {
           localStorage.setItem('murphy_session_token', result.data.session_token);
         }
-        // Redirect to requested page or terminal
+        // PATCH-179a: Store tier for feature-gating in UI
+        if (result.data.tier) {
+          localStorage.setItem('murphy_user_tier', result.data.tier);
+        }
+        if (result.data.name) {
+          localStorage.setItem('murphy_user_name', result.data.name);
+        }
+        // PATCH-179a: First-login → redirect to onboarding wizard, not dashboard
         var urlParams = new URLSearchParams(window.location.search);
         var next = urlParams.get('next') || '/ui/dashboard';
+        if (result.data.first_login && result.data.onboarding_url) {
+          next = result.data.onboarding_url;
+        }
         window.location.href = next;
       } else {
         var errMsg = result.data.message || result.data.error || result.data.detail || 'Sign in failed. Please try again.';
@@ -571,6 +620,6 @@
 
 })();
 </script>
-<script src="/static/murphy-nav.js"></script>
+
 </body>
 </html>

@@ -16,6 +16,22 @@
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/static/murphy-design-system.css">
 <link rel="stylesheet" href="/static/murphy-landing.css">
+<style>
+/* PATCH-176: mobile responsive */
+@media(max-width:768px){
+  body{overflow-y:auto!important;overflow-x:hidden!important;height:auto!important;}
+  .shell,.app-layout,.layout,.forge-layout,.page-layout,.main-layout{flex-direction:column!important;overflow:visible!important;}
+  aside,.sidebar,.side-nav{display:none!important;}
+  main,.main-area,.main-content,.forge-main,.page-main,.content-area{width:100%!important;max-width:100vw!important;padding:14px!important;overflow-x:hidden!important;min-width:0!important;}
+  [class*="grid-"],[class*="-grid"],.panel-row,.stats-row,.compose-row,.metric-grid,.kpi-grid,.fw-grid,.tier-grid,.card-grid{grid-template-columns:1fr!important;}
+  .table-wrap,.table-container{overflow-x:auto!important;-webkit-overflow-scrolling:touch;}
+  table{min-width:400px;}
+  .row,.header-row,.page-header,.controls,.form-row{flex-direction:column!important;align-items:flex-start!important;gap:8px!important;}
+  input,select,textarea{font-size:16px!important;}
+  h1{font-size:1.3rem!important;}
+}
+@media(max-width:480px){main,.main-area,.page-main{padding:10px!important;}h1{font-size:1.1rem!important;}}
+</style>
 </head>
 <body>
 <a class="skip" href="#main-content">Skip to main content</a>
@@ -47,7 +63,7 @@
 <!-- HERO -->
 <section id="hero" aria-labelledby="hero-h">
   <div class="hero-inner">
-    <div class="hero-badge"><span class="dot" aria-hidden="true"></span>Open Beta &#8212; 537,071 lines shipped</div>
+    <div class="hero-badge"><span class="dot" aria-hidden="true"></span>Open Beta &#8212; 681,831 lines shipped</div>
     <h1 id="hero-h">Stop Patching Tools.<br>Start Running Your Business.</h1>
     <p class="hero-sub">Murphy replaces your stack of disconnected SaaS tools with one unified AI operating system &#8212; automating operations, enforcing compliance, and keeping you in control. Your infrastructure. Your data.</p>
     <div class="hero-ctas">
@@ -83,7 +99,7 @@
     <div class="live-status-row ml-4" id="live-status-row" >
       <span class="lstat" id="lstat-api"><span class="ld ld-ok"></span>API Gateway</span>
       <span class="lstat" id="lstat-llm"><span class="ld ld-off"></span>LLM</span>
-      <a class="lstat lstat-link" id="lstat-mail" href="/mail/" target="_blank" title="Open Webmail (Roundcube)"><span class="ld ld-off"></span>Mail Server</a>
+      <a class="lstat lstat-link" id="lstat-mail" href="/ui/communication_hub" target="_blank" title="Open Webmail (Roundcube)"><span class="ld ld-off"></span>Mail Server</a>
       <span class="lstat" id="lstat-matrix"><span class="ld ld-off"></span>Matrix Bridge</span>
       <span class="lstat" id="lstat-hitl"><span class="ld ld-ok"></span>HITL Gates</span>
       <span class="lstat" id="lstat-swarm"><span class="ld ld-ok"></span>Swarm Engine</span>
@@ -628,7 +644,7 @@
     <span class="slabel">By the Numbers</span>
     <h2 class="stitle" id="proof-h">Real Code.<br>Verified Numbers.</h2>
     <div class="g4 ml-7"  role="list">
-      <article class="stat-card" role="listitem"><div class="snum">537,071</div><div class="slbl">Lines of production code</div></article>
+      <article class="stat-card" role="listitem"><div class="snum">681,831</div><div class="slbl">Lines of production code</div></article>
       <article class="stat-card" role="listitem"><div class="snum">24,341</div><div class="slbl">Test functions</div></article>
       <article class="stat-card" role="listitem"><div class="snum">1,100+</div><div class="slbl">Modules</div></article>
       <article class="stat-card" role="listitem"><div class="snum">71</div><div class="slbl">Integrated subsystems</div></article>
@@ -657,11 +673,11 @@
 <section id="under-the-hood" aria-labelledby="uth-h">
   <div class="si">
     <span class="slabel">Platform Architecture</span>
-    <h2 class="stitle" id="uth-h">71 Subsystems.<br>1,166 Registered Modules.</h2>
+    <h2 class="stitle" id="uth-h">1,535 Modules.<br>1,702 Live Endpoints.</h2>
     <p class="ssub">Every business function is a real, tested module with its own API endpoint, Matrix room, and bot persona. Not a feature checklist &#8212; living, testable code.</p>
     <div class="ml-20" >
       <div class="stat-badge">&#9889; 453 live endpoints</div>
-      <div class="stat-badge">&#128029; 71 subsystems</div>
+      <div class="stat-badge">&#128029; 1,535 modules</div>
       <div class="stat-badge">&#128172; 287 Matrix rooms</div>
       <div class="stat-badge">&#128274; CSRF + RBAC + key rotation</div>
       <div class="stat-badge">&#128257; Self-healing engine</div>
@@ -940,7 +956,30 @@ function demoMatch(q) {
 <script src="/static/murphy-session-context.js"></script>
 
 <script>
-/* PATCH-061-mobile: hamburger nav toggle */
+/* PATCH-175c: live system status pill */
+(function() {
+  var pill = document.getElementById('sys-status-pill');
+  var txt  = document.getElementById('sys-status-text');
+  if (!pill || !txt) return;
+  fetch('/api/health', {credentials: 'same-origin'})
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.status === 'healthy') {
+        txt.textContent = 'All Systems Go';
+        pill.style.color = '#4ade80';
+        pill.querySelector('.dot') && (pill.querySelector('.dot').style.background = '#4ade80');
+      } else {
+        txt.textContent = 'Degraded';
+        pill.style.color = '#fbbf24';
+      }
+    })
+    .catch(function() {
+      txt.textContent = 'checking…';
+    });
+})();
+
+/* PATCH-175c: hamburger nav toggle */
+
 (function() {
   var btn = document.getElementById('hamburger-btn');
   var nav = document.getElementById('main-nav');
@@ -983,5 +1022,47 @@ function demoMatch(q) {
 })();
 </script>
 
+
+<script>
+/* PATCH-179c: Dynamic pricing — fetch live Stripe price IDs and wire CTA buttons */
+(function() {
+  function initDynamicPricing(prices) {
+    // Wire each "Get Started" / "Start Free Trial" button to the correct Stripe checkout
+    document.querySelectorAll('[data-tier]').forEach(function(btn) {
+      var tier = btn.getAttribute('data-tier');
+      var interval = btn.getAttribute('data-interval') || 'monthly';
+      if (prices[tier] && prices[tier][interval]) {
+        btn.setAttribute('data-price-id', prices[tier][interval]);
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          var priceId = btn.getAttribute('data-price-id');
+          if (!priceId) { window.location.href = '/ui/register'; return; }
+          fetch('/api/billing/checkout', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ price_id: priceId, tier: tier })
+          }).then(function(r){ return r.json(); }).then(function(d){
+            if (d.checkout_url) window.location.href = d.checkout_url;
+            else window.location.href = '/ui/register?tier=' + tier;
+          }).catch(function(){ window.location.href = '/ui/register?tier=' + tier; });
+        });
+      }
+    });
+    // Update displayed prices if they differ from hardcoded
+    document.querySelectorAll('[data-price-display]').forEach(function(el) {
+      var tier = el.getAttribute('data-price-display');
+      var interval = el.getAttribute('data-interval') || 'monthly';
+      if (prices[tier] && prices[tier][interval + '_usd']) {
+        el.textContent = '$' + prices[tier][interval + '_usd'];
+      }
+    });
+  }
+
+  fetch('/api/billing/prices')
+    .then(function(r){ return r.json(); })
+    .then(function(d){ if (d.success && d.prices) initDynamicPricing(d.prices); })
+    .catch(function(){ /* silently use hardcoded fallback prices */ });
+})();
+</script>
 </body>
 </html>
