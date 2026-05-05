@@ -361,7 +361,7 @@ def create_app() -> FastAPI:
         "terminal-architect":      "dashboard.html",
         "terminal-integrations":   "dashboard.html",
         "landing":                 "murphy_landing_page.html",
-        "grant-wizard":            "forge.html",
+        "grant-wizard":            "financing_options.html",
         "partner":                 "partner_request.html",
         # Short aliases (PATCH-152)
         "hitl":                    "hitl_dashboard.html",
