@@ -400,6 +400,25 @@ class SwarmScheduler:
             misfire_grace_time=300,
         )
         self._jobs["prospect_discovery"] = {"name": "Prospect Discovery", "interval": "6h", "type": "builtin"}
+
+        # PATCH-195: Autonomous lead prospector — every 6 hours
+        scheduler.add_job(
+            func=_run_prospecting,
+            trigger="interval",
+            hours=6,
+            id="lead_prospector",
+            replace_existing=True,
+            misfire_grace_time=600,
+        )
+        # PATCH-195: Follow-up cadence — every 24 hours
+        scheduler.add_job(
+            func=_run_followup_cadence,
+            trigger="interval",
+            hours=24,
+            id="followup_cadence",
+            replace_existing=True,
+            misfire_grace_time=3600,
+        )
         logger.info("[PATCH-190] Prospect discovery scheduled every 6h")
 
         logger.info("SwarmScheduler: 7 built-in jobs registered")

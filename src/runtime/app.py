@@ -381,6 +381,73 @@ def create_app() -> FastAPI:
 
 
     # PATCH-152: Top-level campaign shortcut routes
+
+
+    # ── PATCH-195: Lead Prospector API ──────────────────────────────────────
+    @app.post("/api/prospector/run")
+    async def prospector_run(request: Request):
+        """Trigger a prospecting cycle on demand."""
+        try:
+            from src.lead_prospector import run_prospecting_cycle
+            result = run_prospecting_cycle()
+            return result
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @app.post("/api/prospector/cadence")
+    async def prospector_cadence(request: Request):
+        """Trigger the follow-up cadence run on demand."""
+        try:
+            from src.lead_prospector import run_followup_cadence
+            result = run_followup_cadence()
+            return result
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @app.get("/api/prospector/stats")
+    async def prospector_stats():
+        """Return prospector + CRM stats."""
+        try:
+            from src.lead_prospector import get_stats
+            return get_stats()
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @app.post("/api/prospector/dnc/add")
+    async def prospector_dnc_add(request: Request):
+        """Manually add email/domain to DNC list."""
+        try:
+            body = await request.json()
+            from src.dnc_engine import add as _dnc_add, ensure_table as _dnc_init
+            _dnc_init()
+            _dnc_add(
+                email=body.get("email",""),
+                domain=body.get("domain",""),
+                reason=body.get("reason","manual"),
+                source="api",
+                added_by=body.get("added_by","founder"),
+            )
+            return {"success": True, "message": "Added to DNC"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @app.get("/api/prospector/dnc")
+    async def prospector_dnc_list():
+        """List all DNC entries."""
+        try:
+            import sqlite3 as _sq
+            with _sq.connect("/var/lib/murphy-production/crm.db", timeout=5) as db:
+                db.row_factory = _sq.Row
+                rows = db.execute(
+                    "SELECT id,email,domain,phone,reason,source,added_at "
+                    "FROM dnc_suppression ORDER BY added_at DESC LIMIT 200"
+                ).fetchall()
+            return {"dnc": [dict(r) for r in rows], "count": len(rows)}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    # ── end PATCH-195 ──────────────────────────────────────────────────────
+
+
     @app.get("/api/self/status")
     async def self_status():
         """PATCH-175c: Murphy live self-model — accurate system introspection."""
