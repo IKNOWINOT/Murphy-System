@@ -199,6 +199,15 @@ def _add_to_crm(lead: Dict) -> Optional[str]:
     if not email or "@" not in email:
         return None
 
+    # Gate 0 — Email quality: reject aliases, job boards, generic inboxes
+    local = email.split("@")[0]
+    BAD_LOCALS = {"jobs","careers","hiring","recruit","hr","info","hello","contact",
+                  "support","admin","team","no-reply","noreply","press","media",
+                  "digitaljobs","createwithus","sprout","office","enquiries"}
+    if local in BAD_LOCALS or local.startswith("jobs+") or "+" in local:
+        logger.debug("[Prospector] Rejected alias email: %s", email)
+        return None
+
     # Gate 1 — DNC
     blocked, reason = _dnc_blocked(email)
     if blocked:
