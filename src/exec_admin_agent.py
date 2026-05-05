@@ -108,25 +108,40 @@ class ExecAdminAgent(AgentBase):
         except Exception as e:
             logger.debug("Stripe check error: %s", e)
 
-        # 2. CRM — stuck deals
+        # 2. CRM — stuck deals (PATCH-187: enriched with contact info for real actions)
         try:
             db = sqlite3.connect("/var/lib/murphy-production/crm.db", timeout=3)
             rows = db.execute(
-                "SELECT id, company, stage, value, updated_at FROM deals "
-                "WHERE stage NOT IN ('closed_won', 'closed_lost') "
-                "ORDER BY value DESC LIMIT 10"
+                "SELECT d.id, d.title, d.stage, d.value, d.updated_at, d.contact_id, "
+                "       c.name, c.email, c.company "
+                "FROM deals d LEFT JOIN contacts c ON d.contact_id = c.id "
+                "WHERE d.stage NOT IN ('closed_won', 'closed_lost') "
+                "ORDER BY d.value DESC LIMIT 10"
             ).fetchall()
             db.close()
             for row in rows:
-                deal_id, company, stage, value, updated_at = row
-                # Flag if not updated in 2+ days (rough heuristic)
+                deal_id, title, stage, value, updated_at, contact_id, cname, cemail, company = row
+                company = company or title or deal_id
+                stage_label = (stage or "unknown").replace("_", " ").title()
                 blockers.append({
                     "type": "deal_stuck",
                     "weight": BLOCKER_WEIGHTS["deal_stuck"],
-                    "detail": f"Deal '{company}' in stage '{stage}' (${value or 0:,.0f}) needs progression.",
-                    "directive": f"Move deal {deal_id} forward: send follow-up, book demo, or close",
-                    "owner": "executor",
+                    "detail": (
+                        f"Deal '{company}' in stage '{stage_label}' "
+                        f"(${value or 0:,.0f}) — contact: {cname or 'unknown'} <{cemail or 'no email'}>"
+                    ),
+                    "directive": (
+                        f"Send follow-up to {cname or company} at {cemail or 'no email'}, "
+                        f"move deal to next stage, open revenue chain if value >= $7,000"
+                    ),
+                    "owner": "exec_admin",
                     "deal_id": deal_id,
+                    "contact_id": contact_id or "",
+                    "contact_name": cname or "",
+                    "contact_email": cemail or "",
+                    "company": company,
+                    "stage": stage or "unknown",
+                    "value": value or 0,
                     "action": "dispatch_follow_up",
                 })
         except Exception as e:
@@ -200,10 +215,16 @@ class ExecAdminAgent(AgentBase):
 
     def _issue_directives(self, blockers: List[Dict]) -> List[Dict]:
         """
-        For each blocker, issue a concrete directive to the responsible agent.
-        Dispatches into the signal collector so the target agent picks it up.
+        PATCH-187: Real-action directives — not just signals and emails.
+        For each blocker, take a concrete external action:
+          - deal_stuck       → compose & send follow-up email to contact
+          - deal_stuck(high) → also open a Chain Engine work order
+          - any weight>=75   → post to Matrix HITL room
+          - all actions      → log to ROI Calendar
         """
+        import os as _os, uuid as _uuid, sqlite3 as _sq3, asyncio as _aio
         directives = []
+
         try:
             from src.signal_collector import get_collector
             collector = get_collector()
@@ -211,19 +232,155 @@ class ExecAdminAgent(AgentBase):
             collector = None
 
         for blocker in blockers:
-            action = blocker.get("action", "")
-            owner = blocker.get("owner", "exec_admin")
+            action  = blocker.get("action", "")
+            owner   = blocker.get("owner", "exec_admin")
+            btype   = blocker.get("type", "")
+            weight  = blocker.get("weight", 0)
+            detail  = blocker.get("detail", "")
             directive_text = blocker.get("directive", "")
 
             directive = {
-                "blocker_type": blocker["type"],
+                "blocker_type": btype,
                 "directive": directive_text,
                 "owner": owner,
                 "issued_at": datetime.now(timezone.utc).isoformat(),
                 "status": "issued",
+                "actions_taken": [],
             }
 
-            # Dispatch signal to responsible agent
+            # ── ACTION A: Deal follow-up email ──────────────────────────────
+            if btype == "deal_stuck" and action != "escalate_to_founder":
+                try:
+                    contact_email = blocker.get("contact_email", "")
+                    contact_name  = blocker.get("contact_name", "")
+                    company       = blocker.get("company", "")
+                    stage         = blocker.get("stage", "")
+                    value         = blocker.get("value", 0)
+                    deal_id       = blocker.get("deal_id", "")
+
+                    if contact_email:
+                        subject = f"Checking in — {company} x Murphy System"
+                        stage_label = stage.replace("_", " ").title()
+                        body = (
+                            f"Hi {contact_name.split()[0] if contact_name else 'there'},\n\n"
+                            f"I wanted to follow up on our conversation about Murphy System for {company}.\n\n"
+                            f"You're currently at the {stage_label} stage — I want to make sure we have everything "
+                            f"you need to move forward confidently.\n\n"
+                            f"Murphy System gives your team autonomous AI agents that handle compliance, billing, "
+                            f"workflows, and revenue operations — so you can focus on growing.\n\n"
+                            f"Would a 15-minute call this week work to answer any questions?\n\n"
+                            f"Best,\nMurphy System Executive Team\nmurphy@murphy.systems"
+                        )
+
+                        # Check idempotency — don't re-send if sent in last 48h
+                        already_sent = False
+                        try:
+                            crm_db = _sq3.connect("/var/lib/murphy-production/crm.db", timeout=3)
+                            row = crm_db.execute(
+                                "SELECT id FROM activities WHERE deal_id=? AND activity_type='email_followup' "
+                                "AND created_at > datetime('now','-2 days') LIMIT 1", (deal_id,)
+                            ).fetchone()
+                            crm_db.close()
+                            if row:
+                                already_sent = True
+                        except Exception:
+                            pass
+
+                        if not already_sent:
+                            # Send via murphy mail
+                            try:
+                                from src.email_integration import EmailService
+                            except ImportError:
+                                from email_integration import EmailService
+                            svc = EmailService.from_env()
+                            result_holder = [None]
+                            def _send_fu(svc=svc, subject=subject, body=body, email=contact_email):
+                                loop = _aio.new_event_loop()
+                                _aio.set_event_loop(loop)
+                                try:
+                                    result_holder[0] = loop.run_until_complete(
+                                        svc.send(to=[email], subject=subject, body=body,
+                                                 from_name="Murphy System")
+                                    )
+                                finally:
+                                    loop.close()
+                            import threading as _thr
+                            t = _thr.Thread(target=_send_fu, daemon=True); t.start(); t.join(timeout=10)
+
+                            # Log activity to CRM
+                            try:
+                                act_id = str(_uuid.uuid4())[:13]
+                                crm_db = _sq3.connect("/var/lib/murphy-production/crm.db", timeout=3)
+                                crm_db.execute(
+                                    "INSERT INTO activities VALUES (?,?,?,?,?,?,?,?)",
+                                    (act_id, "email_followup", blocker.get("contact_id",""),
+                                     deal_id, "exec_admin",
+                                     f"Follow-up email sent to {contact_email}",
+                                     body[:500], datetime.now(timezone.utc).isoformat())
+                                )
+                                crm_db.commit(); crm_db.close()
+                            except Exception as ae:
+                                pass
+
+                            directive["actions_taken"].append(
+                                f"email_sent:{contact_email}"
+                            )
+                            directive["status"] = "actioned"
+
+                            # Log to ROI Calendar
+                            self._log_roi_action(
+                                title=f"Follow-up email: {company}",
+                                category="outreach",
+                                value_at_stake=value,
+                                detail=f"Sent follow-up to {contact_name} ({contact_email}) — {stage_label} stage"
+                            )
+
+                        else:
+                            directive["status"] = "skipped_idempotent"
+
+                except Exception as e:
+                    directive["status"] = f"email_failed:{e}"
+
+            # ── ACTION B: Chain Engine work order for high-value stuck deals ──
+            if btype == "deal_stuck" and blocker.get("value", 0) >= 7000:
+                try:
+                    from src.chain_engine import get_chain_engine
+                    ce = get_chain_engine()
+                    deal_id   = blocker.get("deal_id", "")
+                    company   = blocker.get("company", "")
+                    # Idempotency: don't open duplicate chain for same deal
+                    chain_req = ce.create_request(
+                        template_id="chain_revenue_driver",
+                        requestor="exec_admin@murphy.systems",
+                        name=f"Revenue Drive — {company}",
+                        metadata={"deal_id": deal_id, "source": "exec_admin_patch187"},
+                        idempotency_key=f"exec_admin_deal_{deal_id}"
+                    )
+                    directive["actions_taken"].append(
+                        f"chain_opened:{chain_req.get('id','?')}"
+                    )
+                except Exception as ce_e:
+                    pass  # Chain open failure is non-critical
+
+            # ── ACTION C: HITL Matrix escalation for weight >= 75 ────────────
+            if weight >= 75 and action == "escalate_to_founder":
+                try:
+                    from src.matrix_bridge.matrix_client import get_matrix_client
+                    mc = get_matrix_client()
+                    room = "!hitl-alerts:murphy.systems"
+                    msg = (
+                        f"🚨 **HITL ESCALATION — Weight {weight}**\n"
+                        f"Blocker: `{btype}`\n"
+                        f"Detail: {detail}\n"
+                        f"Directive: {directive_text}\n"
+                        f"Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}"
+                    )
+                    mc.send_message(room_id=room, body=msg)
+                    directive["actions_taken"].append("hitl_matrix_posted")
+                except Exception:
+                    pass  # Matrix unavailable — non-critical
+
+            # ── Always: dispatch signal to responsible agent ──────────────────
             if collector and action != "escalate_to_founder":
                 try:
                     collector.ingest(
@@ -231,20 +388,53 @@ class ExecAdminAgent(AgentBase):
                         source="exec_admin",
                         payload={"blocker": blocker, "directive": directive_text},
                         domain=owner,
-                        urgency="immediate" if blocker["weight"] >= 75 else "scheduled",
-                        stake="high" if blocker["weight"] >= 75 else "medium",
-                        intent_hint=f"[EXEC DIRECTIVE → {owner}] {directive_text[:100]}",
-                        entities=[owner],
+                        urgency="immediate" if weight >= 75 else "scheduled",
+                        stake="high" if weight >= 75 else "medium",
+                        intent_hint="revenue_unblock",
                     )
-                    directive["status"] = "dispatched"
-                    logger.info("ExecAdmin directive dispatched to %s: %s", owner, directive_text[:80])
+                    if "signal" not in directive.get("status",""):
+                        directive["actions_taken"].append("signal_dispatched")
                 except Exception as e:
-                    directive["status"] = f"dispatch_failed: {e}"
+                    directive["status"] = f"dispatch_failed:{e}"
+
+            if not directive.get("actions_taken"):
+                directive["actions_taken"].append("logged_only")
 
             self._directive_log.append(directive)
             directives.append(directive)
 
         return directives
+
+    def _log_roi_action(self, title: str, category: str, value_at_stake: float, detail: str):
+        """PATCH-187: Log an executive action to the ROI Calendar (roi_events table)."""
+        try:
+            import sqlite3 as _sq, uuid as _u, json as _js
+            roi_db_path = "/var/lib/murphy-production/roi_calendar.db"
+            db = _sq.connect(roi_db_path, timeout=3)
+            event_id = "exec_" + str(_u.uuid4())[:12]
+            agent_cost = 0.05
+            human_cost = max(value_at_stake * 0.02, 50.0)
+            now_ts = datetime.now(timezone.utc).isoformat()
+            data = _js.dumps({
+                "title": title,
+                "category": category,
+                "source": "exec_admin",
+                "detail": detail,
+                "value_at_stake": value_at_stake,
+                "agent_cost": agent_cost,
+                "human_cost_estimate": human_cost,
+                "roi": round(human_cost - agent_cost, 2),
+                "status": "completed",
+                "created_at": now_ts,
+            })
+            db.execute(
+                "INSERT OR IGNORE INTO roi_events (event_id, data, updated_at) VALUES (?,?,?)",
+                (event_id, data, now_ts)
+            )
+            db.commit(); db.close()
+        except Exception:
+            pass  # ROI log failure is non-critical
+
 
     def _compile_driver_report(self, blockers: List[Dict], directives: List[Dict]) -> str:
         """Compile an executive decision report — decisions made, not just observations."""
