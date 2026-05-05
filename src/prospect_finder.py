@@ -15,6 +15,19 @@ import urllib.parse
 from datetime import datetime, timezone
 from typing import List, Dict, Optional
 
+# Load environment from file if not already set (for test/standalone runs)
+_ENV_FILE = "/etc/murphy-production/environment"
+if os.path.exists(_ENV_FILE) and not os.environ.get("NEWSAPI_KEY"):
+    try:
+        with open(_ENV_FILE) as _ef:
+            for _line in _ef:
+                _line = _line.strip()
+                if _line and "=" in _line and not _line.startswith("#"):
+                    _k, _v = _line.split("=", 1)
+                    os.environ.setdefault(_k.strip(), _v.strip())
+    except Exception:
+        pass
+
 logger = logging.getLogger(__name__)
 
 CORPUS_DB  = "/var/lib/murphy-production/world_corpus.db"
@@ -144,6 +157,56 @@ def _insert_prospect(name: str, email: str, company: str,
     except Exception as e:
         logger.error("[ProspectFinder] insert error: %s", e)
     return contact_id
+
+
+def _already_in_crm_by_company(company: str) -> bool:
+    """Check if company already has any contact in CRM."""
+    try:
+        with _sq3.connect(CRM_DB, timeout=5) as conn:
+            row = conn.execute(
+                "SELECT id FROM contacts WHERE LOWER(company)=? LIMIT 1",
+                (company.lower(),)
+            ).fetchone()
+            return row is not None
+    except Exception:
+        return False
+
+
+def _fetch_newsapi_signals() -> List[str]:
+    """
+    Pull fresh B2B SaaS / AI / automation company signals from NewsAPI.
+    Returns list of headline strings. Requires NEWSAPI_KEY env var.
+    """
+    newsapi_key = os.environ.get("NEWSAPI_KEY", "")
+    if not newsapi_key:
+        return []
+    results = []
+    queries = [
+        "AI automation startup funding",
+        "SaaS company growth Series",
+        "B2B software company hiring",
+        "workflow automation platform launch",
+    ]
+    for q in queries[:2]:  # 2 queries to conserve API calls
+        try:
+            url = (
+                "https://newsapi.org/v2/everything?"
+                + urllib.parse.urlencode({
+                    "q": q, "apiKey": newsapi_key,
+                    "language": "en", "pageSize": 20,
+                    "sortBy": "publishedAt",
+                })
+            )
+            req = urllib.request.Request(url, headers={"User-Agent": "MurphySystem/1.0"})
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                data = json.loads(resp.read().decode())
+            for art in data.get("articles", []):
+                title = art.get("title", "") or ""
+                source = art.get("source", {}).get("name", "")
+                results.append(f"{title} | {source}")
+        except Exception as ex:
+            logger.debug("[ProspectFinder] NewsAPI signal fetch error: %s", ex)
+    return results
 
 
 def run_discovery(max_new: int = 10) -> Dict:

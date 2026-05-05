@@ -1,425 +1,557 @@
+<!-- Murphy System — Forge (Unified) / PATCH-191 / © Inoni LLC -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forge — Murphy System</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/static/murphy-app-shell.css">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Forge — Murphy System</title>
-  <!-- DS superseded by murphy-app-shell.css PATCH-154 -->
-  <style>
-    /* ── Forge-specific styles ── */
-    .forge-layout { display:flex; gap:0; height:calc(100vh - var(--topbar-height,56px)); }
-    .forge-sidebar { width:280px; flex-shrink:0; border-right:1px solid var(--border-subtle);
-      overflow-y:auto; background:var(--bg-surface); display:flex; flex-direction:column; }
-    .forge-main   { flex:1; display:flex; flex-direction:column; overflow:hidden; }
-    .forge-editor { flex:1; display:flex; flex-direction:column; overflow:hidden; }
-    .forge-output { height:220px; border-top:1px solid var(--border-subtle); flex-shrink:0;
-      background:var(--bg-base); overflow-y:auto; padding:var(--space-3);
-      font-family:var(--font-mono); font-size:var(--text-xs); }
-
-    /* Type pills */
-    .type-pills { display:flex; gap:var(--space-2); flex-wrap:wrap; margin-bottom:var(--space-3); }
-    .type-pill { padding:.25rem .75rem; border-radius:999px; border:1px solid var(--border-default);
-      background:transparent; color:var(--text-secondary); cursor:pointer; font-size:var(--text-xs);
-      font-family:var(--font-ui); transition:all .15s; }
-    .type-pill:hover  { border-color:var(--teal); color:var(--teal); }
-    .type-pill.active { background:var(--teal); border-color:var(--teal); color:var(--bg-base); font-weight:600; }
-
-    /* Code editor area */
-    .code-pane { flex:1; display:flex; flex-direction:column; overflow:hidden; padding:var(--space-4); }
-    #code-editor {
-      flex:1; width:100%; min-height:300px; resize:none;
-      background:var(--bg-base); border:1px solid var(--border-subtle);
-      border-radius:var(--radius-md); padding:var(--space-3);
-      font-family:var(--font-mono); font-size:13px; line-height:1.6;
-      color:var(--teal); outline:none; transition:border-color .2s;
-    }
-    #code-editor:focus { border-color:var(--teal); }
-
-    /* Sidebar items */
-    .forge-item-card { padding:var(--space-3); border-bottom:1px solid var(--border-subtle);
-      cursor:pointer; transition:background .15s; }
-    .forge-item-card:hover { background:var(--bg-elevated); }
-    .forge-item-card.active { background:rgba(0,212,170,.08); border-left:2px solid var(--teal); }
-    .item-badge { display:inline-block; padding:1px 6px; border-radius:4px; font-size:10px;
-      font-weight:700; text-transform:uppercase; }
-    .badge-function     { background:rgba(0,212,170,.15); color:var(--teal); }
-    .badge-module       { background:rgba(100,180,255,.15); color:#64b4ff; }
-    .badge-internal_api { background:rgba(255,200,0,.15); color:#ffd000; }
-    .badge-external_api { background:rgba(255,120,80,.15); color:#ff7850; }
-
-    /* Output lines */
-    .out-line { margin:2px 0; }
-    .out-ok  { color:var(--teal); }
-    .out-err { color:var(--danger, #ff4444); }
-    .out-inf { color:var(--text-secondary); }
-    .out-code{ color:#aee6f5; }
-
-    /* Test panel */
-    .test-panel { padding:var(--space-3); border-top:1px solid var(--border-subtle);
-      background:var(--bg-surface); }
-    #test-args { font-family:var(--font-mono); font-size:12px; }
-
-    /* Topbar for forge */
-    .forge-topbar { display:flex; align-items:center; gap:var(--space-3);
-      padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--border-subtle);
-      background:var(--bg-surface); flex-shrink:0; }
-    .forge-topbar input { flex:1; }
-  
+<style>
+/* ── Layout ── */
+.forge-layout{display:flex;gap:0;height:calc(100vh - var(--topbar-height,56px))}
+.forge-sidebar{width:260px;flex-shrink:0;border-right:1px solid var(--border-subtle);display:flex;flex-direction:column;overflow:hidden}
+.forge-main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.forge-editor{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.forge-output{height:200px;border-top:1px solid var(--border-subtle);flex-shrink:0;overflow-y:auto;padding:var(--space-3);font-family:var(--font-mono);font-size:11px;background:var(--bg)}
+/* ── Topbar ── */
+.forge-topbar{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3);border-bottom:1px solid var(--border-subtle);flex-wrap:wrap}
+.forge-topbar input{flex:1;min-width:160px}
+/* ── Type pills ── */
+.type-pills{display:flex;gap:6px;padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--border-subtle);flex-wrap:wrap}
+.type-pill{padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);color:var(--text-secondary);background:transparent;transition:all .15s}
+.type-pill.active,.type-pill:hover{border-color:var(--teal);color:var(--teal);background:rgba(0,212,170,.08)}
+/* ── Code editor ── */
+.editor-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.editor-label{font-size:10px;color:var(--text-secondary);padding:6px var(--space-3);background:var(--surface);border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between}
+#code-editor{flex:1;width:100%;padding:var(--space-3);font-family:var(--font-mono);font-size:12px;background:var(--bg);color:var(--text);border:none;outline:none;resize:none;line-height:1.5}
+/* ── Output log ── */
+.out-line{margin:1px 0;white-space:pre-wrap;line-height:1.5}
+.out-inf{color:var(--text-secondary)}
+.out-ok{color:var(--teal)}
+.out-err{color:#ff6b6b}
+.out-code{color:#ffd700}
+.out-stream{color:var(--teal);opacity:.7}
+/* ── Sidebar items ── */
+.sidebar-header{padding:var(--space-3);border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:8px}
+.sidebar-search{flex:1;font-size:12px}
+.sidebar-count{font-size:10px;color:var(--text-secondary);white-space:nowrap}
+.sidebar-list{flex:1;overflow-y:auto}
+.forge-item-card{padding:10px var(--space-3);border-bottom:1px solid var(--border-subtle);cursor:pointer;transition:background .1s}
+.forge-item-card:hover{background:var(--bg-elevated)}
+.forge-item-card.active{background:rgba(0,212,170,.08);border-left:2px solid var(--teal)}
+.item-badge{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 6px;border-radius:4px;margin-right:4px}
+.badge-function{background:rgba(0,212,170,.15);color:var(--teal)}
+.badge-module{background:rgba(130,80,255,.15);color:#a78bfa}
+.badge-internal_api{background:rgba(59,130,246,.15);color:#60a5fa}
+.badge-external_api{background:rgba(251,146,60,.15);color:#fb923c}
+/* ── Build status bar ── */
+.build-status{padding:6px var(--space-3);font-size:11px;background:rgba(0,212,170,.06);border-bottom:1px solid var(--border-subtle);display:none;align-items:center;gap:8px}
+.build-status.visible{display:flex}
+.spinner{width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* ── Rate limit bar ── */
+.rate-bar{padding:6px var(--space-3);font-size:11px;color:var(--text-secondary);border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px}
+.rate-bar-fill{height:4px;background:var(--teal);border-radius:2px;transition:width .3s}
+.rate-bar-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+/* ── Edit modal ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);padding:var(--space-6);width:460px;max-width:90vw;display:flex;flex-direction:column;gap:var(--space-4)}
+/* ── Mobile ── */
 @media(max-width:768px){
-  .shell,.layout,.app-layout,.page-wrap{flex-direction:column!important;}
-  main,.main-content,.content,.page-content{
-    padding:16px 12px!important;
-    overflow-y:auto!important;
-    -webkit-overflow-scrolling:touch!important;
-    min-height:0!important;
-    flex:1!important;
-  }
-}
-
-@media (max-width: 768px) {
-  .forge-layout { flex-direction: column !important; }
-  .forge-sidebar { display: none !important; }
-  .forge-main { width: 100% !important; padding: 12px !important; }
-  .test-panel { width: 100% !important; }
+  .forge-layout{flex-direction:column;height:auto}
+  .forge-sidebar{width:100%;height:180px;border-right:none;border-bottom:1px solid var(--border-subtle)}
+  .forge-output{height:140px}
+  #code-editor{min-height:200px}
 }
 </style>
-  <script src="/static/murphy-nav.js"></script>
 </head>
 <body>
-<script src="/static/murphy-components.js"></script>
-<script src="/static/murphy-auth-guard.js"></script>
-
 <murphy-header app-name="Forge" icon="⚡"></murphy-header>
 
 <div class="forge-layout">
 
-  <!-- ── Sidebar: item list ── -->
-  <!-- sidebar injected by murphy-nav.js PATCH-154c -->
+  <!-- ── Sidebar ─────────────────────────────────────────── -->
+  <aside class="forge-sidebar">
+    <div class="sidebar-header">
+      <input type="search" class="murphy-input sidebar-search" id="sidebar-search" placeholder="Search items…">
+      <span class="sidebar-count" id="sidebar-count">0 items</span>
+    </div>
+    <div class="sidebar-list" id="sidebar-items">
+      <div class="out-inf" style="padding:var(--space-4);font-size:11px">Loading…</div>
+    </div>
+  </aside>
 
-  <!-- ── Main editor area ── -->
+  <!-- ── Main ─────────────────────────────────────────────── -->
   <main class="forge-main">
+
+    <!-- Rate limit bar -->
+    <div class="rate-bar" id="rate-bar">
+      <span id="rate-label">Loading…</span>
+      <div class="rate-bar-track"><div class="rate-bar-fill" id="rate-fill" style="width:0%"></div></div>
+    </div>
+
+    <!-- Type pills -->
+    <div class="type-pills">
+      <button class="type-pill active" data-type="function">Function</button>
+      <button class="type-pill" data-type="module">Module</button>
+      <button class="type-pill" data-type="internal_api">Internal API</button>
+      <button class="type-pill" data-type="external_api">External API</button>
+    </div>
 
     <!-- Build bar -->
     <div class="forge-topbar">
-      <div class="type-pills">
-        <button class="type-pill active" data-type="function">ƒ Function</button>
-        <button class="type-pill" data-type="module">◈ Module</button>
-        <button class="type-pill" data-type="internal_api">⚙ Internal API</button>
-        <button class="type-pill" data-type="external_api">🌐 External API</button>
-      </div>
-    </div>
-
-    <div class="forge-topbar" style="padding-top:0;border-top:none">
       <input type="text" class="murphy-input" id="forge-desc"
-        placeholder="Describe what to build…  e.g. 'calculate compound interest given principal, rate, years'"
-        style="flex:1">
+        placeholder="Describe what to build… e.g. 'calculate compound interest'"
+        style="flex:2;min-width:200px" autocomplete="off">
       <input type="text" class="murphy-input" id="forge-name"
-        placeholder="name (optional)" style="width:160px">
+        placeholder="Name (optional)" style="flex:1;min-width:100px">
       <input type="text" class="murphy-input" id="forge-service"
-        placeholder="service (ext only)" style="width:140px;display:none" id="service-input">
+        placeholder="Service (e.g. Stripe)" style="flex:1;min-width:100px;display:none">
       <button class="murphy-btn murphy-btn-primary" id="btn-forge">⚡ Forge</button>
     </div>
 
-    <!-- Code editor + output -->
+    <!-- Build progress status -->
+    <div class="build-status" id="build-status">
+      <div class="spinner"></div>
+      <span id="build-status-text">Forging…</span>
+    </div>
+
+    <!-- Editor -->
     <div class="forge-editor">
-      <div class="code-pane">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-2)">
-          <span id="editor-label" style="font-size:var(--text-xs);color:var(--text-secondary)">Generated code will appear here</span>
-          <div style="display:flex;gap:var(--space-2)">
-            <button class="murphy-btn murphy-btn-ghost" id="btn-copy" style="font-size:11px" title="Copy code">Copy</button>
-            <button class="murphy-btn murphy-btn-secondary" id="btn-edit-nl" style="font-size:11px" title="Edit via NL">✏ Edit</button>
-            <button class="murphy-btn murphy-btn-danger"  id="btn-delete" style="font-size:11px;display:none">Delete</button>
-          </div>
-        </div>
-        <textarea id="code-editor" spellcheck="false" placeholder="# Your generated code appears here
-# You can edit it directly or use '✏ Edit' to modify via natural language"></textarea>
-      </div>
-
-      <!-- Test panel -->
-      <div class="test-panel">
-        <div style="display:flex;gap:var(--space-3);align-items:flex-end;flex-wrap:wrap">
-          <div style="flex:1">
-            <label class="murphy-label" style="font-size:11px;margin-bottom:4px">Test args (JSON)</label>
-            <input type="text" class="murphy-input murphy-input-sm" id="test-args"
-              placeholder='{"arg1": "value"}' style="font-family:var(--font-mono);font-size:12px">
-          </div>
-          <button class="murphy-btn murphy-btn-secondary" id="btn-invoke" style="flex-shrink:0">▶ Invoke</button>
+      <div class="editor-label">
+        <span id="editor-label">Generated code will appear here</span>
+        <div style="display:flex;gap:6px">
+          <button class="murphy-btn murphy-btn-ghost" id="btn-copy" style="font-size:11px">Copy</button>
+          <button class="murphy-btn murphy-btn-ghost" id="btn-edit-nl" style="font-size:11px">✏ Edit</button>
+          <button class="murphy-btn murphy-btn-ghost" id="btn-delete" style="font-size:11px;color:#ff6b6b;display:none">🗑 Delete</button>
         </div>
       </div>
-
-      <!-- Output terminal -->
-      <div class="forge-output" id="forge-output">
-        <div class="out-inf">⚡ Forge terminal ready. Describe what to build and press Forge.</div>
+      <div class="editor-wrap">
+        <textarea id="code-editor" spellcheck="false" readonly></textarea>
       </div>
     </div>
-  </main>
 
+    <!-- Invoke bar -->
+    <div class="forge-topbar" style="padding-top:0;border-top:none;border-bottom:none">
+      <input type="text" class="murphy-input" id="test-args"
+        placeholder="Invoke args JSON e.g. {&quot;x&quot;:2,&quot;y&quot;:3}"
+        style="flex:1;font-family:var(--font-mono);font-size:12px">
+      <button class="murphy-btn murphy-btn-secondary" id="btn-invoke">▶ Run</button>
+    </div>
+
+    <!-- Output log -->
+    <div class="forge-output" id="forge-output">
+      <div class="out-inf">⚡ Forge ready — describe something and click Forge.</div>
+    </div>
+
+  </main>
 </div>
 
-<!-- Edit-via-NL modal -->
-<div id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);
-  z-index:1000;display:none;align-items:center;justify-content:center">
-  <div class="murphy-card" style="width:520px;max-width:90vw">
-    <h3 style="margin-bottom:var(--space-3)">✏ Edit via Natural Language</h3>
-    <textarea id="edit-desc" class="murphy-input" rows="3" style="width:100%;resize:vertical"
-      placeholder="Describe the change…  e.g. 'add input validation that rejects negative values'"></textarea>
-    <div style="display:flex;gap:var(--space-3);margin-top:var(--space-3);justify-content:flex-end">
-      <button class="murphy-btn murphy-btn-secondary" id="btn-edit-cancel">Cancel</button>
-      <button class="murphy-btn murphy-btn-primary" id="btn-edit-confirm">✏ Apply Edit</button>
+<!-- Edit modal -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal-box">
+    <h3 style="margin:0;font-size:15px">Edit with natural language</h3>
+    <p style="margin:0;font-size:13px;color:var(--text-secondary)">Describe what to change — Murphy will rewrite the item.</p>
+    <input type="text" class="murphy-input" id="edit-desc" placeholder="e.g. 'add input validation and error handling'" autocomplete="off">
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="murphy-btn murphy-btn-ghost" id="btn-edit-cancel">Cancel</button>
+      <button class="murphy-btn murphy-btn-primary" id="btn-edit-confirm">Apply Edit</button>
     </div>
   </div>
 </div>
 
+<script src="/static/murphy-nav.js"></script>
+<script src="/static/murphy-components.js"></script>
+<script src="/static/murphy-auth-guard.js"></script>
 <script>
-/* ── ForgeUI — PATCH-133 ── */
-(function() {
-  var api       = new MurphyAPI();
-  var output    = document.getElementById('forge-output');
-  var codeEditor= document.getElementById('code-editor');
-  var editorLbl = document.getElementById('editor-label');
-  var sidebar   = document.getElementById('sidebar-items');
-  var searchIn  = document.getElementById('sidebar-search');
+/* ══════════════════════════════════════════════════════
+   Forge UI — PATCH-191 (Unified)
+   Merges: PATCH-133 sidebar/edit/invoke + demo job-polling
+   + landing rate-limit bar + streaming status
+   ══════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
 
-  var _currentType   = 'function';
-  var _currentItem   = null;   // the active forge item object
-  var _currentItemId = null;
+  /* ── State ── */
+  var _type    = 'function';
+  var _item    = null;
+  var _itemId  = null;
+  var _polling = false;
 
+  /* ── DOM refs ── */
+  var output     = document.getElementById('forge-output');
+  var codeEditor = document.getElementById('code-editor');
+  var editorLbl  = document.getElementById('editor-label');
+  var sidebar    = document.getElementById('sidebar-items');
+  var searchIn   = document.getElementById('sidebar-search');
+  var buildSt    = document.getElementById('build-status');
+  var buildStTxt = document.getElementById('build-status-text');
+
+  /* ── Log helpers ── */
   function log(msg, cls) {
-    cls = cls || 'out-inf';
     var d = document.createElement('div');
-    d.className = 'out-line ' + cls;
+    d.className = 'out-line ' + (cls || 'out-inf');
     d.textContent = msg;
     output.appendChild(d);
     output.scrollTop = output.scrollHeight;
   }
+  function logClear() { output.innerHTML = ''; }
+
+  /* ── Auth helper — get token from cookie or localStorage ── */
+  function getAuthHeader() {
+    // Try localStorage first (murphy session token)
+    var token = localStorage.getItem('murphy_session_token') ||
+                localStorage.getItem('murphy_token') ||
+                localStorage.getItem('auth_token') ||
+                sessionStorage.getItem('murphy_session_token');
+    if (token) return { 'Authorization': 'Bearer ' + token };
+    // Try to get from MurphyAuth if available
+    if (window.MurphyAuth && typeof window.MurphyAuth.getToken === 'function') {
+      var t = window.MurphyAuth.getToken();
+      if (t) return { 'Authorization': 'Bearer ' + t };
+    }
+    return {};
+  }
+
+  /* ── Fetch wrapper with auth ── */
+  async function apiFetch(method, url, body) {
+    var opts = {
+      method: method,
+      credentials: 'include',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, getAuthHeader())
+    };
+    if (body !== undefined) opts.body = JSON.stringify(body);
+    var res = await fetch(url, opts);
+    var data;
+    try { data = await res.json(); } catch(e) { data = {}; }
+    return { ok: res.ok, status: res.status, data: data };
+  }
 
   /* ── Type pills ── */
-  document.querySelectorAll('.type-pill').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.type-pill').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelectorAll('.type-pill').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.type-pill').forEach(function (b) { b.classList.remove('active'); });
       btn.classList.add('active');
-      _currentType = btn.dataset.type;
-      var svc = document.getElementById('service-input') || document.getElementById('forge-service');
-      if (svc) svc.style.display = (_currentType === 'external_api') ? '' : 'none';
+      _type = btn.dataset.type;
+      var svc = document.getElementById('forge-service');
+      if (svc) svc.style.display = (_type === 'external_api') ? '' : 'none';
       var desc = document.getElementById('forge-desc');
-      var placeholders = {
-        function:     "e.g. 'calculate compound interest given principal, rate, and years'",
-        module:       "e.g. 'a task manager with create, update, delete, and list methods'",
-        internal_api: "e.g. 'CRUD endpoints for a simple contact list'",
-        external_api: "e.g. 'Stripe billing: create customer, create subscription, get invoices'",
+      var hints = {
+        function:     "e.g. \'calculate compound interest given principal, rate, years\'",
+        module:       "e.g. \'task manager with create, update, delete, and list\'",
+        internal_api: "e.g. \'CRUD endpoints for a contacts list\'",
+        external_api: "e.g. \'Stripe: create customer, subscription, invoices\'"
       };
-      if (desc) desc.placeholder = 'Describe what to build…  ' + (placeholders[_currentType] || '');
+      if (desc) desc.placeholder = 'Describe what to build…  ' + (hints[_type] || '');
     });
   });
 
-  /* ── Forge ── */
-  document.getElementById('btn-forge').addEventListener('click', async function() {
+  /* ══════════════════════════════════════════
+     FORGE — with async job polling
+  ══════════════════════════════════════════ */
+  var btnForge = document.getElementById('btn-forge');
+
+  async function pollJob(jobId, pollUrl) {
+    var attempts = 0;
+    var maxAttempts = 90; // 90 * 2s = 3 min max
+    return new Promise(function (resolve, reject) {
+      var iv = setInterval(async function () {
+        attempts++;
+        if (attempts > maxAttempts) {
+          clearInterval(iv);
+          reject(new Error('Timed out after ' + maxAttempts + ' attempts'));
+          return;
+        }
+        try {
+          var r = await apiFetch('GET', pollUrl || '/api/forge/job/' + jobId);
+          var status = r.data.status;
+          if (status === 'done' || status === 'complete' || status === 'active') {
+            clearInterval(iv);
+            resolve(r.data);
+          } else if (status === 'error' || status === 'failed') {
+            clearInterval(iv);
+            reject(new Error(r.data.error || r.data.message || 'Build failed'));
+          } else {
+            // still queued/running
+            buildStTxt.textContent = 'Forging… (' + attempts + 's)';
+          }
+        } catch (e) {
+          // network glitch — keep polling
+        }
+      }, 2000);
+    });
+  }
+
+  btnForge.addEventListener('click', async function () {
+    if (_polling) return;
     var desc    = document.getElementById('forge-desc').value.trim();
     var name    = document.getElementById('forge-name').value.trim() || null;
     var service = document.getElementById('forge-service').value.trim() || null;
     if (!desc) { document.getElementById('forge-desc').focus(); return; }
 
-    var btn = this;
-    btn.disabled = true;
-    btn.textContent = '⏳ Forging…';
-    log('⚡ Forging ' + _currentType + ': "' + desc.slice(0,60) + (desc.length>60?'…':'"') + '"…', 'out-inf');
+    _polling = true;
+    btnForge.disabled = true;
+    btnForge.textContent = '⏳ Forging…';
+    buildSt.classList.add('visible');
+    buildStTxt.textContent = 'Queuing build…';
+    log('⚡ Forging ' + _type + ': "' + desc.slice(0, 60) + (desc.length > 60 ? '…' : '') + '"…');
 
     try {
-      var body = { description: desc, item_type: _currentType };
+      var body = { description: desc, item_type: _type };
       if (name)    body.name    = name;
       if (service) body.service = service;
 
-      var res = await api.post('/api/forge/create', body);
+      var res = await apiFetch('POST', '/api/forge/create', body);
 
       if (!res.ok) {
-        var detail = (res.data && res.data.detail) ? res.data.detail : res;
-        log('✗ ' + JSON.stringify(detail), 'out-err');
-      } else {
-        var item = res.data.forge_item;
-        _currentItem   = item;
-        _currentItemId = item.id;
-
-        codeEditor.value = item.source_code || '';
-        editorLbl.textContent = item.item_type + ' · ' + item.name +
-          (item.route ? '  →  ' + item.route : '');
-
-        document.getElementById('btn-delete').style.display = '';
-
-        log('✓ Created ' + item.item_type + ' "' + item.name + '" (' + item.critic_verdict + ')', 'out-ok');
-
-        if (item.test_result) {
-          var tr = item.test_result;
-          log('  smoke test: ' + (tr.passed ? '✓ PASSED' : '✗ FAILED') +
-              (tr.signature ? '  sig: ' + tr.signature : '') +
-              (tr.routes ? '  routes: ' + tr.routes.join(', ') : '') +
-              (tr.methods ? '  methods: ' + tr.methods.join(', ') : ''), 
-              tr.passed ? 'out-ok' : 'out-err');
-        }
-
-        if (item.route) {
-          log('  API mounted: ' + item.route, 'out-ok');
-        }
-
-        /* Set test args hint */
-        var argsHint = {};
-        if (item.item_type === 'module' || item.item_type === 'external_api') {
-          argsHint.method = item.test_result && item.test_result.methods ?
-            item.test_result.methods[0] : 'health_check';
-        }
-        document.getElementById('test-args').value = JSON.stringify(argsHint);
-
-        refreshSidebar();
+        log('✗ ' + (res.data.detail || res.data.error || JSON.stringify(res.data)), 'out-err');
+        _polling = false; btnForge.disabled = false; btnForge.textContent = '⚡ Forge';
+        buildSt.classList.remove('visible');
+        return;
       }
-    } catch(e) {
+
+      var d = res.data;
+
+      // ── Async path: job_id returned ──
+      if (d.job_id) {
+        log('  Job queued: ' + d.job_id, 'out-stream');
+        buildStTxt.textContent = 'Building… (usually 5-30s)';
+        try {
+          var jobResult = await pollJob(d.job_id, d.poll_url);
+          var item = jobResult.forge_item || jobResult.result || jobResult;
+          _onForgeItem(item);
+        } catch (e) {
+          log('✗ Build error: ' + e.message, 'out-err');
+        }
+
+      // ── Sync path: forge_item returned immediately ──
+      } else if (d.forge_item) {
+        _onForgeItem(d.forge_item);
+
+      // ── Fallback ──
+      } else {
+        log('✓ Response: ' + JSON.stringify(d).slice(0, 200), 'out-ok');
+      }
+
+    } catch (e) {
       log('✗ Network error: ' + e.message, 'out-err');
     }
-    btn.disabled = false;
-    btn.textContent = '⚡ Forge';
+
+    _polling = false;
+    btnForge.disabled = false;
+    btnForge.textContent = '⚡ Forge';
+    buildSt.classList.remove('visible');
+    loadRateBar();
   });
 
-  /* ── Invoke ── */
-  var _btnInvoke = document.getElementById('btn-invoke');
-  if (_btnInvoke) _btnInvoke.addEventListener('click', async function() {
-    if (!_currentItem) { log('⚠ No item selected — forge or click an item first', 'out-inf'); return; }
+  function _onForgeItem(item) {
+    if (!item || typeof item !== 'object') {
+      log('⚠ Unexpected result shape', 'out-err');
+      return;
+    }
+    _item   = item;
+    _itemId = item.id;
+
+    codeEditor.value = item.source_code || item.code || '';
+    editorLbl.textContent = (item.item_type || _type) + ' · ' + (item.name || '?') +
+      (item.route ? '  →  ' + item.route : '');
+
+    document.getElementById('btn-delete').style.display = '';
+
+    var verdict = item.critic_verdict || item.verdict || '';
+    log('✓ Built: ' + (item.name || '?') + (verdict ? ' [' + verdict + ']' : ''), 'out-ok');
+
+    if (item.test_result) {
+      var tr = item.test_result;
+      log('  Test: ' + (tr.passed ? '✓ PASS' : '✗ FAIL') +
+          (tr.signature ? '  sig: ' + tr.signature : '') +
+          (tr.routes ? '  routes: ' + tr.routes.join(', ') : ''),
+          tr.passed ? 'out-ok' : 'out-err');
+    }
+    if (item.route) log('  Mounted: ' + item.route, 'out-ok');
+
+    // Set type pill to match
+    document.querySelectorAll('.type-pill').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.type === (item.item_type || _type));
+    });
+    _type = item.item_type || _type;
+
+    // Set invoke hint
+    var argsHint = {};
+    if (_type === 'module' || _type === 'external_api') {
+      argsHint.method = (item.test_result && item.test_result.methods) ?
+        item.test_result.methods[0] : 'health_check';
+    }
+    document.getElementById('test-args').value = JSON.stringify(argsHint);
+
+    refreshSidebar();
+  }
+
+  /* ══════════════════════════════════════════
+     INVOKE
+  ══════════════════════════════════════════ */
+  document.getElementById('btn-invoke').addEventListener('click', async function () {
+    if (!_item) { log('⚠ No item selected — forge or click an item first'); return; }
     var argsRaw = document.getElementById('test-args').value.trim() || '{}';
     var args;
-    try { args = JSON.parse(argsRaw); } catch(e) { log('✗ Invalid JSON args: ' + e.message, 'out-err'); return; }
+    try { args = JSON.parse(argsRaw); }
+    catch (e) { log('✗ Invalid JSON: ' + e.message, 'out-err'); return; }
 
     var btn = this;
     btn.disabled = true;
-    log('▶ Invoking ' + _currentItem.name + ' with ' + argsRaw + '…', 'out-inf');
+    log('▶ Invoking ' + _item.name + ' …', 'out-inf');
 
     try {
-      var res = await api.post('/api/forge/invoke', { name: _currentItem.name, args: args });
+      var res = await apiFetch('POST', '/api/forge/invoke', { name: _item.name, args: args });
       if (!res.ok) {
-        log('✗ ' + JSON.stringify(res.data && res.data.detail || res.data), 'out-err');
+        log('✗ ' + JSON.stringify(res.data.detail || res.data), 'out-err');
       } else {
         log('← ' + JSON.stringify(res.data.result !== undefined ? res.data.result : res.data, null, 2), 'out-code');
       }
-    } catch(e) {
-      log('✗ Network error: ' + e.message, 'out-err');
-    }
+    } catch (e) { log('✗ ' + e.message, 'out-err'); }
     btn.disabled = false;
   });
 
-  /* ── Copy ── */
-  document.getElementById('btn-copy').addEventListener('click', function() {
-    var code = codeEditor.value;
-    if (!code) return;
-    navigator.clipboard.writeText(code).then(function() {
-      log('✓ Copied to clipboard', 'out-ok');
-    });
+  /* ══════════════════════════════════════════
+     COPY / DELETE / EDIT
+  ══════════════════════════════════════════ */
+  document.getElementById('btn-copy').addEventListener('click', function () {
+    if (!codeEditor.value) return;
+    navigator.clipboard.writeText(codeEditor.value)
+      .then(function () { log('✓ Copied to clipboard', 'out-ok'); });
   });
 
-  /* ── Delete ── */
-  document.getElementById('btn-delete').addEventListener('click', async function() {
-    if (!_currentItemId) return;
-    if (!confirm('Delete this forge item?')) return;
-    await api.request('DELETE', '/api/forge/item/' + _currentItemId);
+  document.getElementById('btn-delete').addEventListener('click', async function () {
+    if (!_itemId || !confirm('Delete this forge item?')) return;
+    await apiFetch('DELETE', '/api/forge/item/' + _itemId);
     log('✓ Deleted', 'out-ok');
     codeEditor.value = '';
     editorLbl.textContent = 'Generated code will appear here';
-    _currentItem = null; _currentItemId = null;
+    _item = null; _itemId = null;
     document.getElementById('btn-delete').style.display = 'none';
     refreshSidebar();
   });
 
-  /* ── Edit modal ── */
   var editModal = document.getElementById('edit-modal');
-  document.getElementById('btn-edit-nl').addEventListener('click', function() {
-    if (!_currentItem) { log('⚠ No item selected', 'out-inf'); return; }
-    editModal.style.display = 'flex';
+  document.getElementById('btn-edit-nl').addEventListener('click', function () {
+    if (!_item) { log('⚠ No item selected'); return; }
+    editModal.classList.add('open');
     document.getElementById('edit-desc').focus();
   });
-  document.getElementById('btn-edit-cancel').addEventListener('click', function() {
-    editModal.style.display = 'none';
+  document.getElementById('btn-edit-cancel').addEventListener('click', function () {
+    editModal.classList.remove('open');
   });
-  document.getElementById('btn-edit-confirm').addEventListener('click', async function() {
+  document.getElementById('btn-edit-confirm').addEventListener('click', async function () {
     var editDesc = document.getElementById('edit-desc').value.trim();
     if (!editDesc) return;
-    editModal.style.display = 'none';
-    log('✏ Editing "' + _currentItem.name + '": ' + editDesc.slice(0,60) + '…', 'out-inf');
-
-    var btn = this;
-    btn.disabled = true;
-
+    editModal.classList.remove('open');
+    log('✏ Editing "' + _item.name + '": ' + editDesc.slice(0, 60) + '…');
+    buildSt.classList.add('visible');
+    buildStTxt.textContent = 'Applying edit…';
+    var btn = this; btn.disabled = true;
     try {
-      var res = await api.post('/api/forge/edit', { name: _currentItem.name, edit_description: editDesc });
+      var res = await apiFetch('POST', '/api/forge/edit', { name: _item.name, edit_description: editDesc });
       if (!res.ok) {
-        log('✗ Edit failed: ' + JSON.stringify(res.data && res.data.detail || res.data), 'out-err');
+        log('✗ Edit failed: ' + JSON.stringify(res.data.detail || res.data), 'out-err');
       } else {
-        codeEditor.value = res.data.source_code || '';
+        var item = res.data.forge_item || res.data;
+        codeEditor.value = item.source_code || res.data.source_code || '';
         log('✓ Edit applied', 'out-ok');
+        if (item.id) { _item = item; _itemId = item.id; }
         refreshSidebar();
       }
-    } catch(e) {
-      log('✗ ' + e.message, 'out-err');
-    }
+    } catch (e) { log('✗ ' + e.message, 'out-err'); }
     btn.disabled = false;
+    buildSt.classList.remove('visible');
   });
 
-  /* ── Sidebar ── */
+  /* ══════════════════════════════════════════
+     SIDEBAR
+  ══════════════════════════════════════════ */
   async function refreshSidebar() {
     try {
-      var res = await api.get('/api/forge/list');
-      if (!res.ok) { sidebar.innerHTML = '<div class="out-err" style="padding:var(--space-4)">Load failed</div>'; return; }
+      var res = await apiFetch('GET', '/api/forge/list');
+      if (!res.ok) { sidebar.innerHTML = '<div class="out-err" style="padding:12px">Failed to load items</div>'; return; }
       var items = res.data.items || [];
-      var q = searchIn.value.toLowerCase();
-      if (q) items = items.filter(function(i){ return i.name.includes(q) || (i.description||'').toLowerCase().includes(q); });
-      if (items.length === 0) {
-        sidebar.innerHTML = '<div class="out-inf" style="padding:var(--space-4);font-size:var(--text-xs)">No items yet. Describe something and click ⚡ Forge.</div>';
+      var q = (searchIn.value || '').toLowerCase();
+      if (q) items = items.filter(function (i) {
+        return i.name.toLowerCase().includes(q) || (i.description || '').toLowerCase().includes(q);
+      });
+      document.getElementById('sidebar-count').textContent = items.length + ' item' + (items.length !== 1 ? 's' : '');
+      if (!items.length) {
+        sidebar.innerHTML = '<div class="out-inf" style="padding:12px;font-size:11px">No items yet. Describe something and click ⚡ Forge.</div>';
         return;
       }
-      sidebar.innerHTML = items.map(function(it) {
-        return '<div class="forge-item-card' + (it.id===_currentItemId?' active':'') + '" data-id="'+it.id+'">' +
-          '<span class="item-badge badge-'+it.item_type+'">'+it.item_type.replace('_',' ')+'</span> ' +
-          '<strong style="font-size:var(--text-xs);font-family:var(--font-mono)">' + it.name + '</strong>' +
+      sidebar.innerHTML = items.map(function (it) {
+        return '<div class="forge-item-card' + (it.id === _itemId ? ' active' : '') + '" data-id="' + it.id + '">' +
+          '<span class="item-badge badge-' + it.item_type + '">' + it.item_type.replace('_', ' ') + '</span>' +
+          '<strong style="font-size:11px;font-family:var(--font-mono)">' + it.name + '</strong>' +
           '<div style="font-size:10px;color:var(--text-secondary);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' +
-          (it.description||'').slice(0,60) + '</div>' +
-          (it.route ? '<div style="font-size:9px;color:var(--teal);margin-top:2px">'+it.route+'</div>' : '') +
+          (it.description || '').slice(0, 55) + '</div>' +
+          (it.route ? '<div style="font-size:9px;color:var(--teal);margin-top:2px">' + it.route + '</div>' : '') +
           '</div>';
       }).join('');
 
-      sidebar.querySelectorAll('.forge-item-card').forEach(function(card) {
-        card.addEventListener('click', async function() {
+      sidebar.querySelectorAll('.forge-item-card').forEach(function (card) {
+        card.addEventListener('click', async function () {
           var id = this.dataset.id;
-          var res2 = await api.get('/api/forge/item/' + id);
-          if (!res2.ok) return;
-          var item = res2.data;
-          _currentItem   = item;
-          _currentItemId = item.id;
+          var r2 = await apiFetch('GET', '/api/forge/item/' + id);
+          if (!r2.ok) return;
+          var item = r2.data;
+          _item = item; _itemId = item.id;
           codeEditor.value = item.source_code || '';
           editorLbl.textContent = item.item_type + ' · ' + item.name +
             (item.route ? '  →  ' + item.route : '');
           document.getElementById('btn-delete').style.display = '';
-          /* Set type pill */
-          document.querySelectorAll('.type-pill').forEach(function(b){
+          document.querySelectorAll('.type-pill').forEach(function (b) {
             b.classList.toggle('active', b.dataset.type === item.item_type);
           });
-          _currentType = item.item_type;
-          sidebar.querySelectorAll('.forge-item-card').forEach(function(c){
+          _type = item.item_type;
+          sidebar.querySelectorAll('.forge-item-card').forEach(function (c) {
             c.classList.toggle('active', c.dataset.id === id);
           });
         });
       });
-    } catch(e) {
-      sidebar.innerHTML = '<div class="out-err" style="padding:var(--space-4);font-size:var(--text-xs)">'+e.message+'</div>';
+    } catch (e) {
+      sidebar.innerHTML = '<div class="out-err" style="padding:12px;font-size:11px">' + e.message + '</div>';
     }
   }
 
-  searchIn.addEventListener('input', refreshSidebar);
-  document.getElementById('btn-refresh-list').addEventListener('click', refreshSidebar);
+  searchIn.addEventListener('input', function () { refreshSidebar(); });
 
-  /* Enter on desc to forge */
-  document.getElementById('forge-desc').addEventListener('keydown', function(e){
-    if ((e.ctrlKey||e.metaKey) && e.key==='Enter') document.getElementById('btn-forge').click();
-  });
+  /* ══════════════════════════════════════════
+     RATE LIMIT BAR (from landing page)
+  ══════════════════════════════════════════ */
+  async function loadRateBar() {
+    try {
+      var res = await apiFetch('GET', '/api/forge/status');
+      if (!res.ok) return;
+      var d = res.data;
+      var bar   = document.getElementById('rate-bar');
+      var lbl   = document.getElementById('rate-label');
+      var fill  = document.getElementById('rate-fill');
+      if (!bar) return;
+      if (d.builds_remaining_today !== undefined && d.builds_remaining_today >= 0) {
+        var used  = d.builds_used_today || 0;
+        var limit = used + d.builds_remaining_today;
+        var pct   = limit > 0 ? Math.round((used / limit) * 100) : 0;
+        lbl.textContent  = used + ' / ' + limit + ' builds used today';
+        fill.style.width = pct + '%';
+      } else {
+        // Enterprise / unlimited
+        lbl.textContent = d.active_items + ' items in forge  ·  ' + (d.tenant_id || 'default') + '  ·  ' + (d.patch || '');
+        fill.style.width = '0%';
+      }
+    } catch (e) { /* silent */ }
+  }
 
-  /* Init */
+  /* ── Init ── */
   refreshSidebar();
+  loadRateBar();
+
 })();
 </script>
-
 </body>
 </html>
