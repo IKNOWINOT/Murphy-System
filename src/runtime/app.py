@@ -1254,25 +1254,6 @@ def create_app() -> FastAPI:
             "MURPHY_CORS_ORIGINS",
             "http://localhost:3000,http://localhost:8080,http://localhost:8000",
         ).split(",")
-        # PATCH-194b: Case-insensitive URL middleware — /UI/ → /ui/, /API/ → /api/
-    from starlette.middleware.base import BaseHTTPMiddleware
-    from starlette.responses import RedirectResponse as _RedirectResponse194
-
-    class _PathCaseMiddleware(BaseHTTPMiddleware):
-        """Redirect any request where the path has uppercase to lowercase equivalent."""
-        async def dispatch(self, request, call_next):
-            path = request.url.path
-            lower = path.lower()
-            if path != lower:
-                # Preserve query string
-                qs = request.url.query
-                target = lower + ("?" + qs if qs else "")
-                return _RedirectResponse194(target, status_code=301)
-            return await call_next(request)
-
-    app.add_middleware(_PathCaseMiddleware)
-    logger.info("[PATCH-194b] Path case-insensitive middleware active")
-
     app.add_middleware(
             CORSMiddleware,
             allow_origins=[o.strip() for o in _cors_origins],
