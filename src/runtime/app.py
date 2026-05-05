@@ -17276,6 +17276,25 @@ def create_app() -> FastAPI:
 
     if _OIDCMW is not None:
         app.add_middleware(_OIDCMW)
+
+        # PATCH-194b: Lowercase path redirect — /UI/ /API/ /Static/ etc → lowercase
+        try:
+            from starlette.middleware.base import BaseHTTPMiddleware as _BMW194b
+            from starlette.responses import RedirectResponse as _RR194b
+
+            class _CaseMW(_BMW194b):
+                async def dispatch(self, request, call_next):
+                    path = request.url.path
+                    lower = path.lower()
+                    if path != lower:
+                        qs = request.url.query
+                        return _RR194b(lower + ("?" + qs if qs else ""), status_code=301)
+                    return await call_next(request)
+
+            app.add_middleware(_CaseMW)
+            logger.info("[PATCH-194b] Case-insensitive URL middleware active")
+        except Exception as _e194b:
+            logger.warning("[PATCH-194b] Case middleware skipped: %s", _e194b)
     else:
         # Fallback: keep the previous inline X-API-Key middleware so
         # deployments without ``src.auth_middleware`` on PYTHONPATH keep
