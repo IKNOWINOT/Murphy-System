@@ -1,0 +1,510 @@
+<!-- Murphy System — Resume Builder / PATCH-193 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Resume Builder — Murphy System</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
+<style>
+/* ── Layout ── */
+.rb-layout{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr;gap:0;height:calc(100vh - var(--topbar-height,56px));overflow:hidden}
+.rb-left{display:flex;flex-direction:column;border-right:1px solid var(--border-subtle);overflow:hidden}
+.rb-right{display:flex;flex-direction:column;overflow:hidden}
+.rb-toolbar{display:flex;align-items:center;gap:8px;padding:10px var(--space-4);border-bottom:1px solid var(--border-subtle);background:var(--surface);flex-wrap:wrap}
+.rb-body{flex:1;overflow-y:auto;padding:var(--space-4)}
+
+/* ── Tabs ── */
+.rb-tabs{display:flex;border-bottom:1px solid var(--border-subtle);background:var(--surface)}
+.rb-tab{padding:10px 16px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text-secondary);border-bottom:2px solid transparent;white-space:nowrap}
+.rb-tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+
+/* ── Input area ── */
+.rb-textarea{width:100%;min-height:280px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text);font-size:12px;font-family:var(--font-mono);padding:12px;resize:vertical;line-height:1.6}
+.rb-textarea:focus{outline:none;border-color:var(--teal)}
+.rb-upload-zone{border:2px dashed var(--border);border-radius:var(--radius-lg);padding:32px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.rb-upload-zone:hover,.rb-upload-zone.drag-over{border-color:var(--teal);background:rgba(0,212,170,.04)}
+.rb-upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.rb-upload-icon{font-size:32px;margin-bottom:8px}
+
+/* ── Score ring ── */
+.score-ring{display:flex;flex-direction:column;align-items:center;gap:2px}
+.score-num{font-size:28px;font-weight:700;color:var(--teal);line-height:1}
+.score-lbl{font-size:9px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em}
+.score-bars{display:flex;flex-direction:column;gap:5px;flex:1}
+.score-row{display:flex;align-items:center;gap:8px;font-size:10px}
+.score-name{width:100px;color:var(--text-secondary);flex-shrink:0}
+.score-bar{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.score-fill{height:100%;border-radius:3px;background:var(--teal);transition:width .5s}
+
+/* ── Suggestion chips ── */
+.suggestions{display:flex;flex-direction:column;gap:6px;margin-top:var(--space-3)}
+.sugg-chip{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.2);border-radius:var(--radius-md);font-size:11px;color:var(--text)}
+.sugg-icon{color:var(--teal);flex-shrink:0;margin-top:1px}
+
+/* ── Polished preview ── */
+.polished-section{margin-bottom:var(--space-4)}
+.sec-title{font-size:10px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid rgba(0,212,170,.2)}
+.sec-body{font-size:12px;color:var(--text);line-height:1.7;white-space:pre-wrap}
+
+/* ── History ── */
+.history-item{padding:10px 12px;border-bottom:1px solid var(--border-subtle);cursor:pointer;transition:background .15s}
+.history-item:hover{background:var(--surface)}
+
+/* ── Status ── */
+.rb-status{padding:8px var(--space-4);font-size:11px;color:var(--text-secondary);border-top:1px solid var(--border-subtle);background:var(--surface)}
+.spinner{width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── PDF ready banner ── */
+.pdf-banner{background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.3);border-radius:var(--radius-lg);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3)}
+
+/* ── Responsive ── */
+@media(max-width:860px){
+  .rb-layout{grid-template-columns:1fr;grid-template-rows:auto auto auto auto}
+  .rb-left,.rb-right{border-right:none}
+}
+</style>
+</head>
+<body>
+<murphy-header app-name="Resume Builder" icon="📄"></murphy-header>
+
+<div class="rb-layout">
+
+  <!-- ══ LEFT: INPUT ══ -->
+  <div class="rb-left">
+    <div class="rb-tabs" id="input-tabs">
+      <div class="rb-tab active" data-tab="paste">✏️ Paste Text</div>
+      <div class="rb-tab" data-tab="upload">📎 Upload File</div>
+      <div class="rb-tab" data-tab="history">🕐 History</div>
+    </div>
+
+    <!-- Paste panel -->
+    <div class="rb-body" id="panel-paste">
+      <div style="margin-bottom:10px">
+        <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:4px">Your Resume (paste raw text, bullet points, anything)</label>
+        <textarea class="rb-textarea" id="inp-raw" placeholder="Paste your current resume here — any format works.
+
+John Smith
+john@email.com | (555) 123-4567 | linkedin.com/in/johnsmith
+
+EXPERIENCE
+Senior Engineer — Acme Corp (2020–Present)
+- Built microservices handling 10M requests/day
+- Led team of 5 engineers
+
+EDUCATION
+BS Computer Science — State University 2018
+
+SKILLS
+Python, React, AWS, Docker, PostgreSQL..."></textarea>
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:4px">Job Description (optional — tailors the resume to a specific role)</label>
+        <textarea class="rb-textarea" id="inp-job" style="min-height:100px" placeholder="Paste the job description here to tailor your resume to this specific role..."></textarea>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" class="murphy-input" id="inp-name" placeholder="Full name override (optional)" style="flex:1">
+      </div>
+    </div>
+
+    <!-- Upload panel -->
+    <div class="rb-body" id="panel-upload" style="display:none">
+      <div class="rb-upload-zone" id="upload-zone">
+        <input type="file" id="file-input" accept=".pdf,.docx,.doc,.txt">
+        <div class="rb-upload-icon">📎</div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px">Drop your resume here</div>
+        <div style="font-size:11px;color:var(--text-secondary)">PDF, DOCX, TXT — max 5MB</div>
+        <div id="file-name" style="margin-top:8px;font-size:11px;color:var(--teal)"></div>
+      </div>
+      <div style="margin-top:var(--space-3)">
+        <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:4px">Job Description (optional)</label>
+        <textarea class="rb-textarea" id="inp-job-upload" style="min-height:80px" placeholder="Paste job description to tailor..."></textarea>
+      </div>
+    </div>
+
+    <!-- History panel -->
+    <div class="rb-body" id="panel-history" style="display:none;padding:0">
+      <div id="history-list">
+        <div style="padding:20px;text-align:center;font-size:12px;color:var(--text-secondary)">Loading history…</div>
+      </div>
+    </div>
+
+    <!-- Bottom toolbar -->
+    <div class="rb-toolbar">
+      <button class="murphy-btn murphy-btn-primary" id="btn-build" style="font-size:12px">
+        ✨ Polish & Generate PDF
+      </button>
+      <button class="murphy-btn murphy-btn-ghost" id="btn-polish-only" style="font-size:12px">
+        💬 Polish Only
+      </button>
+      <div style="flex:1"></div>
+      <span style="font-size:10px;color:var(--text-secondary)">Powered by Murphy Forge</span>
+    </div>
+    <div class="rb-status" id="rb-status">Ready — paste your resume or upload a file to get started.</div>
+  </div>
+
+  <!-- ══ RIGHT: OUTPUT ══ -->
+  <div class="rb-right">
+    <div class="rb-tabs" id="output-tabs">
+      <div class="rb-tab active" data-tab="out-polished">✨ Polished</div>
+      <div class="rb-tab" data-tab="out-score">📊 Score</div>
+      <div class="rb-tab" data-tab="out-suggestions">💡 Suggestions</div>
+    </div>
+
+    <div class="rb-body" id="panel-out-polished">
+      <div id="pdf-banner" style="display:none" class="pdf-banner">
+        <div>
+          <div style="font-size:13px;font-weight:600">📄 PDF Ready</div>
+          <div style="font-size:11px;color:var(--text-secondary)" id="pdf-meta"></div>
+        </div>
+        <a id="btn-download" href="#" class="murphy-btn murphy-btn-primary" style="font-size:12px;text-decoration:none" target="_blank">
+          ⬇ Download PDF
+        </a>
+      </div>
+      <div id="polished-output">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px;gap:12px;color:var(--text-secondary)">
+          <div style="font-size:36px;opacity:.3">📄</div>
+          <div style="font-size:13px;font-weight:600">Your polished resume will appear here</div>
+          <div style="font-size:11px">Paste text or upload a file, then click Polish & Generate PDF</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rb-body" id="panel-out-score" style="display:none">
+      <div id="score-output">
+        <div style="color:var(--text-secondary);font-size:12px;text-align:center;padding:40px 0">Run a build to see your resume score.</div>
+      </div>
+    </div>
+
+    <div class="rb-body" id="panel-out-suggestions" style="display:none">
+      <div id="suggestions-output">
+        <div style="color:var(--text-secondary);font-size:12px;text-align:center;padding:40px 0">Suggestions will appear after polishing.</div>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- /rb-layout -->
+
+<script src="/static/murphy-nav.js"></script>
+<script src="/static/murphy-components.js"></script>
+<script src="/static/murphy-auth-guard.js"></script>
+<script>
+(function () {
+'use strict';
+
+var _currentResumeId = null;
+var _uploadedFile    = null;
+var _activeInputTab  = 'paste';
+var _activeOutputTab = 'out-polished';
+
+/* ── Auth ── */
+function authHeaders() {
+  var token = localStorage.getItem('murphy_session_token') ||
+              localStorage.getItem('murphy_token') ||
+              sessionStorage.getItem('murphy_session_token');
+  if (token) return { 'Authorization': 'Bearer ' + token };
+  if (window.MurphyAuth && typeof window.MurphyAuth.getToken === 'function') {
+    var t = window.MurphyAuth.getToken();
+    if (t) return { 'Authorization': 'Bearer ' + t };
+  }
+  return {};
+}
+
+function status(msg, loading) {
+  var el = document.getElementById('rb-status');
+  el.innerHTML = loading ? '<span class="spinner"></span>' + msg : msg;
+}
+
+/* ── Input tabs ── */
+document.querySelectorAll('#input-tabs .rb-tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    _activeInputTab = this.dataset.tab;
+    document.querySelectorAll('#input-tabs .rb-tab').forEach(function(t){t.classList.remove('active')});
+    this.classList.add('active');
+    document.getElementById('panel-paste').style.display   = _activeInputTab==='paste'   ? '' : 'none';
+    document.getElementById('panel-upload').style.display  = _activeInputTab==='upload'  ? '' : 'none';
+    document.getElementById('panel-history').style.display = _activeInputTab==='history' ? '' : 'none';
+    if (_activeInputTab === 'history') loadHistory();
+  });
+});
+
+/* ── Output tabs ── */
+document.querySelectorAll('#output-tabs .rb-tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    _activeOutputTab = this.dataset.tab;
+    document.querySelectorAll('#output-tabs .rb-tab').forEach(function(t){t.classList.remove('active')});
+    this.classList.add('active');
+    ['out-polished','out-score','out-suggestions'].forEach(function(id) {
+      document.getElementById('panel-' + id).style.display = id === _activeOutputTab ? '' : 'none';
+    });
+  });
+});
+
+/* ── File upload zone ── */
+var uploadZone = document.getElementById('upload-zone');
+var fileInput  = document.getElementById('file-input');
+
+['dragenter','dragover'].forEach(function(ev) {
+  uploadZone.addEventListener(ev, function(e){ e.preventDefault(); uploadZone.classList.add('drag-over'); });
+});
+['dragleave','drop'].forEach(function(ev) {
+  uploadZone.addEventListener(ev, function(e){ e.preventDefault(); uploadZone.classList.remove('drag-over'); });
+});
+uploadZone.addEventListener('drop', function(e) {
+  var f = e.dataTransfer.files[0];
+  if (f) setFile(f);
+});
+fileInput.addEventListener('change', function() {
+  if (this.files[0]) setFile(this.files[0]);
+});
+
+function setFile(f) {
+  _uploadedFile = f;
+  document.getElementById('file-name').textContent = '📎 ' + f.name + ' (' + Math.round(f.size/1024) + ' KB)';
+}
+
+/* ── Build (full pipeline) ── */
+document.getElementById('btn-build').addEventListener('click', async function() {
+  await runBuild(true);
+});
+document.getElementById('btn-polish-only').addEventListener('click', async function() {
+  await runBuild(false);
+});
+
+async function runBuild(generatePdf) {
+  var btn = document.getElementById('btn-build');
+  btn.disabled = true;
+  status('Sending to Murphy Forge…', true);
+
+  try {
+    var result;
+
+    if (_activeInputTab === 'upload' && _uploadedFile) {
+      // Multipart form upload
+      status('Uploading ' + _uploadedFile.name + '…', true);
+      var fd = new FormData();
+      fd.append('file', _uploadedFile);
+      fd.append('job_description', document.getElementById('inp-job-upload').value || '');
+      fd.append('user_id', 'default');
+
+      var hdrs = authHeaders();
+      var resp = await fetch('/api/resume/upload', { method: 'POST', headers: hdrs, body: fd, credentials: 'include' });
+      result = await resp.json();
+
+    } else {
+      // JSON text build
+      var raw = document.getElementById('inp-raw').value.trim();
+      var job = document.getElementById('inp-job').value.trim();
+      var name = document.getElementById('inp-name').value.trim();
+      if (!raw) { status('Paste your resume text first.'); btn.disabled=false; return; }
+
+      if (!generatePdf) {
+        // Polish only
+        status('Polishing with LLM…', true);
+        var hdrs2 = Object.assign({'Content-Type':'application/json'}, authHeaders());
+        var r2 = await fetch('/api/resume/polish', {
+          method: 'POST', headers: hdrs2, credentials: 'include',
+          body: JSON.stringify({raw_text: raw, job_description: job})
+        });
+        var polResult = await r2.json();
+        if (polResult.success) {
+          renderPolished({polished_sections: polResult.polished_sections, polished_text: polResult.polished_text});
+          renderScore(polResult.score || {});
+          renderSuggestions(polResult.suggestions || []);
+          status('✓ Polished. Click "Polish & Generate PDF" to get the PDF.');
+        } else {
+          status('Error: ' + (polResult.error || 'Unknown'));
+        }
+        btn.disabled = false;
+        return;
+      }
+
+      status('Polishing with LLM + generating PDF…', true);
+      var hdrs3 = Object.assign({'Content-Type':'application/json'}, authHeaders());
+      var r3 = await fetch('/api/resume/build', {
+        method: 'POST', headers: hdrs3, credentials: 'include',
+        body: JSON.stringify({raw_text: raw, job_description: job, name: name})
+      });
+      result = await r3.json();
+    }
+
+    if (!result.success) {
+      status('Error: ' + (result.error || 'Unknown'));
+      btn.disabled = false;
+      return;
+    }
+
+    _currentResumeId = result.id;
+    renderPolished(result);
+    renderScore(result.score || {});
+    renderSuggestions(result.suggestions || []);
+
+    if (result.pdf_url) {
+      showPdfBanner(result);
+      status('✓ Done — PDF ready. ' + (result.tailored ? 'Tailored to job description.' : ''));
+    } else {
+      status('✓ Polished. PDF generation pending.');
+    }
+
+    // Switch to polished tab
+    document.querySelector('[data-tab="out-polished"]').click();
+
+  } catch(e) {
+    status('Error: ' + e.message);
+  }
+  btn.disabled = false;
+}
+
+/* ── Render polished output ── */
+function renderPolished(result) {
+  var el = document.getElementById('polished-output');
+  var sections = result.polished_sections || {};
+  var order = ['contact info','summary','experience','education','skills','projects','certifications','other'];
+  var html = '';
+
+  // Show contact
+  var contact = result.contact || {};
+  if (contact.name || contact.email) {
+    html += '<div class="polished-section">';
+    html += '<div style="text-align:center;margin-bottom:8px">';
+    if (contact.name) html += '<div style="font-size:18px;font-weight:700;color:var(--text)">' + esc(contact.name) + '</div>';
+    var cp = [];
+    if (contact.email)    cp.push(esc(contact.email));
+    if (contact.phone)    cp.push(esc(contact.phone));
+    if (contact.linkedin) cp.push('<a href="' + esc(contact.linkedin) + '" style="color:var(--teal)">' + esc(contact.linkedin) + '</a>');
+    if (cp.length) html += '<div style="font-size:11px;color:var(--text-secondary);margin-top:3px">' + cp.join(' • ') + '</div>';
+    html += '</div></div>';
+  }
+
+  // Each section
+  var rendered = new Set(['contact info','header','suggestions']);
+  order.forEach(function(sec) {
+    var content = sections[sec] || '';
+    if (!content.trim()) return;
+    rendered.add(sec);
+    html += '<div class="polished-section">';
+    html += '<div class="sec-title">' + esc(sec) + '</div>';
+    html += '<div class="sec-body">' + esc(content) + '</div>';
+    html += '</div>';
+  });
+
+  // Any remaining sections
+  Object.keys(sections).forEach(function(sec) {
+    if (rendered.has(sec)) return;
+    var content = sections[sec] || '';
+    if (!content.trim()) return;
+    html += '<div class="polished-section">';
+    html += '<div class="sec-title">' + esc(sec) + '</div>';
+    html += '<div class="sec-body">' + esc(content) + '</div>';
+    html += '</div>';
+  });
+
+  if (!html) {
+    // Fallback — show raw polished text
+    html = '<div class="polished-section"><div class="sec-body">' + esc(result.polished_text || '') + '</div></div>';
+  }
+
+  el.innerHTML = html;
+}
+
+/* ── Render score ── */
+function renderScore(score) {
+  var el = document.getElementById('score-output');
+  var overall = score.overall || 0;
+  var color = overall >= 70 ? 'var(--teal)' : overall >= 50 ? '#fbbf24' : '#ff6b6b';
+  var dims = [
+    {key:'completeness',   label:'Completeness'},
+    {key:'impact_language',label:'Impact Language'},
+    {key:'length',         label:'Ideal Length'},
+    {key:'ats_friendly',   label:'ATS Friendly'},
+  ];
+  var barsHtml = dims.map(function(d) {
+    var val = score[d.key] || 0;
+    var c = val >= 70 ? 'var(--teal)' : val >= 40 ? '#fbbf24' : '#ff6b6b';
+    return '<div class="score-row">' +
+      '<div class="score-name">' + d.label + '</div>' +
+      '<div class="score-bar"><div class="score-fill" style="width:' + val + '%;background:' + c + '"></div></div>' +
+      '<div style="font-size:10px;color:var(--text-secondary);width:28px;text-align:right">' + val + '</div>' +
+      '</div>';
+  }).join('');
+
+  el.innerHTML = '<div style="display:flex;gap:var(--space-4);align-items:center;margin-bottom:var(--space-4)">' +
+    '<div class="score-ring">' +
+    '<div class="score-num" style="color:' + color + '">' + overall + '</div>' +
+    '<div class="score-lbl">Overall</div>' +
+    '</div>' +
+    '<div class="score-bars">' + barsHtml + '</div>' +
+    '</div>' +
+    '<div style="font-size:11px;color:var(--text-secondary)">' +
+    (overall >= 70 ? '✅ Strong resume — ready to submit.' :
+     overall >= 50 ? '🟡 Decent — apply the suggestions to improve.' :
+                     '🔴 Needs work — review the suggestions carefully.') +
+    '</div>';
+}
+
+/* ── Render suggestions ── */
+function renderSuggestions(suggestions) {
+  var el = document.getElementById('suggestions-output');
+  if (!suggestions || !suggestions.length) {
+    el.innerHTML = '<div style="color:var(--text-secondary);font-size:12px;text-align:center;padding:20px">No suggestions — your resume looks solid!</div>';
+    return;
+  }
+  el.innerHTML = '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:var(--space-2)">Murphy recommends:</div>' +
+    '<div class="suggestions">' +
+    suggestions.map(function(s) {
+      return '<div class="sugg-chip"><span class="sugg-icon">→</span><span>' + esc(s) + '</span></div>';
+    }).join('') +
+    '</div>';
+}
+
+/* ── PDF banner ── */
+function showPdfBanner(result) {
+  var banner = document.getElementById('pdf-banner');
+  var meta   = document.getElementById('pdf-meta');
+  var btn    = document.getElementById('btn-download');
+  meta.textContent = 'Resume ID: ' + result.id + (result.tailored ? ' • Tailored' : '');
+  btn.href = result.pdf_url;
+  banner.style.display = 'flex';
+}
+
+/* ── History ── */
+async function loadHistory() {
+  try {
+    var hdrs = Object.assign({'Content-Type':'application/json'}, authHeaders());
+    var r = await fetch('/api/resume/list?user_id=default', {headers: hdrs, credentials:'include'});
+    var d = await r.json();
+    var el = document.getElementById('history-list');
+    if (!d.resumes || !d.resumes.length) {
+      el.innerHTML = '<div style="padding:20px;text-align:center;font-size:12px;color:var(--text-secondary)">No resumes built yet.</div>';
+      return;
+    }
+    el.innerHTML = d.resumes.map(function(r) {
+      var dt = new Date(r.created_at).toLocaleDateString();
+      return '<div class="history-item" data-id="' + r.id + '">' +
+        '<div style="font-size:12px;font-weight:600">' + esc(r.filename || 'Resume') + '</div>' +
+        '<div style="font-size:10px;color:var(--text-secondary)">' + dt +
+          (r.job_desc ? ' • Tailored' : '') +
+          ' • <span style="color:var(--teal)">' + r.status + '</span>' +
+        '</div>' +
+        '</div>';
+    }).join('');
+    el.querySelectorAll('.history-item').forEach(function(item) {
+      item.addEventListener('click', function() {
+        var id = this.dataset.id;
+        window.location.href = '/api/resume/download/' + id;
+      });
+    });
+  } catch(e) {}
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+})();
+</script>
+</body>
+</html>

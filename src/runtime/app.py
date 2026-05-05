@@ -325,6 +325,7 @@ def create_app() -> FastAPI:
         "portfolio":               "portfolio.html",
         "financing":               "financing_options.html",
                 "illuminate":              "illuminate.html",
+                "resume-builder":          "resume_builder.html",
         # Workspace
         "workspace":               "workspace.html",
         "workdocs":                "workdocs.html",
@@ -22257,6 +22258,14 @@ def create_app() -> FastAPI:
             logger.info("[PATCH-192] Illuminate mounted at /api/illuminate/*")
         except Exception as _il_err:
             logger.warning("[PATCH-192] Illuminate router failed: %s", _il_err)
+
+        # PATCH-193: Resume Builder
+        try:
+            from src.resume_router import router as _resume_router
+            app.include_router(_resume_router)
+            logger.info("[PATCH-193] Resume Builder mounted at /api/resume/*")
+        except Exception as _rb_err:
+            logger.warning("[PATCH-193] Resume router failed: %s", _rb_err)
         _forge_register(app)
         _remounted = _forge_remount()
         logger.info("PATCH-133: ForgeEngine online — /api/forge/* | PATCH-139: %d internal APIs remounted", _remounted)
