@@ -301,6 +301,34 @@
   h1{font-size:1.1rem!important;}
   .stat-value,.kpi-value{font-size:1.4rem!important;}
 }
+
+  /* PATCH-186: Force readable text on dark bg */
+  :root {
+    --text-primary:    #F0F4F8 !important;
+    --text-secondary:  #A8B8C8 !important;
+    --text-tertiary:   #6B7E8F !important;
+    --bg-surface:      #0F1923 !important;
+    --bg-elevated:     #162030 !important;
+    --border-default:  rgba(255,255,255,0.10) !important;
+  }
+  .wallet-networth-value { color: #00D4AA !important; font-size: 2.2rem !important; font-weight: 700 !important; }
+  .wallet-networth-label { color: #A8B8C8 !important; font-size: 0.85rem !important; letter-spacing: .06em; text-transform: uppercase; }
+  .wallet-networth-change { color: #00ff8c !important; font-size: 1rem !important; }
+  .asset-name  { color: #F0F4F8 !important; font-weight: 600; }
+  .asset-symbol{ color: #A8B8C8 !important; }
+  .asset-balance{ color: #F0F4F8 !important; font-weight: 600; }
+  .asset-usd   { color: #A8B8C8 !important; }
+  .asset-change.up   { color: #00D4AA !important; }
+  .asset-change.down { color: #ff4444 !important; }
+  .tx-amount { color: #F0F4F8 !important; font-weight: 600; }
+  .tx-desc   { color: #A8B8C8 !important; }
+  .tx-date   { color: #6B7E8F !important; }
+  .chain-tab { color: #A8B8C8 !important; }
+  .chain-tab.active { color: #00D4AA !important; border-color: #00D4AA !important; }
+  #coinbase-connect-banner { background: linear-gradient(135deg,#0F2027,#1a3a2a) !important; border: 1px solid rgba(0,212,170,.3) !important; }
+  #total-value { color: #00D4AA !important; }
+  #portfolio-change { color: #00ff8c !important; }
+
 </style>
   <script src="/static/murphy-nav.js"></script>
 </head>
@@ -319,6 +347,26 @@
 
 <!-- ── Main ── -->
 <main id="wallet-main" class="wallet-layout" role="main" aria-label="Crypto Wallet">
+
+<div id="coinbase-connect-banner" style="
+  display:none; margin:1rem 0; padding:1.25rem 1.5rem;
+  background:linear-gradient(135deg,#0F2027,#1a3a2a);
+  border:1px solid rgba(0,212,170,.3); border-radius:12px;
+  align-items:center; gap:1rem; flex-wrap:wrap;">
+  <div style="flex:1; min-width:200px;">
+    <div style="color:#F0F4F8; font-weight:700; font-size:1rem; margin-bottom:.3rem;">
+      🔗 Connect your Coinbase account
+    </div>
+    <div style="color:#A8B8C8; font-size:.85rem;">
+      Your Coinbase API key and secret are not yet configured on the server.
+      Add them to the environment file and your real portfolio will appear here.
+    </div>
+  </div>
+  <div style="color:#00D4AA; font-size:.8rem; font-family:monospace; background:rgba(0,0,0,.3); padding:.5rem .75rem; border-radius:6px; white-space:pre-line;">COINBASE_API_KEY=your_key
+COINBASE_API_SECRET=your_secret
+COINBASE_LIVE_MODE=true</div>
+</div>
+
 
   <!-- Hero -->
   <div class="wallet-hero">
@@ -353,8 +401,8 @@
   <div class="wallet-networth" role="region" aria-label="Total portfolio value">
     <div>
       <div class="wallet-networth-label">Total Portfolio Value</div>
-      <div class="wallet-networth-value" id="total-value">$24,831.42</div>
-      <div class="wallet-networth-change" id="total-change">▲ +$842.17 (3.51%) today</div>
+      <div class="wallet-networth-value" id="total-value">—</div>
+      <div class="wallet-networth-change" id="total-change">▲ Connect Coinbase for live data</div>
     </div>
     <div class="wallet-networth-actions">
       <button class="wallet-action-btn primary" id="btn-send-open" aria-label="Send crypto">
@@ -1084,5 +1132,63 @@
   }catch(e){}
 })();
 </script>
+
+/* PATCH-186: Live Coinbase integration check */
+async function checkCoinbaseAndLoad() {
+  try {
+    const res = await fetch('/api/coinbase/status');
+    const s = await res.json();
+    const banner = document.getElementById('coinbase-connect-banner');
+    if (!s.api_key_set || s.sandbox) {
+      if (banner) banner.style.display = 'flex';
+      document.getElementById('total-value').textContent = '—';
+      document.getElementById('portfolio-change') && (document.getElementById('portfolio-change').textContent = 'No Coinbase connection');
+      return;
+    }
+    // Keys set & live — load real balances
+    if (banner) banner.style.display = 'none';
+    const br = await fetch('/api/coinbase/balances');
+    const bd = await br.json();
+    if (bd.success && bd.balances && bd.balances.length > 0) {
+      let total = 0;
+      bd.balances.forEach(b => { total += parseFloat(b.usd_value || 0); });
+      const tv = document.getElementById('total-value');
+      if (tv) tv.textContent = '$' + total.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+      // Render asset cards
+      renderCoinbaseAssets(bd.balances);
+    }
+  } catch(e) {
+    console.warn('Coinbase check failed:', e);
+  }
+}
+
+function renderCoinbaseAssets(balances) {
+  const grid = document.querySelector('.wallet-assets-grid');
+  if (!grid) return;
+  // Remove mock asset cards (keep non-mock ones like paper trading widget)
+  grid.querySelectorAll('[data-mock]').forEach(el => el.closest('.asset-card')?.remove());
+  balances
+    .filter(b => parseFloat(b.available_balance?.value || 0) > 0)
+    .sort((a,b) => parseFloat(b.usd_value||0) - parseFloat(a.usd_value||0))
+    .forEach(b => {
+      const pct = b.usd_change_24h_pct ? parseFloat(b.usd_change_24h_pct).toFixed(2) : null;
+      const dir = pct > 0 ? 'up' : 'down';
+      const sign = pct > 0 ? '+' : '';
+      const card = document.createElement('div');
+      card.className = 'asset-card'; card.setAttribute('data-live','1');
+      card.innerHTML = '<div class="asset-card-top">'
+        + '<div class="asset-icon" style="background:rgba(0,212,170,.15);font-size:1.4rem">' + (b.currency || '?') + '</div>'
+        + '<div><div class="asset-name">' + (b.currency || '?') + '</div>'
+        + '<div class="asset-symbol">' + (b.currency_name || b.currency || '') + '</div></div></div>'
+        + '<div class="asset-balance">' + parseFloat(b.available_balance?.value || 0).toFixed(6) + ' ' + (b.currency||'') + '</div>'
+        + '<div class="asset-usd">$' + parseFloat(b.usd_value||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</div>'
+        + (pct !== null ? '<div class="asset-change ' + dir + '">' + sign + pct + '%</div>' : '');
+      grid.prepend(card);
+    });
+}
+
+// Run on load
+document.addEventListener('DOMContentLoaded', checkCoinbaseAndLoad);
+
 </body>
 </html>

@@ -15496,6 +15496,16 @@ def create_app() -> FastAPI:
             "compliance_blockers":  compliance_blockers,
         })
 
+    @app.get("/api/coinbase/orders")
+    async def coinbase_orders():
+        """Return recent Coinbase order history."""
+        cb = _get_coinbase_connector()
+        if cb is None:
+            return JSONResponse({"success": False, "error": "connector_unavailable"}, 503)
+        from dataclasses import asdict
+        orders = [asdict(o) for o in cb.get_order_history()[:50]]
+        return JSONResponse({"success": True, "orders": orders, "sandbox": cb.sandbox})
+
     @app.get("/api/coinbase/accounts")
     async def coinbase_accounts():
         """List all Coinbase brokerage accounts."""
@@ -15507,13 +15517,49 @@ def create_app() -> FastAPI:
 
     @app.get("/api/coinbase/balances")
     async def coinbase_balances():
-        """Return Coinbase account balances for each asset."""
+        """Return Coinbase account balances enriched with USD values and 24h change."""
         cb = _get_coinbase_connector()
         if cb is None:
             return JSONResponse({"success": False, "error": "connector_unavailable"}, 503)
         from dataclasses import asdict
-        balances = [asdict(b) for b in cb.get_balances()]
-        return JSONResponse({"success": True, "balances": balances, "sandbox": cb.sandbox})
+        import os as _os2
+        raw = cb.get_balances()
+        balances = []
+        polygon_key = _os2.getenv("POLYGON_API_KEY", "")
+        for b in raw:
+            d = asdict(b)
+            qty = float(d.get("available_balance", {}).get("value", 0) or 0)
+            if qty <= 0:
+                continue  # skip zero balances
+            currency = d.get("currency", "")
+            usd_val = 0.0
+            pct_24h = None
+            try:
+                if currency and currency != "USD" and currency != "USDC" and polygon_key:
+                    import urllib.request as _ur, json as _js
+                    ticker = "X:" + currency + "USD"
+                    url = ("https://api.polygon.io/v2/aggs/ticker/" + ticker
+                           + "/prev?adjusted=true&apiKey=" + polygon_key)
+                    with _ur.urlopen(url, timeout=4) as rr:
+                        pd = _js.loads(rr.read())
+                    results = pd.get("results", [])
+                    if results:
+                        price = float(results[0].get("c", 0))
+                        open_p = float(results[0].get("o", price))
+                        usd_val = qty * price
+                        pct_24h = round(((price - open_p) / open_p) * 100, 2) if open_p else None
+                elif currency in ("USD", "USDC"):
+                    usd_val = qty
+            except Exception:
+                pass
+            d["usd_value"] = round(usd_val, 2)
+            d["usd_change_24h_pct"] = pct_24h
+            balances.append(d)
+        total_usd = round(sum(b.get("usd_value", 0) for b in balances), 2)
+        return JSONResponse({
+            "success": True, "balances": balances,
+            "total_usd": total_usd, "sandbox": cb.sandbox
+        })
 
     @app.get("/api/coinbase/products")
     async def coinbase_products():
