@@ -1,0 +1,501 @@
+<!-- Murphy System — Illuminate / PATCH-192 / Contact Intelligence -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Illuminate — Murphy System</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
+<style>
+/* ── Layout ── */
+.il-layout{display:flex;gap:0;height:calc(100vh - var(--topbar-height,56px));overflow:hidden}
+.il-sidebar{width:280px;flex-shrink:0;border-right:1px solid var(--border-subtle);display:flex;flex-direction:column;overflow:hidden;background:var(--surface)}
+.il-main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* ── Stats bar ── */
+.il-stats-bar{display:flex;gap:var(--space-4);padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border-subtle);background:var(--surface);flex-wrap:wrap}
+.stat-chip{display:flex;flex-direction:column;align-items:center;gap:2px}
+.stat-num{font-size:22px;font-weight:700;color:var(--teal);line-height:1}
+.stat-lbl{font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em}
+
+/* ── Search panel ── */
+.il-search{padding:var(--space-4);border-bottom:1px solid var(--border-subtle)}
+.il-tabs{display:flex;gap:2px;margin-bottom:var(--space-3)}
+.il-tab{flex:1;padding:6px 10px;border-radius:var(--radius-md);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);color:var(--text-secondary);background:transparent;transition:all .15s;text-align:center}
+.il-tab.active{background:var(--teal);border-color:var(--teal);color:#000}
+.il-fields{display:flex;flex-direction:column;gap:8px}
+.il-row{display:flex;gap:6px}
+.search-status{margin-top:8px;font-size:11px;color:var(--text-secondary);min-height:16px}
+
+/* ── Results ── */
+.il-results{flex:1;overflow-y:auto;padding:var(--space-3)}
+.result-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--space-3);margin-bottom:8px;transition:border-color .15s}
+.result-card:hover{border-color:var(--teal)}
+.result-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
+.result-email{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--teal)}
+.result-name{font-size:12px;color:var(--text);margin-bottom:2px}
+.result-meta{font-size:10px;color:var(--text-secondary)}
+.badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;text-transform:uppercase;padding:2px 6px;border-radius:4px}
+.badge-verified{background:rgba(0,212,170,.15);color:var(--teal)}
+.badge-unverified{background:rgba(255,255,255,.06);color:var(--text-secondary)}
+.badge-source{background:rgba(130,80,255,.15);color:#a78bfa}
+.confidence-bar{height:3px;border-radius:2px;background:var(--border);margin-top:4px;overflow:hidden}
+.confidence-fill{height:100%;border-radius:2px;background:var(--teal);transition:width .3s}
+.result-actions{display:flex;gap:6px;margin-top:8px}
+
+/* ── Contact detail ── */
+.il-detail{width:300px;flex-shrink:0;border-left:1px solid var(--border-subtle);padding:var(--space-4);overflow-y:auto;background:var(--surface)}
+.detail-hidden{display:none}
+.detail-avatar{width:48px;height:48px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#000;margin-bottom:var(--space-3)}
+.detail-field{margin-bottom:var(--space-3)}
+.detail-label{font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.detail-value{font-size:13px;color:var(--text)}
+
+/* ── Empty state ── */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:var(--space-3);color:var(--text-secondary)}
+.empty-icon{font-size:40px;opacity:.4}
+
+/* ── Spinner ── */
+.spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Mobile ── */
+@media(max-width:900px){
+  .il-layout{flex-direction:column;height:auto}
+  .il-sidebar{width:100%;height:auto;border-right:none;border-bottom:1px solid var(--border-subtle)}
+  .il-detail{width:100%;border-left:none;border-top:1px solid var(--border-subtle)}
+}
+</style>
+</head>
+<body>
+<murphy-header app-name="Illuminate" icon="💡"></murphy-header>
+
+<div class="il-layout">
+
+  <!-- ── Sidebar: Search ── -->
+  <aside class="il-sidebar">
+    <div class="il-stats-bar">
+      <div class="stat-chip"><span class="stat-num" id="stat-contacts">–</span><span class="stat-lbl">Contacts</span></div>
+      <div class="stat-chip"><span class="stat-num" id="stat-verified">–</span><span class="stat-lbl">Verified</span></div>
+      <div class="stat-chip"><span class="stat-num" id="stat-domains">–</span><span class="stat-lbl">Domains</span></div>
+    </div>
+
+    <div class="il-search">
+      <div class="il-tabs">
+        <div class="il-tab active" data-mode="domain">Domain Search</div>
+        <div class="il-tab" data-mode="finder">Email Finder</div>
+        <div class="il-tab" data-mode="verify">Verify</div>
+      </div>
+
+      <!-- Domain search fields -->
+      <div class="il-fields" id="fields-domain">
+        <input type="text" class="murphy-input" id="inp-domain" placeholder="e.g. stripe.com" autocomplete="off">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary);cursor:pointer">
+          <input type="checkbox" id="chk-verify"> SMTP verify results
+        </label>
+        <button class="murphy-btn murphy-btn-primary" id="btn-domain-search">💡 Search Domain</button>
+      </div>
+
+      <!-- Email finder fields -->
+      <div class="il-fields" id="fields-finder" style="display:none">
+        <div class="il-row">
+          <input type="text" class="murphy-input" id="inp-first" placeholder="First name" style="flex:1">
+          <input type="text" class="murphy-input" id="inp-last" placeholder="Last name" style="flex:1">
+        </div>
+        <input type="text" class="murphy-input" id="inp-finder-domain" placeholder="Domain e.g. acme.com" autocomplete="off">
+        <button class="murphy-btn murphy-btn-primary" id="btn-find-email">💡 Find Email</button>
+      </div>
+
+      <!-- Verify fields -->
+      <div class="il-fields" id="fields-verify" style="display:none">
+        <input type="text" class="murphy-input" id="inp-verify-email" placeholder="email@company.com" autocomplete="off">
+        <button class="murphy-btn murphy-btn-primary" id="btn-verify-email">✓ Verify Email</button>
+      </div>
+
+      <div class="search-status" id="search-status"></div>
+    </div>
+
+    <!-- Saved contacts list -->
+    <div style="padding:8px var(--space-3) 4px;font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border-subtle)">
+      Recent Contacts
+    </div>
+    <div style="flex:1;overflow-y:auto" id="sidebar-contacts">
+      <div style="padding:12px;font-size:11px;color:var(--text-secondary)">Loading…</div>
+    </div>
+  </aside>
+
+  <!-- ── Main: Results ── -->
+  <main class="il-main">
+    <div class="il-results" id="results-panel">
+      <div class="empty-state" id="empty-state">
+        <div class="empty-icon">💡</div>
+        <div style="font-size:14px;font-weight:600">Illuminate</div>
+        <div style="font-size:12px;text-align:center;max-width:260px">
+          Search any company domain to discover contacts,<br>
+          or find a specific person's email address.
+        </div>
+        <div style="font-size:11px;color:var(--text-secondary)">No Hunter.io key needed — Murphy does it natively.</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ── Detail panel ── -->
+  <aside class="il-detail detail-hidden" id="detail-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-4)">
+      <strong style="font-size:13px">Contact Detail</strong>
+      <button class="murphy-btn murphy-btn-ghost" style="font-size:11px" id="btn-close-detail">✕</button>
+    </div>
+    <div class="detail-avatar" id="detail-avatar">?</div>
+    <div class="detail-field">
+      <div class="detail-label">Email</div>
+      <div class="detail-value" id="detail-email" style="font-family:var(--font-mono);color:var(--teal)"></div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-label">Name</div>
+      <div class="detail-value" id="detail-name"></div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-label">Company / Domain</div>
+      <div class="detail-value" id="detail-company"></div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-label">Source</div>
+      <div class="detail-value" id="detail-source"></div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-label">Confidence</div>
+      <div class="detail-value" id="detail-confidence"></div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-label">Verified</div>
+      <div class="detail-value" id="detail-verified"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:var(--space-4)">
+      <button class="murphy-btn murphy-btn-primary" id="btn-push-crm" style="font-size:12px">→ Push to CRM</button>
+      <button class="murphy-btn murphy-btn-ghost" id="btn-verify-detail" style="font-size:12px">✓ Verify Email</button>
+    </div>
+  </aside>
+
+</div>
+
+<script src="/static/murphy-nav.js"></script>
+<script src="/static/murphy-components.js"></script>
+<script src="/static/murphy-auth-guard.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════
+   Illuminate UI — PATCH-192
+   Murphy's own contact intelligence engine
+   ══════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  var _mode = 'domain';
+  var _results = [];
+  var _selectedContact = null;
+
+  /* ── Auth helper ── */
+  function authHeaders() {
+    var token = localStorage.getItem('murphy_session_token') ||
+                localStorage.getItem('murphy_token') ||
+                sessionStorage.getItem('murphy_session_token');
+    if (token) return { 'Authorization': 'Bearer ' + token };
+    if (window.MurphyAuth && typeof window.MurphyAuth.getToken === 'function') {
+      var t = window.MurphyAuth.getToken();
+      if (t) return { 'Authorization': 'Bearer ' + t };
+    }
+    return {};
+  }
+
+  async function api(method, url, body) {
+    var opts = {
+      method: method, credentials: 'include',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders())
+    };
+    if (body !== undefined) opts.body = JSON.stringify(body);
+    var r = await fetch(url, opts);
+    try { return await r.json(); } catch(e) { return {}; }
+  }
+
+  /* ── Status helper ── */
+  function status(msg, loading) {
+    var el = document.getElementById('search-status');
+    el.innerHTML = loading ? '<span class="spinner"></span>' + msg : msg;
+  }
+
+  /* ── Tabs ── */
+  document.querySelectorAll('.il-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      _mode = this.dataset.mode;
+      document.querySelectorAll('.il-tab').forEach(function(t) { t.classList.remove('active'); });
+      this.classList.add('active');
+      ['domain','finder','verify'].forEach(function(m) {
+        document.getElementById('fields-' + m).style.display = m === _mode ? '' : 'none';
+      });
+      status('');
+    });
+  });
+
+  /* ── Domain Search ── */
+  document.getElementById('btn-domain-search').addEventListener('click', async function() {
+    var domain = document.getElementById('inp-domain').value.trim();
+    if (!domain) { document.getElementById('inp-domain').focus(); return; }
+    var verify = document.getElementById('chk-verify').checked;
+    this.disabled = true;
+    status('Searching ' + domain + '…', true);
+    document.getElementById('empty-state').style.display = 'none';
+
+    var r = await api('GET', '/api/illuminate/domain-search?domain=' + encodeURIComponent(domain) + '&verify=' + verify);
+    this.disabled = false;
+
+    if (!r.success) {
+      status('Error: ' + (r.error || 'Unknown'));
+      return;
+    }
+
+    status('Found ' + r.total + ' contact' + (r.total !== 1 ? 's' : '') + ' at ' + r.domain);
+    _results = r.contacts || [];
+    renderResults(r);
+    loadSidebar();
+    loadStats();
+  });
+
+  /* ── Email Finder ── */
+  document.getElementById('btn-find-email').addEventListener('click', async function() {
+    var first  = document.getElementById('inp-first').value.trim();
+    var last   = document.getElementById('inp-last').value.trim();
+    var domain = document.getElementById('inp-finder-domain').value.trim();
+    if (!first || !last || !domain) { status('Fill in first name, last name, and domain'); return; }
+    this.disabled = true;
+    status('Finding email for ' + first + ' ' + last + ' @ ' + domain + '…', true);
+    document.getElementById('empty-state').style.display = 'none';
+
+    var url = '/api/illuminate/email-finder?first=' + encodeURIComponent(first) +
+              '&last=' + encodeURIComponent(last) + '&domain=' + encodeURIComponent(domain) + '&verify=true';
+    var r = await api('GET', url);
+    this.disabled = false;
+
+    if (!r.success) { status('Error: ' + (r.error || 'Unknown')); return; }
+
+    if (!r.email) {
+      status('No email found for ' + first + ' ' + last + ' at ' + domain);
+      renderSingleResult({ type: 'not_found', first, last, domain });
+      return;
+    }
+
+    status('Found: ' + r.email + ' (confidence: ' + r.confidence + '%)');
+    renderSingleResult({
+      email: r.email, confidence: r.confidence,
+      verified: r.verified, source: 'email_finder',
+      name: first + ' ' + last, domain: r.domain,
+      all_patterns: r.all_patterns || [],
+    });
+    loadStats();
+  });
+
+  /* ── Email Verify ── */
+  document.getElementById('btn-verify-email').addEventListener('click', async function() {
+    var email = document.getElementById('inp-verify-email').value.trim();
+    if (!email) { document.getElementById('inp-verify-email').focus(); return; }
+    this.disabled = true;
+    status('Verifying ' + email + '…', true);
+    document.getElementById('empty-state').style.display = 'none';
+
+    var r = await api('GET', '/api/illuminate/verify?email=' + encodeURIComponent(email));
+    this.disabled = false;
+
+    var icon = r.valid === true ? '✓' : r.valid === false ? '✗' : '?';
+    var color = r.valid === true ? 'var(--teal)' : r.valid === false ? '#ff6b6b' : 'var(--text-secondary)';
+    status('<span style="color:' + color + '">' + icon + ' ' + (r.reason || 'unknown') + '</span> — confidence: ' + (r.confidence || '–') + '%');
+    renderVerifyResult(r, email);
+  });
+
+  /* ── Render helpers ── */
+  function renderResults(data) {
+    var panel = document.getElementById('results-panel');
+    if (!data.contacts || !data.contacts.length) {
+      panel.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div style="font-size:13px">No contacts found at <strong>' + data.domain + '</strong></div><div style="font-size:11px;color:var(--text-secondary)">Try a different domain or check the spelling</div></div>';
+      return;
+    }
+
+    var logo = data.logo ? '<img src="' + data.logo + '" style="width:24px;height:24px;border-radius:4px;margin-right:8px;vertical-align:middle" onerror="this.style.display='none'">' : '';
+    var header = '<div style="display:flex;align-items:center;margin-bottom:var(--space-3);padding-bottom:var(--space-2);border-bottom:1px solid var(--border-subtle)">' +
+      logo + '<strong>' + data.company + '</strong>' +
+      '<span style="font-size:11px;color:var(--text-secondary);margin-left:8px">' + data.domain + '</span>' +
+      (data.mx ? '<span style="font-size:10px;color:var(--text-secondary);margin-left:auto">MX: ' + data.mx + '</span>' : '') +
+      '</div>';
+
+    var cards = data.contacts.map(function(c) {
+      return contactCard(c);
+    }).join('');
+
+    panel.innerHTML = header + cards;
+    attachCardEvents();
+  }
+
+  function renderSingleResult(c) {
+    var panel = document.getElementById('results-panel');
+    if (c.type === 'not_found') {
+      panel.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div style="font-size:13px">No email found for <strong>' + c.first + ' ' + c.last + '</strong></div><div style="font-size:11px;color:var(--text-secondary)">at ' + c.domain + '</div></div>';
+      return;
+    }
+    var patternsHtml = '';
+    if (c.all_patterns && c.all_patterns.length) {
+      patternsHtml = '<div style="margin-top:8px;font-size:10px;color:var(--text-secondary)">Tried patterns: ' +
+        c.all_patterns.map(function(p){ return '<code style="background:var(--bg);padding:1px 4px;border-radius:3px">' + p + '</code>'; }).join(' ') +
+        '</div>';
+    }
+    panel.innerHTML = contactCard(c) + patternsHtml;
+    attachCardEvents();
+  }
+
+  function renderVerifyResult(r, email) {
+    var panel = document.getElementById('results-panel');
+    var icon = r.valid === true ? '✅' : r.valid === false ? '❌' : '❓';
+    var label = r.valid === true ? 'Valid' : r.valid === false ? 'Invalid' : 'Unknown';
+    panel.innerHTML = '<div class="result-card">' +
+      '<div class="result-header">' +
+      '<div>' +
+      '<div class="result-email">' + email + '</div>' +
+      '<div class="result-name">' + icon + ' ' + label + ' — ' + (r.reason || '') + '</div>' +
+      '</div>' +
+      '<span class="badge ' + (r.valid ? 'badge-verified' : 'badge-unverified') + '">' + Math.round(r.confidence || 0) + '%</span>' +
+      '</div>' +
+      (r.mx ? '<div class="result-meta">MX: ' + r.mx + '</div>' : '') +
+      (r.cached ? '<div class="result-meta">📦 Cached result</div>' : '') +
+      (r.dnc_blocked ? '<div class="result-meta" style="color:#ff6b6b">⛔ DNC suppressed</div>' : '') +
+      '</div>';
+  }
+
+  function contactCard(c) {
+    var initials = (c.name || c.email || '?')[0].toUpperCase();
+    var conf = c.confidence || 0;
+    var confColor = conf >= 80 ? 'var(--teal)' : conf >= 50 ? '#fbbf24' : '#ff6b6b';
+    return '<div class="result-card" data-email="' + (c.email||'') + '" data-contact='' + JSON.stringify(c).replace(/'/g,"&#39;") + '' style="cursor:pointer">' +
+      '<div class="result-header">' +
+      '<div style="flex:1;min-width:0">' +
+      '<div class="result-email">' + (c.email || '–') + '</div>' +
+      (c.name ? '<div class="result-name">' + c.name + '</div>' : '') +
+      '<div class="result-meta">' + (c.company || c.domain || '') + (c.source ? ' · ' + c.source : '') + '</div>' +
+      '</div>' +
+      '<span class="badge badge-source">' + (c.source || '').replace('_',' ') + '</span>' +
+      '</div>' +
+      '<div class="confidence-bar"><div class="confidence-fill" style="width:' + conf + '%;background:' + confColor + '"></div></div>' +
+      '<div class="result-actions">' +
+      '<button class="murphy-btn murphy-btn-ghost" style="font-size:10px" data-action="verify" data-email="' + (c.email||'') + '">✓ Verify</button>' +
+      '<button class="murphy-btn murphy-btn-ghost" style="font-size:10px" data-action="crm" data-email="' + (c.email||'') + '">→ CRM</button>' +
+      '</div>' +
+      '</div>';
+  }
+
+  function attachCardEvents() {
+    document.querySelectorAll('.result-card').forEach(function(card) {
+      card.addEventListener('click', function(e) {
+        if (e.target.closest('button')) return;
+        try {
+          var c = JSON.parse(this.dataset.contact || '{}');
+          showDetail(c);
+        } catch(err) {}
+      });
+      var btnVerify = card.querySelector('[data-action="verify"]');
+      if (btnVerify) btnVerify.addEventListener('click', async function(e) {
+        e.stopPropagation();
+        var email = this.dataset.email;
+        if (!email) return;
+        this.textContent = '…';
+        var r = await api('GET', '/api/illuminate/verify?email=' + encodeURIComponent(email));
+        this.textContent = r.valid === true ? '✓ Valid' : r.valid === false ? '✗ Invalid' : '? Unknown';
+        this.style.color = r.valid === true ? 'var(--teal)' : r.valid === false ? '#ff6b6b' : '';
+      });
+      var btnCrm = card.querySelector('[data-action="crm"]');
+      if (btnCrm) btnCrm.addEventListener('click', async function(e) {
+        e.stopPropagation();
+        var email = this.dataset.email;
+        this.textContent = '…';
+        // Find contact id from _results
+        var contact = _results.find(function(c) { return c.email === email; });
+        if (!contact) { this.textContent = '✗ Not found'; return; }
+        var r = await api('POST', '/api/illuminate/push-to-crm', { contact_ids: [contact.id] });
+        this.textContent = r.pushed > 0 ? '✓ In CRM' : (r.skipped > 0 ? '↩ Already in CRM' : '✗ Failed');
+        this.style.color = r.pushed > 0 ? 'var(--teal)' : '';
+      });
+    });
+  }
+
+  /* ── Detail panel ── */
+  function showDetail(c) {
+    _selectedContact = c;
+    var panel = document.getElementById('detail-panel');
+    panel.classList.remove('detail-hidden');
+    document.getElementById('detail-avatar').textContent = (c.name || c.email || '?')[0].toUpperCase();
+    document.getElementById('detail-email').textContent = c.email || '–';
+    document.getElementById('detail-name').textContent = c.name || '–';
+    document.getElementById('detail-company').textContent = (c.company || '') + (c.domain ? ' (' + c.domain + ')' : '');
+    document.getElementById('detail-source').textContent = c.source || '–';
+    document.getElementById('detail-confidence').textContent = (c.confidence || 0) + '%';
+    document.getElementById('detail-verified').textContent = c.verified === true ? '✅ Verified' : c.verified === false ? '❌ Not verified' : '❓ Unknown';
+  }
+
+  document.getElementById('btn-close-detail').addEventListener('click', function() {
+    document.getElementById('detail-panel').classList.add('detail-hidden');
+  });
+
+  document.getElementById('btn-push-crm').addEventListener('click', async function() {
+    if (!_selectedContact) return;
+    this.textContent = '…';
+    var r = await api('POST', '/api/illuminate/push-to-crm', { contact_ids: [_selectedContact.id] });
+    this.textContent = r.pushed > 0 ? '✓ Pushed to CRM' : (r.skipped > 0 ? '↩ Already in CRM' : '✗ Failed');
+    this.style.background = r.pushed > 0 ? 'var(--teal)' : '';
+  });
+
+  document.getElementById('btn-verify-detail').addEventListener('click', async function() {
+    if (!_selectedContact || !_selectedContact.email) return;
+    this.textContent = '…';
+    var r = await api('GET', '/api/illuminate/verify?email=' + encodeURIComponent(_selectedContact.email));
+    document.getElementById('detail-verified').textContent =
+      r.valid === true ? '✅ Verified live' : r.valid === false ? '❌ Invalid' : '❓ ' + (r.reason || 'Unknown');
+    this.textContent = '✓ Verify Email';
+  });
+
+  /* ── Sidebar contacts ── */
+  async function loadSidebar() {
+    try {
+      var r = await api('GET', '/api/illuminate/contacts?limit=30');
+      var el = document.getElementById('sidebar-contacts');
+      if (!r.contacts || !r.contacts.length) {
+        el.innerHTML = '<div style="padding:12px;font-size:11px;color:var(--text-secondary)">No contacts yet</div>';
+        return;
+      }
+      el.innerHTML = r.contacts.map(function(c) {
+        return '<div style="padding:10px 12px;border-bottom:1px solid var(--border-subtle);cursor:pointer" class="sidebar-contact" data-contact='' + JSON.stringify(c).replace(/'/g,"&#39;") + ''>' +
+          '<div style="font-size:11px;font-family:var(--font-mono);color:var(--teal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + c.email + '</div>' +
+          '<div style="font-size:10px;color:var(--text-secondary)">' + (c.company||c.domain||'') + '</div>' +
+          '</div>';
+      }).join('');
+      el.querySelectorAll('.sidebar-contact').forEach(function(el) {
+        el.addEventListener('click', function() {
+          try { showDetail(JSON.parse(this.dataset.contact || '{}')); } catch(e) {}
+        });
+      });
+    } catch(e) {}
+  }
+
+  /* ── Stats ── */
+  async function loadStats() {
+    try {
+      var r = await api('GET', '/api/illuminate/stats');
+      if (!r.success) return;
+      document.getElementById('stat-contacts').textContent = r.total_contacts || 0;
+      document.getElementById('stat-verified').textContent = r.verified || 0;
+      document.getElementById('stat-domains').textContent  = r.domains_indexed || 0;
+    } catch(e) {}
+  }
+
+  /* ── Init ── */
+  loadStats();
+  loadSidebar();
+
+})();
+</script>
+</body>
+</html>
