@@ -1,4 +1,4 @@
-<!-- Murphy System — Resume Builder / PATCH-193 -->
+<!-- Murphy System — Resume Builder v2 / PATCH-194 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,500 +9,588 @@
 <link rel="stylesheet" href="/static/murphy-app-shell.css">
 <style>
 /* ── Layout ── */
-.rb-layout{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr;gap:0;height:calc(100vh - var(--topbar-height,56px));overflow:hidden}
-.rb-left{display:flex;flex-direction:column;border-right:1px solid var(--border-subtle);overflow:hidden}
-.rb-right{display:flex;flex-direction:column;overflow:hidden}
-.rb-toolbar{display:flex;align-items:center;gap:8px;padding:10px var(--space-4);border-bottom:1px solid var(--border-subtle);background:var(--surface);flex-wrap:wrap}
-.rb-body{flex:1;overflow-y:auto;padding:var(--space-4)}
+.rb-wrap{display:grid;grid-template-columns:380px 1fr;height:calc(100vh - 56px);overflow:hidden}
+.rb-panel{display:flex;flex-direction:column;border-right:1px solid var(--border-subtle);overflow:hidden;background:var(--bg)}
+.rb-main{display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
 
-/* ── Tabs ── */
-.rb-tabs{display:flex;border-bottom:1px solid var(--border-subtle);background:var(--surface)}
-.rb-tab{padding:10px 16px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text-secondary);border-bottom:2px solid transparent;white-space:nowrap}
+/* ── Input tabs ── */
+.rb-tabs{display:flex;border-bottom:1px solid var(--border-subtle);background:var(--surface);flex-shrink:0}
+.rb-tab{padding:9px 14px;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-secondary);border-bottom:2px solid transparent;white-space:nowrap;letter-spacing:.03em}
 .rb-tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+.rb-body{flex:1;overflow-y:auto;padding:16px}
 
-/* ── Input area ── */
-.rb-textarea{width:100%;min-height:280px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text);font-size:12px;font-family:var(--font-mono);padding:12px;resize:vertical;line-height:1.6}
-.rb-textarea:focus{outline:none;border-color:var(--teal)}
-.rb-upload-zone{border:2px dashed var(--border);border-radius:var(--radius-lg);padding:32px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
-.rb-upload-zone:hover,.rb-upload-zone.drag-over{border-color:var(--teal);background:rgba(0,212,170,.04)}
-.rb-upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
-.rb-upload-icon{font-size:32px;margin-bottom:8px}
+/* ── Inputs ── */
+.rb-label{font-size:10px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;display:block}
+.rb-textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:11.5px;font-family:inherit;padding:10px;resize:vertical;line-height:1.6;box-sizing:border-box}
+.rb-textarea:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 2px rgba(0,212,170,.12)}
+.rb-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;padding:8px 10px;box-sizing:border-box}
+.rb-input:focus{outline:none;border-color:var(--teal)}
 
-/* ── Score ring ── */
-.score-ring{display:flex;flex-direction:column;align-items:center;gap:2px}
-.score-num{font-size:28px;font-weight:700;color:var(--teal);line-height:1}
-.score-lbl{font-size:9px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em}
-.score-bars{display:flex;flex-direction:column;gap:5px;flex:1}
-.score-row{display:flex;align-items:center;gap:8px;font-size:10px}
-.score-name{width:100px;color:var(--text-secondary);flex-shrink:0}
-.score-bar{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
-.score-fill{height:100%;border-radius:3px;background:var(--teal);transition:width .5s}
+/* ── Upload zone ── */
+.upload-zone{border:2px dashed var(--border);border-radius:10px;padding:28px 16px;text-align:center;cursor:pointer;position:relative;transition:all .2s}
+.upload-zone:hover,.upload-zone.over{border-color:var(--teal);background:rgba(0,212,170,.04)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
 
-/* ── Suggestion chips ── */
-.suggestions{display:flex;flex-direction:column;gap:6px;margin-top:var(--space-3)}
-.sugg-chip{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.2);border-radius:var(--radius-md);font-size:11px;color:var(--text)}
-.sugg-icon{color:var(--teal);flex-shrink:0;margin-top:1px}
+/* ── Footer toolbar ── */
+.rb-footer{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border-subtle);background:var(--surface);flex-shrink:0;flex-wrap:wrap;align-items:center}
+.rb-status{font-size:10px;color:var(--text-secondary);padding:4px 12px;background:var(--surface);border-top:1px solid var(--border-subtle);flex-shrink:0}
 
-/* ── Polished preview ── */
-.polished-section{margin-bottom:var(--space-4)}
-.sec-title{font-size:10px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid rgba(0,212,170,.2)}
-.sec-body{font-size:12px;color:var(--text);line-height:1.7;white-space:pre-wrap}
+/* ── Output tabs ── */
+.out-tabs{display:flex;border-bottom:1px solid var(--border-subtle);background:var(--surface);flex-shrink:0}
+.out-tab{padding:9px 14px;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-secondary);border-bottom:2px solid transparent;white-space:nowrap}
+.out-tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+.out-body{flex:1;overflow-y:auto}
 
-/* ── History ── */
-.history-item{padding:10px 12px;border-bottom:1px solid var(--border-subtle);cursor:pointer;transition:background .15s}
-.history-item:hover{background:var(--surface)}
+/* ── Assembled resume view ── */
+.resume-viewer{max-width:760px;margin:0 auto;padding:32px 28px;font-family:'Helvetica Neue',Arial,sans-serif}
+.rv-header{text-align:center;padding-bottom:16px;margin-bottom:20px;border-bottom:3px solid #00d4aa}
+.rv-name{font-size:26px;font-weight:700;color:#1a1a2e;letter-spacing:-.02em;margin-bottom:5px}
+.rv-contact{font-size:11px;color:#666;display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.rv-contact a{color:#00d4aa;text-decoration:none}
+.rv-section{margin-bottom:20px}
+.rv-section-title{font-size:10px;font-weight:700;color:#00d4aa;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(0,212,170,.25)}
+.rv-body{font-size:12px;color:#333;line-height:1.7}
+.rv-job{margin-bottom:12px}
+.rv-job-header{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px}
+.rv-job-title{font-size:13px;font-weight:700;color:#1a1a2e}
+.rv-job-date{font-size:10px;color:#888;font-style:italic}
+.rv-job-company{font-size:11px;color:#555;margin-bottom:4px}
+.rv-bullet{display:flex;gap:8px;margin-bottom:3px;font-size:11.5px;color:#333;line-height:1.5}
+.rv-bullet::before{content:"▸";color:#00d4aa;flex-shrink:0;margin-top:1px}
+.rv-skills-grid{display:flex;flex-wrap:wrap;gap:6px}
+.rv-skill-chip{background:rgba(0,212,170,.08);border:1px solid rgba(0,212,170,.2);border-radius:20px;padding:3px 10px;font-size:10.5px;color:#1a1a2e}
+.rv-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:400px;gap:12px;color:var(--text-secondary)}
 
-/* ── Status ── */
-.rb-status{padding:8px var(--space-4);font-size:11px;color:var(--text-secondary);border-top:1px solid var(--border-subtle);background:var(--surface)}
-.spinner{width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px}
-@keyframes spin{to{transform:rotate(360deg)}}
+/* ── ATS Report ── */
+.ats-wrap{padding:20px;max-width:640px;margin:0 auto}
+.ats-score-ring{width:80px;height:80px;position:relative;flex-shrink:0}
+.ats-score-ring svg{width:80px;height:80px;transform:rotate(-90deg)}
+.ats-score-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700}
+.ats-row{display:flex;align-items:center;gap:16px;padding:14px 0;border-bottom:1px solid var(--border-subtle)}
+.kw-grid{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.kw-hit{background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.25);color:#00d4aa;border-radius:20px;padding:2px 9px;font-size:10px;font-weight:600}
+.kw-miss{background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.25);color:#ff6b6b;border-radius:20px;padding:2px 9px;font-size:10px;font-weight:600}
+.ats-tip{background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.2);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--text);line-height:1.6;margin-top:12px}
+.ats-gap-item{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border-subtle);font-size:12px;color:var(--text)}
 
-/* ── PDF ready banner ── */
-.pdf-banner{background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.3);border-radius:var(--radius-lg);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3)}
+/* ── Score panel ── */
+.score-big{font-size:40px;font-weight:700;color:var(--teal);line-height:1}
+.score-dim{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:11px}
+.bar-track{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .6s ease}
 
-/* ── Responsive ── */
-@media(max-width:860px){
-  .rb-layout{grid-template-columns:1fr;grid-template-rows:auto auto auto auto}
-  .rb-left,.rb-right{border-right:none}
+/* ── ATS clean text ── */
+.ats-clean-wrap{padding:16px;font-family:monospace;font-size:11px;color:var(--text);white-space:pre-wrap;line-height:1.6;background:var(--bg)}
+
+/* ── Download bar ── */
+.dl-bar{display:flex;gap:8px;align-items:center;padding:10px 16px;background:rgba(0,212,170,.06);border-bottom:1px solid rgba(0,212,170,.2);flex-shrink:0;flex-wrap:wrap}
+.dl-bar-lbl{font-size:11px;color:var(--text-secondary)}
+
+/* ── Spinner ── */
+.spin{width:11px;height:11px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:sp .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:4px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+@media(max-width:900px){
+  .rb-wrap{grid-template-columns:1fr}
+  .rb-panel{border-right:none;border-bottom:1px solid var(--border-subtle);max-height:50vh}
 }
 </style>
 </head>
 <body>
 <murphy-header app-name="Resume Builder" icon="📄"></murphy-header>
 
-<div class="rb-layout">
+<div class="rb-wrap">
 
-  <!-- ══ LEFT: INPUT ══ -->
-  <div class="rb-left">
-    <div class="rb-tabs" id="input-tabs">
-      <div class="rb-tab active" data-tab="paste">✏️ Paste Text</div>
-      <div class="rb-tab" data-tab="upload">📎 Upload File</div>
-      <div class="rb-tab" data-tab="history">🕐 History</div>
-    </div>
+<!-- ══ LEFT PANEL: INPUT ══ -->
+<div class="rb-panel">
+  <div class="rb-tabs" id="inp-tabs">
+    <div class="rb-tab active" data-t="paste">✏️ Paste</div>
+    <div class="rb-tab" data-t="upload">📎 Upload</div>
+    <div class="rb-tab" data-t="hist">🕐 History</div>
+  </div>
 
-    <!-- Paste panel -->
-    <div class="rb-body" id="panel-paste">
-      <div style="margin-bottom:10px">
-        <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:4px">Your Resume (paste raw text, bullet points, anything)</label>
-        <textarea class="rb-textarea" id="inp-raw" placeholder="Paste your current resume here — any format works.
+  <!-- Paste -->
+  <div class="rb-body" id="pane-paste">
+    <div style="margin-bottom:12px">
+      <label class="rb-label">Your resume (any format, raw text)</label>
+      <textarea class="rb-textarea" id="inp-raw" style="min-height:200px" placeholder="Paste your resume here — bullets, paragraphs, any format.
 
 John Smith
-john@email.com | (555) 123-4567 | linkedin.com/in/johnsmith
+john@email.com | LinkedIn: linkedin.com/in/john
 
 EXPERIENCE
 Senior Engineer — Acme Corp (2020–Present)
-- Built microservices handling 10M requests/day
-- Led team of 5 engineers
+- built backend systems handling millions of requests
+- led team of engineers on infrastructure projects
 
 EDUCATION
-BS Computer Science — State University 2018
+BS Computer Science 2018
 
 SKILLS
-Python, React, AWS, Docker, PostgreSQL..."></textarea>
-      </div>
-      <div style="margin-bottom:10px">
-        <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:4px">Job Description (optional — tailors the resume to a specific role)</label>
-        <textarea class="rb-textarea" id="inp-job" style="min-height:100px" placeholder="Paste the job description here to tailor your resume to this specific role..."></textarea>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <input type="text" class="murphy-input" id="inp-name" placeholder="Full name override (optional)" style="flex:1">
-      </div>
+Python, AWS, React, PostgreSQL..."></textarea>
     </div>
-
-    <!-- Upload panel -->
-    <div class="rb-body" id="panel-upload" style="display:none">
-      <div class="rb-upload-zone" id="upload-zone">
-        <input type="file" id="file-input" accept=".pdf,.docx,.doc,.txt">
-        <div class="rb-upload-icon">📎</div>
-        <div style="font-size:13px;font-weight:600;margin-bottom:4px">Drop your resume here</div>
-        <div style="font-size:11px;color:var(--text-secondary)">PDF, DOCX, TXT — max 5MB</div>
-        <div id="file-name" style="margin-top:8px;font-size:11px;color:var(--teal)"></div>
-      </div>
-      <div style="margin-top:var(--space-3)">
-        <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:4px">Job Description (optional)</label>
-        <textarea class="rb-textarea" id="inp-job-upload" style="min-height:80px" placeholder="Paste job description to tailor..."></textarea>
-      </div>
+    <div style="margin-bottom:10px">
+      <label class="rb-label">Job description <span style="color:var(--teal)">(paste to tailor + ATS analysis)</span></label>
+      <textarea class="rb-textarea" id="inp-jd" style="min-height:90px" placeholder="Paste the job posting here. Murphy will mirror the language, identify keyword gaps, and score your fit — without making anything up."></textarea>
     </div>
-
-    <!-- History panel -->
-    <div class="rb-body" id="panel-history" style="display:none;padding:0">
-      <div id="history-list">
-        <div style="padding:20px;text-align:center;font-size:12px;color:var(--text-secondary)">Loading history…</div>
-      </div>
+    <div>
+      <label class="rb-label">Full name override (optional)</label>
+      <input class="rb-input" id="inp-name" placeholder="e.g. Corey Post">
     </div>
-
-    <!-- Bottom toolbar -->
-    <div class="rb-toolbar">
-      <button class="murphy-btn murphy-btn-primary" id="btn-build" style="font-size:12px">
-        ✨ Polish & Generate PDF
-      </button>
-      <button class="murphy-btn murphy-btn-ghost" id="btn-polish-only" style="font-size:12px">
-        💬 Polish Only
-      </button>
-      <div style="flex:1"></div>
-      <span style="font-size:10px;color:var(--text-secondary)">Powered by Murphy Forge</span>
-    </div>
-    <div class="rb-status" id="rb-status">Ready — paste your resume or upload a file to get started.</div>
   </div>
 
-  <!-- ══ RIGHT: OUTPUT ══ -->
-  <div class="rb-right">
-    <div class="rb-tabs" id="output-tabs">
-      <div class="rb-tab active" data-tab="out-polished">✨ Polished</div>
-      <div class="rb-tab" data-tab="out-score">📊 Score</div>
-      <div class="rb-tab" data-tab="out-suggestions">💡 Suggestions</div>
+  <!-- Upload -->
+  <div class="rb-body" id="pane-upload" style="display:none">
+    <div class="upload-zone" id="upload-zone">
+      <input type="file" id="file-inp" accept=".pdf,.docx,.doc,.txt">
+      <div style="font-size:28px;margin-bottom:8px">📎</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:3px">Drop your resume here</div>
+      <div style="font-size:11px;color:var(--text-secondary)">PDF, DOCX, TXT — max 5MB</div>
+      <div id="file-label" style="margin-top:8px;font-size:11px;color:var(--teal)"></div>
     </div>
+    <div style="margin-top:14px">
+      <label class="rb-label">Job description (optional)</label>
+      <textarea class="rb-textarea" id="inp-jd-up" style="min-height:80px" placeholder="Paste job description to tailor + ATS score…"></textarea>
+    </div>
+  </div>
 
-    <div class="rb-body" id="panel-out-polished">
-      <div id="pdf-banner" style="display:none" class="pdf-banner">
-        <div>
-          <div style="font-size:13px;font-weight:600">📄 PDF Ready</div>
-          <div style="font-size:11px;color:var(--text-secondary)" id="pdf-meta"></div>
-        </div>
-        <a id="btn-download" href="#" class="murphy-btn murphy-btn-primary" style="font-size:12px;text-decoration:none" target="_blank">
-          ⬇ Download PDF
-        </a>
-      </div>
-      <div id="polished-output">
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px;gap:12px;color:var(--text-secondary)">
-          <div style="font-size:36px;opacity:.3">📄</div>
-          <div style="font-size:13px;font-weight:600">Your polished resume will appear here</div>
-          <div style="font-size:11px">Paste text or upload a file, then click Polish & Generate PDF</div>
+  <!-- History -->
+  <div class="rb-body" id="pane-hist" style="display:none;padding:0">
+    <div id="hist-list"><div style="padding:20px;text-align:center;font-size:11px;color:var(--text-secondary)">Loading…</div></div>
+  </div>
+
+  <div class="rb-footer">
+    <button class="murphy-btn murphy-btn-primary" id="btn-build" style="font-size:11.5px">✨ Polish + Build PDF</button>
+    <button class="murphy-btn murphy-btn-ghost" id="btn-polish" style="font-size:11.5px">💬 Polish Only</button>
+  </div>
+  <div class="rb-status" id="rb-status">Ready — paste your resume or upload a file.</div>
+</div>
+
+<!-- ══ RIGHT PANEL: OUTPUT ══ -->
+<div class="rb-main">
+  <div class="out-tabs" id="out-tabs">
+    <div class="out-tab active" data-t="view">👁 Resume</div>
+    <div class="out-tab" data-t="ats">🎯 ATS Fit</div>
+    <div class="out-tab" data-t="score">📊 Score</div>
+    <div class="out-tab" data-t="clean">📋 ATS Text</div>
+  </div>
+
+  <!-- Download bar -->
+  <div class="dl-bar" id="dl-bar" style="display:none">
+    <span class="dl-bar-lbl">Downloads:</span>
+    <a id="btn-dl-visual" href="#" class="murphy-btn murphy-btn-primary" style="font-size:11px;text-decoration:none" target="_blank">⬇ Visual PDF</a>
+    <a id="btn-dl-ats" href="#" class="murphy-btn murphy-btn-ghost" style="font-size:11px;text-decoration:none" target="_blank">⬇ ATS-Clean PDF</a>
+    <button class="murphy-btn murphy-btn-ghost" id="btn-print" style="font-size:11px">🖨 Print This View</button>
+  </div>
+
+  <div class="out-body">
+    <!-- Resume view -->
+    <div id="pane-view">
+      <div id="rv-content">
+        <div class="rv-empty">
+          <div style="font-size:40px;opacity:.2">📄</div>
+          <div style="font-size:13px;font-weight:600">Assembled resume will appear here</div>
+          <div style="font-size:11px">Paste your resume on the left and click Polish + Build PDF</div>
         </div>
       </div>
     </div>
 
-    <div class="rb-body" id="panel-out-score" style="display:none">
-      <div id="score-output">
-        <div style="color:var(--text-secondary);font-size:12px;text-align:center;padding:40px 0">Run a build to see your resume score.</div>
+    <!-- ATS Fit -->
+    <div id="pane-ats" style="display:none">
+      <div class="ats-wrap" id="ats-content">
+        <div class="rv-empty"><div style="font-size:40px;opacity:.2">🎯</div><div style="font-size:13px;font-weight:600">Paste a job description to see ATS fit analysis</div></div>
       </div>
     </div>
 
-    <div class="rb-body" id="panel-out-suggestions" style="display:none">
-      <div id="suggestions-output">
-        <div style="color:var(--text-secondary);font-size:12px;text-align:center;padding:40px 0">Suggestions will appear after polishing.</div>
+    <!-- Score -->
+    <div id="pane-score" style="display:none">
+      <div style="padding:20px;max-width:500px;margin:0 auto" id="score-content">
+        <div class="rv-empty"><div style="font-size:40px;opacity:.2">📊</div><div style="font-size:13px;font-weight:600">Score appears after build</div></div>
       </div>
     </div>
 
+    <!-- ATS clean text -->
+    <div id="pane-clean" style="display:none">
+      <div style="padding:12px;border-bottom:1px solid var(--border-subtle);font-size:11px;color:var(--text-secondary);display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+        <span>Plain-text ATS version — paste this directly into application forms</span>
+        <button class="murphy-btn murphy-btn-ghost" id="btn-copy-clean" style="font-size:10px">Copy</button>
+      </div>
+      <div class="ats-clean-wrap" id="clean-content">Run a build to generate the ATS-clean version.</div>
+    </div>
   </div>
+</div>
 
-</div><!-- /rb-layout -->
+</div><!-- /rb-wrap -->
 
 <script src="/static/murphy-nav.js"></script>
 <script src="/static/murphy-components.js"></script>
 <script src="/static/murphy-auth-guard.js"></script>
 <script>
-(function () {
+(function(){
 'use strict';
 
-var _currentResumeId = null;
-var _uploadedFile    = null;
-var _activeInputTab  = 'paste';
-var _activeOutputTab = 'out-polished';
+var _rid = null, _uploadFile = null, _activeInp = 'paste', _atsData = null;
 
 /* ── Auth ── */
-function authHeaders() {
-  var token = localStorage.getItem('murphy_session_token') ||
-              localStorage.getItem('murphy_token') ||
-              sessionStorage.getItem('murphy_session_token');
-  if (token) return { 'Authorization': 'Bearer ' + token };
-  if (window.MurphyAuth && typeof window.MurphyAuth.getToken === 'function') {
-    var t = window.MurphyAuth.getToken();
-    if (t) return { 'Authorization': 'Bearer ' + t };
-  }
-  return {};
+function hdrs(json){
+  var h = {};
+  var t = localStorage.getItem('murphy_session_token') || localStorage.getItem('murphy_token') || sessionStorage.getItem('murphy_session_token');
+  if(!t && window.MurphyAuth && window.MurphyAuth.getToken) t = window.MurphyAuth.getToken();
+  if(t) h['Authorization'] = 'Bearer ' + t;
+  if(json) h['Content-Type'] = 'application/json';
+  return h;
 }
 
-function status(msg, loading) {
+function st(msg, spin){
   var el = document.getElementById('rb-status');
-  el.innerHTML = loading ? '<span class="spinner"></span>' + msg : msg;
+  el.innerHTML = spin ? '<span class="spin"></span>' + msg : msg;
 }
 
 /* ── Input tabs ── */
-document.querySelectorAll('#input-tabs .rb-tab').forEach(function(tab) {
-  tab.addEventListener('click', function() {
-    _activeInputTab = this.dataset.tab;
-    document.querySelectorAll('#input-tabs .rb-tab').forEach(function(t){t.classList.remove('active')});
+document.querySelectorAll('#inp-tabs .rb-tab').forEach(function(tab){
+  tab.addEventListener('click', function(){
+    _activeInp = this.dataset.t;
+    document.querySelectorAll('#inp-tabs .rb-tab').forEach(function(t){t.classList.remove('active')});
     this.classList.add('active');
-    document.getElementById('panel-paste').style.display   = _activeInputTab==='paste'   ? '' : 'none';
-    document.getElementById('panel-upload').style.display  = _activeInputTab==='upload'  ? '' : 'none';
-    document.getElementById('panel-history').style.display = _activeInputTab==='history' ? '' : 'none';
-    if (_activeInputTab === 'history') loadHistory();
+    document.getElementById('pane-paste').style.display  = _activeInp==='paste'  ? '' : 'none';
+    document.getElementById('pane-upload').style.display = _activeInp==='upload' ? '' : 'none';
+    document.getElementById('pane-hist').style.display   = _activeInp==='hist'   ? '' : 'none';
+    if(_activeInp==='hist') loadHist();
   });
 });
 
 /* ── Output tabs ── */
-document.querySelectorAll('#output-tabs .rb-tab').forEach(function(tab) {
-  tab.addEventListener('click', function() {
-    _activeOutputTab = this.dataset.tab;
-    document.querySelectorAll('#output-tabs .rb-tab').forEach(function(t){t.classList.remove('active')});
+document.querySelectorAll('#out-tabs .out-tab').forEach(function(tab){
+  tab.addEventListener('click', function(){
+    document.querySelectorAll('#out-tabs .out-tab').forEach(function(t){t.classList.remove('active')});
     this.classList.add('active');
-    ['out-polished','out-score','out-suggestions'].forEach(function(id) {
-      document.getElementById('panel-' + id).style.display = id === _activeOutputTab ? '' : 'none';
+    ['view','ats','score','clean'].forEach(function(id){
+      document.getElementById('pane-'+id).style.display = id===tab.dataset.t ? '' : 'none';
     });
   });
 });
 
-/* ── File upload zone ── */
-var uploadZone = document.getElementById('upload-zone');
-var fileInput  = document.getElementById('file-input');
+/* ── File upload ── */
+var zone = document.getElementById('upload-zone');
+var finp = document.getElementById('file-inp');
+['dragenter','dragover'].forEach(function(e){ zone.addEventListener(e,function(ev){ev.preventDefault();zone.classList.add('over')}); });
+['dragleave','drop'].forEach(function(e){ zone.addEventListener(e,function(ev){ev.preventDefault();zone.classList.remove('over')}); });
+zone.addEventListener('drop', function(e){ var f=e.dataTransfer.files[0]; if(f) setFile(f); });
+finp.addEventListener('change', function(){ if(this.files[0]) setFile(this.files[0]); });
+function setFile(f){ _uploadFile=f; document.getElementById('file-label').textContent='📎 '+f.name+' ('+Math.round(f.size/1024)+' KB)'; }
 
-['dragenter','dragover'].forEach(function(ev) {
-  uploadZone.addEventListener(ev, function(e){ e.preventDefault(); uploadZone.classList.add('drag-over'); });
-});
-['dragleave','drop'].forEach(function(ev) {
-  uploadZone.addEventListener(ev, function(e){ e.preventDefault(); uploadZone.classList.remove('drag-over'); });
-});
-uploadZone.addEventListener('drop', function(e) {
-  var f = e.dataTransfer.files[0];
-  if (f) setFile(f);
-});
-fileInput.addEventListener('change', function() {
-  if (this.files[0]) setFile(this.files[0]);
-});
-
-function setFile(f) {
-  _uploadedFile = f;
-  document.getElementById('file-name').textContent = '📎 ' + f.name + ' (' + Math.round(f.size/1024) + ' KB)';
-}
-
-/* ── Build (full pipeline) ── */
-document.getElementById('btn-build').addEventListener('click', async function() {
-  await runBuild(true);
-});
-document.getElementById('btn-polish-only').addEventListener('click', async function() {
-  await runBuild(false);
+/* ── Buttons ── */
+document.getElementById('btn-build').addEventListener('click', function(){ runBuild(true); });
+document.getElementById('btn-polish').addEventListener('click', function(){ runBuild(false); });
+document.getElementById('btn-print').addEventListener('click', function(){ window.print(); });
+document.getElementById('btn-copy-clean').addEventListener('click', function(){
+  var txt = document.getElementById('clean-content').textContent;
+  navigator.clipboard.writeText(txt).then(function(){ document.getElementById('btn-copy-clean').textContent='✓ Copied'; setTimeout(function(){document.getElementById('btn-copy-clean').textContent='Copy';},2000); });
 });
 
-async function runBuild(generatePdf) {
-  var btn = document.getElementById('btn-build');
-  btn.disabled = true;
-  status('Sending to Murphy Forge…', true);
+/* ── Main build ── */
+async function runBuild(genPdf){
+  document.getElementById('btn-build').disabled = true;
+  document.getElementById('btn-polish').disabled = true;
 
   try {
     var result;
-
-    if (_activeInputTab === 'upload' && _uploadedFile) {
-      // Multipart form upload
-      status('Uploading ' + _uploadedFile.name + '…', true);
+    if(_activeInp==='upload' && _uploadFile){
+      st('Uploading '+_uploadFile.name+'…', true);
       var fd = new FormData();
-      fd.append('file', _uploadedFile);
-      fd.append('job_description', document.getElementById('inp-job-upload').value || '');
-      fd.append('user_id', 'default');
-
-      var hdrs = authHeaders();
-      var resp = await fetch('/api/resume/upload', { method: 'POST', headers: hdrs, body: fd, credentials: 'include' });
-      result = await resp.json();
-
+      fd.append('file', _uploadFile);
+      fd.append('job_description', document.getElementById('inp-jd-up').value||'');
+      var r = await fetch('/api/resume/upload', {method:'POST', headers:hdrs(false), body:fd, credentials:'include'});
+      result = await r.json();
     } else {
-      // JSON text build
       var raw = document.getElementById('inp-raw').value.trim();
-      var job = document.getElementById('inp-job').value.trim();
-      var name = document.getElementById('inp-name').value.trim();
-      if (!raw) { status('Paste your resume text first.'); btn.disabled=false; return; }
-
-      if (!generatePdf) {
-        // Polish only
-        status('Polishing with LLM…', true);
-        var hdrs2 = Object.assign({'Content-Type':'application/json'}, authHeaders());
-        var r2 = await fetch('/api/resume/polish', {
-          method: 'POST', headers: hdrs2, credentials: 'include',
-          body: JSON.stringify({raw_text: raw, job_description: job})
-        });
-        var polResult = await r2.json();
-        if (polResult.success) {
-          renderPolished({polished_sections: polResult.polished_sections, polished_text: polResult.polished_text});
-          renderScore(polResult.score || {});
-          renderSuggestions(polResult.suggestions || []);
-          status('✓ Polished. Click "Polish & Generate PDF" to get the PDF.');
-        } else {
-          status('Error: ' + (polResult.error || 'Unknown'));
-        }
-        btn.disabled = false;
+      var jd  = document.getElementById('inp-jd').value.trim();
+      var nm  = document.getElementById('inp-name').value.trim();
+      if(!raw){ st('Paste your resume text first.'); document.getElementById('btn-build').disabled=false; document.getElementById('btn-polish').disabled=false; return; }
+      if(!genPdf){
+        st('Polishing with Murphy AI…', true);
+        var r2 = await fetch('/api/resume/polish', {method:'POST', headers:hdrs(true), credentials:'include',
+          body:JSON.stringify({raw_text:raw,job_description:jd})});
+        var pr = await r2.json();
+        if(pr.success){
+          renderView({polished_sections:pr.polished_sections, contact:pr.contact||{}});
+          renderScore(pr.score||{});
+          renderSuggestions(pr.suggestions||[]);
+          st('✓ Polished. Click "Polish + Build PDF" to generate the PDFs.');
+        } else { st('Error: '+(pr.error||'unknown')); }
+        document.getElementById('btn-build').disabled=false; document.getElementById('btn-polish').disabled=false;
         return;
       }
-
-      status('Polishing with LLM + generating PDF…', true);
-      var hdrs3 = Object.assign({'Content-Type':'application/json'}, authHeaders());
-      var r3 = await fetch('/api/resume/build', {
-        method: 'POST', headers: hdrs3, credentials: 'include',
-        body: JSON.stringify({raw_text: raw, job_description: job, name: name})
-      });
+      st('Polishing with Murphy AI + building PDFs…', true);
+      var r3 = await fetch('/api/resume/build', {method:'POST', headers:hdrs(true), credentials:'include',
+        body:JSON.stringify({raw_text:raw,job_description:jd,name:nm})});
       result = await r3.json();
     }
 
-    if (!result.success) {
-      status('Error: ' + (result.error || 'Unknown'));
-      btn.disabled = false;
-      return;
+    if(!result.success){ st('Error: '+(result.error||'unknown')); document.getElementById('btn-build').disabled=false; document.getElementById('btn-polish').disabled=false; return; }
+
+    _rid = result.id;
+    _atsData = result.ats_analysis || null;
+
+    renderView(result);
+    renderScore(result.score||{}, result.suggestions||[]);
+    renderATS(result);
+    renderClean(result.ats_clean_text||'');
+
+    if(result.pdf_url){
+      document.getElementById('dl-bar').style.display='flex';
+      document.getElementById('btn-dl-visual').href = result.pdf_url;
+      document.getElementById('btn-dl-ats').href = result.ats_pdf_url || result.pdf_url;
     }
 
-    _currentResumeId = result.id;
-    renderPolished(result);
-    renderScore(result.score || {});
-    renderSuggestions(result.suggestions || []);
+    var tailored = result.tailored ? ' Tailored to JD.' : '';
+    var atsFit = _atsData && _atsData.match_score ? ' ATS fit: '+_atsData.match_score+'%.' : '';
+    st('✓ Done.'+tailored+atsFit+' ID: '+result.id);
 
-    if (result.pdf_url) {
-      showPdfBanner(result);
-      status('✓ Done — PDF ready. ' + (result.tailored ? 'Tailored to job description.' : ''));
-    } else {
-      status('✓ Polished. PDF generation pending.');
-    }
+    // Switch to resume view
+    document.querySelector('[data-t="view"]').click();
 
-    // Switch to polished tab
-    document.querySelector('[data-tab="out-polished"]').click();
-
-  } catch(e) {
-    status('Error: ' + e.message);
-  }
-  btn.disabled = false;
+  } catch(e){ st('Error: '+e.message); }
+  document.getElementById('btn-build').disabled=false;
+  document.getElementById('btn-polish').disabled=false;
 }
 
-/* ── Render polished output ── */
-function renderPolished(result) {
-  var el = document.getElementById('polished-output');
+/* ══ RENDER ASSEMBLED RESUME ══ */
+function renderView(result){
+  var contact  = result.contact || {};
   var sections = result.polished_sections || {};
-  var order = ['contact info','summary','experience','education','skills','projects','certifications','other'];
-  var html = '';
+  var rawSecs  = result.sections || {};
+  function sec(n){ return (sections[n]||rawSecs[n]||'').trim(); }
 
-  // Show contact
-  var contact = result.contact || {};
-  if (contact.name || contact.email) {
-    html += '<div class="polished-section">';
-    html += '<div style="text-align:center;margin-bottom:8px">';
-    if (contact.name) html += '<div style="font-size:18px;font-weight:700;color:var(--text)">' + esc(contact.name) + '</div>';
-    var cp = [];
-    if (contact.email)    cp.push(esc(contact.email));
-    if (contact.phone)    cp.push(esc(contact.phone));
-    if (contact.linkedin) cp.push('<a href="' + esc(contact.linkedin) + '" style="color:var(--teal)">' + esc(contact.linkedin) + '</a>');
-    if (cp.length) html += '<div style="font-size:11px;color:var(--text-secondary);margin-top:3px">' + cp.join(' • ') + '</div>';
-    html += '</div></div>';
+  var h = '<div class="resume-viewer">';
+
+  // Header
+  h += '<div class="rv-header">';
+  if(contact.name) h += '<div class="rv-name">'+esc(contact.name)+'</div>';
+  h += '<div class="rv-contact">';
+  if(contact.email)    h += '<span>'+esc(contact.email)+'</span>';
+  if(contact.phone)    h += '<span>'+esc(contact.phone)+'</span>';
+  if(contact.linkedin) h += '<a href="'+esc(contact.linkedin)+'" target="_blank">'+esc(contact.linkedin.replace('https://www.',''))+'</a>';
+  if(contact.location) h += '<span>'+esc(contact.location)+'</span>';
+  h += '</div></div>';
+
+  // Summary
+  var summary = sec('summary');
+  if(summary){
+    h += '<div class="rv-section">';
+    h += '<div class="rv-section-title">Summary</div>';
+    h += '<div class="rv-body" style="font-style:italic;color:#444">'+esc(summary)+'</div>';
+    h += '</div>';
   }
 
-  // Each section
-  var rendered = new Set(['contact info','header','suggestions']);
-  order.forEach(function(sec) {
-    var content = sections[sec] || '';
-    if (!content.trim()) return;
-    rendered.add(sec);
-    html += '<div class="polished-section">';
-    html += '<div class="sec-title">' + esc(sec) + '</div>';
-    html += '<div class="sec-body">' + esc(content) + '</div>';
-    html += '</div>';
-  });
-
-  // Any remaining sections
-  Object.keys(sections).forEach(function(sec) {
-    if (rendered.has(sec)) return;
-    var content = sections[sec] || '';
-    if (!content.trim()) return;
-    html += '<div class="polished-section">';
-    html += '<div class="sec-title">' + esc(sec) + '</div>';
-    html += '<div class="sec-body">' + esc(content) + '</div>';
-    html += '</div>';
-  });
-
-  if (!html) {
-    // Fallback — show raw polished text
-    html = '<div class="polished-section"><div class="sec-body">' + esc(result.polished_text || '') + '</div></div>';
+  // Experience
+  var exp = sec('experience');
+  if(exp){
+    h += '<div class="rv-section">';
+    h += '<div class="rv-section-title">Experience</div>';
+    h += parseExperience(exp);
+    h += '</div>';
   }
 
-  el.innerHTML = html;
+  // Education
+  var edu = sec('education');
+  if(edu){
+    h += '<div class="rv-section">';
+    h += '<div class="rv-section-title">Education</div>';
+    h += parseSimpleSection(edu);
+    h += '</div>';
+  }
+
+  // Skills
+  var skills = sec('skills');
+  if(skills){
+    h += '<div class="rv-section">';
+    h += '<div class="rv-section-title">Skills</div>';
+    h += '<div class="rv-skills-grid">';
+    var skillList = skills.split(/[,\n•\-]+/).map(function(s){return s.trim();}).filter(Boolean);
+    skillList.forEach(function(s){ h += '<div class="rv-skill-chip">'+esc(s)+'</div>'; });
+    h += '</div></div>';
+  }
+
+  // Projects
+  var proj = sec('projects');
+  if(proj){ h += '<div class="rv-section"><div class="rv-section-title">Projects</div>'+parseSimpleSection(proj)+'</div>'; }
+
+  // Certifications
+  var certs = sec('certifications');
+  if(certs){ h += '<div class="rv-section"><div class="rv-section-title">Certifications</div>'+parseSimpleSection(certs)+'</div>'; }
+
+  h += '</div>';
+  document.getElementById('rv-content').innerHTML = h;
 }
 
-/* ── Render score ── */
-function renderScore(score) {
-  var el = document.getElementById('score-output');
-  var overall = score.overall || 0;
-  var color = overall >= 70 ? 'var(--teal)' : overall >= 50 ? '#fbbf24' : '#ff6b6b';
-  var dims = [
-    {key:'completeness',   label:'Completeness'},
-    {key:'impact_language',label:'Impact Language'},
-    {key:'length',         label:'Ideal Length'},
-    {key:'ats_friendly',   label:'ATS Friendly'},
-  ];
-  var barsHtml = dims.map(function(d) {
-    var val = score[d.key] || 0;
-    var c = val >= 70 ? 'var(--teal)' : val >= 40 ? '#fbbf24' : '#ff6b6b';
-    return '<div class="score-row">' +
-      '<div class="score-name">' + d.label + '</div>' +
-      '<div class="score-bar"><div class="score-fill" style="width:' + val + '%;background:' + c + '"></div></div>' +
-      '<div style="font-size:10px;color:var(--text-secondary);width:28px;text-align:right">' + val + '</div>' +
-      '</div>';
-  }).join('');
-
-  el.innerHTML = '<div style="display:flex;gap:var(--space-4);align-items:center;margin-bottom:var(--space-4)">' +
-    '<div class="score-ring">' +
-    '<div class="score-num" style="color:' + color + '">' + overall + '</div>' +
-    '<div class="score-lbl">Overall</div>' +
-    '</div>' +
-    '<div class="score-bars">' + barsHtml + '</div>' +
-    '</div>' +
-    '<div style="font-size:11px;color:var(--text-secondary)">' +
-    (overall >= 70 ? '✅ Strong resume — ready to submit.' :
-     overall >= 50 ? '🟡 Decent — apply the suggestions to improve.' :
-                     '🔴 Needs work — review the suggestions carefully.') +
-    '</div>';
+function parseExperience(text){
+  var lines = text.split('\n');
+  var out = ''; var inJob = false;
+  lines.forEach(function(line){
+    var s = line.trim();
+    if(!s){ return; }
+    if(s.match(/^\d{4}|present|—|–|-.*\d{4}/i) && s.length < 80){
+      out += '<div class="rv-job-date">'+esc(s)+'</div>';
+    } else if(s.startsWith('-') || s.startsWith('•')){
+      out += '<div class="rv-bullet">'+esc(s.replace(/^[-•]\s*/,''))+'</div>';
+    } else if(s.length < 80 && s[0] === s[0].toUpperCase() && !s.endsWith('.')){
+      if(inJob) out += '</div>';
+      out += '<div class="rv-job"><div class="rv-job-header"><div class="rv-job-title">'+esc(s)+'</div></div>';
+      inJob = true;
+    } else {
+      out += '<div class="rv-body">'+esc(s)+'</div>';
+    }
+  });
+  if(inJob) out += '</div>';
+  return out;
 }
 
-/* ── Render suggestions ── */
-function renderSuggestions(suggestions) {
-  var el = document.getElementById('suggestions-output');
-  if (!suggestions || !suggestions.length) {
-    el.innerHTML = '<div style="color:var(--text-secondary);font-size:12px;text-align:center;padding:20px">No suggestions — your resume looks solid!</div>';
+function parseSimpleSection(text){
+  var out = '';
+  text.split('\n').forEach(function(line){
+    var s = line.trim();
+    if(!s) return;
+    if(s.startsWith('-') || s.startsWith('•')){
+      out += '<div class="rv-bullet">'+esc(s.replace(/^[-•]\s*/,''))+'</div>';
+    } else {
+      out += '<div class="rv-body">'+esc(s)+'</div>';
+    }
+  });
+  return out;
+}
+
+/* ══ RENDER ATS FIT ══ */
+function renderATS(result){
+  var ats = result.ats_analysis || {};
+  var el  = document.getElementById('ats-content');
+
+  if(!ats.match_score && ats.match_score !== 0){
+    el.innerHTML = '<div class="rv-empty"><div style="font-size:36px;opacity:.2">🎯</div><div style="font-size:13px;font-weight:600">Paste a job description to see ATS fit</div><div style="font-size:11px;color:var(--text-secondary)">Murphy analyzes keyword match, semantic fit, and what\'s missing</div></div>';
     return;
   }
-  el.innerHTML = '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:var(--space-2)">Murphy recommends:</div>' +
-    '<div class="suggestions">' +
-    suggestions.map(function(s) {
-      return '<div class="sugg-chip"><span class="sugg-icon">→</span><span>' + esc(s) + '</span></div>';
-    }).join('') +
-    '</div>';
+
+  var score = ats.match_score || 0;
+  var color = score >= 70 ? '#00d4aa' : score >= 50 ? '#fbbf24' : '#ff6b6b';
+  var circ  = 2 * Math.PI * 34; // circumference of r=34 circle
+  var dash  = circ * (score/100);
+
+  var h = '<div class="ats-row">' +
+    '<div class="ats-score-ring">' +
+    '<svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="34" fill="none" stroke="var(--border)" stroke-width="7"/>' +
+    '<circle cx="40" cy="40" r="34" fill="none" stroke="'+color+'" stroke-width="7" stroke-dasharray="'+dash.toFixed(1)+' '+circ.toFixed(1)+'" stroke-linecap="round"/></svg>' +
+    '<div class="ats-score-num" style="color:'+color+'">'+score+'</div>' +
+    '</div>' +
+    '<div style="flex:1">' +
+    '<div style="font-size:15px;font-weight:700;margin-bottom:4px">ATS Fit Score</div>' +
+    '<div style="font-size:11px;color:var(--text-secondary)">Keyword: '+ats.keyword_match_pct+'% match &nbsp;|&nbsp; Semantic: '+(ats.semantic_score||0)+'%</div>' +
+    (ats.jd_title ? '<div style="font-size:11px;color:var(--teal);margin-top:3px">Role: '+esc(ats.jd_title)+'</div>' : '') +
+    '</div></div>';
+
+  // Positioning tip
+  if(ats.positioning_tip){
+    h += '<div class="ats-tip">💡 <strong>Positioning:</strong> '+esc(ats.positioning_tip)+'</div>';
+  }
+
+  // Strengths
+  if(ats.top_matches && ats.top_matches.length){
+    h += '<div style="margin-top:16px"><div style="font-size:10px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">✅ Your strengths for this role</div>';
+    ats.top_matches.forEach(function(m){ h += '<div class="ats-gap-item">▸ '+esc(m)+'</div>'; });
+    h += '</div>';
+  }
+
+  // Critical gaps
+  if(ats.critical_gaps && ats.critical_gaps.length){
+    h += '<div style="margin-top:14px"><div style="font-size:10px;font-weight:700;color:#ff6b6b;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">⚠️ Gaps to address</div>';
+    ats.critical_gaps.forEach(function(g){ h += '<div class="ats-gap-item" style="color:#ff6b6b">⚡ '+esc(g)+'</div>'; });
+    h += '</div>';
+  }
+
+  // Keywords present
+  if(ats.keywords_present && ats.keywords_present.length){
+    h += '<div style="margin-top:16px"><div style="font-size:10px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Keywords matched ('+ats.keywords_present.length+')</div>';
+    h += '<div class="kw-grid">';
+    ats.keywords_present.forEach(function(k){ h += '<span class="kw-hit">✓ '+esc(k)+'</span>'; });
+    h += '</div></div>';
+  }
+
+  // Keywords missing
+  if(ats.keywords_missing && ats.keywords_missing.length){
+    h += '<div style="margin-top:12px"><div style="font-size:10px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Keywords missing ('+ats.keywords_missing.length+') — add truthfully where applicable</div>';
+    h += '<div class="kw-grid">';
+    ats.keywords_missing.forEach(function(k){ h += '<span class="kw-miss">+ '+esc(k)+'</span>'; });
+    h += '</div></div>';
+  }
+
+  el.innerHTML = h;
+
+  // Auto-switch to ATS tab if JD was provided
+  if(ats.match_score !== undefined){
+    document.querySelector('[data-t="ats"]').click();
+  }
 }
 
-/* ── PDF banner ── */
-function showPdfBanner(result) {
-  var banner = document.getElementById('pdf-banner');
-  var meta   = document.getElementById('pdf-meta');
-  var btn    = document.getElementById('btn-download');
-  meta.textContent = 'Resume ID: ' + result.id + (result.tailored ? ' • Tailored' : '');
-  btn.href = result.pdf_url;
-  banner.style.display = 'flex';
+/* ══ RENDER SCORE ══ */
+function renderScore(score, suggestions){
+  var el = document.getElementById('score-content');
+  var overall = score.overall || 0;
+  var color = overall >= 70 ? '#00d4aa' : overall >= 50 ? '#fbbf24' : '#ff6b6b';
+  var dims = [
+    {k:'completeness',   l:'Completeness'},
+    {k:'impact_language',l:'Impact Language'},
+    {k:'length',         l:'Ideal Length'},
+    {k:'ats_friendly',   l:'ATS Parseable'},
+  ];
+  var h = '<div style="display:flex;align-items:center;gap:20px;margin-bottom:20px">' +
+    '<div><div class="score-big" style="color:'+color+'">'+overall+'</div><div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.07em">Overall</div></div>' +
+    '<div style="flex:1">';
+  dims.forEach(function(d){
+    var v = score[d.k]||0;
+    var c = v>=70?'#00d4aa':v>=40?'#fbbf24':'#ff6b6b';
+    h += '<div class="score-dim"><span style="width:120px;color:var(--text-secondary)">'+d.l+'</span><div class="bar-track"><div class="bar-fill" style="width:'+v+'%;background:'+c+'"></div></div><span style="width:32px;text-align:right;font-size:10px">'+v+'</span></div>';
+  });
+  h += '</div></div>';
+
+  if(suggestions && suggestions.length){
+    h += '<div style="font-size:10px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Murphy Suggests</div>';
+    suggestions.forEach(function(s){
+      h += '<div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--border-subtle);font-size:11.5px"><span style="color:var(--teal)">→</span>'+esc(s)+'</div>';
+    });
+  }
+  el.innerHTML = h;
 }
 
-/* ── History ── */
-async function loadHistory() {
+function renderSuggestions(suggestions){
+  // Just calls renderScore with empty score if we're in polish-only mode
+  renderScore({}, suggestions);
+}
+
+/* ══ RENDER ATS CLEAN ══ */
+function renderClean(text){
+  document.getElementById('clean-content').textContent = text || 'No content yet.';
+}
+
+/* ══ HISTORY ══ */
+async function loadHist(){
   try {
-    var hdrs = Object.assign({'Content-Type':'application/json'}, authHeaders());
-    var r = await fetch('/api/resume/list?user_id=default', {headers: hdrs, credentials:'include'});
+    var r = await fetch('/api/resume/list?user_id=default', {headers:hdrs(false), credentials:'include'});
     var d = await r.json();
-    var el = document.getElementById('history-list');
-    if (!d.resumes || !d.resumes.length) {
-      el.innerHTML = '<div style="padding:20px;text-align:center;font-size:12px;color:var(--text-secondary)">No resumes built yet.</div>';
+    var el = document.getElementById('hist-list');
+    if(!d.resumes||!d.resumes.length){
+      el.innerHTML='<div style="padding:20px;text-align:center;font-size:11px;color:var(--text-secondary)">No resumes built yet.</div>';
       return;
     }
-    el.innerHTML = d.resumes.map(function(r) {
+    el.innerHTML = d.resumes.map(function(r){
       var dt = new Date(r.created_at).toLocaleDateString();
-      return '<div class="history-item" data-id="' + r.id + '">' +
-        '<div style="font-size:12px;font-weight:600">' + esc(r.filename || 'Resume') + '</div>' +
-        '<div style="font-size:10px;color:var(--text-secondary)">' + dt +
-          (r.job_desc ? ' • Tailored' : '') +
-          ' • <span style="color:var(--teal)">' + r.status + '</span>' +
-        '</div>' +
-        '</div>';
+      return '<div style="padding:10px 14px;border-bottom:1px solid var(--border-subtle);cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="window.open(\'/api/resume/download/'+r.id+'\',\'_blank\')">' +
+        '<div><div style="font-size:12px;font-weight:600">'+esc(r.filename||'Resume')+'</div>' +
+        '<div style="font-size:10px;color:var(--text-secondary)">'+dt+(r.job_desc?' • Tailored':'')+'</div></div>' +
+        '<span style="font-size:10px;color:var(--teal)">⬇ PDF</span></div>';
     }).join('');
-    el.querySelectorAll('.history-item').forEach(function(item) {
-      item.addEventListener('click', function() {
-        var id = this.dataset.id;
-        window.location.href = '/api/resume/download/' + id;
-      });
-    });
-  } catch(e) {}
+  } catch(e){}
 }
 
-function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 })();
 </script>

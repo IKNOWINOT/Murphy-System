@@ -187,16 +187,26 @@ def _llm(prompt: str, max_tokens: int = 2000) -> str:
         logger.error("LLM failed: %s", e)
         return ""
 
-POLISH_SYSTEM = """You are an expert resume writer and career coach.
-Your job is to take raw resume content and transform it into polished, 
-impactful, ATS-optimized resume content. Rules:
-- Use strong action verbs (Led, Built, Drove, Increased, Reduced, etc.)
-- Quantify achievements where possible (%, $, time saved, team size)
-- Keep bullets concise — 1-2 lines max
-- Remove filler words and passive voice
-- Maintain truthfulness — never fabricate details
-- Output clean plain text, section by section
-- For each section, output: SECTION: <name> then the content"""
+POLISH_SYSTEM = """You are an elite resume strategist and career coach used by Fortune 500 executives and top-tier candidates.
+
+Your task is a 4-pass transformation of raw resume content:
+
+PASS 1 — STRUCTURE: Organize into clean sections (Summary, Experience, Education, Skills, Projects, Certifications).
+PASS 2 — IMPACT: Rewrite every bullet with strong action verbs + quantified outcomes.
+  - Use: Led, Built, Drove, Launched, Reduced, Increased, Delivered, Scaled, Engineered, Negotiated
+  - Quantify EVERYTHING possible: %, $, team size, time saved, users, revenue
+  - Never fabricate — only upgrade language around real facts the person provided
+PASS 3 — ATS MIRROR: If a job description was provided, naturally embed the JD's exact keywords and phrases into the resume where truthfully applicable. Do not keyword-stuff — integrate organically.
+PASS 4 — SCAN OPTIMIZATION: The recruiter has 6 seconds. Every section must lead with the most impressive line. Name → Current/Target Role → Top 3 impacts → supporting detail.
+
+RULES:
+- Output SECTION: <name> before each section
+- Keep bullets to 1-2 lines
+- Remove ALL passive voice and filler words (responsible for, helped with, worked on, assisted)
+- Every bullet must start with a past-tense action verb
+- Summary must be 2-3 impactful sentences max — written in third person
+- Skills section: flat comma-separated list, no skill bars or ratings
+- Truth is non-negotiable: enhance language, never invent facts"""
 
 def polish_resume(raw_text: str, job_description: str = "") -> Dict:
     """
@@ -319,6 +329,163 @@ def _score_resume(text: str, sections: Dict) -> Dict:
         score["ats_friendly"] * 0.2,
     ]))
     return score
+
+
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ATS ANALYSIS — keyword extraction + semantic match scoring
+# ══════════════════════════════════════════════════════════════════════════════
+
+def analyze_ats_fit(resume_text: str, job_description: str) -> Dict:
+    """
+    Analyze how well the resume matches a job description.
+    Returns: keyword_hits, missing_keywords, match_score, semantic_score, jd_signals
+    No lying — only surfaces what's there and what's missing.
+    """
+    if not job_description.strip():
+        return {"match_score": 0, "note": "No job description provided"}
+
+    # --- Extract JD signals ---
+    jd_lower = job_description.lower()
+    resume_lower = resume_text.lower()
+
+    # Hard skill keywords — tech + business
+    SKILL_PATTERNS = [
+        r'\b(python|javascript|typescript|java|go|rust|c\+\+|ruby|swift|kotlin|scala)\b',
+        r'\b(react|vue|angular|nextjs|node\.?js|django|fastapi|flask|rails|laravel)\b',
+        r'\b(aws|azure|gcp|kubernetes|docker|terraform|ci/cd|devops|mlops)\b',
+        r'\b(sql|postgresql|mysql|mongodb|redis|elasticsearch|dynamodb|bigquery)\b',
+        r'\b(machine learning|deep learning|llm|nlp|computer vision|data science|ai)\b',
+        r'\b(product management|product manager|roadmap|sprint|agile|scrum|okr)\b',
+        r'\b(revenue|mrr|arr|churn|cac|ltv|pipeline|quota|enterprise|saas|b2b|b2c)\b',
+        r'\b(leadership|management|director|vp|head of|team lead|cross.functional)\b',
+        r'\b(figma|ux|ui|design|user research|wireframe|prototype)\b',
+        r'\b(marketing|seo|sem|content|growth|acquisition|retention|conversion)\b',
+        r'\b(finance|accounting|financial modeling|excel|tableau|power bi|looker)\b',
+        r'\b(hipaa|soc2|gdpr|iso|compliance|security|penetration testing|zero trust)\b',
+    ]
+
+    import re as _re
+    jd_keywords: List[str] = []
+    for pattern in SKILL_PATTERNS:
+        matches = _re.findall(pattern, jd_lower)
+        jd_keywords.extend(matches)
+
+    # Also extract capitalized proper nouns / tools from JD (2-3 word phrases)
+    proper = _re.findall(r'\b([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?)\b', job_description)
+    for p in proper:
+        if len(p) > 3 and p.lower() not in ('the','and','for','with','our','your','this','that','have','will','been','from','they','their'):
+            jd_keywords.append(p.lower())
+
+    jd_keywords = list(dict.fromkeys(jd_keywords))  # dedupe, preserve order
+
+    # --- Check which keywords are in resume ---
+    present = [kw for kw in jd_keywords if kw in resume_lower]
+    missing = [kw for kw in jd_keywords if kw not in resume_lower]
+
+    keyword_match = int((len(present) / max(len(jd_keywords), 1)) * 100)
+
+    # --- Seniority signal extraction ---
+    seniority_map = {
+        'entry': ['junior','entry.level','associate','intern','1.2 years','0.2 years'],
+        'mid': ['mid.level','3.5 years','2.4 years','senior(?! director| vp| manager)'],
+        'senior': [r'\bsenior\b',r'\blead\b',r'\bstaff\b','5\+','7\+'],
+        'executive': ['director','vp','vice president','c-level','cto','cpo','head of'],
+    }
+    detected_level = 'mid'
+    for level, signals in seniority_map.items():
+        if any(_re.search(s, jd_lower) for s in signals):
+            detected_level = level
+
+    # --- Extract role title from JD ---
+    title_match = _re.search(r'^([^\n\.]{5,60})', job_description.strip())
+    jd_title = title_match.group(1).strip() if title_match else ""
+
+    # --- LLM semantic analysis ---
+    semantic_prompt = f"""You are an ATS and recruiter simulation engine.
+
+JOB DESCRIPTION (first 800 chars):
+{job_description[:800]}
+
+RESUME (first 800 chars):
+{resume_text[:800]}
+
+Rate this resume's fit for this job on a scale of 0-100.
+Respond with ONLY a JSON object, no other text:
+{{
+  "semantic_score": <int 0-100>,
+  "top_matches": ["<strength 1>", "<strength 2>", "<strength 3>"],
+  "critical_gaps": ["<gap 1>", "<gap 2>"],
+  "positioning_tip": "<one sentence on how to reframe the resume for this role>"
+}}"""
+
+    semantic_result = {}
+    try:
+        raw = _llm(semantic_prompt, max_tokens=400)
+        if raw:
+            import json as _json
+            # Extract JSON from response
+            json_match = _re.search(r'\{.*\}', raw, _re.DOTALL)
+            if json_match:
+                semantic_result = _json.loads(json_match.group(0))
+    except Exception as e:
+        logger.warning("ATS semantic analysis LLM failed: %s", e)
+
+    overall_ats = int(keyword_match * 0.5 + semantic_result.get("semantic_score", keyword_match) * 0.5)
+
+    return {
+        "match_score":      overall_ats,
+        "keyword_match_pct": keyword_match,
+        "semantic_score":   semantic_result.get("semantic_score", 0),
+        "keywords_present": present[:20],
+        "keywords_missing": missing[:20],
+        "jd_title":         jd_title,
+        "seniority_level":  detected_level,
+        "top_matches":      semantic_result.get("top_matches", []),
+        "critical_gaps":    semantic_result.get("critical_gaps", []),
+        "positioning_tip":  semantic_result.get("positioning_tip", ""),
+        "total_jd_keywords": len(jd_keywords),
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ATS-CLEAN TEXT OUTPUT (for actual submission)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def generate_ats_clean_text(resume_data: Dict) -> str:
+    """
+    Generate a plain-text ATS-safe version of the resume.
+    Single column, no graphics, no tables, no special chars.
+    This is what you paste into ATS upload forms.
+    """
+    contact  = resume_data.get("contact", {})
+    polished = resume_data.get("polished_sections", {})
+    raw_secs = resume_data.get("sections", {})
+
+    def sec(name):
+        return (polished.get(name) or raw_secs.get(name) or "").strip()
+
+    lines = []
+    if contact.get("name"): lines.append(contact["name"].upper())
+    parts = [v for k,v in contact.items() if v and k != "name"]
+    if parts: lines.append(" | ".join(parts))
+    lines.append("")
+
+    section_order = ["summary","experience","education","skills","projects","certifications","other"]
+    for sec_name in section_order:
+        content = sec(sec_name)
+        if not content: continue
+        lines.append(sec_name.upper())
+        lines.append("-" * 40)
+        for line in content.split("\n"):
+            s = line.strip()
+            if not s: lines.append("")
+            elif s.startswith(("•","*","·")): lines.append("- " + s.lstrip("•*· "))
+            else: lines.append(s)
+        lines.append("")
+
+    return "\n".join(lines)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -580,15 +747,43 @@ def build_resume(
 
     pdf_url = f"/api/resume/download/{rid}" if pdf_ok else None
 
+    # 5. ATS analysis (if JD provided)
+    ats = {}
+    if job_description.strip():
+        ats = analyze_ats_fit(text, job_description)
+
+    # 6. ATS-clean text version
+    ats_clean = generate_ats_clean_text(polished)
+
+    # 7. Generate ATS-clean PDF (single column, plain)
+    ats_pdf_path = ""
+    ats_pdf_url  = None
+    try:
+        ats_clean_data = dict(polished)
+        ats_pdf_path = os.path.join(RESUME_PDFS, f"resume_{rid}_ats.pdf")
+        # For ATS PDF: strip polished_sections styling signals, use raw text
+        generate_pdf(ats_clean_data, ats_pdf_path)
+        ats_pdf_url = f"/api/resume/download/{rid}?variant=ats"
+    except Exception as e:
+        logger.warning("ATS PDF gen failed: %s", e)
+
+    # Store ats_clean in DB
+    with _db() as conn:
+        conn.execute("UPDATE resumes SET status=? WHERE id=?", ("complete", rid))
+        conn.commit()
+
     return {
-        "success":     True,
-        "id":          rid,
-        "pdf_url":     pdf_url,
-        "pdf_path":    pdf_path,
-        "contact":     polished.get("contact", {}),
-        "score":       polished.get("score", {}),
-        "suggestions": polished.get("suggestions", []),
-        "polished_text": polished.get("polished_text", ""),
+        "success":           True,
+        "id":                rid,
+        "pdf_url":           pdf_url,
+        "pdf_path":          pdf_path,
+        "ats_pdf_url":       ats_pdf_url,
+        "contact":           polished.get("contact", {}),
+        "score":             polished.get("score", {}),
+        "suggestions":       polished.get("suggestions", []),
+        "polished_text":     polished.get("polished_text", ""),
         "polished_sections": polished.get("polished_sections", {}),
-        "tailored":    bool(job_description.strip()),
+        "tailored":          bool(job_description.strip()),
+        "ats_analysis":      ats,
+        "ats_clean_text":    ats_clean,
     }
