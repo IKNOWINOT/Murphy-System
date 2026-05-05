@@ -324,6 +324,7 @@ def create_app() -> FastAPI:
         "wallet":                  "wallet.html",
         "portfolio":               "portfolio.html",
         "financing":               "financing_options.html",
+                "illuminate":              "illuminate.html",
         # Workspace
         "workspace":               "workspace.html",
         "workdocs":                "workdocs.html",
@@ -22249,6 +22250,13 @@ def create_app() -> FastAPI:
         from src.forge_router import router as _forge_router
         from src.forge_engine import register_with_app as _forge_register, remount_all_internal_apis as _forge_remount
         app.include_router(_forge_router)
+        # PATCH-192: Illuminate — contact intelligence engine
+        try:
+            from src.illuminate_router import router as _illuminate_router
+            app.include_router(_illuminate_router)
+            logger.info("[PATCH-192] Illuminate mounted at /api/illuminate/*")
+        except Exception as _il_err:
+            logger.warning("[PATCH-192] Illuminate router failed: %s", _il_err)
         _forge_register(app)
         _remounted = _forge_remount()
         logger.info("PATCH-133: ForgeEngine online — /api/forge/* | PATCH-139: %d internal APIs remounted", _remounted)

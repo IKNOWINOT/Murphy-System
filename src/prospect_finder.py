@@ -32,7 +32,51 @@ logger = logging.getLogger(__name__)
 
 CORPUS_DB  = "/var/lib/murphy-production/world_corpus.db"
 CRM_DB     = "/var/lib/murphy-production/crm.db"
-HUNTER_KEY = os.environ.get("HUNTER_API_KEY", "")
+HUNTER_KEY   = os.environ.get("HUNTER_API_KEY", "")
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
+
+# ── Illuminate — Murphy's own contact intelligence (PATCH-192) ──────────────
+def _illuminate_lookup(domain: str) -> Optional[Dict]:
+    """
+    Illuminate domain search — Murphy's own Hunter.io replacement.
+    Always free, no API key needed. Called FIRST before Hunter.
+    Returns Hunter-compatible dict or None.
+    """
+    try:
+        import src.illuminate as _il
+        _il.ensure_tables()
+        result = _il.domain_search(domain, verify=False)
+        contacts = result.get("contacts", [])
+        if not contacts:
+            return None
+        # Sort by confidence desc, prefer scraped over github
+        contacts.sort(key=lambda c: -c.get("confidence", 0))
+        best = contacts[0]
+        email = best.get("email", "")
+        if not email:
+            return None
+        # Parse name from email local part if no name available
+        name = best.get("name", "")
+        first, last = "", ""
+        if name and " " in name:
+            parts = name.split(None, 1)
+            first, last = parts[0], parts[1]
+        elif not name and "@" in email:
+            local = email.split("@")[0]
+            if "." in local:
+                parts = local.split(".", 1)
+                first, last = parts[0].capitalize(), parts[1].capitalize()
+        return {
+            "email":      email,
+            "first_name": first,
+            "last_name":  last,
+            "position":   best.get("title", ""),
+            "confidence": best.get("confidence", 60),
+            "source":     "illuminate",
+        }
+    except Exception as ex:
+        logger.debug("[ProspectFinder] Illuminate lookup failed for %s: %s", domain, ex)
+        return None
 
 # ICP definition — tunable via env
 ICP_INDUSTRIES   = os.environ.get("ICP_INDUSTRIES",  "saas,fintech,operations,ai,automation,compliance,hr,logistics").split(",")
@@ -258,30 +302,37 @@ def run_discovery(max_new: int = 10) -> Dict:
                 continue
 
             guess_domain = _domain_from_company(company)
-            hunter_data  = _hunter_lookup(guess_domain)
+            # ── PATCH-192: Illuminate-first lookup, Hunter as fallback ──
+            contact_data = _illuminate_lookup(guess_domain)
+            _source = "illuminate"
 
-            if not hunter_data or not hunter_data.get("email"):
-                # No Hunter key or no result — create a placeholder lead without email
-                # Only create if score is high enough to be worth manual enrichment
+            if not contact_data or not contact_data.get("email"):
+                # Illuminate found nothing — try Hunter if key is available
+                contact_data = _hunter_lookup(guess_domain)
+                _source = "hunter"
+
+            if not contact_data or not contact_data.get("email"):
+                # Neither found anything — placeholder for high-ICP companies
                 if icp_score >= 80:
                     name = company + " (Contact TBD)"
                     if not _already_in_crm(""):
-                        contact_id = _insert_prospect(
+                        _insert_prospect(
                             name=name, email='', company=company,
                             position='Unknown', source_url=content[:120],
                             icp_score=icp_score
                         )
                         results["discovered"] += 1
-                        results["prospects"].append({"company": company, "icp": icp_score, "email": None})
+                        results["prospects"].append({"company": company, "icp": icp_score, "email": None, "source": "tbd"})
                 else:
                     results["no_email"] += 1
                 continue
 
-            email     = hunter_data["email"]
-            first     = hunter_data.get("first_name", "")
-            last      = hunter_data.get("last_name", "")
-            position  = hunter_data.get("position", "")
+            email     = contact_data["email"]
+            first     = contact_data.get("first_name", "")
+            last      = contact_data.get("last_name", "")
+            position  = contact_data.get("position", "")
             full_name = f"{first} {last}".strip() or company
+            logger.info("[ProspectFinder] Contact found via %s: %s", _source, email)
 
             # Gate 1 — Already in CRM?
             if _already_in_crm(email):
@@ -305,7 +356,7 @@ def run_discovery(max_new: int = 10) -> Dict:
             results["prospects"].append({
                 "company": company, "email": email,
                 "name": full_name, "icp": icp_score,
-                "confidence": hunter_data.get("confidence", 0),
+                "confidence": contact_data.get("confidence", 0),
             })
 
     logger.info("[ProspectFinder] Cycle complete: %s", results)
