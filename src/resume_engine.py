@@ -171,7 +171,18 @@ def _llm(prompt: str, max_tokens: int = 2000) -> str:
     try:
         from src.llm_provider import MurphyLLMProvider
         llm = MurphyLLMProvider()
-        return llm.complete(prompt, max_tokens=max_tokens, temperature=0.3)
+        result = llm.complete(prompt, max_tokens=max_tokens, temperature=0.3)
+        # Handle LLMCompletion object or plain string
+        if hasattr(result, "text"):
+            return str(result.text or "")
+        if hasattr(result, "content"):
+            return str(result.content or "")
+        if hasattr(result, "__str__"):
+            s = str(result)
+            # Avoid returning repr of an object
+            if not s.startswith("<"):
+                return s
+        return ""
     except Exception as e:
         logger.error("LLM failed: %s", e)
         return ""
