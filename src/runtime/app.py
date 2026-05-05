@@ -1239,6 +1239,11 @@ def create_app() -> FastAPI:
         _BillingInterval = None
 
     # Apply security hardening (CORS allowlist, API key auth, rate limiting, headers)
+    # PATCH-194b: pre-define _cors_origins so it is always available regardless of import path
+    _cors_origins = os.environ.get(
+        "MURPHY_CORS_ORIGINS",
+        "http://localhost:3000,http://localhost:8080,http://localhost:8000",
+    ).split(",")
     try:
         from src.fastapi_security import configure_secure_fastapi, register_session_validator
         configure_secure_fastapi(app, service_name="murphy-system-1.0")
