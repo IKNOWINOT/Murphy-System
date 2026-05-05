@@ -259,17 +259,23 @@ class ExecAdminAgent(AgentBase):
                     deal_id       = blocker.get("deal_id", "")
 
                     if contact_email and '@' in contact_email:
-                        subject = f"Checking in — {company} x Murphy System"
+                        subject = f"Quick question for {company}"
                         stage_label = stage.replace("_", " ").title()
+                        first_name = contact_name.split()[0] if contact_name else "there"
+                        meet_link = "https://meet.google.com/gvq-qgvm-npc"
+                        value_fmt = f"${value:,.0f}" if value else "your deal"
                         body = (
-                            f"Hi {contact_name.split()[0] if contact_name else 'there'},\n\n"
-                            f"I wanted to follow up on our conversation about Murphy System for {company}.\n\n"
-                            f"You're currently at the {stage_label} stage — I want to make sure we have everything "
-                            f"you need to move forward confidently.\n\n"
-                            f"Murphy System gives your team autonomous AI agents that handle compliance, billing, "
-                            f"workflows, and revenue operations — so you can focus on growing.\n\n"
-                            f"Would a 15-minute call this week work to answer any questions?\n\n"
-                            f"Best,\nMurphy System Executive Team\nmurphy@murphy.systems"
+                            f"Hi {first_name},\n\n"
+                            f"I run the executive team at Murphy System. I noticed {company} is at the "
+                            f"{stage_label} stage — and I wanted to reach out directly.\n\n"
+                            f"Most teams at this stage have one or two specific questions holding them back. "
+                            f"I'd rather spend 15 minutes answering those than send you another slide deck.\n\n"
+                            f"Here's a direct Google Meet link — no scheduling back-and-forth:\n"
+                            f"{meet_link}\n\n"
+                            f"Just click when you're ready, or reply with a time that works and I'll be there.\n\n"
+                            f"— Corey Post\n"
+                            f"Founder, Murphy System\n"
+                            f"murphy@murphy.systems | murphy.systems"
                         )
 
                         # Check idempotency — don't re-send if ANY followup to this contact in last 48h
