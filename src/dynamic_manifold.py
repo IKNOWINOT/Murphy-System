@@ -315,18 +315,17 @@ def scan_project(project_id: str = None) -> Dict:
 
         results["scanned"] = len(entries)
 
+        pending_dispatches = []  # collect, dispatch AFTER conn closes (avoid SQLite re-entrant lock)
         for row in entries:
             entry = dict(row)
             eid   = entry["id"]
             pid   = entry.get("project_id")
 
-            # Check if already has an open prescription
             existing = conn.execute(
-                "SELECT id FROM gap_prescriptions WHERE entry_id=? AND status='open'",
+                "SELECT id FROM gap_prescriptions WHERE entry_id=? AND status NOT IN ('fulfilled','cancelled')",
                 (eid,)
             ).fetchone()
             if existing:
-                # Update risk score but don't double-dispatch
                 deps = count_downstream(eid, conn)
                 score = score_risk(entry, deps)
                 conn.execute(
@@ -335,18 +334,16 @@ def scan_project(project_id: str = None) -> Dict:
                 )
                 results["gaps_found"] += 1
                 results["exposure_usd"] += abs(entry.get("financial_impact_usd") or 0)
-                tier = risk_tier(score)
-                results[tier.lower()] += 1
+                results[risk_tier(score).lower()] += 1
                 continue
 
-            # New gap — full analysis
-            deps      = count_downstream(eid, conn)
-            gap_type  = classify_gap(entry)
-            score     = score_risk(entry, deps)
-            tier      = risk_tier(score)
-            presc     = generate_prescription(entry, gap_type, score, deps)
-            pid_use   = pid or entry.get("project_id") or "unknown"
-            presc_id  = _id("gp")
+            deps     = count_downstream(eid, conn)
+            gap_type = classify_gap(entry)
+            score    = score_risk(entry, deps)
+            tier     = risk_tier(score)
+            presc    = generate_prescription(entry, gap_type, score, deps)
+            pid_use  = pid or "unknown"
+            presc_id = _id("gp")
 
             conn.execute(
                 """INSERT INTO gap_prescriptions
@@ -362,19 +359,13 @@ def scan_project(project_id: str = None) -> Dict:
             results["gaps_found"] += 1
             results["exposure_usd"] += abs(entry.get("financial_impact_usd") or 0)
             results[tier.lower()] += 1
-
-            # Dispatch
-            if tier == "HIGH":
-                _dispatch_high(conn, entry, presc, presc_id, pid_use)
-                results["escalations_created"] += 1
-            elif tier == "MEDIUM":
-                _dispatch_medium(conn, entry, presc, presc_id)
-            else:
-                _dispatch_low(conn, entry, presc, presc_id)
-
             presc["id"] = presc_id
             presc["entry_id"] = eid
+            presc["_tier"] = tier
+            presc["_pid"] = pid_use
+            presc["_entry"] = entry
             results["prescriptions"].append(presc)
+            pending_dispatches.append((tier, entry, presc, presc_id, pid_use))
 
         # Log the scan
         duration = int(time.time() * 1000) - start_ms
@@ -388,6 +379,20 @@ def scan_project(project_id: str = None) -> Dict:
              results["exposure_usd"], results["prescriptions_created"],
              results["escalations_created"], duration)
         )
+
+    # Dispatch OUTSIDE the DB context to avoid SQLite re-entrant deadlock
+    for tier, entry, presc, presc_id, pid_use in pending_dispatches:
+        try:
+            with _db() as dconn:
+                if tier == "HIGH":
+                    _dispatch_high(dconn, entry, presc, presc_id, pid_use)
+                    results["escalations_created"] += 1
+                elif tier == "MEDIUM":
+                    _dispatch_medium(dconn, entry, presc, presc_id)
+                else:
+                    _dispatch_low(dconn, entry, presc, presc_id)
+        except Exception as _de:
+            logger.warning("Dispatch failed for %s: %s", presc_id, _de)
 
     logger.info("Gap scan: %d entries, %d gaps (L:%d M:%d H:%d) $%.0f exposure",
                 results["scanned"], results["gaps_found"],
@@ -529,10 +534,13 @@ def _freeze_downstream_chains(entry_id: str, reason: str):
 
 # ── Query functions ────────────────────────────────────────────────────────────
 
-def get_gaps(project_id: str = None, status: str = "open",
+def get_gaps(project_id: str = None, status: str = "active",
              tier: str = None, limit: int = 100) -> List[Dict]:
     with _db() as conn:
-        clauses, params = ["gp.status=?"], [status]
+        if status == "active":
+            clauses, params = ["gp.status IN ('open','dispatched')"], []
+        else:
+            clauses, params = ["gp.status=?"], [status]
         if project_id:
             clauses.append("gp.project_id=?"); params.append(project_id)
         if tier:
@@ -559,7 +567,7 @@ def get_gaps(project_id: str = None, status: str = "open",
 def get_gap_summary(project_id: str = None) -> Dict:
     with _db() as conn:
         pid_filter = (" AND project_id='" + project_id + "'") if project_id else ""
-        base = "WHERE status='open'" + pid_filter
+        base = "WHERE status IN ('open','dispatched')" + pid_filter
         by_tier = conn.execute(
             "SELECT risk_tier, COUNT(*) as count, SUM(financial_exposure_usd) as exposure "
             "FROM gap_prescriptions " + base + " GROUP BY risk_tier"
@@ -663,7 +671,7 @@ def get_risk_exposure(project_id: str = None) -> Dict:
             "me.title, me.entry_type, me.confidence "
             "FROM gap_prescriptions gp "
             "LEFT JOIN manifold_entries me ON me.id = gp.entry_id "
-            "WHERE gp.status='open'" + pid_clause + " ORDER BY gp.risk_score DESC"
+            "WHERE gp.status IN ('open','dispatched')" + pid_clause + " ORDER BY gp.risk_score DESC"
         ).fetchall()
         total_exp = sum(float(r["financial_exposure_usd"] or 0) for r in rows)
         high_exp  = sum(float(r["financial_exposure_usd"] or 0) for r in rows if r["risk_tier"]=="HIGH")

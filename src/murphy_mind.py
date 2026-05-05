@@ -223,6 +223,17 @@ _FM_SIGNATURES = [
      "exclude": ["murphy_critic.py", "murphy_mind.py"]},
     {"id": "FM-010", "name": "Route shadowing",
      "patterns": [], "files": ["runtime/app.py"], "exclude": []},
+    # PATCH-184: Lessons learned from live test session 2026-05-05
+    {"id": "FM-011", "name": "Idempotency check on partial status",
+     "patterns": [r"status='open'", r"AND status='open'"],
+     "files": ["dynamic_manifold.py", "gap_prescriptions", "chain_engine.py"],
+     "exclude": ["murphy_critic.py", "murphy_mind.py"],
+     "lesson": "Checking status='open' misses 'dispatched' records. Idempotency guards must cover ALL terminal non-resolved statuses: status NOT IN ('fulfilled','cancelled','dispatched'). Found via live test: scheduler re-ran 15 times and created 30 duplicate prescriptions."},
+    {"id": "FM-012", "name": "Nested SQLite context manager deadlock",
+     "patterns": [r"with _db\(\).*\n.*_dispatch", r"contextmanager.*sqlite"],
+     "files": ["dynamic_manifold.py", "chain_engine.py", "records_engine.py"],
+     "exclude": ["murphy_critic.py", "murphy_mind.py"],
+     "lesson": "Calling _db() inside a function that itself runs inside a with _db() block causes silent hang on WAL-mode SQLite. Pattern: scan_project() called _dispatch_*() inside the main 'with _db()' context. Fix: collect dispatch targets during the DB session, run them AFTER the context manager closes."},
 ]
 
 
@@ -784,6 +795,13 @@ class MurphyMind:
             "agent_coverage": _agent_coverage(),  # PATCH-128: swarm completeness
             "previous_self_model": self._store.latest_entry(),
             "fm_verification": _verify_failure_modes(),  # PATCH-125: live FM scan
+            # PATCH-184: Permanent lessons from live testing (Steve's review)
+            "engineering_lessons": [
+                "FM-011 [LIVE BUG 2026-05-05]: Idempotency checks must cover ALL non-resolved statuses, not just 'open'. Missing 'dispatched' caused 30 duplicate prescriptions across 15 scheduler runs.",
+                "FM-012 [LIVE BUG 2026-05-05]: Never call _db() context manager nested inside another _db() context. SQLite WAL-mode causes silent hang. Collect dispatch targets first, release connection, then dispatch.",
+                "FM-013 [PATTERN]: f-strings with embedded newlines (multi-line f-strings) break when written via SFTP — the newline character in the string becomes a literal newline in the source file. Use string concatenation instead.",
+                "FM-014 [PATTERN]: time.time() * 1000 — when SFTP splits lines, the multiplication operand gets orphaned. Always use a single-line expression for time calculations.",
+            ],
         }
 
     def _run_cycle(self) -> MindCycleResult:

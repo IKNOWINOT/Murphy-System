@@ -21,7 +21,7 @@ class EscalateGapReq(BaseModel):
 
 
 @router.get("")
-async def list_gaps(project_id: Optional[str]=None, status: str="open",
+async def list_gaps(project_id: Optional[str]=None, status: str="active",
                     tier: Optional[str]=None, limit: int=100):
     from src.dynamic_manifold import get_gaps
     return {"gaps": get_gaps(project_id, status, tier, limit)}

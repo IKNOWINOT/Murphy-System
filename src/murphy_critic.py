@@ -20,6 +20,8 @@ Known failure modes (from PATCH-115b and PATCH-121 post-mortems):
   FM-008: Singleton not thread-safe (double-checked locking missing)
   FM-009: f-string with embedded newlines causing SyntaxError
   FM-010: Route shadowing - new route registered after existing route with same path
+FM-011: Idempotency check on partial state — checking status='open' misses 'dispatched' rows, causing duplicate records on every scheduled re-run (TOCTOU class bug)
+FM-012: Nested SQLite context manager deadlock — calling _db() inside a function that is itself called inside a with _db() block causes silent hang on WAL-mode SQLite
 
 Copyright 2020-2026 Inoni LLC - Created by Corey Post
 License: BSL 1.1
@@ -96,6 +98,16 @@ _FM_META: Dict[str, Dict] = {
         ),
         "remediation": "Use llm.complete(prompt=str, max_tokens=int). Access result.content",
         "ast_checks": ["check_llm_api_calls"],
+    "FM-011": [
+        "status='open'",
+        "AND status='open'",
+        "WHERE.*status.*open.*entry_id",
+    ],
+    "FM-012": [
+        "with _db().*_dispatch",
+        "_db().*inside.*_db",
+        "contextmanager.*sqlite.*nested",
+    ],
     },
     "FM-002": {
         "name": "Thread-unsafe SQLite connection",
