@@ -21020,6 +21020,93 @@ def create_app() -> FastAPI:
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
+    # ══════════════════════════════════════════════════════════════════
+    # DNC ENGINE — PATCH-190
+    # ══════════════════════════════════════════════════════════════════
+    @app.get("/api/dnc/list")
+    async def dnc_list_route(request: Request):
+        """List all DNC suppression records."""
+        try:
+            from src.dnc_engine import list_all as _dnc_list, ensure_table as _dnc_init
+            _dnc_init()
+            records = _dnc_list()
+            return JSONResponse({"success": True, "count": len(records), "records": records})
+        except Exception as ex:
+            return JSONResponse({"success": False, "error": str(ex)}, status_code=500)
+
+    @app.post("/api/dnc/add")
+    async def dnc_add_route(request: Request):
+        """Add email/phone/domain to DNC list."""
+        try:
+            from src.dnc_engine import add as _dnc_add, ensure_table as _dnc_init
+            _dnc_init()
+            body = await request.json()
+            rid = _dnc_add(
+                email=body.get("email",""), phone=body.get("phone",""),
+                domain=body.get("domain",""), reason=body.get("reason","manual"),
+                source=body.get("source","api"), added_by=body.get("added_by","user")
+            )
+            return JSONResponse({"success": True, "id": rid})
+        except Exception as ex:
+            return JSONResponse({"success": False, "error": str(ex)}, status_code=500)
+
+    @app.post("/api/dnc/check")
+    async def dnc_check_route(request: Request):
+        """Check if email/phone is on DNC list."""
+        try:
+            from src.dnc_engine import check as _dnc_check, ensure_table as _dnc_init
+            _dnc_init()
+            body = await request.json()
+            blocked, reason = _dnc_check(email=body.get("email",""), phone=body.get("phone",""))
+            return JSONResponse({"success": True, "blocked": blocked, "reason": reason})
+        except Exception as ex:
+            return JSONResponse({"success": False, "error": str(ex)}, status_code=500)
+
+    @app.delete("/api/dnc/remove")
+    async def dnc_remove_route(request: Request):
+        """Remove email/phone from DNC list."""
+        try:
+            from src.dnc_engine import remove as _dnc_remove
+            body = await request.json()
+            removed = _dnc_remove(email=body.get("email",""), phone=body.get("phone",""))
+            return JSONResponse({"success": True, "removed": removed})
+        except Exception as ex:
+            return JSONResponse({"success": False, "error": str(ex)}, status_code=500)
+
+    # ══════════════════════════════════════════════════════════════════
+    # PROSPECT FINDER — PATCH-190
+    # ══════════════════════════════════════════════════════════════════
+    @app.post("/api/prospects/discover")
+    async def prospect_discover_route(request: Request):
+        """Trigger autonomous prospect discovery cycle."""
+        try:
+            from src.prospect_finder import run_discovery as _run_discovery
+            body = await request.json()
+            max_new = int(body.get("max_new", 10))
+            results = _run_discovery(max_new=max_new)
+            return JSONResponse({"success": True, **results})
+        except Exception as ex:
+            return JSONResponse({"success": False, "error": str(ex)}, status_code=500)
+
+    @app.get("/api/prospects/status")
+    async def prospect_status_route(request: Request):
+        """Get prospect discovery stats."""
+        try:
+            import sqlite3 as _sq3_p
+            with _sq3_p.connect("/var/lib/murphy-production/crm.db", timeout=5) as conn:
+                total = conn.execute("SELECT COUNT(*) FROM contacts WHERE contact_type='prospect'").fetchone()[0]
+                recent = conn.execute(
+                    "SELECT name,email,company,created_at FROM contacts "
+                    "WHERE contact_type='prospect' ORDER BY created_at DESC LIMIT 5"
+                ).fetchall()
+            return JSONResponse({
+                "success": True, "total_prospects": total,
+                "recent": [{"name":r[0],"email":r[1],"company":r[2],"added":r[3]} for r in recent]
+            })
+        except Exception as ex:
+            return JSONResponse({"success": False, "error": str(ex)}, status_code=500)
+
+
     @app.post("/api/exec/brief")
     async def _exec_brief(request: Request):
         """PATCH-116 — Executive morning brief (soul-wrapped)."""

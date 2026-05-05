@@ -258,7 +258,21 @@ class ExecAdminAgent(AgentBase):
                     value         = blocker.get("value", 0)
                     deal_id       = blocker.get("deal_id", "")
 
-                    if contact_email and '@' in contact_email:
+                    # ── DNC Gate (PATCH-190) — check before ANY outreach ──────────
+                    _dnc_blocked = False
+                    _dnc_reason  = ""
+                    try:
+                        from src.dnc_engine import check as _dnc_check, ensure_table as _dnc_init
+                        _dnc_init()
+                        _dnc_blocked, _dnc_reason = _dnc_check(email=contact_email)
+                    except Exception as _dnc_err:
+                        logger.warning("[ExecAdmin] DNC check error (fail open): %s", _dnc_err)
+
+                    if _dnc_blocked:
+                        logger.info("[ExecAdmin] DNC blocked outreach to %s: %s", contact_email, _dnc_reason)
+                        directive["status"] = f"dnc_blocked:{_dnc_reason[:60]}"
+
+                    if contact_email and '@' in contact_email and not _dnc_blocked:
                         subject = f"Quick question for {company}"
                         stage_label = stage.replace("_", " ").title()
                         first_name = contact_name.split()[0] if contact_name else "there"

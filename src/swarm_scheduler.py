@@ -381,6 +381,27 @@ class SwarmScheduler:
         )
         self._jobs["api_acquisition"] = {"name": "API Acquirer", "interval": "6h", "type": "builtin"}
 
+        # PATCH-190: Autonomous Prospect Discovery — every 6 hours
+        def prospect_discovery_cycle():
+            try:
+                from src.prospect_finder import run_discovery
+                result = run_discovery(max_new=15)
+                logger.info("[Scheduler] Prospect discovery: %s new, %s dnc_blocked",
+                            result.get("discovered", 0), result.get("dnc_blocked", 0))
+            except Exception as _e:
+                logger.warning("[Scheduler] Prospect discovery error: %s", _e)
+
+        self._scheduler.add_job(
+            prospect_discovery_cycle,
+            trigger=IntervalTrigger(hours=6),
+            id="prospect_discovery",
+            replace_existing=True,
+            name="Prospect Discovery",
+            misfire_grace_time=300,
+        )
+        self._jobs["prospect_discovery"] = {"name": "Prospect Discovery", "interval": "6h", "type": "builtin"}
+        logger.info("[PATCH-190] Prospect discovery scheduled every 6h")
+
         logger.info("SwarmScheduler: 7 built-in jobs registered")
 
     def add_nl_job(self, nl_text: str, cron_expr: str, account: str = "unknown") -> str:
