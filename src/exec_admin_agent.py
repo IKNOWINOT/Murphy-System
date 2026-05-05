@@ -112,7 +112,7 @@ class ExecAdminAgent(AgentBase):
         try:
             db = sqlite3.connect("/var/lib/murphy-production/crm.db", timeout=3)
             rows = db.execute(
-                "SELECT d.id, d.title, d.stage, d.value, d.updated_at, d.contact_id, "
+                "SELECT d.id, d.title, d.stage, d.value, d.created_at, d.contact_id, "
                 "       c.name, c.email, c.company "
                 "FROM deals d LEFT JOIN contacts c ON d.contact_id = c.id "
                 "WHERE d.stage NOT IN ('closed_won', 'closed_lost') "
@@ -120,7 +120,7 @@ class ExecAdminAgent(AgentBase):
             ).fetchall()
             db.close()
             for row in rows:
-                deal_id, title, stage, value, updated_at, contact_id, cname, cemail, company = row
+                deal_id, title, stage, value, created_at, contact_id, cname, cemail, company = row
                 company = company or title or deal_id
                 stage_label = (stage or "unknown").replace("_", " ").title()
                 blockers.append({
@@ -258,7 +258,7 @@ class ExecAdminAgent(AgentBase):
                     value         = blocker.get("value", 0)
                     deal_id       = blocker.get("deal_id", "")
 
-                    if contact_email:
+                    if contact_email and '@' in contact_email:
                         subject = f"Checking in — {company} x Murphy System"
                         stage_label = stage.replace("_", " ").title()
                         body = (
@@ -272,13 +272,15 @@ class ExecAdminAgent(AgentBase):
                             f"Best,\nMurphy System Executive Team\nmurphy@murphy.systems"
                         )
 
-                        # Check idempotency — don't re-send if sent in last 48h
+                        # Check idempotency — don't re-send if ANY followup to this contact in last 48h
                         already_sent = False
                         try:
                             crm_db = _sq3.connect("/var/lib/murphy-production/crm.db", timeout=3)
                             row = crm_db.execute(
-                                "SELECT id FROM activities WHERE deal_id=? AND activity_type='email_followup' "
-                                "AND created_at > datetime('now','-2 days') LIMIT 1", (deal_id,)
+                                "SELECT id FROM activities WHERE activity_type='email_followup' "
+                                "AND summary LIKE ? "
+                                "AND created_at > datetime('now','-2 days') LIMIT 1",
+                                (f"%{contact_email}%",)
                             ).fetchone()
                             crm_db.close()
                             if row:
@@ -299,8 +301,7 @@ class ExecAdminAgent(AgentBase):
                                 _aio.set_event_loop(loop)
                                 try:
                                     result_holder[0] = loop.run_until_complete(
-                                        svc.send(to=[email], subject=subject, body=body,
-                                                 from_name="Murphy System")
+                                        svc.send(to=[email], subject=subject, body=body)
                                     )
                                 finally:
                                     loop.close()
