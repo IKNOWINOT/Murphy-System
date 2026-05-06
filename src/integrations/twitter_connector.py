@@ -109,6 +109,39 @@ class TwitterConnector(BaseIntegrationConnector):
     def get_user_lists(self, user_id: str) -> Dict[str, Any]:
         return self._get(f"/users/{user_id}/owned_lists")
 
+
+    # -- Direct Messages (X API v2) --
+
+    def send_dm(self, participant_id: str, text: str) -> Dict[str, Any]:
+        """Send a DM to a user. Requires Read+Write+DM OAuth permissions."""
+        return self._post("/dm_conversations/with/:participant_id/messages".replace(
+            ":participant_id", participant_id
+        ), json={"text": text})
+
+    def get_dm_conversation(self, conversation_id: str) -> Dict[str, Any]:
+        return self._get(f"/dm_conversations/{conversation_id}/dm_events",
+                         params={"dm_event.fields": "id,text,created_at,sender_id"})
+
+    def get_my_dm_events(self, max_results: int = 25) -> Dict[str, Any]:
+        """Get recent DM events for the authenticated user."""
+        return self._get("/dm_events",
+                         params={"max_results": min(max_results, 100),
+                                 "dm_event.fields": "id,text,created_at,sender_id,participant_ids"})
+
+    def search_prospects(self, query: str, max_results: int = 20) -> Dict[str, Any]:
+        """Search recent tweets to find prospects — people tweeting about AI pain points."""
+        return self._get("/tweets/search/recent", params={
+            "query": query,
+            "max_results": min(max(max_results, 10), 100),
+            "expansions": "author_id",
+            "user.fields": "id,name,username,description,public_metrics",
+            "tweet.fields": "id,text,author_id,created_at",
+        })
+
+    def get_user_by_username(self, username: str) -> Dict[str, Any]:
+        return self._get(f"/users/by/username/{username}",
+                         params={"user.fields": "id,name,username,description,public_metrics,location"})
+
     # -- Health --
 
     def health_check(self) -> Dict[str, Any]:

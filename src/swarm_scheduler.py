@@ -419,6 +419,25 @@ class SwarmScheduler:
             replace_existing=True,
             misfire_grace_time=3600,
         )
+
+        # PATCH-196: Twitter prospect discovery — every 4 hours
+        scheduler.add_job(
+            func=_run_twitter_discover,
+            trigger="interval",
+            hours=4,
+            id="twitter_discover",
+            replace_existing=True,
+            misfire_grace_time=600,
+        )
+        # PATCH-196: Twitter DM outreach cadence — every 6 hours
+        scheduler.add_job(
+            func=_run_twitter_outreach,
+            trigger="interval",
+            hours=6,
+            id="twitter_outreach",
+            replace_existing=True,
+            misfire_grace_time=600,
+        )
         logger.info("[PATCH-190] Prospect discovery scheduled every 6h")
 
         logger.info("SwarmScheduler: 7 built-in jobs registered")
@@ -582,3 +601,28 @@ def restore_workflow_schedules() -> int:
 
     logger.info("PATCH-140: boot schedule restore complete — %d jobs re-registered", count)
     return count
+
+def _run_twitter_discover():
+    """PATCH-196: Discover new Twitter/X prospects."""
+    try:
+        from src.twitter_outreach import discover_prospects
+        r = discover_prospects()
+        import logging; logging.getLogger("murphy.scheduler").info(
+            "[Scheduler] Twitter discover: +%d prospects", r.get("added", 0))
+    except Exception as e:
+        import logging; logging.getLogger("murphy.scheduler").warning(
+            "[Scheduler] Twitter discover error: %s", e)
+
+
+def _run_twitter_outreach():
+    """PATCH-196: Send Twitter DMs via psychology cadence."""
+    try:
+        from src.twitter_outreach import run_outreach_cycle
+        r = run_outreach_cycle()
+        import logging; logging.getLogger("murphy.scheduler").info(
+            "[Scheduler] Twitter DMs: %d sent", r.get("dms_sent", 0))
+    except Exception as e:
+        import logging; logging.getLogger("murphy.scheduler").warning(
+            "[Scheduler] Twitter outreach error: %s", e)
+
+

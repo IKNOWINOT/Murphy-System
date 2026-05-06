@@ -445,6 +445,67 @@ def create_app() -> FastAPI:
             return {"dnc": [dict(r) for r in rows], "count": len(rows)}
         except Exception as e:
             return {"success": False, "error": str(e)}
+
+    # ── PATCH-196: Twitter Outreach API ─────────────────────────────────────
+    @app.post("/api/twitter/discover")
+    async def twitter_discover(request: Request):
+        """Find new Twitter prospects tweeting about AI pain points."""
+        try:
+            from src.twitter_outreach import discover_prospects
+            return discover_prospects()
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @app.post("/api/twitter/outreach")
+    async def twitter_outreach_run(request: Request):
+        """Send DMs to queued prospects via psychology cadence."""
+        try:
+            from src.twitter_outreach import run_outreach_cycle
+            return run_outreach_cycle()
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @app.get("/api/twitter/stats")
+    async def twitter_stats():
+        """Twitter outreach stats."""
+        try:
+            from src.twitter_outreach import get_stats
+            return get_stats()
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @app.get("/api/twitter/prospects")
+    async def twitter_prospects_list():
+        """List discovered prospects."""
+        try:
+            import sqlite3 as _sq
+            with _sq.connect("/var/lib/murphy-production/twitter_outreach.db", timeout=5) as db:
+                db.row_factory = _sq.Row
+                rows = db.execute(
+                    "SELECT username,display_name,bio,followers,icp_score,source_query,added_at "
+                    "FROM twitter_prospects ORDER BY icp_score DESC LIMIT 100"
+                ).fetchall()
+            return {"prospects": [dict(r) for r in rows], "count": len(rows)}
+        except Exception as e:
+            return {"prospects": [], "error": str(e)}
+
+    @app.post("/api/twitter/dnc/add")
+    async def twitter_dnc_add(request: Request):
+        """Add a Twitter user to DNC."""
+        try:
+            body = await request.json()
+            from src.twitter_outreach import _add_twitter_dnc
+            _add_twitter_dnc(
+                body.get("twitter_id",""),
+                body.get("username",""),
+                body.get("reason","manual"),
+            )
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    # ── end PATCH-196 ────────────────────────────────────────────────────────
+
+
     # ── end PATCH-195 ──────────────────────────────────────────────────────
 
 
