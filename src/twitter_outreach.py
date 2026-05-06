@@ -249,6 +249,11 @@ PROSPECT_QUERIES = [
     "launched AI product feedback -is:retweet lang:en",
     "built with LLM startup -is:retweet lang:en",
     "AI startup compliance -is:retweet lang:en",
+    # PATCH-198: Security pain signals
+    "website got hacked startup -is:retweet lang:en",
+    "ssl certificate expired -is:retweet lang:en",
+    "security audit startup -is:retweet lang:en",
+    "pentesting site -is:retweet lang:en",
 ]
 
 # ── Opener templates (pattern-interrupt + Barnum + open loop) ─────────────────
@@ -295,6 +300,19 @@ This is not a cold pitch. No deck, no demo request.
 One genuine question: when something goes wrong with your AI in production, what's the first thing you reach for?
 
 (Asking because Murphy System was built to be that first thing — and I'm curious if the problem looks the same from your side.)"""),
+
+
+    # F — Security scan offer (PATCH-198) — value-first, no pitch
+    ("scan_offer",
+"""Hey {first} — useful thing, not a pitch.
+
+I built a free website security scanner at murphy.systems/security
+
+Scans SSL, open ports, exposed files, DNS vulnerabilities, cookies. 30 seconds. Free basic report.
+
+Might be relevant given what you're building at {company}.
+
+murphy.systems/security"""),
 
     # E — Mentalist cold read (most powerful — feels personal)
     ("cold_read",
