@@ -116,12 +116,16 @@ def ensure_tables() -> None:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _fetch(url: str, timeout: int = 8, follow: bool = True) -> Tuple[Optional[str], Dict]:
-    """Returns (body, response_info). Never raises."""
+    """Returns (body, response_info). Uses GET — never POST. Never raises."""
     info: Dict = {"status": 0, "headers": {}, "final_url": url, "error": ""}
     try:
         req = urllib.request.Request(
             url,
-            headers={"User-Agent": "MurphySecurityScanner/1.0 (+https://murphy.systems/security)"}
+            method="GET",
+            headers={
+                "User-Agent": "MurphySecurityScanner/1.0 (+https://murphy.systems/security)",
+                "Accept": "text/html,application/xhtml+xml,application/json,*/*",
+            }
         )
         with urllib.request.urlopen(req, timeout=timeout) as r:
             info["status"]    = r.status
@@ -190,8 +194,14 @@ def check_ssl(domain: str) -> Dict:
     _, info = _fetch(f"https://{domain}", timeout=6)
     h = {k.lower(): v for k, v in info.get("headers", {}).items()}
     if "strict-transport-security" in h:
-        passed += 1
-        details["hsts"] = h["strict-transport-security"]
+        hsts_val = h["strict-transport-security"]
+        details["hsts"] = hsts_val
+        if "preload" not in hsts_val:
+            findings.append({"severity":"LOW","title":"HSTS missing preload flag",
+                "detail":"Add 'preload' to Strict-Transport-Security to enable browser HSTS preload list",
+                "category":"ssl"})
+        else:
+            passed += 1
     else:
         findings.append({"severity":"MEDIUM","title":"HSTS header missing",
             "detail":"Strict-Transport-Security not set — browsers may allow HTTP downgrade","category":"ssl"})
@@ -213,7 +223,12 @@ def check_headers(domain: str) -> Dict:
     }
     details = {}
 
-    _, info = _fetch(f"https://{domain}", timeout=8)
+    # Try GET on root — if that fails or gives 4xx, try /api/health
+    _, info = _fetch(f"https://{domain}/", timeout=8)
+    if info.get("status",0) in (405, 0):
+        _, info = _fetch(f"https://{domain}/api/health", timeout=8)
+    if info.get("status",0) in (405, 0):
+        _, info = _fetch(f"https://{domain}/index.html", timeout=8)
     h = {k.lower(): v for k, v in info.get("headers", {}).items()}
 
     # Server disclosure
@@ -228,11 +243,32 @@ def check_headers(domain: str) -> Dict:
         if header in h:
             passed += 1
             details[header] = h[header][:80]
+            # Extra: check CSP quality
+            if header == "content-security-policy":
+                csp_val = h[header].lower()
+                if "unsafe-eval" in csp_val:
+                    findings.append({"severity":"MEDIUM","title":"CSP allows unsafe-eval",
+                        "detail":"Remove 'unsafe-eval' from script-src — enables arbitrary JS execution",
+                        "category":"headers"})
+                if "unsafe-inline" in csp_val and "nonce-" not in csp_val:
+                    findings.append({"severity":"LOW","title":"CSP uses unsafe-inline without nonce",
+                        "detail":"Replace 'unsafe-inline' with CSP nonces for stronger XSS protection",
+                        "category":"headers"})
         else:
             findings.append({"severity": sev, "title": f"Missing header: {header}",
                 "detail": msg, "category": "headers"})
 
     total = len(REQUIRED) + 1
+    # CORS wildcard check
+    acao = h.get("access-control-allow-origin","")
+    if acao == "*":
+        findings.append({"severity":"MEDIUM","title":"Overly broad CORS: Access-Control-Allow-Origin: *",
+            "detail":"Wildcard CORS allows any origin to read API responses — scope to specific domains",
+            "category":"headers"})
+    else:
+        passed += 1
+
+    total += 1
     score = round((passed / total) * WEIGHTS["headers"])
     return {"score": score, "max": WEIGHTS["headers"], "findings": findings, "details": details}
 

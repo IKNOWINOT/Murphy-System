@@ -402,6 +402,10 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/compliance/scan",
         "/api/shield/status",
         "/api/shield/north-star",
+        # PATCH-198: Ethical hack scanner — public endpoints
+        "/api/security/scan",
+        "/api/security/stats",
+        "/api/security/result",
         "/api/wallet/balances",
         "/api/wallet/addresses",
         "/api/wallet/transactions",
