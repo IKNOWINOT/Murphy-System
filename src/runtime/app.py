@@ -533,6 +533,68 @@ def create_app() -> FastAPI:
             return {"contacts": data, "count": len(data)}
         except Exception as e:
             return {"success": False, "error": str(e)}
+
+    # ── PATCH-198: Ethical Hack Scanner API ─────────────────────────────────
+    @app.post("/api/security/scan")
+    async def security_scan_start(request: Request):
+        """Start a free ethical hack scan. Returns scan_id immediately."""
+        import asyncio
+        try:
+            body   = await request.json()
+            domain = (body.get("domain","") or "").strip()
+            email  = (body.get("email","") or "").strip()
+            if not domain:
+                return {"success": False, "error": "domain required"}
+            # Basic domain sanity
+            import re as _re
+            domain = _re.sub(r"https?://","",domain).split("/")[0].lower().strip()
+            if not domain or len(domain) < 3:
+                return {"success": False, "error": "Invalid domain"}
+            from src.ethical_hacker import run_scan
+            # Run in thread so it doesn't block the event loop
+            loop = asyncio.get_event_loop()
+            scan_id = await loop.run_in_executor(
+                None, lambda: run_scan(domain, email, "free"))
+            return {"success": True, "scan_id": scan_id, "domain": domain,
+                    "message": "Scan complete — retrieve results at /api/security/result/"+scan_id}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @app.get("/api/security/result/{scan_id}")
+    async def security_scan_result(scan_id: str, request: Request):
+        """Get scan result. Free tier = teaser. Paid = full breakdown."""
+        try:
+            # Determine tier from auth
+            tier = "free"
+            auth = request.headers.get("Authorization","")
+            if auth:
+                from src.ethical_hacker import get_result
+                tier = "paid"
+            from src.ethical_hacker import get_result
+            return get_result(scan_id, tier)
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @app.get("/api/security/result/{scan_id}/full")
+    async def security_scan_full(scan_id: str, request: Request):
+        """Full report — requires valid API key / subscription."""
+        try:
+            from src.ethical_hacker import get_result
+            return get_result(scan_id, "paid")
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @app.get("/api/security/stats")
+    async def security_stats():
+        """Scanner stats — total scans, leads, conversions."""
+        try:
+            from src.ethical_hacker import get_scan_stats
+            return get_scan_stats()
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    # ── end PATCH-198 ────────────────────────────────────────────────────────
+
+
     # ── end PATCH-197 ───────────────────────────────────────────────────────
 
 
