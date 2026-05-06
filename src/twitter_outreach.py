@@ -493,6 +493,19 @@ def discover_prospects(max_per_query: int = 10) -> Dict:
                         db.commit()
                     added += 1
                     logger.info("[Twitter] Prospect: @%s ICP=%d", username, icp)
+                    # PATCH-197: Enrich twitter prospect immediately
+                    try:
+                        from src.prospect_enricher import enrich_contact
+                        # Link twitter prospect to CRM if exists
+                        with sqlite3.connect(CRM_DB, timeout=5) as _cdb:
+                            _crow = _cdb.execute(
+                                "SELECT id FROM contacts WHERE tags LIKE ? LIMIT 1",
+                                (f"%{username}%",)
+                            ).fetchone()
+                            if _crow:
+                                enrich_contact(_crow[0])
+                    except Exception as _ee:
+                        logger.debug("[Twitter] Enrich hook: %s", _ee)
                 except Exception:
                     pass
             time.sleep(1)

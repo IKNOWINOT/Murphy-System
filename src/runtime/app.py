@@ -503,6 +503,39 @@ def create_app() -> FastAPI:
             return {"success": True}
         except Exception as e:
             return {"success": False, "error": str(e)}
+
+    # ── PATCH-197: Prospect Enrichment API ──────────────────────────────────
+    @app.post("/api/enrichment/run")
+    async def enrichment_run(request: Request):
+        """Enrich all pending leads with full intelligence dossier."""
+        try:
+            body = await request.json()
+            from src.prospect_enricher import enrich_all_pending
+            return enrich_all_pending(limit=body.get("limit", 20))
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @app.post("/api/enrichment/contact/{contact_id}")
+    async def enrichment_one(contact_id: str, request: Request):
+        """Enrich a single contact."""
+        try:
+            from src.prospect_enricher import enrich_contact
+            return enrich_contact(contact_id)
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @app.get("/api/enrichment/summary")
+    async def enrichment_summary():
+        """Sales intelligence summary — all enriched contacts sorted by urgency."""
+        try:
+            from src.prospect_enricher import get_enrichment_summary
+            data = get_enrichment_summary(limit=100)
+            return {"contacts": data, "count": len(data)}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    # ── end PATCH-197 ───────────────────────────────────────────────────────
+
+
     # ── end PATCH-196 ────────────────────────────────────────────────────────
 
 

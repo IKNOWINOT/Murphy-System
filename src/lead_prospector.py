@@ -253,6 +253,12 @@ def _add_to_crm(lead: Dict) -> Optional[str]:
             db.commit()
         logger.info("[Prospector] ✅ Added: %s <%s> @ %s ICP=%d",
                     lead.get("name","?"), email, lead.get("company","?"), icp)
+        # PATCH-197: Trigger enrichment on new lead
+        try:
+            from src.prospect_enricher import enrich_contact
+            enrich_contact(cid)
+        except Exception as _ee:
+            logger.debug("[Prospector] Enrichment hook: %s", _ee)
         return cid
     except Exception as e:
         logger.warning("[Prospector] CRM insert failed %s: %s", email, e)

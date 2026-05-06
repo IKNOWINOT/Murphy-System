@@ -438,6 +438,15 @@ class SwarmScheduler:
             replace_existing=True,
             misfire_grace_time=600,
         )
+        # PATCH-197: Prospect enrichment — every 2 hours
+        scheduler.add_job(
+            func=_run_enrichment,
+            trigger="interval",
+            hours=2,
+            id="prospect_enrichment",
+            replace_existing=True,
+            misfire_grace_time=600,
+        )
         logger.info("[PATCH-190] Prospect discovery scheduled every 6h")
 
         logger.info("SwarmScheduler: 7 built-in jobs registered")
@@ -601,6 +610,19 @@ def restore_workflow_schedules() -> int:
 
     logger.info("PATCH-140: boot schedule restore complete — %d jobs re-registered", count)
     return count
+
+
+
+def _run_enrichment():
+    """PATCH-197: Enrich all pending prospects with full intelligence dossier."""
+    try:
+        from src.prospect_enricher import enrich_all_pending
+        r = enrich_all_pending(limit=20)
+        import logging; logging.getLogger("murphy.scheduler").info(
+            "[Scheduler] Enrichment: %d enriched, %d skipped", r.get("enriched",0), r.get("skipped",0))
+    except Exception as e:
+        import logging; logging.getLogger("murphy.scheduler").warning(
+            "[Scheduler] Enrichment error: %s", e)
 
 def _run_twitter_discover():
     """PATCH-196: Discover new Twitter/X prospects."""
