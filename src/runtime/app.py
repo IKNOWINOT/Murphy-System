@@ -598,6 +598,78 @@ def create_app() -> FastAPI:
             return get_scan_stats()
         except Exception as e:
             return {"success": False, "error": str(e)}
+
+    # ── PATCH-199: Security Brain API ────────────────────────────────────────
+    @app.get("/api/security/brain/stats")
+    async def security_brain_stats():
+        """How smart Murphy's security brain is right now."""
+        try:
+            from src.security_brain import get_brain_stats
+            return get_brain_stats()
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @app.post("/api/security/brain/remediate")
+    async def security_brain_remediate(request: Request):
+        """Given a list of findings, return Murphy's ranked remediation plan."""
+        try:
+            body = await request.json()
+            findings = body.get("findings", [])
+            domain   = body.get("domain", "")
+            from src.security_brain import get_remediation_plan, seed_knowledge_base
+            seed_knowledge_base()
+            plan = get_remediation_plan(findings, domain)
+            return {"success": True, "plan": plan, "count": len(plan)}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @app.post("/api/security/brain/verify-fix")
+    async def security_brain_verify(request: Request):
+        """Re-scan domain after a fix to verify it worked. Updates confidence scores."""
+        try:
+            body      = await request.json()
+            fix_id    = body.get("fix_log_id","")
+            domain    = body.get("domain","")
+            import asyncio
+            loop   = asyncio.get_event_loop()
+            from src.security_brain import verify_fix
+            result = await loop.run_in_executor(None, lambda: verify_fix(fix_id, domain))
+            return result
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @app.get("/api/security/brain/knowledge")
+    async def security_brain_knowledge():
+        """Murphy's full security knowledge base."""
+        try:
+            import sqlite3 as _sq
+            with _sq.connect("/var/lib/murphy-production/security_brain.db", timeout=5) as db:
+                db.row_factory = _sq.Row
+                rows = db.execute(
+                    "SELECT topic, content, source FROM knowledge_base ORDER BY topic"
+                ).fetchall()
+            return {"entries": [dict(r) for r in rows], "count": len(rows)}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @app.get("/api/security/brain/findings")
+    async def security_brain_findings():
+        """Murphy's learned finding library — sorted by how often it's seen each issue."""
+        try:
+            import sqlite3 as _sq
+            with _sq.connect("/var/lib/murphy-production/security_brain.db", timeout=5) as db:
+                db.row_factory = _sq.Row
+                rows = db.execute(
+                    "SELECT finding_title, severity, seen_count, fix_confidence, "
+                    "fix_attempts, fix_successes, best_fix, fix_where "
+                    "FROM finding_library ORDER BY seen_count DESC, fix_confidence DESC"
+                ).fetchall()
+            return {"findings": [dict(r) for r in rows], "count": len(rows)}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    # ── end PATCH-199 ────────────────────────────────────────────────────────
+
+
     # ── end PATCH-198 ────────────────────────────────────────────────────────
 
 

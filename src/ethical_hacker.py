@@ -543,6 +543,13 @@ def run_scan(domain: str, email: str = "", tier: str = "free") -> str:
         # Free tier: show score + grade + top 3 findings (teaser)
         free_findings = all_findings[:3]
 
+        # PATCH-199: Feed scan results into SecurityBrain for learning
+        try:
+            from src.security_brain import learn_from_scan
+            learn_from_scan(full_report)
+        except Exception as _be:
+            logger.debug("[EthicalHack] Brain learn error: %s", _be)
+
         with sqlite3.connect(SCAN_DB, timeout=5) as db:
             db.execute(
                 "UPDATE scans SET score=?,grade=?,findings=?,full_report=?,"
