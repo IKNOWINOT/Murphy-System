@@ -2142,7 +2142,7 @@ async def murphy_ask_steve(req: _AskSteveRequest):
     smtp_host = os.environ.get("SMTP_HOST", "")
     smtp_port = int(os.environ.get("SMTP_PORT", "587"))
     smtp_user = os.environ.get("SMTP_USER", os.environ.get("MURPHY_EMAIL_USER", ""))
-    smtp_pass = os.environ.get("SMTP_PASS", os.environ.get("MURPHY_EMAIL_PASS", ""))
+    smtp_pass = os.environ.get("SMTP_PASSWORD", os.environ.get("SMTP_PASS", os.environ.get("MURPHY_EMAIL_PASS", "")))
     from_addr = os.environ.get("MURPHY_FROM_EMAIL", "murphy@murphy.systems")
     to_addr   = os.environ.get("MURPHY_STEVE_EMAIL", "corey.gfc@gmail.com")
     cc_addrs  = ["hpost@murphy.systems", "callmehandy@gmail.com"]
@@ -2186,11 +2186,21 @@ async def murphy_ask_steve(req: _AskSteveRequest):
         msg.attach(_MIMEText(plain_body, "plain"))
 
         all_recipients = [to_addr] + cc_addrs
-        with _smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
-            server.ehlo()
-            server.starttls()
-            server.login(smtp_user, smtp_pass)
-            server.sendmail(from_addr, all_recipients, msg.as_string())
+        # PATCH-265b: port 465 = implicit TLS (SMTP_SSL); 587/others = STARTTLS
+        if smtp_port == 465:
+            import ssl as _ssl
+            _ctx = _ssl.create_default_context()
+            _ctx.check_hostname = False
+            _ctx.verify_mode = _ssl.CERT_NONE
+            with _smtplib.SMTP_SSL(smtp_host, smtp_port, context=_ctx, timeout=15) as server:
+                server.login(smtp_user, smtp_pass)
+                server.sendmail(from_addr, all_recipients, msg.as_string())
+        else:
+            with _smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
+                server.ehlo()
+                server.starttls()
+                server.login(smtp_user, smtp_pass)
+                server.sendmail(from_addr, all_recipients, msg.as_string())
 
         _broadcast_sse("murphy_ask_steve", {**event_payload, "status": "sent"})
         log.info("murphy/ask-steve: sent '%s' → %s CC %s", subject_line, to_addr, cc_addrs)
