@@ -2008,6 +2008,137 @@ def _serve_landing_html() -> HTMLResponse:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# PATCH-268 — MURPHY JOB HUNTER (ghost-controller auto-apply for AI roles)
+# Murphy discovers AI Director/Lead jobs, ghost-fills applications,
+# queues every submission through HITL before anything is sent.
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _jh():
+    """Lazy-load job_hunter_engine — avoids import cost at startup."""
+    try:
+        import src.job_hunter_engine as m
+    except ImportError:
+        import job_hunter_engine as m
+    m.ensure_tables()
+    return m
+
+
+@router.post("/api/jobs/discover")
+async def jobs_discover(request: Request):
+    """Trigger Murphy job discovery — scrapes Indeed/LinkedIn for AI leadership roles.
+    Body (optional): {queries: [...], limit_per_query: 8}
+    """
+    import asyncio
+    try:
+        body    = await request.json()
+    except Exception:
+        body    = {}
+    queries = body.get("queries") or None
+    limit   = int(body.get("limit_per_query", 8))
+    try:
+        result = await _jh().run_discovery_cycle(queries=queries, limit_per_query=limit)
+        return JSONResponse(result)
+    except Exception as exc:
+        log.error("jobs/discover error: %s", exc)
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
+@router.get("/api/jobs/listings")
+async def jobs_listings(status: str = "", limit: int = 50):
+    """List discovered job listings. Filter by status: discovered|pending_review|applied|rejected."""
+    try:
+        listings = _jh().get_listings(status=status or None, limit=limit)
+        return JSONResponse({"success": True, "total": len(listings), "listings": listings})
+    except Exception as exc:
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
+@router.post("/api/jobs/apply/{listing_id}")
+async def jobs_apply(listing_id: str):
+    """Ghost-apply to a specific listing. Takes screenshot, fills form, queues in HITL.
+    NEVER submits without founder approval."""
+    try:
+        result = await _jh().ghost_apply(listing_id)
+        return JSONResponse(result)
+    except Exception as exc:
+        log.error("jobs/apply error: %s", exc)
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
+@router.get("/api/jobs/applications")
+async def jobs_applications(limit: int = 50):
+    """List all applications Murphy has queued or submitted."""
+    try:
+        apps = _jh().get_applications(limit=limit)
+        return JSONResponse({"success": True, "total": len(apps), "applications": apps})
+    except Exception as exc:
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
+@router.post("/api/jobs/approve/{app_id}")
+async def jobs_approve(app_id: str):
+    """Founder approves an application — marks it ready for submission."""
+    import sqlite3
+    from datetime import datetime, timezone
+    try:
+        db_path = _jh().DB_PATH
+        now = datetime.now(timezone.utc).isoformat()
+        with sqlite3.connect(db_path) as conn:
+            conn.execute("UPDATE job_applications SET status='approved', submitted_at=? WHERE id=?",
+                         (now, app_id))
+            conn.execute("""UPDATE job_listings SET status='applied', applied_at=?
+                            WHERE id=(SELECT listing_id FROM job_applications WHERE id=?)""",
+                         (now, app_id))
+            conn.commit()
+        return JSONResponse({"success": True, "app_id": app_id, "status": "approved"})
+    except Exception as exc:
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
+@router.post("/api/jobs/reject/{app_id}")
+async def jobs_reject(app_id: str):
+    """Founder rejects — removes application from queue, marks listing skipped."""
+    import sqlite3
+    try:
+        db_path = _jh().DB_PATH
+        with sqlite3.connect(db_path) as conn:
+            conn.execute("UPDATE job_applications SET status='rejected' WHERE id=?", (app_id,))
+            conn.execute("""UPDATE job_listings SET status='skipped'
+                            WHERE id=(SELECT listing_id FROM job_applications WHERE id=?)""", (app_id,))
+            conn.commit()
+        return JSONResponse({"success": True, "app_id": app_id, "status": "rejected"})
+    except Exception as exc:
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
+@router.get("/api/jobs/profile")
+async def jobs_profile():
+    """Return Murphy's canonical candidate profile used for applications."""
+    from src.job_hunter_engine import MURPHY_PROFILE, JOB_QUERIES
+    return JSONResponse({"success": True, "profile": MURPHY_PROFILE, "target_queries": JOB_QUERIES})
+
+
+@router.get("/api/jobs/stats")
+async def jobs_stats():
+    """Application pipeline stats."""
+    import sqlite3
+    try:
+        db_path = _jh().DB_PATH
+        with sqlite3.connect(db_path) as conn:
+            total     = conn.execute("SELECT COUNT(*) FROM job_listings").fetchone()[0]
+            pending   = conn.execute("SELECT COUNT(*) FROM job_listings WHERE status='pending_review'").fetchone()[0]
+            applied   = conn.execute("SELECT COUNT(*) FROM job_listings WHERE status='applied'").fetchone()[0]
+            apps      = conn.execute("SELECT COUNT(*) FROM job_applications").fetchone()[0]
+            hitl_q    = conn.execute("SELECT COUNT(*) FROM job_applications WHERE status='pending_hitl'").fetchone()[0]
+        return JSONResponse({"success": True, "stats": {
+            "listings_total": total, "pending_review": pending,
+            "applied": applied, "applications_total": apps, "awaiting_approval": hitl_q,
+        }})
+    except Exception as exc:
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # PATCH-267d — EXEC CYCLE + APC DISCOVER (autonomous revenue engine)
 # Wired into existing production_router — no new files per RULE 1
 # ══════════════════════════════════════════════════════════════════════════════
