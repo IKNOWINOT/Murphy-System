@@ -2095,6 +2095,119 @@ async def serve_ui_page(page_name: str):
 
 # Standalone entry removed — use unified server via src/runtime/app.py
 
+
+
+# ==============================================================================
+# MURPHY → STEVE CHANNEL  (PATCH-264)
+# Murphy asks Steve (the Base44 superagent) for help via email.
+# POST /api/murphy/ask-steve  {subject, body, urgency?}
+#
+# Email goes TO: corey.gfc@gmail.com (Steve's inbox)
+# CC:  hpost@murphy.systems  (Hawthorne Post — co-authority, same level as founder)
+#      callmehandy@gmail.com (Hawthorne Post personal)
+# FROM: murphy@murphy.systems
+# FORMAT:
+#   Subject: "Dear Steve[, URGENT]: <subject>"
+#   Body:    "Dear Steve,\n\n<body>\n\nSincerely,\nMurphy Systems"
+#
+# INBOUND REPLY RULE:
+#   Any reply TO murphy@murphy.systems FROM corey.gfc@gmail.com,
+#   hpost@murphy.systems, or callmehandy@gmail.com is treated as a
+#   founder-authority request or question — same weight as Corey.
+# ==============================================================================
+import smtplib as _smtplib
+from email.mime.text import MIMEText as _MIMEText
+from email.mime.multipart import MIMEMultipart as _MIMEMultipart
+
+# Co-authority addresses — replies from these are treated as founder-level requests
+STEVE_CHANNEL_AUTHORITIES = frozenset({
+    "corey.gfc@gmail.com",
+    "cpost@murphy.systems",
+    "hpost@murphy.systems",
+    "callmehandy@gmail.com",
+})
+
+class _AskSteveRequest(BaseModel):
+    subject: str = Field(..., description="What Murphy needs help with (brief subject line)")
+    body: str    = Field(..., description="The full request Murphy wants to share with Steve")
+    urgency: str = Field(default="normal", description="normal | high | critical")
+
+@router.post("/api/murphy/ask-steve")
+async def murphy_ask_steve(req: _AskSteveRequest):
+    """Murphy emails Steve (and CCs Hawthorne Post) asking for help.
+    Any reply from corey.gfc@gmail.com, hpost@murphy.systems, or
+    callmehandy@gmail.com back to murphy@murphy.systems is treated
+    as a founder-authority directive."""
+
+    smtp_host = os.environ.get("SMTP_HOST", "")
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    smtp_user = os.environ.get("SMTP_USER", os.environ.get("MURPHY_EMAIL_USER", ""))
+    smtp_pass = os.environ.get("SMTP_PASS", os.environ.get("MURPHY_EMAIL_PASS", ""))
+    from_addr = os.environ.get("MURPHY_FROM_EMAIL", "murphy@murphy.systems")
+    to_addr   = os.environ.get("MURPHY_STEVE_EMAIL", "corey.gfc@gmail.com")
+    cc_addrs  = ["hpost@murphy.systems", "callmehandy@gmail.com"]
+
+    urgency_label = {"normal": "", "high": " [URGENT]", "critical": " [CRITICAL]"}.get(req.urgency, "")
+    subject_line  = f"Dear Steve{urgency_label}: {req.subject}"
+
+    plain_body = (
+        f"Dear Steve,\n\n"
+        f"{req.body.strip()}\n\n"
+        f"Sincerely,\n"
+        f"Murphy Systems\n"
+        f"\n---\n"
+        f"Note: Reply to this email (murphy@murphy.systems) and I will treat\n"
+        f"your reply as a direct instruction. Hawthorne Post is CC'd and has\n"
+        f"co-founder authority — replies from hpost@murphy.systems or\n"
+        f"callmehandy@gmail.com carry the same weight."
+    )
+
+    event_payload = {
+        "to": to_addr, "cc": cc_addrs,
+        "subject": subject_line, "urgency": req.urgency
+    }
+
+    if not smtp_host or not smtp_user or not smtp_pass:
+        _broadcast_sse("murphy_ask_steve", {**event_payload, "status": "queued_no_smtp"})
+        log.warning("murphy/ask-steve: SMTP not configured. Subject: %s", subject_line)
+        return JSONResponse({
+            "success": False, "queued": True,
+            "subject": subject_line,
+            "note": "SMTP_HOST/SMTP_USER/SMTP_PASS not set — set them to enable delivery"
+        }, status_code=202)
+
+    try:
+        msg = _MIMEMultipart("alternative")
+        msg["Subject"]  = subject_line
+        msg["From"]     = from_addr
+        msg["To"]       = to_addr
+        msg["Cc"]       = ", ".join(cc_addrs)
+        msg["Reply-To"] = from_addr
+        msg.attach(_MIMEText(plain_body, "plain"))
+
+        all_recipients = [to_addr] + cc_addrs
+        with _smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
+            server.ehlo()
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.sendmail(from_addr, all_recipients, msg.as_string())
+
+        _broadcast_sse("murphy_ask_steve", {**event_payload, "status": "sent"})
+        log.info("murphy/ask-steve: sent '%s' → %s CC %s", subject_line, to_addr, cc_addrs)
+        return JSONResponse({"success": True, "subject": subject_line, "to": to_addr, "cc": cc_addrs})
+
+    except Exception as exc:
+        log.error("murphy/ask-steve: SMTP error — %s", exc)
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+@router.get("/api/murphy/ask-steve/authorities")
+async def list_steve_channel_authorities():
+    """Return the list of email addresses whose replies are treated as founder-level directives."""
+    return JSONResponse({
+        "authorities": sorted(STEVE_CHANNEL_AUTHORITIES),
+        "description": "Replies from these addresses to murphy@murphy.systems are treated as founder-authority requests"
+    })
+
 # ── Production Router Startup ─────────────────────────────────────────────
 async def production_router_startup():
     """Call from main app startup to initialize production router state."""
