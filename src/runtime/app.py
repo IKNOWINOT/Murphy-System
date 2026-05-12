@@ -332,6 +332,9 @@ def create_app() -> FastAPI:
         "financing":               "financing_options.html",
                 "illuminate":              "illuminate.html",
                 "resume-builder":          "resume_builder.html",
+                "ai-job-hunter":           "ai_job_hunter.html",
+                "jobs":                    "ai_job_hunter.html",
+                "resume":                  "ai_job_hunter.html",
         # Workspace
         "workspace":               "workspace.html",
         "workdocs":                "workdocs.html",
@@ -378,6 +381,9 @@ def create_app() -> FastAPI:
         "partner":                 "partner_request.html",
         # Games
         "tripping-penguins":       "tripping_penguins.html",
+        "ai-job-hunter":     "ai_job_hunter.html",
+        "jobs":              "ai_job_hunter.html",
+        "resume":            "ai_job_hunter.html",
         "penguins":                "tripping_penguins.html",
         # Steve 2028 — DO NOT TOUCH
         "voteforsteve2028":        "voteforsteve2028.html",
