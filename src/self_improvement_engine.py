@@ -97,6 +97,83 @@ class SelfImprovementEngine:
         self._persistence = persistence_manager
 
     # ------------------------------------------------------------------
+    # Steve escalation channel  [PATCH-265]
+    # ------------------------------------------------------------------
+    # Murphy contacts Steve when it detects a capability or delivery problem
+    # it cannot resolve autonomously. Three triggers:
+    #   1. generate_proposals()     — critical/high proposals generated
+    #   2. compare_exploratory_...  — procedural drift detected
+    #   3. get_remediation_backlog  — critical backlog piling up (3+)
+    #
+    # Uses /api/murphy/ask-steve (no auth required — exempt route).
+    # Silently swallows errors so a broken notification path never kills
+    # the improvement engine itself.
+    # ------------------------------------------------------------------
+
+    # Minimum minutes between Steve notifications for the same urgency level.
+    # Prevents email spam when the system is in a failure loop.
+    _NOTIFY_COOLDOWN_MINUTES: Dict[str, int] = {
+        "critical": 30,
+        "high":     120,
+        "medium":   360,
+    }
+    _last_notified: Dict[str, float] = {}
+
+    def _notify_steve(
+        self,
+        subject: str,
+        body: str,
+        urgency: str = "normal",
+    ) -> None:
+        """POST to /api/murphy/ask-steve with a cooldown guard.
+
+        Silently no-ops if the endpoint is unreachable or SMTP is not
+        configured — the engine must never crash because Steve can't be
+        reached right now.
+        """
+        import time as _time
+        import urllib.request as _ur
+        import urllib.error as _ue
+
+        # Cooldown check — don't spam Steve with the same urgency class
+        now = _time.monotonic()
+        cooldown = self._NOTIFY_COOLDOWN_MINUTES.get(urgency, 60) * 60
+        last = self._last_notified.get(urgency, 0.0)
+        if now - last < cooldown:
+            logger.debug(
+                "_notify_steve: cooldown active for urgency=%s (%.0fs remaining)",
+                urgency, cooldown - (now - last),
+            )
+            return
+
+        payload = json.dumps({
+            "subject": subject,
+            "body":    body,
+            "urgency": urgency,
+        }).encode()
+
+        try:
+            req = _ur.Request(
+                "http://localhost:8000/api/murphy/ask-steve",
+                data=payload,
+                method="POST",
+                headers={"Content-Type": "application/json"},
+            )
+            with _ur.urlopen(req, timeout=10) as resp:
+                result = json.loads(resp.read())
+                if result.get("success") or result.get("queued"):
+                    self._last_notified[urgency] = now
+                    logger.info(
+                        "PATCH-265: notified Steve — subject=%r urgency=%s",
+                        subject, urgency,
+                    )
+                else:
+                    logger.warning("PATCH-265: ask-steve non-success: %s", result)
+        except Exception as exc:
+            logger.warning("PATCH-265: _notify_steve failed silently: %s", exc)
+
+
+    # ------------------------------------------------------------------
     # Persistence integration  [ARCH-001]
     # ------------------------------------------------------------------
 
@@ -330,6 +407,41 @@ class SelfImprovementEngine:
                 self._proposals[p.proposal_id] = p
 
         logger.info("Generated %d improvement proposals", len(new_proposals))
+
+        # PATCH-265: escalate critical/high proposals to Steve
+        _critical = [p for p in new_proposals if p.priority == "critical"]
+        _high     = [p for p in new_proposals if p.priority == "high"]
+        if _critical:
+            _lines = ["\n".join([
+                f"  [{p.priority.upper()}] {p.category}: {p.description}",
+                f"  Suggested action: {p.suggested_action}",
+            ]) for p in _critical[:5]]
+            self._notify_steve(
+                subject=f"Critical capability failure — {len(_critical)} issue(s) need attention",
+                body=(
+                    f"Murphy has detected {len(_critical)} critical self-improvement proposal(s) "
+                    f"that cannot be resolved autonomously:\n\n"
+                    + "\n\n".join(_lines)
+                    + "\n\nI cannot fix these without your help. Please review and advise."
+                ),
+                urgency="critical",
+            )
+        elif _high:
+            _lines = ["\n".join([
+                f"  [{p.priority.upper()}] {p.category}: {p.description}",
+                f"  Suggested action: {p.suggested_action}",
+            ]) for p in _high[:5]]
+            self._notify_steve(
+                subject=f"Delivery problem — {len(_high)} high-priority improvement(s) queued",
+                body=(
+                    f"Murphy has {len(_high)} high-priority improvement proposal(s) "
+                    f"that require operator review:\n\n"
+                    + "\n\n".join(_lines)
+                    + "\n\nThese are blocking reliable delivery. Your input would help."
+                ),
+                urgency="high",
+            )
+
         return new_proposals
 
     # ------------------------------------------------------------------
@@ -341,6 +453,26 @@ class SelfImprovementEngine:
         with self._lock:
             pending = [p for p in self._proposals.values() if p.status == "pending"]
         pending.sort(key=lambda p: PRIORITY_ORDER.get(p.priority, 99))
+
+        # PATCH-265: if 3+ critical items are sitting unactioned, tell Steve
+        _crit_pending = [p for p in pending if p.priority == "critical"]
+        if len(_crit_pending) >= 3:
+            _summary = "\n".join([
+                f"  • [{p.proposal_id}] {p.category}: {p.description}"
+                for p in _crit_pending[:8]
+            ])
+            self._notify_steve(
+                subject=f"Backlog alert — {len(_crit_pending)} critical issues unresolved",
+                body=(
+                    f"Murphy has {len(_crit_pending)} critical improvement proposals "
+                    f"sitting in the remediation backlog with no resolution:\n\n"
+                    + _summary
+                    + "\n\nThese are blocking quality delivery. "
+                    f"I cannot fix them without external input. Please review."
+                ),
+                urgency="critical",
+            )
+
         return pending
 
     def apply_correction(self, proposal_id: str, result: str) -> bool:
@@ -822,6 +954,20 @@ class PermutationLearningExtension:
         elif quality_improvement < -0.1 or calibration_improvement < -0.1:
             recommendation = "reopen_exploration"
             reason = "Procedural mode underperforming - drift detected"
+            # PATCH-265: notify Steve on calibration/procedural drift
+            self._notify_steve(
+                subject=f"Capability drift in '{domain}' — quality degrading",
+                body=(
+                    f"Murphy detected procedural drift in the '{domain}' domain.\n\n"
+                    f"  Quality improvement : {quality_improvement:.3f} (negative = worse)\n"
+                    f"  Calibration delta   : {calibration_improvement:.3f}\n"
+                    f"  Procedural runs     : {len(proc_outcomes)}\n"
+                    f"  Exploratory runs    : {len(exp_outcomes)}\n\n"
+                    f"The system is underperforming vs. baseline. I need your guidance "
+                    f"on whether to revert to exploratory mode or apply a correction."
+                ),
+                urgency="high",
+            )
         else:
             recommendation = "continue_monitoring"
             reason = "Performance comparable"
