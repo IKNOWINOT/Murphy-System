@@ -13,7 +13,7 @@ from pathlib import Path
 
 log = logging.getLogger("murphy.job_hunter")
 
-DB_PATH = "/var/lib/murphy-production/job_hunter.db"
+DB_PATH = "/opt/Murphy-System/murphy_jobs.db"
 
 # ── Murphy's resume (what Murphy presents itself as) ─────────────────────────
 MURPHY_PROFILE = {

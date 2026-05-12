@@ -2118,7 +2118,6 @@ async def jobs_profile():
     return JSONResponse({"success": True, "profile": MURPHY_PROFILE, "target_queries": JOB_QUERIES})
 
 
-@router.get("/api/jobs/stats")
 @router.post("/api/jobs/add")
 async def jobs_add_manual(request: Request):
     """Manually add a job listing (from UI paste). Returns listing_id for ghost_apply."""
@@ -2145,6 +2144,7 @@ async def jobs_add_manual(request: Request):
         return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
 
+@router.get("/api/jobs/stats")
 async def jobs_stats():
     """Application pipeline stats."""
     import sqlite3
