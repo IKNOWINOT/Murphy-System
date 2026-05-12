@@ -2119,6 +2119,32 @@ async def jobs_profile():
 
 
 @router.get("/api/jobs/stats")
+@router.post("/api/jobs/add")
+async def jobs_add_manual(request: Request):
+    """Manually add a job listing (from UI paste). Returns listing_id for ghost_apply."""
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+    title       = (body.get("title") or "Unknown Role").strip()
+    company     = (body.get("company") or "Company").strip()
+    url         = (body.get("url") or "").strip()
+    description = (body.get("description") or "").strip()
+    board       = (body.get("board") or "manual").strip()
+    match_score = int(body.get("match_score") or 80)
+    if not url:
+        return JSONResponse({"success": False, "error": "url is required"}, status_code=400)
+    try:
+        lid = _jh().add_listing(
+            title=title, company=company, url=url,
+            board=board, description=description, match_score=match_score
+        )
+        return JSONResponse({"success": True, "listing_id": lid})
+    except Exception as exc:
+        log.error("jobs/add error: %s", exc)
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
 async def jobs_stats():
     """Application pipeline stats."""
     import sqlite3
