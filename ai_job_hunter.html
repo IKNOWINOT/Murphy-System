@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Murphy — AI Job Hunter</title>
+<style>
+:root{--bg:#09090b;--surface:#111113;--surface2:#18181b;--border:#27272a;--teal:#00d4aa;--teal-dim:rgba(0,212,170,.12);--red:#ff6b6b;--yellow:#fbbf24;--text:#f4f4f5;--muted:#71717a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:.85rem 1.5rem;display:flex;align-items:center;gap:1rem}
+.topbar-logo{font-weight:700;font-size:1.05rem;color:var(--teal)}
+.topbar-title{font-size:.9rem;color:var(--muted)}
+.badge{background:var(--teal-dim);color:var(--teal);font-size:.7rem;font-weight:600;padding:.2rem .55rem;border-radius:20px;letter-spacing:.04em}
+.badge.yellow{background:rgba(251,191,36,.12);color:var(--yellow)}
+.badge.red{background:rgba(255,107,107,.12);color:var(--red)}
+
+main{max-width:1100px;margin:0 auto;padding:2rem 1.5rem}
+
+/* Stats row */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;margin-bottom:2rem}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.1rem 1.25rem}
+.stat-num{font-size:2rem;font-weight:700;color:var(--teal);line-height:1}
+.stat-label{font-size:.75rem;color:var(--muted);margin-top:.3rem}
+
+/* Tabs */
+.tabs{display:flex;gap:.25rem;margin-bottom:1.5rem;border-bottom:1px solid var(--border);padding-bottom:0}
+.tab{padding:.55rem 1rem;font-size:.85rem;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+.tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+.tab:hover:not(.active){color:var(--text)}
+
+/* Action bar */
+.action-bar{display:flex;gap:.75rem;margin-bottom:1.5rem;flex-wrap:wrap}
+.btn{padding:.6rem 1.25rem;border-radius:7px;font-size:.85rem;font-weight:600;cursor:pointer;border:none;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-primary{background:var(--teal);color:#000}
+.btn-ghost{background:transparent;color:var(--teal);border:1px solid var(--teal)}
+.btn-sm{padding:.35rem .75rem;font-size:.78rem}
+.btn-approve{background:rgba(0,212,170,.15);color:var(--teal);border:1px solid rgba(0,212,170,.3)}
+.btn-reject{background:rgba(255,107,107,.1);color:var(--red);border:1px solid rgba(255,107,107,.25)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* Cards */
+.cards{display:flex;flex-direction:column;gap:.85rem}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.25rem 1.5rem}
+.card:hover{border-color:var(--teal)}
+.card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.6rem}
+.card-title{font-size:1rem;font-weight:600;color:var(--text)}
+.card-company{font-size:.82rem;color:var(--muted);margin-top:.15rem}
+.card-meta{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.6rem}
+.chip{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:.2rem .55rem;font-size:.72rem;color:var(--muted)}
+.chip.teal{background:var(--teal-dim);border-color:rgba(0,212,170,.25);color:var(--teal)}
+.card-actions{display:flex;gap:.5rem;margin-top:.85rem}
+
+/* Cover letter modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.75rem;max-width:680px;width:90vw;max-height:80vh;overflow-y:auto}
+.modal h3{margin-bottom:1rem;font-size:1.1rem}
+.modal pre{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:1rem;font-size:.8rem;line-height:1.6;white-space:pre-wrap;color:#ccc;max-height:400px;overflow-y:auto}
+.modal-close{float:right;background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;margin-top:-.25rem}
+
+/* Screenshot modal */
+.screenshot-img{max-width:100%;border-radius:8px;border:1px solid var(--border)}
+
+/* Discovery panel */
+.discovery-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.5rem;margin-bottom:1.5rem}
+.discovery-panel h3{font-size:.95rem;font-weight:600;margin-bottom:1rem}
+.query-grid{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem}
+.query-chip{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:.3rem .8rem;font-size:.78rem;color:var(--muted);cursor:pointer;transition:all .15s;user-select:none}
+.query-chip.selected{background:var(--teal-dim);border-color:rgba(0,212,170,.4);color:var(--teal)}
+
+/* Status indicator */
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}
+.dot-green{background:#22c55e}.dot-yellow{background:var(--yellow)}.dot-red{background:var(--red)}.dot-gray{background:#52525b}
+
+/* Loading spinner */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.empty{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:.9rem}
+.log{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.85rem 1rem;font-size:.78rem;color:#aaa;font-family:monospace;line-height:1.6;max-height:180px;overflow-y:auto;margin-top:.75rem}
+.profile-block{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1rem;font-size:.82rem;color:#ccc;line-height:1.7}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-logo">⚡ Murphy</span>
+  <span class="topbar-title">AI Job Hunter</span>
+  <span class="badge" id="badge-pending">— pending</span>
+  <span class="badge yellow" id="badge-applied">— applied</span>
+  <span style="margin-left:auto;font-size:.78rem;color:var(--muted)" id="last-updated"></span>
+</div>
+
+<main>
+  <!-- Stats -->
+  <div class="stats" id="stats-row">
+    <div class="stat"><div class="stat-num" id="s-total">—</div><div class="stat-label">Jobs Found</div></div>
+    <div class="stat"><div class="stat-num" id="s-pending">—</div><div class="stat-label">Awaiting Review</div></div>
+    <div class="stat"><div class="stat-num" id="s-applied">—</div><div class="stat-label">Applied</div></div>
+    <div class="stat"><div class="stat-num" id="s-apps">—</div><div class="stat-label">Applications</div></div>
+  </div>
+
+  <!-- Discovery panel -->
+  <div class="discovery-panel">
+    <h3>🔍 Discover AI Leadership Roles</h3>
+    <div class="query-grid" id="query-chips"></div>
+    <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="runDiscovery()" id="btn-discover">Run Discovery</button>
+      <button class="btn btn-ghost btn-sm" onclick="selectAllQueries()">Select All</button>
+      <span style="font-size:.8rem;color:var(--muted)">Murphy will ghost-scrape Indeed + LinkedIn for selected roles</span>
+    </div>
+    <div class="log" id="discovery-log" style="display:none"></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('listings')">All Listings</div>
+    <div class="tab" onclick="switchTab('review')">Needs Review</div>
+    <div class="tab" onclick="switchTab('applications')">Applications</div>
+    <div class="tab" onclick="switchTab('profile')">Murphy's Profile</div>
+  </div>
+
+  <!-- Listings tab -->
+  <div id="tab-listings">
+    <div class="action-bar">
+      <button class="btn btn-ghost btn-sm" onclick="loadListings()">↻ Refresh</button>
+      <select id="filter-status" onchange="loadListings()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.4rem .75rem;border-radius:6px;font-size:.82rem">
+        <option value="">All statuses</option>
+        <option value="discovered">Discovered</option>
+        <option value="pending_review">Pending Review</option>
+        <option value="applied">Applied</option>
+        <option value="skipped">Skipped</option>
+      </select>
+    </div>
+    <div class="cards" id="listings-cards"><div class="empty">No listings yet. Run discovery to find AI leadership roles.</div></div>
+  </div>
+
+  <!-- Review tab -->
+  <div id="tab-review" style="display:none">
+    <div class="action-bar">
+      <button class="btn btn-ghost btn-sm" onclick="loadApplications()">↻ Refresh</button>
+    </div>
+    <div class="cards" id="review-cards"><div class="empty">No applications pending review.</div></div>
+  </div>
+
+  <!-- Applications tab -->
+  <div id="tab-applications" style="display:none">
+    <div class="cards" id="app-cards"><div class="empty">No applications yet.</div></div>
+  </div>
+
+  <!-- Profile tab -->
+  <div id="tab-profile" style="display:none">
+    <div class="card">
+      <h3 style="margin-bottom:1rem;font-size:1rem">Murphy's Candidate Profile</h3>
+      <div id="profile-content"></div>
+    </div>
+  </div>
+</main>
+
+<!-- Cover letter modal -->
+<div class="modal-overlay" id="cl-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('cl-modal')">✕</button>
+    <h3>📄 Cover Letter Preview</h3>
+    <pre id="cl-content"></pre>
+    <div style="margin-top:1rem;text-align:right">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('cl-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Screenshot modal -->
+<div class="modal-overlay" id="ss-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('ss-modal')">✕</button>
+    <h3>📸 Application Page Screenshot</h3>
+    <img class="screenshot-img" id="ss-img" src="" alt="Screenshot">
+    <div style="margin-top:1rem;font-size:.8rem;color:var(--muted)">This is what Murphy saw when it ghost-navigated to the application page.</div>
+    <div style="margin-top:1rem;text-align:right">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('ss-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+const QUERIES = [
+  'Head of AI','Director of AI','VP of AI','Chief AI Officer',
+  'AI Lead','Head of Machine Learning','Director of Machine Learning',
+  'AI Engineering Manager','AI Platform Lead'
+];
+let selectedQueries = ['Head of AI','Director of AI','VP of AI'];
+
+function log(msg, id='discovery-log'){
+  const el = document.getElementById(id);
+  el.style.display='block';
+  el.innerHTML += msg + '\n';
+  el.scrollTop = el.scrollHeight;
+}
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function openModal(id){  document.getElementById(id).classList.add('open'); }
+
+// Build query chips
+(function(){
+  const grid = document.getElementById('query-chips');
+  QUERIES.forEach(q => {
+    const chip = document.createElement('div');
+    chip.className = 'query-chip' + (selectedQueries.includes(q)?' selected':'');
+    chip.textContent = q;
+    chip.onclick = () => {
+      const i = selectedQueries.indexOf(q);
+      if(i >= 0) selectedQueries.splice(i,1); else selectedQueries.push(q);
+      chip.classList.toggle('selected');
+    };
+    grid.appendChild(chip);
+  });
+})();
+
+function selectAllQueries(){
+  selectedQueries = [...QUERIES];
+  document.querySelectorAll('.query-chip').forEach(c => c.classList.add('selected'));
+}
+
+function switchTab(name){
+  ['listings','review','applications','profile'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===name?'block':'none';
+    document.querySelectorAll('.tab').forEach((el,i) => {
+      const names = ['listings','review','applications','profile'];
+      el.classList.toggle('active', names[i]===name);
+    });
+  });
+  if(name==='listings')     loadListings();
+  if(name==='review')       loadApplications('pending_hitl');
+  if(name==='applications') loadApplications();
+  if(name==='profile')      loadProfile();
+}
+
+async function loadStats(){
+  try{
+    const r = await fetch(API+'/api/jobs/stats');
+    const d = await r.json();
+    if(d.success){
+      const s = d.stats;
+      document.getElementById('s-total').textContent   = s.listings_total||0;
+      document.getElementById('s-pending').textContent = s.awaiting_approval||0;
+      document.getElementById('s-applied').textContent = s.applied||0;
+      document.getElementById('s-apps').textContent    = s.applications_total||0;
+      document.getElementById('badge-pending').textContent = (s.awaiting_approval||0)+' pending';
+      document.getElementById('badge-applied').textContent = (s.applied||0)+' applied';
+    }
+    document.getElementById('last-updated').textContent = 'Updated '+new Date().toLocaleTimeString();
+  }catch(e){}
+}
+
+function statusChip(status){
+  const map = {
+    discovered:     ['dot-gray','Discovered'],
+    pending_review: ['dot-yellow','Pending Review'],
+    applied:        ['dot-green','Applied'],
+    skipped:        ['dot-gray','Skipped'],
+    pending_hitl:   ['dot-yellow','Awaiting Approval'],
+    approved:       ['dot-green','Approved'],
+    rejected:       ['dot-red','Rejected'],
+  };
+  const [cls,label] = map[status]||['dot-gray',status];
+  return `<span><span class="status-dot ${cls}"></span>${label}</span>`;
+}
+
+async function loadListings(){
+  const status = document.getElementById('filter-status').value;
+  const url = API+'/api/jobs/listings?limit=80'+(status?'&status='+status:'');
+  try{
+    const r = await fetch(url);
+    const d = await r.json();
+    const container = document.getElementById('listings-cards');
+    if(!d.success||!d.listings?.length){
+      container.innerHTML='<div class="empty">No listings found. Run discovery to find AI leadership roles.</div>';
+      return;
+    }
+    container.innerHTML = d.listings.map(j => `
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">${j.title}</div>
+            <div class="card-company">${j.company} · ${j.location||'Remote'}</div>
+          </div>
+          <div style="text-align:right">
+            ${statusChip(j.status)}
+            ${j.match_score?`<div style="font-size:.75rem;color:var(--teal);margin-top:.25rem">Match: ${j.match_score}%</div>`:''}
+          </div>
+        </div>
+        <div class="card-meta">
+          <span class="chip">${j.board||'unknown'}</span>
+          ${j.salary?`<span class="chip teal">${j.salary}</span>`:''}
+          <span class="chip">${j.discovered_at?.slice(0,10)||''}</span>
+        </div>
+        <div class="card-actions">
+          <a href="${j.url}" target="_blank" class="btn btn-ghost btn-sm">View Listing</a>
+          ${j.status==='discovered'?`<button class="btn btn-primary btn-sm" onclick="ghostApply('${j.id}',this)">🤖 Ghost Apply</button>`:''}
+        </div>
+      </div>
+    `).join('');
+  }catch(e){
+    document.getElementById('listings-cards').innerHTML=`<div class="empty">Error: ${e.message}</div>`;
+  }
+}
+
+async function loadApplications(statusFilter=''){
+  try{
+    const r  = await fetch(API+'/api/jobs/applications?limit=100');
+    const d  = await r.json();
+    const isReview = !!statusFilter;
+    const container = document.getElementById(isReview?'review-cards':'app-cards');
+    let apps = d.applications||[];
+    if(statusFilter) apps = apps.filter(a => a.status===statusFilter);
+    if(!apps.length){
+      container.innerHTML='<div class="empty">'+(isReview?'No applications awaiting review.':'No applications yet.')+'</div>';
+      return;
+    }
+    container.innerHTML = apps.map(a => `
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">${a.title} @ ${a.company}</div>
+            <div class="card-company">${a.created_at?.slice(0,16)||''} UTC</div>
+          </div>
+          ${statusChip(a.status)}
+        </div>
+        <div class="card-meta">
+          ${a.form_fields_found?`<span class="chip teal">${JSON.parse(a.form_data||'{}') ? Object.keys(JSON.parse(a.form_data||'{}')).length : 0} form fields mapped</span>`:''}
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-ghost btn-sm" onclick="showCoverLetter('${a.id}')">View Cover Letter</button>
+          ${a.screenshot_b64?`<button class="btn btn-ghost btn-sm" onclick="showScreenshot('${a.screenshot_b64}')">📸 Screenshot</button>`:''}
+          <a href="${a.url}" target="_blank" class="btn btn-ghost btn-sm">View Job</a>
+          ${a.status==='pending_hitl'?`
+            <button class="btn btn-approve btn-sm" onclick="approveApp('${a.id}',this)">✅ Approve</button>
+            <button class="btn btn-reject btn-sm"  onclick="rejectApp('${a.id}',this)">✕ Skip</button>
+          `:''}
+        </div>
+      </div>
+    `).join('');
+  }catch(e){}
+}
+
+async function loadProfile(){
+  try{
+    const r = await fetch(API+'/api/jobs/profile');
+    const d = await r.json();
+    const p = d.profile;
+    document.getElementById('profile-content').innerHTML = `
+      <div class="profile-block">
+        <strong style="color:var(--teal)">${p.name}</strong> · ${p.title}<br>
+        📧 ${p.email} · 🌐 <a href="${p.website}" target="_blank" style="color:var(--teal)">${p.website}</a><br>
+        📍 ${p.location}
+      </div>
+      <div style="margin-bottom:1rem">
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.06em">Summary</div>
+        <div style="font-size:.85rem;line-height:1.7;color:#ccc">${p.summary}</div>
+      </div>
+      <div style="margin-bottom:1rem">
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.06em">Skills</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.4rem">${p.skills.map(s=>`<span class="chip teal">${s}</span>`).join('')}</div>
+      </div>
+      <div style="margin-bottom:1rem">
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.06em">Target Roles</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.4rem">${d.target_queries.map(q=>`<span class="chip">${q}</span>`).join('')}</div>
+      </div>
+    `;
+  }catch(e){}
+}
+
+async function runDiscovery(){
+  const btn = document.getElementById('btn-discover');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Discovering...';
+  const el = document.getElementById('discovery-log');
+  el.textContent = '';
+  log('🔍 Starting discovery cycle...');
+  log('Queries: ' + selectedQueries.join(', '));
+  log('Ghost-navigating Indeed and LinkedIn...');
+  try{
+    const r = await fetch(API+'/api/jobs/discover', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({queries: selectedQueries, limit_per_query: 8})
+    });
+    const d = await r.json();
+    if(d.success){
+      log(`✅ Discovery complete: ${d.new_listings} new listings found (${d.total_found} total matches)`);
+      if(d.top_matches?.length){
+        log('Top matches:');
+        d.top_matches.forEach(m => log(`  • ${m.title} @ ${m.company} (${m.match_score}% match)`));
+      }
+    } else {
+      log('❌ Error: '+(d.error||'unknown'));
+    }
+    await loadStats();
+    await loadListings();
+  }catch(e){
+    log('❌ Network error: '+e.message);
+  }
+  btn.disabled = false;
+  btn.textContent = 'Run Discovery';
+}
+
+async function ghostApply(listingId, btn){
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+  try{
+    const r = await fetch(API+'/api/jobs/apply/'+listingId, {method:'POST'});
+    const d = await r.json();
+    if(d.success){
+      alert(`✅ Application queued for your review!\n\nForm fields mapped: ${d.form_fields_found?.join(', ')||'none found'}\n\nGo to "Needs Review" tab to approve before anything is submitted.`);
+      await loadListings();
+      await loadStats();
+    } else {
+      alert('Error: '+(d.error||'failed'));
+    }
+  }catch(e){ alert('Error: '+e.message); }
+  btn.disabled = false;
+  btn.textContent = '🤖 Ghost Apply';
+}
+
+async function approveApp(appId, btn){
+  btn.disabled = true;
+  try{
+    const r = await fetch(API+'/api/jobs/approve/'+appId, {method:'POST'});
+    const d = await r.json();
+    if(d.success){ loadApplications('pending_hitl'); loadStats(); }
+    else alert('Error: '+(d.error||'failed'));
+  }catch(e){ alert('Error: '+e.message); btn.disabled=false; }
+}
+
+async function rejectApp(appId, btn){
+  btn.disabled = true;
+  try{
+    const r = await fetch(API+'/api/jobs/reject/'+appId, {method:'POST'});
+    const d = await r.json();
+    if(d.success){ loadApplications('pending_hitl'); loadStats(); }
+    else alert('Error: '+(d.error||'failed'));
+  }catch(e){ btn.disabled=false; }
+}
+
+function showCoverLetter(appId){
+  // Fetch from applications list
+  fetch(API+'/api/jobs/applications').then(r=>r.json()).then(d=>{
+    const app = d.applications?.find(a=>a.id===appId);
+    if(app){ document.getElementById('cl-content').textContent = app.cover_letter||'No cover letter generated.'; openModal('cl-modal'); }
+  });
+}
+
+function showScreenshot(b64){
+  document.getElementById('ss-img').src = 'data:image/png;base64,'+b64;
+  openModal('ss-modal');
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if(e.target===el) el.classList.remove('open'); });
+});
+
+// Init
+loadStats();
+loadListings();
+setInterval(loadStats, 30000);
+</script>
+</body>
+</html>
