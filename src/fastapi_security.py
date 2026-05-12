@@ -274,6 +274,10 @@ def _is_public_api_route(path: str, method: str = "GET") -> bool:
     if normalized.startswith("/api/demo/"):
         return True
 
+    # PATCH-264: Murphy→Steve channel — Murphy calls this autonomously without a session
+    if normalized.startswith("/api/murphy/"):
+        return True
+
     # Public reviews — GET only (displayed on landing/pricing pages without login)
     if normalized == "/api/reviews" and method.upper() == "GET":
         return True
