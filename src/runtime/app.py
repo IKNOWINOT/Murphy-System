@@ -334,7 +334,7 @@ def create_app() -> FastAPI:
                 "resume-builder":          "resume_builder.html",
                 "ai-job-hunter":           "ai_job_hunter.html",
                 "jobs":                    "ai_job_hunter.html",
-                "resume":                  "ai_job_hunter.html",
+                "resume":                  "ai_resume.html",
         # Workspace
         "workspace":               "workspace.html",
         "workdocs":                "workdocs.html",
