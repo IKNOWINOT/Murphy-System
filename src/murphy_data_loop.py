@@ -37,10 +37,17 @@ def _post(endpoint: str, payload: Dict[str, Any], timeout: int = 15) -> Dict[str
         return {}
 
 
-def _get_authed(endpoint: str, cookies: str, timeout: int = 10) -> Any:
+def _get_authed(endpoint: str, cookies: str = "", timeout: int = 10) -> Any:
+    """PATCH-267: Use FOUNDER_API_KEY header — cookies param kept for compat but ignored."""
     try:
+        api_key = (
+            os.environ.get("FOUNDER_API_KEY")
+            or os.environ.get("MURPHY_API_KEY")
+            or ""
+        )
         r = _req.Request(f"{_BASE}{endpoint}")
-        r.add_header("Cookie", cookies)
+        if api_key:
+            r.add_header("X-API-Key", api_key)
         with _req.urlopen(r, timeout=timeout) as resp:
             return json.loads(resp.read())
     except Exception as exc:
