@@ -302,10 +302,9 @@ def run_data_loop(interval: int = _INTERVAL_SECONDS) -> None:
     while True:
         try:
             cookies = _get_founder_cookies()
+            # PATCH-267: API key auth — always proceed, cookies param unused
             if not cookies:
-                logger.warning("PATCH-076: Could not authenticate — skipping cycle")
-                time.sleep(60)
-                continue
+                pass  # No longer skip — X-API-Key used instead
 
             # PATCH-077c: RSC signal — data loop itself updates RSC
             try:
