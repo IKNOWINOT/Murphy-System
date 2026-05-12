@@ -67,7 +67,7 @@ def pull_self_fix_signals(cookies: str) -> List[Dict[str, Any]]:
     try:
         r = _req.Request(f"{_BASE}/api/self-fix/run",
                          data=b"{}",
-                         headers={"Content-Type": "application/json", "Cookie": cookies},
+                         headers={"Content-Type": "application/json", "X-API-Key": _founder_headers()["X-API-Key"]},
                          method="POST")
         with _req.urlopen(r, timeout=30) as resp:
             data = json.loads(resp.read())
@@ -230,7 +230,7 @@ def pull_repair_signals(cookies: str) -> List[Dict[str, Any]]:
     signals = []
     try:
         r = _req.Request(f"{_BASE}/api/repair/proposals",
-                         headers={"Cookie": cookies})
+                         headers={"X-API-Key": _founder_headers()["X-API-Key"]})
         with _req.urlopen(r, timeout=10) as resp:
             data = json.loads(resp.read())
         proposals = data.get("proposals", [])
@@ -257,25 +257,24 @@ def pull_repair_signals(cookies: str) -> List[Dict[str, Any]]:
 # ── Main loop ─────────────────────────────────────────────────────────────────
 
 def _get_founder_cookies() -> str:
-    """Log in as founder and return cookie string for authed requests."""
-    try:
-        import http.cookiejar as _cj
-        body = json.dumps({"email": "cpost@murphy.systems", "password": "Password1"}).encode()
-        r = _req.Request(f"{_BASE}/api/auth/login", data=body,
-                         headers={"Content-Type": "application/json"}, method="POST")
-        jar = _cj.CookieJar()
-        opener = _req.build_opener(_req.HTTPCookieProcessor(jar))
-        with opener.open(r, timeout=10) as resp:
-            data = json.loads(resp.read())
-        # Also get token from response body
-        token = data.get("session_token", "")
-        cookies = "; ".join(f"{c.name}={c.value}" for c in jar)
-        if token:
-            cookies = f"murphy_session={token}; {cookies}" if cookies else f"murphy_session={token}"
-        return cookies
-    except Exception as exc:
-        logger.warning("PATCH-076: founder login failed: %s", exc)
-        return ""
+    """PATCH-267: Use FOUNDER_API_KEY / MURPHY_API_KEY instead of cookie login.
+    Returns an empty string (cookies not needed — we use X-API-Key header now)."""
+    return ""
+
+
+def _founder_headers() -> dict:
+    """Return auth headers for internal API calls using the founder API key."""
+    api_key = (
+        os.environ.get("FOUNDER_API_KEY")
+        or os.environ.get("MURPHY_API_KEY")
+        or ""
+    )
+    if not api_key:
+        logger.warning("PATCH-267: No FOUNDER_API_KEY or MURPHY_API_KEY set — internal calls will 401")
+    return {
+        "Content-Type": "application/json",
+        "X-API-Key": api_key,
+    }
 
 
 def run_data_loop(interval: int = _INTERVAL_SECONDS) -> None:
