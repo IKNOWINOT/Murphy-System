@@ -78,6 +78,9 @@ _EXEMPT_PREFIXES = (
     "/api/ledger",
     "/api/frontline/",
     "/api/frontline",
+    # PATCH-264: Murphy→Steve channel (public — Murphy calls this autonomously)
+    "/api/murphy/",
+    "/api/murphy",
     # PATCH-097b: Self-modification + evaluation
     "/api/self/evaluate",
     "/api/self/patch",
@@ -423,6 +426,8 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/matrix/chat",
         "/api/matrix/chat/rooms",
         "/api/comms",
+        "/api/murphy/ask-steve",           # PATCH-264
+        "/api/murphy/ask-steve/authorities", # PATCH-264
         "/api/portfolio/summary",
         "/api/trading/paper/status",
         "/api/trading/paper/performance",
@@ -456,6 +461,7 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/workdocs",
         "/api/collaboration/",
         "/api/comms/",
+        "/api/murphy/",   # PATCH-264: Murphy→Steve channel
         "/api/matrix/chat",
         "/api/system/",
         # PATCH-098: RROM monitoring (public)
