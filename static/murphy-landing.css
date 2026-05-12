@@ -341,9 +341,10 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
   h1 { font-size: clamp(1.9rem, 7vw, 2.8rem) !important; line-height: 1.12; }
   h2, .stitle { font-size: clamp(1.4rem, 5vw, 2rem) !important; }
 
-  /* Topbar */
+  /* Topbar — Login always visible */
   .murphy-topbar { padding: 0.6rem 1rem; }
   .topbar-brand-name { font-size: 1rem; }
+  .sys-pill { display: none; }  /* hide status pill at tablet — keeps Login visible */
 
   /* Hero */
   #hero { padding: 3rem 1.25rem 2.5rem; text-align: center; }
@@ -561,4 +562,20 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
 
   /* Chat widget — don't overlap nav */
   #murphy-librarian-fab { bottom: 1.25rem !important; right: 1rem !important; }
+}
+
+/* PATCH-268e: Login button always prominent */
+.topbar-right .btn-s {
+  background: rgba(0,212,170,.12);
+  border-color: var(--teal);
+  color: var(--teal);
+  font-weight: 700;
+}
+.topbar-right .btn-s:hover {
+  background: var(--teal);
+  color: #0a0a0a;
+}
+@media(max-width:900px){
+  .sys-pill { display: none !important; }
+  .topbar-right .btn-s { display: inline-flex !important; font-size:.82rem; padding:.5rem 1rem; }
 }
