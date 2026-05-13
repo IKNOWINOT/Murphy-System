@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How We Work — Murphy System</title>
+<link rel="stylesheet" href="/static/murphy-design-system.css">
+<style>
+  body { background:#050505; color:#f0f0f0; font-family:'Inter',sans-serif; margin:0; }
+  .wrap { max-width:860px; margin:0 auto; padding:4rem 1.5rem 6rem; }
+  .tag { display:inline-block; background:#0f1a0f; border:1px solid #2a4a2a; border-radius:6px; padding:.3rem .8rem; font-size:.75rem; color:#4caf50; letter-spacing:.08em; text-transform:uppercase; margin-bottom:1.2rem; }
+  h1 { font-size:clamp(2rem,5vw,3rem); font-weight:700; line-height:1.2; margin:0 0 1rem; }
+  .sub { color:#aaa; font-size:1.1rem; line-height:1.7; max-width:640px; margin:0 0 3rem; }
+  .back-link { display:block; margin-bottom:2rem; color:#4caf50; text-decoration:none; font-size:.9rem; }
+  .back-link:hover { text-decoration:underline; }
+  /* Stage grid */
+  .stages { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1.5rem; margin:0 0 4rem; }
+  .stage { background:#111; border:1px solid #1e3a1e; border-radius:12px; padding:1.75rem; }
+  .stage-num { width:2.5rem; height:2.5rem; border-radius:50%; background:#0f2a0f; border:2px solid #4caf50; display:flex; align-items:center; justify-content:center; font-weight:700; color:#4caf50; margin:0 0 1rem; font-size:1rem; }
+  .stage-tag { font-size:.7rem; color:#4caf50; letter-spacing:.1em; text-transform:uppercase; margin-bottom:.4rem; }
+  .stage h3 { font-size:1rem; font-weight:600; color:#f0f0f0; margin:0 0 .6rem; }
+  .stage p { font-size:.85rem; color:#999; line-height:1.6; margin:0; }
+  /* Timeline */
+  .timeline { border-left:2px solid #1e3a1e; padding-left:2rem; margin:0 0 4rem; }
+  .tl-item { position:relative; margin-bottom:2.5rem; }
+  .tl-item::before { content:''; position:absolute; left:-2.6rem; top:.35rem; width:.7rem; height:.7rem; border-radius:50%; background:#4caf50; }
+  .tl-month { font-size:.75rem; color:#4caf50; letter-spacing:.08em; text-transform:uppercase; margin-bottom:.3rem; }
+  .tl-item h3 { font-size:1rem; font-weight:600; color:#f0f0f0; margin:0 0 .4rem; }
+  .tl-item p { font-size:.875rem; color:#999; line-height:1.6; margin:0; }
+  /* Cap table */
+  .cap-card { background:#111; border:1px solid #1e3a1e; border-radius:12px; padding:2rem; margin:0 0 4rem; }
+  .cap-card h2 { font-size:1.1rem; font-weight:600; text-align:center; margin:0 0 1.5rem; }
+  table { width:100%; border-collapse:collapse; font-size:.875rem; }
+  thead th { text-align:left; padding:.5rem .75rem; color:#888; font-weight:500; border-bottom:1px solid #222; }
+  thead th:not(:first-child) { text-align:center; }
+  tbody tr { border-bottom:1px solid #1a1a1a; }
+  tbody tr:last-child { border:none; }
+  td { padding:.55rem .75rem; color:#ccc; }
+  td:not(:first-child) { text-align:center; }
+  .check { color:#4caf50; font-size:1rem; }
+  .dash { color:#555; }
+  .need { color:#aaa; font-size:.78rem; }
+  /* CTA */
+  .cta-row { display:flex; gap:1rem; flex-wrap:wrap; justify-content:center; margin-top:3rem; }
+  .btn-p { background:#4caf50; color:#000; border:none; border-radius:8px; padding:.9rem 2.2rem; font-size:1rem; font-weight:700; cursor:pointer; text-decoration:none; }
+  .btn-g { background:transparent; color:#4caf50; border:1px solid #4caf50; border-radius:8px; padding:.9rem 2.2rem; font-size:1rem; font-weight:600; cursor:pointer; text-decoration:none; }
+  .btn-p:hover { opacity:.88; } .btn-g:hover { background:#0f2a0f; }
+  /* FAQ */
+  .faq { margin:0 0 3rem; }
+  .faq h2 { font-size:1.4rem; font-weight:700; margin:0 0 2rem; }
+  .faq-item { border-bottom:1px solid #1a2a1a; padding:1.25rem 0; }
+  .faq-q { font-weight:600; color:#f0f0f0; margin:0 0 .5rem; }
+  .faq-a { color:#aaa; font-size:.9rem; line-height:1.7; margin:0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="/" class="back-link">← Back to Murphy Systems</a>
+  <div class="tag">Commercial Model</div>
+  <h1>We get paid when you save money.</h1>
+  <p class="sub">No retainers. No seat licenses. Murphy charges a flat T&amp;M setup fee, then earns 40% of documented savings over 24 months. You keep 60%. Every dollar Murphy saves is money you didn't spend.</p>
+
+  <div class="stages">
+    <div class="stage">
+      <div class="stage-num">1</div>
+      <div class="stage-tag">Weeks 1–4</div>
+      <h3>T&amp;M Discovery</h3>
+      <p>We map your ops, identify waste, and scope the first automations. Fixed-cost. No surprises. You get a written savings estimate before anything is built.</p>
+    </div>
+    <div class="stage">
+      <div class="stage-num">2</div>
+      <div class="stage-tag">Months 1–12</div>
+      <h3>Performance Contract</h3>
+      <p>Murphy earns 40% of documented, verified savings. You keep 60%. Monthly reporting. If savings don't materialize, you don't pay the performance fee.</p>
+    </div>
+    <div class="stage">
+      <div class="stage-num">3</div>
+      <div class="stage-tag">Months 12–24</div>
+      <h3>AI Synergy Optimization</h3>
+      <p>Shadow agents, cross-system optimization, and inter-agent collaboration. Savings compound. Your team gets leverage they didn't have before.</p>
+    </div>
+    <div class="stage">
+      <div class="stage-num">4</div>
+      <div class="stage-tag">Post-Contract</div>
+      <h3>SaaS License</h3>
+      <p>You own the automations. Pay a flat license to keep them running. No lock-in, no dependency on Murphy. Your IP, your infrastructure.</p>
+    </div>
+  </div>
+
+  <h2 style="font-size:1.4rem;font-weight:700;margin:0 0 2rem;">What a typical 24-month engagement looks like</h2>
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-month">Week 1</div>
+      <h3>Discovery Call + Ops Audit</h3>
+      <p>We map your workflows, toolchain, and cost centers. You get a written savings estimate within 48 hours.</p>
+    </div>
+    <div class="tl-item">
+      <div class="tl-month">Week 2–4</div>
+      <h3>T&amp;M Setup</h3>
+      <p>First automations deployed: invoice processing, reporting, data sync, field ops logging — whatever saves the most first.</p>
+    </div>
+    <div class="tl-item">
+      <div class="tl-month">Month 2–6</div>
+      <h3>Performance Phase Kicks In</h3>
+      <p>Savings measured monthly against pre-engagement baseline. You see the receipts. Murphy invoices 40% of verified savings.</p>
+    </div>
+    <div class="tl-item">
+      <div class="tl-month">Month 12</div>
+      <h3>AI Synergy Layer</h3>
+      <p>Shadow agents trained on your team's workflows. Cross-system optimization. Compounding returns.</p>
+    </div>
+    <div class="tl-item">
+      <div class="tl-month">Month 24</div>
+      <h3>Contract Closes — You Own Everything</h3>
+      <p>All automations transfer to you. Optional flat SaaS license to keep Murphy running. Zero lock-in.</p>
+    </div>
+  </div>
+
+  <div class="cap-card">
+    <h2>What works right now — no waiting</h2>
+    <table>
+      <thead><tr><th>Capability</th><th>Works Today</th><th>Needs API Key</th></tr></thead>
+      <tbody>
+        <tr><td>Prospect discovery &amp; CRM</td><td><span class="check">✓</span></td><td><span class="dash">—</span></td></tr>
+        <tr><td>Email outreach &amp; follow-up cadence</td><td><span class="check">✓</span></td><td><span class="dash">—</span></td></tr>
+        <tr><td>Proposal generation &amp; HITL review</td><td><span class="check">✓</span></td><td><span class="dash">—</span></td></tr>
+        <tr><td>Native booking page (/book)</td><td><span class="check">✓</span></td><td><span class="dash">—</span></td></tr>
+        <tr><td>Compliance audit automation</td><td><span class="check">✓</span></td><td><span class="dash">—</span></td></tr>
+        <tr><td>Outbound phone calls &amp; SMS</td><td><span class="dash">—</span></td><td><span class="need">Twilio SID + Token</span></td></tr>
+        <tr><td>Email reply detection</td><td><span class="dash">—</span></td><td><span class="need">Mailgun or SendGrid</span></td></tr>
+        <tr><td>Calendar sync</td><td><span class="dash">—</span></td><td><span class="need">Google OAuth</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="faq">
+    <h2>Common questions</h2>
+    <div class="faq-item">
+      <div class="faq-q">What if I'm a small owner-operator?</div>
+      <div class="faq-a">We have a $500/month flat tier for businesses under 2 employees. That covers reception, sales follow-up, and basic bookkeeping — all with HITL approvals so you stay in control.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">How are savings verified?</div>
+      <div class="faq-a">We baseline your pre-engagement costs in writing during discovery. Each month we compare actuals to that baseline. You get the methodology and the receipts. No black box.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">What if Murphy doesn't save me anything?</div>
+      <div class="faq-a">Then you don't pay the performance fee. You only paid the T&amp;M setup cost (fixed, scoped upfront). The automations we built are still yours to keep.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Do I have to host this myself?</div>
+      <div class="faq-a">No. Murphy runs on your existing server, our cloud, or a dedicated Hetzner node. Your data never leaves your environment unless you want it to.</div>
+    </div>
+  </div>
+
+  <div class="cta-row">
+    <a href="/book" class="btn-p">📅 Book a Free Audit</a>
+    <a href="/demo" class="btn-g">See It Live →</a>
+  </div>
+</div>
+</body>
+</html>

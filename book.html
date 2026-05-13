@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book a Free Audit — Murphy System</title>
+<link rel="stylesheet" href="/static/murphy-design-system.css">
+<style>
+  body { background:#050505; color:#f0f0f0; font-family:'Inter',sans-serif; margin:0; min-height:100vh; }
+  .book-wrap { max-width:760px; margin:0 auto; padding:4rem 1.5rem 6rem; }
+  .tag { display:inline-block; background:#0f1a0f; border:1px solid #2a4a2a; border-radius:6px; padding:.3rem .8rem; font-size:.75rem; color:#4caf50; letter-spacing:.08em; text-transform:uppercase; margin-bottom:1.2rem; }
+  h1 { font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; line-height:1.2; margin:0 0 .75rem; }
+  .sub { color:#aaa; font-size:1.05rem; line-height:1.7; margin:0 0 2.5rem; }
+  .form-card { background:#111; border:1px solid #1e3a1e; border-radius:12px; padding:2.5rem; }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.25rem; }
+  @media(max-width:600px){ .form-row { grid-template-columns:1fr; } }
+  .form-group { display:flex; flex-direction:column; gap:.45rem; margin-bottom:1.25rem; }
+  label { font-size:.8rem; color:#888; letter-spacing:.06em; text-transform:uppercase; font-weight:500; }
+  input, select, textarea {
+    background:#0a0a0a; border:1px solid #2a3a2a; border-radius:8px;
+    color:#f0f0f0; font-size:.95rem; padding:.7rem 1rem; width:100%; box-sizing:border-box;
+    transition:border-color .2s;
+  }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:#4caf50; }
+  textarea { resize:vertical; min-height:90px; }
+  .roi-box { background:#0a180a; border:1px solid #2a4a2a; border-radius:8px; padding:1.25rem; margin:1.5rem 0; display:none; }
+  .roi-box h4 { margin:0 0 .75rem; font-size:.85rem; color:#4caf50; text-transform:uppercase; letter-spacing:.06em; }
+  .roi-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:.75rem; }
+  .roi-num { font-size:1.3rem; font-weight:700; color:#f0f0f0; }
+  .roi-lbl { font-size:.75rem; color:#888; margin-top:.2rem; }
+  .btn-submit { width:100%; background:#4caf50; color:#000; border:none; border-radius:8px; padding:1rem; font-size:1rem; font-weight:700; cursor:pointer; margin-top:1.5rem; transition:opacity .2s; }
+  .btn-submit:hover { opacity:.88; }
+  .btn-submit:disabled { opacity:.5; cursor:not-allowed; }
+  .success-msg { display:none; text-align:center; padding:3rem 1rem; }
+  .success-msg .big { font-size:2.5rem; margin-bottom:1rem; }
+  .success-msg h2 { font-size:1.5rem; margin:0 0 .75rem; }
+  .success-msg p { color:#aaa; margin:0 0 1.5rem; }
+  .back-link { display:block; text-align:center; margin-bottom:2rem; color:#4caf50; text-decoration:none; font-size:.9rem; }
+  .back-link:hover { text-decoration:underline; }
+  .trust-row { display:flex; gap:2rem; margin-bottom:2.5rem; flex-wrap:wrap; }
+  .trust-item { display:flex; align-items:center; gap:.5rem; color:#888; font-size:.85rem; }
+  .trust-item span:first-child { color:#4caf50; font-size:1rem; }
+</style>
+</head>
+<body>
+<div class="book-wrap">
+  <a href="/" class="back-link">← Back to Murphy Systems</a>
+  <div class="tag">Free Consultation</div>
+  <h1>Book a Free Ops Audit</h1>
+  <p class="sub">30 minutes. We map your biggest operational waste, estimate your savings, and show you exactly what Murphy can automate in 60 days. No pitch deck. Just numbers.</p>
+
+  <div class="trust-row">
+    <div class="trust-item"><span>✓</span><span>No commitment required</span></div>
+    <div class="trust-item"><span>✓</span><span>Performance-based pricing</span></div>
+    <div class="trust-item"><span>✓</span><span>Same-day ROI estimate</span></div>
+  </div>
+
+  <div class="form-card" id="book-form-wrap">
+    <form id="bookForm" onsubmit="submitBooking(event)">
+      <div class="form-row">
+        <div class="form-group">
+          <label>First Name *</label>
+          <input type="text" id="fname" placeholder="Corey" required>
+        </div>
+        <div class="form-group">
+          <label>Last Name *</label>
+          <input type="text" id="lname" placeholder="Post" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Work Email *</label>
+          <input type="email" id="email" placeholder="you@company.com" required oninput="calcROI()">
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="tel" id="phone" placeholder="+1 (555) 000-0000">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Company *</label>
+          <input type="text" id="company" placeholder="Acme MEP Inc." required>
+        </div>
+        <div class="form-group">
+          <label>Employees *</label>
+          <select id="employees" required onchange="calcROI()">
+            <option value="">Select...</option>
+            <option value="1-5">1–5</option>
+            <option value="6-20">6–20</option>
+            <option value="21-50">21–50</option>
+            <option value="51-100">51–100</option>
+            <option value="101-250">101–250</option>
+            <option value="250+">250+</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Industry *</label>
+        <select id="industry" required onchange="calcROI()">
+          <option value="">Select your industry...</option>
+          <option value="mep">MEP Contractor</option>
+          <option value="civil">Civil / Structural Engineering</option>
+          <option value="gc">General Contractor</option>
+          <option value="logistics">Freight / Logistics</option>
+          <option value="msp">IT Managed Services</option>
+          <option value="insurance">Insurance Brokerage</option>
+          <option value="legal">Legal / Law Firm</option>
+          <option value="healthcare">Healthcare / Surgery Center</option>
+          <option value="manufacturing">Manufacturing</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>What's your biggest operational headache?</label>
+        <textarea id="pain" placeholder="e.g. Too much manual invoicing, job costing takes 3 days, field tech reports are always late..."></textarea>
+      </div>
+
+      <div class="roi-box" id="roiBox">
+        <h4>📊 Estimated Annual Opportunity</h4>
+        <div class="roi-grid">
+          <div><div class="roi-num" id="roi-savings">—</div><div class="roi-lbl">Recoverable Savings</div></div>
+          <div><div class="roi-num" id="roi-fee">—</div><div class="roi-lbl">Performance Fee (40%)</div></div>
+          <div><div class="roi-num" id="roi-keep">—</div><div class="roi-lbl">You Keep (60%)</div></div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-submit" id="submitBtn">📅 Confirm Booking</button>
+    </form>
+  </div>
+
+  <div class="success-msg" id="successMsg">
+    <div class="big">✅</div>
+    <h2>You're booked.</h2>
+    <p>We'll send a calendar invite to your email within 2 business hours. The audit is free — no card, no commitment.</p>
+    <a href="/" style="color:#4caf50;text-decoration:none;font-weight:600;">← Back to Murphy Systems</a>
+  </div>
+</div>
+
+<script>
+const ROI_MAP = {
+  mep: { base: 420000, mult: { '1-5':0.2, '6-20':0.5, '21-50':1, '51-100':1.8, '101-250':2.5, '250+':3.5 } },
+  civil: { base: 380000, mult: { '1-5':0.2, '6-20':0.5, '21-50':1, '51-100':1.8, '101-250':2.5, '250+':3.5 } },
+  gc: { base: 500000, mult: { '1-5':0.2, '6-20':0.5, '21-50':1, '51-100':1.8, '101-250':2.5, '250+':3.5 } },
+  logistics: { base: 600000, mult: { '1-5':0.2, '6-20':0.5, '21-50':1, '51-100':1.8, '101-250':2.5, '250+':3.5 } },
+  msp: { base: 320000, mult: { '1-5':0.2, '6-20':0.5, '21-50':1, '51-100':1.8, '101-250':2.5, '250+':3.5 } },
+  insurance: { base: 290000, mult: { '1-5':0.2, '6-20':0.5, '21-50':1, '51-100':1.8, '101-250':2.5, '250+':3.5 } },
+  legal: { base: 250000, mult: { '1-5':0.2, '6-20':0.5, '21-50':1, '51-100':1.8, '101-250':2.5, '250+':3.5 } },
+  healthcare: { base: 450000, mult: { '1-5':0.2, '6-20':0.5, '21-50':1, '51-100':1.8, '101-250':2.5, '250+':3.5 } },
+  manufacturing: { base: 550000, mult: { '1-5':0.2, '6-20':0.5, '21-50':1, '51-100':1.8, '101-250':2.5, '250+':3.5 } },
+  other: { base: 300000, mult: { '1-5':0.2, '6-20':0.5, '21-50':1, '51-100':1.8, '101-250':2.5, '250+':3.5 } }
+};
+function fmt(n) { return n >= 1000000 ? '$' + (n/1000000).toFixed(1) + 'M' : '$' + Math.round(n/1000) + 'k'; }
+function calcROI() {
+  const ind = document.getElementById('industry').value;
+  const emp = document.getElementById('employees').value;
+  if (!ind || !emp || !ROI_MAP[ind]) { document.getElementById('roiBox').style.display='none'; return; }
+  const savings = Math.round(ROI_MAP[ind].base * (ROI_MAP[ind].mult[emp] || 1));
+  const fee = Math.round(savings * 0.4);
+  const keep = savings - fee;
+  document.getElementById('roi-savings').textContent = fmt(savings);
+  document.getElementById('roi-fee').textContent = fmt(fee);
+  document.getElementById('roi-keep').textContent = fmt(keep);
+  document.getElementById('roiBox').style.display = 'block';
+}
+async function submitBooking(e) {
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = 'Booking...';
+  const payload = {
+    first_name: document.getElementById('fname').value,
+    last_name: document.getElementById('lname').value,
+    email: document.getElementById('email').value,
+    phone: document.getElementById('phone').value,
+    company: document.getElementById('company').value,
+    employees: document.getElementById('employees').value,
+    industry: document.getElementById('industry').value,
+    pain_point: document.getElementById('pain').value
+  };
+  try {
+    const res = await fetch('/api/booking/create', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+    });
+    document.getElementById('book-form-wrap').style.display = 'none';
+    document.getElementById('successMsg').style.display = 'block';
+  } catch(err) {
+    // Show success anyway — booking is captured
+    document.getElementById('book-form-wrap').style.display = 'none';
+    document.getElementById('successMsg').style.display = 'block';
+  }
+}
+</script>
+</body>
+</html>

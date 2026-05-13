@@ -794,6 +794,7 @@ def create_app() -> FastAPI:
     _BARE_PUBLIC_SLUGS_155 = [
         "demo", "pricing", "docs", "blog", "careers", "legal", "privacy",
         "forge", "signup", "login", "guest-portal", "guest_portal",
+        "book", "how-we-work",
     ]
     for _bslug in _BARE_PUBLIC_SLUGS_155:
         def _make_bare_route(slug=_bslug):
@@ -17617,14 +17618,24 @@ def create_app() -> FastAPI:
                         or any(path.startswith(pfx) for pfx in self.EXEMPT_PREFIXES)
                     )
                     if not is_exempt:
-                        expected_key = os.environ.get("MURPHY_API_KEY", "") or os.environ.get("MURPHY_API_KEYS", "")
-                        if expected_key:
+                        # PATCH-269b: parse comma-separated MURPHY_API_KEYS correctly
+                        raw_keys = os.environ.get("MURPHY_API_KEYS", "") or os.environ.get("MURPHY_API_KEY", "")
+                        valid_keys = [k.strip() for k in raw_keys.split(",") if k.strip()]
+                        if valid_keys:
                             api_key = request.headers.get("x-api-key", "")
-                            if api_key != expected_key:
+                            key_valid = any(api_key == k for k in valid_keys)
+                            if not key_valid:
                                 return JSONResponse(
                                     {"success": False, "error": {"code": "AUTH_REQUIRED", "message": "Valid X-API-Key header required"}},
                                     status_code=401,
                                 )
+                            # Stamp actor_account_id so _get_account_from_session can find the founder
+                            if api_key == valid_keys[0]:  # first key = founder key
+                                founder_id = _email_to_account.get(
+                                    os.environ.get("MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems").lower(), ""
+                                )
+                                if founder_id:
+                                    request.state.actor_account_id = founder_id
                 return await call_next(request)
 
         app.add_middleware(_APIKeyMiddleware)
@@ -23251,4 +23262,3 @@ if __name__ == "__main__":
     except Exception as exc:
         logger.debug("Feature summary skipped: %s", exc)
     main()
-
