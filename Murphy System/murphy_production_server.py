@@ -7024,6 +7024,56 @@ async def self_loop_execution_status():
     })
 
 
+
+# =============================================================================
+# SELF-DEPLOY — PATCH-283: git pull + static file reload without SSH
+# POST /api/self/git-pull  (founder-only, runs in background subprocess)
+# =============================================================================
+
+@app.post("/api/self/git-pull")
+async def self_git_pull(req: Request):
+    """
+    Pull latest code from GitHub and reload static files.
+    Founder-auth required. Runs git pull in the project root directory.
+    """
+    import subprocess
+    from pathlib import Path
+
+    # Auth gate — founder only
+    _session = _get_session_from_request(req)
+    _acct    = _get_account_from_session(_session) if _session else None
+    if not _acct or _acct.get("role") not in ("owner", "admin", "pilot"):
+        return JSONResponse({"success": False, "error": "Founder auth required"}, status_code=403)
+
+    project_root = Path(__file__).resolve().parent
+    try:
+        result = subprocess.run(
+            ["git", "pull", "origin", "main"],
+            cwd=str(project_root),
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        stdout = result.stdout.strip()
+        stderr = result.stderr.strip()
+        success = result.returncode == 0
+        log.info("SELF-DEPLOY: git pull exit=%d stdout=%s stderr=%s", result.returncode, stdout[:200], stderr[:200])
+        return JSONResponse({
+            "success": success,
+            "return_code": result.returncode,
+            "stdout": stdout,
+            "stderr": stderr,
+            "commit": subprocess.run(
+                ["git", "rev-parse", "--short", "HEAD"],
+                cwd=str(project_root), capture_output=True, text=True
+            ).stdout.strip(),
+        })
+    except subprocess.TimeoutExpired:
+        return JSONResponse({"success": False, "error": "git pull timed out after 60s"}, status_code=504)
+    except Exception as _e:
+        log.error("SELF-DEPLOY: git pull failed: %s", _e)
+        return JSONResponse({"success": False, "error": str(_e)}, status_code=500)
+
 # =============================================================================
 # PLATFORM SELF-MODIFICATION HITL PIPELINE (PSM-001..PSM-004)
 # =============================================================================
