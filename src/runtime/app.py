@@ -742,6 +742,27 @@ def create_app() -> FastAPI:
         from fastapi.responses import RedirectResponse
         return RedirectResponse("/ui/steve2028merch")
 
+    # PATCH-269c: book + how-we-work top-level routes
+    @app.get("/book", include_in_schema=False)
+    async def book_page_top():
+        import os as _bos
+        p = _bos.path.join("/opt/Murphy-System", "book.html")
+        if _bos.path.isfile(p):
+            from fastapi.responses import FileResponse as _bFR
+            return _bFR(p, media_type="text/html")
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse("/ui/book")
+
+    @app.get("/how-we-work", include_in_schema=False)
+    async def how_we_work_page_top():
+        import os as _hwos
+        p = _hwos.path.join("/opt/Murphy-System", "how_we_work.html")
+        if _hwos.path.isfile(p):
+            from fastapi.responses import FileResponse as _hwFR
+            return _hwFR(p, media_type="text/html")
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse("/ui/how-we-work")
+
     @app.get("/ui/{page_name:path}")
     async def serve_ui_page(page_name: str, request: Request):
         """PATCH-132a: Serve Murphy UI pages from project root HTML files."""
