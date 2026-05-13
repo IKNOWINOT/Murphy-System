@@ -1223,6 +1223,7 @@ async def _startup():
         except Exception as _rs_exc:
             log.warning("SEC-STARTUP-001: Readiness scanner error (non-blocking): %s", _rs_exc)
 
+    _load_prod_accounts_from_db()  # PATCH-275: rehydrate users from DB
     _seed_automations()
     _automation_store.extend(_DEMO_AUTOMATIONS)
     _seed_campaigns()
@@ -4267,6 +4268,62 @@ def _seed_prod_team_accounts() -> None:
         log.info("Seeded %d team account(s)", seeded)
 
 
+def _load_prod_accounts_from_db() -> None:
+    """
+    PATCH-275: Rehydrate _prod_user_store and _prod_email_to_account from
+    the persistent auth DB on startup. Prevents memory-wipe on restart.
+    """
+    try:
+        from src.runtime.auth import load_all_accounts as _auth_load_all
+        accounts = _auth_load_all()
+        loaded = 0
+        for acct in accounts:
+            aid = acct["account_id"]
+            em  = acct["email"]
+            if aid not in _prod_user_store:
+                _prod_user_store[aid] = acct
+                _prod_email_to_account[em] = aid
+                loaded += 1
+        if loaded:
+            log.info("PATCH-275: Loaded %d accounts from persistent auth DB into _prod_user_store", loaded)
+    except Exception as _load_exc:
+        log.warning("PATCH-275: Could not load accounts from DB: %s", _load_exc)
+
+
+def _persist_prod_account(account_id: str) -> None:
+    """
+    PATCH-275: Save a _prod_user_store entry to the persistent auth DB.
+    Call this immediately after writing to _prod_user_store.
+    """
+    try:
+        acct = _prod_user_store.get(account_id)
+        if not acct:
+            return
+        from src.runtime.auth import _db as _auth_db
+        conn = _auth_db()
+        conn.execute(
+            "INSERT OR REPLACE INTO accounts "
+            "(id, email, password_hash, token, tier, role, full_name, company, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                account_id,
+                acct.get("email", ""),
+                acct.get("password_hash", ""),
+                acct.get("token", ""),
+                acct.get("tier", "free"),
+                acct.get("role", "user"),
+                acct.get("full_name", ""),
+                acct.get("company", ""),
+                acct.get("created_at", 0),
+            ),
+        )
+        conn.commit()
+        conn.close()
+    except Exception as _pe:
+        log.warning("PATCH-275: Could not persist account %s: %s", account_id, _pe)
+
+
+
 if _PROD_TEAM_EMAILS_RAW and _PROD_TEAM_PASSWORD:
     _seed_prod_team_accounts()
 elif _PROD_TEAM_EMAILS_RAW and not _PROD_TEAM_PASSWORD:
@@ -4370,6 +4427,7 @@ async def api_auth_signup(request: Request):
         "created_at": _now_iso(),
     }
     _prod_email_to_account[email] = account_id
+    _persist_prod_account(account_id)  # PATCH-275: write to disk
 
     session_token = _prod_create_session(account_id)
     resp = JSONResponse(
