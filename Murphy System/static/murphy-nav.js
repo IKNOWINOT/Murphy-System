@@ -35,8 +35,7 @@
   for (var ni = 0; ni < NO_NAV_PATHS.length; ni++) {
     if (currentPath === NO_NAV_PATHS[ni] || currentPath === NO_NAV_PATHS[ni] + '/') return;
   }
-  // Also skip if no session token — not logged in
-  if (!localStorage.getItem('murphy_session_token')) return;
+  // Session check handled by profile fetch below (supports cookie + token)
 
   // ── Department Nav Structure ──────────────────────────────────────────────
   var NAV = [
@@ -398,19 +397,20 @@
     }
   }
 
-  // ── Load user + inject ────────────────────────────────────────────────────
+  // ── Load user + inject — supports localStorage token OR browser session cookie ──
   var token = localStorage.getItem('murphy_session_token');
-  if (!token) return; // not logged in — no nav
-
   fetch('/api/account/profile', {
-    headers: { 'Authorization': 'Bearer ' + token }
+    credentials: 'include',
+    headers: token ? {'Authorization': 'Bearer ' + token} : {}
   })
-  .then(function(r) { return r.ok ? r.json() : null; })
+  .then(function(r) {
+    if (r.status === 401 || r.status === 403) return null; // not authed — no nav
+    return r.ok ? r.json() : {};
+  })
   .then(function(data) {
+    if (data === null) return;
     inject(data || {});
   })
-  .catch(function() {
-    inject({});
-  });
+  .catch(function() { inject({}); });
 
 })();
