@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Murphy System — Live Business Flow Demo</title>
+<link rel="stylesheet" href="/static/murphy-design-system.css">
+<style>
+/* PATCH-176 mobile */
+@media(max-width:768px){body{overflow-y:auto!important;}aside,.sidebar{display:none!important;}main,.main-area{width:100%!important;padding:14px!important;}}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #0a0a0a; color: #e0e0e0; font-family: 'Courier New', monospace; min-height: 100vh; }
+
+/* TOPBAR */
+.demo-topbar {
+  background: #0f0f0f; border-bottom: 1px solid #1a2a1a;
+  padding: 0 2rem; height: 54px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+.demo-brand { display: flex; align-items: center; gap: .6rem; color: #00D4AA; font-weight: 700; font-size: 1rem; text-decoration: none; }
+.demo-title { color: #aaa; font-size: .85rem; }
+.live-badge { background: #003300; border: 1px solid #00ff41; color: #00ff41; padding: .2rem .7rem; border-radius: 20px; font-size: .75rem; letter-spacing: .05em; }
+
+/* MAIN LAYOUT */
+.demo-body { display: grid; grid-template-columns: 280px 1fr 320px; gap: 0; height: calc(100vh - 54px); }
+
+/* LEFT — STAGE PIPELINE */
+.stage-panel {
+  background: #0d0d0d; border-right: 1px solid #1a1a1a;
+  overflow-y: auto; padding: 1.25rem 0;
+}
+.stage-panel h3 { color: #555; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; padding: 0 1.25rem .75rem; }
+
+.stage-item {
+  padding: .85rem 1.25rem; cursor: pointer; border-left: 3px solid transparent;
+  transition: all .2s; position: relative;
+}
+.stage-item:hover { background: #131313; }
+.stage-item.active { background: #0d1f0d; border-left-color: #00ff41; }
+.stage-item.done { border-left-color: #00D4AA; opacity: .8; }
+.stage-item.pending { opacity: .4; }
+
+.stage-num { font-size: .7rem; color: #555; margin-bottom: .25rem; }
+.stage-name { font-size: .9rem; font-weight: 600; color: #e0e0e0; }
+.stage-owner { font-size: .75rem; color: #00D4AA; margin-top: .2rem; }
+.stage-status { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); font-size: 1.1rem; }
+
+.stage-connector {
+  width: 2px; height: 20px; background: #1a2a1a;
+  margin: 0 auto 0 1.7rem;
+}
+
+/* CENTER — FLOW VIEWER */
+.flow-panel { overflow-y: auto; padding: 1.5rem 2rem; background: #0a0a0a; }
+
+.flow-header { margin-bottom: 2rem; }
+.flow-header h2 { font-size: 1.4rem; font-weight: 700; color: #f0f0f0; }
+.flow-header p { color: #888; font-size: .9rem; margin-top: .4rem; }
+
+/* REQUEST CARD */
+.request-card {
+  background: #0f1a0f; border: 1px solid #1a3a1a; border-radius: 8px;
+  padding: 1.5rem; margin-bottom: 1.5rem;
+}
+.request-card h4 { color: #00ff41; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .75rem; }
+.field-row { display: flex; gap: 1rem; margin-bottom: .5rem; flex-wrap: wrap; }
+.field { flex: 1; min-width: 120px; }
+.field label { display: block; font-size: .7rem; color: #666; margin-bottom: .3rem; text-transform: uppercase; letter-spacing: .05em; }
+.field input, .field select, .field textarea {
+  width: 100%; background: #0a0a0a; border: 1px solid #2a2a2a; color: #e0e0e0;
+  padding: .5rem .75rem; border-radius: 4px; font-family: inherit; font-size: .85rem;
+}
+.field input:focus, .field select:focus { outline: none; border-color: #00D4AA; }
+
+/* STAGE CONTENT */
+.stage-content { display: none; }
+.stage-content.active { display: block; }
+
+.artifact-box {
+  background: #0d0d0d; border: 1px solid #1e2e1e; border-radius: 8px;
+  padding: 1.25rem; margin-bottom: 1rem;
+}
+.artifact-box h4 { color: #00D4AA; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .75rem; display: flex; align-items: center; gap: .5rem; }
+.artifact-box pre { background: #070707; border: 1px solid #1a1a1a; border-radius: 4px; padding: 1rem; font-size: .78rem; color: #aaffaa; overflow-x: auto; white-space: pre-wrap; line-height: 1.6; }
+
+.hitl-box {
+  background: #1a0d00; border: 1px solid #3a2000; border-radius: 8px;
+  padding: 1.25rem; margin-bottom: 1rem;
+}
+.hitl-box h4 { color: #f97316; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .75rem; }
+.hitl-actions { display: flex; gap: .75rem; margin-top: 1rem; }
+.btn-approve { background: #003300; border: 1px solid #00ff41; color: #00ff41; padding: .5rem 1.25rem; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: .85rem; transition: all .2s; }
+.btn-approve:hover { background: #00ff41; color: #000; }
+.btn-reject { background: #1a0000; border: 1px solid #ff4444; color: #ff4444; padding: .5rem 1.25rem; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: .85rem; }
+.btn-reject:hover { background: #440000; }
+.btn-edit { background: #0a0a1a; border: 1px solid #6366f1; color: #6366f1; padding: .5rem 1.25rem; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: .85rem; }
+
+.person-tag {
+  display: inline-flex; align-items: center; gap: .4rem;
+  background: #0d1f2d; border: 1px solid #1a3a4a; border-radius: 20px;
+  padding: .3rem .9rem; font-size: .78rem; color: #7dd3fc;
+  margin-bottom: .75rem;
+}
+
+.flow-btn {
+  background: #003300; border: 1px solid #00ff41; color: #00ff41;
+  padding: .65rem 1.75rem; border-radius: 4px; cursor: pointer;
+  font-family: inherit; font-size: .9rem; transition: all .2s; margin-right: .5rem;
+}
+.flow-btn:hover { background: #00ff41; color: #000; }
+.flow-btn.secondary { background: #0d0d1a; border-color: #6366f1; color: #6366f1; }
+.flow-btn.secondary:hover { background: #6366f1; color: #fff; }
+
+.progress-bar { background: #1a1a1a; border-radius: 4px; height: 6px; margin: 1rem 0; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #00D4AA, #00ff41); border-radius: 4px; transition: width .5s ease; }
+
+.status-line { display: flex; align-items: center; gap: .5rem; padding: .4rem 0; font-size: .82rem; color: #888; border-bottom: 1px solid #0f0f0f; }
+.status-line .dot { width: 6px; height: 6px; border-radius: 50%; background: #00ff41; flex-shrink: 0; }
+.status-line.warn .dot { background: #f97316; }
+.status-line.done .dot { background: #00D4AA; }
+
+/* RIGHT — ACTIVITY FEED */
+.activity-panel {
+  background: #0d0d0d; border-left: 1px solid #1a1a1a;
+  overflow-y: auto; padding: 1.25rem;
+}
+.activity-panel h3 { color: #555; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 1rem; }
+
+.activity-item {
+  padding: .75rem 0; border-bottom: 1px solid #111;
+  font-size: .78rem; line-height: 1.5;
+}
+.activity-item .act-time { color: #444; font-size: .7rem; margin-bottom: .2rem; }
+.activity-item .act-agent { color: #00D4AA; font-weight: 600; }
+.activity-item .act-msg { color: #aaa; }
+.activity-item .act-stage { 
+  display: inline-block; background: #0d1a0d; border: 1px solid #1a3a1a; 
+  color: #00ff41; font-size: .65rem; padding: .1rem .5rem; border-radius: 3px; margin-top: .3rem;
+}
+
+.crm-card {
+  background: #070707; border: 1px solid #1a2a3a; border-radius: 6px;
+  padding: 1rem; margin-top: 1rem;
+}
+.crm-card h5 { color: #7dd3fc; font-size: .78rem; margin-bottom: .5rem; }
+.crm-row { display: flex; justify-content: space-between; font-size: .75rem; padding: .25rem 0; border-bottom: 1px solid #0f0f0f; }
+.crm-row .label { color: #555; }
+.crm-row .value { color: #e0e0e0; }
+
+/* DEAL STAGE TRACKER */
+.deal-pipeline { display: flex; gap: 0; margin: 1rem 0; overflow-x: auto; }
+.deal-stage-dot {
+  flex: 1; min-width: 70px; text-align: center; padding: .5rem .25rem;
+  font-size: .65rem; color: #444; position: relative;
+}
+.deal-stage-dot::after {
+  content: ''; position: absolute; top: 12px; left: 60%; width: 80%; height: 2px; background: #1a1a1a;
+}
+.deal-stage-dot:last-child::after { display: none; }
+.deal-stage-dot .dot2 { width: 20px; height: 20px; border-radius: 50%; background: #1a1a1a; border: 2px solid #2a2a2a; margin: 0 auto .3rem; }
+.deal-stage-dot.done .dot2 { background: #00D4AA; border-color: #00D4AA; }
+.deal-stage-dot.active .dot2 { background: #00ff41; border-color: #00ff41; box-shadow: 0 0 8px #00ff41; }
+.deal-stage-dot.done, .deal-stage-dot.active { color: #aaa; }
+
+/* TYPING ANIMATION */
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+.cursor { animation: blink 1s infinite; color: #00ff41; }
+
+/* NOTIFICATIONS */
+.notify-bar {
+  position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 1000;
+  display: flex; flex-direction: column; gap: .5rem; max-width: 320px;
+}
+.notify-item {
+  background: #0d1f0d; border: 1px solid #1a3a1a; border-radius: 6px;
+  padding: .75rem 1rem; font-size: .8rem; color: #e0e0e0;
+  animation: slideIn .3s ease; box-shadow: 0 4px 20px rgba(0,0,0,.5);
+}
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.notify-item .n-agent { color: #00ff41; font-weight: 600; }
+.notify-item .n-stage { color: #00D4AA; }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="demo-topbar">
+  <a href="/" class="demo-brand">
+    <svg width="22" height="22" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="none" stroke="#00D4AA" stroke-width="2"/><path d="M8 22L12 10l4 8 4-8 4 12" stroke="#00ff41" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+    Murphy System
+  </a>
+  <span class="demo-title">End-to-End Business Flow Demo</span>
+  <span class="live-badge">● LIVE DEMO</span>
+</header>
+
+<div class="demo-body">
+
+  <!-- LEFT: STAGE PIPELINE -->
+  <div class="stage-panel">
+    <h3>Workflow Stages</h3>
+
+    <div class="stage-item active" onclick="goStage(0)" id="s0">
+      <div class="stage-num">STAGE 01</div>
+      <div class="stage-name">Inbound Request</div>
+      <div class="stage-owner">👤 Prospect</div>
+      <span class="stage-status" id="ss0">⏳</span>
+    </div>
+    <div class="stage-connector"></div>
+
+    <div class="stage-item pending" onclick="goStage(1)" id="s1">
+      <div class="stage-num">STAGE 02</div>
+      <div class="stage-name">Lead Qualification</div>
+      <div class="stage-owner">🤖 Murphy AI</div>
+      <span class="stage-status" id="ss1">⬜</span>
+    </div>
+    <div class="stage-connector"></div>
+
+    <div class="stage-item pending" onclick="goStage(2)" id="s2">
+      <div class="stage-num">STAGE 03</div>
+      <div class="stage-name">CRM Entry</div>
+      <div class="stage-owner">🤖 Murphy AI</div>
+      <span class="stage-status" id="ss2">⬜</span>
+    </div>
+    <div class="stage-connector"></div>
+
+    <div class="stage-item pending" onclick="goStage(3)" id="s3">
+      <div class="stage-num">STAGE 04</div>
+      <div class="stage-name">Sales Engagement</div>
+      <div class="stage-owner">👔 Sales Lead</div>
+      <span class="stage-status" id="ss3">⬜</span>
+    </div>
+    <div class="stage-connector"></div>
+
+    <div class="stage-item pending" onclick="goStage(4)" id="s4">
+      <div class="stage-num">STAGE 05</div>
+      <div class="stage-name">Proposal → HITL</div>
+      <div class="stage-owner">✅ Founder Review</div>
+      <span class="stage-status" id="ss4">⬜</span>
+    </div>
+    <div class="stage-connector"></div>
+
+    <div class="stage-item pending" onclick="goStage(5)" id="s5">
+      <div class="stage-num">STAGE 06</div>
+      <div class="stage-name">Production Planning</div>
+      <div class="stage-owner">📋 Project Manager</div>
+      <span class="stage-status" id="ss5">⬜</span>
+    </div>
+    <div class="stage-connector"></div>
+
+    <div class="stage-item pending" onclick="goStage(6)" id="s6">
+      <div class="stage-num">STAGE 07</div>
+      <div class="stage-name">Build &amp; Execute</div>
+      <div class="stage-owner">🔧 Field Team</div>
+      <span class="stage-status" id="ss6">⬜</span>
+    </div>
+    <div class="stage-connector"></div>
+
+    <div class="stage-item pending" onclick="goStage(7)" id="s7">
+      <div class="stage-num">STAGE 08</div>
+      <div class="stage-name">Delivery HITL</div>
+      <div class="stage-owner">✅ Founder Review</div>
+      <span class="stage-status" id="ss7">⬜</span>
+    </div>
+    <div class="stage-connector"></div>
+
+    <div class="stage-item pending" onclick="goStage(8)" id="s8">
+      <div class="stage-num">STAGE 09</div>
+      <div class="stage-name">Invoice &amp; Close</div>
+      <div class="stage-owner">💰 Finance / Owner</div>
+      <span class="stage-status" id="ss8">⬜</span>
+    </div>
+  </div>
+
+  <!-- CENTER: FLOW CONTENT -->
+  <div class="flow-panel">
+
+    <!-- STAGE 0: INBOUND REQUEST -->
+    <div class="stage-content active" id="sc0">
+      <div class="flow-header">
+        <h2>📥 Inbound Request</h2>
+        <p>A prospect fills out your booking form or calls in. Murphy captures and structures the intake.</p>
+      </div>
+      <div class="person-tag">👤 Prospect — Pacific Northwest MEP Contractor</div>
+
+      <div class="request-card">
+        <h4>🗂 Intake Form — /book</h4>
+        <div class="field-row">
+          <div class="field">
+            <label>Company</label>
+            <input type="text" id="f-company" value="Summit Mechanical LLC" />
+          </div>
+          <div class="field">
+            <label>Contact</label>
+            <input type="text" id="f-contact" value="Dave Rieger, PM" />
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Industry</label>
+            <select id="f-industry">
+              <option value="mep">MEP Contractor</option>
+              <option value="civil">Civil Engineering</option>
+              <option value="gc">General Contractor</option>
+              <option value="freight">Freight Broker</option>
+              <option value="msp">MSP / IT Services</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Employees</label>
+            <select id="f-employees">
+              <option value="25">25 employees</option>
+              <option value="50">50 employees</option>
+              <option value="100">100 employees</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Annual Revenue</label>
+            <select id="f-revenue">
+              <option value="5M">$5M – $10M</option>
+              <option value="10M">$10M – $25M</option>
+              <option value="25M">$25M – $50M</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Pain Point</label>
+            <textarea id="f-pain" rows="2" style="resize:vertical;">RFIs and submittals take 2 hrs/day per PM. Invoices often 60+ days late. Change orders getting lost.</textarea>
+          </div>
+        </div>
+      </div>
+
+      <button class="flow-btn" onclick="runStage(0)">▶ Submit Request → Murphy Qualifies</button>
+      <button class="flow-btn secondary" onclick="loadDemo()">🔄 Load Demo Data</button>
+    </div>
+
+    <!-- STAGE 1: LEAD QUALIFICATION -->
+    <div class="stage-content" id="sc1">
+      <div class="flow-header">
+        <h2>🔍 Lead Qualification</h2>
+        <p>Murphy scores the lead, calculates estimated ROI, and decides if it meets the APC threshold.</p>
+      </div>
+      <div class="person-tag">🤖 Murphy AI — APC Prospector Agent</div>
+
+      <div class="artifact-box">
+        <h4>📊 Lead Score Analysis</h4>
+        <pre id="lead-score">Running qualification engine...</pre>
+      </div>
+
+      <div class="artifact-box">
+        <h4>💰 ROI Pre-Calculation</h4>
+        <pre id="roi-calc">Calculating savings potential...</pre>
+      </div>
+
+      <div class="progress-bar"><div class="progress-fill" id="qual-progress" style="width:0%"></div></div>
+      <div id="qual-log"></div>
+      <br/>
+      <button class="flow-btn" onclick="runStage(1)">▶ Qualify → Enter CRM</button>
+    </div>
+
+    <!-- STAGE 2: CRM -->
+    <div class="stage-content" id="sc2">
+      <div class="flow-header">
+        <h2>📇 CRM Entry</h2>
+        <p>Murphy creates the deal record, assigns priority tier, and starts the cadence schedule.</p>
+      </div>
+      <div class="person-tag">🤖 Murphy AI — CRM Agent</div>
+
+      <div class="artifact-box">
+        <h4>👤 Contact Record Created</h4>
+        <pre id="crm-contact">Creating contact record...</pre>
+      </div>
+
+      <div class="artifact-box">
+        <h4>💼 Deal Record</h4>
+        <pre id="crm-deal">Creating deal record...</pre>
+      </div>
+
+      <div style="margin-top:1rem;">
+        <div style="font-size:.8rem;color:#555;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.08em;">Deal Pipeline Position</div>
+        <div class="deal-pipeline">
+          <div class="deal-stage-dot done" id="dp0"><div class="dot2"></div>Lead</div>
+          <div class="deal-stage-dot active" id="dp1"><div class="dot2"></div>Qualified</div>
+          <div class="deal-stage-dot" id="dp2"><div class="dot2"></div>Proposal</div>
+          <div class="deal-stage-dot" id="dp3"><div class="dot2"></div>Negotiation</div>
+          <div class="deal-stage-dot" id="dp4"><div class="dot2"></div>Contract</div>
+          <div class="deal-stage-dot" id="dp5"><div class="dot2"></div>Active</div>
+          <div class="deal-stage-dot" id="dp6"><div class="dot2"></div>Closed</div>
+        </div>
+      </div>
+      <br/>
+      <button class="flow-btn" onclick="runStage(2)">▶ CRM Set → Engage Sales</button>
+    </div>
+
+    <!-- STAGE 3: SALES -->
+    <div class="stage-content" id="sc3">
+      <div class="flow-header">
+        <h2>📞 Sales Engagement</h2>
+        <p>Murphy generates the outreach script. Your sales lead (or Murphy autonomously) makes contact.</p>
+      </div>
+      <div class="person-tag">👔 Sales Lead — Corey Post (or Murphy autonomous outreach)</div>
+
+      <div class="artifact-box">
+        <h4>📞 Call Script Generated</h4>
+        <pre id="call-script">Generating call script...</pre>
+      </div>
+
+      <div class="artifact-box">
+        <h4>📧 Follow-Up Email</h4>
+        <pre id="sales-email">Generating follow-up email...</pre>
+      </div>
+      <br/>
+      <button class="flow-btn" onclick="runStage(3)">▶ Engaged → Build Proposal</button>
+    </div>
+
+    <!-- STAGE 4: PROPOSAL + HITL -->
+    <div class="stage-content" id="sc4">
+      <div class="flow-header">
+        <h2>📄 Proposal + HITL Approval</h2>
+        <p>Murphy generates the full 4-stage performance proposal. Founder reviews before sending.</p>
+      </div>
+      <div class="person-tag">✅ HITL Gate — Corey Post (Founder)</div>
+
+      <div class="artifact-box">
+        <h4>📄 Performance Contract Proposal</h4>
+        <pre id="proposal-text">Generating proposal...</pre>
+      </div>
+
+      <div class="hitl-box" id="hitl-proposal">
+        <h4>🔐 HITL Gate — Proposal Approval Required</h4>
+        <p style="font-size:.82rem;color:#aaa;margin-bottom:.5rem;">Murphy has generated this proposal and queued it for your review. It will NOT be sent until you approve.</p>
+        <div id="hitl-checks" style="margin:.75rem 0;font-size:.8rem;"></div>
+        <div class="hitl-actions">
+          <button class="btn-approve" onclick="approveProposal()">✅ Approve &amp; Send</button>
+          <button class="btn-edit" onclick="editProposal()">✏️ Edit First</button>
+          <button class="btn-reject" onclick="rejectProposal()">❌ Reject</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAGE 5: PRODUCTION PLANNING -->
+    <div class="stage-content" id="sc5">
+      <div class="flow-header">
+        <h2>📋 Production Planning</h2>
+        <p>Contract signed. Murphy generates the project plan, assigns milestones, and creates the schedule.</p>
+      </div>
+      <div class="person-tag">📋 Project Manager — Assigned via Murphy</div>
+
+      <div class="artifact-box">
+        <h4>📅 Project Milestones</h4>
+        <pre id="proj-plan">Building project plan...</pre>
+      </div>
+
+      <div class="artifact-box">
+        <h4>👥 Team Assignment</h4>
+        <pre id="team-assign">Assigning team...</pre>
+      </div>
+      <br/>
+      <button class="flow-btn" onclick="runStage(5)">▶ Planned → Start Build</button>
+    </div>
+
+    <!-- STAGE 6: BUILD -->
+    <div class="stage-content" id="sc6">
+      <div class="flow-header">
+        <h2>🔧 Build &amp; Execute</h2>
+        <p>Field team executes. Murphy tracks progress, logs field reports, flags blockers in real time.</p>
+      </div>
+      <div class="person-tag">🔧 Field Team — Site Supervisors, Foremen</div>
+
+      <div class="artifact-box">
+        <h4>📊 Execution Tracker</h4>
+        <pre id="exec-tracker">Loading execution status...</pre>
+      </div>
+
+      <div class="artifact-box">
+        <h4>⚠️ Murphy Blocker Detection</h4>
+        <pre id="blockers">Scanning for blockers...</pre>
+      </div>
+      <br/>
+      <button class="flow-btn" onclick="runStage(6)">▶ Build Complete → Delivery Review</button>
+    </div>
+
+    <!-- STAGE 7: DELIVERY HITL -->
+    <div class="stage-content" id="sc7">
+      <div class="flow-header">
+        <h2>✅ Delivery HITL</h2>
+        <p>Murphy generates the delivery report and closeout docs. Founder signs off before client handoff.</p>
+      </div>
+      <div class="person-tag">✅ HITL Gate — Corey Post (Founder)</div>
+
+      <div class="artifact-box">
+        <h4>📋 Delivery Report</h4>
+        <pre id="delivery-report">Generating delivery report...</pre>
+      </div>
+
+      <div class="hitl-box" id="hitl-delivery">
+        <h4>🔐 HITL Gate — Delivery Approval Required</h4>
+        <p style="font-size:.82rem;color:#aaa;margin-bottom:.5rem;">Murphy has compiled the closeout package. Review before releasing to client.</p>
+        <div class="hitl-actions">
+          <button class="btn-approve" onclick="approveDelivery()">✅ Approve Delivery</button>
+          <button class="btn-edit" onclick="editDelivery()">✏️ Edit Report</button>
+          <button class="btn-reject" onclick="rejectDelivery()">❌ Hold for Rework</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAGE 8: INVOICE -->
+    <div class="stage-content" id="sc8">
+      <div class="flow-header">
+        <h2>💰 Invoice &amp; Close</h2>
+        <p>Murphy generates the invoice, calculates the savings split, and archives the project.</p>
+      </div>
+      <div class="person-tag">💰 Finance — Corey Post / Owner</div>
+
+      <div class="artifact-box">
+        <h4>🧾 Performance Invoice</h4>
+        <pre id="invoice-content">Generating invoice...</pre>
+      </div>
+
+      <div class="artifact-box">
+        <h4>📈 Project ROI Summary</h4>
+        <pre id="roi-summary">Calculating final ROI...</pre>
+      </div>
+
+      <div style="margin-top:1.5rem;padding:1.5rem;background:#002200;border:1px solid #00ff41;border-radius:8px;text-align:center;">
+        <div style="font-size:.8rem;color:#00D4AA;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.5rem;">Project Complete</div>
+        <div style="font-size:2rem;font-weight:700;color:#00ff41;" id="final-savings">—</div>
+        <div style="font-size:.85rem;color:#aaa;margin-top:.25rem;">Total Savings Delivered · Murphy earns 40%</div>
+        <button class="flow-btn" style="margin-top:1rem;" onclick="startNewFlow()">▶ Start New Request</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: ACTIVITY FEED -->
+  <div class="activity-panel">
+    <h3>Live Activity Feed</h3>
+    <div id="activity-feed">
+      <div class="activity-item">
+        <div class="act-time">Now</div>
+        <div><span class="act-agent">Murphy</span> <span class="act-msg">is ready. Fill out the intake form and click Submit to begin.</span></div>
+        <div><span class="act-stage">STAGE 01 · Inbound</span></div>
+      </div>
+    </div>
+
+    <div class="crm-card" id="crm-sidebar" style="display:none;">
+      <h5>📇 Active Deal</h5>
+      <div class="crm-row"><span class="label">Company</span><span class="value" id="crm-co">—</span></div>
+      <div class="crm-row"><span class="label">Contact</span><span class="value" id="crm-cn">—</span></div>
+      <div class="crm-row"><span class="label">Stage</span><span class="value" id="crm-st">—</span></div>
+      <div class="crm-row"><span class="label">Est. Value</span><span class="value" id="crm-val">—</span></div>
+      <div class="crm-row"><span class="label">Priority</span><span class="value" id="crm-pri">—</span></div>
+      <div class="crm-row"><span class="label">Next Action</span><span class="value" id="crm-next">—</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- NOTIFICATIONS -->
+<div class="notify-bar" id="notify-bar"></div>
+
+<script>
+let currentStage = 0;
+let dealData = {};
+
+// --- STAGE NAV ---
+function goStage(n) {
+  document.querySelectorAll('.stage-content').forEach((el,i) => {
+    el.classList.toggle('active', i === n);
+  });
+  document.querySelectorAll('.stage-item').forEach((el,i) => {
+    el.classList.remove('active');
+    if (i === n) el.classList.add('active');
+  });
+  currentStage = n;
+}
+
+function markStageDone(n) {
+  const el = document.getElementById('s' + n);
+  el.classList.remove('active', 'pending');
+  el.classList.add('done');
+  document.getElementById('ss' + n).textContent = '✅';
+}
+
+function markStageActive(n) {
+  const el = document.getElementById('s' + n);
+  el.classList.remove('pending', 'done');
+  el.classList.add('active');
+  document.getElementById('ss' + n).textContent = '⏳';
+}
+
+// --- NOTIFY ---
+function notify(agent, msg, stage) {
+  const bar = document.getElementById('notify-bar');
+  const item = document.createElement('div');
+  item.className = 'notify-item';
+  item.innerHTML = `<span class="n-agent">${agent}</span> → <span class="n-stage">${stage}</span><br><span style="color:#aaa;font-size:.75rem;">${msg}</span>`;
+  bar.appendChild(item);
+  setTimeout(() => item.remove(), 5000);
+}
+
+// --- ACTIVITY FEED ---
+function addActivity(agent, msg, stage) {
+  const feed = document.getElementById('activity-feed');
+  const now = new Date().toLocaleTimeString();
+  const item = document.createElement('div');
+  item.className = 'activity-item';
+  item.innerHTML = `
+    <div class="act-time">${now}</div>
+    <div><span class="act-agent">${agent}</span> <span class="act-msg">${msg}</span></div>
+    <div><span class="act-stage">${stage}</span></div>
+  `;
+  feed.insertBefore(item, feed.firstChild);
+}
+
+// --- LOAD DEMO DATA ---
+function loadDemo() {
+  document.getElementById('f-company').value = 'Pacific Ridge MEP';
+  document.getElementById('f-contact').value = 'Sarah Holt, Principal PM';
+  document.getElementById('f-industry').value = 'mep';
+  document.getElementById('f-revenue').value = '10M';
+  document.getElementById('f-pain').value = 'RFI cycle takes 3 days. Submittals sit in email. Change orders tracked in Excel. 2 PMs spending 40% of time on admin.';
+}
+
+// --- STAGE RUNNERS ---
+function runStage(n) {
+  const company = document.getElementById('f-company').value || 'Summit Mechanical LLC';
+  const contact = document.getElementById('f-contact').value || 'Dave Rieger, PM';
+  const industry = document.getElementById('f-industry').value || 'mep';
+  const employees = document.getElementById('f-employees').value || '25';
+  const revenue = document.getElementById('f-revenue').value || '5M';
+  const pain = document.getElementById('f-pain').value || 'Admin overhead is high.';
+
+  dealData = { company, contact, industry, employees, revenue, pain };
+
+  markStageDone(n);
+  markStageActive(n + 1);
+  goStage(n + 1);
+
+  if (n === 0) runQualification(dealData);
+  if (n === 1) runCRM(dealData);
+  if (n === 2) runSales(dealData);
+  if (n === 3) runProposal(dealData);
+  if (n === 5) runProduction(dealData);
+  if (n === 6) runBuild(dealData);
+}
+
+// --- STAGE 1: QUALIFICATION ---
+function runQualification(d) {
+  addActivity('Murphy', 'Running lead qualification engine...', 'STAGE 02 · Lead Qual');
+  notify('Murphy AI', 'Qualifying: ' + d.company, 'Lead Qualification');
+
+  const annualSavings = d.revenue === '25M' ? 2300000 : d.revenue === '10M' ? 1400000 : 820000;
+  const monthly = Math.round(annualSavings * 0.4 / 12);
+  const score = d.revenue === '5M' ? 78 : d.revenue === '10M' ? 91 : 96;
+  const tier = score >= 90 ? 'P1 — High Priority' : score >= 75 ? 'P2 — Standard' : 'P3 — Watch';
+
+  dealData.annualSavings = annualSavings;
+  dealData.monthly = monthly;
+  dealData.score = score;
+  dealData.tier = tier;
+
+  const pbar = document.getElementById('qual-progress');
+  const log = document.getElementById('qual-log');
+  let steps = [
+    [15, 'Checking company size: ' + d.employees + ' employees ✓'],
+    [30, 'Revenue band: ' + d.revenue + '/yr — meets $5M threshold ✓'],
+    [50, 'Industry: ' + d.industry.toUpperCase() + ' — high-margin category ✓'],
+    [65, 'Pain points mapped to recoverable cost categories ✓'],
+    [80, 'DNC check: clear ✓'],
+    [95, 'APC threshold met — qualifying for pipeline ✓'],
+    [100, 'Lead qualified. Score: ' + score + '/100']
+  ];
+
+  let i = 0;
+  const tick = setInterval(() => {
+    if (i >= steps.length) { clearInterval(tick); return; }
+    pbar.style.width = steps[i][0] + '%';
+    const line = document.createElement('div');
+    line.className = 'status-line done';
+    line.innerHTML = `<span class="dot"></span>${steps[i][1]}`;
+    log.appendChild(line);
+    i++;
+  }, 400);
+
+  document.getElementById('lead-score').textContent =
+`LEAD QUALIFICATION REPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Company:       ${d.company}
+Contact:       ${d.contact}
+Industry:      ${d.industry.toUpperCase()}
+Employees:     ${d.employees}
+Revenue Band:  ${d.revenue}/yr
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+APC Score:     ${score}/100
+Priority Tier: ${tier}
+DNC Status:    CLEAR
+Contactable:   YES (email + phone)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DECISION: ✅ QUALIFIED — Entering CRM`;
+
+  document.getElementById('roi-calc').textContent =
+`ROI PRE-CALCULATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Estimated Annual Savings:   $${annualSavings.toLocaleString()}
+Murphy Performance Fee:     $${Math.round(annualSavings*0.4).toLocaleString()}/yr
+  (40% of savings)          $${monthly.toLocaleString()}/mo
+Client Keeps:               $${Math.round(annualSavings*0.6).toLocaleString()}/yr
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+T&M Setup Est.:             $12,000–$18,000
+Payback Period:             < 90 days
+Contract Duration:          24 months
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ROI Multiple for Client:    ${(0.6).toFixed(1)}x net savings
+APC Threshold Met:          ✅ YES`;
+
+  addActivity('Murphy', 'Qualified lead. Score: ' + score + '/100. Tier: ' + tier, 'STAGE 02 · Complete');
+  document.getElementById('crm-sidebar').style.display = 'block';
+  document.getElementById('crm-co').textContent = d.company;
+  document.getElementById('crm-cn').textContent = d.contact;
+  document.getElementById('crm-st').textContent = 'Qualified';
+  document.getElementById('crm-val').textContent = '$' + annualSavings.toLocaleString() + '/yr';
+  document.getElementById('crm-pri').textContent = tier;
+  document.getElementById('crm-next').textContent = 'CRM Entry';
+}
+
+// --- STAGE 2: CRM ---
+function runCRM(d) {
+  addActivity('Murphy', 'Creating CRM records for ' + d.company, 'STAGE 03 · CRM');
+  notify('Murphy AI', 'CRM entry created: ' + d.company, 'CRM');
+
+  document.getElementById('crm-contact').textContent =
+`CONTACT RECORD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+id:            CONT-${Date.now().toString().slice(-6)}
+name:          ${d.contact}
+company:       ${d.company}
+role:          Principal PM / Decision Maker
+industry:      ${d.industry.toUpperCase()}
+source:        Inbound booking form
+email:         [extracted from form]
+phone:         [to be verified]
+created_at:    ${new Date().toISOString()}
+contactable:   true
+dncStatus:     CLEAR`;
+
+  document.getElementById('crm-deal').textContent =
+`DEAL RECORD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+id:            DEAL-${Date.now().toString().slice(-6)}
+company:       ${d.company}
+stage:         qualified
+priority:      ${d.tier}
+annual_value:  $${d.annualSavings.toLocaleString()}
+monthly_fee:   $${d.monthly.toLocaleString()}
+apc_score:     ${d.score}/100
+pain_points:   ${d.pain.slice(0,80)}...
+created_by:    murphy-ai
+next_action:   Sales outreach within 24h
+cadence_day:   0 (starting)
+status:        ACTIVE`;
+
+  document.getElementById('crm-st').textContent = 'Qualified → Sales';
+  document.getElementById('crm-next').textContent = 'Sales Outreach';
+  document.getElementById('dp2').classList.add('active');
+
+  ['dp0','dp1'].forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.remove('active'); el.classList.add('done');
+  });
+  document.getElementById('dp2').classList.add('active');
+}
+
+// --- STAGE 3: SALES ---
+function runSales(d) {
+  addActivity('Murphy', 'Generating call script for ' + d.company, 'STAGE 04 · Sales');
+  notify('Sales Agent', 'Call script ready — ' + d.company, 'Sales');
+
+  document.getElementById('call-script').textContent =
+`OUTBOUND CALL SCRIPT — ${d.company}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OPENER (Reception/Gatekeeper):
+"Hi, this is Corey from Murphy Systems. I'm hoping 
+to reach ${d.contact.split(',')[0]}. We specialize in operational 
+efficiency for ${d.industry.toUpperCase()} firms — I wanted to 
+share some ideas specific to your operation."
+
+DECISION MAKER PITCH (30 seconds):
+"${d.contact.split(',')[0]}, we've helped ${d.industry.toUpperCase()} contractors 
+recover $${d.annualSavings.toLocaleString()} annually just by automating 
+RFI cycles, submittal tracking, and invoice 
+processing. We work on a performance basis — 
+we only earn if you save. Would a 20-minute 
+operations audit make sense this week?"
+
+TOP OBJECTIONS:
+1. "We already have software" → "This isn't 
+   software — it's an autonomous ops system. 
+   No training, no monthly fee, results only."
+2. "We're too busy" → "That's exactly why we 
+   exist. The audit takes 20 minutes."
+3. "Send me something" → "I will — and I'd love 
+   to confirm your email while I have you."`;
+
+  document.getElementById('sales-email').textContent =
+`FOLLOW-UP EMAIL — Day 0 Cadence
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TO:      ${d.contact} <${d.company.toLowerCase().replace(/ /g,'')}.com>
+SUBJECT: Operational savings for ${d.company} — no fee until results
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${d.contact.split(',')[0]},
+
+I work with ${d.industry.toUpperCase()} firms on one thing: recovering 
+the 40% of time your PMs spend on admin work 
+that doesn't build anything.
+
+For a firm your size (~${d.employees} people, ~${d.revenue}/yr), 
+the recoverable savings typically run 
+$${d.annualSavings.toLocaleString()}/yr — and we structure it as a 
+performance contract. You pay nothing upfront. 
+We earn 40% of what we save you.
+
+Would you have 20 minutes this week for a 
+quick operations audit call?
+
+— Corey Post, Murphy Systems
+  murphy.systems/book`;
+
+  document.getElementById('crm-st').textContent = 'Outreach Sent';
+  document.getElementById('crm-next').textContent = 'Proposal';
+  addActivity('Corey (Sales)', 'Call script + email sent to ' + d.company, 'STAGE 04 · Complete');
+}
+
+// --- STAGE 4: PROPOSAL ---
+function runProposal(d) {
+  addActivity('Murphy', 'Building performance proposal for ' + d.company, 'STAGE 05 · Proposal');
+  notify('Murphy AI', 'Proposal ready for HITL review', 'HITL Gate');
+
+  document.getElementById('proposal-text').textContent =
+`PERFORMANCE SAVINGS CONTRACT PROPOSAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Client:     ${d.company}
+Contact:    ${d.contact}
+Date:       ${new Date().toLocaleDateString()}
+Ref:        PROP-${Date.now().toString().slice(-6)}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STAGE 1 — T&M DISCOVERY ($14,400 flat)
+  • 2-day on-site operations audit
+  • Process mapping & gap analysis
+  • Full ROI model delivered
+
+STAGE 2 — 24-MONTH PERFORMANCE CONTRACT
+  • Murphy runs: RFI/submittal automation,
+    change order tracking, invoice dispatch,
+    PM scheduling, field report generation
+  • Fee: 40% of verified savings
+  • Est. annual savings: $${d.annualSavings.toLocaleString()}
+  • Est. Murphy fee: $${Math.round(d.annualSavings*0.4).toLocaleString()}/yr
+  • Client net gain: $${Math.round(d.annualSavings*0.6).toLocaleString()}/yr
+
+STAGE 3 — AI SYNERGY (+20% savings)
+  • Murphy learns your specific workflows
+  • Shadow agents trained on your team
+  • Additional 20% efficiency gain
+
+STAGE 4 — SAAS LICENSE ($499/mo after 24mo)
+  • Own your automation stack
+  • Shadow agents yours to keep
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TOTAL 24-MO VALUE TO CLIENT:  $${Math.round(d.annualSavings*0.6*2).toLocaleString()}
+PAYBACK ON T&M SETUP:         < 30 days`;
+
+  // Run HITL checks
+  const checks = [
+    ['C1', 'ROI calculation verified', true],
+    ['C2', 'Contract range appropriate for revenue band', true],
+    ['C3', 'No placeholders or missing fields', true],
+    ['C4', 'Performance fee correctly calculated (40%)', true],
+    ['C5', 'T&M setup fee within range ($10K–$20K)', true],
+    ['C6', 'Contact info verified', true],
+    ['C7', 'Industry-appropriate language used', true],
+    ['C8', 'Legal language reviewed', true],
+    ['C9', 'No spam triggers or junk tokens', true],
+    ['C10', 'Approved for send by ProposalCritic', true],
+  ];
+
+  const checksEl = document.getElementById('hitl-checks');
+  checksEl.innerHTML = checks.map(([code, label, pass]) =>
+    `<div style="display:flex;gap:.5rem;align-items:center;padding:.2rem 0;">
+      <span style="color:${pass?'#00ff41':'#ff4444'}">${pass?'✅':'❌'}</span>
+      <span style="color:#666;font-size:.75rem;">${code}</span>
+      <span style="color:#aaa;font-size:.78rem;">${label}</span>
+    </div>`
+  ).join('');
+
+  addActivity('Murphy', 'Proposal queued for HITL review. 10/10 checks passed.', 'STAGE 05 · HITL');
+  document.getElementById('crm-st').textContent = 'Proposal Pending';
+  document.getElementById('crm-next').textContent = 'HITL Approval';
+}
+
+function approveProposal() {
+  addActivity('Corey (Founder)', 'Proposal APPROVED — sending to ' + dealData.company, 'STAGE 05 · Approved');
+  notify('Founder', 'Proposal approved & sent to ' + dealData.company, 'HITL Approved');
+  document.getElementById('hitl-proposal').style.borderColor = '#00ff41';
+  document.getElementById('hitl-proposal').style.background = '#001a00';
+  document.getElementById('hitl-proposal').querySelector('h4').textContent = '✅ APPROVED — Proposal Sent';
+  markStageDone(4);
+  markStageActive(5);
+  document.getElementById('crm-st').textContent = 'Proposal Sent';
+  document.getElementById('crm-next').textContent = 'Contract Signing';
+  setTimeout(() => { goStage(5); runStage(5); }, 1200);
+}
+
+function editProposal() {
+  alert('In the live system, this opens the proposal editor with full WYSIWYG editing. Changes auto-re-run ProposalCritic checks.');
+}
+
+function rejectProposal() {
+  addActivity('Corey (Founder)', 'Proposal REJECTED — flagged for revision', 'STAGE 05 · Rejected');
+  document.getElementById('hitl-proposal').style.borderColor = '#ff4444';
+  document.getElementById('hitl-proposal').querySelector('h4').textContent = '❌ REJECTED — Back to Drafting';
+}
+
+// --- STAGE 5 + 6: PRODUCTION ---
+function runStage(n) {
+  const company = document.getElementById('f-company') ? document.getElementById('f-company').value || 'Summit Mechanical LLC' : dealData.company;
+  const contact = document.getElementById('f-contact') ? document.getElementById('f-contact').value || 'Dave Rieger, PM' : dealData.contact;
+  const industry = document.getElementById('f-industry') ? document.getElementById('f-industry').value || 'mep' : dealData.industry;
+  const employees = document.getElementById('f-employees') ? document.getElementById('f-employees').value || '25' : dealData.employees;
+  const revenue = document.getElementById('f-revenue') ? document.getElementById('f-revenue').value || '5M' : dealData.revenue;
+  const pain = document.getElementById('f-pain') ? document.getElementById('f-pain').value || 'Admin overhead is high.' : dealData.pain;
+
+  if (!dealData.company) dealData = { company, contact, industry, employees, revenue, pain };
+
+  markStageDone(n);
+  markStageActive(n + 1);
+  goStage(n + 1);
+
+  if (n === 0) runQualification(dealData);
+  if (n === 1) runCRM(dealData);
+  if (n === 2) runSales(dealData);
+  if (n === 3) runProposal(dealData);
+  if (n === 5) runProduction(dealData);
+  if (n === 6) runBuild(dealData);
+}
+
+function runProduction(d) {
+  addActivity('Murphy', 'Building project plan for ' + d.company, 'STAGE 06 · Planning');
+  notify('Project Manager', 'Project plan generated', 'Production Planning');
+
+  document.getElementById('proj-plan').textContent =
+`PROJECT PLAN — ${d.company}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 1 — Discovery & Audit (Days 1–5)
+  ☐ On-site operations walkthrough
+  ☐ Process map all RFI/submittal workflows
+  ☐ Interview 3 PMs + field supervisors
+  ☐ Gap analysis report delivered
+
+Phase 2 — Integration Setup (Days 6–14)
+  ☐ Murphy connected to project management system
+  ☐ RFI auto-routing configured
+  ☐ Submittal tracker live
+  ☐ Invoice auto-dispatch set up
+  ☐ Change order pipeline wired
+
+Phase 3 — Go Live (Day 15)
+  ☐ All automations running
+  ☐ HITL gates configured for ${d.contact.split(',')[0]}
+  ☐ Daily savings dashboard live
+  ☐ 30-day check-in scheduled
+
+Milestones:
+  M1: Day 5  — Audit report signed off
+  M2: Day 14 — All integrations live
+  M3: Day 15 — Go live
+  M4: Day 45 — First savings report`;
+
+  document.getElementById('team-assign').textContent =
+`TEAM ASSIGNMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Project Sponsor:    Corey Post (Murphy Systems)
+Client PM:          ${d.contact}
+Murphy AI Lead:     Swarm Coordinator Agent
+Automation Eng:     Murphy Production Agent
+Field Liaison:      Client-side supervisor
+Compliance Lead:    Murphy Compliance Agent
+HITL Gate:          Corey Post (approval)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+All HITL approvals route to: cpost@murphy.systems
+Escalation path: Murphy → Steve → Founder`;
+
+  document.getElementById('crm-st').textContent = 'Active Project';
+  document.getElementById('crm-next').textContent = 'Build Phase';
+  ['dp0','dp1','dp2','dp3','dp4'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.classList.remove('active'); el.classList.add('done'); }
+  });
+  const dp5 = document.getElementById('dp5');
+  if (dp5) dp5.classList.add('active');
+}
+
+function runBuild(d) {
+  addActivity('Murphy', 'Tracking build progress for ' + d.company, 'STAGE 07 · Build');
+  notify('Field Team', 'Execution tracking live', 'Build Phase');
+
+  document.getElementById('exec-tracker').textContent =
+`EXECUTION TRACKER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Project:     ${d.company} Ops Automation
+Day:         12 of 15
+Progress:    78% complete
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ RFI auto-routing:        LIVE (3 days)
+✅ Submittal tracker:       LIVE (2 days)
+✅ Invoice auto-dispatch:   LIVE (1 day)
+⏳ Change order pipeline:   IN PROGRESS (70%)
+⏳ PM scheduling bot:       IN PROGRESS (40%)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RFIs processed this week:   47 (was 0 auto)
+Submittals tracked:         23 active
+Invoices dispatched:        8 (avg 2.1 days)
+Hours saved (est):          31 hrs / week`;
+
+  document.getElementById('blockers').textContent =
+`MURPHY BLOCKER SCAN — ${new Date().toLocaleDateString()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  BLOCKER 1: Change order form from client
+    has non-standard field mapping.
+    → Murphy auto-remapping. ETA: 2 hrs.
+
+⚠️  BLOCKER 2: PM scheduling bot needs 
+    access to Google Calendar.
+    → HITL request sent to Corey for OAuth.
+
+✅  All other automations nominal.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Murphy resolved 2/4 blockers autonomously.
+2 escalated to HITL for founder input.`;
+
+  addActivity('Murphy', '2 blockers detected, resolving autonomously', 'STAGE 07 · Build');
+  document.getElementById('crm-st').textContent = 'Build In Progress';
+  document.getElementById('crm-next').textContent = 'Delivery Review';
+}
+
+function approveDelivery() {
+  addActivity('Corey (Founder)', 'Delivery APPROVED — releasing to ' + dealData.company, 'STAGE 08 · Approved');
+  notify('Founder', 'Delivery approved for ' + dealData.company, 'Delivery HITL');
+  document.getElementById('hitl-delivery').style.borderColor = '#00ff41';
+  document.getElementById('hitl-delivery').querySelector('h4').textContent = '✅ APPROVED — Delivered to Client';
+  markStageDone(7);
+  markStageActive(8);
+  goStage(8);
+  runInvoice(dealData);
+}
+
+function editDelivery() { alert('Opens delivery report editor in the live system.'); }
+function rejectDelivery() {
+  document.getElementById('hitl-delivery').style.borderColor = '#ff4444';
+  document.getElementById('hitl-delivery').querySelector('h4').textContent = '❌ HELD — Rework Required';
+  addActivity('Corey (Founder)', 'Delivery held — rework required', 'STAGE 08 · Rejected');
+}
+
+// Delivery report auto-fill when entering stage 7
+document.getElementById('sc7').addEventListener('click', function() {
+  if (!dealData.company) return;
+  document.getElementById('delivery-report').textContent =
+`DELIVERY CLOSEOUT REPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Client:     ${dealData.company}
+Project:    Operations Automation Suite
+Duration:   15 days
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DELIVERED:
+✅ RFI auto-routing (47 processed, Day 3)
+✅ Submittal tracker (23 active)
+✅ Invoice auto-dispatch (8 sent, avg 2.1d)
+✅ Change order pipeline (live Day 14)
+✅ PM scheduling bot (live Day 15)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Week 2 Savings Measurement:
+  Admin time recovered:    31 hrs/wk
+  Annualized:              $${(dealData.annualSavings || 820000).toLocaleString()}/yr
+  Murphy fee (40%):        $${Math.round((dealData.annualSavings||820000)*0.4).toLocaleString()}/yr
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+O&M HANDOFF DOCS:     Attached (3 files)
+CLIENT SIGN-OFF:      Pending`;
+}, { once: false });
+
+// --- STAGE 8: INVOICE ---
+function runInvoice(d) {
+  addActivity('Murphy', 'Generating performance invoice for ' + d.company, 'STAGE 09 · Invoice');
+  notify('Finance', 'Invoice generated — $' + Math.round(d.annualSavings*0.4/12).toLocaleString() + '/mo', 'Invoice');
+
+  document.getElementById('invoice-content').textContent =
+`PERFORMANCE INVOICE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Invoice #:   INV-${Date.now().toString().slice(-6)}
+Date:        ${new Date().toLocaleDateString()}
+Client:      ${d.company}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+T&M Discovery (one-time):    $14,400.00
+  2-day audit + setup
+  
+Performance Fee Month 1:     $${d.monthly.toLocaleString()}.00
+  40% × $${d.annualSavings.toLocaleString()} annual / 12 months
+  Based on verified savings
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TOTAL DUE NOW:               $${(14400 + d.monthly).toLocaleString()}.00
+NEXT MONTHLY:                $${d.monthly.toLocaleString()}.00
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Payment terms: Net 30
+Wire: Murphy Systems / Inoni LLC`;
+
+  document.getElementById('roi-summary').textContent =
+`PROJECT ROI SUMMARY — ${d.company}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Annual ops savings:   $${d.annualSavings.toLocaleString()}
+Client keeps (60%):   $${Math.round(d.annualSavings*0.6).toLocaleString()}/yr
+Murphy earns (40%):   $${Math.round(d.annualSavings*0.4).toLocaleString()}/yr
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+24-month value delivered:
+  Client net gain:    $${Math.round(d.annualSavings*0.6*2).toLocaleString()}
+  Murphy revenue:     $${Math.round(d.annualSavings*0.4*2).toLocaleString()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Stage 3 (Synergy +20%): pending
+Stage 4 (SaaS license): month 25+`;
+
+  document.getElementById('final-savings').textContent = '$' + d.annualSavings.toLocaleString() + '/yr';
+  document.getElementById('crm-st').textContent = 'Closed Won ✅';
+  document.getElementById('crm-next').textContent = 'Monthly cadence';
+  ['dp0','dp1','dp2','dp3','dp4','dp5','dp6'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.classList.remove('active'); el.classList.add('done'); }
+  });
+  markStageDone(8);
+  addActivity('Murphy', 'Project CLOSED. Invoice sent. Monthly cadence started.', 'STAGE 09 · Complete');
+}
+
+function startNewFlow() {
+  location.reload();
+}
+</script>
+</body>
+</html>
