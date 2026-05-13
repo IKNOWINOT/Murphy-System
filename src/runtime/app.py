@@ -22627,6 +22627,84 @@ def create_app() -> FastAPI:
             from src.resume_router import router as _resume_router
             app.include_router(_resume_router)
             logger.info("[PATCH-193] Resume Builder mounted at /api/resume/*")
+
+        # PATCH-286: AI Job Hunter API — dual-resume, ATS matching, HITL-gated applications
+        try:
+            import src.job_hunter_engine as _jhe
+            _jhe.ensure_tables()
+
+            @app.get("/api/jobs/listings")
+            async def jobs_listings(status: str = "", limit: int = 50):
+                try:
+                    listings = _jhe.get_listings(status=status or None, limit=limit)
+                    return {"success": True, "listings": listings, "count": len(listings)}
+                except Exception as e:
+                    return {"success": False, "error": str(e)}
+
+            @app.post("/api/jobs/add")
+            async def jobs_add(request: Request):
+                data    = await request.json()
+                lid     = _jhe.add_listing(
+                    title       = data.get("title",""),
+                    company     = data.get("company",""),
+                    url         = data.get("url",""),
+                    board       = data.get("board","manual"),
+                    description = data.get("description",""),
+                    location    = data.get("location","Remote"),
+                    salary      = data.get("salary",""),
+                    match_score = _jhe.score_listing(data.get("title",""), data.get("description",""), data.get("company","")),
+                )
+                return {"success": bool(lid), "listing_id": lid}
+
+            @app.post("/api/jobs/generate-application")
+            async def jobs_generate_application(request: Request):
+                """PATCH-286: Generate cover letter + ATS analysis for a listing."""
+                data       = await request.json()
+                listing_id = data.get("listing_id","")
+                mode       = data.get("mode","corey")  # "corey" or "murphy"
+                if not listing_id:
+                    return {"success": False, "error": "listing_id required"}
+                result = _jhe.generate_application_package(listing_id, mode=mode)
+                return result
+
+            @app.post("/api/jobs/scan")
+            async def jobs_scan(request: Request):
+                """Trigger async job scan across boards."""
+                import asyncio as _aio
+                data  = await request.json()
+                query = data.get("query", "Head of AI")
+                limit = int(data.get("limit", 10))
+                try:
+                    results = await _jhe.scrape_indeed_jobs(query=query, limit=limit)
+                    added   = 0
+                    for r in results:
+                        score = _jhe.score_listing(r["title"], r.get("description",""), r["company"])
+                        lid   = _jhe.add_listing(
+                            title=r["title"], company=r["company"], url=r["url"],
+                            board=r.get("board","indeed"), description=r.get("description",""),
+                            location=r.get("location","Remote"), salary=r.get("salary",""),
+                            match_score=score,
+                        )
+                        if lid: added += 1
+                    return {"success": True, "found": len(results), "added": added, "query": query}
+                except Exception as e:
+                    return {"success": False, "error": str(e)}
+
+            @app.get("/api/jobs/applications")
+            async def jobs_applications(limit: int = 50):
+                apps = _jhe.get_applications(limit=limit)
+                return {"success": True, "applications": apps, "count": len(apps)}
+
+            @app.post("/api/jobs/{listing_id}/status")
+            async def jobs_update_status(listing_id: str, request: Request):
+                data = await request.json()
+                _jhe.update_listing_status(listing_id, data.get("status",""), data.get("notes",""))
+                return {"success": True}
+
+            logger.info("[PATCH-286] AI Job Hunter API online — /api/jobs/*")
+        except Exception as _jh_err:
+            logger.warning("[PATCH-286] Job Hunter API failed: %s", _jh_err)
+
         except Exception as _rb_err:
             logger.warning("[PATCH-193] Resume router failed: %s", _rb_err)
         _forge_register(app)

@@ -82,6 +82,61 @@ JOB_QUERIES = [
     "AI Platform Lead",
 ]
 
+# ── Corey Post's human resume (for applications requiring a human applicant) ──
+COREY_PROFILE = {
+    "name":     "Corey Post",
+    "title":    "AI Systems Director & MEP Commissioning Engineer",
+    "email":    "corey.gfc@gmail.com",
+    "phone":    "+1-716-400-3440",
+    "website":  "https://murphy.systems",
+    "location": "Remote / Pacific Northwest",
+    "linkedin": "",
+    "summary": (
+        "20+ year MEP commissioning and energy engineer transitioning into AI systems leadership. "
+        "Built and operate Murphy Systems — a live autonomous AI revenue platform running multi-agent "
+        "swarm orchestration, automated B2B outreach, HITL-gated proposals, and a shadow agent marketplace. "
+        "Currently pursuing BA in AI (Full Sail University). Four published papers in advanced physics. "
+        "Patent holder with applications in aerospace and energy. Comfortable operating at the intersection "
+        "of physical systems (HVAC, microgrid, federal energy) and AI automation."
+    ),
+    "skills": [
+        "Autonomous AI system design (Murphy Systems — production)",
+        "LLM orchestration (DeepInfra, Together.ai, Ollama)",
+        "Python, FastAPI, multi-agent swarm architecture",
+        "HVAC/MEP commissioning (21 years), energy auditing (9 years)",
+        "Federal contracts (DOE, DOD, BIA), OSHA, TABB",
+        "Building automation (Johnson Controls, Siemens, Trane)",
+        "Business development, sales engineering ($6M+ annual)",
+        "Microgrid design, hydrogen/fuel systems, carbon capture consulting",
+        "Microsoft MCSD, Building Commissioning Authority Supervisor",
+    ],
+    "experience_highlights": [
+        "Regional Energy Manager — CATC Camp Fuji Marine Corps (ongoing)",
+        "Senior Commissioning Agent — Akana Engineering (200+ federal buildings, 5.8M sqft)",
+        "HVAC Service Designer — D.V. Brown ($6M sales, 68% conversion rate)",
+        "AI & Datacenter Processing Energy Efficiency Auditor (4 years)",
+    ],
+    "cover_letter_template": (
+        "Dear Hiring Manager,\n\n"
+        "I am Corey Post, applying for the {job_title} position at {company}.\n\n"
+        "I bring a unique combination: 20+ years of commissioning complex physical systems (HVAC, "
+        "microgrids, federal energy infrastructure) combined with hands-on AI development — I built "
+        "and currently operate Murphy Systems, a live autonomous AI platform that handles B2B sales, "
+        "proposal generation, CRM management, and swarm-based task execution without continuous human "
+        "intervention.\n\n"
+        "What this means for {company}:\n"
+        "{value_props}\n\n"
+        "I operate at the low end of your salary range with the understanding that Murphy — my AI "
+        "platform — handles the operational workload. Murphy does not require benefits, onboarding "
+        "support, or equipment. It becomes a direct operational expense that scales with output.\n\n"
+        "I am available for a live demonstration of Murphy's capabilities at murphy.systems, "
+        "a technical architecture review, or a standard interview at your convenience.\n\n"
+        "Best regards,\nCorey Post\ncorey.gfc@gmail.com | +1-716-400-3440\nhttps://murphy.systems"
+    )
+}
+
+
+
 TARGET_BOARDS = [
     {"name": "LinkedIn",    "url": "https://www.linkedin.com/jobs/search/?keywords={query}&f_WT=2",        "type": "linkedin"},
     {"name": "Indeed",      "url": "https://www.indeed.com/jobs?q={query}&l=Remote",                       "type": "indeed"},
@@ -180,19 +235,77 @@ def update_listing_status(listing_id: str, status: str, notes: str = ""):
                      (status, notes, listing_id))
         conn.commit()
 
-# ── Cover letter generator ────────────────────────────────────────────────────
-def generate_cover_letter(job_title: str, company: str, description: str = "") -> str:
-    # Extract value props from description
-    value_props = [
-        f"• Autonomous AI operations — I run {company}'s equivalent workflows today at Murphy Systems",
-        "• Zero ramp-up on LLM architecture, multi-agent systems, or production deployment",
-        "• HITL safety architecture built in — I escalate appropriately, never go rogue",
-        "• Live reference: murphy.systems — everything I describe is in production",
+# ── ATS keyword extractor ────────────────────────────────────────────────────
+def extract_ats_keywords(description: str) -> List[str]:
+    """Pull key phrases from job description for ATS matching."""
+    patterns = [
+        r"\b(LLM|GPT|RAG|vector|embedding|transformer|fine.tun|RLHF)\b",
+        r"\b(FastAPI|Python|PyTorch|TensorFlow|Langchain|LangGraph|CrewAI)\b",
+        r"\b(multi.agent|agentic|autonomous|swarm|orchestrat)\w*\b",
+        r"\b(MLOps|DataOps|DevOps|CI/CD|Kubernetes|Docker)\b",
+        r"\b(SOC2|HIPAA|GDPR|compliance|audit|governance)\b",
+        r"\b(revenue|GTM|pipeline|CRM|sales.automation|outbound)\b",
+        r"\b(HVAC|energy|commissioning|MEP|building.automation|microgrid)\b",
+        r"\b(federal|DOE|DOD|government|contract|BIA)\b",
     ]
-    return MURPHY_PROFILE["cover_letter_template"].format(
+    found = []
+    for pat in patterns:
+        matches = re.findall(pat, description, re.IGNORECASE)
+        found.extend(matches)
+    return list(dict.fromkeys(found))  # dedupe preserving order
+
+def match_ats_score(description: str, profile_text: str) -> Dict[str, Any]:
+    """Score how well a profile matches job description keywords."""
+    keywords = extract_ats_keywords(description)
+    if not keywords:
+        return {"score": 50, "matched": [], "missing": [], "total": 0}
+    matched  = [k for k in keywords if k.lower() in profile_text.lower()]
+    missing  = [k for k in keywords if k.lower() not in profile_text.lower()]
+    score    = int(100 * len(matched) / len(keywords)) if keywords else 50
+    return {"score": score, "matched": matched, "missing": missing, "total": len(keywords)}
+
+# ── Cover letter generator (PATCH-286: dual-resume, ATS-tuned) ───────────────
+def generate_cover_letter(job_title: str, company: str, description: str = "",
+                           mode: str = "murphy") -> str:
+    """
+    mode: "murphy" = Murphy applies as autonomous AI
+          "corey"  = Corey Post applies as human + AI operator
+    """
+    profile = COREY_PROFILE if mode == "corey" else MURPHY_PROFILE
+
+    # ATS: find keywords in description not yet in profile summary
+    ats = match_ats_score(description, profile["summary"] + " " + " ".join(profile.get("skills",[])))
+
+    # Build value props dynamically based on job description signals
+    desc_l = description.lower()
+    props  = []
+
+    if mode == "corey":
+        props.append(f"• Murphy Systems (live at murphy.systems) handles the AI execution layer — "
+                     f"meaning {company} gets a human lead AND a production AI platform for one salary")
+        if any(k in desc_l for k in ["hvac","energy","building","mep","commissioning","facility"]):
+            props.append("• 20+ years MEP/HVAC commissioning and federal energy auditing — "
+                         "rare combination with AI expertise")
+        if any(k in desc_l for k in ["llm","gpt","agent","autonomous","language model"]):
+            props.append("• Built and operate a live multi-agent LLM platform in production today")
+        if any(k in desc_l for k in ["revenue","sales","pipeline","crm","outbound"]):
+            props.append("• Murphy runs autonomous B2B outreach, CRM management, and proposal generation")
+        if ats["missing"]:
+            props.append(f"• Additionally experienced in: {', '.join(ats['missing'][:3])}")
+    else:
+        props.append(f"• Live production system: autonomous prospect discovery, proposal generation, "
+                     f"and CRM management — all running today at murphy.systems")
+        props.append("• HITL-gated architecture: I escalate appropriately, never take unilateral "
+                     "high-stakes actions without human approval")
+        props.append("• Zero ramp-up time on LLM architecture, multi-agent orchestration, or "
+                     "autonomous deployment")
+        if ats["matched"]:
+            props.append(f"• Direct experience with: {', '.join(ats['matched'][:4])}")
+
+    return profile["cover_letter_template"].format(
         job_title=job_title,
         company=company,
-        value_props="\n".join(value_props)
+        value_props="\n".join(props)
     )
 
 # ── Score a job listing ───────────────────────────────────────────────────────
@@ -220,6 +333,80 @@ def score_listing(title: str, description: str, company: str) -> int:
     return max(0, min(100, score))
 
 # ── Playwright ghost scraper ──────────────────────────────────────────────────
+
+def generate_application_package(listing_id: str, mode: str = "corey") -> Dict[str, Any]:
+    """
+    PATCH-286: Generate a full application package for a job listing.
+    Returns: cover_letter, ats_analysis, form_fields, salary_note, hitl_ready payload.
+    mode: "corey" or "murphy"
+    """
+    ensure_tables()
+    with _db() as conn:
+        row = conn.execute("SELECT * FROM job_listings WHERE id=?", (listing_id,)).fetchone()
+    if not row:
+        return {"success": False, "error": "Listing not found"}
+
+    listing  = dict(row)
+    profile  = COREY_PROFILE if mode == "corey" else MURPHY_PROFILE
+    desc     = listing.get("description", "")
+    title    = listing.get("title", "")
+    company  = listing.get("company", "")
+    salary   = listing.get("salary", "")
+
+    # Parse salary range — target low end
+    salary_target = ""
+    salary_note   = ""
+    m = re.search(r"\$(\d[\d,]+)\s*[–\-]\s*\$(\d[\d,]+)", salary or "")
+    if m:
+        low  = int(m.group(1).replace(",",""))
+        high = int(m.group(2).replace(",",""))
+        salary_target = f"${low:,}"
+        salary_note   = (f"Targeting low end of range (${low:,} of ${low:,}–${high:,}). "
+                         f"Murphy handles execution; Corey provides strategic oversight. "
+                         f"Murphy has no benefits, health, or equipment costs — it is an OpEx line item.")
+    elif salary:
+        salary_note = f"Salary: {salary}. Targeting competitive low-end rate — Murphy absorbs execution overhead."
+
+    cover  = generate_cover_letter(title, company, desc, mode=mode)
+    ats    = match_ats_score(desc, profile["summary"] + " " + " ".join(profile.get("skills",[])))
+
+    # Form fields for ATS submission
+    form_fields = {
+        "full_name":     profile["name"],
+        "email":         profile["email"],
+        "phone":         profile.get("phone",""),
+        "linkedin":      profile.get("linkedin",""),
+        "website":       profile.get("website",""),
+        "location":      profile.get("location","Remote"),
+        "cover_letter":  cover,
+        "salary_desired": salary_target,
+        "resume_text":   profile["summary"],
+        "skills":        ", ".join(profile.get("skills",[])),
+    }
+
+    return {
+        "success":       True,
+        "listing_id":    listing_id,
+        "mode":          mode,
+        "job_title":     title,
+        "company":       company,
+        "cover_letter":  cover,
+        "ats_analysis":  ats,
+        "salary_note":   salary_note,
+        "salary_target": salary_target,
+        "form_fields":   form_fields,
+        "hitl_payload":  {
+            "type":     "job_application",
+            "listing_id": listing_id,
+            "mode":     mode,
+            "company":  company,
+            "title":    title,
+            "cover_letter": cover[:300] + "...",
+            "ats_score": ats["score"],
+            "salary_target": salary_target,
+        }
+    }
+
 async def scrape_indeed_jobs(query: str = "Head of AI", limit: int = 10) -> List[Dict]:
     """Ghost-scrape Indeed for remote AI leadership roles."""
     results = []
