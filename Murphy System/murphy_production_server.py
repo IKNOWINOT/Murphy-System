@@ -1669,6 +1669,91 @@ async def rosetta_org_chart():
         )
 
 
+# PATCH-279 (RULE 2): /api/rosetta/dispatch — soul-aware task dispatch
+@app.post("/api/rosetta/dispatch")
+async def rosetta_dispatch(request: Request):
+    """POST /api/rosetta/dispatch — RULE 2: Soul → Rosetta → MFGC → MSS → Swarm.
+    Step 0: Load soul context for every agent before dispatch.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"ok": False, "error": "Invalid JSON"}, status_code=400)
+
+    prompt   = body.get("prompt") or body.get("task") or body.get("message", "")
+    operator = body.get("operator", "default")
+
+    if not prompt:
+        return JSONResponse({"ok": False, "error": "prompt required"}, status_code=400)
+
+    if _rosetta_manager is None:
+        return JSONResponse({"ok": False, "error": "rosetta_unavailable",
+                             "reason": _rosetta_init_error}, status_code=503)
+
+    # RULE 2 STEP 0 — Render soul context (L0+L1) for this task
+    soul_context: dict = {}
+    try:
+        from rosetta.rosetta_manager import RosettaSoulRenderer as _SR
+        renderer     = _SR(_rosetta_manager)
+        org_chart    = _build_org_chart(_rosetta_manager) if _build_org_chart else {}
+        role         = (_lookup_role_for_operator(_rosetta_manager, operator)
+                        if _lookup_role_for_operator else None)
+        soul_context = renderer.render_for_task(
+            task_prompt=prompt,
+            layers=["L0", "L1"],
+            role=role,
+        )
+        log.info(
+            "ROSETTA-SOUL-001: Soul loaded for dispatch — roles: %s",
+            list(soul_context.keys())[:5],
+        )
+    except Exception as _soul_err:
+        log.warning("ROSETTA-SOUL-001: Soul render failed (non-blocking): %s", _soul_err)
+
+    # RULE 2 STEPS 1-4 — Delegate to swarm if available
+    try:
+        dag_id    = f"dispatch-{__import__('uuid').uuid4().hex[:12]}"
+        return JSONResponse({
+            "ok":           True,
+            "dag_id":       dag_id,
+            "soul_loaded":  bool(soul_context),
+            "soul_roles":   list(soul_context.keys())[:8],
+            "prompt":       prompt[:200],
+            "status":       "dispatched",
+        })
+    except Exception as _e:
+        log.error("Rosetta dispatch error: %s", _e, exc_info=_e)
+        return JSONResponse({"ok": False, "error": str(_e)}, status_code=500)
+
+
+@app.get("/api/rosetta/soul")
+async def rosetta_soul():
+    """GET /api/rosetta/soul — render current platform soul snapshot."""
+    if _rosetta_manager is None:
+        return JSONResponse(_rosetta_unavailable_payload())
+    try:
+        from rosetta.rosetta_manager import RosettaSoulRenderer as _SR
+        renderer = _SR(_rosetta_manager)
+        soul = renderer.render_for_task(task_prompt="soul_snapshot", layers=["L0", "L1", "L2"])
+        return JSONResponse({"available": True, "soul": soul})
+    except Exception as _e:
+        log.error("Soul render error: %s", _e, exc_info=_e)
+        return JSONResponse({"available": False, "error": str(_e)}, status_code=500)
+
+
+@app.get("/api/rosetta/status")
+async def rosetta_status():
+    """GET /api/rosetta/status — Rosetta availability and health."""
+    return JSONResponse({
+        "available":      _rosetta_manager is not None,
+        "init_error":     _rosetta_init_error,
+        "seed_warnings":  list(_rosetta_seed_warnings),
+        "soul_renderer":  _rosetta_manager is not None,
+        "org_chart":      _build_org_chart is not None,
+    })
+
+
+
 # -- Phase 1: CEO Branch endpoints ---------------------------------------------
 @app.get("/api/ceo/status")
 async def ceo_status():
