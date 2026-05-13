@@ -68,6 +68,18 @@ log = logging.getLogger("murphy.prod")
 # Report .env loading status so DeepInfra key issues are easy to diagnose.
 if _env_loaded:
     _di_set = "set" if os.getenv("DEEPINFRA_API_KEY", "") else "NOT set"
+
+# PATCH-277 (RULE 9F): Singular API key — must be set in systemd service as MURPHY_API_KEY
+# MURPHY_API_KEYS (plural) is intentionally NOT supported — causes hmac.compare_digest failure
+_MURPHY_API_KEY: str = os.getenv("MURPHY_API_KEY", "").strip()
+if not _MURPHY_API_KEY:
+    log.warning(
+        "RULE-9F-001: MURPHY_API_KEY env var is empty — API key auth is DISABLED. "
+        "Set MURPHY_API_KEY in /etc/systemd/system/murphy.service."
+    )
+else:
+    log.info("RULE-9F-001: MURPHY_API_KEY loaded (%d chars)", len(_MURPHY_API_KEY))
+
     log.info(".env loaded — DEEPINFRA_API_KEY is %s", _di_set)
 else:
     log.info("No .env file found — relying on OS environment variables")
@@ -1225,6 +1237,17 @@ async def _startup():
 
     _load_prod_accounts_from_db()  # PATCH-275: rehydrate users from DB
     _seed_automations()
+    # PATCH-280: Log LLM self-check result instead of discarding it
+    if _llm_self_check_available and _get_llm is not None:
+        try:
+            _lhc = _run_llm_self_check(_get_llm)
+            if _lhc and not getattr(_lhc, "passed", True):
+                log.warning("LLM-HEALTH-001: Self-check FAILED — %s", getattr(_lhc, "error", "unknown"))
+            elif _lhc:
+                log.info("LLM-HEALTH-001: Self-check PASSED — provider: %s", getattr(_lhc, "provider", "?"))
+        except Exception as _lhc_e:
+            log.warning("LLM-HEALTH-001: Self-check exception: %s", _lhc_e)
+
     _automation_store.extend(_DEMO_AUTOMATIONS)
     _seed_campaigns()
     for coro in (
@@ -1295,6 +1318,11 @@ async def _startup():
                 log.info(
                     "ROSETTA-ORG-001: seeded %d platform roles: %s",
                     len(seeded), seeded,
+    else:
+        log.warning(
+            "FEAT-NULL-001: rosetta_manager module unavailable — feature disabled. "
+            "Check startup import errors above."
+        )
                 )
             except Exception as _e:
                 # Loud: this is required for PSM owner attribution.
@@ -1316,6 +1344,11 @@ async def _startup():
         except Exception as _e:
             log.warning("CEOBranch init failed (%s)", _e)
             _ceo_branch = None
+    else:
+        log.warning(
+            "FEAT-NULL-001: ceo_branch module unavailable — feature disabled. "
+            "Check startup import errors above."
+        )
     if _heartbeat_available and _ceo_branch is not None:
         try:
             _heartbeat_runner = _ActivatedHeartbeatRunner(ceo_branch=_ceo_branch)
@@ -1334,6 +1367,11 @@ async def _startup():
             log.warning("AionMindKernel init failed (%s)", _e)
             _aionmind_kernel = None
 
+    else:
+        log.warning(
+            "FEAT-NULL-001: aionmind_kernel module unavailable — feature disabled. "
+            "Check startup import errors above."
+        )
     # -- Phase 2: Wire Tool Registry + AionMind bridge -------------------------
     global _tool_registry
     if _tool_registry_available:
@@ -1344,6 +1382,11 @@ async def _startup():
             log.warning("UniversalToolRegistry init failed (%s)", _e)
             _tool_registry = None
 
+    else:
+        log.warning(
+            "FEAT-NULL-001: tool_registry module unavailable — feature disabled. "
+            "Check startup import errors above."
+        )
     # -- Phase 3: Wire LCMEngine -----------------------------------------------
     global _lcm_engine_instance
     if _lcm_available:
@@ -1354,6 +1397,11 @@ async def _startup():
             log.warning("LCMEngine init failed (%s)", _e)
             _lcm_engine_instance = None
 
+    else:
+        log.warning(
+            "FEAT-NULL-001: lcm_engine module unavailable — feature disabled. "
+            "Check startup import errors above."
+        )
     # -- Phase 3: Wire GateBypassController ------------------------------------
     global _gate_bypass
     if _gate_bypass_available:
@@ -1364,6 +1412,11 @@ async def _startup():
             log.warning("GateBypassController init failed (%s)", _e)
             _gate_bypass = None
 
+    else:
+        log.warning(
+            "FEAT-NULL-001: gate_bypass module unavailable — feature disabled. "
+            "Check startup import errors above."
+        )
     # -- Phase 3: Wire FeatureFlagManager --------------------------------------
     global _feature_flag_manager
     if _feature_flags_available:
@@ -1374,6 +1427,11 @@ async def _startup():
             log.warning("FeatureFlagManager init failed (%s)", _e)
             _feature_flag_manager = None
 
+    else:
+        log.warning(
+            "FEAT-NULL-001: feature_flags module unavailable — feature disabled. "
+            "Check startup import errors above."
+        )
     # -- Phase 3: Wire TeamCoordinator -----------------------------------------
     global _team_coordinator
     if _multi_agent_available:
@@ -1384,6 +1442,11 @@ async def _startup():
             log.warning("TeamCoordinator init failed (%s)", _e)
             _team_coordinator = None
 
+    else:
+        log.warning(
+            "FEAT-NULL-001: multi_agent_coordinator module unavailable — feature disabled. "
+            "Check startup import errors above."
+        )
     # -- Phase 3: Wire PersistentMemory ----------------------------------------
     global _persistent_memory
     if _persistent_memory_available:
@@ -1394,6 +1457,11 @@ async def _startup():
             log.warning("PersistentMemoryStore init failed (%s)", _e)
             _persistent_memory = None
 
+    else:
+        log.warning(
+            "FEAT-NULL-001: persistent_memory module unavailable — feature disabled. "
+            "Check startup import errors above."
+        )
     # -- Phase 3: Wire SkillRegistry -------------------------------------------
     global _skill_registry
     if _skill_system_available:
@@ -1404,6 +1472,11 @@ async def _startup():
             log.warning("SkillRegistry init failed (%s)", _e)
             _skill_registry = None
 
+    else:
+        log.warning(
+            "FEAT-NULL-001: skill_system module unavailable — feature disabled. "
+            "Check startup import errors above."
+        )
     # -- Phase 3: Wire MCPPluginManager ----------------------------------------
     global _mcp_plugin_manager
     if _mcp_plugin_available:
@@ -1414,6 +1487,11 @@ async def _startup():
             log.warning("MCPPluginManager init failed (%s)", _e)
             _mcp_plugin_manager = None
 
+    else:
+        log.warning(
+            "FEAT-NULL-001: mcp_plugin module unavailable — feature disabled. "
+            "Check startup import errors above."
+        )
     # -- Phase 3: CEO Heartbeat tick loop (6th background task) ----------------
     if _heartbeat_runner is not None:
         _ceo_hb_task = asyncio.create_task(_ceo_heartbeat_tick())
@@ -1431,6 +1509,11 @@ async def _startup():
             log.warning("GlobalFeedbackDispatcher init failed (%s)", _e)
             _feedback_dispatcher = None
 
+    else:
+        log.warning(
+            "FEAT-NULL-001: global_feedback module unavailable — feature disabled. "
+            "Check startup import errors above."
+        )
     log.info("Murphy Production Server v3 started — HITL gates active, milestone tracking enabled")
 
     # LLM-SELFCHECK-001: run a bounded self-inference at startup.  Result is
@@ -1441,7 +1524,7 @@ async def _startup():
     if _run_llm_self_check is not None:
         try:
             _llm_self_check_result = await asyncio.get_event_loop().run_in_executor(
-                None, lambda: _run_llm_self_check(_get_llm)
+                _llm_health_check_fn, lambda: _run_llm_self_check(_get_llm)
             )
             _r = _llm_self_check_result
             if _r is not None:
@@ -1865,7 +1948,7 @@ async def llm_selfcheck_run():
         )
     try:
         _llm_self_check_result = await asyncio.get_event_loop().run_in_executor(
-            None, lambda: _run_llm_self_check(_get_llm)
+            _llm_health_check_fn, lambda: _run_llm_self_check(_get_llm)
         )
     except Exception as _e:  # noqa: BLE001 — surface, never crash
         log.warning("LLM-SELFCHECK-001 on-demand run failed: %s", _e)
@@ -4562,8 +4645,8 @@ async def api_auth_register_free(request: Request):
 # =============================================================================
 
 
-@app.get("/api/auth/login")
-async def api_auth_login_check(request: Request):
+@app.get("/api/auth/session")
+async def api_auth_session_check(request: Request):
     """Session check — returns auth status without requiring credentials."""
     account = _prod_get_account_from_session(request)
     if account:
