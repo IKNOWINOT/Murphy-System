@@ -358,6 +358,7 @@ def _create_hitl_item(
     related_id: str = "",
     priority: str = "normal",
     auto_approve_after_seconds: int = 0,
+    tenant_id: str = "system",
 ) -> Dict[str, Any]:
     item = {
         "id": f"hitl-{uuid.uuid4().hex[:8]}",
@@ -374,6 +375,7 @@ def _create_hitl_item(
         "approved_by": None,
         "rejection_reason": None,
         "auto_approve_after_seconds": auto_approve_after_seconds,
+        "tenant_id": tenant_id,
         "_created_ts": _now_dt().timestamp(),
     }
     _HITL_QUEUE.append(item)
@@ -2048,11 +2050,16 @@ async def llm_selfcheck_run():
 # ==============================================================================
 @app.get("/api/hitl/queue")
 async def get_hitl_queue(
+    request: Request,
     status: str = Query(default=""),
     hitl_type: str = Query(default=""),
     priority: str = Query(default="")
 ):
     items = list(_HITL_QUEUE)
+    # PATCH-284: tenant isolation — filter to current user unless founder requests all
+    if not _should_show_all(request):
+        tid = _get_tenant_id(request)
+        items = [h for h in items if h.get("tenant_id", "system") in (tid, "system")]
     if status:    items = [h for h in items if h["status"] == status]
     if hitl_type: items = [h for h in items if h["type"] == hitl_type]
     if priority:  items = [h for h in items if h["priority"] == priority]
@@ -2620,11 +2627,16 @@ async def get_timeline_blocks(tenant_id: str = Query(default="tenant-001")):
 # AUTOMATIONS CRUD + MILESTONES
 # ==============================================================================
 @app.get("/api/automations")
-async def list_automations(board_id:str=Query(default=""), tenant_id:str=Query(default=""),
+async def list_automations(request: Request, board_id:str=Query(default=""), tenant_id:str=Query(default=""),
                            category:str=Query(default=""), status:str=Query(default="")):
     autos = list(_automation_store)
+    # PATCH-284: tenant isolation
+    if not _should_show_all(request):
+        _tid = tenant_id or _get_tenant_id(request)
+        autos = [a for a in autos if a.get("tenant_id", "system") in (_tid, "system")]
+    elif tenant_id:
+        autos=[a for a in autos if a.get("tenant_id")==tenant_id]
     if board_id:  autos=[a for a in autos if a.get("board_id")==board_id]
-    if tenant_id: autos=[a for a in autos if a.get("tenant_id")==tenant_id]
     if category:  autos=[a for a in autos if a.get("category")==category]
     if status:    autos=[a for a in autos if a.get("status")==status]
     return JSONResponse({"automations":[{**a,"cost_savings":_cost_savings(a)} for a in autos],"total":len(autos)})
@@ -2878,7 +2890,8 @@ async def create_from_prompt(req: PromptRequest, request: Request):
         "start_time":start_time,"recurrence":recurrence,"status":"active",
         "estimated_minutes":est_min,"actual_minutes":0.0,
         "labor_cost_per_hr":_COST_MAP.get(category,75),"category":category,
-        "color":random.choice(_COLORS),"board_id":req.board_id,"tenant_id":req.tenant_id,
+        "color":random.choice(_COLORS),"board_id":req.board_id,
+        "tenant_id":req.tenant_id or _get_tenant_id(request),  # PATCH-284
         "created_from_prompt":req.prompt,"created_at":_now_iso(),
         "description": llm_description,
         "milestones": milestones,
@@ -2894,6 +2907,7 @@ async def create_from_prompt(req: PromptRequest, request: Request):
     if milestones:
         first_ms = milestones[0]
         hitl_id = f"hitl-{auto_id}-init"
+        _auto_tid = new_auto.get("tenant_id", "system")  # PATCH-284
         _HITL_QUEUE.append({
             "id": hitl_id,
             "automation_id": auto_id,
@@ -3124,10 +3138,12 @@ async def list_proposal_requests():
     return JSONResponse({"requests":_incoming_requests,"total":len(_incoming_requests)})
 
 @app.post("/api/proposals/generate")
-async def generate_proposal(req:ProposalGenerateRequest):
+async def generate_proposal(request: Request, req:ProposalGenerateRequest):
     req_data=next((r for r in _incoming_requests if r["id"]==req.request_id),None)
     if not req_data: raise HTTPException(404,f"Request {req.request_id} not found")
     proposal=_generate_proposal_content(req_data,req.tone)
+    _tid = _get_tenant_id(request)  # PATCH-284
+    proposal["tenant_id"] = _tid
     hitl = _create_hitl_item(
         hitl_type="proposal_approval",
         title=f"Review Proposal: {req_data['subject'][:60]}",
@@ -3135,6 +3151,7 @@ async def generate_proposal(req:ProposalGenerateRequest):
         payload={"proposal_id": proposal["id"], "request_id": req.request_id},
         related_id=proposal["id"],
         priority="high" if req_data.get("priority") == "high" else "normal",
+        tenant_id=_tid,
     )
     proposal["hitl_item_id"] = hitl["id"]
     proposal["status"] = "pending_review"
@@ -3145,8 +3162,13 @@ async def generate_proposal(req:ProposalGenerateRequest):
     return JSONResponse({**proposal, "hitl_id": hitl["id"]}, status_code=201)
 
 @app.get("/api/proposals/generated")
-async def list_generated_proposals():
-    return JSONResponse({"proposals":_generated_proposals,"total":len(_generated_proposals)})
+async def list_generated_proposals(request: Request):
+    # PATCH-284: tenant isolation
+    props = list(_generated_proposals)
+    if not _should_show_all(request):
+        tid = _get_tenant_id(request)
+        props = [p for p in props if p.get("tenant_id", "system") in (tid, "system")]
+    return JSONResponse({"proposals": props, "total": len(props)})
 
 @app.get("/api/proposals/generated/{proposal_id}")
 async def get_generated_proposal(proposal_id:str):
@@ -4338,6 +4360,34 @@ def _prod_create_session(account_id: str) -> str:
         _prod_sessions[token] = account_id
     return token
 
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PATCH-284 — Tenant isolation helpers
+# Every user's data is scoped to their account email (used as tenant key).
+# Founders (owner/admin role) can optionally pass ?all_tenants=1 to see all.
+# ─────────────────────────────────────────────────────────────────────────────
+def _get_tenant_id(request: Request) -> str:
+    """Return the tenant identifier for the current request.
+
+    - For authenticated users: their account email (lower-cased).
+    - For unauthenticated requests: "anonymous".
+    Founders with role=owner/admin see their own tenant by default;
+    they may pass ?all_tenants=1 to bypass tenant filtering entirely.
+    """
+    acct = _prod_get_account_from_session(request)
+    if acct:
+        return acct.get("email", "anonymous").lower().strip()
+    return "anonymous"
+
+def _is_founder(request: Request) -> bool:
+    """Return True if the current request is from an owner/admin account."""
+    acct = _prod_get_account_from_session(request)
+    return bool(acct and acct.get("role") in ("owner", "admin", "pilot"))
+
+def _should_show_all(request: Request) -> bool:
+    """Founders can pass ?all_tenants=1 to see all tenants' data."""
+    return _is_founder(request) and request.query_params.get("all_tenants") == "1"
 
 def _prod_get_account_from_session(request: Request) -> Optional[Dict[str, Any]]:
     """Resolve a user account from the murphy_session cookie or Bearer token."""

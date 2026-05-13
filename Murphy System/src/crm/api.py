@@ -91,11 +91,17 @@ def create_crm_router(
     # -- Contacts -----------------------------------------------------------
 
     @router.post("/contacts")
-    async def create_contact(req: CreateContactRequest):
+    async def create_contact(request: Request, req: CreateContactRequest):
         try:
             ct = ContactType(req.contact_type)
         except ValueError:
             raise HTTPException(400, f"Invalid contact type: {req.contact_type!r}")
+        # PATCH-284: stamp owner_id from session
+        try:
+            from murphy_production_server import _get_tenant_id as _gtid  # type: ignore
+            _owner = req.owner_id or _gtid(request)
+        except Exception:
+            _owner = req.owner_id
         contact = manager.create_contact(
             req.name, email=req.email, phone=req.phone,
             company=req.company, contact_type=ct,
@@ -104,8 +110,14 @@ def create_crm_router(
         return JSONResponse(contact.to_dict(), status_code=201)
 
     @router.get("/contacts")
-    async def list_contacts(owner_id: str = Query("")):
-        contacts = manager.list_contacts(owner_id=owner_id)
+    async def list_contacts(request: Request, owner_id: str = Query("")):
+        # PATCH-284: scope to session tenant
+        try:
+            from murphy_production_server import _get_tenant_id as _gtid, _should_show_all as _gsa  # type: ignore
+            _scope = owner_id or (_gtid(request) if not _gsa(request) else "")
+        except Exception:
+            _scope = owner_id
+        contacts = manager.list_contacts(owner_id=_scope)
         return JSONResponse([c.to_dict() for c in contacts])
 
     @router.get("/contacts/{contact_id}")
@@ -169,11 +181,18 @@ def create_crm_router(
 
     @router.get("/deals")
     async def list_deals(
+        request: Request,
         pipeline_id: str = Query(""), stage: str = Query(""),
         owner_id: str = Query(""),
     ):
+        # PATCH-284: scope to session tenant
+        try:
+            from murphy_production_server import _get_tenant_id as _gtid, _should_show_all as _gsa  # type: ignore
+            _scope = owner_id or (_gtid(request) if not _gsa(request) else "")
+        except Exception:
+            _scope = owner_id
         deals = manager.list_deals(
-            pipeline_id=pipeline_id, stage=stage, owner_id=owner_id,
+            pipeline_id=pipeline_id, stage=stage, owner_id=_scope,
         )
         return JSONResponse([d.to_dict() for d in deals])
 
