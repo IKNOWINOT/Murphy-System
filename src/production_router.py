@@ -1987,6 +1987,34 @@ def _read_html(path: Path) -> str:
         log.debug("Could not read HTML file: %s", path)
         return f"<h1>File not found: {path}</h1>"
 
+
+# PATCH-271b: Git deploy hook — allows CI/CD to trigger git pull + restart
+import subprocess as _subprocess
+import hashlib as _hashlib
+
+_DEPLOY_SECRET = os.environ.get("DEPLOY_HOOK_SECRET", "murphy-deploy-2026")
+
+@router.post("/api/deploy/pull")
+async def deploy_pull(request: Request):
+    """Trigger git pull + supervisor restart. Protected by deploy secret."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    secret = body.get("secret") or request.headers.get("X-Deploy-Secret", "")
+    if secret != _DEPLOY_SECRET:
+        return JSONResponse({"error": "Invalid deploy secret"}, status_code=403)
+    try:
+        result = _subprocess.run(
+            ["bash", "-c", "cd /opt/Murphy-System && git pull origin main 2>&1 && supervisorctl restart murphy 2>&1"],
+            capture_output=True, text=True, timeout=60
+        )
+        output = (result.stdout + result.stderr).strip()
+        return JSONResponse({"success": True, "output": output[-2000:]})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)})
+
+
 def _serve_landing_html() -> HTMLResponse:
     """Shared helper: serve murphy_landing_page.html, root-level first then Murphy System/ fallback."""
     for path in [
