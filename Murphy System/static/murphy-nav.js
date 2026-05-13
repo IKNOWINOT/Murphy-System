@@ -1,332 +1,416 @@
 /**
- * murphy-nav.js — Unified Department Navigation Bar
- * Murphy System © 2020 Inoni LLC / Corey Post / BSL 1.1
- *
- * Features:
- * - Sticky top bar with department dropdown menus
- * - ALL AI system pages included (Swarm, Chain, HITL, Org, CRM, etc.)
- * - Hide/Show toggle (persisted in localStorage)
- * - Active page highlighting
- * - Mobile hamburger fallback
- *
- * Usage: <script src="/static/murphy-nav.js"></script>
+ * murphy-nav.js — PATCH-285
+ * Department-based top nav with dropdowns. No nav on landing/login pages.
+ * Topbar has department dropdowns. Sidebar shows active dept children.
+ * © 2020 Inoni Limited Liability Company by Corey Post | BSL 1.1
  */
 (function () {
   "use strict";
 
-  var STORAGE_KEY = "murphy_nav_hidden";
+  // ── Auto-add Bearer token to all /api/ calls ─────────────────────────────
+  (function patchFetch() {
+    var _origFetch = window.fetch.bind(window);
+    window.fetch = function(url, opts) {
+      opts = opts || {};
+      var urlStr = (url && url.toString) ? url.toString() : String(url);
+      if (urlStr.indexOf('/api/') !== -1) {
+        var tok = localStorage.getItem('murphy_session_token');
+        if (tok && tok.trim() !== '') {
+          opts.headers = opts.headers || {};
+          if (!opts.headers['Authorization'] && !opts.headers['authorization']) {
+            opts.headers['Authorization'] = 'Bearer ' + tok;
+          }
+        }
+        if (!opts.credentials) opts.credentials = 'same-origin';
+      }
+      return _origFetch(url, opts);
+    };
+  })();
 
-  var DEPARTMENTS = [
+  // ── Pages that should NOT show nav (public/auth pages) ───────────────────
+  var NO_NAV_PATHS = ['/', '/ui/login', '/ui/signup', '/ui/landing',
+    '/ui/demo', '/book', '/how-we-work', '/resume', '/ui/reset-password',
+    '/ui/change-password', '/shadow-marketplace'];
+  var currentPath = window.location.pathname;
+  for (var ni = 0; ni < NO_NAV_PATHS.length; ni++) {
+    if (currentPath === NO_NAV_PATHS[ni] || currentPath === NO_NAV_PATHS[ni] + '/') return;
+  }
+  // Also skip if no session token — not logged in
+  if (!localStorage.getItem('murphy_session_token')) return;
+
+  // ── Department Nav Structure ──────────────────────────────────────────────
+  var NAV = [
     {
-      label: "AI Systems", icon: "🤖", href: "/ui/swarm-command",
+      id: "command",
+      label: "Command",
+      icon: "🧠",
+      href: "/ui/dashboard",
       children: [
-        { label: "🧠 Swarm Command",        href: "/ui/swarm-command" },
-        { label: "🔗 Chain Center",          href: "/ui/chain-center" },
-        { label: "🌐 Ambient Intelligence",  href: "/ui/ambient" },
-        { label: "🌍 World Intelligence",    href: "/ui/world-intelligence" },
-        { label: "⌨ Terminal",              href: "/ui/terminal" },
-        { label: "🖥 Terminal Unified",     href: "/ui/terminal-unified" },
-        { label: "🔭 System Visualizer",    href: "/ui/system-visualizer" },
-        { label: "🛠 Self Healing",         href: "/ui/self-healing" },
-        { label: "👁 Self Vision",          href: "/ui/self-vision" },
-        { label: "📡 Dispatch",             href: "/ui/dispatch" },
-        { label: "🎙 Meeting Intelligence", href: "/ui/meeting-intelligence" },
+        { icon: "📊", label: "Dashboard",            href: "/ui/dashboard" },
+        { icon: "🧠", label: "Swarm Command",        href: "/ui/swarm-command" },
+        { icon: "🤖", label: "HITL Review",          href: "/ui/hitl-dashboard" },
+        { icon: "💬", label: "Ambient Intelligence", href: "/ui/ambient-intelligence" },
+        { icon: "📅", label: "ROI Calendar",         href: "/ui/roi-calendar" },
+        { icon: "🔧", label: "Admin Panel",          href: "/ui/admin-panel" },
+        { icon: "⚙️", label: "Management",           href: "/ui/management" },
       ],
     },
     {
-      label: "Org & People", icon: "🏢", href: "/ui/orgchart",
+      id: "sales",
+      label: "Sales",
+      icon: "💼",
+      href: "/ui/crm",
       children: [
-        { label: "🗂 Org Chart",            href: "/ui/orgchart" },
-        { label: "🏢 Org Portal",           href: "/ui/org-portal" },
-        { label: "📢 All Hands",            href: "/ui/all-hands" },
-        { label: "👁 Agent Monitor",        href: "/ui/agent-monitor" },
-        { label: "📋 Management",           href: "/ui/management" },
-        { label: "💼 Careers",              href: "/ui/careers" },
-        { label: "🧙 Onboarding Wizard",    href: "/ui/onboarding" },
-        { label: "🚦 Getting Started",      href: "/ui/getting-started" },
+        { icon: "👤", label: "CRM",                  href: "/ui/crm" },
+        { icon: "🎯", label: "AI Job Hunter",        href: "/ui/ai-job-hunter" },
+        { icon: "📋", label: "Proposals",            href: "/ui/capital" },
+        { icon: "📅", label: "Book a Meeting",       href: "/book" },
+        { icon: "🌍", label: "Demo Center",          href: "/ui/demo" },
+        { icon: "🏷", label: "Pricing",              href: "/ui/pricing" },
+        { icon: "🤝", label: "Partner Request",      href: "/ui/partner-request" },
       ],
     },
     {
-      label: "Operations", icon: "⚙", href: "/ui/dashboard",
+      id: "production",
+      label: "Production",
+      icon: "⚡",
+      href: "/ui/automations",
       children: [
-        { label: "📊 Dashboard",            href: "/ui/dashboard" },
-        { label: "🏭 Ops Center",           href: "/ui/ops-center" },
-        { label: "⏱ Automations",           href: "/ui/automations" },
-        { label: "🤖 Workflows",            href: "/ui/workflows" },
-        { label: "📋 Task Catalog",         href: "/ui/task-catalog" },
-        { label: "📅 Calendar",             href: "/ui/calendar" },
-        { label: "🏭 Production Wizard",    href: "/ui/production-wizard" },
-        { label: "🖥 Workspace",            href: "/ui/workspace" },
+        { icon: "⚡", label: "Automations",          href: "/ui/automations" },
+        { icon: "🔀", label: "Workflow Canvas",      href: "/ui/workflow-canvas" },
+        { icon: "🏗", label: "Production Wizard",    href: "/ui/production-wizard" },
+        { icon: "🔗", label: "Chain Center",         href: "/ui/chain-center" },
+        { icon: "📡", label: "Comm Hub",             href: "/ui/communication-hub" },
+        { icon: "🎙", label: "Meeting Intelligence", href: "/ui/meeting-intelligence" },
+        { icon: "🔨", label: "Forge",                href: "/ui/forge" },
       ],
     },
     {
-      label: "Sales & CRM", icon: "💼", href: "/ui/crm",
+      id: "workspace",
+      label: "Workspace",
+      icon: "🗂",
+      href: "/ui/workspace",
       children: [
-        { label: "📇 CRM",                  href: "/ui/crm" },
-        { label: "✅ HITL Dashboard",       href: "/ui/hitl-dashboard" },
-        { label: "📅 Book Audit",           href: "/book" },
-        { label: "🏷 Pricing",             href: "/ui/pricing" },
-        { label: "🤝 Partner Request",      href: "/ui/partner-request" },
-        { label: "🎬 Demo",                 href: "/ui/demo" },
-        { label: "📄 Resume",               href: "/ui/resume" },
-        { label: "⚙ How We Work",          href: "/how-we-work" },
+        { icon: "🗂", label: "Workspace",            href: "/ui/workspace" },
+        { icon: "📄", label: "Workdocs",             href: "/ui/workdocs" },
+        { icon: "📋", label: "Boards",               href: "/ui/boards" },
+        { icon: "📆", label: "Calendar",             href: "/ui/calendar" },
+        { icon: "⏱", label: "Time Tracking",        href: "/ui/time-tracking" },
+        { icon: "🌐", label: "Matrix Chat",          href: "/ui/matrix-chat" },
+        { icon: "📖", label: "Docs",                 href: "/ui/docs" },
       ],
     },
     {
-      label: "Finance", icon: "💰", href: "/ui/grant-wizard",
+      id: "finance",
+      label: "Finance",
+      icon: "💰",
+      href: "/ui/wallet",
       children: [
-        { label: "🎯 Grant Wizard",         href: "/ui/grant-wizard" },
-        { label: "📊 Grant Dashboard",      href: "/ui/grant-dashboard" },
-        { label: "📝 Grant Application",    href: "/ui/grant-application" },
-        { label: "💰 Financing Options",    href: "/ui/financing-options" },
-        { label: "💳 Wallet",               href: "/ui/wallet" },
-        { label: "📅 ROI Calendar",         href: "/ui/roi-calendar" },
-        { label: "📈 Paper Trading",        href: "/ui/paper-trading" },
-        { label: "🧾 Terminal Costs",       href: "/ui/terminal-costs" },
+        { icon: "💰", label: "Wallet",               href: "/ui/wallet" },
+        { icon: "💸", label: "Grants & Loans",       href: "/ui/financing" },
+        { icon: "📈", label: "Trading",              href: "/ui/trading" },
+        { icon: "⚠️", label: "Risk Dashboard",       href: "/ui/risk-dashboard" },
+        { icon: "💼", label: "Portfolio",            href: "/ui/portfolio" },
+        { icon: "📊", label: "Capital Proposals",    href: "/ui/capital" },
       ],
     },
     {
-      label: "Compliance", icon: "🛡", href: "/ui/compliance",
+      id: "compliance",
+      label: "Compliance",
+      icon: "🛡",
+      href: "/ui/compliance",
       children: [
-        { label: "🛡 Compliance Dashboard", href: "/ui/compliance" },
-        { label: "🔐 Security",             href: "/ui/security" },
-        { label: "🔒 Security Ops",         href: "/ui/security-ops" },
-        { label: "⚖ Legal",               href: "/ui/legal" },
-        { label: "🔒 Privacy",              href: "/ui/privacy" },
-        { label: "🛡 Admin Panel",          href: "/ui/admin" },
+        { icon: "🛡", label: "Compliance Center",    href: "/ui/compliance" },
+        { icon: "🔐", label: "Security Scan",        href: "/ui/security-scan" },
+        { icon: "🕵", label: "Honeypot",             href: "/ui/honeypot" },
+        { icon: "⚖️", label: "Legal",               href: "/ui/legal" },
+        { icon: "🔒", label: "Privacy",              href: "/ui/privacy" },
       ],
     },
     {
-      label: "Build", icon: "🔨", href: "/ui/forge",
+      id: "engineering",
+      label: "Engineering",
+      icon: "🔧",
+      href: "/ui/dev-module",
       children: [
-        { label: "🔨 Forge",               href: "/ui/forge" },
-        { label: "🎮 Game Studio",          href: "/ui/game-studio" },
-        { label: "🏗 Terminal Architect",   href: "/ui/terminal-architect" },
-        { label: "🎛 Orchestrator",         href: "/ui/terminal-orchestrator" },
-        { label: "🔬 Research",             href: "/ui/research" },
-        { label: "📡 Communication Hub",    href: "/ui/communication-hub" },
-        { label: "🔢 Matrix Integration",   href: "/ui/matrix-integration" },
+        { icon: "🔧", label: "Dev Module",           href: "/ui/dev-module" },
+        { icon: "🧬", label: "Self-Healing",         href: "/ui/self-healing" },
+        { icon: "📊", label: "Org Chart",            href: "/ui/orgchart" },
+        { icon: "🎮", label: "Game Studio",          href: "/ui/game-studio" },
+        { icon: "📚", label: "Teacher",              href: "/ui/teacher" },
+        { icon: "🔌", label: "Integrations",         href: "/ui/integrations" },
+        { icon: "🎙", label: "Voice",                href: "/ui/voice" },
       ],
     },
     {
-      label: "Settings", icon: "⚙", href: "/ui/management",
+      id: "people",
+      label: "People",
+      icon: "👥",
+      href: "/ui/org-portal",
       children: [
-        { label: "👤 Account Settings",     href: "/ui/management" },
-        { label: "🔑 Change Password",      href: "/ui/change-password" },
-        { label: "📖 Docs",                href: "/ui/docs" },
-        { label: "💬 Community",            href: "/ui/community" },
-        { label: "✍ Blog",                href: "/ui/blog" },
+        { icon: "👥", label: "Org Portal",           href: "/ui/org-portal" },
+        { icon: "🧙", label: "Onboarding",           href: "/ui/onboarding-wizard" },
+        { icon: "🌐", label: "Community",            href: "/ui/community" },
+        { icon: "🚪", label: "Guest Portal",         href: "/ui/guest-portal" },
+        { icon: "💼", label: "Careers",              href: "/ui/careers" },
+        { icon: "🤖", label: "Shadow Marketplace",   href: "/shadow-marketplace" },
       ],
     },
   ];
 
-  var PILOT = { email: "cpost@murphy.systems", name: "Corey Post" };
-
-  function injectStyles() {
-    if (document.getElementById("mnav-styles")) return;
-    var s = document.createElement("style");
-    s.id = "mnav-styles";
-    s.textContent = [
-      /* toggle button */
-      "#mnav-toggle-btn{position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:2000;",
-      "background:#111827;border:1px solid #1e2332;border-top:none;border-radius:0 0 8px 8px;",
-      "color:#00D4AA;font-size:10px;font-family:Inter,sans-serif;font-weight:700;letter-spacing:.06em;",
-      "padding:2px 14px 4px;cursor:pointer;transition:background .2s,color .2s;",
-      "display:flex;align-items:center;gap:5px;white-space:nowrap;}",
-      "#mnav-toggle-btn:hover{background:#1e2d3d;color:#fff;}",
-      "#mnav-toggle-btn .mnav-arrow{font-size:9px;transition:transform .25s;}",
-      /* nav bar */
-      "#murphy-shared-nav{position:sticky;top:0;z-index:1500;",
-      "background:rgba(10,10,15,.97);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);",
-      "border-bottom:1px solid #1e2332;display:flex;align-items:center;",
-      "padding:0 16px;gap:0;height:44px;font-family:Inter,system-ui,sans-serif;",
-      "transition:margin-top .25s ease,opacity .25s ease;}",
-      "#murphy-shared-nav.mnav-hidden{margin-top:-44px;opacity:0;pointer-events:none;}",
-      /* brand */
-      ".mn-brand{display:flex;align-items:center;gap:7px;color:#00D4AA;font-weight:800;",
-      "font-size:.88rem;text-decoration:none;letter-spacing:.04em;flex-shrink:0;margin-right:8px;}",
-      ".mn-brand-icon{width:24px;height:24px;background:#00D4AA;border-radius:6px;",
-      "display:flex;align-items:center;justify-content:center;",
-      "color:#0a0a0a;font-weight:900;font-size:13px;}",
-      /* dept links */
-      ".mn-links{display:flex;align-items:center;flex:1;overflow:hidden;}",
-      ".mn-dept{position:relative;}",
-      ".mn-dept-btn{display:flex;align-items:center;gap:4px;color:#9ba8b7;font-size:.78rem;",
-      "font-weight:500;padding:0 10px;height:44px;cursor:pointer;border:none;background:transparent;",
-      "white-space:nowrap;transition:color .15s,background .15s;font-family:inherit;text-decoration:none;}",
-      ".mn-dept-btn:hover,.mn-dept:hover .mn-dept-btn,.mn-dept-btn.active{color:#00D4AA;background:rgba(0,212,170,.07);}",
-      ".mn-caret{font-size:8px;opacity:.6;transition:transform .2s;}",
-      ".mn-dept:hover .mn-caret{transform:rotate(180deg);opacity:1;}",
-      /* dropdown */
-      ".mn-dropdown{display:none;position:absolute;top:100%;left:0;min-width:220px;",
-      "background:#0e1117;border:1px solid #1e2332;border-radius:0 0 10px 10px;padding:6px 0;",
-      "z-index:1600;box-shadow:0 12px 32px rgba(0,0,0,.6);}",
-      ".mn-dept:hover .mn-dropdown,.mn-dept:focus-within .mn-dropdown{display:block;}",
-      ".mn-dropdown a{display:flex;align-items:center;gap:8px;padding:7px 16px;color:#9ba8b7;",
-      "text-decoration:none;font-size:.79rem;white-space:nowrap;transition:color .15s,background .15s;}",
-      ".mn-dropdown a:hover{color:#00D4AA;background:rgba(0,212,170,.07);}",
-      ".mn-dropdown a.active{color:#00D4AA;font-weight:600;}",
-      ".mn-dept-heading{padding:5px 16px 3px;font-size:.68rem;font-weight:700;color:#00D4AA;",
-      "letter-spacing:.09em;text-transform:uppercase;border-bottom:1px solid #1e2332;margin-bottom:3px;}",
-      /* right */
-      ".mn-right{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:auto;padding-left:10px;}",
-      /* user menu */
-      ".mn-user{position:relative;}",
-      ".mn-user-btn{display:flex;align-items:center;gap:6px;background:rgba(0,212,170,.08);",
-      "border:1px solid rgba(0,212,170,.2);border-radius:20px;padding:4px 12px;color:#00D4AA;",
-      "font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit;",
-      "transition:background .2s,border-color .2s;white-space:nowrap;}",
-      ".mn-user-btn:hover{background:rgba(0,212,170,.18);border-color:#00D4AA;}",
-      ".mn-user-dropdown{display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:230px;",
-      "background:#0e1117;border:1px solid #1e2332;border-radius:10px;padding:6px 0;",
-      "z-index:1600;box-shadow:0 12px 32px rgba(0,0,0,.6);}",
-      ".mn-user:hover .mn-user-dropdown,.mn-user:focus-within .mn-user-dropdown{display:block;}",
-      ".mn-user-info{padding:10px 16px;border-bottom:1px solid #1e2332;margin-bottom:4px;}",
-      ".mn-uname{font-weight:700;color:#e6ecf2;font-size:.82rem;}",
-      ".mn-uemail{color:#5a6474;font-size:.73rem;margin-top:2px;}",
-      ".mn-user-dropdown a{display:flex;align-items:center;gap:8px;padding:7px 16px;",
-      "color:#9ba8b7;text-decoration:none;font-size:.79rem;white-space:nowrap;",
-      "transition:color .15s,background .15s;}",
-      ".mn-user-dropdown a:hover{color:#00D4AA;background:rgba(0,212,170,.07);}",
-      ".mn-signout{color:#f87171!important;}",
-      ".mn-signout:hover{background:rgba(248,113,113,.08)!important;}",
-      /* live dot */
-      ".mn-live-dot{width:7px;height:7px;border-radius:50%;background:#00D4AA;",
-      "animation:mn-pulse 1.6s infinite;flex-shrink:0;}",
-      "@keyframes mn-pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.75);}}",
-      /* hamburger */
-      ".mn-hamburger{display:none;background:none;border:none;color:#9ba8b7;font-size:1.3rem;",
-      "cursor:pointer;padding:4px 8px;}",
-      /* mobile */
-      "@media(max-width:768px){",
-      ".mn-links{display:none;}",
-      ".mn-hamburger{display:block;}",
-      "#murphy-shared-nav.mn-mobile-open .mn-links{display:flex;flex-direction:column;",
-      "align-items:flex-start;position:fixed;top:44px;left:0;right:0;background:#0e1117;",
-      "border-bottom:1px solid #1e2332;padding:8px 0;z-index:1500;",
-      "max-height:calc(100vh - 44px);overflow-y:auto;}",
-      "#murphy-shared-nav.mn-mobile-open .mn-dept{width:100%;}",
-      "#murphy-shared-nav.mn-mobile-open .mn-dept-btn{width:100%;height:40px;padding:0 20px;}",
-      "#murphy-shared-nav.mn-mobile-open .mn-dropdown{display:block!important;position:static;",
-      "box-shadow:none;border:none;border-top:1px solid #1e2332;background:#080b10;border-radius:0;}}",
-    ].join("");
-    document.head.appendChild(s);
+  // ── Active group detection ────────────────────────────────────────────────
+  function resolveActiveGroup(path) {
+    for (var i = 0; i < NAV.length; i++) {
+      var g = NAV[i];
+      if (g.children) {
+        for (var j = 0; j < g.children.length; j++) {
+          if (g.children[j].href === path) return g.id;
+        }
+      }
+      if (path.indexOf(g.href) === 0) return g.id;
+    }
+    return "command";
   }
 
-  function buildNav() {
-    var currentPath = window.location.pathname;
+  var activeGroupId = resolveActiveGroup(currentPath);
 
-    var deptLinks = DEPARTMENTS.map(function (dept) {
-      var isActive = dept.children.some(function (c) { return c.href === currentPath; });
-      var dropItems =
-        '<div class="mn-dept-heading">' + dept.icon + " " + dept.label + "</div>" +
-        dept.children.map(function (c) {
-          return '<a href="' + c.href + '"' + (c.href === currentPath ? ' class="active"' : "") + ">" + c.label + "</a>";
-        }).join("");
-      return (
-        '<div class="mn-dept">' +
-        '<a class="mn-dept-btn' + (isActive ? " active" : "") + '" href="' + dept.href + '">' +
-        "<span>" + dept.icon + "</span>" +
-        "<span>" + dept.label + "</span>" +
-        '<span class="mn-caret">▾</span>' +
-        "</a>" +
-        '<div class="mn-dropdown" role="menu">' + dropItems + "</div>" +
-        "</div>"
-      );
-    }).join("");
+  // ── CSS ───────────────────────────────────────────────────────────────────
+  var CSS = [
+    "#murphy-shared-nav*,#murphy-shared-sidebar*{box-sizing:border-box;}",
 
-    var userMenu =
-      '<div class="mn-user">' +
-      '<button class="mn-user-btn" aria-haspopup="true">' +
-      '<span class="mn-live-dot"></span>' +
-      "<span>" + PILOT.name + "</span>" +
-      '<span style="opacity:.5;font-size:.7rem;">▾</span>' +
-      "</button>" +
-      '<div class="mn-user-dropdown" role="menu">' +
-      '<div class="mn-user-info">' +
-      '<div class="mn-uname">' + PILOT.name + "</div>" +
-      '<div class="mn-uemail">' + PILOT.email + "</div>" +
-      "</div>" +
-      '<a href="/ui/management">⚙ Account Settings</a>' +
-      '<a href="/ui/management#billing">💳 Billing</a>' +
-      '<a href="/ui/wallet">💰 Wallet</a>' +
-      '<a href="/ui/compliance">🛡 Compliance</a>' +
-      '<a href="/ui/calendar">📅 Calendar</a>' +
-      '<a href="/ui/orgchart">🗂 Org Chart</a>' +
-      '<a href="/ui/change-password">🔑 Change Password</a>' +
-      '<a href="/ui/login" class="mn-signout">↩ Sign Out</a>' +
-      "</div></div>";
+    /* Topbar */
+    "#murphy-shared-nav{position:sticky;top:0;z-index:1100;",
+    "  background:rgba(8,10,16,.97);backdrop-filter:blur(14px);",
+    "  border-bottom:1px solid rgba(0,212,170,.12);",
+    "  display:flex;align-items:center;height:52px;padding:0 1.2rem;gap:.5rem;",
+    "  font-family:Inter,system-ui,sans-serif;}",
 
-    return (
-      '<nav id="murphy-shared-nav" role="navigation" aria-label="Murphy System navigation">' +
-      '<a href="/ui/landing" class="mn-brand" aria-label="Murphy home">' +
-      '<div class="mn-brand-icon">M</div>' +
-      "<span>Murphy</span>" +
-      "</a>" +
-      '<div class="mn-links" role="menubar">' + deptLinks + "</div>" +
+    /* Brand */
+    ".mn-brand{display:flex;align-items:center;gap:.5rem;color:#00D4AA;font-weight:800;",
+    "  font-size:.95rem;text-decoration:none;letter-spacing:.04em;flex-shrink:0;margin-right:.5rem;}",
+    ".mn-brand:hover{color:#00ffcc;text-decoration:none;}",
+
+    /* Department buttons with dropdown */
+    ".mn-links{display:flex;align-items:stretch;height:100%;flex:1;gap:0;}",
+    ".mn-dept{position:relative;display:flex;align-items:center;}",
+    ".mn-dept-btn{display:flex;align-items:center;gap:.25rem;",
+    "  color:#8a9baa;background:transparent;border:none;border-bottom:2px solid transparent;",
+    "  font-family:Inter,system-ui,sans-serif;font-size:.78rem;font-weight:500;",
+    "  padding:0 .6rem;height:100%;cursor:pointer;white-space:nowrap;",
+    "  transition:color .15s,border-color .15s;}",
+    ".mn-dept-btn:hover{color:#c9d8e2;}",
+    ".mn-dept-btn.mn-active{color:#00D4AA;border-bottom-color:#00D4AA;}",
+    ".mn-caret{font-size:.6rem;opacity:.6;transition:transform .15s;}",
+    ".mn-dept:hover .mn-caret{transform:rotate(180deg);}",
+
+    /* Dropdown panel */
+    ".mn-dropdown{display:none;position:absolute;top:100%;left:0;",
+    "  min-width:200px;background:#0c1018;border:1px solid rgba(0,212,170,.18);",
+    "  border-radius:10px;padding:6px 0;z-index:1400;",
+    "  box-shadow:0 16px 40px rgba(0,0,0,.8);",
+    "  animation:mnFade .12s ease;}",
+    "@keyframes mnFade{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}",
+    ".mn-dept:hover .mn-dropdown,.mn-dept:focus-within .mn-dropdown{display:block;}",
+    ".mn-dd-item{display:flex;align-items:center;gap:.5rem;padding:7px 14px;",
+    "  color:#b0bec5;text-decoration:none;font-size:.78rem;transition:all .15s;white-space:nowrap;}",
+    ".mn-dd-item:hover{color:#00D4AA;background:rgba(0,212,170,.08);text-decoration:none;}",
+    ".mn-dd-item.mn-dd-active{color:#00D4AA;background:rgba(0,212,170,.1);}",
+
+    /* Right side */
+    ".mn-right{display:flex;align-items:center;gap:.6rem;flex-shrink:0;margin-left:auto;}",
+
+    /* Live pill */
+    ".mn-live-pill{display:inline-flex;align-items:center;gap:.3rem;",
+    "  background:rgba(0,255,65,.05);border:1px solid rgba(0,255,65,.18);",
+    "  border-radius:999px;padding:.18rem .6rem;",
+    "  font-size:.66rem;font-family:'Courier New',monospace;color:#00ff41;}",
+    ".mn-dot{width:6px;height:6px;background:#00ff41;border-radius:50%;",
+    "  animation:mnPulse 2s infinite;}",
+    "@keyframes mnPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.5)}}",
+
+    /* User menu */
+    ".mn-user{position:relative;}",
+    ".mn-user-btn{display:flex;align-items:center;gap:.4rem;",
+    "  background:rgba(0,212,170,.09);border:1px solid rgba(0,212,170,.2);",
+    "  border-radius:20px;padding:.24rem .7rem;color:#00D4AA;font-size:.76rem;",
+    "  cursor:pointer;transition:all .15s;font-family:inherit;}",
+    ".mn-user-btn:hover{background:rgba(0,212,170,.18);border-color:#00D4AA;}",
+    ".mn-user-dropdown{display:none;position:absolute;right:0;top:calc(100% + 6px);",
+    "  min-width:210px;background:#0c1018;border:1px solid rgba(0,212,170,.18);",
+    "  border-radius:10px;padding:6px 0;z-index:1500;",
+    "  box-shadow:0 12px 32px rgba(0,0,0,.8);}",
+    ".mn-user:hover .mn-user-dropdown,.mn-user:focus-within .mn-user-dropdown{display:block;}",
+    ".mn-user-info{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.07);}",
+    ".mn-uname{font-weight:600;color:#e6ecf2;font-size:.8rem;margin-bottom:2px;}",
+    ".mn-uemail{color:#566778;font-size:.72rem;}",
+    ".mn-user-dropdown a{display:flex;align-items:center;gap:.4rem;padding:7px 14px;",
+    "  color:#c9d1d9;text-decoration:none;font-size:.78rem;transition:all .15s;}",
+    ".mn-user-dropdown a:hover{color:#00D4AA;background:rgba(0,212,170,.09);text-decoration:none;}",
+    ".mn-ud-divider{height:1px;background:rgba(255,255,255,.07);margin:4px 0;}",
+    ".mn-signout{color:#f87171!important;}",
+    ".mn-signout:hover{color:#ff4f4f!important;background:rgba(248,113,113,.08)!important;}",
+
+    /* Layout */
+    "html,body{height:100%;margin:0;padding:0;}",
+    "body{display:flex;flex-direction:column;min-height:100vh;overflow-x:hidden;}",
+    ".murphy-app-shell{display:flex;flex:1;min-height:0;}",
+    ".murphy-app-main{flex:1;overflow-y:auto;background:#080a10;min-width:0;}",
+
+    /* Mobile */
+    ".mn-hamburger{display:none;flex-direction:column;justify-content:center;",
+    "  gap:4px;background:transparent;border:none;cursor:pointer;padding:6px;}",
+    ".mn-hamburger span{display:block;width:20px;height:2px;background:#00D4AA;border-radius:2px;}",
+    "#mn-mobile-drawer{display:none;position:fixed;top:52px;left:0;right:0;bottom:0;",
+    "  background:#080a10;z-index:1200;overflow-y:auto;padding:12px;}",
+    "#mn-mobile-drawer.mn-open{display:block;}",
+    "#mn-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1199;}",
+    "#mn-overlay.mn-open{display:block;}",
+    ".mn-mobile-section{margin-bottom:16px;}",
+    ".mn-mobile-dept{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;",
+    "  color:rgba(0,212,170,.6);padding:8px 4px 4px;}",
+    ".mn-mobile-link{display:flex;align-items:center;gap:8px;padding:8px 10px;",
+    "  color:#b0bec5;text-decoration:none;font-size:.82rem;border-radius:7px;}",
+    ".mn-mobile-link:hover{color:#00D4AA;background:rgba(0,212,170,.08);}",
+
+    "@media(max-width:768px){",
+    "  .mn-links{display:none!important;}",
+    "  .mn-live-pill{display:none;}",
+    "  .mn-hamburger{display:flex;}",
+    "  .murphy-app-shell{flex-direction:column;}",
+    "  .murphy-app-main{min-height:calc(100vh - 52px);}",
+    "}",
+  ].join("\n");
+
+  // ── Build topbar HTML ─────────────────────────────────────────────────────
+  function buildTopbar(user) {
+    var deptBtns = NAV.map(function(g) {
+      var isActive = g.id === activeGroupId;
+      var items = (g.children || []).map(function(c) {
+        var isCurr = c.href === currentPath;
+        return '<a class="mn-dd-item' + (isCurr ? ' mn-dd-active' : '') + '" href="' + c.href + '">' +
+          '<span>' + c.icon + '</span>' + c.label + '</a>';
+      }).join('');
+      return '<div class="mn-dept">' +
+        '<button class="mn-dept-btn' + (isActive ? ' mn-active' : '') + '" data-group="' + g.id + '">' +
+        g.icon + ' ' + g.label + ' <span class="mn-caret">▾</span>' +
+        '</button>' +
+        '<div class="mn-dropdown">' + items + '</div>' +
+        '</div>';
+    }).join('');
+
+    var uname = (user && (user.full_name || user.email)) ? (user.full_name || user.email.split('@')[0]) : 'User';
+    var uemail = (user && user.email) ? user.email : '';
+    var role   = (user && user.role) ? user.role : 'user';
+
+    return '<nav id="murphy-shared-nav">' +
+      '<a class="mn-brand" href="/ui/dashboard">☠ Murphy</a>' +
+      '<div class="mn-links">' + deptBtns + '</div>' +
       '<div class="mn-right">' +
-      '<button class="mn-hamburger" id="mnav-hamburger" aria-label="Toggle menu">☰</button>' +
-      userMenu +
-      "</div>" +
-      "</nav>"
-    );
+        '<span class="mn-live-pill"><span class="mn-dot"></span>LIVE</span>' +
+        '<div class="mn-user">' +
+          '<button class="mn-user-btn">👤 ' + uname + ' ▾</button>' +
+          '<div class="mn-user-dropdown">' +
+            '<div class="mn-user-info"><div class="mn-uname">' + uname + '</div>' +
+            '<div class="mn-uemail">' + uemail + ' · ' + role + '</div></div>' +
+            '<a href="/ui/dashboard">📊 Dashboard</a>' +
+            '<a href="/ui/management">⚙️ Settings</a>' +
+            '<a href="/resume">📄 Murphy Resume</a>' +
+            '<div class="mn-ud-divider"></div>' +
+            '<a href="#" class="mn-signout" id="mn-signout-btn">🚪 Sign Out</a>' +
+          '</div>' +
+        '</div>' +
+        '<button class="mn-hamburger" id="mn-hamburger" aria-label="Menu">' +
+          '<span></span><span></span><span></span>' +
+        '</button>' +
+      '</div>' +
+    '</nav>';
   }
 
-  function buildToggleBtn() {
-    return (
-      '<button id="mnav-toggle-btn" aria-label="Toggle navigation bar" title="Hide/show nav">' +
-      '<span class="mnav-arrow">▲</span>' +
-      '<span class="mnav-label">NAV</span>' +
-      "</button>"
-    );
+  // ── Build mobile drawer ───────────────────────────────────────────────────
+  function buildMobileDrawer() {
+    var sections = NAV.map(function(g) {
+      var links = (g.children || []).map(function(c) {
+        return '<a class="mn-mobile-link" href="' + c.href + '">' + c.icon + ' ' + c.label + '</a>';
+      }).join('');
+      return '<div class="mn-mobile-section"><div class="mn-mobile-dept">' + g.icon + ' ' + g.label + '</div>' + links + '</div>';
+    }).join('');
+    return '<div id="mn-mobile-drawer">' + sections + '</div><div id="mn-overlay"></div>';
   }
 
-  function inject() {
-    if (document.getElementById("murphy-shared-nav")) return;
-    injectStyles();
+  // ── Inject everything ─────────────────────────────────────────────────────
+  function inject(user) {
+    // CSS
+    var style = document.createElement('style');
+    style.textContent = CSS;
+    document.head.appendChild(style);
 
-    // Insert toggle button first (always visible at top)
-    var tbWrap = document.createElement("div");
-    tbWrap.innerHTML = buildToggleBtn();
-    document.body.insertBefore(tbWrap.firstChild, document.body.firstChild);
+    // Topbar — insert before body content
+    var navEl = document.createElement('div');
+    navEl.innerHTML = buildTopbar(user);
+    document.body.insertBefore(navEl.firstChild, document.body.firstChild);
 
-    // Insert nav bar after toggle button
-    var navWrap = document.createElement("div");
-    navWrap.innerHTML = buildNav();
-    var navEl = navWrap.firstChild;
-    var toggleBtn = document.getElementById("mnav-toggle-btn");
-    document.body.insertBefore(navEl, toggleBtn.nextSibling);
+    // Mobile drawer
+    var drawerEl = document.createElement('div');
+    drawerEl.innerHTML = buildMobileDrawer();
+    while (drawerEl.firstChild) document.body.appendChild(drawerEl.firstChild);
 
-    // Restore persisted hidden state
-    var isHidden = localStorage.getItem(STORAGE_KEY) === "1";
-    if (isHidden) {
-      navEl.classList.add("mnav-hidden");
-      toggleBtn.querySelector(".mnav-arrow").style.transform = "rotate(180deg)";
+    // Wrap main content in app shell if not already wrapped
+    if (!document.querySelector('.murphy-app-shell')) {
+      var shell = document.createElement('div');
+      shell.className = 'murphy-app-shell';
+      var main = document.createElement('div');
+      main.className = 'murphy-app-main';
+      // Move all body children (except nav and drawers) into shell > main
+      var children = Array.from(document.body.children);
+      var skip = ['murphy-shared-nav', 'mn-mobile-drawer', 'mn-overlay'];
+      children.forEach(function(el) {
+        if (!skip.some(function(id) { return el.id === id; })) {
+          main.appendChild(el);
+        }
+      });
+      shell.appendChild(main);
+      document.body.appendChild(shell);
     }
 
-    // Toggle click handler
-    toggleBtn.addEventListener("click", function () {
-      var hidden = navEl.classList.toggle("mnav-hidden");
-      toggleBtn.querySelector(".mnav-arrow").style.transform = hidden ? "rotate(180deg)" : "";
-      localStorage.setItem(STORAGE_KEY, hidden ? "1" : "0");
+    // Event: sign out
+    var soBtn = document.getElementById('mn-signout-btn');
+    if (soBtn) soBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      localStorage.removeItem('murphy_session_token');
+      localStorage.removeItem('murphy_user');
+      window.location.href = '/ui/login';
     });
 
-    // Mobile hamburger
-    var hamburger = document.getElementById("mnav-hamburger");
-    if (hamburger) {
-      hamburger.addEventListener("click", function (e) {
-        e.stopPropagation();
-        navEl.classList.toggle("mn-mobile-open");
+    // Event: hamburger
+    var hb = document.getElementById('mn-hamburger');
+    var drawer = document.getElementById('mn-mobile-drawer');
+    var overlay = document.getElementById('mn-overlay');
+    if (hb && drawer) {
+      hb.addEventListener('click', function() {
+        var open = drawer.classList.contains('mn-open');
+        drawer.classList.toggle('mn-open', !open);
+        overlay.classList.toggle('mn-open', !open);
       });
-      document.addEventListener("click", function (e) {
-        if (!navEl.contains(e.target)) navEl.classList.remove("mn-mobile-open");
+      overlay.addEventListener('click', function() {
+        drawer.classList.remove('mn-open');
+        overlay.classList.remove('mn-open');
       });
     }
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", inject);
-  } else {
-    inject();
-  }
+  // ── Load user + inject ────────────────────────────────────────────────────
+  var token = localStorage.getItem('murphy_session_token');
+  if (!token) return; // not logged in — no nav
+
+  fetch('/api/account/profile', {
+    headers: { 'Authorization': 'Bearer ' + token }
+  })
+  .then(function(r) { return r.ok ? r.json() : null; })
+  .then(function(data) {
+    inject(data || {});
+  })
+  .catch(function() {
+    inject({});
+  });
+
 })();
