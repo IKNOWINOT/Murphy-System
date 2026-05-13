@@ -29,6 +29,7 @@ License: BSL 1.1
 from __future__ import annotations
 
 import ast
+import pathlib
 import hashlib
 import json
 import logging
@@ -196,6 +197,45 @@ _FM_META: Dict[str, Dict] = {
         "remediation": "Use /api/swarm/* namespace for new swarm routes.",
         "ast_checks": ["check_route_shadowing"],
     },
+    "SC-001": {
+        "name": "New file creation without justification (Rule 1)",
+        "severity": "block",
+        "description": (
+            "Rule 1: Every new feature goes INTO an existing module. "
+            "Providing a target_file that does not yet exist on disk will create a new file. "
+            "Supply metadata keys 'existing_file_tried' and 'new_file_reason' to override."
+        ),
+        "remediation": "Wire into an existing module, or supply existing_file_tried + new_file_reason.",
+        "ast_checks": [],
+    },
+    "SC-002": {
+        "name": "Duplicate class/function definition",
+        "severity": "block",
+        "description": "Same top-level class or function defined more than once in this file.",
+        "remediation": "Remove the duplicate. One concept = one implementation.",
+        "ast_checks": ["check_duplicate_definitions"],
+    },
+    "SC-003": {
+        "name": "Duplicate route registration",
+        "severity": "block",
+        "description": "Two @app.X decorators with identical HTTP method + path. FastAPI serves only the first.",
+        "remediation": "Remove or rename the duplicate route.",
+        "ast_checks": ["check_route_duplication"],
+    },
+    "SC-004": {
+        "name": "Constructor kwarg mismatch",
+        "severity": "warn",
+        "description": "Instantiation passes a kwarg not in the class __init__ signature. Runtime TypeError.",
+        "remediation": "Align call arguments with the __init__ definition.",
+        "ast_checks": ["check_constructor_signatures"],
+    },
+    "SC-005": {
+        "name": "Ignored return value (dead scoring/validation call)",
+        "severity": "warn",
+        "description": "A score/validate/compute function called as bare statement. Result silently discarded.",
+        "remediation": "Assign or act on the return value, or make the function void.",
+        "ast_checks": ["check_ignored_return_values"],
+    },
 }
 
 
@@ -348,6 +388,101 @@ def check_route_shadowing(tree: ast.AST, source: str) -> List[Dict]:
     return findings
 
 
+
+def check_duplicate_definitions(tree, source: str) -> List[Dict]:
+    findings = []
+    names: Dict[str, int] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            if getattr(node, "col_offset", 1) == 0:
+                if node.name in names:
+                    findings.append({
+                        "line": node.lineno,
+                        "detail": (
+                            f"'{node.name}' defined again at line {node.lineno} "
+                            f"(first at line {names[node.name]}). One concept = one implementation."
+                        ),
+                    })
+                else:
+                    names[node.name] = node.lineno
+    return findings
+
+
+def check_route_duplication(tree, source: str) -> List[Dict]:
+    findings = []
+    routes: Dict[str, int] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            for dec in node.decorator_list:
+                if isinstance(dec, ast.Call) and isinstance(dec.func, ast.Attribute):
+                    if dec.func.attr in ("get", "post", "put", "delete", "patch"):
+                        if dec.args and isinstance(dec.args[0], ast.Constant):
+                            key = f"{dec.func.attr}:{dec.args[0].value}"
+                            if key in routes:
+                                findings.append({
+                                    "line": node.lineno,
+                                    "detail": (
+                                        f"Route '{key}' re-registered at line {node.lineno} "
+                                        f"(first at line {routes[key]}). "
+                                        "FastAPI silently serves only the first."
+                                    ),
+                                })
+                            else:
+                                routes[key] = node.lineno
+    return findings
+
+
+def check_constructor_signatures(tree, source: str) -> List[Dict]:
+    findings = []
+    class_params: Dict[str, set] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef):
+            for item in node.body:
+                if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)) and item.name == "__init__":
+                    params = {a.arg for a in item.args.args if a.arg != "self"}
+                    params.update(a.arg for a in item.args.kwonlyargs)
+                    if item.args.kwarg:
+                        params.add("**kwargs")
+                    class_params[node.name] = params
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            if node.func.id in class_params:
+                expected = class_params[node.func.id]
+                if "**kwargs" not in expected:
+                    for kw in node.keywords:
+                        if kw.arg and kw.arg not in expected:
+                            findings.append({
+                                "line": node.lineno,
+                                "detail": (
+                                    f"'{node.func.id}()' called with kwarg '{kw.arg}' "
+                                    f"not in __init__ {sorted(expected)}. Runtime TypeError."
+                                ),
+                            })
+    return findings
+
+
+def check_ignored_return_values(tree, source: str) -> List[Dict]:
+    findings = []
+    score_pat = re.compile(r"^(score_|validate_|compute_|calculate_|check_|evaluate_|assess_)", re.I)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+            call = node.value
+            fname = ""
+            if isinstance(call.func, ast.Name):
+                fname = call.func.id
+            elif isinstance(call.func, ast.Attribute):
+                fname = call.func.attr
+            if fname and score_pat.match(fname):
+                findings.append({
+                    "line": node.lineno,
+                    "detail": (
+                        f"'{fname}()' called as bare statement — return value discarded. "
+                        "If this is a scoring/validation fn, its result is silently ignored."
+                    ),
+                })
+    return findings
+
+
 _AST_CHECK_FNS = {
     "check_llm_api_calls": check_llm_api_calls,
     "check_sqlite_thread_safety": check_sqlite_thread_safety,
@@ -355,6 +490,10 @@ _AST_CHECK_FNS = {
     "check_stop_word_stripping": check_stop_word_stripping,
     "check_singleton_thread_safety": check_singleton_thread_safety,
     "check_route_shadowing": check_route_shadowing,
+    "check_duplicate_definitions":  check_duplicate_definitions,
+    "check_route_duplication":       check_route_duplication,
+    "check_constructor_signatures":  check_constructor_signatures,
+    "check_ignored_return_values":   check_ignored_return_values,
 }
 
 
@@ -440,11 +579,30 @@ class MurphyCritic:
             len(_FM_META), len(_AST_CHECK_FNS)
         )
 
-    def review(self, source: str, filename: str = "generated.py",
+    def review(self, source: str, filename: str = "generated.py", extra_metadata: dict = None,
                use_llm: bool = True) -> CriticVerdict:
         """Full pre-deploy review. Returns CriticVerdict. BLOCK = do not deploy."""
         t0 = time.time()
         findings: List[CriticFinding] = []
+
+        # PATCH-287 SC-001: Block new file creation without justification (Rule 1)
+        if filename and filename.endswith(".py") and extra_metadata is not None:
+            _candidate = pathlib.Path("/opt/Murphy-System") / filename
+            if not _candidate.exists():
+                _meta = extra_metadata or {}
+                if not (_meta.get("existing_file_tried") and _meta.get("new_file_reason")):
+                    findings.append(CriticFinding(
+                        fid="SC-001", severity="block",
+                        name="New file creation without justification (Rule 1)",
+                        line=0,
+                        detail=(
+                            f"'{filename}' does not exist on disk. Creating it would be a NEW FILE. "
+                            "Rule 1: all new features go into existing modules. "
+                            "Pass metadata=dict(existing_file_tried='...', new_file_reason='...') to override."
+                        ),
+                        remediation="Wire into existing module, or supply existing_file_tried + new_file_reason.",
+                    ))
+
 
         # Step 1: Syntax check
         tree = None
