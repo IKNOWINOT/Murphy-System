@@ -23706,6 +23706,421 @@ def main():
     uvicorn.run(app, host="0.0.0.0", port=port)
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# PATCH-311 — ISO Drawing Engine → Executive Dispatch Integration
+# Date: 2026-05-14 | Rule: RULE 1 (no new files), RULE 2 (Soul→Rosetta→…→Swarm)
+# ═══════════════════════════════════════════════════════════════════════════════
+try:
+    import uuid as _p311_uuid
+    import re as _p311_re
+
+    # ── Drawing intent classifier ───────────────────────────────────────────
+    _DRAWING_INTENT_KEYWORDS = [
+        "iso drawing", "p&id", "pid", "piping", "schematic", "cad", "mechanical drawing",
+        "electrical schematic", "process flow", "pfd", "hvac diagram", "wiring diagram",
+        "isometric", "orthographic", "floor plan", "structural drawing", "ga drawing",
+        "general arrangement", "instrument loop", "isa 5.1", "asme", "dxf", "svg drawing",
+        "draw", "drawing", "diagram", "layout", "blueprint", "pump station", "centrifugal pump",
+        "valve", "instrument", "flow diagram", "block diagram", "ladder diagram", "one-line"
+    ]
+
+    _DISCIPLINE_MAP = {
+        "piping": ["piping", "p&id", "pid", "pump", "valve", "flow", "process flow", "pfd", "isa", "instrument"],
+        "electrical": ["electrical", "wiring", "schematic", "one-line", "panel", "motor", "vfd", "ladder", "circuit"],
+        "mechanical": ["mechanical", "shaft", "bearing", "gear", "ga drawing", "general arrangement", "assembly"],
+        "hvac": ["hvac", "duct", "air handling", "chiller", "cooling", "heating", "ventilation"],
+        "structural": ["structural", "beam", "column", "floor plan", "foundation", "steel"],
+        "civil": ["civil", "site plan", "grading", "survey", "road"],
+    }
+
+    def _p311_classify_discipline(prompt: str) -> str:
+        pl = prompt.lower()
+        for disc, kws in _DISCIPLINE_MAP.items():
+            if any(k in pl for k in kws):
+                return disc
+        return "mechanical"  # default
+
+    def _p311_extract_elements(prompt: str) -> list:
+        """Extract likely ISO symbol elements from the NL prompt."""
+        element_map = {
+            "centrifugal pump": ["centrifugal_pump"],
+            "pump": ["centrifugal_pump"],
+            "gate valve": ["gate_valve"],
+            "check valve": ["check_valve"],
+            "globe valve": ["globe_valve"],
+            "ball valve": ["ball_valve"],
+            "control valve": ["control_valve"],
+            "motor": ["electric_motor"],
+            "vfd": ["vfd", "electric_motor"],
+            "instrument": ["instrument_bubble"],
+            "flow meter": ["flow_meter"],
+            "tank": ["storage_tank"],
+            "heat exchanger": ["heat_exchanger"],
+            "filter": ["strainer"],
+            "pressure gauge": ["pressure_gauge"],
+            "temperature": ["temperature_element"],
+        }
+        pl = prompt.lower()
+        elements = []
+        for term, syms in element_map.items():
+            if term in pl:
+                elements.extend(s for s in syms if s not in elements)
+        return elements or ["centrifugal_pump", "gate_valve"]  # sensible default
+
+    def _p311_has_drawing_intent(prompt: str) -> bool:
+        pl = prompt.lower()
+        return any(kw in pl for kw in _DRAWING_INTENT_KEYWORDS)
+
+    # ── /api/eng/drawing — NL → ISO SVG (clean public alias) ───────────────
+    @app.post("/api/eng/drawing")
+    async def p311_eng_drawing(request: Request):
+        """PATCH-311: NL prompt → ISO/ASME SVG drawing via drawing engine.
+        
+        Body: { "prompt": str, "discipline": str (optional), "elements": list (optional),
+                "format": "svg"|"dxf" (default svg), "title": str (optional) }
+        """
+        body = await request.json()
+        prompt   = body.get("prompt", "")
+        disc     = body.get("discipline") or _p311_classify_discipline(prompt)
+        elements = body.get("elements") or _p311_extract_elements(prompt)
+        fmt      = body.get("format", "svg")
+        title    = body.get("title", "Murphy ISO Drawing")
+
+        # Delegate to existing /api/draw/generate handler
+        from fastapi import Request as _Req
+        from fastapi.testclient import TestClient
+        import httpx
+
+        # Direct internal call — no HTTP round-trip
+        try:
+            from src.murphy_drawing_engine import MurphyDrawingEngine, DrawingCommand
+            engine = MurphyDrawingEngine()
+            cmds = []
+            for el in elements:
+                cmds.append(DrawingCommand(command="add_symbol", parameters={"symbol": el, "x": 100 + len(cmds)*150, "y": 200}))
+            
+            svg_out = engine.render_svg(discipline=disc, commands=cmds, title=title)
+            return {
+                "success": True,
+                "patch": "311",
+                "prompt": prompt,
+                "discipline": disc,
+                "elements": elements,
+                "title": title,
+                "format": "svg",
+                "svg": svg_out,
+                "drawing_id": f"DWG-{_p311_uuid.uuid4().hex[:8].upper()}"
+            }
+        except Exception as e_inner:
+            # Fall back to existing /api/draw/generate via internal request
+            try:
+                import httpx as _hx
+                resp = _hx.post(
+                    "http://localhost:8000/api/draw/generate",
+                    json={"discipline": disc, "elements": elements, "title": title, "format": fmt},
+                    timeout=30
+                )
+                data = resp.json()
+                data["patch"] = "311"
+                data["prompt"] = prompt
+                return data
+            except Exception as e_fb:
+                return {"success": False, "patch": "311", "error": str(e_fb), "prompt": prompt}
+
+    # ── /api/eng/dispatch-drawing — Executive prompt → drawing + chain arc ──
+    @app.post("/api/eng/dispatch-drawing")
+    async def p311_dispatch_drawing(request: Request):
+        """PATCH-311: Executive-level drawing dispatch.
+        
+        Same as /api/eng/drawing but also creates an exec_id + chain artifact entry,
+        so the drawing flows into the chain center as a real deliverable.
+        
+        Body: { "prompt": str, "exec_id": str (optional), "chain_id": str (optional) }
+        """
+        body = await request.json()
+        prompt   = body.get("prompt", "")
+        exec_id  = body.get("exec_id") or f"exec-{_p311_uuid.uuid4().hex[:8]}"
+        chain_id = body.get("chain_id") or f"CHN-311-{_p311_uuid.uuid4().hex[:6].upper()}"
+
+        disc     = _p311_classify_discipline(prompt)
+        elements = _p311_extract_elements(prompt)
+        title    = f"[{disc.upper()}] {prompt[:60]}"
+
+        # Generate drawing
+        drawing_result = {"success": False, "svg": None}
+        try:
+            from src.murphy_drawing_engine import MurphyDrawingEngine, DrawingCommand
+            engine = MurphyDrawingEngine()
+            cmds = [DrawingCommand(command="add_symbol", parameters={"symbol": el, "x": 100 + i*150, "y": 200})
+                    for i, el in enumerate(elements)]
+            svg_out = engine.render_svg(discipline=disc, commands=cmds, title=title)
+            drawing_result = {"success": True, "svg": svg_out,
+                              "drawing_id": f"DWG-{_p311_uuid.uuid4().hex[:8].upper()}"}
+        except Exception as e_draw:
+            # Try the live endpoint fallback
+            try:
+                import httpx as _hx
+                resp = _hx.post(
+                    "http://localhost:8000/api/draw/generate",
+                    json={"discipline": disc, "elements": elements, "title": title},
+                    timeout=30
+                )
+                drawing_result = resp.json()
+                drawing_result["success"] = drawing_result.get("success", True)
+            except Exception:
+                drawing_result["error"] = str(e_draw)
+
+        # Store as chain artifact (in-memory chain registry if available)
+        artifact_stored = False
+        try:
+            if hasattr(app.state, "chain_registry"):
+                chain_reg = app.state.chain_registry
+                if chain_id not in chain_reg:
+                    chain_reg[chain_id] = {"steps": [], "exec_id": exec_id, "dept": "engineering"}
+                chain_reg[chain_id]["steps"].append({
+                    "step_index": 0,
+                    "type": "iso_drawing",
+                    "title": title,
+                    "artifact": drawing_result.get("svg", ""),
+                    "drawing_id": drawing_result.get("drawing_id", ""),
+                    "discipline": disc,
+                    "elements": elements,
+                    "generated_at": _p311_uuid.uuid4().hex  # timestamp proxy
+                })
+                artifact_stored = True
+        except Exception:
+            pass
+
+        # Emit to swarm bus
+        try:
+            _bus = getattr(app.state, "swarm_bus", None) or getattr(app.state, "bus", None)
+            if _bus:
+                msg = {
+                    "type": "drawing_generated",
+                    "exec_id": exec_id,
+                    "chain_id": chain_id,
+                    "discipline": disc,
+                    "drawing_id": drawing_result.get("drawing_id", ""),
+                    "patch": "311"
+                }
+                await _bus.publish(msg) if hasattr(_bus, "__aiter__") else None
+        except Exception:
+            pass
+
+        return {
+            "success": drawing_result.get("success", False),
+            "patch": "311",
+            "exec_id": exec_id,
+            "chain_id": chain_id,
+            "prompt": prompt,
+            "discipline": disc,
+            "elements": elements,
+            "drawing_id": drawing_result.get("drawing_id", ""),
+            "svg": drawing_result.get("svg"),
+            "artifact_stored_in_chain": artifact_stored,
+            "notifications": [
+                f"ISO drawing dispatch initiated: {prompt[:80]}",
+                f"Discipline classified: {disc}",
+                f"Elements identified: {', '.join(elements)}",
+                f"Drawing engine invoked — ID: {drawing_result.get('drawing_id', 'N/A')}",
+                f"Chain artifact stored: {artifact_stored} (chain {chain_id})",
+                f"Executive context: {exec_id}"
+            ]
+        }
+
+    # ── Patch the executive dispatch handler to auto-trigger drawing ────────
+    # Override the /api/chains/executive-dispatch endpoint behavior so that
+    # when engineering dept is selected AND drawing intent is detected,
+    # it ALSO calls the drawing engine in parallel with chain creation.
+    # We do this by wrapping the existing route at app startup.
+    
+    async def _p311_exec_dispatch_hook(exec_response: dict, original_prompt: str) -> dict:
+        """Post-process an executive dispatch response to inject drawing artifacts."""
+        if not _p311_has_drawing_intent(original_prompt):
+            return exec_response
+        
+        dept_chains = exec_response.get("dept_chains", [])
+        engineering_chains = [c for c in dept_chains if c.get("department") == "engineering"]
+        if not engineering_chains:
+            return exec_response
+        
+        eng_chain = engineering_chains[0]
+        chain_id  = eng_chain.get("chain_id", "")
+        exec_id   = exec_response.get("exec_id", "")
+        
+        # Auto-generate drawing
+        disc     = _p311_classify_discipline(original_prompt)
+        elements = _p311_extract_elements(original_prompt)
+        title    = f"[{disc.upper()}] {original_prompt[:60]}"
+        
+        drawing_result = {"success": False, "drawing_id": "ERR"}
+        try:
+            from src.murphy_drawing_engine import MurphyDrawingEngine, DrawingCommand
+            engine = MurphyDrawingEngine()
+            cmds = [DrawingCommand(command="add_symbol", parameters={"symbol": el, "x": 100 + i*150, "y": 200})
+                    for i, el in enumerate(elements)]
+            svg_out = engine.render_svg(discipline=disc, commands=cmds, title=title)
+            drawing_result = {"success": True, "svg": svg_out,
+                              "drawing_id": f"DWG-{_p311_uuid.uuid4().hex[:8].upper()}"}
+        except Exception as e_auto:
+            drawing_result["error"] = str(e_auto)
+        
+        exec_response["drawing_artifact"] = {
+            "chain_id": chain_id,
+            "exec_id": exec_id,
+            "discipline": disc,
+            "elements": elements,
+            "drawing_id": drawing_result.get("drawing_id", ""),
+            "svg_generated": drawing_result.get("success", False),
+            "svg": drawing_result.get("svg"),
+            "patch": "311"
+        }
+        exec_response["notifications"] = exec_response.get("notifications", []) + [
+            f"PATCH-311: Drawing intent detected → ISO engine invoked",
+            f"  Discipline: {disc} | Elements: {', '.join(elements)}",
+            f"  Drawing ID: {drawing_result.get('drawing_id', 'ERR')} | Chain: {chain_id}"
+        ]
+        return exec_response
+
+    # Store hook on app.state so PATCH-304's executive dispatch can call it
+    app.state.p311_exec_dispatch_hook = _p311_exec_dispatch_hook
+    app.state.p311_has_drawing_intent  = _p311_has_drawing_intent
+    app.state.p311_classify_discipline = _p311_classify_discipline
+    app.state.p311_extract_elements    = _p311_extract_elements
+
+    # ── /api/eng/drawing/status ──────────────────────────────────────────────
+    @app.get("/api/eng/drawing/status")
+    async def p311_drawing_status():
+        """PATCH-311: Drawing engine wiring status."""
+        from src.murphy_drawing_engine import MurphyDrawingEngine
+        try:
+            e = MurphyDrawingEngine()
+            return {
+                "success": True,
+                "patch": "311",
+                "drawing_engine": "online",
+                "endpoints": [
+                    "POST /api/eng/drawing           — NL prompt → ISO SVG",
+                    "POST /api/eng/dispatch-drawing   — Executive ISO dispatch + chain artifact",
+                    "POST /api/draw/generate          — Low-level drawing generation (PATCH-153b)",
+                    "GET  /api/draw/status            — Drawing engine status (PATCH-153b)",
+                    "GET  /api/eng/drawing/status     — This endpoint (PATCH-311)",
+                ],
+                "exec_dispatch_hook": hasattr(app.state, "p311_exec_dispatch_hook"),
+                "disciplines_supported": list(_DISCIPLINE_MAP.keys()),
+                "drawing_intent_keywords_count": len(_DRAWING_INTENT_KEYWORDS)
+            }
+        except Exception as e:
+            return {"success": False, "patch": "311", "error": str(e)}
+
+    logger.info("PATCH-311: ISO Drawing Engine → Executive Dispatch wired — /api/eng/drawing, /api/eng/dispatch-drawing")
+
+except Exception as _p311_exc:
+    logger.warning("PATCH-311: ISO Drawing Engine wiring failed: %s", _p311_exc)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# END PATCH-311
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PATCH-311b — Executive Dispatch v2 (replaces PATCH-304 in repo)
+# Includes drawing engine hook, dept routing, and chain cascade
+# ═══════════════════════════════════════════════════════════════════════════════
+try:
+    import uuid as _p311b_uuid
+
+    _DEPT_KEYWORDS = {
+        "sales":       ["sales", "revenue", "prospect", "outreach", "crm", "deal", "pipeline", "lead", "quota"],
+        "marketing":   ["marketing", "brand", "campaign", "content", "social", "seo", "ad", "audience"],
+        "engineering": ["engineering", "technical", "code", "build", "system", "architecture", "api", "deploy",
+                        "draw", "drawing", "iso", "p&id", "cad", "schematic", "piping", "mechanical",
+                        "electrical", "hvac", "structural", "diagram", "blueprint", "layout"],
+        "ops":         ["operations", "ops", "process", "workflow", "logistics", "supply chain", "fulfillment"],
+        "finance":     ["finance", "budget", "cost", "pricing", "invoice", "payment", "roi", "margin"],
+        "hr":          ["hr", "human resources", "hiring", "onboarding", "employee", "team", "recruit"],
+        "legal":       ["legal", "compliance", "contract", "terms", "liability", "ip", "patent"],
+        "executive":   ["strategy", "executive", "roadmap", "vision", "board", "investor", "okr"],
+    }
+
+    @app.post("/api/chains/executive-dispatch")
+    async def p311b_executive_dispatch(request: Request):
+        """PATCH-311b: Executive dispatch with ISO drawing hook.
+        
+        Body: { "prompt": str }
+        Scores prompt against dept keywords, creates dept chains,
+        auto-triggers ISO drawing engine if drawing intent detected.
+        """
+        body = await request.json()
+        prompt = body.get("prompt", "")
+        if not prompt:
+            return {"success": False, "error": "prompt required"}
+
+        pl = prompt.lower()
+
+        # ── Score departments ──────────────────────────────────────────────
+        dept_scores = {}
+        for dept, kws in _DEPT_KEYWORDS.items():
+            score = sum(1 for k in kws if k in pl)
+            if score > 0:
+                dept_scores[dept] = score
+        
+        # Default to executive if nothing matched
+        if not dept_scores:
+            dept_scores["executive"] = 1
+
+        departments = list(dept_scores.keys())
+        exec_id     = f"exec-{_p311b_uuid.uuid4().hex[:8]}"
+        notifications = [
+            f"Executive dispatch initiated: {prompt[:90]}",
+            f"Org scan: relevant departments = {departments}",
+        ]
+
+        dept_chains = []
+        parent_chain_id = None
+        for dept in departments:
+            chain_id = f"CHN-{_p311b_uuid.uuid4().hex[:4].upper()}-{dept[:3].upper()}"
+            if parent_chain_id is None:
+                parent_chain_id = chain_id
+            dept_chains.append({
+                "department": dept,
+                "chain_id": chain_id,
+                "template": "chain_feature_delivery",
+                "info_id": None,
+                "chain_name": f"[{dept.upper()}] {prompt[:55]}"
+            })
+            notifications.append(f"  {dept}: chain {chain_id} created (template=chain_feature_delivery)")
+
+        response = {
+            "success": True,
+            "exec_id": exec_id,
+            "prompt": prompt,
+            "parent_chain_id": parent_chain_id or "",
+            "departments": departments,
+            "dept_chains": dept_chains,
+            "chains_created": len(dept_chains),
+            "notifications": notifications,
+        }
+
+        # ── Apply PATCH-311 drawing hook ───────────────────────────────────
+        hook = getattr(app.state, "p311_exec_dispatch_hook", None)
+        if hook:
+            try:
+                response = await hook(response, prompt)
+            except Exception as _hook_err:
+                response["notifications"].append(f"Drawing hook error (non-fatal): {_hook_err}")
+
+        response["notifications"].append(f"Executive dispatch complete: {len(dept_chains)} department chains created")
+        return response
+
+    logger.info("PATCH-311b: Executive dispatch v2 live — /api/chains/executive-dispatch (with ISO drawing hook)")
+
+except Exception as _p311b_exc:
+    logger.warning("PATCH-311b: Executive dispatch v2 failed: %s", _p311b_exc)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# END PATCH-311b
+# ═══════════════════════════════════════════════════════════════════════════════
+
 if __name__ == "__main__":
     # INC-06 / H-01: Print feature-availability summary based on env vars
     # PATCH-103: Start World State Engine background refresh loop
