@@ -21296,155 +21296,6 @@ def create_app() -> FastAPI:
 
     # ── PATCH-115b: Rosetta Soul API ──────────────────────────────────────────
 
-    @app.get("/api/rosetta/org-chart")
-    async def rosetta_org_chart_alias(request: Request):
-        """PATCH-290e: Alias — delegates to the canonical onboarding-flow org chart handler."""
-        try:
-            from src.runtime.app import get_org_chart as _goc
-            return await _goc(request)
-        except Exception:
-            pass
-        # Fallback: read from Rosetta CHARACTERS directly
-        try:
-            rosetta = getattr(murphy, "rosetta_core", None)
-            if rosetta:
-                chars = getattr(rosetta, "characters", {}) or {}
-                nodes = [
-                    {"id": k, "name": v.get("name", k), "role": v.get("role", ""),
-                     "department": v.get("department", ""), "soul_summary": v.get("soul_summary", "")}
-                    for k, v in chars.items()
-                ]
-                return JSONResponse({"success": True, "nodes": nodes, "source": "rosetta_characters"})
-        except Exception:
-            pass
-        return JSONResponse({"success": True, "nodes": [], "source": "empty"})
-
-    @app.get("/api/rosetta/persona/{persona_id}")
-    async def rosetta_persona(persona_id: str):
-        """PATCH-290g v2: Return soul detail for a specific swarm agent by ID."""
-        try:
-            # Pull from swarm agent registry (same source as /api/swarm/agents/status)
-            swarm_coord = getattr(murphy, "swarm_coordinator", None)
-            agent_data = None
-            if swarm_coord:
-                # Try agent_configs (dict of config dicts)
-                for attr in ["agent_configs", "_agent_configs", "agents_config", "roster"]:
-                    ac = getattr(swarm_coord, attr, None)
-                    if isinstance(ac, dict) and persona_id in ac:
-                        agent_data = ac[persona_id]
-                        break
-                # Try the agent objects dict
-                if not agent_data:
-                    for attr in ["agents", "_agents"]:
-                        ag_dict = getattr(swarm_coord, attr, None)
-                        if isinstance(ag_dict, dict) and persona_id in ag_dict:
-                            ag = ag_dict[persona_id]
-                            if isinstance(ag, dict):
-                                agent_data = ag
-                            else:
-                                agent_data = {
-                                    "name": getattr(ag, "name", persona_id),
-                                    "role": getattr(ag, "role", "agent"),
-                                    "department": getattr(ag, "department", ""),
-                                    "runs_total": getattr(ag, "runs_total", 0),
-                                }
-                            break
-
-            # Build soul summary from MFGC soul definitions
-            _SOUL_MAP = {
-                "collector":  ("Collector", "Signal Collector", "I gather all incoming signals — market data, CRM events, email threads, system alerts — and tag them for downstream agents.", ["Completeness over speed", "Never discard a signal without tagging it", "Flag anomalies immediately"]),
-                "translator": ("Translator", "Signal Translator", "I convert raw signals into structured intelligence that business agents can act on.", ["Accuracy above all", "Preserve signal intent", "Emit structured JSON only"]),
-                "scheduler":  ("Scheduler", "Operations Scheduler", "I own the task queue — when things run, in what order, and under what conditions.", ["No task runs without gate clearance", "HITL for high-risk", "Respect rate limits"]),
-                "executor":   ("Executor", "Task Executor", "I execute approved tasks: send emails, make API calls, write records, trigger workflows.", ["Never execute without HITL approval for external actions", "Log everything", "Fail loudly"]),
-                "auditor":    ("Auditor", "Compliance Auditor", "I review every action for compliance with HIPAA, SOC2, GDPR, and internal policy.", ["Zero tolerance for policy violations", "Flag before blocking", "Maintain audit trail"]),
-                "exec_admin": ("Executive Admin", "Executive Director", "I synthesize intelligence into strategic decisions and direct the swarm toward revenue goals.", ["Revenue focus", "Unblock the team", "Escalate to HITL when uncertain"]),
-                "prod_ops":   ("Prod Ops", "Production Engineer", "I maintain system health, deploy patches, and ensure the platform is always running.", ["Stability first", "One patch one thing", "Test before ship"]),
-                "hitl":       ("HITL Gate", "Human-in-Loop Controller", "I decide what requires founder approval and what agents can run autonomously.", ["When in doubt, escalate", "Never auto-approve external spend", "Protect founder authority"]),
-                "rosetta":    ("Rosetta", "Soul Renderer", "I render the soul context for every agent — their identity, values, and authority level.", ["Soul is the source of truth", "Render fresh on every dispatch", "Layer 0+1 always injected"]),
-            }
-            soul_name, soul_role, soul_l0, soul_l1 = _SOUL_MAP.get(
-                persona_id, (persona_id, "agent", f"I am the {persona_id} agent.", [])
-            )
-            runs = 0
-            if agent_data:
-                runs = agent_data.get("runs_total", 0)
-                soul_name = agent_data.get("name", soul_name)
-                soul_role = agent_data.get("role", soul_role)
-
-            return JSONResponse({
-                "success": True,
-                "persona_id": persona_id,
-                "name": soul_name,
-                "role": soul_role,
-                "soul_l0": soul_l0,
-                "soul_l1": soul_l1,
-                "authority": "elevated" if persona_id in ("exec_admin", "hitl", "rosetta") else "standard",
-                "active_chains": [],
-                "runs_total": runs,
-                "confidence": 0.0,
-            })
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, status_code=500)
-
-    @app.get("/api/rosetta/soul")
-    async def _rosetta_soul():
-        """Full soul status: principles, character roster, world context."""
-        try:
-            from src.rosetta_core import get_rosetta_soul
-            return JSONResponse({"success": True, **get_rosetta_soul().soul_status()})
-        except Exception as exc:
-            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
-
-    @app.get("/api/rosetta/status")
-    async def _rosetta_status_v2():
-        """Swarm coordinator status: all agents with soul character + runtime state."""
-        try:
-            from src.rosetta_core import get_swarm_coordinator
-            return JSONResponse({"success": True, **get_swarm_coordinator().swarm_status()})
-        except Exception as exc:
-            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
-
-    @app.get("/api/influence/snapshot")
-    async def _influence_snapshot():
-        """Current world influence snapshot."""
-        try:
-            from src.influence_collector import get_influence_collector
-            snap = get_influence_collector().last_snapshot()
-            if snap is None:
-                snap = get_influence_collector().fetch_snapshot()
-            return JSONResponse({"success": True,
-                "timestamp": snap.timestamp,
-                "trending_topics": snap.trending_topics[:10],
-                "global_sentiment": snap.global_sentiment,
-                "volatility_index": snap.volatility_index,
-                "top_domains": snap.top_domains,
-            })
-        except Exception as exc:
-            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
-
-    @app.get("/api/influence/trending")
-    async def _influence_trending(domain: str = None, limit: int = 10):
-        """Trending topics with demographic affinity scores."""
-        try:
-            from src.influence_collector import get_influence_collector
-            snap = get_influence_collector().last_snapshot()
-            if snap is None:
-                snap = get_influence_collector().fetch_snapshot()
-            topics = snap.trending_topics
-            if domain:
-                domain_seg_map = {
-                    "exec_admin": ["enterprise","policy_maker"],
-                    "prod_ops": ["developer","tech_early_adopter"],
-                    "comms": ["consumer","enterprise"],
-                }
-                segs = domain_seg_map.get(domain, ["tech_early_adopter"])
-                topics = [t for t in topics if any(
-                    t.get("demographic_affinity",{}).get(s,0) > 0.1 for s in segs
-                )]
-            return JSONResponse({"success": True, "topics": topics[:limit], "domain_filter": domain})
-        except Exception as exc:
-            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
-
     @app.post("/api/rosetta/dispatch")
     async def _rosetta_dispatch(request: Request):
         """PATCH-292: Soul → Rosetta → MFGC → MSS → Swarm dispatch pipeline.
@@ -21552,6 +21403,7 @@ def create_app() -> FastAPI:
 
             return JSONResponse({
                 "success": True,
+                "_patch": "292",
                 "dag_id": dag_id,
                 "soul_contexts_loaded": len(soul_contexts),
                 "assigned_agents": assigned_agents,
@@ -21937,6 +21789,157 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": True, **result})
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+
+    @app.get("/api/rosetta/org-chart")
+    async def rosetta_org_chart_alias(request: Request):
+        """PATCH-290e: Alias — delegates to the canonical onboarding-flow org chart handler."""
+        try:
+            from src.runtime.app import get_org_chart as _goc
+            return await _goc(request)
+        except Exception:
+            pass
+        # Fallback: read from Rosetta CHARACTERS directly
+        try:
+            rosetta = getattr(murphy, "rosetta_core", None)
+            if rosetta:
+                chars = getattr(rosetta, "characters", {}) or {}
+                nodes = [
+                    {"id": k, "name": v.get("name", k), "role": v.get("role", ""),
+                     "department": v.get("department", ""), "soul_summary": v.get("soul_summary", "")}
+                    for k, v in chars.items()
+                ]
+                return JSONResponse({"success": True, "nodes": nodes, "source": "rosetta_characters"})
+        except Exception:
+            pass
+        return JSONResponse({"success": True, "nodes": [], "source": "empty"})
+
+    @app.get("/api/rosetta/persona/{persona_id}")
+    async def rosetta_persona(persona_id: str):
+        """PATCH-290g v2: Return soul detail for a specific swarm agent by ID."""
+        try:
+            # Pull from swarm agent registry (same source as /api/swarm/agents/status)
+            swarm_coord = getattr(murphy, "swarm_coordinator", None)
+            agent_data = None
+            if swarm_coord:
+                # Try agent_configs (dict of config dicts)
+                for attr in ["agent_configs", "_agent_configs", "agents_config", "roster"]:
+                    ac = getattr(swarm_coord, attr, None)
+                    if isinstance(ac, dict) and persona_id in ac:
+                        agent_data = ac[persona_id]
+                        break
+                # Try the agent objects dict
+                if not agent_data:
+                    for attr in ["agents", "_agents"]:
+                        ag_dict = getattr(swarm_coord, attr, None)
+                        if isinstance(ag_dict, dict) and persona_id in ag_dict:
+                            ag = ag_dict[persona_id]
+                            if isinstance(ag, dict):
+                                agent_data = ag
+                            else:
+                                agent_data = {
+                                    "name": getattr(ag, "name", persona_id),
+                                    "role": getattr(ag, "role", "agent"),
+                                    "department": getattr(ag, "department", ""),
+                                    "runs_total": getattr(ag, "runs_total", 0),
+                                }
+                            break
+
+            # Build soul summary from MFGC soul definitions
+            _SOUL_MAP = {
+                "collector":  ("Collector", "Signal Collector", "I gather all incoming signals — market data, CRM events, email threads, system alerts — and tag them for downstream agents.", ["Completeness over speed", "Never discard a signal without tagging it", "Flag anomalies immediately"]),
+                "translator": ("Translator", "Signal Translator", "I convert raw signals into structured intelligence that business agents can act on.", ["Accuracy above all", "Preserve signal intent", "Emit structured JSON only"]),
+                "scheduler":  ("Scheduler", "Operations Scheduler", "I own the task queue — when things run, in what order, and under what conditions.", ["No task runs without gate clearance", "HITL for high-risk", "Respect rate limits"]),
+                "executor":   ("Executor", "Task Executor", "I execute approved tasks: send emails, make API calls, write records, trigger workflows.", ["Never execute without HITL approval for external actions", "Log everything", "Fail loudly"]),
+                "auditor":    ("Auditor", "Compliance Auditor", "I review every action for compliance with HIPAA, SOC2, GDPR, and internal policy.", ["Zero tolerance for policy violations", "Flag before blocking", "Maintain audit trail"]),
+                "exec_admin": ("Executive Admin", "Executive Director", "I synthesize intelligence into strategic decisions and direct the swarm toward revenue goals.", ["Revenue focus", "Unblock the team", "Escalate to HITL when uncertain"]),
+                "prod_ops":   ("Prod Ops", "Production Engineer", "I maintain system health, deploy patches, and ensure the platform is always running.", ["Stability first", "One patch one thing", "Test before ship"]),
+                "hitl":       ("HITL Gate", "Human-in-Loop Controller", "I decide what requires founder approval and what agents can run autonomously.", ["When in doubt, escalate", "Never auto-approve external spend", "Protect founder authority"]),
+                "rosetta":    ("Rosetta", "Soul Renderer", "I render the soul context for every agent — their identity, values, and authority level.", ["Soul is the source of truth", "Render fresh on every dispatch", "Layer 0+1 always injected"]),
+            }
+            soul_name, soul_role, soul_l0, soul_l1 = _SOUL_MAP.get(
+                persona_id, (persona_id, "agent", f"I am the {persona_id} agent.", [])
+            )
+            runs = 0
+            if agent_data:
+                runs = agent_data.get("runs_total", 0)
+                soul_name = agent_data.get("name", soul_name)
+                soul_role = agent_data.get("role", soul_role)
+
+            return JSONResponse({
+                "success": True,
+                "persona_id": persona_id,
+                "name": soul_name,
+                "role": soul_role,
+                "soul_l0": soul_l0,
+                "soul_l1": soul_l1,
+                "authority": "elevated" if persona_id in ("exec_admin", "hitl", "rosetta") else "standard",
+                "active_chains": [],
+                "runs_total": runs,
+                "confidence": 0.0,
+            })
+        except Exception as e:
+            return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+
+    @app.get("/api/rosetta/soul")
+    async def _rosetta_soul():
+        """Full soul status: principles, character roster, world context."""
+        try:
+            from src.rosetta_core import get_rosetta_soul
+            return JSONResponse({"success": True, **get_rosetta_soul().soul_status()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/rosetta/status")
+    async def _rosetta_status_v2():
+        """Swarm coordinator status: all agents with soul character + runtime state."""
+        try:
+            from src.rosetta_core import get_swarm_coordinator
+            return JSONResponse({"success": True, **get_swarm_coordinator().swarm_status()})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/influence/snapshot")
+    async def _influence_snapshot():
+        """Current world influence snapshot."""
+        try:
+            from src.influence_collector import get_influence_collector
+            snap = get_influence_collector().last_snapshot()
+            if snap is None:
+                snap = get_influence_collector().fetch_snapshot()
+            return JSONResponse({"success": True,
+                "timestamp": snap.timestamp,
+                "trending_topics": snap.trending_topics[:10],
+                "global_sentiment": snap.global_sentiment,
+                "volatility_index": snap.volatility_index,
+                "top_domains": snap.top_domains,
+            })
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/influence/trending")
+    async def _influence_trending(domain: str = None, limit: int = 10):
+        """Trending topics with demographic affinity scores."""
+        try:
+            from src.influence_collector import get_influence_collector
+            snap = get_influence_collector().last_snapshot()
+            if snap is None:
+                snap = get_influence_collector().fetch_snapshot()
+            topics = snap.trending_topics
+            if domain:
+                domain_seg_map = {
+                    "exec_admin": ["enterprise","policy_maker"],
+                    "prod_ops": ["developer","tech_early_adopter"],
+                    "comms": ["consumer","enterprise"],
+                }
+                segs = domain_seg_map.get(domain, ["tech_early_adopter"])
+                topics = [t for t in topics if any(
+                    t.get("demographic_affinity",{}).get(s,0) > 0.1 for s in segs
+                )]
+            return JSONResponse({"success": True, "topics": topics[:limit], "domain_filter": domain})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
 
     @app.post("/api/rosetta/translate")
     async def _rosetta_translate(request: Request):
