@@ -1240,8 +1240,9 @@ class MurphySystem:
             {"name": "Execution Gate", "threshold": 0.8, "stage": "execution"}
         ]
         self.mfgc_config = {
-            "enabled": False,
-            "murphy_threshold": 0.3,
+            # PATCH-291: enabled=True
+            "enabled": True,
+            "murphy_threshold": 0.6,
             "confidence_mode": "phase_locked",
             "authority_mode": "standard",
             "gate_synthesis": True,
