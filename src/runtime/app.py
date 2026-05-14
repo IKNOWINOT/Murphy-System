@@ -9612,16 +9612,8 @@ def create_app() -> FastAPI:
         def gate(ok: bool) -> str:
             return "open" if ok else "closed"
 
-        # PATCH-291-DEBUG: fingerprint to confirm this handler is live
-        _p291_cfg_enabled = cfg.get("enabled", "MISSING")
-        _p291_threshold   = cfg.get("murphy_threshold", "MISSING")
         return JSONResponse({
             "success": True,
-            "_patch": "291v2",
-            "_cfg_enabled": _p291_cfg_enabled,
-            "_threshold":   _p291_threshold,
-            "_mind_conf":   mind_conf,
-            "_mind_cycle":  mind_cycle,
             "gates": {
                 "executive":  gate(enabled and mind_conf >= 0.70),
                 "operations": gate(enabled and mind_running and mind_cycle > 0),
