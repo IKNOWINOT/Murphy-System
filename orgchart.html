@@ -587,6 +587,24 @@ function fit(){
 // SELECTION
 // ════════════════════════════════════════════════
 function selectNode(id){
+  // PATCH-290g: Click node → fetch and show soul panel
+  const n = nodes[id];
+  if (!n) return;
+  document.querySelectorAll('.org-node').forEach(el => el.classList.remove('selected'));
+  const el = document.getElementById('node-' + id);
+  if (el) el.classList.add('selected');
+  const panel = document.getElementById('inspector-content') || document.querySelector('.inspector');
+  if (!panel) return;
+  panel.innerHTML = '<div style="padding:12px;color:#8899AA;font-size:12px;">Loading soul...</div>';
+  fetch('/api/rosetta/persona/' + encodeURIComponent(id), {credentials:'same-origin'})
+    .then(r=>r.json()).then(data=>{
+      if(!data.success){
+        panel.innerHTML = '<div style="padding:16px"><div style="font-size:14px;font-weight:700;margin-bottom:8px">'+(n.title||id)+'</div><div style="font-size:12px;color:#8899AA">'+(n.department||'')+'</div><div style="margin-top:12px;font-size:12px;color:#566778">No soul data — role not yet assigned to an agent.</div><button class="m-btn m-btn-primary m-btn-sm" style="margin-top:12px" onclick="dispatchToAgent(\'' + id + '\')">⚡ Dispatch Task</button></div>';
+        return;
+      }
+      const l1 = Array.isArray(data.soul_l1)?data.soul_l1.slice(0,3).map(f=>'<li>'+f+'</li>').join(''):'';
+      panel.innerHTML = '<div style="padding:16px"><div style="font-size:15px;font-weight:700;margin-bottom:4px">'+(data.name||id)+'</div><div style="font-size:11px;color:#00D4AA;margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em">'+(data.role||'')+' &middot; '+(data.authority||'standard')+'</div><div style="font-size:12px;color:#B0C0D0;line-height:1.5;margin-bottom:12px">'+(data.soul_l0||'No soul summary.')+'</div>'+(l1?'<div style="font-size:11px;color:#8899AA;margin-bottom:8px;text-transform:uppercase">Key Facts</div><ul style="font-size:12px;color:#B0C0D0;padding-left:16px;line-height:1.8">'+l1+'</ul>':'')+'<div style="margin-top:4px;font-size:11px;color:#566778">Confidence: '+((data.confidence||0)*100).toFixed(0)+'%</div><button class="m-btn m-btn-primary m-btn-sm" style="margin-top:14px;width:100%" onclick="dispatchToAgent(\'' + id + '\')">⚡ Dispatch Task to '+(data.name||id)+'</button></div>';
+    }).catch(e=>{panel.innerHTML='<div style="padding:12px;color:#EF4444;font-size:12px;">Failed: '+e.message+'</div>';});
   sel=id;
   currentTab='org';
   render();

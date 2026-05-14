@@ -14042,6 +14042,35 @@ def create_app() -> FastAPI:
         _hitl_queue.append(item)
         return JSONResponse({"ok": True, "id": tid, "item": item})
 
+    @app.get("/api/hitl/{item_id}/inspect")
+    async def hitl_inspect(item_id: str):
+        """PATCH-290f: Return full inspection detail for a HITL item."""
+        try:
+            state = murphy.get_hitl_state()
+            # Check both queue and history
+            all_items = (state.get("pending", []) or []) + (state.get("history", []) or [])
+            item = next((i for i in all_items if str(i.get("id", "")) == str(item_id)), None)
+            if not item:
+                return JSONResponse({"success": False, "error": "Item not found"}, status_code=404)
+
+            # Enrich with context
+            enriched = dict(item)
+            enriched.setdefault("triggered_by", item.get("source", "swarm_agent"))
+            enriched.setdefault("proposed_action", item.get("task", item.get("content", "—")))
+            enriched.setdefault("risk_level", "medium")
+            enriched.setdefault("agent", item.get("agent_id", item.get("type", "unknown")))
+            enriched.setdefault("chain_id", item.get("chain_id", None))
+            enriched.setdefault("workflow_id", item.get("workflow_id", None))
+
+            # Risk assessment
+            content_str = str(item.get("task", "") or item.get("content", ""))
+            risk = "high" if any(w in content_str.lower() for w in ["email", "send", "post", "publish", "deploy"]) else                    "low" if any(w in content_str.lower() for w in ["read", "list", "get", "status"]) else "medium"
+            enriched["risk_level"] = risk
+
+            return JSONResponse({"success": True, **enriched})
+        except Exception as e:
+            return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+
     @app.post("/api/hitl/{tid}/decide")
     async def hitl_decide(tid: str, request: Request):
         """Accept, reject, or request revisions on an HITL item (QC or acceptance)."""
@@ -21289,6 +21318,49 @@ def create_app() -> FastAPI:
         except Exception:
             pass
         return JSONResponse({"success": True, "nodes": [], "source": "empty"})
+
+    @app.get("/api/rosetta/persona/{persona_id}")
+    async def rosetta_persona(persona_id: str):
+        """PATCH-290g: Return soul detail for a specific persona/agent by ID."""
+        try:
+            rosetta = getattr(murphy, "rosetta_core", None)
+            # Try swarm agents first
+            swarm_coord = getattr(murphy, "swarm_coordinator", None)
+            if swarm_coord:
+                agents = getattr(swarm_coord, "agents", {}) or {}
+                if persona_id in agents:
+                    ag = agents[persona_id]
+                    soul = getattr(ag, "soul", {}) or {}
+                    return JSONResponse({
+                        "success": True,
+                        "persona_id": persona_id,
+                        "name": getattr(ag, "name", persona_id),
+                        "role": getattr(ag, "role", "agent"),
+                        "soul_l0": soul.get("l0", soul.get("identity", f"I am {persona_id}")),
+                        "soul_l1": soul.get("l1", soul.get("critical_facts", [])),
+                        "authority": soul.get("authority", "standard"),
+                        "active_chains": getattr(ag, "active_chains", []),
+                        "last_act": getattr(ag, "last_act_time", None),
+                        "confidence": getattr(ag, "confidence", 0.0),
+                    })
+            # Try rosetta characters
+            if rosetta:
+                chars = getattr(rosetta, "characters", {}) or {}
+                char = chars.get(persona_id) or chars.get(persona_id.replace("-", "_"))
+                if char:
+                    return JSONResponse({
+                        "success": True,
+                        "persona_id": persona_id,
+                        "name": char.get("name", persona_id),
+                        "role": char.get("role", ""),
+                        "soul_l0": char.get("soul_summary", char.get("description", "")),
+                        "soul_l1": char.get("critical_facts", []),
+                        "authority": char.get("authority_level", "standard"),
+                        "active_chains": [],
+                    })
+            return JSONResponse({"success": False, "error": "Persona not found"}, status_code=404)
+        except Exception as e:
+            return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
     @app.get("/api/rosetta/soul")
     async def _rosetta_soul():
