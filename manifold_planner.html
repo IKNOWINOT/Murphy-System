@@ -142,6 +142,25 @@ textarea.fi{resize:vertical;min-height:48px}
 .dep-chain{border-left:2px solid var(--amber);padding-left:.5rem;margin:.3rem 0}
 .dep-link{font-size:.63rem;color:var(--amber);margin-bottom:.15rem}
 .dep-link::before{content:'↳ '}
+
+/* PATCH-290c: Gap prescriptions + risk badges + block summaries */
+.risk-badge{display:inline-flex;align-items:center;gap:.25rem;font-size:.62rem;
+  padding:1px 7px;border-radius:10px;font-weight:700;margin-left:.3rem}
+.risk-HIGH{background:#e74c3c22;color:#e74c3c;border:1px solid #e74c3c44}
+.risk-MEDIUM{background:#f39c1222;color:#f39c12;border:1px solid #f39c1244}
+.risk-LOW{background:#2ecc7122;color:#2ecc71;border:1px solid #2ecc7144}
+.gap-prescription{background:#e74c3c0a;border:1px solid #e74c3c33;border-radius:6px;
+  padding:.4rem .5rem;margin:.3rem 0;font-size:.63rem}
+.gap-prescription .gp-type{font-weight:700;color:#e74c3c;font-size:.65rem;margin-bottom:.15rem}
+.gap-prescription .gp-action{color:var(--text);line-height:1.4}
+.gap-prescription .gp-meta{color:var(--dim);font-size:.6rem;margin-top:.2rem}
+.block-summary{background:var(--s2);border:1px solid var(--b1);border-radius:8px;
+  padding:.5rem .6rem;margin-bottom:.4rem}
+.bs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.3rem}
+.bs-cell{text-align:center;padding:.25rem;background:var(--bg);border-radius:5px}
+.bs-num{font-size:1.1rem;font-weight:800}
+.bs-lbl{font-size:.58rem;color:var(--dim)}
+
 </style>
 </head>
 <body>
@@ -224,7 +243,101 @@ textarea.fi{resize:vertical;min-height:48px}
   </div>
 </div>
 
-<script src="/static/murphy-nav.js"></script>
+<script src="/static/murphy-nav.js">
+// ── PATCH-290c: Gap prescriptions + risk + block summaries ─────────────────────
+const _gapCache = {};
+const _blockSummaryCache = {};
+
+async function fetchGapPrescription(entryId) {
+  if (_gapCache[entryId] !== undefined) return _gapCache[entryId];
+  try {
+    const d = await api('GET', '/api/manifold/gaps?status=active&limit=50');
+    const gaps = (d.gaps||[]).filter(g => g.manifold_entry_id===entryId || g.source_id===entryId);
+    _gapCache[entryId] = gaps;
+    return gaps;
+  } catch(_) { return []; }
+}
+
+async function enhanceManifoldEntry(entryId, entryType) {
+  if (entryType !== 'info_gap') return;
+  const el = document.querySelector(`.me-gap-prescription[data-entry="${entryId}"]`);
+  if (!el) return;
+  el.innerHTML = '<div style="color:var(--dim);font-size:.6rem;padding:.2rem">Loading…</div>';
+  const gaps = await fetchGapPrescription(entryId);
+  if (!gaps.length) {
+    el.innerHTML = '<div style="color:var(--green);font-size:.6rem;padding:.2rem">✓ No active gap prescriptions.</div>';
+    return;
+  }
+  el.innerHTML = gaps.map(g => `
+    <div class="gap-prescription">
+      <div class="gp-type">⚠ ${(g.gap_type||'INFO_GAP').toUpperCase().replace(/_/g,' ')}</div>
+      <div class="gp-action">${g.recommended_action||g.description||'Resolve this information gap.'}</div>
+      <div class="gp-meta">Tier: ${g.tier||'—'} · Priority: ${g.priority||'medium'}
+        ${g.financial_exposure_usd?` · 💰 $${g.financial_exposure_usd} exposure`:''}
+      </div>
+      <div style="display:flex;gap:.3rem;margin-top:.25rem">
+        <button class="btn g" style="font-size:.58rem" onclick="closeGapFromManifold('${g.id}','${entryId}')">✓ Close Gap</button>
+        <button class="btn amber" style="font-size:.58rem" onclick="escalateGap('${g.id}')">↑ Escalate</button>
+      </div>
+    </div>`).join('');
+}
+
+async function closeGapFromManifold(gapId, entryId) {
+  try {
+    await api('POST', `/api/manifold/gaps/${gapId}/close`,
+      { closed_by: 'cpost@murphy.systems', resolution_note: 'Closed from manifold planner' });
+    showToast('Gap closed ✓','green');
+    delete _gapCache[entryId];
+    if (currentDetailItem) {
+      currentDetailItem = await api('GET', `/api/manifold/detail-items/${currentDetailItem.id}`);
+      renderManifoldColumn();
+    }
+  } catch(e) { showToast('Error: '+e.message,'red'); }
+}
+
+async function escalateGap(gapId) {
+  try {
+    await api('POST', `/api/manifold/gaps/${gapId}/escalate`,
+      { reason: 'Escalated from manifold planner', escalated_by: 'cpost@murphy.systems' });
+    showToast('Gap escalated','amber');
+  } catch(e) { showToast('Error: '+e.message,'red'); }
+}
+
+async function showBlockSummary(blockId) {
+  const el = document.getElementById(`block-summary-${blockId}`);
+  if (!el) return;
+  el.innerHTML = '<div style="color:var(--dim);font-size:.6rem;text-align:center;padding:.3rem">Loading block summary…</div>';
+  try {
+    const [gapSummary, exposure] = await Promise.all([
+      api('GET', '/api/manifold/gaps/summary').catch(()=>({})),
+      api('GET', '/api/manifold/gaps/exposure').catch(()=>({})),
+    ]);
+    const total = gapSummary.total_gaps||0;
+    const high  = (gapSummary.by_tier||{}).HIGH||0;
+    const risk  = exposure.total_exposure_usd||0;
+    el.innerHTML = `<div class="block-summary">
+      <div style="font-size:.68rem;font-weight:700;color:var(--teal);margin-bottom:.3rem">📊 Block Risk Summary</div>
+      <div class="bs-grid">
+        <div class="bs-cell">
+          <div class="bs-num" style="color:${total?'var(--amber)':'var(--green)'}">${total}</div>
+          <div class="bs-lbl">Active Gaps</div>
+        </div>
+        <div class="bs-cell">
+          <div class="bs-num" style="color:${high?'var(--red)':'var(--green)'}">${high}</div>
+          <div class="bs-lbl">High Risk</div>
+        </div>
+        <div class="bs-cell">
+          <div class="bs-num" style="color:${risk>0?'var(--amber)':'var(--green)'}">$${Math.abs(risk||0).toFixed(0)}</div>
+          <div class="bs-lbl">$ Exposure</div>
+        </div>
+      </div>
+    </div>`;
+  } catch(e) {
+    el.innerHTML = '';
+  }
+}
+
+</script>
 <script>
 const API = window.location.origin;
 let projects=[], currentProject=null, currentBlock=null, currentMilestone=null, currentDetailItem=null;
@@ -386,12 +499,24 @@ async function selectBlock(blockId) {
   document.getElementById('col-milestones').style.display='';
   document.getElementById('col-details').style.display='none';
   document.getElementById('col-manifold').style.display='none';
+  // PATCH-290c: Show live block summary
+  showBlockSummary(blockId);
 }
 
 // ── Milestones ─────────────────────────────────────────────────────────────────
 function renderMilestoneColumn() {
   if (!currentBlock) return;
   document.getElementById('ms-col-title').textContent = `📋 ${currentBlock.name}`;
+  // PATCH-290c: Block summary slot
+  const mBody = document.getElementById('ms-body');
+  if (mBody && currentBlock) {
+    let summarySlot = document.getElementById(`block-summary-${currentBlock.id}`);
+    if (!summarySlot) {
+      summarySlot = document.createElement('div');
+      summarySlot.id = `block-summary-${currentBlock.id}`;
+      mBody.prepend(summarySlot);
+    }
+  }
   const milestones = currentBlock.milestones || [];
   let html = '';
 
@@ -531,6 +656,9 @@ function renderManifoldColumn() {
         <div class="me-header" onclick="toggleEntry('${me.id}')">
           <span class="me-type-badge me-type-${me.entry_type}">${me.entry_type.replace('_',' ')}</span>
           <span class="me-title">${me.title}</span>
+          ${!me.is_resolved && me.entry_type==='info_gap'?`<span class="risk-badge risk-HIGH">⚠ GAP</span>`:''}
+          ${!me.is_resolved && me.entry_type==='assumption'?`<span class="risk-badge risk-MEDIUM">~ ASSUMP</span>`:''}
+          ${!me.is_resolved && me.entry_type==='decision'?`<span class="risk-badge risk-MEDIUM">⚖ DECIDE</span>`:''}
           ${me.is_resolved?`<span class="me-resolved">✓ resolved</span>`:''}
           <span class="me-financial ${impactCls}">${impactStr}</span>
           <span style="color:var(--muted);font-size:.7rem">${isOpen?'▲':'▼'}</span>
@@ -545,7 +673,13 @@ function renderManifoldColumn() {
       }
 
       html += `<div class="me-body ${isOpen?'open':''}">
-          <div class="me-body-text">${me.body||'(no detail yet)'}</div>`;
+          <div class="me-body-text">${me.body||'(no detail yet)'}</div>
+      ${!me.is_resolved && me.entry_type==='info_gap' ? `<div class="me-gap-prescription" data-entry="${me.id}">
+        <button class="btn" style="font-size:.6rem;width:100%;justify-content:center;margin:.15rem 0"
+          onclick="enhanceManifoldEntry('${me.id}','${me.entry_type}');this.style.display='none'">
+          ⚠ View Gap Prescription
+        </button>
+      </div>` : ''}`;
 
       if (me.depends_on_id) {
         html += `<div class="me-depends">🔗 Depends on: entry ${me.depends_on_id.slice(0,12)}…<br>

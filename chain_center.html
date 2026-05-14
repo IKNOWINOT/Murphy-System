@@ -159,6 +159,42 @@ select.btn option{background:var(--s2)}
     padding:.3rem .45rem;font-size:.73rem;color:var(--text);font-family:inherit;margin-bottom:.3rem}
 .fi:focus{outline:none;border-color:var(--teal)}
 .fl{font-size:.68rem;font-weight:600;color:var(--dim);margin-bottom:.12rem;display:block}
+
+/* PATCH-290b: Step inspect panel */
+.insp-panel{padding:.5rem 0;}
+.insp-title{font-size:.7rem;font-weight:800;color:var(--teal);text-transform:uppercase;
+  letter-spacing:.07em;margin:.6rem 0 .2rem;display:flex;align-items:center;gap:.3rem}
+.insp-title::after{content:'';flex:1;height:1px;background:var(--b1);}
+.insp-empty{font-size:.63rem;color:var(--dim);padding:.2rem 0 .4rem;}
+.insp-item{font-size:.65rem;padding:.25rem .4rem;border-radius:5px;margin:.15rem 0;
+  background:var(--s2);display:flex;gap:.4rem;align-items:flex-start;}
+.insp-item .ii-icon{flex-shrink:0;margin-top:.05rem}
+.insp-item .ii-body{flex:1}
+.insp-item .ii-tag{font-size:.58rem;padding:1px 5px;border-radius:3px;
+  font-weight:700;margin-left:.2rem;vertical-align:middle}
+.tag-assumption{background:#f39c1222;color:#f39c12}
+.tag-info_gap{background:#e74c3c22;color:#e74c3c}
+.tag-decision{background:#9b59b622;color:#9b59b6}
+.tag-actual{background:#2ecc7122;color:#2ecc71}
+.tag-known_at{background:#4a9eff22;color:#4a9eff}
+.tag-hitl{background:#f5c84222;color:#f5c842}
+.tag-gap{background:#e74c3c22;color:#e74c3c}
+.insp-meta{font-size:.6rem;color:var(--dim);margin-top:.1rem}
+.insp-risk{display:inline-flex;align-items:center;gap:.25rem;font-size:.6rem;
+  padding:1px 6px;border-radius:3px;font-weight:700;}
+.risk-HIGH{background:#e74c3c22;color:#e74c3c}
+.risk-MEDIUM{background:#f39c1222;color:#f39c12}
+.risk-LOW{background:#2ecc7122;color:#2ecc71}
+.insp-resolve-btn{font-size:.58rem;padding:2px 8px;border:1px solid var(--teal);
+  border-radius:4px;background:transparent;color:var(--teal);cursor:pointer;margin-top:.2rem}
+.insp-resolve-btn:hover{background:var(--teal);color:#000}
+.insp-step-hdr{font-size:.78rem;font-weight:700;color:var(--text);margin-bottom:.3rem;
+  padding-bottom:.3rem;border-bottom:1px solid var(--b1)}
+.btn.inspect{background:transparent;border:1px solid #4a9eff55;color:#4a9eff;
+  font-size:.58rem;padding:2px 7px;}
+.btn.inspect:hover{background:#4a9eff22}
+.inspecting .sb-num{outline:2px solid var(--teal);outline-offset:2px}
+
 </style>
 </head>
 <body>
@@ -246,7 +282,235 @@ select.btn option{background:var(--s2)}
   </div>
 </div>
 
-<script src="/static/murphy-nav.js"></script>
+<script src="/static/murphy-nav.js">
+// ── PATCH-290b: Step Inspect Panel ────────────────────────────────────────────
+let _inspectingStep = null;
+
+async function inspectStep(chainId, stepIdx, stepName) {
+  // Mark inspecting step visually
+  _inspectingStep = stepIdx;
+  document.querySelectorAll('.step-block').forEach(el => el.classList.remove('inspecting'));
+  const block = document.querySelector(`.step-block[data-idx="${stepIdx}"]`);
+  if (block) block.classList.add('inspecting');
+
+  // Switch right panel to inspect mode
+  rightMode = 'inspect';
+  const rp = document.getElementById('right-panel');
+  rp.innerHTML = `<div style="text-align:center;padding:1.5rem;color:var(--muted);font-size:.73rem">
+    <div style="font-size:1.4rem;margin-bottom:.4rem">⏳</div>Loading step detail…</div>`;
+
+  try {
+    // Try the dedicated step-detail endpoint first (may not exist yet)
+    let detail = null;
+    try {
+      detail = await api('GET', `/api/chains/requests/${chainId}/steps/${stepIdx}/detail`);
+    } catch(_) { detail = null; }
+
+    // Fallback: assemble from available endpoints in parallel
+    const [manifoldProjects, hitlPending, gapSummary] = await Promise.all([
+      api('GET', '/api/manifold/projects').catch(() => ({ projects: [] })),
+      api('GET', '/api/hitl/interventions/pending').catch(() => ({ interventions: [] })),
+      api('GET', '/api/manifold/gaps?status=active&limit=20').catch(() => ({ gaps: [] })),
+    ]);
+
+    const manifoldEntries = detail?.manifold_entries || [];
+    const hitlItems       = (detail?.hitl_blocking || []).length
+      ? detail.hitl_blocking
+      : (hitlPending.interventions || []).filter(i =>
+          i.step_index === stepIdx || i.chain_id === chainId
+        );
+    const gaps            = detail?.gap_risks
+      ? detail.gap_risks
+      : (gapSummary.gaps || []).filter(g =>
+          g.step_index === stepIdx || !g.step_index
+        ).slice(0, 5);
+    const assignedAgents  = detail?.assigned_agents || [];
+    const complianceGates = detail?.compliance_gates || null;
+
+    // ── Render panel ──────────────────────────────────────────
+    let html = `<div class="insp-panel">
+      <div class="insp-step-hdr">🔍 Step ${stepIdx} — ${stepName}</div>`;
+
+    // 1. Compliance gate breakdown
+    html += `<div class="insp-title">⚡ Compliance Gate</div>`;
+    if (complianceGates) {
+      const gate = complianceGates;
+      if ((gate.required_met||[]).length) {
+        html += gate.required_met.map(c =>
+          `<div class="insp-item"><span class="ii-icon">✅</span><span class="ii-body">
+            <b>${c.toUpperCase()}</b><span class="ii-tag tag-actual">MET</span>
+           </span></div>`).join('');
+      }
+      if ((gate.required_missing||[]).length) {
+        html += gate.required_missing.map(c =>
+          `<div class="insp-item"><span class="ii-icon">⚠️</span><span class="ii-body">
+            <b>${c.toUpperCase()}</b><span class="ii-tag tag-info_gap">MISSING</span>
+           </span></div>`).join('');
+      }
+      if ((gate.blocked_by||[]).length) {
+        html += `<div class="insp-item" style="background:#e74c3c11">
+          <span class="ii-icon">🚫</span>
+          <span class="ii-body">Blocked by: ${gate.blocked_by.join(', ')}</span>
+        </div>`;
+      }
+    } else {
+      // Derive from current chain step data
+      const step = (currentChain?.steps||[]).find(s => s.step_index === stepIdx);
+      const gate = step?.latest_gate || {};
+      if (!gate.result) {
+        html += `<div class="insp-empty">No gate data — gate this step first.</div>`;
+      } else {
+        const gateColor = {PASS:'var(--green)',BLOCKED:'var(--red)',PARTIAL:'var(--amber)'}[gate.result]||'var(--muted)';
+        html += `<div class="insp-item" style="border-left:3px solid ${gateColor}">
+          <span class="ii-icon">${{PASS:'✅',BLOCKED:'🚫',PARTIAL:'⚠️'}[gate.result]||'○'}</span>
+          <span class="ii-body"><b>${gate.result}</b>
+            ${gate.reason ? `<div class="insp-meta">${gate.reason}</div>` : ''}
+          </span>
+        </div>`;
+        if ((gate.required_met||[]).length) html += gate.required_met.map(c =>
+          `<div class="insp-item"><span class="ii-icon">✅</span><span class="ii-body">${c.toUpperCase()}</span></div>`).join('');
+        if ((gate.required_missing||[]).length) html += gate.required_missing.map(c =>
+          `<div class="insp-item"><span class="ii-icon">❌</span><span class="ii-body">${c.toUpperCase()} <span class="ii-tag tag-info_gap">MISSING</span></span></div>`).join('');
+      }
+    }
+
+    // 2. Manifold entries
+    html += `<div class="insp-title">📐 Manifold Entries</div>`;
+    if (manifoldEntries.length) {
+      html += manifoldEntries.slice(0,6).map(e => {
+        const typeTag = e.entry_type || 'unknown';
+        const riskCls = e.risk_tier ? `risk-${e.risk_tier}` : '';
+        return `<div class="insp-item">
+          <span class="ii-icon">📄</span>
+          <span class="ii-body">
+            <span class="ii-tag tag-${typeTag}">${typeTag.toUpperCase().replace('_',' ')}</span>
+            <b style="font-size:.64rem;margin-left:.2rem">${e.title||e.name||'Entry'}</b>
+            ${riskCls ? `<span class="insp-risk ${riskCls}">${e.risk_tier}</span>` : ''}
+            <div class="insp-meta">${(e.body||'').slice(0,80)}${(e.body||'').length>80?'…':''}</div>
+            ${e.financial_impact_usd ? `<div class="insp-meta" style="color:var(--amber)">💰 $${e.financial_impact_usd} impact</div>` : ''}
+            <div style="display:flex;gap:.3rem;margin-top:.2rem">
+              ${e.id ? `<button class="insp-resolve-btn" onclick="resolveEntry('${e.id}')">✓ Resolve</button>` : ''}
+            </div>
+          </span>
+        </div>`;
+      }).join('');
+    } else {
+      html += `<div class="insp-empty">No manifold entries for this step.</div>`;
+    }
+
+    // 3. Gap prescriptions
+    html += `<div class="insp-title">🔴 Active Gaps</div>`;
+    if (gaps.length) {
+      html += gaps.slice(0,4).map(g => `<div class="insp-item">
+        <span class="ii-icon">⚠️</span>
+        <span class="ii-body">
+          <span class="ii-tag tag-gap">GAP</span>
+          <b style="font-size:.64rem;margin-left:.2rem">${g.gap_type||g.title||'Gap'}</b>
+          <div class="insp-meta">${(g.recommended_action||g.description||'').slice(0,80)}</div>
+          ${g.id ? `<button class="insp-resolve-btn" onclick="closeGap('${g.id}')">✓ Close</button>` : ''}
+        </span>
+      </div>`).join('');
+    } else {
+      html += `<div class="insp-empty">No active gaps for this step. ✅</div>`;
+    }
+
+    // 4. HITL blockers
+    html += `<div class="insp-title">🧑‍⚖️ HITL Queue</div>`;
+    if (hitlItems.length) {
+      html += hitlItems.slice(0,3).map(h => `<div class="insp-item" style="border-left:3px solid var(--amber)">
+        <span class="ii-icon">⏳</span>
+        <span class="ii-body">
+          <span class="ii-tag tag-hitl">PENDING</span>
+          <b style="font-size:.64rem;margin-left:.2rem">${h.intervention_type||h.title||'Review Required'}</b>
+          <div class="insp-meta">${(h.task_description||h.description||'').slice(0,80)}</div>
+          ${h.intervention_id||h.id ? `
+            <button class="insp-resolve-btn" style="border-color:var(--green);color:var(--green)"
+              onclick="approveHITL('${h.intervention_id||h.id}')">✓ Approve</button>
+            <button class="insp-resolve-btn" style="border-color:var(--red);color:var(--red);margin-left:.3rem"
+              onclick="rejectHITL('${h.intervention_id||h.id}')">✗ Reject</button>
+          ` : ''}
+        </span>
+      </div>`).join('');
+    } else {
+      html += `<div class="insp-empty">No HITL items blocking this step. ✅</div>`;
+    }
+
+    // 5. Assigned swarm agents
+    html += `<div class="insp-title">🤖 Swarm Agents</div>`;
+    if (assignedAgents.length) {
+      html += assignedAgents.map(a => `<div class="insp-item">
+        <span class="ii-icon">🤖</span>
+        <span class="ii-body"><b>${a.name||a.agent_id||'Agent'}</b>
+          <span class="ii-tag" style="background:#2ecc7122;color:#2ecc71">${a.status||'active'}</span>
+          <div class="insp-meta">${a.current_task||a.role||''}</div>
+        </span></div>`).join('');
+    } else {
+      html += `<div class="insp-empty">No agents assigned to this step.</div>`;
+    }
+
+    // Footer actions
+    html += `<div style="margin-top:.8rem;display:flex;gap:.4rem;flex-wrap:wrap">
+      <button class="btn g" style="font-size:.63rem" onclick="advanceStep('${chainId}',${stepIdx})">✓ Complete Step</button>
+      <button class="btn" style="font-size:.63rem" onclick="raiseWaiver('${chainId}',${stepIdx})">⚠ Waiver</button>
+      <button class="btn" style="font-size:.63rem" onclick="regateStep('${chainId}',${stepIdx})">↻ Re-Gate</button>
+    </div></div>`;
+
+    rp.innerHTML = html;
+
+  } catch(err) {
+    rp.innerHTML = `<div style="padding:1rem;color:var(--red);font-size:.73rem">
+      Error loading step detail: ${err.message}</div>`;
+  }
+}
+
+async function resolveEntry(entryId) {
+  try {
+    await api('POST', `/api/manifold/entries/${entryId}/resolve`,
+      { resolved_by: 'cpost@murphy.systems', actual_body: 'Resolved via chain inspector' });
+    showToast('Entry resolved ✓', 'green');
+    // Refresh the inspect panel
+    if (_inspectingStep !== null && currentChain) {
+      const s = (currentChain.steps||[]).find(s => s.step_index === _inspectingStep);
+      inspectStep(currentChain.id, _inspectingStep, s?.step_name || 'Step');
+    }
+  } catch(e) { showToast('Error: ' + e.message, 'red'); }
+}
+
+async function closeGap(gapId) {
+  try {
+    await api('POST', `/api/manifold/gaps/${gapId}/close`,
+      { closed_by: 'cpost@murphy.systems', resolution_note: 'Closed via chain inspector' });
+    showToast('Gap closed ✓', 'green');
+    if (_inspectingStep !== null && currentChain) {
+      const s = (currentChain.steps||[]).find(s => s.step_index === _inspectingStep);
+      inspectStep(currentChain.id, _inspectingStep, s?.step_name || 'Step');
+    }
+  } catch(e) { showToast('Error: ' + e.message, 'red'); }
+}
+
+async function approveHITL(id) {
+  try {
+    await api('POST', `/api/hitl/interventions/${id}/respond`, { action: 'approve', approved_by: 'cpost@murphy.systems' });
+    showToast('HITL approved ✓', 'green');
+    if (_inspectingStep !== null && currentChain) {
+      const s = (currentChain.steps||[]).find(s => s.step_index === _inspectingStep);
+      inspectStep(currentChain.id, _inspectingStep, s?.step_name || 'Step');
+    }
+  } catch(e) { showToast('Error: ' + e.message, 'red'); }
+}
+
+async function rejectHITL(id) {
+  try {
+    await api('POST', `/api/hitl/interventions/${id}/respond`, { action: 'reject', approved_by: 'cpost@murphy.systems' });
+    showToast('HITL rejected', 'red');
+    if (_inspectingStep !== null && currentChain) {
+      const s = (currentChain.steps||[]).find(s => s.step_index === _inspectingStep);
+      inspectStep(currentChain.id, _inspectingStep, s?.step_name || 'Step');
+    }
+  } catch(e) { showToast('Error: ' + e.message, 'red'); }
+}
+
+</script>
 <script>
 const API = window.location.origin;
 let templates=[], chains=[], activeCompliance=[];
@@ -433,6 +697,8 @@ function renderTemplatePreview(){
 
 // ── Select & render active chain ───────────────────────────────────────────────
 async function selectChain(chainId){
+  rightMode='summary'; _inspectingStep=null;
+  document.querySelectorAll('.step-block').forEach(el=>el.classList.remove('inspecting'));
   currentChain=await api('GET','/api/chains/requests/'+chainId);
   currentTemplate=templates.find(t=>t.id===currentChain.template_id)||null;
   renderChainList();
@@ -466,7 +732,7 @@ function renderCenter(){
     const isOpen=openSteps.has(s.id);
     const gateCls={'PASS':'gate-pass','BLOCKED':'gate-blocked','PARTIAL':'gate-partial'}[gate.result]||'gate-pending';
 
-    html+=`<div class="step-block ${statusMap[status]}">
+    html+=`<div class="step-block ${statusMap[status]}" data-idx="${s.step_index}">
       <div class="sb-hdr" onclick="toggleStep('${s.id}')">
         <span class="sb-num ${numCls}">${statusIcon}${s.step_index}</span>
         <span class="sb-name">${s.step_name}</span>
@@ -512,6 +778,7 @@ function renderCenter(){
     if(status==='pending'||status==='blocked'){
       html+=`<button class="btn" style="font-size:.63rem" onclick="regateStep('${currentChain.id}',${s.step_index})">↻ Re-Gate</button>`;
     }
+    html+=`<button class="btn inspect" onclick="inspectStep('${currentChain.id}',${s.step_index},'${s.step_name||'Step '+s.step_index}')" style="font-size:.58rem">🔍 Inspect</button>`;
     html+=`</div></div></div>`;
   });
 
@@ -527,6 +794,7 @@ function renderCenter(){
 
 function renderRight(){
   if(rightMode==='log'){ renderLog(); return; }
+  if(rightMode==='inspect'){ /* kept from inspectStep() — don't overwrite */ return; }
   if(!currentChain){ document.getElementById('right-panel').innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.73rem">Select a chain.</div>'; return; }
   const c=currentChain;
   const fin={

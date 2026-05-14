@@ -11410,6 +11410,13 @@ def create_app() -> FastAPI:
             "/ui/dev-module": "dev_module.html",
             "/ui/service-module": "service_module.html",
             "/ui/guest-portal": "guest_portal.html",
+            # ── PATCH-290a: Missing route registrations ──────────
+            "/ui/game-studio": "game_creation.html",
+            "/ui/ambient-intelligence": "ambient_intelligence.html",
+            "/ui/onboarding-wizard": "onboarding_wizard.html",
+            "/ui/matrix-chat": "matrix_integration.html",
+            "/ui/hitl": "hitl_dashboard.html",
+            "/ui/financing-options": "financing_options.html",
         }
 
         # ── Route classification: public vs auth-required ──────────
@@ -11482,6 +11489,34 @@ def create_app() -> FastAPI:
                     methods=["GET"], include_in_schema=False,
                 )
                 _mounted_count += 1
+
+        # PATCH-290a: Serve orphan HTML files from the parent repo root.
+        # These files (chain_center.html, manifold_planner.html, etc.)
+        # live in /opt/Murphy-System/ rather than /opt/Murphy-System/Murphy System/
+        # and are not found by the _project_root glob above.
+        _orphan_routes = {
+            "/ui/chain-center":      ("chain_center.html",      False),
+            "/ui/manifold-planner":  ("manifold_planner.html",  False),
+            "/ui/swarm-command":     ("swarm_command.html",      False),
+            "/ui/orgchart":          ("orgchart.html",           False),
+            "/ui/hitl-dashboard":    ("hitl_dashboard.html",     False),
+        }
+        _parent_root = _project_root.parent  # /opt/Murphy-System/
+        for _orphan_route, (_orphan_file, _is_public) in _orphan_routes.items():
+            _orphan_fp = _parent_root / _orphan_file
+            if _orphan_fp.is_file():
+                if _is_public:
+                    app.add_api_route(
+                        _orphan_route, _make_html_handler(str(_orphan_fp)),
+                        methods=["GET"], include_in_schema=False,
+                    )
+                else:
+                    app.add_api_route(
+                        _orphan_route, _make_protected_html_handler(str(_orphan_fp), _orphan_route),
+                        methods=["GET"], include_in_schema=False,
+                    )
+                _mounted_count += 1
+                logger.info("Mounted orphan UI route %s → %s", _orphan_route, _orphan_fp)
 
         # Serve root-level .js files under /ui/ so that HTML pages loaded
         # at /ui/<page> can reference sibling scripts with relative paths

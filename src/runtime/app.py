@@ -385,6 +385,12 @@ def create_app() -> FastAPI:
         "jobs":              "ai_job_hunter.html",
         "resume":            "ai_job_hunter.html",
         "penguins":                "tripping_penguins.html",
+        # PATCH-288: Missing slugs
+        "swarm-command":           "swarm_command.html",
+        "capital":                 "crm.html",
+        "book":                    "book.html",
+        "shadow-marketplace":      "murphy_landing_page.html",
+
         # Steve 2028 — DO NOT TOUCH
         "voteforsteve2028":        "voteforsteve2028.html",
         "steve2028merch":          "steve2028merch.html",
@@ -743,6 +749,16 @@ def create_app() -> FastAPI:
         return RedirectResponse("/ui/steve2028merch")
 
     # PATCH-269c: book + how-we-work top-level routes
+
+    @app.get("/shadow-marketplace", include_in_schema=False)
+    async def shadow_marketplace_top():
+        import os as _sm
+        p = _sm.path.join("/opt/Murphy-System", "murphy_landing_page.html")
+        from fastapi.responses import FileResponse
+        return FileResponse(p if _sm.path.isfile(p) else "/opt/Murphy-System/landing.html",
+                           media_type="text/html")
+
+
     @app.get("/book", include_in_schema=False)
     async def book_page_top():
         import os as _bos
@@ -751,7 +767,7 @@ def create_app() -> FastAPI:
             from fastapi.responses import FileResponse as _bFR
             return _bFR(p, media_type="text/html")
         from fastapi.responses import RedirectResponse
-        return RedirectResponse("/ui/book")
+        return RedirectResponse("/")
 
     @app.get("/how-we-work", include_in_schema=False)
     async def how_we_work_page_top():
@@ -815,7 +831,7 @@ def create_app() -> FastAPI:
     _BARE_PUBLIC_SLUGS_155 = [
         "demo", "pricing", "docs", "blog", "careers", "legal", "privacy",
         "forge", "signup", "login", "guest-portal", "guest_portal",
-        "book", "how-we-work",
+        "book", "how-we-work", "shadow-marketplace", "resume", "how_we_work",
     ]
     for _bslug in _BARE_PUBLIC_SLUGS_155:
         def _make_bare_route(slug=_bslug):
@@ -22627,6 +22643,8 @@ def create_app() -> FastAPI:
             from src.resume_router import router as _resume_router
             app.include_router(_resume_router)
             logger.info("[PATCH-193] Resume Builder mounted at /api/resume/*")
+        except Exception as _rb_err:
+            logger.warning("[PATCH-193] Resume router failed: %s", _rb_err)
 
         # PATCH-286: AI Job Hunter API — dual-resume, ATS matching, HITL-gated applications
         try:
