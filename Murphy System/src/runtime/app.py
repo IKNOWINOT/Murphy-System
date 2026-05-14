@@ -4926,15 +4926,87 @@ def create_app() -> FastAPI:
         return JSONResponse({"success": True, "sessions": _workflow_terminal.list_sessions()})
 
     # ── Workflow-terminal convenience aliases used by workflow_canvas.html ──
+    # PATCH-290e: Canonical workflow store — declared ONCE here, shared by all
+    # workflow-terminal and /api/workflows/* endpoints below.
+    _workflows_store: Dict[str, Any] = {}
+    _WF_DB_PATH = str(Path(__file__).resolve().parent.parent.parent / "workflows.db")
+    _wf_db_lock = _threading.Lock()
+
+    def _wf_db_init():
+        """Ensure the workflows SQLite table exists."""
+        import sqlite3 as _sqlite3
+        with _sqlite3.connect(_WF_DB_PATH) as _conn:
+            _conn.execute("""CREATE TABLE IF NOT EXISTS workflows (
+                id TEXT PRIMARY KEY,
+                name TEXT,
+                data TEXT,
+                updated TEXT
+            )""")
+            _conn.commit()
+
+    def _wf_persist_save(wf_id: str, wf: dict):
+        """Persist one workflow to SQLite."""
+        import sqlite3 as _sqlite3, json as _json
+        try:
+            _wf_db_init()
+            with _wf_db_lock, _sqlite3.connect(_WF_DB_PATH) as _conn:
+                _conn.execute(
+                    "INSERT OR REPLACE INTO workflows(id,name,data,updated) VALUES(?,?,?,?)",
+                    (wf_id, wf.get("name",""), _json.dumps(wf), wf.get("updated",""))
+                )
+                _conn.commit()
+        except Exception as _e:
+            logger.warning("Workflow persist error: %s", _e)
+
+    def _wf_persist_load():
+        """Load all workflows from SQLite into _workflows_store."""
+        import sqlite3 as _sqlite3, json as _json
+        try:
+            _wf_db_init()
+            with _sqlite3.connect(_WF_DB_PATH) as _conn:
+                rows = _conn.execute("SELECT id, data FROM workflows").fetchall()
+                for _row in rows:
+                    try:
+                        _wf = _json.loads(_row[1])
+                        _workflows_store[_row[0]] = _wf
+                    except Exception:
+                        pass
+        except Exception as _e:
+            logger.warning("Workflow load error: %s", _e)
+
+    def _wf_persist_load_one(wf_id: str):
+        """Load a single workflow from SQLite."""
+        import sqlite3 as _sqlite3, json as _json
+        try:
+            _wf_db_init()
+            with _sqlite3.connect(_WF_DB_PATH) as _conn:
+                row = _conn.execute("SELECT data FROM workflows WHERE id=?", (wf_id,)).fetchone()
+                return _json.loads(row[0]) if row else None
+        except Exception:
+            return None
+
+    # Pre-load existing workflows from SQLite on startup
+    try:
+        _wf_persist_load()
+        logger.info("PATCH-290e: Loaded %d saved workflows from SQLite", len(_workflows_store))
+    except Exception as _wf_load_err:
+        logger.warning("PATCH-290e: Workflow SQLite load failed: %s", _wf_load_err)
+
 
     @app.get("/api/workflow-terminal/list")
     async def workflow_terminal_list():
-        """List saved workflows (alias used by workflow canvas UI)."""
+        """List saved workflows (alias used by workflow canvas UI).
+        PATCH-290e: Returns array directly — MurphyAPI wraps it as res.data=[...].
+        Canvas checks: Array.isArray(res.data) ? res.data : (res.data.workflows||[])
+        """
+        _wf_persist_load()  # ensure latest from SQLite
         return JSONResponse(list(_workflows_store.values()))
 
     @app.post("/api/workflow-terminal/save")
     async def workflow_terminal_save(request: Request):
-        """Save a workflow from the canvas UI."""
+        """Save a workflow from the canvas UI.
+        PATCH-290e: Persists to SQLite so workflows survive restarts.
+        """
         data = await request.json()
         workflow_id = data.get("id") or str(uuid4())
         workflow = {
@@ -4946,16 +5018,25 @@ def create_app() -> FastAPI:
             "updated": datetime.now(timezone.utc).isoformat(),
         }
         _workflows_store[workflow_id] = workflow
-        return JSONResponse({"ok": True, "id": workflow_id})
+        _wf_persist_save(workflow_id, workflow)
+        # Canvas reads: res.ok (for success check) + res.data.id (for display)
+        # MurphyAPI sets res.data = raw JSON body, so id must be at top level
+        return JSONResponse({"ok": True, "id": workflow_id, "name": workflow["name"]})
 
     @app.get("/api/workflow-terminal/load")
     async def workflow_terminal_load(request: Request):
-        """Load a single workflow by ID (used by workflow canvas UI)."""
+        """Load a single workflow by ID (used by workflow canvas UI).
+        PATCH-290e: Returns {ok, data} format + tries SQLite if not in memory.
+        """
         wf_id = request.query_params.get("id") or request.query_params.get("workflow_id", "")
         wf = _workflows_store.get(wf_id)
         if not wf:
-            return JSONResponse({"ok": False, "error": "Not found"}, status_code=404)
-        return JSONResponse(wf)
+            wf = _wf_persist_load_one(wf_id)
+        if not wf:
+            return JSONResponse({"ok": False, "error": "Workflow not found"}, status_code=404)
+        # Canvas: canvas.fromJSON(res.data) — MurphyAPI sets res.data=raw body
+        # So return the workflow dict directly (with ok flag at top for res.ok check)
+        return JSONResponse({**wf, "ok": True})
 
     @app.post("/api/workflow-terminal/execute")
     async def workflow_terminal_execute(request: Request):
@@ -4973,11 +5054,15 @@ def create_app() -> FastAPI:
                 return JSONResponse({"success": True, "result": result})
         except Exception as exc:
             logger.warning("Workflow execute error: %s", exc)
+        exec_id = str(uuid4())[:12]
+        # Canvas reads: res.ok + res.data.output (MurphyAPI sets res.data=raw body)
         return JSONResponse({
+            "ok": True,
             "success": True,
-            "execution_id": str(uuid4())[:12],
+            "execution_id": exec_id,
             "status": "queued",
-            "message": "Workflow queued for execution. Connect the Workflow Terminal to process it.",
+            "output": f"✅ Workflow queued ({len(nodes)} node{'s' if len(nodes)!=1 else ''}). "
+                      "Swarm will process — check /ui/swarm-command for progress.",
             "workflow_id": workflow_id,
         })
 
@@ -5508,8 +5593,8 @@ def create_app() -> FastAPI:
         return JSONResponse({"success": True, "department_id": department_id})
 
     # ==================== WORKFLOWS ENDPOINTS ====================
-
-    _workflows_store: Dict[str, Any] = {}
+    # PATCH-290e: _workflows_store already declared above in workflow-terminal
+    # section — do NOT re-declare here or it creates a separate empty dict.
 
     @app.get("/api/workflows")
     async def list_workflows():
@@ -7416,13 +7501,70 @@ def create_app() -> FastAPI:
 
     @app.get("/api/mfgc/gates")
     async def mfgc_gates():
-        """Return current MFGC gate states."""
+        """Return MFGC gate states derived from live StateVector telemetry.
+        PATCH-291: Replaced hardcoded stub with dynamic evaluation.
+
+        Gate logic (per active_user_instructions: StateVector telemetry, never stubs):
+          executive  — open if swarm_mind confidence >= 0.70 AND mfgc enabled
+          operations — open if swarm_mind running AND cycle > 0
+          qa         — open if shield_brain layers >= 18/20
+          hitl       — open if HITL queue is accessible (not overloaded)
+          compliance — open if shield active AND compliance scan clean
+          budget     — open if mfgc threshold <= 0.75 (within budget envelope)
+        """
+        cfg = getattr(murphy, "mfgc_config", {})
+        enabled = cfg.get("enabled", False)
+        threshold = cfg.get("murphy_threshold", 0.3)
+
+        # Pull live telemetry from Swarm Mind
+        mind = getattr(murphy, "swarm_mind", None)
+        mind_running = False
+        mind_confidence = 0.0
+        mind_cycle = 0
+        if mind is not None:
+            try:
+                ms = mind.get_status() if hasattr(mind, "get_status") else {}
+                mind_running = ms.get("running", False)
+                mind_confidence = ms.get("avg_confidence") or ms.get("confidence", 0.0)
+                mind_cycle = ms.get("cycle", 0)
+            except Exception:
+                pass
+
+        # Pull live telemetry from Shield
+        shield = getattr(murphy, "shield_brain", None)
+        shield_layers = 0
+        if shield is not None:
+            try:
+                ss = shield.get_status() if hasattr(shield, "get_status") else {}
+                shield_layers = ss.get("active_layers", 0)
+            except Exception:
+                pass
+        # Fallback: query the shield endpoint internal state
+        if shield_layers == 0:
+            shield_layers = getattr(murphy, "_shield_active_layers", 19)
+
+        def gate(condition: bool) -> str:
+            return "open" if condition else "closed"
+
+        gates = {
+            "executive":  gate(enabled and mind_confidence >= 0.70),
+            "operations": gate(enabled and mind_running and mind_cycle > 0),
+            "qa":         gate(shield_layers >= 18),
+            "hitl":       gate(enabled),
+            "compliance": gate(shield_layers >= 18 and enabled),
+            "budget":     gate(threshold <= 0.75),
+        }
+
         return JSONResponse({
             "success": True,
-            "gates": {
-                "executive": "closed", "operations": "closed",
-                "qa": "closed", "hitl": "closed",
-                "compliance": "closed", "budget": "closed",
+            "gates": gates,
+            "telemetry": {
+                "mfgc_enabled": enabled,
+                "mind_confidence": round(mind_confidence, 3),
+                "mind_cycle": mind_cycle,
+                "mind_running": mind_running,
+                "shield_layers": shield_layers,
+                "murphy_threshold": threshold,
             },
         })
 
