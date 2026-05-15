@@ -107,7 +107,7 @@ jobs:
       # an urgent ship. Aligns with the "pip-audit on dependencies blocks
       # merges" policy already in ci.yml.
       - name: Scan image for HIGH/CRITICAL CVEs (Trivy)
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
           format: table
@@ -117,7 +117,7 @@ jobs:
           vuln-type: os,library
 
       - name: Scan image for all CVEs (Trivy, JSON, non-blocking)
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
           format: json
