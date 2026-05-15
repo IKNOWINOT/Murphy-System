@@ -15,7 +15,7 @@
 # resolves cleanly.
 
 # LLM and ML
-transformers==4.48.0
+transformers==5.7.0
 torch==2.6.0
 sentencepiece==0.2.1
 
