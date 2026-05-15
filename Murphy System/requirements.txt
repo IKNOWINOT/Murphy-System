@@ -30,7 +30,7 @@ cryptography==46.0.5
 # Web framework — REST API runtime
 fastapi==0.109.1
 # A2: murphy_1.0 floor is uvicorn>=0.24.0
-uvicorn==0.27.1
+uvicorn==0.46.0
 
 # Web framework — sub-module API servers
 Flask==3.0.0
