@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<!-- Murphy Guide — Golden Path Interface
+     Prompt → Path Generation → Ghost Playback → Probability Learning
+     © 2020 Inoni LLC / BSL 1.1
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Murphy Guide</title>
+<style>
+/* ── Reset & Base ───────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:   #00ff41;
+  --teal:    #00D4AA;
+  --gold:    #ffc800;
+  --gold2:   #ffaa00;
+  --bg:      #0a0a0f;
+  --bg2:     #0f0f18;
+  --bg3:     #16161f;
+  --border:  rgba(0,212,170,0.18);
+  --text:    #e8e8f0;
+  --muted:   #7777aa;
+  --path-col:#ffc800;
+  --ghost-col:rgba(0,255,65,0.55);
+  --font:    'Inter','Segoe UI',system-ui,sans-serif;
+  --font-mono:'Fira Code','JetBrains Mono',monospace;
+}
+html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overflow:hidden}
+
+/* ── Layout ─────────────────────────────────────────── */
+#app{display:grid;grid-template-rows:56px 1fr;grid-template-columns:340px 1fr;height:100vh}
+#topbar{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:0 18px;background:var(--bg2);border-bottom:1px solid var(--border);z-index:50}
+#sidebar{grid-row:2;grid-column:1;display:flex;flex-direction:column;background:var(--bg2);border-right:1px solid var(--border);overflow:hidden}
+#viewport{grid-row:2;grid-column:2;position:relative;overflow:hidden;background:var(--bg)}
+
+/* ── Topbar ─────────────────────────────────────────── */
+.logo{font-weight:800;font-size:1rem;color:var(--teal);letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
+.logo svg{flex-shrink:0}
+.status-pill{display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:999px;padding:.25rem .75rem;font-size:.78rem;color:var(--muted)}
+.status-pill .dot{width:7px;height:7px;border-radius:50%}
+.dot-green{background:var(--green);box-shadow:0 0 6px var(--green)}
+.dot-gold {background:var(--gold); box-shadow:0 0 6px var(--gold)}
+.dot-grey {background:#555}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.tb-btn{padding:.3rem .8rem;border-radius:7px;font-size:.8rem;font-family:var(--font);cursor:pointer;transition:all .2s}
+.tb-btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.tb-btn-ghost:hover{border-color:var(--teal);color:var(--teal)}
+.tb-btn-primary{background:var(--teal);border:none;color:#000;font-weight:700}
+.tb-btn-primary:hover{background:var(--green)}
+
+/* ── Prompt Box ─────────────────────────────────────── */
+#prompt-area{padding:14px;border-bottom:1px solid var(--border)}
+#prompt-wrap{position:relative}
+#prompt-input{
+  width:100%;background:var(--bg3);border:1px solid var(--border);
+  border-radius:10px;padding:.75rem 2.8rem .75rem .9rem;
+  color:var(--text);font-family:var(--font);font-size:.88rem;resize:none;
+  min-height:72px;max-height:140px;outline:none;transition:border-color .2s;line-height:1.5
+}
+#prompt-input:focus{border-color:var(--teal)}
+#prompt-input::placeholder{color:var(--muted)}
+#prompt-send{
+  position:absolute;bottom:9px;right:9px;width:30px;height:30px;
+  background:var(--teal);border:none;border-radius:7px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:background .2s
+}
+#prompt-send:hover{background:var(--green)}
+#prompt-send svg{fill:#000}
+
+/* ── Mode Tabs ──────────────────────────────────────── */
+#mode-tabs{display:flex;gap:0;border-bottom:1px solid var(--border)}
+.mode-tab{flex:1;padding:.55rem;text-align:center;font-size:.75rem;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:all .18s;user-select:none}
+.mode-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.mode-tab:hover:not(.active){color:var(--text)}
+
+/* ── Step List ──────────────────────────────────────── */
+#step-list{flex:1;overflow-y:auto;padding:8px}
+#step-list::-webkit-scrollbar{width:4px}
+#step-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+.step-item{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:9px 10px;border-radius:9px;margin-bottom:4px;
+  border:1px solid transparent;cursor:pointer;transition:all .18s;
+  position:relative
+}
+.step-item:hover{background:var(--bg3);border-color:var(--border)}
+.step-item.active{background:rgba(255,200,0,.08);border-color:rgba(255,200,0,.3)}
+.step-item.done{opacity:.55}
+.step-item.done .step-num{background:var(--green);color:#000}
+.step-num{
+  min-width:22px;height:22px;border-radius:50%;
+  background:var(--bg3);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.7rem;font-weight:800;color:var(--muted);flex-shrink:0;margin-top:1px
+}
+.step-item.active .step-num{background:var(--gold);color:#000;border-color:var(--gold);box-shadow:0 0 8px rgba(255,200,0,.5)}
+.step-body{flex:1;min-width:0}
+.step-title{font-size:.83rem;font-weight:600;color:var(--text);margin-bottom:.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.step-detail{font-size:.75rem;color:var(--muted);line-height:1.4}
+.step-tag{display:inline-block;background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:.1rem .4rem;font-size:.68rem;color:var(--muted);margin-top:.25rem}
+.step-tag.click{border-color:rgba(0,212,170,.3);color:var(--teal)}
+.step-tag.type{border-color:rgba(255,200,0,.3);color:var(--gold)}
+.step-tag.key{border-color:rgba(0,255,65,.3);color:var(--green)}
+.step-tag.nav{border-color:rgba(180,100,255,.3);color:#c080ff}
+.step-prob{position:absolute;top:9px;right:9px;font-size:.68rem;color:var(--muted)}
+.step-prob span{color:var(--green)}
+
+.empty-state{padding:2rem 1rem;text-align:center;color:var(--muted);font-size:.83rem;line-height:1.7}
+.empty-state .emo{font-size:2rem;margin-bottom:.75rem;display:block}
+
+/* ── Bottom Controls ────────────────────────────────── */
+#controls{padding:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
+.ctrl-row{display:flex;gap:6px}
+.ctrl-btn{flex:1;padding:.55rem;border-radius:8px;font-size:.8rem;font-weight:700;font-family:var(--font);cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--muted);transition:all .2s}
+.ctrl-btn:hover{border-color:var(--teal);color:var(--teal)}
+.ctrl-btn.active-ctrl{background:var(--gold);border-color:var(--gold);color:#000}
+.ctrl-btn.record-btn.recording{background:rgba(255,50,50,.15);border-color:rgba(255,80,80,.5);color:#ff5555;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.6}}
+.speed-row{display:flex;align-items:center;gap:8px;font-size:.75rem;color:var(--muted)}
+.speed-row input{flex:1;accent-color:var(--gold)}
+
+/* ── Confidence Bar ─────────────────────────────────── */
+.conf-row{display:flex;align-items:center;gap:8px;font-size:.72rem;color:var(--muted)}
+.conf-bar{flex:1;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.conf-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--green));border-radius:2px;transition:width .4s}
+
+/* ── Viewport Canvas ────────────────────────────────── */
+#guide-canvas{position:absolute;inset:0;pointer-events:none;z-index:10}
+#ghost-overlay{position:absolute;inset:0;pointer-events:none;z-index:20}
+
+/* App simulation frame */
+#sim-frame{position:absolute;inset:0;z-index:1;display:flex;align-items:center;justify-content:center}
+#sim-inner{width:min(720px,90%);background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:0;overflow:hidden;box-shadow:0 20px 80px rgba(0,0,0,.6)}
+.sim-titlebar{height:36px;background:var(--bg3);display:flex;align-items:center;gap:6px;padding:0 12px;border-bottom:1px solid var(--border)}
+.sim-dot{width:11px;height:11px;border-radius:50%}
+.sim-title-text{margin-left:8px;font-size:.78rem;color:var(--muted);font-family:var(--font-mono)}
+.sim-body{padding:20px;min-height:360px;position:relative}
+
+/* ── Golden Path Trail ──────────────────────────────── */
+.gp-trail{
+  position:absolute;pointer-events:none;
+  width:100%;height:100%;top:0;left:0;overflow:visible
+}
+
+/* Ghost cursor */
+#ghost-cursor{
+  position:absolute;width:26px;height:26px;
+  transform:translate(-50%,-50%);
+  pointer-events:none;z-index:100;
+  transition:left .12s cubic-bezier(.4,0,.2,1), top .12s cubic-bezier(.4,0,.2,1);
+  display:none
+}
+#ghost-cursor svg{drop-shadow:0 0 8px var(--ghost-col)}
+
+/* Highlight ring on target elements */
+.gp-highlight{
+  position:absolute;border-radius:inherit;
+  box-shadow:0 0 0 3px var(--gold),0 0 20px rgba(255,200,0,.4);
+  pointer-events:none;z-index:15;
+  animation:ring-pulse 1s ease-in-out infinite
+}
+@keyframes ring-pulse{0%,100%{box-shadow:0 0 0 3px var(--gold),0 0 20px rgba(255,200,0,.3)}50%{box-shadow:0 0 0 5px var(--gold),0 0 32px rgba(255,200,0,.6)}}
+
+/* ── Ghost trail SVG path (the golden line) ─────────── */
+.ghost-path-line{
+  fill:none;stroke:var(--path-col);stroke-width:2.5;
+  stroke-dasharray:8 5;stroke-linecap:round;
+  filter:drop-shadow(0 0 4px rgba(255,200,0,.6));
+  opacity:.8
+}
+.ghost-path-dots circle{fill:var(--path-col);opacity:.7}
+
+/* Waypoint label */
+.wp-label{
+  position:absolute;background:rgba(255,200,0,.1);border:1px solid rgba(255,200,0,.4);
+  border-radius:6px;padding:.2rem .55rem;font-size:.7rem;color:var(--gold);
+  white-space:nowrap;pointer-events:none;z-index:25;transform:translateX(-50%)
+}
+
+/* ── Notification toast ─────────────────────────────── */
+#toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--bg3);border:1px solid var(--border);border-radius:10px;
+  padding:.65rem 1.2rem;font-size:.82rem;color:var(--text);
+  box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:999;
+  opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap
+}
+#toast.show{opacity:1}
+
+/* ── Loading shimmer ────────────────────────────────── */
+#loading-banner{
+  display:none;padding:8px 14px;background:rgba(255,200,0,.07);
+  border-bottom:1px solid rgba(255,200,0,.2);
+  font-size:.78rem;color:var(--gold);display:none;align-items:center;gap:8px
+}
+#loading-banner.visible{display:flex}
+.shimmer-bar{flex:1;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.shimmer-fill{height:100%;background:linear-gradient(90deg,transparent,var(--gold),transparent);animation:shimmer 1.4s infinite}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}
+
+/* ── Probability heatmap cells ──────────────────────── */
+.prob-cell{
+  display:inline-block;width:8px;height:8px;border-radius:2px;
+  margin:1px;transition:background .3s
+}
+
+/* ── Sim UI elements ────────────────────────────────── */
+.sim-btn{
+  display:inline-flex;align-items:center;gap:6px;padding:.5rem 1.1rem;
+  border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;
+  border:1px solid var(--border);background:var(--bg3);color:var(--text);
+  transition:all .2s;font-family:var(--font)
+}
+.sim-btn:hover{border-color:var(--teal);background:rgba(0,212,170,.06)}
+.sim-btn.primary{background:var(--teal);color:#000;border-color:var(--teal)}
+.sim-input{
+  width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:7px;padding:.5rem .75rem;color:var(--text);
+  font-family:var(--font);font-size:.85rem;outline:none
+}
+.sim-input:focus{border-color:var(--teal)}
+.sim-label{font-size:.75rem;color:var(--muted);margin-bottom:.3rem;display:block}
+.sim-field{margin-bottom:14px}
+.sim-nav{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.sim-nav-item{
+  padding:.3rem .7rem;border-radius:6px;font-size:.78rem;cursor:pointer;
+  border:1px solid var(--border);color:var(--muted);transition:all .15s
+}
+.sim-nav-item:hover,.sim-nav-item.active{background:var(--bg3);color:var(--text);border-color:rgba(255,255,255,.2)}
+.sim-section{margin-bottom:18px}
+.sim-section-title{font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+.sim-row{display:flex;gap:10px;margin-bottom:10px}
+.sim-row>*{flex:1}
+
+/* ── Stats panel ────────────────────────────────────── */
+#stats-bar{
+  position:absolute;bottom:0;left:0;right:0;z-index:30;
+  background:rgba(10,10,15,.85);border-top:1px solid var(--border);
+  backdrop-filter:blur(8px);padding:8px 16px;
+  display:flex;gap:20px;align-items:center;font-size:.72rem
+}
+.stat-item{display:flex;flex-direction:column;gap:1px}
+.stat-label{color:var(--muted)}
+.stat-val{font-weight:700;font-family:var(--font-mono)}
+.stat-val.green{color:var(--green)}
+.stat-val.gold{color:var(--gold)}
+.stat-val.teal{color:var(--teal)}
+
+/* Responsive */
+@media(max-width:700px){
+  #app{grid-template-columns:1fr;grid-template-rows:56px auto 1fr}
+  #sidebar{grid-row:2;grid-column:1;max-height:260px}
+  #viewport{grid-row:3;grid-column:1}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Topbar ───────────────────────────────────────── -->
+  <div id="topbar">
+    <div class="logo">
+      <svg width="22" height="22" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="none" stroke="#00D4AA" stroke-width="2"/><path d="M8 22L12 10l4 8 4-8 4 12" stroke="#00ff41" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Murphy Guide
+    </div>
+    <div class="status-pill"><span class="dot dot-grey" id="ghost-status-dot"></span><span id="ghost-status-text">Ghost idle</span></div>
+    <div class="status-pill"><span class="dot dot-grey" id="learn-status-dot"></span><span id="learn-status-text">0 paths learned</span></div>
+    <div class="topbar-right">
+      <button class="tb-btn tb-btn-ghost" onclick="clearAll()">Clear</button>
+      <button class="tb-btn tb-btn-primary" id="auto-btn" onclick="toggleAutoPlay()">▶ Auto-play</button>
+    </div>
+  </div>
+
+  <!-- ── Sidebar ──────────────────────────────────────── -->
+  <div id="sidebar">
+
+    <!-- Prompt -->
+    <div id="prompt-area">
+      <div id="loading-banner" id="loading-banner">
+        <span>Generating path…</span>
+        <div class="shimmer-bar"><div class="shimmer-fill"></div></div>
+      </div>
+      <div id="prompt-wrap">
+        <textarea id="prompt-input" placeholder="Describe what you want to do…&#10;e.g. 'Create a new contact in CRM'" rows="3" onkeydown="handlePromptKey(event)"></textarea>
+        <button id="prompt-send" onclick="submitPrompt()" title="Generate path (Enter)">
+          <svg width="14" height="14" viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mode tabs -->
+    <div id="mode-tabs">
+      <div class="mode-tab active" onclick="setMode('guide')" id="tab-guide">🗺 Guide</div>
+      <div class="mode-tab" onclick="setMode('ghost')" id="tab-ghost">👻 Ghost</div>
+      <div class="mode-tab" onclick="setMode('learn')" id="tab-learn">🧠 Learn</div>
+    </div>
+
+    <!-- Steps -->
+    <div id="step-list">
+      <div class="empty-state">
+        <span class="emo">🗺</span>
+        Type a task above and press Enter.<br>
+        Murphy will generate the golden path<br>and guide you step by step.
+      </div>
+    </div>
+
+    <!-- Confidence -->
+    <div style="padding:8px 12px;border-top:1px solid var(--border)">
+      <div class="conf-row">
+        <span>Path confidence</span>
+        <div class="conf-bar"><div class="conf-fill" id="conf-fill" style="width:0%"></div></div>
+        <span id="conf-pct">—</span>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div id="controls">
+      <div class="ctrl-row">
+        <button class="ctrl-btn" id="prev-btn" onclick="prevStep()" disabled>◀ Prev</button>
+        <button class="ctrl-btn active-ctrl" id="play-btn" onclick="stepPlay()" disabled>▶ Step</button>
+        <button class="ctrl-btn" id="next-btn" onclick="nextStep()" disabled>Next ▶</button>
+      </div>
+      <div class="ctrl-row">
+        <button class="ctrl-btn record-btn" id="record-btn" onclick="toggleRecord()">⬤ Record</button>
+        <button class="ctrl-btn" id="ghost-btn" onclick="triggerGhost()" disabled>👻 Ghost run</button>
+      </div>
+      <div class="speed-row">
+        <span>Speed</span>
+        <input type="range" min="0.2" max="3" step="0.1" value="1" id="speed-slider" oninput="updateSpeed(this.value)">
+        <span id="speed-label">1×</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Viewport ──────────────────────────────────────── -->
+  <div id="viewport">
+
+    <!-- App simulation frame -->
+    <div id="sim-frame">
+      <div id="sim-inner">
+        <div class="sim-titlebar">
+          <div class="sim-dot" style="background:#ff5f56"></div>
+          <div class="sim-dot" style="background:#ffbd2e"></div>
+          <div class="sim-dot" style="background:#27c93f"></div>
+          <span class="sim-title-text" id="sim-title">murphy.systems — dashboard</span>
+        </div>
+        <div class="sim-body" id="sim-body">
+          <!-- Dynamic sim content rendered here -->
+          <div id="sim-idle" style="display:flex;align-items:center;justify-content:center;height:320px;color:var(--muted);font-size:.9rem">
+            Enter a task prompt to begin →
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Golden path canvas (SVG overlay) -->
+    <canvas id="guide-canvas"></canvas>
+
+    <!-- Ghost cursor -->
+    <div id="ghost-cursor">
+      <svg width="26" height="26" viewBox="0 0 26 26">
+        <path d="M5 2L5 22L9.5 17.5L12.5 23L14.5 22L11.5 16L18 16Z" fill="rgba(0,255,65,0.75)" stroke="#00ff41" stroke-width="1"/>
+        <circle cx="13" cy="13" r="10" fill="none" stroke="rgba(0,255,65,0.3)" stroke-width="1"/>
+      </svg>
+    </div>
+
+    <!-- Stats bar -->
+    <div id="stats-bar">
+      <div class="stat-item"><span class="stat-label">Mode</span><span class="stat-val teal" id="stat-mode">idle</span></div>
+      <div class="stat-item"><span class="stat-label">Step</span><span class="stat-val gold" id="stat-step">—</span></div>
+      <div class="stat-item"><span class="stat-label">Paths learned</span><span class="stat-val green" id="stat-paths">0</span></div>
+      <div class="stat-item"><span class="stat-label">Top action</span><span class="stat-val" id="stat-top-action" style="color:var(--text)">—</span></div>
+      <div class="stat-item"><span class="stat-label">Ghost runs</span><span class="stat-val teal" id="stat-ghost-runs">0</span></div>
+      <div class="stat-item" style="margin-left:auto">
+        <span class="stat-label">Prob map</span>
+        <span id="prob-heatmap" style="display:flex;flex-wrap:wrap;width:80px"></span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════
+// Murphy Guide — Core Engine
+// ════════════════════════════════════════════════════════════════════
+
+const MURPHY_API = window.MURPHY_API || 'https://murphy.systems';
+
+// ── State ─────────────────────────────────────────────────────────
+const State = {
+  mode:        'guide',      // guide | ghost | learn
+  steps:       [],           // current golden path
+  stepIndex:   -1,           // active step
+  playing:     false,        // auto-play running
+  recording:   false,        // user recording their own path
+  speed:       1.0,          // playback speed multiplier
+  confidence:  0,
+  paths:       [],           // learned paths DB (in-memory + localStorage)
+  ghostRuns:   0,
+  probMap:     {},           // action → count probability map
+  highlights:  [],           // active highlight DOM elements
+  playTimer:   null,
+  recordStart: null,
+  recordEvents:[],
+};
+
+// ── Templates: pre-built sim UIs for common task types ────────────
+const SIM_TEMPLATES = {
+  crm: {
+    title: 'murphy.systems — CRM',
+    body: `
+      <div class="sim-nav">
+        <div class="sim-nav-item active" id="nav-contacts">Contacts</div>
+        <div class="sim-nav-item" id="nav-deals">Deals</div>
+        <div class="sim-nav-item" id="nav-pipeline">Pipeline</div>
+      </div>
+      <div class="sim-section">
+        <div class="sim-section-title">Contacts</div>
+        <div style="margin-bottom:10px;display:flex;gap:8px">
+          <input class="sim-input" placeholder="Search contacts…" id="search-contacts" style="flex:1">
+          <button class="sim-btn primary" id="btn-new-contact">+ New Contact</button>
+        </div>
+        <div id="contacts-list" style="display:flex;flex-direction:column;gap:6px">
+          <div style="padding:10px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:.85rem">Acme Corp · John Smith</span>
+            <span style="font-size:.72rem;color:var(--muted)">Added 2 days ago</span>
+          </div>
+          <div style="padding:10px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:.85rem">TechFlow Inc · Sarah Chen</span>
+            <span style="font-size:.72rem;color:var(--muted)">Added 5 days ago</span>
+          </div>
+        </div>
+      </div>
+      <div id="new-contact-form" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px">
+        <div class="sim-section-title">New Contact</div>
+        <div class="sim-row">
+          <div class="sim-field"><label class="sim-label">First Name</label><input class="sim-input" id="field-fname" placeholder="Jane"></div>
+          <div class="sim-field"><label class="sim-label">Last Name</label><input class="sim-input" id="field-lname" placeholder="Doe"></div>
+        </div>
+        <div class="sim-field"><label class="sim-label">Email</label><input class="sim-input" id="field-email" type="email" placeholder="jane@company.com"></div>
+        <div class="sim-field"><label class="sim-label">Company</label><input class="sim-input" id="field-company" placeholder="Acme Corp"></div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button class="sim-btn primary" id="btn-save-contact">Save Contact</button>
+          <button class="sim-btn" id="btn-cancel-contact">Cancel</button>
+        </div>
+      </div>`,
+  },
+  email: {
+    title: 'murphy.systems — Email Compose',
+    body: `
+      <div class="sim-nav">
+        <div class="sim-nav-item active">Compose</div>
+        <div class="sim-nav-item">Inbox</div>
+        <div class="sim-nav-item">Sent</div>
+      </div>
+      <div class="sim-field"><label class="sim-label">To</label><input class="sim-input" id="field-to" placeholder="recipient@company.com"></div>
+      <div class="sim-field"><label class="sim-label">Subject</label><input class="sim-input" id="field-subject" placeholder="Subject line"></div>
+      <div class="sim-field"><label class="sim-label">Message</label>
+        <textarea class="sim-input" id="field-body" rows="6" placeholder="Type your message…" style="resize:vertical"></textarea>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="sim-btn primary" id="btn-send-email">Send Email</button>
+        <button class="sim-btn" id="btn-save-draft">Save Draft</button>
+      </div>`,
+  },
+  dashboard: {
+    title: 'murphy.systems — Dashboard',
+    body: `
+      <div class="sim-section-title">Operations Overview</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:1.4rem;font-weight:800;color:var(--green)" id="metric-tasks">24</div>
+          <div style="font-size:.72rem;color:var(--muted)">Active Tasks</div>
+        </div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:1.4rem;font-weight:800;color:var(--gold)" id="metric-leads">7</div>
+          <div style="font-size:.72rem;color:var(--muted)">New Leads</div>
+        </div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:1.4rem;font-weight:800;color:var(--teal)" id="metric-rev">$12K</div>
+          <div style="font-size:.72rem;color:var(--muted)">Revenue Today</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="sim-btn" id="btn-dispatch">⚡ Dispatch</button>
+        <button class="sim-btn" id="btn-reports">📊 Reports</button>
+        <button class="sim-btn primary" id="btn-new-task">+ New Task</button>
+      </div>`,
+  },
+  settings: {
+    title: 'murphy.systems — Settings',
+    body: `
+      <div class="sim-nav">
+        <div class="sim-nav-item active">Profile</div>
+        <div class="sim-nav-item" id="nav-integrations">Integrations</div>
+        <div class="sim-nav-item" id="nav-billing">Billing</div>
+      </div>
+      <div class="sim-field"><label class="sim-label">Display Name</label><input class="sim-input" id="field-display-name" value="Corey Post"></div>
+      <div class="sim-field"><label class="sim-label">Email</label><input class="sim-input" id="field-profile-email" value="cpost@murphy.systems" type="email"></div>
+      <div class="sim-field"><label class="sim-label">Role</label>
+        <select class="sim-input" id="field-role"><option>Owner</option><option>Admin</option><option>Member</option></select>
+      </div>
+      <button class="sim-btn primary" id="btn-save-settings">Save Changes</button>`,
+  },
+};
+
+// ── Golden Path Generator ──────────────────────────────────────────
+// LLM-assisted path generation using Clockwork goldenpath_generator schema
+function buildPathFromPrompt(prompt) {
+  const p = prompt.toLowerCase();
+
+  // Pattern-match to task families, then load the right sim + steps
+  if (/contact|crm|lead|prospect|client/.test(p)) {
+    return buildCRMPath(prompt);
+  } else if (/email|send|compose|message|outreach/.test(p)) {
+    return buildEmailPath(prompt);
+  } else if (/dashboard|overview|report|metric|analytic/.test(p)) {
+    return buildDashboardPath(prompt);
+  } else if (/setting|profile|account|password|integration/.test(p)) {
+    return buildSettingsPath(prompt);
+  } else {
+    return buildGenericPath(prompt);
+  }
+}
+
+function buildCRMPath(prompt) {
+  return {
+    title: 'Create New CRM Contact',
+    sim: 'crm',
+    confidence: 0.88,
+    steps: [
+      { id:'s1', title:'Open CRM module', detail:'Navigate to the Contacts section', action:'nav',    target:'#nav-contacts',     waypoint:{x:0.12,y:0.14}, prob:0.97 },
+      { id:'s2', title:'Click "+ New Contact"', detail:'Opens the contact creation form', action:'click',  target:'#btn-new-contact',  waypoint:{x:0.75,y:0.21}, prob:0.95 },
+      { id:'s3', title:'Enter First Name', detail:'Type the contact\'s first name', action:'type',   target:'#field-fname',      waypoint:{x:0.25,y:0.52}, prob:0.99, typeValue:'Jane' },
+      { id:'s4', title:'Enter Last Name', detail:'Type the contact\'s last name', action:'type',   target:'#field-lname',      waypoint:{x:0.75,y:0.52}, prob:0.99, typeValue:'Smith' },
+      { id:'s5', title:'Enter Email', detail:'Provide a valid email address', action:'type',   target:'#field-email',      waypoint:{x:0.5,y:0.62},  prob:0.97, typeValue:'jane.smith@company.com' },
+      { id:'s6', title:'Enter Company', detail:'Name of the contact\'s organization', action:'type',   target:'#field-company',    waypoint:{x:0.5,y:0.72},  prob:0.91, typeValue:'Acme Corp' },
+      { id:'s7', title:'Save Contact', detail:'Submits the form and creates the record', action:'click',  target:'#btn-save-contact', waypoint:{x:0.25,y:0.85}, prob:0.99 },
+    ]
+  };
+}
+
+function buildEmailPath(prompt) {
+  return {
+    title: 'Compose & Send Email',
+    sim: 'email',
+    confidence: 0.91,
+    steps: [
+      { id:'s1', title:'Open Compose', detail:'Start a new email', action:'nav',   target:'#field-to',      waypoint:{x:0.5,y:0.22}, prob:0.99 },
+      { id:'s2', title:'Enter recipient', detail:'Type the "To" address', action:'type',  target:'#field-to',      waypoint:{x:0.5,y:0.22}, prob:0.98, typeValue:'prospect@company.com' },
+      { id:'s3', title:'Enter subject', detail:'Clear, descriptive subject line', action:'type',  target:'#field-subject',  waypoint:{x:0.5,y:0.35}, prob:0.97, typeValue:'Following up on our conversation' },
+      { id:'s4', title:'Write message', detail:'Compose the email body', action:'type',  target:'#field-body',    waypoint:{x:0.5,y:0.58}, prob:0.96, typeValue:'Hi there,\n\nJust following up on our recent conversation…' },
+      { id:'s5', title:'Send', detail:'Deliver the message', action:'click', target:'#btn-send-email', waypoint:{x:0.2,y:0.85}, prob:0.99 },
+    ]
+  };
+}
+
+function buildDashboardPath(prompt) {
+  return {
+    title: 'Review Dashboard & Dispatch',
+    sim: 'dashboard',
+    confidence: 0.84,
+    steps: [
+      { id:'s1', title:'Review active tasks', detail:'Check the 24 active task count', action:'nav',   target:'#metric-tasks', waypoint:{x:0.17,y:0.3}, prob:0.9 },
+      { id:'s2', title:'Check new leads', detail:'7 new leads need attention', action:'nav',   target:'#metric-leads', waypoint:{x:0.5,y:0.3},  prob:0.88 },
+      { id:'s3', title:'Open Reports', detail:'Drill into revenue details', action:'click', target:'#btn-reports',  waypoint:{x:0.38,y:0.7},  prob:0.82 },
+      { id:'s4', title:'Dispatch swarm', detail:'Run autonomous executive cycle', action:'click', target:'#btn-dispatch', waypoint:{x:0.2,y:0.7},   prob:0.79 },
+    ]
+  };
+}
+
+function buildSettingsPath(prompt) {
+  return {
+    title: 'Update Account Settings',
+    sim: 'settings',
+    confidence: 0.93,
+    steps: [
+      { id:'s1', title:'Open Settings', detail:'Navigate to account settings', action:'nav',   target:'#field-display-name', waypoint:{x:0.5,y:0.22}, prob:0.99 },
+      { id:'s2', title:'Update display name', detail:'Edit your name as shown to others', action:'type',  target:'#field-display-name', waypoint:{x:0.5,y:0.22}, prob:0.95, typeValue:'Corey Post' },
+      { id:'s3', title:'Check integrations', detail:'View connected services', action:'click', target:'#nav-integrations', waypoint:{x:0.38,y:0.14}, prob:0.87 },
+      { id:'s4', title:'Save changes', detail:'Persist your updates', action:'click', target:'#btn-save-settings', waypoint:{x:0.25,y:0.82}, prob:0.99 },
+    ]
+  };
+}
+
+function buildGenericPath(prompt) {
+  return {
+    title: prompt.length > 40 ? prompt.slice(0,40)+'…' : prompt,
+    sim: 'dashboard',
+    confidence: 0.72,
+    steps: [
+      { id:'s1', title:'Navigate to module', detail:'Open the relevant section', action:'nav',   target:'#btn-dispatch', waypoint:{x:0.5,y:0.45}, prob:0.85 },
+      { id:'s2', title:'Initiate action', detail:'Click the primary action button', action:'click', target:'#btn-new-task',  waypoint:{x:0.72,y:0.65}, prob:0.82 },
+      { id:'s3', title:'Review & confirm', detail:'Verify the output and confirm', action:'click', target:'#btn-reports',   waypoint:{x:0.38,y:0.65}, prob:0.78 },
+    ]
+  };
+}
+
+// ── Try live Murphy API, fallback to local ─────────────────────────
+async function fetchPath(prompt) {
+  try {
+    const resp = await fetch(`${MURPHY_API}/api/goldenpath/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task: prompt, software_signature: { app: 'murphy.systems' } }),
+      signal: AbortSignal.timeout(5000)
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.result?.tasks?.length) {
+        return {
+          title: data.result.chain_id || prompt,
+          sim: 'dashboard',
+          confidence: data.confidence || 0.8,
+          steps: data.result.tasks.map((t,i) => ({
+            id: t.id || `s${i+1}`,
+            title: t.title,
+            detail: t.details?.description || '',
+            action: t.details?.action_type || 'click',
+            target: t.details?.target || '#btn-dispatch',
+            waypoint: { x: 0.3 + (i*0.15 % 0.6), y: 0.3 + (i*0.12 % 0.5) },
+            prob: 0.8 + Math.random()*0.18,
+          }))
+        };
+      }
+    }
+  } catch(e) { /* fallback */ }
+  return null;
+}
+
+// ── Probability map: learns from completed runs ───────────────────
+function recordProbEvent(action, target, success) {
+  const key = `${action}:${target}`;
+  if (!State.probMap[key]) State.probMap[key] = { count:0, success:0 };
+  State.probMap[key].count++;
+  if (success) State.probMap[key].success++;
+  saveProbMap();
+  updateProbHeatmap();
+  updateLearnStatus();
+}
+
+function getProbability(action, target) {
+  const key = `${action}:${target}`;
+  const e = State.probMap[key];
+  if (!e || e.count === 0) return null;
+  return (e.success / e.count);
+}
+
+function saveProbMap() {
+  try { localStorage.setItem('murphy_probmap', JSON.stringify(State.probMap)); } catch(e){}
+}
+
+function loadProbMap() {
+  try {
+    const d = localStorage.getItem('murphy_probmap');
+    if (d) State.probMap = JSON.parse(d);
+  } catch(e){}
+}
+
+function savePaths() {
+  try { localStorage.setItem('murphy_paths', JSON.stringify(State.paths.slice(-50))); } catch(e){}
+}
+
+function loadPaths() {
+  try {
+    const d = localStorage.getItem('murphy_paths');
+    if (d) State.paths = JSON.parse(d);
+  } catch(e){}
+}
+
+function updateProbHeatmap() {
+  const el = document.getElementById('prob-heatmap');
+  if (!el) return;
+  const entries = Object.values(State.probMap).slice(-40);
+  el.innerHTML = entries.map(e => {
+    const r = e.count ? e.success/e.count : 0;
+    const h = Math.round(r * 120); // green=120, red=0
+    return `<div class="prob-cell" style="background:hsl(${h},70%,45%)"></div>`;
+  }).join('');
+  document.getElementById('stat-paths').textContent = State.paths.length;
+}
+
+function updateLearnStatus() {
+  const total = Object.values(State.probMap).reduce((a,e) => a + e.count, 0);
+  const el = document.getElementById('learn-status-text');
+  if (el) el.textContent = `${total} events logged`;
+  const dot = document.getElementById('learn-status-dot');
+  if (dot) dot.className = 'dot ' + (total > 0 ? 'dot-green' : 'dot-grey');
+}
+
+// ── Render steps in sidebar ───────────────────────────────────────
+function renderSteps() {
+  const list = document.getElementById('step-list');
+  if (!State.steps.length) {
+    list.innerHTML = `<div class="empty-state"><span class="emo">🗺</span>Type a task above and press Enter.<br>Murphy will generate the golden path<br>and guide you step by step.</div>`;
+    return;
+  }
+  list.innerHTML = State.steps.map((s, i) => {
+    const isDone = i < State.stepIndex;
+    const isActive = i === State.stepIndex;
+    const prob = getProbability(s.action, s.target);
+    const probHtml = prob !== null
+      ? `<div class="step-prob">learned <span>${(prob*100).toFixed(0)}%</span></div>`
+      : `<div class="step-prob"><span>${(s.prob*100).toFixed(0)}%</span></div>`;
+    return `
+      <div class="step-item ${isDone?'done':''} ${isActive?'active':''}" onclick="jumpToStep(${i})" id="step-item-${i}">
+        <div class="step-num">${isDone ? '✓' : i+1}</div>
+        <div class="step-body">
+          <div class="step-title">${s.title}</div>
+          <div class="step-detail">${s.detail}</div>
+          <span class="step-tag ${s.action}">${s.action}</span>
+        </div>
+        ${probHtml}
+      </div>`;
+  }).join('');
+  document.getElementById('stat-step').textContent =
+    State.stepIndex >= 0 ? `${State.stepIndex+1}/${State.steps.length}` : '—';
+}
+
+// ── Load sim template into viewport ──────────────────────────────
+function loadSim(simKey) {
+  const t = SIM_TEMPLATES[simKey] || SIM_TEMPLATES.dashboard;
+  document.getElementById('sim-title').textContent = t.title;
+  document.getElementById('sim-body').innerHTML = t.body;
+  document.getElementById('sim-idle') && (document.getElementById('sim-idle').style.display = 'none');
+  wireSim(simKey);
+}
+
+function wireSim(simKey) {
+  // CRM wiring
+  const btnNew = document.getElementById('btn-new-contact');
+  if (btnNew) btnNew.onclick = () => {
+    const form = document.getElementById('new-contact-form');
+    if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  };
+  const btnCancel = document.getElementById('btn-cancel-contact');
+  if (btnCancel) btnCancel.onclick = () => {
+    const form = document.getElementById('new-contact-form');
+    if (form) form.style.display = 'none';
+  };
+  const btnSave = document.getElementById('btn-save-contact');
+  if (btnSave) btnSave.onclick = () => {
+    toast('✓ Contact saved!');
+    const form = document.getElementById('new-contact-form');
+    if (form) form.style.display = 'none';
+    recordProbEvent('click','#btn-save-contact',true);
+  };
+  const btnSend = document.getElementById('btn-send-email');
+  if (btnSend) btnSend.onclick = () => { toast('✓ Email sent!'); recordProbEvent('click','#btn-send-email',true); };
+  const btnSaveSet = document.getElementById('btn-save-settings');
+  if (btnSaveSet) btnSaveSet.onclick = () => { toast('✓ Settings saved!'); recordProbEvent('click','#btn-save-settings',true); };
+}
+
+// ── Golden path canvas rendering ──────────────────────────────────
+function drawGoldenPath() {
+  const canvas = document.getElementById('guide-canvas');
+  const vp = document.getElementById('viewport');
+  canvas.width = vp.offsetWidth;
+  canvas.height = vp.offsetHeight;
+  const ctx2d = canvas.getContext('2d');
+  ctx2d.clearRect(0,0,canvas.width,canvas.height);
+  if (!State.steps.length || State.stepIndex < 0) return;
+
+  const simFrame = document.getElementById('sim-inner');
+  const rect = simFrame.getBoundingClientRect();
+  const vpRect = vp.getBoundingClientRect();
+  const ox = rect.left - vpRect.left;
+  const oy = rect.top  - vpRect.top;
+  const w  = rect.width;
+  const h  = rect.height;
+
+  // Draw path from current step to next few
+  const points = [];
+  const end = Math.min(State.steps.length, State.stepIndex + 4);
+  for (let i = Math.max(0, State.stepIndex); i < end; i++) {
+    const s = State.steps[i];
+    const px = ox + s.waypoint.x * w;
+    const py = oy + s.waypoint.y * h;
+    points.push({ x:px, y:py, step:s, idx:i });
+  }
+
+  if (points.length < 2) {
+    if (points.length === 1) drawWaypoint(ctx2d, points[0], 0);
+    return;
+  }
+
+  // Animate dashed golden trail
+  const t = (Date.now() / 300) % 20;
+  ctx2d.save();
+  ctx2d.strokeStyle = '#ffc800';
+  ctx2d.lineWidth = 2.5;
+  ctx2d.setLineDash([8, 5]);
+  ctx2d.lineDashOffset = -t;
+  ctx2d.shadowColor = 'rgba(255,200,0,0.5)';
+  ctx2d.shadowBlur = 8;
+  ctx2d.beginPath();
+  points.forEach((p, i) => {
+    i === 0 ? ctx2d.moveTo(p.x, p.y) : ctx2d.lineTo(p.x, p.y);
+  });
+  ctx2d.stroke();
+  ctx2d.restore();
+
+  // Draw waypoint dots + labels
+  points.forEach((p, i) => drawWaypoint(ctx2d, p, i));
+}
+
+function drawWaypoint(ctx2d, p, i) {
+  const isActive = p.idx === State.stepIndex;
+  const r = isActive ? 9 : 6;
+  ctx2d.save();
+  ctx2d.beginPath();
+  ctx2d.arc(p.x, p.y, r, 0, Math.PI*2);
+  ctx2d.fillStyle = isActive ? '#ffc800' : 'rgba(255,200,0,0.5)';
+  ctx2d.shadowColor = isActive ? 'rgba(255,200,0,0.8)' : 'rgba(255,200,0,0.3)';
+  ctx2d.shadowBlur = isActive ? 16 : 6;
+  ctx2d.fill();
+  // Step number
+  ctx2d.fillStyle = '#000';
+  ctx2d.font = `bold ${isActive?8:7}px Inter,sans-serif`;
+  ctx2d.textAlign = 'center';
+  ctx2d.textBaseline = 'middle';
+  ctx2d.shadowBlur = 0;
+  ctx2d.fillText(p.idx+1, p.x, p.y);
+  ctx2d.restore();
+
+  if (isActive) {
+    // Label
+    ctx2d.save();
+    ctx2d.fillStyle = 'rgba(255,200,0,0.12)';
+    ctx2d.strokeStyle = 'rgba(255,200,0,0.5)';
+    ctx2d.lineWidth = 1;
+    const label = p.step.title;
+    ctx2d.font = '11px Inter,sans-serif';
+    const tw = ctx2d.measureText(label).width;
+    const lx = p.x - tw/2 - 6;
+    const ly = p.y - 30;
+    ctx2d.beginPath();
+    ctx2d.roundRect(lx, ly, tw+12, 20, 5);
+    ctx2d.fill();
+    ctx2d.stroke();
+    ctx2d.fillStyle = '#ffc800';
+    ctx2d.textAlign = 'center';
+    ctx2d.fillText(label, p.x, ly+10);
+    ctx2d.restore();
+  }
+}
+
+// ── Ghost cursor animation ────────────────────────────────────────
+let _ghostAnimFrame = null;
+let _ghostTarget = null;
+let _ghostPos = { x: 0, y: 0 };
+
+function moveGhostTo(targetSel, onArrival) {
+  const ghost = document.getElementById('ghost-cursor');
+  const vp = document.getElementById('viewport');
+  const el = document.querySelector(targetSel);
+  if (!el) { onArrival && onArrival(); return; }
+
+  ghost.style.display = 'block';
+  const rect = el.getBoundingClientRect();
+  const vpRect = vp.getBoundingClientRect();
+  const tx = rect.left - vpRect.left + rect.width/2;
+  const ty = rect.top  - vpRect.top  + rect.height/2;
+
+  // Animate cursor movement
+  const steps = 30 / State.speed;
+  const sx = parseFloat(ghost.style.left||'50%') || vpRect.width/2;
+  const sy = parseFloat(ghost.style.top||'50%')  || vpRect.height/2;
+  let frame = 0;
+  if (_ghostAnimFrame) cancelAnimationFrame(_ghostAnimFrame);
+
+  function animate() {
+    frame++;
+    const t = Math.min(1, frame/steps);
+    const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+    const cx = sx + (tx-sx)*ease;
+    const cy = sy + (ty-sy)*ease;
+    ghost.style.left = cx + 'px';
+    ghost.style.top  = cy + 'px';
+    if (t < 1) {
+      _ghostAnimFrame = requestAnimationFrame(animate);
+    } else {
+      highlightElement(el);
+      setTimeout(() => {
+        simulateAction(targetSel);
+        onArrival && onArrival();
+      }, 300 / State.speed);
+    }
+  }
+  animate();
+}
+
+function highlightElement(el) {
+  clearHighlights();
+  const h = document.createElement('div');
+  h.className = 'gp-highlight';
+  const rect = el.getBoundingClientRect();
+  const vpRect = document.getElementById('viewport').getBoundingClientRect();
+  Object.assign(h.style, {
+    left:   (rect.left - vpRect.left) + 'px',
+    top:    (rect.top  - vpRect.top)  + 'px',
+    width:  rect.width  + 'px',
+    height: rect.height + 'px',
+  });
+  document.getElementById('viewport').appendChild(h);
+  State.highlights.push(h);
+  setTimeout(() => h.remove(), 1800 / State.speed);
+}
+
+function clearHighlights() {
+  State.highlights.forEach(h => h.remove && h.remove());
+  State.highlights = [];
+}
+
+function simulateAction(target) {
+  const el = document.querySelector(target);
+  if (!el) return;
+  const s = State.steps[State.stepIndex];
+  if (!s) return;
+
+  if (s.action === 'type' && s.typeValue) {
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+      let i = 0;
+      el.focus();
+      el.value = '';
+      const typeNext = () => {
+        if (i < s.typeValue.length) {
+          el.value += s.typeValue[i++];
+          setTimeout(typeNext, 35 / State.speed);
+        }
+      };
+      typeNext();
+    }
+  } else if (s.action === 'click' || s.action === 'nav') {
+    el.classList.add('active');
+    setTimeout(() => el.classList.remove('active'), 300);
+    if (el.onclick) el.click();
+  }
+}
+
+// ── Step navigation ────────────────────────────────────────────────
+function jumpToStep(i) {
+  if (i < 0 || i >= State.steps.length) return;
+  State.stepIndex = i;
+  renderSteps();
+  drawGoldenPath();
+  setMode('guide');
+  updateControls();
+  updateStatMode('guide');
+  document.getElementById('stat-step').textContent = `${i+1}/${State.steps.length}`;
+}
+
+function nextStep() {
+  if (State.stepIndex < State.steps.length - 1) {
+    recordProbEvent(State.steps[State.stepIndex].action, State.steps[State.stepIndex].target, true);
+    State.stepIndex++;
+    renderSteps();
+    drawGoldenPath();
+    updateControls();
+    document.getElementById('stat-step').textContent = `${State.stepIndex+1}/${State.steps.length}`;
+  } else {
+    completePath();
+  }
+}
+
+function prevStep() {
+  if (State.stepIndex > 0) { State.stepIndex--; renderSteps(); drawGoldenPath(); updateControls(); }
+}
+
+function stepPlay() {
+  if (!State.steps.length || State.stepIndex < 0) return;
+  const s = State.steps[State.stepIndex];
+  moveGhostTo(s.target, () => {
+    recordProbEvent(s.action, s.target, true);
+    toast(`Step ${State.stepIndex+1}: ${s.title}`);
+    setTimeout(() => nextStep(), 600 / State.speed);
+  });
+}
+
+function toggleAutoPlay() {
+  State.playing = !State.playing;
+  const btn = document.getElementById('auto-btn');
+  if (State.playing) {
+    btn.textContent = '⏸ Pause';
+    btn.style.background = 'var(--gold)';
+    autoPlayNext();
+    updateGhostStatus('playing', 'Ghost playing');
+  } else {
+    btn.textContent = '▶ Auto-play';
+    btn.style.background = '';
+    if (State.playTimer) clearTimeout(State.playTimer);
+    updateGhostStatus('idle','Ghost idle');
+  }
+}
+
+function autoPlayNext() {
+  if (!State.playing) return;
+  if (State.stepIndex >= State.steps.length - 1) {
+    completePath();
+    State.playing = false;
+    document.getElementById('auto-btn').textContent = '▶ Auto-play';
+    document.getElementById('auto-btn').style.background = '';
+    return;
+  }
+  stepPlay();
+  const delay = (1400 + Math.random()*400) / State.speed;
+  State.playTimer = setTimeout(autoPlayNext, delay);
+}
+
+function completePath() {
+  // Save this run to paths DB
+  const run = {
+    id: Date.now().toString(36),
+    task: document.getElementById('prompt-input').value,
+    steps: State.steps.length,
+    confidence: State.confidence,
+    completedAt: new Date().toISOString(),
+  };
+  State.paths.push(run);
+  savePaths();
+  State.ghostRuns++;
+  document.getElementById('stat-ghost-runs').textContent = State.ghostRuns;
+  updateLearnStatus();
+  toast(`✓ Path complete! (${State.steps.length} steps) — logged to probability map`);
+  document.getElementById('ghost-cursor').style.display = 'none';
+  clearHighlights();
+  updateGhostStatus('done','Path complete');
+}
+
+// ── Ghost run (full auto from step 0) ─────────────────────────────
+function triggerGhost() {
+  State.stepIndex = 0;
+  State.playing = true;
+  renderSteps();
+  drawGoldenPath();
+  updateGhostStatus('playing','Ghost running…');
+  autoPlayNext();
+}
+
+// ── Recording ─────────────────────────────────────────────────────
+function toggleRecord() {
+  const btn = document.getElementById('record-btn');
+  State.recording = !State.recording;
+  if (State.recording) {
+    btn.classList.add('recording');
+    btn.textContent = '■ Stop';
+    State.recordStart = Date.now();
+    State.recordEvents = [];
+    updateGhostStatus('rec','Recording…');
+    // Track clicks on sim elements
+    document.getElementById('sim-body').addEventListener('click', captureClick);
+    toast('Recording started — perform the task in the sim');
+  } else {
+    btn.classList.remove('recording');
+    btn.textContent = '⬤ Record';
+    document.getElementById('sim-body').removeEventListener('click', captureClick);
+    if (State.recordEvents.length > 0) {
+      const task = document.getElementById('prompt-input').value || 'Recorded task';
+      const run = {
+        id: Date.now().toString(36),
+        task,
+        steps: State.recordEvents.length,
+        events: State.recordEvents,
+        recordedAt: new Date().toISOString(),
+        source: 'user_recording',
+      };
+      State.paths.push(run);
+      savePaths();
+      // Feed recorded events into probability map
+      State.recordEvents.forEach(e => recordProbEvent(e.action, e.target, true));
+      toast(`✓ Recorded ${State.recordEvents.length} actions — path saved`);
+    }
+    updateGhostStatus('idle','Ghost idle');
+  }
+}
+
+function captureClick(e) {
+  if (!State.recording) return;
+  const el = e.target.closest('[id]');
+  if (!el) return;
+  State.recordEvents.push({
+    action: 'click',
+    target: '#' + el.id,
+    ts: Date.now() - State.recordStart,
+    label: el.textContent.trim().slice(0,40),
+  });
+}
+
+// ── Submit prompt ─────────────────────────────────────────────────
+async function submitPrompt() {
+  const input = document.getElementById('prompt-input');
+  const prompt = input.value.trim();
+  if (!prompt) return;
+
+  // Show loading
+  const banner = document.getElementById('loading-banner');
+  banner.classList.add('visible');
+  document.getElementById('step-list').innerHTML = `<div class="empty-state"><span class="emo">⚡</span>Generating golden path…</div>`;
+
+  // Try live API, then local
+  let path = null;
+  try { path = await fetchPath(prompt); } catch(e){}
+  if (!path) path = buildPathFromPrompt(prompt);
+
+  banner.classList.remove('visible');
+
+  State.steps    = path.steps;
+  State.stepIndex = 0;
+  State.confidence = path.confidence;
+  State.playing  = false;
+
+  // Update confidence bar
+  document.getElementById('conf-fill').style.width = (path.confidence * 100) + '%';
+  document.getElementById('conf-pct').textContent = Math.round(path.confidence*100) + '%';
+
+  // Load sim
+  loadSim(path.sim || 'dashboard');
+
+  // Enable controls
+  renderSteps();
+  drawGoldenPath();
+  updateControls();
+  updateGhostStatus('ready','Path ready');
+  updateStatMode('guide');
+  document.getElementById('stat-top-action').textContent = path.steps[0]?.action || '—';
+  document.getElementById('ghost-btn').disabled = false;
+  document.getElementById('play-btn').disabled = false;
+  toast(`Path generated: ${path.steps.length} steps`);
+
+  // Log to Murphy
+  logToMurphy(prompt, path);
+}
+
+async function logToMurphy(prompt, path) {
+  try {
+    await fetch(`${MURPHY_API}/api/ghost/training`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        task: prompt,
+        run_id: Date.now().toString(36),
+        source: 'goldenpath_ui',
+        steps: path.steps.length,
+        confidence: path.confidence,
+        sequence: path.steps.map((s,i) => ({
+          seq:i, action:s.action, target:s.target, title:s.title
+        }))
+      }),
+      signal: AbortSignal.timeout(3000)
+    });
+  } catch(e) {}
+}
+
+// ── Utilities ─────────────────────────────────────────────────────
+function handlePromptKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitPrompt(); }
+}
+
+function setMode(m) {
+  State.mode = m;
+  ['guide','ghost','learn'].forEach(id => {
+    document.getElementById('tab-'+id)?.classList.toggle('active', id===m);
+  });
+  updateStatMode(m);
+}
+
+function updateStatMode(m) {
+  document.getElementById('stat-mode').textContent = m;
+}
+
+function updateControls() {
+  const has = State.steps.length > 0;
+  document.getElementById('prev-btn').disabled = !has || State.stepIndex <= 0;
+  document.getElementById('next-btn').disabled = !has || State.stepIndex >= State.steps.length-1;
+  document.getElementById('play-btn').disabled = !has;
+}
+
+function updateSpeed(v) {
+  State.speed = parseFloat(v);
+  document.getElementById('speed-label').textContent = parseFloat(v).toFixed(1) + '×';
+}
+
+function updateGhostStatus(state, text) {
+  const dot = document.getElementById('ghost-status-dot');
+  const txt = document.getElementById('ghost-status-text');
+  if (txt) txt.textContent = text;
+  if (dot) dot.className = 'dot ' + (state==='playing'||state==='rec' ? 'dot-green' : state==='ready' ? 'dot-gold' : 'dot-grey');
+}
+
+function clearAll() {
+  State.steps = [];
+  State.stepIndex = -1;
+  State.playing = false;
+  if (State.playTimer) clearTimeout(State.playTimer);
+  document.getElementById('ghost-cursor').style.display = 'none';
+  clearHighlights();
+  renderSteps();
+  const canvas = document.getElementById('guide-canvas');
+  const ctx2d = canvas.getContext('2d');
+  ctx2d.clearRect(0,0,canvas.width,canvas.height);
+  document.getElementById('sim-body').innerHTML = `<div id="sim-idle" style="display:flex;align-items:center;justify-content:center;height:320px;color:var(--muted);font-size:.9rem">Enter a task prompt to begin →</div>`;
+  document.getElementById('conf-fill').style.width = '0%';
+  document.getElementById('conf-pct').textContent = '—';
+  updateControls();
+  updateGhostStatus('idle','Ghost idle');
+}
+
+let _toastTimer = null;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ── Animation loop for canvas ─────────────────────────────────────
+function animLoop() {
+  if (State.steps.length && State.stepIndex >= 0) drawGoldenPath();
+  requestAnimationFrame(animLoop);
+}
+
+// ── Boot ──────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  loadProbMap();
+  loadPaths();
+  updateProbHeatmap();
+  updateLearnStatus();
+  updateControls();
+  animLoop();
+  window.addEventListener('resize', () => {
+    const canvas = document.getElementById('guide-canvas');
+    const vp = document.getElementById('viewport');
+    canvas.width = vp.offsetWidth;
+    canvas.height = vp.offsetHeight;
+  });
+});
+</script>
+</body>
+</html>
