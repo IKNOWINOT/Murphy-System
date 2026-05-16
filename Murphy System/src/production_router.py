@@ -2096,6 +2096,611 @@ async def serve_ui_page(page_name: str):
 # Standalone entry removed — use unified server via src/runtime/app.py
 
 # ── Production Router Startup ─────────────────────────────────────────────
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PATCH-326: Complete System Wiring
+# - /guide            → murphy_guide.html (Golden Path UI)
+# - /download         → download.html (Murphy Client download page)
+# - /api/ghost/*      → Ghost Controller training & relay endpoints
+# - /api/goldenpath/* → Golden Path generation + path DB
+# - /api/auth/oauth/* → LinkedIn, Apple, Meta OAuth (adds to existing Google/GitHub)
+# - /api/auth/callback → Unified OAuth callback → user DB → 30-day session cookie
+# ═══════════════════════════════════════════════════════════════════════════════
+
+import sqlite3 as _sq3
+import urllib.request as _ureq
+import urllib.parse as _uparse
+import json as _json_mod
+import secrets as _sec
+import time as _time_mod
+import hashlib as _hash_mod
+from pathlib import Path as _Path
+
+_GUIDE_SEARCH = [
+    _BASE_DIR / "murphy_guide.html",
+    _MURPHY_DIR / "murphy_guide.html",
+]
+_DL_SEARCH = [
+    _BASE_DIR / "download.html",
+    _MURPHY_DIR / "download.html",
+]
+
+# ── Guide + Download page routes ─────────────────────────────────────────────
+
+@router.get("/guide", response_class=HTMLResponse)
+async def serve_guide():
+    """Murphy Guide — Golden Path UI."""
+    for p in _GUIDE_SEARCH:
+        if p.exists(): return HTMLResponse(p.read_text(encoding="utf-8"))
+    raise HTTPException(404, "murphy_guide.html not found — deploy it to the repo root")
+
+@router.get("/ui/murphy-guide", response_class=HTMLResponse)
+async def serve_guide_ui():
+    return await serve_guide()
+
+@router.get("/download", response_class=HTMLResponse)
+async def serve_download():
+    """Murphy Client download page."""
+    for p in _DL_SEARCH:
+        if p.exists(): return HTMLResponse(p.read_text(encoding="utf-8"))
+    raise HTTPException(404, "download.html not found")
+
+# ── Ghost Controller endpoints ────────────────────────────────────────────────
+# Receives training data from murphy_client.py on user devices.
+# Feeds into probability map used by Golden Path to rank action sequences.
+
+_GHOST_DB_PATH = "/var/lib/murphy-production/ghost_training.db"
+
+def _ghost_db():
+    con = _sq3.connect(_GHOST_DB_PATH, check_same_thread=False, timeout=10)
+    con.row_factory = _sq3.Row
+    con.execute("PRAGMA journal_mode=WAL")
+    con.execute("""CREATE TABLE IF NOT EXISTS ghost_devices (
+        device_id   TEXT PRIMARY KEY,
+        user_id     TEXT,
+        hostname    TEXT,
+        platform    TEXT,
+        registered_at TEXT DEFAULT (datetime('now')),
+        last_seen   TEXT,
+        relay_url   TEXT
+    )""")
+    con.execute("""CREATE TABLE IF NOT EXISTS ghost_training_events (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        run_id      TEXT,
+        device_id   TEXT,
+        user_id     TEXT,
+        task        TEXT,
+        source      TEXT DEFAULT 'user_recording',
+        steps       INTEGER,
+        confidence  REAL DEFAULT 0.8,
+        sequence    TEXT,  -- JSON array of {seq,action,target,title}
+        recorded_at TEXT DEFAULT (datetime('now'))
+    )""")
+    con.execute("""CREATE TABLE IF NOT EXISTS ghost_prob_map (
+        action_key  TEXT PRIMARY KEY,  -- "action:target"
+        action      TEXT,
+        target      TEXT,
+        count       INTEGER DEFAULT 0,
+        success     INTEGER DEFAULT 0,
+        last_seen   TEXT DEFAULT (datetime('now'))
+    )""")
+    con.execute("""CREATE TABLE IF NOT EXISTS ghost_timecards (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        device_id   TEXT,
+        user_id     TEXT,
+        session_start TEXT,
+        session_end   TEXT,
+        active_seconds INTEGER DEFAULT 0,
+        activity_score REAL DEFAULT 0,
+        top_app     TEXT,
+        recorded_at TEXT DEFAULT (datetime('now'))
+    )""")
+    con.commit()
+    return con
+
+@router.post("/api/ghost/register")
+async def ghost_register(request: Request):
+    """Register a Murphy Client device."""
+    data = await request.json()
+    device_id = data.get("device_id","")
+    if not device_id:
+        raise HTTPException(400,"device_id required")
+    con = _ghost_db()
+    try:
+        import uuid as _uuid
+        con.execute("""INSERT OR REPLACE INTO ghost_devices
+            (device_id,user_id,hostname,platform,last_seen,relay_url) VALUES (?,?,?,?,datetime('now'),?)""",
+            (device_id, data.get("user_id","anon"), data.get("hostname",""),
+             data.get("platform",""), data.get("relay_url","")))
+        con.commit()
+        return JSONResponse({"ok":True,"device_id":device_id})
+    finally:
+        con.close()
+
+@router.post("/api/ghost/training")
+async def ghost_training(request: Request):
+    """Ingest a training run from a Murphy Client device."""
+    data = await request.json()
+    task = data.get("task","")
+    sequence = data.get("sequence",[])
+    run_id = data.get("run_id", _sec.token_hex(8))
+
+    con = _ghost_db()
+    try:
+        # Store the training event
+        con.execute("""INSERT INTO ghost_training_events
+            (run_id,device_id,user_id,task,source,steps,confidence,sequence) VALUES (?,?,?,?,?,?,?,?)""",
+            (run_id, data.get("device_id","ui"), data.get("user_id","anon"),
+             task, data.get("source","goldenpath_ui"),
+             data.get("steps", len(sequence)),
+             data.get("confidence", 0.8),
+             _json_mod.dumps(sequence)))
+
+        # Update probability map
+        for step in sequence:
+            action = step.get("action","click")
+            target = step.get("target","")
+            key = f"{action}:{target}"
+            con.execute("""INSERT INTO ghost_prob_map (action_key,action,target,count,success)
+                VALUES (?,?,?,1,1)
+                ON CONFLICT(action_key) DO UPDATE SET
+                    count=count+1, success=success+1, last_seen=datetime('now')""",
+                (key, action, target))
+        con.commit()
+        return JSONResponse({"ok":True,"run_id":run_id,"steps_logged":len(sequence)})
+    finally:
+        con.close()
+
+@router.get("/api/ghost/probmap")
+async def ghost_probmap(request: Request):
+    """Returns the learned probability map for all action:target pairs."""
+    con = _ghost_db()
+    try:
+        rows = con.execute("""SELECT action_key, action, target,
+            count, success,
+            CASE WHEN count>0 THEN CAST(success AS REAL)/count ELSE 0 END as prob,
+            last_seen FROM ghost_prob_map ORDER BY count DESC LIMIT 200""").fetchall()
+        return JSONResponse({"prob_map":[dict(r) for r in rows],"total":len(rows)})
+    finally:
+        con.close()
+
+@router.post("/api/ghost/dispatch")
+async def ghost_dispatch(request: Request):
+    """Dispatch an action sequence to a registered device relay."""
+    data = await request.json()
+    device_id = data.get("device_id","")
+    actions = data.get("actions",[])
+
+    # Look up device relay URL
+    con = _ghost_db()
+    try:
+        row = con.execute("SELECT relay_url FROM ghost_devices WHERE device_id=?", (device_id,)).fetchone()
+        if not row or not row["relay_url"]:
+            return JSONResponse({"ok":False,"error":"device not found or no relay"})
+        relay = row["relay_url"]
+    finally:
+        con.close()
+
+    # POST to device relay
+    try:
+        body = _json_mod.dumps({"actions":actions,"source":"murphy_server","ts":_time_mod.time()}).encode()
+        req = _ureq.Request(relay+"/execute", data=body, headers={"Content-Type":"application/json"}, method="POST")
+        with _ureq.urlopen(req, timeout=5) as r:
+            return JSONResponse({"ok":True,"relay_response": _json_mod.loads(r.read())})
+    except Exception as e:
+        return JSONResponse({"ok":False,"error":str(e)})
+
+@router.post("/api/ghost/timecards")
+async def ghost_timecards(request: Request):
+    """Log a timecard entry from a Murphy Client device."""
+    data = await request.json()
+    con = _ghost_db()
+    try:
+        con.execute("""INSERT INTO ghost_timecards
+            (device_id,user_id,session_start,session_end,active_seconds,activity_score,top_app) VALUES (?,?,?,?,?,?,?)""",
+            (data.get("device_id",""), data.get("user_id",""),
+             data.get("session_start",""), data.get("session_end",""),
+             data.get("active_seconds",0), data.get("activity_score",0),
+             data.get("top_app","")))
+        con.commit()
+        return JSONResponse({"ok":True})
+    finally:
+        con.close()
+
+# ── Golden Path generation endpoint ──────────────────────────────────────────
+
+_GP_DB_PATH = "/var/lib/murphy-production/goldenpath.db"
+
+def _gp_db():
+    con = _sq3.connect(_GP_DB_PATH, check_same_thread=False, timeout=10)
+    con.row_factory = _sq3.Row
+    con.execute("PRAGMA journal_mode=WAL")
+    con.execute("""CREATE TABLE IF NOT EXISTS golden_paths (
+        id          TEXT PRIMARY KEY,
+        task_hash   TEXT,
+        task        TEXT,
+        steps       TEXT,   -- JSON
+        confidence  REAL,
+        use_count   INTEGER DEFAULT 0,
+        last_used   TEXT DEFAULT (datetime('now')),
+        created_at  TEXT DEFAULT (datetime('now'))
+    )""")
+    con.execute("CREATE INDEX IF NOT EXISTS idx_gp_hash ON golden_paths(task_hash)")
+    con.commit()
+    return con
+
+@router.post("/api/goldenpath/generate")
+async def goldenpath_generate(request: Request):
+    """
+    Accepts a task + software_signature.
+    1. Checks golden path DB for a cached high-confidence match
+    2. Falls back to LLM-generated step list
+    3. Feeds result back into ghost probability map
+    """
+    data = await request.json()
+    task = data.get("task","")
+    if not task:
+        raise HTTPException(400,"task required")
+
+    task_hash = _hash_mod.md5(task.lower().strip().encode()).hexdigest()[:12]
+
+    # Check cache
+    con = _gp_db()
+    try:
+        row = con.execute(
+            "SELECT * FROM golden_paths WHERE task_hash=? AND confidence>=0.8 ORDER BY use_count DESC LIMIT 1",
+            (task_hash,)
+        ).fetchone()
+        if row:
+            con.execute("UPDATE golden_paths SET use_count=use_count+1,last_used=datetime('now') WHERE id=?", (row["id"],))
+            con.commit()
+            return JSONResponse({
+                "result": _json_mod.loads(row["steps"]),
+                "confidence": row["confidence"],
+                "notes": ["cache_hit"],
+                "meta": {"gp": {"hit": True, "id": row["id"]}}
+            })
+    finally:
+        con.close()
+
+    # Generate via swarm LLM
+    steps = []
+    confidence = 0.75
+    notes = ["llm_generated"]
+    try:
+        # Try swarm dispatch
+        from src.swarm_coordinator import SwarmCoordinator
+        sc = SwarmCoordinator()
+        import asyncio
+        result = await asyncio.wait_for(
+            sc.dispatch(f"""Generate a golden path for this user task: "{task}"
+Return JSON: {{"steps":[{{"id":"s1","title":"...","detail":"...","action":"click|type|nav|key","target":"#css-selector","prob":0.95}}]}}
+Keep to 3-8 steps. Be specific about targets."""),
+            timeout=25.0
+        )
+        if result and "steps" in str(result):
+            import re
+            m = re.search(r'\{.*\}', str(result), re.DOTALL)
+            if m:
+                parsed = _json_mod.loads(m.group(0))
+                if parsed.get("steps"):
+                    steps = parsed["steps"]
+                    confidence = 0.82
+    except Exception as e:
+        log.warning(f"[goldenpath] LLM generation failed: {e}")
+        notes.append(f"llm_error:{str(e)[:60]}")
+
+    # Save to cache
+    if steps:
+        import uuid as _uuid2
+        gp_id = str(_uuid2.uuid4())[:8]
+        con = _gp_db()
+        try:
+            con.execute("""INSERT OR IGNORE INTO golden_paths (id,task_hash,task,steps,confidence)
+                VALUES (?,?,?,?,?)""",
+                (gp_id, task_hash, task, _json_mod.dumps({"tasks":steps}), confidence))
+            con.commit()
+        finally:
+            con.close()
+
+    return JSONResponse({
+        "result": {"chain_id": task_hash, "tasks": steps},
+        "confidence": confidence,
+        "notes": notes,
+        "meta": {"gp": {"hit": False}}
+    })
+
+# ── OAuth: LinkedIn + Apple + Meta additions ──────────────────────────────────
+# Adds the 3 missing providers to complement existing Google + GitHub handlers.
+
+_OAUTH_STATES_326: dict = {}  # state → {provider, ts}
+
+def _p326_cfg():
+    base = os.environ.get("MURPHY_OAUTH_REDIRECT_URI","https://murphy.systems/api/auth/callback")
+    return {
+        "linkedin": {
+            "client_id":     os.environ.get("MURPHY_OAUTH_LINKEDIN_CLIENT_ID",""),
+            "client_secret": os.environ.get("MURPHY_OAUTH_LINKEDIN_SECRET",""),
+            "authorize": "https://www.linkedin.com/oauth/v2/authorization",
+            "token":     "https://www.linkedin.com/oauth/v2/accessToken",
+            "userinfo":  "https://api.linkedin.com/v2/userinfo",
+            "scopes":    "openid profile email",
+            "redirect":  base,
+        },
+        "apple": {
+            "client_id":     os.environ.get("MURPHY_OAUTH_APPLE_CLIENT_ID",""),
+            "client_secret": os.environ.get("MURPHY_OAUTH_APPLE_SECRET",""),
+            "authorize": "https://appleid.apple.com/auth/authorize",
+            "token":     "https://appleid.apple.com/auth/token",
+            "userinfo":  "",
+            "scopes":    "name email",
+            "redirect":  base,
+        },
+        "meta": {
+            "client_id":     os.environ.get("MURPHY_OAUTH_META_CLIENT_ID",""),
+            "client_secret": os.environ.get("MURPHY_OAUTH_META_SECRET",""),
+            "authorize": "https://www.facebook.com/v18.0/dialog/oauth",
+            "token":     "https://graph.facebook.com/v18.0/oauth/access_token",
+            "userinfo":  "https://graph.facebook.com/v18.0/me?fields=id,name,email,first_name,last_name",
+            "scopes":    "email public_profile",
+            "redirect":  base,
+        },
+    }
+
+def _p326_new_state(provider):
+    state = _sec.token_urlsafe(20)
+    _OAUTH_STATES_326[state] = {"provider": provider, "ts": _time_mod.time()}
+    # Purge expired
+    now = _time_mod.time()
+    for k in [k for k,v in list(_OAUTH_STATES_326.items()) if now-v["ts"]>600]:
+        del _OAUTH_STATES_326[k]
+    return state
+
+def _p326_consume_state(state):
+    e = _OAUTH_STATES_326.pop(state, None)
+    if e and _time_mod.time() - e["ts"] < 600:
+        return e["provider"]
+    return None
+
+def _p326_upsert_user(provider, email, display_name, provider_uid, picture=""):
+    """Find or create user in oauth_identities. Returns (user_id, is_new)."""
+    import uuid as _uuid3
+    db_path = "/var/lib/murphy-production/murphy_users.db"
+    con = _sq3.connect(db_path, check_same_thread=False, timeout=10)
+    con.row_factory = _sq3.Row
+    try:
+        # Ensure tables exist (idempotent)
+        con.execute("""CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY, email TEXT UNIQUE, display_name TEXT,
+            role TEXT DEFAULT 'user', tier TEXT DEFAULT 'free',
+            created_at TEXT DEFAULT (datetime('now')), last_login TEXT)""")
+        con.execute("""CREATE TABLE IF NOT EXISTS oauth_identities (
+            id TEXT PRIMARY KEY, user_id TEXT, provider TEXT,
+            provider_user_id TEXT, email TEXT, picture TEXT,
+            linked_at TEXT DEFAULT (datetime('now')),
+            UNIQUE(provider, provider_user_id))""")
+        con.execute("""CREATE TABLE IF NOT EXISTS sessions (
+            token TEXT PRIMARY KEY, user_id TEXT,
+            created_at INTEGER, expires_at INTEGER)""")
+        con.commit()
+
+        # Find by oauth identity
+        row = con.execute("SELECT user_id FROM oauth_identities WHERE provider=? AND provider_user_id=?",
+                          (provider, str(provider_uid))).fetchone()
+        if row:
+            user_id = row["user_id"]
+            is_new = False
+        else:
+            # Find by email
+            urow = con.execute("SELECT id FROM users WHERE email=?", (email.lower(),)).fetchone() if email else None
+            if urow:
+                user_id = urow["id"]
+                is_new = False
+            else:
+                user_id = str(_uuid3.uuid4())
+                con.execute("INSERT OR IGNORE INTO users (id,email,display_name) VALUES (?,?,?)",
+                            (user_id, email.lower() or None, display_name))
+                is_new = True
+            con.execute("""INSERT OR IGNORE INTO oauth_identities (id,user_id,provider,provider_user_id,email,picture)
+                VALUES (?,?,?,?,?,?)""",
+                (str(_uuid3.uuid4()), user_id, provider, str(provider_uid), email, picture))
+
+        con.execute("UPDATE users SET last_login=datetime('now') WHERE id=?", (user_id,))
+        con.commit()
+
+        # Founder override
+        if email in ("cpost@murphy.systems","corey.eecs@gmail.com","corey.gfc@gmail.com"):
+            con.execute("UPDATE users SET role='owner',tier='enterprise' WHERE id=?", (user_id,))
+            con.commit()
+
+        return user_id, is_new
+    finally:
+        con.close()
+
+def _p326_create_session(user_id):
+    token = _sec.token_urlsafe(48)
+    now = int(_time_mod.time())
+    db = "/var/lib/murphy-production/murphy_users.db"
+    con = _sq3.connect(db, check_same_thread=False, timeout=10)
+    try:
+        con.execute("INSERT OR IGNORE INTO sessions (token,user_id,created_at,expires_at) VALUES (?,?,?,?)",
+                    (token, user_id, now, now + 30*86400))
+        con.commit()
+    finally:
+        con.close()
+    return token
+
+def _p326_http_get(url, headers=None):
+    req = _ureq.Request(url, headers=headers or {})
+    with _ureq.urlopen(req, timeout=10) as r:
+        return _json_mod.loads(r.read())
+
+def _p326_http_post(url, data):
+    body = _uparse.urlencode(data).encode()
+    req = _ureq.Request(url, data=body,
+        headers={"Content-Type":"application/x-www-form-urlencoded","Accept":"application/json"})
+    with _ureq.urlopen(req, timeout=10) as r:
+        return _json_mod.loads(r.read())
+
+@router.get("/api/auth/oauth/{provider}")
+async def p326_oauth_start(provider: str, request: Request):
+    """Initiate OAuth for linkedin / apple / meta (adds to existing google/github)."""
+    if provider not in ("linkedin","apple","meta"):
+        raise HTTPException(404, f"Provider '{provider}' handled elsewhere")
+
+    cfg = _p326_cfg().get(provider, {})
+    if not cfg.get("client_id") or not cfg.get("client_secret"):
+        # Redirect back with error
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(f"/ui/login?error=oauth_not_configured&provider={provider}")
+
+    state = _p326_new_state(provider)
+    params = {
+        "client_id": cfg["client_id"],
+        "redirect_uri": cfg["redirect"],
+        "response_type": "code",
+        "scope": cfg["scopes"],
+        "state": state,
+    }
+    if provider == "apple":
+        params["response_mode"] = "form_post"
+    url = cfg["authorize"] + "?" + _uparse.urlencode(params)
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url)
+
+@router.get("/api/auth/callback")
+@router.post("/api/auth/callback")
+async def p326_oauth_callback(request: Request):
+    """Unified OAuth callback for linkedin/apple/meta."""
+    from fastapi.responses import RedirectResponse
+
+    params = dict(request.query_params)
+    if request.method == "POST":
+        body = await request.form()
+        params.update(dict(body))
+
+    code  = params.get("code","")
+    state = params.get("state","")
+    error = params.get("error","")
+
+    if error:
+        return RedirectResponse("/ui/login?error=oauth_error")
+
+    provider = _p326_consume_state(state)
+    if not provider:
+        return RedirectResponse("/ui/login?error=oauth_error")
+
+    cfg = _p326_cfg().get(provider)
+    if not cfg:
+        return RedirectResponse("/ui/login?error=unsupported_provider")
+
+    try:
+        tokens = _p326_http_post(cfg["token"], {
+            "client_id": cfg["client_id"],
+            "client_secret": cfg["client_secret"],
+            "code": code,
+            "grant_type": "authorization_code",
+            "redirect_uri": cfg["redirect"],
+        })
+        access_token = tokens.get("access_token","")
+
+        if provider == "apple":
+            import base64 as _b64
+            id_token = tokens.get("id_token","")
+            claims = {}
+            if id_token:
+                try:
+                    parts = id_token.split(".")
+                    claims = _json_mod.loads(_b64.b64decode(parts[1]+"=="))
+                except Exception:
+                    pass
+            email = claims.get("email","")
+            display_name = email.split("@")[0] if email else "Apple User"
+            provider_uid = claims.get("sub","")
+            picture = ""
+        elif provider == "meta":
+            raw = _p326_http_get(cfg["userinfo"], {"Authorization":f"Bearer {access_token}"})
+            email = raw.get("email","")
+            display_name = raw.get("name","")
+            provider_uid = str(raw.get("id",""))
+            picture = ""
+        else:  # linkedin
+            raw = _p326_http_get(cfg["userinfo"], {"Authorization":f"Bearer {access_token}"})
+            email = raw.get("email","")
+            display_name = raw.get("name","")
+            provider_uid = raw.get("sub","") or str(raw.get("id",""))
+            picture = raw.get("picture","")
+
+        if not provider_uid:
+            return RedirectResponse("/ui/login?error=oauth_error")
+
+        user_id, is_new = _p326_upsert_user(provider, email, display_name, provider_uid, picture)
+        session_token = _p326_create_session(user_id)
+
+        resp = RedirectResponse("/ui/terminal-unified", status_code=303)
+        resp.set_cookie("murphy_session", session_token,
+                        max_age=30*86400, httponly=True, secure=True, samesite="lax")
+        return resp
+
+    except Exception as e:
+        log.error(f"[oauth-326] callback error ({provider}): {e}")
+        return RedirectResponse(f"/ui/login?error=oauth_error&provider={provider}")
+
+# ── /api/auth/providers — show all 5 providers live state ────────────────────
+
+@router.get("/api/auth/providers_all")
+async def auth_providers_all():
+    """Extended provider check covering all 5 OAuth providers."""
+    base_google  = bool(os.environ.get("MURPHY_OAUTH_GOOGLE_CLIENT_ID"))
+    base_github  = bool(os.environ.get("MURPHY_OAUTH_GITHUB_CLIENT_ID"))
+    cfg = _p326_cfg()
+    return JSONResponse({"providers": {
+        "google":   base_google,
+        "github":   base_github,
+        "linkedin": bool(cfg["linkedin"]["client_id"]),
+        "apple":    bool(cfg["apple"]["client_id"]),
+        "meta":     bool(cfg["meta"]["client_id"]),
+    }})
+
+# ── /api/auth/me — session resolution ────────────────────────────────────────
+
+@router.get("/api/auth/me")
+async def auth_me_326(request: Request):
+    """Resolve current user from session cookie or Bearer token."""
+    token = request.cookies.get("murphy_session","")
+    if not token:
+        ah = request.headers.get("Authorization","")
+        if ah.startswith("Bearer "):
+            token = ah[7:]
+    if not token:
+        raise HTTPException(401,"Not authenticated")
+
+    now = int(_time_mod.time())
+    db = "/var/lib/murphy-production/murphy_users.db"
+    try:
+        con = _sq3.connect(db, check_same_thread=False, timeout=5)
+        con.row_factory = _sq3.Row
+        row = con.execute("""SELECT u.id,u.email,u.display_name,u.role,u.tier
+            FROM sessions s JOIN users u ON s.user_id=u.id
+            WHERE s.token=? AND s.expires_at>?""", (token, now)).fetchone()
+        con.close()
+        if not row:
+            raise HTTPException(401,"Session expired")
+        u = dict(row)
+        if u.get("email","") in ("cpost@murphy.systems","corey.eecs@gmail.com","corey.gfc@gmail.com"):
+            u["role"]="owner"; u["tier"]="enterprise"
+        return JSONResponse({"authenticated":True,"user":u})
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# END PATCH-326
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
 async def production_router_startup():
     """Call from main app startup to initialize production router state."""
     _seed_automations()
