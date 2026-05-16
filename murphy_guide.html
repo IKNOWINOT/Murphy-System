@@ -1236,13 +1236,84 @@ window.addEventListener('load', () => {
   updateLearnStatus();
   updateControls();
   animLoop();
-  window.addEventListener('resize', () => {
+
+  // ── Live server connection ─────────────────────────────────
+  (async function bootConnectLive() {
+    // 1. Check session
+    try {
+      const r = await fetch(MURPHY_API + '/api/auth/me', { credentials:'include', signal:AbortSignal.timeout(4000) });
+      if (r.ok) {
+        const d = await r.json();
+        if (d.authenticated && d.user) {
+          const u = d.user;
+          document.title = 'Murphy Guide — ' + (u.display_name || u.email);
+          toast('Welcome back, ' + (u.display_name || u.email));
+          window._murphyUserId = u.id;
+        }
+      }
+    } catch(e) {}
+
+    // 2. Sync probability map from server
+    try {
+      const apiKey = window.MURPHY_API_KEY || '';
+      const r = await fetch(MURPHY_API + '/api/ghost/probmap', {
+        credentials:'include',
+        headers: apiKey ? {'X-API-Key': apiKey} : {},
+        signal: AbortSignal.timeout(4000)
+      });
+      if (r.ok) {
+        const d = await r.json();
+        if (d.prob_map && d.prob_map.length) {
+          d.prob_map.forEach(e => {
+            const k = e.action_key;
+            if (!State.probMap[k]) State.probMap[k] = {count:0,success:0};
+            State.probMap[k].count   = Math.max(State.probMap[k].count,   e.count   || 0);
+            State.probMap[k].success = Math.max(State.probMap[k].success, e.success || 0);
+          });
+          updateProbHeatmap();
+          document.getElementById('learn-status-dot').className = 'dot dot-green';
+          document.getElementById('learn-status-text').textContent =
+            d.total + ' server events';
+        }
+      }
+    } catch(e) {}
+
+    // 3. Register ghost device (if running in Murphy Client app context)
+    if (window.MURPHY_DEVICE_ID) {
+      try {
+        await fetch(MURPHY_API + '/api/ghost/register', {
+          method:'POST', credentials:'include',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            device_id: window.MURPHY_DEVICE_ID,
+            user_id: window._murphyUserId || 'web',
+            hostname: location.hostname,
+            platform: navigator.platform,
+            relay_url: window.MURPHY_RELAY_URL || ''
+          }),
+          signal: AbortSignal.timeout(3000)
+        });
+      } catch(e) {}
+    }
+  })();
+  window.addEventListener('resize', () => { {
     const canvas = document.getElementById('guide-canvas');
     const vp = document.getElementById('viewport');
     canvas.width = vp.offsetWidth;
     canvas.height = vp.offsetHeight;
   });
 });
-</script>
+('load', () => {
+  loadProbMap();
+  loadPaths();
+  updateProbHeatmap();
+  updateLearnStatus();
+  updateControls();
+  animLoop();
+
+  // Connect to live Murphy backend
+  bootConnectLive();
+
+  </script>
 </body>
 </html>
