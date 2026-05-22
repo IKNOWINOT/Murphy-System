@@ -5203,14 +5203,54 @@ def create_app() -> FastAPI:
                 budget=budget,
                 idempotency_key=idempotency_key,
             )
+            # PATCH-341: CollaborativeExecutionReport uses run_id not task_id
+            # synthesized is the SynthesizedResult object (not .synthesis)
+            synth = report.synthesized
+            synth_text = ""
+            if synth is not None:
+                # Try multiple attribute names for the merged output text
+                for attr in ["merged_output", "text", "output", "result", "content", "summary"]:
+                    val = getattr(synth, attr, None)
+                    if val:
+                        synth_text = str(val) if not isinstance(val, str) else val
+                        break
+                if not synth_text and hasattr(synth, "__dict__"):
+                    synth_text = str(synth.__dict__)
+            # Collect all step outputs
+            step_outputs = {}
+            for sid, sr in (report.step_results or {}).items():
+                out = sr.get("output", {})
+                for k in ["text","result","content","llm_output","response","answer"]:
+                    if k in out:
+                        step_outputs[sid] = out[k]
+                        break
+                else:
+                    if out:
+                        step_outputs[sid] = str(out)[:500]
+            # Collect agent outputs
+            agent_outputs = {}
+            for aid, ar in (report.agent_results or {}).items():
+                out = ar.get("output", {})
+                for k in ["text","result","content","llm_output","response","answer"]:
+                    if k in out:
+                        agent_outputs[aid] = out[k]
+                        break
+                else:
+                    if out:
+                        agent_outputs[aid] = str(out)[:500]
             return JSONResponse({
                 "success": True,
-                "task_id": report.task_id,
+                "task_id": report.run_id,
+                "run_id": report.run_id,
                 "status": report.status,
-                "steps_completed": report.steps_completed,
+                "layout": report.layout if isinstance(report.layout, str) else str(report.layout),
                 "total_cost": report.total_cost,
-                "duration_ms": report.duration_ms,
-                "synthesis": report.synthesis,
+                "duration_ms": report.total_duration_ms,
+                "synthesis": synth_text,
+                "output": synth_text or (list(step_outputs.values())[0] if step_outputs else ""),
+                "step_outputs": step_outputs,
+                "agent_outputs": agent_outputs,
+                "execution_log": report.execution_log[-10:],
             })
         except Exception as exc:
             logger.error("swarm_execute failed: %s", exc)
