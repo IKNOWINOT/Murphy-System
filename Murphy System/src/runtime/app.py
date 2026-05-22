@@ -21949,6 +21949,312 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
 
 
+
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # PATCH-340 — ROSETTA AGENT EDITOR CRUD + SITE SPEC
+    # ═══════════════════════════════════════════════════════════════════════
+
+    @app.get("/api/rosetta/agents")
+    async def rosetta_list_agents(request: Request):
+        """List all agents with full soul detail. Auth required."""
+        try:
+            from src.rosetta.rosetta_manager import RosettaManager
+            mgr = RosettaManager()
+            # Base soul map (always present, whether or not persisted)
+            _BASE = {
+                "collector":  {"name":"Collector","role":"Signal Collector","department":"Intelligence","tone":"observant","bias":"completeness","hitl_threshold":0.9,"authority":"standard","soul_l0":"I gather all incoming signals — market data, CRM events, email threads, system alerts — and tag them for downstream agents.","soul_l1":["Completeness over speed","Never discard a signal without tagging it","Flag anomalies immediately"],"reports_to":"prod_ops","emoji":"📡"},
+                "translator": {"name":"Translator","role":"Signal Translator","department":"Intelligence","tone":"precise","bias":"accuracy","hitl_threshold":0.8,"authority":"standard","soul_l0":"I convert raw signals into structured intelligence that business agents can act on.","soul_l1":["Accuracy above all","Preserve signal intent","Emit structured JSON only"],"reports_to":"collector","emoji":"🧠"},
+                "scheduler":  {"name":"Scheduler","role":"Operations Scheduler","department":"Operations","tone":"disciplined","bias":"efficiency","hitl_threshold":0.85,"authority":"standard","soul_l0":"I own the task queue — when things run, in what order, and under what conditions.","soul_l1":["No task runs without gate clearance","HITL for high-risk","Respect rate limits"],"reports_to":"exec_admin","emoji":"🗓️"},
+                "executor":   {"name":"Executor","role":"Task Executor","department":"Engineering","tone":"decisive","bias":"speed_safety","hitl_threshold":0.7,"authority":"standard","soul_l0":"I execute approved tasks: send emails, make API calls, write records, trigger workflows.","soul_l1":["Never execute without HITL approval for external actions","Log everything","Fail loudly"],"reports_to":"exec_admin","emoji":"⚡"},
+                "auditor":    {"name":"Auditor","role":"Compliance Auditor","department":"Compliance","tone":"thorough","bias":"accuracy","hitl_threshold":0.95,"authority":"standard","soul_l0":"I review every action for compliance with HIPAA, SOC2, GDPR, and internal policy.","soul_l1":["Zero tolerance for policy violations","Flag before blocking","Maintain audit trail"],"reports_to":"rosetta","emoji":"📋"},
+                "exec_admin": {"name":"Executive Admin","role":"Executive Director","department":"Operations","tone":"gracious","bias":"human_impact","hitl_threshold":0.6,"authority":"elevated","soul_l0":"I synthesize intelligence into strategic decisions and direct the swarm toward revenue goals.","soul_l1":["Revenue focus","Unblock the team","Escalate to HITL when uncertain"],"reports_to":"rosetta","emoji":"👔"},
+                "prod_ops":   {"name":"Prod Ops","role":"Production Engineer","department":"Engineering","tone":"methodical","bias":"system_health","hitl_threshold":0.65,"authority":"standard","soul_l0":"I maintain system health, deploy patches, and ensure the platform is always running.","soul_l1":["Stability first","One patch one thing","Test before ship"],"reports_to":"exec_admin","emoji":"🔧"},
+                "hitl":       {"name":"HITL Gate","role":"Human-in-Loop Controller","department":"Safety","tone":"cautious","bias":"caution","hitl_threshold":0.0,"authority":"elevated","soul_l0":"I decide what requires founder approval and what agents can run autonomously.","soul_l1":["When in doubt, escalate","Never auto-approve external spend","Protect founder authority"],"reports_to":"rosetta","emoji":"🔴"},
+                "rosetta":    {"name":"Rosetta","role":"Soul Renderer","department":"Governance","tone":"sovereign","bias":"north_star","hitl_threshold":0.5,"authority":"elevated","soul_l0":"I render the soul context for every agent — their identity, values, and authority level.","soul_l1":["Soul is the source of truth","Render fresh on every dispatch","Layer 0+1 always injected"],"reports_to":None,"emoji":"🌐"},
+            }
+            # Merge with persisted overrides
+            persisted_ids = mgr.list_agents()
+            out = {}
+            # Start with base
+            for aid, base in _BASE.items():
+                out[aid] = dict(base, agent_id=aid, persisted=False, runs_total=0, last_trigger=None, last_outcome=None)
+            # Overlay persisted state
+            for aid in persisted_ids:
+                state = mgr.load_state(aid)
+                if state and aid in out:
+                    extras = state.metadata.extras or {}
+                    out[aid].update({
+                        "persisted": True,
+                        "soul_l0": extras.get("soul_l0", out[aid]["soul_l0"]),
+                        "soul_l1": extras.get("soul_l1", out[aid]["soul_l1"]),
+                        "tone": extras.get("tone", out[aid]["tone"]),
+                        "bias": extras.get("bias", out[aid]["bias"]),
+                        "authority": extras.get("authority", out[aid]["authority"]),
+                        "hitl_threshold": extras.get("hitl_threshold", out[aid]["hitl_threshold"]),
+                        "goals_count": len(state.agent_state.active_goals),
+                        "tasks_count": len(state.agent_state.task_queue),
+                    })
+                elif state and aid not in out:
+                    # custom agent
+                    extras = state.metadata.extras or {}
+                    out[aid] = {
+                        "agent_id": aid,
+                        "name": state.identity.name,
+                        "role": state.identity.role,
+                        "department": extras.get("department","Custom"),
+                        "tone": extras.get("tone","neutral"),
+                        "bias": extras.get("bias","balanced"),
+                        "hitl_threshold": extras.get("hitl_threshold",0.7),
+                        "authority": extras.get("authority","standard"),
+                        "soul_l0": extras.get("soul_l0",""),
+                        "soul_l1": extras.get("soul_l1",[]),
+                        "reports_to": extras.get("reports_to",None),
+                        "emoji": extras.get("emoji","🤖"),
+                        "persisted": True,
+                        "runs_total": 0,
+                        "last_trigger": None,
+                        "last_outcome": None,
+                    }
+            # Overlay live runtime stats
+            try:
+                from src.rosetta_core import get_swarm_coordinator
+                sc = get_swarm_coordinator()
+                runtime_agents = sc.swarm_status().get("agents", {})
+                for aid, ra in runtime_agents.items():
+                    if aid in out:
+                        out[aid].update({
+                            "runs_total": ra.get("runs_total", 0),
+                            "last_trigger": ra.get("last_trigger"),
+                            "last_outcome": ra.get("last_outcome"),
+                        })
+            except Exception:
+                pass
+            return JSONResponse({"success": True, "agents": list(out.values()), "total": len(out)})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/rosetta/agent/{agent_id}")
+    async def rosetta_get_agent(agent_id: str, request: Request):
+        """Get full soul detail for one agent."""
+        try:
+            # Re-use list and filter
+            resp = await rosetta_list_agents(request)
+            import json as _json
+            data = _json.loads(resp.body)
+            agents = {a["agent_id"]: a for a in data.get("agents", [])}
+            if agent_id not in agents:
+                return JSONResponse({"success": False, "error": f"Agent '{agent_id}' not found"}, status_code=404)
+            return JSONResponse({"success": True, "agent": agents[agent_id]})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.put("/api/rosetta/agent/{agent_id}")
+    async def rosetta_update_agent(agent_id: str, request: Request):
+        """Update soul fields for an agent. Persists to RosettaManager."""
+        try:
+            body = await request.json()
+            from src.rosetta.rosetta_manager import RosettaManager
+            from src.rosetta.rosetta_models import (
+                RosettaAgentState, Identity, SystemState, RosettaAgentState as RAS
+            )
+            from datetime import datetime, timezone
+            mgr = RosettaManager()
+            state = mgr.load_state(agent_id)
+            if state is None:
+                # Create fresh state
+                from src.rosetta.rosetta_models import (
+                    RosettaAgentState, Identity, SystemState, AgentState,
+                    Recalibration, ArchiveLog, Metadata
+                )
+                state = RosettaAgentState(
+                    identity=Identity(agent_id=agent_id, name=body.get("name", agent_id), role=body.get("role","")),
+                    system_state=SystemState(),
+                    agent_state=AgentState(),
+                    recalibration=Recalibration(),
+                    archive=ArchiveLog(),
+                    metadata=Metadata(),
+                )
+            # Allowed editable fields — merge into metadata.extras
+            editable = ["soul_l0","soul_l1","tone","bias","authority","hitl_threshold","department","emoji","reports_to","name","role"]
+            extras = state.metadata.extras or {}
+            for field in editable:
+                if field in body:
+                    extras[field] = body[field]
+            # Also update identity directly for name/role
+            updates = {"metadata": {"extras": extras}}
+            if "name" in body:
+                updates["identity"] = {"name": body["name"]}
+            if "role" in body:
+                updates.setdefault("identity", {})["role"] = body["role"]
+            saved = mgr.update_state(agent_id, updates) if mgr.load_state(agent_id) else None
+            if saved is None:
+                # First time — save fresh
+                state.metadata.extras = extras
+                if "name" in body: state.identity.name = body["name"]
+                if "role" in body: state.identity.role = body["role"]
+                mgr.save_state(state)
+            return JSONResponse({
+                "success": True,
+                "agent_id": agent_id,
+                "updated_fields": [f for f in editable if f in body],
+                "message": f"Agent '{agent_id}' soul updated successfully"
+            })
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/rosetta/agent")
+    async def rosetta_create_agent(request: Request):
+        """Create a new custom agent."""
+        try:
+            body = await request.json()
+            agent_id = body.get("agent_id","").strip().lower().replace(" ","_")
+            if not agent_id:
+                return JSONResponse({"success": False, "error": "agent_id is required"}, status_code=400)
+            from src.rosetta.rosetta_manager import RosettaManager
+            from src.rosetta.rosetta_models import (
+                RosettaAgentState, Identity, SystemState, AgentState,
+                Recalibration, ArchiveLog, Metadata
+            )
+            mgr = RosettaManager()
+            if mgr.load_state(agent_id):
+                return JSONResponse({"success": False, "error": f"Agent '{agent_id}' already exists"}, status_code=409)
+            extras = {
+                "soul_l0": body.get("soul_l0",""),
+                "soul_l1": body.get("soul_l1",[]),
+                "tone": body.get("tone","neutral"),
+                "bias": body.get("bias","balanced"),
+                "authority": body.get("authority","standard"),
+                "hitl_threshold": body.get("hitl_threshold",0.7),
+                "department": body.get("department","Custom"),
+                "emoji": body.get("emoji","🤖"),
+                "reports_to": body.get("reports_to", None),
+            }
+            state = RosettaAgentState(
+                identity=Identity(agent_id=agent_id, name=body.get("name",agent_id), role=body.get("role","")),
+                system_state=SystemState(),
+                agent_state=AgentState(),
+                recalibration=Recalibration(),
+                archive=ArchiveLog(),
+                metadata=Metadata(extras=extras),
+            )
+            mgr.save_state(state)
+            return JSONResponse({"success": True, "agent_id": agent_id, "message": f"Agent '{agent_id}' created"})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.delete("/api/rosetta/agent/{agent_id}")
+    async def rosetta_delete_agent(agent_id: str, request: Request):
+        """Delete a custom agent. Core agents (collector/translator/etc.) cannot be deleted."""
+        PROTECTED = {"collector","translator","scheduler","executor","auditor","exec_admin","prod_ops","hitl","rosetta"}
+        if agent_id in PROTECTED:
+            return JSONResponse({"success": False, "error": f"Core agent '{agent_id}' cannot be deleted"}, status_code=403)
+        try:
+            from src.rosetta.rosetta_manager import RosettaManager
+            mgr = RosettaManager()
+            deleted = mgr.delete_state(agent_id)
+            return JSONResponse({"success": True, "agent_id": agent_id, "deleted": deleted})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/rosetta/site-spec")
+    async def rosetta_get_site_spec(request: Request):
+        """Return the site operation specification document."""
+        import os as _os
+        spec_path = "/var/lib/murphy-production/rosetta_site_spec.json"
+        try:
+            if _os.path.exists(spec_path):
+                with open(spec_path) as f:
+                    import json as _j
+                    return JSONResponse({"success": True, "spec": _j.load(f)})
+        except Exception:
+            pass
+        # Return canonical default spec
+        return JSONResponse({"success": True, "spec": _DEFAULT_SITE_SPEC, "is_default": True})
+
+    @app.put("/api/rosetta/site-spec")
+    async def rosetta_update_site_spec(request: Request):
+        """Update the site operation specification document."""
+        import os as _os, json as _j
+        try:
+            body = await request.json()
+            spec_path = "/var/lib/murphy-production/rosetta_site_spec.json"
+            _os.makedirs("/var/lib/murphy-production", exist_ok=True)
+            with open(spec_path, "w") as f:
+                _j.dump(body, f, indent=2)
+            return JSONResponse({"success": True, "message": "Site spec updated"})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    # ── Default site spec (injected once at startup, editable via UI) ───────
+    _DEFAULT_SITE_SPEC = {
+        "version": "1.0",
+        "site_name": "Murphy System",
+        "domain": "murphy.systems",
+        "mission": "Murphy runs your business operations autonomously. You pay from the savings.",
+        "north_star": "Shield humanity from every failure AI can cause — by anticipating it, naming it, and standing in front of it.",
+        "how_it_operates": {
+            "dispatch_pipeline": "Every task follows: Soul Load → Librarian → Osmosis → Triage → Rosetta → Causality → Rubix → MFGC → Chain → MSS → Swarm → Osmosis Learn → Self-Plan → Transcript",
+            "agent_authority": "Agents act within their soul boundaries. Elevated agents (exec_admin, hitl, rosetta) can escalate. Standard agents must route through HITL for external actions.",
+            "storage_systems": {
+                "rosetta_state": "/var/lib/murphy-production/rosetta/ — per-agent soul + goals + task history",
+                "site_spec": "/var/lib/murphy-production/rosetta_site_spec.json — this document",
+                "crm": "SQLite via /api/crm — deals, contacts, pipeline",
+                "swarm_bus": "Redis — real-time agent signal feed",
+                "world_corpus": "In-memory — trending topics, global sentiment",
+                "audit_log": "/var/lib/murphy-production/ — HITL decisions, PSM ledger"
+            },
+            "artifact_surface": {
+                "dispatch": "POST /api/rosetta/dispatch — input a task, runs full pipeline, returns dag_id + notifications",
+                "soul_read": "GET /api/rosetta/soul — full soul status, principles, world context",
+                "agent_list": "GET /api/rosetta/agents — all agents with soul detail + runtime stats",
+                "agent_edit": "PUT /api/rosetta/agent/{id} — edit soul_l0, soul_l1, tone, bias, authority, hitl_threshold",
+                "agent_create": "POST /api/rosetta/agent — create a new custom agent",
+                "site_spec": "GET/PUT /api/rosetta/site-spec — this document, editable",
+                "crm_deals": "GET /api/crm/deals — pipeline",
+                "crm_contacts": "GET /api/crm/contacts — contacts",
+                "hitl_queue": "GET /api/hitl/queue — pending human decisions",
+                "mfgc_gates": "GET /api/mfgc/gates — 6 business control gates",
+                "mss_score": "POST /api/mss/score — resolution scoring for any text input",
+                "swarm_status": "GET /api/swarm/agents/status — all 9 agents + runtime stats",
+                "swarm_bus": "GET /api/swarm/bus/feed — last 100 agent events",
+                "shield": "GET /api/shield/status — 20-layer security plane",
+                "roi": "GET /api/roi-calendar/summary — live ROI tracking"
+            }
+        },
+        "what_it_must_be_able_to_do": [
+            "Accept a natural language task from a user and route it through the full agent pipeline",
+            "Execute swarm tasks without crashing (swarm/execute AttributeError fix pending PATCH-341)",
+            "Persist agent soul edits across restarts via RosettaManager",
+            "Show a user which agents are running, what they last did, and what their soul says",
+            "Let the founder edit any agent's soul_l0 identity, soul_l1 values, tone, bias, and HITL threshold",
+            "Create new domain-specific agents (e.g. MEP Engineer, Field Technician, Project Manager)",
+            "Gate every external action (email, API call, spend) through HITL before execution",
+            "Maintain a living audit trail of every dispatch, decision, and outcome",
+            "Surface the CRM pipeline, active HITL queue, and ROI in a single dashboard",
+            "Operate the drawing system: ingest 30/60/90/100% drawing sets with RFI logs and learn from them"
+        ],
+        "criteria_of_success": {
+            "dispatch_completes": "rubix_verdict != fail — task generates actual output, not just pipeline metadata",
+            "agents_all_run": "All 9 agents show runs_total > 0 within 24h of a dispatch",
+            "soul_persists": "PUT /api/rosetta/agent changes survive service restart",
+            "swarm_executes": "POST /api/swarm/execute returns success:true with real LLM output",
+            "hitl_catches_external": "Any external action (email, API call) goes to /api/hitl/queue before execution",
+            "org_chart_seeded": "GET /api/rosetta/org-chart returns nodes.length > 0",
+            "drawing_system_ingests": "POST /api/eng/drawing accepts NL prompt, returns SVG artifact with correct discipline symbols",
+            "drawing_system_learns": "After 10 30/60/90/100 sets ingested with RFI logs, quality score improves measurably"
+        },
+        "drawing_system_spec": {
+            "target_disciplines": ["HVAC","Plumbing","Electrical","Fire Protection","Controls/BAS","Civil","Structural","Architectural"],
+            "drawing_stages": ["30% Schematic Design","60% Design Development","90% Construction Documents","100% Issued for Construction","As-Built"],
+            "rfi_integration": "Each drawing set is linked to its RFI log. Corrections from RFIs are ingested as training deltas. After each cycle, the drawing engine re-scores its output against the expected delta.",
+            "quality_criteria": ["Symbol correctness (ASME Y14.2 / ISA 5.1 compliance)","Coordination clearances (BIM-equivalent conflict detection)","Specification cross-reference accuracy","Code compliance (ASHRAE 90.1, NFPA, IBC, local AHJ)","RFI prediction score (how many RFIs would this drawing generate?)"],
+            "training_estimate": "Minimum 15-20 complete project sets (30/60/90/100 + as-built + RFI log) per discipline before the engine reliably produces contractor-grade output. Google Earth building outlines should be ingested as the site context layer for retrofit projects.",
+            "google_earth_workflow": "User uploads KML/screenshot of building footprint → engine traces boundary polygon → sets as site_boundary in drawing context → all subsequent drawings reference this as the background layer"
+        }
+    }
+
+    # ════════════════════════════════════════════════════════════════════════
     @app.post("/api/rosetta/translate")
     async def _rosetta_translate(request: Request):
         """PATCH-115b — NL translate via soul-aware SwarmCoordinator."""
