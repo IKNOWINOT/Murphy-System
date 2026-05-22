@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Mythos Engine — Murphy</title>
+<link rel="stylesheet" href="/static/murphy-app-shell.css">
+<style>
+:root {
+  --bg:#080c17;--s1:#0f1623;--s2:#161f30;--s3:#1c2840;
+  --b1:#1e2d45;--b2:#2a3d5a;
+  --teal:#00d4ff;--teal-d:rgba(0,212,255,.1);
+  --green:#00ff88;--green-d:rgba(0,255,136,.1);
+  --amber:#ffb400;--amber-d:rgba(255,180,0,.12);
+  --red:#ff4466;--red-d:rgba(255,68,102,.12);
+  --purple:#a855f7;--purple-d:rgba(168,85,247,.12);
+  --text:#e2e8f0;--dim:#718096;--muted:#4a5568;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',system-ui,sans-serif;
+     min-height:100vh;display:flex;flex-direction:column}
+
+/* Toolbar */
+.tb{display:flex;align-items:center;gap:.6rem;padding:.5rem 1rem;
+    background:var(--s1);border-bottom:1px solid var(--b1);flex-shrink:0;flex-wrap:wrap}
+.tb-logo{font-size:1.1rem;margin-right:.3rem}
+.tb-title{font-weight:900;font-size:.9rem;color:var(--teal);letter-spacing:.02em}
+.tb-sub{font-size:.72rem;color:var(--dim);margin-left:.3rem}
+.spacer{flex:1}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:6px;
+     font-size:.73rem;font-weight:600;cursor:pointer;border:1px solid var(--b1);
+     background:transparent;color:var(--dim);transition:all .15s;white-space:nowrap}
+.btn:hover{border-color:var(--teal);color:var(--teal)}
+.btn.primary{background:var(--teal);color:#080c17;border-color:var(--teal)}
+.btn.primary:hover{opacity:.9}
+.btn.green{background:var(--green);color:#080c17;border-color:var(--green)}
+.btn.amber{border-color:var(--amber);color:var(--amber)}
+.btn.red{border-color:var(--red);color:var(--red)}
+.btn.purple{border-color:var(--purple);color:var(--purple)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:300px 1fr;flex:1;overflow:hidden;min-height:0}
+.panel{display:flex;flex-direction:column;border-right:1px solid var(--b1);overflow:hidden}
+.panel.main{border-right:none}
+.ph{padding:.45rem .75rem;background:var(--s1);border-bottom:1px solid var(--b1);
+    display:flex;align-items:center;gap:.5rem;flex-shrink:0}
+.ph-title{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
+.pb{flex:1;overflow-y:auto;padding:.6rem}
+
+/* Stats bar */
+.stats-bar{display:flex;gap:.5rem;padding:.5rem .75rem;background:var(--s2);
+           border-bottom:1px solid var(--b1);flex-wrap:wrap}
+.stat{display:flex;flex-direction:column;align-items:center;min-width:70px;
+      padding:.25rem .5rem;background:var(--s3);border-radius:6px;border:1px solid var(--b1)}
+.stat-n{font-size:1.2rem;font-weight:900;color:var(--teal)}
+.stat-n.red{color:var(--red)}
+.stat-n.green{color:var(--green)}
+.stat-n.amber{color:var(--amber)}
+.stat-n.purple{color:var(--purple)}
+.stat-l{font-size:.6rem;color:var(--dim);text-transform:uppercase;letter-spacing:.04em}
+
+/* Signal cards */
+.signal-card{background:var(--s2);border:1px solid var(--b1);border-radius:8px;
+             padding:.5rem .65rem;margin-bottom:.35rem;cursor:pointer;transition:all .15s}
+.signal-card:hover{border-color:var(--teal);background:var(--teal-d)}
+.signal-card.selected{border-color:var(--green);background:var(--green-d)}
+.signal-card.sev-critical{border-left:3px solid var(--red)}
+.signal-card.sev-high{border-left:3px solid var(--amber)}
+.signal-card.sev-medium{border-left:3px solid var(--teal)}
+.signal-card.sev-low{border-left:3px solid var(--dim)}
+.sig-hdr{display:flex;align-items:center;gap:.4rem}
+.sig-sev{font-size:.6rem;font-weight:800;padding:2px 5px;border-radius:3px;text-transform:uppercase}
+.sev-critical .sig-sev{background:var(--red-d);color:var(--red)}
+.sev-high .sig-sev{background:var(--amber-d);color:var(--amber)}
+.sev-medium .sig-sev{background:var(--teal-d);color:var(--teal)}
+.sev-low .sig-sev{background:var(--s3);color:var(--dim)}
+.sig-domain{font-size:.6rem;color:var(--dim);padding:2px 5px;background:var(--s3);border-radius:3px}
+.sig-title{font-size:.75rem;font-weight:600;margin-top:.25rem;line-height:1.3}
+.sig-desc{font-size:.68rem;color:var(--dim);margin-top:.2rem;line-height:1.4}
+
+/* Entry cards */
+.entry-card{background:var(--s2);border:1px solid var(--b1);border-radius:8px;
+            padding:.5rem .65rem;margin-bottom:.35rem;transition:all .15s}
+.entry-card.status-validated{border-left:3px solid var(--green)}
+.entry-card.status-critic_rejected{border-left:3px solid var(--red)}
+.entry-card.status-draft{border-left:3px solid var(--dim)}
+.entry-card.status-stub{border-left:3px solid var(--amber)}
+.entry-card.status-injected{border-left:3px solid var(--purple)}
+.entry-hdr{display:flex;align-items:center;gap:.4rem}
+.entry-status{font-size:.6rem;font-weight:700;padding:2px 6px;border-radius:3px;text-transform:uppercase}
+.status-validated .entry-status{background:var(--green-d);color:var(--green)}
+.status-critic_rejected .entry-status{background:var(--red-d);color:var(--red)}
+.status-draft .entry-status{background:var(--s3);color:var(--dim)}
+.status-stub .entry-status{background:var(--amber-d);color:var(--amber)}
+.status-injected .entry-status{background:var(--purple-d);color:var(--purple)}
+.entry-domain{font-size:.6rem;color:var(--dim);padding:2px 5px;background:var(--s3);border-radius:3px}
+.entry-title{font-size:.75rem;font-weight:600;margin-top:.25rem;line-height:1.3}
+.entry-meta{font-size:.63rem;color:var(--muted);margin-top:.2rem}
+.entry-preview{font-size:.65rem;color:var(--dim);font-family:monospace;margin-top:.3rem;
+               background:var(--s3);padding:.3rem .4rem;border-radius:4px;
+               white-space:pre-wrap;max-height:60px;overflow:hidden}
+
+/* Main content tabs */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--b1);background:var(--s1);flex-shrink:0}
+.tab{padding:.45rem .9rem;font-size:.73rem;font-weight:600;cursor:pointer;
+     color:var(--dim);border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+.tab-content{display:none;flex:1;overflow-y:auto;padding:1rem}
+.tab-content.active{display:block}
+
+/* Criteria boxes */
+.criteria-group{margin-bottom:1rem}
+.criteria-label{font-size:.68rem;font-weight:700;text-transform:uppercase;
+                letter-spacing:.06em;color:var(--dim);margin-bottom:.4rem}
+.criteria-item{display:flex;align-items:flex-start;gap:.4rem;padding:.3rem .4rem;
+               background:var(--s2);border-radius:5px;margin-bottom:.2rem;font-size:.72rem}
+.criteria-icon{font-size:.75rem;flex-shrink:0;margin-top:.05rem}
+
+/* Code block */
+.code-block{background:#0a0e18;border:1px solid var(--b1);border-radius:6px;
+            padding:.75rem;font-family:'JetBrains Mono','Fira Code',monospace;
+            font-size:.7rem;line-height:1.6;color:#a8b5cc;overflow-x:auto;
+            white-space:pre-wrap;max-height:400px;overflow-y:auto}
+
+/* Cycle log */
+.cycle-log{background:#0a0e18;border:1px solid var(--b1);border-radius:6px;
+           padding:.75rem;font-family:monospace;font-size:.7rem;line-height:1.7;
+           color:#a8b5cc;white-space:pre-wrap;max-height:300px;overflow-y:auto}
+
+/* Manual input */
+.manual-form{background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:1rem}
+.form-label{font-size:.7rem;font-weight:700;color:var(--dim);margin-bottom:.3rem;display:block}
+textarea, input[type=text]{width:100%;background:var(--s3);border:1px solid var(--b1);
+  color:var(--text);border-radius:5px;padding:.4rem .5rem;font-size:.75rem;resize:vertical}
+textarea{min-height:80px}
+textarea:focus, input:focus{outline:none;border-color:var(--teal)}
+
+/* Loading */
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(0,212,255,.3);
+      border-top-color:var(--teal);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading{display:flex;align-items:center;gap:.5rem;color:var(--dim);font-size:.75rem;padding:1rem}
+.empty{color:var(--muted);font-size:.75rem;text-align:center;padding:2rem}
+.error-msg{background:var(--red-d);border:1px solid rgba(255,68,102,.3);border-radius:6px;
+           padding:.4rem .6rem;color:var(--red);font-size:.73rem;margin-top:.5rem}
+.success-msg{background:var(--green-d);border:1px solid rgba(0,255,136,.3);border-radius:6px;
+             padding:.4rem .6rem;color:var(--green);font-size:.73rem;margin-top:.5rem}
+
+/* Pulse dot */
+.pulse{width:7px;height:7px;border-radius:50%;background:var(--green);
+       animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+@media(max-width:768px){
+  .layout{grid-template-columns:1fr}
+  .panel{border-right:none;border-bottom:1px solid var(--b1)}
+  .stats-bar{gap:.3rem}
+}
+</style>
+</head>
+<body>
+
+<!-- Toolbar -->
+<div class="tb">
+  <span class="tb-logo">🌀</span>
+  <span class="tb-title">MYTHOS ENGINE</span>
+  <span class="tb-sub">recursive self-authoring</span>
+  <div class="spacer"></div>
+  <div id="engineStatus" style="display:flex;align-items:center;gap:.4rem;font-size:.7rem;color:var(--dim)">
+    <div class="pulse"></div> <span id="statusText">loading...</span>
+  </div>
+  <button class="btn primary" onclick="runSense()" id="senseBtn">⚡ Sense</button>
+  <button class="btn green" onclick="runCycle()" id="cycleBtn">🔄 Run Cycle</button>
+</div>
+
+<!-- Stats -->
+<div class="stats-bar" id="statsBar">
+  <div class="stat"><div class="stat-n" id="statSignals">—</div><div class="stat-l">Signals</div></div>
+  <div class="stat"><div class="stat-n green" id="statValidated">—</div><div class="stat-l">Validated</div></div>
+  <div class="stat"><div class="stat-n amber" id="statDraft">—</div><div class="stat-l">Draft</div></div>
+  <div class="stat"><div class="stat-n red" id="statRejected">—</div><div class="stat-l">Rejected</div></div>
+  <div class="stat"><div class="stat-n purple" id="statInjected">—</div><div class="stat-l">Injected</div></div>
+  <div class="stat"><div class="stat-n" id="statCycles">—</div><div class="stat-l">Cycles</div></div>
+  <div class="stat"><div class="stat-n red" id="statBroken">—</div><div class="stat-l">Broken Routes</div></div>
+  <div class="stat"><div class="stat-n amber" id="statUnwired">—</div><div class="stat-l">Unwired</div></div>
+</div>
+
+<!-- Layout -->
+<div class="layout">
+  <!-- Left: Signal / Registry list -->
+  <div class="panel">
+    <div class="ph">
+      <span class="ph-title" id="leftPanelTitle">Need Signals</span>
+      <div class="spacer"></div>
+      <button class="btn" onclick="toggleLeftPanel()" style="font-size:.65rem">Switch</button>
+    </div>
+    <div class="pb" id="leftPanel">
+      <div class="loading"><div class="spin"></div> Run "Sense" to detect what Murphy needs</div>
+    </div>
+  </div>
+
+  <!-- Right: Main content -->
+  <div class="panel main">
+    <div class="tabs">
+      <div class="tab active" onclick="setTab('signal')">Signal Detail</div>
+      <div class="tab" onclick="setTab('receive')">Receive / Author</div>
+      <div class="tab" onclick="setTab('manual')">Manual Need</div>
+      <div class="tab" onclick="setTab('cycle')">Cycle Log</div>
+      <div class="tab" onclick="setTab('registry')">Registry</div>
+    </div>
+
+    <!-- Signal Detail -->
+    <div class="tab-content active" id="tab-signal">
+      <div class="empty" id="signalDetailEmpty">Select a need signal from the left panel</div>
+      <div id="signalDetail" style="display:none"></div>
+    </div>
+
+    <!-- Receive / Author -->
+    <div class="tab-content" id="tab-receive">
+      <div class="empty" id="receiveEmpty">Select a signal then click "Author Function" below</div>
+      <div id="receiveDetail" style="display:none"></div>
+    </div>
+
+    <!-- Manual Need -->
+    <div class="tab-content" id="tab-manual">
+      <div class="manual-form">
+        <div style="font-size:.85rem;font-weight:700;margin-bottom:.75rem;color:var(--teal)">
+          📝 Describe a Need Manually
+        </div>
+        <label class="form-label">What does Murphy need to do?</label>
+        <textarea id="manualDesc" placeholder="e.g. A function that checks Redis connectivity and restarts the bus if it's down, logging the result to the manifold"></textarea>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.5rem">
+          <div>
+            <label class="form-label">Domain</label>
+            <select class="btn" id="manualDomain" style="width:100%;text-align:left">
+              <option value="general">general</option>
+              <option value="routing">routing</option>
+              <option value="wiring">wiring</option>
+              <option value="agent">agent</option>
+              <option value="code">code</option>
+              <option value="data">data</option>
+              <option value="gap">gap</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Severity</label>
+            <select class="btn" id="manualSeverity" style="width:100%;text-align:left">
+              <option value="high">high</option>
+              <option value="critical">critical</option>
+              <option value="medium">medium</option>
+              <option value="low">low</option>
+            </select>
+          </div>
+        </div>
+
+        <label class="form-label" style="margin-top:.5rem">API Route (optional)</label>
+        <input type="text" id="manualRoute" placeholder="/api/mythos/...">
+
+        <label class="form-label" style="margin-top:.5rem">Receiving Criteria (one per line)</label>
+        <textarea id="manualCriteria" style="min-height:60px" placeholder="Function must return dict with success key&#10;Must handle exceptions gracefully&#10;Must log via murphy.mythos logger"></textarea>
+
+        <div style="margin-top:.75rem">
+          <button class="btn primary" onclick="submitManual()" id="manualBtn">🌀 Author Function</button>
+        </div>
+        <div id="manualResult"></div>
+      </div>
+    </div>
+
+    <!-- Cycle Log -->
+    <div class="tab-content" id="tab-cycle">
+      <div style="margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem">
+        <span style="font-size:.8rem;font-weight:700">Cycle History</span>
+        <div class="spacer"></div>
+        <select id="cycleDepth" class="btn">
+          <option value="2">2 cycles (quick)</option>
+          <option value="3" selected>3 cycles (standard)</option>
+          <option value="5">5 cycles (deep)</option>
+        </select>
+        <label style="display:flex;align-items:center;gap:.3rem;font-size:.7rem;color:var(--dim)">
+          <input type="checkbox" id="cycleDeep"> Deep scan
+        </label>
+        <button class="btn green" onclick="runCycle()">▶ Run Now</button>
+      </div>
+      <div id="cycleLog"><div class="empty">No cycles run yet</div></div>
+    </div>
+
+    <!-- Registry -->
+    <div class="tab-content" id="tab-registry">
+      <div style="display:flex;gap:.5rem;margin-bottom:.75rem;flex-wrap:wrap">
+        <select id="regDomain" class="btn" onchange="loadRegistry()">
+          <option value="">All domains</option>
+          <option value="routing">routing</option>
+          <option value="wiring">wiring</option>
+          <option value="agent">agent</option>
+          <option value="code">code</option>
+          <option value="gap">gap</option>
+        </select>
+        <select id="regStatus" class="btn" onchange="loadRegistry()">
+          <option value="">All statuses</option>
+          <option value="validated">validated</option>
+          <option value="draft">draft</option>
+          <option value="critic_rejected">critic_rejected</option>
+          <option value="injected">injected</option>
+        </select>
+        <button class="btn" onclick="loadRegistry()">↻ Refresh</button>
+      </div>
+      <div id="registryList"><div class="empty">Loading registry...</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = (p, opts={}) => fetch('/api' + p, {
+  headers: {'X-API-Key': _getKey(), 'Content-Type': 'application/json', ...opts.headers},
+  ...opts
+}).then(r => r.json());
+
+function _getKey() {
+  return localStorage.getItem('murphy_api_key') || 
+    document.cookie.split(';').find(c=>c.includes('murphy_api_key'))?.split('=')[1] || '';
+}
+
+let currentSignals = [];
+let selectedSignal = null;
+let leftMode = 'signals'; // 'signals' | 'registry'
+
+// ── Init ──────────────────────────────────────────────────────────────────
+async function init() {
+  await loadStatus();
+  await loadRegistry();
+}
+
+async function loadStatus() {
+  try {
+    const d = await API('/mythos/status');
+    if (d.success) {
+      document.getElementById('statValidated').textContent = d.by_status?.validated || 0;
+      document.getElementById('statDraft').textContent = d.by_status?.draft || 0;
+      document.getElementById('statRejected').textContent = d.by_status?.critic_rejected || 0;
+      document.getElementById('statInjected').textContent = d.by_status?.injected || 0;
+      document.getElementById('statSignals').textContent = Object.values(d.by_status||{}).reduce((a,b)=>a+b,0);
+      document.getElementById('statusText').textContent = `${d.total_entries} entries`;
+      if (d.last_cycle) {
+        document.getElementById('statCycles').textContent =
+          d.last_cycle.functions_authored || 0;
+      }
+    }
+  } catch(e) {
+    document.getElementById('statusText').textContent = 'engine offline';
+  }
+}
+
+// ── Sense ─────────────────────────────────────────────────────────────────
+async function runSense() {
+  const btn = document.getElementById('senseBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spin"></div> Sensing...';
+  document.getElementById('leftPanel').innerHTML =
+    '<div class="loading"><div class="spin"></div> Murphy is reading its own state...</div>';
+
+  try {
+    const d = await API('/mythos/sense');
+    if (d.success) {
+      currentSignals = d.signals || [];
+      document.getElementById('statBroken').textContent =
+        currentSignals.filter(s=>s.domain==='routing').length;
+      document.getElementById('statUnwired').textContent =
+        currentSignals.filter(s=>s.domain==='wiring').length;
+      renderSignals();
+    } else {
+      document.getElementById('leftPanel').innerHTML =
+        `<div class="error-msg">Sense failed: ${d.error}</div>`;
+    }
+  } catch(e) {
+    document.getElementById('leftPanel').innerHTML =
+      `<div class="error-msg">Error: ${e.message}</div>`;
+  }
+  btn.disabled = false;
+  btn.innerHTML = '⚡ Sense';
+}
+
+function renderSignals() {
+  leftMode = 'signals';
+  document.getElementById('leftPanelTitle').textContent = `Need Signals (${currentSignals.length})`;
+  const panel = document.getElementById('leftPanel');
+  if (!currentSignals.length) {
+    panel.innerHTML = '<div class="empty">✅ No signals detected — system looks stable</div>';
+    return;
+  }
+  panel.innerHTML = currentSignals.map((s,i) => `
+    <div class="signal-card sev-${s.severity}" onclick="selectSignal(${i})">
+      <div class="sig-hdr">
+        <span class="sig-sev">${s.severity}</span>
+        <span class="sig-domain">${s.domain}</span>
+      </div>
+      <div class="sig-title">${escHtml(s.title)}</div>
+      <div class="sig-desc">${escHtml((s.description||'').substring(0,100))}${(s.description||'').length>100?'…':''}</div>
+    </div>
+  `).join('');
+}
+
+function selectSignal(idx) {
+  selectedSignal = currentSignals[idx];
+  document.querySelectorAll('.signal-card').forEach((c,i)=>
+    c.classList.toggle('selected', i===idx));
+  setTab('signal');
+  renderSignalDetail(selectedSignal);
+}
+
+function renderSignalDetail(s) {
+  document.getElementById('signalDetailEmpty').style.display = 'none';
+  document.getElementById('signalDetail').style.display = 'block';
+  document.getElementById('signalDetail').innerHTML = `
+    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem">
+      <span class="sig-sev sev-${s.severity}" style="font-size:.7rem;padding:3px 7px;border-radius:4px;
+        background:${s.severity==='critical'?'var(--red-d)':s.severity==='high'?'var(--amber-d)':'var(--teal-d)'};
+        color:${s.severity==='critical'?'var(--red)':s.severity==='high'?'var(--amber)':'var(--teal)'}">
+        ${s.severity.toUpperCase()}
+      </span>
+      <span style="font-size:.68rem;padding:2px 6px;background:var(--s3);border-radius:3px;color:var(--dim)">${s.domain}</span>
+      <div class="spacer"></div>
+      <button class="btn primary" onclick="authorFromSelected()">🌀 Author Function</button>
+    </div>
+
+    <div style="font-size:.9rem;font-weight:700;margin-bottom:.5rem;line-height:1.3">${escHtml(s.title)}</div>
+    <div style="font-size:.75rem;color:var(--dim);line-height:1.6;margin-bottom:.75rem">${escHtml(s.description||'')}</div>
+
+    ${s.suggested_function_name ? `
+      <div style="margin-bottom:.5rem">
+        <span style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Suggested function</span>
+        <div style="font-family:monospace;font-size:.75rem;color:var(--teal);margin-top:.2rem">${escHtml(s.suggested_function_name)}()</div>
+      </div>` : ''}
+
+    ${s.suggested_route ? `
+      <div style="margin-bottom:.75rem">
+        <span style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Suggested route</span>
+        <div style="font-family:monospace;font-size:.75rem;color:var(--green);margin-top:.2rem">${escHtml(s.suggested_route)}</div>
+      </div>` : ''}
+
+    <div class="criteria-group">
+      <div class="criteria-label">👁 Sensing Criteria — what was observed</div>
+      ${(s.criteria_sense||[]).map(c=>`
+        <div class="criteria-item"><span class="criteria-icon">📡</span><span>${escHtml(c)}</span></div>
+      `).join('')}
+    </div>
+
+    <div class="criteria-group">
+      <div class="criteria-label">✋ Receiving Criteria — what the fix must do</div>
+      ${(s.criteria_receive||[]).map(c=>`
+        <div class="criteria-item"><span class="criteria-icon">🎯</span><span>${escHtml(c)}</span></div>
+      `).join('')}
+    </div>
+
+    <div style="margin-top:.5rem">
+      <div class="criteria-label">🔬 Sensing Context</div>
+      <div class="code-block">${escHtml(JSON.stringify(s.sensing_context||{}, null, 2))}</div>
+    </div>
+  `;
+}
+
+// ── Author ────────────────────────────────────────────────────────────────
+async function authorFromSelected() {
+  if (!selectedSignal) return;
+  setTab('receive');
+  await receiveSignal(selectedSignal);
+}
+
+async function receiveSignal(signal) {
+  document.getElementById('receiveEmpty').style.display = 'none';
+  document.getElementById('receiveDetail').style.display = 'block';
+  document.getElementById('receiveDetail').innerHTML =
+    '<div class="loading"><div class="spin"></div> LLM authoring function... this may take 15-30s</div>';
+
+  try {
+    const d = await API('/mythos/receive', {
+      method: 'POST',
+      body: JSON.stringify({signal: signal})
+    });
+    if (d.success) {
+      renderEntry(d.entry, 'receiveDetail');
+      await loadStatus();
+    } else {
+      document.getElementById('receiveDetail').innerHTML =
+        `<div class="error-msg">Receive failed: ${d.error}</div>`;
+    }
+  } catch(e) {
+    document.getElementById('receiveDetail').innerHTML =
+      `<div class="error-msg">Error: ${e.message}</div>`;
+  }
+}
+
+function renderEntry(e, targetId) {
+  const target = document.getElementById(targetId);
+  const statusColor = {validated:'var(--green)',critic_rejected:'var(--red)',
+    draft:'var(--dim)',stub:'var(--amber)',injected:'var(--purple)'}[e.validation_status]||'var(--dim)';
+  target.innerHTML = `
+    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem">
+      <span style="font-size:.7rem;font-weight:800;padding:3px 8px;border-radius:4px;
+        background:rgba(0,0,0,.3);color:${statusColor};border:1px solid ${statusColor}">
+        ${(e.validation_status||'').toUpperCase()}
+      </span>
+      <span style="font-size:.68rem;padding:2px 6px;background:var(--s3);border-radius:3px;color:var(--dim)">${e.domain}</span>
+      <div class="spacer"></div>
+      <span style="font-size:.65rem;color:var(--muted)">${e.entry_id}</span>
+    </div>
+
+    <div style="font-size:.85rem;font-weight:700;margin-bottom:.4rem">${escHtml(e.title||'')}</div>
+    <div style="font-size:.73rem;color:var(--dim);margin-bottom:.75rem">${escHtml(e.receiving_context||'')}</div>
+
+    ${e.critic_notes ? `<div style="font-size:.68rem;color:var(--amber);background:var(--amber-d);
+      padding:.3rem .5rem;border-radius:4px;margin-bottom:.5rem">
+      🔍 Critic: ${escHtml(e.critic_notes.substring(0,200))}
+    </div>` : ''}
+
+    <div class="criteria-group">
+      <div class="criteria-label">📡 Sensing Criteria</div>
+      ${(Array.isArray(e.criteria_sense)?e.criteria_sense:JSON.parse(e.criteria_sense||'[]')).map(c=>
+        `<div class="criteria-item"><span class="criteria-icon">👁</span><span>${escHtml(c)}</span></div>`
+      ).join('')}
+    </div>
+
+    <div class="criteria-group">
+      <div class="criteria-label">🎯 Receiving Criteria</div>
+      ${(Array.isArray(e.criteria_receive)?e.criteria_receive:JSON.parse(e.criteria_receive||'[]')).map(c=>
+        `<div class="criteria-item"><span class="criteria-icon">✅</span><span>${escHtml(c)}</span></div>`
+      ).join('')}
+    </div>
+
+    <div style="margin-bottom:.5rem">
+      <div class="criteria-label">💻 Authored Code</div>
+      <div class="code-block">${escHtml(e.code||'# No code generated')}</div>
+    </div>
+
+    ${e.validation_status === 'validated' ? `
+    <button class="btn primary" style="margin-top:.5rem"
+      onclick="wireEntry('${e.entry_id}', '${e.route_path||''}')">
+      🔌 Mark as Wired
+    </button>` : ''}
+  `;
+}
+
+async function wireEntry(entryId, routePath) {
+  const rp = routePath || prompt('Enter route path (e.g. /api/mythos/fix_thing):');
+  if (!rp) return;
+  const d = await API('/mythos/wire', {
+    method: 'POST',
+    body: JSON.stringify({entry_id: entryId, route_path: rp})
+  });
+  alert(d.success ? `✅ Wired to ${rp}` : `Error: ${d.error}`);
+  if (d.success) { loadStatus(); loadRegistry(); }
+}
+
+// ── Manual ────────────────────────────────────────────────────────────────
+async function submitManual() {
+  const desc = document.getElementById('manualDesc').value.trim();
+  if (!desc) return;
+  const btn = document.getElementById('manualBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spin"></div> Authoring...';
+  document.getElementById('manualResult').innerHTML = '';
+
+  const criteria = document.getElementById('manualCriteria').value
+    .split('\n').map(l=>l.trim()).filter(Boolean);
+
+  try {
+    const d = await API('/mythos/receive', {
+      method: 'POST',
+      body: JSON.stringify({
+        description: desc,
+        domain: document.getElementById('manualDomain').value,
+        severity: document.getElementById('manualSeverity').value,
+        route: document.getElementById('manualRoute').value || undefined,
+        criteria: criteria.length ? criteria : undefined,
+      })
+    });
+    if (d.success) {
+      document.getElementById('manualResult').innerHTML = `
+        <div class="success-msg" style="margin-top:.5rem">
+          ✅ Function authored — Entry ID: ${d.entry?.entry_id} — Status: ${d.entry?.validation_status}
+        </div>
+      `;
+      await loadStatus();
+      await loadRegistry();
+    } else {
+      document.getElementById('manualResult').innerHTML =
+        `<div class="error-msg">Error: ${d.error}</div>`;
+    }
+  } catch(e) {
+    document.getElementById('manualResult').innerHTML =
+      `<div class="error-msg">Network error: ${e.message}</div>`;
+  }
+  btn.disabled = false;
+  btn.innerHTML = '🌀 Author Function';
+}
+
+// ── Cycle ─────────────────────────────────────────────────────────────────
+async function runCycle() {
+  const btn = document.getElementById('cycleBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spin"></div> Running...';
+  setTab('cycle');
+  document.getElementById('cycleLog').innerHTML =
+    '<div class="loading"><div class="spin"></div> Running Mythos cycle — sense → receive → re-sense...</div>';
+
+  const maxCycles = parseInt(document.getElementById('cycleDepth').value) || 3;
+  const deep = document.getElementById('cycleDeep').checked;
+
+  try {
+    const d = await API('/mythos/cycle', {
+      method: 'POST',
+      body: JSON.stringify({max_cycles: maxCycles, deep})
+    });
+    if (d.success) {
+      const r = d.report;
+      document.getElementById('cycleLog').innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-bottom:.75rem">
+          <div class="stat"><div class="stat-n">${r.cycles_run}</div><div class="stat-l">Cycles Run</div></div>
+          <div class="stat"><div class="stat-n amber">${r.total_signals}</div><div class="stat-l">Signals</div></div>
+          <div class="stat"><div class="stat-n">${r.functions_authored}</div><div class="stat-l">Authored</div></div>
+          <div class="stat"><div class="stat-n green">${r.functions_validated}</div><div class="stat-l">Validated</div></div>
+        </div>
+        <div style="font-size:.68rem;color:var(--dim);margin-bottom:.3rem">Cycle ID: ${r.cycle_id}</div>
+        <div class="cycle-log">${escHtml((r.log||[]).join('\n'))}</div>
+      `;
+      await loadStatus();
+      await loadRegistry();
+    } else {
+      document.getElementById('cycleLog').innerHTML =
+        `<div class="error-msg">Cycle failed: ${d.error}</div>`;
+    }
+  } catch(e) {
+    document.getElementById('cycleLog').innerHTML =
+      `<div class="error-msg">Error: ${e.message}</div>`;
+  }
+  btn.disabled = false;
+  btn.innerHTML = '🔄 Run Cycle';
+}
+
+// ── Registry ──────────────────────────────────────────────────────────────
+async function loadRegistry() {
+  const domain = document.getElementById('regDomain')?.value || '';
+  const status = document.getElementById('regStatus')?.value || '';
+  try {
+    const d = await API(`/mythos/registry?limit=100&domain=${domain}&status=${status}`);
+    const list = document.getElementById('registryList');
+    if (!d.success) { list.innerHTML = `<div class="error-msg">${d.error}</div>`; return; }
+    if (!d.entries?.length) { list.innerHTML = '<div class="empty">No entries yet — run a Sense or author a function</div>'; return; }
+    list.innerHTML = d.entries.map(e => `
+      <div class="entry-card status-${e.validation_status}" onclick="showEntry('${e.entry_id}')">
+        <div class="entry-hdr">
+          <span class="entry-status">${e.validation_status}</span>
+          <span class="entry-domain">${e.domain}</span>
+          <span style="font-size:.6rem;color:var(--muted);margin-left:auto">${e.severity}</span>
+        </div>
+        <div class="entry-title">${escHtml((e.title||'').substring(0,90))}</div>
+        <div class="entry-meta">${e.entry_id} · ${(e.created_at||'').substring(0,10)}</div>
+        ${e.code_preview ? `<div class="entry-preview">${escHtml(e.code_preview)}</div>` : ''}
+      </div>
+    `).join('');
+  } catch(e) {
+    document.getElementById('registryList').innerHTML =
+      `<div class="error-msg">Load failed: ${e.message}</div>`;
+  }
+}
+
+async function showEntry(entryId) {
+  setTab('receive');
+  document.getElementById('receiveEmpty').style.display = 'none';
+  document.getElementById('receiveDetail').style.display = 'block';
+  document.getElementById('receiveDetail').innerHTML =
+    '<div class="loading"><div class="spin"></div> Loading...</div>';
+  try {
+    const d = await API(`/mythos/registry/${entryId}`);
+    if (d.success) renderEntry(d.entry, 'receiveDetail');
+    else document.getElementById('receiveDetail').innerHTML =
+      `<div class="error-msg">${d.error}</div>`;
+  } catch(e) {
+    document.getElementById('receiveDetail').innerHTML =
+      `<div class="error-msg">${e.message}</div>`;
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function toggleLeftPanel() {
+  if (leftMode === 'signals') {
+    leftMode = 'registry';
+    document.getElementById('leftPanelTitle').textContent = 'Registry';
+    // Show registry entries in left panel
+    loadRegistryLeft();
+  } else {
+    leftMode = 'signals';
+    document.getElementById('leftPanelTitle').textContent = `Need Signals (${currentSignals.length})`;
+    renderSignals();
+  }
+}
+
+async function loadRegistryLeft() {
+  document.getElementById('leftPanel').innerHTML =
+    '<div class="loading"><div class="spin"></div> Loading registry...</div>';
+  const d = await API('/mythos/registry?limit=50');
+  if (!d.success || !d.entries?.length) {
+    document.getElementById('leftPanel').innerHTML = '<div class="empty">No registry entries</div>';
+    return;
+  }
+  document.getElementById('leftPanel').innerHTML = d.entries.map(e => `
+    <div class="entry-card status-${e.validation_status}" onclick="showEntry('${e.entry_id}')">
+      <div class="entry-hdr">
+        <span class="entry-status">${e.validation_status}</span>
+        <span class="entry-domain">${e.domain}</span>
+      </div>
+      <div class="entry-title">${escHtml((e.title||'').substring(0,70))}</div>
+    </div>
+  `).join('');
+}
+
+function setTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const names = ['signal','receive','manual','cycle','registry'];
+    t.classList.toggle('active', names[i]===name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c =>
+    c.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  if (name === 'registry') loadRegistry();
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Init
+init();
+</script>
+</body>
+</html>
