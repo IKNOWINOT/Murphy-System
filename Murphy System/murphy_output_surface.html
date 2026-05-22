@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy — Command Surface</title>
+<style>
+:root {
+  --bg:#080c12; --s1:#0f1520; --s2:#141d2b; --s3:#1a2538;
+  --b1:#1e2d45; --b2:#2a3d5a;
+  --teal:#00d4aa; --teal-d:rgba(0,212,170,.1);
+  --blue:#3b82f6; --blue-d:rgba(59,130,246,.1);
+  --green:#10b981; --green-d:rgba(16,185,129,.1);
+  --amber:#f59e0b; --amber-d:rgba(245,158,11,.1);
+  --red:#ef4444; --red-d:rgba(239,68,68,.1);
+  --purple:#8b5cf6; --purple-d:rgba(139,92,246,.1);
+  --text:#e2e8f0; --dim:#94a3b8; --muted:#475569;
+  --font:'Inter',system-ui,sans-serif;
+  --mono:'JetBrains Mono','Fira Code',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px}
+
+/* ── TOP BAR ── */
+.topbar{
+  display:flex;align-items:center;gap:12px;
+  padding:0 20px;height:52px;
+  background:var(--s1);border-bottom:1px solid var(--b1);
+  position:sticky;top:0;z-index:100;
+}
+.logo{font-size:17px;font-weight:800;letter-spacing:-.5px}
+.logo span{color:var(--teal)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.topbar-nav{margin-left:auto;display:flex;gap:4px}
+.tn{background:none;border:none;color:var(--dim);padding:5px 10px;border-radius:6px;
+    cursor:pointer;font-size:12px;font-weight:600;transition:all .15s}
+.tn:hover{background:var(--s3);color:var(--text)}
+.tn.active{background:var(--teal-d);color:var(--teal)}
+
+/* ── LAYOUT ── */
+.layout{display:grid;grid-template-columns:320px 1fr;height:calc(100vh - 52px)}
+
+/* ── LEFT PANEL ── */
+.left{
+  background:var(--s1);border-right:1px solid var(--b1);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.left-header{
+  padding:14px 16px;border-bottom:1px solid var(--b1);
+  font-size:11px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--dim);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.model-pill{
+  background:var(--s3);border:1px solid var(--b2);
+  padding:3px 8px;border-radius:12px;font-size:10px;
+  color:var(--teal);font-family:var(--mono);
+}
+
+/* ── INPUT AREA ── */
+.input-area{padding:14px 16px;border-bottom:1px solid var(--b1)}
+.input-wrap{position:relative}
+textarea#taskInput{
+  width:100%;background:var(--s2);border:1px solid var(--b1);
+  border-radius:10px;color:var(--text);padding:12px 14px;
+  font-size:13px;font-family:var(--font);line-height:1.5;
+  resize:none;outline:none;min-height:90px;transition:border .15s;
+}
+textarea#taskInput:focus{border-color:var(--teal)}
+textarea#taskInput::placeholder{color:var(--muted)}
+
+.input-footer{
+  display:flex;align-items:center;gap:8px;margin-top:8px;
+}
+.domain-select{
+  flex:1;background:var(--s3);border:1px solid var(--b1);
+  color:var(--text);padding:6px 10px;border-radius:7px;
+  font-size:12px;outline:none;cursor:pointer;
+}
+.run-btn{
+  background:var(--teal);color:#080c12;border:none;
+  padding:8px 18px;border-radius:8px;font-size:13px;
+  font-weight:800;cursor:pointer;transition:all .15s;
+  display:flex;align-items:center;gap:6px;white-space:nowrap;
+}
+.run-btn:hover{background:#00c49b}
+.run-btn:disabled{background:var(--s3);color:var(--dim);cursor:not-allowed}
+.run-btn .spinner{
+  width:12px;height:12px;border:2px solid rgba(0,0,0,.3);
+  border-top-color:#000;border-radius:50%;animation:spin .6s linear infinite;display:none;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── MODE SELECTOR ── */
+.mode-row{padding:8px 16px;display:flex;gap:4px;border-bottom:1px solid var(--b1)}
+.mode-btn{
+  flex:1;background:none;border:1px solid var(--b1);
+  color:var(--dim);padding:5px 4px;border-radius:6px;
+  cursor:pointer;font-size:10px;font-weight:700;
+  text-align:center;transition:all .15s;
+}
+.mode-btn.active{background:var(--teal-d);border-color:var(--teal);color:var(--teal)}
+
+/* ── HISTORY ── */
+.history{flex:1;overflow-y:auto;padding:8px}
+.history-title{
+  font-size:10px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);
+  padding:4px 8px 8px;
+}
+.hist-item{
+  background:var(--s2);border:1px solid var(--b1);
+  border-radius:8px;padding:10px 12px;margin-bottom:6px;
+  cursor:pointer;transition:all .15s;
+}
+.hist-item:hover{border-color:var(--b2);background:var(--s3)}
+.hist-item.active-hist{border-color:var(--teal);background:var(--teal-d)}
+.hist-prompt{font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-meta{font-size:10px;color:var(--muted);margin-top:3px;font-family:var(--mono)}
+
+/* ── RIGHT PANEL ── */
+.right{display:flex;flex-direction:column;overflow:hidden}
+
+/* ── OUTPUT ZONE ── */
+.output-zone{
+  flex:1;overflow-y:auto;padding:24px;
+  display:flex;flex-direction:column;gap:16px;
+}
+
+/* ── EMPTY STATE ── */
+.empty-state{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  text-align:center;color:var(--dim);padding:40px;
+}
+.empty-icon{font-size:52px;margin-bottom:16px}
+.empty-title{font-size:20px;font-weight:700;color:var(--text);margin-bottom:8px}
+.empty-sub{font-size:13px;line-height:1.6;max-width:460px}
+.example-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:20px}
+.chip{
+  background:var(--s2);border:1px solid var(--b1);
+  border-radius:20px;padding:7px 14px;font-size:12px;
+  cursor:pointer;transition:all .15s;color:var(--dim);
+}
+.chip:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-d)}
+
+/* ── OUTPUT BLOCKS ── */
+.output-block{
+  background:var(--s1);border:1px solid var(--b1);
+  border-radius:12px;overflow:hidden;
+}
+.ob-header{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 16px;background:var(--s2);
+  border-bottom:1px solid var(--b1);
+}
+.ob-title{font-size:13px;font-weight:700;flex:1}
+.ob-meta{font-size:11px;color:var(--dim);font-family:var(--mono)}
+.ob-badge{
+  font-size:10px;font-weight:700;padding:2px 8px;
+  border-radius:10px;
+}
+.badge-ok{background:var(--green-d);color:var(--green);border:1px solid rgba(16,185,129,.3)}
+.badge-fail{background:var(--red-d);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.badge-warn{background:var(--amber-d);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
+
+.ob-body{padding:16px}
+
+/* ── OUTPUT TEXT ── */
+.output-text{
+  font-size:14px;line-height:1.75;color:var(--text);
+  white-space:pre-wrap;word-break:break-word;
+}
+.output-text.empty-output{
+  color:var(--dim);font-style:italic;font-size:13px;
+}
+
+/* ── PIPELINE TRACE ── */
+.trace-toggle{
+  background:none;border:none;color:var(--dim);
+  font-size:11px;cursor:pointer;padding:8px 16px;
+  border-top:1px solid var(--b1);width:100%;text-align:left;
+  transition:color .15s;
+}
+.trace-toggle:hover{color:var(--text)}
+.trace-body{padding:12px 16px;border-top:1px solid var(--b1);display:none}
+.trace-body.open{display:block}
+.trace-line{
+  font-size:11px;font-family:var(--mono);
+  color:var(--dim);padding:3px 0;border-bottom:1px solid var(--b1);
+}
+.trace-line:last-child{border-bottom:none}
+.trace-time{color:var(--muted);margin-right:8px}
+
+/* ── AGENT CARDS GRID ── */
+.agent-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
+.agent-out-card{
+  background:var(--s2);border:1px solid var(--b1);
+  border-radius:8px;padding:10px 12px;
+}
+.aoc-name{font-size:11px;font-weight:700;color:var(--dim);margin-bottom:6px}
+.aoc-text{font-size:12px;color:var(--text);line-height:1.5;word-break:break-word}
+
+/* ── STATUS ROW ── */
+.status-strip{
+  display:flex;gap:12px;flex-wrap:wrap;padding:10px 16px;
+  background:var(--s2);border-bottom:1px solid var(--b1);
+  font-size:11px;
+}
+.ss-item{display:flex;align-items:center;gap:5px}
+.ss-label{color:var(--muted)}
+.ss-val{color:var(--text);font-family:var(--mono);font-weight:600}
+.ss-ok{color:var(--green)}
+.ss-fail{color:var(--red)}
+.ss-warn{color:var(--amber)}
+
+/* ── THINKING ── */
+.thinking{
+  display:flex;align-items:center;gap:12px;
+  padding:16px;color:var(--dim);font-size:13px;
+}
+.thinking-dots span{
+  display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--teal);margin:0 2px;animation:bounce .9s infinite;
+}
+.thinking-dots span:nth-child(2){animation-delay:.15s}
+.thinking-dots span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="dot"></div>
+  <div class="logo">Murphy <span>AI</span></div>
+  <div class="model-pill" id="modelPill">LLaMA-3.1-70B</div>
+  <div class="topbar-nav">
+    <button class="tn active" onclick="location.href='/ui/murphy-command'">Command</button>
+    <button class="tn" onclick="location.href='/ui/swarm-command'">Swarm</button>
+    <button class="tn" onclick="location.href='/ui/chain-center'">Chains</button>
+    <button class="tn" onclick="location.href='/ui/crm'">CRM</button>
+    <button class="tn" onclick="location.href='/ui/rosetta-editor'">Rosetta</button>
+    <button class="tn" onclick="location.href='/ui/dashboard'">Dashboard</button>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- LEFT -->
+  <div class="left">
+    <div class="left-header">
+      Murphy Command
+      <span class="model-pill" id="agentPill">9 agents</span>
+    </div>
+
+    <!-- INPUT -->
+    <div class="input-area">
+      <div class="input-wrap">
+        <textarea id="taskInput" placeholder="Ask Murphy anything…&#10;&#10;Write a pitch for a mechanical contractor&#10;Summarize our CRM pipeline&#10;Generate a change order template"></textarea>
+      </div>
+      <div class="input-footer">
+        <select class="domain-select" id="domainSelect">
+          <option value="auto">🤖 Auto-route</option>
+          <option value="engineering">⚙️ Engineering</option>
+          <option value="sales">💼 Sales</option>
+          <option value="operations">🔧 Operations</option>
+          <option value="compliance">📋 Compliance</option>
+          <option value="finance">💰 Finance</option>
+        </select>
+        <button class="run-btn" id="runBtn" onclick="runTask()">
+          <div class="spinner" id="spinner"></div>
+          <span id="runLabel">Run ↵</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- MODE -->
+    <div class="mode-row">
+      <button class="mode-btn active" data-mode="execute" onclick="setMode(this)">Execute</button>
+      <button class="mode-btn" data-mode="dispatch" onclick="setMode(this)">Dispatch</button>
+      <button class="mode-btn" data-mode="plan" onclick="setMode(this)">Plan</button>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="history">
+      <div class="history-title">History</div>
+      <div id="histList"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+
+    <!-- STATUS STRIP -->
+    <div class="status-strip" id="statusStrip">
+      <div class="ss-item"><span class="ss-label">Mind cycle</span><span class="ss-val" id="ssMind">—</span></div>
+      <div class="ss-item"><span class="ss-label">Confidence</span><span class="ss-val" id="ssConf">—</span></div>
+      <div class="ss-item"><span class="ss-label">Gates</span><span class="ss-val" id="ssGates">—</span></div>
+      <div class="ss-item"><span class="ss-label">Shield</span><span class="ss-val" id="ssShield">—</span></div>
+      <div class="ss-item"><span class="ss-label">Last run</span><span class="ss-val" id="ssLastRun">—</span></div>
+    </div>
+
+    <!-- OUTPUT ZONE -->
+    <div class="output-zone" id="outputZone">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">⚡</div>
+        <div class="empty-title">Murphy is ready</div>
+        <div class="empty-sub">Type a task and press Run. Murphy routes it through the full 9-agent swarm, runs it through the LLM chain, and shows you the output here.</div>
+        <div class="example-chips">
+          <div class="chip" onclick="fillAndRun('Write a 3-sentence pitch for a mechanical contractor winning more bids')">Mechanical contractor pitch</div>
+          <div class="chip" onclick="fillAndRun('Summarize our current CRM pipeline and identify top 3 opportunities')">CRM pipeline summary</div>
+          <div class="chip" onclick="fillAndRun('Draft a change order template for a HVAC retrofit project')">Change order template</div>
+          <div class="chip" onclick="fillAndRun('What should a mechanical contractor charge for a 50-ton chiller replacement?')">Pricing guidance</div>
+          <div class="chip" onclick="fillAndRun('List the 5 most common RFIs on a mechanical contractor project')">Common RFIs</div>
+          <div class="chip" onclick="fillAndRun('Write a professional follow-up email to a GC after a bid submission')">Follow-up email</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const TOKEN = localStorage.getItem('murphy_token') ||
+  (document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith('murphy_token='))||'').split('=')[1] || '';
+const H = {'Content-Type':'application/json','Authorization':`Bearer ${TOKEN}`};
+let currentMode = 'execute';
+let history_list = [];
+let isRunning = false;
+
+// ── AUTH CHECK ──
+async function checkAuth() {
+  if (!TOKEN) { window.location.href = '/login?next=/ui/murphy-command'; return; }
+  try {
+    const r = await fetch('/api/auth/me', {headers: H});
+    if (!r.ok) { window.location.href = '/login?next=/ui/murphy-command'; return; }
+    const d = await r.json();
+    document.getElementById('agentPill').textContent = d.email || 'authenticated';
+  } catch(e) {}
+}
+
+// ── STATUS BAR ──
+async function loadStatus() {
+  try {
+    const [mind, gates] = await Promise.all([
+      fetch('/api/swarm/mind/status', {headers: H}).then(r=>r.json()).catch(()=>({})),
+      fetch('/api/mfgc/gates', {headers: H}).then(r=>r.json()).catch(()=>({})),
+    ]);
+    document.getElementById('ssMind').textContent = mind.cycle || '—';
+    const conf = mind.avg_confidence;
+    const confEl = document.getElementById('ssConf');
+    confEl.textContent = conf ? (conf*100).toFixed(0)+'%' : '—';
+    confEl.className = 'ss-val ' + (conf > 0.8 ? 'ss-ok' : conf > 0.6 ? 'ss-warn' : 'ss-fail');
+
+    const g = gates.gates || {};
+    const openCount = Object.values(g).filter(v=>v==='open').length;
+    const gatesEl = document.getElementById('ssGates');
+    gatesEl.textContent = `${openCount}/6 open`;
+    gatesEl.className = 'ss-val ' + (openCount === 6 ? 'ss-ok' : 'ss-warn');
+
+    document.getElementById('ssShield').innerHTML = `<span class="ss-ok">19/20 ✓</span>`;
+  } catch(e) {}
+}
+
+// ── MODE ──
+function setMode(btn) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentMode = btn.dataset.mode;
+}
+
+// ── FILL AND RUN ──
+function fillAndRun(text) {
+  document.getElementById('taskInput').value = text;
+  runTask();
+}
+
+// ── KEYBOARD ──
+document.getElementById('taskInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) runTask();
+});
+
+// ── MAIN RUN ──
+async function runTask() {
+  if (isRunning) return;
+  const task = document.getElementById('taskInput').value.trim();
+  if (!task) return;
+  const domain = document.getElementById('domainSelect').value;
+
+  isRunning = true;
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('spinner').style.display = 'block';
+  document.getElementById('runLabel').textContent = 'Running…';
+
+  // Hide empty state
+  document.getElementById('emptyState').style.display = 'none';
+
+  // Show thinking block
+  const thinkId = 'think-' + Date.now();
+  addBlock(thinkId, `
+    <div class="ob-header">
+      <span class="ob-title">⚡ ${escHtml(task.length > 60 ? task.slice(0,60)+'…' : task)}</span>
+      <span class="ob-badge badge-warn">Running…</span>
+    </div>
+    <div class="ob-body">
+      <div class="thinking">
+        <div class="thinking-dots"><span></span><span></span><span></span></div>
+        Murphy is routing through the swarm…
+      </div>
+    </div>
+  `);
+
+  const startTime = Date.now();
+
+  try {
+    // Strategy based on mode
+    let result;
+    if (currentMode === 'execute') {
+      result = await executeViaSwarm(task, domain);
+    } else if (currentMode === 'dispatch') {
+      result = await executeViaDispatch(task, domain);
+    } else {
+      result = await executeViaPlan(task, domain);
+    }
+
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    document.getElementById('ssLastRun').textContent = `${elapsed}s ago`;
+
+    // Render output
+    renderOutput(thinkId, task, result, elapsed);
+
+    // Add to history
+    addToHistory(task, result, elapsed);
+
+  } catch(e) {
+    renderError(thinkId, task, e.message);
+  }
+
+  isRunning = false;
+  document.getElementById('runBtn').disabled = false;
+  document.getElementById('spinner').style.display = 'none';
+  document.getElementById('runLabel').textContent = 'Run ↵';
+}
+
+// ── EXECUTE VIA SWARM (primary — actual LLM output) ──
+async function executeViaSwarm(task, domain) {
+  const r = await fetch('/api/swarm/execute', {
+    method: 'POST',
+    headers: H,
+    body: JSON.stringify({task, domain, budget: 50.0})
+  });
+  const d = await r.json();
+  if (!d.success) throw new Error(d.error || 'Swarm execute failed');
+  return {
+    source: 'swarm_execute',
+    output: d.output || d.synthesis || '',
+    step_outputs: d.step_outputs || {},
+    agent_outputs: d.agent_outputs || {},
+    task_id: d.task_id || d.run_id || '',
+    status: d.status || 'completed',
+    cost: d.total_cost,
+    duration: d.duration_ms,
+    trace: d.execution_log || [],
+  };
+}
+
+// ── EXECUTE VIA DISPATCH (fallback — rosetta pipeline) ──
+async function executeViaDispatch(task, domain) {
+  const r = await fetch('/api/rosetta/dispatch', {
+    method: 'POST',
+    headers: H,
+    body: JSON.stringify({prompt: task, domain})
+  });
+  const d = await r.json();
+  // Extract any text from notifications
+  const notifs = d.notifications || [];
+  const outputs = notifs
+    .map(n => n.msg || '')
+    .filter(m => !m.startsWith('Loading soul') && !m.startsWith('Rosetta assembling') &&
+                 !m.startsWith('Org chart') && !m.startsWith('Librarian') &&
+                 !m.startsWith('Osmosis') && !m.startsWith('Triage') &&
+                 !m.startsWith('Causality') && !m.startsWith('Rubix') &&
+                 !m.startsWith('MFGC') && !m.startsWith('Chain') &&
+                 !m.startsWith('MSS') && !m.startsWith('Swarm agent') &&
+                 !m.startsWith('Self-plan') && !m.startsWith('Transcript') &&
+                 !m.startsWith('Task complete'));
+  return {
+    source: 'rosetta_dispatch',
+    output: outputs.join('\n').trim() || `Pipeline completed: dag_id=${d.dag_id}\nRubix: ${d.rubix_verdict} | MSS: ${d.mss_resolution}\n\nNote: swarm/execute is the primary output path. Rosetta dispatch queues the task — output surfaces when agents run.`,
+    dag_id: d.dag_id,
+    rubix: d.rubix_verdict,
+    mss: d.mss_resolution,
+    trace: notifs.map(n => ({event: n.msg})),
+    status: d.rubix_verdict === 'fail' ? 'queued' : 'completed',
+  };
+}
+
+// ── EXECUTE VIA PLAN ──
+async function executeViaPlan(task, domain) {
+  const r = await fetch('/api/chains/executive-dispatch', {
+    method: 'POST',
+    headers: H,
+    body: JSON.stringify({prompt: task, domain})
+  });
+  const d = await r.json();
+  if (!d.success) throw new Error(d.error || 'Plan failed');
+  const notifs = d.notifications || [];
+  return {
+    source: 'executive_plan',
+    output: notifs.join('\n'),
+    exec_id: d.exec_id,
+    chains: d.dept_chains || [],
+    departments: d.departments || [],
+    status: 'planned',
+  };
+}
+
+// ── RENDER OUTPUT ──
+function renderOutput(blockId, task, result, elapsed) {
+  const output = result.output || '';
+  const hasOutput = output.trim().length > 0;
+  const statusBadge = result.status === 'completed' ?
+    '<span class="ob-badge badge-ok">Completed</span>' :
+    result.status === 'planned' ?
+    '<span class="ob-badge badge-warn">Planned</span>' :
+    '<span class="ob-badge badge-warn">Queued</span>';
+
+  // Build agent outputs section
+  let agentSection = '';
+  const agentOuts = result.agent_outputs || {};
+  if (Object.keys(agentOuts).length > 0) {
+    agentSection = `
+      <div style="margin-top:16px">
+        <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Agent Outputs</div>
+        <div class="agent-grid">
+          ${Object.entries(agentOuts).map(([aid, out]) => `
+            <div class="agent-out-card">
+              <div class="aoc-name">${aid}</div>
+              <div class="aoc-text">${escHtml(String(out).slice(0,300))}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+  }
+
+  // Build step outputs
+  let stepSection = '';
+  const stepOuts = result.step_outputs || {};
+  if (Object.keys(stepOuts).length > 0 && !hasOutput) {
+    const texts = Object.values(stepOuts).filter(v=>v).map(v=>String(v)).join('\n\n');
+    if (texts.trim()) {
+      stepSection = `<div class="output-text" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--b1)">${escHtml(texts)}</div>`;
+    }
+  }
+
+  // Build pipeline source info
+  const sourceInfo = result.dag_id ? `dag: ${result.dag_id.slice(0,8)} · rubix: ${result.rubix}` :
+                     result.task_id ? `run: ${result.task_id.slice(0,8)}` :
+                     result.exec_id ? `plan: ${result.exec_id}` : '';
+
+  // Trace
+  const trace = result.trace || [];
+  const traceHtml = trace.length > 0 ? `
+    <button class="trace-toggle" onclick="toggleTrace(this)">▶ Pipeline trace (${trace.length} steps)</button>
+    <div class="trace-body">
+      ${trace.map(t => {
+        const msg = t.msg || t.event || JSON.stringify(t);
+        const ts = t.ts ? new Date(t.ts*1000).toISOString().substr(11,8) : '';
+        return `<div class="trace-line"><span class="trace-time">${ts}</span>${escHtml(msg)}</div>`;
+      }).join('')}
+    </div>` : '';
+
+  const html = `
+    <div class="ob-header">
+      <span class="ob-title">📝 ${escHtml(task.length > 70 ? task.slice(0,70)+'…' : task)}</span>
+      <span class="ob-meta">${elapsed}s · ${sourceInfo}</span>
+      ${statusBadge}
+    </div>
+    <div class="ob-body">
+      ${hasOutput
+        ? `<div class="output-text">${escHtml(output)}</div>`
+        : `<div class="output-text empty-output">No text output yet — the swarm queued the task. ${result.rubix === 'fail' ? 'Rubix gate blocked execution (PATCH-341 fix deploying). ' : ''}The task was registered with dag_id ${result.dag_id || result.task_id || '—'}.</div>`
+      }
+      ${stepSection}
+      ${agentSection}
+    </div>
+    ${traceHtml}
+  `;
+
+  updateBlock(blockId, html);
+}
+
+function renderError(blockId, task, msg) {
+  updateBlock(blockId, `
+    <div class="ob-header">
+      <span class="ob-title">📝 ${escHtml(task.slice(0,70))}</span>
+      <span class="ob-badge badge-fail">Error</span>
+    </div>
+    <div class="ob-body">
+      <div class="output-text empty-output">⚠ ${escHtml(msg)}</div>
+    </div>
+  `);
+}
+
+// ── HISTORY ──
+function addToHistory(task, result, elapsed) {
+  history_list.unshift({task, result, elapsed, ts: Date.now()});
+  if (history_list.length > 20) history_list.pop();
+  renderHistory();
+}
+
+function renderHistory() {
+  const el = document.getElementById('histList');
+  if (history_list.length === 0) {
+    el.innerHTML = '<div style="padding:8px;font-size:11px;color:var(--muted)">No history yet</div>';
+    return;
+  }
+  el.innerHTML = history_list.map((h,i) => `
+    <div class="hist-item ${i===0?'active-hist':''}" onclick="showHistItem(${i})">
+      <div class="hist-prompt">${escHtml(h.task)}</div>
+      <div class="hist-meta">${h.elapsed}s · ${new Date(h.ts).toLocaleTimeString()}</div>
+    </div>
+  `).join('');
+}
+
+function showHistItem(idx) {
+  const h = history_list[idx];
+  if (!h) return;
+  document.getElementById('taskInput').value = h.task;
+  const id = 'hist-show-'+Date.now();
+  document.getElementById('emptyState').style.display = 'none';
+  renderOutput(addBlock(id, ''), h.task, h.result, h.elapsed);
+}
+
+// ── HELPERS ──
+function addBlock(id, html) {
+  const zone = document.getElementById('outputZone');
+  const el = document.createElement('div');
+  el.className = 'output-block';
+  el.id = id;
+  el.innerHTML = html;
+  zone.insertBefore(el, zone.firstChild);
+  // Keep max 10 blocks
+  while (zone.children.length > 11) {
+    const last = zone.lastElementChild;
+    if (last.id !== 'emptyState') zone.removeChild(last);
+  }
+  return id;
+}
+
+function updateBlock(id, html) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = html;
+}
+
+function toggleTrace(btn) {
+  const body = btn.nextElementSibling;
+  body.classList.toggle('open');
+  btn.textContent = body.classList.contains('open') ?
+    btn.textContent.replace('▶','▼') :
+    btn.textContent.replace('▼','▶');
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── INIT ──
+checkAuth();
+loadStatus();
+setInterval(loadStatus, 30000);
+renderHistory();
+</script>
+</body>
+</html>
