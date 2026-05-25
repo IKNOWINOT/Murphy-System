@@ -416,6 +416,8 @@ class OIDCAuthMiddleware(BaseHTTPMiddleware):
         "/api/health",
         "/api/health/capacity",
         "/api/info",
+        "/api/public/stats",   # PATCH-451: landing-page hero aggregator
+        "/api/public/treasury",   # PATCH-451f: landing-page burn/runway
         "/api/manifest",
         "/api/readiness",
         "/api/status/public",

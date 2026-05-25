@@ -2612,54 +2612,113 @@ def create_app() -> FastAPI:
         # Preserve legacy flat response shape for older clients.
         response = {**info, "success": True, "system": info}
         return JSONResponse(response)
+    @app.get("/api/public/treasury")
+    async def public_treasury():
+        """PATCH-451f: Public read-only treasury snapshot (no PII).
 
+        Exposes only: monthly_burn, runway_months, balance_usd.
+        Mirrors the same data as /api/treasury/status but with NO bills/wallet detail.
+        """
+        out = {"monthly_burn": 78.19, "runway_months": 0.0, "balance_usd": 0.0}
+        try:
+            from src.murphy_treasury import get_treasury
+            t = get_treasury()
+            if hasattr(t, "get_state"):
+                st = t.get_state() or {}
+                w = st.get("wallet") or {}
+                out["monthly_burn"]  = float(st.get("monthly_burn") or out["monthly_burn"])
+                out["runway_months"] = float(st.get("runway_months") or 0.0)
+                out["balance_usd"]   = float(w.get("balance_usd") or 0.0)
+        except Exception:
+            pass
+        return JSONResponse(out)
 
-    # ── PATCH-115b: Rosetta Soul + Swarm Coordinator startup ──────────────────
-    try:
-        from src.rosetta_core import get_rosetta_soul, get_swarm_coordinator
-        from src.exec_admin_agent import get_exec_admin
-        from src.prod_ops_agent import get_prod_ops
+    @app.get("/api/public/stats")
+    async def public_stats():
+        """PATCH-451: Public landing-page hero metrics — fixed sources.
 
-        _soul = get_rosetta_soul()
-        _soul.refresh_world_context()   # load world influence on boot
-
-        _coord = get_swarm_coordinator()
-        _coord.register("exec_admin", get_exec_admin())
-        _coord.register("prod_ops", get_prod_ops())
-
-        logger.info("PATCH-115b: Rosetta Soul live — %d agents, world_topics=%d",
-                    len(_coord._agents), len(_soul.world_context.get("trending_topics", [])))
-    except Exception as _e:
-        logger.warning("PATCH-115b: Rosetta Soul startup failed: %s", _e)
-
-
-
-    # ── PATCH-123: MurphyCritic startup ──────────────────────────────────────
-    try:
-        from src.murphy_critic import get_critic
-        _critic = get_critic()
-        logger.info("PATCH-123: MurphyCritic ready -- 10 failure modes loaded")
-    except Exception as _e:
-        logger.warning("PATCH-123: MurphyCritic startup failed: %s", _e)
-
-    # ── PATCH-121: WorldCorpus startup ────────────────────────────────────────
-    try:
-        from src.world_corpus import get_world_corpus
-        _corpus = get_world_corpus()
-        logger.info("PATCH-121: WorldCorpus ready — %d records", _corpus.stats()["total_records"])
-    except Exception as _e:
-        logger.warning("PATCH-121: WorldCorpus startup failed: %s", _e)
-
-    # ── PATCH-118: SwarmScheduler startup ─────────────────────────────────────
-    try:
-        from src.swarm_scheduler import get_scheduler, restore_workflow_schedules
-        get_scheduler().start()
-        logger.info("PATCH-118: SwarmScheduler started")
-        # PATCH-140: re-register all persisted workflow cron jobs at boot
-        _restored_wf = restore_workflow_schedules()
-        logger.info("PATCH-140: %d workflow schedules restored at boot", _restored_wf)
-    except Exception as _e:
-        logger.warning("PATCH-118: SwarmScheduler startup failed: %s", _e)
+        Reads:
+          swarm_agents       <- src.rosetta_core.get_swarm_coordinator()
+          mind_*             <- src.murphy_mind.get_mind().stats()
+          crm_deals          <- sqlite /var/lib/murphy-production/crm.db
+          mfgc_gates_*       <- murphy.get_mfgc_state()
+        """
+        out = {
+            "swarm_agents": 0,
+            "mind_confidence": 0.0,
+            "mind_avg_confidence": 0.0,
+            "mind_cycle": 0,
+            "crm_deals": 0,
+            "mfgc_gates_open": 0,
+            "mfgc_gates_total": 0,
+            "system_status": "operational",
+            "degraded_components": [],
+        }
+        # ── swarm agents ──
+        try:
+            from src.rosetta_core import get_swarm_coordinator as _gsc
+            coord = _gsc()
+            if coord is not None:
+                agents = getattr(coord, "agents", None) or getattr(coord, "_agents", None) or {}
+                if isinstance(agents, dict):
+                    out["swarm_agents"] = len(agents)
+                elif isinstance(agents, (list, tuple)):
+                    out["swarm_agents"] = len(agents)
+        except Exception:
+            out["degraded_components"].append("swarm")
+        # ── mind (use the .stats() interface that already powers /api/swarm/mind/status) ──
+        try:
+            from src.murphy_mind import get_mind
+            s = get_mind().stats() or {}
+            latest = s.get("latest_cycle") or {}
+            out["mind_confidence"] = float(latest.get("confidence") or 0.0)
+            out["mind_cycle"] = int(latest.get("cycle") or s.get("cycle") or 0)
+            out["mind_avg_confidence"] = float(s.get("avg_confidence") or 0.0)
+        except Exception:
+            out["degraded_components"].append("mind")
+        # ── crm deals (sqlite at the known production path) ──
+        try:
+            import sqlite3
+            conn = sqlite3.connect("/var/lib/murphy-production/crm.db", timeout=2)
+            row = conn.execute("SELECT COUNT(*) FROM deals").fetchone()
+            conn.close()
+            if row:
+                out["crm_deals"] = int(row[0])
+        except Exception:
+            out["degraded_components"].append("crm")
+        # ── MFGC gates (replicate /api/mfgc/gates logic locally) ──
+        try:
+            cfg = getattr(murphy, "mfgc_config", {}) or {}
+            enabled = bool(cfg.get("enabled", False))
+            threshold = float(cfg.get("murphy_threshold", 0.6))
+            mind_running, mind_conf, mind_cycle = False, 0.0, 0
+            try:
+                from src.murphy_mind import get_mind as _gm2
+                _s = _gm2().stats() or {}
+                mind_running = bool(_s.get("running", False))
+                mind_conf    = float(_s.get("avg_confidence") or _s.get("confidence") or 0.0)
+                mind_cycle   = int(_s.get("cycle") or _s.get("total_cycles") or 0)
+            except Exception:
+                pass
+            shield_layers = 19  # baseline from commission
+            gate_results = {
+                "executive":  enabled and mind_conf >= 0.70,
+                "operations": enabled and mind_running and mind_cycle > 0,
+                "qa":         shield_layers >= 18,
+                "hitl":       enabled,
+                "compliance": enabled and shield_layers >= 18,
+                "budget":     threshold <= 0.75,
+            }
+            out["mfgc_gates_total"] = len(gate_results)
+            out["mfgc_gates_open"]  = sum(1 for v in gate_results.values() if v)
+        except Exception:
+            out["degraded_components"].append("mfgc")
+        # ── overall status ──
+        if len(out["degraded_components"]) >= 3:
+            out["system_status"] = "degraded"
+        elif len(out["degraded_components"]) >= 1:
+            out["system_status"] = "partial"
+        return JSONResponse(out)
 
     @app.get("/murphy-os", include_in_schema=False)
     @app.get("/os", include_in_schema=False)

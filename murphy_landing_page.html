@@ -435,31 +435,31 @@ footer a:hover { color: var(--teal); }
       <div class="cap-card">
         <div class="cap-icon">🛡️</div>
         <div class="cap-title">Compliance Engine</div>
-        <div class="cap-desc">HIPAA, SOC2, GDPR, ISO27001, OSHA, FMCSA — all toggleable. Murphy enforces compliance as a build-time constraint, not an afterthought. Quarterly audit reports auto-generated.</div>
+        <div class="cap-desc">HIPAA, SOC2, GDPR, ISO27001, OSHA, FMCSA — all toggleable per tenant. Murphy enforces compliance as a build-time constraint via the MurphyCritic gate, not an afterthought. Audit-ready posture from day one.</div>
         <div class="cap-tag">Multi-Framework</div>
       </div>
       <div class="cap-card">
         <div class="cap-icon">💰</div>
         <div class="cap-title">CRM + Outreach</div>
-        <div class="cap-desc">187 deals tracked live. Murphy writes and sends cold outreach, follows up on schedule, logs responses, and surfaces next actions. Your pipeline never goes cold.</div>
-        <div class="cap-tag">187 Active Deals</div>
+        <div class="cap-desc"><span id="cap-deals-count">201</span> deals tracked live. Murphy writes cold outreach, follows up on schedule, logs responses, and surfaces next actions through the human-review queue. Outbound mail signed with DKIM via your own server.</div>
+        <div class="cap-tag"><span id="cap-deals-tag">201</span> Active Deals</div>
       </div>
       <div class="cap-card">
         <div class="cap-icon">📊</div>
-        <div class="cap-title">Accounting + Tax</div>
-        <div class="cap-desc">Double-entry bookkeeping from your real transaction data. Tax checklists by entity type. IRS code self-updates weekly. Licensed CPA/EA review via HITL before filing.</div>
-        <div class="cap-tag">HITL Licensed Review</div>
+        <div class="cap-title">Treasury &amp; Burn</div>
+        <div class="cap-desc">Live treasury wallet, monthly burn ($<span id="cap-burn">78.19</span>), and runway tracking. Subscription revenue automatically splits 50/50 into operations cash and ATOM staking. Bookkeeping module on the roadmap.</div>
+        <div class="cap-tag">Live Burn + Runway</div>
       </div>
       <div class="cap-card">
         <div class="cap-icon">🎤</div>
         <div class="cap-title">Voice Control</div>
-        <div class="cap-desc">Speak commands to Murphy from your desktop, mobile, or PiCar-X robot. Whisper STT + speaker recognition identifies who is talking and routes to the right context.</div>
-        <div class="cap-tag">Raspberry Pi Ready</div>
+        <div class="cap-desc">Voice command scripts and call history endpoints are live. STT, speaker recognition, and PiCar-X robot integration are on the roadmap.</div>
+        <div class="cap-tag">Scripts + History Live</div>
       </div>
       <div class="cap-card">
         <div class="cap-icon">🔗</div>
         <div class="cap-title">Bring Your Own LLM</div>
-        <div class="cap-desc">Run on Murphy's default (Qwen3-235B via DeepInfra) or connect your own OpenAI, Anthropic Claude, Gemini, Groq, or Ollama key. Token usage tracked and billed per tenant.</div>
+        <div class="cap-desc">Run on Murphy's default (Qwen3-235B via DeepInfra) with Together.ai and Ollama fallback, or bring your own OpenAI key. Token usage tracked and billed per tenant via the token ledger.</div>
         <div class="cap-tag">Multi-Provider</div>
       </div>
       <div class="cap-card">
@@ -700,43 +700,56 @@ document.getElementById('hamburger').addEventListener('click', function() {
   document.getElementById('main-nav').classList.toggle('open');
 });
 
-// ── Live stats from API ──
+// ── Live hero stats — PATCH-451: single public aggregator ──
 async function loadStats() {
   try {
-    const r = await fetch('/api/swarm/agents/status');
+    const r = await fetch('/api/public/stats', { cache: 'no-store' });
     if (!r.ok) return;
     const d = await r.json();
-    const agents = d.agents || d.agent_count || 9;
-    document.getElementById('s-agents').textContent = typeof agents === 'object' ? Object.keys(agents).length : agents;
-  } catch(e) {}
+    if (d.swarm_agents != null) {
+      document.getElementById('s-agents').textContent = d.swarm_agents;
+      const liveAgents = document.getElementById('live-agents');
+      if (liveAgents) liveAgents.textContent = d.swarm_agents + ' agents';
+    }
+    if (d.mind_avg_confidence != null)
+      document.getElementById('s-mind').textContent = parseFloat(d.mind_avg_confidence).toFixed(2);
+    if (d.crm_deals != null)
+      document.getElementById('s-deals').textContent = d.crm_deals;
+    if (d.mfgc_gates_total)
+      document.getElementById('s-gates').textContent = d.mfgc_gates_open + '/' + d.mfgc_gates_total;
+    const pill = document.getElementById('sys-status');
+    if (pill) {
+      pill.textContent = d.system_status === 'operational' ? 'All Systems Go'
+                       : d.system_status === 'partial'     ? 'Partial Service'
+                       : 'Degraded';
+    }
+  } catch(e) { /* keep hardcoded defaults */ }
+}
+// Also hydrate capability-card live numbers
+async function loadCapStats() {
   try {
-    const r = await fetch('/api/swarm/mind/status');
+    const r = await fetch('/api/public/stats', { cache: 'no-store' });
     if (!r.ok) return;
     const d = await r.json();
-    if (d.confidence) document.getElementById('s-mind').textContent = parseFloat(d.confidence).toFixed(2);
+    const dealsEl1 = document.getElementById('cap-deals-count');
+    const dealsEl2 = document.getElementById('cap-deals-tag');
+    if (dealsEl1 && d.crm_deals != null) dealsEl1.textContent = d.crm_deals;
+    if (dealsEl2 && d.crm_deals != null) dealsEl2.textContent = d.crm_deals;
   } catch(e) {}
+  // Burn from treasury (best-effort, public endpoint required)
   try {
-    const r = await fetch('/api/crm/deals');
+    const r = await fetch('/api/public/treasury', { cache: 'no-store' });
     if (!r.ok) return;
     const d = await r.json();
-    const cnt = (d.deals||d.items||[]).length || d.count || 187;
-    document.getElementById('s-deals').textContent = cnt;
-  } catch(e) {}
-  try {
-    const r = await fetch('/api/mfgc/gates');
-    if (!r.ok) return;
-    const d = await r.json();
-    const gates = d.gates || [];
-    const open = gates.filter(g => g.status === 'open' || g.open === true).length;
-    if (gates.length) document.getElementById('s-gates').textContent = open + '/' + gates.length;
-  } catch(e) {}
-  // System status pill
-  try {
-    const r = await fetch('/api/info');
-    if (r.ok) document.getElementById('sys-status').textContent = 'All Systems Go';
+    const burnEl = document.getElementById('cap-burn');
+    if (burnEl && d.monthly_burn != null) burnEl.textContent = parseFloat(d.monthly_burn).toFixed(2);
   } catch(e) {}
 }
+loadCapStats();
+setInterval(loadCapStats, 60000);
 loadStats();
+// Refresh every 30s so the page stays live for a visitor lingering
+setInterval(loadStats, 30000);
 
 // ── Demo terminal ──
 const SCENARIOS = {
