@@ -180,3 +180,7 @@ src/runtime/app.py.bak*
 # OS junk
 .DS_Store
 Thumbs.db
+
+# PATCH-447: Exclude session backup files created during patches
+*.pre-*
+*.bak*

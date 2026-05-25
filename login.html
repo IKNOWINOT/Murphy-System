@@ -404,7 +404,7 @@
 <footer class="murphy-footer" role="contentinfo">
   <div class="murphy-footer-inner">
     <nav class="murphy-footer-links" aria-label="Footer navigation">
-      <a href="/ui/dashboard">Dashboard</a>
+      <a href="/dashboard">Dashboard</a>
       <a href="/ui/landing#features">Features</a>
       <a href="/ui/pricing">Pricing</a>
       <a href="/ui/docs">Docs</a>
@@ -600,7 +600,7 @@
         }
         // PATCH-179a: First-login → redirect to onboarding wizard, not dashboard
         var urlParams = new URLSearchParams(window.location.search);
-        var next = urlParams.get('next') || '/ui/dashboard';
+        var next = urlParams.get('next') || '/dashboard';
         if (result.data.first_login && result.data.onboarding_url) {
           next = result.data.onboarding_url;
         }
