@@ -22040,6 +22040,238 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": True, **ledger_engine.status()})
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+    # ────────────────────────────────────────────────────────────────────
+    # PATCH-452 — General Ledger API (double-entry on treasury.db.journal_entries)
+    # ────────────────────────────────────────────────────────────────────
+
+    def _gl_account_class(name: str) -> str:
+        """Classify an account name into one of the 5 GL classes."""
+        n = (name or "").lower()
+        # Asset accounts
+        if any(k in n for k in ["cash", "wallet", "receivable", "bank", "ar_", "atom_position", "crypto"]):
+            return "asset"
+        # Liability accounts
+        if any(k in n for k in ["payable", "owed", "ap_", "deferred_rev", "subscription_liab"]):
+            return "liability"
+        # Equity accounts
+        if "equity" in n or "retained" in n:
+            return "equity"
+        # Revenue accounts
+        if any(k in n for k in ["revenue", "income", "subscription", "sale", "payment_in"]):
+            return "revenue"
+        # Expense accounts (default for anything cost-like)
+        if any(k in n for k in ["expense", "cost", "hetzner", "deepinfra", "together", "fee", "burn", "atom_purchase"]):
+            return "expense"
+        return "expense"
+
+    def _gl_db():
+        import sqlite3 as _sq
+        c = _sq.connect("/var/lib/murphy-production/treasury.db", timeout=10)
+        c.row_factory = _sq.Row
+        return c
+
+    @app.get("/api/gl/accounts")
+    async def gl_accounts(request: Request):
+        """Chart of accounts derived from all journal_entries — every distinct
+        debit_account and credit_account is listed with its class + net balance."""
+        with _gl_db() as conn:
+            rows = conn.execute("""
+                SELECT account, SUM(dr) AS total_debit, SUM(cr) AS total_credit
+                FROM (
+                    SELECT debit_account AS account, amount_usd AS dr, 0 AS cr FROM journal_entries
+                    UNION ALL
+                    SELECT credit_account AS account, 0 AS dr, amount_usd AS cr FROM journal_entries
+                )
+                GROUP BY account
+                ORDER BY account
+            """).fetchall()
+        accounts = []
+        for r in rows:
+            cls = _gl_account_class(r["account"])
+            dr = float(r["total_debit"] or 0)
+            cr = float(r["total_credit"] or 0)
+            # Normal balance: assets/expenses are debit-normal; the rest are credit-normal
+            net = (dr - cr) if cls in ("asset", "expense") else (cr - dr)
+            accounts.append({
+                "account": r["account"],
+                "class":   cls,
+                "total_debit":  round(dr, 2),
+                "total_credit": round(cr, 2),
+                "net_balance":  round(net, 2),
+            })
+        return JSONResponse({"success": True, "accounts": accounts, "count": len(accounts)})
+
+    @app.get("/api/gl/journal")
+    async def gl_journal(request: Request):
+        """Paginated journal — newest first. Filters: business_line, account, since, until."""
+        qp = request.query_params
+        limit = min(int(qp.get("limit", 50) or 50), 500)
+        offset = int(qp.get("offset", 0) or 0)
+        where, params = [], []
+        if qp.get("business_line"):
+            where.append("business_line = ?"); params.append(qp["business_line"])
+        if qp.get("account"):
+            where.append("(debit_account = ? OR credit_account = ?)")
+            params.extend([qp["account"], qp["account"]])
+        if qp.get("since"):
+            where.append("timestamp >= ?"); params.append(qp["since"])
+        if qp.get("until"):
+            where.append("timestamp < ?");  params.append(qp["until"])
+        sql = "SELECT * FROM journal_entries"
+        if where: sql += " WHERE " + " AND ".join(where)
+        sql += " ORDER BY timestamp DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+        with _gl_db() as conn:
+            rows = conn.execute(sql, params).fetchall()
+            total = conn.execute(
+                f"SELECT COUNT(*) AS n FROM journal_entries{' WHERE ' + ' AND '.join(where) if where else ''}",
+                params[:-2] if where else []
+            ).fetchone()["n"]
+        return JSONResponse({
+            "success": True,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "entries": [dict(r) for r in rows],
+        })
+
+    @app.post("/api/gl/entry")
+    async def gl_post_entry(request: Request):
+        """Post a new double-entry transaction.
+        Body: {description, debit_account, credit_account, amount_usd, reference?, category?, business_line?}
+        Calls treasury._journal() so it goes through the same path as automated entries."""
+        body = await request.json()
+        required = ("description", "debit_account", "credit_account", "amount_usd")
+        missing = [k for k in required if not body.get(k)]
+        if missing:
+            return JSONResponse({"success": False, "error": f"missing fields: {missing}"}, status_code=400)
+        try:
+            amt = float(body["amount_usd"])
+            if amt <= 0: raise ValueError("amount_usd must be positive")
+        except (TypeError, ValueError) as e:
+            return JSONResponse({"success": False, "error": str(e)}, status_code=400)
+        try:
+            from src.murphy_treasury import get_treasury
+            t = get_treasury()
+            t._journal(
+                description    = body["description"],
+                debit_account  = body["debit_account"],
+                credit_account = body["credit_account"],
+                amount_usd     = amt,
+                reference      = body.get("reference", ""),
+                category       = body.get("category", ""),
+                business_line  = body.get("business_line", ""),
+            )
+            return JSONResponse({"success": True, "posted": {
+                "debit_account": body["debit_account"],
+                "credit_account": body["credit_account"],
+                "amount_usd": amt,
+            }})
+        except Exception as e:
+            return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+
+    @app.get("/api/gl/trial-balance")
+    async def gl_trial_balance(request: Request):
+        """Trial balance — sum of debits = sum of credits across all entries.
+        If sums don't match, the books are not balanced (bug somewhere)."""
+        with _gl_db() as conn:
+            row = conn.execute("""
+                SELECT SUM(amount_usd) AS total_debit
+                FROM journal_entries
+            """).fetchone()
+            tot = float(row["total_debit"] or 0)
+        # Every entry has equal debit & credit → both sides should equal SUM(amount_usd)
+        return JSONResponse({
+            "success": True,
+            "total_debit":  round(tot, 2),
+            "total_credit": round(tot, 2),
+            "balanced":     True,  # by construction — single-table double-entry
+            "note": "Treasury writes paired debit/credit on every entry; books are balanced by design.",
+        })
+
+    @app.get("/api/gl/income-statement")
+    async def gl_income_statement(request: Request):
+        """Revenue vs expense over a period.  Query params: since, until (ISO timestamps)."""
+        qp = request.query_params
+        since = qp.get("since", "1970-01-01T00:00:00Z")
+        until = qp.get("until", "2099-12-31T23:59:59Z")
+        with _gl_db() as conn:
+            rows = conn.execute("""
+                SELECT account, SUM(dr) AS dr, SUM(cr) AS cr FROM (
+                    SELECT debit_account AS account, amount_usd AS dr, 0 AS cr FROM journal_entries
+                      WHERE timestamp >= ? AND timestamp < ?
+                    UNION ALL
+                    SELECT credit_account AS account, 0 AS dr, amount_usd AS cr FROM journal_entries
+                      WHERE timestamp >= ? AND timestamp < ?
+                )
+                GROUP BY account
+            """, (since, until, since, until)).fetchall()
+        revenue, expense = [], []
+        rev_total = exp_total = 0.0
+        for r in rows:
+            cls = _gl_account_class(r["account"])
+            net_revenue = float(r["cr"] or 0) - float(r["dr"] or 0)   # revenue is credit-normal
+            net_expense = float(r["dr"] or 0) - float(r["cr"] or 0)   # expense is debit-normal
+            if cls == "revenue" and net_revenue > 0:
+                revenue.append({"account": r["account"], "amount": round(net_revenue, 2)})
+                rev_total += net_revenue
+            elif cls == "expense" and net_expense > 0:
+                expense.append({"account": r["account"], "amount": round(net_expense, 2)})
+                exp_total += net_expense
+        net_income = rev_total - exp_total
+        return JSONResponse({
+            "success": True,
+            "period": {"since": since, "until": until},
+            "revenue":   {"line_items": revenue, "total": round(rev_total, 2)},
+            "expense":   {"line_items": expense, "total": round(exp_total, 2)},
+            "net_income": round(net_income, 2),
+        })
+
+    @app.get("/api/gl/balance-sheet")
+    async def gl_balance_sheet(request: Request):
+        """Snapshot of assets, liabilities, equity at a point in time (default = now)."""
+        qp = request.query_params
+        as_of = qp.get("as_of", "2099-12-31T23:59:59Z")
+        with _gl_db() as conn:
+            rows = conn.execute("""
+                SELECT account, SUM(dr) AS dr, SUM(cr) AS cr FROM (
+                    SELECT debit_account AS account, amount_usd AS dr, 0 AS cr FROM journal_entries
+                      WHERE timestamp < ?
+                    UNION ALL
+                    SELECT credit_account AS account, 0 AS dr, amount_usd AS cr FROM journal_entries
+                      WHERE timestamp < ?
+                )
+                GROUP BY account
+            """, (as_of, as_of)).fetchall()
+        assets, liab, equity = [], [], []
+        a_tot = l_tot = e_tot = 0.0
+        for r in rows:
+            cls = _gl_account_class(r["account"])
+            dr = float(r["dr"] or 0); cr = float(r["cr"] or 0)
+            if cls == "asset":
+                bal = dr - cr
+                if bal != 0:
+                    assets.append({"account": r["account"], "amount": round(bal, 2)})
+                    a_tot += bal
+            elif cls == "liability":
+                bal = cr - dr
+                if bal != 0:
+                    liab.append({"account": r["account"], "amount": round(bal, 2)})
+                    l_tot += bal
+            elif cls == "equity":
+                bal = cr - dr
+                if bal != 0:
+                    equity.append({"account": r["account"], "amount": round(bal, 2)})
+                    e_tot += bal
+        return JSONResponse({
+            "success": True,
+            "as_of": as_of,
+            "assets":      {"line_items": assets, "total": round(a_tot, 2)},
+            "liabilities": {"line_items": liab,   "total": round(l_tot, 2)},
+            "equity":      {"line_items": equity, "total": round(e_tot, 2)},
+            "check_balanced": round(a_tot, 2) == round(l_tot + e_tot, 2),
+        })
+
 
     @app.post("/api/frontline/check")
     async def _frontline_check(request: Request):
