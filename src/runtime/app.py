@@ -25564,15 +25564,27 @@ def create_app() -> FastAPI:
             """
             body = await request.json()
 
-            # Build a minimal recording-like dict for the announcer
-            recording = {
-                "title":           body.get("title", "Murphy Update"),
-                "summary":         body.get("summary", "System status nominal."),
-                "confidence":      float(body.get("confidence", 0.85)),
-                "hitl_decisions":  int(body.get("hitl_decisions", 0)),
-                "module_count":    int(body.get("module_count", 20)),
-                "success":         bool(body.get("success", True)),
-            }
+            # PATCH-451g: announcer expects attribute access (recording.run_id, .hitl_decisions, .modules_used, .steps)
+            class _Recording:
+                pass
+            recording = _Recording()
+            recording.run_id          = body.get("run_id") or f"voice_{int(__import__('time').time())}"
+            recording.title           = body.get("title", "Murphy Update")
+            recording.summary         = body.get("summary", "System status nominal.")
+            recording.confidence      = float(body.get("confidence", 0.85))
+            # generate_script_only does len() on these — must be lists, not ints
+            _hd = body.get("hitl_decisions", 0)
+            recording.hitl_decisions  = _hd if isinstance(_hd, list) else [{"id": i} for i in range(int(_hd or 0))]
+            _mu = body.get("modules_used", body.get("module_count", 0))
+            recording.modules_used    = _mu if isinstance(_mu, list) else [f"module_{i}" for i in range(int(_mu or 0))]
+            recording.steps           = body.get("steps", [])
+            recording.success         = bool(body.get("success", True))
+            # PATCH-451g2: full announcer-expected attribute surface
+            recording.task_description = body.get("task_description", recording.summary)
+            recording.task_type        = body.get("task_type", "system_update")
+            recording.confidence_score = recording.confidence
+            recording.duration_seconds = float(body.get("duration_seconds", 0.0))
+            recording.system_version   = body.get("system_version", "PATCH-451")
 
             try:
                 script = _voice_engine.generate_script_only(recording)

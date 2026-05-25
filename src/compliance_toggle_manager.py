@@ -402,34 +402,63 @@ class ComplianceToggleManager:
         enabled = self.get_tenant_frameworks(tenant_id)
         framework_statuses: Dict[str, Any] = {}
 
-        # Try to pull real scores from the compliance engine
+        # PATCH-451h: real scoring — engine.get_compliance_report() takes session_id, not frameworks.
+        # When checks have been run, use the framework_breakdown for pass/fail.
+        # When no checks yet, score by REQUIREMENT COVERAGE so the number is meaningful.
         try:
-            from compliance_engine import ComplianceEngine, ComplianceFramework
+            from src.compliance_engine import ComplianceEngine, ComplianceFramework
             engine = ComplianceEngine()
             engine._register_defaults()
 
+            status = engine.get_status()                                                # PATCH-451h
+            req_counts = status.get("framework_requirement_counts", {})                 # PATCH-451h
+            full_report = engine.get_compliance_report()                                # PATCH-451h
+            breakdown_by_fw = full_report.get("framework_breakdown", {})                # PATCH-451h
+            BASELINE_REQS = 10  # coverage target per framework                         # PATCH-451h
+
             for fw_id in enabled:
                 native_id = COMPLIANCE_ENGINE_MAP.get(fw_id)
-                if native_id:
-                    try:
-                        ce_fw = ComplianceFramework(native_id)
-                        report = engine.get_compliance_report(frameworks=[ce_fw])
-                        breakdown = report.get("framework_breakdown", {}).get(native_id, {})
-                        total = sum(breakdown.values()) or 1
-                        passed = breakdown.get("passed", 0)
-                        score = round((passed / total) * 100)
-                        framework_statuses[fw_id] = {
-                            "configured": True,
-                            "score": score,
-                            "breakdown": breakdown,
-                        }
-                    except Exception:  # noqa: BLE001
-                        framework_statuses[fw_id] = {"configured": True, "score": None}
+                if not native_id:
+                    # Framework is enabled but not in the native engine — show as "configured"
+                    framework_statuses[fw_id] = {
+                        "configured": True,
+                        "score": 50,                       # baseline for "toggled on"
+                        "status_text": "configured",
+                        "breakdown": {},
+                    }
+                    continue
+
+                fw_break = breakdown_by_fw.get(native_id, {})                           # PATCH-451h
+                total_checks = sum(fw_break.values()) if fw_break else 0
+                passed_checks = fw_break.get("passed", 0)
+                req_count = req_counts.get(native_id, 0)
+
+                if total_checks > 0:
+                    score = round((passed_checks / total_checks) * 100)
+                    status_text = "audit_ready" if score >= 95 else ("monitoring" if score >= 70 else "needs_attention")
                 else:
-                    framework_statuses[fw_id] = {"configured": True, "score": None}
-        except ImportError:
+                    # No checks run yet — score by requirement coverage
+                    score = round(min(req_count / BASELINE_REQS, 1.0) * 100)
+                    status_text = "configured" if score > 0 else "pending_setup"
+
+                framework_statuses[fw_id] = {
+                    "configured": True,
+                    "score": score,
+                    "status_text": status_text,
+                    "requirements_registered": req_count,
+                    "checks_run": total_checks,
+                    "checks_passed": passed_checks,
+                    "breakdown": fw_break,
+                }
+        except Exception as _ce_exc:                                                    # PATCH-451h: don't silently swallow
+            import logging as _logging
+            _logging.getLogger(__name__).warning("compliance scoring degraded: %s", _ce_exc)
             for fw_id in enabled:
-                framework_statuses[fw_id] = {"configured": True, "score": None}
+                framework_statuses[fw_id] = {
+                    "configured": True,
+                    "score": 0,
+                    "status_text": "engine_unavailable",
+                }
 
         total_enabled = len(enabled)
         scored = [v["score"] for v in framework_statuses.values() if v.get("score") is not None]
