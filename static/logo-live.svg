@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <mask id="ml-gear-mask">
+      <rect width="240" height="240" fill="#000"/>
+      <circle cx="120" cy="120" r="98" fill="#fff"/>
+      <circle cx="120" cy="120" r="78" fill="#000"/>
+    </mask>
+    <clipPath id="ml-eye-clip">
+      <path d="M 55 120 Q 120 75 185 120 Q 120 165 55 120 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- ═══ GEAR TEETH ═══ -->
+  <g fill="#00D4AA" transform="translate(120 120)">
+    <rect x="-11" y="-118" width="22" height="24" rx="3"/>
+    <rect x="-11" y="-118" width="22" height="24" rx="3" transform="rotate(36)"/>
+    <rect x="-11" y="-118" width="22" height="24" rx="3" transform="rotate(72)"/>
+    <rect x="-11" y="-118" width="22" height="24" rx="3" transform="rotate(108)"/>
+    <rect x="-11" y="-118" width="22" height="24" rx="3" transform="rotate(144)"/>
+    <rect x="-11" y="-118" width="22" height="24" rx="3" transform="rotate(180)"/>
+    <rect x="-11" y="-118" width="22" height="24" rx="3" transform="rotate(216)"/>
+    <rect x="-11" y="-118" width="22" height="24" rx="3" transform="rotate(252)"/>
+    <rect x="-11" y="-118" width="22" height="24" rx="3" transform="rotate(288)"/>
+    <rect x="-11" y="-118" width="22" height="24" rx="3" transform="rotate(324)"/>
+  </g>
+
+  <!-- ═══ GEAR BODY (annulus) ═══ -->
+  <rect x="0" y="0" width="240" height="240" fill="#00D4AA" mask="url(#ml-gear-mask)"/>
+
+  <!-- ═══ EYE SCLERA ═══ -->
+  <path d="M 55 120 Q 120 75 185 120 Q 120 165 55 120 Z" fill="#d8ebe3"/>
+
+  <!-- ═══ IRIS + PUPIL (moving) ═══ -->
+  <g clip-path="url(#ml-eye-clip)">
+    <g id="ml-iris" style="transition: transform 90ms cubic-bezier(.25,.7,.3,1);">
+      <circle cx="120" cy="120" r="26" fill="#00D4AA"/>
+      <circle cx="120" cy="120" r="26" fill="none" stroke="#008f74" stroke-width="1.5"/>
+      <g id="ml-pupil" style="transition: transform 90ms cubic-bezier(.25,.7,.3,1);">
+        <circle cx="120" cy="120" r="11" fill="#0a1a14"/>
+        <circle cx="114.5" cy="114.5" r="2.8" fill="#deeae4" opacity="0.75"/>
+      </g>
+    </g>
+
+    <!-- ═══ EYELID — upper lid drops down, lower lid rises up to meet at center ═══ -->
+    <!-- These are filled with the gear-interior dark color so they hide the iris when closed -->
+    <g id="ml-eyelids">
+      <!-- Upper eyelid: rectangle that sits ABOVE the eye, slides DOWN on blink -->
+      <rect id="ml-lid-top" x="50" y="60" width="140" height="60"
+            fill="#080c0a"
+            style="transition: transform 80ms ease-in;"/>
+      <!-- Lower eyelid: rectangle that sits BELOW the eye, slides UP on blink -->
+      <rect id="ml-lid-bot" x="50" y="120" width="140" height="60"
+            fill="#080c0a"
+            style="transition: transform 80ms ease-in;"/>
+    </g>
+  </g>
+
+  <!-- ═══ EYE OUTLINE (top stroke) ═══ -->
+  <path d="M 55 120 Q 120 75 185 120 Q 120 165 55 120 Z"
+        fill="none" stroke="#00D4AA" stroke-width="2.5"/>
+</svg>

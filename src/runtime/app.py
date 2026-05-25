@@ -552,6 +552,7 @@ def create_app() -> FastAPI:
         "blog":                    "blog.html",
         "careers":                 "careers.html",
         "pricing":                 "pricing.html",
+        "contact":                 "contact.html",
         "legal":                   "legal.html",
         "privacy":                 "privacy.html",
         # Aliases for removed/renamed pages (PATCH-153)
@@ -949,6 +950,25 @@ def create_app() -> FastAPI:
                            media_type="text/html")
 
 
+    # PATCH-449c-contact: explicit /contact route
+    @app.get("/contact", include_in_schema=False)
+    async def contact_page_top():
+        import os as _cos
+        from fastapi.responses import FileResponse as _cFR, RedirectResponse as _cRR
+        for cand in (
+            "/opt/Murphy-System/static/contact.html",
+            "/opt/Murphy-System/contact.html",
+        ):
+            if _cos.path.isfile(cand):
+                return _cFR(cand, media_type="text/html")
+        return _cRR("/")
+
+    # PATCH-450-logo-demo: live gaze demo
+    @app.get("/logo-demo", include_in_schema=False)
+    async def logo_demo_top():
+        from fastapi.responses import FileResponse as _ldFR
+        return _ldFR("/opt/Murphy-System/static/logo-demo.html", media_type="text/html")
+
     @app.get("/book", include_in_schema=False)
     async def book_page_top():
         import os as _bos
@@ -1074,7 +1094,7 @@ def create_app() -> FastAPI:
 
     # PATCH-155: bare public routes — serve same HTML as /ui/{page} for key slugs
     _BARE_PUBLIC_SLUGS_155 = [
-        "demo", "pricing", "docs", "blog", "careers", "legal", "privacy",
+        "demo", "pricing", "docs", "blog", "careers", "legal", "privacy", "contact",
         "forge", "signup", "login", "guest-portal", "guest_portal",
         "book", "how-we-work", "shadow-marketplace", "resume", "how_we_work",
         "forgot-password", "change-password", "reset-password",
@@ -2767,6 +2787,89 @@ def create_app() -> FastAPI:
             "subscription_add_ons": account.get("subscription_add_ons", ""),
             "subscription_provider": account.get("subscription_provider"),
         })
+
+    # ── PATCH-448: Tenant + onboarding state for the dashboard ──
+    @app.get("/api/account/tenant")
+    async def account_tenant(request: Request):
+        """Return the logged-in customer's tenant (their operator)."""
+        import sqlite3 as _sq448, json as _json448
+        account = _get_account_from_session(request)
+        if not account:
+            return JSONResponse({"ok": False, "error": "not_authenticated"}, status_code=401)
+        email = account.get("email", "")
+        try:
+            _t = _sq448.connect("/var/lib/murphy-production/tenants.db")
+            _t.row_factory = _sq448.Row
+            _row = _t.execute(
+                "SELECT t.tenant_id, t.name, t.state, t.config, t.created_at, m.role "
+                "FROM tenants t JOIN tenant_members m ON t.tenant_id=m.tenant_id "
+                "WHERE m.user_id=? LIMIT 1",
+                (email,)
+            ).fetchone()
+            if not _row:
+                _t.close()
+                return JSONResponse({"ok": True, "has_tenant": False,
+                    "onboarding_required": False, "tenant": None})
+            _tdict = dict(_row)
+            try:
+                _tdict["config"] = _json448.loads(_tdict["config"]) if _tdict["config"] else {}
+            except Exception:
+                _tdict["config"] = {}
+            # Onboarding-completed check from user_accounts
+            _onboarded = bool(account.get("onboarding_completed"))
+            # Check tenant_profiles for written profile
+            try:
+                _prof = _t.execute(
+                    "SELECT 1 FROM tenant_profiles WHERE tenant_id=? LIMIT 1",
+                    (_tdict["tenant_id"],)
+                ).fetchone()
+                if _prof:
+                    _onboarded = True
+            except Exception:
+                pass
+            _t.close()
+            return JSONResponse({
+                "ok": True, "has_tenant": True,
+                "onboarding_required": not _onboarded,
+                "onboarding_url": "/ui/onboarding" if not _onboarded else None,
+                "tenant": _tdict,
+            })
+        except Exception as e:
+            return JSONResponse(
+                {"ok": False, "error": "db_read_failed", "detail": str(e)},
+                status_code=500
+            )
+
+    @app.post("/api/account/onboarding-completed")
+    async def account_mark_onboarded(request: Request):
+        """Called by the wizard's last step. Marks user as onboarded."""
+        import sqlite3 as _sq448, json as _json448
+        from datetime import datetime as _dt448, timezone as _tz448
+        account = _get_account_from_session(request)
+        if not account:
+            return JSONResponse({"ok": False, "error": "not_authenticated"}, status_code=401)
+        email = account.get("email", "")
+        try:
+            _ua = _sq448.connect("/opt/Murphy-System/murphy.db", timeout=5)
+            _ua.row_factory = _sq448.Row
+            _row = _ua.execute("SELECT data FROM user_accounts WHERE email=?", (email,)).fetchone()
+            if _row:
+                _d = _json448.loads(_row["data"]) if _row["data"] else {}
+                _d["onboarding_completed"] = True
+                _d["onboarding_completed_at"] = _dt448.now(_tz448.utc).isoformat()
+                _d["first_login"] = False
+                _ua.execute(
+                    "UPDATE user_accounts SET data=?, updated_at=? WHERE email=?",
+                    (_json448.dumps(_d), _dt448.now(_tz448.utc).isoformat(), email)
+                )
+                _ua.commit()
+            _ua.close()
+            return JSONResponse({"ok": True})
+        except Exception as e:
+            return JSONResponse(
+                {"ok": False, "error": "update_failed", "detail": str(e)},
+                status_code=500
+            )
 
     @app.get("/api/account/billing-history")
     async def account_billing_history(request: Request):
@@ -26406,6 +26509,86 @@ def create_app() -> FastAPI:
             )
             # Don't fail the request — user_accounts is canonical, billing is mirror
 
+        # ── 6.5. PATCH-448: Provision the customer's operator tenant ──
+        _tenant_id = None
+        _tenant_provisioned = False
+        try:
+            import sqlite3 as _sq448, uuid as _uuid448
+            _t = _sq448.connect("/var/lib/murphy-production/tenants.db")
+            _existing_t = _t.execute(
+                "SELECT t.tenant_id FROM tenants t "
+                "JOIN tenant_members m ON t.tenant_id = m.tenant_id "
+                "WHERE m.user_id = ? LIMIT 1",
+                (tenant_email,)
+            ).fetchone()
+            if _existing_t:
+                _tenant_id = _existing_t[0]
+                # Update existing tenant tier
+                _t.execute(
+                    "UPDATE tenants SET config=json_set(COALESCE(NULLIF(config,''),'{}'), '$.tier', ?), updated_at=? WHERE tenant_id=?",
+                    (tier, ts_now, _tenant_id)
+                )
+            else:
+                # Provision a brand-new tenant for this paying customer
+                _tenant_id = f"tenant-{_uuid448.uuid4().hex[:12]}"
+                _tenant_name = tenant_email.split("@")[0].title() + "'s Operator"
+                _tenant_config = _json446.dumps({
+                    "tier": tier,
+                    "interval": interval,
+                    "provisioned_via": "nowpayments_ipn",
+                    "payment_id": payment_id,
+                })
+                _t.execute(
+                    "INSERT INTO tenants (tenant_id, name, state, isolation, config, created_at, updated_at) "
+                    "VALUES (?,?,'active','strict',?,?,?)",
+                    (_tenant_id, _tenant_name, _tenant_config, ts_now, ts_now)
+                )
+                _t.execute(
+                    "INSERT INTO tenant_members (tenant_id, user_id, role, joined_at) "
+                    "VALUES (?,?,'owner',?)",
+                    (_tenant_id, tenant_email, ts_now)
+                )
+            _t.commit()
+            _t.close()
+            _tenant_provisioned = True
+
+            # Update user_accounts.data with tenant_id + first_login flag
+            _ua2 = _sq448.connect("/opt/Murphy-System/murphy.db", timeout=5)
+            _ua2.row_factory = _sq448.Row
+            _row = _ua2.execute(
+                "SELECT data FROM user_accounts WHERE email=?", (tenant_email,)
+            ).fetchone()
+            if _row:
+                _d = _json446.loads(_row["data"]) if _row["data"] else {}
+                _d["tenant_id"] = _tenant_id
+                # Only set first_login if not already set false (returning customer)
+                if "first_login" not in _d or _d.get("first_login") is None:
+                    _d["first_login"] = True
+                _d["onboarding_required"] = not bool(_d.get("onboarding_completed"))
+                _ua2.execute(
+                    "UPDATE user_accounts SET data=?, updated_at=? WHERE email=?",
+                    (_json446.dumps(_d), ts_now, tenant_email)
+                )
+                _ua2.commit()
+            _ua2.close()
+            _audit446(
+                actor="nowpayments_webhook", actor_type="system",
+                action="tenant.provisioned", status="ok",
+                resource_type="tenant", resource_id=_tenant_id,
+                input_summary=f"customer={tenant_email}",
+                output_summary=f"tenant_id={_tenant_id} tier={tier}",
+                ip_address=client_ip,
+                metadata={"tenant_id": _tenant_id, "tier": tier}
+            )
+        except Exception as _tprov_e:
+            _audit446(
+                actor="nowpayments_webhook", actor_type="system",
+                action="tenant.provision.failed", status="error",
+                resource_type="tenant", resource_id=tenant_email,
+                output_summary=f"tenant provisioning failed: {_tprov_e}",
+                ip_address=client_ip,
+            )
+
         # ── 7. Final SUCCESS audit ──────────────────────────────────
         _audit446(
             actor="nowpayments_webhook", actor_type="external",
@@ -26426,9 +26609,11 @@ def create_app() -> FastAPI:
             "ok": True, "received": True, "activated": True,
             "tenant_email": tenant_email, "tier": tier, "interval": interval,
             "paid_until": paid_until, "payment_id": payment_id,
+            "tenant_id": _tenant_id,
+            "tenant_provisioned": _tenant_provisioned,
             "user_account_updated": _user_account_updated,
             "billing_updated": _billing_updated,
-            "patch": "446",
+            "patch": "446+448",
         }
 
     @app.get("/api/payments/checkout")
@@ -33025,3 +33210,5 @@ if __name__ == "__main__":
         except FileNotFoundError:
             return HTMLResponse(content="<h1>Murphy Command Surface not found</h1>", status_code=404)
 
+
+# PATCH-449-contact: added /contact slug to UI page map and allowlist
